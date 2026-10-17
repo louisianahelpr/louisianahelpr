@@ -114,7 +114,7 @@ const FAILURE_KINDS = new Set(["toast.error", "toast.warning", "errorToast"]);
  * Error mappers whose generic fallback is the vague "Something went wrong"
  * sentence, found when the mappers' own copy began to be swept (2026-10-17).
  * Keyed by `src: text`. Fixing the copy is Q?toast-helper-vague (these are the
- * Declutter / quotes / category-suggestion mappers, owned by the hub lanes).
+ * Declutter / quotes / category-suggestion / Shops mappers, owned by the hub lanes).
  * An entry that no longer reproduces fails below.
  */
 // @two-way src/test/toastCopy.test.ts:stale VAGUE_MAPPER_FALLBACK_KNOWN entry
@@ -122,6 +122,7 @@ const VAGUE_MAPPER_FALLBACK_KNOWN = new Set([
   "src/lib/declutter/errors.ts: Something went wrong. Please try again.",
   "src/lib/quotes/errors.ts: Something went wrong. Please try again.",
   "src/lib/categorySuggestions.ts: Something went wrong. Please try again.",
+  "src/lib/shops/errors.ts: Something went wrong. Please try again.",
 ]);
 
 /**

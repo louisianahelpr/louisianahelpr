@@ -260,6 +260,20 @@ await step("8 a refused completion still lands the payment and is logged", async
   );
 });
 
+await step("8 a cancel or chargeback put back to escrow never hires", async () => {
+  await db.exec(`INSERT INTO public.stub_unready VALUES ('${QA}')`);
+  const { job } = await agreedJob(QA);
+  await svc(`UPDATE public.jobs SET payment_status = 'escrow', stripe_payment_intent_id = 'pi_7' WHERE id = '${job}'`);
+  // Setup finishes later; the poster cancels, the refund stops, the claim is handed back.
+  await db.exec(`DELETE FROM public.stub_unready; DELETE FROM public.job_accept_pending WHERE job_id = '${job}'`);
+  await svc(`UPDATE public.jobs SET payment_status = 'cancelling' WHERE id = '${job}'`);
+  await svc(`UPDATE public.jobs SET payment_status = 'escrow' WHERE id = '${job}'`);
+  await svc(`UPDATE public.jobs SET payment_status = 'chargeback' WHERE id = '${job}'`);
+  await svc(`UPDATE public.jobs SET payment_status = 'escrow' WHERE id = '${job}'`);
+  const j = (await svc(`SELECT status::text, helper_id FROM public.jobs WHERE id = '${job}'`))[0];
+  check("8 a cancel or chargeback put back to escrow never hires", j.status === "open" && j.helper_id === null, `${j.status} ${j.helper_id}`, true);
+});
+
 await step("8 a paid quote job whose offer already lapsed hires nobody, and is logged", async () => {
   const { job } = await agreedJob(QA);
   await svc(`UPDATE public.jobs SET direct_offer_status = 'expired' WHERE id = '${job}'`);

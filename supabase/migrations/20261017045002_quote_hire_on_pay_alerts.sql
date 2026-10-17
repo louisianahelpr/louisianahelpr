@@ -430,10 +430,14 @@ DECLARE
   v_err    text;
   v_state  text;
 BEGIN
-  -- Only the step into funded. A redelivered webhook writes escrow over escrow:
-  -- funded -> funded does nothing (idempotent).
+  -- Only the FIRST funding: from the states the webhooks promote a checkout
+  -- from (checkoutSessionCompleted, paymentIntentSucceeded). A redelivered
+  -- webhook writes escrow over escrow (funded -> funded) and does nothing; a
+  -- cancel or chargeback put back to escrow ('cancelling' / 'chargeback' ->
+  -- escrow) is not the poster paying and never hires (lh-money-escrow review
+  -- of 28a5ed3d7, M1; notify_on_payment_escrowed skips the same two).
   IF NOT public.job_payment_is_funded(NEW.payment_status::text)
-     OR public.job_payment_is_funded(OLD.payment_status::text) THEN
+     OR NOT (OLD.payment_status IS NULL OR OLD.payment_status::text IN ('unpaid', 'failed', 'abandoned')) THEN
     RETURN NULL;
   END IF;
   -- Booked from an agreed quote, and offered to the quoter who won it. Not

@@ -17,10 +17,10 @@
  *       it never held money.
  *
  * Behaviour: src/test/pglite/quoteHireOnPay.pglite.mjs (after, applied 3x:
- * 14/14; --before on main's quotes migration: 12 behaviour checks FAIL, the 2
- * controls hold; ten planted defects each RED, recorded in the lane report).
+ * 15/15; --before on main's quotes migration: 12 behaviour checks FAIL, the 3
+ * controls hold; eleven planted defects each RED, recorded in the lane report).
  *
- * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |      OR public.job_payment_is_funded(OLD.payment_status::text) THEN |      OR false THEN
+ * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql | OR NOT (OLD.payment_status IS NULL OR OLD.payment_status::text IN ('unpaid', 'failed', 'abandoned')) THEN | OR public.job_payment_is_funded(OLD.payment_status::text) THEN
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |       v_done := public.complete_direct_offer_accept(NEW.id, v_quoter); |       v_done := NULL;
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |   AFTER UPDATE OF payment_status ON public.jobs | AFTER UPDATE OF status ON public.jobs
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |         DELETE FROM public.jobs j\n         WHERE j.id = v_req.job_id | DELETE FROM public.jobs j\n         WHERE false AND j.id = v_req.job_id
@@ -77,8 +77,9 @@ describe("quotes: owner answers 8-11", () => {
     );
     const b = body("quote_job_funded_hires_quoter");
     // Only the transition: a redelivered escrow write (funded -> funded) does nothing.
+    // ... and only the FIRST funding: a cancel / chargeback put back to escrow never hires.
     expect(b).toContain(
-      "IF NOT public.job_payment_is_funded(NEW.payment_status::text) OR public.job_payment_is_funded(OLD.payment_status::text) THEN RETURN NULL;",
+      "IF NOT public.job_payment_is_funded(NEW.payment_status::text) OR NOT (OLD.payment_status IS NULL OR OLD.payment_status::text IN ('unpaid', 'failed', 'abandoned')) THEN RETURN NULL;",
     );
     // Everything the completion would refuse is checked before the setup wait
     // (no "you're booked" across a block), and a lapsed offer is logged.

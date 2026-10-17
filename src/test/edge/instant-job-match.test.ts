@@ -215,13 +215,19 @@ describe("instant-job-match edge function (Q392)", () => {
         rows: [
           { user_id: "u-label", full_name: "L", skills: skillChipLabel(category), location: "Shreveport", subscription_tier: null, ban_status: "active" },
           { user_id: "u-value", full_name: "V", skills: `Other thing, ${category}`, location: "Shreveport", subscription_tier: null, ban_status: "active" },
+          // The enum value written as words ("auto repair"): normalizeSkillText turns
+          // "_" into a space on BOTH sides, so it names auto_repair even though the
+          // label ("Auto & Small Engine") shares no word with it. Vacuity run
+          // 39017276326 (2026-10-17): with "_" left alone every case above still
+          // matched, so the guard survived that mutation.
+          { user_id: "u-words", full_name: "W", skills: category.replace(/_/g, " "), location: "Shreveport", subscription_tier: null, ban_status: "active" },
         ],
       };
       scenario.reads.notification_preferences = { rows: [] };
       const res = await call(fn, SERVICE);
       const args = enqueueCalls()[0]?.args as { p_matches: Array<{ user_id: string }> } | undefined;
       const ids = (args?.p_matches ?? []).map((m) => m.user_id).sort();
-      if (res.status !== 200 || ids.join() !== "u-label,u-value") missed.push(`${category}: ${ids.join() || "none"}`);
+      if (res.status !== 200 || ids.join() !== "u-label,u-value,u-words") missed.push(`${category}: ${ids.join() || "none"}`);
     }
     expect(missed).toEqual([]);
   });

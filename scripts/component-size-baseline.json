@@ -14,7 +14,7 @@
     "src/components/dashboard/JobCard.tsx": 819,
     "src/components/dashboard/JobDetailDialog.tsx": 954,
     "src/components/job-card/JobListPage.tsx": 765,
-    "src/components/JobTracking.tsx": 2649,
+    "src/components/JobTracking.tsx": 2645,
     "src/components/messages/ChatView.tsx": 610,
     "src/components/messages/ConversationList.tsx": 1756,
     "src/components/messages/ConversationRow.tsx": 609,

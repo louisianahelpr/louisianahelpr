@@ -546,4 +546,12 @@ test.describe.serial("admin and safety journeys", () => {
 async function openCard(page: Page, jobId: string, jobTitle: string) {
   await page.goto(`/posts?job=${jobId}`);
   await expect(page.getByText(jobTitle).first(), `${jobTitle} is missing from My Posts`).toBeVisible({ timeout: 60_000 });
+  // OPEN it, and prove it opened (02-marketplace's card()). Every card renders
+  // COLLAPSED and a collapsed card has no step chips, so No-Show could never be
+  // found on it: e2e-journeys 39073227265 failed "No-Show is not offered" on a
+  // shut card, and the before-start "not offered" check passed vacuously.
+  const card = cardByTitle(page, jobTitle);
+  const progress = card.getByRole("group", { name: /Job progress/ });
+  if (!(await progress.isVisible().catch(() => false))) await card.getByRole("heading", { name: jobTitle, level: 2 }).click();
+  await expect(progress, `${jobTitle}'s card did not open when its heading was clicked`).toBeVisible({ timeout: 30_000 });
 }

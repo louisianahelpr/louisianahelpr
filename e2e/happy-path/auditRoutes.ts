@@ -162,6 +162,10 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "reset-password", url: "/reset-password" },
   { name: "signup-pending", url: "/signup-pending" },
   { name: "account-banned", url: "/account-banned" },
+  // Q1655: the email opt-out page. No signed link here, so it renders its
+  // "This link isn't valid" state; a sweep must never press its button with a
+  // real link.
+  { name: "unsubscribe", url: "/unsubscribe" },
   { name: "legal-terms", url: "/legal?tab=terms" },
   { name: "legal-privacy", url: "/legal?tab=privacy" },
   { name: "legal-community", url: "/legal?tab=community" },

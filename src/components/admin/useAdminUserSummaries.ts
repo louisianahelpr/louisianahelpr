@@ -134,7 +134,7 @@ export function useAdminUserSummaries() {
     const [{ data, error }, giftCardPaid] = await Promise.all([
       supabase
         .from("jobs")
-        .select("id, stripe_payment_intent_id, helper_id, customer_id, budget, helper_fee_percent, platform_fee_amount, urgent_fee, is_group_job, helpers_needed, customer_fee_amount, sales_tax_amount, status, payment_status")
+        .select("id, stripe_payment_intent_id, helper_id, customer_id, budget, helper_fee_percent, helper_fee_flat_cents, platform_fee_amount, urgent_fee, is_group_job, helpers_needed, customer_fee_amount, sales_tax_amount, status, payment_status")
         .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
         .in("payment_status", [...CAPTURED_PAYMENT_STATUSES]),
       loadGiftCardPaidJobIds(),

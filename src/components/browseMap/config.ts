@@ -67,6 +67,12 @@ export interface MapJob {
    */
   boost_expires_at?: string | null;
   expires_at?: string | null;
+  /**
+   * The jobs flat-fee stamp (roadmap F3; added to the RPC by 20261017094018,
+   * Q1839). JobCard prices a flat job 5% + 70c from it, never the viewer's
+   * tier. Optional for the same deploy-order reason as the fields above.
+   */
+  helper_fee_flat_cents?: number | null;
 }
 
 // The DEFAULT CAMERA: Louisiana's real geographic extent (state bounding

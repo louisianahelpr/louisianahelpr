@@ -139,7 +139,7 @@ const AdminExport = () => {
     setExporting("earnings");
     // helper_fee_percent, is_group_job and helpers_needed are selected because
     // the stamped fee alone is not the truth — see the header note below.
-    const { data, error } = await supabase.from("jobs").select("id, title, budget, platform_fee_amount, platform_fee_percent, helper_fee_percent, is_group_job, helpers_needed, helper_id, customer_id, status, updated_at, payment_status, urgent_fee, is_seed").eq("status", "completed");
+    const { data, error } = await supabase.from("jobs").select("id, title, budget, platform_fee_amount, platform_fee_percent, helper_fee_percent, helper_fee_flat_cents, is_group_job, helpers_needed, helper_id, customer_id, status, updated_at, payment_status, urgent_fee, is_seed").eq("status", "completed");
     if (error) {
       report(error, { tags: { source: "AdminExport.exportEarnings" } });
       toast.error(userFacingError(error, "Couldn't export that — try again."));

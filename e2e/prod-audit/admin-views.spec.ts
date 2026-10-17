@@ -193,9 +193,24 @@ for (const view of VIEWS) {
     ).toBeNull();
     const seeded = POPULATED_BY_SEED[view];
     if (seeded) {
+      // A row that is in the DOM but "hidden" needs its box in the message:
+      // 2026-10-15 (run 38689259675) idvreview found the name's <span> 24
+      // times, hidden every time, and said nothing about why.
+      const box = await page
+        .getByText(seeded, { exact: false })
+        .first()
+        .evaluate((el) => {
+          const out: string[] = [];
+          for (let a: Element | null = el; a && out.length < 5; a = a.parentElement) {
+            const r = a.getBoundingClientRect();
+            out.push(`${a.tagName.toLowerCase()}.${String(a.getAttribute("class") ?? "").split(/\s+/).slice(0, 3).join(".")} ${Math.round(r.width)}x${Math.round(r.height)}`);
+          }
+          return out.join(" < ");
+        }, undefined, { timeout: 5_000 })
+        .catch(() => "not in the DOM");
       await expect(
         page.getByText(seeded, { exact: false }).first(),
-        `/admin?view=${view} does not show the seeded row (${seeded}); prod-seed --apply puts one there (Q238)`,
+        `/admin?view=${view} does not show the seeded row (${seeded}); prod-seed --apply puts one there (Q238). Its box: ${box}`,
       ).toBeVisible({ timeout: 10_000 });
       await page.screenshot({ path: info.outputPath(`admin-${view}-populated.png`), fullPage: true });
     }

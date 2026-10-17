@@ -51,8 +51,8 @@
  * repro of the two surfaces the owner named, which the committed evidence
  * cannot be until that sweep runs.
  *
- * Read-only against prod: navigates, delays two GET/RPC reads on the wire,
- * writes nothing.
+ * Read-only against prod: navigates, delays the page's own route chunks on
+ * the wire (this build's files, not prod's), writes nothing.
  *
  * Run:
  *   PLAYWRIGHT_WEB_SERVER=1 npx playwright test --project=prod-audit \
@@ -130,8 +130,13 @@ interface Surface {
   name: string;
   url: string;
   as: "poster" | "helper";
-  /** The reads whose delay opens the capture window for the loading frame. */
-  hold: RegExp;
+  /**
+   * The page's own route chunks. Holding them on a WARM in-app visit opens the
+   * capture window: the route's Suspense fallback (ActivityRouteSkeleton)
+   * draws the card placeholders while the cache already knows the list. See
+   * "WHICH FRAME HAS CARD PLACEHOLDERS" below.
+   */
+  chunk: RegExp;
   /**
    * Declared expected row height, when the surface is knowingly below budget.
    * No surface sets it today — /posts was the last, and its placeholder is
@@ -163,7 +168,7 @@ const SURFACES: Surface[] = [
     name: "jobs",
     url: "/jobs",
     as: "helper",
-    hold: /supabase\.co\/rest\/v1\/(rpc\/get_jobs_for_my_applications|applications\?select=\*)/,
+    chunk: /\/assets\/(JobsPage|JobListPage)-[^/]+\.js(\?|$)/,
     /* Q700 (owner, 2026-09-27): /jobs reserves the ONE-line card shape (130px).
        That matched while helper-e2e's list was mostly one-line cards (131px x8,
        151px x7). On 2026-09-28 00:43Z 18 of its applications became rejected on
@@ -184,7 +189,7 @@ const SURFACES: Surface[] = [
     name: "jobs-done",
     url: "/jobs?filter=done",
     as: "helper",
-    hold: /supabase\.co\/rest\/v1\/(rpc\/get_jobs_for_my_applications|applications\?select=\*)/,
+    chunk: /\/assets\/(JobsPage|JobListPage)-[^/]+\.js(\?|$)/,
     tabRowOpen: true,
     /* Added for the tab-row reservation (first-y), not the row height. Its
        row height is Q700's question on a harder list: prod-audit 36298506930
@@ -204,7 +209,7 @@ const SURFACES: Surface[] = [
     name: "posts",
     url: "/posts",
     as: "poster",
-    hold: /supabase\.co\/rest\/v1\/jobs\?select=accepted_at/,
+    chunk: /\/assets\/(PostsPage|JobListPage)-[^/]+\.js(\?|$)/,
     /* The poster's default bucket renders the GROUPED view, so a section
        heading ("Active", "Completed", …) sits above the first card and the
        placeholder draws none. 64px, measured. */
@@ -325,41 +330,85 @@ for (const surface of SURFACES) {
     })(browser);
     const page = await ctx.newPage();
     try {
-      /* HELD ON THE WIRE, NOT MOCKED (owner: no mock mode, ever). The bytes
-         that arrive are the bytes prod sent; the only intervention is a 7s
-         delay, so the loading frame exists long enough to measure. */
-      await page.route(surface.hold, async (route) => {
-        await new Promise((r) => setTimeout(r, 7_000));
+      /* WHICH FRAME HAS CARD PLACEHOLDERS (2026-10-17, prod-audit #2245).
+         Until 2026-10-05 a COLD load drew four card placeholders, so this
+         spec held the list read and measured them. The owner then chose the
+         empty-state outline for a cold visit, My Posts first and My Jobs
+         after it (docs/OPEN.md Q722 / Q201 b, 2026-10-05 and 10-07;
+         ActivityPageSkeleton `coldEmpty`, guard dataAwareSkeletons.test.tsx).
+         A cold load has drawn no card since, and this spec timed out
+         waiting for two on every run (prod-audit 38181023758, 38689259675:
+         jobs, jobs-done and posts at 30s each).
+         Cards are now the WARM frame: the query cache knows the list (from
+         an earlier visit, persisted to IndexedDB) and the page is not drawn
+         yet. That is the route's Suspense fallback on an in-app tap. So:
+           1. visit the page once, unheld, so the list is cached and persisted;
+           2. hard-load /home, which restores that cache from IndexedDB;
+           3. hold the page's route chunks (HELD ON THE WIRE, NOT MOCKED: the
+              bytes are this build's own, only late) and go to the page in-app,
+              as the dock does;
+           4. measure the placeholder rows, release the chunks, measure the
+              rows that replace them. */
+      await page.goto(surface.url, { waitUntil: "commit" });
+      await page.waitForSelector("h2.font-display", { state: "visible", timeout: 45_000 });
+      // The persister writes at most once a second (queryPersister throttleTime).
+      await page.waitForTimeout(2_500);
+
+      let release!: () => void;
+      const released = new Promise<void>((r) => (release = r));
+      const heldChunks: string[] = [];
+      await page.route(surface.chunk, async (route) => {
+        heldChunks.push(new URL(route.request().url()).pathname);
+        await released;
         await route.continue();
       });
-
-      await page.goto(surface.url, { waitUntil: "commit" });
+      await page.goto("/home", { waitUntil: "commit" });
       await page.waitForFunction(() => !document.getElementById("boot-loader"), null, { timeout: 45_000 });
+      // IndexedDB restore runs after first paint (QueryCacheHydrator).
+      await page.waitForTimeout(2_000);
+      const target = surface.url;
+      await page.evaluate((url) => {
+        history.pushState({}, "", url);
+        dispatchEvent(new PopStateEvent("popstate"));
+      }, target);
       // Wait on the SAME predicate the measurement uses, so a window that
       // opened for the waiter but not for `rows()` cannot happen.
-      await page.waitForFunction(
-        () => {
-          const BONE = '[class*="shimmer"], [class*="animate-pulse"]';
-          const cardSized = (e: Element) => {
-            const r = e.getBoundingClientRect();
-            return r.width > 150 && r.height > 60;
-          };
-          return (
-            [...document.querySelectorAll("div.rounded-2xl, div.rounded-ds-md")].filter((e) => {
-              if (!cardSized(e) || e.closest("nav") || !e.querySelector(BONE)) return false;
-              for (let p = e.parentElement; p; p = p.parentElement) {
-                if (p.matches("div.rounded-2xl, div.rounded-ds-md") && cardSized(p)) return false;
-              }
-              return true;
-            }).length >= 2
-          );
-        },
-        null,
-        { timeout: 30_000 },
-      );
+      await page
+        .waitForFunction(
+          () => {
+            const BONE = '[class*="shimmer"], [class*="animate-pulse"]';
+            const cardSized = (e: Element) => {
+              const r = e.getBoundingClientRect();
+              return r.width > 150 && r.height > 60;
+            };
+            return (
+              [...document.querySelectorAll("div.rounded-2xl, div.rounded-ds-md")].filter((e) => {
+                if (!cardSized(e) || e.closest("nav") || !e.querySelector(BONE)) return false;
+                for (let p = e.parentElement; p; p = p.parentElement) {
+                  if (p.matches("div.rounded-2xl, div.rounded-ds-md") && cardSized(p)) return false;
+                }
+                return true;
+              }).length >= 2
+            );
+          },
+          null,
+          { timeout: 30_000 },
+        )
+        .catch(async (e: unknown) => {
+          // Say what the frame WAS: which skeleton, at which URL, which chunks held.
+          const seen = await page.evaluate(() => ({
+            url: location.pathname + location.search,
+            testids: [...document.querySelectorAll("[data-testid]")].map((x) => x.getAttribute("data-testid")).filter((t) => /skeleton|empty/i.test(t ?? "")).slice(0, 6),
+            titles: document.querySelectorAll("h2.font-display").length,
+          }));
+          release();
+          throw new Error(`${surface.name}: no card placeholders on the warm in-app visit (held: ${heldChunks.join(", ") || "nothing"}; frame: ${JSON.stringify(seen)}): ${e instanceof Error ? e.message : String(e)}`);
+        });
+      expect(heldChunks.length, `${surface.name}: no route chunk was held — the warm visit never waited on ${surface.chunk}`).toBeGreaterThan(0);
       await page.waitForTimeout(400);
       const loading = await rows(page);
       await info.attach(`${surface.name}-loading.png`, { body: await page.screenshot(), contentType: "image/png" });
+      release();
 
       await page.waitForSelector("h2.font-display", { state: "visible", timeout: 45_000 });
       await page.waitForTimeout(2_000);
@@ -377,7 +426,7 @@ for (const surface of SURFACES) {
       // VACUITY FLOOR, both frames. An empty set passes every comparison
       // below, and a capture window that closed too early looks exactly like
       // a clean result.
-      expect(loading.length, `${surface.name}: no placeholder rows captured — the hold did not open a window`).toBeGreaterThanOrEqual(2);
+      expect(loading.length, `${surface.name}: no placeholder rows captured — the chunk hold did not open a window`).toBeGreaterThanOrEqual(2);
       expect(loaded.length, `${surface.name}: no real rows — nothing was compared`).toBeGreaterThanOrEqual(2);
 
       /* MEDIANS, not the first row.

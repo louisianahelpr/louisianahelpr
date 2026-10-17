@@ -196,6 +196,10 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         <p className="font-sans font-bold tabular-nums leading-none text-ds-40" style={{ color: "hsl(var(--primary))", letterSpacing: "0.18em" }}>
           {referralCode}
         </p>
+        {/* No `mr-1.5` on these icons: Button already spaces icon and label
+            with `gap-2`, and the two together (14px) pushed "Share" 3px past
+            its own box at 320, where the three columns are 71px
+            (prod-audit 38689259675, clipped-labels: sw74/cw71). */}
         <div className={canSms ? "grid grid-cols-3 gap-2" : "grid grid-cols-2 gap-2"}>
           <Button
             variant="primary"
@@ -203,7 +207,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             className="h-11 rounded-ds-md"
             onClick={shareReferral}
           >
-            <Share2 className="w-4 h-4 mr-1.5" />
+            <Share2 className="w-4 h-4" />
             Share
           </Button>
           {/* SMS shortcut — pre-fills the Messages app body with the
@@ -225,12 +229,12 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             className="h-11 rounded-ds-md"
             onClick={shareViaSMS}
           >
-            <MessageSquare className="w-4 h-4 mr-1.5" />
+            <MessageSquare className="w-4 h-4" />
             Text
           </Button>
           )}
           <Button variant="outline" size="sm" className="h-11 rounded-ds-md" onClick={copyCode}>
-            {copied ? <Check className="w-4 h-4 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
+            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             {copied ? "Copied" : "Copy"}
           </Button>
         </div>

@@ -839,7 +839,7 @@ describe("create-payment edge function", () => {
       // on the whole amount at payout. This replaced Q362 / MQ11's card fee on
       // top (folded into the Service fee line 2026-10-09).
       // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = 0; |       const customerFeeAmount = 0.45;
-      // @mutate supabase/functions/create-payment/index.ts |       const helperFeeAmount = helprFlatFeeCents(Math.round(job.budget * 100) + urgentFeeCents) / 100; |       const helperFeeAmount = helprFlatFeeCents(Math.round(job.budget * 100)) / 100;
+      // @mutate supabase/functions/create-payment/index.ts |       const escrowFlatFeeCents = jobFlatFeeTotalCents(Math.round(job.budget * 100), urgentFeeCents, escrowHelprCount); |       const escrowFlatFeeCents = jobFlatFeeTotalCents(Math.round(job.budget * 100), 0, escrowHelprCount);
       it("F3b: an urgent post charges budget + bonus only, and stores no card fee", async () => {
         for (const [budget, urgent] of [[100, 15], [20, 250]] as const) {
           resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
@@ -860,6 +860,31 @@ describe("create-payment edge function", () => {
           // The single-Helpr fee recorded at escrow: 5% of budget + bonus, plus 70c.
           expect(stamp.platform_fee_amount).toBe(Math.round((budget + urgent) * 5 + 70) / 100);
         }
+      });
+
+      // Q1845: each crew member pays 5% + 70c on their OWN share of budget +
+      // bonus, so a 3-member crew's escrow stamp is the SUM of three member
+      // fees (the payout's largest-remainder split), not one 70c on the whole.
+      // $100 + $15 bonus over 3: shares 3334/3333/3333 + 500 each -> 262 x 3 = 786c
+      // (one fee on the whole job was 645c). Both writes carry it: the
+      // fee-model stamp and the session stamp.
+      // @mutate supabase/functions/create-payment/index.ts |       const escrowHelprCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1; |       const escrowHelprCount = 1;
+      // @mutate supabase/functions/_shared/crewShares.ts |     total += helprFlatFeeCents(allocateCents(budgetCents, k, i) + allocateCents(urgentCents, k, i)); |     total += helprFlatFeeCents(allocateCents(budgetCents, k, i));
+      // @mutate supabase/functions/create-payment/index.ts |             platform_fee_amount: escrowFlatFeeCents / 100, |             platform_fee_amount: Math.round(Math.round(job.budget * 100) * 5 / 100 + 70) / 100,
+      it("Q1845: a 3-member flat crew records the summed per-member fee at escrow", async () => {
+        seedUrgentJob({ budget: 100, is_urgent: true, urgent_fee: 15, is_group_job: true, helpers_needed: 3, status: "open" });
+        await run();
+        const jobWrites = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+        const modelStamp = jobWrites.find((w) => "helper_fee_flat_cents" in (w.payload as object))?.payload as Record<string, unknown>;
+        const sessionStamp = jobWrites.filter((w) => "customer_fee_amount" in (w.payload as object)).slice(-1)[0]?.payload as Record<string, unknown>;
+        expect(modelStamp?.platform_fee_amount).toBe(7.86);
+        expect(sessionStamp?.platform_fee_amount).toBe(7.86);
+        // A single Helpr on the same price still pays one 5% + 70c: $6.45.
+        resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+        seedUrgentJob({ budget: 100, is_urgent: true, urgent_fee: 15, status: "open" });
+        await run();
+        const single = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update" && "customer_fee_amount" in (w.payload as object)).slice(-1)[0]?.payload as Record<string, unknown>;
+        expect(single?.platform_fee_amount).toBe(6.45);
       });
 
       it("Q362: a job with no urgent bonus has no urgent card fee line", async () => {

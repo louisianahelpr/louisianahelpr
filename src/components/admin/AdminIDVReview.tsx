@@ -27,6 +27,7 @@
 //   Another try   -> request_id_reupload(not_started + a fresh attempt)
 //   Reject        -> idv_reject         (failed + a stored reason; still listed here)
 
+import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { useQueryClient } from "@tanstack/react-query";
@@ -95,6 +96,23 @@ const stripeSessionUrl = (sessionId: string) =>
     : `https://dashboard.stripe.com/identity/verification-sessions/${sessionId}`;
 
 type Decision = "manual_verify" | "request_id_reupload" | "idv_reject";
+
+/** The row's status chip, one definition for both of its places (see the row). */
+function IdvStatusBadge({ failed, className }: { failed: boolean; className: string }) {
+  return (
+    <Badge
+      className={cn(
+        failed
+          ? "bg-destructive/10 text-destructive border-destructive/20 text-ds-10 gap-0.5 shrink-0"
+          : "bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30 text-ds-10 gap-0.5 shrink-0",
+        className,
+      )}
+    >
+      <ShieldAlert className="w-2.5 h-2.5" />
+      {failed ? "Rejected" : "Awaiting review"}
+    </Badge>
+  );
+}
 
 const AdminIDVReview = () => {
   const qc = useQueryClient();
@@ -305,23 +323,23 @@ const AdminIDVReview = () => {
                     <div className="w-10 h-10 rounded-full bg-accent/20 text-[hsl(var(--accent-ink))] flex items-center justify-center text-ds-13 font-bold shrink-0">
                       {(r.full_name || r.email || "?").slice(0, 2).toUpperCase()}
                     </div>
+                    {/* THE NAME KEEPS ITS ROOM ON A PHONE. Beside the 44px
+                        checkbox target, the avatar and the status badge, the
+                        name column got 35px at 375 and the name 0px: the
+                        admin saw "TEST" and "help..." and no name (prod-audit
+                        run 39008504928, admin-views idvreview; measured on
+                        prod as admin-e2e: input 44, avatar 40, column 35,
+                        badge 120). Below `sm` the badge is the column's own
+                        third line; from `sm` up it sits at the row's end. */}
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-ds-13 text-foreground flex items-center gap-2 min-w-0">
                         <span className="truncate">{r.full_name || "Unnamed"}</span>
                         {r.is_seed && <TestTag />}
                       </p>
                       <p className="text-ds-11 text-muted-foreground truncate">{r.email || "No email on file"}</p>
+                      <IdvStatusBadge failed={isFailed} className="mt-1 sm:hidden" />
                     </div>
-                    <Badge
-                      className={
-                        isFailed
-                          ? "bg-destructive/10 text-destructive border-destructive/20 text-ds-10 gap-0.5 shrink-0"
-                          : "bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30 text-ds-10 gap-0.5 shrink-0"
-                      }
-                    >
-                      <ShieldAlert className="w-2.5 h-2.5" />
-                      {isFailed ? "Rejected" : "Awaiting review"}
-                    </Badge>
+                    <IdvStatusBadge failed={isFailed} className="hidden sm:inline-flex" />
                   </div>
 
                   <div className="rounded-ds-md border border-border bg-secondary/40 p-3 space-y-1.5">

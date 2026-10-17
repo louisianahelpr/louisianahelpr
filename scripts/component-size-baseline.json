@@ -8,7 +8,7 @@
     "src/components/dashboard/FilterSheet.tsx": 763,
     "src/components/dashboard/JobCard.tsx": 819,
     "src/components/dashboard/JobDetailDialog.tsx": 954,
-    "src/components/job-card/JobListPage.tsx": 765,
+    "src/components/job-card/JobListPage.tsx": 750,
     "src/components/JobTracking.tsx": 2645,
     "src/components/messages/ConversationList.tsx": 1756,
     "src/components/MobileNav.tsx": 790,
@@ -19,7 +19,7 @@
     "src/components/profile/CredentialsTab.tsx": 911,
     "src/components/profile/ScheduleTab.tsx": 854,
     "src/components/profile/SubscriptionTab.tsx": 871,
-    "src/components/ui/dialog.tsx": 931,
+    "src/components/ui/dialog.tsx": 795,
     "src/pages/auth/CompleteProfile.tsx": 919,
     "src/pages/auth/Signup.tsx": 619,
     "src/pages/home/Dashboard.tsx": 966,
@@ -30,8 +30,8 @@
     "src/pages/posts/postedJobs/ApplicantsPanel.tsx": 770,
     "src/pages/profile/GiftCard.tsx": 847,
     "src/pages/profile/petProfiles/PetForm.tsx": 648,
-    "src/pages/profile/Profile.tsx": 854,
-    "src/pages/profile/WorkRecord.tsx": 750,
+    "src/pages/profile/Profile.tsx": 847,
+    "src/pages/profile/WorkRecord.tsx": 732,
     "src/pages/user/UserProfile.tsx": 822
   }
 }

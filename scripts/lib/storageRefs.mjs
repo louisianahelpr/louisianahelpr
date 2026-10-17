@@ -54,6 +54,7 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "helpr_tasks", column: "pickup_photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_task_picked_up RPC, the Helpr's photo at the pickup (src/lib/helprTasks/api.ts uploads it; path <uid>/task/<task>/<file>)" },
   { table: "helpr_tasks", column: "dropoff_photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_task_delivered RPC, the Helpr's photo at the drop-off (src/lib/helprTasks/api.ts uploads it; path <uid>/task/<task>/<file>)" },
   { table: "helpr_vehicles", column: "photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_set_vehicle RPC, the Helpr's truck photo (src/lib/helprTasks/api.ts uploads it; path <uid>/vehicle/<file>)" },
+  { table: "shop_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "src/lib/shops/api.ts addShopPhoto -> shops_attach_photo RPC (path <uid>/shops/<file>)" },
 ];
 
 /**
@@ -70,6 +71,7 @@ export const NOT_STORAGE_COLUMNS = {
   "jobs.require_photo_proof": "a boolean setting",
   "platform_settings.social_webhook_url": "an outbound webhook endpoint",
   "profiles.hourly_rate": "a number ('hourly' contains 'url')",
+  "shop_photos.photo_kind": "which slot the photo fills: 'logo', 'cover' or 'gallery' (a CHECK enum)",
   "str_calendar_connections.ical_url": "an external iCal feed URL",
 };
 

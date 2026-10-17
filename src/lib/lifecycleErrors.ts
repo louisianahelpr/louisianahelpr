@@ -19,6 +19,7 @@ import { JOB_STARTS_TOO_SOON_COPY } from "./offerDeadline";
 import { UNDER_18_APPLY_COPY } from "./ageGate";
 import { DECLUTTER_ERROR_COPY as DC } from "./declutter/errors";
 import { QUOTE_ERROR_COPY as QC } from "./quotes/errorCopy";
+import { SHOPS_ERROR_COPY as SC } from "./shops/errors";
 
 /**
  * THE ONE SENTENCE FOR THE BEFORE-PHOTO GATE ON "START WORKING".
@@ -466,6 +467,90 @@ export const RPC_ERROR_COPY = {
     dispute_evidence_invalid_url: "Only photos you uploaded to this dispute can be attached. Remove that photo and try again.",
     dispute_evidence_limit: "This dispute already holds as much evidence as it can take, so no more photos can be added.",
     dispute_evidence_not_allowed: "This dispute isn't taking new evidence any more — it may already have been decided. Refresh to see where it stands.",
+  },
+  // Shops (docs/specs/local-shops-prep.md): the words live in
+  // src/lib/shops/errors.ts (SHOPS_ERROR_COPY, exact against the migration);
+  // each RPC maps exactly the codes it can raise.
+  shops_attach_photo: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_photo_kind: SC.invalid_photo_kind,
+    not_authenticated: SC.not_authenticated,
+    payout_setup_incomplete: SC.payout_setup_incomplete,
+    photo_already_attached: SC.photo_already_attached,
+    photo_not_uploaded: SC.photo_not_uploaded,
+    shop_not_found: SC.shop_not_found,
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    too_many_photos: SC.too_many_photos,
+    under_18: SC.under_18,
+  },
+  shops_browse: {
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+  },
+  shops_close_my_shop: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+    shop_hidden: SC.shop_hidden,
+    shop_not_found: SC.shop_not_found,
+  },
+  shops_get_shop: {
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+    shop_not_found: SC.shop_not_found,
+  },
+  shops_my_shop_id: {
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+  },
+  shops_remove_photo: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+    photo_not_found: SC.photo_not_found,
+  },
+  shops_save_my_shop: {
+    about_too_long: SC.about_too_long,
+    account_restricted: SC.account_restricted,
+    area_looks_like_address: SC.area_looks_like_address,
+    feature_disabled: SC.feature_disabled,
+    invalid_area: SC.invalid_area,
+    invalid_category: SC.invalid_category,
+    invalid_location: SC.invalid_location,
+    invalid_name: SC.invalid_name,
+    invalid_parishes: SC.invalid_parishes,
+    invalid_sos_number: SC.invalid_sos_number,
+    not_authenticated: SC.not_authenticated,
+    offers_required: SC.offers_required,
+    payout_setup_incomplete: SC.payout_setup_incomplete,
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    under_18: SC.under_18,
+  },
+  shops_set_follow: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_follow: SC.invalid_follow,
+    not_authenticated: SC.not_authenticated,
+    own_shop: SC.own_shop,
+    shop_not_found: SC.shop_not_found,
+  },
+  shops_set_hours: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_hours: SC.invalid_hours,
+    not_authenticated: SC.not_authenticated,
+    payout_setup_incomplete: SC.payout_setup_incomplete,
+    shop_not_found: SC.shop_not_found,
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    under_18: SC.under_18,
+  },
+  shops_set_paused: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_paused: SC.invalid_paused,
+    not_authenticated: SC.not_authenticated,
+    shop_not_found: SC.shop_not_found,
   },
   // Declutter (docs/specs/declutter-auctions.md): the words live in
   // src/lib/declutter/errors.ts (DECLUTTER_ERROR_COPY, exact against the

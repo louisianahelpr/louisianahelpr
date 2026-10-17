@@ -46,6 +46,7 @@ export function FeatureSwitchesCard() {
     // Quotes on jobs (slice 1 is server-only): the admin's proof the switch
     // reaches this account before the quote screens exist.
     quotes: useFeature("quotes"),
+    shops: useFeature("shops"),
   };
   const [pending, setPending] = useState<PendingChange | null>(null);
   const [saving, setSaving] = useState(false);

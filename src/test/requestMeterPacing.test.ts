@@ -25,12 +25,16 @@
  * @mutate e2e/requestMeter.mjs |       page[name] = async (...args) => { |       page[`${name}Unpaced`] = async (...args) => {
  * @mutate e2e/prodTest.ts | meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers }); | void ceilingFor;
  * @mutate e2e/requestMeter.mjs |     page.__requestMeterGate = (path) => this.pace(pageKey(path)); |
+ * @mutate e2e/requestMeter.mjs |     this.bursts = { ...learned.bursts, ...this.bursts }; |     void learned;
+ * @mutate e2e/requestMeter.mjs |     this.reserve = Math.max(this.reserve, learned.reserve); |     void learned.reserve;
+ * @mutate e2e/requestMeter.mjs |       learnedBursts: this.currentBursts(), |       learnedBursts: {},
  * @mutate e2e/prodTest.ts | if (running.timeout > 0) running.setTimeout(running.timeout + ms); | void running;
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { RequestMeter, ceilingFor, gateClientNav } from "../../e2e/requestMeter.mjs";
+import { RequestMeter, ceilingFor, gateClientNav, priorBursts } from "../../e2e/requestMeter.mjs";
 import { aggregate } from "../../scripts/e2e/request-budget.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -202,6 +206,49 @@ describe("the request meter paces a run under its ceiling", () => {
     expect(gated.toJSON().topBursts?.["/route0"], "each route carries its own burst").toBe(13);
     expect(peak(gated)).toBeLessThanOrEqual(400);
     expect(await gateClientNav({}, "/x"), "an unmetered page is a no-op").toBe(0);
+  });
+
+  it("a worker restarted after a failure keeps what its predecessor learned (prod-audit 403 > 400, run 38689259675)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "lh-meter-"));
+    try {
+      // Process A learns two pages' bursts (one over half the ceiling) and writes its sample.
+      const clockA = fakeClock(1_790_000_000_000);
+      const a = new RequestMeter("prod-audit").paceTo(400, { prior: {}, learned: { bursts: {}, reserve: 40 }, now: clockA.now, sleep: clockA.sleep });
+      await a.pace("/jobs/:id");
+      for (let i = 0; i < 77; i++) a.record(URL, "GET", clockA.now());
+      clockA.advance(60_000);
+      await a.pace("/admin");
+      for (let i = 0; i < 250; i++) a.record(URL, "GET", clockA.now());
+      await a.pace("/home");
+      writeFileSync(join(dir, "prod-audit.1.json"), JSON.stringify(a.toJSON()));
+      const learned = priorBursts("prod-audit", dir);
+      expect(learned.bursts["/jobs/:id"]).toBe(77);
+      expect(learned.bursts["/admin"]).toBe(250);
+      expect(learned.reserve).toBe(250);
+
+      // Process B (Playwright's replacement worker) finds the minute part-full and sends `burst` after the gate.
+      const load = async (l: { bursts: Record<string, number>; reserve: number }, key: string, used: number, burst: number) => {
+        const clock = fakeClock(1_790_000_600_000);
+        const minute = Math.floor(clock.now() / 60_000);
+        const b = new RequestMeter("prod-audit").paceTo(400, { prior: { [minute]: used }, learned: l, now: clock.now, sleep: clock.sleep });
+        await b.pace(key);
+        const m = Math.floor(clock.now() / 60_000);
+        for (let i = 0; i < burst; i++) b.record(URL, "GET", clock.now());
+        return (m === minute ? used : 0) + (b.minutes[m] ?? 0);
+      };
+      const fresh = { bursts: {}, reserve: 40 };
+      // A page it saw (the 77 of run 38689259675) into a minute at 330.
+      expect(await load(fresh, "/jobs/:id", 330, 77), "a fresh process admits it into the full minute").toBeGreaterThan(400);
+      expect(await load(learned, "/jobs/:id", 330, 77)).toBeLessThanOrEqual(400);
+      // A page bigger than half the ceiling: only its own learned burst holds it (the reserve is capped at 200).
+      expect(await load({ bursts: {}, reserve: 250 }, "/admin", 160, 250), "the reserve alone admits it").toBeGreaterThan(400);
+      expect(await load(learned, "/admin", 160, 250)).toBeLessThanOrEqual(400);
+      // A page nobody has seen yet: the learned reserve holds it.
+      expect(await load(fresh, "/never-seen", 330, 77), "the starting reserve admits it").toBeGreaterThan(400);
+      expect(await load({ bursts: learned.bursts, reserve: learned.reserve }, "/never-seen", 330, 77)).toBeLessThanOrEqual(400);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("workers share the ceiling", () => {

@@ -132,6 +132,34 @@ export function priorMinutes(label, dir = REQUEST_BUDGET_DIR) {
 }
 
 /**
+ * What earlier processes of `label` LEARNED about bursts (see PACING), from
+ * their samples in `dir`: the largest burst per gate key and the largest
+ * `reserve`. Playwright replaces the worker process after every failed test,
+ * and a new process that started from PACE_MIN_RESERVE admitted a known-big
+ * page into a nearly full minute: prod-audit 38689259675 (2026-10-15, 18
+ * failures on two one-worker legs, so 18+ fresh processes) went 403 against
+ * the 400/min ceiling, its largest burst `/jobs/:id` 77.
+ */
+export function priorBursts(label, dir = REQUEST_BUDGET_DIR) {
+  const bursts = {};
+  let reserve = PACE_MIN_RESERVE;
+  if (!existsSync(dir)) return { bursts, reserve };
+  for (const f of readdirSync(dir)) {
+    if (!f.endsWith(".json") || f === "summary.json") continue;
+    let s;
+    try {
+      s = JSON.parse(readFileSync(join(dir, f), "utf8"));
+    } catch {
+      continue; // a sample mid-write by another process: the next restart reads it
+    }
+    if (s.label !== label) continue;
+    for (const [k, n] of Object.entries(s.learnedBursts ?? {})) bursts[k] = Math.max(bursts[k] ?? 0, n);
+    if (typeof s.reserve === "number") reserve = Math.max(reserve, s.reserve);
+  }
+  return { bursts, reserve };
+}
+
+/**
  * Gate an IN-APP navigation (history.pushState + popstate) the way goto is
  * gated. Every route a client-side walk visits is a page load's worth of
  * requests, and none of them passes page.goto: route-retention-signed-in
@@ -193,9 +221,12 @@ export class RequestMeter {
    * `workers` processes may share it at once, so each gets its share.
    * `prior` is what earlier processes of the label recorded, per epoch minute.
    */
-  paceTo(ceilingPerMinute, { workers = 1, prior = priorMinutes(this.label), now, sleep } = {}) {
+  paceTo(ceilingPerMinute, { workers = 1, prior = priorMinutes(this.label), learned = priorBursts(this.label), now, sleep } = {}) {
     this.ceiling = Math.floor(ceilingPerMinute / Math.max(1, workers));
     this.prior = prior;
+    // A restarted worker starts from what its predecessors learned, not from scratch.
+    this.bursts = { ...learned.bursts, ...this.bursts };
+    this.reserve = Math.max(this.reserve, learned.reserve);
     if (now) this.clock.now = now;
     if (sleep) this.clock.sleep = sleep;
     return this;
@@ -332,6 +363,11 @@ export class RequestMeter {
     return api;
   }
 
+  /** Largest burst per gate key, including the one still open since the last gate. */
+  currentBursts() {
+    return { ...this.bursts, ...(this.lastKey !== null ? { [this.lastKey]: Math.max(this.bursts[this.lastKey] ?? 0, this.sinceGate) } : {}) };
+  }
+
   toJSON() {
     const topDup = Object.entries(this.dupKeys).sort((a, b) => b[1] - a[1]).slice(0, 10);
     return {
@@ -344,11 +380,14 @@ export class RequestMeter {
       minutes: this.minutes,
       topDuplicates: Object.fromEntries(topDup),
       topBursts: Object.fromEntries(
-        Object.entries({ ...this.bursts, ...(this.lastKey !== null ? { [this.lastKey]: Math.max(this.bursts[this.lastKey] ?? 0, this.sinceGate) } : {}) })
+        Object.entries(this.currentBursts())
           .sort((a, b) => b[1] - a[1])
           .slice(0, 5),
       ),
       byShape: this.byShape,
+      /** every gate key's largest burst and the learned reserve, read back by priorBursts() in the next process */
+      learnedBursts: this.currentBursts(),
+      reserve: this.reserve,
       paceWaitMs: this.paceWaitMs,
       startedAt: this.startedAt,
       endedAt: Date.now(),

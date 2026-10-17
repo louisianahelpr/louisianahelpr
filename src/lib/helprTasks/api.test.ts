@@ -15,8 +15,6 @@
  * @mutate src/lib/helprTasks/api.ts |     if (msg && Object.isExtensible(e)) e.userMessage = msg; |     void msg;
  * @mutate src/lib/helprTasks/api.ts | `${userId}/task/${taskId}/${nonce()}.jpg` | `${userId}/${taskId}/${nonce()}.jpg`
  */
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type Result = { data?: unknown; error?: unknown };
@@ -101,10 +99,14 @@ import {
   helprTakeHomeCents,
 } from "@/lib/declutter/delivery";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { newestFunction } from "@/test/helpers/parityReaders";
 
 const ok = (data: unknown): Result => ({ data, error: null });
 const refused = (message: string): Result => ({ data: null, error: { message } });
-const MIGRATION = readFileSync(join(process.cwd(), "supabase/migrations/20261017052705_declutter_helpr_delivery.sql"), "utf8");
+// The NEWEST definition of each priced function, never one migration by name
+// (src/test/guardsReadTheNewestMigration.test.ts): a later restatement must be graded.
+const PRICE_SQL = newestFunction("declutter_delivery_price_cents").body;
+const FEE_SQL = newestFunction("helpr_task_fee_cents").body;
 
 beforeEach(() => {
   h.queue.length = 0;
@@ -117,9 +119,9 @@ beforeEach(() => {
 
 describe("delivery price mirror (row 29) agrees with the SQL", () => {
   it("uses the same constants as declutter_delivery_price_cents", () => {
-    expect(MIGRATION.length).toBeGreaterThan(100_000); // the migration was read, not an empty file
-    expect(MIGRATION).toContain("SELECT 1000 + 200 * greatest(COALESCE(p_miles, 1), 1)");
-    expect(MIGRATION).toContain("CASE s WHEN 'large' THEN 2000 WHEN 'xl' THEN 4000 ELSE 0 END");
+    expect(PRICE_SQL.length).toBeGreaterThan(50); // the body was read, not an empty match
+    expect(PRICE_SQL).toContain("SELECT 1000 + 200 * greatest(COALESCE(p_miles, 1), 1)");
+    expect(PRICE_SQL).toContain("CASE s WHEN 'large' THEN 2000 WHEN 'xl' THEN 4000 ELSE 0 END");
     expect([DELIVERY_BASE_CENTS, DELIVERY_PER_MILE_CENTS]).toEqual([1000, 200]);
     expect(DELIVERY_SIZE_CENTS).toEqual({ small: 0, large: 2000, xl: 4000 });
   });
@@ -133,14 +135,15 @@ describe("delivery price mirror (row 29) agrees with the SQL", () => {
   });
 
   it("the Helpr keeps the fee minus jobs' flat 5% + 70c (same as helpr_task_fee_cents)", () => {
-    expect(MIGRATION).toContain("ELSE least(p_pay_cents, round(p_pay_cents * 5 / 100.0)::integer + 70) END;");
+    expect(FEE_SQL.length).toBeGreaterThan(50);
+    expect(FEE_SQL).toContain("ELSE least(p_pay_cents, round(p_pay_cents * 5 / 100.0)::integer + 70) END;");
     expect(helprTakeHomeCents(1200)).toBe(1200 - 60 - 70);
     expect(helprTakeHomeCents(4000)).toBe(4000 - 200 - 70);
     expect(helprTakeHomeCents(50)).toBe(0);
     expect(helprTakeHomeCents(0)).toBe(0);
     // A half cent rounds UP in both (SQL round(numeric) and Math.round agree for positive cents): 1010 -> 50.5 -> 51 + 70.
     expect(helprTakeHomeCents(1010)).toBe(1010 - 121);
-    expect(MIGRATION).toContain("least(p_pay_cents, round(p_pay_cents * 5 / 100.0)::integer + 70)");
+    expect(FEE_SQL).toContain("least(p_pay_cents, round(p_pay_cents * 5 / 100.0)::integer + 70)");
   });
 });
 

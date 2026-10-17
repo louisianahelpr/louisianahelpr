@@ -898,12 +898,32 @@ async function settleCheckoutSession(
         logStep("Reserved gift card already consumed for this job — skipping", { giftCardId });
       } else {
         let reclaimed = false;
-        if (
-          giftJobId &&
+        let bouncedRedelivery = false;
+        const reclaimable =
+          !!giftJobId &&
           (g?.status === "sent" || g?.status === "available") &&
           g?.payment_status === "paid" &&
-          (g.job_id == null || g.job_id === giftJobId)
-        ) {
+          (g.job_id == null || g.job_id === giftJobId);
+        // Q1876 (lh-money-escrow review of 6b06413c7, #5): only the job's OWN
+        // current checkout may re-claim. A bank-debit bounce returns the gift
+        // to 'sent' (return_bounced_gift_card) and clears the job's session; a
+        // late redelivery of that bounced session's completion would otherwise
+        // find the gift spendable and spend it again on a job nobody funded.
+        let sessionIsJobs = false;
+        if (reclaimable) {
+          const { data: jobRow, error: jobReadErr } = await supabase
+            .from("jobs")
+            .select("stripe_session_id, payment_status")
+            .eq("id", giftJobId)
+            .maybeSingle();
+          if (jobReadErr) {
+            throw new Error(`jobs read failed before a gift re-claim for session ${session.id}: ${jobReadErr.message}`);
+          }
+          const jr = jobRow as { stripe_session_id?: string | null; payment_status?: string | null } | null;
+          sessionIsJobs = jr?.stripe_session_id === session.id;
+          bouncedRedelivery = !sessionIsJobs && jr?.payment_status === "failed";
+        }
+        if (reclaimable && sessionIsJobs) {
           const { data: reclaimRow, error: reclaimErr } = await supabase
             .from("gift_cards")
             .update({ status: "redeemed", redeemed_at: new Date().toISOString(), job_id: giftJobId })
@@ -927,6 +947,10 @@ async function settleCheckoutSession(
             title: "Gift card re-claimed on a difference payment (Q1417 race)",
             message: "The shortfall was paid after the gift had been un-reserved by an expired checkout. The gift was re-claimed for this job, so nothing was spent twice. No action needed unless this repeats.",
             fields: { session_id: session.id, gift_card_id: giftCardId, job_id: giftJobId ?? null },
+          });
+        } else if (bouncedRedelivery) {
+          logStep("Completion of a bounced bank checkout redelivered — its gift was returned; not re-claimed", {
+            giftCardId, sessionId: session.id, giftJobId: giftJobId ?? null,
           });
         } else {
           logStep("ERROR: difference paid but the gift could not be consumed — job funded by the difference only", {

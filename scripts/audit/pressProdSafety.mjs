@@ -365,7 +365,7 @@ function isStateToggle({ meta = {}, label = "" }) {
  * test-owned record. src/test/pressGatesEveryAdminWrite.test.ts keeps this
  * vocabulary in step with the admin buttons that write, read from the source.
  */
-export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend)\b/i;
+export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend|end series)\b/i;
 export function isAdminWrite({ persona, label = "" }) {
   return persona === "admin" && ADMIN_WRITE_RX.test(label);
 }

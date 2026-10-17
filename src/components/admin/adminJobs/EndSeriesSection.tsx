@@ -106,7 +106,7 @@ export function EndSeriesSection({ job }: { job: { id: string; recurrence_days?:
       <Button
         variant="outline"
         size="sm"
-        className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/5"
+        className="gap-1.5 text-destructive border-destructive/40 hover:bg-[hsl(var(--destructive)/0.10)]"
         onClick={endSeries}
         disabled={busy || reason.trim().length < END_SERIES_REASON_MIN}
       >

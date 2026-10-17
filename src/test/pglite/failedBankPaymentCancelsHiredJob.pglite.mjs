@@ -83,6 +83,7 @@ const AFTER_KEPT = new Set([
   "jobs.trg_close_pending_applications_on_job_cancel",
   "jobs.on_job_status_change",
   "jobs.trg_jobs_record_backout_notice",
+  "jobs.job_status_system_message",
 ]);
 const CHAIN = Object.entries(triggers)
   .filter(([k, t]) => t.before || AFTER_KEPT.has(k))
@@ -178,6 +179,13 @@ CREATE TABLE public.gift_cards (
   design_id text, restored_from_job_id uuid
 );
 CREATE TABLE public.payout_transfers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid);
+-- messages: the columns insert_job_status_system_message writes. Its own
+-- triggers are not modelled; a system row here is what would notify the
+-- receiver (notify_message_recipient), so the proof counts rows.
+CREATE TABLE public.messages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, sender_id uuid, receiver_id uuid,
+  content text, read boolean DEFAULT false, is_system boolean DEFAULT false, created_at timestamptz DEFAULT now()
+);
 CREATE TABLE public.test_fixture_jobs (job_id uuid PRIMARY KEY, purpose text NOT NULL UNIQUE, created_at timestamptz NOT NULL DEFAULT now());
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated, service_role;
@@ -222,7 +230,7 @@ const reset = () => db.exec(`
   SET session_replication_role = replica;
   DELETE FROM public.notifications; DELETE FROM public.applications; DELETE FROM public.group_job_helpers;
   DELETE FROM public.user_violations; DELETE FROM public.backout_notices; DELETE FROM public.sent_backout_emails;
-  DELETE FROM public.gift_cards; DELETE FROM public.payout_transfers; DELETE FROM public.jobs;
+  DELETE FROM public.messages; DELETE FROM public.gift_cards; DELETE FROM public.payout_transfers; DELETE FROM public.jobs;
   SET session_replication_role = origin;`);
 
 async function seedJob(id, f) {
@@ -332,6 +340,20 @@ check("A1 the poster's notice is the only notice", c.notices === 1, JSON.stringi
 v = await cancel(J(1));
 c = await counts();
 check("A1b a redelivery is moved_on and sends nothing more", v?.outcome === "moved_on" && c.notices === 1, JSON.stringify({ v, c }));
+
+const sysRows = async () => (await one(`SELECT count(*)::int AS n FROM public.messages WHERE is_system`)).n;
+
+// A1c: the unconfirmed Helpr has a message thread with the poster: no
+// "✕ Job cancelled" thread row reaches them (it would notify them).
+await reset();
+await seedJob(J(11), { status: "accepted", helper: HELPR });
+await raw(`INSERT INTO public.messages (job_id, sender_id, receiver_id, content) VALUES ('${J(11)}', '${HELPR}', '${POSTER}', 'On my way Saturday')`);
+v = await cancel(J(11));
+check("A1c a thread participant gets no system 'Job cancelled' row (no message notice to an unconfirmed Helpr)", v?.outcome === "cancelled" && (await sysRows()) === 0, JSON.stringify({ v, rows: await sysRows() }));
+// Control: the trigger is live in this proof: an ordinary status change still writes its row.
+await raw(`UPDATE public.jobs SET status = 'accepted', payment_status = 'escrow' WHERE id = '${J(11)}'`);
+await as("service_role", null, `UPDATE public.jobs SET status = 'in_progress' WHERE id = '${J(11)}'`);
+check("A1c control: the system-message trigger runs here (an ordinary move writes its row)", (await sysRows()) === 1, String(await sysRows()));
 
 // A2: hired and confirmed.
 await reset();

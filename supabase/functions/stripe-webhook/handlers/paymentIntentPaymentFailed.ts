@@ -111,6 +111,12 @@ async function unfundFailedEscrow(
       });
     }
     return;
+  } else if (cancelOutcome === "moved_on" && (cancelVerdict as { payment_status?: string }).payment_status === "cancelling") {
+    // A poster refund holds the job in 'cancelling'. Its refund of this failed
+    // PaymentIntent fails and its put-back returns the job to 'escrow', which
+    // would be 7440a72d again with this event spent: retry later instead
+    // (lh-money-escrow review of 56346b5eb #5).
+    throw new Error(`Job ${job.id} is mid-refund ('cancelling') while its payment failed; retrying so the failure is not lost`);
   } else if (cancelOutcome === "moved_on" || cancelOutcome === "not_found") {
     logStep("payment_failed on a funded job: the job moved on before the cancel — nothing written", {
       jobId: job.id, piId, outcome: cancelOutcome,
@@ -187,8 +193,8 @@ async function unfundFailedEscrow(
     kind: "money_at_risk",
     severity: "critical",
     title: "A funded job's payment failed — taken out of escrow",
-    message: `Job ${job.id} ("${job.title}") was '${job.payment_status}' but its PaymentIntent ${piId} is ${liveStatus}. It is now payment_status='failed'; the poster${hired ? " and the confirmed Helpr were" : " was"} told. Its job status ('${job.status}') was left as it is.`,
-    fields: { job_id: job.id, payment_intent: piId, pi_status: liveStatus, job_status: job.status ?? null },
+    message: `Job ${job.id} ("${job.title}") was '${job.payment_status}' but its PaymentIntent ${piId} is ${liveStatus}. It is now payment_status='failed'; the poster${hired ? " and the confirmed Helpr were" : " was"} told. Its job status ('${job.status}') was left as it is.${giftCardId ? ` Its checkout spent gift card ${giftCardId}, which is NOT returned on this path (Q1975): run return_bounced_gift_card for this job and gift.` : ""}`,
+    fields: { job_id: job.id, payment_intent: piId, pi_status: liveStatus, job_status: job.status ?? null, gift_card_id: giftCardId },
     oncePerDayKey: `funded-job-payment-failed:${job.id}`,
     seed: job.is_seed ?? false,
   });

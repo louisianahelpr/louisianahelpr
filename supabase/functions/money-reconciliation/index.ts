@@ -627,8 +627,13 @@ serve(async (req) => {
       // cancellation it "owes" a 50% fee and pages critical (Q336).
       if (job.dispute_status === "resolved" && !job.cancelled_at) continue;
 
+      // Q1971: a job cancelled because its bank payment failed
+      // (cancel_job_after_failed_bank_payment, payment_status 'failed') holds
+      // no money, so it owes no fee and its late flag has no truth: nobody
+      // chose to cancel. Recomputing the ladder would page every one of them.
+      const noMoneyArrived = job.payment_status === "failed";
       // Recompute from the SAME module void-cancelled-payments settles with.
-      const expectedFee = expectedCancellationFee(job);
+      const expectedFee = noMoneyArrived ? 0 : expectedCancellationFee(job);
       const storedFee = money(job.cancellation_fee);
 
       if (!(Math.abs(storedFee - expectedFee) <= EPSILON)) {
@@ -647,7 +652,7 @@ serve(async (req) => {
       // CHANGED 2026-09-08: gated on commitment, not assignment. A merely
       // offered Helpr is charged 0%, so late_cancellation is written false and
       // an assignment-based expectation here would flag every one of those.
-      if (helperIsCommitted({ helper_id: job.helper_id as string | null, helper_confirmed_at: job.helper_confirmed_at as string | null }) && job.date_needed) {
+      if (!noMoneyArrived && helperIsCommitted({ helper_id: job.helper_id as string | null, helper_confirmed_at: job.helper_confirmed_at as string | null }) && job.date_needed) {
         const hrs = hoursUntilJob(
           job.date_needed as string,
           job.cancelled_at as string | null,

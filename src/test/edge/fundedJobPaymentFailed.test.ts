@@ -184,6 +184,30 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
     }
   });
 
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | } else if (cancelOutcome === "moved_on" && (cancelVerdict as { payment_status?: string }).payment_status === "cancelling") { | } else if (false) {
+  it("a job mid-refund ('cancelling') is retried (500), so a refund that puts it back in escrow cannot swallow the failure", async () => {
+    const fn = await loadConfigured();
+    failedEvent();
+    fundedJob();
+    cancelAnswers("moved_on", { payment_status: "cancelling" });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+    const res = await fn.fetch(webhookRequest(fn));
+    expect(res.status).toBe(500);
+    expect(jobUpdates()).toHaveLength(0);
+    expect(notices()).toHaveLength(0);
+  });
+
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | ${giftCardId ? ` Its checkout spent gift card ${giftCardId} | ${false ? ` Its checkout spent gift card ${giftCardId}
+  it("the un-fund fallback names a spent gift card in its page, so ops returns it (Q1975 until built)", async () => {
+    const fn = await loadConfigured();
+    failedEvent(PI, { gift_card_id: "gift-1" });
+    fundedJob({ status: "open", helper_id: null });
+    cancelAnswers("not_hired");
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+    await fn.fetch(webhookRequest(fn));
+    expect(slackAlerts.some((a) => /gift card gift-1/.test(String((a as { message?: string }).message)))).toBe(true);
+  });
+
   it("an RPC error is retried (500) with nothing written; an answer the handler does not know is too", async () => {
     for (const setup of [
       () => { scenario.rpcErrors = { [CANCEL_RPC]: { message: "deadlock detected", code: "40P01" } }; },

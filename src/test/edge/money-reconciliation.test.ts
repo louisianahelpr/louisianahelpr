@@ -248,6 +248,21 @@ describe("money-reconciliation edge function", () => {
       const checks = ((b.findings ?? []) as Array<{ check: string }>).map((f) => f.check);
       expect(checks).toContain("cancellation_fee_mismatch");
     });
+    // Q1971: cancelled because the bank payment failed (no money arrived):
+    // fee 0 and no late flag is correct, not a finding.
+    // @mutate supabase/functions/money-reconciliation/index.ts |       const noMoneyArrived = job.payment_status === "failed"; |       const noMoneyArrived = false;
+    it("a job cancelled because its bank payment failed (payment_status failed, fee 0) raises no fee or late-flag finding", async () => {
+      const fn = await loadConfigured();
+      cancelledJob({
+        dispute_status: null, payment_status: "failed", cancellation_fee: 0, late_cancellation: false,
+        cancellation_fee_status: null, cancelled_by: null,
+        cancelled_at: new Date(Date.now() - 4 * 86_400_000).toISOString(),
+      });
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(b.error).toBeUndefined();
+      const checks = ((b.findings ?? []) as Array<{ check: string }>).map((f) => f.check);
+      expect(checks.filter((c) => /cancellation|late_cancellation/.test(c))).toEqual([]);
+    });
   });
 
   // ── include_seed runs never page (docs/OPEN.md Q90) ─────────────────────

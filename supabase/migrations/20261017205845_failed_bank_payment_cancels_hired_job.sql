@@ -37,6 +37,11 @@
 --   * a job that moved on (another PI, or no longer escrow/payout_pending):
 --     'moved_on', nothing written.
 --
+-- insert_job_status_system_message (newest definition 20261004001242, plus
+-- one early return) skips its "✕ Job cancelled" thread row under the same
+-- flag: that row notifies every thread participant (notify_message_recipient)
+-- as if from the poster (lh-money-escrow review of 56346b5eb #1).
+--
 -- record_backout_notice (restated verbatim from its newest definition,
 -- 20261017073146, plus one early return) would read this cancel as the
 -- poster's ("<name> cancelled") and email an unconfirmed Helpr, and would tell
@@ -291,3 +296,113 @@ BEGIN
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.record_backout_notice() FROM PUBLIC, anon, authenticated;
+
+-- insert_job_status_system_message: newest definition (20261004001242) + the
+-- Q1971 early return. Live md5(prosrc) before: 7b9df9c20d46f0dadc1e6489c55b0c14,
+-- the same as 20261004001242's body (both measured 2026-10-17, read-only).
+CREATE OR REPLACE FUNCTION public.insert_job_status_system_message()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_content text;
+BEGIN
+  -- Only fire on meaningful status transitions
+  IF OLD.status = NEW.status THEN RETURN NEW; END IF;
+
+  -- Q1971 (20261017205845): a job cancelled because its bank payment failed
+  -- writes no "✕ Job cancelled" thread row. That row notifies every thread
+  -- participant as if the poster sent it (notify_message_recipient), which
+  -- would tell an unconfirmed Helpr the owner chose not to tell, and tell a
+  -- confirmed one twice. cancel_job_after_failed_bank_payment tells the
+  -- people who should hear, in the right words.
+  IF COALESCE(current_setting('app.payment_failed_cancel', true), '') = 'on' THEN RETURN NEW; END IF;
+
+  -- Q262: an ownerless job (poster deleted, customer_id SET NULL) has nobody
+  -- to attribute the row to, and messages.sender_id is NOT NULL.
+  IF NEW.customer_id IS NULL THEN RETURN NEW; END IF;
+
+  -- Compare on ::text so an unknown label degrades to NULL (no message)
+  -- instead of raising an enum-cast error that would abort the transition.
+  v_content := CASE NEW.status::text
+    WHEN 'accepted'    THEN '✓ Job awarded'
+    WHEN 'in_progress' THEN '▶ Work started'
+    WHEN 'completed'   THEN '✓ Job completed'
+    WHEN 'cancelled'   THEN '✕ Job cancelled'
+    WHEN 'disputed'    THEN '⚠ Dispute opened'
+    ELSE NULL
+  END;
+
+  IF v_content IS NULL THEN RETURN NEW; END IF;
+
+  -- Insert one system message per unique participant in this job's threads.
+  -- `sender_id = NEW.customer_id` (poster) satisfies the NOT NULL
+  -- constraint on the column; `is_system=true` is what marks the row as
+  -- system-generated in the UI, so poster-attribution here is a semantic
+  -- no-op — both parties see the same system-styled row.
+  -- Q262: a participant is NULL when that account was deleted
+  -- (messages_receiver_id_fkey ON DELETE SET NULL); nobody to tell.
+  -- Q713: a participant blocked with the poster (either direction) is
+  -- skipped, with the block trigger's own predicate: otherwise its RAISE
+  -- aborts the status change itself.
+  -- Q1169: the send limit no longer counts notices, and a party can flip a
+  -- job in_progress <-> disputed at will, so the notice brakes itself (and the
+  -- notification and push each one fires). A participant is skipped when
+  -- (a) their LATEST notice on this job already says this (nothing changed for
+  -- them), or (b) they got 6 notices on this job in the last 10 minutes (an
+  -- alternating loop). A real move back (X -> Y -> X) is still told: (a) looks
+  -- at the latest notice, not at any recent one.
+  -- "Latest" orders by created_at, the inserting transaction's start time. Every
+  -- status RPC locks the jobs row FOR UPDATE first, so two moves on one job
+  -- commit in the order they started (round-3 review, note 3).
+  INSERT INTO messages (job_id, sender_id, receiver_id, content, read, is_system)
+  SELECT DISTINCT
+    NEW.id,
+    NEW.customer_id,
+    p.participant,
+    v_content,
+    false,
+    true
+  FROM (
+    SELECT CASE WHEN m.sender_id = NEW.customer_id THEN m.receiver_id ELSE m.sender_id END AS participant
+    FROM messages m
+    WHERE m.job_id = NEW.id
+      AND m.is_system = false
+      AND m.sender_id IS NOT NULL
+  ) p
+  WHERE p.participant IS NOT NULL
+    AND public.are_users_blocked(NEW.customer_id, p.participant) IS NOT TRUE
+    AND NOT EXISTS (
+      SELECT 1 FROM (
+        SELECT d.content FROM messages d
+        WHERE d.job_id = NEW.id
+          AND d.is_system
+          AND d.receiver_id = p.participant
+        ORDER BY d.created_at DESC
+        LIMIT 1
+      ) last
+      WHERE last.content = v_content
+    )
+    AND (
+      -- A final state is never capped (round-3 review): cancelled has no way
+      -- out and completed only leaves through an admin, so neither can loop,
+      -- and a capped one would leave the thread showing a live job.
+      NEW.status::text IN ('cancelled', 'completed')
+      OR (
+        SELECT count(*) FROM messages d
+        WHERE d.job_id = NEW.id
+          AND d.is_system
+          AND d.receiver_id = p.participant
+          AND d.created_at > now() - interval '10 minutes'
+      ) < 6
+    )
+  ON CONFLICT DO NOTHING;
+
+  RETURN NEW;
+END;
+$function$;
+
+-- A trigger function: the trigger machinery runs it, no role calls it.
+REVOKE ALL ON FUNCTION public.insert_job_status_system_message() FROM PUBLIC, anon, authenticated;

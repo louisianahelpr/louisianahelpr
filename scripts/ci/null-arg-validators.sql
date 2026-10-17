@@ -252,6 +252,12 @@ BEGIN
       WHEN 'profiles' THEN
         INSERT INTO public.profiles (user_id) VALUES (A), (B), (D) ON CONFLICT (user_id) DO NOTHING;
         UPDATE public.profiles SET subscription_tier = 'pro', subscription_expires_at = NULL WHERE user_id = B;
+        -- Q1844 (20261017085012): helper_has_advanced_analytics also asks the 'memberships' switch, so turn it
+        -- on for everyone here (rolled back with the rest), or B's baseline call is false and proves nothing.
+        IF to_regclass('public.feature_switches') IS NOT NULL THEN
+          INSERT INTO public.feature_switches (key, audience, description) VALUES ('memberships', 'everyone', 'q140 fixture')
+          ON CONFLICT (key) DO UPDATE SET audience = 'everyone';
+        END IF;
       WHEN 'role' THEN
         INSERT INTO public.user_roles (user_id, role) VALUES (D, 'admin');
       WHEN 'jobs' THEN

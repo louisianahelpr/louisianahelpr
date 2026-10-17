@@ -10,6 +10,7 @@
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   WHERE id = v_job.id\n     AND stripe_payment_intent_id = p_payment_intent_id\n     AND payment_status IN ('escrow', 'payout_pending'); |   WHERE id = v_job.id;
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |       EXECUTE 'SELECT public.return_bounced_gift_card($1, $2)' INTO v_gift USING v_job.id, p_gift_card_id; |       v_gift := NULL;
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql | GRANT EXECUTE ON FUNCTION public.cancel_job_after_failed_bank_payment(uuid, text, uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.cancel_job_after_failed_bank_payment(uuid, text, uuid) TO service_role, authenticated;
+// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   IF COALESCE(current_setting('app.payment_failed_cancel', true), '') = 'on' THEN RETURN NEW; END IF; |   IF COALESCE(current_setting('app.declutter_seller_fault_cancel', true), '') = 'on' THEN RETURN NEW; END IF;
 /**
  * CLASS GUARD: a job is 'escrow' only once the poster's money has ARRIVED, and
  * leaves it when that money fails (ach-fix, 2026-10-17).
@@ -55,6 +56,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { newestFunction } from "./helpers/parityReaders";
+import { latestFunctionDefs } from "./helpers/rpcErrorInventory";
 
 const REPO = resolve(__dirname, "../..");
 const FUNCTIONS = join(REPO, "supabase/functions");
@@ -237,6 +239,27 @@ describe("a hired job whose bank payment failed is cancelled, not left hired (D,
     const sys = blankSqlComments(newestFunction("insert_job_status_system_message").body);
     expect(sys).toMatch(/IF COALESCE\(current_setting\('app\.payment_failed_cancel', true\), ''\) = 'on' THEN RETURN NEW; END IF;/);
     expect(sys.indexOf("app.payment_failed_cancel")).toBeLessThan(sys.indexOf("INSERT INTO messages"));
+  });
+
+  // The quiet flag is REUSED, not new: app.declutter_seller_fault_cancel was
+  // added by 20261017073146 for declutter_apply_seller_fault, and
+  // cancel_job_after_failed_bank_payment is its SECOND setter. Reuse is only
+  // safe while every reader means "stay quiet, someone else tells the people
+  // involved", so the readers and setters are pinned exactly: a new reader
+  // (or setter) must be checked against both callers and listed here
+  // (lh-money-escrow re-review of a300a7c68, nit a).
+  it("the reused quiet flag's newest readers and setters are exactly the known ones", () => {
+    const defs = latestFunctionDefs(MIGRATIONS);
+    const readers: string[] = [];
+    const setters: string[] = [];
+    for (const [name, def] of defs) {
+      const body = blankSqlComments(def.body);
+      if (/current_setting\(\s*'app\.declutter_seller_fault_cancel'/.test(body)) readers.push(name);
+      if (/set_config\(\s*'app\.declutter_seller_fault_cancel'\s*,\s*'on'/.test(body)) setters.push(name);
+    }
+    expect(defs.size).toBeGreaterThan(500);
+    expect(readers.sort()).toEqual(["record_backout_notice"]);
+    expect(setters.sort()).toEqual(["cancel_job_after_failed_bank_payment", "declutter_apply_seller_fault"]);
   });
 
   it("the money reconciler expects no fee from a job whose money never arrived", () => {

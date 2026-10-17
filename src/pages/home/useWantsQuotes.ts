@@ -8,9 +8,8 @@ import { useFeature } from "@/hooks/useFeature";
  * than narrowing the job read; the map column steps aside while it is on.
  *
  * Lives here, not in Dashboard.tsx, to keep that god component from growing
- * (scripts/component-size-baseline.json is exact).
- *
- * @mutate src/pages/home/useWantsQuotes.ts |   const wantsQuotes = quotesOn && wantsQuotesPicked; |   const wantsQuotes = wantsQuotesPicked;
+ * (scripts/component-size-baseline.json is exact). The switch-gate line below
+ * is mutation-registered in src/components/quotes/wantsQuotesFilter.test.tsx.
  */
 export function useWantsQuotes() {
   const quotesOn = useFeature("quotes");

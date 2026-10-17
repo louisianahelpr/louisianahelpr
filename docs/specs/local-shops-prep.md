@@ -822,3 +822,29 @@ not part of its name. No group is called just "Rentals" (that is the homes secti
 Note: a category is the SHOP's; what an item may be is still the item rules (L5-L14, D1-D12): "Home kitchen" items
 are the low-risk home-food list (no meat or fish, so no boudin from a home kitchen), and soap waits for the federal
 cosmetics check (L14), whatever the category says.
+
+## Shops slice 3 and the whole Shops product (owner pop-up 2026-10-17 ~23:20Z, via the lead)
+Plan: ~/.lh-wt/handoffs-1017/shops-s3-plan.md (money core M1-M4 first, then SH1-SH10). Rows marked "default" were not
+asked and are the lane's default, owner to confirm.
+
+| # | Question | Decision | Status |
+|---|----------|----------|--------|
+| S3-F | Buyer fee on a shop order | Roadmap F1: 5% of the item total + $0.70, card cost inside it, once per order; the shop keeps 100% of its prices; no Pro discount (F4, memberships off). Same function and table CHECK as Declutter (declutter_buyer_fee_cents) | decided (F1) |
+| O1 | Sales tax (L77) | Collected automatically with Stripe Tax from day one (automatic_tax on the shop Checkout), tax code per item kind; tax always goes back with the price on a refund | decided 2026-10-17 |
+| O2 | L41 the maker's own cancel policy | Each shop picks 1 of 3 presets, shown before ordering: free until 24 h before the ready date; free until the shop accepts; free until handover. A buyer cancel inside the policy refunds the price minus the card fee (never absorb); before the shop accepts, the card hold just drops (nothing charged, nothing kept) | decided 2026-10-17 |
+| O3 | Buyer no-show at pickup | A late cancel under the shop's policy | decided 2026-10-17 |
+| O4 | L24 delivery | Pickup first; maker-delivers and Helpr delivery in a later slice (SH6b) | default |
+| O5 | L19 custom orders | Built after the money core (M1-M4) | default |
+| O6 | Custom-order deposit | The shop sets it, default 50% | decided 2026-10-17 |
+| O7 | Who keeps the deposit | Kept by the shop on a late buyer cancel or no-show; refunded IN FULL if the shop cancels (the shop pays the card fee and gets a strike) | decided 2026-10-17 |
+| O8 | The balance of a custom order | Charged in the app at pickup | decided 2026-10-17 |
+| O9 | Messages | Each SECTION has its own Messages button at its top, opening only that section's conversations (Jobs, Declutter, Shops, Rentals never mixed); one shared inbox component filtered by section is fine; no global Messages tab, no mixed tabs | decided (owner, via lead) |
+| O10 | Follower alerts | New items and specials | default |
+| O11 | "Verified shop" | ID checked + payouts on + 5 completed orders + no active strike | decided 2026-10-17 |
+| O12 | Specials / seasonal posts | Free, at most 30 days, separate from boosts | default |
+| O13 | Who can bid on a posted job | Anyone, as quotes already allow; shops in the job's category are alerted | decided 2026-10-17 |
+| O14 | Which shops are alerted | The nearest 10 shops in the category within 25 miles | decided 2026-10-17 |
+| O15 | Payouts to bid | A shop needs payouts set up to bid | decided 2026-10-17 |
+| O16 | Appointment slots | 30-minute slots, no buffer (B1a-B1d otherwise as written) | default |
+| S3-F2 | Fee confirmed | Owner 2026-10-18 ~00:00Z: Shops uses the Vinted-style fee, roadmap F1 exactly as Declutter (buyer pays 5% + $0.70, the card cost comes out of it, the shop keeps 100% of its prices) | decided |
+| M-MAP | Selling modes per category (plan "SELLING MODES") | Lead defaults 2026-10-18, owner may override: plants_garden PRODUCT with L11's listing restriction unchanged; gym removed from the list; notary BOOKING + SERVICE (mobile notary); florist PRODUCT + PACKAGE; catering PACKAGE + PRODUCT; detailing BOOKING + SERVICE; custom shirts and printing PRODUCT + SERVICE. No recurring memberships (switched off app-wide) | default (lead) |

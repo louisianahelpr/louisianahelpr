@@ -8,11 +8,11 @@ import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "
 import { loadGiftCardPaidJobIds } from "./giftCardPaidJobIds";
 import { PAYOUT_TRANSFER_ANALYTICS_COLUMNS, realPayoutTransfers, type PayoutTransferRow } from "./adminAnalytics/realPayoutTransfers";
 import { Badge } from "@/components/ui/badge";
-import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, Loader2, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
 import { TIER_PERKS, TIER_ORDER } from "@/lib/subscriptionTiers";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { MetricCard, StatusRow, MRRRow, CohortRetentionCard, FunnelCard } from "./AdminAnalyticsCards";
-import { UsersDrillDown, SubscriptionsDrillDown, CategoriesDrillDown, PayoutsDrillDown, JobsDrillDown } from "./AdminAnalyticsDrilldowns";
+import { DrillDownView } from "./AdminAnalyticsDrilldowns";
 import { PIE_COLORS, TIER_CHIP_CLASSES } from "./adminAnalyticsConstants";
 import { SUB_PRICE, ANALYTICS_PROFILE_COLUMNS, DRILL_PROFILE_COLUMNS, type Profile, type DrillProfile, type Job, type Tip, type DrillDown } from "./adminAnalytics/types";
 import { computeMetrics, mostPrivilegedRoleByUser } from "./adminAnalytics/adminAnalyticsHelpers";
@@ -259,43 +259,15 @@ const AdminAnalytics = () => {
   // ─── Drill-down views ───
   if (drillDown) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-1.5 text-ds-13">
-          <button
-            type="button"
-            onClick={() => setDrillDown(null)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Analytics
-          </button>
-          <span className="text-muted-foreground">/</span>
-          <span className="font-display font-bold text-foreground">
-            {drillDown === "users" ? "All Users" :
-             drillDown === "subscriptions" ? "Subscriber Breakdown" :
-             drillDown === "jobs" ? "All Jobs" :
-             drillDown === "revenue" ? "Revenue Breakdown" :
-             drillDown === "fees" ? "Platform Fee Breakdown" :
-             drillDown === "payouts" ? "Payout Tracking" :
-             drillDown === "categories" ? "Category Breakdown" : ""}
-          </span>
-        </div>
-
-        {drillLoading ? (
-          <div className="flex items-center gap-2 text-ds-11 text-muted-foreground py-8 justify-center">
-            <Loader2 className="w-4 h-4 animate-spin" /> Loading…
-          </div>
-        ) : drillDown === "users" ? (
-          <UsersDrillDown users={drillUsers} roleByUser={roleByUser} />
-        ) : drillDown === "subscriptions" ? (
-          <SubscriptionsDrillDown users={drillUsers} />
-        ) : drillDown === "categories" ? (
-          <CategoriesDrillDown data={categoryData} />
-        ) : drillDown === "payouts" ? (
-          <PayoutsDrillDown jobs={drillJobs} />
-        ) : (
-          <JobsDrillDown jobs={drillJobs} showFinancials={drillDown === "revenue" || drillDown === "fees"} showFees={drillDown === "fees"} />
-        )}
-      </div>
+      <DrillDownView
+        drillDown={drillDown}
+        onBack={() => setDrillDown(null)}
+        loading={drillLoading}
+        users={drillUsers}
+        jobs={drillJobs}
+        roleByUser={roleByUser}
+        categoryData={categoryData}
+      />
     );
   }
 

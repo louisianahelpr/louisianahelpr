@@ -21,6 +21,10 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { OBJECTS_SQL, backupObjects, verifyRestore } from "./lib/storageBackup.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const [mode, dir, rowsFile] = process.argv.slice(2);
 

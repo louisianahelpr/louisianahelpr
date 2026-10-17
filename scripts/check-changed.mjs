@@ -15,6 +15,10 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, symlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SKIP_LOG = join(REPO_ROOT, "docs", "audit", "prepush-skips.log");

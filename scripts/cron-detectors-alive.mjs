@@ -11,6 +11,10 @@
  * Exit 1 with a ::error:: per failing detector. Read-only.
  */
 import { sql } from "./lib/opsAlertLedger.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 export const DETECTORS = ["sweep-cron-http-failures", "sweep-silent-cron-failures", "sweep-dead-crons", "sweep-cron-blackouts"];
 export const MAX_GAP_HOURS = 3; // CJ-011 gap budget

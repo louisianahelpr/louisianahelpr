@@ -30,6 +30,10 @@ try {
 }
 import fs from "node:fs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 const read = (p) => fs.readFileSync(new URL(p, import.meta.url), "utf8");
 const MIG_A = read("../../supabase/migrations/20260915041247_revoke_open_jobs_browse_writes.sql");
 const MIG_B = read("../../supabase/migrations/20260915043245_revoke_writes_on_exposed_views.sql");

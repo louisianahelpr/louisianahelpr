@@ -71,6 +71,10 @@ import { chromium } from "@playwright/test";
 import { rest, session, invoke } from "./lib/prodEnv.mjs";
 import { fitJobTitle } from "../lib/jobTextBounds.mjs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const argv = process.argv.slice(2);
 const LISTING_MODE = argv[0] === "--listings";

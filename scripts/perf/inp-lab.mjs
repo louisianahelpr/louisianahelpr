@@ -43,6 +43,10 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { PROFILES, cpuBenchmarkMs, calibratedCpuRate, startDistServer, sessionInit, settle, CWV_INIT } from "./cwv-lab.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 /** Speed Insights' GOOD band for INP (ms, P75). */
 export const INP_GOOD = 200;

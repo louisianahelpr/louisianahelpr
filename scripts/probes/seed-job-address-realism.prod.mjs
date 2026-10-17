@@ -53,6 +53,10 @@ import { rest } from "./lib/prodEnv.mjs";
 // guard (src/test/seedFixtureAddressRealism.test.ts) can import them; this file
 // is the same knowledge plus the network.
 import { ADDRESSES, hasStreetAddress, cityKey } from "./lib/seedAddresses.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const FIX = process.argv.includes("--fix");
 

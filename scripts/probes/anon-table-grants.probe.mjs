@@ -47,6 +47,10 @@ try {
 }
 import fs from "node:fs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 const read = (p) => fs.readFileSync(new URL(p, import.meta.url), "utf8");
 const MIG = read("../../supabase/migrations/20260915055601_revoke_excess_anon_grants.sql");
 // The zero-policy rule's own migration: the table that rule was written for.

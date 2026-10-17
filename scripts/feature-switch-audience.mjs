@@ -40,6 +40,10 @@
  * Wired nightly: .github/workflows/feature-switch-audience.yml (files nightly-red).
  */
 import { pathToFileURL } from "node:url";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 export const PROBE_EMAIL = "helpr-switch-probe-1013@mailinator.com";
 

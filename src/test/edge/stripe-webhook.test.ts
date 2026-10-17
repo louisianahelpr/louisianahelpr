@@ -644,6 +644,85 @@ describe("stripe-webhook edge function", () => {
       });
     });
 
+    // Q1876 follow-up (lh-money-escrow re-review of 2cd90f553, #1): bank checkout D1's
+    // first delivery consumed the gift and threw; its debit bounced, the gift
+    // came back, and the poster reserved it again for D2. D1's retry must not
+    // spend D2's reservation on a payment that failed.
+    describe("a retried completion of a bounced bank checkout that is no longer the job's current one", () => {
+      async function deliver(opts: {
+        sessionPaid?: boolean;
+        piStatus: string;
+        jobRow: Record<string, unknown>;
+      }) {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_q1900",
+          type: "checkout.session.completed",
+          data: { object: {
+            id: "cs_d1", mode: "payment", customer_email: "poster@test.com",
+            payment_status: opts.sessionPaid ? "paid" : "unpaid", payment_intent: "pi_d1",
+            metadata: { job_id: "job-1", gift_card_id: "gc-1" },
+          } },
+        });
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_d1", status: opts.piStatus, amount_details: { tax: { total_tax_amount: 0 } } });
+        scenario.reads.gift_cards = { rows: [{ id: "gc-1", status: "reserved", job_id: "job-1", payment_status: "paid" }] };
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", ...opts.jobRow }] };
+        scenario.writeSelectRows.gift_cards = [{ id: "gc-1" }];
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        const consumes = scenario.writes.filter(
+          (w) => w.table === "gift_cards" && w.op === "update" && (w.payload as Record<string, unknown>).status === "redeemed",
+        );
+        const jobWrites = scenario.writes.filter((w) => w.table === "jobs");
+        const titles = (slackAlerts as Array<{ title?: string }>).map((a) => a.title ?? "");
+        return { res, consumes, jobWrites, titles };
+      }
+
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |   if (giftCardId && staleBouncedCheckout) { |   if (false) {
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |     if (notCurrent && sessionPi) { |     if (false) {
+      it("leaves the gift reserved for the new checkout when another session is now the job's, and writes nothing to the job", async () => {
+        const { res, consumes, jobWrites, titles } = await deliver({ piStatus: "requires_payment_method", jobRow: { stripe_session_id: "cs_d2", payment_status: "unpaid" } });
+        expect(res.status).toBe(200);
+        expect(consumes).toHaveLength(0);
+        // Review of b837455eb (#1): the dead PaymentIntent is never stamped on the job.
+        expect(jobWrites).toHaveLength(0);
+        // The reservation belongs to the newer checkout: nothing to page.
+        expect(titles.some((t) => /still reserved/.test(t))).toBe(false);
+      });
+
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | sessionPiRow?.status === "requires_payment_method" \|\| sessionPiRow?.status === "canceled"; | sessionPiRow?.status === "requires_payment_method";
+      it("treats a CANCELED bank payment the same way", async () => {
+        const { consumes, jobWrites } = await deliver({ piStatus: "canceled", jobRow: { stripe_session_id: "cs_d2", payment_status: "unpaid" } });
+        expect(consumes).toHaveLength(0);
+        expect(jobWrites).toHaveLength(0);
+      });
+
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |     const notCurrent = !!cj && cj.stripe_session_id !== session.id; |     const notCurrent = !!cj && !!cj.stripe_session_id && cj.stripe_session_id !== session.id;
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |     if (!staleJobHasSession && hg?.status === "reserved" && hg.job_id === staleJobId) { |     if (false) {
+      it("leaves the gift alone when no session is on the job, and pages that it is still reserved there", async () => {
+        const { consumes, jobWrites, titles } = await deliver({ piStatus: "requires_payment_method", jobRow: { stripe_session_id: null, payment_status: "failed" } });
+        expect(consumes).toHaveLength(0);
+        expect(jobWrites).toHaveLength(0);
+        expect(titles).toContain("Gift card still reserved on a job whose bank payment failed");
+      });
+
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | sessionPiRow?.status === "requires_payment_method" \|\| sessionPiRow?.status === "canceled"; | true;
+      it("still consumes when the stale bank checkout's payment is still processing (its money may yet arrive)", async () => {
+        const { consumes } = await deliver({ piStatus: "processing", jobRow: { stripe_session_id: "cs_d2", payment_status: "unpaid" } });
+        expect(consumes.length).toBeGreaterThan(0);
+      });
+
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |   if (giftCardId && staleJobId && session.payment_status !== "paid") { |   if (giftCardId && staleJobId) {
+      it("never skips a CARD checkout (paid): a stale-but-paid session still consumes the gift it was priced against", async () => {
+        const { consumes } = await deliver({ sessionPaid: true, piStatus: "requires_payment_method", jobRow: { stripe_session_id: "cs_d2", payment_status: "unpaid" } });
+        expect(consumes.length).toBeGreaterThan(0);
+      });
+
+      it("consumes as before when the bank checkout IS the job's current one", async () => {
+        const { consumes } = await deliver({ piStatus: "requires_payment_method", jobRow: { stripe_session_id: "cs_d1", payment_status: "unpaid" } });
+        expect(consumes.length).toBeGreaterThan(0);
+      });
+    });
+
     it("marks a tip as paid and notifies the helper on a tip checkout", async () => {
       const fn = await loadConfigured();
       // The tip UPDATE is gated on `payment_status='pending'` and returns the

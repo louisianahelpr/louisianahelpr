@@ -18,6 +18,7 @@ import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { fund, retireFundedJob, type Row } from "../prod-audit/fundedOpenJob";
 import { settleJobForward } from "../../scripts/e2e/settleForward.mjs";
 import { slotAhead } from "./postJobForm";
+import { withChromium } from "./stripeInChromium";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
 import { createThrowaway, deleteThrowaway, serviceKey, type Throwaway } from "./throwaway";
@@ -106,7 +107,9 @@ async function postJob(api: APIRequestContext, poster: Session, jobTitle: string
  * turned that refusal into `skipUncovered` here was unreachable.
  */
 async function fundJob(api: APIRequestContext, browser: Browser, poster: Session, jobId: string, log: string[]) {
-  await fund(api, browser, poster, { id: jobId } as Row, log);
+  // Paid in Chromium in every engine: Stripe's hosted page errors in
+  // Playwright's WebKit (withChromium, ./stripeInChromium.ts).
+  await withChromium(browser, (chrome) => fund(api, chrome, poster, { id: jobId } as Row, log));
 }
 
 /** Mark read, then delete, the notifications a journey produced for `s` on `jobId`. */

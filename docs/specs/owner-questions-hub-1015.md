@@ -37,3 +37,18 @@ with the owner on 2026-10-16 (see build-queue.md rows 8, 15-19). Cross off anyth
 ## Rentals
 13. When an admin approves a landlord's ownership proof, the landlord can see which admin approved it. OK, or
     keep the reviewer anonymous?
+
+## OWNER ANSWERS (2026-10-17 ~04:50Z, pop-ups)
+1. Memberships: KEEP OFF FOR EVERYONE after Apple approves 1.0.4 (test accounts lose it too after approval).
+2. Old Pro perks (advanced analytics, elite strike shield, poster rank boost): TURN OFF while memberships are off.
+3. Terms / Help Center wording for the flat fee + memberships off: YES, Claude drafts, owner approves before live.
+4. (heads-up, no answer needed)
+5. Declutter photos after a refund: KEEP VISIBLE to both sides (admins always).
+6. Problem photos in Download my data: KEEP AS IS (listed in the app, not copied into the download).
+7. Buyer pays as the seller is banned/suspended/flagged: buyer refunded in full, the SELLER OWES the card fee (seller fee debt, taken from a later payout).
+8. Quotes: HIRE AUTOMATICALLY when the poster pays for an agreed quote (no extra Accept tap).
+9. Quotes close 2 HOURS before the job start (confirmed).
+10. Quote alerts: push + email for new quotes/counters, a reminder before a 48 h reply window ends, a notice when the quote window closes (all three).
+11. Poster cancels after agreeing but before paying: DELETE the unpaid job automatically.
+12. Where Helprs find quote requests: BOTH a "Wants quotes" filter in Jobs browse AND a Quotes link in the menu.
+13. Rentals ownership approval: KEEP THE REVIEWER ANONYMOUS ("Approved by Louisiana Helpr").

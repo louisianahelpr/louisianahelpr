@@ -24,7 +24,7 @@
  * scripts/lib/adminSession.mjs): apply_to_job (Helpr), accept_application /
  * accept_group_application (poster), complete_job_accept (the server's own
  * accept-completion path, service role: the Helpr's Accept would park as
- * pending_setup because the test Helpr has no Stripe account),
+ * pending_setup while the test Helpr has no ready Stripe account),
  * helper_mark_on_the_way + mark_helper_arrival (Helpr), rpc_open_dispute /
  * rpc_withdraw_dispute (poster), the Helpr's own dispute answer, messages
  * written as their senders. The raw writes are the ones an existing script
@@ -46,9 +46,13 @@
  *   - the money crons skip is_seed by default (auto-release-payment,
  *     process-scheduled-payouts, money-reconciliation), and the confirm/repost
  *     sweep skips seed posters (job_posted_by_seed);
- *   - none of the test accounts has a Stripe Connect account (stripe_account_id
- *     is null for all 7 test_accounts rows, measured 2026-10-12), so no
- *     transfer has a destination either.
+ *   - no test account holds a LIVE Stripe Connect account. Only one holds any:
+ *     helper-e2e's TEST-mode Express fixture acct_1UQigP3qNyg1xGcp (the
+ *     journeys' tip leg, Q?journeys-tip-fixture, 2026-10-17; the exact pair is
+ *     pinned in scripts/e2e/seatStripeAccounts.mjs). Every party of these jobs
+ *     is a test account, so _shared/stripeMode.ts would run any money call on
+ *     the TEST key, and the live key cannot reach a test-mode account; the two
+ *     layers above refuse first anyway.
  * These jobs are NOT listed in public.test_fixture_jobs: that table's trigger
  * refuses every status move on a listed job, and a refusal raised inside a
  * cron's set-based UPDATE would roll back that cron's whole sweep for real
@@ -297,7 +301,7 @@ export async function runStateFixtures({ mode, only, supabaseUrl = DEFAULT_SUPAB
   }
   const incomplete = accounts.find((a) => a.email === INCOMPLETE_EMAIL);
   for (const p of accounts) {
-    if (p.stripe_account_id) log(`NOTE: ${p.email} has a Stripe account; the no-destination layer of the money safety (header) does not hold for it`);
+    if (p.stripe_account_id) log(`NOTE: ${p.email} has Stripe account ${p.stripe_account_id}; only the sanctioned TEST-mode fixture may be held (scripts/e2e/seatStripeAccounts.mjs checks the pair)`);
   }
 
   const sessions = {};

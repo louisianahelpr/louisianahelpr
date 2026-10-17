@@ -55,7 +55,7 @@ import {
   wasFunded,
 } from "./sweepSummary.mjs";
 import { settleJobForward, heldReason } from "./settleForward.mjs";
-import { stripeSeatViolations } from "./seatStripeAccounts.mjs";
+import { SEAT_COLUMNS, stripeSeatViolations } from "./seatStripeAccounts.mjs";
 
 const BASE = (process.env.SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
 const ANON = process.env.SUPABASE_ANON_KEY || "";
@@ -171,11 +171,14 @@ if (HOLDS_BOTH_SEATS && !STRIPE_TEST_MODE) {
 }
 
 /*
- * THE SEATS HOLD NO STRIPE ACCOUNT (nightly-red #2436, 2026-10-17). An is_seed
- * Helpr is ready only while it has no Stripe account (helper_accept_missing's
- * fixture carve-out); helper-e2e was given a half-onboarded TEST-mode one on
- * 2026-10-15 and every hire, and every settle-forward below, then failed on
- * accept_job_offer `pending_setup`. Read with each seat's own token, on every
+ * THE SEATS HOLD NO STRIPE ACCOUNT BUT THE SANCTIONED, READY TEST FIXTURE
+ * (nightly-red #2436, 2026-10-17). An is_seed Helpr is ready with no Stripe
+ * account (helper_accept_missing's fixture carve-out) or with a payout-ready
+ * one; helper-e2e was given a half-onboarded TEST-mode one on 2026-10-15 and
+ * every hire, and every settle-forward below, then failed on accept_job_offer
+ * `pending_setup`. Its onboarding is now finished in test mode (the tip leg's
+ * fixture, Q?journeys-tip-fixture); the rule (seatStripeAccounts.mjs) allows
+ * exactly that pair, payout-ready. Read with each seat's own token, on every
  * sweep, pre and teardown, so the run fails on the cause by name instead of on
  * six downstream symptoms. Put a seat back with seatStripeAccounts.mjs --restore.
  */
@@ -184,7 +187,7 @@ async function seatStripeViolations() {
   if (HELPER_TOKEN) seats.push([HELPER_TOKEN, HELPER_ID]);
   const rows = [];
   for (const [token, id] of seats) {
-    const r = await fetch(`${BASE}/rest/v1/profiles?user_id=eq.${id}&select=user_id,email,stripe_account_id`, {
+    const r = await fetch(`${BASE}/rest/v1/profiles?user_id=eq.${id}&select=${SEAT_COLUMNS}`, {
       headers: { ...H, Authorization: `Bearer ${token}` },
     });
     if (!r.ok) throw new Error(`reading seat ${id}'s Stripe link failed: HTTP ${r.status} ${await r.text()}`);
@@ -296,12 +299,12 @@ console.log(`Prod lifecycle sweeper — ${BASE}`);
 console.log(`Stranded jobs matching "${E2E_TITLE_MARKER}": ${jobs.length}${DRY ? "  (DRY RUN)" : ""}\n`);
 
 const failures = [];
-// Both phases: a seat with a Stripe account fails every hire this run makes,
+// Both phases: a seat with a half-set-up Stripe account fails every hire this run makes,
 // so a pre sweep fails on it too (the cause, named, before the symptoms).
 for (const v of await seatStripeViolations()) {
   console.log(
-    `::error title=A test seat holds a Stripe account::${v}. accept_job_offer refuses it (pending_setup), so every hire and ` +
-      "settle-forward fails. Put it back: node scripts/e2e/seatStripeAccounts.mjs --restore (service role).",
+    `::error title=A test seat holds a Stripe account it may not::${v}. A half-set-up one makes accept_job_offer answer pending_setup, ` +
+      "so every hire and settle-forward fails. Put it back: node scripts/e2e/seatStripeAccounts.mjs --restore (service role).",
   );
   failures.push(`seat Stripe account: ${v}`);
 }

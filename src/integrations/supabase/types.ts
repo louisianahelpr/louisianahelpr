@@ -11726,6 +11726,10 @@ export type Database = {
         Returns: number
       }
       retain_ban_on_deletion: { Args: { p_user_id: string }; Returns: number }
+      return_bounced_gift_card: {
+        Args: { p_gift_card_id: string; p_job_id: string }
+        Returns: Json
+      }
       review_credential: {
         Args: {
           _credential: string

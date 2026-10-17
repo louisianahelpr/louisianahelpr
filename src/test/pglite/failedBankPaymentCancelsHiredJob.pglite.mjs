@@ -4,7 +4,7 @@
  *
  *   npx tsx src/test/pglite/failedBankPaymentCancelsHiredJob.pglite.mjs                       # RED before + GREEN after, 3x apply
  *   NEW_MIGRATION=skip npx tsx src/test/pglite/failedBankPaymentCancelsHiredJob.pglite.mjs    # before only (RED)
- *   NEW_MIGRATION=no-backout-skip npx tsx ...                                                  # the RPC with the OLD record_backout_notice (RED)
+ *   NEW_MIGRATION=no-backout-skip npx tsx ...                                                  # the RPC without app.declutter_seller_fault_cancel (RED)
  *
  * pglite is not a dependency (CLAUDE.md); it is loaded from $PGLITE_DIR
  * (default ~/.lh-pglite).
@@ -286,16 +286,18 @@ if (MODE === "skip" || MODE === "") {
 
 if (MODE === "no-backout-skip") {
   // The RPC alone, with the record_backout_notice the database runs today.
-  const rpcOnly = MIGRATION.slice(0, MIGRATION.indexOf("-- record_backout_notice: newest definition"));
-  await db.exec(rpcOnly);
+  // The RPC WITHOUT the back-out hatch flag (the trigger as it stands).
+  const noFlag = MIGRATION.replace("  PERFORM set_config('app.declutter_seller_fault_cancel', 'on', true);\n", "");
+  if (noFlag === MIGRATION) throw new Error("the hatch flag line was not found");
+  await db.exec(noFlag);
   await reset();
   await seedJob(J(1), { status: "accepted", helper: HELPR });
   const v = await cancel(J(1));
   const c = await counts();
   check("RB the cancel lands", v?.outcome === "cancelled", JSON.stringify(v));
-  check("RB WITHOUT the restated record_backout_notice, the unconfirmed Helpr gets a 'poster cancelled' back-out notice and email",
+  check("RB WITHOUT the hatch flag, the unconfirmed Helpr gets a 'poster cancelled' back-out notice and email",
     c.backouts === 0 && c.emails === 0, JSON.stringify(c));
-  console.log(failures ? `${failures} FAILED (expected: proves the restatement is needed)` : "ALL PASS");
+  console.log(failures ? `${failures} FAILED (expected: proves the flag is needed)` : "ALL PASS");
   process.exit(failures ? 1 : 0);
 }
 

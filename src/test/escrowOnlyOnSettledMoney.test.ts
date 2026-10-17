@@ -4,7 +4,8 @@
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const FUNDED_PAYMENT_STATES = new Set(["escrow", "payout_pending", "released"]); | const FUNDED_PAYMENT_STATES = new Set(["payout_pending", "released"]);
 // @mutate supabase/functions/stripe-webhook/index.ts | "payment_intent.payment_failed": handlePaymentIntentPaymentFailed, | "payment_intent.payment_failedX": handlePaymentIntentPaymentFailed,
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   PERFORM set_config('app.sanctioned_cancel', 'on', true);\n  PERFORM set_config('app.payment_failed_cancel', 'on', true); |   PERFORM set_config('app.payment_failed_cancel', 'on', true);
-// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   IF COALESCE(current_setting('app.payment_failed_cancel', true), '') = 'on' THEN\n    RETURN NULL;\n  END IF; |   NULL;
+// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   PERFORM set_config('app.declutter_seller_fault_cancel', 'on', true);\n |
+// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   IF COALESCE(current_setting('app.payment_failed_cancel', true), '') = 'on' THEN RETURN NEW; END IF; |
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |          cancellation_fee = 0, |          cancellation_fee = 1,
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   WHERE id = v_job.id\n     AND stripe_payment_intent_id = p_payment_intent_id\n     AND payment_status IN ('escrow', 'payout_pending'); |   WHERE id = v_job.id;
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |       EXECUTE 'SELECT public.return_bounced_gift_card($1, $2)' INTO v_gift USING v_job.id, p_gift_card_id; |       v_gift := NULL;
@@ -225,10 +226,22 @@ describe("a hired job whose bank payment failed is cancelled, not left hired (D,
     expect(grants).toEqual(["service_role"]);
   });
 
-  it("the back-out notice stays quiet for it (newest record_backout_notice)", () => {
-    const body = blankSqlComments(newestFunction("record_backout_notice").body);
-    expect(body).toMatch(/IF COALESCE\(current_setting\('app\.payment_failed_cancel', true\), ''\) = 'on' THEN\s+RETURN NULL;\s+END IF;/);
-    // ...before any branch that writes a notice.
-    expect(body.indexOf("app.payment_failed_cancel")).toBeLessThan(body.indexOf("INSERT INTO public.backout_notices"));
+  it("the back-out notice and the thread's system row stay quiet for it (their newest definitions)", () => {
+    const rpc = blankSqlComments(newestFunction("cancel_job_after_failed_bank_payment").body);
+    const hatch = rpc.indexOf("PERFORM set_config('app.declutter_seller_fault_cancel', 'on', true);");
+    expect(hatch).toBeGreaterThan(-1);
+    expect(hatch).toBeLessThan(rpc.indexOf("UPDATE public.jobs"));
+    const backout = blankSqlComments(newestFunction("record_backout_notice").body);
+    expect(backout).toMatch(/IF COALESCE\(current_setting\('app\.declutter_seller_fault_cancel', true\), ''\) = 'on' THEN\s+RETURN NULL;\s+END IF;/);
+    expect(backout.indexOf("app.declutter_seller_fault_cancel")).toBeLessThan(backout.indexOf("INSERT INTO public.backout_notices"));
+    const sys = blankSqlComments(newestFunction("insert_job_status_system_message").body);
+    expect(sys).toMatch(/IF COALESCE\(current_setting\('app\.payment_failed_cancel', true\), ''\) = 'on' THEN RETURN NEW; END IF;/);
+    expect(sys.indexOf("app.payment_failed_cancel")).toBeLessThan(sys.indexOf("INSERT INTO messages"));
+  });
+
+  it("the money reconciler expects no fee from a job whose money never arrived", () => {
+    const rec = code(join(FUNCTIONS, "money-reconciliation/index.ts"));
+    expect(rec).toMatch(/const noMoneyArrived = job\.payment_status === "failed";/);
+    expect(rec).toMatch(/const expectedFee = noMoneyArrived \? 0 : expectedCancellationFee\(job\);/);
   });
 });

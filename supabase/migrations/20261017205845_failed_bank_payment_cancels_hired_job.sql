@@ -42,12 +42,14 @@
 -- flag: that row notifies every thread participant (notify_message_recipient)
 -- as if from the poster (lh-money-escrow review of 56346b5eb #1).
 --
--- record_backout_notice (restated verbatim from its newest definition,
--- 20261017073146, plus one early return) would read this cancel as the
--- poster's ("<name> cancelled") and email an unconfirmed Helpr, and would tell
--- the poster a retired direct offer "expired". It skips while
--- app.payment_failed_cancel is on; only this function sets it, and clears it
--- right after its UPDATE.
+-- record_backout_notice (newest definition 20261017073146, unchanged) would
+-- read this cancel as the poster's ("<name> cancelled") and email an
+-- unconfirmed Helpr, and would tell the poster a retired direct offer
+-- "expired". It already returns early while app.declutter_seller_fault_cancel
+-- is on: the hatch for a cancel that is NOT the poster's and whose caller
+-- writes its own notices, which is exactly this one. This function raises that
+-- flag around its one UPDATE (and clears it right after) rather than restating
+-- the trigger; the flag's other reader is that trigger alone (grep, 2026-10-17).
 --
 -- REPLAY-SAFETY: CREATE OR REPLACE only, signatures new or unchanged.
 
@@ -128,6 +130,7 @@ BEGIN
 
   PERFORM set_config('app.sanctioned_cancel', 'on', true);
   PERFORM set_config('app.payment_failed_cancel', 'on', true);
+  PERFORM set_config('app.declutter_seller_fault_cancel', 'on', true);
 
   UPDATE public.jobs
      SET status = 'cancelled'::job_status,
@@ -146,6 +149,7 @@ BEGIN
      AND payment_status IN ('escrow', 'payout_pending');
   GET DIAGNOSTICS v_rows = ROW_COUNT;
 
+  PERFORM set_config('app.declutter_seller_fault_cancel', 'off', true);
   PERFORM set_config('app.payment_failed_cancel', 'off', true);
   PERFORM set_config('app.sanctioned_cancel', 'off', true);
 
@@ -220,82 +224,6 @@ $fn$;
 
 REVOKE ALL ON FUNCTION public.cancel_job_after_failed_bank_payment(uuid, text, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.cancel_job_after_failed_bank_payment(uuid, text, uuid) TO service_role;
-
--- record_backout_notice: newest definition (20261017073146) + the Q1972 early
--- return. Live md5(prosrc) before: 51500f6d2f0eb31a4f458c5c480eb49f, the same
--- as 20261017073146's body (both measured 2026-10-17, read-only).
-CREATE OR REPLACE FUNCTION public.record_backout_notice()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $fn$
-DECLARE
-  v_kind text;
-  v_recipient uuid;
-  v_actor uuid;
-  v_actor_name text;
-  v_link text;
-  v_text record;
-BEGIN
-  IF OLD.is_group_job IS TRUE OR OLD.parent_job_id IS NOT NULL THEN
-    RETURN NULL;
-  END IF;
-  -- A10 (20261017073146): a setup job the Declutter seller's backing out
-  -- cancelled is not the poster's cancel; declutter_refund_cancels_setup_jobs
-  -- tells the Helpr itself, in the right words (lh-silent-failure review of
-  -- c57d948d0 #2: this said "<poster> cancelled").
-  IF COALESCE(current_setting('app.declutter_seller_fault_cancel', true), '') = 'on' THEN
-    RETURN NULL;
-  END IF;
-  -- Q1972 (20261017205845): a job cancelled because its bank payment failed is
-  -- nobody's back-out; cancel_job_after_failed_bank_payment tells the poster and
-  -- any confirmed Helpr itself, and an unconfirmed Helpr is not told.
-  IF COALESCE(current_setting('app.payment_failed_cancel', true), '') = 'on' THEN
-    RETURN NULL;
-  END IF;
-
-  IF OLD.helper_id IS NOT NULL AND NEW.helper_id IS NULL
-     AND OLD.status::text IN ('accepted', 'in_progress') AND NEW.status::text = 'open' THEN
-    -- The booked (or offered) Helpr is off the job and it reopened.
-    v_recipient := OLD.customer_id;
-    v_actor := OLD.helper_id;
-    v_kind := CASE
-      WHEN COALESCE(current_setting('app.repost_unconfirmed', true), '') = '1' THEN 'helper_unconfirmed'
-      WHEN OLD.helper_confirmed_at IS NOT NULL THEN 'helper_cancelled'
-      WHEN auth.uid() IS NOT DISTINCT FROM OLD.helper_id THEN 'offer_declined'
-      ELSE 'offer_expired' END;
-  ELSIF OLD.direct_offer_status = 'pending' AND NEW.direct_offer_status IN ('declined', 'expired')
-     AND OLD.offered_to_helper_id IS NOT NULL THEN
-    v_recipient := OLD.customer_id;
-    v_actor := OLD.offered_to_helper_id;
-    v_kind := CASE WHEN NEW.direct_offer_status = 'declined' THEN 'offer_declined' ELSE 'offer_expired' END;
-  ELSIF NEW.status::text = 'cancelled' AND OLD.status::text IN ('accepted', 'in_progress')
-     AND OLD.helper_id IS NOT NULL AND NEW.cancelled_by IS DISTINCT FROM OLD.helper_id THEN
-    v_recipient := OLD.helper_id;
-    v_actor := COALESCE(NEW.cancelled_by, OLD.customer_id);
-    v_kind := 'poster_cancelled';
-  ELSE
-    RETURN NULL;
-  END IF;
-
-  IF v_recipient IS NULL THEN
-    RETURN NULL;
-  END IF;
-
-  SELECT NULLIF(split_part(btrim(p.full_name), ' ', 1), '') INTO v_actor_name
-    FROM public.profiles p WHERE p.user_id = v_actor;
-
-  INSERT INTO public.backout_notices (job_id, user_id, actor_name, backout_kind)
-  VALUES (OLD.id, v_recipient, v_actor_name, v_kind);
-
-  v_link := CASE WHEN v_recipient = OLD.customer_id THEN '/posts?job=' ELSE '/jobs?job=' END || OLD.id::text;
-  SELECT * INTO v_text FROM public.backout_notice_text(v_kind, v_actor_name, OLD.title);
-  PERFORM public.send_backout_email(v_recipient, OLD.id, v_text.title, v_text.message, v_link);
-  RETURN NULL;
-END;
-$fn$;
-REVOKE ALL ON FUNCTION public.record_backout_notice() FROM PUBLIC, anon, authenticated;
 
 -- insert_job_status_system_message: newest definition (20261004001242) + the
 -- Q1971 early return. Live md5(prosrc) before: 7b9df9c20d46f0dadc1e6489c55b0c14,

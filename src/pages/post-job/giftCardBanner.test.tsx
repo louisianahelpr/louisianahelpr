@@ -19,7 +19,7 @@ const gift = vi.hoisted(() => ({
 vi.mock("@/hooks/useSpendableGiftCards", () => ({
   useSpendableGiftCards: () => gift.value,
 }));
-vi.mock("@/hooks/useRecentPostedJobs", () => ({ useRecentPostedJobs: () => [] }));
+vi.mock("@/hooks/useRecentPostedJobs", () => ({ useRecentPostedJobs: () => [], usePostedBefore: () => false }));
 vi.mock("./useDraftCheckoutState", () => ({ useDraftCheckout: () => ({ state: null, settled: true }) }));
 vi.mock("./OfferToSavedHelpr", () => ({
   useSavedHelpersLite: () => ({ data: [], fetchStatus: "idle", status: "success" }),

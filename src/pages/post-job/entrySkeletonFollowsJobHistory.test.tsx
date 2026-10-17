@@ -1,0 +1,134 @@
+/**
+ * Post a Job's loading column draws five cards when the poster has past jobs
+ * and four otherwise, so nobody sees a jump (owner, 2026-10-17). Before: the
+ * skeleton drew four until the job-history read landed, and a returning
+ * poster's column grew by the Repost card, inserted second
+ * (loading-states-refresh 39008870955, poster-e2e at 375: 452px -> 574px).
+ *
+ * Shown able to fail: each @mutate below turns a case here red.
+ * @mutate src/pages/post-job/EntryChoice.tsx |       repostCard: postedBefore, |       repostCard: !!hasRecent,
+ * @mutate src/pages/post-job/EntryChoice.tsx |     if (postedBefore === null) return <EntryChoiceSkeleton count={0} />; |
+ * @mutate src/hooks/useRecentPostedJobs.ts |   return readPostedBefore(user?.id); |   return null;
+ * @mutate src/hooks/useRecentPostedJobs.ts |     safeStorage.setItem(postedBeforeKey(userId), posted ? "1" : "0"); |
+ * @mutate src/hooks/useRecentPostedJobs.ts |   const answered = !isPending && Array.isArray(data); |   const answered = !isPending;
+ */
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ComponentProps, ReactNode } from "react";
+
+const recent = vi.hoisted(() => ({ value: null as null | { id: string }[] }));
+
+vi.mock("@/hooks/useCurrentUser", () => ({
+  useCurrentUser: () => ({ user: { id: "u1" }, profile: null, loading: false }),
+}));
+vi.mock("@/hooks/useRecentPostedJobs", async (importActual) => {
+  const actual = await importActual<typeof import("@/hooks/useRecentPostedJobs")>();
+  return { ...actual, useRecentPostedJobs: () => recent.value };
+});
+// Every jobs read in this file fails: the "failed read writes nothing" case.
+vi.mock("@/integrations/supabase/client", () => {
+  const chain: Record<string, unknown> = {};
+  for (const m of ["select", "eq", "or", "order"]) chain[m] = () => chain;
+  chain.limit = async () => ({ data: null, error: { message: "boom", code: "500" } });
+  return { supabase: { from: () => chain } };
+});
+vi.mock("@/hooks/useSpendableGiftCards", () => ({
+  useSpendableGiftCards: () => ({ userId: "u1", ids: [], settled: true }),
+}));
+vi.mock("./useDraftCheckoutState", () => ({ useDraftCheckout: () => ({ state: null, settled: true }) }));
+vi.mock("./OfferToSavedHelpr", () => ({
+  useSavedHelpersLite: () => ({ data: [], fetchStatus: "idle", status: "success" }),
+  OfferToSavedHelpr: () => null,
+}));
+vi.mock("@/components/postjob/AiJobBuilder", () => ({ AiJobBuilder: () => null }));
+vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
+
+import { EntryChoice } from "./EntryChoice";
+import { postedBeforeKey } from "@/hooks/useRecentPostedJobs";
+
+type Form = ComponentProps<typeof EntryChoice>["form"];
+// openJobCount null holds the column's arrival gate shut: the skeleton frame.
+const loadingForm = { draftLoaded: true, hasDraft: false, openJobCount: null } as unknown as Form;
+
+const bones = () => {
+  const r = render(
+    <MemoryRouter initialEntries={["/post-job"]}>
+      <EntryChoice form={loadingForm} />
+    </MemoryRouter>,
+  );
+  const sk = r.getByTestId("entry-choice-skeleton");
+  return sk.querySelectorAll(":scope > div").length;
+};
+
+beforeEach(() => {
+  cleanup();
+  localStorage.clear();
+  recent.value = null;
+});
+
+describe("the Post a Job skeleton checks job history (owner, 2026-10-17)", () => {
+  it("a poster with past jobs: five cards (the Repost card included)", () => {
+    recent.value = [{ id: "j1" }];
+    expect(bones()).toBe(5);
+  });
+
+  it("a poster with none: four cards", () => {
+    recent.value = [];
+    expect(bones()).toBe(4);
+  });
+
+  it("before the read lands, this device's memory decides: five for a returning poster", () => {
+    localStorage.setItem(postedBeforeKey("u1"), "1");
+    expect(bones()).toBe(5);
+  });
+
+  it("before the read lands, this device's memory decides: four for a first-timer", () => {
+    localStorage.setItem(postedBeforeKey("u1"), "0");
+    expect(bones()).toBe(4);
+  });
+
+  it("never asked on this device: no guessed count, the column waits for the read", () => {
+    expect(bones()).toBe(0);
+  });
+
+  it("the landed read beats a stale memory", () => {
+    localStorage.setItem(postedBeforeKey("u1"), "0");
+    recent.value = [{ id: "j1" }];
+    expect(bones()).toBe(5);
+  });
+});
+
+describe("useRecentPostedJobs remembers the answer on this device", () => {
+  const wrap = (qc: QueryClient) =>
+    function W({ children }: { children: ReactNode }) {
+      return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+    };
+
+  it("a landed read with jobs writes 1, with none writes 0; a failed read writes nothing", async () => {
+    const { useRecentPostedJobs: realHook } = await vi.importActual<typeof import("@/hooks/useRecentPostedJobs")>(
+      "@/hooks/useRecentPostedJobs",
+    );
+    const seeded = (data: unknown) => {
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      qc.setQueryData(["recent-posted-jobs", "u1", 3], data);
+      return qc;
+    };
+
+    renderHook(() => realHook(3), { wrapper: wrap(seeded([{ id: "j1", title: "t", category: "other", budget: 1, created_at: "" }])) });
+    await waitFor(() => expect(localStorage.getItem(postedBeforeKey("u1"))).toBe("1"));
+    cleanup();
+
+    renderHook(() => realHook(3), { wrapper: wrap(seeded([])) });
+    await waitFor(() => expect(localStorage.getItem(postedBeforeKey("u1"))).toBe("0"));
+    cleanup();
+
+    localStorage.clear();
+    const failed = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const h = renderHook(() => realHook(3), { wrapper: wrap(failed) });
+    await waitFor(() => expect(failed.getQueryState(["recent-posted-jobs", "u1", 3])?.status).toBe("error"));
+    expect(h.result.current).toEqual([]);
+    expect(localStorage.getItem(postedBeforeKey("u1"))).toBeNull();
+  });
+});

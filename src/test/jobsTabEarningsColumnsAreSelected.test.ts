@@ -22,6 +22,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import ts from "typescript";
+import { JOB_COLUMNS_AHEAD_OF_DB } from "@/lib/jobColumns";
 
 const ROOT = process.cwd();
 const JOBS_TAB = join(ROOT, "src/components/admin/userDetail/JobsTab.tsx");
@@ -132,7 +133,19 @@ export function jobsSelectColumns(source: string): string[] {
 describe("admin Jobs-tab earnings columns are all selected (Q759)", () => {
   const jobsTabSrc = readFileSync(JOBS_TAB, "utf8");
   const openProfileSrc = readFileSync(OPEN_PROFILE, "utf8");
-  const earningsCols = calcEarningColumns(jobsTabSrc);
+  // A column still ahead of the DB (JOB_COLUMNS_AHEAD_OF_DB: its migration has
+  // not deployed) cannot be in a plain select without a 400; each one carries
+  // its own fallback (poster_fee_flat_cents: a 0c flat stamp already says
+  // "the Helpr pays nothing", helprFlatFee.ts helprPaysNoFee). It joins this
+  // check the day it moves into JOB_READABLE_COLUMN_LIST.
+  const ahead = JOB_COLUMNS_AHEAD_OF_DB as readonly string[];
+  const earningsCols = calcEarningColumns(jobsTabSrc).filter((c) => !ahead.includes(c));
+  // EXACTLY the one column that has its fallback: any other ahead-of-DB column
+  // calcEarning comes to read is a real gap, and this goes red the day
+  // poster_fee_flat_cents leaves the ahead list (then drop the exemption).
+  it("exempts only poster_fee_flat_cents as ahead of the DB", () => {
+    expect(calcEarningColumns(jobsTabSrc).filter((c) => ahead.includes(c))).toEqual(["poster_fee_flat_cents"]);
+  });
   const selectCols = jobsSelectColumns(openProfileSrc);
 
   it("inventories calcEarning's own column reads (a broken extractor must not pass vacuously)", () => {

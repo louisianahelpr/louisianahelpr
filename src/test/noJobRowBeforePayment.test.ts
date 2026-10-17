@@ -4,7 +4,8 @@ import { relative, resolve } from "node:path";
 
 import { blankComments } from "./helpers/blankNonCode";
 import { walkSource } from "./helpers/walkSource";
-import { buildTurnoverPrefill } from "@/pages/post-job/turnoverPrefill";
+import { buildTurnoverPrefill, turnoverTitle } from "@/pages/post-job/turnoverPrefill";
+import { detailsBlocker } from "@/pages/post-job/detailsBlocker";
 
 /**
  * Q768 (docs/OPEN.md; owner decision 2026-09-27, pop-up: "Import as drafts").
@@ -24,7 +25,10 @@ import { buildTurnoverPrefill } from "@/pages/post-job/turnoverPrefill";
 // @mutate supabase/functions/str-ical-sync/index.ts | link:    `/post-job?turnover=${claim.id}`, | link:    `/posts`,
 // @mutate src/pages/post-job/usePostJobForm.ts |  \|\| searchParams.get("turnover")); | );
 // @mutate src/pages/post-job/useJobSubmit.ts |         await linkTurnoverJob(turnoverId, jobData.id); |         void jobData;
-// @mutate src/pages/post-job/turnoverPrefill.ts |     title: fitWords(`STR clean ${row.checkout_date} ${propName}`, 32), |     title: fit(`STR clean ${row.checkout_date} ${propName}`, 32),
+// @mutate src/pages/post-job/turnoverPrefill.ts |   return Array.from(withName).length <= TITLE_MAX ? withName : base; |   return Array.from(withName).slice(0, TITLE_MAX).join("");
+// @mutate src/pages/post-job/turnoverPrefill.ts |   const day = parseLocalDate(checkoutDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }); |   const day = checkoutDate;
+// @mutate src/pages/post-job/turnoverPrefill.ts | guest checkout on ${formatJobDate(row.checkout_date)}. | guest checkout on ${row.checkout_date}.
+// @mutate src/pages/post-job/turnoverPrefill.ts |   const name = (propertyName ?? "").trim().replace(/\s+/g, " "); |   const name = propertyName ?? "";
 // @mutate src/pages/post-job/turnoverPrefill.ts |   return row.job_id != null && !!row.jobs && row.jobs.status !== "cancelled" && FUNDED.has(row.jobs.payment_status ?? ""); |   return row.job_id != null;
 // @mutate supabase/migrations/20261007145950_str_turnover_link_job.sql |   ADD CONSTRAINT str_processed_events_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id) ON DELETE SET NULL; |   ADD CONSTRAINT str_processed_events_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id);
 
@@ -78,15 +82,37 @@ describe("Q768: no server path creates a jobs row before payment", () => {
     }
   });
 
+  it("a turnover's title fits whole, with a readable date (Q1787)", () => {
+    const title = (d: string, name: string | null) =>
+      buildTurnoverPrefill({ id: "e1", checkout_date: d, job_id: null, str_calendar_connections: { property_name: name, property_address: null, cleaning_budget: null, cleaning_notes: null } }).title;
+    expect(title("2026-10-17", "Camp")).toBe("Turnover clean · Oct 17 · Camp");
+    expect(title("2026-10-20", "SEED Bywater double")).toBe("Turnover clean · Oct 20");
+    expect(title("2026-10-17", "Proof Cottage")).toBe("Turnover clean · Oct 17");
+    expect(title("2026-01-02", null)).toBe("Turnover clean · Jan 2");
+    expect(title("2026-12-31", "  Lot   9 ")).toBe("Turnover clean · Dec 31 · Lot 9");
+    // The class, over every name length from 0 to 40: never over the cap, never
+    // an ISO date, the name whole or absent, and Post a Job's own blocker passes it.
+    const pad = "Bayou Cottage Number Seven On The Water Front";
+    for (let n = 0; n <= 40; n++) {
+      const name = pad.slice(0, n).trim();
+      for (const d of ["2026-10-09", "2026-10-20", "2026-12-31"]) {
+        const t = title(d, name || null);
+        expect(Array.from(t).length, t).toBeLessThanOrEqual(32);
+        expect(t, t).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+        expect(t === turnoverTitle(d, null) || t.endsWith(` · ${name}`), `${t} cuts "${name}"`).toBe(true);
+        expect(detailsBlocker({ title: t, description: "Turnover clean after guests leave.", category: "cleaning" }), t).toBeNull();
+      }
+    }
+  });
+
   it("the pre-filled job fits the jobs CHECKs and says when it was already posted", () => {
     const conn = { property_name: "The Very Long Bayou Cottage Name", property_address: "12 Bayou Rd, Houma, LA 70360", cleaning_budget: 95, cleaning_notes: null };
     const p = buildTurnoverPrefill({ id: "e1", checkout_date: "2026-10-09", job_id: null, str_calendar_connections: conn });
     expect(Array.from(p.title).length).toBeLessThanOrEqual(32);
-    expect(p.title.startsWith("STR clean 2026-10-09")).toBe(true);
-    // Never half a word (prod 2026-10-12: "STR clean 2026-10-17 Proof Cotta").
-    expect(p.title).toBe("STR clean 2026-10-09 The Very");
-    expect(buildTurnoverPrefill({ id: "e1", checkout_date: "2026-10-17", job_id: null, str_calendar_connections: { ...conn, property_name: "Proof Cottage" } }).title).toBe("STR clean 2026-10-17 Proof");
-    expect(buildTurnoverPrefill({ id: "e1", checkout_date: "2026-10-17", job_id: null, str_calendar_connections: { ...conn, property_name: "Camp" } }).title).toBe("STR clean 2026-10-17 Camp");
+    // Q1787: built to fit, never cut. A name that does not fit WHOLE is left out
+    // (prod 2026-10-13: "STR clean 2026-10-20 SEED Bywate").
+    expect(p.title).toBe("Turnover clean · Oct 9");
+    expect(p.description).toContain("after guest checkout on Fri, Oct 9.");
     expect(p).toMatchObject({ budget: "95", dateNeeded: "2026-10-09", location: conn.property_address, alreadyPosted: false });
     expect(p.description).toContain("Standard turnover clean");
     // "Already posted" only when the linked job is FUNDED (lh-authz-rls review: an abandoned checkout is not a post).

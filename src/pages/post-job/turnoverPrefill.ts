@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { formatJobDate, parseLocalDate } from "@/lib/dateUtils";
+import { TITLE_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
 
 /**
  * Q768 (owner, 2026-09-27: "Import as drafts"). str-ical-sync records each
@@ -45,27 +47,31 @@ const FUNDED = new Set(["escrow", "payout_pending", "released"]);
 /** public.jobs CHECKs (Q782): title <= 32 and description <= 1000 code points. */
 const fit = (s: string, n: number) => Array.from(s).slice(0, n).join("").trim();
 
-/** Like `fit`, but a title never ends on half a word: "STR clean 2026-10-17
- *  Proof Cotta" (seen on prod 2026-10-12 proving Q768) reads as a typo, so a
- *  cut drops the partial last word instead. src/test/noJobRowBeforePayment.test.ts. */
-const fitWords = (s: string, n: number) => {
-  const chars = Array.from(s.trim());
-  if (chars.length <= n) return chars.join("");
-  const cut = chars.slice(0, n).join("");
-  // The next character after the cut is a space: the cut fell between words.
-  if (chars[n] === " ") return cut.trim();
-  const lastSpace = cut.lastIndexOf(" ");
-  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trim();
-};
+/**
+ * The turnover's title, built to fit instead of cut (Q1787): "Turnover clean ·
+ * Oct 20", plus " · <property>" only when the WHOLE name fits under the cap.
+ * Prod e80a4ca9d (2026-10-13) showed "STR clean 2026-10-20 SEED Bywate": an
+ * ISO date and a name cut mid-word at 32. A later word-boundary cut still left
+ * half a property name ("... SEED"). The date reads the way the app shows
+ * dates: month and day, never YYYY-MM-DD. Pure.
+ */
+export function turnoverTitle(checkoutDate: string, propertyName: string | null | undefined): string {
+  const day = parseLocalDate(checkoutDate).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const base = `Turnover clean · ${day}`;
+  const name = (propertyName ?? "").trim().replace(/\s+/g, " ");
+  const withName = name ? `${base} · ${name}` : base;
+  // TITLE_MAX: Post a Job's title cap, the public.jobs CHECK (Q782).
+  return Array.from(withName).length <= TITLE_MAX ? withName : base;
+}
 
-/** The cleaning job a turnover pre-fills: the same words the sync used to write. Pure. */
+/** The cleaning job a turnover pre-fills. Pure. */
 export function buildTurnoverPrefill(row: TurnoverRow): TurnoverPrefill {
   const conn = row.str_calendar_connections;
-  const propName = conn?.property_name ?? "property";
   const notes = conn?.cleaning_notes ? conn.cleaning_notes : "Standard turnover clean — please message for door code.";
   return {
-    title: fitWords(`STR clean ${row.checkout_date} ${propName}`, 32),
-    description: fit(`Cleaning needed after guest checkout on ${row.checkout_date}. ${notes}`, 1000),
+    title: turnoverTitle(row.checkout_date, conn?.property_name),
+    // formatJobDate: "Tue, Oct 20", the one job-date format.
+    description: fit(`Cleaning needed after guest checkout on ${formatJobDate(row.checkout_date)}. ${notes}`, 1000),
     budget: conn?.cleaning_budget != null ? String(conn.cleaning_budget) : "",
     location: conn?.property_address ?? "",
     dateNeeded: row.checkout_date,

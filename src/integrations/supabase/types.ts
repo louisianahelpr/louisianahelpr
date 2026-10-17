@@ -9453,6 +9453,10 @@ export type Database = {
         }[]
       }
       declutter_seller_out: { Args: { p_seller: string }; Returns: boolean }
+      declutter_seller_out_fee_notice: {
+        Args: { p_refund_id: string }
+        Returns: undefined
+      }
       declutter_set_move_out_date: {
         Args: { p_move_out_on: string | null }
         Returns: number

@@ -3,7 +3,7 @@
  * every sweep says so by name when one does.
  *
  * nightly-red #2436 (e2e-journeys 38749234414, 38882683467): helper-e2e
- * (7b923b19) was given a half-onboarded TEST-mode Express account
+ * was given a half-onboarded TEST-mode Express account
  * (acct_1UQigP3qNyg1xGcp, created 2026-10-15 07:02Z by a stripe-connect POST
  * from a local node script). helper_accept_missing's is_seed carve-out only
  * holds with NO Stripe account, so accept_job_offer answered pending_setup
@@ -31,6 +31,7 @@ import { join } from "node:path";
 import { parse } from "yaml";
 import { RESET_FIELDS, stripeSeatViolations } from "../../scripts/e2e/seatStripeAccounts.mjs";
 import { blankComments } from "./helpers/blankNonCode";
+import { ACCOUNTS } from "../../scripts/test-signin-link.mjs";
 
 const root = join(__dirname, "..", "..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
@@ -39,13 +40,13 @@ describe("nightly-red #2436: a test seat with a Stripe account is named, in ever
   it("flags the measured incident row and nothing else", () => {
     // profiles read on prod 2026-10-17 (two of the test_accounts roster).
     const rows = [
-      { user_id: "7b923b19-aba5-44cb-8730-8c33ba2b9321", email: "helpr-e2e-helper-0902@mailinator.com", stripe_account_id: "acct_1UQigP3qNyg1xGcp" },
-      { user_id: "951264df-1e7c-4b6f-912e-a1be37e0dbfb", email: "helpr-e2e-poster-0902@mailinator.com", stripe_account_id: null },
+      { user_id: ACCOUNTS["helper-e2e"].userId, email: ACCOUNTS["helper-e2e"].email, stripe_account_id: "acct_1UQigP3qNyg1xGcp" },
+      { user_id: ACCOUNTS["poster-e2e"].userId, email: ACCOUNTS["poster-e2e"].email, stripe_account_id: null },
     ];
     const bad = stripeSeatViolations(rows);
     expect(bad).toHaveLength(1);
     expect(bad[0]).toContain("acct_1UQigP3qNyg1xGcp");
-    expect(bad[0]).toContain("helpr-e2e-helper-0902@mailinator.com");
+    expect(bad[0]).toContain(ACCOUNTS["helper-e2e"].email);
     expect(stripeSeatViolations([rows[1]])).toEqual([]);
   });
 

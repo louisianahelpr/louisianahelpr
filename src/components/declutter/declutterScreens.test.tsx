@@ -48,6 +48,18 @@ vi.mock("@/components/AppPage", () => ({
   ),
 }));
 vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }));
+// Haul-away (its own screens' tests: declutterHaulAway.test.tsx); here only no network.
+// A plain (synchronous) factory: with an async one spreading the original, the
+// screen's dynamic import could resolve the real module first and reach the
+// network (seen flaky 2026-10-17).
+vi.mock("@/lib/declutter/haulAway", () => ({
+  fetchHaulAwayState: async () => [],
+  oneTripGroup: () => [],
+  haulJobToDelete: () => null,
+  deleteNeverPaidHaulJob: async () => true,
+  cancelHaulAway: async () => "live",
+  HAUL_AWAY_CLIENT_ERROR_COPY: { haul_away_job_stuck: "stuck" },
+}));
 vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
   fetchMyItems: async () => state.mine,

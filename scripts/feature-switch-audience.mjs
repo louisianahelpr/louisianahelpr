@@ -71,6 +71,21 @@ export function registryKeysFromSource(src) {
 }
 
 /**
+ * The registry keys read from the file on disk; null (after an ::error:: line)
+ * when the file cannot be read, so judge() fails closed.
+ * @param {string} [file]
+ * @returns {string[] | null}
+ */
+export function readRegistryKeys(file = REGISTRY_FILE) {
+  try {
+    return registryKeysFromSource(readFileSync(file, "utf8"));
+  } catch (err) {
+    console.error(`::error::could not read ${file}: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+}
+
+/**
  * @param {{
  *   registry: string[] | null,            // FEATURE_SWITCH_KEYS (registryKeysFromSource)
  *   switches: { key: string, audience: string }[] | null,
@@ -195,12 +210,7 @@ async function main() {
     return createClient(url, anonKey, { ...opts, global: { headers: { Authorization: `Bearer ${session.access_token}` } } });
   }
 
-  let registry = null;
-  try {
-    registry = registryKeysFromSource(readFileSync(REGISTRY_FILE, "utf8"));
-  } catch (err) {
-    console.error(`::error::could not read ${REGISTRY_FILE}: ${err instanceof Error ? err.message : String(err)}`);
-  }
+  const registry = readRegistryKeys();
   const result = {
     registry,
     switches,

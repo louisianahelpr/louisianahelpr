@@ -1,5 +1,8 @@
 # Agent brief — read this before you start (every spawned agent)
 
+Read `.claude/OPERATING.md` too: the owner's standing order (2026-10-16/17) that everything ends on main, green, nothing stale. A lane is done only at MERGED.
+
+
 The lead pastes your task; these rules apply to every task. They exist because
 each one was broken at least once on 2026-09-23. CLAUDE.md still wins where it
 says more.

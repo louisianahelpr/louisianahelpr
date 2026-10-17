@@ -25,7 +25,7 @@
  * and a mutating press re-checks, at click time, that it lands on the record
  * the gate approved (pressTargetRecord).
  *
- * @mutate scripts/audit/press-every-control.mjs | \|checkout\|got it)\b/i; | \|checkout)\b/i;
+ * @mutate scripts/audit/press-every-control.mjs | \|got it)\b/i; | )\b/i;
  * @mutate scripts/audit/press-every-control.mjs | [role="alertdialog"], [data-activity-card], [class*="card"] | [role="alertdialog"], [class*="card"]
  * @mutate scripts/audit/press-every-control.mjs | if (!meta?.rowText \|\| sameRecord(liveRowText, meta.rowText)) return { verdict: "same" }; | return { verdict: "same" };
  * @mutate scripts/audit/press-every-control.mjs | const inRecord = (now ?? []).filter((c) => sameRecord(c.rowText, meta.rowText)); | const inRecord = now ?? [];

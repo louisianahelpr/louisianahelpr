@@ -1936,6 +1936,27 @@ serve(async (req) => {
           setupFeeCents: setupFeeKeptCents(job),
         }).nonRefundableCents;
 
+      /**
+       * Q1806: what the gift keeps after a hold was captured whole: the fees
+       * left after payBlockFees (a member whose account is gone is voided
+       * there) plus what the card keeps (cardNonRefundableCents, at the
+       * charge's real fee), less the capture; never more than the gift paid.
+       */
+      const giftKeptAfterCapture = (
+        // deno-lint-ignore no-explicit-any
+        captured: any,
+        captureCents: number,
+        feeOwedCents: number,
+        giftCents: number,
+      ): number => {
+        const owedCents = feeOwedCents + crewBlockFeeCents(blockFeeRows);
+        const shortCents = Math.max(0, cardNonRefundableCents(captureCents, actualOrEstimatedFeeCents(captured, captureCents)) + owedCents - captureCents);
+        if (shortCents > giftCents) {
+          defects.record(`gift fee funding ${job.id} (fee capture): ${shortCents}c short after capture, the gift paid ${giftCents}c`);
+        }
+        return Math.min(shortCents, giftCents);
+      };
+
       let paymentIntentId = job.stripe_payment_intent_id;
 
       // Resolve payment intent from session if not stored
@@ -2105,10 +2126,8 @@ serve(async (req) => {
               blockCents > 0 ? `${both ? `${refundDollars(blockCents)} ` : "the fees "}for the crew spots you closed close to the start` : null,
             ].filter((x): x is string => !!x);
             // Re-fetch so latest_charge is populated for the helper transfer's
-            // source_transaction link.
-            const captured = holdGift
-              ? await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge.balance_transaction"] })
-              : await stripe.paymentIntents.retrieve(paymentIntentId);
+            // source_transaction link. Q1806: with the charge's real fee.
+            const captured = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge.balance_transaction"] });
             const holdFeeOnLedger = await payCancellationFee(cancellationFee, captured);
             await payBlockFees(captured);
             if (holdGift && !holdFeeOnLedger) {
@@ -2118,18 +2137,7 @@ serve(async (req) => {
               results.push({ job_id: job.id, title: job.title, status: "gift_fee_not_claimed" });
               continue;
             }
-            // Q1806: what the gift keeps, from the fees left after payBlockFees
-            // (a member whose account is gone is voided there) and the
-            // charge's real fee.
-            let holdGiftKeptCents = 0;
-            if (holdGift) {
-              const owedCents = Math.round(cancellationFee * 100) + crewBlockFeeCents(blockFeeRows);
-              const shortCents = Math.max(0, cardNonRefundableCents(captureCents, actualOrEstimatedFeeCents(captured, captureCents)) + owedCents - captureCents);
-              holdGiftKeptCents = Math.min(shortCents, holdGift.cents);
-              if (shortCents > holdGift.cents) {
-                defects.record(`gift fee funding ${job.id} (fee capture): ${shortCents}c short after capture, the gift paid ${holdGift.cents}c`);
-              }
-            }
+            const holdGiftKeptCents = holdGift ? giftKeptAfterCapture(captured, captureCents, Math.round(cancellationFee * 100), holdGift.cents) : 0;
             // Q1345: the fee this capture charged is stamped in the same write,
             // so the job row says what left the poster's card (Spent, the
             // fee pill) instead of the client-written figure. The crew block

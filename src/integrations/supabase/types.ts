@@ -1407,6 +1407,45 @@ export type Database = {
           },
         ]
       }
+      declutter_haul_aways: {
+        Row: {
+          created_at: string
+          item_id: string
+          job_id: string | null
+          prior_status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          item_id: string
+          job_id?: string | null
+          prior_status: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          item_id?: string
+          job_id?: string | null
+          prior_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_haul_aways_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "declutter_haul_aways_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declutter_item_photos: {
         Row: {
           created_at: string
@@ -9051,6 +9090,10 @@ export type Database = {
         Returns: string
       }
       declutter_buyer_fee_cents: { Args: { p_items_cents: number }; Returns: number }
+      declutter_cancel_haul_away: {
+        Args: { p_item_id: string; p_job_id?: string }
+        Returns: string
+      }
       declutter_cancelled_sale_session: { Args: { p_item_id: string; p_seller: string }; Returns: string }
       declutter_card_fee_estimate: { Args: { p_amount_cents: number }; Returns: number }
       declutter_close_paid_order: {
@@ -9131,7 +9174,24 @@ export type Database = {
         Returns: boolean
       }
       declutter_handover_sweep: { Args: never; Returns: Json }
+      declutter_haul_away_state: {
+        Args: { p_item_ids?: string[] }
+        Returns: {
+          delivery_size: string
+          description: string
+          eligible_at: string
+          item_id: string
+          item_status: string
+          job_hold: string
+          job_id: string
+          photo_paths: string[]
+          pickup_group: string
+          state: string
+          title: string
+        }[]
+      }
       declutter_has_agreed_sales: { Args: never; Returns: boolean }
+      declutter_haul_job_hold: { Args: { p_job_id: string }; Returns: string }
       declutter_in_agreed_sale: { Args: { p_item_id: string; p_user_id: string }; Returns: boolean }
       declutter_item_address: {
         Args: { p_item_id: string }
@@ -9144,6 +9204,10 @@ export type Database = {
       declutter_leave_review: {
         Args: { p_comment: string; p_order_id: string; p_stars: number }
         Returns: string
+      }
+      declutter_link_haul_away: {
+        Args: { p_item_ids: string[]; p_job_id: string }
+        Returns: number
       }
       declutter_lock_buyable_item: {
         Args: { p_buyer: string; p_item_id: string }

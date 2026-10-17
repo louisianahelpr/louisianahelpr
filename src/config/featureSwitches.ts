@@ -45,6 +45,10 @@ export const FEATURE_SWITCH_KEYS = [
   // W9-W12): created at TESTERS by 20261016053541; declutter_price_hint
   // refuses without it AND 'declutter'.
   "declutter_price_hint",
+  // Declutter haul-away (docs/specs/declutter-haul-away.md): book a Helpr job to
+  // take unsold items to donation or the dump. Created 'testers' by
+  // 20261017070827; its three RPCs refuse without it AND 'declutter'.
+  "declutter_haul_away",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

@@ -882,6 +882,8 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
+  // Haul-away (20261017070827): its RPCs' words are HAUL_AWAY_RPC_ERROR_COPY in
+  // src/lib/declutter/haulAwayErrors.ts, loaded only with the haul-away code (Q178).
   // "Suggest a category" (I1, migration 20261015051141).
   suggest_category: {
     account_restricted: "Your account can't send suggestions right now.",

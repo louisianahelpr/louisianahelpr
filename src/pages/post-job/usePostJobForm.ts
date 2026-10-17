@@ -12,6 +12,7 @@ import { useJobEntry } from "./useJobEntry";
 import { useJobDerived } from "./useJobDerived";
 import { useJobFormEffects } from "./useJobFormEffects";
 import { usePostJobGiftCard } from "./usePostJobGiftCard";
+import { useHaulAwayPrefill } from "./useHaulAwayPrefill";
 
 export type { Step } from "./postJobFormTypes";
 
@@ -26,7 +27,13 @@ export function usePostJobForm() {
   const navigate = useNavigate();
   const { profile } = useCurrentUser();
   const [searchParams] = useSearchParams();
-  const { draft, hasDraft, draftLoaded, saveDraft, flushDraft } = useDraftJob();
+  const { draft, hasDraft, draftLoaded, saveDraft: saveAnyDraft, flushDraft: flushAnyDraft } = useDraftJob();
+  // A Declutter haul-away is never saved as a draft: a draft cannot carry its
+  // items, so a job posted again from it would be paid with no link to them
+  // (lh-money-escrow review 2026-10-16). The seller books again from My listings.
+  const isHaulAway = !!searchParams.get("haulAway");
+  const saveDraft = useCallback<typeof saveAnyDraft>((d) => { if (!isHaulAway) saveAnyDraft(d); }, [isHaulAway, saveAnyDraft]);
+  const flushDraft = useCallback(() => { if (!isHaulAway) flushAnyDraft(); }, [isHaulAway, flushAnyDraft]);
   const [saving, setSaving] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   // Preflight open-job count — checked at mount so the user learns
@@ -37,7 +44,8 @@ export function usePostJobForm() {
   // drop straight into the pre-filled form. Everyone else sees the
   // start-fresh / draft / template choice first, which declutters the page.
   // Q768: an imported STR turnover (`turnover`) arrives pre-filled the same way.
-  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("turnover"));
+  // A Declutter haul-away (`haulAway`, docs/specs/declutter-haul-away.md) too.
+  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("turnover") || searchParams.get("haulAway"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
 
   // Gift card — the gift card this post is being funded with, if any.
@@ -221,6 +229,7 @@ export function usePostJobForm() {
     handleVideoSelect,
     clearVideo,
     handleImageSelect,
+    addPrefillImages,
     removeImage,
     reorderImages,
     uploadAndAttachPhotos,
@@ -315,6 +324,20 @@ export function usePostJobForm() {
     offerToHelperId,
   });
 
+  // Declutter haul-away: the seller's unsold listing(s) pre-fill a moving job.
+  const haulAwayItemIds = useHaulAwayPrefill(searchParams, {
+    setCategory,
+    setTitle,
+    setDescription,
+    setBudget,
+    setStreetAddress,
+    setCity,
+    setAddrState,
+    setZipCode,
+    setRequirePhotoProof,
+    addPrefillImages,
+  });
+
   // Form-population operations (AI apply, entry-landing choices, template
   // pre-fill, draft restore, direct-offer clear). Extracted into useJobEntry;
   // field setters + draft are passed through. Behavior is unchanged.
@@ -404,6 +427,7 @@ export function usePostJobForm() {
     saveCardForFuture,
     giftCardId,
     turnoverId: searchParams.get("turnover"),
+    haulAwayItemIds,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   });

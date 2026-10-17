@@ -140,6 +140,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   invalid_result: "That payout or refund result couldn't be recorded.",
   invalid_status: "That delivery can't be closed that way.",
   unknown_task_source: "That delivery's source isn't known.",
+  // Haul-away (20261017070827): its words are in ./haulAwayErrors (loaded only with the haul-away code, Q178).
 };
 
 /**

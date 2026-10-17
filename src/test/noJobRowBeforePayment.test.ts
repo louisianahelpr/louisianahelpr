@@ -22,7 +22,7 @@ import { buildTurnoverPrefill } from "@/pages/post-job/turnoverPrefill";
 
 // @mutate supabase/functions/str-ical-sync/index.ts | const { error: notifyError } = await supabase.from('notifications').insert({ | await supabase.from('jobs').insert({ customer_id: conn.user_id, status: 'open' });\n          const { error: notifyError } = await supabase.from('notifications').insert({
 // @mutate supabase/functions/str-ical-sync/index.ts | link:    `/post-job?turnover=${claim.id}`, | link:    `/posts`,
-// @mutate src/pages/post-job/usePostJobForm.ts |  \|\| searchParams.get("turnover")); | );
+// @mutate src/pages/post-job/usePostJobForm.ts |  \|\| searchParams.get("turnover") \|\| searchParams.get("haulAway")); |  \|\| searchParams.get("haulAway"));
 // @mutate src/pages/post-job/useJobSubmit.ts |         await linkTurnoverJob(turnoverId, jobData.id); |         void jobData;
 // @mutate src/pages/post-job/turnoverPrefill.ts |     title: fitWords(`STR clean ${row.checkout_date} ${propName}`, 32), |     title: fit(`STR clean ${row.checkout_date} ${propName}`, 32),
 // @mutate src/pages/post-job/turnoverPrefill.ts |   return row.job_id != null && !!row.jobs && row.jobs.status !== "cancelled" && FUNDED.has(row.jobs.payment_status ?? ""); |   return row.job_id != null;
@@ -59,7 +59,7 @@ describe("Q768: no server path creates a jobs row before payment", () => {
 
   it("Post a Job opens a turnover pre-filled, skips the entry screen, and links the posted job", () => {
     expect(read("src/pages/post-job/useJobFormEffects.ts")).toMatch(/searchParams\.get\("turnover"\)[\s\S]*?fetchTurnoverPrefill\(turnoverId\)/);
-    expect(read("src/pages/post-job/usePostJobForm.ts")).toContain('|| searchParams.get("turnover"));');
+    expect(read("src/pages/post-job/usePostJobForm.ts")).toContain('|| searchParams.get("turnover") || searchParams.get("haulAway"));');
     expect(read("src/pages/post-job/usePostJobForm.ts")).toContain('turnoverId: searchParams.get("turnover"),');
     expect(read("src/pages/post-job/useJobSubmit.ts")).toContain("await linkTurnoverJob(turnoverId, jobData.id);");
     expect(read("src/pages/post-job/turnoverPrefill.ts")).toContain('supabase.rpc("link_str_turnover_job"');

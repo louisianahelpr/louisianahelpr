@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
 import { HELPR_TASK_RPC_ERROR_COPY } from "@/lib/helprTasks/errorCopy";
+import { HAUL_AWAY_RPC_ERROR_COPY } from "@/lib/declutter/haulAwayErrors";
 import {
   anonExecuteRevoked,
   clientRpcCalls,
@@ -118,8 +119,11 @@ for (const rpc of calls.keys()) {
   const codes = codesReachableFrom(rpc, defs);
   if (codes.size) inventory.set(rpc, codes);
 }
-// The helpr_* RPCs keep their words beside the delivery screens (src/lib/helprTasks/errorCopy.ts).
-const COPY = { ...RPC_ERROR_COPY, ...HELPR_TASK_RPC_ERROR_COPY } as CopyTable;
+// The helpr_* RPCs keep their words beside the delivery screens (src/lib/helprTasks/errorCopy.ts);
+// Declutter haul-away's RPCs keep theirs in their own lazily loaded module
+// (src/lib/declutter/haulAwayErrors.ts, off /posts' critical path, Q178).
+// The rule is the same, so the tables are read as one.
+const COPY = { ...RPC_ERROR_COPY, ...HELPR_TASK_RPC_ERROR_COPY, ...HAUL_AWAY_RPC_ERROR_COPY } as CopyTable;
 const source = (file: string) => readFileSync(resolve(ROOT, file), "utf8");
 
 describe("the inventory still sees the world", () => {
@@ -130,6 +134,12 @@ describe("the inventory still sees the world", () => {
     expect(inventory.size).toBeGreaterThan(15);
     expect(inventory.get("helper_abort_job")?.get("not_abortable")).toBe("helper_abort_job");
     expect(inventory.get("helper_abort_job")?.get("job_already_completed")).toBe("open_dispute_as");
+  });
+
+  it("the haul-away table adds only declutter_*haul_away* RPCs, none also in RPC_ERROR_COPY", () => {
+    const names = Object.keys(HAUL_AWAY_RPC_ERROR_COPY);
+    expect(names.length).toBeGreaterThan(2);
+    expect(names.filter((n) => !/^declutter_.*haul_away/.test(n) || n in RPC_ERROR_COPY)).toEqual([]);
   });
 
   it("no RPC is called with a name the inventory cannot read", () => {

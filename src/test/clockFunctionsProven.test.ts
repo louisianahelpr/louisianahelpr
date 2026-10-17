@@ -62,6 +62,7 @@ const PROVEN: Record<string, string> = {
   check_ops_alert_pending: "opsAlertPendingClock.pglite.mjs",
   check_user_reports_reach_ledger: "userReportsLedgerClock.pglite.mjs",
   check_db_saturation: "dbSaturationClock.pglite.mjs",
+  run_missed_cron_catch_up: "cronCatchUpClock.pglite.mjs",
 };
 
 /** function -> why it has no fixed-clock probe yet. Each is open work under docs/OPEN.md Q1424. */
@@ -78,7 +79,6 @@ const NOT_PROVEN: Record<string, string> = {
   cron_record_work: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
   detect_stuck_payments: "named by stuckPaymentNeedsStripeProof.pglite.mjs, moneySweepsFoundVsDone.pglite.mjs, cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path: lane A2 (money, auth and data).",
   reap_stranded_instant_payouts: "named by cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path: lane A2 (money, auth and data).",
-  run_missed_cron_catch_up: "named by cronCatchUp.pglite.mjs, cronCatchUpHttpOutcome.pglite.mjs, cronCatchUpOneScan.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
 };
 
 const files = readdirSync(MIGRATIONS)

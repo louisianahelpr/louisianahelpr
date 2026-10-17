@@ -29,6 +29,7 @@
  * Guard: src/test/stripeCheckoutCardOpener.test.ts.
  */
 import type { Locator, Page } from "@playwright/test";
+import { answerStripeReturn } from "./stripeReturn";
 
 /** Stripe's card-number input, present once the Card method is open. */
 export const STRIPE_CARD_FIELD = "#cardNumber";
@@ -137,6 +138,17 @@ export async function payWithTestCard(page: Page, checkoutUrl: string): Promise<
   if (host !== STRIPE_CHECKOUT_HOST || !/\/cs_test_[A-Za-z0-9]+/.test(checkoutUrl)) {
     throw new Error(`refusing to pay a Checkout Session that is not test mode: ${checkoutUrl.slice(0, 80)}`);
   }
+  // Q1255: Stripe's return goes to create-payment's APP_URL, the DEPLOYED
+  // site; it is answered locally and never loaded from Vercel.
+  const stripeReturn = await answerStripeReturn(page);
+  try {
+    await submitTestCard(page, checkoutUrl);
+  } finally {
+    await stripeReturn.stop();
+  }
+}
+
+async function submitTestCard(page: Page, checkoutUrl: string): Promise<void> {
   await page.goto(checkoutUrl, { waitUntil: "domcontentloaded" });
   const cardNumber = page.locator(STRIPE_CARD_FIELD);
   await waitForStripePaymentMethods(page);

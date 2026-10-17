@@ -23,7 +23,8 @@
  *
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (feeCents > holdCents) { | if (false) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | const captureCents = Math.min(feeCents, holdCents); | const captureCents = feeCents;
- * @mutate supabase/functions/void-cancelled-payments/index.ts | if (cardShortCents > 0) { | if (false) {
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | if (cardShortCents > 0 && !feesFitCard) { | if (false) {
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | if (cardShortCents > 0 && !feesFitCard) { | if (cardShortCents > 0) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | blockFeeCents - (capturedCents - Math.max(0, chargeRefundedCents)))) | blockFeeCents - capturedCents))
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (!cardGift && chargeRefundedCents > voidSplit.ceilingCents + 1) { | if (chargeRefundedCents > voidSplit.ceilingCents + 1) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (cardGift && !refundFeeOnLedger) { | if (false) {
@@ -275,6 +276,25 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     expect(jobFlips()).toHaveLength(0);
     expect(shortfallPaged()).toBe(true);
+  });
+
+  // Build review of e03e43b8b #1: a card-only hold captured fee-only (an
+  // earlier run died before settling) holds the fee but not also the card
+  // fee. It settles as origin/main did; it is not parked in escrow and paged.
+  it("a card-only hold captured fee-only on an earlier run settles on the retry, with no gift asked and no page", async () => {
+    seed(mixedJob({ budget: 300 }));
+    giftRpc({ outcome: "no_credit" });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", amount: 30900, amount_received: 15000,
+      latest_charge: { id: "ch_1", amount: 30900, amount_captured: 15000, amount_refunded: 0, balance_transaction: { fee: 465 } },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+
+    expect(shortfallPaged()).toBe(false);
+    expect(jobFlips().map((w) => w.payload)).toEqual([
+      expect.objectContaining({ payment_status: "refunded", cancellation_fee_status: "charged" }),
+    ]);
   });
 
   it("an ordinary card-only job still links its fee to its charge", async () => {

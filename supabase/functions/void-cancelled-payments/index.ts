@@ -2221,7 +2221,13 @@ serve(async (req) => {
           const keptOfCard = cardNonRefundableCents(capturedCents, actualOrEstimatedFeeCents(pi, capturedCents));
           const cardShortCents = Math.max(0, keptOfCard + feeOwedCents + crewBlockFeeCents(blockFeeRows) - capturedCents);
           let cardGift: { cents: number } | null = null;
-          if (cardShortCents > 0) {
+          // Build review of e03e43b8b #1: the gift is asked only when the card
+          // cannot pay the FEES owed (late fee + crew block fees). A charge that
+          // holds them but not also the kept card and setup fee (a hold captured
+          // fee-only, whose run died before settling) settles as before, exactly
+          // as the hold path priced it, instead of sitting in escrow and paging.
+          const feesFitCard = feeOwedCents + crewBlockFeeCents(blockFeeRows) <= capturedCents - Math.max(0, chargeRefundedCents);
+          if (cardShortCents > 0 && !feesFitCard) {
             // Review #2: an earlier refund on the charge left the card even
             // less to pay with; the gift covers that too.
             cardGift = await giftCoversShortfall(cardShortCents + Math.max(0, chargeRefundedCents), "refund");

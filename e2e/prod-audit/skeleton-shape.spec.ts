@@ -3,10 +3,9 @@
  * skeletons are not even the page shape").
  *
  * For every route App.tsx gives a named skeleton (routeSkeletonRoutes: the
- * skeletonOnDemand fallbacks, read from source): at 375, every URL the route
- * inventory derives for it (all of Profile's tabs included); at 1440, one URL
- * per route (its bare path when the inventory has it). The page's own lazy
- * chunk is HELD at the wire, the skeleton frame is measured, the chunk is
+ * skeletonOnDemand fallbacks, read from source), at 375 and at 1440, every URL
+ * the route inventory derives for it (all of Profile's tabs included). The
+ * page's own lazy chunk is HELD at the wire, the skeleton frame is measured, the chunk is
  * released and the loaded page measured: the title and the first block must
  * sit within TOL_PX on top/left (block width too). The rule for "title" and
  * "first block" is scripts/audit/skeleton-shape.mjs FRAME_BOXES; its pure
@@ -14,10 +13,8 @@
  *
  * Its own file, not a third test in page-settle.spec.ts: page-settle runs in
  * prod-audit leg 4, whose 28-minute suite step ran 28 min on run 38689259675;
- * leg 3 (34 of 42 min on the same run) has the room. This file ran 1.7 min
- * (375, 30 URLs) + 33 s (1440, 6 URLs) locally on 2026-10-17. 1440 is one
- * URL per route because the first cut (every URL at both widths, before the
- * dock's pulsing ring stopped counting as "still loading") took 588 s.
+ * leg 3 (34 of 42 min on the same run) has the room. This file ran
+ * 1.7 min (375) + 1.9 min (1440) locally on 2026-10-17, 30 URLs per width.
  *
  * Read-only on prod: every non-GET to Supabase is refused by writeFirewall
  * (read RPCs pass) and logged; nothing is clicked.
@@ -51,6 +48,18 @@ const KNOWN_SHAPES: Record<string, string> = {
   "375 /profile?tab=legal": "block y",
   // Skeleton has no Filter/Recent activity row: first card y68, loaded y124.
   "375 /profile?tab=saved_helpers": "block y",
+  // Same missing tab row: the skeleton card (w1144) sits where the selected
+  // Terms pill (w373) is; the content card is at y204.
+  "1440 /profile?tab=legal": "block w",
+  // Same missing Filter row: card y148, loaded y204.
+  "1440 /profile?tab=saved_helpers": "block y",
+  // Two full-width cards; the page is a 480px calendar beside an Upcoming jobs column.
+  "1440 /profile?tab=schedule": "block w",
+  // One card; the page is a Share Record row, then a timeline whose cards start
+  // at x44 (y148 -> 214, w1144 -> 1124).
+  "1440 /profile?tab=home_history": "block y; block x; block w",
+  // A full-column card; the page is a centred 420px card (x24 -> 386).
+  "1440 /profile?tab=wrapped": "block x; block w",
 };
 
 for (const width of [375, 1440] as const) {
@@ -62,13 +71,10 @@ for (const width of [375, 1440] as const) {
     const urls = (deriveRouteSet({ seedJobId: "test", helperId: HELPER_ID, customerId: POSTER_ID, adminViews: [] }) as RouteRow[])
       .filter((r) => !r.redirect)
       .map((r) => ({ ...r, route: inv.find((i) => new URL(r.url, "http://x").pathname === i.path) }))
-      .filter((r) => r.route)
-      // 1440: one URL per route, the bare path first (Profile's tabs share
-      // one shell; the 375 pass walks every one of them).
-      .filter((r, _i, all) => width === 375 || r === (all.find((o) => o.route === r.route && o.url === r.route!.path) ?? all.find((o) => o.route === r.route)));
+      .filter((r) => r.route);
     // Every skeleton route is reached, and Profile's tabs with it.
     expect(new Set(urls.map((u) => u.route!.path)).size, "every skeleton route has a URL").toBe(inv.length);
-    expect(urls.length).toBeGreaterThan(width === 375 ? 20 : 4);
+    expect(urls.length).toBeGreaterThan(20);
 
     const session = await sessionFor(request, "poster");
     const breaches: Record<string, string> = {};

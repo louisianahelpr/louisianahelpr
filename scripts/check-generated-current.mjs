@@ -267,6 +267,7 @@ export const HISTORICAL = {
  * reason. A script that starts writing a committed file must move out of here.
  */
 export const WRITES_NOT_COMMITTED = {
+  "scripts/lib/freshCheckout.mjs": "an LH_STALE_CHECKOUT_OK override appends one line to ~/.lh-hygiene/stale-checkout-runs.log (or LH_HYGIENE_DIR), outside the repo, an audit trail of overrides; never a repo file",
   "scripts/land-queue.mjs": "the land queue's decision lines to $GITHUB_STEP_SUMMARY in land-queue.yml (a CI job summary, never a repo file)",
   "scripts/prune-stale-branches.mjs": "Q915: UNLANDED-branch table to $GITHUB_STEP_SUMMARY in branch-prune.yml (a CI job summary, never a repo file)",
   "scripts/prune-stale-claims.mjs": "stale claim/* decisions to $GITHUB_STEP_SUMMARY in branch-prune.yml (a CI job summary, never a repo file)",

@@ -5,6 +5,7 @@ import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
 import { ADMIN_RPC_ERROR_COPY } from "@/components/admin/adminRpcErrorCopy";
 import { HELPR_TASK_RPC_ERROR_COPY } from "@/lib/helprTasks/errorCopy";
 import { SHOPS_RPC_ERROR_COPY } from "@/lib/shops/rpcErrorCopy";
+import { HAUL_AWAY_RPC_ERROR_COPY } from "@/lib/declutter/haulAwayErrors";
 import {
   anonExecuteRevoked,
   clientRpcCalls,
@@ -139,7 +140,9 @@ const ADMIN = ADMIN_RPC_ERROR_COPY as CopyTable;
 // The helpr_* RPCs keep their words beside the delivery screens (src/lib/helprTasks/errorCopy.ts).
 const HELPR = HELPR_TASK_RPC_ERROR_COPY as CopyTable;
 const SHOPS = SHOPS_RPC_ERROR_COPY as CopyTable;
-const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS };
+// Declutter haul-away's RPCs keep theirs in their own lazily loaded module (src/lib/declutter/haulAwayErrors.ts, Q178).
+const HAUL = HAUL_AWAY_RPC_ERROR_COPY as CopyTable;
+const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL };
 /** An RPC that refuses anyone without the admin role, read from its latest definition. */
 const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
 const adminGated = new Set([...calls.keys()].filter((rpc) => ADMIN_GATE.test(defs.get(rpc)?.body ?? "")));
@@ -153,6 +156,12 @@ describe("the inventory still sees the world", () => {
     expect(inventory.size).toBeGreaterThan(15);
     expect(inventory.get("helper_abort_job")?.get("not_abortable")).toBe("helper_abort_job");
     expect(inventory.get("helper_abort_job")?.get("job_already_completed")).toBe("open_dispute_as");
+  });
+
+  it("the haul-away table adds only declutter_*haul_away* RPCs, none also in RPC_ERROR_COPY", () => {
+    const names = Object.keys(HAUL_AWAY_RPC_ERROR_COPY);
+    expect(names.length).toBeGreaterThan(2);
+    expect(names.filter((n) => !/^declutter_.*haul_away/.test(n) || n in RPC_ERROR_COPY)).toEqual([]);
   });
 
   it("no RPC is called with a name the inventory cannot read", () => {

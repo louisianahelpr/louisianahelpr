@@ -69,7 +69,7 @@ vi.mock("@/integrations/supabase/client", () => {
         ) {
           return { data: null, error: { code: "23505", message: 'duplicate key value violates unique constraint "jobs_customer_client_request_id_key"' } };
         }
-        const stored = { id: `job-${server.nextId++}`, payment_status: "unpaid", stripe_session_id: null, ...row };
+        const stored = { id: `job-${server.nextId++}`, status: "open", payment_status: "unpaid", stripe_session_id: null, ...row };
         server.jobs.push(stored);
         if (server.loseNextJobInsertResponse) {
           server.loseNextJobInsertResponse = false;
@@ -86,7 +86,7 @@ vi.mock("@/integrations/supabase/client", () => {
       }
       if (op === "update") return { data: match().map((r) => ({ id: r.id })), error: null };
       const hit = match();
-      return head ? { data: null, error: null, count: hit.length } : { data: hit[0] ? { id: hit[0].id } : null, error: null };
+      return head ? { data: null, error: null, count: hit.length } : { data: hit[0] ? { ...hit[0] } : null, error: null };
     };
     const chain: Record<string, unknown> = {
       insert: (row: Row) => { op = "insert"; payload = row; return chain; },

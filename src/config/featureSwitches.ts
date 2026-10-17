@@ -54,6 +54,10 @@ export const FEATURE_SWITCH_KEYS = [
   // whole Shops section): free shop / business profiles. Created OFF by
   // 20261017061155; every shops_* RPC refuses without it (require_feature).
   "shops",
+  // Declutter haul-away (docs/specs/declutter-haul-away.md): book a Helpr job to
+  // take unsold items to donation or the dump. Created 'testers' by
+  // 20261017070827; its three RPCs refuse without it AND 'declutter'.
+  "declutter_haul_away",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

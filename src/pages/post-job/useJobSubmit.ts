@@ -38,6 +38,11 @@ import { endSentence } from "@/lib/endSentence";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 import { DRAFT_CHECKOUT_JOB_KEY } from "@/hooks/useDraftJob";
 
+// Declutter haul-away: loaded only for a haul-away post (off the critical path, Q178).
+const haulAwayLib = () => import("@/lib/declutter/haulAway");
+/** The same, or null when the chunk could not load (the caller then has nothing to undo or word). */
+const haulAwayLibOrNull = () => haulAwayLib().catch((err: unknown) => { report(err, { severity: "warning", tags: { source: "useJobSubmit.haulAwayLib" } }); return null; });
+
 /**
  * Remove a job whose payment setup failed, and PROVE it went.
  *
@@ -48,21 +53,61 @@ import { DRAFT_CHECKOUT_JOB_KEY } from "@/hooks/useDraftJob";
  * applicable-to, and impossible to pay out — which is exactly what the cleanup
  * exists to prevent, reported as a success.
  *
+ * Answers true when the job is gone (deleted now, or already), false when it
+ * was kept (not deletable, unreadable, or the DELETE refused): a caller clears
+ * its attempt and puts haul-away items back only on true (lh-money-escrow
+ * review of bf3cd5730 #5: a kept job with a live checkout must stay this
+ * attempt's job, or the next tap posts a second one).
+ *
  * Deliberately never throws: both call sites are already on an error path
  * (payment setup failed) that owns the user-facing toast and the step reset.
  * A failed cleanup must be loud in monitoring, not a second exception thrown
  * over the first one.
  */
-async function cleanupOrphanJob(jobId: string): Promise<void> {
+async function cleanupOrphanJob(jobId: string): Promise<boolean> {
+  // Q?gift-paid-retry-photos: confirm the job is one its poster may delete
+  // BEFORE touching its photos. A job whose payment answer was lost may be
+  // funded by now (a gift card settles inside create-payment) or hold a live
+  // checkout; the DELETE below is then refused, and removing the photos first
+  // left a paid job with none. The rule is the poster's DELETE policy
+  // (20260903055308): open, and unpaid with no checkout session, or abandoned.
+  // An unreadable job is kept whole (fail safe: an unpaid job is never shown
+  // in Posts, a funded one keeps its photos).
+  try {
+    const { data: row, error: readErr } = await supabase
+      .from("jobs")
+      .select("status, payment_status, stripe_session_id")
+      .eq("id", jobId)
+      .maybeSingle();
+    if (readErr) {
+      report(readErr, { tags: { source: "PostJob.orphanCleanup", kind: "read_failed" }, context: { job_id: jobId } });
+      return false;
+    }
+    if (!row) return true; // already gone: nothing to remove, and its photos are the storage sweep's
+    const pay = row.payment_status ?? "unpaid";
+    const deletable = row.status === "open" && ((pay === "unpaid" && row.stripe_session_id == null) || pay === "abandoned");
+    if (!deletable) {
+      report(new Error("Orphan job cleanup skipped: the job is funded or has a live checkout, so it is kept with its photos"), {
+        severity: "warning",
+        tags: { source: "PostJob.orphanCleanup", kind: "kept_not_deletable" },
+        context: { job_id: jobId, status: row.status, payment_status: pay, has_session: row.stripe_session_id != null },
+      });
+      return false;
+    }
+  } catch (err) {
+    report(err, { tags: { source: "PostJob.orphanCleanup", kind: "read_failed" }, context: { job_id: jobId } });
+    return false;
+  }
   // The photos and scope video were uploaded before checkout. Remove them
-  // FIRST: the job-photos DELETE policy needs the job row to exist, and after
-  // the delete nothing names them. Never throws or blocks (reported inside).
+  // now, before the delete: the job-photos DELETE policy needs the job row to
+  // exist, and after the delete nothing names them. Never throws or blocks
+  // (reported inside).
   await removeJobPhotos(jobId, "PostJob.orphanCleanup");
   try {
     const { data, error } = await supabase.from("jobs").delete().eq("id", jobId).select("id");
     if (error) {
       report(error, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobId } });
-      return;
+      return false;
     }
     if (!data || data.length === 0) {
       report(new Error("Orphan job cleanup deleted 0 rows — unfunded job may be live"), {
@@ -70,9 +115,40 @@ async function cleanupOrphanJob(jobId: string): Promise<void> {
         tags: { source: "PostJob.orphanCleanup", kind: "mutation_rejected" },
         context: { job_id: jobId, rowsAffected: data?.length ?? 0 },
       });
+      return false;
     }
+    return true;
   } catch (err) {
     report(err, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobId } });
+    return false;
+  }
+}
+
+/**
+ * The payment states in which a job's money is held for it: the same set as
+ * PaymentSuccess.tsx's HELD_STATUSES (lh-silent-failure review of bf3cd5730
+ * #1: 'cancelled', 'refunded' and 'chargeback' are closed, never "paid").
+ */
+const FUNDED_STATUSES = ["escrow", "payout_pending", "released"] as const;
+
+/**
+ * Q?gift-paid-retry-photos: whether this attempt's own job holds money now.
+ * true = funded (FUNDED_STATUSES), false = anything else or gone (the cleanup
+ * still checks the job is deletable before touching it), null = the read
+ * failed (the caller must not clean up).
+ */
+async function jobIsFunded(jobId: string): Promise<boolean | null> {
+  try {
+    const { data, error } = await supabase.from("jobs").select("payment_status").eq("id", jobId).maybeSingle();
+    if (error) {
+      report(error, { tags: { source: "PostJob.fundedCheck" }, context: { job_id: jobId } });
+      return null;
+    }
+    if (!data) return false;
+    return (FUNDED_STATUSES as readonly string[]).includes(data.payment_status ?? "unpaid");
+  } catch (err) {
+    report(err, { tags: { source: "PostJob.fundedCheck" }, context: { job_id: jobId } });
+    return null;
   }
 }
 
@@ -163,6 +239,8 @@ export interface UseJobSubmitParams {
   giftCardId: string | null;
   /** Q768: the imported STR turnover this post was opened from (`?turnover=`), linked to the new job. */
   turnoverId?: string | null;
+  /** Declutter haul-away: the seller's items this post hauls away (`?haulAway=`), linked to the new job. */
+  haulAwayItemIds?: string[] | null;
   // Media upload callbacks
   uploadAndAttachPhotos: (jobId: string) => Promise<void>;
   uploadAndAttachScopeVideo: (jobId: string) => Promise<void>;
@@ -211,6 +289,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     saveCardForFuture,
     giftCardId,
     turnoverId,
+    haulAwayItemIds,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   } = params;
@@ -468,6 +547,42 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       // This attempt's job already exists; only its payment hand-off failed,
       // and on the wire, so we never heard whether it worked. Pay for THAT
       // job; posting again would create a second one.
+      // A Declutter haul-away links again first (a no-op while it is still
+      // linked): if the seller put the items back on sale or booked them on
+      // another job meanwhile, this job must not be paid for them.
+      if (haulAwayItemIds && haulAwayItemIds.length > 0) {
+        try {
+          await (await haulAwayLib()).linkHaulAwayForJob(haulAwayItemIds, attempt.jobId);
+        } catch (linkErr) {
+          report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.relinkHaulAway" }, context: { job_id: attempt.jobId } });
+          // Never clean up a job that may hold money: this job's payment
+          // hand-off was lost, so a gift card may have funded it inside
+          // create-payment (re-review 2026-10-17, finding 1). The server
+          // answers success when the items are still linked to it; a refusal
+          // means they moved on, so nothing is paid for them here. A FUNDED
+          // job (or one that cannot be read) stays as it is, in Posts, and
+          // attemptRef keeps naming it, so a further press never posts a
+          // second job. A job read as never paid is removed and its items put
+          // back, as on the first post (lh-silent-failure review of bf3cd5730
+          // #2: else every press re-links and is refused again);
+          // cleanupOrphanJob itself refuses a job that is not deletable.
+          const funded = isNetworkFailure(linkErr) ? null : await jobIsFunded(attempt.jobId);
+          if (funded === false && (await cleanupOrphanJob(attempt.jobId))) {
+            const undo = await haulAwayLibOrNull();
+            if (undo) await undo.undoHaulAwayForJob(haulAwayItemIds, attempt.jobId);
+            attemptRef.current = null;
+            safeStorage.removeItem(COOLDOWN_KEY);
+          }
+          hapticError();
+          const haul = await haulAwayLibOrNull();
+          toast.error(`Couldn't book the haul-away: ${haul ? haul.haulAwayErrorMessage(linkErr) : CONNECTION_TROUBLE_COPY}`);
+          setSaving(false);
+          setStep("checkout");
+          setConfirmed(false);
+          submittingRef.current = false;
+          return;
+        }
+      }
       safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
       await startPayment(attempt.jobId, Promise.resolve());
       return;
@@ -604,6 +719,33 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       }
     }
 
+    /* Declutter haul-away (docs/specs/declutter-haul-away.md): link the items
+       to this job and take them off sale BEFORE payment, so nobody buys an
+       item a Helpr is about to haul. NOT best effort: if the server refuses
+       (a buyer got one meanwhile, or a Helpr is already booked), paying for
+       this job would haul the wrong thing, so the unpaid job is removed, any
+       item the link did take off sale is put back, and the seller is told why. */
+    if (haulAwayItemIds && haulAwayItemIds.length > 0) {
+      try {
+        await (await haulAwayLib()).linkHaulAwayForJob(haulAwayItemIds, jobData.id);
+      } catch (linkErr) {
+        report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkHaulAway" }, context: { job_id: jobData.id } });
+        await cleanupOrphanJob(jobData.id);
+        const haul = await haulAwayLibOrNull();
+        if (haul) await haul.undoHaulAwayForJob(haulAwayItemIds, jobData.id);
+        attemptRef.current = null;
+        safeStorage.removeItem(COOLDOWN_KEY);
+        hapticError();
+        toast.error(`Couldn't book the haul-away: ${haul ? haul.haulAwayErrorMessage(linkErr) : CONNECTION_TROUBLE_COPY}`);
+        setSaving(false);
+        setRedirecting(false);
+        setStep("checkout");
+        setConfirmed(false);
+        submittingRef.current = false;
+        return;
+      }
+    }
+
     // Stash the just-posted job id so the post-payment success sheet can
     // show share-this-link / view-applicants / post-another-like-this
     // CTAs without re-querying Supabase. Cheap to write, the success
@@ -723,12 +865,42 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         // while a retry posted a SECOND one). Keep the job: attemptRef still
         // names it, so the retry pays for this same job.
         const outcomeUnknown = !paymentData?.error && isNetworkFailure(paymentError);
-        if (!outcomeUnknown) {
-          // The server answered with a refusal. Delete the job since payment
-          // setup failed — don't leave orphan jobs.
-          await cleanupOrphanJob(jobId);
+        // Q?gift-paid-retry-photos: a refusal for a job whose earlier payment
+        // answer was lost may only mean it is PAID already (a gift card
+        // settled it inside that lost call; the retry is refused as "already
+        // processed"). Read the job before treating the refusal as a failure:
+        // a funded job is the success the first answer would have been.
+        const funded = outcomeUnknown ? null : await jobIsFunded(jobId);
+        if (funded === true) {
+          safeStorage.removeItem(COOLDOWN_KEY);
+          // As on the success path below (a haul-away never keeps a draft).
+          if (!haulAwayItemIds || haulAwayItemIds.length === 0) {
+            flushDraft();
+            safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId);
+          }
+          // Land the geocode write first, as the success path below does (money review of bf3cd5730 #6).
+          try {
+            await Promise.race([geocodePromise, new Promise((resolve) => window.setTimeout(resolve, 2500))]);
+          } catch { /* best-effort — coords are non-critical */ }
+          setRedirecting(true);
           attemptRef.current = null;
+          // In-app route (the page create-payment's gift-settled answer opens).
+          window.location.assign(`/payment-success?job_id=${encodeURIComponent(jobId)}`);
+          return;
         }
+        if (!outcomeUnknown && funded === false) {
+          // The server answered with a refusal for a job that holds no money.
+          // Delete the job since payment setup failed — don't leave orphan jobs.
+          // Kept (a live checkout, or unreadable): it stays this attempt's job,
+          // so a retry pays for it and never posts a second one.
+          if (await cleanupOrphanJob(jobId)) {
+            attemptRef.current = null;
+            // A haul-away took its items off sale for this job: put them back.
+            if (haulAwayItemIds && haulAwayItemIds.length > 0) await (await haulAwayLibOrNull())?.undoHaulAwayForJob(haulAwayItemIds, jobId);
+          }
+        }
+        // funded === null after a refusal: the job could not be read, so it is
+        // kept whole (attemptRef still names it, so a retry pays for it).
         safeStorage.removeItem(COOLDOWN_KEY);
         // Not `paymentError.message`: on a non-2xx that is supabase-js's
         // "Edge Function returned a non-2xx status code". The function's own
@@ -754,11 +926,16 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       // job is never saved anywhere in Posts). A cancelled checkout lands on
       // /post-job, where "Load Draft" brings the form back; PaymentSuccess
       // clears it once the job is actually paid.
-      flushDraft();
-      // Q769: remember which job this draft is paying for, so Post a Job can
-      // tell a paid or still-payable checkout apart from a cancelled one
-      // before it offers "Load Draft" again (useDraftCheckoutState).
-      safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId);
+      // Not for a Declutter haul-away: a draft cannot carry its items, so a
+      // job posted again from it would be paid with no link (lh-money-escrow
+      // review 2026-10-16). The seller books it again from My listings.
+      if (!haulAwayItemIds || haulAwayItemIds.length === 0) {
+        flushDraft();
+        // Q769: remember which job this draft is paying for, so Post a Job can
+        // tell a paid or still-payable checkout apart from a cancelled one
+        // before it offers "Load Draft" again (useDraftCheckoutState).
+        safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId);
+      }
       // The instant-job-match fan-out USED to happen here. It has moved to
       // stripe-webhook's checkoutSessionCompleted, because "escrow is set up"
       // was never true at this point: create-payment only mints a Checkout

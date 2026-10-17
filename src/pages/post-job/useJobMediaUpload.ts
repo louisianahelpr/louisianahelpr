@@ -1,5 +1,5 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL, MUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/imageCompression";
@@ -16,11 +16,18 @@ import { storageExtFor } from "@/lib/storageExt";
  * The returned `uploadAndAttachPhotos` / `uploadAndAttachScopeVideo` are called
  * by the submit flow after the job row is inserted.
  */
+/** The photo types a job takes (a pick and a prefill alike). */
+const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
 export function useJobMediaUpload() {
   // Image upload state
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  // The photos as of the latest render, for a prefill that lands after awaits
+  // (its closure's imageFiles would be stale and drop photos picked meanwhile).
+  const imageFilesRef = useRef(imageFiles);
+  imageFilesRef.current = imageFiles;
 
   // Scope video — optional 30s clip attached to the job.
   // Stored as a blob URL locally for preview; uploaded to storage on submit.
@@ -59,7 +66,6 @@ export function useJobMediaUpload() {
     // Strict MIME allowlist — keeps the broader `image/*` check honest
     // (a maliciously crafted SVG/AVIF could still be image/*) and gives
     // a precise toast for rejected files.
-    const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
     const safeFiles = files.filter((file) => allowedImageTypes.has(file.type));
 
     if (safeFiles.length !== files.length) {
@@ -101,6 +107,20 @@ export function useJobMediaUpload() {
     const previews = newFiles.map((f) => URL.createObjectURL(f));
     setImagePreviews(previews);
 
+  };
+
+  /**
+   * Photos handed over by a prefill (a Declutter haul-away copies the listing's
+   * photos onto the job). Same type allowlist and 5-photo cap as a pick; the
+   * listing photos were already cleaned (EXIF stripped) when they were listed.
+   */
+  const addPrefillImages = (files: File[]) => {
+    const safe = files.filter((f) => allowedImageTypes.has(f.type));
+    if (safe.length === 0) return;
+    const next = [...imageFilesRef.current, ...safe].slice(0, 5);
+    imageFilesRef.current = next;
+    setImageFiles(next);
+    setImagePreviews(next.map((f) => URL.createObjectURL(f)));
   };
 
   const removeImage = (index: number) => {
@@ -272,6 +292,7 @@ export function useJobMediaUpload() {
     handleVideoSelect,
     clearVideo,
     handleImageSelect,
+    addPrefillImages,
     removeImage,
     reorderImages,
     uploadAndAttachPhotos,

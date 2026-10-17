@@ -1261,7 +1261,56 @@ async function settleCheckoutSession(
       if (!fundedErr && funded) {
         const dupRefund = await refundDuplicateFunding(stripe, piId);
         let giftRestored: boolean | null = null;
-        if (giftCardId && giftConsumedHere) {
+        // Q1829: a REDELIVERY after a restore that errored. Its consume step
+        // found the gift already 'redeemed' on this job and skipped, so
+        // giftConsumedHere is false, yet THIS checkout may be the one that
+        // spent it. The evidence is the payment that DID fund the job: a gift
+        // checkout carries gift_card_id in its PaymentIntent metadata
+        // (create-payment). Only a funding PaymentIntent that provably funded
+        // THIS job (succeeded, metadata.job_id is this job) and was not priced
+        // with this gift means the only checkout that can have spent the gift
+        // here is this one, so it is put back. Anything else keeps it spent:
+        // no funding PaymentIntent (a gift-only funding), one priced with this
+        // gift, or a STALE one left on the row by a bounced bank payment that
+        // a gift then funded in full (review of 4ec0dea84 #1: the column is
+        // not cleared on a bounce, so its existence alone is no evidence). A
+        // Stripe read error throws, so Stripe redelivers (the refund above is
+        // keyed, nothing is refunded twice); an intent Stripe cannot find
+        // (404, or a test object under the live key) keeps the gift spent and
+        // says so in the alert below.
+        let spentByThisRedelivery = false;
+        let giftKeptWhy: string | null = null;
+        if (giftCardId && !giftConsumedHere) {
+          const fundingPi = (funded as { stripe_payment_intent_id?: string | null }).stripe_payment_intent_id ?? null;
+          if (fundingPi) {
+            const { data: giftNow, error: giftNowErr } = await supabase
+              .from("gift_cards").select("status, job_id").eq("id", giftCardId).maybeSingle();
+            if (giftNowErr) {
+              throw new Error(`gift ${giftCardId} read failed before a duplicate-funding restore on job ${jobId}: ${giftNowErr.message}`);
+            }
+            const gn = giftNow as { status?: string; job_id?: string | null } | null;
+            if (gn?.status === "redeemed" && gn.job_id === jobId) {
+              let fundingRow: Stripe.PaymentIntent | null = null;
+              try {
+                fundingRow = await stripe.paymentIntents.retrieve(fundingPi);
+              } catch (e) {
+                // A test-mode object under the live key answers 404 resource_missing too.
+                const missing = (e as { statusCode?: number })?.statusCode === 404 || (e as { code?: string })?.code === "resource_missing";
+                if (!missing) throw e;
+                giftKeptWhy = `the job's payment ${fundingPi} cannot be read from Stripe (not found: deleted, another account, or a test-mode object); the gift was kept spent, check it by hand`;
+              }
+              if (fundingRow) {
+                const fundingMeta = (fundingRow.metadata ?? {}) as Record<string, string>;
+                const fundedThisJob = fundingRow.status === "succeeded" && fundingMeta.job_id === jobId;
+                spentByThisRedelivery = fundedThisJob && (fundingMeta.gift_card_id ?? null) !== giftCardId;
+                if (!fundedThisJob) {
+                  giftKeptWhy = `the job's payment ${fundingPi} is ${fundingRow.status} and may not be what funded it; the gift was kept spent, check it by hand`;
+                }
+              }
+            }
+          }
+        }
+        if (giftCardId && (giftConsumedHere || spentByThisRedelivery)) {
           const { data: restored, error: restoreErr } = await supabase
             .from("gift_cards")
             .update({ status: "sent", job_id: null, redeemed_at: null })
@@ -1289,7 +1338,7 @@ async function settleCheckoutSession(
             job_status: String(funded.status), job_payment_status: String(funded.payment_status),
             job_payment_intent: String(funded.stripe_payment_intent_id ?? "none"),
             gift_card: giftCardId ?? "none",
-            gift_restored: giftRestored === null ? "not consumed by this payment" : giftRestored ? "yes" : "NO: restore matched nothing, check the gift by hand",
+            gift_restored: giftKeptWhy ?? (giftRestored === null ? "not consumed by this payment" : giftRestored ? "yes" : "NO: restore matched nothing, check the gift by hand"),
           },
         });
         // Q1819: ledgered LAST (lh-money-escrow re-review of dfae918ae): a

@@ -73,6 +73,8 @@ const OWNERS = {
   "/forgot-password": ["lh-onboarding-auth"],
   "/reset-password": ["lh-onboarding-auth"],
   "/account-banned": ["lh-trust-safety"],
+  // The email opt-out page (Q1655). lh-email-delivery owns the opt-out end to end.
+  "/unsubscribe": ["lh-email-delivery"],
 
   // ── core loop ────────────────────────────────────────────────────────────
   "/home": ["lh-design-holes", "lh-copy-content"],

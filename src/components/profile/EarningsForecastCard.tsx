@@ -68,6 +68,7 @@ interface ForecastRow {
   is_group_job: boolean | null;
   platform_fee_amount: number | null;
   helper_fee_percent: number | null;
+  helper_fee_flat_cents: number | null;
   payment_status: string | null;
   urgent_fee: number | null;
   status: Job["status"];
@@ -116,7 +117,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
           // required too: this card projects jobs that have NOT been paid out,
           // whose stamped fee is create-payment's escrow-time global rate, not
           // this helper's tier. See isSettledForDisplay in helperEarnings.ts.
-          .select("budget, helpers_needed, is_group_job, platform_fee_amount, helper_fee_percent, urgent_fee, status, payment_status")
+          .select("budget, helpers_needed, is_group_job, platform_fee_amount, helper_fee_percent, helper_fee_flat_cents, urgent_fee, status, payment_status")
           .eq("helper_id", helperId)
           .in("status", [...FORECAST_STATUSES, COMPLETED_STATUS])
           .gte("date_needed", startISO)

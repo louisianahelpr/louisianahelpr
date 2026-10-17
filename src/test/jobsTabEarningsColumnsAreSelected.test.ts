@@ -17,6 +17,7 @@
  * reproduces the exact Q759 defect (see the RED test below).
  */
 // @mutate src/components/admin/adminusers/useOpenProfile.ts | poster_completed_at, helper_completed_at, parish, helpers_needed | poster_completed_at, helper_completed_at, parish
+// @mutate src/components/admin/adminusers/useOpenProfile.ts | budget, helper_fee_percent, helper_fee_flat_cents, customer_fee_amount | budget, helper_fee_percent, customer_fee_amount
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -26,36 +27,52 @@ const ROOT = process.cwd();
 const JOBS_TAB = join(ROOT, "src/components/admin/userDetail/JobsTab.tsx");
 const OPEN_PROFILE = join(ROOT, "src/components/admin/adminusers/useOpenProfile.ts");
 const HELPER_EARNINGS = join(ROOT, "src/lib/helperEarnings.ts");
+// The fee-model module helperEarnings.ts hands the job to (isFlatFeeJob,
+// helprFlatFeeCents, flatFeePercentOf). Not followed before Q1839, so the
+// flat-fee stamp jobs.helper_fee_flat_cents never counted as a column the
+// take-home chain reads, and the Jobs tab select went without it.
+const HELPR_FLAT_FEE = join(ROOT, "src/lib/helprFlatFee.ts");
 
 /**
- * Every `<param>.<column>` read inside helperEarnings.ts's exported function
- * `name`, or [] if none — following the job into every other helperEarnings.ts
- * function it is passed to (helperTakeHomeDollars → helperPlatformFeeDollars →
- * helperShareCount / isSettledForDisplay), so a caller of the top-level helper
- * needs every column the chain reads (Q765).
+ * Every `<param>.<column>` read inside the exported function `name` of
+ * helperEarnings.ts or helprFlatFee.ts, or [] if none — following the job into
+ * every other function of those modules it is passed to, at whatever argument
+ * position (helperTakeHomeDollars → helperPlatformFeeDollars →
+ * helperShareCount / isSettledForDisplay / isFlatFeeJob / helprFlatFeeCents),
+ * so a caller of the top-level helper needs every column the chain reads
+ * (Q765, Q1839). `job?.col` counts as a read.
  */
 export function helperColumns(
   name: string,
-  source = readFileSync(HELPER_EARNINGS, "utf8"),
+  source = readFileSync(HELPER_EARNINGS, "utf8") + "\n" + readFileSync(HELPR_FLAT_FEE, "utf8"),
   seen: Set<string> = new Set(),
+  paramIndex = 0,
 ): string[] {
-  if (seen.has(name)) return [];
-  seen.add(name);
+  const key = `${name}#${paramIndex}`;
+  if (seen.has(key)) return [];
+  seen.add(key);
   const sf = ts.createSourceFile(HELPER_EARNINGS, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const cols = new Set<string>();
   sf.forEachChild((node) => {
     if (!ts.isFunctionDeclaration(node) || node.name?.text !== name || !node.body) return;
-    const param = node.parameters[0];
+    const param = node.parameters[paramIndex];
     if (!param || !ts.isIdentifier(param.name)) return;
     const p = param.name.text;
     const walk = (n: ts.Node) => {
       if (ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === p) cols.add(n.name.text);
+      // `job!.col` (a non-null assertion) is a read of the same column.
       if (
-        ts.isCallExpression(n) &&
-        ts.isIdentifier(n.expression) &&
-        n.arguments.some((a) => ts.isIdentifier(a) && a.text === p)
-      ) {
-        for (const c of helperColumns(n.expression.text, source, seen)) cols.add(c);
+        ts.isPropertyAccessExpression(n) &&
+        ts.isNonNullExpression(n.expression) &&
+        ts.isIdentifier(n.expression.expression) &&
+        n.expression.expression.text === p
+      ) cols.add(n.name.text);
+      if (ts.isCallExpression(n) && ts.isIdentifier(n.expression)) {
+        n.arguments.forEach((a, i) => {
+          if (ts.isIdentifier(a) && a.text === p) {
+            for (const c of helperColumns((n.expression as ts.Identifier).text, source, seen, i)) cols.add(c);
+          }
+        });
       }
       ts.forEachChild(n, walk);
     };
@@ -127,6 +144,8 @@ describe("admin Jobs-tab earnings columns are all selected (Q759)", () => {
     expect(earningsCols).toContain("urgent_fee");
     expect(earningsCols).toContain("platform_fee_amount");
     expect(earningsCols).toContain("payment_status");
+    // Reached only through helprFlatFee.ts's isFlatFeeJob (Q1839).
+    expect(earningsCols).toContain("helper_fee_flat_cents");
   });
 
   it("inventories the jobs select for AdminProfileJob (a broken extractor must not pass vacuously)", () => {

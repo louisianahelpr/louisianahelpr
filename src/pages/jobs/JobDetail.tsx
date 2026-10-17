@@ -62,7 +62,7 @@ const JobDetail = () => {
       // serve this build; readJobsAheadOfDb asks again without it on 42703.
       const data = unwrap<unknown>(
         await readJobsAheadOfDb(
-          "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boost_expires_at, expires_at, start_time, recurrence_interval, pricing_mode",
+          "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boost_expires_at, expires_at, start_time, recurrence_interval, pricing_mode, helper_fee_flat_cents",
           (columns) => supabase.from("open_jobs_browse").select(columns).eq("id", id!).maybeSingle(),
         ),
       );

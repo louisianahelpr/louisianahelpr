@@ -709,6 +709,16 @@ describe("CHECK 3 (best-effort) — the named control is offered in the state th
         }
       }
       if (!everEnabled.size) continue;
+      // OWNED = every label this producer can paint, enabled or not, read
+      // statically from its `label:` literals — not only the ones some state
+      // enables. Ownership read from `everEnabled` alone went blind exactly
+      // when it mattered: rename the ENABLED in-progress label away and the
+      // producer still paints "Confirm They Arrived" greyed (the Q1568 rung),
+      // so CHECK 1 still resolves it, while this check dropped the label as
+      // "not ours" because no state enabled it any more (vacuity survivor,
+      // 2026-10-17). A label the producer draws but never turns on, named
+      // by copy as the way forward, is the deadlock itself.
+      const owned = new Set([...everEnabled, ...control.labels.map(normaliseLabel).filter(Boolean)]);
 
       for (const s of stateSpace(vocab)) {
         for (const mode of copy.modes.length ? copy.modes : [undefined]) {
@@ -718,8 +728,8 @@ describe("CHECK 3 (best-effort) — the named control is offered in the state th
             const phrase = m[1].trim();
             if (!SHAPE_OK.test(phrase)) continue;
             const label = normaliseLabel(phrase);
-            // Only controls this producer owns are in scope.
-            if (!everEnabled.has(label)) continue;
+            // Only controls this producer owns (can paint) are in scope.
+            if (!owned.has(label)) continue;
             const offered = enabledIn.get(stateKey(s, shared));
             if (offered?.has(label)) continue;
             violations.push(
@@ -790,6 +800,32 @@ describe("the checks are able to fail", () => {
     // …and a real one is not falsely reported dead, so the check is not
     // trivially red for everything.
     expect(columnProducers("helper_arrived_at").length).toBeGreaterThan(0);
+  });
+
+  it("CHECK 3 still owns a label the producer paints but never enables", () => {
+    // The 2026-10-17 vacuity survivor, in miniature: the enabled label was
+    // renamed away, and the only "Confirm They Arrived" left is a greyed rung.
+    // Ownership has to come from what the producer can PAINT, or the copy
+    // naming that label is silently out of scope.
+    const ctrl = CONTROL_PRODUCERS.find((p) => p.name === "posterConfirmationRung");
+    expect(ctrl, "posterConfirmationRung not discovered").toBeTruthy();
+    expect(ctrl!.labels.map(normaliseLabel)).toContain(normaliseLabel("Confirm They Arrived"));
+    const ctrlFn = (job: Record<string, unknown>) => ({
+      label: job.helper_arrived_at ? "Confirm Arrival" : "Confirm They Arrived",
+      enabled: !!job.helper_arrived_at,
+    });
+    const staticLabels = ["Confirm Arrival", "Confirm They Arrived"];
+    const everEnabled = new Set<string>();
+    for (const s of stateSpace(["helper_arrived_at"])) {
+      const r = ctrlFn(s);
+      if (r.enabled) everEnabled.add(normaliseLabel(r.label));
+    }
+    const named = normaliseLabel("Confirm They Arrived");
+    // Ownership from enablement alone: blind (the old, vacuous rule).
+    expect(everEnabled.has(named)).toBe(false);
+    // Ownership from what it paints: sees it, so the copy is checked.
+    const owned = new Set([...everEnabled, ...staticLabels.map(normaliseLabel)]);
+    expect(owned.has(named)).toBe(true);
   });
 
   it("CHECK 3 goes red for a copy branch whose control is never offered there", () => {

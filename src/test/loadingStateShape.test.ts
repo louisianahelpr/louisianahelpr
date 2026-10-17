@@ -126,6 +126,57 @@ describe("loading states: a baselined entry that was not measured is not 'fixed'
 });
 
 /**
+ * CLASS CHECK (loading-states run 39020198289, 2026-10-17): a `byDesign` entry suppresses only
+ * the decided case. The /post-job entry covers poster-e2e's cold-context
+ * column growing by the one Repost card (+122px, run 39020198289), decided
+ * 2026-10-17 by the owner (5 cards for a poster with past jobs) and the lead
+ * (4 when the device has never asked). It must NOT cover a bigger growth, a
+ * placeholder taller than its content, or another element that lands at #0 on
+ * a different run. Red before byDesignCovers: a key match alone suppressed all
+ * four.
+ */
+describe("loading states: a by-design entry covers only the decided jump", () => {
+  // @mutate scripts/check-loading-state-shape.mjs | if (e.path && e.path !== b.path) return false; | // path ignored
+  // @mutate scripts/check-loading-state-shape.mjs | b.delta > 0 && b.delta <= e.maxDeltaPx | b.delta !== 0
+  // @mutate docs/audit/loading-states/baseline.json | "maxDeltaPx": 130, | "maxDeltaPx": 1300,
+  type Entry = { key: string; kind: string; path?: string; maxDeltaPx?: number; ruling?: string };
+  type Mod = { byDesignCovers: (b: { key: string; kind: string; path?: string; delta?: number }, e: Entry[]) => boolean };
+  const load = async () => (await import(/* @vite-ignore */ resolve(__dirname, "../../scripts/check-loading-state-shape.mjs"))) as Mod;
+  const base = JSON.parse(readFileSync(resolve(__dirname, "../../docs/audit/loading-states/baseline.json"), "utf8")) as { byDesign: Entry[] };
+  const PATH = "main#main-content > div > div > div > div";
+  const jump = (delta: number, path = PATH) => ({ key: "customer /post-job #0", kind: "jump", path, delta });
+
+  it("the entry exists, is bounded, and cites its ruling", () => {
+    const e = base.byDesign.filter((x) => x.key === "customer /post-job #0" && x.kind === "jump");
+    expect(e).toHaveLength(1);
+    expect(e[0].path).toBe(PATH);
+    expect(e[0].maxDeltaPx).toBe(130);
+    expect(e[0].ruling).toMatch(/2026-10-17/);
+    expect(base.byDesign.length).toBeGreaterThan(20);
+  });
+
+  it("covers the measured +122px growth", async () => {
+    const { byDesignCovers } = await load();
+    expect(byDesignCovers(jump(122), base.byDesign)).toBe(true);
+  });
+
+  it("does not cover a bigger growth, a shrink, or another element at #0", async () => {
+    const { byDesignCovers } = await load();
+    expect(byDesignCovers(jump(250), base.byDesign)).toBe(false);
+    expect(byDesignCovers(jump(-122), base.byDesign)).toBe(false);
+    expect(byDesignCovers(jump(122, "div#root > nav > div:nth-of-type(3)"), base.byDesign)).toBe(false);
+    expect(byDesignCovers({ ...jump(122), kind: "rows" }, base.byDesign)).toBe(false);
+  });
+
+  it("an unbounded entry (the profile tabs) still covers its whole key", async () => {
+    const { byDesignCovers } = await load();
+    const tab = base.byDesign.find((x) => x.key === "customer /profile?tab=schedule #0")!;
+    expect(tab.maxDeltaPx).toBeUndefined();
+    expect(byDesignCovers({ key: tab.key, kind: tab.kind, path: "anything", delta: 5000 }, base.byDesign)).toBe(true);
+  });
+});
+
+/**
  * THE PROFILE-TAB PLACEHOLDER, held to the owner's ruling — "skeleton fills
  * the screen, grows below" (2026-09-19, decided in a pop-up).
  *

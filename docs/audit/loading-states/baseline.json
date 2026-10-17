@@ -165,6 +165,14 @@
       "kind": "jump",
       "was": "row 744px → 902px (+158px)",
       "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
+    },
+    {
+      "key": "customer /post-job #0",
+      "kind": "jump",
+      "path": "main#main-content > div > div > div > div",
+      "maxDeltaPx": 130,
+      "was": "row 452px → 574px (+122px), loading-states-refresh 39020198289 on bba7b6005, 2026-10-17",
+      "ruling": "Two decisions, 2026-10-17. OWNER (relayed by the lead, recorded in 5aa1097dc): the Post a Job loading column draws 5 cards when the poster has past jobs and 4 otherwise, from the job-history read, or before it lands from what this device learned on its last visit. LEAD (recorded in bba7b6005): when the device has never asked (a new device, a cleared cache), draw the first-time 4, never an empty column. The robot always visits with a cold browser context, which is exactly that never-asked case, and poster-e2e has past jobs, so its column grows by the one Repost card (+122px); helper-e2e, with no posts, does not jump. Bounded: only this element (path) and only a growth of at most one entry card (122px measured + the 8px ROW_BUDGET = 130px) is covered, so any other /post-job jump is still a breach (byDesignCovers in scripts/check-loading-state-shape.mjs)."
     }
   ],
   "byDesignNote": "NOT DEBT. These are suppressed because a decision was MADE, not because nobody has got to them. Unlike `allow`, an entry here that stops breaching is not a failure: a tab whose content happens to fit one screenful simply does not jump, and that is no evidence the ruling was abandoned. Every entry must carry a `ruling`. Do not add to this list to silence a breach — that is what `allow` is for, and `allow` is the one that shrinks."

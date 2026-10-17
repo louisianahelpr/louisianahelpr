@@ -110,6 +110,13 @@ export interface ContrastNode {
   need: number | null;
   /** axe's reason for declining, e.g. "bgGradient". */
   axeReason: string | null;
+  /**
+   * axe's own snapshot of the node: its whole outerHTML when that is at most
+   * 300 characters, else its opening tag (truncated with " ...>"). Used ONLY
+   * to tell apart elements that the selector matches at resolve time but did
+   * not match when axe scanned (see measureInPage).
+   */
+  html?: string | null;
 }
 
 export interface ResolvedContrast extends ContrastNode {
@@ -155,6 +162,7 @@ export function incompleteContrastNodes(results: AxeResults): ContrastNode[] {
         selector: n.target.map(String).join(" "),
         need: parseFloat(String(data.expectedContrastRatio ?? "")) || null,
         axeReason: data.messageKey ? String(data.messageKey) : null,
+        html: typeof n.html === "string" && n.html ? n.html : null,
       });
     }
   }
@@ -166,7 +174,7 @@ export function incompleteContrastNodes(results: AxeResults): ContrastNode[] {
  * be self-contained — `page.evaluate` ships the source, not the closure — so
  * the colour maths is inlined rather than imported.
  */
-function measureInPage(input: {
+export function measureInPage(input: {
   items: ContrastNode[];
   hasScreenshot: boolean;
 }): ResolvedContrast[] {
@@ -478,17 +486,32 @@ function measureInPage(input: {
       });
       continue;
     }
-    if (matches.length > 1) {
+    // axe makes its target unique AT SCAN TIME. Elements that mount between
+    // the scan and this resolve can share it: on /messages the rail's "Post a
+    // Job" button was the only `.rounded-2xl` when axe ran, then the lazily
+    // loaded swipe trails (two per conversation row, ConversationSwipeLayer)
+    // mounted and the same selector matched 7 (a11y-webkit-prod run
+    // 39003252698). axe also handed back its own snapshot of the node, so
+    // keep only the candidates that snapshot describes; ONE survivor is the
+    // element axe measured. Zero or several still fail loudly below.
+    let candidates: Element[] = Array.from(matches);
+    if (candidates.length > 1 && item.html) {
+      const src = item.html;
+      const head = src.endsWith(" ...>") ? src.slice(0, -5) : src.endsWith(">") ? src.slice(0, -1) : src;
+      const described = candidates.filter((c) => c.outerHTML === src || (head.length > 1 && c.outerHTML.startsWith(head)));
+      if (described.length === 1) candidates = described;
+    }
+    if (candidates.length > 1) {
       out.push({
         ...item,
         resolved: false,
         reason:
-          `axe's target selector matches ${matches.length} elements, so which one it measured ` +
+          `axe's target selector matches ${candidates.length} elements, so which one it measured ` +
           "is unknowable — any ratio computed from it would be for whichever came first",
       });
       continue;
     }
-    const el: Element = matches[0];
+    const el: Element = candidates[0];
     const cs = getComputedStyle(el);
     const fgRaw = parseColor(cs.color);
     if (!fgRaw) {

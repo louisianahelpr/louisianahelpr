@@ -6,7 +6,7 @@
 // @mutate scripts/feature-switch-audience.mjs |     if (!live.has(key)) { |     if (false) {
 // @mutate scripts/feature-switch-audience.mjs |     if (!registry.has(key)) problems.push | if (false) problems.push
 // @mutate scripts/feature-switch-audience.mjs |   if (!Array.isArray(r.registry) \|\| r.registry.length === 0) { |   if (!Array.isArray(r.registry)) {
-// @mutate scripts/feature-switch-audience.mjs |     registry = registryKeysFromSource(readFileSync(REGISTRY_FILE, "utf8")); |     registry = [];
+// @mutate scripts/feature-switch-audience.mjs |     return registryKeysFromSource(readFileSync(file, "utf8")); |     return [];
 // @mutate scripts/feature-switch-audience.mjs | matchAll(/^\s*"([a-z0-9_]+)",?\s*$/gm) | matchAll(/"([a-z0-9_]+)"/g)
 /**
  * Guard (c) for hidden feature switches: the verdict of the nightly prod check
@@ -25,7 +25,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { judge, PROBE_EMAIL, REGISTRY_FILE, registryKeysFromSource } from "../../scripts/feature-switch-audience.mjs";
+import { judge, PROBE_EMAIL, readRegistryKeys, REGISTRY_FILE, registryKeysFromSource } from "../../scripts/feature-switch-audience.mjs";
 import { FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
 import { mintRefusal } from "../../scripts/lib/adminSession.mjs";
 
@@ -106,6 +106,11 @@ describe("every registry key has a live feature_switches row, both ways (Q1847)"
   it("fails closed when the registry could not be read or is empty", () => {
     expect(judge({ ...healthy(), registry: null }).join("\n")).toMatch(/could not read FEATURE_SWITCH_KEYS/);
     expect(judge({ ...healthy(), registry: [] }).join("\n")).toMatch(/could not read FEATURE_SWITCH_KEYS/);
+  });
+
+  it("the script reads the registry from disk, and an unreadable file is null (fails closed)", () => {
+    expect(readRegistryKeys()).toEqual([...FEATURE_SWITCH_KEYS]);
+    expect(readRegistryKeys(`${REGISTRY_FILE}.does-not-exist`)).toBeNull();
   });
 
   it("the script's source parser reads exactly the app's FEATURE_SWITCH_KEYS", () => {

@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { cancellationHelperShare } from "@/lib/cancellationHelperShare";
 import { isFlatFeeJob, type FlatFeeStamp } from "@/lib/helprFlatFee";
+import { cancelRefundToast } from "@/lib/cancelRefundCopy";
 // The ladder this dialog quotes IS the ladder Community Rules publishes —
 // read the same two constants CommunitySection does rather than restating
 // "25"/"50" as prose.
@@ -167,9 +168,6 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // void-cancelled-payments). A job paid for before F3 keeps the old copy:
   // its budget comes back and the card-cost service fee it was charged stays.
   const flatModel = isFlatFeeJob(feeStamp);
-  const refundRest = flatModel
-    ? "the rest, less the card-processing fee Stripe keeps, returns to your card."
-    : "the rest returns to your card.";
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -276,20 +274,10 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
       // They agree (same ladder, same Chicago-midnight clock), but the row is
       // the authority now that the client no longer writes it.
       toast.success(
-        !wasFunded
-          ? // Nothing was ever charged, so there is nothing to return. This
-            // branch exists because the unfunded case used to fall through to
-            // the refund sentence below and tell a poster whose checkout never
-            // completed that "the full amount returns to your card" — a
-            // promise of money movement that will never appear on a statement,
-            // on the one screen where they are already unsure what happened to
-            // their payment.
-            "Job cancelled. Your checkout was never completed, so you were never charged — there's nothing to refund."
-          : appliedFee > 0
-            ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — ${refundRest}${keptFeeSentence}`
-            : flatModel
-              ? `Job cancelled — your payment returns to your card, less the card-processing fee Stripe keeps.${keptFeeSentence}`
-              : `Job cancelled — your job budget returns to your card; the service fee isn't refundable.${keptFeeSentence}`,
+        // Nothing charged -> nothing to refund (an unfunded cancel used to be
+        // told "the full amount returns to your card"); otherwise the refund
+        // sentence for this job's fee model (src/lib/cancelRefundCopy.ts).
+        cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence }),
         { action: { label: "Dismiss", onClick: () => { /* toast closes itself */ } } },
       );
       onCancelled();

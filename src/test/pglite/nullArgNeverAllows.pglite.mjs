@@ -131,13 +131,13 @@ CREATE TABLE public.declutter_items (id uuid PRIMARY KEY, seller_id uuid NOT NUL
 CREATE TABLE public.declutter_cart_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid NOT NULL, buyer_id uuid NOT NULL,
   seller_id uuid NOT NULL, price_cents integer, source text, status text NOT NULL DEFAULT 'in_cart', checkout_by timestamptz);
 CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id uuid, seller_id uuid,
-  -- slice 5 (20261017052705): declutter_delivery_slot_ok reads the handover and the paid time; the class SQL's
+  -- slice 5 (20261017055505): declutter_delivery_slot_ok reads the handover and the paid time; the class SQL's
   -- 'delivery' fixture step writes a paid delivery order with its amounts.
   handover text, paid_at timestamptz, items_cents integer, premium_cents integer, tax_cents integer, delivery_cents integer,
   total_cents integer, stripe_payment_intent_id text);
--- The 'delivery' fixture step runs only once this table exists (to_regclass), as on a database with 20261017052705.
+-- The 'delivery' fixture step runs only once this table exists (to_regclass), as on a database with 20261017055505.
 CREATE TABLE public.declutter_order_deliveries (order_id uuid PRIMARY KEY, task_id uuid);
--- Slice 5, Helpr delivery (20261017052705): the photo access, vehicle and task checks read these.
+-- Slice 5, Helpr delivery (20261017055505): the photo access, vehicle and task checks read these.
 CREATE TABLE public.helpr_tasks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), status text, helpr_id uuid, customer_id uuid,
   pickup_contact_id uuid, source_kind text, source_id uuid);
 CREATE TABLE public.helpr_vehicles (user_id uuid PRIMARY KEY, has_truck boolean NOT NULL DEFAULT false,
@@ -176,7 +176,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
   "can_read_job_detail_change", "feature_enabled_for_user", "feature_enabled_for",
   "declutter_in_agreed_sale", "declutter_slot_in_windows", "declutter_handover_photo_access",
-  // Declutter slice 5 (20261017052705).
+  // Declutter slice 5 (20261017055505).
   "declutter_delivery_slot_ok", "helpr_task_photo_access", "helpr_task_photo_ok", "helpr_task_same_stripe_mode",
   "helpr_task_source_slot_ok", "helpr_task_vehicle_fits",
   // Shops slice 1 (20261017061155).

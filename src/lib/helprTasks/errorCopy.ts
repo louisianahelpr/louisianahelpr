@@ -1,6 +1,6 @@
 /**
  * Words for every refusal the shared Helpr task RPCs (helpr_*, Declutter slice
- * 5, 20261017052705) can raise. They live here, not in RPC_ERROR_COPY
+ * 5, 20261017055505) can raise. They live here, not in RPC_ERROR_COPY
  * (src/lib/lifecycleErrors.ts), because that table is in the bundle every
  * signed-in page loads, and only the delivery screens call these RPCs: moving
  * them out kept /posts inside its critical-path budget (Q178, 2026-10-17).

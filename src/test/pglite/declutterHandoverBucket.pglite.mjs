@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261017052702_declutter_handover_private_bucket (lh-authz-rls
+ * PGlite proof for 20261017055502_declutter_handover_private_bucket (lh-authz-rls
  * review of slice 4, should-fix (a)): Declutter porch and problem photos live in
  * a PRIVATE bucket; a party of the order uploads into their own folder, the two
  * parties and admins read, nobody else does, members never change or delete
@@ -20,7 +20,7 @@ import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FIL
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const { SELLER, BUYER, OUTSIDER, ADMIN } = USERS;
-const NEW_FILE = "20261017052702_declutter_handover_private_bucket.sql";
+const NEW_FILE = "20261017055502_declutter_handover_private_bucket.sql";
 const skip = process.env.NEW_MIGRATION === "skip";
 
 const db = new PGlite();

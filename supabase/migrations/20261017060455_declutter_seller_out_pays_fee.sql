@@ -29,20 +29,20 @@
 --
 -- Nothing else changes: the refund amount rule (declutter_refunds_amount) is
 -- untouched, and existing rows keep their reason. Restated from the NEWEST
--- definitions: declutter_record_refund from 20261017052705 (slice 5, Helpr
+-- definitions: declutter_record_refund from 20261017055505 (slice 5, Helpr
 -- delivery: the paid amount counts delivery_cents less what a delivery
--- reserved), the two refund CHECKs from 20261017052705 (its 'delivery_damage'
+-- reserved), the two refund CHECKs from 20261017055505 (its 'delivery_damage'
 -- reason kept), declutter_mark_order_paid from 20261014224914 (no later
 -- migration defines it).
 --
 -- Re-cut 2026-10-17 from 20261017045215 (wip/declutter-5 0d3f77d50, built on
 -- main without the Declutter stack) to land inside the stack after
--- 20261017052706: cut verbatim, it restated declutter_record_refund and the
+-- 20261017055506: cut verbatim, it restated declutter_record_refund and the
 -- two CHECKs from slice 4 and would have erased delivery's amount rule and the
 -- 'delivery_damage' reason. The only change from that file is that merge.
 --
 -- REPLAY-SAFETY: every object here exists from 20261014224914/20261015042253/
--- 20261017052705, which run first; CREATE OR REPLACE throughout; the constraint swaps are
+-- 20261017055505, which run first; CREATE OR REPLACE throughout; the constraint swaps are
 -- DROP IF EXISTS + ADD in one DO block, so a re-run ends in the same state.
 
 -- 1. The reason list and the reason -> policy rule (the amount rule is unchanged).
@@ -57,7 +57,7 @@ BEGIN
     'seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described',
     'buyer_cancelled', 'buyer_restarted_checkout',
     'buyer_no_show', 'admin_buyer_fault', 'admin_no_fault',
-    'delivery_damage'));   -- slice 5 (20261017052705): full refund, the platform absorbs (row 43)
+    'delivery_damage'));   -- slice 5 (20261017055505): full refund, the platform absorbs (row 43)
   -- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.declutter_refunds.declutter_refunds_policy
   -- ACK-REASON: re-added on the next line with the same mapping plus 'seller_out' -> full_seller_pays_fee; no existing reason changes policy.
   -- ACK-DATA-LOSS: none; no rows are deleted or rewritten, and no existing row has reason 'seller_out', so every row still validates.
@@ -70,7 +70,7 @@ BEGIN
 END
 $do$;
 
--- 2. Record a refund: 'seller_out' is the seller's fault (restated from 20261017052705).
+-- 2. Record a refund: 'seller_out' is the seller's fault (restated from 20261017055505).
 CREATE OR REPLACE FUNCTION public.declutter_record_refund(p_order_id uuid, p_payment_intent_id text, p_reason text,
   p_paid_cents integer, p_card_fee_cents integer)
 RETURNS uuid

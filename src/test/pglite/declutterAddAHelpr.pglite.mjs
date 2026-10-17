@@ -50,7 +50,7 @@
  * refund (A17) whose order still exists (A17b); a job whose money is not at rest is left and logged (A18).
  *
  * Stage 2 (P1-P6) runs the same migration on the REAL Declutter schema
- * (slices 1-4, F1, porch default and Helpr delivery 20261017052705, through
+ * (slices 1-4, F1, porch default and Helpr delivery 20261017055505, through
  * scripts/declutter/slice3Harness.mjs) with jobs stubbed, so the columns and
  * statuses it reads are the ones prod has, and a DELIVERY order (handover
  * 'delivery', no seller booking: the Helpr picks the time) is offered too.
@@ -89,9 +89,9 @@ const SOUT_ORDER = U(17), RELINK = U(37), CHARGED = U(38), SOUTJOB = U(39);
 // green run here prove nothing about what lands.
 const { newestDefinition, SLICE3_FILE: H_S3, SLICE3B_FILE: H_S3B, PRICE_CAP_FILE: H_CAP, FEE_F1_FILE: H_F1, SLICE4_FILE: H_S4 } =
   await import("../../../scripts/declutter/slice3Harness.mjs");
-const STAGE2_EXTRA = [H_F1, H_S4, "20261017052700_declutter_refund_hand_settle.sql",
-  "20261017052702_declutter_handover_private_bucket.sql", "20261017052704_declutter_porch_default.sql",
-  "20261017052705_declutter_helpr_delivery.sql", "20261017060455_declutter_seller_out_pays_fee.sql"];
+const STAGE2_EXTRA = [H_F1, H_S4, "20261017055500_declutter_refund_hand_settle.sql",
+  "20261017055502_declutter_handover_private_bucket.sql", "20261017055504_declutter_porch_default.sql",
+  "20261017055505_declutter_helpr_delivery.sql", "20261017060455_declutter_seller_out_pays_fee.sql"];
 {
   const REPO = new URL("../../../", import.meta.url).pathname;
   const git = (...a) => execFileSync("git", ["-C", REPO, ...a], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });

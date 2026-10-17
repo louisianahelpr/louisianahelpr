@@ -3,7 +3,7 @@
  * 30, 38, 40-43): the price shown before checkout and the buyer's quote call.
  *
  * The SERVER prices every delivery (declutter_delivery_price_cents and
- * declutter_road_miles in 20261017052705): the drop-off address is geocoded
+ * declutter_road_miles in 20261017055505): the drop-off address is geocoded
  * by the declutter-checkout edge function and the fee is frozen on the order
  * at checkout. This file only mirrors the formula to explain it, and must
  * agree with the SQL (src/lib/helprTasks/api.test.ts, src/test/pglite/declutterDelivery.pglite.mjs).

@@ -70,7 +70,7 @@ const EXPECTED_CALLERS = [
   // respond_offer passes the thread's two parties, one of whom is v_uid
   // (the thread is found by buyer_id = v_uid OR seller_id = v_uid);
   // start_checkout passes (p_seller_id, v_uid).
-  // Declutter slice 5 (20261017052705): each passes v_uid := auth.uid() (the
+  // Declutter slice 5 (20261017055505): each passes v_uid := auth.uid() (the
   // quoting buyer; the Helpr finding or taking a task) as one argument, the
   // seller / the task's buyer or seller the other.
   "declutter_delivery_quote",

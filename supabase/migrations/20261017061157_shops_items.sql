@@ -74,11 +74,11 @@
 --
 -- ALSO: shops_close_my_shop is restated so closing a shop returns the item
 -- photo paths too (else they stayed public by URL after the CASCADE), and
--- export_my_data is restated from its NEWEST body (20261017052706, the
+-- export_my_data is restated from its NEWEST body (20261017055506, the
 -- Declutter stack's Helpr-delivery export, which already carries the wanted
 -- and delivery sections) adding the shop and item sections, which closes the
 -- Shops export item in docs/OPEN.md. This file was re-cut from
--- 20261016212915 to a timestamp newer than 20261017052706 (2026-10-17) so
+-- 20261016212915 to a timestamp newer than 20261017055506 (2026-10-17) so
 -- prod, which applies an out-of-order file last, still ends on this body.
 --
 -- Error codes: 42501 refusals, 22023 bad input, P0002 an item the caller
@@ -1568,7 +1568,7 @@ GRANT EXECUTE ON FUNCTION public.shops_close_my_shop() TO authenticated, service
 -- ---------------------------------------------------------------------------
 -- 13. Download My Data (closes the Shops export item in docs/OPEN.md). The
 --     body is the NEWEST export_my_data,
---     20261017052706_export_my_data_helpr_delivery.sql, verbatim, with the
+--     20261017055506_export_my_data_helpr_delivery.sql, verbatim, with the
 --     Shops sections added before RETURN (body-diffed 2026-10-17: 0 lines
 --     removed, 27 added). Any later
 --     restatement must start from THIS body. Grants restated as there:
@@ -1864,7 +1864,7 @@ BEGIN
   v_out := v_out || jsonb_build_object('declutter_wanted', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.declutter_wanted t
       WHERE t.user_id = v_uid));
 
-  -- Slice 5, Helpr delivery (20261017052705): the Helpr's vehicle, the
+  -- Slice 5, Helpr delivery (20261017055505): the Helpr's vehicle, the
   -- deliveries the member made as the Helpr (area words only: the buyer's and
   -- the seller's exact addresses, points and ids, the drop-off code and the
   -- staff close note belong to them or to us, not the Helpr),

@@ -41,7 +41,7 @@ export type SeedSite = {
 // order's flag at birth (trigger declutter_order_rows_seed).
 // job_quote_requests (quotes, 20261015091114) carries is_seed. declutter_wanted
 // (20261016053541) takes the poster's profile flag (trigger declutter_wanted_seed_from_poster).
-// Slice 5 (20261017052705): helpr_tasks / helpr_task_payouts / the delivery rows
+// Slice 5 (20261017055505): helpr_tasks / helpr_task_payouts / the delivery rows
 // copy their source's flag (written only by service RPCs and triggers); a
 // Helpr's vehicle copies the Helpr's profile flag at birth.
 // shops (Shops slice 1, 20261017061155): shops_save_my_shop copies the

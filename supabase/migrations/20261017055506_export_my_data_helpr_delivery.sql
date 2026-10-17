@@ -1,4 +1,4 @@
--- Download My Data covers Declutter slice 5, Helpr delivery (20261017052705).
+-- Download My Data covers Declutter slice 5, Helpr delivery (20261017055505).
 --
 -- New tables holding a person: helpr_vehicles (user_id), helpr_tasks
 -- (helpr_id; customer_id and pickup_contact_id are the order's buyer and
@@ -10,7 +10,7 @@
 -- drop-off code, both parties' exact addresses, points and ids, and the staff
 -- close note; from a payout the Stripe transfer id and error text.
 --
--- The body is 20261017052701's export_my_data (the NEWEST on this branch,
+-- The body is 20261017055501's export_my_data (the NEWEST on this branch,
 -- checked 2026-10-16) verbatim plus those five sections, plus main's
 -- 'declutter_wanted' section from 20261016053541 (which restated the same
 -- 20261015084728 body; re-checked 2026-10-17 when this branch was re-cut onto
@@ -309,7 +309,7 @@ BEGIN
   v_out := v_out || jsonb_build_object('declutter_wanted', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.declutter_wanted t
       WHERE t.user_id = v_uid));
 
-  -- Slice 5, Helpr delivery (20261017052705): the Helpr's vehicle, the
+  -- Slice 5, Helpr delivery (20261017055505): the Helpr's vehicle, the
   -- deliveries the member made as the Helpr (area words only: the buyer's and
   -- the seller's exact addresses, points and ids, the drop-off code and the
   -- staff close note belong to them or to us, not the Helpr),

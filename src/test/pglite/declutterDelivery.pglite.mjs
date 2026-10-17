@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261017052705_declutter_helpr_delivery (Declutter slice 5,
+ * PGlite proof for 20261017055505_declutter_helpr_delivery (Declutter slice 5,
  * Helpr delivery: spec rows 24, 27, 29-30, 38, 40-43, B59-B72), on top of
- * slices 1-4, the $1,000 cap, F1, porch default (20261017052704), lane J's
- * refund hand-settle (20261017052700) and private handover bucket
- * (20261017052702). The new migration is applied 3 times.
+ * slices 1-4, the $1,000 cap, F1, porch default (20261017055504), lane J's
+ * refund hand-settle (20261017055500) and private handover bucket
+ * (20261017055502). The new migration is applied 3 times.
  *
  *   node src/test/pglite/declutterDelivery.pglite.mjs                     # all PASS
  *   NEW_MIGRATION=skip node src/test/pglite/declutterDelivery.pglite.mjs  # RED: the migration absent
@@ -16,11 +16,11 @@
 import os from "node:os";
 import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FILE } from "../../../scripts/declutter/slice3Harness.mjs";
 
-const NEW_FILE = "20261017052705_declutter_helpr_delivery.sql";
+const NEW_FILE = "20261017055505_declutter_helpr_delivery.sql";
 const BEFORE = [
-  "20261017052700_declutter_refund_hand_settle.sql",
-  "20261017052702_declutter_handover_private_bucket.sql",
-  "20261017052704_declutter_porch_default.sql",
+  "20261017055500_declutter_refund_hand_settle.sql",
+  "20261017055502_declutter_handover_private_bucket.sql",
+  "20261017055504_declutter_porch_default.sql",
 ];
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);

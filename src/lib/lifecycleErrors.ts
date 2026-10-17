@@ -474,7 +474,7 @@ export const RPC_ERROR_COPY = {
   // Declutter (docs/specs/declutter-auctions.md): the words live in
   // src/lib/declutter/errors.ts (DECLUTTER_ERROR_COPY, exact against the
   // migrations); each RPC maps exactly the codes it can raise.
-  // Slice 5 (20261017052705): the Helpr task RPCs (helpr_*) keep their words in
+  // Slice 5 (20261017055505): the Helpr task RPCs (helpr_*) keep their words in
   // src/lib/helprTasks/errorCopy.ts (HELPR_TASK_RPC_ERROR_COPY), loaded only with
   // the delivery screens, so the shared signed-in bundle does not carry them
   // (/posts critical-path budget, 2026-10-17).

@@ -14,7 +14,7 @@
  * preflight either.
  */
 
-export type UnsubscribeList = "promotions" | "job_matches";
+type UnsubscribeList = "promotions" | "job_matches";
 
 export type UnsubscribeLink = { e: string; sig: string; list: UnsubscribeList };
 

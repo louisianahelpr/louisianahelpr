@@ -370,7 +370,7 @@ describe("Q137: a seed subject never notifies a real person", () => {
   it("every SQL email producer also writes the notifications row (the email sender re-checks)", () => {
     const emailers = sqlCalling("send-notification-email");
     // Q225 (2026-09-26): the parish fan-out queues; deliver_parish_match_alert sends.
-    // Rentals S1 (2026-10-15): rentals_notify mails beside its own notifications row, judged with the actor (20261017061457).
+    // Rentals S1 (2026-10-15): rentals_notify mails beside its own notifications row, judged with the actor (20261017205605).
     expect(emailers).toEqual([
       "deliver_job_match",
       "deliver_parish_match_alert",

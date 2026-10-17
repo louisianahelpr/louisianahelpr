@@ -936,7 +936,7 @@ export const RPC_ERROR_COPY = {
     under_18: QC.under_18,
     unknown_quote: QC.unknown_quote,
   },
-  // Rentals S1 (20261017061457): the words live in src/lib/rentals/errorCopy.ts
+  // Rentals S1 (20261017205605): the words live in src/lib/rentals/errorCopy.ts
   // (RENTALS_ERROR_COPY, exact against the migration, rentalsErrorCopy.test.ts);
   // each RPC maps exactly the codes it can raise (rpcErrorCopyCoverage).
   rentals_accept_invite: {

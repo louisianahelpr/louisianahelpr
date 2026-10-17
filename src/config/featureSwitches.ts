@@ -65,7 +65,7 @@ export const FEATURE_SWITCH_KEYS = [
   "declutter_add_helpr",
   // Rentals S1 (docs/specs/landlord-hub-prep.md): landlords invite tenants,
   // tenants send maintenance requests that become Helpr jobs. Created OFF by
-  // 20261017061457; every rentals_* RPC refuses without it (require_feature).
+  // 20261017205605; every rentals_* RPC refuses without it (require_feature).
   "rentals",
 ] as const;
 

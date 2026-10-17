@@ -1201,6 +1201,106 @@ describe("stripe-webhook edge function", () => {
       expect((jobWrite?.payload as Record<string, unknown>).stripe_session_id).toBeNull();
     });
 
+    // Q1876: the ACH checkout's completion consumed the job's gift card
+    // (checkoutSessionCompleted flips it 'redeemed' before the debit settles).
+    // When the debit bounces the job was never funded: the gift comes back.
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |     if (clearSessionId) {\n      await returnBouncedAchGift( |     if (false) {\n      await returnBouncedAchGift(
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |       if (failedJob.payment_status === "failed" && sessionIdVal == null) { |       if (false) {
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |   if (!consumed \|\| alreadyBack) return; |   if (!consumed) return;
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |   const consumed = list.some((r) => r.job_id === jobId && r.status === "redeemed"); |   const consumed = list.some((r) => r.job_id === jobId);
+    describe("Q1876 a bounced ACH debit gives back the gift card its checkout consumed", () => {
+      const achBounce = async (
+        jobRow: Record<string, unknown>,
+        gifts: Array<Record<string, unknown>>,
+      ) => {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_fail_ach_gift",
+          type: "payment_intent.payment_failed",
+          data: { object: { id: "pi_ach_gift", receipt_email: "poster@test.com", metadata: { job_id: "job-1" } } },
+        });
+        stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+          status: "complete",
+          payment_intent: { id: "pi_ach_gift", status: "requires_payment_method" },
+        });
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", ...jobRow }] };
+        scenario.reads.gift_cards = { rows: gifts };
+        return fn.fetch(webhookRequest(fn, "{}"));
+      };
+      const restoreCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job");
+
+      it("restores a redeemed gift when the bounce marks the job failed", async () => {
+        scenario.rpc.restore_gift_card_for_job = { outcome: "restored", restore_cents: 2500, payment_status: "paid" };
+        const res = await achBounce(
+          { payment_status: "unpaid", stripe_session_id: "cs_ach_gift" },
+          [{ id: "gc-1", status: "redeemed", job_id: "job-1", restored_from_job_id: null }],
+        );
+        expect(res.status).toBe(200);
+        expect(restoreCalls()).toHaveLength(1);
+        expect(restoreCalls()[0].args).toEqual({ p_job_id: "job-1" });
+      });
+
+      it("a still-reserved gift is left to the expiry handler (never un-reserved here)", async () => {
+        await achBounce(
+          { payment_status: "unpaid", stripe_session_id: "cs_ach_gift" },
+          [{ id: "gc-1", status: "reserved", job_id: "job-1", restored_from_job_id: null }],
+        );
+        expect(restoreCalls()).toHaveLength(0);
+      });
+
+      it("a gift already given back is not restored twice", async () => {
+        await achBounce(
+          { payment_status: "unpaid", stripe_session_id: "cs_ach_gift" },
+          [
+            { id: "gc-1", status: "redeemed", job_id: "job-1", restored_from_job_id: null },
+            { id: "gc-2", status: "sent", job_id: null, restored_from_job_id: "job-1" },
+          ],
+        );
+        expect(restoreCalls()).toHaveLength(0);
+      });
+
+      it("a failed restore pages money_at_risk and answers non-2xx so Stripe retries", async () => {
+        scenario.rpcErrors = { restore_gift_card_for_job: { message: "boom" } };
+        const redeemed = { id: "gc-1", status: "redeemed", job_id: "job-1", restored_from_job_id: null };
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_fail_ach_gift",
+          type: "payment_intent.payment_failed",
+          data: { object: { id: "pi_ach_gift", receipt_email: "poster@test.com", metadata: { job_id: "job-1" } } },
+        });
+        stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+          status: "complete",
+          payment_intent: { id: "pi_ach_gift", status: "requires_payment_method" },
+        });
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "unpaid", stripe_session_id: "cs_ach_gift" }] };
+        // The RPC is down; the helper's fallback reads find no replacement and
+        // the gift still at stake, so it must not pretend it is back.
+        scenario.reads.gift_cards = {
+          rows: [redeemed],
+          eqOverrides: [
+            { column: "restored_from_job_id", value: "job-1", result: { rows: [] } },
+            { column: "job_id", value: "job-1", result: { rows: [redeemed] } },
+          ],
+        };
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBeGreaterThanOrEqual(500);
+        expect((slackAlerts as Array<{ kind?: string; title?: string }>).some(
+          (a) => a.kind === "money_at_risk" && /gift card was NOT returned/.test(a.title ?? ""),
+        )).toBe(true);
+      });
+
+      it("the retry (job already failed, session cleared) still gives the gift back", async () => {
+        scenario.rpc.restore_gift_card_for_job = { outcome: "restored", restore_cents: 2500, payment_status: "paid" };
+        // The CAS no longer matches a 'failed' job with no session: zero rows.
+        scenario.writeSelectRows.jobs = [];
+        await achBounce(
+          { payment_status: "failed", stripe_session_id: null },
+          [{ id: "gc-1", status: "redeemed", job_id: "job-1", restored_from_job_id: null }],
+        );
+        expect(restoreCalls()).toHaveLength(1);
+      });
+    });
+
     // B1: card decline marks job 'failed', poster retries with ACH on same session,
     // ACH bounces. The update must still match even though payment_status is already
     // 'failed', and must clear stripe_session_id so a new checkout is allowed.

@@ -1,6 +1,57 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
+import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { restoreGiftForRefundedJob } from "./_giftCardRestore.ts";
+
+/**
+ * Q1876: give back a gift card consumed by an ACH checkout whose debit bounced.
+ *
+ * checkoutSessionCompleted flips a reserved gift to 'redeemed' when the
+ * Checkout Session completes, which for ACH is BEFORE the bank debit settles
+ * (isAsyncPayment). When the debit then fails, the job goes to 'failed' and was
+ * never funded, so the gift must come back; without this it stayed 'redeemed'
+ * on a dead job and the recipient lost it.
+ *
+ * Only a 'redeemed' gift on this job with no replacement minted yet counts: a
+ * still-'reserved' gift belongs to a checkout that never completed, and the
+ * expiry handler un-reserves it. restore_gift_card_for_job is idempotent per
+ * job (already_restored), so a redelivery mints nothing twice. A failed restore
+ * pages money_at_risk and throws, so Stripe retries; the retry reaches this
+ * again through the already-'failed' branch below.
+ */
+async function returnBouncedAchGift(
+  supabase: WebhookContext["supabase"],
+  jobId: string,
+  piId: string,
+  logStep: WebhookContext["logStep"],
+): Promise<void> {
+  const { data: rows, error } = await supabase
+    .from("gift_cards")
+    .select("id, status, job_id, restored_from_job_id")
+    .or(`job_id.eq.${jobId},restored_from_job_id.eq.${jobId}`)
+    .limit(20);
+  if (error) {
+    throw new Error(`gift_cards read failed for bounced job ${jobId}: ${error.message}`);
+  }
+  const list = (rows ?? []) as Array<{ id: string; status: string; job_id: string | null; restored_from_job_id: string | null }>;
+  const consumed = list.some((r) => r.job_id === jobId && r.status === "redeemed");
+  const alreadyBack = list.some((r) => r.restored_from_job_id === jobId);
+  if (!consumed || alreadyBack) return;
+  const back = await restoreGiftForRefundedJob(supabase as never, jobId);
+  if (!back.ok) {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Bank payment bounced — the poster's gift card was NOT returned",
+      message: `The bank debit for job ${jobId} failed, so the job was never funded, but the gift card its checkout used could not be given back. Stripe will retry this webhook; if retries exhaust, restore the gift by hand (restore_gift_card_for_job for this job).`,
+      fields: { "Job ID": jobId, "Payment Intent": piId, "Reason": back.reason.slice(0, 200) },
+      oncePerDayKey: `ach-bounce-gift-restore-failed:${jobId}`,
+    });
+    throw new Error(`Gift restore failed for bounced job ${jobId}: ${back.reason}`);
+  }
+  logStep("Bounced bank payment returned the job's gift card", { jobId, outcome: back.outcome });
+}
 
 /**
  * Checks the live Checkout Session and PaymentIntent status before any DB write.
@@ -185,6 +236,13 @@ export async function handlePaymentIntentPaymentFailed(
       throw new Error(`Failed to mark job ${failedJob.id} as payment_failed: ${updateErr.message}`);
     }
     if (!failedUpdate) {
+      // Q1876 retry path: a delivery that marked the job failed and cleared its
+      // session, then threw on the gift restore, comes back here (the CAS no
+      // longer matches a 'failed' job with no session). A never-funded job
+      // still holding a consumed gift is owed it back.
+      if (failedJob.payment_status === "failed" && sessionIdVal == null) {
+        await returnBouncedAchGift(supabase, String(failedJob.id), pi.id, logStep);
+      }
       // Zero rows: the job moved past unpaid/failed, or the session id changed
       // (re-mint race). Ack without notifying — "the job isn't posted" would be
       // false for a funded job, and would prompt a poster whose checkout is live
@@ -194,6 +252,11 @@ export async function handlePaymentIntentPaymentFailed(
         paymentStatus: failedJob.payment_status,
       });
       return;
+    }
+    // Q1876: the ACH debit behind a COMPLETED Checkout Session bounced. That
+    // completion consumed the job's gift card; the job was never funded.
+    if (clearSessionId) {
+      await returnBouncedAchGift(supabase, String(failedJob.id), pi.id, logStep);
     }
     if (closed && failedJob.customer_id) {
       await insertNotifications(supabase, {

@@ -312,23 +312,31 @@ const AdminIDVReview = () => {
                     <div className="w-10 h-10 rounded-full bg-accent/20 text-[hsl(var(--accent-ink))] flex items-center justify-center text-ds-13 font-bold shrink-0">
                       {(r.full_name || r.email || "?").slice(0, 2).toUpperCase()}
                     </div>
+                    {/* The status badge sits IN the name line and wraps under
+                        it when narrow, as on the Exception queue. As a
+                        shrink-0 sibling of this column it took the width the
+                        name needed: at 375 the name measured 0px wide and the
+                        email 35px, so the admin could not see who they were
+                        approving (Q?idv-phone-row). */}
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-ds-13 text-foreground flex items-center gap-2 min-w-0">
-                        <span className="truncate">{r.full_name || "Unnamed"}</span>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
+                        <p className="font-semibold text-ds-13 text-foreground truncate min-w-0">
+                          {r.full_name || "Unnamed"}
+                        </p>
                         {r.is_seed && <TestTag />}
-                      </p>
+                        <Badge
+                          className={
+                            isFailed
+                              ? "bg-destructive/10 text-destructive border-destructive/20 text-ds-10 gap-0.5 shrink-0"
+                              : "bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30 text-ds-10 gap-0.5 shrink-0"
+                          }
+                        >
+                          <ShieldAlert className="w-2.5 h-2.5" />
+                          {isFailed ? "Rejected" : "Awaiting review"}
+                        </Badge>
+                      </div>
                       <p className="text-ds-11 text-muted-foreground truncate">{r.email || "No email on file"}</p>
                     </div>
-                    <Badge
-                      className={
-                        isFailed
-                          ? "bg-destructive/10 text-destructive border-destructive/20 text-ds-10 gap-0.5 shrink-0"
-                          : "bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30 text-ds-10 gap-0.5 shrink-0"
-                      }
-                    >
-                      <ShieldAlert className="w-2.5 h-2.5" />
-                      {isFailed ? "Rejected" : "Awaiting review"}
-                    </Badge>
                   </div>
 
                   <div className="rounded-ds-md border border-border bg-secondary/40 p-3 space-y-1.5">

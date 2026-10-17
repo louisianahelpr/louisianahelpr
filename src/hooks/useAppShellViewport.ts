@@ -287,6 +287,16 @@ export const useAppShellViewport = () => {
     const mql = window.matchMedia(WEB_DESKTOP_QUERY);
     const apply = (matches: boolean) => {
       html.classList.toggle("web-desktop", matches);
+      // `desktop-rail` is computed FROM `web-desktop` (the effect above reads
+      // the class), but that effect only re-runs on a route or user change.
+      // Without this, a window widened from phone to desktop width got
+      // `web-desktop` and the rail, but never `desktop-rail`, so nothing was
+      // inset and the page ran under the rail until the next navigation
+      // (measured on /admin?view=idvreview resized 375 -> 1440: the card's
+      // right edge at 1408 against the rail's left edge at 1192;
+      // Q?admin-rail-resize). Narrowing back left a stale `desktop-rail` on
+      // a phone-width page the same way.
+      reapplyShellClasses?.();
     };
     apply(mql.matches);
 

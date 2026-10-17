@@ -23,6 +23,7 @@ import { findErrorScreen, readScreenText } from "../errorScreens";
 import { isStorageSignPath } from "../readRpc";
 import { READ_RPC, WRITE_RPC, adminRpcNames } from "../adminRpcClassification";
 import { isConsentAcceptance, newUserContext, sessionFor, settle, SUPABASE_URL } from "./harness";
+import { CRUSHED_MIN_PX, readCrushedText } from "./crushedText";
 
 function adminViews(src = readFileSync(join(process.cwd(), "src/pages/admin/Admin.tsx"), "utf8")): string[] {
   const m = /type View\s*=\s*([^;]+);/.exec(src);
@@ -39,6 +40,12 @@ const VIEWS = adminViews();
 // is the state `admin_support_queue` (2026-09-13) and `admin_stalled_job_queue`
 // (2026-09-19) were each in before someone noticed by hand.
 // @mutate src/components/admin/AdminSupport.tsx | rpc("admin_support_queue" | rpc("admin_support_items"
+
+// CRUSHED TEXT (Q?idv-phone-row): no clipped text box on any admin view at 375
+// may be squeezed under CRUSHED_MIN_PX (see crushedText.ts). Shown able to fail:
+// the mutation stops the IDV row's name line wrapping, which puts the status
+// badge back beside the name and crushes it.
+// @mutate src/components/admin/AdminIDVReview.tsx | <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0"> | <div className="flex flex-nowrap items-center gap-x-2 gap-y-1 min-w-0">
 
 test("the admin view inventory is parsed (non-empty, includes tiers)", () => {
   expect(VIEWS.length).toBeGreaterThan(10);
@@ -199,6 +206,13 @@ for (const view of VIEWS) {
       ).toBeVisible({ timeout: 10_000 });
       await page.screenshot({ path: info.outputPath(`admin-${view}-populated.png`), fullPage: true });
     }
+    // After the seeded row is in (the IDV row is where this was found).
+    const crushed = await page.evaluate(readCrushedText, CRUSHED_MIN_PX);
+    expect(
+      crushed,
+      `/admin?view=${view} at 375: text squeezed under ${CRUSHED_MIN_PX}px by its row (a shrink-0 sibling took its width):\n` +
+        crushed.map((c) => `  ${c.width}px wide, needs ${c.scrollWidth}px: "${c.text}"`).join("\n"),
+    ).toEqual([]);
     await ctx.close();
   });
 }

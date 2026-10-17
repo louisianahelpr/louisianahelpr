@@ -107,3 +107,23 @@ Notes:
 **Rebase needed:** the branch is based on 446e378eb5, one commit behind the stack tip 113670a88c. `git merge-tree` conflicts in toast-inventory.json, DeclutterHomeView.tsx, declutterErrorCopy.test.ts and rpcErrorCopyCoverage.test.ts.
 
 Trailer to add: `Sensitive-Review: lh-authz-rls: pass-with-notes`. Still owed: the lh-money-escrow verdict (running at handoff) and lh-silent-failure (not started).
+
+## Update: haul-away v2 lh-money-escrow re-review = pass-with-notes (a6b60cd85b)
+All five first-pass findings are fixed. No path charges twice, funds a closed job, or puts one item on two paid jobs. Checks: PGlite 83/0 (skip run 6/77); vitest 3 files / 33 tests. Not checked live: the MCP was down.
+
+**A (MEDIUM, fix in this branch before landing). Reproduced by the reviewer in haulAwayRelinkNoCleanup.test.tsx's harness.**
+- The setup: a gift card settles the job inside create-payment and the answer is lost.
+- On the retry, the re-link now answers success. create-payment then refuses: "This job's payment has already been processed."
+- useJobSubmit.ts:786-793 treats that refusal as a failure and calls cleanupOrphanJob (:63-65). That removes the photos first; then the DELETE is refused and undo is refused (haul_away_already_booked). The seller sees "Couldn't start payment" on a paid job, and the funded job's photos are gone.
+- No money is at risk.
+- The same shape exists on main for any gift-settled job. It is filed as Q?post-job-stale-cleanup-photos on ops/operating-rules; merge into that item.
+- Fix (either one): treat "already processed" as paid (re-read payment_status, go to /payment-success); or make cleanupOrphanJob delete the row first and leave the files to the orphan sweep, as deleteNeverPaidHaulJob does. The edited-form path at :469 has the same shape.
+
+B (LOW): a completed job later fully refunded or charged back reads `hauled` for ever (migration :145-146), so the item can never be relisted. It fails closed, so this is a product decision.
+
+C (LOW, info): a job cancelled while its checkout is still open reads `none`, and its items can move. This is safe: the webhook refunds a late payment on a closed job in full (checkoutSessionCompleted.ts:1124-1170).
+
+Trailer once A is fixed and re-reviewed: `Sensitive-Review: lh-money-escrow: <verdict>`. Still owed: lh-silent-failure.
+
+## Session end
+This cloud session started no new work after the handoff order. Every worktree is clean and pushed. No land.sh is running.

@@ -17,7 +17,7 @@ import { HELPR_FLAT_FEE_CENTS, flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 
 /** Highest commission on the tier ladder (free = 12%): a legacy quote's floor. */
-export const MAX_HELPER_FEE_PERCENT = tierFeePercent("free");
+const MAX_HELPER_FEE_PERCENT = tierFeePercent("free");
 
 export interface CancellationHelperShare {
   /** The platform's cut of the fee, in dollars. */

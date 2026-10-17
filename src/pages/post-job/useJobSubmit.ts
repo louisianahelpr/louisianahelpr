@@ -154,6 +154,31 @@ async function jobIsFunded(jobId: string): Promise<boolean | null> {
 }
 
 /**
+ * Rentals: point the approved maintenance request at the job just posted from
+ * it. Best effort: the job exists either way, but the landlord is told when
+ * the link fails or is refused (lh-authz-rls review of ca8e149b9 #10), because
+ * an unlinked job never shows as booked on the tenant's request and the tenant
+ * cannot answer "Was it fixed?" for it.
+ */
+async function linkMaintenanceJobOrTell(requestId: string, jobId: string): Promise<void> {
+  let linkErr: unknown = null;
+  try {
+    // Loaded only for a post opened from a request (off /posts' shared chunk);
+    // a background import, so a stale chunk never reloads the page mid-submit.
+    // A chunk that cannot load is a failed link, told below.
+    const { linkMaintenanceJob } = await backgroundImport(() => import("./maintenancePrefill"), "maintenance-prefill");
+    if (!(await linkMaintenanceJob(requestId, jobId))) linkErr = new Error("maintenance link refused");
+  } catch (err) {
+    linkErr = err;
+  }
+  if (!linkErr) return;
+  report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkMaintenance" }, context: { job_id: jobId, request_id: requestId } });
+  toast.error("Your job posted, but it isn't linked to the repair request", {
+    description: "Your tenant won't see it booked. Let them know a Helpr is coming.",
+  });
+}
+
+/**
  * Declutter "Add a Helpr": point the paid order at this job, so the order card
  * shows the Helpr booked. Best effort: the job exists either way, but the
  * buyer is told when the link fails (lh-silent-failure review #1), so a
@@ -793,23 +818,9 @@ export function useJobSubmit(params: UseJobSubmitParams) {
        missing line on the order card never reads as "nothing booked yet". */
     if (declutterOrderId) await linkSetupJobOrTell(declutterOrderId, jobData.id);
     /* Rentals S1: point the maintenance request at this job (best effort, the
-       turnover rule): the tenant then sees it booked and can answer "Was it fixed?". */
-    if (maintenanceRequestId) {
-      try {
-        // Loaded only here (off the first screen, like haulAwayLib); a failed load is caught below.
-        const linked = await (await import("./maintenancePrefill")).linkMaintenanceJob(maintenanceRequestId, jobData.id);
-        // The job is posted either way; a refused link is reported, never silent.
-        if (!linked) {
-          report(new Error("maintenance link refused"), {
-            severity: "warning",
-            tags: { source: "useJobSubmit.linkMaintenance" },
-            context: { job_id: jobData.id, request_id: maintenanceRequestId },
-          });
-        }
-      } catch (linkErr) {
-        report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkMaintenance" }, context: { job_id: jobData.id } });
-      }
-    }
+       turnover rule): the tenant then sees it booked and can answer "Was it fixed?".
+       A failed or refused link is reported AND told to the landlord. */
+    if (maintenanceRequestId) await linkMaintenanceJobOrTell(maintenanceRequestId, jobData.id);
 
     // Stash the just-posted job id so the post-payment success sheet can
     // show share-this-link / view-applicants / post-another-like-this

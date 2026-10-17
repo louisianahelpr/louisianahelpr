@@ -55,7 +55,7 @@ const ANON_REVOKED = "EXECUTE is revoked from anon, so a signed-out caller gets 
 const LADDER_AFTER_CANCEL =
   "raised by apply_cancellation_violation_consequence, which this RPC calls only after its own UPDATE set status = 'cancelled' on the row it holds FOR UPDATE, as the job's customer.";
 const RENTALS_READ = "no message exists at this site: a failed Rentals read shows the screen's load-error state, not a code's words, and RentalsGate shows the 404 while the switch is off.";
-const RENTALS_LINK = "no message exists at this site: useJobSubmit links the posted job best effort and reports a refusal (useJobSubmit.linkMaintenance), showing no copy.";
+const RENTALS_LINK = "no code's words at this site: useJobSubmit links the posted job best effort, reports any failure (useJobSubmit.linkMaintenance) and tells the landlord one fixed sentence, that the job posted but is not linked to the request (linkMaintenanceJobOrTell).";
 const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query error reports and hides the pet-care sheet, it shows no copy.";
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
@@ -140,7 +140,7 @@ const UNREACHABLE: Allowlist = {
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
   },
   // Best effort after the job is posted (useJobSubmit): a refused link is
-  // reported to the ops ledger and shows no copy; the job is posted either way.
+  // reported to the ops ledger and told as one fixed sentence; the job is posted either way.
   link_maintenance_request_job: {
     account_restricted: { reason: RENTALS_LINK },
     feature_disabled: { reason: RENTALS_LINK },

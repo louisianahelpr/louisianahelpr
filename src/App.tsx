@@ -27,11 +27,6 @@ const LoginRouteSkeleton = skeletonOnDemand(() => import("@/components/LoginRout
 // Guard: src/test/offlineSurfacesAreStatic.test.ts.
 import OfflineBanner from "@/components/OfflineBanner";
 import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
-import { useLoginTracking } from "@/hooks/useLoginTracking";
-import { useNativePushSetup } from "@/lib/nativePush";
-import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility";
-import { seniorModeMetadataPatch, sessionSeniorFlag, syncSeniorMode } from "@/lib/simpleMode";
-import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import RouteMemory from "@/components/RouteMemory";
 import StaleClientWatch from "@/components/StaleClientWatch";
@@ -39,13 +34,9 @@ import StaleClientWatch from "@/components/StaleClientWatch";
 // lazy boundary) so it can be imported eagerly here without putting the
 // auth check — and therefore Supabase — on the landing page's LCP path.
 import MarketingRedirect from "@/components/MarketingRedirect";
-import { useAppShellViewport } from "@/hooks/useAppShellViewport";
-import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
-import { useAppLifecycle } from "@/lib/appLifecycle";
 import { AppLockGate } from "@/components/AppLockGate";
 import { ForceUpdateGate } from "@/components/ForceUpdateGate";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useDarkMode } from "@/hooks/useDarkMode";
+import { SessionManager } from "@/components/SessionManager";
 
 // Sonner + TooltipProvider pull in @radix-ui/react-tooltip + @floating-ui (~14 KB
 // gzipped, unused on the landing page). Lazy-loading keeps them out of the
@@ -448,85 +439,6 @@ const RoutedBoundary = () => {
   );
 };
 
-
-const SessionManager = () => {
-  // Idle sign-out is DISABLED (pre-launch testing — it was logging testers
-  // out mid-audit). To restore it, re-add `useSessionTimeout();` here; the
-  // hook and its tests are deliberately left in place so this is a one-line
-  // revert.
-  //
-  // Before restoring it, note it was wrong twice over. `useSessionTimeout`
-  // forced a full signOut() after 30 minutes without a DOM event:
-  //
-  //  1. It is not a security control. A client-side timer is defeated by
-  //     moving a finger, and an attacker holding the unlocked device does
-  //     exactly that — so it only ever fired on legitimate users who paused
-  //     to read. Session lifetime is server-enforced by Supabase Auth (JWT
-  //     expiry + refresh-token rotation); that is where the policy belongs.
-  //  2. This hook is mounted app-wide, and phone web IS the native iOS app.
-  //     A backgrounded phone trivially idles past 30 minutes, so a user who
-  //     put the app down — or who tapped a "you've been hired" push an hour
-  //     later — was dumped on /login with their token erased.
-  //
-  // It had already been patched once for logging out active users
-  // (eb97aec0, "stop logging out active users on AppShell pages") because
-  // scroll inside AppShell's inner container never reached the window
-  // listener. That was the same bug class: the timer cannot actually tell
-  // idle from busy.
-  useLoginTracking();
-  useNativePushSetup();
-  const dynamicTypeScale = useDynamicTypeSync();
-  useDarkMode(); // initializes data-theme from localStorage / system preference
-  useCppVariantRouter();
-  useAppShellViewport();
-  useStatusBarStyle();
-  // Bridge Capacitor appStateChange → TanStack focusManager and
-  // @capacitor/network → onlineManager. Without this, refetchOnWindowFocus
-  // is dead inside WKWebView (browser focus events don't fire reliably on
-  // iOS) so the dashboard / messages / balances show stale data after the
-  // user returns from a context-switch, and offline → online doesn't
-  // auto-refetch. No-op on web.
-  useAppLifecycle();
-
-  // Feed the two inputs this component owns into the Senior Mode resolver and
-  // let IT write the class. The profile flag is a manual account-level opt-in;
-  // the Dynamic Type bridge (LH-22) honors the user's system-level text-size
-  // choice without them having to flip the in-app toggle.
-  //
-  // This used to `classList.toggle("senior-mode", profileSenior || osLargeText)`
-  // directly, and that unconditional write is what erased the DEVICE preference
-  // `initSimpleMode()` had applied ~20ms earlier before first paint — the
-  // /profile?tab=accessibility toggle turned the app on and was silently undone
-  // on the next launch. The third input lives in simpleMode.ts (it has to, it
-  // runs before React), so the decision lives there too; see the trace in that
-  // file's header.
-  const { profile, user } = useCurrentUser();
-  useEffect(() => {
-    // null until the profile lands, so the cached account flag the first
-    // paint used is not switched off and back on (Q169).
-    const profileSenior = profile ? !!(profile as unknown as { senior_mode?: boolean }).senior_mode : null;
-    const osLargeText = dynamicTypeScale >= OS_LARGE_TEXT_THRESHOLD;
-    // Until the profile lands, the SESSION carries the account flag (Q200):
-    // a first sign-in on a new device has no per-device cache yet.
-    syncSeniorMode({ profileSenior, osLargeText, sessionSenior: sessionSeniorFlag(user) });
-  }, [profile, user, dynamicTypeScale]);
-  // Keep that session hint in step with the profile. Written only when they
-  // disagree (absent metadata counts as "off"), so an account that never used
-  // Senior Mode is never written to. Best-effort: a failure only means the
-  // next new device paints once at the default size, as it did before Q200.
-  useEffect(() => {
-    const profileSenior = profile ? !!(profile as unknown as { senior_mode?: boolean }).senior_mode : null;
-    const patch = seniorModeMetadataPatch(user, profileSenior);
-    if (!patch) return;
-    void import("@/integrations/supabase/client")
-      .then(({ supabase }) => supabase.auth.updateUser({ data: patch }))
-      .then((r) => { if (r.error) console.warn("[senior-mode] session hint not saved", r.error.message); })
-      .catch((e: unknown) => console.warn("[senior-mode] session hint not saved", e));
-  }, [profile, user]);
-
-
-  return null;
-};
 
 /**
  * Mounts `<Toaster />` and `<Sonner />` only AFTER first paint.

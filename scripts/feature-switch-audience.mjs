@@ -30,6 +30,14 @@
  * run 38446754274). The account holds nothing (no password, is_seed, no role);
  * someone who reset it through the public inbox would hold an empty member.
  *
+ * EVERY REGISTRY KEY HAS A LIVE ROW, both ways (Q1847). The app's registry
+ * (FEATURE_SWITCH_KEYS, src/config/featureSwitches.ts) must equal the keys of
+ * the live public.feature_switches rows. feature_enabled_for answers false for
+ * a key with no row, so if functions-deploy ships a function gated on a switch
+ * whose migration db-deploy never applied, that function refuses everyone
+ * (the App Review account included) with no other signal. A live row the
+ * registry no longer lists is a leftover no screen reads.
+ *
  * Fails closed: any read that errors, an empty registry, a missing secret, or
  * a non-boolean answer exits 1. Read-only apart from the probe account itself.
  *
@@ -39,6 +47,8 @@
  * Verdict logic: judge() below, unit-tested in src/test/featureSwitchAudience.test.ts.
  * Wired nightly: .github/workflows/feature-switch-audience.yml (files nightly-red).
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
 
@@ -47,8 +57,26 @@ assertFreshCheckout(import.meta.url);
 
 export const PROBE_EMAIL = "helpr-switch-probe-1013@mailinator.com";
 
+/** The client registry file whose FEATURE_SWITCH_KEYS must match the live rows. */
+export const REGISTRY_FILE = join(import.meta.dirname, "..", "src", "config", "featureSwitches.ts");
+
+/**
+ * The keys of FEATURE_SWITCH_KEYS, read from the TypeScript source (this runs
+ * under plain node, which cannot import .ts). Each key sits on its own line as
+ * `"key",`; comment lines between them never start with a double quote.
+ * src/test/featureSwitchAudience.test.ts holds this to the imported array.
+ * @param {string} src
+ * @returns {string[] | null} null when the array cannot be found
+ */
+export function registryKeysFromSource(src) {
+  const m = /export const FEATURE_SWITCH_KEYS = \[\n([\s\S]*?)\n\] as const;/.exec(String(src));
+  if (!m) return null;
+  return [...m[1].matchAll(/^\s*"([a-z0-9_]+)",?\s*$/gm)].map((x) => x[1]);
+}
+
 /**
  * @param {{
+ *   registry: string[] | null,            // FEATURE_SWITCH_KEYS (registryKeysFromSource)
  *   switches: { key: string, audience: string }[] | null,
  *   probe: Record<string, unknown>,       // key -> answer for the ordinary account ({ error } on failure)
  *   tester: Record<string, unknown>,      // key -> answer for the test account
@@ -61,6 +89,19 @@ export function judge(r) {
   const problems = [];
   if (!Array.isArray(r.switches)) return ["could not read public.feature_switches"];
   if (r.switches.length === 0) return ["public.feature_switches is empty: nothing to check (switch_canary should exist)"];
+  if (!Array.isArray(r.registry) || r.registry.length === 0) {
+    return ["could not read FEATURE_SWITCH_KEYS from src/config/featureSwitches.ts: the live rows cannot be held to the registry"];
+  }
+  const live = new Set(r.switches.map((s) => s.key));
+  for (const key of r.registry) {
+    if (!live.has(key)) {
+      problems.push(`${key}: in FEATURE_SWITCH_KEYS but NO live feature_switches row, so feature_enabled_for answers false for everyone and every function gated on it refuses (did db-deploy fail after functions-deploy shipped? Q1847)`);
+    }
+  }
+  const registry = new Set(r.registry);
+  for (const key of live) {
+    if (!registry.has(key)) problems.push(`${key}: a live feature_switches row FEATURE_SWITCH_KEYS does not list (a leftover, or the registry lost it)`);
+  }
   if (r.probeIsTester !== false) {
     return [`the probe account's tester status is ${r.probeIsTester === true ? "TRUE (admin or test account)" : "unknown"}: an ordinary account is required`];
   }
@@ -158,7 +199,14 @@ async function main() {
     return createClient(url, anonKey, { ...opts, global: { headers: { Authorization: `Bearer ${session.access_token}` } } });
   }
 
+  let registry = null;
+  try {
+    registry = registryKeysFromSource(readFileSync(REGISTRY_FILE, "utf8"));
+  } catch (err) {
+    console.error(`::error::could not read ${REGISTRY_FILE}: ${err instanceof Error ? err.message : String(err)}`);
+  }
   const result = {
+    registry,
     switches,
     probe: await answers(await signedIn(PROBE_EMAIL)),
     tester: await answers(await signedIn(env.PLAYWRIGHT_POSTER_EMAIL)),
@@ -167,13 +215,14 @@ async function main() {
   };
 
   const problems = judge(result);
+  console.log(`registry keys: ${registry?.length ?? "unreadable"} (${(registry ?? []).join(", ")})`);
   console.log(`switches checked: ${switches.length} (${switches.map((s) => `${s.key}=${s.audience}`).join(", ")})`);
   console.log(`ordinary: ${JSON.stringify(result.probe)}  tester: ${JSON.stringify(result.tester)}  signed out: ${JSON.stringify(result.anon)}`);
   if (problems.length) {
     for (const p of problems) console.error(`::error::${p}`);
     process.exit(1);
   }
-  console.log("OK: every switch not set to everyone is OFF for an ordinary account; testers see testers switches.");
+  console.log("OK: every registry key has a live row and every live row is in the registry; every switch not set to everyone is OFF for an ordinary account; testers see testers switches.");
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

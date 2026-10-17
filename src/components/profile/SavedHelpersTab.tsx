@@ -269,7 +269,13 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 <PopoverContent
                   // role="dialog" with no name announces as bare "dialog".
                   aria-label="Filter saved Helprs by skill"
-                  className="w-[min(92vw,240px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-1.5"
+                  // One row per job category (25 with "All Helprs", ~930px):
+                  // taller than a phone. Unbounded, the rows past the bottom
+                  // edge could not be reached (press-every-control 39014836855
+                  // leg 3, 375 wide: "Welding" to "Other" outside the
+                  // viewport). Capped at the room Radix measures below the
+                  // trigger, the list scrolls inside the panel instead.
+                  className="w-[min(92vw,240px)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto overscroll-contain rounded-2xl border border-border/40 shadow-2xl bg-card p-1.5"
                   align="start"
                 >
                   <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest px-2 pt-1 pb-1.5">

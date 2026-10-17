@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Sofa,
   Store,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 import { useFeature } from "@/hooks/useFeature";
@@ -103,10 +104,15 @@ const DesktopSidebarNav = () => {
   // Shops (docs/specs/local-shops-prep.md L1-L2: its own destination) joins
   // after Declutter the same way, only while the hidden 'shops' switch is on.
   const shopsOn = useFeature("shops");
+  // Quotes (owner answer 12, 2026-10-17: Helprs find quote requests in BOTH
+  // the Jobs browse filter and a Quotes link in the menu) joins the same way,
+  // only while the hidden 'quotes' switch is on for this member.
+  const quotesOn = useFeature("quotes");
   const navItems = [
     ...NAV_ITEMS.slice(0, 4),
     ...(declutterOn ? [{ path: "/declutter", icon: Sofa, label: "Declutter" }] : []),
     ...(shopsOn ? [{ path: "/shops", icon: Store, label: "Shops" }] : []),
+    ...(quotesOn ? [{ path: "/quotes", icon: FileText, label: "Quotes" }] : []),
     ...NAV_ITEMS.slice(4),
   ];
   // Admin's own sections, collapsed by default so an admin's panel is the same

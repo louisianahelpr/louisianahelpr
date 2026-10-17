@@ -17,8 +17,8 @@
  * INSERT (create-payment then charges jobs.budget: one payment path, Q8), and
  * that the switch stays registered and created OFF.
  *
- * @mutate supabase/migrations/20261015091114_job_quotes.sql | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = v_req_id FOR UPDATE; | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = v_req_id;
- * @mutate supabase/migrations/20261015091114_job_quotes.sql | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id FOR SHARE; | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id;
+ * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = v_req_id FOR UPDATE; | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = v_req_id;
+ * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id FOR SHARE; | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id;
  * @mutate supabase/migrations/20261015091114_job_quotes.sql | VALUES ('quotes', 'off', | VALUES ('quotes', 'everyone',
  * @mutate supabase/migrations/20261015091114_job_quotes.sql |                   WHERE r.job_id = OLD.id AND r.status IN ('agreed', 'cancelled')) THEN |                   WHERE false) THEN
  * @mutate src/config/featureSwitches.ts |   "quotes",\n  // Declutter wanted posts | \n  // Declutter wanted posts

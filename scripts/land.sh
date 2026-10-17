@@ -5,6 +5,7 @@
 #   bash scripts/land.sh --dry-run  # everything except the push
 #   bash scripts/land.sh --no-wait  # open/refresh the PR with auto-merge, don't wait
 #   (--pr is accepted and ignored: the PR path is the only path.)
+#   bash scripts/land.sh --claim-override="<reason>"  # take a branch another session has claimed
 #
 # Q44 (owner, 2026-09-27; strict turned off 2026-09-30, back ON in the "main" ruleset 2026-10-05): main is protected
 # with required checks and enforce_admins (strict up-to-date ON again since 2026-10-05), so a
@@ -55,7 +56,7 @@ set -euo pipefail
 if [ -z "${LAND_FROZEN_DIR:-}" ]; then
   LAND_FROZEN_DIR=$(mktemp -d "${TMPDIR:-/tmp}/land-frozen.XXXXXX")
   cp "$0" "$LAND_FROZEN_DIR/land.sh"
-  for t in landRebaseResolve.mjs openItemMerge.mjs landRecount.mjs landGh.mjs; do
+  for t in landRebaseResolve.mjs openItemMerge.mjs landRecount.mjs landGh.mjs landClaims.mjs; do
     cp "$(dirname "$0")/lib/$t" "$LAND_FROZEN_DIR/$t"
   done
   export LAND_FROZEN_DIR
@@ -64,12 +65,14 @@ fi
 
 DRY=0
 WAIT=1
+CLAIM_OVERRIDE=""
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY=1 ;;
     --no-wait) WAIT=0 ;;
     --pr) ;;
-    *) echo "land: unknown argument $arg (use --dry-run, --no-wait)" >&2; exit 1 ;;
+    --claim-override=*) CLAIM_OVERRIDE="${arg#--claim-override=}" ;;
+    *) echo "land: unknown argument $arg (use --dry-run, --no-wait, --claim-override=\"<reason>\")" >&2; exit 1 ;;
   esac
 done
 
@@ -89,6 +92,21 @@ fi
 
 # Untracked files present before the refresh are someone else's; never staged.
 UNTRACKED_BEFORE=$(git ls-files --others --exclude-standard | sort)
+
+# LANDING CLAIMS (owner 2026-10-17 sweep spec): one session lands a branch.
+# The claim (owner session, since, PR) is written to refs/lh/landing-claims on
+# origin by compare-and-swap; a branch another session has claimed is refused
+# unless --claim-override="<reason>" (recorded on the claim). A store that
+# cannot be reached warns and carries on, so no landing breaks on it; no
+# claims (a missing ref) means every branch is free. `npm run sweep` prints the
+# table. Guard: src/test/landClaims.test.ts.
+CLAIM_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$CLAIM_BRANCH" = HEAD ]; then CLAIM_BRANCH="detached-$(printf '%s' "$PWD" | shasum | cut -c1-8)"; fi
+CLAIM_ARGS=()
+if [ -n "$CLAIM_OVERRIDE" ]; then CLAIM_ARGS=(--override "$CLAIM_OVERRIDE"); fi
+CLAIM_CMD=claim
+case "$DRY" in 1) CLAIM_CMD=check ;; esac # --dry-run only checks, writes no claim
+node "$LAND_FROZEN_DIR/landClaims.mjs" "$CLAIM_CMD" "$CLAIM_BRANCH" ${CLAIM_ARGS[@]+"${CLAIM_ARGS[@]}"} || exit 1
 
 # Where a landing's minutes go (owner, 2026-10-12: "fix the bottleneck
 # before"): each phase prints its own seconds, so a slow landing names its
@@ -404,6 +422,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   PR_NUM=$(node "$LAND_FROZEN_DIR/landGh.mjs" ensure-pr "$BR" "$(git log -1 --format=%s)" "$BODY_FILE")
   rm -f "$BODY_FILE"
   echo "land: PR #$PR_NUM is $BR."
+  node "$LAND_FROZEN_DIR/landClaims.mjs" set-pr "$CLAIM_BRANCH" "$PR_NUM" || true
   gh pr merge "$BR" --rebase --auto 2>/dev/null || node "$LAND_FROZEN_DIR/landGh.mjs" auto-merge "$PR_NUM"
   # The land queue (owner, 2026-10-05; scripts/land-queue.mjs): the label puts
   # this PR in line. Only the head of the queue is rebased onto main and
@@ -459,6 +478,10 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
     MSS=$(cut -f2 <<<"$POLL")
     DETAIL=$(cut -f3- <<<"$POLL")
     if [ "$UNANSWERED" -gt 0 ] && [ "$VERDICT" != unanswered ]; then UNANSWERED=0; fi
+    # The landing is over either way: its claim goes (landing claims, above).
+    if [ "$VERDICT" = merged ] || [ "$VERDICT" = closed ]; then
+      node "$LAND_FROZEN_DIR/landClaims.mjs" release "$CLAIM_BRANCH" || true
+    fi
     case "$VERDICT" in
       merged)
         echo "land: $BR merged into main."

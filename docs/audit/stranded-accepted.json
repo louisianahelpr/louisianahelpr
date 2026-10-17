@@ -2386,6 +2386,12 @@
       "sha": "a0ecf760b01885d26968da551dfee85951849e67",
       "reason": "Dispute refund-stamp clear (rpc_clear_test_mode_dispute_refund_stamp), which landed on main earlier. Its 3 leftover lines are the older test-mode refusal message and the two @mutate lines that quote it. Main extended that message to name the Clear test-mode records button (531fbf34b, Q1732, through #2984).",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:fix/ach-escrow-no-money-me046",
+      "sha": "2dc48ce529e5b73651215ea31d3dc5023da091e5",
+      "reason": "All 6 commits verified on main by git patch-id (lander on PR #3176, 2026-10-17: 4c6cf559f=542592072, ff1d532c2=5fdb095c4, 473418c9f=971207fb9, bd1029ab3=43c303774, 04d90af36=d47e1adff, 2dc48ce52=48f2991df). The initial approach (set stripe_session_id: null at ACH checkout) was deliberately superseded by 41c7848c9 (PR #3197, ME-046/Q769) which keeps stripe_session_id set to prevent void-cancelled-payments abandonment. All guard and test improvements from this branch were carried forward into the final fix.",
+      "checked": "2026-10-17 (lander patch-id verification on PR #3176; main commit 7b4eceb3f4)"
     }
   ]
 }

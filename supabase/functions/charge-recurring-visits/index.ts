@@ -529,6 +529,8 @@ serve(async (req) => {
     skippedBlocked: 0,
     skippedEnded: 0,
     skippedBanned: 0,
+    // Q1802: dates held by a member who is now under 18 (released, never charged).
+    skippedIneligible: 0,
     skippedChargeback: 0,
     declined: 0,
     // Q210(b): $300+ visits parked for the payer to pay on-session.
@@ -1345,6 +1347,62 @@ serve(async (req) => {
       }
       if (blockCheckFailed) continue;
 
+      // ── Q1802: a holder who is now under 18 ────────────────────────────
+      // Q1586(c) refuses every NEW hold for a member under 18, but a hold
+      // claimed while their birthday was empty or adult (then corrected) still
+      // stands. Booking it would charge the poster for a visit whose
+      // application row trg_applications_refuse_under_18 then refuses. So the
+      // date is never charged: it is released (series_release_dates, the
+      // give-up path: the poster is told the date is open again, never why,
+      // and the series' other Helprs may pick it up), and the loop below skips
+      // it. Every date they hold from today on is released in one call, so the
+      // poster gets one notice, not one per run as dates enter the window. An
+      // unknown answer never books.
+      const under18Holders = new Set<string>();
+      let ageCheckFailed = false;
+      for (const helperId of new Set([...holders.values()].map((h) => h.helper_id))) {
+        const { data: minor, error: ageErr } = await supabase.rpc("member_under_18", { p_user_id: helperId });
+        if (ageErr) {
+          console.error(`[charge-recurring-visits] age check failed for series ${parent.id}; skipping the series`, ageErr);
+          fail(`series ${parent.id}: age check failed (${ageErr.message})`);
+          ageCheckFailed = true;
+          break;
+        }
+        if (minor === true) under18Holders.add(helperId);
+      }
+      if (ageCheckFailed) continue;
+      if (!dryRun) {
+        for (const helperId of under18Holders) {
+          const dueDates = dueNow.filter((d) => !alreadyThere.has(d) && holders.get(d)?.helper_id === helperId);
+          // series_release_dates itself keeps a date that has a booked visit.
+          const { data: later, error: laterErr } = await supabase
+            .from("series_visit_holds")
+            .select("visit_date")
+            .eq("parent_job_id", parent.id)
+            .eq("helper_id", helperId)
+            .gte("visit_date", today)
+            .order("visit_date", { ascending: true });
+          if (laterErr) fail(`series ${parent.id}: reading an ineligible holder's later dates failed (${laterErr.message}); only the due dates are released this run`);
+          const dates = [...new Set([
+            ...dueDates,
+            ...((later ?? []) as Array<{ visit_date: string }>).map((r) => r.visit_date).filter((d) => !alreadyThere.has(d)),
+          ])].sort();
+          if (dates.length === 0) continue;
+          const { error: relErr } = await supabase.rpc("series_release_dates", {
+            p_parent: parent.id,
+            p_helper: helperId,
+            p_dates: dates,
+            // Readable by the series' parties (RLS): names no age.
+            p_reason: "holder_ineligible",
+            p_title: parent.title ?? null,
+            p_customer: parent.customer_id,
+          });
+          // The dates are skipped below either way; only the release (and the
+          // poster's notice) is retried on the next run.
+          if (relErr) fail(`series ${parent.id}: releasing ${dates.join(", ")} from an ineligible holder failed (${relErr.message}); not charged, retried next run`);
+        }
+      }
+
       for (const visitDate of dueNow) {
         if (alreadyThere.has(visitDate)) { results.skippedExisting++; continue; }
         const hold = holders.get(visitDate);
@@ -1358,6 +1416,10 @@ serve(async (req) => {
           continue;
         }
         const holderId = hold.helper_id;
+        if (under18Holders.has(holderId)) {
+          results.skippedIneligible++;
+          continue;
+        }
         if (banned.ids.has(holderId)) {
           console.warn(`[charge-recurring-visits] series ${parent.id} ${visitDate}: the Helpr holding it is suspended or banned; skipping`);
           results.skippedBanned++;
@@ -1660,7 +1722,9 @@ serve(async (req) => {
         // Stripe fee, so ask again here. The DB trigger still refuses the
         // insert if either changes after this read (and the charge is
         // refunded); this only narrows that window.
-        const [liveParent, liveHold] = await Promise.all([
+        // Q1802 review: the holder's age is asked again too, so a birthday
+        // saved since the check above never reaches the charge.
+        const [liveParent, liveHold, liveMinor] = await Promise.all([
           supabase.from("jobs").select("id, series_ended_on").eq("id", parent.id).maybeSingle(),
           supabase
             .from("series_visit_holds")
@@ -1668,11 +1732,17 @@ serve(async (req) => {
             .eq("parent_job_id", parent.id)
             .eq("visit_date", visitDate)
             .maybeSingle(),
+          supabase.rpc("member_under_18", { p_user_id: holderId }),
         ]);
-        if (liveParent.error || liveHold.error || !liveParent.data) {
+        if (liveParent.error || liveHold.error || liveMinor.error || !liveParent.data) {
           fail(
-            `series ${parent.id} ${visitDate}: pre-charge re-read failed (${liveParent.error?.message ?? liveHold.error?.message ?? "series row missing"})`,
+            `series ${parent.id} ${visitDate}: pre-charge re-read failed (${liveParent.error?.message ?? liveHold.error?.message ?? liveMinor.error?.message ?? "series row missing"})`,
           );
+          continue;
+        }
+        if (liveMinor.data === true) {
+          // Released on the next run, by the check above.
+          results.skippedIneligible++;
           continue;
         }
         if ((liveParent.data as { series_ended_on: string | null }).series_ended_on) {

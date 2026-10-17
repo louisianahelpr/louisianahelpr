@@ -555,7 +555,11 @@ describe("stripe-webhook edge function", () => {
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |     if (consumeJobId) consumeQ = consumeQ.eq("job_id", consumeJobId); |
     describe("a difference payment whose gift was un-reserved mid-checkout (Q1417)", () => {
       const isFirstConsume = (p: Record<string, unknown>) => p.status === "redeemed" && !("job_id" in p);
-      async function deliver(gift: Record<string, unknown> | null, reclaimRows: Array<{ id: string }> = [{ id: "gc-1" }]) {
+      async function deliver(
+        gift: Record<string, unknown> | null,
+        reclaimRows: Array<{ id: string }> = [{ id: "gc-1" }],
+        jobRow: Record<string, unknown> = { stripe_session_id: "cs_d2", payment_status: "unpaid" },
+      ) {
         const fn = await loadConfigured();
         stripeMock.webhooks.constructEventAsync.mockResolvedValue({
           id: "evt_q1417",
@@ -567,6 +571,7 @@ describe("stripe-webhook edge function", () => {
           { table: "gift_cards", op: "update", when: (p) => p.status === "redeemed" && p.job_id === "job-1", rows: reclaimRows },
         ];
         scenario.reads.gift_cards = { rows: gift ? [gift] : [] };
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", ...jobRow }] };
         const res = await fn.fetch(webhookRequest(fn, "{}"));
         const giftWrites = scenario.writes.filter((x) => x.table === "gift_cards" && x.op === "update");
         const titles = (slackAlerts as Array<{ title: string }>).map((a) => a.title);
@@ -640,6 +645,32 @@ describe("stripe-webhook edge function", () => {
         expect(res.status).toBeGreaterThanOrEqual(500);
         expect(titles.some((t) => /payout hold FAILED/.test(t))).toBe(true);
         expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as { payment_status?: string }).payment_status === "escrow")).toBe(false);
+      });
+
+      // Q1876 (lh-money-escrow review of 6b06413c7, #5): a bounced bank debit
+      // gives the gift back to 'sent' and clears the job's session. A late
+      // redelivery of that bounced session's completion must not spend it again.
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         if (reclaimable && sessionIsJobs) { |         if (reclaimable) {
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           bouncedRedelivery = !sessionIsJobs && jr?.payment_status === "failed"; |           bouncedRedelivery = false;
+      it("a redelivered completion of a BOUNCED bank checkout never re-spends the returned gift, and stays quiet", async () => {
+        const { res, giftWrites, titles } = await deliver(
+          { id: "gc-1", status: "sent", job_id: null, payment_status: "paid" },
+          [{ id: "gc-1" }],
+          { stripe_session_id: null, payment_status: "failed" },
+        );
+        expect(res.status).toBe(200);
+        expect(giftWrites).toHaveLength(1);
+        expect(titles.some((t) => /underfunded|re-claimed/.test(t))).toBe(false);
+      });
+
+      it("a checkout that is not the job's current one cannot re-claim; ops is paged", async () => {
+        const { giftWrites, titles } = await deliver(
+          { id: "gc-1", status: "sent", job_id: null, payment_status: "paid" },
+          [{ id: "gc-1" }],
+          { stripe_session_id: "cs_newer", payment_status: "unpaid" },
+        );
+        expect(giftWrites).toHaveLength(1);
+        expect(titles).toContain("Gift card difference payment — job underfunded");
       });
     });
 
@@ -1359,6 +1390,128 @@ describe("stripe-webhook edge function", () => {
       // stripe_session_id must be cleared so create-payment can mint a new checkout.
       const jobWrite = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
       expect((jobWrite?.payload as Record<string, unknown>).stripe_session_id).toBeNull();
+    });
+
+    // Q1876: a gift-shortfall checkout paid by bank completes BEFORE the debit
+    // settles, and that completion spends the gift ('redeemed'). When the debit
+    // bounces the job was never funded: the SAME gift row comes back through
+    // return_bounced_gift_card (never a minted replacement: lh-money-escrow
+    // review of 6b06413c7, #1), named only by pi.metadata.gift_card_id (#2).
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const giftBack = clearSessionId && giftCardId | const giftBack = false && giftCardId
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |       if (giftCardId && failedJob.payment_status === "failed") { |       if (false) {
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if ((back === "returned" \|\| back === "returned_unspendable") && failedJob.customer_id) { | if (false) {
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |     if (notDeployed) return "held"; |
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |   if (outcome === "not_consumed") return "none"; |
+    describe("Q1876 a bounced bank debit gives back the gift card its checkout spent", () => {
+      const bounce = async (
+        jobRow: Record<string, unknown>,
+        metadata: Record<string, string> = { job_id: "job-1", gift_card_id: "gc-1" },
+      ) => {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_fail_ach_gift",
+          type: "payment_intent.payment_failed",
+          data: { object: { id: "pi_ach_gift", receipt_email: "poster@test.com", metadata } },
+        });
+        stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+          status: "complete",
+          payment_intent: { id: "pi_ach_gift", status: "requires_payment_method" },
+        });
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", ...jobRow }] };
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        const notices = scenario.writes.filter((w) => w.table === "notifications");
+        const alerts = slackAlerts as Array<{ kind?: string; title?: string }>;
+        return { res, notices, alerts };
+      };
+      const returnCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "return_bounced_gift_card");
+      const noMint = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job");
+
+      it("returns the exact gift when the bounce marks the job failed, and the notice says so", async () => {
+        scenario.rpc.return_bounced_gift_card = { outcome: "returned", credit_id: "gc-1", restore_cents: 2500, payment_status: "paid" };
+        const { res, notices } = await bounce({ payment_status: "unpaid", stripe_session_id: "cs_ach_gift" });
+        expect(res.status).toBe(200);
+        expect(returnCalls()).toHaveLength(1);
+        expect(returnCalls()[0].args).toEqual({ p_job_id: "job-1", p_gift_card_id: "gc-1" });
+        expect(noMint()).toHaveLength(0);
+        expect(notices).toHaveLength(1);
+        expect(String((notices[0].payload as Record<string, unknown>).message)).toMatch(/gift card is back/);
+      });
+
+      // lh-money-escrow re-review of 2cd90f553, nit 5: a gift whose donation was
+      // refunded comes back as a row redeem_gift_card refuses.
+      // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | return answer?.payment_status === "paid" ? "returned" : "returned_unspendable"; | return "returned";
+      it("a returned gift whose donation was refunded is not called usable in the notice", async () => {
+        scenario.rpc.return_bounced_gift_card = { outcome: "returned", credit_id: "gc-1", restore_cents: 2500, payment_status: "refunded" };
+        const { res, notices } = await bounce({ payment_status: "unpaid", stripe_session_id: "cs_ach_gift" });
+        expect(res.status).toBe(200);
+        expect(returnCalls()).toHaveLength(1);
+        expect(notices).toHaveLength(1);
+        expect(String((notices[0].payload as Record<string, unknown>).message)).not.toMatch(/gift/);
+      });
+
+      it("a PaymentIntent without gift_card_id makes no gift call (not a gift shortfall)", async () => {
+        const { notices } = await bounce({ payment_status: "unpaid", stripe_session_id: "cs_ach_gift" }, { job_id: "job-1" });
+        expect(returnCalls()).toHaveLength(0);
+        expect(notices).toHaveLength(1);
+        expect(String((notices[0].payload as Record<string, unknown>).message)).not.toMatch(/gift/);
+      });
+
+      it("a database error pages money_at_risk and answers non-2xx so Stripe retries; no notice yet", async () => {
+        scenario.rpcErrors = { return_bounced_gift_card: { message: "boom" } };
+        const { res, notices, alerts } = await bounce({ payment_status: "unpaid", stripe_session_id: "cs_ach_gift" });
+        expect(res.status).toBeGreaterThanOrEqual(500);
+        expect(notices).toHaveLength(0);
+        expect(alerts.some((a) => a.kind === "money_at_risk" && /gift card was NOT returned/.test(a.title ?? ""))).toBe(true);
+      });
+
+      it("the function not deployed yet (PGRST202) pages ops but lets the bounce stand: 200 and the plain notice", async () => {
+        scenario.rpcErrors = { return_bounced_gift_card: { message: "Could not find the function", code: "PGRST202" } };
+        const { res, notices, alerts } = await bounce({ payment_status: "unpaid", stripe_session_id: "cs_ach_gift" });
+        expect(res.status).toBe(200);
+        expect(notices).toHaveLength(1);
+        expect(String((notices[0].payload as Record<string, unknown>).message)).not.toMatch(/gift/);
+        expect(alerts.some((a) => a.kind === "money_at_risk")).toBe(true);
+      });
+
+      it("the retry (job already failed, session cleared) returns the gift AND sends the notice the first delivery lost", async () => {
+        scenario.rpc.return_bounced_gift_card = { outcome: "returned", credit_id: "gc-1", restore_cents: 2500, payment_status: "paid" };
+        // The CAS no longer matches a 'failed' job with no session: zero rows.
+        scenario.writeSelectRows.jobs = [];
+        const { res, notices } = await bounce({ payment_status: "failed", stripe_session_id: null });
+        expect(res.status).toBe(200);
+        expect(returnCalls()).toHaveLength(1);
+        expect(notices).toHaveLength(1);
+        expect(String((notices[0].payload as Record<string, unknown>).message)).toMatch(/gift card is back/);
+      });
+
+      it("a retry that finds the gift already back sends no second notice", async () => {
+        scenario.rpc.return_bounced_gift_card = { outcome: "not_consumed", credit_id: "gc-1" };
+        scenario.writeSelectRows.jobs = [];
+        const { notices, alerts } = await bounce({ payment_status: "failed", stripe_session_id: null });
+        expect(returnCalls()).toHaveLength(1);
+        expect(notices).toHaveLength(0);
+        expect(alerts.some((a) => a.kind === "money_at_risk")).toBe(false);
+      });
+
+      it("a retry after the poster opened a new checkout pages ops instead of acking silently", async () => {
+        scenario.rpc.return_bounced_gift_card = { outcome: "checkout_open" };
+        scenario.writeSelectRows.jobs = [];
+        stripeMock.checkout.sessions.retrieve.mockResolvedValue({ status: "open" });
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_fail_ach_gift_retry",
+          type: "payment_intent.payment_failed",
+          data: { object: { id: "pi_ach_gift", receipt_email: "poster@test.com", metadata: { job_id: "job-1", gift_card_id: "gc-1" } } },
+        });
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "failed", stripe_session_id: "cs_new_card" }] };
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        expect(returnCalls()).toHaveLength(1);
+        expect((slackAlerts as Array<{ kind?: string; title?: string }>).some(
+          (a) => a.kind === "money_at_risk" && /gift card still spent/.test(a.title ?? ""),
+        )).toBe(true);
+        expect(scenario.writes.filter((w) => w.table === "notifications")).toHaveLength(0);
+      });
     });
 
     // B1: card decline marks job 'failed', poster retries with ACH on same session,

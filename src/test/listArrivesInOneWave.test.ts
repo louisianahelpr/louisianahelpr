@@ -49,7 +49,7 @@
 // @mutate src/pages/profile/Profile.tsx | const showSkeleton = tab === "landing" ? !landingReady : loading; | const showSkeleton = loading;
 // @mutate src/pages/profile/Profile.tsx |   if (showSkeleton) { |   if (loading) {
 // @mutate src/pages/profile/Profile.tsx | <div aria-busy="true" className="container mx-auto | <div className="container mx-auto
-// @mutate src/components/profile/profileLanding/DeclutterEntryRow.tsx | useFeature("declutter") | useFeature("quotes")
+// @mutate src/components/profile/profileLanding/DeclutterEntryRow.tsx | useFeatureStatus("declutter") | useFeatureStatus("quotes")
 // @mutate src/components/declutter/DeclutterHomeView.tsx | useArrivalGate(true, wanted.settled) | useArrivalGate(true, true)
 // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (!tabsReady) return <DeclutterHomeSkeleton />;\n |
 // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (listLoading) return <DeclutterBrowseBones />;\n |

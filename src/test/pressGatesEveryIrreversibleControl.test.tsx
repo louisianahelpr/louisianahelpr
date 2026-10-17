@@ -25,7 +25,7 @@
  * @mutate scripts/audit/press-every-control.mjs |       commit: el.getAttribute("data-commit") \|\| "", |
  * @mutate src/components/ui/dialog.tsx |   return destructive ? "destructive" : isConfirm ? "confirm" : undefined; |   return destructive ? "destructive" : undefined;
  * @mutate scripts/audit/press-every-control.mjs | \|checkout\|end\|leave\|give up\| | \|checkout\|give up\|
- * @mutate scripts/audit/pressProdSafety.mjs | \|retry\|resend\|set to)\b | \|retry\|resend)\b
+ * @mutate scripts/audit/pressProdSafety.mjs | \|retry\|resend\|end series\|set to)\b | \|retry\|resend\|end series)\b
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";

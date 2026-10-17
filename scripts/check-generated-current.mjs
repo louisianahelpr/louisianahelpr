@@ -236,6 +236,14 @@ export const EVIDENCE = [
     refreshedBy: ".github/workflows/scoreboard.yml (measures the feeds, then lands the snapshot + OPEN.md items through its refresh PR)",
     checkedBy: "src/test/openFeedsMirrored.test.ts (every open source in the snapshot has a not-done OPEN.md item)",
   },
+  {
+    id: "press-row-times",
+    script: "scripts/audit/press-row-times.mjs",
+    outputs: ["scripts/audit/press-row-times.json"],
+    refresh: "gh run download <press run> -n press-every-control-leg-<1..6>, then node scripts/audit/press-row-times.mjs <run-id>=<dir> ... (the run's artifacts, no prod access)",
+    refreshedBy: "by hand from a finished press-every-control.yml run's artifacts (Q1921: re-measured once a scheduled run finishes with 0 rows not reached)",
+    checkedBy: "src/test/pressShardPlan.test.ts (measuredFrom names its runs, over 90% of the real route set measured, every leg's modelled time fits 45 x 0.9)",
+  },
 ];
 
 /**
@@ -267,6 +275,7 @@ export const HISTORICAL = {
  * reason. A script that starts writing a committed file must move out of here.
  */
 export const WRITES_NOT_COMMITTED = {
+  "scripts/audit/pressSharedCeiling.mjs": "Q1921: one press leg's shared request meter (shard-<n>.json + a .lock dir) under PRESS_PACE_DIR, test-results/press-pace/ in CI (press-wave.sh), runtime state never committed",
   "scripts/land-queue.mjs": "the land queue's decision lines to $GITHUB_STEP_SUMMARY in land-queue.yml (a CI job summary, never a repo file)",
   "scripts/prune-stale-branches.mjs": "Q915: UNLANDED-branch table to $GITHUB_STEP_SUMMARY in branch-prune.yml (a CI job summary, never a repo file)",
   "scripts/prune-stale-claims.mjs": "stale claim/* decisions to $GITHUB_STEP_SUMMARY in branch-prune.yml (a CI job summary, never a repo file)",

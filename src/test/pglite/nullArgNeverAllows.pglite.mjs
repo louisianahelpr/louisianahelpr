@@ -150,7 +150,7 @@ INSERT INTO public.feature_switches VALUES ('switch_canary', 'testers', 'canary'
 CREATE TABLE public.ban_settlement_queue (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL,
   matched_on text NOT NULL DEFAULT 'test', review_state text NOT NULL DEFAULT 'open', created_at timestamptz NOT NULL DEFAULT now(),
   deferred_rungs jsonb NOT NULL DEFAULT '[]'::jsonb);
--- Shops slice 1 (20261015123029): the columns the shop visibility helpers and
+-- Shops slice 1 (20261017061155): the columns the shop visibility helpers and
 -- the class SQL's 'shop' fixture step touch; the strike count is stubbed at 0
 -- (its own table is not under test here).
 CREATE TABLE public.shops (id uuid PRIMARY KEY, owner_id uuid NOT NULL UNIQUE, name text, category text, area_label text,
@@ -179,7 +179,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Declutter slice 5 (20261017052705).
   "declutter_delivery_slot_ok", "helpr_task_photo_access", "helpr_task_photo_ok", "helpr_task_same_stripe_mode",
   "helpr_task_source_slot_ok", "helpr_task_vehicle_fits",
-  // Shops slice 1 (20261015123029).
+  // Shops slice 1 (20261017061155).
   "shop_owner_in_good_standing", "shop_publicly_visible", "shop_visible_to"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, so it comes after it).

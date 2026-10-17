@@ -177,7 +177,7 @@ export const SEED_GATED_SURFACES = [
   // Q552 (B): the write gates ask about the APPLICANT / offered Helpr, not the caller.
   { surface: "test-account carve-out by user (write gates)", object: "public.seed_hidden_for" },
   { surface: "parish activity card", object: "public.get_parish_activity", via: "public.seed_hidden_in_discovery" },
-  // Shops slice 1 (20261015123029): a test account's shop is hidden from other
+  // Shops slice 1 (20261017061155): a test account's shop is hidden from other
   // members while seeds are hidden; the shops read policy and every shops_* RPC
   // ask through this one predicate.
   { surface: "shop visibility (shops read policy, browse, shop page)", object: "public.shop_publicly_visible" },

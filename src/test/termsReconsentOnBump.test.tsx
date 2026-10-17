@@ -29,7 +29,8 @@
  * @mutate src/components/TermsReconsentDialog.tsx | privacy_version: LATEST_PRIVACY_VERSION, | privacy_version: LATEST_TERMS_VERSION,
  * @mutate src/components/TermsReconsentDialog.tsx | Terms of Service\n            </a>\n            . | Terms of Service\n            </a> and Privacy Policy.
  * @mutate src/components/TermsReconsentDialog.tsx | await supabase.from("legal_acceptances").insert({ | await Promise.resolve({ error: null }) && ({
- * @mutate src/components/TermsReconsentDialog.tsx | const isStale = loaded && acceptedVersion !== LATEST_TERMS_VERSION; | const isStale = false;
+ * @mutate src/components/TermsReconsentDialog.tsx | const isStale = loaded && !termsAcceptanceIsCurrent(acceptedVersion, LATEST_TERMS_VERSION); | const isStale = false;
+ * @mutate src/components/TermsReconsentDialog.tsx | const isStale = loaded && !termsAcceptanceIsCurrent(acceptedVersion, LATEST_TERMS_VERSION); | const isStale = loaded && acceptedVersion !== LATEST_TERMS_VERSION;
  */
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -151,6 +152,21 @@ describe("Terms re-acceptance after the 2026-09-23 Terms change (Q210(d))", () =
     render(<MemoryRouter><TermsReconsentDialog /></MemoryRouter>);
     await new Promise((r) => setTimeout(r, 30));
     expect(screen.queryByText(TITLE)).toBeNull();
+  });
+
+  it("an account that accepted NEWER Terms than this build is not prompted, and nothing is written (Q?schedule-double-modal)", async () => {
+    // An older build (an iPhone not yet updated, a stale checkout) must not
+    // call a newer acceptance stale: with `!==` it prompted and its I Agree
+    // wrote its own OLDER version, putting the member's current devices back
+    // behind this dialog (prod, 2026-10-17 09:13:20Z, poster-e2e).
+    const k = monthKey(LATEST_TERMS_VERSION) + 1;
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    acceptedVersion = `${months[k % 12]} ${Math.floor(k / 12)}`;
+    expect(monthKey(acceptedVersion)).toBeGreaterThan(monthKey(LATEST_TERMS_VERSION));
+    render(<MemoryRouter><TermsReconsentDialog /></MemoryRouter>);
+    await new Promise((r) => setTimeout(r, 30));
+    expect(screen.queryByText(TITLE)).toBeNull();
+    expect(updates).toEqual([]);
   });
 
   it.each(["/legal", "/terms", "/privacy"])("a stale account is not prompted on %s, the page the dialog links to", async (path) => {

@@ -50,7 +50,13 @@ export const AttachSourceSheet = ({
         collisionPadding={16}
         aria-label="Attach"
         className="w-[300px] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto overscroll-contain p-4 rounded-ds-lg"
-        style={{ background: "var(--surface-premium)" }}
+        // The premium gradient fades to 74% alpha, and this panel floats over
+        // the open thread: painted as the `background` shorthand (which also
+        // resets the colour to transparent) the messages read straight through
+        // the rows (Q237, measured 2026-10-17 at 375). The gradient now sits
+        // over the opaque popover colour, so the tint stays and nothing shows
+        // through. Guard: src/test/floatingPanelsAreOpaque.test.ts.
+        style={{ backgroundColor: "hsl(var(--popover))", backgroundImage: "var(--surface-premium)" }}
         // The "+" button is OUTSIDE the popover subtree, so Radix counts a
         // click on it as an outside-dismiss — which would close the panel
         // and then let the button's own onClick toggle it straight back

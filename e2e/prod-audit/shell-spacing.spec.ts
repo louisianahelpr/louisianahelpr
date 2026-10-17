@@ -287,6 +287,13 @@ const NO_SECTION_STACK = new Set([
   // is a tester, so the hidden 'declutter' switch shows it this page, not the
   // 404 (prod-audit 38689259675: "no section stack found" at 320/375/390).
   "declutter-item-missing",
+  // QuotesGate (src/components/quotes/quotesUi.tsx): while the hidden 'quotes'
+  // switch is off for poster-e2e (it was created off, 2026-10-15) all three
+  // quote routes render the 404, one centred block (prod-audit 39008504928:
+  // "no section stack found" at 320/375/390/430). When the switch turns on
+  // for testers the pages gain their real stacks and the two-way check above
+  // fails "take it off NO_SECTION_STACK", which is the reminder to measure them.
+  "quotes", "quotes-request-missing", "quotes-send-missing",
 ]);
 
 /**

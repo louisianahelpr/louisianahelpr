@@ -26,7 +26,7 @@ import { AdminCard } from "../AdminViewShell";
  * edited and resent the item meanwhile gets 'item_changed' (lh-authz-rls
  * re-review N1), after which the list reloads. Shown only while the 'shops' switch is
  * on for this admin, beside the Declutter review card (the one Shops queue
- * screen, L73, is docs/OPEN.md Q1887).
+ * screen, L73, is docs/OPEN.md, the Shops admin queue item).
  */
 function whyWaiting(row: PendingShopItem): string {
   if (row.ai_flag_reason) return `Photo check flagged it: ${row.ai_flag_reason}`;

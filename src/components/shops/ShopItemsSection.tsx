@@ -93,6 +93,19 @@ export default function ShopItemsSection({ shopId, ownerId }: { shopId: string; 
         // (lh-silent-failure review should-fix 4).
         items.isFetching ? (
           <Skeleton className="h-40 w-full rounded-2xl" role="status" aria-label="Loading the item" />
+        ) : items.isError ? (
+          // A reload that failed right after a save leaves a list without the
+          // new item: say the list could not load, never "isn't available"
+          // for an item that exists (lh-silent-failure re-review, finding 1).
+          <div className="space-y-2" role="alert">
+            <p className="text-sm">{shopsErrorMessage(items.error)}</p>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => void items.refetch()}>
+                Try again
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setEditing(null)}>Back to your items</Button>
+            </div>
+          </div>
         ) : (
           <div className="space-y-2" role="status">
             <p className="text-sm">This item isn't available any more.</p>
@@ -109,6 +122,16 @@ export default function ShopItemsSection({ shopId, ownerId }: { shopId: string; 
         />
       ) : (
         <>
+          {items.isError ? (
+            // The list on screen is the last one that loaded; a failed reload
+            // says so (lh-silent-failure re-review, finding 2).
+            <div className="flex items-center gap-2" role="alert">
+              <p className="text-sm text-muted-foreground">Couldn't refresh your items.</p>
+              <Button type="button" size="sm" variant="outline" onClick={() => void items.refetch()} disabled={items.isFetching}>
+                Try again
+              </Button>
+            </div>
+          ) : null}
           {list.length === 0 ? (
             <p className="text-sm text-muted-foreground">No items yet. Add the things you make, bake or grow.</p>
           ) : (

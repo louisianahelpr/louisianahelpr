@@ -10882,6 +10882,7 @@ export type Database = {
           p_email: boolean
           p_link: string
           p_message: string
+          p_staff?: boolean
           p_title: string
           p_user: string
         }

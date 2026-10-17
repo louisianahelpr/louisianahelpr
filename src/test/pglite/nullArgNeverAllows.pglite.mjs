@@ -125,10 +125,9 @@ CREATE TABLE public.rental_units (id uuid PRIMARY KEY, property_id uuid, owner_i
 CREATE TABLE public.rental_tenancies (id uuid PRIMARY KEY, unit_id uuid, property_id uuid, landlord_id uuid, tenant_id uuid,
   status text, invite_token_sha256 text, invite_expires_at timestamptz, accepted_at timestamptz);
 CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NULL, description text NOT NULL);
--- job_announceable_to (newest body) also reads Q1401's cutoff (and Q1411's ban review queue, created
--- once below with the live shape: two copies of it made the twin stop at load, 42P07, measured 2026-10-17).
-CREATE FUNCTION public.job_offer_cutoff(p_date date, p_start time) RETURNS timestamptz LANGUAGE sql STABLE
-  AS $$ SELECT (p_date + coalesce(p_start, '00:00'::time))::timestamptz $$;
+-- job_announceable_to (newest body) also reads Q1401's cutoff (loaded verbatim, HELPERS below) and Q1411's
+-- ban review queue (created once below, live shape). A second stub of each (e2ce38169 beside f709a6f2e) made the
+-- twin stop at load: 42P07 on the table, then "cannot change name of input parameter" on the cutoff (2026-10-17).
 -- Declutter (20261015042253's two allow checks read the cart and the pickup windows; the class SQL's
 -- 'declutter' fixture step inserts an item, a cart line and a window).
 CREATE TABLE public.declutter_items (id uuid PRIMARY KEY, seller_id uuid NOT NULL, status text, title text, category text,

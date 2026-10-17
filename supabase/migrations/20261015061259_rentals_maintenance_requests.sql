@@ -219,7 +219,17 @@ REVOKE ALL ON TABLE public.rental_properties, public.rental_units, public.rental
   public.maintenance_requests, public.maintenance_request_photos FROM PUBLIC, anon, authenticated;
 -- One statement per table (scripts/check-migration-relation-grants.mjs reads one relation per GRANT).
 -- SELECT only, for the read policies below; every write goes through a SECURITY DEFINER RPC.
-GRANT SELECT ON TABLE public.rental_properties TO authenticated;
+-- rental_properties: every column EXCEPT ownership_reviewed_by. Which admin
+-- checked a landlord's proof is staff-only (owner decision 2026-10-17: the
+-- landlord sees "Approved by Louisiana Helpr", never the admin); the server
+-- (service_role) and admin_audit_log keep it. A column grant, so no client read
+-- (the owner's, or an admin's through the admin policy) can select it; the
+-- client names its columns (RENTAL_PROPERTY_COLUMNS in src/lib/rentals/api.ts).
+-- A column added to rental_properties later is NOT client-readable until it is
+-- added here AND to that list (fails closed; rentalsMaintenance.test.ts pins both).
+GRANT SELECT (id, owner_id, label, street_address, city, zip_code, ownership_status, ownership_proof_path,
+  ownership_submitted_at, ownership_reviewed_at, ownership_review_note, auto_approve_limit_cents, created_at, updated_at)
+  ON TABLE public.rental_properties TO authenticated;
 GRANT SELECT ON TABLE public.rental_units TO authenticated;
 GRANT SELECT ON TABLE public.rental_tenancies TO authenticated;
 GRANT SELECT ON TABLE public.maintenance_requests TO authenticated;
@@ -329,7 +339,10 @@ GRANT EXECUTE ON FUNCTION public.rentals_assert_member() TO service_role;
 -- A notice to one member (push + bell through the notifications fan-out), and
 -- for emergencies an email at once (Q40), the send_backout_email pattern.
 -- Best effort: a failed notice never fails the request that caused it.
-CREATE OR REPLACE FUNCTION public.rentals_notify(p_user uuid, p_title text, p_message text, p_link text, p_email boolean)
+-- The 5-argument form (before p_staff) never reached prod; dropped so a call cannot be ambiguous.
+DROP FUNCTION IF EXISTS public.rentals_notify(uuid, text, text, text, boolean);
+CREATE OR REPLACE FUNCTION public.rentals_notify(p_user uuid, p_title text, p_message text, p_link text, p_email boolean,
+                                                 p_staff boolean DEFAULT false)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -342,11 +355,26 @@ BEGIN
   IF p_user IS NULL THEN
     RETURN;
   END IF;
-  -- Carry the actor (the tenant, landlord or admin whose RPC sent this) in the
-  -- link, so the notifications seed-boundary trigger can judge the row: a test
+  -- Carry the actor (the tenant or landlord whose RPC sent this) in the link,
+  -- so the notifications seed-boundary trigger can judge the row: a test
   -- account never notifies a real person (Q137, seedNeverNotifiesReal). A
   -- Rentals link names no job, so without it the trigger could not tell.
-  IF v_actor IS NOT NULL AND v_actor <> p_user AND v_link IS NOT NULL THEN
+  -- p_staff (an admin acting as Louisiana Helpr, e.g. the ownership review):
+  -- the member must never learn WHICH admin acted (owner decision 2026-10-17),
+  -- so the link stays bare and the boundary is judged here with the actor.
+  IF p_staff THEN
+    IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN
+      -- Logged like the notifications trigger's own drop (best-effort).
+      BEGIN
+        INSERT INTO public.notification_logs (user_id, category, channel, status, subject, job_id, error_message)
+        VALUES (p_user, 'job_updates', 'in_app', 'suppressed_seed', p_title, NULL,
+                'seed actor to a non-seed recipient (rentals staff notice)');
+      EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING 'rentals_notify: suppressed a staff notice for % but could not log it: %', p_user, SQLERRM;
+      END;
+      RETURN;
+    END IF;
+  ELSIF v_actor IS NOT NULL AND v_actor <> p_user AND v_link IS NOT NULL THEN
     v_link := CASE WHEN strpos(v_link, '?') > 0 THEN v_link || '&user=' ELSE v_link || '?user=' END || v_actor::text;
   END IF;
   BEGIN
@@ -374,8 +402,8 @@ BEGIN
   END IF;
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean) TO service_role;
+REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- 8. Client RPCs. Each VOLATILE one names is_caller_banned() in its own body
@@ -499,9 +527,9 @@ BEGIN
           'rental_property', p_property_id::text, jsonb_build_object('note', p_note));
   PERFORM public.rentals_notify(v_owner,
     CASE WHEN p_approve THEN 'Property approved' ELSE 'Ownership proof not accepted' END,
-    CASE WHEN p_approve THEN 'Your ownership proof was accepted. You can now invite tenants.'
-         ELSE 'Your ownership proof was not accepted: ' || btrim(p_note) END,
-    '/rentals', false);
+    CASE WHEN p_approve THEN 'Louisiana Helpr approved your ownership proof. You can now invite tenants.'
+         ELSE 'Louisiana Helpr did not accept your ownership proof: ' || btrim(p_note) END,
+    '/rentals', false, true);
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_admin_review_property(uuid, boolean, text) FROM PUBLIC, anon;

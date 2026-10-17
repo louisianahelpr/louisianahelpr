@@ -138,7 +138,7 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
   it("money-reconciliation's under-refund ceiling allows the kept fee (no false critical on every first-job cancel)", () => {
     const recon = code("supabase/functions/money-reconciliation/index.ts");
     expect(recon).toMatch(/\+ setupFeeKeptCents\(job as \{ onboarding_fee_amount\?: number \| string \| null \}\);/);
-    expect(recon).toMatch(/stripe_payment_intent_id, customer_fee_amount, onboarding_fee_amount",/);
+    expect(recon).toMatch(/stripe_payment_intent_id, stripe_session_id, customer_fee_amount, onboarding_fee_amount",/);
   });
 
   it("every poster refund path takes the kept fee off what it returns", () => {
@@ -157,7 +157,7 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
 });
 
 // @mutate supabase/functions/_shared/posterFees.ts |   return Number.isFinite(dollars) && dollars > 0 ? Math.round(dollars * 100) : 0; |   return 0;
-// @mutate src/components/CancellationDialog.tsx | the service fee isn&apos;t refundable once payment has been processed.{keptFeeSentence}</p> | the service fee isn&apos;t refundable once payment has been processed.</p>
+// @mutate src/components/CancellationDialog.tsx |                   {keptFeeSentence}\n                </p> |                 </p>
 // @mutate src/lib/posterSpend.ts |   if (!(refundedCents > 0)) return ` · includes ${amount} one-time setup fee`; |   if (!(refundedCents > 0)) return "";
 // @mutate src/components/profile/earningsTab/SpentSection.tsx |                   {r.job ? setupFeeReceiptNote(r.job, r.refundedCents, r.adminRefunded) : ""} |
 // @mutate src/lib/disputeSplitPreview.ts |   const posterGross = Math.round(Math.max(0, capturedCents - keptSetupFeeCents) * posterShare) / 100; |   const posterGross = Math.round(capturedCents * posterShare) / 100;

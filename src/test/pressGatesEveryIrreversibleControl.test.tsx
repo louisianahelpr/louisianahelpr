@@ -23,7 +23,7 @@
  *
  * @mutate scripts/audit/press-every-control.mjs | meta.type === "submit" \|\| isCommitControl(meta) \|\| | meta.type === "submit" \|\|
  * @mutate scripts/audit/press-every-control.mjs |       commit: el.getAttribute("data-commit") \|\| "", |
- * @mutate src/components/ui/dialog.tsx |   return destructive ? "destructive" : isConfirm ? "confirm" : undefined; |   return destructive ? "destructive" : undefined;
+ * @mutate src/components/ui/dialogActions.tsx |   return destructive ? "destructive" : isConfirm ? "confirm" : undefined; |   return destructive ? "destructive" : undefined;
  * @mutate scripts/audit/press-every-control.mjs | \|checkout\|end\|leave\|give up\| | \|checkout\|give up\|
  * @mutate scripts/audit/pressProdSafety.mjs | \|retry\|resend\|end series\|set to)\b | \|retry\|resend\|end series)\b
  */

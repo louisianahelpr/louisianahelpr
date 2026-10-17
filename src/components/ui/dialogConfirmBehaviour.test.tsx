@@ -163,4 +163,4 @@ describe("confirm dialog behaviour", () => {
 // were DialogPrimitive.Close, DialogPrimaryAction is a plain <Button>. Without
 // the wrap, ban-user, remove-review, delete-note and delete-account stay open
 // after you confirm — and a diff of the rename shows nothing wrong.
-// @mutate src/components/ui/dialog.tsx | return isConfirm ? <DialogPrimitive.Close asChild>{children}</DialogPrimitive.Close> : <>{children}</>; | void isConfirm; return <>{children}</>;
+// @mutate src/components/ui/dialogActions.tsx | return isConfirm ? <DialogPrimitive.Close asChild>{children}</DialogPrimitive.Close> : <>{children}</>; | void isConfirm; return <>{children}</>;

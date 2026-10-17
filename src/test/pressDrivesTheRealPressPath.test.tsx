@@ -30,8 +30,8 @@
  * @mutate scripts/audit/press-every-control.mjs | if ((DESTRUCTIVE_RX.test(label) && !meta.dismissOnly) \|\| | if (DESTRUCTIVE_RX.test(label) \|\|
  * @mutate scripts/audit/press-every-control.mjs | if ((DESTRUCTIVE_RX.test(label) && !meta.dismissOnly) \|\| | if ((DESTRUCTIVE_RX.test(label) && false) \|\|
  * @mutate src/components/job-card/PaymentHeldDialog.tsx | <DialogAcknowledgeAction>Got it</DialogAcknowledgeAction> | <DialogPrimaryAction onClick={onClose}>Got it</DialogPrimaryAction>
- * @mutate src/components/ui/dialog.tsx | data-popup-dismiss="" | data-x=""
- * @mutate src/components/ui/dialog.tsx | .filter(([k]) => !/^on[A-Z]/.test(k)) | .filter(() => true)
+ * @mutate src/components/ui/dialogActions.tsx | data-popup-dismiss="" | data-x=""
+ * @mutate src/components/ui/dialogActions.tsx | .filter(([k]) => !/^on[A-Z]/.test(k)) | .filter(() => true)
  * @mutate scripts/audit/press-every-control.mjs | dismissOnly: el.hasAttribute("data-popup-dismiss") && el.closest('[role="dialog"], [role="alertdialog"]') !== null, | dismissOnly: el.hasAttribute("data-popup-dismiss"),
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";

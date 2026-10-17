@@ -1,4 +1,5 @@
 // @mutate scripts/lib/seedGateRegistry.mjs |       else callers.delete(obj); |       else void obj;
+// @mutate scripts/lib/seedGateRegistry.mjs | ].sort((a, b) => a.at - b.at); | ];
 // @mutate scripts/lib/seedGateRegistry.mjs | (?:,\s*via:\s*"([^"]+)"\s*)?,?\s*\}/g | ,?\s*\}/g
 // @mutate scripts/lib/seedGateRegistry.mjs | `(?<![\\w.])(?:public\\.)?${bare}\\s*\\(` | `(?<![\\w.])public\\.${bare}\\s*\\(`
 //
@@ -69,6 +70,18 @@ describe("launch:go's registry-complete precondition holds on this tree", () => 
 
 describe("discoverGateCallers: the newest definition decides", () => {
   const A = "public.seed_jobs_hidden_publicly";
+  it("statements apply in file order: DROP then CREATE keeps the object, CREATE then DROP removes it", () => {
+    const dropThenCreate = discoverGateCallers(
+      [{ name: "1.sql", sql: "DROP FUNCTION IF EXISTS public.f(integer);\nCREATE FUNCTION public.f(integer) AS $$ select public.seed_jobs_hidden_publicly() $$;" }],
+      A,
+    );
+    expect(dropThenCreate.has("public.f")).toBe(true);
+    const createThenDrop = discoverGateCallers(
+      [{ name: "1.sql", sql: "CREATE FUNCTION public.f() AS $$ select public.seed_jobs_hidden_publicly() $$;\nDROP FUNCTION IF EXISTS public.f();" }],
+      A,
+    );
+    expect(createThenDrop.has("public.f")).toBe(false);
+  });
   it("a redefinition that drops the call un-counts the object", () => {
     const found = discoverGateCallers(
       [

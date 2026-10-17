@@ -40,7 +40,31 @@
 // one. The durable fix is a per-job movable/immovable answer at post time
 // rather than a per-category guess; until then this is the safer side of a
 // call the category cannot make.
-export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set(["assembly", "handyman"]);
+//
+// THE TWELVE TRADES ARE TAXED LIKE HANDYMAN (owner decision 2026-10-17, Q1831):
+// electrical, plumbing, hvac, roofing, welding, carpentry, auto_repair,
+// appliance_repair, flooring, concrete_masonry, fencing, pressure_washing.
+// Auto & small engine and appliance repair are movable property (item 7);
+// the rest are mostly real-property work, collected on anyway for the same
+// "covered either way" reason as handyman. The same list is in
+// enforce_funded_category_tax_class and is_category_taxable (migration
+// 20261017055441); src/lib/salesTax.parity.test.ts holds all of them equal.
+export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set([
+  "assembly",
+  "handyman",
+  "electrical",
+  "plumbing",
+  "hvac",
+  "roofing",
+  "welding",
+  "carpentry",
+  "auto_repair",
+  "appliance_repair",
+  "flooring",
+  "concrete_masonry",
+  "fencing",
+  "pressure_washing",
+]);
 
 /** Whether the job's LABOR line is subject to LA sales tax. */
 export function isLaborTaxable(category: string | null | undefined): boolean {
@@ -62,7 +86,7 @@ export const NONTAXABLE_TAX_CODE = "txcd_00000000";
 /**
  * The code on a TAXABLE labor line: Stripe's "Repair of Tangible Personal
  * Property", the LA R.S. 47:301.3 item-7 service the Q374 decision taxes
- * (assembly and handyman: labor to fabricate, repair or maintain movable
+ * (assembly, handyman and the trades: labor to fabricate, repair or maintain movable
  * property).
  *
  * It was "General - Services" (txcd_20030000) until 2026-10-12, and that code

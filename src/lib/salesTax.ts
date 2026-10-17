@@ -15,14 +15,30 @@
 // urgent tip and the one-time setup fee `txcd_00000000` (non-taxable), and
 // marks the labor line taxable only for the categories in TAXABLE_CATEGORIES
 // below — `assembly` AND `handyman` (this said "only `assembly`" until
-// 2026-09-10). So on a typical job Stripe
+// 2026-09-10), and since 2026-10-17 the twelve trades. So on a typical job Stripe
 // charges exactly ZERO sales tax — the screen quoted $118.16-$120.32 for a
 // charge of $108.40. The two totals the owner saw side by side were the
 // invented estimate and the real one.
 
 /** Mirror of `TAXABLE_CATEGORIES` in `_shared/salesTax.ts` — see the full
  *  statutory reasoning there. */
-export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set(["assembly", "handyman"]);
+export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set([
+  "assembly",
+  "handyman",
+  // The twelve trades, taxed like handyman (owner 2026-10-17, Q1831).
+  "electrical",
+  "plumbing",
+  "hvac",
+  "roofing",
+  "welding",
+  "carpentry",
+  "auto_repair",
+  "appliance_repair",
+  "flooring",
+  "concrete_masonry",
+  "fencing",
+  "pressure_washing",
+]);
 
 /** Whether the job's LABOR line is subject to LA sales tax. */
 export function isLaborTaxable(category: string | null | undefined): boolean {

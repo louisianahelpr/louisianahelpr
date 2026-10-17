@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, MapPin } from "lucide-react";
 import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
-import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
+import { JOB_CATEGORY_LABELS, skillChipLabel, type JobCategory } from "@/lib/jobCategories";
 import { categoryColors } from "@/components/job-card/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -29,9 +29,9 @@ export type { ProfileEditFormProps } from "@/components/profile/profileEditForm/
 // these describe a *skill offered*, not a job category being posted.
 const SKILL_PRESETS: { value: JobCategory; label: string }[] = Object.entries(JOB_CATEGORY_LABELS)
   .filter(([value]) => value !== "other")
-  .map(([value, label]) => ({
+  .map(([value]) => ({
     value: value as JobCategory,
-    label: value === "moving" ? "Moving Help" : value === "events" ? "Event Help" : label,
+    label: skillChipLabel(value as JobCategory),
   }));
 
 export function ProfileEditForm({

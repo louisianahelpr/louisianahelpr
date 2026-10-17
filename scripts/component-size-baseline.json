@@ -21,7 +21,6 @@
     "src/components/profile/ScheduleTab.tsx": 854,
     "src/components/profile/SubscriptionTab.tsx": 871,
     "src/components/ui/dialog.tsx": 931,
-    "src/pages/admin/Admin.tsx": 650,
     "src/pages/auth/CompleteProfile.tsx": 919,
     "src/pages/auth/Signup.tsx": 619,
     "src/pages/home/Dashboard.tsx": 966,

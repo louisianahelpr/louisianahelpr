@@ -156,7 +156,7 @@ export function useRecentPostedJobs(limit = DEFAULT_LIMIT): RecentPostedJob[] | 
 export const postedBeforeKey = (userId: string) => `helpr_posted_before_${userId}`;
 
 /** What this device last learned: true, false, or null when it never asked. */
-export function readPostedBefore(userId: string | undefined): boolean | null {
+function readPostedBefore(userId: string | undefined): boolean | null {
   if (!userId) return null;
   const v = safeStorage.getItem(postedBeforeKey(userId));
   return v === "1" ? true : v === "0" ? false : null;

@@ -33,6 +33,15 @@ export interface FlatFeeStamp {
 }
 
 /**
+ * The flat stamp plus the poster-fee stamp (owner 2026-10-18,
+ * _shared/posterJobFee.ts: set = the Helpr pays nothing). A separate type so
+ * the reads FlatFeeStamp's columns are derived for (jobsTabEarningsColumnsAreSelected)
+ * are not asked to select a column db-deploy has not landed yet: a 0c flat stamp
+ * already says "poster-fee job" without it (helprPaysNoFee).
+ */
+export type FeeModelStamp = FlatFeeStamp & { poster_fee_flat_cents?: number | string | null };
+
+/**
  * True when the job was funded under the flat model (create-payment stamped
  * helper_fee_flat_cents). A null/absent stamp is a legacy job.
  */
@@ -43,6 +52,26 @@ export function isFlatFeeJob(job: FlatFeeStamp | null | undefined): boolean {
 }
 
 /**
+ * True when the Helpr pays NO fee on this job: it was funded on the poster-fee
+ * model (owner 2026-10-18: the poster pays 5% + 70c, the Helpr keeps 100%),
+ * which stamps the Helpr side 0/0. Decided by the poster stamp when the row
+ * carries it, and by a 0c flat stamp when the read did not select the percent:
+ * several selects and the browse RPCs carry helper_fee_flat_cents without
+ * helper_fee_percent, and the 5% default below would otherwise charge a
+ * poster-fee Helpr 5% (lh-money-escrow review of the jobs-fee plan, #1). Only
+ * a poster-fee job carries a 0c flat stamp (CHECK jobs_poster_fee_model_consistent).
+ * Inline, not imported from posterJobFee.ts: this module has zero imports.
+ */
+export function helprPaysNoFee(job: FeeModelStamp | null | undefined): boolean {
+  const poster = job?.poster_fee_flat_cents;
+  if (poster !== null && poster !== undefined && poster !== "" && Number.isFinite(Number(poster))) return true;
+  if (!isFlatFeeJob(job)) return false;
+  const pct = job?.helper_fee_percent;
+  const pctAbsent = pct === null || pct === undefined || pct === "";
+  return Number(job!.helper_fee_flat_cents) === 0 && (pctAbsent || Number(pct) === 0);
+}
+
+/**
  * The flat fee on ONE Helpr's share, in whole cents: 5% of the share rounded
  * to the cent, plus the fixed 70c, never more than the share itself. Reads the
  * job's own stamp when given one, so a job keeps the numbers it was funded
@@ -50,10 +79,11 @@ export function isFlatFeeJob(job: FlatFeeStamp | null | undefined): boolean {
  */
 export function helprFlatFeeCents(
   perHelperBudgetCents: number,
-  job?: FlatFeeStamp | null,
+  job?: FeeModelStamp | null,
 ): number {
   const share = Math.max(0, Math.round(Number(perHelperBudgetCents) || 0));
   if (share === 0) return 0;
+  if (helprPaysNoFee(job)) return 0;
   // Only a flat-model job's own percent counts: on a legacy job
   // helper_fee_percent is a tier rate (8-12), not this model's.
   const pctRaw = isFlatFeeJob(job) ? job?.helper_fee_percent : null;
@@ -74,8 +104,9 @@ export function helprFlatFeeCents(
  * or a ledger row writes THIS on a flat job, never a tier percent: a tier
  * percent written over the stamp would re-price the job.
  */
-export function flatFeePercentOf(job: FlatFeeStamp | null | undefined): number | null {
+export function flatFeePercentOf(job: FeeModelStamp | null | undefined): number | null {
   if (!isFlatFeeJob(job)) return null;
+  if (helprPaysNoFee(job)) return 0;
   const v = job?.helper_fee_percent;
   if (v === null || v === undefined || v === "" || !Number.isFinite(Number(v))) return HELPR_FLAT_FEE_PERCENT;
   return Number(v);

@@ -46,12 +46,57 @@ describe("a time wheel never picks a time on its own", () => {
     scrollTo(list("Hour"), 1);
     scrollTo(list("Minute"), 1);
     expect(value()).toBe("");
+    // Nor holds a pick waiting for AM/PM (Q1733): the wheels chose nothing.
+    expect(screen.queryByTestId("time-pick-period")).toBeNull();
   });
 
-  it("a scroll the person makes still picks (touch, then scroll to the 3rd hour row)", () => {
+  it("a scroll the person makes still picks (touch, then scroll to the 3rd hour row; the time lands with AM/PM)", () => {
     render(<Harness />);
     fireEvent.pointerDown(list("Hour"));
     scrollTo(list("Hour"), 2 * 44);
-    expect(value()).toBe("02:00");
+    expect(value()).toBe("");
+    fireEvent.click(screen.getByRole("radio", { name: "PM" }));
+    expect(value()).toBe("14:00");
+  });
+});
+
+/**
+ * Q1733 (owner, 2026-10-14: "make them pick AM/PM"): tapping only an hour and
+ * a minute on an empty Start Time committed AM (seen 2026-10-12 on prod,
+ * WebKit 390x844: 3 and 30 became 3:30 AM with no AM/PM tap).
+ * @mutate src/components/TimePickerWheel.tsx |     if (!hasValue && field !== "period") { |     if (false) {
+ * @mutate src/components/TimePickerWheel.tsx |       {awaitingPeriod && ( |       {false && (
+ */
+describe("AM or PM is the poster's choice (Q1733)", () => {
+  beforeAll(() => { Element.prototype.scrollTo = () => {}; });
+
+  it("an hour and a minute alone commit nothing and ask for AM or PM", () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("option", { name: "3" }));
+    fireEvent.click(screen.getByRole("option", { name: "30" }));
+    expect(value()).toBe("");
+    expect(screen.getByTestId("time-pick-period")).toHaveTextContent("Pick AM or PM");
+    // Neither chip reads as chosen.
+    expect(screen.getByRole("radio", { name: "AM" })).not.toBeChecked();
+    expect(screen.getByRole("radio", { name: "PM" })).not.toBeChecked();
+  });
+
+  it("the AM/PM tap commits the time the wheels show", () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("option", { name: "3" }));
+    fireEvent.click(screen.getByRole("option", { name: "30" }));
+    fireEvent.click(screen.getByRole("radio", { name: "PM" }));
+    expect(value()).toBe("15:30");
+    expect(screen.queryByTestId("time-pick-period")).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "AM" }));
+    expect(value()).toBe("03:30");
+  });
+
+  it("once a time is set, the wheels change it directly (AM/PM already chosen)", () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("radio", { name: "PM" }));
+    expect(value()).toBe("12:00");
+    fireEvent.click(screen.getByRole("option", { name: "4" }));
+    expect(value()).toBe("16:00");
   });
 });

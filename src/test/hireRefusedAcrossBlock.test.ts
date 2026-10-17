@@ -166,7 +166,7 @@ describe("Q345: every hire RPC refuses across a block", () => {
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | IF public.are_users_blocked(v_job_customer, v_helper_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | IF public.are_users_blocked(auth.uid(), v_customer) THEN | IF false THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF public.are_users_blocked(p_helper, v_customer) THEN |   IF false THEN
-// @mutate supabase/migrations/20261015091114_job_quotes.sql | IF public.are_users_blocked(v_req.poster_id, v_q.quoter_id) THEN | IF false THEN
+// @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql | IF public.are_users_blocked(v_req.poster_id, v_q.quoter_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261015091114_job_quotes.sql | IF public.are_users_blocked(v_uid, v_q.quoter_id) THEN | IF false THEN
 // The accept copy removed.
 // @mutate src/lib/lifecycleErrors.ts | applicant_blocked: "This person can no longer be hired for this job.", | x_unused: "x",

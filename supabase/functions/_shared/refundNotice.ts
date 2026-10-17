@@ -449,7 +449,7 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
         if (claimed) {
           await supabase.from("refund_notices").update({ notification_id: ZERO_UUID }).eq("notice_key", input.key).select("notice_key");
         }
-        if (!seedErr && seed === true) return { status: "dropped" };
+        return { status: "dropped" };
         return { status: "unwritten", error: "the notification insert matched zero rows" };
       }
 

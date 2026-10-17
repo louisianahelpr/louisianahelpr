@@ -28,7 +28,7 @@ import { isFeedMirrored } from "../../scripts/lib/openFeeds.mjs";
 // @mutate src/test/reviewFindingsCarryATag.test.ts | !TAGGED.test(l) && !isFeedMirror(l) && !isFeedMirrored(l);\n} | !TAGGED.test(l);\n}
 
 const OPEN = readFileSync(join(process.cwd(), "docs/OPEN.md"), "utf8").split("\n");
-const REVIEW = /\b(?:review(?:ed)?|should-fix|must-fix)\b/i;
+const REVIEW = /\b(?:review(?:ed)?|should-fix|must-fix)\b(?!:(?:record|report)\b)/i; // `npm run review:record` / `review:report` are script names, not a review
 const TAGGED = /\bfinding: [a-z0-9-]+@[0-9a-f]{7,40}#\d+/i;
 // An item mirrored from an alert feed already carries ONE stable origin tag,
 // its `feed:` key (scripts/lib/openFeeds.mjs; open-sync-trackers.mjs files one

@@ -199,3 +199,29 @@ export const declineRequest = (id: string, code: string, text: string) =>
 export const withdrawRequest = (id: string) => rpcVoid(supabase.rpc("rentals_withdraw_request", { p_request_id: id }), (e) => rpcErrorMessage("rentals_withdraw_request", e));
 export const answerFixed = (id: string, fixed: boolean, note: string) =>
   rpcVoid(supabase.rpc("rentals_tenant_answer_fixed", { p_request_id: id, p_fixed: fixed, p_note: note }), (e) => rpcErrorMessage("rentals_tenant_answer_fixed", e));
+
+interface FixedAnswer {
+  requestId: string;
+  saysFixed: boolean;
+  note: string | null;
+  answeredAt: string;
+}
+/**
+ * The tenant's latest "Was it fixed?" answer on the request this job was
+ * posted from, for the landlord's release decision (CompletionChoiceSheet).
+ * Landlord only: the query names landlord_id = the caller, and RLS adds the
+ * 'rentals' switch. Null when the job came from no request or nobody answered.
+ * Display only: it is never wired into release.
+ */
+export async function fetchFixedAnswerForJob(jobId: string, uid: string): Promise<FixedAnswer | null> {
+  const row = unwrap(
+    await supabase
+      .from("maintenance_requests")
+      .select("id, tenant_says_fixed, tenant_fixed_note, tenant_answered_at")
+      .eq("job_id", jobId)
+      .eq("landlord_id", uid)
+      .maybeSingle(),
+  ) as Pick<MaintenanceRequest, "id" | "tenant_says_fixed" | "tenant_fixed_note" | "tenant_answered_at"> | null;
+  if (!row || row.tenant_says_fixed == null || !row.tenant_answered_at) return null;
+  return { requestId: row.id, saysFixed: row.tenant_says_fixed, note: row.tenant_fixed_note, answeredAt: row.tenant_answered_at };
+}

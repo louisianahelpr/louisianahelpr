@@ -13,7 +13,7 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 import { RENTALS_ERROR_COPY, rentalsErrorMessage } from "@/lib/rentals/copy";
 
 const DIR = join(process.cwd(), "supabase/migrations");
-const RENTALS_FILES = ["20261017061457_rentals_maintenance_requests.sql"];
+const RENTALS_FILES = ["20261017205605_rentals_maintenance_requests.sql"];
 // require_feature (20261012031120) raises feature_disabled on every RPC.
 const SHARED = ["feature_disabled"];
 

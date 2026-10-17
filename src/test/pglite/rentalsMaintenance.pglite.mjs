@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261017061457_rentals_maintenance_requests (Rentals S1,
+ * PGlite proof for 20261017205605_rentals_maintenance_requests (Rentals S1,
  * docs/specs/landlord-hub-prep.md Q37-Q48, Q5-Q6, Q53, Q59).
  *
  *   node src/test/pglite/rentalsMaintenance.pglite.mjs
@@ -28,7 +28,7 @@ import os from "node:os";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const SELF = "20261017061457";
+const SELF = "20261017205605";
 const MIGRATION = readFileSync(
   process.env.MIGRATION_PATH ?? `${MIG_DIR}${SELF}_rentals_maintenance_requests.sql`,
   "utf8",
@@ -473,16 +473,16 @@ await svc(`UPDATE auth.users SET email_confirmed_at = now() WHERE id = '${STRANG
 ok(typeof one(await as("authenticated", STRANGER, createProp("Confirmed place"))) === "string",
   "the same caller, once confirmed, creates it (the gate is the only thing that refused)");
 
-// --- export_my_data reconcile (20261017061504): the newest-timestamp restatement
+// --- export_my_data reconcile (20261017205607): the newest-timestamp restatement
 // of the export must leave the UNION: every section of main's newest OTHER
 // definition (read below, not hard-coded, so a later main restatement moves it)
 // plus the five Rentals sections, EXECUTE for service_role only.
 const RECONCILE = readFileSync(
-  process.env.RECONCILE_PATH ?? `${MIG_DIR}20261017061504_export_my_data_rentals_reconcile.sql`,
+  process.env.RECONCILE_PATH ?? `${MIG_DIR}20261017205607_export_my_data_rentals_reconcile.sql`,
   "utf8",
 );
 const sectionKeys = (sql) => [...sql.matchAll(/jsonb_build_object\('([a-z_]+)'/g)].map((m) => m[1]);
-const RECONCILE_FILE = "20261017061504_export_my_data_rentals_reconcile.sql";
+const RECONCILE_FILE = "20261017205607_export_my_data_rentals_reconcile.sql";
 const mainExport = (() => {
   let found = null;
   for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && x !== RECONCILE_FILE && !x.startsWith(SELF)).sort()) {

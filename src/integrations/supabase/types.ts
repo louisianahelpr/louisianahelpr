@@ -9814,6 +9814,14 @@ export type Database = {
         Args: { _job_id: string; _receiver: string }
         Returns: boolean
       }
+      cancel_job_after_failed_bank_payment: {
+        Args: {
+          p_gift_card_id?: string
+          p_job_id: string
+          p_payment_intent_id: string
+        }
+        Returns: Json
+      }
       cancel_quote_request: {
         Args: { p_request_id: string }
         Returns: undefined

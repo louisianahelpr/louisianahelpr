@@ -1100,7 +1100,7 @@ describe("create-payment edge function", () => {
         ];
         for (const extra of CASES) {
           seedEscrowJob(Number(extra.budget), { onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null });
-          scenario.reads.jobs = { rows: [{ ...(scenario.reads.jobs.rows[0] as Record<string, unknown>), ...extra }] };
+          scenario.reads.jobs = { rows: [{ ...(scenario.reads.jobs.rows?.[0] as Record<string, unknown>), ...extra }] };
           await escrow();
           const updates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
           const modelStamp = updates.find((w) => "helper_fee_flat_cents" in (w.payload as object) && !("stripe_session_id" in (w.payload as object)));

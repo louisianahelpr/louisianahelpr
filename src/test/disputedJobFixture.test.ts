@@ -12,6 +12,7 @@
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (hired) return { kind: "resume", row: hired, next: "dispute" }; | if (hired) return { kind: "create" };
  * @mutate e2e/prod-audit/fundedOpenJob.ts | helper.user.id}&select=job_id,status` | helper.user.id}&status=eq.pending&select=job_id,status`
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | const open = mine.find((r) => r.status === "open" && !r.helper_id && !isDeadFor(opts.applications, r.id)); | const open = mine.find((r) => r.status === "open" && !r.helper_id);
+ * @mutate e2e/prod-audit/fundedOpenJob.ts |   await helperConfirmsOffer(api, helper, id, log, "dispute"); |   // dispute confirm removed
  * @mutate e2e/prod-audit/messy-input.spec.ts | const disputed = await unlessLivePay(() => ensureDisputedJob(request, browser, sessions.get("poster")!, sessions.get("helper")!)); | const disputed = { value: null, livePay: null };
  */
 import { describe, expect, it } from "vitest";
@@ -66,6 +67,16 @@ describe("planDisputedJob", () => {
       expect(at, `${call} is not called`).toBeGreaterThan(-1);
       expect(src.slice(at, src.indexOf(");", at))).toContain("applications: await helperApplications(api, helper)");
     }
+  });
+  it("helper-e2e accepts the offer BEFORE the dispute opens (enforce_helper_award_gate: accept_required, run 39008504928)", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../../e2e/prod-audit/fundedOpenJob.ts"), "utf8"));
+    const fn = /export async function ensureDisputedJob\([\s\S]*?\n}/.exec(src)?.[0] ?? "";
+    expect(fn, "ensureDisputedJob() is gone").toContain('"rpc_open_dispute"');
+    const confirm = fn.indexOf("await helperConfirmsOffer(api, helper, id, log");
+    expect(confirm, "ensureDisputedJob opens the dispute on an offer helper-e2e never accepted").toBeGreaterThan(-1);
+    expect(confirm).toBeLessThan(fn.indexOf('"rpc_open_dispute"'));
+    // Floor: the confirm itself still goes through the app's Accept Job RPC.
+    expect(src).toMatch(/async function helperConfirmsOffer\([\s\S]*?"accept_job_offer"/);
   });
   it("ignores other jobs: the funded OPEN fixture, and a dispute with someone else", () => {
     expect(plan([{ ...row({ status: "open", payment_status: "escrow" }), title: `${FUNDED_FIXTURE_TITLE}: hang two shelves` }])).toEqual({ kind: "create" });

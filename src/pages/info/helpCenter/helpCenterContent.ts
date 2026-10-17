@@ -63,6 +63,18 @@ const CREDENTIAL_CATEGORY_PHRASE = (() => {
 const FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`;
 const FLAT_TAKE_HOME_ON_100 = (helprFlatTakeHomeCents(10_000) / 100).toFixed(2);
 
+// Roadmap F4/F4a (owner 2026-10-14/15): memberships are switched off for
+// members (feature_switches 'memberships' = testers, measured on prod
+// 2026-10-17), and every paid perk is off with them: instant-payout refuses
+// with "Instant cash-out isn't available right now", early access and plan
+// boosts read the same switch, and SubscriptionTab's subscribe button says
+// "Memberships aren't available right now." Every answer on this page that
+// describes a plan or a paid perk opens with this sentence, so the page never
+// promises a member something the app refuses. Exported for its guard
+// (helpCenterPricingCopy.test.ts). When the owner turns memberships back on,
+// remove it here and in the answers in the same change.
+export const MEMBERSHIPS_PAUSED = "Memberships aren't available right now.";
+
 // ─── Topic blurbs ─────────────────────────────────────────────────────────────
 //
 // WAS a `TOPICS` array of {icon, label, desc, color, bg} feeding a card grid at
@@ -218,7 +230,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // file's guards exist to stop. "The standard schedule" is now named:
         // STANDARD_PAYOUT_WINDOW, the same constant InstantPayoutDialog and
         // PayoutHistory interpolate.
-        a: `Payment is sent to your Helpr account ${STANDARD_PAYOUT_PHRASE}, once the person who posted it confirms (or it completes automatically), then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout; every standard payout after that is free. Instant Payout — cashing out the same day — is a Basic, Pro or Elite membership feature and charges a small percentage fee.`,
+        a: `Payment is sent to your Helpr account ${STANDARD_PAYOUT_PHRASE}, once the person who posted it confirms (or it completes automatically), then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout; every standard payout after that is free. Instant Payout (cashing out the same day) is a membership feature. ${MEMBERSHIPS_PAUSED} For now, every payout goes on the standard schedule.`,
       },
       {
         q: "What if the person who posted the job doesn't confirm completion?",
@@ -394,7 +406,8 @@ export const FAQ_SECTIONS: FaqSection[] = [
         q: "What does a membership do?",
         // Q1842: WAS "It lowers the commission Helpr deducts … from 12% down
         // to as low as 8%". Since F3 a plan never changes a job's fee.
-        a: `It adds visibility perks like priority placement and a featured badge. It does not change the fee on your jobs: every new job has the same ${FLAT_FEE_PHRASE} fee, whatever your plan.`,
+        // Memberships are off for members (F4/F4a): say so first, in plain words.
+        a: `${MEMBERSHIPS_PAUSED} When they come back, a plan adds visibility perks like priority placement and a featured badge. It does not change the fee on your jobs: every new job has the same ${FLAT_FEE_PHRASE} fee, whatever your plan.`,
       },
       {
         q: "How am I billed for a membership?",
@@ -403,22 +416,24 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // (profile/types.ts:35) and the button on it is "Manage"
         // (SubscriptionTab.tsx:664), which opens the Stripe billing portal. A
         // navigation instruction has to name what is actually on screen.
-        a: "Membership is billed securely through Stripe — the same processor that handles your job payments. Manage or cancel it anytime from Profile → Membership → Manage, which opens your Stripe billing portal.",
+        a: `${MEMBERSHIPS_PAUSED} A membership is billed securely through Stripe — the same processor that handles your job payments. If you have one, manage or cancel it anytime from Profile → Membership → Manage, which opens your Stripe billing portal.`,
       },
       {
         q: "Can I cancel my membership anytime?",
-        a: "Yes — downgrade at any time. Your paid perks stay active through the end of your billing period, then you revert to Free.",
+        // WAS "Your paid perks stay active through the end of your billing
+        // period": while memberships are off no paid perk is active (F4a).
+        a: `Yes — cancel at any time from Profile → Membership → Manage. ${MEMBERSHIPS_PAUSED} While they're off, no plan's paid perks are on.`,
       },
       {
         q: `What's the difference between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name}?`,
-        a: `${TIER_PERKS.elite.name} adds the gold crown badge (visible to everyone browsing for someone to hire), unlimited free Job Boosts, the longest head start on new jobs, and priority support — on top of everything ${TIER_PERKS.pro.name} offers. Head start on a new job, measured against a free account: ${EARLY_ACCESS_LADDER}.`,
+        a: `${MEMBERSHIPS_PAUSED} When they come back: ${TIER_PERKS.elite.name} adds the gold crown badge (visible to everyone browsing for someone to hire), unlimited free Job Boosts, the longest head start on new jobs, and priority support — on top of everything ${TIER_PERKS.pro.name} offers. Head start on a new job, measured against a free account: ${EARLY_ACCESS_LADDER}.`,
       },
       {
         // Plus was absent from this section entirely while the fees answer
         // above already listed it — a reader comparing plans on this page could
         // not learn that the tier exists, let alone what it does.
         q: `Where does ${TIER_PERKS.plus.name} fit in?`,
-        a: `${TIER_PERKS.plus.name} sits between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name} at $${TIER_PERKS.plus.price}/month. It keeps everything ${TIER_PERKS.pro.name} gives you, moves your head start on new jobs to ${earlyAccessHeadStartMinutes("plus")} minutes, and adds the featured crown badge, priority support and ${MONTHLY_FREE_BOOSTS.plus} free Job Boosts every month (${TIER_PERKS.pro.name} includes ${MONTHLY_FREE_BOOSTS.pro}). ${TIER_PERKS.elite.name} keeps all of that and makes the badge gold and Job Boosts unlimited.`,
+        a: `${MEMBERSHIPS_PAUSED} When they come back: ${TIER_PERKS.plus.name} sits between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name} at $${TIER_PERKS.plus.price}/month. It keeps everything ${TIER_PERKS.pro.name} gives you, moves your head start on new jobs to ${earlyAccessHeadStartMinutes("plus")} minutes, and adds the featured crown badge, priority support and ${MONTHLY_FREE_BOOSTS.plus} free Job Boosts every month (${TIER_PERKS.pro.name} includes ${MONTHLY_FREE_BOOSTS.pro}). ${TIER_PERKS.elite.name} keeps all of that and makes the badge gold and Job Boosts unlimited.`,
       },
     ],
   },

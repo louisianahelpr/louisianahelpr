@@ -21,7 +21,11 @@
  * @mutate supabase/migrations/20261015091114_job_quotes.sql | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id FOR SHARE; | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id;
  * @mutate supabase/migrations/20261015091114_job_quotes.sql | VALUES ('quotes', 'off', | VALUES ('quotes', 'everyone',
  * @mutate supabase/migrations/20261015091114_job_quotes.sql |                   WHERE r.job_id = OLD.id AND r.status IN ('agreed', 'cancelled')) THEN |                   WHERE false) THEN
+<<<<<<< HEAD
  * @mutate src/config/featureSwitches.ts |   "quotes",\n  // Declutter wanted posts | \n  // Declutter wanted posts
+=======
+ * @mutate src/config/featureSwitches.ts |   "quotes",\n  // Declutter "Add a Helpr" |   // Declutter "Add a Helpr"
+>>>>>>> 1707ae546 (feat(declutter): Add a Helpr — book a Helpr to assemble, mount or set up a Declutter purchase)
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

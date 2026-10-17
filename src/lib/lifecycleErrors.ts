@@ -748,6 +748,10 @@ export const RPC_ERROR_COPY = {
   declutter_my_cart: {
     not_authenticated: DC.not_authenticated,
   },
+  declutter_link_setup_job: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_my_item_review: {
     feature_disabled: DC.feature_disabled,
     item_not_found: DC.item_not_found,
@@ -829,6 +833,11 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
     under_18: DC.under_18,
+  },
+  declutter_setup_helpr: {
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
   },
   declutter_withdraw_item: {
     account_restricted: DC.account_restricted,

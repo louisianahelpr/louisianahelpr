@@ -1,6 +1,10 @@
 // @mutate supabase/migrations/20261012031120_hidden_feature_switches.sql | VALUES ('switch_canary', 'testers', | VALUES ('switch_canary', 'everyone',
 // @mutate supabase/migrations/20261012031120_hidden_feature_switches.sql | ON CONFLICT (key) DO NOTHING; | ON CONFLICT (key) DO UPDATE SET audience = EXCLUDED.audience;
+<<<<<<< HEAD
 // @mutate src/config/featureSwitches.ts |   "declutter_price_hint",\n] as const; |   "declutter_price_hint",\n  "orphan_switch",\n] as const;
+=======
+// @mutate src/config/featureSwitches.ts |   "declutter_add_helpr",\n] as const; |   "declutter_add_helpr",\n  "orphan_switch",\n] as const;
+>>>>>>> 1707ae546 (feat(declutter): Add a Helpr — book a Helpr to assemble, mount or set up a Declutter purchase)
 // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx | useFeature("switch_canary") | useFeature("switch_canarx")
 /**
  * Hidden feature switches (owner decision 2026-10-11; migration

@@ -36,8 +36,9 @@ export function usePostJobForm() {
   // in with the intent already chosen, so they skip the entry landing and
   // drop straight into the pre-filled form. Everyone else sees the
   // start-fresh / draft / template choice first, which declutters the page.
-  // Q768: an imported STR turnover (`turnover`) arrives pre-filled the same way.
-  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("turnover"));
+  // Q768: an imported STR turnover (`turnover`) arrives pre-filled the same way,
+  // and so does a Declutter "Add a Helpr" tap (`declutterOrder`, setupHelpr.ts).
+  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("declutterOrder") || searchParams.get("turnover"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
 
   // Gift card — the gift card this post is being funded with, if any.
@@ -404,6 +405,7 @@ export function usePostJobForm() {
     saveCardForFuture,
     giftCardId,
     turnoverId: searchParams.get("turnover"),
+    declutterOrderId: searchParams.get("declutterOrder"),
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   });

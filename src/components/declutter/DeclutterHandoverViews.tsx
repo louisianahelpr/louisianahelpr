@@ -46,6 +46,7 @@ import {
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { AddHelprPanel } from "./DeclutterAddHelpr";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -178,6 +179,7 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
           <ProblemForm orderId={order.orderId} />
         </>
       )}
+      {order.side === "buyer" && <AddHelprPanel orderId={order.orderId} />}
     </article>
   );
 }

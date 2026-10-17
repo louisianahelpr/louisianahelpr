@@ -73,6 +73,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_refund_set_mode',     'action',   'VOLATILE: records a Declutter refund''s Stripe mode once and returns it (service only; 20261015042253)'),
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
   ('declutter_retire_order',        'action',   'VOLATILE: retires an unpaid order whose Stripe page timed out and reports whether it did (service only; a NULL argument matches no order and answers FALSE; 20261014224914)'),
+  ('declutter_link_setup_job',      'action',   'VOLATILE: links the caller''s own open assembly/handyman job to their own paid Declutter order and reports whether it did ("Add a Helpr"; 20261016053527)'),
   ('declutter_seller_out',          'deny',     'TRUE = the seller cannot sell now (out, under 18, business-like): refused (20261014210518)'),
   ('is_helper_shadowbanned',        'deny',     'TRUE hides the helper'),
   ('is_submitted_credential_object','deny',     'TRUE freezes the object (storage UPDATE/DELETE policies use NOT)'),

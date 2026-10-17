@@ -182,10 +182,38 @@ function readOverflowingControls(): { text: string; sw: number; cw: number }[] {
         !(parseFloat(c.borderLeftWidth) || parseFloat(c.borderRightWidth) || parseFloat(c.borderTopWidth) || parseFloat(c.borderBottomWidth))
       );
     });
+    // THE SAME HIT AREA DRAWN AS A PSEUDO-ELEMENT. The toast's close button
+    // (sonner.tsx closeButton) is a 28px glyph box whose 44px target is an
+    // `after:-inset-2` ::after with content '' and no paint, so its
+    // scrollWidth is 36: prod-audit run 39008504928's
+    // `button[Close toast] sw36/cw28` on /posts and /jobs/:id at 320/375 (and,
+    // read again, run 38689259675's `"" sw36/cw28` on the same routes). A
+    // pseudo-element can't take an inline style, so an attribute plus one
+    // injected rule takes only the unpainted, textless ones out of layout.
+    const paintsNothing = (c: CSSStyleDeclaration) =>
+      (c.backgroundColor === "rgba(0, 0, 0, 0)" || c.backgroundColor === "transparent") &&
+      c.backgroundImage === "none" &&
+      c.boxShadow === "none" &&
+      !(parseFloat(c.borderLeftWidth) || parseFloat(c.borderRightWidth) || parseFloat(c.borderTopWidth) || parseFloat(c.borderBottomWidth));
+    if (!document.getElementById("lh-ghost-pseudo")) {
+      const st = document.createElement("style");
+      st.id = "lh-ghost-pseudo";
+      st.textContent = "[data-lh-ghost-before]::before,[data-lh-ghost-after]::after{display:none!important}";
+      document.head.appendChild(st);
+    }
+    const pseudoGhosts: [Element, string][] = [];
+    for (const n of [el, ...Array.from(el.querySelectorAll("*"))]) {
+      for (const which of ["before", "after"] as const) {
+        const c = getComputedStyle(n, `::${which}`);
+        if ((c.content === '""' || c.content === "''") && paintsNothing(c)) pseudoGhosts.push([n, `data-lh-ghost-${which}`]);
+      }
+    }
     const was = ghosts.map((g) => g.style.display);
     for (const g of ghosts) g.style.display = "none";
+    for (const [n, attr] of pseudoGhosts) n.setAttribute(attr, "");
     const sw = el.scrollWidth;
     ghosts.forEach((g, i) => (g.style.display = was[i]));
+    for (const [n, attr] of pseudoGhosts) n.removeAttribute(attr);
     if (sw > el.clientWidth + 1) out.push({ text: (el.textContent || "").trim().slice(0, 60) || named(), sw, cw: el.clientWidth });
   }
   return out;
@@ -225,6 +253,31 @@ function readFocusedHiddenControls(): { text: string; sw: number; cw: number }[]
   window.scrollTo(x, y);
   return out;
 }
+
+/* THE DETECTOR ITSELF, on a page of known answers (no prod traffic). A ghost
+   hit area (an unpainted empty overlay, as an element or as ::after) is not a
+   label; the same overlay painted, and real text past the edge, still are. */
+test("overflow detector: ghost hit areas pass, painted overflow and long text fail", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 375, height: 600 } });
+  const page = await ctx.newPage();
+  await page.setContent(`<style>
+    button{position:relative;width:28px;height:28px;padding:0;margin:40px;border:0;display:flex}
+    .hit::after{content:'';position:absolute;inset:-8px}
+    .paint::after{content:'';position:absolute;inset:-8px;background:red}
+    .span-hit span{position:absolute;inset:-8px}
+  </style>
+  <button id="a" class="hit" aria-label="ghost after"></button>
+  <button id="b" class="span-hit" aria-label="ghost span"><span aria-hidden="true"></span></button>
+  <button id="c" class="paint" aria-label="painted after"></button>
+  <button id="d" style="width:40px;white-space:nowrap;overflow:visible">A long label</button>`);
+  const rows = await page.evaluate(readOverflowingControls);
+  await ctx.close();
+  const names = rows.map((r) => r.text).join(" | ");
+  expect(names, "an unpainted ::after hit area was read as an overflowing label").not.toContain("ghost after");
+  expect(names, "an unpainted aria-hidden span hit area was read as an overflowing label").not.toContain("ghost span");
+  expect(names, "a PAINTED ::after past the box must still count").toContain("painted after");
+  expect(names, "real text past the box must still count").toContain("A long label");
+});
 
 test("overflowing labels: no control's label runs past its own box at 320/375 (incl. /payment-success held)", async ({ browser, request }, info) => {
   test.setTimeout(60 * 60_000);

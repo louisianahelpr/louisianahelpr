@@ -27,7 +27,7 @@
  * Exit: 0 clean, 1 stranded or a stale acceptance (--check), 2 could not look.
  */
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { buildMainIndex, buildRefsContentIndex, contentCoveredBy, unlandedContent } from "./lib/strandedContent.mjs";
@@ -78,8 +78,10 @@ export function localInventory(git, mainIndex, { cwdOf = defaultCwds } = {}) {
     const status = wgit(["status", "--porcelain", "--untracked-files=all"]).split("\n").filter(Boolean);
     const untracked = status.filter((l) => l.startsWith("?? ")).map((l) => l.slice(3)).filter((f) => !UNTRACKED_NOISE.some((re) => re.test(f)));
     if (status.some((l) => !l.startsWith("?? "))) {
-      const snap = snapshotTracked(wgit, wt.head);
-      if (snap) check("uncommitted", `worktree:${wt.path}@uncommitted`, snap, { active: isActive });
+      const snap = snapshotTracked(wgit, wt.head, wt.path);
+      if (snap.sha) check("uncommitted", `worktree:${wt.path}@uncommitted`, snap.sha, { active: isActive });
+      // Could not snapshot: reported, never skipped (a skip is how staged-new files went unseen).
+      else out.push({ kind: "uncommitted", id: `worktree:${wt.path}@uncommitted`, sha: null, missing: -1, removedStill: 0, files: status.filter((l) => !l.startsWith("?? ")).map((l) => l.slice(3)).slice(0, 20), active: isActive, note: `could not snapshot: ${snap.error}` });
     }
     if (untracked.length) out.push({ kind: "untracked", id: `worktree:${wt.path}@untracked`, sha: null, missing: untracked.length, removedStill: 0, files: untracked.slice(0, 20), active: isActive });
   }
@@ -215,18 +217,31 @@ export function parseWorktrees(porcelain) {
   return wts;
 }
 
-/** A commit object holding the worktree's tracked files as they are now (a temp index; the real one is untouched). */
-function snapshotTracked(wgit, head) {
+/**
+ * A commit object holding the worktree's uncommitted work as it is now: the
+ * worktree's REAL index (so a file staged as new, or a staged deletion, is in
+ * it), then every tracked change on disk on top (`add -u`). Built in a temp
+ * copy of the index; the real one is untouched. Untracked files are their own
+ * `untracked` item (below), never folded in here.
+ *
+ * stranded-staged-new (docs/OPEN.md, 2026-10-17): this used to start from `read-tree HEAD`,
+ * so a file staged as NEW was not in the snapshot at all (`add -u` only updates
+ * paths the index already has) and a worktree whose only change was a staged
+ * new file was never reported.
+ */
+function snapshotTracked(wgit, head, wtPath) {
   const dir = mkdtempSync(join(tmpdir(), "lh-stranded-"));
   const env = { GIT_INDEX_FILE: join(dir, "index") };
   try {
-    wgit(["read-tree", head], { env });
+    const realIndex = resolve(wtPath, wgit(["rev-parse", "--git-path", "index"]).trim());
+    if (existsSync(realIndex)) copyFileSync(realIndex, env.GIT_INDEX_FILE);
+    else wgit(["read-tree", head], { env });
     wgit(["add", "-u", "."], { env });
     const tree = wgit(["write-tree"], { env }).trim();
     const who = { GIT_AUTHOR_NAME: "stranded-work", GIT_AUTHOR_EMAIL: "stranded-work@localhost", GIT_COMMITTER_NAME: "stranded-work", GIT_COMMITTER_EMAIL: "stranded-work@localhost" };
-    return wgit(["commit-tree", tree, "-p", head, "-m", "stranded-work snapshot (not on any ref)"], { env: { ...env, ...who } }).trim();
-  } catch {
-    return null;
+    return { sha: wgit(["commit-tree", tree, "-p", head, "-m", "stranded-work snapshot (not on any ref)"], { env: { ...env, ...who } }).trim() };
+  } catch (e) {
+    return { sha: null, error: String(e?.message ?? e).split("\n")[0] };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

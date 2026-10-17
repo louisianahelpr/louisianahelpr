@@ -113,6 +113,11 @@ beforeAll(() => {
   writeFileSync(join(root, "wt", "src/a.ts"), BASE + "export const g = 'landed after a rebase';\nexport const u = 'uncommitted in a worktree';\n");
   writeFileSync(join(root, "wt", "notes.md"), "an untracked note\n");
   writeFileSync(join(root, "wt", "shot.png"), "png");
+  // stranded-staged-new (docs/OPEN.md): a worktree whose ONLY change is a file staged as new.
+  sh(repo, "worktree", "add", "-q", "--detach", join(root, "wt-staged"), "main");
+  mkdirSync(join(root, "wt-staged", "src"), { recursive: true });
+  writeFileSync(join(root, "wt-staged", "src/staged.ts"), "export const staged = 'a new file only staged, never committed';\n");
+  sh(join(root, "wt-staged"), "add", "src/staged.ts");
 
   git = makeGit(repo);
   setMainRef("origin/main");
@@ -173,11 +178,22 @@ describe("stranded-work: every place work sits", () => {
       "branch branch:deletion",
       "branch branch:unlanded",
       "stash stash:<sha>",
+      "uncommitted worktree:/wt-staged@uncommitted",
       "uncommitted worktree:/wt@uncommitted",
       "untracked worktree:/wt@untracked",
     ]);
     const untracked = items.find((i: { kind: string }) => i.kind === "untracked");
     expect(untracked.files).toEqual(["notes.md"]);
+  });
+  // @mutate scripts/stranded-work.mjs |     if (existsSync(realIndex)) copyFileSync(realIndex, env.GIT_INDEX_FILE); |     if (false) copyFileSync(realIndex, env.GIT_INDEX_FILE);
+  it("a worktree whose only change is a file STAGED AS NEW is reported, with that file (stranded-staged-new in docs/OPEN.md, 2026-10-17)", () => {
+    const index = buildMainIndex(git, "origin/main");
+    const items = localInventory(git, index, { cwdOf: () => [] });
+    const staged = items.find((i: { id: string }) => i.id === `worktree:${join(root, "wt-staged")}@uncommitted`);
+    expect(staged, "the staged-new worktree was not reported").toBeTruthy();
+    expect(staged.sha).toMatch(/^[0-9a-f]{40}$/);
+    expect(staged.files).toEqual(["src/staged.ts"]);
+    expect(staged.missing).toBeGreaterThan(0);
   });
   it("remote: origin branches and PRs closed without merging; merged, dependabot and open-PR branches are not", () => {
     const index = buildMainIndex(git, "origin/main");

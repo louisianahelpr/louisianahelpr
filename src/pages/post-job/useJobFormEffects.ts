@@ -1,7 +1,6 @@
 import { fetchTurnoverPrefill } from "./turnoverPrefill";
 import { buildSetupJobPrefill, fetchSetupHelpr, isBookedSetupJob, parseSetupKind } from "@/lib/declutter/setupHelpr";
 import { todayYmd } from "@/lib/jobDate";
-import { fetchMaintenancePrefill } from "./maintenancePrefill";
 import { useEffect, useCallback } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { formatName } from "@/lib/utils";
@@ -379,7 +378,10 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     const requestId = searchParams.get("maintenance");
     if (!requestId) return;
     let live = true;
-    fetchMaintenancePrefill(requestId).then(
+    // Loaded only for a maintenance post: it reads the Rentals words, which stay off
+    // Post a Job's first screen (check-deferred-vendors). A failed chunk load lands in the
+    // error branch below like a failed fetch.
+    import("./maintenancePrefill").then((m) => m.fetchMaintenancePrefill(requestId)).then(
       (p) => {
         if (!live) return;
         if (!p || p.notApproved) {

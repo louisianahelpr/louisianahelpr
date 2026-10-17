@@ -12,8 +12,16 @@
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | you pay the job price and nothing on top. | you pay the job budget plus a service fee that only covers card processing.
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | It keeps everything ${TIER_PERKS.pro.name} gives you, moves your head start | It keeps everything ${TIER_PERKS.pro.name} gives you, drops your platform fee to ${TIER_PERKS.plus.platformFeePercent}%, moves your head start
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | const FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`; | const FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}%`;
+//
+// Memberships are off for members (roadmap F4/F4a; feature_switches
+// 'memberships' = testers on prod, measured 2026-10-17), so every answer that
+// describes a plan or a paid perk must say so in plain words.
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | is a membership feature. ${MEMBERSHIPS_PAUSED} For now, every payout goes on the standard schedule. | is a Basic, Pro or Elite membership feature and charges a small percentage fee.
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | a: `${MEMBERSHIPS_PAUSED} When they come back: ${TIER_PERKS.plus.name} sits between | a: `${TIER_PERKS.plus.name} sits between
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | a: `Yes — cancel at any time from Profile → Membership → Manage. ${MEMBERSHIPS_PAUSED} While they're off, no plan's paid perks are on.`, | a: "Yes — downgrade at any time. Your paid perks stay active through the end of your billing period, then you revert to Free.",
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | export const MEMBERSHIPS_PAUSED = "Memberships aren't available right now."; | export const MEMBERSHIPS_PAUSED = "";
 import { describe, expect, it } from "vitest";
-import { FAQ_SECTIONS } from "./helpCenterContent";
+import { FAQ_SECTIONS, MEMBERSHIPS_PAUSED } from "./helpCenterContent";
 import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, helprFlatTakeHomeCents } from "@/lib/helprFlatFee";
 
 const answers = FAQ_SECTIONS.flatMap((s) => s.items.map((i) => ({ topic: s.topic, q: i.q, a: i.a })));
@@ -53,5 +61,24 @@ describe("Help Center describes today's job fee (Q1842)", () => {
     const m = answers.find((x) => x.q === "What does a membership do?");
     expect(m?.a).toContain(`${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`);
     expect(m?.a).toMatch(/does not change the fee/);
+  });
+
+  it("every answer about a plan or a paid perk says memberships aren't available right now", () => {
+    // The app's own words (SubscriptionTab's subscribe toast).
+    expect(MEMBERSHIPS_PAUSED).toBe("Memberships aren't available right now.");
+    // A paid perk or a plan, named anywhere on the page. The inventory is the
+    // page itself: the whole Membership & Billing topic plus any answer
+    // elsewhere that names a perk only a plan grants.
+    const PERK = /\b(instant payout|job boosts?|head start|priority (placement|support)|crown badge|featured badge|paid perks?|membership)\b/i;
+    const perkAnswers = answers.filter((x) => x.topic === "Membership & Billing" || PERK.test(x.a));
+    expect(perkAnswers.length).toBeGreaterThan(5);
+    // Outside the membership topic too (the payout answer names Instant Payout).
+    expect(perkAnswers.some((x) => x.topic !== "Membership & Billing")).toBe(true);
+    const missing = perkAnswers
+      .filter((x) => !x.a.includes(MEMBERSHIPS_PAUSED))
+      .map((x) => `${x.topic} / ${x.q}`);
+    expect(missing).toEqual([]);
+    // No answer still promises a perk stays on through a billing period.
+    expect(answers.filter((x) => /perks stay active/i.test(x.a))).toEqual([]);
   });
 });

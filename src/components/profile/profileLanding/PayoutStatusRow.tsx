@@ -22,6 +22,56 @@ interface PayoutStatusRowProps {
 const BOX =
   "w-full flex items-center gap-2.5 rounded-ds-md border px-3 py-2.5 text-left";
 
+type Shown = "setup" | "error";
+
+/**
+ * EVERY STATE IS THE SAME HEIGHT (reds, 2026-10-17). The box above was shared,
+ * but the WORDS were not: the error copy is longer than the setup copy, and
+ * "Retry" is narrower than "Set Up", so at 375 the error row wrapped to three
+ * lines (67px) while the reserve, the setup row and the landing skeleton's
+ * placeholder were two (52px). A failed status check therefore shoved the
+ * settings list down 15px after the page had painted: page-settle /profile
+ * 375 cls 0.0111 (~/.lh-shots/reds-1017/prof/).
+ *
+ * So the text and the action are each a one-cell grid holding BOTH states'
+ * words, the one not shown `invisible` (hidden from sight and from the
+ * button's accessible name). The cell is as tall as the taller copy and the
+ * action as wide as the wider label, at every width, in every state, including
+ * the reserve and the skeleton (which renders this row's reserve). Change a
+ * copy and every state follows by construction.
+ */
+function StackedCopy({ shown }: { shown: Shown | null }) {
+  const cell = (s: Shown) => `[grid-area:1/1] ${shown === s ? "" : "invisible"}`.trim();
+  return (
+    <>
+      <p className="flex-1 min-w-0 grid items-center text-ds-11 text-foreground leading-snug psr-body">
+        {/* Accept-first (owner, 2026-10-07, Q1399): payouts are how you get
+            PAID; they never stand between a Helpr and accepting a job. */}
+        <span className={cell("setup")} data-payout-copy="setup">
+          <span className="font-semibold">Finish setting up</span> — add your payout account so you can get paid.
+        </span>
+        {/* Burnt-sienna, not destructive red: we have NOT established that
+            anything is wrong with the account — only that we couldn't ask. The
+            row claims exactly that much, and its action is to ask again. */}
+        <span className={cell("error")} data-payout-copy="error">
+          <span className="font-semibold">We couldn't check your payout account.</span> Check it before you count on getting paid.
+        </span>
+      </p>
+      <span
+        className="shrink-0 grid items-center text-ds-11 font-semibold psr-action"
+        style={{ color: "hsl(var(--burnt-sienna))" }}
+      >
+        <span className={`${cell("setup")} inline-flex items-center gap-0.5 justify-end`} data-payout-action="setup">
+          Set Up <ChevronRightIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
+        </span>
+        <span className={`${cell("error")} inline-flex items-center gap-0.5 justify-end`} data-payout-action="error">
+          Retry <RefreshCw className="w-3.5 h-3.5" strokeWidth={2.25} />
+        </span>
+      </span>
+    </>
+  );
+}
+
 /**
  * The payout slot at the top of the Profile settings card.
  *
@@ -39,9 +89,6 @@ export function PayoutStatusRow({ prompt, onSetUp, onRetry }: PayoutStatusRowPro
   if (prompt.kind === "none") return null;
 
   if (prompt.kind === "error") {
-    // Burnt-sienna, not destructive red: we have NOT established that
-    // anything is wrong with the account — only that we couldn't ask. The
-    // row claims exactly that much, and its action is to ask again.
     return (
       <button
         type="button"
@@ -53,15 +100,7 @@ export function PayoutStatusRow({ prompt, onSetUp, onRetry }: PayoutStatusRowPro
         }}
       >
         <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
-        <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug psr-body">
-          <span className="font-semibold">We couldn't check your payout account.</span> Check it before you count on getting paid.
-        </p>
-        <span
-          className="shrink-0 text-ds-11 font-semibold inline-flex items-center gap-0.5 psr-action"
-          style={{ color: "hsl(var(--burnt-sienna))" }}
-        >
-          Retry <RefreshCw className="w-3.5 h-3.5" strokeWidth={2.25} />
-        </span>
+        <StackedCopy shown="error" />
       </button>
     );
   }
@@ -97,17 +136,7 @@ export function PayoutStatusRow({ prompt, onSetUp, onRetry }: PayoutStatusRowPro
       }
     >
       <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
-      <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug psr-body">
-        {/* Accept-first (owner, 2026-10-07, Q1399): payouts are how you get
-            PAID; they never stand between a Helpr and accepting a job. */}
-        <span className="font-semibold">Finish setting up</span> — add your payout account so you can get paid.
-      </p>
-      <span
-        className="shrink-0 text-ds-11 font-semibold inline-flex items-center gap-0.5 psr-action"
-        style={{ color: "hsl(var(--burnt-sienna))" }}
-      >
-        Set Up <ChevronRightIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
-      </span>
+      <StackedCopy shown={reserving ? null : "setup"} />
     </button>
   );
 }

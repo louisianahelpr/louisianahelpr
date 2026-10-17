@@ -45,6 +45,9 @@ export const WAVE_MERGE_MS = 200;
 const QUIET_MS = Number(process.env.QUIET_MS ?? (THROTTLE ? 4000 : 2500));
 const MAX_MS = Number(process.env.MAX_MS ?? (THROTTLE ? 40000 : 15000));
 
+/** A loading region: nothing inside it is a page item (see countItems in SETTLE_INIT, which repeats it). */
+export const SKELETON_SCOPE_SEL = '[aria-busy="true"], [data-skeleton], [data-testid*="skeleton" i], [class*="skeleton" i]';
+
 /** Installed before the app boots: CLS entries + a 50ms item-count timeline. */
 export const SETTLE_INIT = (placeholderSel) => {
   const w = window;
@@ -91,6 +94,9 @@ export const SETTLE_INIT = (placeholderSel) => {
     return true;
   };
 
+  // Kept in this function (it runs in the page, serialized): the exported
+  // SKELETON_SCOPE_SEL above is the same string, for the tests.
+  const skeletonScope = '[aria-busy="true"], [data-skeleton], [data-testid*="skeleton" i], [class*="skeleton" i]';
   const countItems = () => {
     const root = document.getElementById("root");
     if (!root) return { n: 0, ph: false };
@@ -120,7 +126,18 @@ export const SETTLE_INIT = (placeholderSel) => {
         const k = c.tagName + "|" + (c.getAttribute("class") || "");
         if (byKey.get(k) < 2) continue;
         if (c.matches(placeholderSel) || c.querySelector(placeholderSel)) continue;
-        if (c.getAttribute("aria-hidden") === "true" || c.closest('[aria-busy="true"]')) continue;
+        if (c.getAttribute("aria-hidden") === "true") continue;
+        // A SKELETON IS NEVER CONTENT (lead ruling 2026-10-17). A data-aware
+        // skeleton draws real text rows (ProfilePageSkeleton draws the real
+        // Work group through SettingsGroup), and those rows hold no bone of
+        // their own, so they counted as items: /profile read as two waves
+        // whenever the page landed >200 ms after its skeleton. Anything inside
+        // a loading region is skipped, however real its text. The markers are
+        // the ones the app's skeletons carry, measured from source 2026-10-17:
+        // aria-busy (the route skeletons), data-skeleton (the shared <Skeleton>
+        // bone), a "skeleton" test id (ProfilePageSkeleton, EarningsPageSkeleton,
+        // the route skeletons) or class.
+        if (c.closest(skeletonScope)) continue;
         // Page CONTENT only: the persistent chrome (the desktop rail, the tab
         // dock, the site nav and footer) mounting before the page is not the
         // page's list arriving in a second wave.

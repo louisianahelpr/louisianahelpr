@@ -1,6 +1,93 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
+import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+
+type BouncedGiftOutcome = "returned" | "returned_unspendable" | "none" | "held";
+
+/**
+ * Q1876: give back the gift card an ACH gift-shortfall checkout consumed when
+ * its bank debit bounces.
+ *
+ * checkoutSessionCompleted flips the reserved gift to 'redeemed' when the
+ * Checkout Session completes, which for a bank payment is days BEFORE the
+ * debit settles. When the debit fails the job goes to 'failed' and was never
+ * funded; without this the gift stayed spent on a dead job.
+ *
+ * Only pi.metadata.gift_card_id names a gift: create-payment stamps it on the
+ * shortfall PaymentIntent and on no other. return_bounced_gift_card puts that
+ * SAME row back (status 'sent', no job) under the job's lock, and only while
+ * the job is unfunded, has no open checkout and was never paid out; a second
+ * call answers 'not_consumed', so a redelivery is a no-op.
+ *   returned -> the gift is back
+ *   none     -> nothing of this gift was spent on the job (or already back)
+ *   held     -> the gift is still spent and ops was paged to return it by hand
+ * A database error pages ops and throws, so Stripe retries the event.
+ */
+async function returnBouncedGift(
+  supabase: WebhookContext["supabase"],
+  jobId: string,
+  giftCardId: string,
+  piId: string,
+  logStep: WebhookContext["logStep"],
+): Promise<BouncedGiftOutcome> {
+  const { data, error } = await supabase.rpc("return_bounced_gift_card", {
+    p_job_id: jobId,
+    p_gift_card_id: giftCardId,
+  });
+  const fields = { "Job ID": jobId, "Gift card": giftCardId, "Payment Intent": piId };
+  if (error) {
+    // PGRST202: the function is not deployed yet (this code can ship before
+    // its migration). Retrying cannot help until it is, so page ops and let
+    // the bounce itself (job failed, poster told) stand.
+    const notDeployed = (error as { code?: string }).code === "PGRST202";
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Bank payment bounced — the poster's gift card was NOT returned",
+      message: notDeployed
+        ? `The bank debit for job ${jobId} failed, so the job was never funded, but return_bounced_gift_card is not deployed, so the gift its checkout used is still marked spent. Run return_bounced_gift_card for this job and gift once the migration is live.`
+        : `The bank debit for job ${jobId} failed, so the job was never funded, but the gift card its checkout used could not be given back (${error.message}). Stripe will retry this webhook; if retries run out, run return_bounced_gift_card for this job and gift.`,
+      fields,
+      oncePerDayKey: `ach-bounce-gift-return-failed:${jobId}`,
+    });
+    if (notDeployed) return "held";
+    throw new Error(`return_bounced_gift_card failed for job ${jobId}: ${error.message}`);
+  }
+  const answer = (data as { outcome?: string; payment_status?: string } | null) ?? null;
+  const outcome = answer?.outcome;
+  if (outcome === "returned") {
+    logStep("Bounced bank payment: gift card returned to its recipient", { jobId, giftCardId, giftPaymentStatus: answer?.payment_status });
+    // A gift whose donation was refunded comes back unspendable
+    // (redeem_gift_card refuses it): do not tell the recipient it is usable.
+    return answer?.payment_status === "paid" ? "returned" : "returned_unspendable";
+  }
+  if (outcome === "not_consumed") return "none";
+  // checkout_open / job_not_failed / paid_out / job_not_found: the gift is
+  // still spent on a job whose payment just failed, and the database refused
+  // to put it back on its own. A person decides; only an open checkout is
+  // worth re-running the function for once it closes.
+  const nextStep = outcome === "checkout_open"
+    ? "A new checkout is open on the job. Once it is paid or expires, run return_bounced_gift_card for this job and gift if the job is still failed."
+    : `The function refused (${outcome ?? "no answer"}) and will keep refusing: check the job and the gift by hand before changing anything.`;
+  await postSlackOpsAlert({
+    kind: "money_at_risk",
+    severity: "warning",
+    title: "Bank payment bounced on a gift job — gift card still spent",
+    message: `The bank debit behind job ${jobId}'s gift-card checkout failed, but the gift was not returned automatically. ${nextStep}`,
+    fields: { ...fields, Outcome: String(outcome ?? "none") },
+    oncePerDayKey: `ach-bounce-gift-held:${jobId}`,
+  });
+  return "held";
+}
+
+function plainFailedNotice(title: unknown): string {
+  return `Your payment for "${title}" didn't go through, so the job isn't posted. Open Post a Job and load your draft to try again.`;
+}
+
+function bouncedGiftNotice(title: unknown): string {
+  return `Your bank payment for "${String(title ?? "your job")}" didn't go through, so the job isn't posted. Your gift card is back in your account. Open Post a Job and load your draft to try again.`;
+}
 
 /**
  * Checks the live Checkout Session and PaymentIntent status before any DB write.
@@ -108,6 +195,9 @@ export async function handlePaymentIntentPaymentFailed(
   if (pi.metadata?.type === "tip") return;
   if (pi.metadata?.kind === "job_boost") return;
   const jobId = pi.metadata?.job_id;
+  const giftCardId = typeof pi.metadata?.gift_card_id === "string" && pi.metadata.gift_card_id
+    ? pi.metadata.gift_card_id
+    : null;
   const { data: failedJob, error: failedJobErr } = jobId
     ? await supabase
         .from("jobs")
@@ -185,6 +275,29 @@ export async function handlePaymentIntentPaymentFailed(
       throw new Error(`Failed to mark job ${failedJob.id} as payment_failed: ${updateErr.message}`);
     }
     if (!failedUpdate) {
+      // Q1876 retry path: a delivery that marked the job failed then threw on
+      // the gift return comes back here (the job is already 'failed'). Ask
+      // again, keyed on the gift; 'returned' means this call did it, so the
+      // earlier delivery never reached the notice below: send it now. A job
+      // still 'failed' with a NEW checkout open answers checkout_open, which
+      // pages ops instead of being acked silently. The poster gets no
+      // "Payment failed" then: they are already paying again on the new
+      // checkout, so the notice would only confuse them.
+      if (giftCardId && failedJob.payment_status === "failed") {
+        const back = await returnBouncedGift(supabase, String(failedJob.id), giftCardId, pi.id, logStep);
+        if ((back === "returned" || back === "returned_unspendable") && failedJob.customer_id) {
+          await insertNotifications(supabase, {
+            user_id: failedJob.customer_id,
+            job_id: failedJob.id,
+            title: "Payment failed",
+            message: back === "returned" ? bouncedGiftNotice(failedJob.title) : plainFailedNotice(failedJob.title),
+            type: "warning",
+            link: "/post-job",
+          });
+          logStep("Retry returned the bounced job's gift card; poster notified", { jobId: failedJob.id });
+          return;
+        }
+      }
       // Zero rows: the job moved past unpaid/failed, or the session id changed
       // (re-mint race). Ack without notifying — "the job isn't posted" would be
       // false for a funded job, and would prompt a poster whose checkout is live
@@ -195,12 +308,19 @@ export async function handlePaymentIntentPaymentFailed(
       });
       return;
     }
+    // Q1876: the bank debit behind a COMPLETED gift-shortfall checkout bounced.
+    // That completion spent the gift; the job was never funded, so it comes back.
+    const giftBack = clearSessionId && giftCardId
+      ? await returnBouncedGift(supabase, String(failedJob.id), giftCardId, pi.id, logStep)
+      : "none";
     if (closed && failedJob.customer_id) {
       await insertNotifications(supabase, {
         user_id: failedJob.customer_id,
         job_id: failedJob.id,
         title: "Payment failed",
-        message: `Your payment for "${failedJob.title}" didn't go through, so the job isn't posted. Open Post a Job and load your draft to try again.`,
+        message: giftBack === "returned"
+          ? bouncedGiftNotice(failedJob.title)
+          : plainFailedNotice(failedJob.title),
         type: "warning",
         link: "/post-job",
       });

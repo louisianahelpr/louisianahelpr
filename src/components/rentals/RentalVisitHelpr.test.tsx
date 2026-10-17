@@ -7,8 +7,10 @@
  * @mutate src/components/rentals/RentalVisitHelpr.tsx | enabled: on, queryFn | enabled: true, queryFn
  * @mutate src/components/rentals/RentalVisitHelpr.tsx |     mutationFn: () => proposeVisit(jobId, new Date(when).toISOString()), |     mutationFn: async () => undefined,
  * @mutate src/components/rentals/RentalVisitHelpr.tsx |             ? `Rental repair: the tenant OK'd ${fmtDate(v.proposedFor)}.` |             ? `Rental repair: you offered ${fmtDate(v.proposedFor)}. Waiting for the tenant to OK it.`
- * @mutate src/pages/jobs/AppliedJobCard.tsx |                 <RentalVisitHelpr jobId={app.job_id} /> |                 {null}
- * @mutate src/pages/jobs/AppliedJobCard.tsx | && !!job.helper_confirmed_at && VISIT | && VISIT
+ * @mutate src/components/rentals/RentalVisitHelprSlot.tsx |       <RentalVisitHelpr jobId={jobId} /> |       {null}
+ * @mutate src/components/rentals/RentalVisitHelprSlot.tsx | if (!show \|\| !VISIT_STATUSES.has(jobStatus ?? "")) return null; | if (!show) return null;
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | && !!job.helper_confirmed_at} /> | } />
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | <RentalVisitHelprSlot jobId={app.job_id} | <span data-x={app.job_id}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -73,11 +75,14 @@ describe("RentalVisitHelpr", () => {
     await new Promise((r) => setTimeout(r, 20));
     expect(second.container.textContent).toBe("");
   });
-  it("the hired Helpr's expanded card mounts it (AppliedJobCard, lazy)", () => {
+  it("the hired Helpr's expanded card mounts it (AppliedJobCard, through the lazy RentalVisitHelprSlot)", () => {
+    const slot = blankComments(readFileSync("src/components/rentals/RentalVisitHelprSlot.tsx", "utf8"));
+    expect(slot).toContain('import("@/components/rentals/RentalVisitHelpr")');
+    expect(slot).toContain("<RentalVisitHelpr jobId={jobId} />");
+    expect(slot).toMatch(/if \(!show \|\| !VISIT_STATUSES\.has\(jobStatus \?\? ""\)\) return null;/);
     const src = blankComments(readFileSync("src/pages/jobs/AppliedJobCard.tsx", "utf8"));
-    expect(src).toContain('import("@/components/rentals/RentalVisitHelpr")');
-    expect(src).toContain("<RentalVisitHelpr jobId={app.job_id} />");
+    expect(src).toContain("<RentalVisitHelprSlot jobId={app.job_id} jobStatus={job.status}");
     // Only a Helpr who said yes (lh-authz-rls review of 39ee72808 #1): never on an offer card.
-    expect(src).toMatch(/app\.status === "accepted" && !!job\.helper_confirmed_at && VISIT_STATUSES\.has/);
+    expect(src).toMatch(/show=\{[^}]*app\.status === "accepted" && !!job\.helper_confirmed_at\} \/>/);
   });
 });

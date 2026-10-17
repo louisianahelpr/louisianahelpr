@@ -25,7 +25,7 @@
     "src/pages/home/Dashboard.tsx": 966,
     "src/pages/home/DashboardGuest.tsx": 807,
     "src/pages/info/Legal.tsx": 725,
-    "src/pages/jobs/AppliedJobCard.tsx": 861,
+    "src/pages/jobs/AppliedJobCard.tsx": 859,
     "src/pages/posts/PostedJobCard.tsx": 806,
     "src/pages/posts/postedJobs/ApplicantsPanel.tsx": 770,
     "src/pages/profile/GiftCard.tsx": 847,

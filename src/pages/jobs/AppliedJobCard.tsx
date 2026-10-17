@@ -1,5 +1,4 @@
-import { lazy, memo, Suspense, useRef, useState } from "react";
-import { report } from "@/lib/errorLogger";
+import { memo, useRef, useState } from "react";
 import { BackoutBanner } from "@/components/job-card/BackoutBanner";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
@@ -34,17 +33,7 @@ import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { HelperSeriesRow, ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
 import { useCardNotes } from "@/components/job-card/JobNotes";
-
-// Rentals (owner Q41): the hired Helpr offers the tenant a visit time on a job
-// posted from a repair request. Lazy (off /posts' shared chunk); renders nothing
-// for every other job. A chunk that cannot load renders nothing (reported).
-const RentalVisitHelpr = lazy(() =>
-  import("@/components/rentals/RentalVisitHelpr").catch((err: unknown) => {
-    report(err, { severity: "warning", tags: { source: "AppliedJobCard.rentalVisit" } });
-    return { default: () => null };
-  }),
-);
-const VISIT_STATUSES = new Set(["accepted", "in_progress", "revision_requested"]);
+import { RentalVisitHelprSlot } from "@/components/rentals/RentalVisitHelprSlot";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -104,11 +93,7 @@ function AppliedJobCardInner({
   const firstPayoutFee = useFirstPayoutFeeDollars();
   // Q344: a decided dispute whose money has not moved is not "Paid out".
   const unsettledDisputeJobIds = useUnsettledDisputeJobIds();
-  const viewerFeePercent = tierFeePercent(
-    viewerProfile?.subscription_tier,
-    viewerProfile?.subscription_expires_at ?? null,
-  );
-
+  const viewerFeePercent = tierFeePercent(viewerProfile?.subscription_tier, viewerProfile?.subscription_expires_at ?? null);
 
   useHighlightPulse(highlight, cardRef);
 
@@ -480,11 +465,7 @@ function AppliedJobCardInner({
               </section>
             )}
             {showNotes && notes}
-            {!isMinimalCard && expandedJobIds.has(app.job_id) && app.status === "accepted" && !!job.helper_confirmed_at && VISIT_STATUSES.has(job.status ?? "") && (
-              <Suspense fallback={null}>
-                <RentalVisitHelpr jobId={app.job_id} />
-              </Suspense>
-            )}
+            <RentalVisitHelprSlot jobId={app.job_id} jobStatus={job.status} show={!isMinimalCard && expandedJobIds.has(app.job_id) && app.status === "accepted" && !!job.helper_confirmed_at} />
             {showBodyPhotos && <JobCardPhotoStrip urls={job.photos || []} size="sm" stopPropagation />}
 
             {/* The poster, as a PersonTile — the same shared tile the poster

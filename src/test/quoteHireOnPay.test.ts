@@ -29,6 +29,9 @@
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql | '".', v_uid, true); | '".', v_uid, false);
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |     v_reason := public.direct_accept_block_reason(NEW.id, v_quoter); |     v_reason := NULL;
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql | WHERE j.id = v_req.job_id AND j.customer_id = v_uid\n | WHERE j.id = v_req.job_id\n
+ * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |   AFTER INSERT ON public.user_blocks | AFTER INSERT ON public.job_quotes
+ * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |          OR (r.poster_id = NEW.blocked_id AND q.quoter_id = NEW.blocker_id)); |          OR false);
+ * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |   EXCEPTION WHEN OTHERS THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes | EXCEPTION WHEN unique_violation THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes
  * @mutate supabase/migrations/20261015091114_job_quotes.sql |   v_close := LEAST(now() + make_interval(hours => v_window), v_start - interval '2 hours'); |   v_close := now() + make_interval(hours => v_window);
  */
 import { describe, expect, it } from "vitest";
@@ -126,6 +129,21 @@ describe("quotes: owner answers 8-11", () => {
     expect(ws(allSql)).toContain(
       "PERFORM cron.schedule('quote-alerts', '11-59/15 * * * *', $c$SELECT public.cron_record_work('quote-alerts', to_jsonb(public.sweep_quote_alerts()));$c$);",
     );
+  });
+
+  // Q1864: a block closes the pair's pending quotes, both ways round, and a
+  // failure there never undoes the block.
+  it("Q1864: a user_blocks row closes the pair's pending quotes, isolated from the block", () => {
+    const triggers = [...allSql.matchAll(/CREATE\s+TRIGGER\s+trg_quote_close_pending_across_block\s+([\s\S]*?);/gi)];
+    expect(triggers.length).toBeGreaterThan(0);
+    expect(ws(triggers[triggers.length - 1][1])).toBe(
+      "AFTER INSERT ON public.user_blocks FOR EACH ROW EXECUTE FUNCTION public.quote_close_pending_across_block()",
+    );
+    const b = body("quote_close_pending_across_block");
+    expect(b).toContain(
+      "AND q.status = 'pending' AND ((r.poster_id = NEW.blocker_id AND q.quoter_id = NEW.blocked_id) OR (r.poster_id = NEW.blocked_id AND q.quoter_id = NEW.blocker_id));",
+    );
+    expect(b).toMatch(/q\.quoter_id = NEW\.blocker_id\)\); EXCEPTION WHEN OTHERS THEN BEGIN INSERT INTO public\.error_logs/);
   });
 
   it("the behaviour proof exists", () => {

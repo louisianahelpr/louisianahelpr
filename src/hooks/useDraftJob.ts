@@ -14,6 +14,16 @@ export function dropSpentDraft(): void {
   safeStorage.removeItem(DRAFT_KEY);
   safeStorage.removeItem(DRAFT_CHECKOUT_JOB_KEY);
 }
+
+/**
+ * A job was paid for: drop the kept draft only when it is the job that draft
+ * was sent to Checkout for (Q1873). Paying for any other job (an agreed quote,
+ * a Set my own price job, a re-pay from Activity) leaves the draft alone.
+ */
+export function dropDraftPaidAs(paidJobId: string): void {
+  if (safeStorage.getItem(DRAFT_CHECKOUT_JOB_KEY) !== paidJobId) return;
+  dropSpentDraft();
+}
 // Debounce window for persisting drafts. Long enough that fast typists
 // don't hammer localStorage on every keystroke, short enough that the user
 // won't lose meaningful work if the tab dies. A `beforeunload` /

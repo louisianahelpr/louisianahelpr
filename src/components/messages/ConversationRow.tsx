@@ -1,12 +1,9 @@
-import { memo, useEffect, useState } from "react";
+import { memo } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { BellOff, Check } from "lucide-react";
 import { PinnedChip } from "./PinnedChip";
-import {
-  getMessageAttachmentSignedUrl,
-  isImageMime,
-} from "@/lib/messageAttachments";
-import { report } from "@/lib/errorLogger";
+import { isImageMime } from "@/lib/messageAttachments";
+import { LastMessageImageThumb } from "./LastMessageImageThumb";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColor } from "@/lib/statusColors";
 import UserAvatar from "@/components/UserAvatar";
@@ -112,76 +109,6 @@ export const CONVERSATION_ROW_HAIRLINE_INSET = "calc(0.75rem + 2.75rem + 0.625re
  *  guard asserts they DIFFER — a single weight is the bug this replaces. */
 const NAME_WEIGHT_UNREAD = 700;
 const NAME_WEIGHT_READ = 600;
-
-/**
- * Tiny 32×32 image preview for the conversation-row "Photo" case.
- *
- * `messages.attachment_url` stores a storage path, not a URL — but the
- * parent (`loadConversations` in Messages.tsx) now batches the signed-URL
- * resolution into a single `createSignedUrls` call and passes the URL in
- * via `preResolvedUrl`. We only fall back to a per-row fetch when that
- * batched URL is absent (legacy callers or a race where the batch errored
- * on just this path) — eliminating the old N+1 across image-last-message
- * conversations in the inbox.
- */
-function LastMessageImageThumb({
-  path,
-  preResolvedUrl,
-}: {
-  path: string;
-  preResolvedUrl?: string | null;
-}) {
-  // Seed from the parent-batched URL when present — no fetch at all in
-  // the common case. We keep the per-row fetch as a fallback so removing
-  // a thread from the batch (or a partial failure) still renders.
-  const [url, setUrl] = useState<string | null>(preResolvedUrl ?? null);
-  useEffect(() => {
-    // If the parent supplied a URL, use it as-is (sync prop changes too,
-    // since `loadConversations` may re-run with a refreshed batch).
-    if (preResolvedUrl !== undefined && preResolvedUrl !== null) {
-      setUrl(preResolvedUrl);
-      return;
-    }
-    // Only pay for a per-row round-trip when the batch didn't cover us.
-    let cancelled = false;
-    void getMessageAttachmentSignedUrl(path)
-      .then((signed) => {
-        if (!cancelled) setUrl(signed);
-      })
-      .catch((err) => {
-        // Leave `url` null — the thumbnail box below already renders as
-        // an empty placeholder when `url` is null, so a failed sign-url
-        // just falls into that existing state instead of showing a
-        // broken-image icon. Still logged so silent failures surface.
-        if (cancelled) return;
-        report(err, {
-          severity: "warning",
-          tags: { source: "ConversationRow.LastMessageImageThumb" },
-        });
-      });
-    return () => { cancelled = true; };
-  }, [path, preResolvedUrl]);
-  return (
-    <div
-      className="shrink-0 w-8 h-8 rounded-ds-sm overflow-hidden"
-      style={{
-        background: "hsl(var(--ivory-sand) / 0.6)",
-        border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-      }}
-      aria-hidden="true"
-    >
-      {url ? (
-        <img
-          loading="lazy"
-          decoding="async"
-          src={url}
-          alt=""
-          className="w-full h-full object-cover"
-        />
-      ) : null}
-    </div>
-  );
-}
 
 /**
  * ConversationRow — a single row in the virtualized inbox list: avatar,

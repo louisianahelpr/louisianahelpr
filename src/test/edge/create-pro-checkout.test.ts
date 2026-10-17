@@ -181,13 +181,18 @@ describe("automatic_tax needs an address, and this is where every helper failed"
 // off (20261015033658), and the server refuses a new membership checkout
 // before any eligibility read or Stripe call. Hiding the buttons is not the
 // protection; this is.
-// @mutate supabase/functions/create-pro-checkout/index.ts |     if (membershipsOff) return membershipsOff; |
+// @mutate supabase/functions/create-pro-checkout/index.ts |     if (!(await featureEnabledForUser(serviceClient, "memberships", user))) { |     if (false) {
+// @mutate supabase/functions/create-pro-checkout/index.ts |         { error: MEMBERSHIPS_OFF_REASON, code: "feature_disabled" }, |         { error: "feature_disabled" },
 describe("memberships are off (F4)", () => {
   it("refuses with 403 feature_disabled while the switch is off for the caller, touching nothing", async () => {
     scenario.rpc.feature_enabled_for_user = false;
     const res = await post({ tier: "plus", billing_cycle: "monthly" });
     expect(res.status).toBe(403);
-    expect((await res.json()).error).toBe("feature_disabled");
+    // Q1850: 7119's functionErrorMessage shows `error` verbatim, so it carries
+    // the same sentence subscription_purchase_eligibility gives, never the code.
+    const body = await res.json();
+    expect(body.error).toBe("Memberships are not available right now. Nothing was charged.");
+    expect(body.code).toBe("feature_disabled");
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     const names = (scenario.rpcCalls ?? []).map((c) => c.name);
     expect(names).not.toContain("subscription_purchase_eligibility");

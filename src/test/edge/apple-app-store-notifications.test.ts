@@ -42,13 +42,36 @@ const b64u = (o: unknown) =>
   Buffer.from(JSON.stringify(o)).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 const jws = (o: unknown) => `${b64u({ alg: "ES256" })}.${b64u(o)}.sig`;
 
-/** Apple's authoritative transaction, as the App Store Server API returns it. */
-function appleReturns(tx: Record<string, unknown>) {
-  vi.stubGlobal("fetch", vi.fn(async () => new Response(
-    JSON.stringify({ signedTransactionInfo: jws(tx) }),
-    { status: 200, headers: { "Content-Type": "application/json" } },
-  )));
+/**
+ * Apple's authoritative answers, as the App Store Server API returns them:
+ * GET /transactions/{id} answers `tx`; GET /subscriptions/{originalTransactionId}
+ * answers the subscription's LATEST transaction, `latest` (default: the same
+ * one, the common case where the notice names the newest transaction).
+ * `statusCode` fails the status lookup.
+ */
+function appleReturns(
+  tx: Record<string, unknown>,
+  latest: Record<string, unknown> | null = tx,
+  statusCode = 200,
+) {
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+    if (String(url).includes("/inApps/v1/subscriptions/")) {
+      if (statusCode !== 200) return new Response("{}", { status: statusCode });
+      const lastTransactions = latest
+        ? [{ originalTransactionId: latest.originalTransactionId, status: 1, signedTransactionInfo: jws(latest) }]
+        : [];
+      return new Response(
+        JSON.stringify({ environment: "Production", data: [{ subscriptionGroupIdentifier: "g1", lastTransactions }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    return new Response(
+      JSON.stringify({ signedTransactionInfo: jws(tx) }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }));
 }
+const appleUrls = () => (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.map((c) => String(c[0]));
 
 const baseTx = (over: Record<string, unknown> = {}) => ({
   transactionId: TX,
@@ -104,6 +127,8 @@ async function load(extraEnv: Record<string, string> = {}) {
 beforeEach(async () => {
   resetEnv(); resetSupabaseMock(); resetSharedMocks();
   appleReturns(baseTx());
+  // The memberships switch is on unless a case is ABOUT it being off (Q1849).
+  scenario.rpc.feature_enabled_for_user = true;
   await load();
 });
 
@@ -276,5 +301,159 @@ describe("what counts as Stripe holding the row (lh-money-escrow re-review of 18
     const filters = JSON.stringify(profileWrites()[0].filters);
     expect(filters).toMatch(/subscription_source[^}]*stripe/);
     expect(filters).toMatch(/stripe_subscription_id/);
+  });
+});
+
+// Q1860: an old or retried notice must not revoke a paid-up member. Apple
+// retries a failed notice for up to three days and this endpoint is
+// unauthenticated, so the posted transaction can be an OLD one of the same
+// subscription; the subscription's latest state decides.
+// @mutate supabase/functions/apple-app-store-notifications/index.ts |     const tx = postedMeta.kind === "auto"\n      ? await fetchLatestSubscriptionTransaction(postedTx)\n      : postedTx; |     const tx = postedTx;
+// @mutate supabase/functions/_shared/appleAppStore.ts |       if (last.originalTransactionId !== tx.originalTransactionId \|\| !last.signedTransactionInfo) continue; |       if (!last.signedTransactionInfo) continue;
+// @mutate supabase/functions/_shared/appleAppStore.ts |   throw new Error("App Store returned no status for this subscription"); |   return tx;
+describe("Q1860 · the subscription's latest state decides, never the posted transaction", () => {
+  const OLD = baseTx({ transactionId: "2000000100", expiresDate: Date.now() - 30 * 24 * 3600 * 1000 });
+  const RENEWED = baseTx({ transactionId: "2000000200", expiresDate: Date.now() + 25 * 24 * 3600 * 1000 });
+
+  it("a stale EXPIRED notice for a subscription that has since renewed never clears the tier", async () => {
+    appleReturns(OLD, RENEWED);
+    linkedRow("apple", "plus");
+    const res = await notify("EXPIRED");
+    expect(res.status).toBe(200);
+    expect((await res.json()).outcome).toBe("granted");
+    expect(profileWrites().every((w) => (w.payload as { subscription_tier?: unknown }).subscription_tier !== null)).toBe(true);
+    // What is written is the LATEST transaction's expiry, not the posted one's.
+    expect(profileWrites()[0].payload).toMatchObject({
+      subscription_tier: "plus",
+      subscription_expires_at: new Date(RENEWED.expiresDate as number).toISOString(),
+    });
+    expect(appleUrls().some((u) => u.includes(`/inApps/v1/subscriptions/${TX}`))).toBe(true);
+  });
+
+  it("grading by the latest state cuts both ways: an old paid notice cannot grant a refunded subscription", async () => {
+    appleReturns(RENEWED, baseTx({ transactionId: "2000000300", revocationDate: Date.now() - 1000 }));
+    linkedRow("apple", "plus");
+    const res = await notify("DID_RENEW");
+    expect((await res.json()).outcome).toBe("revoked");
+    expect(profileWrites()[0].payload).toMatchObject({ subscription_tier: null });
+  });
+
+  it("an App Store status lookup failure writes nothing and answers 500, so Apple retries", async () => {
+    appleReturns(OLD, RENEWED, 500);
+    linkedRow("apple", "plus");
+    const res = await notify("EXPIRED");
+    expect(res.status).toBe(500);
+    expect(profileWrites()).toHaveLength(0);
+  });
+
+  it("a status answer that does not name this subscription writes nothing (never falls back to the posted one)", async () => {
+    appleReturns(OLD, baseTx({ transactionId: "9", originalTransactionId: "someone-else" }));
+    linkedRow("apple", "plus");
+    const res = await notify("EXPIRED");
+    expect(res.status).toBe(500);
+    expect(profileWrites()).toHaveLength(0);
+  });
+
+  it("a customer with several subscriptions: the entry for THIS subscription is graded, whatever its position", async () => {
+    // Another subscription of the same customer comes FIRST and is lapsed.
+    const other = baseTx({ transactionId: "3000000001", originalTransactionId: "3000000001", expiresDate: Date.now() - 3600_000 });
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (String(url).includes("/inApps/v1/subscriptions/")) {
+        return new Response(JSON.stringify({ data: [{ subscriptionGroupIdentifier: "g1", lastTransactions: [
+          { originalTransactionId: other.originalTransactionId, status: 2, signedTransactionInfo: jws(other) },
+          { originalTransactionId: TX, status: 1, signedTransactionInfo: jws(RENEWED) },
+        ] }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ signedTransactionInfo: jws(OLD) }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }));
+    linkedRow("apple", "plus");
+    const res = await notify("EXPIRED");
+    expect(res.status).toBe(200);
+    expect((await res.json()).outcome).toBe("granted");
+  });
+
+  it("a one-time pass has no subscription to re-read: graded from its own transaction", async () => {
+    appleReturns(baseTx({ productId: "com.helpr.plus.onetime", expiresDate: undefined }), null);
+    linkedRow("apple", null);
+    const res = await notify("ONE_TIME_CHARGE");
+    expect((await res.json()).outcome).toBe("granted");
+    expect(appleUrls().some((u) => u.includes("/inApps/v1/subscriptions/"))).toBe(false);
+  });
+});
+
+// Q1859: the double-billing alert is posted once per day per member and
+// subscription (postSlackOpsAlert's oncePerDayKey), and says which arm matched.
+// @mutate supabase/functions/apple-app-store-notifications/index.ts |               oncePerDayKey: `apple-double-billing:${profile.user_id}:${tx.originalTransactionId}`, |
+// @mutate supabase/functions/apple-app-store-notifications/index.ts |           const message = profile.stripe_subscription_id | const message = true
+describe("Q1859 · the double-billing alert is deduped and worded by the arm that matched", () => {
+  type Alert = { title?: string; message?: string; oncePerDayKey?: string };
+  const billingAlerts = () => (slackAlerts as Alert[]).filter((a) => /Apple is billing/.test(a.title ?? ""));
+
+  it("two identical replayed notices carry one once-per-day key, so they page once", async () => {
+    linkedRow("stripe", "elite", false, STRIPE_LIVE);
+    await notify("DID_RENEW");
+    await notify("DID_RENEW");
+    const alerts = billingAlerts();
+    expect(alerts).toHaveLength(2);
+    expect(alerts[0].oncePerDayKey).toBe(`apple-double-billing:${USER}:${TX}`);
+    expect(new Set(alerts.map((a) => a.oncePerDayKey)).size).toBe(1);
+  });
+
+  it("only a live Stripe subscription is called paying twice", async () => {
+    linkedRow("stripe", "elite", false, STRIPE_LIVE);
+    await notify("DID_RENEW");
+    expect(billingAlerts()[0].message).toMatch(/paying twice/);
+  });
+
+  it("a Stripe tier with no subscription behind it is not called paying twice", async () => {
+    linkedRow("stripe", "pro", false, { subscription_expires_at: null });
+    await notify("DID_RENEW");
+    const msg = billingAlerts()[0].message ?? "";
+    expect(msg).not.toMatch(/paying twice/);
+    expect(msg).toMatch(/one-time pass/);
+  });
+});
+
+// Q1849: Apple can charge without our purchase gate (auto-renewal, iOS
+// Settings, offer codes). The grant stands; a switch-off member is reported.
+// @mutate supabase/functions/apple-app-store-notifications/index.ts |       if (membershipsSwitch !== "on") { |       if (false) {
+// @mutate supabase/functions/_shared/appleAppStore.ts |     if (data === false) return "off"; |     if (data === false) return "on";
+describe("Q1849 · a grant to a member the memberships switch is off for is reported, never refused", () => {
+  type Alert = { kind?: string; title?: string; message?: string };
+  const offAlerts = () => (slackAlerts as Alert[]).filter((a) => a.kind === "money_at_risk");
+
+  it("switch off: the renewal still grants AND raises a money_at_risk alert", async () => {
+    scenario.rpc.feature_enabled_for_user = false;
+    linkedRow("apple", "plus");
+    const res = await notify("DID_RENEW");
+    expect((await res.json()).outcome).toBe("granted");
+    expect(profileWrites()[0].payload).toMatchObject({ subscription_tier: "plus" });
+    expect(offAlerts()).toHaveLength(1);
+    expect(offAlerts()[0].message).toMatch(/switch is off/);
+    const ask = (scenario.rpcCalls ?? []).find((c) => c.name === "feature_enabled_for_user");
+    expect(ask?.args).toEqual({ p_key: "memberships", p_user_id: USER });
+  });
+
+  it("switch on (a tester): no alert", async () => {
+    linkedRow("apple", "plus");
+    await notify("DID_RENEW");
+    expect(offAlerts()).toHaveLength(0);
+  });
+
+  it("switch unreadable: still grants, and reports it as unreadable (never as on)", async () => {
+    scenario.rpcErrors = { feature_enabled_for_user: { message: "boom" } };
+    linkedRow("apple", "plus");
+    const res = await notify("DID_RENEW");
+    expect((await res.json()).outcome).toBe("granted");
+    expect(offAlerts()).toHaveLength(1);
+    expect(offAlerts()[0].message).toMatch(/could not be read/);
+  });
+
+  it("a revocation never asks or alerts", async () => {
+    scenario.rpc.feature_enabled_for_user = false;
+    appleReturns(baseTx({ revocationDate: Date.now() - 1000 }));
+    linkedRow("apple", "plus");
+    await notify("REFUND");
+    expect(offAlerts()).toHaveLength(0);
   });
 });

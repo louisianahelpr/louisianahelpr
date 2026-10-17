@@ -107,6 +107,39 @@ describe("instant-job-match edge function (Q392)", () => {
     expect(rateLimitCalls).toEqual([]);
   });
 
+  // Q1844 (roadmap F4a): while memberships are off for a Helpr, their tier
+  // is not a paid perk any more, so it never moves them up the match order.
+  // Two equal-score Helprs, the second holding Elite: switch off -> pool order
+  // stands; switch on for the Elite Helpr -> Elite first. An RPC error is off.
+  // @mutate supabase/functions/instant-job-match/index.ts |       if (!tierCounts.has(h.user_id)) return 0; |       if (false) return 0;
+  // @mutate supabase/functions/instant-job-match/index.ts |         return tierRankOf(b) - tierRankOf(a); |         return 0;
+  it("Q1844: a tier breaks a score tie only while memberships are on for that Helpr", async () => {
+    const order = async (feature: unknown, error = false) => {
+      resetSupabaseMock(); resetSharedMocks();
+      const fn = await load();
+      seed();
+      scenario.reads.profiles = {
+        rows: [
+          { user_id: "u-plain", full_name: "P", skills: "cleaning", location: "New Orleans", subscription_tier: null, ban_status: "active" },
+          { user_id: "u-elite", full_name: "E", skills: "cleaning", location: "New Orleans", subscription_tier: "elite", ban_status: "active" },
+        ],
+      };
+      scenario.reads.notification_preferences = { rows: [] };
+      scenario.rpc.feature_enabled_for_user = feature;
+      if (error) scenario.rpcErrors = { feature_enabled_for_user: { message: "boom" } };
+      await call(fn, SERVICE);
+      const asked = (scenario.rpcCalls ?? []).filter((c) => c.name === "feature_enabled_for_user").map((c) => c.args);
+      const args = enqueueCalls()[0].args as { p_matches: Array<{ user_id: string }> };
+      return { ids: args.p_matches.map((m) => m.user_id), asked };
+    };
+    const off = await order(false);
+    expect(off.ids).toEqual(["u-plain", "u-elite"]);
+    // Only the Helpr holding a tier is asked, and about memberships.
+    expect(off.asked).toEqual([{ p_key: "memberships", p_user_id: "u-elite" }]);
+    expect((await order(true)).ids).toEqual(["u-elite", "u-plain"]);
+    expect((await order(true, true)).ids).toEqual(["u-plain", "u-elite"]);
+  });
+
   it("asks only for an open, funded, owned job with no live direct offer", async () => {
     const fn = await load();
     seed();

@@ -28,12 +28,14 @@ export function usePostJobForm() {
   const { profile } = useCurrentUser();
   const [searchParams] = useSearchParams();
   const { draft, hasDraft, draftLoaded, saveDraft: saveAnyDraft, flushDraft: flushAnyDraft } = useDraftJob();
-  // A Declutter haul-away is never saved as a draft: a draft cannot carry its
-  // items, so a job posted again from it would be paid with no link to them
-  // (lh-money-escrow review 2026-10-16). The seller books again from My listings.
-  const isHaulAway = !!searchParams.get("haulAway");
-  const saveDraft = useCallback<typeof saveAnyDraft>((d) => { if (!isHaulAway) saveAnyDraft(d); }, [isHaulAway, saveAnyDraft]);
-  const flushDraft = useCallback(() => { if (!isHaulAway) flushAnyDraft(); }, [isHaulAway, flushAnyDraft]);
+  // A Declutter haul-away or "Add a Helpr" job is never saved as a draft: a
+  // draft cannot carry its items or its order, so a job posted again from it
+  // would be paid with no link to them (lh-money-escrow review 2026-10-16;
+  // lander's merge review 2026-10-17). The seller books again from My
+  // listings, the buyer from the order card.
+  const noDraft = !!(searchParams.get("haulAway") || searchParams.get("declutterOrder"));
+  const saveDraft = useCallback<typeof saveAnyDraft>((d) => { if (!noDraft) saveAnyDraft(d); }, [noDraft, saveAnyDraft]);
+  const flushDraft = useCallback(() => { if (!noDraft) flushAnyDraft(); }, [noDraft, flushAnyDraft]);
   const [saving, setSaving] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   // Preflight open-job count — checked at mount so the user learns

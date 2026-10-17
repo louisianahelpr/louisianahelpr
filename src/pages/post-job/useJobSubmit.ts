@@ -911,8 +911,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         const funded = outcomeUnknown ? null : await jobIsFunded(jobId);
         if (funded === true) {
           safeStorage.removeItem(COOLDOWN_KEY);
-          // As on the success path below (a haul-away never keeps a draft).
-          if (!haulAwayItemIds || haulAwayItemIds.length === 0) {
+          // As on the success path below (a haul-away or "Add a Helpr" job never keeps a draft).
+          if ((!haulAwayItemIds || haulAwayItemIds.length === 0) && !declutterOrderId) {
             flushDraft();
             safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId);
           }

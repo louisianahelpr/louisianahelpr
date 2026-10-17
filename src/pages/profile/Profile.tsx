@@ -584,8 +584,13 @@ const ProfilePage = () => {
             "mirrors the loaded state's shell so there's no header jump"; the
             declaration did not. Trust the declaration, never the comment
             beside it — which is also why `ProfilePageSkeleton` now draws the
-            landing's title row. */}
-        <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-4 flex-1 min-h-0 overflow-y-auto">
+            landing's title row.
+
+            aria-busy, as on ProfileRouteSkeleton (the frame before this one):
+            the skeleton's real Work rows are a loading frame, not the page
+            arriving. Without it the landing's wait for its switch answers
+            (Q?profile-declutter-shift) read as a second content wave. */}
+        <div aria-busy="true" className="container mx-auto px-5 lg:px-6 xl:px-6 pb-4 flex-1 min-h-0 overflow-y-auto">
           <div className="page-measure mx-auto">
             {/* THE PLACEHOLDER MUST BE THE SCREEN YOU ASKED FOR. This line
                 used to read `isEarningsTabUrl() ? <EarningsPageSkeleton /> :

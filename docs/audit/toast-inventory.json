@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 767,
-    "files": 185,
-    "rendering": 686,
-    "suppressedByPolicy": 81,
+    "calls": 796,
+    "files": 192,
+    "rendering": 708,
+    "suppressedByPolicy": 88,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 44,
-      "toast.error": 576,
+      "toast": 46,
+      "toast.error": 596,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 85,
+      "toast.success": 92,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 370,
-      "template": 93,
-      "dynamic": 348,
+      "literal": 384,
+      "template": 95,
+      "dynamic": 363,
       "jsx": 0
     }
   },
@@ -3575,7 +3575,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 75,
+      "line": 76,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -3585,11 +3585,42 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 78,
+      "line": 79,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
         "text": "rpcErrorMessage(\"admin_set_feature_switch\", err) ?? userFacingError(err, \"Couldn't change that switch — nothing was changed. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
+      "line": 24,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
+      "line": 41,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
       },
       "renders": true
     },
@@ -6000,6 +6031,346 @@
       "renders": true
     },
     {
+      "file": "src/components/rentals/EndTenancyButton.tsx",
+      "line": 48,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "w.done"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/rentals/EndTenancyButton.tsx",
+      "line": 51,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/MaintenanceRequestForm.tsx",
+      "line": 48,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "urgency === \"emergency\" ? \"Your landlord was alerted.\" : \"Request sent to your landlord.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Your landlord was alerted."
+          },
+          {
+            "form": "literal",
+            "text": "Request sent to your landlord."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/rentals/MaintenanceRequestForm.tsx",
+      "line": 55,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/MaintenanceRequestForm.tsx",
+      "line": 76,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Choose what's wrong and how urgent it is."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/MaintenanceRequestForm.tsx",
+      "line": 141,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${tooBig.name} is over 10 MB."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/MaintenanceRequestView.tsx",
+      "line": 73,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentalVisitHelpr.tsx",
+      "line": 31,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentalsHomeView.tsx",
+      "line": 68,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Property added. Next: add your ownership proof."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/rentals/RentalsHomeView.tsx",
+      "line": 71,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentalsHomeView.tsx",
+      "line": 114,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Proof sent. An admin will check it."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/rentals/RentalsHomeView.tsx",
+      "line": 117,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentalsHomeView.tsx",
+      "line": 125,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentalsHomeView.tsx",
+      "line": 130,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "cents == null ? \"Auto-approve is off.\" : \"Auto-approve saved.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Auto-approve is off."
+          },
+          {
+            "form": "literal",
+            "text": "Auto-approve saved."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/rentals/RentalsHomeView.tsx",
+      "line": 133,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentalsHomeView.tsx",
+      "line": 138,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentalsHomeView.tsx",
+      "line": 199,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Link copied."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/rentals/RentalsHomeView.tsx",
+      "line": 199,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't copy. Select the link and copy it."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentalsHomeView.tsx",
+      "line": 234,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Enter an amount like 150."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentalsInviteView.tsx",
+      "line": 23,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "You're connected. You can send repair requests now."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/rentals/RentalsInviteView.tsx",
+      "line": 26,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
       "line": 59,
       "kind": "toast.error",
@@ -7932,7 +8303,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 248,
+      "line": 253,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7942,7 +8313,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 308,
+      "line": 313,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7952,7 +8323,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 312,
+      "line": 317,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -7962,7 +8333,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 332,
+      "line": 337,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7972,7 +8343,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 352,
+      "line": 357,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -7982,11 +8353,51 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 362,
+      "line": 367,
       "kind": "toast.error",
       "title": {
         "form": "literal",
         "text": "Couldn't load that purchase. Fill in the job yourself."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobFormEffects.ts",
+      "line": 388,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load that repair request — fill in the job yourself."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobFormEffects.ts",
+      "line": 393,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "You already posted the job for this repair request."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobFormEffects.ts",
+      "line": 397,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Your auto-approve limit for this property is $${p.autoApproveLimit}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobFormEffects.ts",
+      "line": 416,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load that repair request — fill in the job yourself."
       },
       "renders": true
     },
@@ -8032,7 +8443,21 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 180,
+      "line": 202,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Your job posted, but it isn't linked to the repair request"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Your tenant won't see it on their request. Tell them once a Helpr is booked."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 232,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8046,7 +8471,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 332,
+      "line": 387,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8056,7 +8481,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 339,
+      "line": 394,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -8066,7 +8491,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 348,
+      "line": 403,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8076,7 +8501,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 350,
+      "line": 405,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8086,7 +8511,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 354,
+      "line": 409,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -8096,7 +8521,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 360,
+      "line": 415,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8106,7 +8531,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 362,
+      "line": 417,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8116,7 +8541,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 363,
+      "line": 418,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8126,7 +8551,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 367,
+      "line": 422,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8136,7 +8561,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 368,
+      "line": 423,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8146,7 +8571,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 369,
+      "line": 424,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8156,7 +8581,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 370,
+      "line": 425,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8166,7 +8591,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 371,
+      "line": 426,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8176,7 +8601,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 376,
+      "line": 431,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8186,7 +8611,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 377,
+      "line": 432,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8196,7 +8621,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 386,
+      "line": 441,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8206,7 +8631,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 399,
+      "line": 454,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -8216,7 +8641,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 400,
+      "line": 455,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -8226,7 +8651,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 401,
+      "line": 456,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -8236,7 +8661,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 405,
+      "line": 460,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -8246,7 +8671,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 412,
+      "line": 467,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8256,7 +8681,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 457,
+      "line": 512,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8266,7 +8691,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 466,
+      "line": 521,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8276,7 +8701,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 482,
+      "line": 537,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8286,7 +8711,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 488,
+      "line": 543,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8296,7 +8721,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 611,
+      "line": 666,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -8306,7 +8731,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 686,
+      "line": 741,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8356,7 +8781,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 723,
+      "line": 778,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8370,7 +8795,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 745,
+      "line": 800,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8384,7 +8809,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 778,
+      "line": 833,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -8394,7 +8819,21 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 959,
+      "line": 858,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This repair may already have a job"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Nothing was charged here. Open the repair request to see its job."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 1035,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8414,7 +8853,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 1027,
+      "line": 1103,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8424,7 +8863,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 98,
+      "line": 113,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8434,7 +8873,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 147,
+      "line": 162,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8454,7 +8893,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 220,
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8464,7 +8903,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 412,
+      "line": 437,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

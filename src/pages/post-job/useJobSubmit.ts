@@ -1,5 +1,4 @@
 import { linkTurnoverJob } from "./turnoverPrefill";
-import { linkMaintenanceJob } from "./maintenancePrefill";
 import { isUnder18Refusal, UNDER_18_POST_COPY } from "@/lib/ageGate";
 import { useRef } from "react";
 import { toast } from "sonner";
@@ -797,7 +796,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
        turnover rule): the tenant then sees it booked and can answer "Was it fixed?". */
     if (maintenanceRequestId) {
       try {
-        const linked = await linkMaintenanceJob(maintenanceRequestId, jobData.id);
+        // Loaded only here (off the first screen, like haulAwayLib); a failed load is caught below.
+        const linked = await (await import("./maintenancePrefill")).linkMaintenanceJob(maintenanceRequestId, jobData.id);
         // The job is posted either way; a refused link is reported, never silent.
         if (!linked) {
           report(new Error("maintenance link refused"), {

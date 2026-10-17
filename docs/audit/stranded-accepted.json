@@ -811,6 +811,24 @@
       "sha": "b383d86756571beb3bb474c819d013d129bceb8a",
       "reason": "Q1680's 'Require a W-9 From the Helpr' switch on Post a Job, built per the owner's 2026-10-14 call and held: the lh-authz-rls review found the W-9 behind it is only a typed name the poster can never see. Q1680 (docs/OPEN.md) decides it: the owner chooses a real W-9 first or plainer wording.",
       "checked": "2026-10-14 (sec-b: held on purpose, nothing of it is on origin/main)"
+    },
+    {
+      "id": "remote:origin/ops/operating-rules",
+      "sha": "f695d8fbd70e0749ffc1adee7cd9cd01214e32a4",
+      "reason": "Superseded, not landed on purpose (lead, 2026-10-17): its CLAUDE.md and AGENT-BRIEF lines reference a missing .claude/OPERATING.md (in no commit anywhere); its review record and owner-decisions item landed via ready/review-971207 and Q1902; its new items Q?contrast-unresolved-messages and Q?post-job-stale-cleanup-photos are carried in lander/rest-1017; its Q?landing-queue-1017 list is the landing this batch does.",
+      "checked": "2026-10-17 (lander, OPEN.md items grepped against origin/main and lander/rest-1017)"
+    },
+    {
+      "id": "remote:origin/wip/cloud-train-handoff-1017",
+      "sha": "e2e7b5e96231597f26d6e5184804ad537e54e9cb",
+      "reason": "Superseded (lead, 2026-10-17): a docs-only handoff from the cloud landing train, consumed by the local Auction session; nothing in it is meant for main.",
+      "checked": "2026-10-17 (lander)"
+    },
+    {
+      "id": "remote:origin/docs/owner-decisions-1017",
+      "sha": "e3dcf30bb7af3ecceec86bfa224654c75838faa9",
+      "reason": "Superseded (lead, 2026-10-17): its owner-decisions item merged as Q1902 (ready/open-dedupe-1017), and its two answers ((2) the lead releases 1.0.4 through the App Store Connect API; (3) a banned seller owes the card fee as seller debt) are recorded on Q1902 in lander/rest-1017.",
+      "checked": "2026-10-17 (lander, Q1902 text compared with e3dcf30bb)"
     }
   ]
 }

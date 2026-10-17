@@ -8,6 +8,11 @@ name: Feature switch audience
 # as the positive control (it must see every 'testers' switch). Verdict logic is
 # unit-tested in src/test/featureSwitchAudience.test.ts.
 #
+# It also holds the app's registry (FEATURE_SWITCH_KEYS, src/config/featureSwitches.ts)
+# to the live feature_switches rows, both ways (Q1847): a key with no row reads as
+# off for everyone, so a function gated on it refuses every caller when
+# functions-deploy shipped and db-deploy did not.
+#
 # A monitor, not a suite (exempt from the 90-min spacing by name in
 # src/test/prodWorkflowSpacing.test.ts): one service-role read of
 # feature_switches, one user lookup, three reads/writes of the probe's

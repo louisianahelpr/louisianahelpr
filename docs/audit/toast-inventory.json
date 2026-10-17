@@ -117,7 +117,50 @@
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
-        "text": "cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence })"
+        "text": "cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence })",
+        "from": "src/lib/cancelRefundCopy.ts",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Job cancelled. Your checkout was never completed, so you were never charged — there's nothing to refund."
+          },
+          {
+            "form": "template",
+            "text": "Job cancelled. The $${formatPriceExact(appliedFee)} cancellation fee applies — ${rest}${keptFeeSentence}",
+            "holes": {
+              "rest": [
+                {
+                  "form": "dynamic",
+                  "text": "flatModel ? \"the rest, less the card-processing fee Stripe keeps, returns to your card.\" : \"the rest, less the service fee you paid at checkout, returns to your card.\"",
+                  "branches": [
+                    {
+                      "form": "literal",
+                      "text": "the rest, less the card-processing fee Stripe keeps, returns to your card."
+                    },
+                    {
+                      "form": "literal",
+                      "text": "the rest, less the service fee you paid at checkout, returns to your card."
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "form": "dynamic",
+            "text": "flatModel ? `Job cancelled — your payment returns to your card, less the card-processing fee Stripe keeps.${keptFeeSentence}` : `Job cancelled — your job budget returns to your card; the service fee isn't refundable.${keptFeeSentence}`",
+            "branches": [
+              {
+                "form": "template",
+                "text": "Job cancelled — your payment returns to your card, less the card-processing fee Stripe keeps.${keptFeeSentence}"
+              },
+              {
+                "form": "template",
+                "text": "Job cancelled — your job budget returns to your card; the service fee isn't refundable.${keptFeeSentence}"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
@@ -207,7 +250,14 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")"
+        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")",
+        "from": "src/lib/uploadTypes.ts",
+        "branches": [
+          {
+            "form": "template",
+            "text": "\"${file.name}\" isn't a supported file type. Use ${formats}."
+          }
+        ]
       },
       "renders": true
     },
@@ -257,7 +307,13 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "getErrorMessage(err)"
+        "text": "getErrorMessage(err)",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "lifecycleErrorMessage(error) ?? userFacingError(error, \"Couldn't file the dispute — try again?\")"
+          }
+        ]
       },
       "renders": true
     },
@@ -267,7 +323,14 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")"
+        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")",
+        "from": "src/lib/uploadTypes.ts",
+        "branches": [
+          {
+            "form": "template",
+            "text": "\"${file.name}\" isn't a supported file type. Use ${formats}."
+          }
+        ]
       },
       "renders": true
     },
@@ -337,7 +400,13 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "getErrorMessage(err)"
+        "text": "getErrorMessage(err)",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "userFacingError(error, \"Couldn't export your earnings — try again?\")"
+          }
+        ]
       },
       "renders": true
     },
@@ -425,7 +494,13 @@
           },
           {
             "form": "dynamic",
-            "text": "getErrorMessage(err)"
+            "text": "getErrorMessage(err)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "userFacingError(error, \"Couldn't save that — try again?\")"
+              }
+            ]
           }
         ]
       },
@@ -487,7 +562,72 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "arrivalGateMessage(gate)"
+        "text": "arrivalGateMessage(gate)",
+        "from": "supabase/functions/_shared/arrivalRule.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "gps ? \"Arrival confirmed by your location and by the person who posted this job.\" : \"The person who posted this job confirmed you arrived.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "Arrival confirmed by your location and by the person who posted this job."
+              },
+              {
+                "form": "literal",
+                "text": "The person who posted this job confirmed you arrived."
+              }
+            ]
+          },
+          {
+            "form": "literal",
+            "text": "Your location confirmed you're at the job."
+          },
+          {
+            "form": "template",
+            "text": "Mark yourself arrived at the job site first. The person who posted this job has to tap \"Confirm They Arrived\" ${unlocks}.",
+            "holes": {
+              "unlocks": [
+                {
+                  "form": "dynamic",
+                  "text": "door === \"wrap-up\" ? \"before you can mark the job complete\" : \"before you can start working\"",
+                  "branches": [
+                    {
+                      "form": "literal",
+                      "text": "before you can mark the job complete"
+                    },
+                    {
+                      "form": "literal",
+                      "text": "before you can start working"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "form": "template",
+            "text": "The person who posted this job has to tap \"Confirm They Arrived\" ${unlocks}.",
+            "holes": {
+              "unlocks": [
+                {
+                  "form": "dynamic",
+                  "text": "door === \"wrap-up\" ? \"before you can mark the job complete\" : \"before you can start working\"",
+                  "branches": [
+                    {
+                      "form": "literal",
+                      "text": "before you can mark the job complete"
+                    },
+                    {
+                      "form": "literal",
+                      "text": "before you can start working"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
       },
       "renders": true
     },
@@ -507,7 +647,88 @@
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",
-        "text": "arrivalRefusalMessage(refusal)"
+        "text": "arrivalRefusalMessage(refusal)",
+        "from": "src/lib/arrivalGate.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "refusal.distanceFt != null ? `${notRecorded} Your location is about ${formatArrivalDistance(refusal.distanceFt)} from the job's map pin. If you're at the job, ${retry}` : `${notRecorded} Your location is a little way from the job's map pin. If you're at the job, ${retry}`",
+            "branches": [
+              {
+                "form": "template",
+                "text": "${notRecorded} Your location is about ${formatArrivalDistance(refusal.distanceFt)} from the job's map pin. If you're at the job, ${retry}",
+                "holes": {
+                  "notRecorded": [
+                    {
+                      "form": "literal",
+                      "text": "We couldn't check you in yet."
+                    }
+                  ],
+                  "retry": [
+                    {
+                      "form": "literal",
+                      "text": "Pull down to refresh and we'll try again."
+                    }
+                  ]
+                }
+              },
+              {
+                "form": "template",
+                "text": "${notRecorded} Your location is a little way from the job's map pin. If you're at the job, ${retry}",
+                "holes": {
+                  "notRecorded": [
+                    {
+                      "form": "literal",
+                      "text": "We couldn't check you in yet."
+                    }
+                  ],
+                  "retry": [
+                    {
+                      "form": "literal",
+                      "text": "Pull down to refresh and we'll try again."
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "form": "template",
+            "text": "${notRecorded} Location is turned off for Louisiana Helpr — allow it in Settings, then ${retry}",
+            "holes": {
+              "notRecorded": [
+                {
+                  "form": "literal",
+                  "text": "We couldn't check you in yet."
+                }
+              ],
+              "retry": [
+                {
+                  "form": "literal",
+                  "text": "Pull down to refresh and we'll try again."
+                }
+              ]
+            }
+          },
+          {
+            "form": "template",
+            "text": "${notRecorded} We couldn't get your location. Turn Location on, then ${retry}",
+            "holes": {
+              "notRecorded": [
+                {
+                  "form": "literal",
+                  "text": "We couldn't check you in yet."
+                }
+              ],
+              "retry": [
+                {
+                  "form": "literal",
+                  "text": "Pull down to refresh and we'll try again."
+                }
+              ]
+            }
+          }
+        ]
       },
       "renders": true
     },
@@ -797,7 +1018,14 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")"
+        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")",
+        "from": "src/lib/uploadTypes.ts",
+        "branches": [
+          {
+            "form": "template",
+            "text": "\"${file.name}\" isn't a supported file type. Use ${formats}."
+          }
+        ]
       },
       "renders": true
     },
@@ -1959,7 +2187,17 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "sendErrorCopy(error)"
+        "text": "sendErrorCopy(error)",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "copy"
+          },
+          {
+            "form": "dynamic",
+            "text": "refusal?.toast ?? \"Couldn't send that message. Try again.\""
+          }
+        ]
       },
       "renders": true
     },
@@ -3287,7 +3525,25 @@
       "kind": "toast",
       "title": {
         "form": "template",
-        "text": "${providerName} sign-in cancelled."
+        "text": "${providerName} sign-in cancelled.",
+        "holes": {
+          "providerName": [
+            {
+              "form": "dynamic",
+              "text": "provider === \"apple\" ? \"Apple\" : \"Google\"",
+              "branches": [
+                {
+                  "form": "literal",
+                  "text": "Apple"
+                },
+                {
+                  "form": "literal",
+                  "text": "Google"
+                }
+              ]
+            }
+          ]
+        }
       },
       "renders": true
     },
@@ -4361,7 +4617,72 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "arrivalGateMessage(arrivalRow)"
+        "text": "arrivalGateMessage(arrivalRow)",
+        "from": "supabase/functions/_shared/arrivalRule.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "gps ? \"Arrival confirmed by your location and by the person who posted this job.\" : \"The person who posted this job confirmed you arrived.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "Arrival confirmed by your location and by the person who posted this job."
+              },
+              {
+                "form": "literal",
+                "text": "The person who posted this job confirmed you arrived."
+              }
+            ]
+          },
+          {
+            "form": "literal",
+            "text": "Your location confirmed you're at the job."
+          },
+          {
+            "form": "template",
+            "text": "Mark yourself arrived at the job site first. The person who posted this job has to tap \"Confirm They Arrived\" ${unlocks}.",
+            "holes": {
+              "unlocks": [
+                {
+                  "form": "dynamic",
+                  "text": "door === \"wrap-up\" ? \"before you can mark the job complete\" : \"before you can start working\"",
+                  "branches": [
+                    {
+                      "form": "literal",
+                      "text": "before you can mark the job complete"
+                    },
+                    {
+                      "form": "literal",
+                      "text": "before you can start working"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "form": "template",
+            "text": "The person who posted this job has to tap \"Confirm They Arrived\" ${unlocks}.",
+            "holes": {
+              "unlocks": [
+                {
+                  "form": "dynamic",
+                  "text": "door === \"wrap-up\" ? \"before you can mark the job complete\" : \"before you can start working\"",
+                  "branches": [
+                    {
+                      "form": "literal",
+                      "text": "before you can mark the job complete"
+                    },
+                    {
+                      "form": "literal",
+                      "text": "before you can start working"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
       },
       "renders": true
     },
@@ -5218,7 +5539,14 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "unsupportedUploadCopy(file, \"a JPG, PNG, WebP or HEIC image\")"
+        "text": "unsupportedUploadCopy(file, \"a JPG, PNG, WebP or HEIC image\")",
+        "from": "src/lib/uploadTypes.ts",
+        "branches": [
+          {
+            "form": "template",
+            "text": "\"${file.name}\" isn't a supported file type. Use ${formats}."
+          }
+        ]
       },
       "renders": true
     },
@@ -5483,7 +5811,14 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or GIF photo\")"
+        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or GIF photo\")",
+        "from": "src/lib/uploadTypes.ts",
+        "branches": [
+          {
+            "form": "template",
+            "text": "\"${file.name}\" isn't a supported file type. Use ${formats}."
+          }
+        ]
       },
       "renders": true
     },
@@ -5953,7 +6288,24 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "ageGateCopy(kind)"
+        "text": "ageGateCopy(kind)",
+        "from": "src/lib/ageGate.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "kind === \"apply\" ? UNDER_18_APPLY_COPY : UNDER_18_POST_COPY",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "UNDER_18_APPLY_COPY"
+              },
+              {
+                "form": "dynamic",
+                "text": "UNDER_18_POST_COPY"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
@@ -6793,7 +7145,14 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "unsupportedUploadCopy(file, \"a photo (JPG, PNG, WebP, HEIC) or a PDF\")"
+        "text": "unsupportedUploadCopy(file, \"a photo (JPG, PNG, WebP, HEIC) or a PDF\")",
+        "from": "src/lib/uploadTypes.ts",
+        "branches": [
+          {
+            "form": "template",
+            "text": "\"${file.name}\" isn't a supported file type. Use ${formats}."
+          }
+        ]
       },
       "renders": true
     },
@@ -7915,7 +8274,14 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")"
+        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")",
+        "from": "src/lib/uploadTypes.ts",
+        "branches": [
+          {
+            "form": "template",
+            "text": "\"${file.name}\" isn't a supported file type. Use ${formats}."
+          }
+        ]
       },
       "renders": true
     },

@@ -25,7 +25,7 @@
  * @mutate scripts/audit/press-every-control.mjs |       await ctx.route(PRESS_WRITE_SURFACE_RX, netGate.handler); |
  * @mutate scripts/audit/press-every-control.mjs |   if (gateMisses.length > 0 \|\| failedPresses > 0 | if (failedPresses > 0
  * @mutate scripts/audit/pressProdSafety.mjs |   return "write";\n} |   return "read";\n}
- * @mutate scripts/audit/pressProdSafety.mjs | export const PRESS_WRITE_SURFACE_RX = /\/(rest\|functions\|storage)\/v1\//; | export const PRESS_WRITE_SURFACE_RX = /\/(rest)\/v1\//;
+ * @mutate scripts/audit/pressProdSafety.mjs | export const PRESS_WRITE_SURFACE_RX = /\/(rest\|functions\|storage\|auth)\/v1\//; | export const PRESS_WRITE_SURFACE_RX = /\/(rest)\/v1\//;
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -132,7 +132,7 @@ describe("the press sweep's network gate aborts every write an ungated press set
     expect(kind("POST", "/functions/v1/calculate-tax", "{}")).toBe("read");
     expect(kind("POST", "/storage/v1/object/list/avatars")).toBe("read");
     expect(kind("POST", "/storage/v1/object/avatars/me.png")).toBe("write");
-    expect(kind("POST", "/auth/v1/token?grant_type=refresh_token")).toBe("read"); // out of scope: session refresh
+    expect(kind("POST", "/auth/v1/token?grant_type=refresh_token")).toBe("read"); // the one allowed auth write: session refresh (auth writes: pressNetworkGateAbortsUngatedAuthWrites.test.ts)
     expect(safety.pressWriteKind({ method: "POST", url: "not a url" })).toBe("write");
   });
 

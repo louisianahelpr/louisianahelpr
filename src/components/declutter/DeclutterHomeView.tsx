@@ -31,7 +31,6 @@ import { ConditionStars, DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./de
 import { useDeclutterOrigin, type DeclutterOrigin } from "./useDeclutterOrigin";
 import { CartView, OffersView, StrikeCount } from "./DeclutterTradeViews";
 import { WantedView } from "./DeclutterWantedViews";
-import { useFeature } from "@/hooks/useFeature";
 
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
 // from two Declutter screens, the shared Helpr task module rode in

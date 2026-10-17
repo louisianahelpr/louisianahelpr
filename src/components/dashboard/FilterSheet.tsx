@@ -6,7 +6,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { Bookmark, Clock, FileText, Rocket, SearchCheck, X, Zap } from "lucide-react";
+import { Bookmark, Clock, Rocket, SearchCheck, X, Zap } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -33,7 +33,7 @@ import {
   ExpiresContent,
 } from "@/components/dashboard/JobFilters";
 import { SHEET_HERO_TITLE_CLASS, SHEET_HERO_TITLE_STYLE } from "@/components/ui/sheetHeroTitle";
-import { AvailabilityRow, SignupRow, ToggleRow } from "@/components/dashboard/filterSheet/FilterSheetRows";
+import { AvailabilityRow, SignupRow, ToggleRow, WantsQuotesRow } from "@/components/dashboard/filterSheet/FilterSheetRows";
 
 /**
  * FilterSheet — the ONE filter presentation used across the app.
@@ -537,8 +537,7 @@ interface JobFilterSectionsArgs {
   savedOnly?: boolean;
   onToggleSavedOnly?: () => void;
   savedCount?: number;
-  /* ---- "Wants Quotes" row (owner answer 12, 2026-10-17): only passed while
-     the hidden 'quotes' switch is on for a signed-in member ---- */
+  /* ---- "Wants Quotes" row (owner answer 12): passed only while the hidden 'quotes' switch is on ---- */
   wantsQuotes?: boolean;
   onToggleWantsQuotes?: () => void;
   /**
@@ -630,8 +629,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
     urgentOnly, setUrgentOnly,
     userLocStatus, userLocMessage,
     savedOnly = false, onToggleSavedOnly, savedCount = 0,
-    wantsQuotes = false, onToggleWantsQuotes,
-    showAvailability = true,
+    wantsQuotes = false, onToggleWantsQuotes, showAvailability = true,
     showNearby = true,
     savedSearchesButton, signupHref,
   } = args;
@@ -680,29 +678,12 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
       title: "Show only",
       content: (
         <div className="space-y-2.5">
-          {onToggleWantsQuotes && (
-            <ToggleRow
-              icon={FileText}
-              label="Wants Quotes"
-              hint={
-                <p className="text-ds-11 text-muted-foreground leading-snug">
-                  Jobs where people ask for your price
-                </p>
-              }
-              checked={wantsQuotes}
-              onChange={() => onToggleWantsQuotes()}
-              ariaLabel="Show jobs that want quotes"
-            />
-          )}
+          {onToggleWantsQuotes && <WantsQuotesRow checked={wantsQuotes} onToggle={onToggleWantsQuotes} />}
           {onToggleSavedOnly && (
             <ToggleRow
               icon={Bookmark}
               label="Only Saved Jobs"
-              hint={
-                <p className="text-ds-11 text-muted-foreground leading-snug">
-                  {savedCount > 0 ? `${savedCount} saved` : "You haven't saved any yet"}
-                </p>
-              }
+              hint={<p className="text-ds-11 text-muted-foreground leading-snug">{savedCount > 0 ? `${savedCount} saved` : "You haven't saved any yet"}</p>}
               checked={savedOnly}
               onChange={() => onToggleSavedOnly()}
               ariaLabel="Show saved jobs only"

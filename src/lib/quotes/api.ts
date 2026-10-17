@@ -238,7 +238,7 @@ export type BookedJobPayment = "not_paid" | "paid" | "refunded" | "cancelled" | 
 
 const PAID_STATUSES: readonly string[] = ["escrow", "payout_pending", "released"];
 
-export function bookedJobPayment(status: string | null | undefined, jobStatus?: string | null): BookedJobPayment {
+function bookedJobPayment(status: string | null | undefined, jobStatus?: string | null): BookedJobPayment {
   const s = status ?? "unpaid";
   // A job that closed unpaid (auto-expire cancels an open job whose time
   // passed and leaves payment_status 'unpaid') can no longer be paid for:

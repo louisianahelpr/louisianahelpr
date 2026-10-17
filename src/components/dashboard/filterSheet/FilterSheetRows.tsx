@@ -5,7 +5,7 @@
  */
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowUpRight, ChevronRight, Clock, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Clock, FileText, type LucideIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { hapticLight } from "@/lib/haptics";
 
@@ -167,6 +167,20 @@ export function AvailabilityRow({
       onChange={setMatchAvailability}
       disabled={!hasAvailability}
       ariaLabel="Match my availability"
+    />
+  );
+}
+
+/** "Wants Quotes" (owner answer 12, 2026-10-17): offered only while the hidden 'quotes' switch is on. */
+export function WantsQuotesRow({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
+  return (
+    <ToggleRow
+      icon={FileText}
+      label="Wants Quotes"
+      hint={<p className="text-ds-11 text-muted-foreground leading-snug">Jobs where people ask for your price</p>}
+      checked={checked}
+      onChange={() => onToggle()}
+      ariaLabel="Show jobs that want quotes"
     />
   );
 }

@@ -11,7 +11,7 @@
  * @mutate src/pages/home/Dashboard.tsx |                     onToggleWantsQuotes={quotesOn ? toggleWantsQuotes : undefined} |                     onToggleWantsQuotes={toggleWantsQuotes}
  * @mutate src/pages/home/Dashboard.tsx |   const wantsQuotes = quotesOn && wantsQuotesPicked; |   const wantsQuotes = wantsQuotesPicked;
  * @mutate src/pages/home/Dashboard.tsx | {isWebDesktop && mapVisible && !feedShowingLoadError && !wantsQuotes && ( | {isWebDesktop && mapVisible && !feedShowingLoadError && (
- * @mutate src/components/dashboard/FilterSheet.tsx |           {onToggleWantsQuotes && ( |           {false && (
+ * @mutate src/components/dashboard/FilterSheet.tsx | {onToggleWantsQuotes && <WantsQuotesRow | {false && <WantsQuotesRow
  * @mutate src/components/quotes/WantsQuotesFeed.tsx |             <OpenQuoteRequestRow key={r.id} r={r} /> |             null
  */
 import { describe, expect, it, vi } from "vitest";

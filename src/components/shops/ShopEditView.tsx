@@ -257,7 +257,7 @@ export default function ShopEditView() {
         <div className="space-y-1.5">
           <Label htmlFor="shop-about">About</Label>
           <Textarea id="shop-about" value={form.about} maxLength={2000} rows={5} onChange={(e) => set("about", e.target.value)} />
-          <p className="text-xs text-muted-foreground">No phone numbers, emails or websites: members reach you in the app.</p>
+          <p className="text-xs text-muted-foreground">No phone numbers, emails or websites: Shops does not allow contact details.</p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="shop-area">Town or neighborhood</Label>

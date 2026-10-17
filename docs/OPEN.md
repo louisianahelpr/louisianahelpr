@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 195** (170 to do, 25 fixed with protection pending; 1350 done). Feeds mirrored in: 13 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 14 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 205** (171 to do, 34 fixed with protection pending; 1359 done). Feeds mirrored in: 13 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 14 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 15 red, 12 stale, 0 unknown, 48 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-16T22:07Z)_
@@ -23,7 +23,6 @@ Every request the owner sent on 2026-10-08, one line each. [~] = built and landi
   - Merged 2026-10-14 (one problem: the unrestricted MapKit token; Q1654 (3) and Q1671 share src/test/mapkitTokenNeverShipped.test.ts): Q1671 is ticked into this item.
   - From Q1671: the MapKit token script (then scripts/mapkit-token.mjs) still says it generates VITE_APPLE_MAPKIT_TOKEN and tells you to paste it into .env, the build-time token Q249 removed; reword it to say what it is for now, or retire it (Q1683 asks the owner whether to delete it). finding: lh-authz-rls@53afe14a9#2 **RETIRED 2026-10-14 (sec-c, owner decision via Q1683: archive):** moved to scripts/archive/mapkit-token.mjs with an ARCHIVED header saying Q249 removed the token and not to paste its output into .env; nothing references it (src/test/mapkitTokenNeverShipped.test.ts never named it).
 - [ ] **Q1655 LOW email-unsubscribe performs the write on a GET, now for job-match mail too (lh-authz-rls review of Q1585, 2026-10-12; inherited from the promotions flow).** supabase/functions/email-unsubscribe/index.ts writes before any method check, and the job-match List-Unsubscribe URL is header-only, so any client or scanner that GETs it turns off that member's new-job emails. RFC 8058 clients POST. Fix: GET renders a confirm page that POSTs; POST (One-Click) writes. Same file: the resubscribe confirmation pages (promotions and job_matches) are unreachable because every POST returns text first. finding: lh-authz-rls@57aea077b#3
-- [~] **Q1817 LOW "Job auto-cancelled" is in-app and push only: no email reaches the poster (found fixing Q1654, 2026-10-12).** Measured on prod for job 5d43debf (auto-expire-jobs, 2026-10-11 15:00:01Z): notification_logs holds one push row (skipped) and no email row, and email_send_log has 0 rows for that poster between 14:55 and 19:00Z (last email 13:46Z). auto-expire-jobs writes the row with insertNotifications and never calls send-notification-email, and no notifications trigger sends email. Fix when built: send the cancel notice by email the way stalled-completion-reminder does, with a guard that every poster-facing cancel notice in supabase/functions is emailed. FIXED 2026-10-14 CT (sec-a): auto-expire-jobs now sends the "Job auto-cancelled" notice through send-notification-email after the in-app row lands (that function applies email_job_updates and the seed boundary), and records a defect when the email or the in-app row fails. GUARD src/test/edge/auto-expire-jobs-cancel-email.test.ts: a funded past-date job's poster gets the email (control: a never-funded job gets nothing), plus the class: every edge-function notification whose title says cancel is classified both ways (poster-emailed / helper / admin), and each poster one's file must email it. 2 tests FAIL on origin/main's auto-expire-jobs, 5/5 after; its @mutate turned it red. Left: one prod run of a real auto-cancel with an email notification_logs row. done-when: sql `SELECT count(*) > 0 FROM public.notification_logs n JOIN public.jobs j ON j.id = n.job_id WHERE n.channel = 'email' AND j.cancellation_reason LIKE 'Job listing expired%' AND j.cancelled_at > '2026-10-15' AND n.created_at >= j.cancelled_at` => true
 
 ## LAUNCH LIST (owner-approved 2026-10-05 ~20:00 CT)
 
@@ -96,7 +95,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1545 items — 1350 done, 25 partly done (fixed, protection pending), 170 open.**
+**Queue: 1564 items — 1359 done, 34 partly done (fixed, protection pending), 171 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -699,7 +698,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38958608457. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
   - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39032021419. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #2937, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38858111043. notes: Q1775. feed: issue #2937 · feed: ledger a8ceee56bbd5
-  - nightly-webkit: issue #2962, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38692697851. notes: Q1780. feed: issue #2962 · feed: ledger 70e7b0decb9a
+  - nightly-webkit: issue #2962, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39034702084. notes: Q1780. feed: issue #2962 · feed: ledger 70e7b0decb9a
   - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38982141882. notes: Q1807. feed: issue #2993
   - db-drift-detect: issue #3154, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38939285895. feed: issue #3154 · feed: ledger 8018e82cb167
   - main: Sensitive review record: issue #3178, newest red run: see the issue's latest comment. feed: issue #3178 · feed: ledger e41c806b9175

@@ -528,6 +528,117 @@ describe("money-reconciliation edge function", () => {
     });
   });
 
+  // Q1876 follow-up: a gift-shortfall checkout consumes the gift at completion; if the
+  // bank debit then bounces and the return (Q1876) is held or never runs, the
+  // gift stays 'redeemed' on a job that holds no money. Re-reported every run
+  // until it is returned.
+  describe("a gift left spent on a job that holds no money (Q1876 follow-up)", () => {
+    const old = new Date(Date.now() - 3 * 86_400_000).toISOString();
+    function seedFailedGiftJob() {
+      seedCleanLedger();
+      scenario.reads.jobs!.rows![0] = {
+        ...scenario.reads.jobs!.rows![0], status: "open", payment_status: "failed", helper_id: null,
+        cancelled_at: null, updated_at: old, poster_completed_at: null, helper_completed_at: null,
+      };
+      scenario.reads.payout_transfers = { rows: [] };
+      scenario.reads.gift_cards = {
+        rows: [{ id: "gc-1", parent_credit_id: null, payment_status: "paid", status: "redeemed", amount: 100, job_id: "job-1", restored_from_job_id: null }],
+      };
+    }
+    const names = (b: Record<string, unknown>) => (b.findings as Array<{ check: string }>).map((f) => f.check);
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | checks.giftSpentOnFailedPayment.add({ | void ({
+    // @mutate supabase/functions/money-reconciliation/index.ts | if (!job \|\| !UNFUNDED_PAYMENT_STATES.has(String(job.payment_status ?? "unpaid")) \|\| job.stripe_session_id) return false; | if (!job) return false;
+    it("flags it", async () => {
+      const fn = await loadConfigured();
+      seedFailedGiftJob();
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).toContain("gift_spent_on_failed_payment");
+    });
+
+    // Review of 379780047 (#1): the poster's retry stamps the job 'unpaid'
+    // and its expiry clears the session (or the sweep marks it 'abandoned'),
+    // after which the Q1876 retry never returns the gift.
+    // @mutate supabase/functions/money-reconciliation/index.ts | const UNFUNDED_PAYMENT_STATES = new Set(["failed", "unpaid", "abandoned"]); | const UNFUNDED_PAYMENT_STATES = new Set(["failed"]);
+    it("flags it after the poster's retry left the job 'unpaid' with no session", async () => {
+      const fn = await loadConfigured();
+      seedFailedGiftJob();
+      scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], payment_status: "unpaid", stripe_session_id: null };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).toContain("gift_spent_on_failed_payment");
+    });
+
+    it("flags it after the abandon sweep marked the job 'abandoned'", async () => {
+      const fn = await loadConfigured();
+      seedFailedGiftJob();
+      scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], payment_status: "abandoned", stripe_session_id: null };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).toContain("gift_spent_on_failed_payment");
+    });
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | !UNFUNDED_PAYMENT_STATES.has(String(job.payment_status ?? "unpaid")) \|\| job.stripe_session_id) return false; | !UNFUNDED_PAYMENT_STATES.has(String(job.payment_status ?? "unpaid"))) return false;
+    it("not while a checkout session is on the job (a bank payment still settling keeps its session)", async () => {
+      const fn = await loadConfigured();
+      seedFailedGiftJob();
+      scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], payment_status: "unpaid", stripe_session_id: "cs_live" };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("gift_spent_on_failed_payment");
+    });
+
+    it("stops once the gift is returned (status 'sent', no job)", async () => {
+      const fn = await loadConfigured();
+      seedFailedGiftJob();
+      scenario.reads.gift_cards!.rows![0] = { ...scenario.reads.gift_cards!.rows![0], status: "sent", job_id: null };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("gift_spent_on_failed_payment");
+    });
+
+    it("not on a job whose payment did not fail (a funded job is the gift's normal home)", async () => {
+      const fn = await loadConfigured();
+      seedFailedGiftJob();
+      scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], payment_status: "escrow" };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("gift_spent_on_failed_payment");
+    });
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | return failedAt === null \|\| nowGift - failedAt >= SETTLE_WINDOW_MS; | return true;
+    it("not inside the settle window (the return runs on the failure delivery)", async () => {
+      const fn = await loadConfigured();
+      seedFailedGiftJob();
+      scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], updated_at: new Date().toISOString() };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("gift_spent_on_failed_payment");
+    });
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | if (failedRestoredJobIds.has(g.job_id)) continue; |
+    it("not when a replacement gift was already minted for the job", async () => {
+      const fn = await loadConfigured();
+      seedFailedGiftJob();
+      scenario.reads.gift_cards!.rows!.push({ id: "gc-2", parent_credit_id: "gc-1", payment_status: "paid", status: "sent", amount: 100, job_id: null, restored_from_job_id: "job-1" });
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("gift_spent_on_failed_payment");
+    });
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | if (failedGiftPaidJobIds.has(g.job_id)) continue; |
+    it("not when a live payout went to the Helpr", async () => {
+      const fn = await loadConfigured();
+      seedFailedGiftJob();
+      scenario.reads.payout_transfers = { rows: [{ job_id: "job-1", helper_id: "helper-1", amount_cents: 8800, platform_fee_cents: 1200, status: "paid", stripe_transfer_id: "tr_1" }] };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("gift_spent_on_failed_payment");
+    });
+
+    // @mutate supabase/functions/money-reconciliation/index.ts |         if (transferCap) {\n          notes.push(`gift-on-failed-payment | if (false) {\n          notes.push(`gift-on-failed-payment
+    it("a TRUNCATED payout ledger skips the check (degraded), never a false critical", async () => {
+      const fn = await loadConfigured();
+      seedFailedGiftJob();
+      scenario.reads.payout_transfers = { rows: [], count: 5 };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("gift_spent_on_failed_payment");
+      expect((b.notes as string[]).join(" ")).toMatch(/gift-on-failed-payment check skipped/);
+    });
+  });
+
   // Review of Q1222/Q1223 (should-fix): money a payout hold kept back is
   // re-driven by process-scheduled-payouts. A row Stripe refused, or one whose
   // Helpr is clear but that is still unpaid a day later, has been dropped and

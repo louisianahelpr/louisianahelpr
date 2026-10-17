@@ -488,8 +488,13 @@ ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id =
 const later = one(await svc(`SELECT date_trunc('minute', now() + interval '3 days')::text`));
 ok(Array.isArray(await as("authenticated", HELPR, `SELECT public.rentals_propose_visit('${jobL}', '${later}')`))
   && rows(await visit(HELPR))[0]?.c == null, "visit: a new proposal clears the old confirmation");
-ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${TENANT}' AND title = 'A Helpr offered a visit time'`)) === 1,
-  "visit: a new time within 10 minutes does not notify the tenant again (lh-authz-rls #4)");
+const offersToTenant = () => svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${TENANT}' AND title = 'A Helpr offered a visit time'`);
+ok(one(await offersToTenant()) === 2,
+  "visit: a new time that voids the tenant's OK is always told, even within 10 minutes (re-review A2)");
+const later2 = one(await svc(`SELECT date_trunc('minute', now() + interval '4 days')::text`));
+ok(Array.isArray(await as("authenticated", HELPR, `SELECT public.rentals_propose_visit('${jobL}', '${later2}')`)) && one(await offersToTenant()) === 2,
+  "visit: an un-OK'd re-offer within 10 minutes does not notify the tenant again (lh-authz-rls #4)");
+await svc(`UPDATE public.maintenance_requests SET visit_proposed_for = '${later}' WHERE id = '${req1}'`);
 await svc(`UPDATE public.maintenance_requests SET visit_proposed_for = now() - interval '1 hour' WHERE id = '${req1}'`);
 const past = one(await svc(`SELECT visit_proposed_for::text FROM public.maintenance_requests WHERE id = '${req1}'`));
 ok(refused(await as("authenticated", TENANT, `SELECT public.rentals_confirm_visit('${req1}', '${past}')`), /visit_time_passed/, "22023"),
@@ -604,7 +609,22 @@ ok(!skip && one(await svc(`SELECT count(*)::int FROM public.notifications WHERE 
   "but its notice to the real landlord is dropped by the boundary (judged with the actor, not the link)");
 ok(one(await svc(`SELECT count(*)::int FROM public.notification_logs WHERE user_id = '${ORDINARY}' AND status = 'suppressed_seed' AND subject = 'Property approved'`)) === 1,
   "and the drop is logged like the trigger's (notification_logs suppressed_seed)");
+// The ownership-proof alert (lh-authz-rls review of e4a59d029 #2): a TEST landlord's proof pages no real admin and never
+// holds a real alert open. (STRANGER is the test landlord here: LANDLORD's auth row was deleted above.)
+await svc(`UPDATE public.profiles SET is_seed = (user_id = '${STRANGER}')`);
+const seedProp = one(await as("authenticated", STRANGER, createProp("Seed landlord place")));
+const alertsTo = (uid) => svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${uid}' AND title = 'Ownership proof waits for review'`);
+const adminBefore = one(await alertsTo(ADMIN));
+ok(Array.isArray(await as("authenticated", STRANGER,
+  `SELECT public.rentals_submit_ownership_proof('${seedProp}', '${STRANGER}/rentals/${seedProp}/deed.pdf')`))
+  && one(await alertsTo(ADMIN)) === adminBefore,
+  "alert: a test landlord's proof does not page a real admin (seed boundary judged with the landlord)");
+ok(one(await svc(`SELECT public.admin_queue_still_pending('rentals-ownership-review', '{}'::jsonb, now())`)) === false,
+  "alert: and a test owner's waiting proof does not hold the alert open");
 await svc(`UPDATE public.profiles SET is_seed = false`);
+ok(one(await svc(`SELECT public.admin_queue_still_pending('rentals-ownership-review', '{}'::jsonb, now())`)) === true,
+  "alert: the same waiting proof from a real owner does");
+await svc(`UPDATE public.rental_properties SET ownership_status = 'approved' WHERE id = '${seedProp}'`);
 
 // --- Q807: the unconfirmed-email statement gate covers every Rentals table
 const gated = await svc(`SELECT count(*)::int AS n FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid

@@ -25,12 +25,13 @@
 -- (table SELECT grant + the "tenant or landlord" policy); the screen shows a
 -- proposal only while visit_job_id = job_id.
 --
--- The Helpr is not a Rentals member: no rentals_assert_member (the jobs flow
--- already gates who can be hired). Both writes are behind require_feature
--- ('rentals'), so while the switch is testers-only the Helpr must be a tester
--- too. Banned callers write nothing. Under-18: the tenant check is
--- rentals_assert_member (Q59); a minor cannot be hired as a Helpr by the jobs
--- flow.
+-- The Helpr is not a Rentals member: no rentals_assert_member. Both writes are
+-- behind require_feature('rentals'), so while the switch is testers-only the
+-- Helpr must be a tester too. Banned callers write nothing. Under-18: the
+-- tenant check is rentals_assert_member (Q59); a minor Helpr is refused by
+-- trg_jobs_refuse_under_18 (refuse_under_18_member, BEFORE INSERT OR UPDATE OF
+-- helper_id, helper_confirmed_at ON jobs, direct offers included), and
+-- proposing needs helper_confirmed_at.
 --
 -- Lock order (as rentals_tenant_answer_fixed and link_maintenance_request_job):
 -- the job first (FOR SHARE), then the request (FOR UPDATE), so none of them
@@ -64,6 +65,8 @@ DECLARE
   v_req uuid;
   v_tenant uuid;
   v_last timestamptz;
+  v_was_ok boolean;
+  v_other_job boolean;
 BEGIN
   PERFORM public.require_feature('rentals');
   IF v_uid IS NULL THEN
@@ -86,7 +89,8 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
   END IF;
-  SELECT r.id, r.tenant_id, r.visit_proposed_at INTO v_req, v_tenant, v_last FROM public.maintenance_requests r
+  SELECT r.id, r.tenant_id, r.visit_proposed_at, r.visit_confirmed_at IS NOT NULL, r.visit_job_id IS DISTINCT FROM p_job_id
+    INTO v_req, v_tenant, v_last, v_was_ok, v_other_job FROM public.maintenance_requests r
    WHERE r.job_id = p_job_id AND r.status = 'approved'
    FOR UPDATE;
   IF NOT FOUND THEN
@@ -96,9 +100,11 @@ BEGIN
      SET visit_job_id = p_job_id, visit_proposed_for = p_at, visit_proposed_at = now(),
          visit_confirmed_at = NULL, updated_at = now()
    WHERE id = v_req;
-  -- One notice per 10 minutes: a Helpr changing the time again and again does
-  -- not flood the tenant, who is not a party to the job (lh-authz-rls #4).
-  IF v_last IS NULL OR v_last < now() - interval '10 minutes' THEN
+  -- One notice per 10 minutes for un-OK'd re-offers on the same job: a Helpr
+  -- changing the time again and again does not flood the tenant, who is not a
+  -- party to the job (lh-authz-rls #4). A new offer that voids the tenant's OK,
+  -- or follows an offer made for another job, is always told (re-review A2).
+  IF v_last IS NULL OR v_was_ok OR v_other_job OR v_last < now() - interval '10 minutes' THEN
     PERFORM public.rentals_notify(v_tenant, 'A Helpr offered a visit time',
       'Open your repair request to OK the time.', '/rentals/requests/' || v_req::text, false);
   END IF;

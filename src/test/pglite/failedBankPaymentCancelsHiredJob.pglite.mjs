@@ -498,7 +498,18 @@ if (giftSql) {
   await seedJob(J(10), { status: "open" });
   await seedGift();
   v = await cancel(J(10), PI, GIFT);
-  check("G5 not_hired leaves the gift spent for the un-fund path (Q1975)", v?.outcome === "not_hired" && (await gift()).status === "redeemed", JSON.stringify(v));
+  check("G5 not_hired leaves the gift to the handler's un-fund", v?.outcome === "not_hired" && (await gift()).status === "redeemed", JSON.stringify(v));
+  // G6: that un-fund (paymentIntentPaymentFailed's exact write: failed, no
+  // checkout) leaves the job in the state return_bounced_gift_card accepts, so
+  // the handler's returnBouncedGift call gives the SAME gift back, once.
+  await raw(`UPDATE public.jobs SET payment_status = 'failed', stripe_session_id = NULL
+    WHERE id = '${J(10)}' AND stripe_payment_intent_id = '${PI}' AND payment_status IN ('escrow', 'payout_pending')`);
+  const back1 = await one(`SELECT public.return_bounced_gift_card('${J(10)}', '${GIFT}') AS r`);
+  const back2 = await one(`SELECT public.return_bounced_gift_card('${J(10)}', '${GIFT}') AS r`);
+  const g6 = await gift();
+  check("G6 after the not-hired un-fund the gift goes back once (returned, then not_consumed)",
+    back1?.r?.outcome === "returned" && back2?.r?.outcome === "not_consumed" && g6.status === "sent" && g6.job_id === null,
+    JSON.stringify({ back1, back2, g6 }));
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");

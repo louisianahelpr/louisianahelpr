@@ -33,7 +33,7 @@ import { type APIRequestContext, type Browser } from "@playwright/test";
 import { test } from "../prodTest";
 import { ANON, SUPABASE_URL, stripeModeFromCheckoutUrl, type Session } from "../journeys/fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
-import { openCardFields } from "../stripeCheckoutCard";
+import { openCardFields, waitForStripePaymentMethods } from "../stripeCheckoutCard";
 import {
   ACCEPTED_FIXTURE_TITLE,
   planAcceptedJob,
@@ -201,8 +201,7 @@ async function payCheckout(browser: Browser, url: string): Promise<void> {
   try {
     await page.goto(url, { waitUntil: "domcontentloaded" });
     const card = page.locator("#cardNumber");
-    const radio = page.getByRole("radio").first();
-    await card.or(radio).first().waitFor({ state: "visible", timeout: 60_000 });
+    await waitForStripePaymentMethods(page);
     await openCardFields(page);
     await card.fill("4242 4242 4242 4242");
     await page.locator("#cardExpiry").fill("12 / 34");

@@ -59,6 +59,8 @@
     "e2e/proofPhotoTeardown.ts",
     // src/test/giftCardJourneyLedger.test.ts (SC-005) imports the journey's ledger checks.
     "e2e/giftCardLedger.ts",
+    // src/test/stripeCheckoutCardOpener.test.ts drives openCardFields on each Stripe layout.
+    "e2e/stripeCheckoutCard.ts",
     // src/test/stateMatrixPendingApprovalUnreachable.test.ts (Q251) imports the
     // manifest enumerator to assert pending_approval cells are unreachable.
     "e2e/happy-path/state-matrix/stateMatrix.ts",

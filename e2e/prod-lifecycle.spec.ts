@@ -1,7 +1,7 @@
 import { test, expect, type APIRequestContext, type Page, type Locator } from "./prodTest";
 import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { openCardFields } from "./stripeCheckoutCard";
+import { openCardFields, waitForStripePaymentMethods } from "./stripeCheckoutCard";
 import { skipLivePay } from "./prod-audit/fundedOpenJob";
 import { ageJobPastEarlyAccess } from "./ageJobPastEarlyAccess";
 import { join } from "node:path";
@@ -714,7 +714,8 @@ test.describe("full money loop against production", () => {
              input exists in the DOM to match a placeholder against. Opening it
              by clicking the text "Card" does not work either — Stripe's own
              `card-accordion-item-button` sits on top and swallows the click.
-             Clicking the first radio, forced, is what opens it.
+             openCardFields (e2e/stripeCheckoutCard.ts) clicks that button, or
+             the first radio on the older layout.
            * Once open the fields carry stable ids, so use those rather than
              placeholder text that is localised and has changed before.
            * "Save my information" (`#enableStripePass`) is checked by default
@@ -726,11 +727,12 @@ test.describe("full money loop against production", () => {
       // The accordion only exists when Stripe offers MORE than one method; with
       // a single method the card fields are already open and there is no
       // radio at all — run 34169858494 sat on `getByRole("radio")` for the
-      // whole 5-minute budget on exactly that page. Wait for whichever
-      // appears first, click the radio only if it did.
-      const cardNumber = page.locator("#cardNumber");
-      const methodRadio = page.getByRole("radio").first();
-      await expect(cardNumber.or(methodRadio)).toBeVisible({ timeout: 60_000 });
+      // whole 5-minute budget on exactly that page. And since 2026-10-13 the
+      // Sandbox page has no role=radio at all (the circle is decorative; the
+      // control is a button), which is what 38447487997 died on. Wait for
+      // whichever control the shared helper knows appears first; it names
+      // the page's buttons if none does.
+      await waitForStripePaymentMethods(page);
       await openCardFields(page);
       await page.locator("#cardNumber").fill(TEST_CARD.number);
       await page.locator("#cardExpiry").fill(TEST_CARD.expiry);

@@ -45,6 +45,14 @@
 // @mutate src/components/GuestBrowseSkeleton.tsx | 0.25rem) + var(--public-nav-h))" }} /> | 1.5rem) + 3rem)" }} />
 // @mutate src/components/dashboard/VirtualizedJobList.tsx | initialRect: { width: 0, height: typeof window === "undefined" ? 800 : window.innerHeight }, |
 // @mutate src/lib/simpleMode.ts | let profileSeniorMode = cachedProfileFlag(); | let profileSeniorMode = false;
+// @mutate src/pages/profile/Profile.tsx | useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled) | useArrivalGate(!loading, membershipsSwitch.settled)
+// @mutate src/pages/profile/Profile.tsx | const showSkeleton = tab === "landing" ? !landingReady : loading; | const showSkeleton = loading;
+// @mutate src/pages/profile/Profile.tsx |   if (showSkeleton) { |   if (loading) {
+// @mutate src/components/profile/profileLanding/DeclutterEntryRow.tsx | useFeature("declutter") | useFeature("quotes")
+// @mutate src/components/declutter/DeclutterHomeView.tsx | useArrivalGate(true, wanted.settled) | useArrivalGate(true, true)
+// @mutate src/components/declutter/DeclutterHomeView.tsx |   if (!tabsReady) return <DeclutterHomeSkeleton />;\n |
+// @mutate src/components/declutter/DeclutterHomeView.tsx |   if (listLoading) return <DeclutterBrowseBones />;\n |
+// @mutate src/components/declutter/DeclutterHomeView.tsx |  \|\| origin.status === "pending"; | ;
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { readFileSync, statSync } from "node:fs";
@@ -166,6 +174,67 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
       expect(read(f), f).toMatch(/<ProfileTabBodyReserve (tab="[a-z_]+" )?\/>/);
     }
     expect(read("components/NotificationPreferences.tsx")).toMatch(/if \(!loaded\) return <ProfileTabBodyReserve tab="notifications" \/>;/);
+  });
+
+  it("the profile landing waits for EVERY hidden switch its rows read (Q?profile-declutter-shift)", () => {
+    // The landing's rows, found by following ProfileLanding.tsx's own relative
+    // imports (never a hand list): a row that shows only while a switch is on
+    // and paints after the answer pushes everything under it down. Measured on
+    // prod at 375: the Declutter row moved Settings 90px, CLS 0.0599.
+    const landingFiles = new Set<string>();
+    const visit = (rel: string) => {
+      if (landingFiles.has(rel)) return;
+      landingFiles.add(rel);
+      const src = read(rel);
+      const dir = rel.replace(/\/[^/]+$/, "");
+      for (const m of src.matchAll(/from\s+"(\.{1,2}\/[^"]+)"/g)) {
+        const base = join(dir, m[1]);
+        const hit = [`${base}.tsx`, `${base}.ts`, `${base}/index.tsx`, `${base}/index.ts`].find((p) => {
+          try { return statSync(join(SRC, p)).isFile(); } catch { return false; }
+        });
+        if (hit) visit(hit);
+      }
+    };
+    visit("components/profile/ProfileLanding.tsx");
+    expect(landingFiles.size).toBeGreaterThan(4);
+    const keys = new Set<string>();
+    for (const f of landingFiles) {
+      for (const m of read(f).matchAll(/\buseFeature(?:Status)?\s*\(\s*"([a-z0-9_]+)"\s*\)/g)) keys.add(m[1]);
+    }
+    // declutter (DeclutterEntryRow) and memberships (useProfileLandingDerived).
+    expect(keys.size).toBeGreaterThan(1);
+
+    const profile = read("pages/profile/Profile.tsx");
+    const gate = /const landingReady = useArrivalGate\(!loading, ([^;]+)\);/.exec(profile);
+    expect(gate, "Profile.tsx gates its landing with useArrivalGate(!loading, <switch answers>)").not.toBeNull();
+    for (const k of keys) {
+      const v = new RegExp(`const (\\w+) = useFeatureStatus\\("${k}"\\);`).exec(profile);
+      expect(v, `Profile.tsx reads useFeatureStatus("${k}"), the switch a landing row shows on`).not.toBeNull();
+      expect(gate![1], `the landing gate waits for the "${k}" answer`).toContain(`${v![1]}.settled`);
+    }
+    expect(profile).toContain(`const showSkeleton = tab === "landing" ? !landingReady : loading;`);
+    expect(profile).toMatch(/\n {2}if \(showSkeleton\) \{/);
+  });
+
+  it("/declutter's tab row waits for its switch, and Browse paints its filters and cards together (Q?declutter-settle)", () => {
+    const src = read("components/declutter/DeclutterHomeView.tsx");
+    // Every switch the page reads shapes its tab row: each is read WITH its
+    // answer state and held behind the arrival gate.
+    const keys = [...src.matchAll(/\buseFeature(?:Status)?\s*\(\s*"([a-z0-9_]+)"\s*\)/g)].map((m) => m[1]);
+    expect(keys.length).toBeGreaterThan(0);
+    expect(src).not.toMatch(/\buseFeature\s*\(/);
+    const gate = /const tabsReady = useArrivalGate\(true, ([^;]+)\);/.exec(src);
+    expect(gate, "DeclutterHome gates its tab row with useArrivalGate").not.toBeNull();
+    for (const k of keys) {
+      const v = new RegExp(`const (\\w+) = useFeatureStatus\\("${k}"\\);`).exec(src);
+      expect(v, `DeclutterHome reads useFeatureStatus("${k}")`).not.toBeNull();
+      expect(gate![1]).toContain(`${v![1]}.settled`);
+    }
+    expect(src).toMatch(/\n {2}if \(!tabsReady\) return <DeclutterHomeSkeleton \/>;/);
+    // Browse: one gate for where-you-are AND the items; no half-painted list.
+    expect(src).toMatch(/const listLoading = items\.isLoading \|\| photos\.isLoading \|\| origin\.status === "pending";/);
+    expect(src).toMatch(/\n {2}if \(listLoading\) return <DeclutterBrowseBones \/>;/);
+    expect(src).not.toContain("Loading items…");
   });
 
   it("the security tab waits for its sessions AND two-step reads, then lands once", () => {

@@ -18,6 +18,11 @@
  * So /admin passes only if every /admin?view=… row in the shard was clean.
  */
 
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
+
 const NEUTRAL = new Set(["redirect", "uncovered", "session-lost"]);
 
 /** Pathname of a route url (query and hash dropped). */

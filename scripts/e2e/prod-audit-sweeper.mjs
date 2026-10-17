@@ -68,6 +68,10 @@ import { fileURLToPath } from "node:url";
 import { removeJobMediaRest } from "../lib/jobMediaRest.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 /** Bracket-free: see "WHY THE TITLE FILTER HAS NO BRACKETS" above. */
 export const JOB_TITLE_MARKER = "E2E-PRODAUDIT";

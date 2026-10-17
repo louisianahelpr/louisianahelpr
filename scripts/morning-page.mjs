@@ -29,6 +29,10 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 export const REPO = resolve(import.meta.dirname, "..");
 export const SECTIONS = ["In one line", "What shipped", "What's red", "New alerts", "Waiting on you"];

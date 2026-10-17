@@ -27,6 +27,10 @@
  */
 import { pathToFileURL } from "node:url";
 import { lit, sql } from "./lib/opsAlertLedger.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 export const APP_APPLE_ID = "6754470134"; // fastlane/ios_app_metadata.yml identity.apple_id
 export const SOURCE = "app-store-review";

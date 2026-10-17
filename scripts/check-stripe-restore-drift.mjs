@@ -25,6 +25,10 @@
 import { apiBase } from "./lib/apiBase.mjs";
 import { writeFileSync } from "node:fs";
 import { DB_ID_COLUMNS, STRIPE_LISTS, gradeKind, isStripeList, keyForMode, parseSince } from "./lib/stripeRestoreReconcile.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const args = process.argv.slice(2);
 const opt = (name, fallback) => {

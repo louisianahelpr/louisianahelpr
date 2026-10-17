@@ -1,4 +1,5 @@
 import { MONTHLY_FREE_BOOSTS, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
+import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, helprFlatTakeHomeCents } from "@/lib/helprFlatFee";
 import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 // The escrow clock is owned by the cron that actually moves the money, not by
 // this file. Same import the legal pages, PaymentSuccess and the activity cards
@@ -52,9 +53,15 @@ const CREDENTIAL_CATEGORY_PHRASE = (() => {
   return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
 })();
 
-// The bottom rung of the fee ladder a reader can actually reach.
-// Mirrors `FEE_FLOOR` in legal/TermsSection.
-const FEE_FLOOR = TIER_PERKS.elite;
+// Q1842 (roadmap F3, owner 2026-10-14/15): the jobs fee, read from the same
+// constants every payout path prices with (src/lib/helprFlatFee.ts), so this
+// page cannot drift from what a Helpr is paid. The poster pays the job price
+// only; the Helpr pays 5% + 70c; a plan never changes it. (The tier ladder
+// that used to be quoted here, FEE_FLOOR, applies only to jobs paid for
+// before the change; the Terms still quote it until the owner approves new
+// wording.)
+const FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`;
+const FLAT_TAKE_HOME_ON_100 = (helprFlatTakeHomeCents(10_000) / 100).toFixed(2);
 
 // ─── Topic blurbs ─────────────────────────────────────────────────────────────
 //
@@ -252,7 +259,11 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "What fees does Helpr charge?",
-        a: `Posting a job has no platform fee: you pay the job budget plus a service fee that only covers card processing. When you do a job, you keep ${100 - TIER_PERKS.free.platformFeePercent}% on a Free account (${TIER_PERKS.free.platformFeePercent}% platform fee). ${TIER_PERKS.basic.name} keeps ${100 - TIER_PERKS.basic.platformFeePercent}%, ${TIER_PERKS.pro.name} keeps ${100 - TIER_PERKS.pro.platformFeePercent}%, ${TIER_PERKS.plus.name} ${100 - TIER_PERKS.plus.platformFeePercent}%, and ${TIER_PERKS.elite.name} ${100 - TIER_PERKS.elite.platformFeePercent}% (${TIER_PERKS.elite.platformFeePercent}% fee) — the platform fee drops as your plan tier rises.`,
+        // Q1842: WAS "you pay the job budget plus a service fee that only
+        // covers card processing … the platform fee drops as your plan tier
+        // rises" (12% Free down to 8% Elite). Since 2026-10-15 (F3) there is no
+        // service fee and no tier ladder on a new job.
+        a: `Posting a job costs nothing extra: you pay the job price and nothing on top. When you do a job, Helpr keeps ${FLAT_FEE_PHRASE} of your pay, the same on every plan, and that also covers card processing (on a $100 job you receive $${FLAT_TAKE_HOME_ON_100}). A job paid for before October 15, 2026 keeps the fee it was paid under. If a paid job is cancelled, the refund is what was paid less the card-processing fee Stripe keeps and any cancellation fee owed to the Helpr; if the mistake was ours, you get everything back.`,
       },
       {
         q: "What if there's a dispute?",
@@ -381,7 +392,9 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: "What does a membership do?",
-        a: `It lowers the commission Helpr deducts from the real-world jobs you get paid for — from ${TIER_PERKS.free.platformFeePercent}% down to as low as ${FEE_FLOOR.platformFeePercent}% — and adds visibility perks like priority placement and a featured badge. The lower commission applies to every job you complete.`,
+        // Q1842: WAS "It lowers the commission Helpr deducts … from 12% down
+        // to as low as 8%". Since F3 a plan never changes a job's fee.
+        a: `It adds visibility perks like priority placement and a featured badge. It does not change the fee on your jobs: every new job has the same ${FLAT_FEE_PHRASE} fee, whatever your plan.`,
       },
       {
         q: "How am I billed for a membership?",
@@ -397,19 +410,15 @@ export const FAQ_SECTIONS: FaqSection[] = [
         a: "Yes — downgrade at any time. Your paid perks stay active through the end of your billing period, then you revert to Free.",
       },
       {
-        q: "Does my fee reduction apply immediately?",
-        a: "Yes. On your very next accepted job, the lower platform fee applies — no waiting period.",
-      },
-      {
         q: `What's the difference between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name}?`,
-        a: `${TIER_PERKS.elite.name} adds the gold crown badge (visible to everyone browsing for someone to hire), unlimited free Job Boosts, the longest head start on new jobs, and priority support — on top of everything ${TIER_PERKS.pro.name} offers, and at a lower platform fee (${TIER_PERKS.elite.platformFeePercent}% against ${TIER_PERKS.pro.platformFeePercent}%). Head start on a new job, measured against a free account: ${EARLY_ACCESS_LADDER}.`,
+        a: `${TIER_PERKS.elite.name} adds the gold crown badge (visible to everyone browsing for someone to hire), unlimited free Job Boosts, the longest head start on new jobs, and priority support — on top of everything ${TIER_PERKS.pro.name} offers. Head start on a new job, measured against a free account: ${EARLY_ACCESS_LADDER}.`,
       },
       {
         // Plus was absent from this section entirely while the fees answer
         // above already listed it — a reader comparing plans on this page could
         // not learn that the tier exists, let alone what it does.
         q: `Where does ${TIER_PERKS.plus.name} fit in?`,
-        a: `${TIER_PERKS.plus.name} sits between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name} at $${TIER_PERKS.plus.price}/month. It keeps everything ${TIER_PERKS.pro.name} gives you, drops your platform fee to ${TIER_PERKS.plus.platformFeePercent}%, moves your head start on new jobs to ${earlyAccessHeadStartMinutes("plus")} minutes, and adds the featured crown badge, priority support and ${MONTHLY_FREE_BOOSTS.plus} free Job Boosts every month (${TIER_PERKS.pro.name} includes ${MONTHLY_FREE_BOOSTS.pro}). ${TIER_PERKS.elite.name} keeps all of that and makes the badge gold and Job Boosts unlimited.`,
+        a: `${TIER_PERKS.plus.name} sits between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name} at $${TIER_PERKS.plus.price}/month. It keeps everything ${TIER_PERKS.pro.name} gives you, moves your head start on new jobs to ${earlyAccessHeadStartMinutes("plus")} minutes, and adds the featured crown badge, priority support and ${MONTHLY_FREE_BOOSTS.plus} free Job Boosts every month (${TIER_PERKS.pro.name} includes ${MONTHLY_FREE_BOOSTS.pro}). ${TIER_PERKS.elite.name} keeps all of that and makes the badge gold and Job Boosts unlimited.`,
       },
     ],
   },

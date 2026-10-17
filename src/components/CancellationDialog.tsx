@@ -25,7 +25,7 @@ import { AlertTriangle, ShieldAlert, DollarSign, CheckCircle, ArrowRight, Shield
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { cancellationHelperShare } from "@/lib/cancellationHelperShare";
-import type { FlatFeeStamp } from "@/lib/helprFlatFee";
+import { isFlatFeeJob, type FlatFeeStamp } from "@/lib/helprFlatFee";
 // The ladder this dialog quotes IS the ladder Community Rules publishes —
 // read the same two constants CommunitySection does rather than restating
 // "25"/"50" as prose.
@@ -161,6 +161,15 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // void-cancelled-payments takes. Floored to the whole dollar the transfer
   // really pays (Q236), in cancellationHelperShare.
   const { platformCut, helperPayout, feeLabel } = cancellationHelperShare(payeeFee, feeStamp);
+  // Q1842: a flat-model job (F3, stamped at funding) was charged the job
+  // price only, so there is no service fee to keep: its refund is what was
+  // paid less the card-processing fee Stripe keeps (refundToPayerCents in
+  // void-cancelled-payments). A job paid for before F3 keeps the old copy:
+  // its budget comes back and the card-cost service fee it was charged stays.
+  const flatModel = isFlatFeeJob(feeStamp);
+  const refundRest = flatModel
+    ? "the rest, less the card-processing fee Stripe keeps, returns to your card."
+    : "the rest returns to your card.";
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -277,8 +286,10 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             // their payment.
             "Job cancelled. Your checkout was never completed, so you were never charged — there's nothing to refund."
           : appliedFee > 0
-            ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.${keptFeeSentence}`
-            : `Job cancelled — your job budget returns to your card; the service fee isn't refundable.${keptFeeSentence}`,
+            ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — ${refundRest}${keptFeeSentence}`
+            : flatModel
+              ? `Job cancelled — your payment returns to your card, less the card-processing fee Stripe keeps.${keptFeeSentence}`
+              : `Job cancelled — your job budget returns to your card; the service fee isn't refundable.${keptFeeSentence}`,
         { action: { label: "Dismiss", onClick: () => { /* toast closes itself */ } } },
       );
       onCancelled();
@@ -325,10 +336,15 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     charged $67.20 and refunded $60.00, exactly as designed —
                     while this text promised a "full refund", which is the part
                     that was wrong. */}
-                <p className="text-ds-11 text-muted-foreground mt-0.5">Cancel anytime with no cancellation fee. Your job budget is refunded in full; the service fee isn&apos;t refundable once payment has been processed.{keptFeeSentence}</p>
+                <p className="text-ds-11 text-muted-foreground mt-0.5">
+                  {flatModel
+                    ? "Cancel anytime with no cancellation fee. Your payment is refunded, less the card-processing fee Stripe keeps."
+                    : "Cancel anytime with no cancellation fee. Your job budget is refunded in full; the service fee isn't refundable once payment has been processed."}
+                  {keptFeeSentence}
+                </p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <CheckCircle className="w-3 h-3 text-primary shrink-0" />
-                  <span className="text-ds-11 text-primary font-medium">$0 cancellation fee · Budget refunded · No consequences</span>
+                  <span className="text-ds-11 text-primary font-medium">{flatModel ? "$0 cancellation fee · Refunded less card fee · No consequences" : "$0 cancellation fee · Budget refunded · No consequences"}</span>
                 </div>
               </div>
             </div>

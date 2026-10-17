@@ -136,7 +136,7 @@ async function signupRateLimitPerHour(): Promise<number | null> {
 }
 
 /**
- * Q?signup-one-shot-atomic: the no-session one-shot rule is a CLAIM, not a read.
+ * Q1887: the no-session one-shot rule is a CLAIM, not a read.
  *
  * The rule used to be read-then-write: read terms_accepted_at, and much later
  * (after the photo upload) write it in the profile UPDATE. Two no-session calls
@@ -393,7 +393,7 @@ async function completeSignup(req: Request, claim: NoSessionClaim): Promise<Resp
         });
       }
 
-      // Q?signup-one-shot-atomic: the read above is only the fast answer. The slot
+      // Q1887: the read above is only the fast answer. The slot
       // itself is taken HERE, atomically, before any upload or write (see
       // NoSessionClaim). Zero rows = another no-session call took it first.
       const claimAt = new Date().toISOString();

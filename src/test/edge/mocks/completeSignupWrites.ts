@@ -1,5 +1,5 @@
 /**
- * complete-signup's profiles writes, told apart (Q?signup-one-shot-atomic).
+ * complete-signup's profiles writes, told apart (Q1887).
  *
  * A no-session call now writes `profiles` up to three times: the one-shot CLAIM
  * (`terms_accepted_at` only, filtered `terms_accepted_at IS NULL`), the

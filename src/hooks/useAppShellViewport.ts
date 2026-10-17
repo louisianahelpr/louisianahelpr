@@ -43,6 +43,8 @@ const DOCUMENT_SCROLL_ROUTES = [
   // `overflow: hidden` clipped the "Back to dashboard" button below the
   // fold on iPhone SE, leaving the user stranded on the screen.
   "/payment-success",
+  // The email footer's unsubscribe page (Q1655): AuthShell card, document scroll.
+  "/unsubscribe",
 
   // In-app pages built around a `min-h-screen` document-scroll layout
   // (PageHeader + tall content). Pages that render via AppShell /

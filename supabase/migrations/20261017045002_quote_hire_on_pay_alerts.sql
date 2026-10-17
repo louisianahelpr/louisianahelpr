@@ -354,9 +354,11 @@ BEGIN
     -- FOR UPDATE: a payment landing on the job in the same instant waits (and
     -- this may delete the row). Lock order: request, then job, as every quote RPC.
     IF v_req.job_id IS NOT NULL THEN
+      -- customer_id = the caller: the DELETE below matches the poster's own
+      -- delete policy (lh-authz-rls review of 28a5ed3d7, S2).
       SELECT j.status::text, j.payment_status, j.stripe_session_id, j.stripe_payment_intent_id, j.helper_id
         INTO v_job_status, v_pay, v_session, v_pi, v_helper
-        FROM public.jobs j WHERE j.id = v_req.job_id FOR UPDATE;
+        FROM public.jobs j WHERE j.id = v_req.job_id AND j.customer_id = v_uid FOR UPDATE;
       -- 'unpaid' with a Checkout Session is a live checkout the poster may still
       -- finish (lh-money-escrow re-review of ebe408060, S2): refused too.
       IF FOUND AND v_job_status <> 'cancelled'
@@ -378,8 +380,9 @@ BEGIN
          AND COALESCE(v_pay, 'unpaid') IN ('unpaid', 'abandoned')
          AND NOT public.job_payment_is_funded(v_pay)
          AND v_session IS NULL AND v_pi IS NULL THEN
+        BEGIN
         DELETE FROM public.jobs j
-         WHERE j.id = v_req.job_id
+         WHERE j.id = v_req.job_id AND j.customer_id = v_uid
            AND j.status = 'open' AND j.helper_id IS NULL
            AND COALESCE(j.payment_status, 'unpaid') IN ('unpaid', 'abandoned')
            AND j.stripe_session_id IS NULL AND j.stripe_payment_intent_id IS NULL;
@@ -389,6 +392,14 @@ BEGIN
           RAISE EXCEPTION 'request_booked' USING ERRCODE = '55000',
             HINT = 'This job could not be removed; cancel it from the job instead.';
         END IF;
+        EXCEPTION WHEN foreign_key_violation THEN
+          -- A record that must outlive the job points at it (a gift card, a
+          -- strike, a payout row: NO ACTION foreign keys). Nothing is deleted
+          -- and the request stays agreed; the words, not a constraint name
+          -- (lh-authz-rls review of 28a5ed3d7, N2).
+          RAISE EXCEPTION 'request_booked' USING ERRCODE = '55000',
+            HINT = 'This job has records attached; cancel it from the job instead.';
+        END;
       END IF;
     END IF;
   ELSIF v_req.status <> 'open' THEN
@@ -425,11 +436,6 @@ BEGIN
      OR public.job_payment_is_funded(OLD.payment_status::text) THEN
     RETURN NULL;
   END IF;
-  -- Still the pending direct offer book_accepted_quote made.
-  IF NEW.status::text <> 'open' OR NEW.helper_id IS NOT NULL
-     OR NEW.offered_to_helper_id IS NULL OR NEW.direct_offer_status IS DISTINCT FROM 'pending' THEN
-    RETURN NULL;
-  END IF;
   -- Booked from an agreed quote, and offered to the quoter who won it. Not
   -- locked: cancel_quote_request locks request then job, and this already
   -- holds the job; it waits for this transaction and then sees the job funded.
@@ -440,10 +446,29 @@ BEGIN
   IF NOT FOUND OR v_quoter IS DISTINCT FROM NEW.offered_to_helper_id THEN
     RETURN NULL;
   END IF;
+  -- Still the pending direct offer book_accepted_quote made. A paid quote job
+  -- whose offer already lapsed (expire_pending_direct_offers, 48 h from
+  -- booking) hires nobody: recorded, never silent (lh-silent-failure review of
+  -- 28a5ed3d7, S1).
+  IF NEW.status::text <> 'open' OR NEW.direct_offer_status IS DISTINCT FROM 'pending' THEN
+    v_reason := 'offer_not_pending:' || COALESCE(NEW.direct_offer_status, 'null') || '/' || NEW.status::text;
+    v_done := NULL;
+  ELSE
 
   BEGIN
-    v_reason := public.helper_accept_block_reason(v_quoter);
-    IF v_reason IS NOT NULL AND v_reason <> 'helper_unknown' THEN
+    -- Everything the completion itself would refuse (a block either way, a
+    -- ban or shadowban, the offer expired, the start passed, a credential
+    -- tier) is checked FIRST, exactly as respond_to_direct_offer checks it
+    -- before it remembers a yes: such a quoter is never told "you're booked"
+    -- (across a block that would be contact), and the paid job is logged below
+    -- (lh-authz-rls review of 28a5ed3d7, S1).
+    v_reason := public.direct_accept_block_reason(NEW.id, v_quoter);
+    IF v_reason IS NULL THEN
+      v_reason := public.helper_accept_block_reason(v_quoter);
+    ELSE
+      v_reason := 'offer_blocked:' || v_reason;
+    END IF;
+    IF v_reason IS NOT NULL AND v_reason <> 'helper_unknown' AND v_reason NOT LIKE 'offer_blocked:%' THEN
       -- Payout setup or Stripe ID unfinished: the yes is remembered exactly as
       -- respond_to_direct_offer remembers it, and completes when setup is done
       -- (trg_profiles_complete_pending_accepts).
@@ -463,24 +488,44 @@ BEGIN
     v_err := SQLERRM;
     v_state := SQLSTATE;
   END;
+  END IF;
 
+  -- From here nothing may abort the webhook's payment write (lh-silent-failure
+  -- review of 28a5ed3d7, S2): each statement has its own subtransaction, and
+  -- a failure of the record itself is raised as a WARNING into the Postgres log.
   IF v_done IS NULL THEN
-    -- Not hired: the payment write still lands, the direct offer stays pending
-    -- (the quoter can accept it by hand), and this is recorded, never silent.
-    INSERT INTO public.error_logs (severity, message, url, tags, context)
-    VALUES (CASE WHEN NEW.is_seed THEN 'info' ELSE 'error' END,
-            'Paid quote job did not hire its quoter automatically',
-            format('/admin?view=jobs&job=%s', NEW.id),
-            jsonb_build_object('source', 'quote_job_funded_hires_quoter', 'job_id', NEW.id::text),
-            jsonb_build_object('quoter_id', v_quoter, 'block_reason', v_reason,
-                               'sqlstate', v_state, 'error', v_err));
+    -- Not hired: the payment write still lands, the direct offer stays as it
+    -- is (the quoter can accept a pending one by hand), and this is recorded.
+    BEGIN
+      INSERT INTO public.error_logs (severity, message, url, tags, context)
+      VALUES (CASE WHEN NEW.is_seed THEN 'info' ELSE 'error' END,
+              'Paid quote job did not hire its quoter automatically',
+              format('/admin?view=jobs&job=%s', NEW.id),
+              jsonb_build_object('source', 'quote_job_funded_hires_quoter', 'job_id', NEW.id::text),
+              jsonb_build_object('quoter_id', v_quoter, 'block_reason', v_reason,
+                                 'sqlstate', v_state, 'error', v_err));
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'quote_job_funded_hires_quoter: job % not hired (%), and the error_logs row failed: %',
+        NEW.id, COALESCE(v_reason, v_err), SQLERRM;
+    END;
     RETURN NULL;
   END IF;
 
   -- complete_job_accept already told the poster "<name> accepted your offer".
-  PERFORM public.quote_notify_about(v_quoter, 'You''re booked',
-    'The poster paid for "' || COALESCE(v_title, 'your quote') || '". You''re hired for it.',
-    NEW.customer_id, false);
+  BEGIN
+    PERFORM public.quote_notify_about(v_quoter, 'You''re booked',
+      'The poster paid for "' || COALESCE(v_title, 'your quote') || '". You''re hired for it.',
+      NEW.customer_id, false);
+  EXCEPTION WHEN OTHERS THEN
+    BEGIN
+      INSERT INTO public.error_logs (severity, message, tags, context)
+      VALUES ('error', 'Quote hire notice not sent',
+              jsonb_build_object('source', 'quote_job_funded_hires_quoter', 'job_id', NEW.id::text),
+              jsonb_build_object('quoter_id', v_quoter, 'sqlstate', SQLSTATE, 'error', SQLERRM));
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'quote_job_funded_hires_quoter: hire notice for job % failed: %', NEW.id, SQLERRM;
+    END;
+  END;
   RETURN NULL;
 END;
 $fn$;
@@ -532,6 +577,10 @@ BEGIN
              CASE WHEN q.last_offer_side = 'quoter' THEN req.poster_id ELSE q.quoter_id END)
     RETURNING q.id, q.price_cents, q.last_offer_side, req.title, req.poster_id, q.quoter_id
   LOOP
+    -- One row that cannot be sent never holds back the rest (lh-silent-failure
+    -- review of 28a5ed3d7, S3): its claim is released so the next run retries
+    -- it, and the failure is filed where ops reads it.
+    BEGIN
     IF r.last_offer_side = 'quoter' THEN
       PERFORM public.quote_notify_about(r.poster_id, 'A quote is waiting on you',
         'The $' || (r.price_cents / 100) || ' quote for "' || r.title
@@ -544,6 +593,11 @@ BEGIN
         r.poster_id, false);
     END IF;
     v_reminded := v_reminded + 1;
+    EXCEPTION WHEN OTHERS THEN
+      UPDATE public.job_quotes SET reminder_sent_for = NULL WHERE id = r.id;
+      PERFORM public.log_cron_defect('sweep_quote_alerts', r.id::text, SQLERRM,
+        jsonb_build_object('phase', 'reminder', 'quote_id', r.id));
+    END;
   END LOOP;
 
   -- The window closed: tell the poster how many quotes came in. Only windows
@@ -559,6 +613,7 @@ BEGIN
        AND public.feature_enabled_for_user('quotes', req.poster_id)
     RETURNING req.id, req.title, req.poster_id
   LOOP
+    BEGIN
     SELECT count(*) INTO v_count FROM public.job_quotes q WHERE q.request_id = r.id;
     PERFORM public.quote_notify_about(r.poster_id, 'Quotes are closed',
       CASE WHEN v_count = 0
@@ -568,6 +623,11 @@ BEGIN
            ELSE v_count || ' quotes came in for "' || r.title || '". Pick one, counter, or set your own price.' END,
       r.poster_id, false);
     v_closed := v_closed + 1;
+    EXCEPTION WHEN OTHERS THEN
+      UPDATE public.job_quote_requests SET close_notice_sent_at = NULL WHERE id = r.id;
+      PERFORM public.log_cron_defect('sweep_quote_alerts', r.id::text, SQLERRM,
+        jsonb_build_object('phase', 'close_notice', 'request_id', r.id));
+    END;
   END LOOP;
 
   RETURN jsonb_build_object('reminders', v_reminded, 'closed_notices', v_closed);
@@ -589,7 +649,7 @@ BEGIN
   END IF;
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
     PERFORM cron.schedule('quote-alerts', '11-59/15 * * * *',
-      $c$SELECT public.cron_record_work('quote-alerts', public.sweep_quote_alerts());$c$);
+      $c$SELECT public.cron_record_work('quote-alerts', to_jsonb(public.sweep_quote_alerts()));$c$);
   END IF;
 END
 $do$;

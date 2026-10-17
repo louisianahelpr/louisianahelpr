@@ -17,8 +17,8 @@
  *       it never held money.
  *
  * Behaviour: src/test/pglite/quoteHireOnPay.pglite.mjs (after, applied 3x:
- * 12/12; --before on main's quotes migration: 10 behaviour checks FAIL, the 2
- * controls hold; eight planted defects each RED, recorded in the lane report).
+ * 14/14; --before on main's quotes migration: 12 behaviour checks FAIL, the 2
+ * controls hold; ten planted defects each RED, recorded in the lane report).
  *
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |      OR public.job_payment_is_funded(OLD.payment_status::text) THEN |      OR false THEN
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |       v_done := public.complete_direct_offer_accept(NEW.id, v_quoter); |       v_done := NULL;
@@ -27,6 +27,8 @@
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |            AND j.stripe_session_id IS NULL AND j.stripe_payment_intent_id IS NULL; |            AND j.stripe_session_id IS NULL;
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |       AND q.reminder_sent_for IS DISTINCT FROM q.respond_until\n | \n
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql | '".', v_uid, true); | '".', v_uid, false);
+ * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |     v_reason := public.direct_accept_block_reason(NEW.id, v_quoter); |     v_reason := NULL;
+ * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql | WHERE j.id = v_req.job_id AND j.customer_id = v_uid\n | WHERE j.id = v_req.job_id\n
  * @mutate supabase/migrations/20261015091114_job_quotes.sql |   v_close := LEAST(now() + make_interval(hours => v_window), v_start - interval '2 hours'); |   v_close := now() + make_interval(hours => v_window);
  */
 import { describe, expect, it } from "vitest";
@@ -78,6 +80,13 @@ describe("quotes: owner answers 8-11", () => {
     expect(b).toContain(
       "IF NOT public.job_payment_is_funded(NEW.payment_status::text) OR public.job_payment_is_funded(OLD.payment_status::text) THEN RETURN NULL;",
     );
+    // Everything the completion would refuse is checked before the setup wait
+    // (no "you're booked" across a block), and a lapsed offer is logged.
+    expect(b.indexOf("v_reason := public.direct_accept_block_reason(NEW.id, v_quoter);")).toBeGreaterThan(0);
+    expect(b.indexOf("v_reason := public.direct_accept_block_reason(NEW.id, v_quoter);")).toBeLessThan(
+      b.indexOf("INSERT INTO public.job_accept_pending"),
+    );
+    expect(b).toContain("v_reason := 'offer_not_pending:'");
     // Only the quoter who won the agreed quote, on the still-pending offer.
     expect(b).toContain("WHERE r.job_id = NEW.id AND r.status = 'agreed';");
     expect(b).toContain("IF NOT FOUND OR v_quoter IS DISTINCT FROM NEW.offered_to_helper_id THEN RETURN NULL;");
@@ -93,9 +102,9 @@ describe("quotes: owner answers 8-11", () => {
 
   it("11: cancelling an agreed request deletes its job only when it never held money", () => {
     const b = body("cancel_quote_request");
-    expect(b).toContain("FROM public.jobs j WHERE j.id = v_req.job_id FOR UPDATE;");
+    expect(b).toContain("FROM public.jobs j WHERE j.id = v_req.job_id AND j.customer_id = v_uid FOR UPDATE;");
     expect(b).toMatch(
-      /DELETE FROM public\.jobs j WHERE j\.id = v_req\.job_id AND j\.status = 'open' AND j\.helper_id IS NULL AND COALESCE\(j\.payment_status, 'unpaid'\) IN \('unpaid', 'abandoned'\) AND j\.stripe_session_id IS NULL AND j\.stripe_payment_intent_id IS NULL;/,
+      /DELETE FROM public\.jobs j WHERE j\.id = v_req\.job_id AND j\.customer_id = v_uid AND j\.status = 'open' AND j\.helper_id IS NULL AND COALESCE\(j\.payment_status, 'unpaid'\) IN \('unpaid', 'abandoned'\) AND j\.stripe_session_id IS NULL AND j\.stripe_payment_intent_id IS NULL;/,
     );
     // A funded job is still refused before anything is deleted.
     expect(b.indexOf("RAISE EXCEPTION 'request_booked'")).toBeLessThan(b.indexOf("DELETE FROM public.jobs"));
@@ -114,7 +123,7 @@ describe("quotes: owner answers 8-11", () => {
     expect(s).toContain("AND req.close_notice_sent_at IS NULL");
     expect(s.match(/public\.feature_enabled_for_user\('quotes'/g)?.length).toBe(2);
     expect(ws(allSql)).toContain(
-      "PERFORM cron.schedule('quote-alerts', '11-59/15 * * * *', $c$SELECT public.cron_record_work('quote-alerts', public.sweep_quote_alerts());$c$);",
+      "PERFORM cron.schedule('quote-alerts', '11-59/15 * * * *', $c$SELECT public.cron_record_work('quote-alerts', to_jsonb(public.sweep_quote_alerts()));$c$);",
     );
   });
 

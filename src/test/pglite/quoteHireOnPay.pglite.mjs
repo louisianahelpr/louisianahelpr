@@ -129,6 +129,9 @@ CREATE FUNCTION public.helper_accept_missing(p_user_id uuid) RETURNS text[] LANG
   $$ SELECT CASE WHEN EXISTS (SELECT 1 FROM public.stub_unready u WHERE u.user_id = p_user_id) THEN ARRAY['payout_setup'] ELSE ARRAY[]::text[] END $$;
 CREATE FUNCTION public.get_user_credential_tier(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
 CREATE FUNCTION public.is_helper_shadowbanned(_helper_id uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+CREATE TABLE public.stub_cron_defects (fn text, item text, err text, ctx jsonb);
+CREATE FUNCTION public.log_cron_defect(p_fn text, p_item text, p_err text, p_ctx jsonb DEFAULT '{}') RETURNS void LANGUAGE sql AS
+  $$ INSERT INTO public.stub_cron_defects VALUES (p_fn, p_item, p_err, p_ctx) $$;
 GRANT SELECT, UPDATE ON public.jobs TO authenticated;
 `);
 for (const fn of ["feature_enabled_for", "require_feature", "contact_leak_reason", "is_server_context", "enforce_jobs_insert_column_lock",
@@ -241,16 +244,32 @@ await step("8 an unready quoter's yes waits in job_accept_pending; the job stays
 
 await step("8 a refused completion still lands the payment and is logged", async () => {
   const { job } = await agreedJob(QC);
-  await db.exec(`INSERT INTO public.stub_blocks VALUES ('${POSTER}', '${QC}')`);
+  // Blocked AND unready: the block wins; never "Finish setup" across a block.
+  await db.exec(`INSERT INTO public.stub_blocks VALUES ('${POSTER}', '${QC}'); INSERT INTO public.stub_unready VALUES ('${QC}')`);
   const e = await svc(`UPDATE public.jobs SET payment_status = 'escrow', stripe_payment_intent_id = 'pi_3' WHERE id = '${job}' RETURNING id`)
     .then(() => null, (x) => String(x.message));
   const j = (await svc(`SELECT status::text, helper_id, payment_status FROM public.jobs WHERE id = '${job}'`))[0];
   const logged = (await svc(`SELECT count(*)::int AS n FROM public.error_logs WHERE tags->>'source' = 'quote_job_funded_hires_quoter' AND tags->>'job_id' = '${job}'`))[0].n;
-  await db.exec(`DELETE FROM public.stub_blocks`);
+  const toldQC = (await svc(`SELECT count(*)::int AS n FROM public.notifications WHERE user_id = '${QC}' AND title IN ('Finish setup to start', 'You''re booked')`))[0].n;
+  const pendQC = (await svc(`SELECT count(*)::int AS n FROM public.job_accept_pending WHERE job_id = '${job}'`))[0].n;
+  await db.exec(`DELETE FROM public.stub_blocks; DELETE FROM public.stub_unready`);
   check(
     "8 a refused completion still lands the payment and is logged",
-    e === null && j.payment_status === "escrow" && j.status === "open" && j.helper_id === null && logged === 1,
-    `err=${e} ${j.payment_status} ${j.status} logged=${logged}`,
+    e === null && j.payment_status === "escrow" && j.status === "open" && j.helper_id === null && logged === 1 && toldQC === 0 && pendQC === 0,
+    `err=${e} ${j.payment_status} ${j.status} logged=${logged} toldAcrossBlock=${toldQC} pending=${pendQC}`,
+  );
+});
+
+await step("8 a paid quote job whose offer already lapsed hires nobody, and is logged", async () => {
+  const { job } = await agreedJob(QA);
+  await svc(`UPDATE public.jobs SET direct_offer_status = 'expired' WHERE id = '${job}'`);
+  await svc(`UPDATE public.jobs SET payment_status = 'escrow', stripe_payment_intent_id = 'pi_6' WHERE id = '${job}'`);
+  const j = (await svc(`SELECT status::text, helper_id, payment_status FROM public.jobs WHERE id = '${job}'`))[0];
+  const logged = (await svc(`SELECT context->>'block_reason' AS r FROM public.error_logs WHERE tags->>'job_id' = '${job}'`));
+  check(
+    "8 a paid quote job whose offer already lapsed hires nobody, and is logged",
+    j.payment_status === "escrow" && j.helper_id === null && logged.length === 1 && /^offer_not_pending:expired/.test(logged[0].r ?? ""),
+    `${j.payment_status} ${j.helper_id} logged=${JSON.stringify(logged)}`,
   );
 });
 
@@ -345,7 +364,32 @@ await step("10 the poster hears once how many quotes came in when the window clo
   );
 });
 
+await step("10 one row that cannot be sent never holds back the rest; it is released and filed", async () => {
+  await db.exec(`CREATE OR REPLACE FUNCTION public.stub_boom() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN IF NEW.message LIKE '%Boom fence%' AND NEW.title = 'A quote is waiting on you' THEN RAISE EXCEPTION 'boom'; END IF; RETURN NEW; END $$;
+    DROP TRIGGER IF EXISTS stub_boom ON public.notifications;
+    CREATE TRIGGER stub_boom BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION public.stub_boom();`);
+  const bad = (await one(POSTER, `SELECT public.create_quote_request('Boom fence', 'Two coats on a 60 ft wooden fence', 'yard_work',
+     (now() + interval '5 days')::date, NULL, 4, NULL, NULL, NULL, NULL) AS id`)).id;
+  const good = await newRequest();
+  const qBad = (await one(QA, `SELECT public.submit_job_quote('${bad}', 25000, 'Paint included', 'Saturday') AS id`)).id;
+  const qGood = (await one(QA, `SELECT public.submit_job_quote('${good}', 25000, 'Paint included', 'Saturday') AS id`)).id;
+  await svc(`UPDATE public.job_quotes SET respond_until = now() + interval '3 hours' WHERE id IN ('${qBad}', '${qGood}')`);
+  const r = (await svc("SELECT public.sweep_quote_alerts() AS r"))[0].r;
+  const marks = await svc(`SELECT id, reminder_sent_for IS NOT NULL AS claimed FROM public.job_quotes WHERE id IN ('${qBad}', '${qGood}')`);
+  const filed = (await svc(`SELECT count(*)::int AS n FROM public.stub_cron_defects WHERE fn = 'sweep_quote_alerts' AND item = '${qBad}'`))[0].n;
+  await db.exec("DROP TRIGGER stub_boom ON public.notifications");
+  const claimed = Object.fromEntries(marks.map((m) => [m.id, m.claimed]));
+  check(
+    "10 one row that cannot be sent never holds back the rest; it is released and filed",
+    r?.reminders === 1 && claimed[qGood] === true && claimed[qBad] === false && filed === 1,
+    `r=${JSON.stringify(r)} good=${claimed[qGood]} bad=${claimed[qBad]} filed=${filed}`,
+  );
+});
+
 await step("10 the sweep sends nothing while the switch is off", async () => {
+  // The poster's earlier requests count toward the 5-open cap; close them.
+  await svc("UPDATE public.job_quote_requests SET status = 'cancelled' WHERE status = 'open'");
   const req = await newRequest();
   const q = (await one(QC, `SELECT public.submit_job_quote('${req}', 30000, 'Two coats', 'Any weekday') AS id`)).id;
   await svc(`UPDATE public.job_quotes SET respond_until = now() + interval '3 hours' WHERE id = '${q}'`);

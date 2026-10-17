@@ -6,9 +6,10 @@
 // .eq() the client sends.
 //
 // Red first (2026-10-17) against S1's CompletionChoiceSheet.tsx (aad8aace3):
-// the answer never rendered.
+// the answer never rendered; the below-the-choices check was red against
+// 3674fa1e4 (the answer drawn above both choices).
 //
-// @mutate src/lib/rentals/api.ts |       .eq("landlord_id", uid) |       .eq("tenant_id", uid)
+// @mutate src/lib/rentals/api.ts |       .eq("job_id", jobId)\n      .eq("landlord_id", uid) |       .eq("job_id", jobId)\n      .eq("tenant_id", uid)
 // @mutate src/components/rentals/TenantFixedAnswer.tsx |     enabled: on, |     enabled: true,
 // @mutate src/pages/posts/CompletionChoiceSheet.tsx |                 <TenantFixedAnswer jobId={jobId} userId={userId} /> |                 {null}
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -90,6 +91,13 @@ describe("Rentals: the release decision shows the tenant's 'Was it fixed?' answe
     expect(screen.getByRole("link", { name: "See the request" }).getAttribute("href")).toBe("/rentals/requests/req-1");
     // The release choice is still there: the answer informs, it never blocks.
     expect(screen.getByText("How Did It Go?")).toBeTruthy();
+    // Drawn BELOW both choices: it appears late, and drawn above it pushed
+    // "Release Payment" into the place "Request a Revision" had just held
+    // (lh-money-escrow review of 3674fa1e4 #1).
+    const box = screen.getByText("Your tenant says it's NOT fixed");
+    for (const choice of ["All Done — Looks Great!", "I Need Something Fixed First"]) {
+      expect(screen.getByText(choice).compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING, `the answer sits above "${choice}"`).toBeTruthy();
+    }
   });
 
   it("a yes reads as fixed", async () => {

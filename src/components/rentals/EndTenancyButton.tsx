@@ -50,9 +50,12 @@ export function EndTenancyButton({ tenancyId, kind, onDone }: { tenancyId: strin
     },
     onError: (e) => toast.error(rentalsErrorMessage(e)),
   });
+  // One call per control: a second tap landing as the first succeeds would be
+  // refused (tenancy_not_found) and toast an error after "ended" (lh-money-escrow review of 801589ae1 #6).
+  const done = m.isPending || m.isSuccess;
   return (
     <>
-      <Button type="button" size="sm" variant="outline" disabled={m.isPending} onClick={() => setOpen(true)}>
+      <Button type="button" size="sm" variant="outline" disabled={done} onClick={() => setOpen(true)}>
         {w.button}
       </Button>
       <BrandConfirmDialog
@@ -62,11 +65,11 @@ export function EndTenancyButton({ tenancyId, kind, onDone }: { tenancyId: strin
         description={w.description}
         primaryLabel={m.isPending ? "Working…" : w.confirm}
         primaryTone="sienna"
-        primaryDisabled={m.isPending}
+        primaryDisabled={done}
         primaryHaptic="warning"
         onPrimary={(e) => {
           e.preventDefault();
-          m.mutate();
+          if (!done) m.mutate();
         }}
         secondaryLabel="Keep it"
       />

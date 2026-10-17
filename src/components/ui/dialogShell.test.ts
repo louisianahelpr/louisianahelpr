@@ -631,7 +631,8 @@ describe("Popup grammar — footer", () => {
    * treatment rather than to a shape description.
    */
   it("the two halves are equal width and neither can lock open", () => {
-    const dlg = read("src/components/ui/dialog.tsx");
+    // The footer actions live in dialogActions.tsx (a pure move out of dialog.tsx).
+    const dlg = read("src/components/ui/dialogActions.tsx");
     const sheet = read("src/components/ui/sheet.tsx");
     const footer = read("src/components/ui/popupFooter.ts");
 
@@ -645,7 +646,7 @@ describe("Popup grammar — footer", () => {
     // were fixed, sheet.tsx was not, and nothing failed — a sheet Cancel sat
     // 44px tall beside a 56px commit while every dialog's matched. `sheet` was
     // read into a variable here and then never asserted on.
-    for (const [name, src] of [["dialog.tsx", dlg], ["sheet.tsx", sheet]] as const) {
+    for (const [name, src] of [["dialogActions.tsx", dlg], ["sheet.tsx", sheet]] as const) {
       expect(src, `${name}'s dismiss must use the shared secondary class`)
         .toMatch(/variant="ghost" className=\{POPUP_SECONDARY_CLS\}/);
       expect(src, `${name}'s dismiss must NOT step down to size="sm"`)
@@ -723,7 +724,7 @@ describe("Popup grammar — footer", () => {
    * `backgroundImage: "none"` sienna button.
    */
   it("one glossy primary and one destructive red, from the shared variants", () => {
-    const dlg = stripComments(read("src/components/ui/dialog.tsx"));
+    const dlg = stripComments(read("src/components/ui/dialogActions.tsx"));
     expect(dlg).toMatch(/variant="primary" className=\{POPUP_COMMIT_CLS\}/);
     expect(dlg).toMatch(/variant="destructive" className=\{POPUP_COMMIT_CLS\}/);
 
@@ -812,9 +813,10 @@ describe("Popup grammar — footer", () => {
    * failure. `MaybeClose` restores it off `role="alertdialog"`.
    */
   it("actions inside a confirm auto-close it, and outside one do not", () => {
-    const src = read("src/components/ui/dialog.tsx");
-    expect(src, "the confirm switch must be role-driven, not a per-call-site prop")
+    expect(read("src/components/ui/dialog.tsx"), "the confirm switch must be role-driven, not a per-call-site prop")
       .toContain('props.role === "alertdialog"');
+    // The actions and MaybeClose live in dialogActions.tsx (a pure move out of dialog.tsx).
+    const src = read("src/components/ui/dialogActions.tsx");
     expect(src, "MaybeClose must wrap in the Close primitive")
       .toMatch(/isConfirm \? <DialogPrimitive\.Close asChild>/);
     for (const action of ["DialogSecondaryAction", "DialogPrimaryAction", "DialogDestructiveAction"]) {

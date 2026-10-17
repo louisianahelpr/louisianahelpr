@@ -133,5 +133,5 @@ describe("the map and the browse view cull the same jobs", () => {
 // a prod object hand-applied outside the migration tree. It proves a rule
 // REACHED both surfaces; mapFilterParity and dashboardSurfaceExclusionParity
 // cover the client halves.
-// @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql | -- A series visit is re-offered only inside its series (20260927015010).\n    AND j.parent_job_id IS NULL\n    AND j.customer_id IS NOT NULL\n | -- A series visit is re-offered only inside its series (20260927015010).\n    AND j.parent_job_id IS NULL\n
-// @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql | -- A series visit is re-offered only inside its series (20260927015010).\n    AND j.parent_job_id IS NULL\n    AND j.customer_id IS NOT NULL\n | AND j.customer_id IS NOT NULL\n
+// @mutate supabase/migrations/20261017094018_browse_rpcs_carry_fee_stamp.sql | -- A series visit is re-offered only inside its series (20260927015010).\n    AND j.parent_job_id IS NULL\n    AND j.customer_id IS NOT NULL\n | -- A series visit is re-offered only inside its series (20260927015010).\n    AND j.parent_job_id IS NULL\n
+// @mutate supabase/migrations/20261017094018_browse_rpcs_carry_fee_stamp.sql | -- A series visit is re-offered only inside its series (20260927015010).\n    AND j.parent_job_id IS NULL\n    AND j.customer_id IS NOT NULL\n | AND j.customer_id IS NOT NULL\n

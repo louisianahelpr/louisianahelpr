@@ -13,7 +13,7 @@
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql |    WHERE i.id = p_item_id\n   FOR UPDATE; |    WHERE i.id = p_item_id;
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_offers_one_accepted | CREATE INDEX IF NOT EXISTS declutter_offers_one_accepted
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_cart_one_active | CREATE INDEX IF NOT EXISTS declutter_cart_one_active
- * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE;\n  v_found := FOUND; |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;\n  v_found := FOUND;
+ * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE;\n  v_found := FOUND; |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;\n  v_found := FOUND;
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql |   IF p_amount_cents * 2 < v_item.o_price_cents THEN |   IF false THEN
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql |        SET current_price_cents = greatest(p.floor_price_cents, COALESCE(p.drop_stop_cents, p.floor_price_cents), |        SET current_price_cents = greatest(
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql |        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today) |        AND true

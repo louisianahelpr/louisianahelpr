@@ -115,6 +115,17 @@ await svc(`SELECT public.declutter_refund_gave_up_check('${rC}')`);
 ok(one(await svc(`SELECT tags ->> 'seed' FROM public.error_logs WHERE tags ->> 'refund_id' = '${rC}'`)) === "true",
   "a seed refund's alert is marked seed (error_log_is_seed sends it to the digest)");
 
+// Q1159: anon and authenticated may INSERT error_logs, so a forged client row
+// tagged with this source and refund id must not mute today's page.
+const F = await paidOrder(9, BUYER2, SELLER3, 2200);
+const rF = await refundRow(F, 9, 12, "failed");
+await svc(`INSERT INTO public.error_logs (severity, message, tags) VALUES ('error', 'forged',
+  jsonb_build_object('source', 'declutter-refund-gave-up', 'refund_id', '${rF}', 'origin', 'client'))`);
+await svc(`SELECT public.declutter_refund_gave_up_check('${rF}')`);
+ok(one(await svc(`SELECT count(*)::int FROM public.error_logs WHERE tags ->> 'refund_id' = '${rF}'
+  AND coalesce(tags ->> 'origin', '') <> 'client'`)) === 1,
+  "a forged client row with the same source and refund id does not mute the gave-up alert");
+
 // ---------------------------------------------------------------------------
 // (b) A refund made by hand in the Stripe Dashboard.
 const owed = one(await svc(`SELECT refund_cents FROM public.declutter_refunds WHERE id = '${rA}'`));

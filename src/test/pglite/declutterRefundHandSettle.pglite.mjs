@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261015091757_declutter_refund_hand_settle (lh-money-escrow
+ * PGlite proof for 20261017052700_declutter_refund_hand_settle (lh-money-escrow
  * should-fixes (a) and (b), docs/specs/declutter-auctions.md "Open after
  * slice 4"):
  *   (a) a Declutter refund that gives up (12 tries) raises a durable ops-ledger
@@ -22,7 +22,7 @@ import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FIL
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const { SELLER, BUYER, BUYER2, SELLER3 } = USERS;
-const NEW_FILE = "20261015091757_declutter_refund_hand_settle.sql";
+const NEW_FILE = "20261017052700_declutter_refund_hand_settle.sql";
 const skip = process.env.NEW_MIGRATION === "skip";
 
 const db = new PGlite();

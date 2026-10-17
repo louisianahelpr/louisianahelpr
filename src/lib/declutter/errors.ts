@@ -63,7 +63,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   handover_unavailable: "Choose porch pickup, pickup at the seller's home, or Helpr delivery.",
   seller_tax_not_ready: "Checkout for this seller isn't available yet.",
   cart_empty: "Nothing from this seller is waiting for checkout.",
-  // Row 101 porch default (20261016050402).
+  // Row 101 porch default (20261017052704).
   porch_unavailable: "The seller asked to meet at their home for this item, so porch pickup isn't available. Choose pickup at the seller's home.",
   invalid_porch_choice: "Choose whether buyers can pick this item up from your porch.",
   order_not_payable: "This checkout is no longer open. Start checkout again.",
@@ -118,7 +118,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   invalid_items: "Something in that list didn't save. Check each item's name and price, then try again.",
   too_many_items: "Save 1 to 15 items at a time.",
   move_draft_limit: "You have 60 unfinished moving-sale items. List or delete some before you add more.",
-  // Slice 5, Helpr delivery (20261016053945): delivery checkout, the Helpr's job, money queues.
+  // Slice 5, Helpr delivery (20261017052705): delivery checkout, the Helpr's job, money queues.
   delivery_address_needed: "Enter the address to deliver to.",
   delivery_one_address: "These items are at different addresses, so they can't be delivered together. Choose pickup.",
   delivery_unavailable: "Helpr delivery isn't available for this order. Choose pickup.",

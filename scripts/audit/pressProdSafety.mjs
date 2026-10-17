@@ -931,11 +931,45 @@ export function isCaptchaGatedAuthRequest(url, method, body) {
  * The request is the fact. While a press the gate did NOT class as mutating is
  * in flight, every request on this surface that writes is aborted in the
  * browser before it leaves, and recorded against the control as a GATE MISS
- * (press-every-control.mjs fails the run naming each one). Out of scope:
- * /auth/v1 (session refresh and sign-out; sign-out is gated by its words and
- * CAPTCHA-guarded calls by isCaptchaGatedAuthRequest).
+ * (press-every-control.mjs fails the run naming each one). /auth/v1 is on
+ * the surface too (lead, 2026-10-17, ready/sec-c-1017-22): a password, email
+ * or phone change, any other user update, a sign-out of any scope, an MFA
+ * factor enrolled, verified or removed, an identity linked or unlinked, a
+ * sign-in or sign-up, an OTP / reset / resend email. See PRESS_AUTH_ALLOWED
+ * for the one auth call that passes.
  */
-export const PRESS_WRITE_SURFACE_RX = /\/(rest|functions|storage)\/v1\//;
+export const PRESS_WRITE_SURFACE_RX = /\/(rest|functions|storage|auth)\/v1\//;
+
+/**
+ * The ONLY GoTrue write a page may make while the gate is armed: the token
+ * refresh supabase-js runs on its own timer (a 401 there would read as a dead
+ * session, not as anything a control did). The harness's own sign-in is NOT a
+ * browser request: prodSession (above) mints in Node with the service-role
+ * generate_link -> POST /auth/v1/verify (scripts/lib/adminSession.mjs) and
+ * injects the session into localStorage, so no page route has to let a
+ * sign-in through, and a /verify or password grant sent BY THE PAGE is a write.
+ * Keys are "METHOD /path?grant_type=..."; each value says why.
+ */
+// @two-way src/test/pressNetworkGateAbortsUngatedAuthWrites.test.ts:auth-js no longer sends it, remove it from PRESS_AUTH_ALLOWED
+export const PRESS_AUTH_ALLOWED = {
+  "POST /auth/v1/token?grant_type=refresh_token": "supabase-js autoRefreshToken: renews the session the harness injected; changes nothing the test account owns",
+};
+
+/**
+ * GoTrue GETs that are writes: each sends mail or binds something to the
+ * signed-in test account, so a GET here is not a read. Every other /auth/v1
+ * GET (the user, settings, factors list, identities) reads.
+ */
+export const PRESS_AUTH_GET_WRITES = {
+  "/auth/v1/reauthenticate": "mails the account a reauthentication nonce (supabase.auth.reauthenticate)",
+  "/auth/v1/user/identities/authorize": "starts binding an outside identity to the signed-in test account (supabase.auth.linkIdentity)",
+};
+
+/** Is this /auth/v1 request the allowed token refresh? */
+function isAllowedAuthRequest(method, u) {
+  const grant = u.searchParams.get("grant_type");
+  return Object.hasOwn(PRESS_AUTH_ALLOWED, `${method} ${u.pathname}${grant ? `?grant_type=${grant}` : ""}`);
+}
 
 /**
  * Edge functions that only READ, called with POST because that is what
@@ -962,7 +996,9 @@ export const PRESS_SIDE_EFFECT_WRITES = {
 const isStorageListPath = (pathname) => /^\/storage\/v1\/object\/list\//.test(pathname);
 
 /**
- * "read" | "side-effect" | "write" for one browser request. GET / HEAD /
+ * "read" | "side-effect" | "write" for one browser request. On /auth/v1
+ * every POST / PUT / PATCH / DELETE writes bar PRESS_AUTH_ALLOWED, and a GET
+ * writes only when PRESS_AUTH_GET_WRITES names it. Elsewhere GET / HEAD /
  * OPTIONS and anything off PRESS_WRITE_SURFACE_RX read; a read-named RPC
  * (e2e/readRpc.ts, held to pg_proc.provolatile by its own test), a storage
  * sign or list, a stripe-connect read action and PRESS_READ_FUNCTIONS read;
@@ -971,9 +1007,15 @@ const isStorageListPath = (pathname) => /^\/storage\/v1\/object\/list\//.test(pa
  */
 export function pressWriteKind({ method, url, body = null }) {
   const m = String(method ?? "GET").toUpperCase();
-  if (m === "GET" || m === "HEAD" || m === "OPTIONS") return "read";
-  let pathname;
-  try { pathname = new URL(String(url)).pathname; } catch { return "write"; }
+  const safeMethod = m === "GET" || m === "HEAD" || m === "OPTIONS";
+  let u;
+  try { u = new URL(String(url)); } catch { return safeMethod ? "read" : "write"; }
+  const pathname = u.pathname;
+  if (pathname.startsWith("/auth/v1/")) {
+    if (safeMethod) return Object.hasOwn(PRESS_AUTH_GET_WRITES, pathname) ? "write" : "read";
+    return isAllowedAuthRequest(m, u) ? "read" : "write";
+  }
+  if (safeMethod) return "read";
   if (!PRESS_WRITE_SURFACE_RX.test(pathname)) return "read";
   if (Object.hasOwn(PRESS_SIDE_EFFECT_WRITES, pathname)) return "side-effect";
   if (isReadRpcPath(pathname) || isStorageSignPath(pathname) || isStorageListPath(pathname)) return "read";

@@ -176,8 +176,10 @@ describe("prod-seed group job has no lead (trg_group_job_has_no_lead)", () => {
     expect(last, "no migration defines trg_group_job_has_no_lead").toBeDefined();
     expect(last!.split(/;\s*\n/).filter((st: string) => /trg_group_job_has_no_lead/.test(st)).pop()).toMatch(/create\s+trigger/i);
     const fn = /async function applyGroupJob[\s\S]*?\n}/.exec(src)?.[0] ?? "";
-    const jobsUpsert = /upsert\("jobs",[^\n]*/.exec(fn)?.[0] ?? "";
-    expect(jobsUpsert, "applyGroupJob has no jobs upsert").not.toBe("");
+    // The jobs write is writeSeedJobs (repairs a present row in place, inserts a
+    // missing one; prodSeedJobsRepairInPlace.test.ts) since 2026-10-17.
+    const jobsUpsert = /(?:upsert\("jobs",|writeSeedJobs\()[^\n]*/.exec(fn)?.[0] ?? "";
+    expect(jobsUpsert, "applyGroupJob has no jobs write").not.toBe("");
     expect(jobsUpsert).toMatch(/helper_id: null/);
   });
 });

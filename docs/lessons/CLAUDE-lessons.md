@@ -694,7 +694,7 @@ the machine.
 **A landing queue with no runner stops.** The lead handed its landing turn to
 another session and kept nothing of its own waiting on that PR's merge. It sat
 idle about 20 hours; ten ready branches went stale while main moved ~140 PRs, and
-the open count rose from 154 to 184 because new items kept arriving while built
+the open count rose from 154 to 184 (2026-10-15 to 2026-10-17) because new items kept arriving while built
 work never landed. Whenever a session yields a turn, a background runner resumes
 its queue on the other PR's MERGE by itself.
 

@@ -5,12 +5,18 @@
 // @mutate .github/workflows/db-deploy.yml | 2>&1 \| tee /tmp/db-push.log | 2>&1
 // @mutate .github/workflows/db-deploy.yml |         run: node scripts/check-migration-provenance.mjs check |         run: echo skipped
 // @mutate .github/workflows/db-drift-detect.yml | MIGRATION_PROVENANCE: ${{ steps.migration_provenance.outcome }} | MIGRATION_PROVENANCE: success
+// @mutate scripts/lib/migrationProvenance.mjs |       if (why === null) expired.push( |       if (true) expired.push(
+// @mutate scripts/lib/migrationProvenance.mjs |   if (ageDays < minAgeDays) return | if (false) return
+// @mutate scripts/lib/migrationProvenance.mjs |   if (!evidence.onMain) return | if (false) return
+// @mutate scripts/lib/migrationProvenance.mjs |   if (!evidence.fileAtSha) return | if (false) return
+// @mutate scripts/check-migration-provenance.mjs |     expiredRun: CONFIG.expiredRun, |     expiredRun: undefined,
 // @mutate supabase/migrations/20260923103737_migration_deploy_ledger.sql | REVOKE ALL ON TABLE public.migration_deploy_ledger FROM PUBLIC, anon, authenticated; | REVOKE ALL ON TABLE public.migration_deploy_ledger FROM PUBLIC;
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   DEPLOY_WORKFLOW_PATH,
+  expiredRunVerdict,
   parseAppliedVersions,
   provenanceFindings,
   receiptInsertSql,
@@ -75,6 +81,80 @@ describe("provenanceFindings", () => {
     expect(gone.forged).toHaveLength(1);
     const phantom = provenanceFindings({ ...base, ledger: [...base.ledger, { version: "20260925000000", run_id: 111 }] });
     expect(phantom.forged.map((x) => x.version)).toEqual(["20260925000000"]);
+  });
+});
+
+/**
+ * db-deploy went red on every merge from 2026-10-17 (runs 39017276439 and the
+ * 05:07Z one): 14 receipts from 2026-10-01..10-03 name runs GitHub no longer
+ * has (every run of every workflow created 2026-10-01 01:40Z..10-03 15:54Z
+ * answers 404; measured 2026-10-17). A gone run is judged by what the receipt
+ * itself proves: old enough, head_sha on main, carrying the migration.
+ */
+describe("a receipt whose GitHub run is gone (db-deploy red 2026-10-17)", () => {
+  const cutoff = "20260923103737";
+  const now = new Date("2026-10-17T09:00:00Z");
+  const sha = "2e1b8f15762660811baa7557ae504d90e0628429";
+  // The real shape: receipt for 20261002060514, run 36987006095 (404 today).
+  const receipt = { version: "20261002060514", run_id: 36987006095, head_sha: sha, recorded_at: "2026-10-02 09:07:20.601959+00" };
+  const base = {
+    prodVersions: [cutoff, "20261002060514"],
+    ledger: [receipt],
+    cutoff,
+    acknowledged: [] as { version: string }[],
+    runs: new Map<string, { path: string; head_branch: string } | null>([["36987006095", null]]),
+    expiredRun: { minAgeDays: 14 },
+    shaEvidence: new Map([["20261002060514", { onMain: true, fileAtSha: true }]]),
+    now,
+  };
+
+  it("an old receipt whose head_sha is on main and carries the migration is judged by the receipt, not failed", () => {
+    const f = provenanceFindings(base);
+    expect(f.forged).toEqual([]);
+    expect(f.expired).toEqual([{ version: "20261002060514", run_id: "36987006095" }]);
+  });
+
+  it("RED without the rule (what main's check did): the expired run reads as a forgery", () => {
+    const f = provenanceFindings({ ...base, expiredRun: undefined });
+    expect(f.forged.map((x) => x.version)).toEqual(["20261002060514"]);
+    expect(f.forged[0].why).toMatch(/run 36987006095 does not exist in this repository/);
+  });
+
+  it("RED: a run missing within the window (a receipt naming a run that never existed is caught while young)", () => {
+    const young = { ...receipt, recorded_at: "2026-10-10T09:00:00Z" };
+    const f = provenanceFindings({ ...base, ledger: [young] });
+    expect(f.forged[0].why).toMatch(/7 day\(s\) old; a run missing within 14 days is not taken as lost/);
+    expect(f.expired).toEqual([]);
+  });
+
+  it("RED: head_sha not on main, or not carrying the migration, or no evidence read", () => {
+    const off = provenanceFindings({ ...base, shaEvidence: new Map([["20261002060514", { onMain: false, fileAtSha: true }]]) });
+    expect(off.forged[0].why).toMatch(/is not a commit on main/);
+    const nofile = provenanceFindings({ ...base, shaEvidence: new Map([["20261002060514", { onMain: true, fileAtSha: false }]]) });
+    expect(nofile.forged[0].why).toMatch(/does not carry migration 20261002060514/);
+    const none = provenanceFindings({ ...base, shaEvidence: new Map() });
+    expect(none.forged[0].why).toMatch(/no commit evidence/);
+  });
+
+  it("a live run on another workflow or branch is still a forgery, whatever its age", () => {
+    const other = provenanceFindings({ ...base, runs: new Map([["36987006095", { path: ".github/workflows/test.yml", head_branch: "main" }]]) });
+    expect(other.forged).toHaveLength(1);
+    expect(other.expired).toEqual([]);
+  });
+
+  it("expiredRunVerdict fails closed on a missing rule or recorded_at", () => {
+    expect(expiredRunVerdict(receipt, { onMain: true, fileAtSha: true }, { now, minAgeDays: undefined })).toMatch(/no expired-run rule/);
+    expect(expiredRunVerdict({ ...receipt, recorded_at: undefined }, { onMain: true, fileAtSha: true }, { now, minAgeDays: 14 })).toMatch(/no recorded_at/);
+  });
+
+  it("the live check wires the rule: config minAgeDays, ledger reads head_sha + recorded_at, evidence from GitHub", () => {
+    const cfg = JSON.parse(read("scripts/audit/migration-provenance.json"));
+    expect(cfg.expiredRun.minAgeDays).toBe(14);
+    const script = read("scripts/check-migration-provenance.mjs");
+    expect(script).toContain("SELECT version, run_id, head_sha, recorded_at FROM public.migration_deploy_ledger");
+    expect(script).toContain("expiredRun: CONFIG.expiredRun,");
+    expect(script).toContain("compare/${sha}...main");
+    expect(script).toContain("contents/supabase/migrations/${encodeURIComponent(file)}?ref=${sha}");
   });
 });
 

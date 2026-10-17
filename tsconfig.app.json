@@ -38,6 +38,8 @@
     "e2e/adminRpcClassification.ts",
     "e2e/browserLock.ts",
     "e2e/previewBuildCheck.ts",
+    // src/test/e2eMoveSeedJobStart.test.ts imports the no-show harness concession.
+    "e2e/moveSeedJobStart.ts",
     // The ONE error-screen signature list every harness shares.
     // `src/test/errorScreenPatternsVsAppProse.test.ts` imports it to prove no
     // pattern fires on the app's own prose (the `/Something went wrong/i` line

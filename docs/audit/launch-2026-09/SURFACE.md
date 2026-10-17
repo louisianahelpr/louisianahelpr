@@ -14,23 +14,23 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 36 |
+| Routes (non-redirect) | route | 37 |
 | Redirect-only routes | route | 0 |
 | `?tab=` variants | variant | 29 |
 | `?view=` variants | variant | 25 |
 | Overlay surfaces | **instance** | 158 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
-| Toast messages | **call site** | 766 (across 184 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 23 |
+| Toast messages | **call site** | 767 (across 185 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Multi-step flows — confirmed | flow | 24 |
 | Multi-step flows — probable | flow | 17 |
-| Back/next navigation only | flow | 40 |
+| Back/next navigation only | flow | 43 |
 | Forms (submittable) | form | 52 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 136 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 138 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **516** |
-| **Copy surfaces** (strings a person may read) | mixed | **804** |
-| **Total auditable surface** | mixed | **1320** |
+| **Navigable surfaces** (places a person can stand) | mixed | **523** |
+| **Copy surfaces** (strings a person may read) | mixed | **805** |
+| **Total auditable surface** | mixed | **1328** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,12 +67,12 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 36 | 34 | agree |
+| Real routes | 37 | 34 | agree |
 | Redirect-only routes | 0 | 14 | agree |
 | Admin `?view=` | 25 | 24 | agree |
 | Overlay surfaces | 158 | 130 | agree within method (script counts every menu instance) |
 | Forms | 52 | ~38 | agree |
-| Confirmed multi-step flows | 23 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 24 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -89,6 +89,7 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/account-banned`
 - [ ] `/forgot-password`
 - [ ] `/reset-password`
+- [ ] `/unsubscribe`
 - [ ] `/home`
 - [ ] `/profile`
 - [ ] `/post-job`
@@ -343,9 +344,10 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/components/profile/SubscriptionTab.tsx` | nav-handler, union-state |
 | `src/components/ReportDialog.tsx` | compare, nav-handler |
 | `src/lib/awardGate.ts` | step-array |
-| `src/pages/admin/Admin.tsx` | switch, nav-handler |
+| `src/pages/admin/Admin.tsx` | switch |
 | `src/pages/auth/Signup.tsx` | compare, nav-handler |
 | `src/pages/auth/signup/SignupStep1.tsx` | compare |
+| `src/pages/auth/Unsubscribe.tsx` | compare, nav-handler |
 | `src/pages/home/DashboardGuest.tsx` | compare |
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | switch, union-state |
 | `src/pages/jobs/appliedJobCard/CrewMemberSection.tsx` | compare |
@@ -388,6 +390,8 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 
 | Component | Signals |
 |---|---|
+| `src/components/admin/AdminAnalytics.tsx` | nav-handler |
+| `src/components/admin/AdminAnalyticsDrilldowns.tsx` | nav-handler |
 | `src/components/admin/AdminSectionHeader.tsx` | nav-handler |
 | `src/components/AppPage.tsx` | nav-handler |
 | `src/components/declutter/DeclutterTradeViews.tsx` | nav-handler |
@@ -415,6 +419,7 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/components/profile/WarningsTab.tsx` | nav-handler |
 | `src/components/ProfileRouteSkeleton.tsx` | nav-handler |
 | `src/hooks/useDeleteAccount.ts` | nav-handler |
+| `src/pages/admin/AdminFrame.tsx` | nav-handler |
 | `src/pages/info/Legal.tsx` | nav-handler |
 | `src/pages/post-job/useJobEntry.ts` | nav-handler |
 | `src/pages/post-job/useJobSubmit.ts` | nav-handler |

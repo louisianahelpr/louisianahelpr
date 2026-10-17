@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261016212915_shops_items (Shops slice 2: items; owner
+ * PGlite proof for 20261017060556_shops_items (Shops slice 2: items; owner
  * decisions docs/specs/local-shops-prep.md L5-L22, L45, L51, L52, L75, L82,
  * and the lane's dated D1-D6 defaults there), on top of slice 1
  * (20261015123029_shops_profiles, applied once, as prod will have it).
@@ -25,7 +25,7 @@ import os from "node:os";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261016212915_shops_items.sql`, "utf8");
+const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261017060556_shops_items.sql`, "utf8");
 const SLICE1 = readFileSync(`${MIG_DIR}20261015123029_shops_profiles.sql`, "utf8");
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
 const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sql`, "utf8");
@@ -33,7 +33,7 @@ const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sq
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */
 function newestDefinition(name) {
   let found = null;
-  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && !x.startsWith("20261015123029") && !x.startsWith("20261016212915")).sort()) {
+  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && !x.startsWith("20261015123029") && !x.startsWith("20261017060556")).sort()) {
     const sql = readFileSync(`${MIG_DIR}${f}`, "utf8");
     const re = new RegExp(String.raw`CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.${name}\s*\(`, "gi");
     let m;
@@ -528,7 +528,7 @@ await addPhotos(OWNER, b2, 1);
 ok(one(await svc(`SELECT admin_approved_at IS NULL FROM public.shop_items WHERE id = '${b2}'`)) === true,
   "adding a photo drops the admin approval too");
 
-// --- the contact-leak refusals no longer point at a Message button shops do not have (Q1882)
+// --- the contact-leak refusals no longer point at a Message button shops do not have (the Shops Message button item)
 const leakItem = await member(OWNER, `SELECT public.shops_update_item('${b2}', 'made', 'candles', 'Pecan candle', 'Call 337 555 1234', 1900, 2, NULL)`);
 ok(refused(leakItem, /does not allow contact details in Shops\.$/, "23514") && !/Message button/.test(leakItem.error),
   "an item's contact-leak refusal says contact details are not allowed, not 'use the Message button'");

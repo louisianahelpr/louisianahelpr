@@ -772,12 +772,12 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 ALL 92 local-shops questions answered (2026-10-14).
 
 ## Build defaults (Shops slice S2, items, 2026-10-16)
-Where the answers above leave a choice open, the S2 lane (migration 20261016212915_shops_items) took the safest
+Where the answers above leave a choice open, the S2 lane (migration 20261017060556_shops_items) took the safest
 default. Each row is a **default chosen by lane, owner to confirm**. Cited in the code as D<n>.
 
 | # | Question left open | Default chosen | When | Status |
 |---|--------------------|----------------|------|--------|
-| D1 | L5/L6 permit foods (plate lunches, gumbo, boudin, seafood) from shops with a health permit | Not listable yet: no permit-food type exists until a food-permit credential type and its admin check exist (docs/OPEN.md Q1887). Home food is the R.S. 40:4.9(E) low-risk list only | 2026-10-16 | default chosen by lane, owner to confirm |
+| D1 | L5/L6 permit foods (plate lunches, gumbo, boudin, seafood) from shops with a health permit | Not listable yet: no permit-food type exists until a food-permit credential type and its admin check exist (the Shops admin queue item in docs/OPEN.md). Home food is the R.S. 40:4.9(E) low-risk list only | 2026-10-16 | default chosen by lane, owner to confirm |
 | D2 | L8 which yearly limit | $30,000 (the code page today), stored as a setting row (`shop_cottage_settings`) so it moves to $100,000 once Act 801 of 2026's effective date is confirmed. Warn at 80% | 2026-10-16 | default chosen by lane, owner to confirm |
 | D3 | Item price range | $1 to $1,000 per item, Declutter's cap | 2026-10-16 | default chosen by lane, owner to confirm |
 | D4 | L21 "the shop sets which days it fills orders" | The shop's opening days (slice 1's hours) are its order days; an item cannot be published until the shop has at least one. Lead time 0 to 60 days per item; L22's daily limit is per shop, 1 to 200 | 2026-10-16 | default chosen by lane, owner to confirm |
@@ -788,4 +788,4 @@ default. Each row is a **default chosen by lane, owner to confirm**. Cited in th
 | D9 | L7 raw honey (the statute exempts it from the label) | The app notice shows on every home-food item, honey included, and the baker still ticks "my package label says it" | 2026-10-16 | default chosen by lane, owner to confirm |
 | D10 | Editing a live item | Stock count and lead time change in place; any other edit takes the item off the shop page (back to draft) until it is published again, so nothing an admin or the AI judged changes while it stays up | 2026-10-16 | default chosen by lane, owner to confirm |
 | D12 | A shop that turns selling off (quotes only) | Its live items stop showing to members (they stay listed for the owner and come back when selling is on again), and no item is approved for it | 2026-10-16 | default chosen by lane, owner to confirm |
-| D11 | The kind `rental` | Reserved in the item table (section 5 lists it in S2) but refused by every call until the rentals slice (S5, docs/OPEN.md Q1884) | 2026-10-16 | default chosen by lane, owner to confirm |
+| D11 | The kind `rental` | Reserved in the item table (section 5 lists it in S2) but refused by every call until the rentals slice (S5, the Shops rentals item in docs/OPEN.md) | 2026-10-16 | default chosen by lane, owner to confirm |

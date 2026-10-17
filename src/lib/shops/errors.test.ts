@@ -8,13 +8,13 @@
  *     wrong".
  *  2. The contact-leak refusal shows the server's sentence, read from the
  *     NEWEST definitions of both triggers, which no longer point at a Message
- *     button shops do not have (docs/OPEN.md Q1882).
+ *     button shops do not have (the Shops Message button item in docs/OPEN.md).
  *  3. item_changed (lh-authz-rls re-review N1) has its words.
  *
  * @mutate src/lib/shops/errors.ts |   if (err instanceof ListingPhotoError && err.message) return err.message;\n | \n
  * @mutate src/lib/shops/errors.ts |   if (e.code === "23514" && /does not allow contact details in Shops\.$/.test(message)) return message; |   if (e.code === "23514" && /members reach you with the Message button/.test(message)) return message;
- * @mutate supabase/migrations/20261016212915_shops_items.sql | off your items; Louisiana Helpr does not allow contact details in Shops.'; | off your items; members reach you with the Message button.';
- * @mutate supabase/migrations/20261016212915_shops_items.sql | off your shop; Louisiana Helpr does not allow contact details in Shops.'; | off your shop; members reach you with the Message button.';
+ * @mutate supabase/migrations/20261017060556_shops_items.sql | off your items; Louisiana Helpr does not allow contact details in Shops.'; | off your items; members reach you with the Message button.';
+ * @mutate supabase/migrations/20261017060556_shops_items.sql | off your shop; Louisiana Helpr does not allow contact details in Shops.'; | off your shop; members reach you with the Message button.';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";

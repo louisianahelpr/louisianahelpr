@@ -8,6 +8,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { contactLeakFieldError, contactLeakRejectionMessage } from "@/lib/contactLeakField";
 import { TITLE_MAX, DESCRIPTION_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { report } from "@/lib/errorLogger";
+import { backgroundImport } from "@/lib/chunkReload";
 import { requireOnline } from "@/lib/requireOnline";
 import { assertWritable } from "@/hooks/useImpersonation";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
@@ -161,9 +162,12 @@ async function jobIsFunded(jobId: string): Promise<boolean | null> {
 async function linkSetupJobOrTell(orderId: string, jobId: string): Promise<void> {
   let linkErr: unknown = null;
   try {
-    // Loaded only for an "Add a Helpr" post (off /posts' shared chunk, Q178); a
-    // chunk that cannot load is a failed link, told to the buyer below.
-    const { linkSetupJob } = await import("@/lib/declutter/setupHelpr");
+    // Loaded only for an "Add a Helpr" post (off /posts' shared chunk, Q178);
+    // a chunk that cannot load is a failed link, told to the buyer below. As a
+    // background import, so a stale chunk never starts the recovery reload
+    // mid-submit, between the job row and the checkout redirect (lh-money-escrow
+    // review of 6ef39799d #3a).
+    const { linkSetupJob } = await backgroundImport(() => import("@/lib/declutter/setupHelpr"), "declutter-setup-helpr");
     if (!(await linkSetupJob(orderId, jobId))) linkErr = new Error("declutter setup job not linked");
   } catch (err) {
     linkErr = err;

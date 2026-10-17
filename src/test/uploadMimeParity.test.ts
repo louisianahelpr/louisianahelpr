@@ -88,6 +88,8 @@ const SITES: Site[] = [
   { file: "src/lib/declutter/handover.ts", bucket: "declutter-handover", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
   // Quote past-work photos: cleaned to JPEG the same way (src/lib/quotes/api.ts).
   { file: "src/lib/quotes/api.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["LISTING_PHOTO_UPLOAD_TYPES"] },
+  // Shop logos, covers and photos: the same cleaning (src/lib/declutter/photos.ts).
+  { file: "src/lib/shops/api.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["LISTING_PHOTO_UPLOAD_TYPES"] },
   { file: "src/pages/post-job/useJobMediaUpload.ts", bucket: "job-photos", gate: ["src/lib/scopeVideo.ts", "SCOPE_VIDEO_TYPES"], via: ["scopeVideoFileProblem", "SCOPE_VIDEO_BUCKET"], bucketSrc: "src/lib/scopeVideo.ts" },
 ];
 
@@ -115,6 +117,7 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/declutter/DeclutterHandoverViews.tsx": { bucket: "declutter-handover" },
   "src/pages/quotes/SendQuotePage.tsx": { bucket: "job-photos" },
   "src/components/declutter/DeclutterDeliveryViews.tsx": { bucket: "helpr-tasks" },
+  "src/components/shops/ShopEditView.tsx": { bucket: "job-photos" },
   "src/components/admin/marketing/MarketingComposerDialog.tsx": {
     bucket: "marketing-media",
     constSrc: "src/components/admin/marketing/marketingMedia.ts",

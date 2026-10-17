@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   ChevronDown,
   Sofa,
+  Store,
   type LucideIcon,
 } from "lucide-react";
 import { useFeature } from "@/hooks/useFeature";
@@ -99,9 +100,15 @@ const DesktopSidebarNav = () => {
   // destinations after Messages only while the hidden switch is on for this
   // member; for everyone else the panel is unchanged.
   const declutterOn = useFeature("declutter");
-  const navItems = declutterOn
-    ? [...NAV_ITEMS.slice(0, 4), { path: "/declutter", icon: Sofa, label: "Declutter" }, ...NAV_ITEMS.slice(4)]
-    : NAV_ITEMS;
+  // Shops (docs/specs/local-shops-prep.md L1-L2: its own destination) joins
+  // after Declutter the same way, only while the hidden 'shops' switch is on.
+  const shopsOn = useFeature("shops");
+  const navItems = [
+    ...NAV_ITEMS.slice(0, 4),
+    ...(declutterOn ? [{ path: "/declutter", icon: Sofa, label: "Declutter" }] : []),
+    ...(shopsOn ? [{ path: "/shops", icon: Store, label: "Shops" }] : []),
+    ...NAV_ITEMS.slice(4),
+  ];
   // Admin's own sections, collapsed by default so an admin's panel is the same
   // shape as everyone else's until they open it. Auto-opens while you are
   // actually in the console, so the section you are looking at is never hidden.

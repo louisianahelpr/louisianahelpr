@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable, rest, SUPABASE_URL, E2E_TITLE_MARKER } from "./fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { expectGateSendsToCompleteProfile } from "./incompleteAccount";
@@ -15,8 +15,10 @@ import { defaultInboxTab } from "../../src/lib/inboxDefault";
  * inventory of that control kind on the real screen, against prod, so a new
  * offender of the same shape goes red without anyone writing a new test:
  *
- *   a. EVERY focusable inside the DOB picker paints a focus indicator
- *      (original: the Month/Day/Year listboxes, `focus-visible:outline-none`).
+ *   a. EVERY focusable on Complete Profile, and inside Post a Job's date
+ *      calendar, paints a focus indicator (original: the DOB wheel's
+ *      Month/Day/Year listboxes, `focus-visible:outline-none`; the wheel left
+ *      the app with the birthday question, 8d44b5aab, 2026-10-14).
  *   b. Opening a thread from the inbox leaves focus INSIDE the thread
  *      (original: Messages swaps the list for the chat; focus fell to body).
  *   c. EVERY switch on Notification preferences keeps focus through a toggle
@@ -38,106 +40,84 @@ const focusDescription = (page: Page) =>
     return `${a.tagName.toLowerCase()}${a.id ? `#${a.id}` : ""}[role=${a.getAttribute("role") ?? ""} label=${a.getAttribute("aria-label") ?? ""}]`;
   });
 
+/**
+ * Focus every node of `focusables` (as it is on screen now) and list the ones
+ * that paint nothing: no outline and no box-shadow while focused.
+ *
+ * HANDLES, NOT INDEXES: focusing a node can re-render its list (a calendar
+ * pages, a wheel scroll-snaps), and a loop that keeps asking for `nth(i)`
+ * waits out its timeout on a list that shrank (e2e-journeys 34927100318).
+ * A handle that has left the document is skipped rather than waited for.
+ */
+async function unpaintedFocusables(page: Page, focusables: Locator): Promise<{ checked: number; unpainted: string[] }> {
+  await expect(focusables.first()).toBeVisible({ timeout: 30_000 });
+  const handles = await focusables.elementHandles();
+  const unpainted: string[] = [];
+  let checked = 0;
+  for (const el of handles) {
+    if (!(await el.evaluate((node) => (node as HTMLElement).isConnected && (node as HTMLElement).getClientRects().length > 0).catch(() => false))) continue;
+    // The resting shadow, read before focus: a ring is a box-shadow that
+    // CHANGES on focus, and a control with a resting shadow (a card button,
+    // an input's inset) is not "painted" by the shadow it always wears.
+    const resting = await el.evaluate((node) => getComputedStyle(node as HTMLElement).boxShadow);
+    await el.focus();
+    // Keyboard movement is what turns :focus-visible on; Tab away and back.
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
+    // `transition` on rings (Input, Button): let it settle before reading.
+    await page.waitForTimeout(400);
+    const paint = await el.evaluate((node, restingShadow) => {
+      const e = node as HTMLElement;
+      if (document.activeElement !== e) return { skipped: true };
+      const cs = getComputedStyle(e);
+      const transparent = (c: string) => /rgba\(\d+, \d+, \d+, 0\)|transparent/.test(c);
+      const outline = cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0 && !transparent(cs.outlineColor);
+      const shadow = cs.boxShadow !== "none" && cs.boxShadow !== restingShadow;
+      return { skipped: false, outline, shadow, desc: `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ""}[${e.getAttribute("aria-label") ?? e.textContent?.trim().slice(0, 20)}] outline=${cs.outlineStyle} ${cs.outlineWidth} ${cs.outlineColor} shadow=${cs.boxShadow}` };
+    }, resting);
+    if (paint.skipped) continue;
+    checked++;
+    if (!paint.outline && !paint.shadow) unpainted.push(paint.desc!);
+  }
+  return { checked, unpainted };
+}
+
 const guestTitle = scenarioTitle({ journey: "keyboard", persona: "new", state: "approved", rotation, outcome: "smooth" });
-// Shown able to fail on the defect DateWheelPicker's own comment records: an
-// audit on 2026-09-12 found `focus-visible:outline-none` with NOTHING in its
-// place, so a keyboard user landed on a wheel option with no paint at all.
-// Stripping the replacement ring restores that exact state, and this spec's
-// "focused with nothing painted" is what catches it.
-// @mutate src/components/DateWheelPicker.tsx | "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--olivewood))]" | "focus-visible:outline-none"
+// Shown able to fail on the class's original defect, moved to the controls a
+// keyboard user meets now: `focus-visible:outline-none` with NOTHING in its
+// place (the DOB wheel, audit 2026-09-12). Stripping the Input's replacement
+// ring leaves every Complete Profile text field focused with nothing painted,
+// and stripping the calendar day's leaves every day of Post a Job's calendar
+// the same way; "focused with nothing painted" is what catches each.
+// @mutate src/components/ui/input.tsx | "focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood)/0.25)] focus-visible:ring-offset-0", | "focus-visible:ring-0",
+// @mutate src/components/ui/calendar.tsx | "h-11 w-11 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] aria-selected:opacity-100 rounded-full" | "focus-visible:ring-0 h-11 w-11 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] aria-selected:opacity-100 rounded-full"
 
 test(guestTitle, async ({ browser, request, journey }) => {
   test.skip(filteredOut(guestTitle), "SCENARIO pins another scenario");
-  // The DOB wheel left sign-up step 2 in c34c5fee5 (owner, 2026-10-09: the
-  // birthday is asked later). Complete Profile still asks for it with the same
-  // DatePickerField wheel and the same "Choose a date" dialog, so a new
-  // account that has not finished its profile is where a keyboard user meets
-  // it now: the `incomplete` seed account (./incompleteAccount.ts).
+  // A new account that has not finished its profile lands on Complete
+  // Profile: the `incomplete` seed account (./incompleteAccount.ts).
   const incomplete = await getSession(request, "incomplete");
   await expectGateSendsToCompleteProfile(request, incomplete);
   const ctx = await newUserContext(browser, incomplete, { rotation });
   const page = journey.track("incomplete", await ctx.newPage());
 
-  await test.step("a. every focusable in the DOB wheel shows focus", async () => {
+  await test.step("a. every focusable on Complete Profile shows focus", async () => {
+    // Complete Profile asks no birthday since 8d44b5aab (owner, 2026-10-14),
+    // so the DOB wheel this leg walked is gone from every screen (nightly-red
+    // #2436, e2e-journeys 38749234414 / 38882683467: "#dob element(s) not
+    // found"). The class is unchanged: a keyboard stop with nothing painted.
+    // The form the incomplete account lands on is walked whole, from the
+    // screen's own inventory.
     await page.goto("/complete-profile");
-    await expect(page.locator("#dob")).toBeVisible({ timeout: 60_000 });
-    await page.locator("#dob").click();
-    const dialog = page.getByRole("dialog", { name: "Choose a date" });
-    await expect(dialog).toBeVisible({ timeout: 10_000 });
-    // Inventory from the screen, not from a list: everything tabbable in the
-    // picker. `:not([tabindex="-1"])` is what makes that true — the wheel's 127
-    // options are <button role="option" tabindex="-1"> (measured on prod
-    // 2026-09-15: 3 listboxes + 127 options), i.e. deliberately OUT of the tab
-    // order, which the a2 step below asserts. Driving focus into them was
-    // testing a state no keyboard user can reach, and it broke both ways:
-    // e2e-journeys 34927100318 timed out on `nth(47)` of a list the wheel had
-    // re-rendered, and locally, walking all 130 with Tab/Shift+Tab ended with
-    // the picker closed, so the next step had no dialog to measure.
-    const focusables = dialog.locator(
-      '[tabindex="0"], button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"])',
+    await expect(page.locator("#firstName")).toBeVisible({ timeout: 60_000 });
+    const focusables = page.locator(
+      'main [tabindex="0"], main button:not([disabled]):not([tabindex="-1"]), main input:not([disabled]):not([tabindex="-1"]):not([type=hidden]), main textarea:not([disabled]), main select:not([disabled]):not([tabindex="-1"]), main [role="checkbox"]:not([tabindex="-1"])',
     );
-    // The wheel is a lazy chunk; wait for it to land before taking inventory.
-    await expect(focusables.first()).toBeVisible({ timeout: 30_000 });
-    // HANDLES, NOT INDEXES. The inventory is 130 nodes (3 listboxes + 127
-    // options, measured on prod 2026-09-15), and focusing an option
-    // scroll-snaps its column — so the wheel can re-render and the set shrink
-    // under a loop that keeps asking for `nth(i)`. e2e-journeys 34927100318
-    // died on exactly that, both engines: `locator.focus` waited out 20s for
-    // `nth(47)` of a list that no longer had 48 stops. Element handles are
-    // stable references to the nodes that WERE on screen when the inventory
-    // was taken; one that has since left the document is skipped rather than
-    // waited for.
-    const handles = await focusables.elementHandles();
-    expect(handles.length, "the DOB picker has no keyboard stops at all").toBeGreaterThan(0);
-    const invisible: string[] = [];
-    for (const el of handles) {
-      if (!(await el.evaluate((node) => (node as HTMLElement).isConnected).catch(() => false))) continue;
-      await el.focus();
-      // Keyboard movement is what turns :focus-visible on; Tab away and back.
-      await page.keyboard.press("Tab");
-      await page.keyboard.press("Shift+Tab");
-      const paint = await el.evaluate((node) => {
-        // `elementHandles()` hands back a Node; everything below is element-only.
-        const e = node as HTMLElement;
-        if (document.activeElement !== e) return { skipped: true };
-        const cs = getComputedStyle(e);
-        const transparent = (c: string) => /rgba\(\d+, \d+, \d+, 0\)|transparent/.test(c);
-        const outline = cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0 && !transparent(cs.outlineColor);
-        const shadow = cs.boxShadow !== "none";
-        return { skipped: false, outline, shadow, desc: `${e.tagName.toLowerCase()}[${e.getAttribute("aria-label") ?? e.textContent?.trim().slice(0, 20)}] outline=${cs.outlineStyle} ${cs.outlineWidth} ${cs.outlineColor} shadow=${cs.boxShadow}` };
-      });
-      if (!paint.skipped && !paint.outline && !paint.shadow) invisible.push(paint.desc!);
-    }
-    await journey.milestone(page, "dob-wheel-focus");
-    expect(invisible, "focused with nothing painted").toEqual([]);
-    await assertHealthy(page, "/complete-profile DOB picker");
-  });
-
-  await test.step("a2. Tab through the DOB wheel never changes the value", async () => {
-    // Original (2026-09-12): options were tabbable buttons; Tab scroll-snapped
-    // the column onto them and two presses moved the year 2008 -> 1906.
-    const dialog = page.getByRole("dialog", { name: "Choose a date" });
-    const selected = () =>
-      dialog.evaluate((d) =>
-        Array.from(d.querySelectorAll('[role="listbox"]')).map(
-          (lb) => `${lb.getAttribute("aria-label")}=${lb.querySelector('[aria-selected="true"]')?.textContent ?? ""}`,
-        ),
-      );
-    const month = dialog.getByRole("listbox", { name: "Month" });
-    await month.focus();
-    const before = await selected();
-    for (let i = 0; i < 4; i++) {
-      await page.keyboard.press("Tab");
-      // Let any focus-driven scroll settle past the wheel's 90ms debounce.
-      await page.waitForTimeout(250);
-    }
-    for (let i = 0; i < 4; i++) {
-      await page.keyboard.press("Shift+Tab");
-      await page.waitForTimeout(250);
-    }
-    expect(await selected(), "Tab moved the DOB wheel's value").toEqual(before);
-    // Every option is out of the tab order; the listbox is the only stop.
-    expect(await dialog.locator('[role="option"]:not([tabindex="-1"])').count()).toBe(0);
+    const invisible = await unpaintedFocusables(page, focusables);
+    expect(invisible.checked, "Complete Profile has no keyboard stops at all").toBeGreaterThan(3);
+    await journey.milestone(page, "complete-profile-focus");
+    expect(invisible.unpainted, "focused with nothing painted").toEqual([]);
+    await assertHealthy(page, "/complete-profile");
   });
   await ctx.close();
 });
@@ -329,6 +309,26 @@ test(authedTitle, async ({ browser, request, journey }) => {
     await pickers.first().scrollIntoViewIfNeeded();
     await journey.milestone(page, "post-job-file-picker-focus");
     expect(unpainted, "file picker focused with nothing painted").toEqual([]);
+  });
+
+  await test.step("f. Post a Job's date calendar: every stop paints focus, and Tab never changes the day", async () => {
+    // The date picker a keyboard user meets now (the DOB wheel went with the
+    // birthday question, 8d44b5aab). Same two originals as the wheel's: a stop
+    // with nothing painted, and Tab moving the chosen value (2026-09-12: two
+    // presses moved the wheel's year 2008 -> 1906).
+    const calendar = page.getByRole("group", { name: /Date Needed|Start Date/ });
+    await expect(calendar.locator("td[data-day]").first(), "the Date Needed calendar never mounted (lazy chunk)").toBeAttached({ timeout: 30_000 });
+    const chosen = () => calendar.locator('td[aria-selected="true"]').evaluateAll((tds) => tds.map((td) => td.getAttribute("data-day")));
+    const before = await chosen();
+    const stops = calendar.locator('button:not([disabled]):not([tabindex="-1"]), [tabindex="0"]');
+    const { checked, unpainted } = await unpaintedFocusables(page, stops);
+    expect(checked, "the Date Needed calendar has no keyboard stops at all").toBeGreaterThan(0);
+    await stops.first().focus();
+    for (let i = 0; i < 4; i++) await page.keyboard.press("Tab");
+    for (let i = 0; i < 4; i++) await page.keyboard.press("Shift+Tab");
+    await journey.milestone(page, "post-job-calendar-focus");
+    expect(unpainted, "calendar stop focused with nothing painted").toEqual([]);
+    expect(await chosen(), "Tab moved the calendar's chosen day").toEqual(before);
   });
   await ctx.close();
 });

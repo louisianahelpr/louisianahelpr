@@ -1,6 +1,141 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
+import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+
+/**
+ * The payment states that say "the poster's money is here". A failure event
+ * for the job's own PaymentIntent on a job in one of these is NOT stale: an
+ * ACH (us_bank_account) debit is reported as a completed checkout days before
+ * the bank settles it, and can also fail AFTER it first succeeded (a late bank
+ * return). Job 7440a72d (2026-10-12/15) sat in 'escrow' for days after its
+ * debit failed with insufficient_funds because this handler ignored every
+ * job past unpaid: it was hired, offered, reminded and re-broadcast as funded.
+ */
+const FUNDED_PAYMENT_STATES = new Set(["escrow", "payout_pending", "released"]);
+
+/** Live PaymentIntent statuses that mean the money did not, and will not, arrive. */
+const FAILED_PI_STATUSES = new Set(["requires_payment_method", "canceled"]);
+
+/**
+ * A failure on a job that is marked funded: take it out of escrow when (and
+ * only when) the failing PaymentIntent is the one that funded the job AND
+ * Stripe's live view of it is a genuine failure. Everything else is a stale or
+ * unrelated event and is acked without a write.
+ */
+async function unfundFailedEscrow(
+  // deno-lint-ignore no-explicit-any
+  job: any,
+  piId: string,
+  { supabase, stripe, logStep }: WebhookContext,
+): Promise<void> {
+  if (job.stripe_payment_intent_id !== piId) {
+    // A different PI (an earlier declined attempt, a re-delivery) carrying the
+    // same job_id. The job was funded by its own PI; this says nothing about it.
+    logStep("payment_failed for a PI that did not fund this job — ignored", {
+      jobId: job.id, piId, fundedBy: job.stripe_payment_intent_id ?? null, paymentStatus: job.payment_status,
+    });
+    return;
+  }
+  // Decide on Stripe's live state, never the event payload alone: a retried
+  // ACH debit that has since succeeded must not be un-funded by an old event.
+  // A Stripe error throws, so the event is retried rather than lost.
+  const live = await stripe.paymentIntents.retrieve(piId);
+  const liveStatus = (live as { status?: string | null }).status ?? null;
+  if (!liveStatus || !FAILED_PI_STATUSES.has(liveStatus)) {
+    logStep("payment_failed on a funded job but the live PI is not failed — ignored", {
+      jobId: job.id, piId, liveStatus,
+    });
+    return;
+  }
+
+  if (job.payment_status === "released") {
+    // The Helpr was already paid from money that never arrived. Nothing here
+    // can undo a transfer; a person must decide (reverse the transfer or
+    // absorb it). Page, write nothing.
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Bank payment failed AFTER the payout was released",
+      message: `The poster's payment for job ${job.id} ("${job.title}") failed (PaymentIntent ${piId} is ${liveStatus}), but the job is already 'released': the Helpr was paid from money that never arrived. Decide whether to reverse the transfer.`,
+      fields: { job_id: job.id, payment_intent: piId, pi_status: liveStatus },
+      oncePerDayKey: `funded-job-payment-failed-released:${job.id}`,
+      seed: job.is_seed ?? false,
+    });
+    return;
+  }
+
+  // Pinned to the PI and to the funded state we read: a concurrent refund,
+  // cancel or release that moved the job first wins, and this matches 0 rows.
+  // stripe_session_id is cleared (as for an unpaid ACH bounce) so the poster
+  // can start a new checkout.
+  const { data: unfunded, error: unfundErr } = await supabase
+    .from("jobs")
+    .update({ payment_status: "failed", stripe_session_id: null })
+    .eq("id", job.id)
+    .eq("stripe_payment_intent_id", piId)
+    .in("payment_status", ["escrow", "payout_pending"])
+    .select("id")
+    .maybeSingle();
+  if (unfundErr) {
+    throw new Error(`Failed to take job ${job.id} out of escrow after payment failure: ${unfundErr.message}`);
+  }
+  if (!unfunded) {
+    logStep("payment_failed on a funded job matched 0 rows — job moved on concurrently", {
+      jobId: job.id, piId, paymentStatus: job.payment_status,
+    });
+    return;
+  }
+  logStep("Funded job's payment failed — taken out of escrow", { jobId: job.id, piId, from: job.payment_status, liveStatus });
+
+  // Copy follows where the job is (lh-money-escrow review): a 'failed' job is
+  // hidden from My Posts and a hired or finished job cannot be checked out
+  // again, so no notice promises a button that is not there.
+  const hired = Boolean(job.helper_id && job.helper_confirmed_at);
+  const workDone = ["completed", "disputed", "revision_requested"].includes(String(job.status)) ||
+    job.payment_status === "payout_pending";
+  const notices: Record<string, unknown>[] = [];
+  if (job.customer_id) {
+    notices.push({
+      user_id: job.customer_id,
+      job_id: job.id,
+      title: "Your bank payment failed",
+      message: hired
+        ? `Your bank payment for "${job.title}" didn't go through, so this job isn't paid for. You haven't been charged. We've let your Helpr know.`
+        : `Your bank payment for "${job.title}" didn't go through, so this job isn't paid for and Helprs can't see it or be hired for it. You haven't been charged.`,
+      type: "warning",
+      link: null,
+    });
+  }
+  // Only a Helpr who had confirmed is told: an unconfirmed offer is refused
+  // by the funding gate on accept, and telling them would only confuse.
+  if (hired) {
+    const ask = workDone
+      ? "so the payout for it is on hold. We'll let you know what happens next."
+      : job.status === "in_progress"
+        ? "so the job isn't paid for. Please stop work on it for now; we'll let you know if it's paid again."
+        : "so the job isn't paid for. Please don't start work on it; we'll let you know if it's paid again.";
+    notices.push({
+      user_id: job.helper_id,
+      job_id: job.id,
+      title: "Job payment failed",
+      message: `The poster's payment for "${job.title}" didn't go through, ${ask}`,
+      type: "warning",
+      link: `/jobs?job=${job.id}`,
+    });
+  }
+  if (notices.length > 0) await insertNotifications(supabase, notices);
+
+  await postSlackOpsAlert({
+    kind: "money_at_risk",
+    severity: "critical",
+    title: "A funded job's payment failed — taken out of escrow",
+    message: `Job ${job.id} ("${job.title}") was '${job.payment_status}' but its PaymentIntent ${piId} is ${liveStatus}. It is now payment_status='failed'; the poster${hired ? " and the confirmed Helpr were" : " was"} told. Its job status ('${job.status}') was left as it is.`,
+    fields: { job_id: job.id, payment_intent: piId, pi_status: liveStatus, job_status: job.status ?? null },
+    oncePerDayKey: `funded-job-payment-failed:${job.id}`,
+    seed: job.is_seed ?? false,
+  });
+}
 
 /**
  * Checks the live Checkout Session and PaymentIntent status before any DB write.
@@ -95,8 +230,9 @@ async function checkSessionStatus(
 
 export async function handlePaymentIntentPaymentFailed(
   event: Stripe.Event,
-  { supabase, stripe, logStep }: WebhookContext,
+  ctx: WebhookContext,
 ): Promise<void> {
+  const { supabase, stripe, logStep } = ctx;
   const pi = event.data.object as Stripe.PaymentIntent;
   const failedEmail = pi.receipt_email || (pi as any).last_payment_error?.charge?.billing_details?.email;
   logStep("Payment intent failed", { id: pi.id, email: failedEmail });
@@ -111,7 +247,7 @@ export async function handlePaymentIntentPaymentFailed(
   const { data: failedJob, error: failedJobErr } = jobId
     ? await supabase
         .from("jobs")
-        .select("id, customer_id, title, payment_status, stripe_session_id")
+        .select("id, customer_id, title, status, payment_status, stripe_session_id, stripe_payment_intent_id, helper_id, helper_confirmed_at, is_seed")
         .eq("id", jobId)
         .maybeSingle()
     : { data: null, error: null };
@@ -119,6 +255,11 @@ export async function handlePaymentIntentPaymentFailed(
   if (failedJobErr) {
     // Throw: rolls back the idempotency row, returns 500, lets Stripe retry.
     throw new Error(`Job lookup failed for failed PI ${pi.id}: ${failedJobErr.message}`);
+  }
+
+  if (failedJob && FUNDED_PAYMENT_STATES.has(String(failedJob.payment_status))) {
+    await unfundFailedEscrow(failedJob, pi.id, ctx);
+    return;
   }
 
   if (failedJob) {

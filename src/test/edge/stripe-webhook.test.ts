@@ -1558,6 +1558,19 @@ describe("stripe-webhook edge function", () => {
         expect(stripeMock.paymentIntents.update).toHaveBeenCalledWith("pi_visit", { metadata: { tax_rev_re_full: "taxrev_refund:re_full" } });
       });
 
+      // Q1828: an inclusive line's amount already holds its tax.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts | (li.tax_behavior === "inclusive" ? 0 : Math.abs(Number(li.amount_tax ?? 0))) | Math.abs(Number(li.amount_tax ?? 0))
+      it("a tax-INCLUSIVE line is not double-counted: a refund of its whole amount is still ONE full reversal (Q1828)", async () => {
+        stripeMock.tax.transactions.listLineItems.mockResolvedValue({
+          data: [{ id: "tax_li_1", amount: 11000, amount_tax: 1000, tax_behavior: "inclusive", reference: "labor" }],
+          has_more: false,
+        });
+        piMeta();
+        refundsAre([{ id: "re_incl", amount: 11000, created: 100 }]);
+        await run("evt_tax_inclusive");
+        expect(reversals().map((r) => [r.args.reference, r.args.mode, r.args.flat_amount])).toEqual([["refund:re_incl", "full", undefined]]);
+      });
+
       // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |     if (piMeta[metaKey]) { |     if (false) {
       it("a redelivery (retry) of the same refund reverses nothing again", async () => {
         piMeta({ tax_rev_re_full: "taxrev_1" });
@@ -1606,6 +1619,9 @@ describe("stripe-webhook edge function", () => {
         refundsAre([{ id: "re_late", amount: 8500, created: 100 }]);
         await run("evt_tax_kept");
         expect(reversals().map((r) => [r.args.mode, r.args.flat_amount])).toEqual([["partial", -8500]]);
+        // Q1828's guard: a fee-withheld (partial) visit refund reverses its tax
+        // share itself, so ops gets no "reverse it by hand" page.
+        expect((slackAlerts as Array<{ title: string }>).some((a) => /tax/i.test(a.title))).toBe(false);
       });
 
       it("a refund that failed before this event is not reversed; one re-issued after it is", async () => {

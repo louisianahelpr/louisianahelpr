@@ -9,7 +9,7 @@
  * The class: whichever migration defines each of these objects LAST must carry
  * BOTH rules. Inventory: every migration file, newest definition per object.
  *
- * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |     -- Q1411: not while the poster is under an open ban settlement review.\n    AND NOT EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = j.customer_id AND q.review_state = 'open')\n  ORDER BY j.boosted_at |     AND true\n  ORDER BY j.boosted_at
+ * @mutate supabase/migrations/20261017094018_browse_rpcs_carry_fee_stamp.sql |     -- Q1411: not while the poster is under an open ban settlement review.\n    AND NOT EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = j.customer_id AND q.review_state = 'open')\n  ORDER BY j.boosted_at |     AND true\n  ORDER BY j.boosted_at
  * @mutate supabase/migrations/20261015034054_open_jobs_browse_fee_stamp.sql |  AND (NOT (EXISTS ( SELECT 1 FROM ban_settlement_queue q WHERE q.user_id = jobs.customer_id AND q.review_state = 'open'::text))) |
  * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN |   IF false THEN
  */
@@ -23,7 +23,7 @@ const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
 
 /** The body of the newest definition of `name`, and the file it is in. */
 function newest(name: string, kind: "FUNCTION" | "VIEW"): { file: string; body: string } {
-  const head = new RegExp(`CREATE OR REPLACE ${kind} public\\.${name}\\b`);
+  const head = new RegExp(`CREATE (?:OR REPLACE )?${kind} public\\.${name}\\b`);
   for (const f of [...files].reverse()) {
     const sql = readFileSync(join(DIR, f), "utf8");
     const m = head.exec(sql);

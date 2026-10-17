@@ -15,7 +15,7 @@ export { QUOTE_ERROR_COPY };
  * BEFORE INSERT trigger and fails on one with no words here and no reason it
  * cannot be reached from quote_insert_job.
  */
-export const JOB_INSERT_REFUSAL_COPY: ReadonlyArray<{ match: RegExp; copy: string }> = [
+const JOB_INSERT_REFUSAL_COPY: ReadonlyArray<{ match: RegExp; copy: string }> = [
   { match: /^Minimum budget is \$/, copy: `Set a price of at least ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}.` },
   { match: /^Maximum budget is \$/, copy: `A job can be up to ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}. Split a bigger project into separate jobs.` },
   { match: /maximum of 5 open jobs at a time/, copy: "You can have up to 5 open jobs at a time. Close one, or wait for one to be booked, then try again." },

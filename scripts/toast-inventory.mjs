@@ -278,6 +278,7 @@ export const ERROR_MAPPERS = {
   declutterErrorMessage: [], // src/lib/declutter/errors.ts
   quoteErrorMessage: [], // src/lib/quotes/errors.ts
   suggestionErrorMessage: [], // src/lib/categorySuggestions.ts
+  shopsErrorMessage: [], // src/lib/shops/errors.ts
   describeWeakPassword: [], // src/lib/authErrors.ts
 };
 /** Functions that return their argument's text (so a raw message stays raw). */

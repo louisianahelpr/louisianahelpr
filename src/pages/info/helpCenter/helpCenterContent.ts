@@ -1,5 +1,6 @@
 import { MONTHLY_FREE_BOOSTS, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, helprFlatTakeHomeCents } from "@/lib/helprFlatFee";
+import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 // The escrow clock is owned by the cron that actually moves the money, not by
 // this file. Same import the legal pages, PaymentSuccess and the activity cards
@@ -61,7 +62,11 @@ const CREDENTIAL_CATEGORY_PHRASE = (() => {
 // before the change; the Terms still quote it until the owner approves new
 // wording.)
 const FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`;
-const FLAT_TAKE_HOME_ON_100 = (helprFlatTakeHomeCents(10_000) / 100).toFixed(2);
+// What a Helpr is really sent on a $100 job: every transfer is floored to the
+// whole dollar (roundPayoutDownCents, Q236), and the app's take-home figures
+// floor the same way (floorPayoutDollars). lh-money-escrow review of
+// 7166349cd #1: "$94.30" was the unrounded figure; the transfer is $94.
+const FLAT_TAKE_HOME_ON_100 = floorPayoutDollars(helprFlatTakeHomeCents(10_000) / 100);
 
 // Roadmap F4/F4a (owner 2026-10-14/15): memberships are switched off for
 // members (feature_switches 'memberships' = testers, measured on prod
@@ -230,7 +235,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // file's guards exist to stop. "The standard schedule" is now named:
         // STANDARD_PAYOUT_WINDOW, the same constant InstantPayoutDialog and
         // PayoutHistory interpolate.
-        a: `Payment is sent to your Helpr account ${STANDARD_PAYOUT_PHRASE}, once the person who posted it confirms (or it completes automatically), then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout; every standard payout after that is free. Instant Payout (cashing out the same day) is a membership feature. ${MEMBERSHIPS_PAUSED} For now, every payout goes on the standard schedule.`,
+        a: `Payment is sent to your Helpr account ${STANDARD_PAYOUT_PHRASE}, once the person who posted it confirms (or it completes automatically), then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout, unless you already paid it on a job you posted; every standard payout after that is free. Instant Payout (cashing out the same day) is a membership feature. ${MEMBERSHIPS_PAUSED} For now, every payout goes on the standard schedule.`,
       },
       {
         q: "What if the person who posted the job doesn't confirm completion?",
@@ -275,7 +280,13 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // covers card processing … the platform fee drops as your plan tier
         // rises" (12% Free down to 8% Elite). Since 2026-10-15 (F3) there is no
         // service fee and no tier ladder on a new job.
-        a: `Posting a job costs nothing extra: you pay the job price and nothing on top. When you do a job, Helpr keeps ${FLAT_FEE_PHRASE} of your pay, the same on every plan, and that also covers card processing (on a $100 job you receive $${FLAT_TAKE_HOME_ON_100}). A job paid for before October 15, 2026 keeps the fee it was paid under. If a paid job is cancelled, the refund is what was paid less the card-processing fee Stripe keeps and any cancellation fee owed to the Helpr; if the mistake was ours, you get everything back.`,
+        // lh-money-escrow review of 7166349cd: "nothing on top" was false
+        // (create-payment adds Louisiana sales tax on TAXABLE_CATEGORIES' labor,
+        // and the one-time setup fee on a first funded job), the take-home was
+        // unrounded, and the refund sentence left out the kept setup fee and
+        // crew block fees (refundToPayerCents). The setup fee stays unnumbered:
+        // it is a live DB setting (see "When do I get paid?").
+        a: `Posting a job has no service fee: you pay the job price (including any urgent bonus you add), plus Louisiana sales tax on the labor for taxable job types such as handyman, assembly and the trades. Your first paid job also carries a small one-time account setup fee, unless you already paid it on a job you did. When you do a job, Helpr keeps ${FLAT_FEE_PHRASE} of your pay, the same on every plan, and that also covers card processing. Job payouts are rounded down to the whole dollar (tips are paid in full), so on a $100 job you receive $${FLAT_TAKE_HOME_ON_100}. A job paid for before the fee changed on October 15, 2026 keeps the fee it was paid under. If a paid job is cancelled, you get back what you paid (tax included) less the card-processing fee Stripe keeps, any cancellation fees owed to your Helprs (including for crew spots you closed close to the start), and, on your first paid job, the one-time setup fee. If the mistake was ours, you get everything back.`,
       },
       {
         q: "What if there's a dispute?",
@@ -416,7 +427,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // (profile/types.ts:35) and the button on it is "Manage"
         // (SubscriptionTab.tsx:664), which opens the Stripe billing portal. A
         // navigation instruction has to name what is actually on screen.
-        a: `${MEMBERSHIPS_PAUSED} A membership is billed securely through Stripe — the same processor that handles your job payments. If you have one, manage or cancel it anytime from Profile → Membership → Manage, which opens your Stripe billing portal.`,
+        a: `${MEMBERSHIPS_PAUSED} A membership is billed securely through Stripe — the same processor that handles your job payments — or through Apple if you subscribed on iPhone. If you have one, manage or cancel it anytime from Profile → Membership → Manage, which opens your Stripe billing portal (or your Apple subscriptions).`,
       },
       {
         q: "Can I cancel my membership anytime?",

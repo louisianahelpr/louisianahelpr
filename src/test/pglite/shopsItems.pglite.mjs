@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261017060556_shops_items (Shops slice 2: items; owner
+ * PGlite proof for 20261017061157_shops_items (Shops slice 2: items; owner
  * decisions docs/specs/local-shops-prep.md L5-L22, L45, L51, L52, L75, L82,
  * and the lane's dated D1-D6 defaults there), on top of slice 1
- * (20261015123029_shops_profiles, applied once, as prod will have it).
+ * (20261017061155_shops_profiles, applied once, as prod will have it).
  *
  *   node src/test/pglite/shopsItems.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/shopsItems.pglite.mjs     # RED: every check fails
@@ -25,15 +25,15 @@ import os from "node:os";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261017060556_shops_items.sql`, "utf8");
-const SLICE1 = readFileSync(`${MIG_DIR}20261015123029_shops_profiles.sql`, "utf8");
+const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261017061157_shops_items.sql`, "utf8");
+const SLICE1 = readFileSync(`${MIG_DIR}20261017061155_shops_profiles.sql`, "utf8");
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
 const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sql`, "utf8");
 
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */
 function newestDefinition(name) {
   let found = null;
-  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && !x.startsWith("20261015123029") && !x.startsWith("20261017060556")).sort()) {
+  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && !x.startsWith("20261017061155") && !x.startsWith("20261017061157")).sort()) {
     const sql = readFileSync(`${MIG_DIR}${f}`, "utf8");
     const re = new RegExp(String.raw`CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.${name}\s*\(`, "gi");
     let m;

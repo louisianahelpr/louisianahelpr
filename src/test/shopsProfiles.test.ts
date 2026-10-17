@@ -1,5 +1,5 @@
 /**
- * Shops slice 1 (20261015123029_shops_profiles; owner decisions in
+ * Shops slice 1 (20261017061155_shops_profiles; owner decisions in
  * docs/specs/local-shops-prep.md "Owner answers"). The fast half of the proof:
  * the shape every later slice must keep, read from the NEWEST definitions the
  * migrations leave (effectiveDefs), so a later restatement that drops a gate
@@ -21,13 +21,13 @@
  * (94 PASS on the migration, 3x replay; NEW_MIGRATION=skip 0 PASS / 94 FAIL; 8 planted defects each caught, measured
  * 2026-10-15).
  */
-// @mutate supabase/migrations/20261015123029_shops_profiles.sql | BEGIN\n  PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n\n  IF p_name | BEGIN\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n\n  IF p_name
-// @mutate supabase/migrations/20261015123029_shops_profiles.sql |   IF public.member_under_18(v_uid) THEN | IF false THEN
-// @mutate supabase/migrations/20261015123029_shops_profiles.sql |   IF public.declutter_active_strike_count(v_uid) >= 3 THEN | IF public.declutter_active_strike_count(v_uid) >= 4 THEN
-// @mutate supabase/migrations/20261015123029_shops_profiles.sql |   IF public.helper_award_block_reason(v_uid) IS NOT NULL THEN | IF false THEN
-// @mutate supabase/migrations/20261015123029_shops_profiles.sql | VALUES ('shops', 'off', | VALUES ('shops', 'testers',
-// @mutate supabase/migrations/20261017060556_shops_items.sql |   IF EXISTS (SELECT 1 FROM public.shops WHERE owner_id = v_uid AND hidden_at IS NOT NULL) THEN | IF false THEN
-// @mutate supabase/migrations/20261015123029_shops_profiles.sql | REVOKE ALL ON FUNCTION public.shops_assert_owner_eligible() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_assert_owner_eligible() FROM PUBLIC, anon;
+// @mutate supabase/migrations/20261017061155_shops_profiles.sql | BEGIN\n  PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n\n  IF p_name | BEGIN\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n\n  IF p_name
+// @mutate supabase/migrations/20261017061155_shops_profiles.sql |   IF public.member_under_18(v_uid) THEN | IF false THEN
+// @mutate supabase/migrations/20261017061155_shops_profiles.sql |   IF public.declutter_active_strike_count(v_uid) >= 3 THEN | IF public.declutter_active_strike_count(v_uid) >= 4 THEN
+// @mutate supabase/migrations/20261017061155_shops_profiles.sql |   IF public.helper_award_block_reason(v_uid) IS NOT NULL THEN | IF false THEN
+// @mutate supabase/migrations/20261017061155_shops_profiles.sql | VALUES ('shops', 'off', | VALUES ('shops', 'testers',
+// @mutate supabase/migrations/20261017061157_shops_items.sql |   IF EXISTS (SELECT 1 FROM public.shops WHERE owner_id = v_uid AND hidden_at IS NOT NULL) THEN | IF false THEN
+// @mutate supabase/migrations/20261017061155_shops_profiles.sql | REVOKE ALL ON FUNCTION public.shops_assert_owner_eligible() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_assert_owner_eligible() FROM PUBLIC, anon;
 // @mutate src/lib/shops/errors.ts |   invalid_hours: "Each time needs a day, and an opening time before its closing time.",\n | \n
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -38,7 +38,7 @@ import { SHOPS_ERROR_COPY } from "@/lib/shops/errors";
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");
-const FILE = "20261015123029_shops_profiles.sql";
+const FILE = "20261017061155_shops_profiles.sql";
 const MIG = blankSqlComments(readFileSync(join(MIG_DIR, FILE), "utf8"));
 const DEFS = effectiveDefs(MIG_DIR);
 const body = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "");
@@ -61,7 +61,7 @@ function clientCallable(): Set<string> {
   return out;
 }
 
-describe("Shops slice 1: hidden, gated, no contact details (20261015123029)", () => {
+describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", () => {
   const callable = clientCallable();
   const rpcs = [...OWNER_RPCS, ...MEMBER_WRITE_RPCS, ...READ_RPCS, ...ADMIN_RPCS];
 
@@ -127,7 +127,7 @@ describe("Shops slice 1: hidden, gated, no contact details (20261015123029)", ()
   });
 
   it("6. SHOPS_ERROR_COPY is exact against the codes the shops migrations raise (slice 1 + slice 2 items)", () => {
-    const ITEMS = blankSqlComments(readFileSync(join(MIG_DIR, "20261017060556_shops_items.sql"), "utf8"));
+    const ITEMS = blankSqlComments(readFileSync(join(MIG_DIR, "20261017061157_shops_items.sql"), "utf8"));
     const raised = new Set([...(MIG + ITEMS).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
     raised.add("feature_disabled"); // require_feature's code
     expect(raised.size).toBeGreaterThan(20);

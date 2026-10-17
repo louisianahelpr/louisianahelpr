@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261015123029_shops_profiles (Shops slice 1: free shop /
+ * PGlite proof for 20261017061155_shops_profiles (Shops slice 1: free shop /
  * business profiles; owner decisions docs/specs/local-shops-prep.md L1-L92).
  *
  *   node src/test/pglite/shopsProfiles.pglite.mjs
@@ -28,7 +28,7 @@ const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const MIGRATION = readFileSync(
-  process.env.MIGRATION_PATH ?? `${MIG_DIR}20261015123029_shops_profiles.sql`,
+  process.env.MIGRATION_PATH ?? `${MIG_DIR}20261017061155_shops_profiles.sql`,
   "utf8",
 );
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
@@ -37,7 +37,7 @@ const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sq
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */
 function newestDefinition(name) {
   let found = null;
-  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && !x.startsWith("20261015123029")).sort()) {
+  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && !x.startsWith("20261017061155")).sort()) {
     const sql = readFileSync(`${MIG_DIR}${f}`, "utf8");
     const re = new RegExp(String.raw`CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.${name}\s*\(`, "gi");
     let m;

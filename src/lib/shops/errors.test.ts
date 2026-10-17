@@ -13,8 +13,8 @@
  *
  * @mutate src/lib/shops/errors.ts |   if (err instanceof ListingPhotoError && err.message) return err.message;\n | \n
  * @mutate src/lib/shops/errors.ts |   if (e.code === "23514" && /does not allow contact details in Shops\.$/.test(message)) return message; |   if (e.code === "23514" && /members reach you with the Message button/.test(message)) return message;
- * @mutate supabase/migrations/20261017060556_shops_items.sql | off your items; Louisiana Helpr does not allow contact details in Shops.'; | off your items; members reach you with the Message button.';
- * @mutate supabase/migrations/20261017060556_shops_items.sql | off your shop; Louisiana Helpr does not allow contact details in Shops.'; | off your shop; members reach you with the Message button.';
+ * @mutate supabase/migrations/20261017061157_shops_items.sql | off your items; Louisiana Helpr does not allow contact details in Shops.'; | off your items; members reach you with the Message button.';
+ * @mutate supabase/migrations/20261017061157_shops_items.sql | off your shop; Louisiana Helpr does not allow contact details in Shops.'; | off your shop; members reach you with the Message button.';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";

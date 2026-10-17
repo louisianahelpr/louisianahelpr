@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents); |   v_debt := 0;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_card_fee'
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
+ * @mutate supabase/migrations/20261017045215_declutter_seller_out_pays_fee.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |     'code', CASE WHEN v_side = 'buyer' AND o.status = 'paid' THEN h.code END, |     'code', CASE WHEN o.status = 'paid' THEN h.code END,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   v_from := b.slot_start + interval '15 minutes'; |   v_from := b.slot_start;
  * @mutate supabase/migrations/20261015051301_declutter_shared_star_rating.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true
@@ -90,7 +90,7 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(flat(MIG)).toContain("WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee'");
     expect(flat(MIG)).toContain("WHEN fee_policy = 'keep_buyer_fee' THEN paid_cents - kept_cents");
     expect(flat(body("declutter_record_refund"))).toContain("v_kept := v_order.premium_cents;");
-    expect(flat(body("declutter_record_refund"))).toContain("WHEN p_reason IN ('seller_backed_out', 'seller_no_show', 'not_as_described') THEN 'full_seller_pays_fee'");
+    expect(flat(body("declutter_record_refund"))).toContain("WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN 'full_seller_pays_fee'");
   });
 
   it("row 25, B52: the code is the buyer's alone; wrong codes are counted (returned, not raised) and lock at 5", () => {

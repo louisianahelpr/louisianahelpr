@@ -548,6 +548,25 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
   deletion purges it. Prod measured read-only 2026-10-15 ~09:30Z: 0 objects under */declutter/*, no Declutter tables.
   (5) export (a): export_my_data adds declutter_problems_about_me (problems filed against the member, minus
   reporter_id, photo_paths, decided_by; 20261015092457, restated from 20261015084728).
+- BUILT 2026-10-17 (lane J session 3, owner answer 7): a buyer who pays just as the SELLER can no longer sell
+  (declutter_seller_out: banned, suspended, 3 strikes, under 18, flagged business-like) gets every cent back and the
+  card fee is the SELLER's debt (new reason seller_out -> full_seller_pays_fee; declutter_seller_fee_debts, taken
+  from a later payout by declutter_consume_fee_debt), the seller told once in-app. Three paths in
+  declutter_mark_order_paid: the sweep closed the checkout as seller_out, a late in-time payment (B41) that cannot be
+  honoured, and an open checkout; before, each was order_closed / sold_elsewhere (the platform paid the fee). Only
+  when the seller being out is the one thing that stopped the sale: an item that went elsewhere (or is no longer
+  reserved) stays ours (lh-money-escrow review of 1da32feffe #3). An under-18 birthday is billed like any seller who
+  is out (owner 2026-10-17: everyone ticked 18+ to sign up). A seller who blocked the buyer stays
+  seller_backed_out; a seller who is out wins over a buyer who blocked them.
+  20261017045215_declutter_seller_out_pays_fee; proofs src/test/pglite/declutterSellerOutPaysFee.pglite.mjs (20,
+  14 red with the migration skipped) and src/test/declutterSellerOutPaysFee.test.ts; reason pinned in
+  src/test/refundsKeepTheCardFee.test.ts. Review notes still open: no way to waive a seller fee debt when a ban
+  or flag is overturned; a debt booked from an ESTIMATED fee (Stripe balance transaction unreadable) is not marked
+  as estimated; a paid order whose seller goes out AFTER payment can still end as buyer_no_show / admin_no_fault
+  (the buyer, not the seller, bears the fee); a seller who blocked the buyer and is also out is billed with no
+  notice; a block while the seller is out answers differently on a late in-time payment (sold_elsewhere, the
+  platform pays) than on an open checkout (seller_out or seller_backed_out), and a buyer's block on a late
+  in-time payment also lets the platform pay (pre-existing; the open-checkout path refuses that).
 - Still open after lane J: a hand refund that does not cover the row (or two partial hand refunds summing to it) is
   recorded and paged but settles nothing: a person decides; a hand refund on an order with no refund row leaves the
   order 'paid' (its payout then refuses the refunded charge 12 times and pages). No screen shows a porch or problem
@@ -565,13 +584,10 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
   SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET and set its EXACT test to [] in one commit (until then an out-of-band drop of
   that bucket would read as a note, not a failed step); better long-term: a nightly probe that goes red while an
   entry's bucket already exists;
-  (d) OWNER QUESTION (the lead asks): after a refund, both parties can still READ the order's handover and problem
-  photos (uploads stop once the order is not 'paid'). Should the other side lose access to the photos once the
-  order is refunded, or keep it (e.g. as evidence)?; (e) OWNER QUESTION (the lead asks): Download My Data leaves
-  the reporter's photos (photo_paths) and name (reporter_id) out of a problem filed AGAINST the member, but the
-  storage read rule lets that member open the reporter's problem photos in the app. Which rule is meant: may the
-  member see the photos the other side took of them (then the export should list them too), or not (then the
-  storage rule should stop them reading those photos)?; (f) origin/ready/rentals-s1's
+  (d) ANSWERED (owner, 2026-10-17, answer 5 in docs/specs/owner-questions-hub-1015.md on wip/declutter-terms):
+  after a refund both sides KEEP read access to the order's handover and problem photos, admins always; the current
+  rule stays; (e) ANSWERED (owner, 2026-10-17, answer 6): Download My Data keeps listing problems filed against the
+  member WITHOUT the reporter's photos (they stay viewable in the app); the current export and storage rule stay; (f) origin/ready/rentals-s1's
   20261015061259_rentals_maintenance_requests.sql also restates export_my_data (from 052622 + 5 rental sections):
   whichever of rentals-s1 / declutter-5 lands second must restate the UNION at a newer timestamp, or one side's
   sections are lost; (g) the purge erases a deleted member's handover/problem photos even on an open problem

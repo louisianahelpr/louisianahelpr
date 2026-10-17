@@ -448,6 +448,10 @@ const DYNAMIC_REMOVERS: Record<string, { why: string; check?: (src: Source) => s
     why: "chat attachments and job photos of a row being deleted; never the avatars bucket",
     check: (src) => (/["']avatars["']/.test(src.text) ? "storageCleanup now names the avatars bucket" : null),
   },
+  "src/lib/shops/storageCleanup.ts": {
+    why: "Shops shop and item photos only: its callers (src/lib/shops/api.ts, items.ts) pass job-photos; never the avatars bucket",
+    check: (src) => (/["']avatars["']/.test(src.text) ? "shops storageCleanup now names the avatars bucket" : null),
+  },
   "scripts/lib/jobMediaRest.mjs": {
     why: "user folders only for accounts the caller is deleting in the same run (prod-seed teardown), plus job media — no live row is left to point at them",
   },

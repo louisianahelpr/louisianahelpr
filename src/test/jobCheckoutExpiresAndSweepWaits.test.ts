@@ -23,7 +23,7 @@
  *
  * @mutate supabase/functions/create-payment/index.ts | expires_at: checkoutExpiresAt,\n        metadata: { job_id: jobId, customer_id: user.id, onboarding | metadata: { job_id: jobId, customer_id: user.id, onboarding
  * @mutate supabase/functions/create-payment/index.ts | expires_at: checkoutExpiresAt,\n          metadata: { job_id: jobId, customer_id: user.id, gift_card_id | metadata: { job_id: jobId, customer_id: user.id, gift_card_id
- * @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${checkoutKeySuffix}` | idempotencyKey: `escrow-${jobId}${remintKeySuffix}`
+ * @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}${checkoutKeySuffix}` | idempotencyKey: `escrow-${jobId}${priceKey}${remintKeySuffix}`
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (session.status === "expired" && session.payment_status === "unpaid") { | if (session.payment_status === "unpaid") {
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts | const superseded = !!job?.stripe_session_id && job.stripe_session_id !== session.id; | const superseded = false;
  */

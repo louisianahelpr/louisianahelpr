@@ -51,6 +51,8 @@ import { currentPosition } from "@/lib/declutter/position";
 // from two Declutter screens, the shared Helpr task module rode in
 // signed-in-shared and put /posts over its critical-path budget.
 const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
+// Add a Helpr loads with the buyer's order card only (Q178: off /posts' critical path).
+const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -180,6 +182,7 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
           <ProblemForm orderId={order.orderId} />
         </>
       )}
+      {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} /></Suspense>}
     </article>
   );
 }

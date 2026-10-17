@@ -491,7 +491,19 @@ function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack }
         {opening ? "Opening…" : `Pay ${formatPrice(payCents)}`}
       </button>
       <p className="text-xs text-muted-foreground">You pay on Stripe's secure page. The money is held until you have your items.</p>
+      <AddHelprNote />
     </>
+  );
+}
+
+/** Declutter "Add a Helpr" at checkout: the add-on is one tap on the paid order (docs/specs/declutter-add-a-helpr.md). */
+function AddHelprNote() {
+  const on = useFeature("declutter_add_helpr");
+  if (!on) return null;
+  return (
+    <p className="text-xs text-muted-foreground">
+      Need it put together or hung on the wall? Once you pay, one tap posts a Helpr job for your place. You set the price and pay for it separately.
+    </p>
   );
 }
 

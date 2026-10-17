@@ -1658,6 +1658,33 @@ serve(async (req) => {
         job.series_ban_cancelled_at = markerErr ? null : (markerRow?.series_ban_cancelled_at ?? null);
       }
 
+      // ── A10 (owner, 2026-10-17): cancelled because a Declutter seller backed out? ──
+      // declutter_refund_cancels_setup_jobs (20261017073146) cancels a buyer's
+      // Helpr setup job when the Declutter refund is the seller's fault, and
+      // marks declutter_order_jobs.seller_fault_refund_id. Such a job owes NO
+      // cancellation fee and is refunded IN FULL with its card fee (the one-time
+      // setup fee excepted, lead decision); that card fee becomes the seller's
+      // debt (declutter_setup_job_fee_debt, after the refund). Read on every job:
+      // only a missing table or column (a function deployed before the
+      // migration) reads "not marked"; any other read error moves no money for
+      // this job this run, like the series ban marker above.
+      let sellerFault = false;
+      {
+        const { data: faultRow, error: faultErr } = await supabaseAdmin
+          .from("declutter_order_jobs")
+          .select("seller_fault_refund_id")
+          .eq("job_id", job.id)
+          .maybeSingle();
+        const notDeployed = !!faultErr && ["42P01", "42703", "PGRST204", "PGRST205"].includes(faultErr.code ?? "");
+        if (faultErr && !notDeployed) {
+          console.error(`[void-cancelled-payments] Declutter seller-fault marker read failed for job ${job.id}; not settling:`, faultErr.message);
+          defects.record(`declutter seller-fault marker read ${job.id}: ${faultErr.message} — not settled`);
+          results.push({ job_id: job.id, title: job.title, status: "seller_fault_marker_read_failed" });
+          continue;
+        }
+        sellerFault = !faultErr && !!faultRow?.seller_fault_refund_id;
+      }
+
       // ── What this cancellation owes, priced before any money moves ───────
       // A single job: recomputed from trusted job fields (F-MONEY-32). A crew
       // (Q407): the sum of its ledger shares, each re-priced from the same job
@@ -1716,7 +1743,24 @@ serve(async (req) => {
       } else {
         // An unfilled or ban-ended series visit carries no fee
         // (_shared/seriesRefund.ts).
-        jobCancellationFee = refundsSeriesVisitInFull(job) ? 0 : computeCancellationFee(job);
+        // A10: a setup job a Declutter seller's backing out cancelled carries no fee.
+        jobCancellationFee = sellerFault || refundsSeriesVisitInFull(job) ? 0 : computeCancellationFee(job);
+        // ... so a booked Helpr's late-cancel fee is withheld through no fault of
+        // theirs. Said out loud, once a day per job, like Q738 below
+        // (lh-money-escrow review of c57d948d0 #3); whether the seller should
+        // owe it too is an owner question (Q?addhelpr-helpr-fee).
+        const withheldForSeller = sellerFault && job.helper_id ? computeCancellationFee(job) : 0;
+        if (withheldForSeller > 0) {
+          console.warn(`[void-cancelled-payments] job ${job.id}: $${withheldForSeller.toFixed(2)} late-cancel fee withheld from Helpr ${job.helper_id}: a Declutter seller's fault cancelled it`);
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "warning",
+            title: "Cancellation fee withheld: a Declutter seller's fault cancelled this setup job",
+            message: `A Helpr setup job cancelled because the Declutter seller failed (owner rule A10) carries no cancellation fee, so the booked Helpr is not paid the $${withheldForSeller.toFixed(2)} late-cancel fee they would otherwise be owed. Decide by hand whether to pay the Helpr.`,
+            fields: { job_id: job.id, helper_id: job.helper_id, poster_id: job.customer_id ?? null, withheld_fee: withheldForSeller },
+            oncePerDayKey: `declutter-seller-withheld-fee:${job.id}`,
+          });
+        }
         // Q738: a visit a BAN ended is refunded in full, so a late-cancel fee
         // the booked Helpr would otherwise be owed is withheld. That was
         // silent; it is a judgement call (whose ban, what for), so admins
@@ -2052,10 +2096,12 @@ serve(async (req) => {
               ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded
               : 0) ?? 0,
           );
+          // A10: a seller-fault Declutter setup job keeps no card fee (the seller
+          // owes it: declutter_setup_job_fee_debt below); its setup fee is still kept.
           const voidSplit = refundToPayerCents({
             capturedCents,
-            actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents),
-            customerFeeCents: fullSeriesRefund ? 0 : serviceFeeCents,
+            actualFeeCents: sellerFault ? 0 : actualOrEstimatedFeeCents(pi, capturedCents),
+            customerFeeCents: fullSeriesRefund || sellerFault ? 0 : serviceFeeCents,
             setupFeeCents: setupFeeKeptCents(job),
             otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents,
             alreadyRefundedCents: chargeRefundedCents,
@@ -2125,6 +2171,10 @@ serve(async (req) => {
             // Idempotency key still set: it is the cheap in-window guard against
             // two overlapping runs. The ledger check above is the one that holds
             // past 24 hours.
+            // own-mistake full refund (owner, 2026-10-14) rule, applied by the
+            // owner's A10 rule (2026-10-17) when sellerFault: a Declutter seller
+            // backing out is no fault of the poster, so the card fee comes back
+            // too and the SELLER owes it (declutter_setup_job_fee_debt below).
             const refund = await stripe.refunds.create(
               { payment_intent: paymentIntentId, amount: refundAmount },
               { idempotencyKey: `cancel-refund-${job.id}` },
@@ -2165,7 +2215,9 @@ serve(async (req) => {
               amount_cents: Math.round(Number(refund.amount ?? refundAmount)),
               currency: refund.currency ?? "usd",
               is_partial: cancellationFee > 0 || nonRefundableCents > 0,
-              reason: setupFeeKeptCents(job) > 0
+              reason: sellerFault
+                ? `Declutter seller backed out: full refund, card fee billed to the seller${setupFeeKeptCents(job) > 0 ? " (the $2 setup fee kept)" : ""}`
+                : setupFeeKeptCents(job) > 0
                 ? "cancellation refund (minus cancellation + service fee and the kept $2 setup fee)"
                 : "cancellation refund (minus cancellation + service fee)",
               source: "void_cancelled_payments",
@@ -2229,6 +2281,34 @@ serve(async (req) => {
                 refund_amount: refundAmount,
               },
             });
+          }
+
+          // A10: the card fee Stripe kept on this charge is the seller's Declutter
+          // debt. After the refund (or with it already on the ledger from an
+          // earlier run), and on a $0 refund too: Stripe kept the fee either way
+          // (lh-money-escrow review of c57d948d0 #6). Billed once per job by the
+          // function. A failure leaves the job in escrow so the next run retries
+          // the bill (the ledger stops a second refund) and pages ops.
+          if (sellerFault) {
+            const cardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents);
+            const { error: debtErr } = await supabaseAdmin.rpc("declutter_setup_job_fee_debt", {
+              p_job_id: job.id,
+              p_card_fee_cents: cardFeeCents,
+            });
+            if (debtErr) {
+              console.error(`[void-cancelled-payments] seller fee debt failed for job ${job.id}; refund is out, not settling this run:`, debtErr.message);
+              defects.record(`declutter seller fee debt ${job.id}: ${debtErr.message} — refunded, not settled`);
+              await postSlackOpsAlert({
+                kind: "money_at_risk",
+                severity: "warning",
+                title: "Declutter seller not billed for a refunded setup job's card fee",
+                message: "A setup job cancelled because the Declutter seller backed out was refunded in full, but the card fee was not added to the seller's debt. The job stays in escrow and the next run retries.",
+                fields: { job_id: job.id, seller_fee_cents: cardFeeCents, db_error: debtErr.message },
+                oncePerDayKey: `declutter-setup-debt:${job.id}`,
+              });
+              results.push({ job_id: job.id, title: job.title, status: "seller_fee_debt_failed" });
+              continue;
+            }
           }
 
           // Transfer the agreed fee to the helper (minus platform commission).

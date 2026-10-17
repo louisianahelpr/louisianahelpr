@@ -1,5 +1,6 @@
 // @mutate docs/OPEN.md | **Q185 LOW OWNER launch-store tasks | **Q185 OWNER launch-store tasks
 // @mutate scripts/lib/openFeeds.mjs | POLISH: "LOW" }) | POLISH: "POLISH" })
+// @mutate src/test/openItemsHaveTier.test.ts | const ID = String.raw`Q(?:\d+\|\?[a-z0-9][a-z0-9-]*)`; | const ID = String.raw`Q\d+`;
 /*
  * Every open (`- [ ]`) and partly-done (`- [~]`) top-level item in
  * docs/OPEN.md carries exactly one priority tier: HIGH, MEDIUM or LOW
@@ -25,8 +26,14 @@ const TIER = /\b(HIGH|MEDIUM|LOW)\b/;
 // `**Q362** (HIGH, ...`), else the first word. Anywhere
 // in the line was too loose: Q7 kept passing with its tier deleted because its
 // text says "LOW" elsewhere (vacuity run 37156530397, 2026-10-03).
+// A new item may carry a placeholder id, Q?<tag> (AGENT-BRIEF "File a new item
+// with a placeholder"; scripts/open-assign-numbers.mjs numbers it at landing):
+// its tier sits after the placeholder exactly as after a number.
+const ID = String.raw`Q(?:\d+|\?[a-z0-9][a-z0-9-]*)`;
 const TIER_AT = (l: string) =>
-  /^- \[[ ~]\] \*\*Q\d+/.test(l) ? /^- \[[ ~]\] \*\*Q\d+(?:\*\*)? \(?(HIGH|MEDIUM|LOW)\b/.test(l) : /^- \[[ ~]\] \**(HIGH|MEDIUM|LOW)\b/.test(l);
+  new RegExp(String.raw`^- \[[ ~]\] \*\*${ID}`).test(l)
+    ? new RegExp(String.raw`^- \[[ ~]\] \*\*${ID}(?:\*\*)? \(?(HIGH|MEDIUM|LOW)\b`).test(l)
+    : /^- \[[ ~]\] \**(HIGH|MEDIUM|LOW)\b/.test(l);
 
 describe("every open OPEN.md item has a tier", () => {
   const items = md.split("\n").map((l, i) => ({ l, n: i + 1 })).filter(({ l }) => /^- \[[ ~]\] /.test(l));
@@ -40,6 +47,11 @@ describe("every open OPEN.md item has a tier", () => {
     const c = queueCounts(md);
     expect(items.length).toBe(c.open + c.partial + c.unnumbered);
     if (c.open + c.partial > 0) expect(items.length).toBeGreaterThan(0);
+  });
+
+  it("a placeholder id (Q?<tag>) is read like a number: its tier must follow it", () => {
+    const lines = ["- [ ] **Q?some-tag MEDIUM A thing.**", "- [ ] **Q?some-tag A thing.**", "- [ ] **Q12 LOW A thing.**"];
+    expect(lines.map(TIER_AT)).toEqual([true, false, true]);
   });
 
   it("no open or partly-done item lacks HIGH/MEDIUM/LOW", () => {

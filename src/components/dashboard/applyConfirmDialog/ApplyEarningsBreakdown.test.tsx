@@ -78,3 +78,27 @@ describe("ApplyEarningsBreakdown — one-time first-payout fee (ME-008)", () => 
     expect(screen.getByText(/one-time setup fee/i).textContent).not.toMatch(/helpr/i);
   });
 });
+
+// Q1839 (lh-money-escrow review of the Q1839 branch, #1): a flat-model job's
+// apply-step take-home is the job price minus 5% + 70c, the transfer every
+// payout path makes, never the viewer's tier. $100 at 10% read $90; the
+// Helpr is paid $94 ($100 - $5.70, floored).
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |   const flat = isFlatFeeJob(confirmApplyJob); |   const flat = false;
+describe("ApplyEarningsBreakdown — flat-model jobs (Q1839)", () => {
+  it("prices a stamped job at 5% + 70c, not the viewer's tier", () => {
+    profileMock.mockReturnValue({ onboarding_fee_paid: true });
+    feeCentsMock.mockReturnValue(200);
+    renderBreakdown(job({ helper_fee_flat_cents: 70, helper_fee_percent: 5 } as Partial<EnrichedJob>));
+    expect(screen.getAllByText("$94")).toHaveLength(2);
+    expect(screen.queryByText("$90")).not.toBeInTheDocument();
+    expect(screen.getByText("− 5% + $0.70 platform fee")).toBeInTheDocument();
+  });
+
+  it("keeps the tier rate on a legacy job (no stamp)", () => {
+    profileMock.mockReturnValue({ onboarding_fee_paid: true });
+    feeCentsMock.mockReturnValue(200);
+    renderBreakdown(job({ helper_fee_flat_cents: null } as Partial<EnrichedJob>));
+    expect(screen.getAllByText("$90")).toHaveLength(2);
+    expect(screen.getByText("− 10% platform fee")).toBeInTheDocument();
+  });
+});

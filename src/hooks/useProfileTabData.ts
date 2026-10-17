@@ -24,7 +24,7 @@ import {
   type HelperBadgeStats,
   type HelperSideReviews,
 } from "@/lib/helperBadgeStats";
-import { JOB_READABLE_COLUMNS, readJobsAheadOfDb, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
+import { JOB_READABLE_COLUMNS, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 // The row as a signed-in client can read it: jobs.offered_to_helper_id is not
@@ -258,16 +258,14 @@ export function useProfileEarnings(userId: string | undefined, enabled: boolean)
       // person's own ledger are not the same instrument.
       // helper_fee_flat_cents (roadmap F3, review N3): without the stamp a flat
       // job's take-home is priced on the viewer's tier, or at 5% with no 70c
-      // once a crew job settles (more than the transfer). It is ahead of
-      // db-deploy (JOB_COLUMNS_AHEAD_OF_DB), so the read retries once without it.
+      // once a crew job settles (more than the transfer). JOB_READABLE_COLUMNS
+      // carries it (Q1839).
+      const jobsQuery = supabase.from("jobs").select(JOB_READABLE_COLUMNS).neq("status", "cancelled");
       const [jobsRes, tipsRes] = await Promise.all([
-        readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, helper_fee_flat_cents`, (columns) => {
-          const jobsQuery = supabase.from("jobs").select(columns).neq("status", "cancelled");
-          return (rosterJobIds.length
-            ? jobsQuery.or(`helper_id.eq.${id},id.in.(${rosterJobIds.join(",")})`)
-            : jobsQuery.eq("helper_id", id)
-          ).order("created_at", { ascending: false });
-        }),
+        (rosterJobIds.length
+          ? jobsQuery.or(`helper_id.eq.${id},id.in.(${rosterJobIds.join(",")})`)
+          : jobsQuery.eq("helper_id", id)
+        ).order("created_at", { ascending: false }),
         // Only PAID tips count toward displayed earnings. Unfiltered, a
         // `pending` row — written by create-payment before the tipper even
         // reaches Stripe, and left behind for good if they abandon checkout —

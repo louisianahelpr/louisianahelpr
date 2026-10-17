@@ -125,8 +125,8 @@ CREATE TABLE public.rental_units (id uuid PRIMARY KEY, property_id uuid, owner_i
 CREATE TABLE public.rental_tenancies (id uuid PRIMARY KEY, unit_id uuid, property_id uuid, landlord_id uuid, tenant_id uuid,
   status text, invite_token_sha256 text, invite_expires_at timestamptz, accepted_at timestamptz);
 CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NULL, description text NOT NULL);
--- job_announceable_to (newest body) also reads these: Q1401's cutoff and Q1411's ban review queue.
-CREATE TABLE public.ban_settlement_queue (user_id uuid, review_state text);
+-- job_announceable_to (newest body) also reads Q1401's cutoff (and Q1411's ban review queue, created
+-- once below with the live shape: two copies of it made the twin stop at load, 42P07, measured 2026-10-17).
 CREATE FUNCTION public.job_offer_cutoff(p_date date, p_start time) RETURNS timestamptz LANGUAGE sql STABLE
   AS $$ SELECT (p_date + coalesce(p_start, '00:00'::time))::timestamptz $$;
 -- Declutter (20261015042253's two allow checks read the cart and the pickup windows; the class SQL's

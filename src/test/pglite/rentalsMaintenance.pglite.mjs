@@ -437,5 +437,32 @@ await svc(`UPDATE auth.users SET email_confirmed_at = now() WHERE id = '${STRANG
 ok(typeof one(await as("authenticated", STRANGER, createProp("Confirmed place"))) === "string",
   "the same caller, once confirmed, creates it (the gate is the only thing that refused)");
 
+// --- export_my_data reconcile (20261017044117): 20261015061259 restates the
+// export from an OLDER body than main's 20261015084728 (Declutter reconcile),
+// so the newest-timestamp reconcile must leave the UNION: every section of
+// 20261015084728 plus the five Rentals sections, EXECUTE for service_role only.
+const RECONCILE = readFileSync(
+  process.env.RECONCILE_PATH ?? `${MIG_DIR}20261017044117_export_my_data_rentals_reconcile.sql`,
+  "utf8",
+);
+const sectionKeys = (sql) => [...sql.matchAll(/jsonb_build_object\('([a-z_]+)'/g)].map((m) => m[1]);
+const mainKeys = [...new Set(sectionKeys(readFileSync(`${MIG_DIR}20261015084728_export_my_data_declutter_reconcile.sql`, "utf8")))];
+ok(mainKeys.length > 40 && mainKeys.includes("declutter_bookings") && mainKeys.includes("category_suggestions"),
+  `main's newest export_my_data names its sections (${mainKeys.length})`);
+if (!skip) {
+  for (let i = 0; i < 3; i++) await db.exec(RECONCILE);
+}
+const exportDef = one(await svc(`SELECT pg_get_functiondef('public.export_my_data(uuid)'::regprocedure)`)) ?? "";
+const liveKeys = new Set(sectionKeys(exportDef));
+ok(mainKeys.length > 0 && mainKeys.every((k) => liveKeys.has(k)),
+  `after the reconcile x3 the export keeps every section of 20261015084728 (missing: ${mainKeys.filter((k) => !liveKeys.has(k)).join(", ") || "none"})`);
+const RENTAL_SECTIONS = ["rental_properties", "rental_units", "rental_tenancies", "maintenance_requests", "maintenance_request_photos"];
+ok(RENTAL_SECTIONS.every((k) => liveKeys.has(k)), "and every Rentals section");
+const exportAcl = one(await svc(`SELECT coalesce(proacl::text, '') FROM pg_proc WHERE oid = 'public.export_my_data(uuid)'::regprocedure`)) ?? "";
+ok(/service_role=X/.test(exportAcl) && !/(^|[{,])(anon|authenticated)?=X/.test(exportAcl),
+  `export_my_data EXECUTE is service_role only (proacl ${exportAcl || "none"})`);
+ok(one(await svc(`SELECT count(*)::int FROM pg_proc WHERE proname = 'export_my_data' AND pronamespace = 'public'::regnamespace`)) === 1,
+  "only the (uuid) overload exists (the no-argument door stays dropped)");
+
 console.log(`\n${pass} PASS, ${fail} FAIL${skip ? " (NEW_MIGRATION=skip)" : ""}`);
 process.exit(fail === 0 ? 0 : 1);

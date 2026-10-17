@@ -135,7 +135,8 @@ export const REQUEST_STATUS_LABEL: Record<string, string> = {
 export const OWNERSHIP_STATUS_LABEL: Record<string, string> = {
   needs_proof: "Add ownership proof",
   pending_review: "Proof waiting for review",
-  approved: "Owner verified",
+  // Owner decision 2026-10-17: never which admin; the landlord sees the company.
+  approved: "Approved by Louisiana Helpr",
   rejected: "Proof not accepted",
 };
 

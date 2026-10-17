@@ -44,6 +44,7 @@ import {
 } from "@/lib/shops/items";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 
 interface Draft {
   kind: ShopItemKind;
@@ -374,6 +375,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
           )}
           {d.kind === "home_food" && cottage.isError && (
             <ShopsNotice title="We couldn't load this year's home-kitchen limit." tone="warn">
+              <ReportErrorScreen source="ShopItemEditor.cottageLimit" title="We couldn't load this year's home-kitchen limit." />
               <p>{shopsErrorMessage(cottage.error)}</p>
               <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => void cottage.refetch()}>
                 Try again

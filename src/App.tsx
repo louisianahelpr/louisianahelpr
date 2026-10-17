@@ -116,6 +116,7 @@ const CompleteProfile = lazyWithPreload(() => import("./pages/auth/CompleteProfi
 const AccountBanned = lazyWithPreload(() => import("./pages/auth/AccountBanned"));
 const ForgotPassword = lazyWithPreload(() => import("./pages/auth/ForgotPassword"));
 const ResetPassword = lazyWithPreload(() => import("./pages/auth/ResetPassword"));
+const Unsubscribe = lazyWithPreload(() => import("./pages/auth/Unsubscribe"));
 const Dashboard = lazyWithPreload(() => import("./pages/home/Dashboard"));
 const Profile = lazyWithPreload(() => import("./pages/profile/Profile"));
 // Lazy: it reads useAuthReady, which pulls the Supabase client.
@@ -230,6 +231,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/account-banned" element={<RouteErrorBoundary>{routeEl(<PageTransition><AccountBanned /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/forgot-password" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForgotPassword /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/reset-password" element={<RouteErrorBoundary>{routeEl(<PageTransition><ResetPassword /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Q1655: public on purpose. An email's unsubscribe link lands here signed
+          out; the signed link (e/sig/list) is the only credential. */}
+      <Route path="/unsubscribe" element={<RouteErrorBoundary>{routeEl(<PageTransition><Unsubscribe /></PageTransition>)}</RouteErrorBoundary>} />
       {/* No approval review (Q193): every protected route is mounted the same
           way, with no per-route gate props (Q205a). Verification still gates
           the moments that require it (accept, payout) inside the components.

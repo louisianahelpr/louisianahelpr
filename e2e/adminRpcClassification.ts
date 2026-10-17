@@ -37,6 +37,12 @@ export const READ_RPC =
  * this one". Each verified `provolatile = 'v'` on prod, 2026-09-20.
  */
 export const WRITE_RPC = new Set([
+  // 2026-10-17 (lander, section A train): admin "End series" (Q417 (c)) ends a
+  // recurring series and refunds unbooked paid visits (20261012194707); "Close
+  // as test" (Q1769) settles a test-mode dispute (20261015061949). Both plpgsql,
+  // VOLATILE, writing jobs / disputes and admin_audit_log.
+  "rpc_admin_end_recurring_series",
+  "rpc_close_test_mode_dispute",
   "rpc_settle_dispute_without_payment",
   "admin_delete_review",
   "admin_reverse_violation",

@@ -775,6 +775,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Admin "End series" (Q417 (c), 2026-10-17): one reason textarea on a recurring job in the admin job dialog.
+  "src/components/admin/adminJobs/EndSeriesSection.tsx": "admin-only, needs a live recurring series; the reason is space-trimmed (btrim) and refused under 10 characters by rpc_admin_end_recurring_series (end_series_needs_reason, pinned by seriesEndByPlatform.pglite.mjs); the button stays off below 10; FORMS sweep owed with a seeded series",
   // Quotes on jobs (2026-10-15): behind the hidden 'quotes' switch, created OFF on prod; the server refuses each field
   // (price CHECK whole dollars 10-1000, note 1-500, when 1-120, contact-leak trigger) as pinned by
   // src/test/pglite/jobQuotes.pglite.mjs. A FORMS sweep is owed once the switch reaches testers.

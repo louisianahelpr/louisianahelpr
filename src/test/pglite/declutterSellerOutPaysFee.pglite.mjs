@@ -13,7 +13,7 @@
  *   NEW_MIGRATION=skip node src/test/pglite/declutterSellerOutPaysFee.pglite.mjs    # RED: the migration absent
  *
  * On top of slices 1-4 (scripts/declutter/slice3Harness.mjs) and the Declutter
- * stack's 20261017052700/02/04/05 (lane J, porch default, Helpr delivery: the
+ * stack's 20261017055500/02/04/05 (lane J, porch default, Helpr delivery: the
  * merged declutter_record_refund reads delivery_cents); the migration is
  * applied 3 times (replay-safety). Setup mirrors declutterDelivery.pglite.mjs. pglite is not a dependency (CLAUDE.md):
  * loaded from ~/.lh-pglite.
@@ -28,10 +28,10 @@ const NEW_FILE = "20261017060455_declutter_seller_out_pays_fee.sql";
 const skip = process.env.NEW_MIGRATION === "skip";
 
 const BEFORE = [
-  "20261017052700_declutter_refund_hand_settle.sql",
-  "20261017052702_declutter_handover_private_bucket.sql",
-  "20261017052704_declutter_porch_default.sql",
-  "20261017052705_declutter_helpr_delivery.sql",
+  "20261017055500_declutter_refund_hand_settle.sql",
+  "20261017055502_declutter_handover_private_bucket.sql",
+  "20261017055504_declutter_porch_default.sql",
+  "20261017055505_declutter_helpr_delivery.sql",
 ];
 
 const db = new PGlite();
@@ -231,7 +231,7 @@ ok(!Array.isArray(badPolicy) && /declutter_refunds_policy|violates/.test(badPoli
 const anonCall = await me(BUYER, `SELECT public.declutter_seller_out_fee_notice('${cRes?.refund_id}')`);
 ok(!Array.isArray(anonCall) && /permission denied/.test(anonCall.error), "a member cannot call declutter_seller_out_fee_notice");
 
-// The re-cut (20261017060455) restates what slice 5 (20261017052705) restated last; it must keep slice 5's parts.
+// The re-cut (20261017060455) restates what slice 5 (20261017055505) restated last; it must keep slice 5's parts.
 // Red if 20261017045215 (built on slice 4's bodies) is cut verbatim after the stack.
 ok(/'delivery_damage'/.test(one(await svc(`SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'declutter_refunds_reason_check'`)) ?? ""),
   "the reason CHECK still accepts slice 5's delivery_damage");

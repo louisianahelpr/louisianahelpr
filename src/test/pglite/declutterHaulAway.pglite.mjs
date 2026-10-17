@@ -63,15 +63,15 @@ const MIG = readFileSync(
 
 const db = new PGlite();
 // The newest Declutter schema: slices 1-4, F1, lane J's refund hand-settle and
-// private handover bucket, porch default and Helpr delivery (20261017052705),
+// private handover bucket, porch default and Helpr delivery (20261017055505),
 // so the item and cart statuses read here are the ones prod has.
 await db.exec(`CREATE SCHEMA IF NOT EXISTS storage;
   CREATE TABLE storage.buckets (id text PRIMARY KEY, name text NOT NULL, public boolean DEFAULT false,
     file_size_limit bigint, allowed_mime_types text[]);
   INSERT INTO storage.buckets (id, name, public) VALUES ('job-photos', 'job-photos', true);`);
 const setup = setupStatements({ times: 1, times3b: 1, extra: [FEE_F1_FILE, SLICE4_FILE,
-  "20261017052700_declutter_refund_hand_settle.sql", "20261017052702_declutter_handover_private_bucket.sql",
-  "20261017052704_declutter_porch_default.sql", "20261017052705_declutter_helpr_delivery.sql",
+  "20261017055500_declutter_refund_hand_settle.sql", "20261017055502_declutter_handover_private_bucket.sql",
+  "20261017055504_declutter_porch_default.sql", "20261017055505_declutter_helpr_delivery.sql",
   "20261017060455_declutter_seller_out_pays_fee.sql"].map((file) => ({ file, times: 1 })) });
 // The delivery migration's callees the harness does not create (its own proof stubs them the same way).
 setup.splice(1, 0, `

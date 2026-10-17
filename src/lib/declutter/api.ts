@@ -100,7 +100,7 @@ type ItemRead = { data: unknown; error: { message: string; code?: string } | nul
 const ITEM_COLUMNS_BEFORE_PORCH = ITEM_COLUMNS.replace(", porch_ok", "");
 
 /**
- * Row 101's column, porch_ok (20261017052704), reaches prod through db-deploy,
+ * Row 101's column, porch_ok (20261017055504), reaches prod through db-deploy,
  * and the web app through prod-deploy; both start on the push to main, in no
  * fixed order. If the app is live first, the read is refused with 42703 naming
  * the column: read again without it, every item porch-on (the column's

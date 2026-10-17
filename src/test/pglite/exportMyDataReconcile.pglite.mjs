@@ -7,11 +7,11 @@
  *
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs                  # all PASS
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-reconcile   # RED: the reconcile left out
- *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-against     # RED: 20261017052701 left out (problems filed against the member missing)
- *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-delivery    # RED: 20261017052706 left out (Helpr delivery sections
- *                                                                          #   missing, and declutter_wanted too: 052701 predates it, the
+ *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-against     # RED: 20261017055501 left out (problems filed against the member missing)
+ *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-delivery    # RED: 20261017055506 left out (Helpr delivery sections
+ *                                                                          #   missing, and declutter_wanted too: 055501 predates it, the
  *                                                                          #   db-deploy partial-failure window, authz note N1)
- *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-wanted      # still PASS: 20261016053541 left out, 052706 carries
+ *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-wanted      # still PASS: 20261016053541 left out, 055506 carries
  *                                                                          #   declutter_wanted on its own
  *
  * Two orders, each in its own database, starting from 20261014200728 (the
@@ -52,11 +52,11 @@ const RECONCILE = "20261015084728_export_my_data_declutter_reconcile.sql";
 // 20261016053541 (main's wanted posts) restates the reconcile's body plus declutter_wanted.
 const WANTED = "20261016053541_declutter_wanted_price_hint.sql";
 const NO_WANTED = process.argv.includes("--no-wanted");
-// 20261017052701 restates 053541's body plus declutter_problems_about_me (problems filed AGAINST the member).
-const AGAINST = "20261017052701_export_my_data_declutter_problems_against.sql";
+// 20261017055501 restates 053541's body plus declutter_problems_about_me (problems filed AGAINST the member).
+const AGAINST = "20261017055501_export_my_data_declutter_problems_against.sql";
 const NO_AGAINST = process.argv.includes("--no-against");
-// 20261017052706 restates 052701's body plus the Helpr-delivery sections (slice 5).
-const DELIVERY = "20261017052706_export_my_data_helpr_delivery.sql";
+// 20261017055506 restates 055501's body plus the Helpr-delivery sections (slice 5).
+const DELIVERY = "20261017055506_export_my_data_helpr_delivery.sql";
 const NO_DELIVERY = process.argv.includes("--no-delivery");
 const DELIVERY_SECTIONS = ["helpr_vehicles", "helpr_tasks", "helpr_task_events", "helpr_task_payouts", "declutter_delivery_dropoffs"];
 
@@ -119,7 +119,7 @@ async function installedAfter(label, files) {
   return { db, def };
 }
 
-// The stack's restatements (052701, 052706) carry 053541's declutter_wanted forward; leaving 053541 out
+// The stack's restatements (055501, 055506) carry 053541's declutter_wanted forward; leaving 053541 out
 // (--no-wanted) drops it from the tail, and the stack's bodies must still carry the section on their own.
 const tail = NO_RECONCILE ? [] : [RECONCILE, ...(NO_WANTED ? [] : [WANTED]), ...(NO_AGAINST ? [] : [AGAINST]), ...(NO_AGAINST || NO_DELIVERY ? [] : [DELIVERY])];
 const replay = await installedAfter("REPLAY (version order)", [BASE, SLICE3, SLICE3B, SLICE4, MAIN_CAT, ...tail]);
@@ -254,7 +254,7 @@ if (out) {
       && about.some((p) => p.note === "chair was broken"), JSON.stringify(about));
   check("the member's own report stays in declutter_problems only (not double-listed)",
     len("declutter_problems") === 1 && about.every((p) => p.note !== null && p.id !== out.declutter_problems[0]?.id));
-  // Slice 5, Helpr delivery (20261017052706).
+  // Slice 5, Helpr delivery (20261017055506).
   const missingDelivery = DELIVERY_SECTIONS.filter((k) => !Array.isArray(out[k]));
   check("the export carries every Helpr-delivery section", missingDelivery.length === 0, `absent: ${missingDelivery.join(", ")}`);
   if (missingDelivery.length === 0) {

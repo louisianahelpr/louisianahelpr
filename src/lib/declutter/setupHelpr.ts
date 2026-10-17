@@ -41,7 +41,7 @@ export interface SetupJob {
 export interface SetupHelprInfo {
   order_id: string;
   status: "paid" | "handed_over";
-  /** How the item reaches the buyer: pickup at the seller's home, porch pickup, or Helpr delivery (20261017052705). */
+  /** How the item reaches the buyer: pickup at the seller's home, porch pickup, or Helpr delivery (20261017055505). */
   handover: "pickup_home" | "porch" | "delivery";
   items: string[];
   pickup_at: string | null;

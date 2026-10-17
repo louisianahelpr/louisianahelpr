@@ -388,7 +388,7 @@ async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string):
   if (lines.data && lines.data.length > 0) {
     return { ok: true, active: true, detail: `declutter sale ${lines.data[0].id}`, reason: "declutter" };
   }
-  // Slice 5, Helpr delivery (20261017052705): a Helpr who has taken a delivery
+  // Slice 5, Helpr delivery (20261017055505): a Helpr who has taken a delivery
   // and not finished it holds someone's item, and a Helpr whose pay is still
   // pending or being retried ('failed' is retried with back-off) is owed money the payout can only send to their account
   // (helpr_task_payouts.helpr_id is SET NULL with the account).

@@ -142,7 +142,7 @@ export async function porchPhoto(
  * photo to `<uid>/declutter/handover/<order>/<file>`, the only path the SQL
  * accepts. Returns the path for porchPhoto / reportProblem.
  *
- * The bucket is PRIVATE (20261017052702): a porch photo shows the seller's
+ * The bucket is PRIVATE (20261017055502): a porch photo shows the seller's
  * home, so it is never a public URL. Only the two sides of the order and
  * admins can read it, through a signed URL (storage createSignedUrl).
  */
@@ -216,7 +216,7 @@ export async function adminDecideProblem(
  * Admin "Declutter problems" card, a delivery the Helpr has (row 43, slice 5):
  * damaged in delivery. The buyer gets everything back, the seller is still
  * paid, the Helpr is not paid and gets a delivery strike
- * (declutter_admin_decide_delivery_damage, 20261017052705).
+ * (declutter_admin_decide_delivery_damage, 20261017055505).
  */
 export async function adminDecideDeliveryDamage(problemId: string, note: string | null): Promise<Record<string, unknown>> {
   const res = await supabase.rpc("declutter_admin_decide_delivery_damage", { p_problem_id: problemId, p_note: note as string });

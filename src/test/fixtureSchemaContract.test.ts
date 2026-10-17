@@ -306,7 +306,7 @@ describe("every fixture literal could be inserted", () => {
     { file: "src/test/edge/charge-recurring-visits.test.ts", keys: ["rows", "count"] },
     { file: "src/test/reviewCountOneSource.test.ts", keys: ["stars"] },
     { file: "e2e/visual-audit/responsive.spec.ts", keys: ["screen", "url", "notes"] },
-    // Slice 5 (20261017052705) gave declutter_problems a named decision CHECK, so the admin audit-log `details`
+    // Slice 5 (20261017055505) gave declutter_problems a named decision CHECK, so the admin audit-log `details`
     // object of a dispute split (`{ decision: "split", helper_cents, refund_cents }`) became attributable to it.
     { file: "e2e/happy-path/seedData.ts", keys: ["decision", "helper_cents", "refund_cents"] },
     // A test BODY (`{ scenario.reads.jobs = …; scenario.reads.disputes = …;

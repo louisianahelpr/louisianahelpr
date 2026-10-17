@@ -42,14 +42,14 @@ import { caughtMessage } from "../../_shared/caughtMessage.ts";
  */
 
 /** The PaymentIntent metadata key that records the Stripe Tax reversal made for one refund. */
-export function taxReversalMetadataKey(refundId: string): string {
+function taxReversalMetadataKey(refundId: string): string {
   return `tax_rev_${refundId}`;
 }
 
 /** Stripe caps a metadata key at 40 characters. */
 const METADATA_KEY_MAX = 40;
 
-export interface VisitTaxShare {
+interface VisitTaxShare {
   refundId: string;
   /** What this refund reverses of the transaction (labor + tax), in cents. */
   shareCents: number;
@@ -68,7 +68,7 @@ export interface VisitTaxShare {
 // transaction's total; Stripe refuses an over-reversal (which pages), and an
 // under-reversal overpays tax. Prod had 0 recurring_visit_payments rows when
 // this shipped (2026-10-15), so no hand or legacy reversals exist.
-export function visitTaxShares(
+function visitTaxShares(
   refunds: ReadonlyArray<{ id: string; amount?: number | null; created?: number | null }>,
   txTotalCents: number,
 ): VisitTaxShare[] {

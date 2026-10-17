@@ -50,7 +50,7 @@ describe("account deletion erases job-photos/<uid>/declutter/ (Declutter B4)", (
     expect(identitySubfolderPrefixes("u-1")).toContainEqual({ bucket: "job-photos", prefix: "u-1/declutter" });
   });
 
-  it("porch and problem photos in the private declutter-handover bucket are erased too (20261015092723)", () => {
+  it("porch and problem photos in the private declutter-handover bucket are erased too (20261017052702)", () => {
     expect(identitySubfolderPrefixes("u-1")).toContainEqual({ bucket: "declutter-handover", prefix: "u-1/declutter" });
     // ...and it is the bucket the app uploads them to (never the public job-photos).
     const handover = blankComments(readFileSync(join(ROOT, "src/lib/declutter/handover.ts"), "utf8"));
@@ -82,8 +82,8 @@ describe("account deletion erases job-photos/<uid>/declutter/ (Declutter B4)", (
   });
 
   it("a subfolder bucket whose migration has not run yet is nothing to erase; any other missing bucket fails (Q219)", () => {
-    // EXACT: only the bucket a migration newer than the purge creates (20261015092723).
-    // ...and helpr-tasks (20261016053945, slice 5).
+    // EXACT: only the bucket a migration newer than the purge creates (20261017052702).
+    // ...and helpr-tasks (20261017052705, slice 5).
     expect([...SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET]).toEqual(["declutter-handover", "helpr-tasks"]);
     for (const b of SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET) expect(IDENTITY_SUBFOLDERS.map((s) => s.bucket)).toContain(b);
     expect(classifyMissingSubfolderBuckets(["declutter-handover", "job-photos"])).toEqual({

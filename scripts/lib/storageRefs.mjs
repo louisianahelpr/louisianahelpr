@@ -45,12 +45,12 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "reviews", column: "photo_urls", array: true, bucket: "job-photos", writer: "src/components/reviewPanel/ReviewForm.tsx (public URL)" },
   { table: "declutter_item_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "declutter_add_item_photo RPC (path <uid>/declutter/<item>/<file>; Declutter slice 2 uploads it)" },
   { table: "declutter_strikes", column: "appeal_photo_path", array: false, bucket: "job-photos", writer: "none yet: the Declutter strike-appeal RPC (a later slice) writes a job-photos path" },
-  // Declutter slice 4 (20261015042253): porch and problem photos, in the PRIVATE declutter-handover bucket (20261015092723), paths under <uid>/declutter/<handover|problem>/<order>/.
+  // Declutter slice 4 (20261015042253): porch and problem photos, in the PRIVATE declutter-handover bucket (20261017052702), paths under <uid>/declutter/<handover|problem>/<order>/.
   { table: "declutter_handovers", column: "set_out_photo_path", array: false, bucket: "declutter-handover", writer: "declutter_porch_photo RPC, seller's set-out photo (src/lib/declutter/handover.ts uploads it; path)" },
   { table: "declutter_handovers", column: "picked_up_photo_path", array: false, bucket: "declutter-handover", writer: "declutter_porch_photo RPC, buyer's picked-up photo (src/lib/declutter/handover.ts uploads it; path)" },
   { table: "declutter_problems", column: "photo_paths", array: true, bucket: "declutter-handover", writer: "declutter_report_problem RPC (up to 6 paths; the screens offer no problem photos yet)" },
   { table: "job_quotes", column: "photo_paths", array: true, bucket: "job-photos", writer: "src/lib/quotes/api.ts uploadQuotePhoto (path <uid>/quotes/<file>; submit_job_quote refuses a path outside the quoter's own folder)" },
-  // Declutter slice 5 (20261016053945): Helpr delivery photos and truck photos, in the PRIVATE helpr-tasks bucket.
+  // Declutter slice 5 (20261017052705): Helpr delivery photos and truck photos, in the PRIVATE helpr-tasks bucket.
   { table: "helpr_tasks", column: "pickup_photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_task_picked_up RPC, the Helpr's photo at the pickup (src/lib/helprTasks/api.ts uploads it; path <uid>/task/<task>/<file>)" },
   { table: "helpr_tasks", column: "dropoff_photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_task_delivered RPC, the Helpr's photo at the drop-off (src/lib/helprTasks/api.ts uploads it; path <uid>/task/<task>/<file>)" },
   { table: "helpr_vehicles", column: "photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_set_vehicle RPC, the Helpr's truck photo (src/lib/helprTasks/api.ts uploads it; path <uid>/vehicle/<file>)" },

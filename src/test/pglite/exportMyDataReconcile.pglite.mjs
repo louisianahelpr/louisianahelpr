@@ -7,8 +7,8 @@
  *
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs                  # all PASS
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-reconcile   # RED: the reconcile left out
- *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-against     # RED: 20261015092457 left out (problems filed against the member missing)
- *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-delivery    # RED: 20261016070800 left out (Helpr delivery sections missing)
+ *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-against     # RED: 20261017052701 left out (problems filed against the member missing)
+ *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-delivery    # RED: 20261017052706 left out (Helpr delivery sections missing)
  *
  * Two orders, each in its own database, starting from 20261014200728 (the
  * last export_my_data both lines of history share):
@@ -45,11 +45,11 @@ const SLICE3B = "20261014224914_declutter_slice3b_payments.sql";
 const SLICE4 = "20261015042253_declutter_slice4_handover_payout.sql";
 const MAIN_CAT = "20261015052622_export_my_data_category_suggestions.sql";
 const RECONCILE = "20261015084728_export_my_data_declutter_reconcile.sql";
-// 20261015092457 restates the reconcile's body plus declutter_problems_about_me (problems filed AGAINST the member).
-const AGAINST = "20261015092457_export_my_data_declutter_problems_against.sql";
+// 20261017052701 restates the reconcile's body plus declutter_problems_about_me (problems filed AGAINST the member).
+const AGAINST = "20261017052701_export_my_data_declutter_problems_against.sql";
 const NO_AGAINST = process.argv.includes("--no-against");
-// 20261016070800 restates 092457's body plus the Helpr-delivery sections (slice 5).
-const DELIVERY = "20261016070800_export_my_data_helpr_delivery.sql";
+// 20261017052706 restates 092457's body plus the Helpr-delivery sections (slice 5).
+const DELIVERY = "20261017052706_export_my_data_helpr_delivery.sql";
 const NO_DELIVERY = process.argv.includes("--no-delivery");
 const DELIVERY_SECTIONS = ["helpr_vehicles", "helpr_tasks", "helpr_task_events", "helpr_task_payouts", "declutter_delivery_dropoffs"];
 
@@ -240,7 +240,7 @@ if (out) {
       && about.some((p) => p.note === "chair was broken"), JSON.stringify(about));
   check("the member's own report stays in declutter_problems only (not double-listed)",
     len("declutter_problems") === 1 && about.every((p) => p.note !== null && p.id !== out.declutter_problems[0]?.id));
-  // Slice 5, Helpr delivery (20261016070800).
+  // Slice 5, Helpr delivery (20261017052706).
   const missingDelivery = DELIVERY_SECTIONS.filter((k) => !Array.isArray(out[k]));
   check("the export carries every Helpr-delivery section", missingDelivery.length === 0, `absent: ${missingDelivery.join(", ")}`);
   if (missingDelivery.length === 0) {

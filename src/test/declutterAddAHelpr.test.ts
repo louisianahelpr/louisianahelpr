@@ -21,6 +21,8 @@
  *     the job in full (setup fee kept) and bills the card fee to the seller (declutter_setup_job_fee_debt);
  *     proven in PGlite A1-A10 and src/test/edge/void-cancelled-payments.declutterSellerFault.test.ts.
  *
+ * @mutate src/pages/post-job/usePostJobForm.ts | const noDraft = !!(searchParams.get("haulAway") \|\| searchParams.get("declutterOrder")); | const noDraft = !!searchParams.get("haulAway");
+ * @mutate src/pages/post-job/useJobSubmit.ts |           if ((!haulAwayItemIds \|\| haulAwayItemIds.length === 0) && !declutterOrderId) {\n            flushDraft(); |           if (!haulAwayItemIds \|\| haulAwayItemIds.length === 0) {\n            flushDraft();
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |    WHERE id = p_order_id AND buyer_id = v_uid; |    WHERE id = p_order_id;
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |    WHERE j.id = p_job_id AND j.customer_id = v_uid AND j.status = 'open' |    WHERE j.id = p_job_id AND j.status = 'open'
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |   IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n | \n
@@ -209,7 +211,15 @@ describe("Declutter Add a Helpr", () => {
     // The retry of a lost payment answer links again first (money review of 4f45a073f #4) ...
     expect(submit).toMatch(/if \(attempt\.jobId\) \{[\s\S]*?if \(declutterOrderId\) await linkSetupJobOrTell\(declutterOrderId, attempt\.jobId\);[\s\S]*?await startPayment\(attempt\.jobId/);
     // ... and a setup job never keeps a draft (it cannot carry its order).
-    expect(submit).toMatch(/if \(!declutterOrderId\) \{\n\s*flushDraft\(\);/);
+    // Both draft writes (the success path and the gift-paid retry's funded branch) skip it, as for a haul-away.
+    const gates = submit.match(/if \(\(!haulAwayItemIds \|\| haulAwayItemIds\.length === 0\) && !declutterOrderId\) \{\n\s*flushDraft\(\);\n(?:\s*\/\/[^\n]*\n)*\s*safeStorage\.setItem\(DRAFT_CHECKOUT_JOB_KEY, /g) ?? [];
+    expect(gates).toHaveLength(2);
+    expect(submit.match(/safeStorage\.setItem\(DRAFT_CHECKOUT_JOB_KEY/g) ?? []).toHaveLength(2);
+    // ... and the form never autosaves or flushes one while ?declutterOrder= is open.
+    const form = code("src/pages/post-job/usePostJobForm.ts");
+    expect(form).toContain('const noDraft = !!(searchParams.get("haulAway") || searchParams.get("declutterOrder"));');
+    expect(form).toContain("const saveDraft = useCallback<typeof saveAnyDraft>((d) => { if (!noDraft) saveAnyDraft(d); }, [noDraft, saveAnyDraft]);");
+    expect(form).toContain("const flushDraft = useCallback(() => { if (!noDraft) flushAnyDraft(); }, [noDraft, flushAnyDraft]);");
     // A failed link is told to the buyer, not only logged (lh-silent-failure review #1).
     expect(submit).toMatch(/if \(!linkErr\) return;[\s\S]*?toast\.error\("Your job posted, but it isn't showing on your Declutter purchase"/);
   });

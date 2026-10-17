@@ -1,5 +1,4 @@
 import { linkTurnoverJob } from "./turnoverPrefill";
-import { linkSetupJob } from "@/lib/declutter/setupHelpr";
 import { isUnder18Refusal, UNDER_18_POST_COPY } from "@/lib/ageGate";
 import { useRef } from "react";
 import { toast } from "sonner";
@@ -162,6 +161,9 @@ async function jobIsFunded(jobId: string): Promise<boolean | null> {
 async function linkSetupJobOrTell(orderId: string, jobId: string): Promise<void> {
   let linkErr: unknown = null;
   try {
+    // Loaded only for an "Add a Helpr" post (off /posts' shared chunk, Q178); a
+    // chunk that cannot load is a failed link, told to the buyer below.
+    const { linkSetupJob } = await import("@/lib/declutter/setupHelpr");
     if (!(await linkSetupJob(orderId, jobId))) linkErr = new Error("declutter setup job not linked");
   } catch (err) {
     linkErr = err;

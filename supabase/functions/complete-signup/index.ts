@@ -152,7 +152,8 @@ serve(async (req) => {
       insuranceExt,
       insuranceContentType,
       isInsured,
-      phone,
+      // Q1883: read only from a signed-in member; see `phone` below.
+      phone: bodyPhone,
       bio,
       location,
       // S-001 (lh-suggester, launch audit): signup collected City but never
@@ -228,6 +229,12 @@ serve(async (req) => {
     // into userId: read after it, every caller would look signed in.
     const signedIn = userId !== null;
     const dateOfBirth = signedIn ? bodyDateOfBirth : undefined;
+    // Q1883 (lh-authz-rls review of the Q1804 fix, #1): the same for a phone.
+    // A phone sent on the no-session path went straight to
+    // enforce_retained_ban, so a stranger who typed a banned number for a
+    // brand-new account got its real owner banned (or, once Q1714 lands,
+    // flagged). No client sends a phone here, so it is dropped, not refused.
+    const phone = signedIn ? bodyPhone : undefined;
 
     // If no valid JWT, allow initial signup completion ONLY within a short
     // window after account creation, and only if the profile is still empty.

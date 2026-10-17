@@ -85,7 +85,7 @@ describe("browse RPCs carry the jobs fee-model stamp (Q1839)", () => {
       expect(def.file).toBe("20261017094018_browse_rpcs_carry_fee_stamp.sql");
       const head = def.stmt.slice(0, def.stmt.indexOf("$function$"));
       expect(head).toMatch(/LANGUAGE sql\s+STABLE SECURITY DEFINER\s+SET search_path TO 'public'\s+SET "TimeZone" TO 'America\/Chicago'/);
-      const fn = `public.${name}(${args})`.replace(/[().]/g, "\\$&");
+      const fn = `public.${name}(${args})`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       expect(code).toMatch(new RegExp(`DROP FUNCTION IF EXISTS ${fn};`));
       expect(code).toMatch(new RegExp(`REVOKE ALL ON FUNCTION ${fn} FROM PUBLIC, anon, authenticated, service_role;`));
       expect(code).toMatch(new RegExp(`GRANT EXECUTE ON FUNCTION ${fn} TO anon, authenticated, service_role;`));

@@ -835,7 +835,78 @@ async function settleCheckoutSession(
   // duplicate-funding branch below can put it back if the job turns out to be
   // funded already (the gift must not stay spent on a job it did not pay for).
   let giftConsumedHere = false;
-  if (giftCardId) {
+  // Q1876 follow-up (lh-money-escrow re-review of 2cd90f553, #1): a bank checkout D1
+  // whose first delivery consumed the gift and then threw is retried by
+  // Stripe for days. If D1's debit bounced meanwhile, return_bounced_gift_card
+  // gave the gift back and the poster may have reserved it again for a new
+  // checkout D2; D1's retry would then spend D2's reservation on a payment
+  // that failed. So a BANK checkout that is no longer the job's current one
+  // (another session is stamped, or none is: the bounce or an expiry cleared
+  // it) asks Stripe whether its payment failed, and if it did, leaves the
+  // reservation alone AND stops: a checkout whose payment failed has nothing
+  // to write to the job. Stamping its dead PaymentIntent on the job would
+  // hide a newer bank checkout's PaymentIntent from paymentIntentSucceeded
+  // (which finds the job by it), or send a funded job to the duplicate-funding
+  // refund of a PaymentIntent with no charge (review of b837455eb, #1). A CARD checkout (session paid) is never skipped:
+  // its money is captured, and a stale-but-paid D1 must still consume the
+  // gift it was priced against (the Q1417 race; the duplicate-funding branch
+  // below puts the gift back if the job turns out to be funded already).
+  let staleBouncedCheckout = false;
+  let staleJobHasSession = true;
+  const staleJobId = (session.metadata as any)?.job_id as string | undefined;
+  if (giftCardId && staleJobId && session.payment_status !== "paid") {
+    const { data: currentJob, error: currentJobErr } = await supabase
+      .from("jobs")
+      .select("stripe_session_id, payment_status")
+      .eq("id", staleJobId)
+      .maybeSingle();
+    if (currentJobErr) {
+      throw new Error(`jobs read failed before a gift consume for session ${session.id}: ${currentJobErr.message}`);
+    }
+    const cj = currentJob as { stripe_session_id?: string | null; payment_status?: string | null } | null;
+    // No session on the job counts as not current too: the failed-payment
+    // check below is the real gate (review of b837455eb, #3).
+    const notCurrent = !!cj && cj.stripe_session_id !== session.id;
+    staleJobHasSession = !!cj?.stripe_session_id;
+    const sessionPi = typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : (session.payment_intent as any)?.id as string | undefined;
+    if (notCurrent && sessionPi) {
+      // A Stripe error throws: the retry asks again rather than guessing.
+      const sessionPiRow = await stripe.paymentIntents.retrieve(sessionPi);
+      staleBouncedCheckout = sessionPiRow?.status === "requires_payment_method" || sessionPiRow?.status === "canceled";
+    }
+  }
+  if (giftCardId && staleBouncedCheckout) {
+    logStep("Completion of a bank checkout whose payment failed and that is no longer the job's current one — nothing recorded, gift left as it is", {
+      giftCardId, sessionId: session.id, jobId: staleJobId ?? null,
+    });
+    // Review of b837455eb (#2): if the first delivery threw before its
+    // consume, the gift is still 'reserved' on this job, the bounce's return
+    // answered not_consumed, and nothing else frees it if the poster walks
+    // away. Say so when no newer checkout holds it (best-effort read: the
+    // skip itself is already decided).
+    const { data: heldGift, error: heldGiftErr } = await supabase
+      .from("gift_cards")
+      .select("status, job_id")
+      .eq("id", giftCardId)
+      .maybeSingle();
+    if (heldGiftErr) {
+      logStep("WARN: could not read the gift after skipping a failed bank checkout — no page sent", { giftCardId, error: heldGiftErr.message });
+    }
+    const hg = heldGift as { status?: string | null; job_id?: string | null } | null;
+    if (!staleJobHasSession && hg?.status === "reserved" && hg.job_id === staleJobId) {
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "warning",
+        title: "Gift card still reserved on a job whose bank payment failed",
+        message: "A bank checkout's payment failed and its completion was redelivered after a newer checkout took over (or none is open). The gift was never consumed and is still reserved on this job. If the poster does not pay again, un-reserve it (status 'sent', job_id NULL) so they can use it.",
+        fields: { session_id: session.id, gift_card_id: giftCardId, job_id: staleJobId ?? null },
+        oncePerDayKey: `gift-reserved-bounced:${giftCardId}`,
+      });
+    }
+    return;
+  } else if (giftCardId) {
     const consumeJobId = (session.metadata as any)?.job_id as string | undefined;
     let consumeQ = supabase
       .from("gift_cards")
@@ -898,12 +969,32 @@ async function settleCheckoutSession(
         logStep("Reserved gift card already consumed for this job — skipping", { giftCardId });
       } else {
         let reclaimed = false;
-        if (
-          giftJobId &&
+        let bouncedRedelivery = false;
+        const reclaimable =
+          !!giftJobId &&
           (g?.status === "sent" || g?.status === "available") &&
           g?.payment_status === "paid" &&
-          (g.job_id == null || g.job_id === giftJobId)
-        ) {
+          (g.job_id == null || g.job_id === giftJobId);
+        // Q1876 (lh-money-escrow review of 6b06413c7, #5): only the job's OWN
+        // current checkout may re-claim. A bank-debit bounce returns the gift
+        // to 'sent' (return_bounced_gift_card) and clears the job's session; a
+        // late redelivery of that bounced session's completion would otherwise
+        // find the gift spendable and spend it again on a job nobody funded.
+        let sessionIsJobs = false;
+        if (reclaimable) {
+          const { data: jobRow, error: jobReadErr } = await supabase
+            .from("jobs")
+            .select("stripe_session_id, payment_status")
+            .eq("id", giftJobId)
+            .maybeSingle();
+          if (jobReadErr) {
+            throw new Error(`jobs read failed before a gift re-claim for session ${session.id}: ${jobReadErr.message}`);
+          }
+          const jr = jobRow as { stripe_session_id?: string | null; payment_status?: string | null } | null;
+          sessionIsJobs = jr?.stripe_session_id === session.id;
+          bouncedRedelivery = !sessionIsJobs && jr?.payment_status === "failed";
+        }
+        if (reclaimable && sessionIsJobs) {
           const { data: reclaimRow, error: reclaimErr } = await supabase
             .from("gift_cards")
             .update({ status: "redeemed", redeemed_at: new Date().toISOString(), job_id: giftJobId })
@@ -927,6 +1018,10 @@ async function settleCheckoutSession(
             title: "Gift card re-claimed on a difference payment (Q1417 race)",
             message: "The shortfall was paid after the gift had been un-reserved by an expired checkout. The gift was re-claimed for this job, so nothing was spent twice. No action needed unless this repeats.",
             fields: { session_id: session.id, gift_card_id: giftCardId, job_id: giftJobId ?? null },
+          });
+        } else if (bouncedRedelivery) {
+          logStep("Completion of a bounced bank checkout redelivered — its gift was returned; not re-claimed", {
+            giftCardId, sessionId: session.id, giftJobId: giftJobId ?? null,
           });
         } else {
           logStep("ERROR: difference paid but the gift could not be consumed — job funded by the difference only", {
@@ -1166,7 +1261,56 @@ async function settleCheckoutSession(
       if (!fundedErr && funded) {
         const dupRefund = await refundDuplicateFunding(stripe, piId);
         let giftRestored: boolean | null = null;
-        if (giftCardId && giftConsumedHere) {
+        // Q1829: a REDELIVERY after a restore that errored. Its consume step
+        // found the gift already 'redeemed' on this job and skipped, so
+        // giftConsumedHere is false, yet THIS checkout may be the one that
+        // spent it. The evidence is the payment that DID fund the job: a gift
+        // checkout carries gift_card_id in its PaymentIntent metadata
+        // (create-payment). Only a funding PaymentIntent that provably funded
+        // THIS job (succeeded, metadata.job_id is this job) and was not priced
+        // with this gift means the only checkout that can have spent the gift
+        // here is this one, so it is put back. Anything else keeps it spent:
+        // no funding PaymentIntent (a gift-only funding), one priced with this
+        // gift, or a STALE one left on the row by a bounced bank payment that
+        // a gift then funded in full (review of 4ec0dea84 #1: the column is
+        // not cleared on a bounce, so its existence alone is no evidence). A
+        // Stripe read error throws, so Stripe redelivers (the refund above is
+        // keyed, nothing is refunded twice); an intent Stripe cannot find
+        // (404, or a test object under the live key) keeps the gift spent and
+        // says so in the alert below.
+        let spentByThisRedelivery = false;
+        let giftKeptWhy: string | null = null;
+        if (giftCardId && !giftConsumedHere) {
+          const fundingPi = (funded as { stripe_payment_intent_id?: string | null }).stripe_payment_intent_id ?? null;
+          if (fundingPi) {
+            const { data: giftNow, error: giftNowErr } = await supabase
+              .from("gift_cards").select("status, job_id").eq("id", giftCardId).maybeSingle();
+            if (giftNowErr) {
+              throw new Error(`gift ${giftCardId} read failed before a duplicate-funding restore on job ${jobId}: ${giftNowErr.message}`);
+            }
+            const gn = giftNow as { status?: string; job_id?: string | null } | null;
+            if (gn?.status === "redeemed" && gn.job_id === jobId) {
+              let fundingRow: Stripe.PaymentIntent | null = null;
+              try {
+                fundingRow = await stripe.paymentIntents.retrieve(fundingPi);
+              } catch (e) {
+                // A test-mode object under the live key answers 404 resource_missing too.
+                const missing = (e as { statusCode?: number })?.statusCode === 404 || (e as { code?: string })?.code === "resource_missing";
+                if (!missing) throw e;
+                giftKeptWhy = `the job's payment ${fundingPi} cannot be read from Stripe (not found: deleted, another account, or a test-mode object); the gift was kept spent, check it by hand`;
+              }
+              if (fundingRow) {
+                const fundingMeta = (fundingRow.metadata ?? {}) as Record<string, string>;
+                const fundedThisJob = fundingRow.status === "succeeded" && fundingMeta.job_id === jobId;
+                spentByThisRedelivery = fundedThisJob && (fundingMeta.gift_card_id ?? null) !== giftCardId;
+                if (!fundedThisJob) {
+                  giftKeptWhy = `the job's payment ${fundingPi} is ${fundingRow.status} and may not be what funded it; the gift was kept spent, check it by hand`;
+                }
+              }
+            }
+          }
+        }
+        if (giftCardId && (giftConsumedHere || spentByThisRedelivery)) {
           const { data: restored, error: restoreErr } = await supabase
             .from("gift_cards")
             .update({ status: "sent", job_id: null, redeemed_at: null })
@@ -1194,7 +1338,7 @@ async function settleCheckoutSession(
             job_status: String(funded.status), job_payment_status: String(funded.payment_status),
             job_payment_intent: String(funded.stripe_payment_intent_id ?? "none"),
             gift_card: giftCardId ?? "none",
-            gift_restored: giftRestored === null ? "not consumed by this payment" : giftRestored ? "yes" : "NO: restore matched nothing, check the gift by hand",
+            gift_restored: giftKeptWhy ?? (giftRestored === null ? "not consumed by this payment" : giftRestored ? "yes" : "NO: restore matched nothing, check the gift by hand"),
           },
         });
         // Q1819: ledgered LAST (lh-money-escrow re-review of dfae918ae): a

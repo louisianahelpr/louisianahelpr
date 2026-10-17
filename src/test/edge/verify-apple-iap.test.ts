@@ -20,7 +20,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
-import { resetSharedMocks } from "./mocks/shared";
+import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 
 const JWT = "Bearer caller.jwt.sig";
 const USER = { id: "user-1", email: "buyer@example.com" };
@@ -79,6 +79,8 @@ beforeEach(async () => {
   vi.stubGlobal("Deno", { env: { get: (k: string) => (ENV as Record<string, string>)[k] } });
   scenario.authUser = USER;
   appleReturns(baseTx());
+  // The memberships switch is on unless a case is ABOUT it being off (Q1849).
+  scenario.rpc.feature_enabled_for_user = true;
   fn = await loadEdgeFunction("verify-apple-iap");
 });
 
@@ -256,3 +258,52 @@ describe("EF-4 · the purchase is bound to the caller by appAccountToken", () =>
 // Proof this guard can fail (scripts/vacuity). Dropping the environment gate
 // lets a FREE Sandbox transaction grant a real paid tier.
 // @mutate supabase/functions/verify-apple-iap/index.ts | if (expectsProduction() && isSandboxTransaction(tx)) { | if (false) {
+
+// Q1849: a purchase that reached Apple without our purchase gate (pre-approved
+// StoreKit transaction, offer code, Restore after an iOS Settings resubscribe)
+// is still granted, because Apple already charged; a member the memberships
+// switch is off for is reported so a human refunds them.
+// @mutate supabase/functions/verify-apple-iap/index.ts |     if (membershipsSwitch !== "on") { |     if (false) {
+describe("Q1849 · a grant to a switch-off member is reported, never refused", () => {
+  type Alert = { kind?: string; message?: string; oncePerDayKey?: string };
+  const offAlerts = () => (slackAlerts as Alert[]).filter((a) => a.kind === "money_at_risk");
+  const fresh = () => {
+    scenario.reads.profiles = { rows: [{ user_id: USER.id, subscription_tier: null, subscription_source: null, stripe_subscription_id: null }] };
+  };
+
+  it("switch off: grants the tier AND raises one money_at_risk alert", async () => {
+    fresh();
+    scenario.rpc.feature_enabled_for_user = false;
+    const res = await post({ transactionId: TX });
+    expect(res.status).toBe(200);
+    expect((await res.json()).tier).toBe("plus");
+    expect(offAlerts()).toHaveLength(1);
+    expect(offAlerts()[0].message).toMatch(/switch is off/);
+    expect(offAlerts()[0].oncePerDayKey).toBe(`apple-memberships-off:${USER.id}:${TX}`);
+    const ask = (scenario.rpcCalls ?? []).find((c) => c.name === "feature_enabled_for_user");
+    expect(ask?.args).toEqual({ p_key: "memberships", p_user_id: USER.id });
+  });
+
+  // @mutate supabase/functions/verify-apple-iap/index.ts | isEntitled(tx, meta) ? await membershipsSwitchFor(admin, user.id) : "on" | await membershipsSwitchFor(admin, user.id)
+  it("a Restore of a LAPSED subscription (no charge now) never pages, even switch-off", async () => {
+    fresh();
+    scenario.rpc.feature_enabled_for_user = false;
+    appleReturns(baseTx({ expiresDate: Date.now() - 3600_000 }));
+    await post({ transactionId: TX });
+    expect(offAlerts()).toHaveLength(0);
+  });
+
+  it("switch on: no alert", async () => {
+    fresh();
+    await post({ transactionId: TX });
+    expect(offAlerts()).toHaveLength(0);
+  });
+
+  it("switch unreadable: still grants, reported as unreadable", async () => {
+    fresh();
+    scenario.rpcErrors = { feature_enabled_for_user: { message: "boom" } };
+    const res = await post({ transactionId: TX });
+    expect(res.status).toBe(200);
+    expect(offAlerts()[0]?.message).toMatch(/could not be read/);
+  });
+});

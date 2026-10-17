@@ -346,6 +346,86 @@ export async function fetchAppleTransaction(
   throw new Error(`App Store Server API lookup failed (status ${lastStatus})`);
 }
 
+/**
+ * The LATEST transaction of the auto-renewable subscription `tx` belongs to,
+ * read from Apple's "Get All Subscription Statuses" endpoint
+ * (GET /inApps/v1/subscriptions/{originalTransactionId}) in the environment
+ * that served `tx`.
+ *
+ * Why (Q1860): a notification names ONE transaction, and Apple retries a failed
+ * notice for up to three days. A retry that lands after a newer renewal (or a
+ * forged POST naming an older transaction of the same subscription) carries an
+ * expiresDate in the past, so grading entitlement from the posted transaction
+ * cleared the tier of a member who has paid. The subscription's latest
+ * transaction is the only thing that says whether it is paid NOW.
+ *
+ * Throws when Apple has no status for this subscription: the caller writes
+ * nothing and lets the notice be retried, never grades from the stale one.
+ */
+export async function fetchLatestSubscriptionTransaction(
+  tx: AppleTransaction,
+): Promise<AppleTransaction> {
+  const cfg = readAppleConfig();
+  const bearer = await mintBearer(cfg);
+  const base = tx.environment === "Sandbox" ? SANDBOX_BASE : PROD_BASE;
+  const res = await fetch(
+    `${base}/inApps/v1/subscriptions/${encodeURIComponent(tx.originalTransactionId)}`,
+    { headers: { Authorization: `Bearer ${bearer}` }, signal: AbortSignal.timeout(APPLE_FETCH_TIMEOUT_MS) },
+  );
+  if (!res.ok) {
+    throw new Error(`App Store subscription status lookup failed (status ${res.status})`);
+  }
+  const body = (await res.json()) as {
+    data?: Array<{ lastTransactions?: Array<{ originalTransactionId?: string; signedTransactionInfo?: string }> }>;
+  };
+  for (const group of body.data ?? []) {
+    for (const last of group.lastTransactions ?? []) {
+      if (last.originalTransactionId !== tx.originalTransactionId || !last.signedTransactionInfo) continue;
+      const latest = decodeJwsPayload<AppleTransaction>(last.signedTransactionInfo);
+      if (latest.bundleId !== cfg.bundleId) throw new Error("Transaction bundleId mismatch");
+      if (latest.originalTransactionId !== tx.originalTransactionId) {
+        throw new Error("Latest transaction belongs to another subscription");
+      }
+      if (!latest.environment) latest.environment = tx.environment;
+      return latest;
+    }
+  }
+  throw new Error("App Store returned no status for this subscription");
+}
+
+/**
+ * Is the hidden "memberships" switch on for this user (Roadmap F4)?
+ *
+ * Q1849: Apple can charge a member WITHOUT our purchase gate ever being asked
+ * (auto-renewal, resubscribing from iOS Settings, offer codes, promoted IAPs),
+ * and once Apple has charged we must still grant. So an Apple grant asks this
+ * AFTER writing, and a member the switch is off for is reported for a refund,
+ * never refused. "unknown" (the read failed) is reported too, worded as such:
+ * it is never treated as "on". Asked with the service-role client
+ * (feature_enabled_for_user is service_role only).
+ */
+export async function membershipsSwitchFor(
+  admin: unknown,
+  userId: string,
+): Promise<"on" | "off" | "unknown"> {
+  try {
+    const client = admin as {
+      rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
+    };
+    const { data, error } = await client.rpc("feature_enabled_for_user", { p_key: "memberships", p_user_id: userId });
+    if (error) {
+      console.error(`[appleAppStore] memberships switch unreadable for ${userId}: ${error.message}`);
+      return "unknown";
+    }
+    if (data === true) return "on";
+    if (data === false) return "off";
+    return "unknown";
+  } catch (e) {
+    console.error(`[appleAppStore] memberships switch read threw for ${userId}: ${caughtMessage(e)}`);
+    return "unknown";
+  }
+}
+
 /** Resolve a product id to its tier, or null when it isn't one of ours. */
 export function resolveProduct(productId: string): ProductMeta | null {
   return PRODUCT_TIER_MAP[productId] ?? null;

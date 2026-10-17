@@ -19,13 +19,30 @@
 //   (C) create-payment charges the poster the job price only (no "Service fee"
 //       line, no urgent-bonus card-fee line, F3/F3b) and its escrow stamp
 //       writes helper_fee_flat_cents.
+//   (F) the APP side of (A) (Q1839): every client column list (src/, e2e/,
+//       scripts/) that names helper_fee_percent names helper_fee_flat_cents,
+//       and the shared whole-row list JOB_READABLE_COLUMN_LIST carries the
+//       stamp, so every `.select(JOB_READABLE_COLUMNS)` read (Schedule,
+//       admin analytics, Activity, Work Record) has it. Five narrow selects
+//       (Earnings forecast, Wrapped, admin export, admin Jobs tab, admin user
+//       summaries) priced a flat job on the viewer's tier without it.
+//   (G) the poster's cancel dialog is handed the stamp, so its "Helpr
+//       receives at least" figure uses 5% + 70c on a flat job (Q1839).
 //
 // @mutate supabase/functions/release-payout/index.ts | helper_fee_percent, helper_fee_flat_cents, is_seed | helper_fee_percent, is_seed
 // @mutate supabase/functions/void-cancelled-payments/index.ts | customer_id, helper_fee_percent, helper_fee_flat_cents, is_group_job, | customer_id, helper_fee_percent, is_group_job,
 // @mutate supabase/functions/auto-release-payment/index.ts | const helperCommission = jobHelprCommissionDollars(job, perHelperBudget, helperFeePercent, netUrgentFeeDollars(job.urgent_fee) / helpersCount); | const helperCommission = helperCommissionDollars(perHelperBudget, helperFeePercent);
 // @mutate supabase/functions/void-cancelled-payments/index.ts | helper_fee_percent: job.helper_fee_percent, helper_fee_flat_cents: job.helper_fee_flat_cents }, | helper_fee_percent: job.helper_fee_percent },
-// @mutate supabase/functions/create-payment/index.ts |             platform_fee_amount: helprFlatFeeCents(Math.round(job.budget * 100) + urgentFeeCents) / 100, |             platform_fee_amount: 0,
-// @mutate src/hooks/useProfileTabData.ts | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, helper_fee_flat_cents`, | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}`,
+// @mutate supabase/functions/create-payment/index.ts |             platform_fee_amount: escrowFlatFeeCents / 100, |             platform_fee_amount: 0,
+// @mutate src/lib/jobColumns.ts |   "helper_fee_flat_cents",\n  "helper_fee_percent", |   "helper_fee_percent",
+// @mutate src/hooks/useProfileTabData.ts | const jobsQuery = supabase.from("jobs").select(JOB_READABLE_COLUMNS).neq("status", "cancelled"); | const jobsQuery = supabase.from("jobs").select("id, budget, helper_fee_percent, status").neq("status", "cancelled");
+// @mutate src/components/profile/EarningsForecastCard.tsx | helper_fee_percent, helper_fee_flat_cents, urgent_fee | helper_fee_percent, urgent_fee
+// @mutate src/pages/profile/HelprWrapped.tsx | customer_id, helper_fee_percent, helper_fee_flat_cents, platform_fee_amount | customer_id, helper_fee_percent, platform_fee_amount
+// @mutate src/components/admin/AdminExport.tsx | platform_fee_percent, helper_fee_percent, helper_fee_flat_cents, is_group_job | platform_fee_percent, helper_fee_percent, is_group_job
+// @mutate src/components/admin/useAdminUserSummaries.ts | budget, helper_fee_percent, helper_fee_flat_cents, platform_fee_amount | budget, helper_fee_percent, platform_fee_amount
+// @mutate src/components/job-card/ActivityDialogs.tsx |           feeStamp={props.cancelDialogJob} |           feeStamp={null}
+// @mutate src/components/browseMap/fetchJobForPin.ts | credential_tier, parish, helper_fee_flat_cents"; | credential_tier, parish";
+// @mutate src/pages/home/QuickApplyHandler.tsx | latitude, longitude, helper_fee_flat_cents"; | latitude, longitude";
 // @mutate supabase/functions/create-payment/index.ts | const customerFeeAmount = 0; | const customerFeeAmount = urgentBonusCardFeeCents(urgentFeeCents) / 100;
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -34,6 +51,7 @@ import { blankComments } from "./helpers/blankNonCode";
 // The shared listing (Q1142): supabase/functions is outside src/, so it passes
 // through to the real readdirSync; the guard only needs one import shape.
 import { readdirSync } from "./helpers/trackedFiles";
+import { JOB_READABLE_COLUMN_LIST } from "@/lib/jobColumns";
 
 const ROOT = path.resolve(__dirname, "../..");
 const FN_DIR = path.join(ROOT, "supabase/functions");
@@ -112,7 +130,9 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
     expect(cp).toMatch(/const customerFeeAmount = 0;/);
     // The model stamp also records the flat fee (review N4), so a gift-funded
     // job is never graded against a NULL platform_fee_amount.
-    expect(cp).toMatch(/\.update\(\{\s*helper_fee_flat_cents:\s*HELPR_FLAT_FEE_CENTS,\s*helper_fee_percent:\s*HELPR_FLAT_FEE_PERCENT,\s*platform_fee_amount:\s*helprFlatFeeCents\(Math\.round\(job\.budget \* 100\) \+ urgentFeeCents\) \/ 100,?\s*\}\)/);
+    expect(cp).toMatch(/\.update\(\{\s*helper_fee_flat_cents:\s*HELPR_FLAT_FEE_CENTS,\s*helper_fee_percent:\s*HELPR_FLAT_FEE_PERCENT,\s*platform_fee_amount:\s*escrowFlatFeeCents \/ 100,?\s*\}\)/);
+    // ...summed over the crew (Q1845): each member's 5% + 70c on their share.
+    expect(cp).toMatch(/const escrowFlatFeeCents = jobFlatFeeTotalCents\(Math\.round\(job\.budget \* 100\), urgentFeeCents, escrowHelprCount\);/);
   });
 
   it("(D) a job object rebuilt by hand carries the stamp with the percent", () => {
@@ -138,7 +158,74 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
     expect(start).toBeGreaterThan(-1);
     const end = src.indexOf("\nexport function ", start + 10);
     const body = src.slice(start, end > 0 ? end : undefined);
-    expect(body).toMatch(/from\("jobs"\)/);
-    expect(body).toMatch(/helper_fee_flat_cents/);
+    expect(body).toMatch(/from\("jobs"\)\.select\(JOB_READABLE_COLUMNS\)/);
+    expect(JOB_READABLE_COLUMN_LIST as readonly string[]).toContain("helper_fee_flat_cents");
+  });
+
+  it("(F) every app column list naming helper_fee_percent names the stamp too (Q1839)", () => {
+    // The shared whole-row list: every `.select(JOB_READABLE_COLUMNS)` read.
+    const readable = JOB_READABLE_COLUMN_LIST as readonly string[];
+    expect(readable).toContain("helper_fee_percent");
+    expect(readable).toContain("helper_fee_flat_cents");
+    // Every literal column list (a quoted or template string of two or more
+    // comma-separated columns) in app code that names helper_fee_percent.
+    const lists: { rel: string; cols: string }[] = [];
+    const walk = (dir: string): string[] => {
+      const out: string[] = [];
+      for (const name of readdirSync(dir)) {
+        const p = path.join(dir, name);
+        if (statSync(p).isDirectory()) {
+          if (name === "node_modules" || name === "test" && dir.endsWith("/src") || name === "integrations") continue;
+          out.push(...walk(p));
+        } else if (/\.(ts|tsx|mjs)$/.test(p) && !/\.(test|spec)\.(ts|tsx|mjs)$/.test(p) && !p.endsWith(".d.ts")) out.push(p);
+      }
+      return out;
+    };
+    for (const root of ["src", "e2e", "scripts"]) {
+      for (const abs of walk(path.join(ROOT, root))) {
+        const code = blankComments(readFileSync(abs, "utf8"));
+        // A list names the percent, or names the Helpr's pay inputs (urgent_fee
+        // and helpers_needed: every browse / detail / map list the take-home
+        // is computed from; the map-pin and deep-link dialog lists dropped the
+        // stamp, lh-money-escrow review of this guard, #2-#4).
+        for (const m of code.matchAll(/(["'`])([^"'`\n]*,[^"'`\n]*)\1/g)) {
+          const c = m[2];
+          if (/\bhelper_fee_percent\b/.test(c) || (/\burgent_fee\b/.test(c) && /\bhelpers_needed\b/.test(c))) {
+            lists.push({ rel: path.relative(ROOT, abs), cols: c });
+          }
+        }
+      }
+    }
+    // EXACT inventory (measured 2026-10-17), so a list added or removed moves
+    // it in either direction: 8 name the percent, 6 more name the pay inputs.
+    const MEASURED_LISTS = [
+      "src/boot/guestJobsPrefetch.ts",
+      "src/components/admin/AdminDisputes.tsx",
+      "src/components/admin/AdminDisputes.tsx",
+      "src/components/admin/AdminDisputes.tsx",
+      "src/components/admin/AdminExport.tsx",
+      "src/components/admin/adminusers/useOpenProfile.ts",
+      "src/components/admin/useAdminUserSummaries.ts",
+      "src/components/browseMap/fetchJobForPin.ts",
+      "src/components/profile/EarningsForecastCard.tsx",
+      "src/hooks/useDashboardData.ts",
+      "src/lib/guestJobsQuery.ts",
+      "src/pages/home/QuickApplyHandler.tsx",
+      "src/pages/jobs/JobDetail.tsx",
+      "src/pages/profile/HelprWrapped.tsx",
+    ];
+    expect(lists.map((l) => l.rel).sort()).toEqual(MEASURED_LISTS);
+    const missing = lists
+      .filter((l) => !/\bhelper_fee_flat_cents\b/.test(l.cols))
+      .map((l) => `${l.rel}: ${l.cols.replace(/\s+/g, " ").slice(0, 120)}`);
+    expect(missing).toEqual([]);
+  });
+
+  it("(G) the poster's cancel dialog is handed the job's stamp (Q1839)", () => {
+    const src = blankComments(readFileSync(path.join(ROOT, "src/components/job-card/ActivityDialogs.tsx"), "utf8"));
+    const open = src.indexOf("<CancellationDialog");
+    expect(open).toBeGreaterThan(-1);
+    const tag = src.slice(open, src.indexOf("/>", open));
+    expect(tag).toMatch(/\bfeeStamp=\{props\.cancelDialogJob\}/);
   });
 });

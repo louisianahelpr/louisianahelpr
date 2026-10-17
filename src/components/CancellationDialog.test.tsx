@@ -79,6 +79,58 @@ describe("CancellationDialog fee breakdown", () => {
     expect(screen.queryByText("$23")).not.toBeInTheDocument();
   });
 
+  // Q1839: a flat-model job (jobs.helper_fee_flat_cents stamped) pays the
+  // Helpr the fee minus 5% + 70c, the cut void-cancelled-payments takes. Under
+  // $10 that cut is larger than 12%, so the 12% "floor" overstated the Helpr's
+  // pay: 25% of $32 = $8 fee; 12% leaves $7, 5% + 70c ($1.10) leaves $6.
+  it("prices a flat-model job's Helpr share from its stamp, not the 12% rung", () => {
+    pinEvening();
+    render(
+      <CancellationDialog
+        {...makeProps({ jobDate: isoDateHoursFromNow(6), jobBudget: 32, feeStamp: { helper_fee_flat_cents: 70, helper_fee_percent: 5 } })}
+      />,
+    );
+    expect(screen.getByText("Platform fee (5% + $0.70)")).toBeInTheDocument();
+    expect(screen.getByText("at least $6")).toBeInTheDocument();
+    expect(screen.queryByText("at least $7")).not.toBeInTheDocument();
+  });
+
+  it("keeps the 12% floor on a legacy job (no stamp)", () => {
+    pinEvening();
+    render(
+      <CancellationDialog
+        {...makeProps({ jobDate: isoDateHoursFromNow(6), jobBudget: 32, feeStamp: { helper_fee_flat_cents: null, helper_fee_percent: 10 } })}
+      />,
+    );
+    expect(screen.getByText("Platform fee (up to 12%)")).toBeInTheDocument();
+    expect(screen.getByText("at least $7")).toBeInTheDocument();
+  });
+
+  // Q1842: a flat-model job (F3) was charged the job price only, so the
+  // "service fee isn't refundable" copy is false for it; its refund is the
+  // payment less Stripe's card-processing fee. A legacy job keeps the old copy.
+  // @mutate src/components/CancellationDialog.tsx |   const flatModel = isFlatFeeJob(feeStamp); |   const flatModel = false;
+  it("a flat-model job's refund copy names the card-processing fee, not a service fee", () => {
+    render(
+      <CancellationDialog
+        {...makeProps({ hasHelper: false, jobDate: isoDateHoursFromNow(72), feeStamp: { helper_fee_flat_cents: 70, helper_fee_percent: 5 } })}
+      />,
+    );
+    expect(screen.getByText(/Your payment is refunded, less the card-processing fee Stripe keeps\./)).toBeInTheDocument();
+    expect(screen.getByText("$0 cancellation fee · Refunded less card fee · No consequences")).toBeInTheDocument();
+    expect(screen.queryByText(/service fee/i)).not.toBeInTheDocument();
+  });
+
+  it("a legacy job keeps its service-fee refund copy", () => {
+    render(
+      <CancellationDialog
+        {...makeProps({ hasHelper: false, jobDate: isoDateHoursFromNow(72), feeStamp: { helper_fee_flat_cents: null, helper_fee_percent: 10 } })}
+      />,
+    );
+    expect(screen.getByText(/the service fee isn't refundable once payment has been processed/)).toBeInTheDocument();
+    expect(screen.getByText("$0 cancellation fee · Budget refunded · No consequences")).toBeInTheDocument();
+  });
+
   it("shows free cancellation (no breakdown) when 24+ hours out", () => {
     pinEvening();
     render(<CancellationDialog {...makeProps({ jobDate: isoDateHoursFromNow(72) })} />);
@@ -90,4 +142,5 @@ describe("CancellationDialog fee breakdown", () => {
 // Quotes a commission rate that is NOT the ladder's highest, so the helper's
 // share stops being a floor — the exact shape that told a poster $54.00 on a
 // job where void-cancelled-payments transferred $55.20.
-// @mutate src/components/CancellationDialog.tsx | const commissionPercent = MAX_HELPER_FEE_PERCENT; | const commissionPercent = 8;
+// @mutate src/lib/cancellationHelperShare.ts |   const platformCut = Math.round(fee * MAX_HELPER_FEE_PERCENT) / 100; |   const platformCut = Math.round(fee * 8) / 100;
+// @mutate src/components/CancellationDialog.tsx |   const { platformCut, helperPayout, feeLabel } = cancellationHelperShare(payeeFee, feeStamp); |   const { platformCut, helperPayout, feeLabel } = cancellationHelperShare(payeeFee, null);

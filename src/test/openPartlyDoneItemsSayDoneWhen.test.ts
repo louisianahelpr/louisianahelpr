@@ -80,6 +80,9 @@ const MARKERLESS_PARTLY_DONE: Record<string, string> = {
   Q1895: "the next prod-audit run green on /messages after the seed fix, plus a decision on the bar-to-list gap (space-y-2 or --section-gap); no marker kind reads a design decision or one run's per-route verdict",
   Q1787: "a live look at /post-job?turnover=<id> for a seeded turnover on poster-e2e after deploy (prod holds 0 str_processed_events rows); no marker kind reads a screenshot",
   Q1558: "reopened 2026-10-12 after the auto-tick closed it on its unit test: a look at My Jobs and Home empty states at 320, 375 and 1440, which read POST RPCs the harness blocks",
+  Q1839: "after deploy: the live proacl and result type of both browse RPCs plus a row-for-row compare of anon and signed-in calls against a pre-deploy capture; no marker kind compares two calls' rows",
+  Q1842: "waits for the owner's choice of the exact old -> new sentences (her pop-up list, item 17); no marker kind reads an owner decision",
+  Q1876: "after deploy: the deployed stripe-webhook bounce path and return_bounced_gift_card read back live (function body and the webhook's gift restore on a real bounce); no marker kind reads a deployed edge function's behaviour",
 };
 
 describe("[~] items say when they are done", () => {

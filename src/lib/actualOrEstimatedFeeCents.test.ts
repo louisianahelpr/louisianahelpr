@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 // Plain TS, no Deno imports at module scope — vitest can import it directly,
 // same as stripeFees.parity.test.ts does for the rest of this module.
-import { actualOrEstimatedFeeCents } from "../../supabase/functions/_shared/stripeFees";
+import { actualOrEstimatedFeeCents, actualStripeFeeCents } from "../../supabase/functions/_shared/stripeFees";
 
 describe("actualOrEstimatedFeeCents", () => {
   it("reads the real fee off an expanded PaymentIntent's balance transaction", () => {
@@ -26,8 +26,19 @@ describe("actualOrEstimatedFeeCents", () => {
     const pi = { latest_charge: { balance_transaction: "txn_123" } };
     expect(actualOrEstimatedFeeCents(pi, 10000)).toBe(320);
   });
+
+  it("actualStripeFeeCents says when the fee is Stripe's actual one: the fee, else null (Q1827)", () => {
+    expect(actualStripeFeeCents({ latest_charge: { balance_transaction: { fee: 629 } } })).toBe(629);
+    expect(actualStripeFeeCents({ latest_charge: { balance_transaction: { fee: 0 } } })).toBe(0);
+    expect(actualStripeFeeCents({ latest_charge: { balance_transaction: "txn_123" } })).toBeNull();
+    expect(actualStripeFeeCents({ latest_charge: "ch_123" })).toBeNull();
+    expect(actualStripeFeeCents(null)).toBeNull();
+  });
 });
 
 // Drops the REAL fee off the expanded balance transaction and always guesses
 // the card rate — a Klarna charge's 629c cut booked as 320c.
-// @mutate supabase/functions/_shared/stripeFees.ts | return balanceTransaction.fee; | return stripeProcessingCostCents(fallbackAmountCents);
+// @mutate supabase/functions/_shared/stripeFees.ts | return balanceTransaction.fee; | return null;
+// Q1827: an unread fee counted as an actual one (a crew refund would then
+// honour an estimate stamped on its ledger row as if Stripe had charged it).
+// @mutate supabase/functions/_shared/stripeFees.ts |   return null;\n} |   return 0;\n}

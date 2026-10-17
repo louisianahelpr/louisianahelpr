@@ -399,7 +399,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     expect(shortPages()).toBe(0);
   });
 
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (priorCents < cardOwedCents) return shortRefund(row.stripe_refund_id, priorCents, false); | if (false) return shortRefund(row.stripe_refund_id, priorCents, false);
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (priorCents < owedThen) return shortRefund(row.stripe_refund_id, priorCents, false, owedThen); | if (false) return shortRefund(row.stripe_refund_id, priorCents, false, owedThen);
   it("MQ31(C) re-run: a prior refund at the full 4031c is not sent again and does not page; one at the old base-only 3333c pages as short", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     setJob({ customer_fee_amount: 12, sales_tax_amount: 9 });
@@ -417,6 +417,84 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     await run();
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(shortPages()).toBe(1);
+  });
+
+  // Q1827 (lh-money-escrow review of 79e9a6bb5, #3; review of 52ba80829, #1):
+  // a re-run that reads a different Stripe fee than the first run used. The
+  // first run stamps the fee it priced with AND its source (actual|estimate)
+  // on the ledger row. Only an ACTUAL fee is final: a re-run that cannot read
+  // the balance transaction falls back to the estimate, and must not page a
+  // refund priced at the real fee. An ESTIMATE can be undercut by the real fee
+  // read later, and then the difference really is owed back, so it pages.
+  const rerunWithPrior = async (
+    job: Record<string, unknown>,
+    prior: { amount_cents: number; metadata?: Record<string, unknown> },
+    realFeeCents: number | null,
+  ) => {
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    setJob(job);
+    if (realFeeCents != null) {
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1", status: "succeeded", amount: 11200, amount_received: 11200,
+        latest_charge: { id: "ch_1", balance_transaction: { fee: realFeeCents } },
+      });
+    }
+    scenario.reads.payment_refunds = { rows: [{ stripe_refund_id: "re_unfilled", ...prior }] };
+    await run();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    return shortPages();
+  };
+  const stampOf = () =>
+    (scenario.writes.find((w) => w.table === "payment_refunds")?.payload as { metadata?: Record<string, unknown> } | undefined)?.metadata;
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |           metadata: { stripe_fee_cents: crewStripeFeeCents, stripe_fee_source: crewStripeFeeSource }, |           metadata: {},
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |               stripeFeeActual = actualStripeFeeCents(pi) !== null; |               stripeFeeActual = false;
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |         const owedThen = stampHonoured ? Math.max(0, owedAtFee(stamped as number) - giftRestoredCents) : cardOwedCents; |         const owedThen = cardOwedCents;
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |         - feeReturnCents + crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: stripeFee, proRataCents: feeProRataCents }) |         - feeReturnCents + crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents }) + 1
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | const stampHonoured = stampMeta?.stripe_fee_source === "actual"\n          && typeof stamped | const stampHonoured = typeof stamped
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |  && stamped >= 0 && stamped <= a.capturedCents; |  && stamped >= 0;
+  it("Q1827: a refund priced at Stripe's ACTUAL fee is honoured on a re-run that can only estimate the fee (no page); no stamp, an estimate label or a stamp above the charge is compared at today's fee", async () => {
+    // Run 1 reads the real fee, $10.00, on a legacy $12-fee job: only $2.00 of
+    // the 399c fee share comes back, 3333 + min(399, 1200-1000) + 299 = 3832c.
+    const job = { customer_fee_amount: 12, sales_tax_amount: 9 };
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    setJob(job);
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", amount: 11200, amount_received: 11200,
+      latest_charge: { id: "ch_1", balance_transaction: { fee: 1000 } },
+    });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3832, currency: "usd" });
+    await run();
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_1", amount: 3832 }, { idempotencyKey: "crew-unfilled-refund-job-crew" });
+    expect(stampOf()).toEqual({ stripe_fee_cents: 1000, stripe_fee_source: "actual" });
+
+    // Run 2 cannot read the balance transaction: the 355c estimate would owe
+    // 3333 + 399 + 299 = 4031c and page the 3832c refund as short.
+    expect(await rerunWithPrior(job, { amount_cents: 3832, metadata: { stripe_fee_cents: 1000, stripe_fee_source: "actual" } }, null)).toBe(0);
+    expect(await rerunWithPrior(job, { amount_cents: 3832 }, null)).toBe(1);
+    expect(await rerunWithPrior(job, { amount_cents: 3832, metadata: { stripe_fee_cents: 1000, stripe_fee_source: "estimate" } }, null)).toBe(1);
+    expect(await rerunWithPrior(job, { amount_cents: 3832, metadata: { stripe_fee_cents: 20000, stripe_fee_source: "actual" } }, null)).toBe(1);
+  });
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | const crewStripeFeeSource: "actual" \| "estimate" = a.stripeFeeCents != null && a.stripeFeeActual === true ? "actual" : "estimate"; | const crewStripeFeeSource: "actual" \| "estimate" = "actual";
+  it("Q1827: a refund priced at the ESTIMATE is stamped so, and pages when the real fee read later is lower (25c really is owed back)", async () => {
+    // Run 1 cannot read the balance transaction: on a no-service-fee flat job
+    // the 355c estimate keeps all of the $3.55 fee, 3632c.
+    const job = { customer_fee_amount: 3.55, sales_tax_amount: 9, platform_fee_percent: 0 };
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    setJob(job);
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3632, currency: "usd" });
+    await run();
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_1", amount: 3632 }, { idempotencyKey: "crew-unfilled-refund-job-crew" });
+    expect(stampOf()).toEqual({ stripe_fee_cents: 355, stripe_fee_source: "estimate" });
+
+    // Run 2 reads Stripe's real fee, 330c: 25c of the fee is owed back (3657c).
+    expect(await rerunWithPrior(job, { amount_cents: 3632, metadata: { stripe_fee_cents: 355, stripe_fee_source: "estimate" } }, 330)).toBe(1);
+    // The same refund at the real fee read now does not page.
+    expect(await rerunWithPrior(job, { amount_cents: 3657, metadata: { stripe_fee_cents: 355, stripe_fee_source: "estimate" } }, 330)).toBe(0);
   });
 
   // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (a.isPifFunded) { | if (false) {

@@ -7,7 +7,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { readHelperFeePercentStrict, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { flatFeePercentOf, isFlatFeeJob } from "../_shared/helprFlatFee.ts";
-import { actualOrEstimatedFeeCents, netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
+import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { crewFeeShareReturnCents } from "../_shared/refundAmount.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
@@ -542,6 +542,8 @@ serve(async (req) => {
       capturedCents: number;
       /** Stripe's real fee on the charge, when it was read; else the card-rate estimate. */
       stripeFeeCents?: number | null;
+      /** Q1827: stripeFeeCents is Stripe's ACTUAL fee (read off the balance transaction), not the estimate. */
+      stripeFeeActual?: boolean;
       /** The main loop found this gift job's card leg in Stripe TEST mode (Q891). */
       cardLegTestMode: boolean;
       paidCents: number;
@@ -586,10 +588,12 @@ serve(async (req) => {
       // returned (see the cap below), so the platform no longer absorbs it.
       // Rounding: each component is FLOORED to the cent, so the sub-cent
       // remainder stays with the platform, and what is refunded plus what is
-      // kept is the charge, to the cent. A re-run owes the same cents only
-      // when it reads the same Stripe fee: the real balance-transaction fee
-      // vs the card-rate estimate can differ (open item in docs/OPEN.md, filed
-      // from the lh-money-escrow review of 79e9a6bb5, #3).
+      // kept is the charge, to the cent. A re-run owes the same cents because
+      // it prices with the Stripe fee the FIRST run used: that fee is stamped
+      // on the refund's payment_refunds row (metadata.stripe_fee_cents) and read
+      // back below. Without it, a run on the card-rate estimate and a later
+      // run that read the lower real balance-transaction fee owed different
+      // cents, and the re-run paged a few cents "short" (Q1827).
       const feeCents = Math.max(0, Math.round(Number(job.customer_fee_amount ?? 0) * 100));
       const taxCents = Math.max(0, Math.round(Number(job.sales_tax_amount ?? 0) * 100));
       // Q1390 (lh-money-escrow review): the service fee on a block fee is kept,
@@ -603,6 +607,8 @@ serve(async (req) => {
       // pro-rata share above the card cost. Tax is unchanged.
       const feeProRataCents = budgetCents > 0 ? Math.floor((feeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents) : 0;
       const crewStripeFeeCents = a.stripeFeeCents ?? stripeProcessingCostCents(a.capturedCents);
+      /** Q1827: only Stripe's ACTUAL fee is final; an estimate can be undercut by the real fee read later. */
+      const crewStripeFeeSource: "actual" | "estimate" = a.stripeFeeCents != null && a.stripeFeeActual === true ? "actual" : "estimate";
       const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents });
       // Roadmap F3 (lh-money-escrow review N2, 2026-10-15): a FLAT job charged
       // the poster no fee line (customer_fee_amount 0), so nothing above holds
@@ -616,6 +622,18 @@ serve(async (req) => {
       const cardFeeKeptCents = feeProRataCents - feeReturnCents + flatCardFeeKeptCents;
       const taxReturnCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0;
       const owedCents = unfilledCents - flatCardFeeKeptCents + feeReturnCents + taxReturnCents;
+      /**
+       * Q1827: what the unfilled share owes at another Stripe fee, by moving
+       * only the two fee-dependent terms above (so at crewStripeFeeCents it is
+       * owedCents exactly). A re-run prices a prior refund with the fee that
+       * refund was priced with (its payment_refunds row's metadata.stripe_fee_cents).
+       */
+      const owedAtFee = (stripeFee: number) =>
+        owedCents
+        - feeReturnCents + crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: stripeFee, proRataCents: feeProRataCents })
+        + flatCardFeeKeptCents - (isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0
+          ? Math.min(unfilledCents, Math.floor((stripeFee * (unpaidBudgetCents - blockFeeCents)) / budgetCents))
+          : 0);
       if (owedCents <= 0) return { ok: true, refundCents: 0 };
 
       const source = decision ? "crew_dispute_refund" : "crew_unfilled_refund";
@@ -736,7 +754,7 @@ serve(async (req) => {
 
       const { data: prior, error: priorErr } = await supabaseAdmin
         .from("payment_refunds")
-        .select("stripe_refund_id, amount_cents")
+        .select("stripe_refund_id, amount_cents, metadata")
         .eq("job_id", job.id)
         .eq("source", source)
         .limit(1);
@@ -750,27 +768,45 @@ serve(async (req) => {
        * job still releases (the crew is paid), but the shortfall is a
        * person's, and a crew decision is NOT closed as if it were settled.
        */
-      const shortRefund = async (refundId: string | null, sentCents: number, fresh = true) => {
-        const shortCents = cardOwedCents - sentCents;
+      const shortRefund = async (refundId: string | null, sentCents: number, fresh = true, owed = cardOwedCents) => {
+        const shortCents = owed - sentCents;
         // Tell the poster what did go back (card and/or gift); a re-run that
         // only reads the prior row back does not tell them again.
         if (fresh) await notifyPoster(sentCents, refundId);
-        jobDefect(job.id, `crew ${source} ${job.id}: refunded ${sentCents}c of ${cardOwedCents}c owed`);
+        jobDefect(job.id, `crew ${source} ${job.id}: refunded ${sentCents}c of ${owed}c owed`);
         await postSlackOpsAlert({
           kind: "money_at_risk",
           seed: seedJobIds.has(job.id),
           severity: "warning",
           title: "Crew refund short: the rest needs a manual refund",
-          message: `Group job ${job.id}: ${cardOwedCents}c is owed back to the poster's card${decision ? ` under crew dispute ${decision.disputeId}` : " for unfilled slots"} (the share plus that share of the service fee and tax${giftRestoredCents > 0 ? `; ${giftRestoredCents}c more went back as gift credit` : ""}), but only ${sentCents}c could be refunded from the charge. Return the other ${shortCents}c by hand${decision ? ", then close the dispute" : ""}.`,
-          fields: { job_id: job.id, owed_cents: cardOwedCents, refunded_cents: sentCents, short_cents: shortCents, gift_restored_cents: giftRestoredCents },
+          message: `Group job ${job.id}: ${owed}c is owed back to the poster's card${decision ? ` under crew dispute ${decision.disputeId}` : " for unfilled slots"} (the share plus that share of the service fee and tax${giftRestoredCents > 0 ? `; ${giftRestoredCents}c more went back as gift credit` : ""}), but ${fresh ? `only ${sentCents}c could be refunded from the charge. Return the other ${shortCents}c by hand` : `the earlier refund (${refundId ?? "no refund id"}) returned only ${sentCents}c. Refund the other ${shortCents}c from the charge in Stripe if it still holds it, else by hand`}${decision ? ", then close the dispute" : ""}.`,
+          fields: { job_id: job.id, owed_cents: owed, refunded_cents: sentCents, short_cents: shortCents, gift_restored_cents: giftRestoredCents },
           oncePerDayKey: `crew-refund-short:${job.id}`,
         });
         return { ok: true, refundId, refundCents: sentCents + giftRestoredCents, manual: true };
       };
       if ((prior ?? []).length > 0) {
-        const row = (prior as Array<{ stripe_refund_id: string | null; amount_cents: number | null }>)[0];
+        const row = (prior as Array<{ stripe_refund_id: string | null; amount_cents: number | null; metadata?: unknown }>)[0];
         const priorCents = Number(row.amount_cents ?? 0);
-        if (priorCents < cardOwedCents) return shortRefund(row.stripe_refund_id, priorCents, false);
+        // Q1827: owed at the Stripe fee the refund was priced with, but ONLY
+        // when its row says that fee was Stripe's ACTUAL one (and no more than
+        // the charge). An estimate stamp is compared at today's fee: when the
+        // real fee read now is lower, the difference really is owed back and
+        // pages. A row from before the stamp, or one another writer made, is
+        // compared at today's fee too, as before.
+        const stampMeta = row.metadata as { stripe_fee_cents?: unknown; stripe_fee_source?: unknown } | null;
+        const stamped = stampMeta?.stripe_fee_cents;
+        const stampHonoured = stampMeta?.stripe_fee_source === "actual"
+          && typeof stamped === "number" && Number.isInteger(stamped) && stamped >= 0 && stamped <= a.capturedCents;
+        const owedThen = stampHonoured ? Math.max(0, owedAtFee(stamped as number) - giftRestoredCents) : cardOwedCents;
+        if (priorCents < owedThen) return shortRefund(row.stripe_refund_id, priorCents, false, owedThen);
+        if (priorCents > owedThen) {
+          // Q1827 review nit 2: priced at an estimate the real fee now beats
+          // (e.g. a Klarna fee above the card rate), so the earlier refund
+          // returned more of the fee share than owed. Not recoverable from
+          // the poster; said here so it is not silent.
+          console.warn(`[process-scheduled-payouts] crew ${source} ${job.id}: the earlier refund ${row.stripe_refund_id} returned ${priorCents}c, ${priorCents - owedThen}c more than owed at today's Stripe fee (stamp source ${String(stampMeta?.stripe_fee_source ?? "none")}).`);
+        }
         return { ok: true, refundId: row.stripe_refund_id, refundCents: priorCents + giftRestoredCents };
       }
 
@@ -834,6 +870,10 @@ serve(async (req) => {
             : "under-filled crew: the unfilled slots' shares, with that share of the service fee and tax",
           source,
           initiated_by_user_id: null,
+          // Q1827: the Stripe fee this refund was priced with, and whether it
+          // was Stripe's actual fee or the estimate: a re-run honours only an
+          // actual one, so a fee read differently later never pages it short.
+          metadata: { stripe_fee_cents: crewStripeFeeCents, stripe_fee_source: crewStripeFeeSource },
         }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
         if (ledgerErr) {
           jobDefect(job.id, `crew ${source} ledger ${job.id}: ${ledgerErr.message}`);
@@ -871,6 +911,8 @@ serve(async (req) => {
       capturedCents: number;
       /** Stripe's real fee on the charge, when it was read. */
       stripeFeeCents?: number | null;
+      /** Q1827: stripeFeeCents is Stripe's actual fee, not the card-rate estimate. */
+      stripeFeeActual?: boolean;
       cardLegTestMode: boolean;
       /** The client of this job's Stripe mode (owner 2026-10-12). */
       stripe: Stripe;
@@ -1179,6 +1221,8 @@ serve(async (req) => {
       let capturedCents = 0;
       /** Stripe's real fee on that charge (owner, 2026-10-14: a crew refund never returns it). null = not read. */
       let stripeFeeCents: number | null = null;
+      /** Q1827: stripeFeeCents was read off the charge's balance transaction (not the estimate). */
+      let stripeFeeActual = false;
       /** A gift job's card leg turned out to be a Stripe TEST-mode object. */
       let cardLegTestMode = false;
       /**
@@ -1294,6 +1338,7 @@ serve(async (req) => {
               }
               capturedCents = captured.cents;
               stripeFeeCents = actualOrEstimatedFeeCents(pi, captured.cents);
+              stripeFeeActual = actualStripeFeeCents(pi) !== null;
             }
           } catch (e: any) {
             if (isTestObjectUnderLiveKey(e)) {
@@ -1377,7 +1422,7 @@ serve(async (req) => {
         // run: before it, nothing ever asked again and the job sat
         // payout_pending with its poster's refund unsent.
         if (job.is_group_job && !crewSettled.has(job.id)) {
-          const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, stripeFeeCents, cardLegTestMode, stripe });
+          const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, stripeFeeCents, stripeFeeActual, cardLegTestMode, stripe });
           if (settle.ready && await closeCrewDecision(job, settle)) {
             const healed = await flipJobToReleased(supabaseAdmin, job.id);
             if (healed.ok) {
@@ -1799,7 +1844,7 @@ serve(async (req) => {
           // Settled (refund, flip, dispute close) earlier in THIS run: once.
           allRosterPaid = false;
         } else if (job.is_group_job) {
-          crewSettle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, stripeFeeCents, cardLegTestMode, stripe });
+          crewSettle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, stripeFeeCents, stripeFeeActual, cardLegTestMode, stripe });
           // The decision is closed before the flip (review M4): a failed close
           // keeps the job payout_pending for the next run to retry.
           allRosterPaid = crewSettle.ready && await closeCrewDecision(job, crewSettle);

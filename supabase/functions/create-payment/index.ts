@@ -11,12 +11,13 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
-import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, flatFeePercentOf, helprFlatFeeCents } from "../_shared/helprFlatFee.ts";
+import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, flatFeePercentOf } from "../_shared/helprFlatFee.ts";
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { POSTER_SERVICE_FEE_PERCENT, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
 import { cardCostFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";
+import { jobFlatFeeTotalCents } from "../_shared/crewShares.ts";
 
 /**
  * Q1415 (b): what a release answers while an open ban settlement review holds
@@ -514,6 +515,13 @@ serve(async (req) => {
       const checkoutBucketSec = Math.floor(Date.now() / 1000 / 600) * 600;
       const checkoutExpiresAt = checkoutBucketSec + 60 * 60;
       const checkoutKeySuffix = `${remintKeySuffix}-b${checkoutBucketSec}`;
+      // Q1846 (lh-money-escrow review of 91927c016, #1): the price the session
+      // is built for is part of its idempotency key. A stamp refused because
+      // the poster edited the pay leaves a session at the OLD amount under the
+      // old key; the retry, at the new amount, must not reuse that key, or
+      // Stripe answers idempotency_error until the next 10-minute bucket. Same
+      // price = same key, so a double-tap still gets one session.
+      const priceKey = `-p${Math.round(Number(job.budget) * 100)}u${Math.round(Number(job.urgent_fee ?? 0) * 100)}`;
 
       /**
        * Record a newly-minted session on the job, tolerating the double-tap.
@@ -542,11 +550,38 @@ serve(async (req) => {
        * funded twice. Zero rows then falls to the re-check below, which does
        * not find our session and fails the request before a URL is returned.
        */
+      /**
+       * Q1846: every price this request charges and stamps was computed from
+       * the job it read at the top (budget, the urgent bonus). A poster may
+       * still edit both while the job is unpaid with no session stamped
+       * (enforce_poster_jobs_money_lock locks them only once stripe_session_id
+       * is set), so a write that lands after such an edit would record fees,
+       * or open a checkout, for a price the job no longer has: raised in the
+       * window, the Helpr would be paid on more than Stripe collected. Both
+       * writes that commit this request's price (the fee-model stamp and the
+       * session stamp) re-assert it, null-safe; zero rows refuses the checkout.
+       */
+      // deno-lint-ignore no-explicit-any
+      const pinnedToReadPrice = (q: any) => {
+        let pinned = q.eq("budget", job.budget);
+        // A null bonus and a 0 bonus are the same price (nit 4 of the review).
+        pinned = job.urgent_fee == null || Number(job.urgent_fee) === 0
+          ? pinned.or("urgent_fee.is.null,urgent_fee.eq.0")
+          : pinned.eq("urgent_fee", job.urgent_fee);
+        pinned = job.is_urgent == null ? pinned.is("is_urgent", null) : pinned.eq("is_urgent", job.is_urgent);
+        // The category picks the labor line's tax code. Once the session is
+        // stamped, enforce_funded_category_tax_class refuses a switch between
+        // taxed and untaxed categories; before that, this pin does (review of
+        // 91927c016, #6).
+        pinned = job.category == null ? pinned.is("category", null) : pinned.eq("category", job.category);
+        return pinned;
+      };
+
       const stampSession = async (newSessionId: string, extra: Record<string, unknown>) => {
-        const guarded = () => supabaseAdmin
+        const guarded = () => pinnedToReadPrice(supabaseAdmin
           .from("jobs")
           .update({ stripe_session_id: newSessionId, payment_status: "unpaid", ...extra })
-          .eq("id", jobId)
+          .eq("id", jobId))
           .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")
           // A job closed between the reads above and this write (a decided
           // dispute sets status 'completed') is never stamped: zero rows, so
@@ -589,6 +624,12 @@ serve(async (req) => {
             URGENT_FEE_CEILING_CENTS,
           )
         : 0;
+      // The whole job's flat Helpr fee, in cents (Q1845): each Helpr pays
+      // 5% + 70c on THEIR OWN share of budget + bonus, so a crew of N records
+      // the SUM of the N members' fees (the same largest-remainder split the
+      // payout uses), not one 70c for the whole job.
+      const escrowHelprCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+      const escrowFlatFeeCents = jobFlatFeeTotalCents(Math.round(job.budget * 100), urgentFeeCents, escrowHelprCount);
 
       // ─── Fee model stamp (roadmap F3, owner 2026-10-14/15) ───
       // Every job funded from here on is on the FLAT model: the poster pays
@@ -608,15 +649,15 @@ serve(async (req) => {
       // migration 20260913014328): the job is still in the status it was
       // judged fundable in (not completed/cancelled,
       // FUNDING_CLOSED_JOB_STATUSES) and still unfunded (the same set as
-      // RE_MINTABLE_PAYMENT_STATUSES). It does NOT pin budget/urgent fee
-      // (see Q?fee-stamp-price-pin). Zero rows means the job moved between
+      // RE_MINTABLE_PAYMENT_STATUSES), and at the price it read (Q1846,
+      // pinnedToReadPrice above). Zero rows means the job moved between
       // that read and this write: a concurrent tap funded it, a cancel or a
       // decided dispute closed it, or its status changed under us. None of
       // those may be charged under a stamp that never landed, so the
       // checkout is refused here, before any funding branch (gift redeem,
       // Stripe session).
       {
-        const { data: modelRows, error: modelErr } = await supabaseAdmin
+        const { data: modelRows, error: modelErr } = await pinnedToReadPrice(supabaseAdmin
           .from("jobs")
           .update({
             helper_fee_flat_cents: HELPR_FLAT_FEE_CENTS,
@@ -625,9 +666,9 @@ serve(async (req) => {
             // (lh-money-escrow review N4): the full-gift path (redeem_gift_card)
             // and the gift-shortfall stamp never write platform_fee_amount, so
             // money-reconciliation graded a gift-funded flat job against NULL.
-            platform_fee_amount: helprFlatFeeCents(Math.round(job.budget * 100) + urgentFeeCents) / 100,
+            platform_fee_amount: escrowFlatFeeCents / 100,
           })
-          .eq("id", jobId)
+          .eq("id", jobId))
           .eq("status", job.status)
           .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")
           .select("id");
@@ -638,13 +679,18 @@ serve(async (req) => {
         if (!modelRows || modelRows.length === 0) {
           // Refused whatever the re-read says; it only picks the sentence.
           const { data: moved } = await supabaseAdmin
-            .from("jobs").select("status, payment_status").eq("id", jobId).maybeSingle();
+            .from("jobs").select("status, payment_status, budget, urgent_fee, is_urgent").eq("id", jobId).maybeSingle();
           console.warn(`[create-payment] fee-model stamp matched 0 rows for job ${jobId} (read status=${job.status}, payment_status=${job.payment_status ?? "null"}; now status=${moved?.status ?? "?"}, payment_status=${moved?.payment_status ?? "?"}); refusing escrow`);
           if (moved && !RE_MINTABLE_PAYMENT_STATUSES.has(moved.payment_status ?? "unpaid")) {
             throw new PublicError("This job's payment has already been processed. Open the job to see its payment status.");
           }
           if (moved && FUNDING_CLOSED_JOB_STATUSES.has(String(moved.status))) {
             throw new PublicError("This job is closed, so it can no longer be paid for.");
+          }
+          if (moved && (Number(moved.budget) !== Number(job.budget) ||
+              Number(moved.urgent_fee ?? 0) !== Number(job.urgent_fee ?? 0) ||
+              Boolean(moved.is_urgent) !== Boolean(job.is_urgent))) {
+            throw new PublicError("This job's pay changed while checkout was opening. Please try again so you pay the new amount.");
           }
           throw new PublicError("This job changed while checkout was opening.");
         }
@@ -741,7 +787,7 @@ serve(async (req) => {
           expires_at: checkoutExpiresAt,
           metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId },
         }, {
-          idempotencyKey: `gift-card-diff-${jobId}${checkoutKeySuffix}`,
+          idempotencyKey: `gift-card-diff-${jobId}${priceKey}${checkoutKeySuffix}`,
         });
 
         // Record the session on the job, exactly as the full-escrow path below
@@ -857,10 +903,10 @@ serve(async (req) => {
       // budget + bonus at payout. customer_fee_amount is 0, so a refund keeps
       // Stripe's actual card fee (refundToPayerCents) and returns the rest.
       const customerFeeAmount = 0;
-      // The Helpr's flat fee is deducted at payout time, not charged to the
-      // poster. Stored as platform_fee_amount for the single-Helpr case, as
-      // the tier commission was.
-      const helperFeeAmount = helprFlatFeeCents(Math.round(job.budget * 100) + urgentFeeCents) / 100;
+      // The Helprs' flat fee is deducted at payout time, not charged to the
+      // poster. Stored as platform_fee_amount: the whole job's fee, summed
+      // per member on a crew (Q1845, escrowFlatFeeCents above).
+      const helperFeeAmount = escrowFlatFeeCents / 100;
 
       // ─── Louisiana sales-tax classification ───
       // The category list now lives in `_shared/salesTax.ts` so the Post-a-Task
@@ -973,7 +1019,7 @@ serve(async (req) => {
         // Idempotency: a double-submit (double-tap, retried request) for the same
         // job reuses the existing Checkout Session instead of creating a second
         // escrow charge. Scoped per job and 10-minute expiry bucket (see checkoutKeySuffix).
-        idempotencyKey: `escrow-${jobId}${checkoutKeySuffix}`,
+        idempotencyKey: `escrow-${jobId}${priceKey}${checkoutKeySuffix}`,
       });
 
       // Store both fee structures on the job. Fail the request if this write

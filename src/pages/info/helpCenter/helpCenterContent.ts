@@ -1,4 +1,6 @@
 import { MONTHLY_FREE_BOOSTS, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
+import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, helprFlatTakeHomeCents } from "@/lib/helprFlatFee";
+import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 // The escrow clock is owned by the cron that actually moves the money, not by
 // this file. Same import the legal pages, PaymentSuccess and the activity cards
@@ -52,9 +54,31 @@ const CREDENTIAL_CATEGORY_PHRASE = (() => {
   return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
 })();
 
-// The bottom rung of the fee ladder a reader can actually reach.
-// Mirrors `FEE_FLOOR` in legal/TermsSection.
-const FEE_FLOOR = TIER_PERKS.elite;
+// Q1842 (roadmap F3, owner 2026-10-14/15): the jobs fee, read from the same
+// constants every payout path prices with (src/lib/helprFlatFee.ts), so this
+// page cannot drift from what a Helpr is paid. The poster pays the job price
+// only; the Helpr pays 5% + 70c; a plan never changes it. (The tier ladder
+// that used to be quoted here, FEE_FLOOR, applies only to jobs paid for
+// before the change; the Terms still quote it until the owner approves new
+// wording.)
+const FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`;
+// What a Helpr is really sent on a $100 job: every transfer is floored to the
+// whole dollar (roundPayoutDownCents, Q236), and the app's take-home figures
+// floor the same way (floorPayoutDollars). lh-money-escrow review of
+// 7166349cd #1: "$94.30" was the unrounded figure; the transfer is $94.
+const FLAT_TAKE_HOME_ON_100 = floorPayoutDollars(helprFlatTakeHomeCents(10_000) / 100);
+
+// Roadmap F4/F4a (owner 2026-10-14/15): memberships are switched off for
+// members (feature_switches 'memberships' = testers, measured on prod
+// 2026-10-17), and every paid perk is off with them: instant-payout refuses
+// with "Instant cash-out isn't available right now", early access and plan
+// boosts read the same switch, and SubscriptionTab's subscribe button says
+// "Memberships aren't available right now." Every answer on this page that
+// describes a plan or a paid perk opens with this sentence, so the page never
+// promises a member something the app refuses. Exported for its guard
+// (helpCenterPricingCopy.test.ts). When the owner turns memberships back on,
+// remove it here and in the answers in the same change.
+export const MEMBERSHIPS_PAUSED = "Memberships aren't available right now.";
 
 // ─── Topic blurbs ─────────────────────────────────────────────────────────────
 //
@@ -211,7 +235,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // file's guards exist to stop. "The standard schedule" is now named:
         // STANDARD_PAYOUT_WINDOW, the same constant InstantPayoutDialog and
         // PayoutHistory interpolate.
-        a: `Payment is sent to your Helpr account ${STANDARD_PAYOUT_PHRASE}, once the person who posted it confirms (or it completes automatically), then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout; every standard payout after that is free. Instant Payout — cashing out the same day — is a Basic, Pro or Elite membership feature and charges a small percentage fee.`,
+        a: `Payment is sent to your Helpr account ${STANDARD_PAYOUT_PHRASE}, once the person who posted it confirms (or it completes automatically), then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout, unless you already paid it on a job you posted; every standard payout after that is free. Instant Payout (cashing out the same day) is a membership feature. ${MEMBERSHIPS_PAUSED} For now, every payout goes on the standard schedule.`,
       },
       {
         q: "What if the person who posted the job doesn't confirm completion?",
@@ -252,7 +276,17 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "What fees does Helpr charge?",
-        a: `Posting a job has no platform fee: you pay the job budget plus a service fee that only covers card processing. When you do a job, you keep ${100 - TIER_PERKS.free.platformFeePercent}% on a Free account (${TIER_PERKS.free.platformFeePercent}% platform fee). ${TIER_PERKS.basic.name} keeps ${100 - TIER_PERKS.basic.platformFeePercent}%, ${TIER_PERKS.pro.name} keeps ${100 - TIER_PERKS.pro.platformFeePercent}%, ${TIER_PERKS.plus.name} ${100 - TIER_PERKS.plus.platformFeePercent}%, and ${TIER_PERKS.elite.name} ${100 - TIER_PERKS.elite.platformFeePercent}% (${TIER_PERKS.elite.platformFeePercent}% fee) — the platform fee drops as your plan tier rises.`,
+        // Q1842: WAS "you pay the job budget plus a service fee that only
+        // covers card processing … the platform fee drops as your plan tier
+        // rises" (12% Free down to 8% Elite). Since 2026-10-15 (F3) there is no
+        // service fee and no tier ladder on a new job.
+        // lh-money-escrow review of 7166349cd: "nothing on top" was false
+        // (create-payment adds Louisiana sales tax on TAXABLE_CATEGORIES' labor,
+        // and the one-time setup fee on a first funded job), the take-home was
+        // unrounded, and the refund sentence left out the kept setup fee and
+        // crew block fees (refundToPayerCents). The setup fee stays unnumbered:
+        // it is a live DB setting (see "When do I get paid?").
+        a: `Posting a job has no service fee: you pay the job price (including any urgent bonus you add), plus Louisiana sales tax on the labor for taxable job types such as handyman, assembly and the trades. Your first paid job also carries a small one-time account setup fee, unless you already paid it on a job you did. When you do a job, Helpr keeps ${FLAT_FEE_PHRASE} of your pay, the same on every plan, and that also covers card processing. Job payouts are rounded down to the whole dollar (tips are paid in full), so on a $100 job you receive $${FLAT_TAKE_HOME_ON_100}. A job paid for before the fee changed on October 15, 2026 keeps the fee it was paid under. If a paid job is cancelled, you get back what you paid (tax included) less the card-processing fee Stripe keeps, any cancellation fees owed to your Helprs (including for crew spots you closed close to the start), and, on your first paid job, the one-time setup fee. If the mistake was ours, you get everything back.`,
       },
       {
         q: "What if there's a dispute?",
@@ -381,7 +415,10 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: "What does a membership do?",
-        a: `It lowers the commission Helpr deducts from the real-world jobs you get paid for — from ${TIER_PERKS.free.platformFeePercent}% down to as low as ${FEE_FLOOR.platformFeePercent}% — and adds visibility perks like priority placement and a featured badge. The lower commission applies to every job you complete.`,
+        // Q1842: WAS "It lowers the commission Helpr deducts … from 12% down
+        // to as low as 8%". Since F3 a plan never changes a job's fee.
+        // Memberships are off for members (F4/F4a): say so first, in plain words.
+        a: `${MEMBERSHIPS_PAUSED} When they come back, a plan adds visibility perks like priority placement and a featured badge. It does not change the fee on your jobs: every new job has the same ${FLAT_FEE_PHRASE} fee, whatever your plan.`,
       },
       {
         q: "How am I billed for a membership?",
@@ -390,26 +427,24 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // (profile/types.ts:35) and the button on it is "Manage"
         // (SubscriptionTab.tsx:664), which opens the Stripe billing portal. A
         // navigation instruction has to name what is actually on screen.
-        a: "Membership is billed securely through Stripe — the same processor that handles your job payments. Manage or cancel it anytime from Profile → Membership → Manage, which opens your Stripe billing portal.",
+        a: `${MEMBERSHIPS_PAUSED} A membership is billed securely through Stripe — the same processor that handles your job payments — or through Apple if you subscribed on iPhone. If you have one, manage or cancel it anytime from Profile → Membership → Manage, which opens your Stripe billing portal (or your Apple subscriptions).`,
       },
       {
         q: "Can I cancel my membership anytime?",
-        a: "Yes — downgrade at any time. Your paid perks stay active through the end of your billing period, then you revert to Free.",
-      },
-      {
-        q: "Does my fee reduction apply immediately?",
-        a: "Yes. On your very next accepted job, the lower platform fee applies — no waiting period.",
+        // WAS "Your paid perks stay active through the end of your billing
+        // period": while memberships are off no paid perk is active (F4a).
+        a: `Yes — cancel at any time from Profile → Membership → Manage. ${MEMBERSHIPS_PAUSED} While they're off, no plan's paid perks are on.`,
       },
       {
         q: `What's the difference between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name}?`,
-        a: `${TIER_PERKS.elite.name} adds the gold crown badge (visible to everyone browsing for someone to hire), unlimited free Job Boosts, the longest head start on new jobs, and priority support — on top of everything ${TIER_PERKS.pro.name} offers, and at a lower platform fee (${TIER_PERKS.elite.platformFeePercent}% against ${TIER_PERKS.pro.platformFeePercent}%). Head start on a new job, measured against a free account: ${EARLY_ACCESS_LADDER}.`,
+        a: `${MEMBERSHIPS_PAUSED} When they come back: ${TIER_PERKS.elite.name} adds the gold crown badge (visible to everyone browsing for someone to hire), unlimited free Job Boosts, the longest head start on new jobs, and priority support — on top of everything ${TIER_PERKS.pro.name} offers. Head start on a new job, measured against a free account: ${EARLY_ACCESS_LADDER}.`,
       },
       {
         // Plus was absent from this section entirely while the fees answer
         // above already listed it — a reader comparing plans on this page could
         // not learn that the tier exists, let alone what it does.
         q: `Where does ${TIER_PERKS.plus.name} fit in?`,
-        a: `${TIER_PERKS.plus.name} sits between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name} at $${TIER_PERKS.plus.price}/month. It keeps everything ${TIER_PERKS.pro.name} gives you, drops your platform fee to ${TIER_PERKS.plus.platformFeePercent}%, moves your head start on new jobs to ${earlyAccessHeadStartMinutes("plus")} minutes, and adds the featured crown badge, priority support and ${MONTHLY_FREE_BOOSTS.plus} free Job Boosts every month (${TIER_PERKS.pro.name} includes ${MONTHLY_FREE_BOOSTS.pro}). ${TIER_PERKS.elite.name} keeps all of that and makes the badge gold and Job Boosts unlimited.`,
+        a: `${MEMBERSHIPS_PAUSED} When they come back: ${TIER_PERKS.plus.name} sits between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name} at $${TIER_PERKS.plus.price}/month. It keeps everything ${TIER_PERKS.pro.name} gives you, moves your head start on new jobs to ${earlyAccessHeadStartMinutes("plus")} minutes, and adds the featured crown badge, priority support and ${MONTHLY_FREE_BOOSTS.plus} free Job Boosts every month (${TIER_PERKS.pro.name} includes ${MONTHLY_FREE_BOOSTS.pro}). ${TIER_PERKS.elite.name} keeps all of that and makes the badge gold and Job Boosts unlimited.`,
       },
     ],
   },

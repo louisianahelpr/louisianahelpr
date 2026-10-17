@@ -203,7 +203,9 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           jobDate={props.cancelDialogJob.date_needed}
           jobStartTime={props.cancelDialogJob.start_time ?? null}
           jobBudget={props.cancelDialogJob.budget}
+          jobUrgentFee={props.cancelDialogJob.urgent_fee}
           setupFeeKept={(props.cancelDialogJob as { onboarding_fee_amount?: number | null }).onboarding_fee_amount ?? null}
+          feeStamp={props.cancelDialogJob}
           hasHelper={
             props.cancelDialogJob.is_group_job
               ? crewMembers(props.groupHelpersByJob?.[props.cancelDialogJob.id]).some((m) => crewMemberCommitted(m.confirmed))
@@ -221,8 +223,12 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
               : undefined
           }
           wasFunded={
+            // 'failed': a declined card (paymentIntentPaymentFailed) took
+            // nothing, as redeem_gift_card also reads it (lh-money-escrow
+            // review of 39279d3e5, #1).
             props.cancelDialogJob.payment_status !== "unpaid" &&
-            props.cancelDialogJob.payment_status !== "abandoned"
+            props.cancelDialogJob.payment_status !== "abandoned" &&
+            props.cancelDialogJob.payment_status !== "failed"
           }
           helperId={props.cancelDialogJob.helper_id}
           helperName={props.cancelDialogJob.helper_id ? (props.helperNames?.[props.cancelDialogJob.helper_id] || "the Helpr") : undefined}

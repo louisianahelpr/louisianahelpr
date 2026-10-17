@@ -29,6 +29,16 @@
  * app's error mappers (ERROR_MAPPERS) are trusted for their error argument
  * only — their fallback is shown verbatim, so it is swept like any literal.
  *
+ * COPY HELPERS (Q?toast-helper-copy, 2026-10-17): a toast whose copy is
+ * `helper(…)`, with `helper` in this file or imported from a repo module
+ * (src/lib/cancelRefundCopy.ts, a re-export included), is read through to what
+ * that helper returns, and so is each `${phrase}` hole bound to a string in
+ * the same file. Before this, moving the cancel toasts into cancelRefundCopy.ts
+ * (ready/sec-a-1017-12) dropped every one of their sentences out of the
+ * inventory and out of every check below. An error mapper's OWN sentences
+ * (its generic fallback) are swept too; its reads of the error are what it
+ * exists to vet, so those are not raw.
+ *
  * Not checked here, and why: copy from another module that reaches a toast as
  * a parameter or a table lookup (the 'opaque' leaves), and strings that are
  * already guarded elsewhere — "Helper" (helprNotHelperInCopy.test.ts), an
@@ -44,11 +54,20 @@
  * @mutate src/components/BlockUserDialog.tsx | "Sign in to continue." | "You must be logged in."
  * @mutate src/lib/fileExport.ts | download it from Louisiana Helpr on the web. | download it from helpr on the web.
  * @mutate src/components/admin/AdminMarketing.tsx | toast.error(userFacingError(e, "Couldn't send that — try again.")); | toast.error("Send failed");
+ * @mutate scripts/toast-inventory.mjs | if (ext) return returnedExpressions(ext.fn).flatMap((e) => copyLeaves(e, ext.sf, depth + 1, seen, fragment)); | if (ext) return [];
+ * @mutate scripts/toast-inventory.mjs | const helper = ts.isCallExpression(node) ? copyHelperOf(node, sf) : null; | const helper = null;
+ * @mutate scripts/toast-inventory.mjs | return own ? { fn: own, sf } : importedFunction(sf, local, hops + 1); | return own ? { fn: own, sf } : null;
+ * @mutate scripts/toast-inventory.mjs | if (i === node.templateSpans.length - 1 && s.literal.text === "" && phrases.length) endings = phrases.map((l) => l.text); | if (false) endings = phrases.map((l) => l.text);
+ * @mutate scripts/toast-inventory.mjs | return [...fallback, ...own]; | return fallback;
+ * @mutate src/lib/mutationResult.ts | Sign in to that account instead. | Log in to that account instead.
+ * @mutate src/lib/cancelRefundCopy.ts | Job cancelled — your payment returns to your card | Job cancelled! Your payment returns to your card
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { copyLeaves, inventory, toastCalls, walk } from "../../scripts/toast-inventory.mjs";
+import ts from "typescript";
+import { ERROR_MAPPERS, copyLeaves, inventory, toastCalls, walk } from "../../scripts/toast-inventory.mjs";
+import type { CopyDescription } from "../../scripts/toast-inventory.mjs";
 
 const ROOT = path.resolve(__dirname, "../..");
 
@@ -61,6 +80,10 @@ interface Leaf {
   type: "literal" | "template" | "raw" | "opaque";
   text: string;
   fragment: boolean;
+  /** The file the leaf's text is written in: the call site, or the copy helper it calls. */
+  src: string;
+  /** Set when a template ends in a phrase hole (`…, then ${retry}`): how each phrase ends it. */
+  endings?: string[];
 }
 
 function leaves(): Leaf[] {
@@ -71,7 +94,7 @@ function leaves(): Leaf[] {
       const hasDescription = c.copy.some((x) => x.slot === "description");
       for (const piece of c.copy) {
         for (const l of copyLeaves(piece.node, sf)) {
-          out.push({ file: rel, line: l.line, kind: c.kind, slot: piece.slot, hasDescription, type: l.type, text: l.text, fragment: l.fragment });
+          out.push({ file: rel, line: l.line, kind: c.kind, slot: piece.slot, hasDescription, type: l.type, text: l.text, fragment: l.fragment, src: l.src, endings: l.endings });
         }
       }
     }
@@ -81,10 +104,26 @@ function leaves(): Leaf[] {
 
 const ALL = leaves();
 const COPY = ALL.filter((l) => l.type === "literal" || l.type === "template");
-const at = (l: Leaf) => `${l.file}:${l.line} ${JSON.stringify(l.text)}`;
+const where = (l: Leaf) => (l.src === l.file ? `${l.file}:${l.line}` : `${l.src}:${l.line} (toast in ${l.file})`);
+const at = (l: Leaf) => `${where(l)} ${JSON.stringify(l.text)}`;
 /** Admin screens are read by staff; deploy/queue vocabulary is theirs. */
 const isAdmin = (l: Leaf) => /\/admin\//.test(l.file) || /pages\/Admin/.test(l.file);
 const FAILURE_KINDS = new Set(["toast.error", "toast.warning", "errorToast"]);
+
+/**
+ * Error mappers whose generic fallback is the vague "Something went wrong"
+ * sentence, found when the mappers' own copy began to be swept (2026-10-17).
+ * Keyed by `src: text`. Fixing the copy is Q?toast-helper-vague (these are the
+ * Declutter / quotes / category-suggestion / Shops mappers, owned by the hub lanes).
+ * An entry that no longer reproduces fails below.
+ */
+// @two-way src/test/toastCopy.test.ts:stale VAGUE_MAPPER_FALLBACK_KNOWN entry
+const VAGUE_MAPPER_FALLBACK_KNOWN = new Set([
+  "src/lib/declutter/errors.ts: Something went wrong. Please try again.",
+  "src/lib/quotes/errors.ts: Something went wrong. Please try again.",
+  "src/lib/categorySuggestions.ts: Something went wrong. Please try again.",
+  "src/lib/shops/errors.ts: Something went wrong. Please try again.",
+]);
 
 /**
  * Error text the app WROTE, shown through `.message` on purpose. Keyed by
@@ -116,7 +155,7 @@ describe("toast copy (Q228)", () => {
   it("no toast shows an error's own machine text unless the app wrote it", () => {
     const raw = ALL.filter((l) => l.type === "raw");
     const keys = [...new Set(raw.map((l) => `${l.file}: ${l.text}`))];
-    const unexempt = raw.filter((l) => !Object.prototype.hasOwnProperty.call(RAW_ERROR_EXEMPT, `${l.file}: ${l.text}`)).map((l) => `${l.file}:${l.line} ${l.slot}: ${l.text}`);
+    const unexempt = raw.filter((l) => !Object.prototype.hasOwnProperty.call(RAW_ERROR_EXEMPT, `${l.file}: ${l.text}`)).map((l) => `${where(l)} ${l.slot}: ${l.text}`);
     expect(unexempt, "route it through userFacingError(err, \"<human fallback>\") (src/lib/userFacingError.ts)").toEqual([]);
     const stale = Object.keys(RAW_ERROR_EXEMPT).filter((k) => !keys.includes(k));
     expect(stale, "stale RAW_ERROR_EXEMPT entry — the raw read is gone, remove the entry").toEqual([]);
@@ -131,7 +170,7 @@ describe("toast copy (Q228)", () => {
     // message (serverMessageSentenceEnd.test.ts owns that seam).
     const endsInMessage = (t: string) => /\$\{[^}]*(message|Message|error|Error|msg|reason|copy)[^}]*\}$/.test(t);
     const bad = COPY.filter(
-      (l) => l.slot === "title" && !l.fragment && !l.hasDescription && FAILURE_KINDS.has(l.kind) && l.text.trim() && !/[.?!…)]$/.test(l.text.trim()) && !(l.type === "template" && endsInMessage(l.text)),
+      (l) => l.slot === "title" && !l.fragment && !l.hasDescription && FAILURE_KINDS.has(l.kind) && l.text.trim() && !(l.endings ?? [l.text]).every((t) => /[.?!…)]$/.test(t.trim())) && !(l.type === "template" && endsInMessage(l.text)),
     );
     expect(bad.map(at), "end it with . or ?").toEqual([]);
   });
@@ -149,8 +188,60 @@ describe("toast copy (Q228)", () => {
   it("no vague failure: every 'X failed' says what to do next", () => {
     const vague = /something went wrong|an? (unknown |unexpected )?error (occurred|happened)|^unknown error|^oops|^error\.?$/i;
     const bareFailed = /^[\w\s]*\bfailed\.?$/i;
-    const bad = COPY.filter((l) => !l.fragment && (vague.test(l.text.trim()) || (l.slot === "title" && !l.hasDescription && bareFailed.test(l.text.trim()))));
-    expect(bad.map(at)).toEqual([]);
+    const flagged = COPY.filter((l) => !l.fragment && (vague.test(l.text.trim()) || (l.slot === "title" && !l.hasDescription && bareFailed.test(l.text.trim()))));
+    const key = (l: Leaf) => `${l.src}: ${l.text.trim()}`;
+    expect(flagged.filter((l) => !VAGUE_MAPPER_FALLBACK_KNOWN.has(key(l))).map(at)).toEqual([]);
+    const stale = [...VAGUE_MAPPER_FALLBACK_KNOWN].filter((k) => !flagged.some((l) => key(l) === k));
+    expect(stale, "stale VAGUE_MAPPER_FALLBACK_KNOWN entry — the vague fallback is gone, remove the entry").toEqual([]);
+  });
+
+  it("a copy helper's sentences are in the inventory and swept (Q?toast-helper-copy)", () => {
+    const inv = inventory(ROOT);
+    // Every toast copy piece that is `helper(…)` with `helper` imported from a
+    // repo module, read here from each file's own imports (not through the
+    // scanner's resolver), so a resolver that stops following them goes red.
+    const viaImport: { at: string; name: string; piece: CopyDescription | null | undefined }[] = [];
+    for (const f of walk(path.join(ROOT, "src")).sort()) {
+      const { sf, rel, calls } = toastCalls(f, readFileSync(f, "utf8"));
+      const imported = new Map<string, string>();
+      for (const st of sf.statements) {
+        if (!ts.isImportDeclaration(st) || st.importClause?.isTypeOnly || !st.importClause?.namedBindings || !ts.isNamedImports(st.importClause.namedBindings)) continue;
+        const spec = (st.moduleSpecifier as ts.StringLiteral).text;
+        if (spec.startsWith("@/") || spec.startsWith(".")) for (const el of st.importClause.namedBindings.elements) if (!el.isTypeOnly) imported.set(el.name.text, spec);
+      }
+      for (const c of calls) {
+        for (const p of c.copy) {
+          let n: ts.Node = p.node;
+          while (ts.isParenthesizedExpression(n) || ts.isAsExpression(n) || ts.isNonNullExpression(n)) n = n.expression;
+          if (!ts.isCallExpression(n) || !ts.isIdentifier(n.expression)) continue;
+          const name = n.expression.text;
+          if (!imported.has(name) || Object.prototype.hasOwnProperty.call(ERROR_MAPPERS, name)) continue;
+          const entry = inv.toasts.find((t) => t.file === rel && t.line === c.line);
+          const piece = p.slot === "title" ? entry?.title : p.slot === "description" ? entry?.description : entry?.promise?.[p.slot.slice("promise.".length)];
+          viaImport.push({ at: `${rel}:${c.line} ${name}`, name, piece });
+        }
+      }
+    }
+    expect(viaImport.length).toBeGreaterThan(10);
+    expect(viaImport.filter((v) => !v.piece?.from || !v.piece.branches?.length).map((v) => v.at), "the inventory must record what the imported helper returns").toEqual([]);
+
+    // The cancel toasts' own sentences: every string written in
+    // cancelRefundCopy.ts that has a space in it (copy; a bare token such as a
+    // gift status is not), bar its import, is a leaf the checks above read.
+    const helper = "src/lib/cancelRefundCopy.ts";
+    const hsf = ts.createSourceFile(helper, readFileSync(path.join(ROOT, helper), "utf8"), ts.ScriptTarget.Latest, true);
+    const written: string[] = [];
+    const visit = (n: ts.Node) => {
+      if (ts.isImportDeclaration(n)) return;
+      if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
+        if (/\s/.test(n.text)) written.push(n.text);
+      } else if (ts.isTemplateExpression(n)) written.push(n.head.text + n.templateSpans.map((s) => "${" + s.expression.getText(hsf) + "}" + s.literal.text).join(""));
+      ts.forEachChild(n, visit);
+    };
+    visit(hsf);
+    expect(written.length).toBeGreaterThan(5);
+    const swept = new Set(COPY.filter((l) => l.src === helper).map((l) => l.text));
+    expect(written.filter((w) => !swept.has(w)), `strings in ${helper} the toast checks no longer read`).toEqual([]);
   });
 
   it("one vocabulary: sign in, Helpr, and no role or internal nouns outside admin", () => {

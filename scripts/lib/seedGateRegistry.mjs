@@ -59,15 +59,26 @@ export function discoverGateCallers(migrations, authority) {
   const callers = new Set();
   for (const { sql } of migrations) {
     const heads = [...sql.matchAll(header)];
-    heads.forEach((h, i) => {
+    // Statements apply in file order: a `DROP FUNCTION IF EXISTS f; CREATE
+    // FUNCTION f` pair (the replay-safe way to change a return type,
+    // 20261017094018) leaves f defined, so a DROP only un-counts what was
+    // defined before it, never a CREATE that follows it in the same file.
+    const drops = [...sql.matchAll(/DROP\s+(?:FUNCTION|VIEW)\s+(?:IF EXISTS\s+)?(public\.\w+)/gi)];
+    const events = [
+      ...heads.map((h, i) => ({ at: h.index ?? 0, h, i })),
+      ...drops.map((d) => ({ at: d.index ?? 0, d })),
+    ].sort((a, b) => a.at - b.at);
+    for (const e of events) {
+      if (e.d) {
+        callers.delete(e.d[1].toLowerCase());
+        continue;
+      }
+      const { h, i } = e;
       const body = sql.slice((h.index ?? 0) + h[0].length, i + 1 < heads.length ? heads[i + 1].index : sql.length);
       const obj = h[1].toLowerCase();
       // The newest definition decides, in both directions.
       if (call.test(body)) callers.add(obj);
       else callers.delete(obj);
-    });
-    for (const d of sql.matchAll(/DROP\s+(?:FUNCTION|VIEW)\s+(?:IF EXISTS\s+)?(public\.\w+)/gi)) {
-      callers.delete(d[1].toLowerCase());
     }
   }
   callers.delete(authority.toLowerCase()); // the authority is not its own consumer

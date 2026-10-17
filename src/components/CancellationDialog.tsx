@@ -24,11 +24,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, ShieldAlert, DollarSign, CheckCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
-import { tierFeePercent } from "@/lib/subscriptionTiers";
-
-/** Highest commission on the tier ladder (free = 12%). Quoting it makes any
- *  helper-share estimate a guaranteed floor rather than an optimistic guess. */
-const MAX_HELPER_FEE_PERCENT = tierFeePercent("free");
+import { cancellationHelperShare } from "@/lib/cancellationHelperShare";
+import { isFlatFeeJob, type FlatFeeStamp } from "@/lib/helprFlatFee";
+import { cancelRefundToast, cardShareCentsFromRead, giftOnJobFromRead } from "@/lib/cancelRefundCopy";
 // The ladder this dialog quotes IS the ladder Community Rules publishes —
 // read the same two constants CommunitySection does rather than restating
 // "25"/"50" as prose.
@@ -36,7 +34,6 @@ import { LATE_CANCEL_PERCENT, VERY_LATE_CANCEL_PERCENT } from "@/lib/moneyLimits
 // formatPriceExact, not formatPrice: this block shows the fee arithmetic,
 // and whole-dollar rounding made the lines stop adding up.
 import { formatPriceExact as formatPrice } from "@/lib/format";
-import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { userFacingError } from "@/lib/userFacingError";
 
 type CancellationDialogProps = {
@@ -47,6 +44,11 @@ type CancellationDialogProps = {
    *  tier matches what the server charges — see jobLocalStartMs. */
   jobStartTime: string | null;
   jobBudget: number;
+  /** jobs.urgent_fee (dollars; null = none). With the budget it is the cost
+   *  redeem_gift_card compares a gift with, so the cancel toast can tell a
+   *  gift that paid the whole job from one a card topped up. Not passed: the
+   *  toast does not claim either. */
+  jobUrgentFee?: number | null;
   /* No `userId`: the cancelling identity is auth.uid() inside
      poster_cancel_job now, so the client no longer asserts who it is. */
   hasHelper: boolean;
@@ -70,12 +72,15 @@ type CancellationDialogProps = {
    * true when any member counts.
    */
   crew?: { needed: number; members: Array<{ share_cents: number | null; confirmed: boolean }> };
+  /** The job's fee-model stamp (jobs.helper_fee_flat_cents / helper_fee_percent).
+   *  A flat-model job's Helpr pays 5% + 70c on the fee, not a tier percent (Q1839). */
+  feeStamp?: FlatFeeStamp | null;
   open: boolean;
   onClose: () => void;
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, hasHelper, wasFunded, helperId: _helperId, helperName, crew, setupFeeKept, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, jobUrgentFee, hasHelper, wasFunded, helperId: _helperId, helperName, crew, setupFeeKept, feeStamp, open, onClose, onCancelled }: CancellationDialogProps) => {
   // Q1674: the sentence both the policy text and the toast add for a first job.
   const keptFee = wasFunded && typeof setupFeeKept === "number" && setupFeeKept > 0 ? setupFeeKept : 0;
   const keptFeeSentence = keptFee > 0
@@ -158,11 +163,16 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // shown is the least the helper can receive and is labelled "at least". A
   // number shown to a helper may never exceed what they are paid; the same
   // discipline applies to a number shown ABOUT a helper.
-  const commissionPercent = MAX_HELPER_FEE_PERCENT;
-  const platformCut = Math.round(payeeFee * commissionPercent) / 100;
-  // Floored to the whole dollar the transfer really pays (Q236:
-  // void-cancelled-payments rounds every Helpr transfer DOWN to the dollar).
-  const helperPayout = Math.max(0, floorPayoutDollars(payeeFee - platformCut));
+  // A flat-model job (Q1839) is priced from its own stamp, 5% + 70c, the cut
+  // void-cancelled-payments takes. Floored to the whole dollar the transfer
+  // really pays (Q236), in cancellationHelperShare.
+  const { platformCut, helperPayout, feeLabel } = cancellationHelperShare(payeeFee, feeStamp);
+  // Q1842: a flat-model job (F3, stamped at funding) was charged the job
+  // price only, so there is no service fee to keep: its refund is what was
+  // paid less the card-processing fee Stripe keeps (refundToPayerCents in
+  // void-cancelled-payments). A job paid for before F3 keeps the old copy:
+  // its budget comes back and the card-cost service fee it was charged stays.
+  const flatModel = isFlatFeeJob(feeStamp);
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -259,6 +269,29 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         return;
       }
 
+      // Q?gift-cancel-copy: a gift that paid toward this job goes back to the
+      // gift balance, not to a card, so the toast has to know whether one did.
+      // The spent ('redeemed') row stays as it is (a restore mints a new row);
+      // a 'reserved' one may be un-reserved under us, which reads as no gift.
+      // A failed read says "unknown" and the toast stays neutral.
+      let gift: ReturnType<typeof giftOnJobFromRead> = "unknown";
+      let cardShareCents: number | null = null;
+      const costCents = jobUrgentFee === undefined ? null : Math.round((jobBudget + (jobUrgentFee ?? 0)) * 100);
+      try {
+        const { data: giftRows, error: giftErr } = await supabase
+          .from("gift_cards")
+          .select("status, amount, payment_status")
+          .eq("job_id", jobId)
+          .in("status", ["redeemed", "reserved"])
+          .limit(5);
+        if (giftErr) report(giftErr, { severity: "warning", tags: { source: "CancellationDialog.giftRead" }, context: { job_id: jobId } });
+        gift = giftOnJobFromRead(giftRows, giftErr, costCents);
+        cardShareCents = cardShareCentsFromRead(giftRows, costCents);
+      } catch (giftReadErr) {
+        // The cancel itself succeeded; only the wording falls back to neutral.
+        report(giftReadErr, { severity: "warning", tags: { source: "CancellationDialog.giftRead" }, context: { job_id: jobId } });
+      }
+
       hapticSuccess();
       // Cancelling used to end in silence — the dialog closed, the card
       // vanished, and nothing said what happened to the money. That refund is
@@ -269,18 +302,10 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
       // They agree (same ladder, same Chicago-midnight clock), but the row is
       // the authority now that the client no longer writes it.
       toast.success(
-        !wasFunded
-          ? // Nothing was ever charged, so there is nothing to return. This
-            // branch exists because the unfunded case used to fall through to
-            // the refund sentence below and tell a poster whose checkout never
-            // completed that "the full amount returns to your card" — a
-            // promise of money movement that will never appear on a statement,
-            // on the one screen where they are already unsure what happened to
-            // their payment.
-            "Job cancelled. Your checkout was never completed, so you were never charged — there's nothing to refund."
-          : appliedFee > 0
-            ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.${keptFeeSentence}`
-            : `Job cancelled — your job budget returns to your card; the service fee isn't refundable.${keptFeeSentence}`,
+        // Nothing charged -> nothing to refund (an unfunded cancel used to be
+        // told "the full amount returns to your card"); otherwise the refund
+        // sentence for this job's fee model (src/lib/cancelRefundCopy.ts).
+        cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
         { action: { label: "Dismiss", onClick: () => { /* toast closes itself */ } } },
       );
       onCancelled();
@@ -327,10 +352,15 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     charged $67.20 and refunded $60.00, exactly as designed —
                     while this text promised a "full refund", which is the part
                     that was wrong. */}
-                <p className="text-ds-11 text-muted-foreground mt-0.5">Cancel anytime with no cancellation fee. Your job budget is refunded in full; the service fee isn&apos;t refundable once payment has been processed.{keptFeeSentence}</p>
+                <p className="text-ds-11 text-muted-foreground mt-0.5">
+                  {flatModel
+                    ? "Cancel anytime with no cancellation fee. Your payment is refunded, less the card-processing fee Stripe keeps."
+                    : "Cancel anytime with no cancellation fee. Your job budget is refunded in full; the service fee isn't refundable once payment has been processed."}
+                  {keptFeeSentence}
+                </p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <CheckCircle className="w-3 h-3 text-primary shrink-0" />
-                  <span className="text-ds-11 text-primary font-medium">$0 cancellation fee · Budget refunded · No consequences</span>
+                  <span className="text-ds-11 text-primary font-medium">{flatModel ? "$0 cancellation fee · Refunded less card fee · No consequences" : "$0 cancellation fee · Budget refunded · No consequences"}</span>
                 </div>
               </div>
             </div>
@@ -378,7 +408,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     <span className="font-semibold text-foreground">${formatPrice(cancellationFee)}</span>
                   </div>
                   <div className="flex justify-between text-ds-11">
-                    <span className="text-muted-foreground">Platform fee (up to {commissionPercent}%)</span>
+                    <span className="text-muted-foreground">{crewQuote ? `Platform fee per Helpr (${feeLabel})` : `Platform fee (${feeLabel})`}</span>
                     <span className="text-muted-foreground">−${formatPrice(platformCut)}</span>
                   </div>
                   <div className="border-t border-border pt-1.5 flex justify-between text-ds-11">

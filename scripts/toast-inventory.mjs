@@ -35,7 +35,7 @@
  *   node scripts/toast-inventory.mjs --stdout   # print it instead
  */
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import ts from "typescript";
 
 const ROOT = resolve(import.meta.dirname, "..");
@@ -114,24 +114,44 @@ function unwrap(node) {
  * with `${…}`, or the expression's source; `conditional` carries each branch
  * of a `a ? "x" : "y"` so both literals are swept.
  */
-export function describeCopy(node, sf) {
+export function describeCopy(node, sf, depth = 0) {
   node = unwrap(node);
-  if (!node) return null;
+  if (!node || depth > 6) return null;
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
     return { form: "literal", text: node.text };
   }
   if (ts.isTemplateExpression(node)) {
     let text = node.head.text;
     for (const span of node.templateSpans) text += "${" + span.expression.getText(sf) + "}" + span.literal.text;
-    return { form: "template", text };
+    // A hole that is a phrase this function wrote (`${rest}` where `const rest =
+    // a ? "…" : "…"`) is copy too: record each phrase it can be.
+    const holes = {};
+    for (const span of node.templateSpans) {
+      const phrases = phraseHole(span.expression, sf).map((v) => describeCopy(v, sf, depth + 1)).filter(Boolean);
+      if (phrases.length) holes[span.expression.getText(sf)] = phrases;
+    }
+    return Object.keys(holes).length ? { form: "template", text, holes } : { form: "template", text };
   }
   if (ts.isConditionalExpression(node)) {
-    const a = describeCopy(node.whenTrue, sf);
-    const b = describeCopy(node.whenFalse, sf);
+    const a = describeCopy(node.whenTrue, sf, depth + 1);
+    const b = describeCopy(node.whenFalse, sf, depth + 1);
     return { form: "dynamic", text: node.getText(sf).replace(/\s+/g, " "), branches: [a, b].filter(Boolean) };
   }
   if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node) || ts.isJsxFragment(node)) {
     return { form: "jsx", text: node.getText(sf).replace(/\s+/g, " ") };
+  }
+  // A COPY HELPER: `toast.success(cancelRefundToast({ … }))`. Its sentences
+  // live in the function it calls (this file's, or a src/ module it imports),
+  // so record what that function returns. Without this, moving a toast's copy
+  // into a helper dropped every sentence of it out of the inventory and out of
+  // the toastCopy guards (ready/sec-a-1017-12: src/lib/cancelRefundCopy.ts).
+  const helper = ts.isCallExpression(node) ? copyHelperOf(node, sf) : null;
+  if (helper) {
+    const branches = returnedExpressions(helper.fn).map((e) => describeCopy(e, helper.sf, depth + 1)).filter(Boolean);
+    const out = { form: "dynamic", text: node.getText(sf).replace(/\s+/g, " ") };
+    if (helper.sf !== sf) out.from = relative(ROOT, helper.sf.fileName).split("\\").join("/");
+    if (branches.length) out.branches = branches;
+    return out;
   }
   return { form: "dynamic", text: node.getText(sf).replace(/\s+/g, " ") };
 }
@@ -255,6 +275,11 @@ export const ERROR_MAPPERS = {
   rpcErrorMessage: [], // src/lib/lifecycleErrors.ts
   contactLeakRejectionMessage: [], // src/lib/contactLeakField.ts
   resolveApplyErrorCopy: [], // src/pages/home/applyErrorCopy.ts
+  declutterErrorMessage: [], // src/lib/declutter/errors.ts
+  quoteErrorMessage: [], // src/lib/quotes/errors.ts
+  suggestionErrorMessage: [], // src/lib/categorySuggestions.ts
+  shopsErrorMessage: [], // src/lib/shops/errors.ts
+  describeWeakPassword: [], // src/lib/authErrors.ts
 };
 /** Functions that return their argument's text (so a raw message stays raw). */
 const PASS_THROUGH = { endSentence: [0] };
@@ -302,6 +327,128 @@ function resolveName(from, name) {
   return { kind: "unknown" };
 }
 
+// ---------------------------------------------------------------------------
+// COPY HELPERS IN OTHER MODULES — a toast whose copy is `helper(…)`, where
+// `helper` is imported from a repo module ("@/lib/x", "./x", or a re-export of one).
+// ---------------------------------------------------------------------------
+
+const MODULE_EXTS = ["", ".ts", ".tsx", "/index.ts", "/index.tsx"];
+const helperFiles = new Map();
+
+/** The parsed src/ module a specifier names, or null (packages, missing files, non-src paths). */
+function moduleSource(fromFile, spec) {
+  let base;
+  if (spec.startsWith("@/")) base = join(ROOT, "src", spec.slice(2));
+  else if (spec.startsWith("./") || spec.startsWith("../")) base = resolve(dirname(fromFile), spec);
+  else return null;
+  for (const ext of MODULE_EXTS) {
+    const full = base + ext;
+    if (!/\.(ts|tsx)$/.test(full)) continue;
+    if (helperFiles.has(full)) return helperFiles.get(full);
+    let text;
+    try {
+      text = readFileSync(full, "utf8");
+    } catch (err) {
+      // Not this candidate ("./x" is "./x.ts", not "./x.tsx"): try the next one.
+      if (err?.code === "ENOENT" || err?.code === "ENOTDIR" || err?.code === "EISDIR") continue;
+      throw err;
+    }
+    const parsed = ts.createSourceFile(full, text, ts.ScriptTarget.Latest, true, full.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    helperFiles.set(full, parsed);
+    return parsed;
+  }
+  return null;
+}
+
+const isExported = (st) => !!st.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+
+/** A function `name` declares at the top of `sf` (exported or not), or null. */
+function topLevelFunction(sf, name, exportedOnly) {
+  for (const st of sf.statements) {
+    if (ts.isFunctionDeclaration(st) && st.name?.text === name && st.body && (!exportedOnly || isExported(st))) return st;
+    if (ts.isVariableStatement(st) && (!exportedOnly || isExported(st))) {
+      for (const d of st.declarationList.declarations) {
+        const init = d.initializer && unwrap(d.initializer);
+        if (ts.isIdentifier(d.name) && d.name.text === name && init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init))) return init;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * The function module `sf` exports as `name`, as { fn, sf }: `export function
+ * name`, `export const name = (…) => …`, or a re-export, `export { name }` of a
+ * local or imported binding and `export { name } from "./x"` (src/lib/arrivalGate.ts
+ * re-exports arrivalGateMessage from supabase/functions/_shared/arrivalRule.ts).
+ */
+function exportedFunction(sf, name, hops = 0) {
+  const direct = topLevelFunction(sf, name, true);
+  if (direct) return { fn: direct, sf };
+  if (hops > 4) return null;
+  for (const st of sf.statements) {
+    if (!ts.isExportDeclaration(st) || st.isTypeOnly || !st.exportClause || !ts.isNamedExports(st.exportClause)) continue;
+    const el = st.exportClause.elements.find((e) => e.name.text === name && !e.isTypeOnly);
+    if (!el) continue;
+    const local = (el.propertyName ?? el.name).text;
+    if (st.moduleSpecifier) {
+      const target = moduleSource(sf.fileName, st.moduleSpecifier.text);
+      return target ? exportedFunction(target, local, hops + 1) : null;
+    }
+    const own = topLevelFunction(sf, local, false);
+    return own ? { fn: own, sf } : importedFunction(sf, local, hops + 1);
+  }
+  return null;
+}
+
+/** `name`'s function in the module this file imports it from, as { fn, sf }, or null. */
+export function importedFunction(sf, name, hops = 0) {
+  for (const st of sf.statements) {
+    if (!ts.isImportDeclaration(st) || st.importClause?.isTypeOnly || !st.importClause?.namedBindings) continue;
+    const nb = st.importClause.namedBindings;
+    if (!ts.isNamedImports(nb)) continue;
+    const el = nb.elements.find((e) => e.name.text === name && !e.isTypeOnly);
+    if (!el) continue;
+    const target = moduleSource(sf.fileName, st.moduleSpecifier.text);
+    return target ? exportedFunction(target, (el.propertyName ?? el.name).text, hops) : null;
+  }
+  return null;
+}
+
+/**
+ * The function a copy expression `helper(…)` calls, when the scanner can read
+ * its body: a function in this file, or one imported from a src/ module. The
+ * error mappers and pass-throughs are not copy helpers (their fallback
+ * argument is the copy; copyLeaves handles them).
+ */
+export function copyHelperOf(call, sf) {
+  const name = calleeName(call);
+  if (!name || Object.hasOwn(ERROR_MAPPERS, name) || Object.hasOwn(PASS_THROUGH, name) || name === "String") return null;
+  const r = resolveName(call, name);
+  if (r.kind === "function") return { fn: r.fn, sf };
+  if (r.kind !== "unknown") return null;
+  return importedFunction(sf, name);
+}
+
+/**
+ * The values of a template hole that is a PHRASE: an identifier bound in this
+ * file to a value whose every form is a string literal, a template, or a
+ * conditional of those (`const rest = flat ? "…" : "…"`). Anything else (a
+ * parameter, a number, a call) is not swept as copy.
+ */
+function phraseHole(expr, sf) {
+  const e = unwrap(expr);
+  if (!e || !ts.isIdentifier(e)) return [];
+  const r = resolveName(e, e.text);
+  if (r.kind !== "value" || !r.values.length) return [];
+  const isPhrase = (v) => {
+    v = unwrap(v);
+    if (ts.isStringLiteral(v) || ts.isNoSubstitutionTemplateLiteral(v) || ts.isTemplateExpression(v)) return true;
+    return ts.isConditionalExpression(v) && isPhrase(v.whenTrue) && isPhrase(v.whenFalse);
+  };
+  return r.values.every(isPhrase) && r.values.every((v) => v.getSourceFile() === sf) ? r.values : [];
+}
+
 function returnedExpressions(fn) {
   if (fn.body && !ts.isBlock(fn.body)) return [fn.body];
   const out = [];
@@ -333,21 +480,28 @@ export function copyLeaves(node, sf, depth = 0, seen = new Set(), fragment = fal
   node = unwrap(node);
   if (!node || depth > 10 || seen.has(node)) return [];
   seen.add(node);
-  const leaf = (type, text, extra = {}) => [{ type, text, node, fragment, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, ...extra }];
+  const src = relative(ROOT, sf.fileName).split("\\").join("/");
+  const leaf = (type, text, extra = {}) => [{ type, text, node, fragment, src, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, ...extra }];
   const rec = (n, frag = fragment) => copyLeaves(n, sf, depth + 1, seen, frag);
 
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return leaf("literal", node.text);
   if (ts.isTemplateExpression(node)) {
     let text = node.head.text;
     for (const span of node.templateSpans) text += "${" + span.expression.getText(sf) + "}" + span.literal.text;
-    const holes = node.templateSpans.flatMap((s) => {
+    let endings;
+    const holes = node.templateSpans.flatMap((s, i) => {
       const e = unwrap(s.expression);
       if (ts.isIdentifier(e) && ERRORISH.test(e.text) && ["caught", "param"].includes(resolveName(e, e.text).kind)) {
-        return [{ type: "raw", text: "${" + e.text + "}", node: e, fragment: true, line: sf.getLineAndCharacterOfPosition(e.getStart(sf)).line + 1 }];
+        return [{ type: "raw", text: "${" + e.text + "}", node: e, fragment: true, src, line: sf.getLineAndCharacterOfPosition(e.getStart(sf)).line + 1 }];
       }
-      return rec(s.expression, true).filter((l) => l.type === "raw");
+      // A fresh `seen`: one phrase (`retry`) can end several templates.
+      const phrases = phraseHole(s.expression, sf).flatMap((v) => copyLeaves(v, sf, depth + 1, new Set(), true).filter((l) => l.type === "literal" || l.type === "template"));
+      // `…, then ${retry}` ends the way its phrase ends: say how, so the
+      // sentence-end check reads the phrase, not the hole.
+      if (i === node.templateSpans.length - 1 && s.literal.text === "" && phrases.length) endings = phrases.map((l) => l.text);
+      return [...phrases, ...rec(s.expression, true).filter((l) => l.type === "raw")];
     });
-    return [...leaf("template", text), ...holes];
+    return [...leaf("template", text, endings ? { endings } : {}), ...holes];
   }
   if (ts.isConditionalExpression(node)) return [...rec(node.whenTrue), ...rec(node.whenFalse)];
   if (ts.isBinaryExpression(node)) {
@@ -388,7 +542,15 @@ export function copyLeaves(node, sf, depth = 0, seen = new Set(), fragment = fal
   }
   if (ts.isCallExpression(node)) {
     const name = calleeName(node);
-    if (name && Object.hasOwn(ERROR_MAPPERS, name)) return ERROR_MAPPERS[name].flatMap((i) => (node.arguments[i] ? rec(node.arguments[i]) : []));
+    if (name && Object.hasOwn(ERROR_MAPPERS, name)) {
+      const fallback = ERROR_MAPPERS[name].flatMap((i) => (node.arguments[i] ? rec(node.arguments[i]) : []));
+      // The mapper's OWN sentences reach the toast too: sweep them as copy (its
+      // reads of the error are what the mapper exists to vet, so not as raw).
+      const r = resolveName(node, name);
+      const fn = r.kind === "function" ? { fn: r.fn, sf } : r.kind === "unknown" ? importedFunction(sf, name) : null;
+      const own = fn ? returnedExpressions(fn.fn).flatMap((e) => copyLeaves(e, fn.sf, depth + 1, seen, fragment)).filter((l) => (l.type === "literal" || l.type === "template") && !(l.type === "literal" && l.text === "")) : [];
+      return [...fallback, ...own];
+    }
     if (name && Object.hasOwn(PASS_THROUGH, name)) return PASS_THROUGH[name].flatMap((i) => (node.arguments[i] ? rec(node.arguments[i]) : []));
     if (name === "String" && node.arguments[0]) {
       const a = unwrap(node.arguments[0]);
@@ -399,6 +561,9 @@ export function copyLeaves(node, sf, depth = 0, seen = new Set(), fragment = fal
     if (name) {
       const r = resolveName(node, name);
       if (r.kind === "function") return returnedExpressions(r.fn).flatMap((e) => rec(e));
+      // A copy helper imported from a src/ module: read ITS returns, in its file.
+      const ext = r.kind === "unknown" ? importedFunction(sf, name) : null;
+      if (ext) return returnedExpressions(ext.fn).flatMap((e) => copyLeaves(e, ext.sf, depth + 1, seen, fragment));
     }
     return leaf("opaque", node.getText(sf).replace(/\s+/g, " ").slice(0, 160));
   }

@@ -302,6 +302,13 @@ serve(async (req) => {
         "critical",
         `A redeemed gift card funded a job that is now cancelled/refunded (settled more than ${SETTLE_WINDOW_HOURS}h ago), and no replacement gift was minted for it (no gift_cards.restored_from_job_id), no payout to the Helpr is live, and no decided dispute is still waiting to execute: the poster is owed their gift back. Run restore_gift_card_for_job for the job (it is idempotent), or return it by hand.`,
       ),
+      // Q1876 follow-up: a gift consumed by a checkout whose bank payment then failed,
+      // still 'redeemed' after the return path had its chance.
+      giftSpentOnFailedPayment: new Check(
+        "gift_spent_on_failed_payment",
+        "critical",
+        `A redeemed gift card is spent on a job that holds no money: payment_status 'failed', 'unpaid' or 'abandoned' with no checkout session, unchanged for more than ${SETTLE_WINDOW_HOURS}h (a bank debit bounced after the checkout consumed the gift, and its return was held or the poster's retry moved the job off 'failed'), no replacement gift was minted for the job and no settled payout to the Helpr exists. The poster is owed the gift back. While the job is 'failed' with no open checkout, run return_bounced_gift_card(p_job_id, p_gift_card_id) as the service role (it refuses a job with ANY payout_transfers row, outcome paid_out). Otherwise return it by hand: status 'sent', job_id NULL, redeemed_at NULL, expires_at at least 90 days out (the RPC's floor). A hand return sends no notice (a later Stripe retry answers not_consumed), so tell the poster their gift is back.`,
+      ),
       // Q1222/Q1223 (review): money a payout hold kept back is re-driven by
       // process-scheduled-payouts. A row a person must settle, or one whose
       // Helpr is clear but that is still not re-paid a day later, was dropped.
@@ -546,7 +553,7 @@ serve(async (req) => {
       const q = admin
         .from("jobs")
         .select(
-          "id, is_seed, status, payment_status, budget, urgent_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, helper_fee_flat_cents, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at, stripe_payment_intent_id, customer_fee_amount, onboarding_fee_amount",
+          "id, is_seed, status, payment_status, budget, urgent_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, helper_fee_flat_cents, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at, stripe_payment_intent_id, stripe_session_id, customer_fee_amount, onboarding_fee_amount",
           countOpt,
         )
         // Paging without an ORDER BY is sampling, not paging: the cap and the
@@ -1491,6 +1498,49 @@ serve(async (req) => {
             if (giftPaidJobIds.has(g.job_id)) continue;
             if (undecidedSplitJobIds.has(g.job_id)) continue;
             checks.giftNotReturned.add({
+              gift_card_id: g.id,
+              job_id: g.job_id,
+              amount: money(g.amount ?? 0),
+            });
+          }
+        }
+      }
+
+      // ── Q1876 follow-up: a gift still spent on a job that holds no money ──
+      // A gift-shortfall checkout consumes the gift at completion; when the
+      // bank (ACH) debit then bounces, paymentIntentPaymentFailed marks the job
+      // 'failed' and returns the gift (Q1876). Its held outcomes (a refusal,
+      // the RPC not deployed yet, Stripe's retries running out) page Slack once
+      // a day at most and then nothing re-reports it. Worse, the poster's
+      // retry moves the job off 'failed': a new checkout stamps it 'unpaid',
+      // and when that checkout expires the session is cleared (or the abandon
+      // sweep marks it 'abandoned'), and the Q1876 retry only returns a gift
+      // while the job is 'failed'. So the stuck shape is a 'redeemed' gift on
+      // a job that is failed/unpaid/abandoned with NO checkout session. A
+      // bank checkout that completed and is still settling keeps its session
+      // (ME-046), so it is not matched; a fully gift-funded job goes straight
+      // to escrow. Reported every run until the gift is returned. Exempt: a
+      // replacement already minted for the job (restored_from_job_id) and a
+      // live payout. A truncated payout ledger skips the check (degraded).
+      const UNFUNDED_PAYMENT_STATES = new Set(["failed", "unpaid", "abandoned"]);
+      const failedGiftCandidates = gifts.filter((g) => {
+        if (g.status !== "redeemed" || !g.job_id) return false;
+        const job = jobById.get(g.job_id);
+        if (!job || !UNFUNDED_PAYMENT_STATES.has(String(job.payment_status ?? "unpaid")) || job.stripe_session_id) return false;
+        const failedAt = latest(job.updated_at, null);
+        return failedAt === null || nowGift - failedAt >= SETTLE_WINDOW_MS;
+      });
+      if (failedGiftCandidates.length) {
+        if (transferCap) {
+          notes.push(`gift-on-failed-payment check skipped: ${transferCap}`);
+        } else {
+          const failedRestoredJobIds = new Set(gifts.map((g) => g.restored_from_job_id).filter((x): x is string => !!x));
+          const failedGiftPaidJobIds = new Set(transfers.filter(isSettledTransfer).map((t) => t.job_id));
+          for (const g of failedGiftCandidates) {
+            if (!g.job_id) continue;
+            if (failedRestoredJobIds.has(g.job_id)) continue;
+            if (failedGiftPaidJobIds.has(g.job_id)) continue;
+            checks.giftSpentOnFailedPayment.add({
               gift_card_id: g.id,
               job_id: g.job_id,
               amount: money(g.amount ?? 0),

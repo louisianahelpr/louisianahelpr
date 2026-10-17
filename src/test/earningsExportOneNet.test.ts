@@ -21,15 +21,16 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * the 20261005171601 body with --before; all green after, applied 3x).
  */
 
-// @mutate supabase/migrations/20261012175545_earnings_export_withheld.sql |            THEN ROUND((COALESCE(pt.paid_cents, 0) + COALESCE(pt.fee_cents, 0)) / 100.0, 2)\n           ELSE j.budget END AS gross_budget, |            THEN j.budget\n           ELSE j.budget END AS gross_budget,
-// @mutate supabase/migrations/20261012175545_earnings_export_withheld.sql |       ROUND((pt.paid_cents + pt.fee_cents) / 100.0, 2),\n      ROUND(pt.fee_cents / 100.0, 2), |       ROUND(COALESCE(g.share_cents, 0) / 100.0, 2),\n      ROUND(pt.fee_cents / 100.0, 2),
-// @mutate supabase/migrations/20261012175545_earnings_export_withheld.sql |       AND j.is_group_job IS NOT TRUE\n |\n
+// @mutate supabase/migrations/20261017104746_sql_notices_exports_flat_fee.sql |            THEN ROUND((COALESCE(pt.paid_cents, 0) + COALESCE(pt.fee_cents, 0)) / 100.0, 2)\n           WHEN j.helper_fee_flat_cents IS NOT NULL\n           THEN ROUND(fl.gross_cents / 100.0, 2) |            THEN j.budget\n           WHEN j.helper_fee_flat_cents IS NOT NULL\n           THEN ROUND(fl.gross_cents / 100.0, 2)
+// @mutate supabase/migrations/20261017104746_sql_notices_exports_flat_fee.sql |       ROUND((pt.paid_cents + pt.fee_cents) / 100.0, 2),\n      ROUND(pt.fee_cents / 100.0, 2), |       ROUND(COALESCE(g.share_cents, 0) / 100.0, 2),\n      ROUND(pt.fee_cents / 100.0, 2),
+// @mutate supabase/migrations/20261017104746_sql_notices_exports_flat_fee.sql |       AND j.is_group_job IS NOT TRUE\n |\n
 
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
 // Q1520 (20261012175545) restates the export with the withheld amounts in the
-// fee; every Q1379 property below still holds on it.
-const THIS = "20261012175545_earnings_export_withheld.sql";
+// fee, and Q1840 (20261017104746) again (a flat-model job's no-ledger fallback
+// prices 5% + 70c); every Q1379 property below still holds on it.
+const THIS = "20261017104746_sql_notices_exports_flat_fee.sql";
 const def = effectiveDefs(MIGRATIONS).get("get_helper_earnings_export");
 const body = blankSqlComments(def?.stmt ?? "").replace(/\s+/g, " ");
 
@@ -52,9 +53,11 @@ describe("Q1379: the earnings export has one definition of net, read from the pa
     expect(crew, "the crew half is gone").toBeTruthy();
     // Single job: the ledger when a paid row exists, the legacy recompute only without one.
     // The recompute only when the job has NO ledger row at all (review finding 2).
-    expect(single).toContain("CASE WHEN pt.ledger_rows > 0 THEN ROUND((COALESCE(pt.paid_cents, 0) + COALESCE(pt.fee_cents, 0)) / 100.0, 2) ELSE j.budget END AS gross_budget");
-    expect(single).toContain("CASE WHEN pt.ledger_rows > 0 THEN ROUND(COALESCE(pt.fee_cents, 0) / 100.0, 2) ELSE");
-    expect(single).toContain("CASE WHEN pt.ledger_rows > 0 THEN ROUND(COALESCE(pt.paid_cents, 0) / 100.0, 2) ELSE");
+    // (Q1840: between the ledger and the legacy recompute, a flat-model job's
+    // no-ledger fallback; sqlMoneyReadsFeeStamp.test.ts pins it.)
+    expect(single).toContain("CASE WHEN pt.ledger_rows > 0 THEN ROUND((COALESCE(pt.paid_cents, 0) + COALESCE(pt.fee_cents, 0)) / 100.0, 2) WHEN j.helper_fee_flat_cents IS NOT NULL THEN ROUND(fl.gross_cents / 100.0, 2) ELSE j.budget END AS gross_budget");
+    expect(single).toContain("CASE WHEN pt.ledger_rows > 0 THEN ROUND(COALESCE(pt.fee_cents, 0) / 100.0, 2) WHEN j.helper_fee_flat_cents IS NOT NULL THEN ROUND(fl.fee_cents / 100.0, 2) ELSE");
+    expect(single).toContain("CASE WHEN pt.ledger_rows > 0 THEN ROUND(COALESCE(pt.paid_cents, 0) / 100.0, 2) WHEN j.helper_fee_flat_cents IS NOT NULL THEN ROUND((fl.gross_cents - fl.fee_cents) / 100.0, 2) ELSE");
     // A crew is the second half only (review finding 3).
     expect(single).toContain("AND j.is_group_job IS NOT TRUE");
     // Crew: always ledger-backed (the join requires a paid row).

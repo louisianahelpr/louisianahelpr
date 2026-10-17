@@ -242,7 +242,14 @@ const EXEMPT: Record<string, string> = {
   "stripe-webhook/handlers/chargeRefunded.ts::stripe.paymentIntents.retrieve(refundPiId)": EVENT,
   "stripe-webhook/handlers/chargeDisputeClosed.ts::stripe.charges.retrieve(closedDispute.charge as string)": EVENT,
   "stripe-webhook/handlers/chargeDisputeCreated.ts::stripe.charges.retrieve(dispute.charge as string)": EVENT,
+  // Q1829: the duplicate-funding redelivery reads the job's STORED funding PaymentIntent; a test
+  // object under the live key answers 404 resource_missing, caught right there: the gift is kept
+  // spent and the alert says why (no money moves on it).
+  "stripe-webhook/handlers/checkoutSessionCompleted.ts::stripe.paymentIntents.retrieve(fundingPi)":
+    "stored id, caught at the call: 404/resource_missing (which a test object under the live key answers) keeps the gift spent and pages ops; no money moves on it",
   "stripe-webhook/handlers/checkoutSessionCompleted.ts::stripe.paymentIntents.retrieve(piId)": EVENT,
+  // Q1876: session.payment_intent of the completed session in this event.
+  "stripe-webhook/handlers/checkoutSessionCompleted.ts::stripe.paymentIntents.retrieve(sessionPi)": EVENT,
   "stripe-webhook/handlers/checkoutSessionCompleted.ts::stripe.subscriptions.retrieve(subscriptionId)": EVENT,
   // ME-046: checkSessionStatus retrieves the session by its stored id to check live status before
   // any DB write. The session id is set by create-payment under the same mode key; a test-mode

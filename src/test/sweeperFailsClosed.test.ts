@@ -51,6 +51,8 @@ type Row = Record<string, unknown>;
 interface Scenario {
   rows: Row[];
   patchAnswer?: unknown[];
+  /** The Stripe account each seat's own profile read returns (nightly-red #2436). */
+  seatStripe?: Record<string, string | null>;
 }
 interface Seen { method: string; url: string }
 
@@ -86,6 +88,10 @@ beforeAll(async () => {
       return json(200, [{ id }]);
     }
     // Every settle leg fails: the walk throws, the row stays deferred.
+    if (url.startsWith("/rest/v1/profiles") && req.method === "GET") {
+      const id = /[?&]user_id=eq\.([^&]+)/.exec(url)?.[1] ?? "";
+      return json(200, [{ user_id: id, email: `${id}@seat`, stripe_account_id: scenario.seatStripe?.[id] ?? null }]);
+    }
     if (url.startsWith("/rest/v1/rpc/")) return json(500, { message: "stand-in refuses" });
     if (url.startsWith("/storage/")) return json(200, []);
     return json(404, { message: `unrouted ${req.method} ${url}` });
@@ -147,6 +153,22 @@ describe("the sweeper fails closed", () => {
     expect(r.out).toMatch(/HELPER_ACCESS_TOKEN is set but its `sub` cannot be read/);
     expect(seen, "it must stop before touching the API").toEqual([]);
   });
+
+  // nightly-red #2436: helper-e2e held a half-onboarded Stripe account and
+  // every hire failed downstream; the sweep names the cause, in BOTH phases.
+  it("a seat holding a Stripe account fails the sweep by name, pre and teardown", async () => {
+    for (const phase of ["pre", "teardown"]) {
+      const r = await sweep(
+        { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: phase },
+        { rows: [], seatStripe: { [HELPER]: "acct_1UQigP3qNyg1xGcp" } },
+      );
+      expect(r.code, `${phase}: ${r.out}`).toBe(1);
+      expect(r.out).toMatch(/A test seat holds a Stripe account::.*acct_1UQigP3qNyg1xGcp/);
+      expect(seen.some((x) => x.url.startsWith(`/rest/v1/profiles?user_id=eq.${HELPER}`)), "the helper seat was read").toBe(true);
+    }
+    const clean = await sweep({ HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "pre" }, { rows: [] });
+    expect(clean.code, clean.out).toBe(0);
+  }, 30_000);
 
   it("a teardown that held both seats in test mode FAILS on a row past 48h it could not settle (M1)", async () => {
     const r = await sweep(

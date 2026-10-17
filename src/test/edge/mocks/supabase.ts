@@ -48,7 +48,7 @@ type FilterOp =
   | "gt"
   | "gte";
 
-interface RecordedFilter {
+export interface RecordedFilter {
   op: FilterOp;
   column: string;
   value: unknown;
@@ -238,7 +238,8 @@ export interface SupabaseScenario {
   writeOverrides?: Array<{
     table: string;
     op?: "insert" | "update" | "delete";
-    when: (payload: Record<string, unknown>) => boolean;
+    /** `filters`: the WHERE the write chained (so a double can evaluate it, e.g. a claim). */
+    when: (payload: Record<string, unknown>, filters: RecordedFilter[]) => boolean;
     rows?: Row[];
     error?: { message: string; code?: string };
   }>;
@@ -571,7 +572,7 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
     });
     const ov = (scenario.writeOverrides ?? []).find((o) =>
       o.table === this.table && (!o.op || o.op === this.op) &&
-      o.when((this.payload ?? {}) as Record<string, unknown>));
+      o.when((this.payload ?? {}) as Record<string, unknown>, this.filters));
     if (ov) {
       if (ov.error) return { data: null, error: ov.error };
       return { data: this.endsWithSelect ? (ov.rows ?? []) : null, error: null };

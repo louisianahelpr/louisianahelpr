@@ -27,6 +27,7 @@ import { describe, it, expect, beforeEach, afterEach, type MockInstance } from "
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
+import { completionUpdate } from "./mocks/completeSignupWrites";
 import { resetSharedMocks } from "./mocks/shared";
 import { stubSignupCapRead } from "./mocks/signupCapFetch";
 
@@ -103,7 +104,7 @@ describe("complete-signup — the retired ID / portfolio uploads (Q40)", () => {
     expect([...scenario.storage.objects]).toEqual([]);
 
     // The signup UPDATE ran (not vacuous) and carries neither column.
-    const update = scenario.writes.find((w) => w.table === "profiles" && w.op === "update");
+    const update = completionUpdate();
     const payload = update?.payload as Record<string, unknown> | undefined;
     expect(payload?.terms_version_accepted).toBeTruthy();
     expect(payload).not.toHaveProperty("id_document_url");

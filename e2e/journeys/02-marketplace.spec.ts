@@ -505,7 +505,12 @@ test.describe.serial("marketplace chain", () => {
       const deadline = Date.parse(job.response_deadline);
       await atClock(browser, S.helper, new Date(deadline - 90_000), async (page) => {
         const c = await card(page, "/jobs", "Needs You");
-        await expect(c.getByText("1m remaining").first(), "90s before the deadline the offer does not read 1m remaining").toBeVisible({ timeout: 45_000 });
+        // The answer clock reads "<time> left to answer" since the offer
+        // cards share one clock panel (CountdownRows, Q1399, 2026-10-07). This
+        // leg needs a funded job, so it sat skipped in LIVE mode and still
+        // looked for DeadlineCountdown's old "1m remaining" when it ran again
+        // (nightly-red #2436, e2e-journeys 38749234414 / 38882683467).
+        await expect(c.getByText("1m left to answer").first(), "90s before the deadline the offer does not read 1m left to answer").toBeVisible({ timeout: 45_000 });
         await expect(c.getByText(/If you don't answer in time, the job reopens to everyone\. No strike\./).first(), "the offer does not say what silence does").toBeVisible();
         expect(await findChip(page, c, /^Accept\b/, 20_000), "Accept is not offered before the deadline").not.toBeNull();
         await assertHealthy(page, "offer 90s before its deadline");

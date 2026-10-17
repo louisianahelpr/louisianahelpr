@@ -7,7 +7,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -330,13 +330,17 @@ export async function requestAiCheck(itemId: string): Promise<{ checked: boolean
 }
 
 /** Admin queue (row 33, B8). */
+// Admin-only copy is fetched only on a refusal (lifecycleErrors.ts, loadAdminRpcErrorCopy).
 export async function fetchPendingForAdmin() {
-  return rpcData(await supabase.rpc("declutter_admin_pending_items"), (e) => rpcErrorMessage("declutter_admin_pending_items", e)) ?? [];
+  const res = await supabase.rpc("declutter_admin_pending_items");
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_pending_items", e) ?? null) ?? [];
 }
 
 export async function reviewListing(itemId: string, approve: boolean, note: string | null): Promise<string> {
-  return rpcData(
-    await supabase.rpc("declutter_admin_review_item", { p_item_id: itemId, p_approve: approve, p_note: note ?? "" }), (e) => rpcErrorMessage("declutter_admin_review_item", e)) as string;
+  const res = await supabase.rpc("declutter_admin_review_item", { p_item_id: itemId, p_approve: approve, p_note: note ?? "" });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_review_item", e) ?? null) as string;
 }
 
 /* ------------------------------------------------------------------------ *

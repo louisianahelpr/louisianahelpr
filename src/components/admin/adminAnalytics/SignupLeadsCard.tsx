@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { formatShortDate } from "@/lib/format";
 import { AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";

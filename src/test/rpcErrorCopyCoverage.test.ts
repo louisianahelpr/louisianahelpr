@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
+import { ADMIN_RPC_ERROR_COPY } from "@/components/admin/adminRpcErrorCopy";
 import {
   anonExecuteRevoked,
   clientRpcCalls,
@@ -30,10 +31,18 @@ import {
  *   - every `.rpc("X")` in non-test src/ (TypeScript AST),
  *   - X's latest migration definition and every function it calls,
  *   - each snake_case code those bodies RAISE,
- * must have copy in RPC_ERROR_COPY (src/lib/lifecycleErrors.ts) or an entry
- * below saying why no client can reach it; every call site must read that copy
- * through rpcErrorMessage/rpcErrorCode; and nothing in either table may name a
- * code the RPC no longer raises.
+ * must have copy in RPC_ERROR_COPY (src/lib/lifecycleErrors.ts) — or, for an
+ * RPC only admins may call, in ADMIN_RPC_ERROR_COPY
+ * (src/components/admin/adminRpcErrorCopy.ts) — or an entry below saying why no
+ * client can reach it; every call site must read that copy through
+ * rpcErrorMessage/rpcErrorCode; and nothing in any table may name a code the
+ * RPC no longer raises.
+ *
+ * WHICH TABLE. An RPC whose latest definition checks `has_role(..., 'admin')`
+ * keeps its copy in the admin table and never the shared one, and the admin
+ * table holds nothing else: the shared table rides in a chunk every signed-in
+ * first screen downloads (the /posts bundle budget,
+ * scripts/perf/critical-path-budget.json), the admin one only in admin chunks.
  */
 
 const ROOT = resolve(__dirname, "../..");
@@ -117,7 +126,13 @@ for (const rpc of calls.keys()) {
   const codes = codesReachableFrom(rpc, defs);
   if (codes.size) inventory.set(rpc, codes);
 }
-const COPY = RPC_ERROR_COPY as CopyTable;
+const SHARED = RPC_ERROR_COPY as CopyTable;
+const ADMIN = ADMIN_RPC_ERROR_COPY as CopyTable;
+/** Both tables: every rule below holds for an admin RPC's copy exactly as for a member's. */
+const COPY: CopyTable = { ...SHARED, ...ADMIN };
+/** An RPC that refuses anyone without the admin role, read from its latest definition. */
+const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
+const adminGated = new Set([...calls.keys()].filter((rpc) => ADMIN_GATE.test(defs.get(rpc)?.body ?? "")));
 const source = (file: string) => readFileSync(resolve(ROOT, file), "utf8");
 
 describe("the inventory still sees the world", () => {
@@ -156,7 +171,7 @@ describe("every code a client-called RPC raises has copy at its call site", () =
 
   it("no copy or allowlist entry names a code the RPC does not raise, or an RPC no client calls", () => {
     const stale: string[] = [];
-    for (const [table, entries] of [["RPC_ERROR_COPY", COPY], ["UNREACHABLE", UNREACHABLE]] as const) {
+    for (const [table, entries] of [["RPC_ERROR_COPY", SHARED], ["ADMIN_RPC_ERROR_COPY", ADMIN], ["UNREACHABLE", UNREACHABLE]] as const) {
       for (const [rpc, codes] of Object.entries(entries)) {
         if (!calls.has(rpc)) stale.push(`${table}.${rpc}: no client calls this RPC`);
         for (const code of Object.keys(codes)) {
@@ -187,6 +202,30 @@ describe("every code a client-called RPC raises has copy at its call site", () =
         .map(([code]) => `${rpc}.${code}`),
     );
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("admin-only RPC copy stays out of the shared table", () => {
+  it("reads the admin-gated inventory (floor)", () => {
+    // 2026-10-17 (main 37d9eaeb5): 34 client-called RPCs are admin-gated; the 17
+    // that raise codes a screen words are in ADMIN_RPC_ERROR_COPY (payout holds,
+    // bans, disputes, feature switches, Declutter review, category review, the
+    // team thread).
+    expect(adminGated.size).toBeGreaterThan(30);
+    expect(Object.keys(ADMIN).length).toBeGreaterThan(15);
+    expect(adminGated.has("rpc_settle_dispute_without_payment")).toBe(true);
+    expect(adminGated.has("send_team_reply")).toBe(false);
+  });
+
+  it("every admin-gated RPC's copy is in ADMIN_RPC_ERROR_COPY, not RPC_ERROR_COPY", () => {
+    const misplaced = [...adminGated].filter((rpc) => SHARED[rpc]).map((rpc) => `${rpc}: admin-gated, mapped in the shared RPC_ERROR_COPY`);
+    expect(misplaced, "Move it to src/components/admin/adminRpcErrorCopy.ts: the shared table is on every signed-in first screen.").toEqual([]);
+  });
+
+  it("ADMIN_RPC_ERROR_COPY holds only admin-gated RPCs, and no RPC is in both tables", () => {
+    const wrong = Object.keys(ADMIN).filter((rpc) => !adminGated.has(rpc)).map((rpc) => `${rpc}: in the admin table but its definition has no admin gate`);
+    const both = Object.keys(ADMIN).filter((rpc) => SHARED[rpc]).map((rpc) => `${rpc}: in both tables`);
+    expect([...wrong, ...both]).toEqual([]);
   });
 });
 
@@ -250,3 +289,7 @@ describe("the checks can fail (the original bug, pinned)", () => {
 // went blind fails loudly instead of passing on an empty set.
 // SOURCE-TEXT ONLY: the migrations are the oracle, never prod's pg_get_functiondef.
 // @mutate src/lib/lifecycleErrors.ts | job_already_completed: "This job was just marked complete, so it can't be cancelled.",\n | 
+// An admin RPC's copy is held to the same rule: deleting one admin code's words fails the unmapped check.
+// @mutate src/components/admin/adminRpcErrorCopy.ts |     dispute_has_payment: "This job has a payment on file, so the split has to move it. Use Retry settlement.",\n |
+// Putting an admin RPC's copy back in the shared table fails the which-table check.
+// @mutate src/lib/lifecycleErrors.ts |   send_team_reply: {\n |   admin_list_signup_leads: { admin_only: "Only admins can see sign-up leads." },\n  send_team_reply: {\n

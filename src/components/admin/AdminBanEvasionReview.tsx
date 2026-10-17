@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { mutationErrorMessage } from "@/lib/mutationResult";
 import { setProfileBanStatus } from "@/lib/adminBanStatus";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ErrorState } from "@/components/ui/ErrorState";

@@ -586,8 +586,30 @@ export async function restoreWeeklyAvailability(s, before) {
   return { ok: true, note: `restored ${before.length} row(s) (replaced ${d.removed})` };
 }
 
-/** Profile columns a press can change through Settings and that the account may write back. Timestamps and server-managed columns stay. */
-const PROFILE_SKIP = new Set(["id", "user_id", "created_at", "updated_at", "last_seen_at", "last_active_at", "rating", "review_count", "jobs_completed", "is_seed"]);
+/**
+ * Profile columns the cleanup never writes back. Timestamps and server-managed
+ * columns stay; so does the LEGAL RECORD of Terms acceptance.
+ *
+ * CONSENT IS NOT RUN STATE (Q?press-restores-consent, 2026-10-17). The
+ * run-level snapshot is taken when a leg starts and written back when it ends,
+ * so every acceptance recorded in between is undone. Measured: press run
+ * 39014836855 leg 2 (snapshot 08:43:46Z) "restored terms_accepted_at" on
+ * poster-e2e and seed-admin at 09:29:19Z, which put poster-e2e's acceptance
+ * back to 2026-10-14 19:28:18Z after it was re-accepted at 09:14:09Z. A
+ * snapshot taken inside a downgrade window would have written the OLD Terms
+ * version back too: the same harm as the 09:13:20Z stale-checkout write.
+ */
+export const PROFILE_SKIP = new Set([
+  "id", "user_id", "created_at", "updated_at", "last_seen_at", "last_active_at", "rating", "review_count", "jobs_completed", "is_seed",
+  "terms_version_accepted", "terms_accepted_at", "accepted_terms_at",
+]);
+
+/** Pure: the columns to write back (snapshot value) — every changed column not in PROFILE_SKIP. */
+export function profileRestorePatch(before, after) {
+  const patch = {};
+  for (const k of Object.keys(before ?? {})) if (!PROFILE_SKIP.has(k) && JSON.stringify(before[k]) !== JSON.stringify(after?.[k])) patch[k] = before[k];
+  return patch;
+}
 
 export async function snapshotProfile(s) {
   try { return (await prodSelect(s, `profiles?select=*&user_id=eq.${s.userId}`))[0] ?? null; } catch { return null; }
@@ -665,8 +687,7 @@ export async function cleanup({ sessions, since, profilesBefore, weeklyAvailabil
     if (before) {
       const after = await snapshotProfile(s);
       if (after) {
-        const patch = {};
-        for (const k of Object.keys(before)) if (!PROFILE_SKIP.has(k) && JSON.stringify(before[k]) !== JSON.stringify(after[k])) patch[k] = before[k];
+        const patch = profileRestorePatch(before, after);
         if (Object.keys(patch).length) {
           const r = await fetch(`${supabaseUrl()}/rest/v1/profiles?user_id=eq.${s.userId}`, { method: "PATCH", headers: headers(s, { Prefer: "return=representation" }), body: JSON.stringify(patch) });
           const rows = r.ok ? await r.json().catch(() => []) : [];

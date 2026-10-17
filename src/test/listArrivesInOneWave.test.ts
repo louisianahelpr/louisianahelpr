@@ -126,7 +126,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     // once their read says they will show.
     expect(src).toMatch(/export const ENTRY_BASE_CARD_COUNT = 4;/);
     expect(src).toMatch(/draftCard: form\.draftLoaded && draftCheckoutSettled && form\.hasDraft && draftCheckout !== "paid",/);
-    expect(src).toMatch(/repostCard: postedBefore,/);
+    expect(src).toMatch(/repostCard: postedBefore === true,/);
     expect(read("pages/post-job/OfferToSavedHelpr.tsx")).not.toMatch(/length === 0\) return null/);
   });
 

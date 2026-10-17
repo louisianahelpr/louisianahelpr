@@ -403,11 +403,17 @@ describe("item 7 — the job nobody marked done", () => {
   });
 });
 
-// Shown able to fail: the arrival-evidence term of the vouch gate. Dropping
-// `arrivalClaimed` lets a poster confirm an arrival nobody claimed — a
-// widening of a money/trust gate, which is what this file measures against the
-// legacy formulas.
-// @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | const enabled = arrivalClaimed && (step === "in_progress" | const enabled = (step === "in_progress"
+// Shown able to fail: the vouch gate's own terms. Dropping `arrivalClaimed`
+// from it is an EQUIVALENT mutant (vacuity run 39004497945 reported it as a
+// survivor): the Q1400 return above it already leaves every unclaimed arrival,
+// so inside that branch arrivalClaimed is always true. The unclaimed case is
+// held by the Q1400 registration below; this one drops the
+// `!job.helper_completed_at` term, which re-arms the vouch on finished work.
+// @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | (step === "in_progress" \|\| !!job.helper_confirmed_at) && !job.helper_completed_at; | (step === "in_progress" \|\| !!job.helper_confirmed_at);
+// And the in-progress rung's wording (run 39004497945's other survivor, which
+// controlReachability.test.ts cannot see because Q1568's greyed rung also says
+// "Confirm They Arrived"): the enabled box reads the same as the greyed one.
+// @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | ? "Confirm Arrival" : "Confirm They Arrived", | ? "Confirm Arrival" : "Confirm Arrival",
 // Shown able to fail: Q1400's hide. Dropping it draws the disabled arrival box
 // again from accept until arrival, which the Q1400 describe catches.
 // @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | if (!job.poster_confirmed_arrival_at && !arrivalClaimed) { | if (false) {

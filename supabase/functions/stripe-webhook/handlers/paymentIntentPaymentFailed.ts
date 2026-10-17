@@ -119,7 +119,7 @@ async function unfundFailedEscrow(
       user_id: job.helper_id,
       job_id: job.id,
       title: "Job payment failed",
-      message: `The poster's payment for "${job.title}" didn't go through, ${ask}`,
+      message: `The payment for "${job.title}" didn't go through, ${ask}`,
       type: "warning",
       link: `/jobs?job=${job.id}`,
     });

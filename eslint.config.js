@@ -94,7 +94,7 @@ const USER_URL_HREF_RULES = [
    INSIDE the catch saying why silence is correct there. See
    scripts/eslint-rules/no-silent-catch.js for why, and why a comment counts.
 
-   The rule is ON everywhere. These 68 files are what is left of the pile that
+   The rule is ON everywhere. These 65 files (counted 2026-10-17) are what is left of the pile that
    existed when the rule landed (2026-09-07), which was 89: every catch on an auth, money or safety
    path was resolved first, which is the half that could actually hurt someone.
    What is left is storage fallbacks, feature probes and UI conveniences.
@@ -121,7 +121,6 @@ const SILENT_CATCH_LEGACY = [
   "src/components/dashboard/jobDetailDialog/JobLocationPreview.tsx",
   "src/components/dashboard/jobDetailDialog/useJobDetailData.ts",
   "src/components/GroupJobHelpers.tsx",
-  "src/components/messages/ChatView.tsx",
   "src/components/messages/MessageBubble.tsx",
   "src/components/mobileNav/mobileNavHelpers.ts",
   "src/components/NotificationPanel.tsx",

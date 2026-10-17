@@ -163,7 +163,7 @@ describe("the sweeper fails closed", () => {
         { rows: [], seatStripe: { [HELPER]: "acct_1UQigP3qNyg1xGcp" } },
       );
       expect(r.code, `${phase}: ${r.out}`).toBe(1);
-      expect(r.out).toMatch(/A test seat holds a Stripe account::.*acct_1UQigP3qNyg1xGcp/);
+      expect(r.out).toMatch(/A test seat holds a Stripe account it may not::.*acct_1UQigP3qNyg1xGcp/);
       expect(seen.some((x) => x.url.startsWith(`/rest/v1/profiles?user_id=eq.${HELPER}`)), "the helper seat was read").toBe(true);
     }
     const clean = await sweep({ HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "pre" }, { rows: [] });

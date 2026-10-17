@@ -41,6 +41,11 @@
  */
 import { pathToFileURL } from "node:url";
 import { supabaseBase } from "../lib/apiBase.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod (--restore unlinks Stripe accounts) from a stale
+// checkout; a no-op when the sweeper imports this file (entry only).
+assertFreshCheckout(import.meta.url);
 
 /** The fields stripe-connect `reset` clears, and what it clears them to. */
 export const RESET_FIELDS = Object.freeze({

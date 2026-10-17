@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-17T15:17Z",
+  "measured_at": "2026-10-17T19:18Z",
   "issues": {
     "readable": true,
     "open": [
@@ -15,7 +15,7 @@
         "number": 2245,
         "title": "nightly-red: prod-audit",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38689259675",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39030048100",
         "runTruncated": false
       },
       {

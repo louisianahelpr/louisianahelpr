@@ -9,8 +9,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { render, screen } from "@testing-library/react";
-import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { latestFunctionDefs } from "@/test/helpers/rpcErrorInventory";
 import type { ReactNode } from "react";
 import { TAXABLE_CATEGORIES } from "@/lib/salesTax";
 import type { Job } from "../../components/job-card/activityConstants";
@@ -56,10 +56,11 @@ describe("a paid job cannot cross the sales-tax line by category (ME-010)", () =
   });
 
   it("the server trigger's taxable list is salesTax.ts's", () => {
-    const sql = readFileSync(resolve(__dirname, "../../../supabase/migrations/20260924082243_funded_category_tax_class_lock.sql"), "utf8");
+    // The NEWEST definition (20261017055441 added the twelve trades, Q1831).
+    const sql = latestFunctionDefs(resolve(__dirname, "../../../supabase/migrations")).get("enforce_funded_category_tax_class")?.body ?? "";
     const arr = sql.match(/taxable CONSTANT text\[\] := ARRAY\[([^\]]*)\]/)?.[1] ?? "";
     const list = [...arr.matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
-    expect(list.length).toBeGreaterThan(1); // assembly + handyman on 2026-09-24
+    expect(list.length).toBeGreaterThan(13); // assembly + handyman + 12 trades on 2026-10-17
     expect(list).toEqual([...TAXABLE_CATEGORIES].sort());
   });
 });

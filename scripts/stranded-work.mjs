@@ -234,8 +234,14 @@ function snapshotTracked(wgit, head, wtPath) {
   const env = { GIT_INDEX_FILE: join(dir, "index") };
   try {
     const realIndex = resolve(wtPath, wgit(["rev-parse", "--git-path", "index"]).trim());
-    if (existsSync(realIndex)) copyFileSync(realIndex, env.GIT_INDEX_FILE);
-    else wgit(["read-tree", head], { env });
+    // Try the copy and handle ENOENT, never existsSync-then-copy (noCheckThenActInTooling):
+    // a worktree with no index yet starts from HEAD's tree.
+    try {
+      copyFileSync(realIndex, env.GIT_INDEX_FILE);
+    } catch (e) {
+      if (e?.code !== "ENOENT") throw e;
+      wgit(["read-tree", head], { env });
+    }
     wgit(["add", "-u", "."], { env });
     const tree = wgit(["write-tree"], { env }).trim();
     const who = { GIT_AUTHOR_NAME: "stranded-work", GIT_AUTHOR_EMAIL: "stranded-work@localhost", GIT_COMMITTER_NAME: "stranded-work", GIT_COMMITTER_EMAIL: "stranded-work@localhost" };

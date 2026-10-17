@@ -7,15 +7,17 @@
 -- booked Helpr proposes a time, the TENANT (who is not a job party) confirms
 -- it, and the Helpr sees the confirmation.
 --
---   rentals_propose_visit(p_job_id, p_at)      caller = the job's hired Helpr
---     (jobs.helper_id); the job is linked to an APPROVED request, funded
+--   rentals_propose_visit(p_job_id, p_at)      caller = the job's hired AND
+--     confirmed Helpr (jobs.helper_id, helper_confirmed_at set); the job is linked to an APPROVED request, funded
 --     (escrow) and accepted / in progress / revision requested; p_at is in the
 --     future and within 90 days. A new proposal replaces the old one and
 --     clears its confirmation. Tells the tenant (in-app).
 --   rentals_confirm_visit(p_request_id, p_at)  caller = the request's tenant;
 --     p_at must equal the time on file (a stale screen cannot confirm a time
---     the Helpr already changed), the proposal must be for the request's
---     CURRENT job, and that job still live as above. Tells the Helpr.
+--     the Helpr already changed) and still ahead, the proposal must be for
+--     the request's CURRENT job, that job still live as above, and the
+--     request's tenancy still active (a former tenant OKs nobody coming in).
+--     Tells the Helpr.
 --   rentals_visit_for_job(p_job_id)            the proposal for the job's
 --     Helpr or poster only (they cannot read the request row: RLS lets only
 --     the tenant and landlord read it).
@@ -61,6 +63,7 @@ DECLARE
   v_uid uuid := auth.uid();
   v_req uuid;
   v_tenant uuid;
+  v_last timestamptz;
 BEGIN
   PERFORM public.require_feature('rentals');
   IF v_uid IS NULL THEN
@@ -72,15 +75,18 @@ BEGIN
   IF p_at IS NULL OR p_at <= now() OR p_at > now() + interval '90 days' THEN
     RAISE EXCEPTION 'visit_time_invalid' USING ERRCODE = '22023';
   END IF;
+  -- Hired AND confirmed: a Helpr who was only offered the job (helper_id set,
+  -- helper_confirmed_at NULL: accept_application's offer) has not agreed to
+  -- come, so may not offer a time to enter the tenant's home (lh-authz-rls #1).
   PERFORM 1 FROM public.jobs j
-   WHERE j.id = p_job_id AND j.helper_id = v_uid
+   WHERE j.id = p_job_id AND j.helper_id = v_uid AND j.helper_confirmed_at IS NOT NULL
      AND j.status::text IN ('accepted', 'in_progress', 'revision_requested')
      AND j.payment_status = 'escrow'
    FOR SHARE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
   END IF;
-  SELECT r.id, r.tenant_id INTO v_req, v_tenant FROM public.maintenance_requests r
+  SELECT r.id, r.tenant_id, r.visit_proposed_at INTO v_req, v_tenant, v_last FROM public.maintenance_requests r
    WHERE r.job_id = p_job_id AND r.status = 'approved'
    FOR UPDATE;
   IF NOT FOUND THEN
@@ -90,8 +96,12 @@ BEGIN
      SET visit_job_id = p_job_id, visit_proposed_for = p_at, visit_proposed_at = now(),
          visit_confirmed_at = NULL, updated_at = now()
    WHERE id = v_req;
-  PERFORM public.rentals_notify(v_tenant, 'A Helpr offered a visit time',
-    'Open your repair request to OK the time.', '/rentals/requests/' || v_req::text, false);
+  -- One notice per 10 minutes: a Helpr changing the time again and again does
+  -- not flood the tenant, who is not a party to the job (lh-authz-rls #4).
+  IF v_last IS NULL OR v_last < now() - interval '10 minutes' THEN
+    PERFORM public.rentals_notify(v_tenant, 'A Helpr offered a visit time',
+      'Open your repair request to OK the time.', '/rentals/requests/' || v_req::text, false);
+  END IF;
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_propose_visit(uuid, timestamptz) FROM PUBLIC, anon;
@@ -119,7 +129,8 @@ BEGIN
     RAISE EXCEPTION 'request_not_found' USING ERRCODE = 'P0002';
   END IF;
   SELECT j.helper_id INTO v_helper FROM public.jobs j
-   WHERE j.id = v_job AND j.status::text IN ('accepted', 'in_progress', 'revision_requested')
+   WHERE j.id = v_job AND j.helper_confirmed_at IS NOT NULL
+     AND j.status::text IN ('accepted', 'in_progress', 'revision_requested')
      AND j.payment_status = 'escrow'
    FOR SHARE;
   IF NOT FOUND THEN
@@ -132,10 +143,20 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'no_visit_proposed' USING ERRCODE = 'P0002';
   END IF;
+  -- Only someone who still lives there OKs someone coming in (lh-authz-rls #2):
+  -- the request's own tenancy must still be active.
+  IF NOT EXISTS (SELECT 1 FROM public.maintenance_requests r
+                   JOIN public.rental_tenancies t ON t.id = r.tenancy_id
+                  WHERE r.id = p_request_id AND t.tenant_id = v_uid AND t.status = 'active') THEN
+    RAISE EXCEPTION 'tenancy_not_found' USING ERRCODE = 'P0002';
+  END IF;
   -- Stale guard: the time on the tenant's screen must be the one on file.
   IF p_at IS NULL OR NOT EXISTS (SELECT 1 FROM public.maintenance_requests r
                                   WHERE r.id = p_request_id AND r.visit_proposed_for = p_at) THEN
     RAISE EXCEPTION 'visit_time_changed' USING ERRCODE = '22023';
+  END IF;
+  IF p_at <= now() THEN
+    RAISE EXCEPTION 'visit_time_passed' USING ERRCODE = '22023';
   END IF;
   UPDATE public.maintenance_requests SET visit_confirmed_at = now(), updated_at = now() WHERE id = p_request_id;
   PERFORM public.rentals_notify(v_helper, 'The tenant OK''d your visit time',
@@ -166,7 +187,7 @@ BEGIN
       FROM public.maintenance_requests r
       JOIN public.jobs j ON j.id = r.job_id
      WHERE r.job_id = p_job_id AND r.status = 'approved'
-       AND (j.helper_id = v_uid OR j.customer_id = v_uid);
+       AND ((j.helper_id = v_uid AND j.helper_confirmed_at IS NOT NULL) OR j.customer_id = v_uid);
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_visit_for_job(uuid) FROM PUBLIC, anon;

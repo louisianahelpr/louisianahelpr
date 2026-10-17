@@ -17,6 +17,7 @@
 // @mutate src/pages/post-job/useJobSubmit.ts |   if (now?.alreadyPosted) return "stop"; |   if (now === null) return "stop";
 // @mutate src/pages/post-job/useJobSubmit.ts |   if (now?.linkedJobId === jobId) return "go"; |   if (now === null) return "go";
 // @mutate src/pages/post-job/useJobSubmit.ts |   if (!mod) return "stop"; |   if (!mod) return "go";
+// @mutate src/pages/post-job/useJobSubmit.ts |     if (again) return "go"; |     void again;
 //
 // Slice 3 (lh-money-escrow re-review of bb5b8bc6e #3): a link call that FAILS
 // (as opposed to answering false) re-reads the request too, so a dropped call
@@ -154,6 +155,8 @@ const link = vi.hoisted(() => ({
   recheck: { alreadyPosted: false } as { alreadyPosted: boolean; linkedJobId?: string | null } | null | Error,
   rechecks: 0,
   chunkFails: false,
+  /** Answers used before `answer`, one per call. */
+  queue: [] as Array<boolean | Error>,
 }));
 vi.mock("@/lib/chunkReload", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/chunkReload")>();
@@ -166,8 +169,9 @@ vi.mock("@/lib/chunkReload", async (importOriginal) => {
 vi.mock("./maintenancePrefill", () => ({
   linkMaintenanceJob: async (requestId: string, jobId: string) => {
     link.calls.push([requestId, jobId]);
-    if (link.answer instanceof Error) throw link.answer;
-    return link.answer;
+    const a = link.queue.length ? link.queue.shift()! : link.answer;
+    if (a instanceof Error) throw a;
+    return a;
   },
   fetchMaintenancePrefill: async () => {
     link.rechecks += 1;
@@ -247,6 +251,7 @@ beforeEach(() => {
   link.recheck = { alreadyPosted: false };
   link.rechecks = 0;
   link.chunkFails = false;
+  link.queue = [];
   server.deletes = 0;
   vi.mocked(toast.error).mockClear();
   vi.mocked(report).mockClear();
@@ -305,6 +310,15 @@ describe("Rentals: Post a Job tells the landlord when the maintenance link fails
     expect(link.calls).toEqual([]);
     expect(server.paymentCalls).toEqual([]);
     expect(errorToasts()).toEqual(["This repair may already have a job"]);
+  });
+
+  it("a link call that drops on a request that is still free is tried once more, and a landed retry pays with nothing to tell", async () => {
+    link.queue = [new Error("TypeError: Failed to fetch"), true];
+    link.recheck = { alreadyPosted: false, linkedJobId: null };
+    await post();
+    expect(link.calls).toEqual([[REQUEST, "job-1"], [REQUEST, "job-1"]]);
+    expect(errorToasts()).toEqual([]);
+    expect(server.paymentCalls).toEqual(["job-1"]);
   });
 
   it("a link call that drops and whose re-read fails also stops", async () => {

@@ -34,7 +34,10 @@
 // @mutate src/lib/rentals/copy.ts |   approved: "Approved by Louisiana Helpr", |   approved: "Owner verified",
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |    WHERE j.id = p_job_id AND j.helper_id = v_uid | WHERE j.id = p_job_id
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |                                   WHERE r.id = p_request_id AND r.visit_proposed_for = p_at) THEN |                                   WHERE r.id = p_request_id) THEN
-// @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |        AND (j.helper_id = v_uid OR j.customer_id = v_uid); |        ;
+// @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |        AND ((j.helper_id = v_uid AND j.helper_confirmed_at IS NOT NULL) OR j.customer_id = v_uid); |        AND (j.helper_id = v_uid OR j.customer_id = v_uid);
+// @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |    WHERE j.id = p_job_id AND j.helper_id = v_uid AND j.helper_confirmed_at IS NOT NULL |    WHERE j.id = p_job_id AND j.helper_id = v_uid
+// @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |                   JOIN public.rental_tenancies t ON t.id = r.tenancy_id\n                  WHERE r.id = p_request_id AND t.tenant_id = v_uid AND t.status = 'active') THEN |                   JOIN public.rental_tenancies t ON t.id = r.tenancy_id\n                  WHERE r.id = p_request_id AND t.tenant_id = v_uid) THEN
+// @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |   IF p_at <= now() THEN |   IF false THEN
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                        AND (cur.stripe_session_id IS NULL OR cur.payment_status = 'abandoned'))) |                        )) 
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                    OR (cur.status = 'cancelled' |                    OR (true
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |     AND COALESCE(j.payment_status, 'unpaid') IN ('unpaid', 'failed', 'abandoned')\n     AND (j.stripe_session_id IS NULL OR j.payment_status = 'abandoned')\n   FOR UPDATE; |     FOR UPDATE;
@@ -155,7 +158,12 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
     expect(flat(body("rentals_propose_visit"))).toContain("WHERE j.id = p_job_id AND j.helper_id = v_uid");
     expect(flat(body("rentals_confirm_visit"))).toContain("WHERE r.id = p_request_id AND r.tenant_id = v_uid AND r.status = 'approved'");
     expect(flat(body("rentals_confirm_visit"))).toContain("WHERE r.id = p_request_id AND r.visit_proposed_for = p_at) THEN");
-    expect(flat(body("rentals_visit_for_job"))).toContain("AND (j.helper_id = v_uid OR j.customer_id = v_uid);");
+    expect(flat(body("rentals_visit_for_job"))).toContain("AND ((j.helper_id = v_uid AND j.helper_confirmed_at IS NOT NULL) OR j.customer_id = v_uid);");
+    // lh-authz-rls review of 39ee72808: a CONFIRMED Helpr only, a tenant who still lives there, a time still ahead.
+    expect(flat(body("rentals_propose_visit"))).toContain("j.helper_id = v_uid AND j.helper_confirmed_at IS NOT NULL");
+    expect(flat(body("rentals_confirm_visit"))).toContain("WHERE j.id = v_job AND j.helper_confirmed_at IS NOT NULL");
+    expect(flat(body("rentals_confirm_visit"))).toContain("WHERE r.id = p_request_id AND t.tenant_id = v_uid AND t.status = 'active') THEN");
+    expect(flat(body("rentals_confirm_visit"))).toContain("IF p_at <= now() THEN RAISE EXCEPTION 'visit_time_passed'");
     // The job state the screen reads answers only the request's two parties.
     expect(flat(body("rentals_request_job_state"))).toContain("WHERE r.id = p_request_id AND (r.tenant_id = v_uid OR r.landlord_id = v_uid)");
     // Review fixes (lh-authz-rls of 3e84eea25): tenant deletion ends the tenancy; tenants never read the

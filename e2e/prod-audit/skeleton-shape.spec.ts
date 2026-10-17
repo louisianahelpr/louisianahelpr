@@ -13,8 +13,10 @@
  *
  * Its own file, not a third test in page-settle.spec.ts: page-settle runs in
  * prod-audit leg 4, whose 28-minute suite step ran 28 min on run 38689259675;
- * leg 3 (34 of 42 min on the same run) has the room. This file ran
- * 1.7 min (375) + 1.9 min (1440) locally on 2026-10-17, 30 URLs per width.
+ * leg 3 (34.4 of 42 min on the same run) has the room. This file ran
+ * 1.8 min (375) + 2.0 min (1440) locally on 2026-10-17, 30 URLs per width.
+ * Three leg-3 specs timed the same day ran 145.7 s locally against 149.4 s on
+ * that run (x1.03), so leg 3 with this file is about 38.3 of 42 min.
  *
  * Read-only on prod: every non-GET to Supabase is refused by writeFirewall
  * (read RPCs pass) and logged; nothing is clicked.

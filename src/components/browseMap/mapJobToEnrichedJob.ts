@@ -52,6 +52,9 @@ export function mapJobToEnrichedJob(job: MapJob, crewSpotsOpen?: number | null):
     is_group_job: job.is_group_job ?? null,
     helpers_needed: job.helpers_needed ?? null,
     crew_spots_open: crewSpotsOpen ?? null,
+    // Q1839: the fee-model stamp, so the popup's JobPrice prices a flat job
+    // 5% + 70c (feeStamp={job} in JobCard), not at the viewer's tier.
+    helper_fee_flat_cents: job.helper_fee_flat_cents ?? null,
     // Masked "City, State" when the RPC has it; parish otherwise (pre-deploy
     // RPC shape, or the rare row with no masked location). JobCard reads
     // `getCity(job.location)` with no parish fallback of its own, so this

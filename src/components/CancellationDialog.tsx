@@ -24,11 +24,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, ShieldAlert, DollarSign, CheckCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
-import { tierFeePercent } from "@/lib/subscriptionTiers";
-
-/** Highest commission on the tier ladder (free = 12%). Quoting it makes any
- *  helper-share estimate a guaranteed floor rather than an optimistic guess. */
-const MAX_HELPER_FEE_PERCENT = tierFeePercent("free");
+import { cancellationHelperShare } from "@/lib/cancellationHelperShare";
+import type { FlatFeeStamp } from "@/lib/helprFlatFee";
 // The ladder this dialog quotes IS the ladder Community Rules publishes —
 // read the same two constants CommunitySection does rather than restating
 // "25"/"50" as prose.
@@ -36,7 +33,6 @@ import { LATE_CANCEL_PERCENT, VERY_LATE_CANCEL_PERCENT } from "@/lib/moneyLimits
 // formatPriceExact, not formatPrice: this block shows the fee arithmetic,
 // and whole-dollar rounding made the lines stop adding up.
 import { formatPriceExact as formatPrice } from "@/lib/format";
-import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { userFacingError } from "@/lib/userFacingError";
 
 type CancellationDialogProps = {
@@ -70,12 +66,15 @@ type CancellationDialogProps = {
    * true when any member counts.
    */
   crew?: { needed: number; members: Array<{ share_cents: number | null; confirmed: boolean }> };
+  /** The job's fee-model stamp (jobs.helper_fee_flat_cents / helper_fee_percent).
+   *  A flat-model job's Helpr pays 5% + 70c on the fee, not a tier percent (Q1839). */
+  feeStamp?: FlatFeeStamp | null;
   open: boolean;
   onClose: () => void;
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, hasHelper, wasFunded, helperId: _helperId, helperName, crew, setupFeeKept, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, hasHelper, wasFunded, helperId: _helperId, helperName, crew, setupFeeKept, feeStamp, open, onClose, onCancelled }: CancellationDialogProps) => {
   // Q1674: the sentence both the policy text and the toast add for a first job.
   const keptFee = wasFunded && typeof setupFeeKept === "number" && setupFeeKept > 0 ? setupFeeKept : 0;
   const keptFeeSentence = keptFee > 0
@@ -158,11 +157,10 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // shown is the least the helper can receive and is labelled "at least". A
   // number shown to a helper may never exceed what they are paid; the same
   // discipline applies to a number shown ABOUT a helper.
-  const commissionPercent = MAX_HELPER_FEE_PERCENT;
-  const platformCut = Math.round(payeeFee * commissionPercent) / 100;
-  // Floored to the whole dollar the transfer really pays (Q236:
-  // void-cancelled-payments rounds every Helpr transfer DOWN to the dollar).
-  const helperPayout = Math.max(0, floorPayoutDollars(payeeFee - platformCut));
+  // A flat-model job (Q1839) is priced from its own stamp, 5% + 70c, the cut
+  // void-cancelled-payments takes. Floored to the whole dollar the transfer
+  // really pays (Q236), in cancellationHelperShare.
+  const { platformCut, helperPayout, feeLabel } = cancellationHelperShare(payeeFee, feeStamp);
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -378,7 +376,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     <span className="font-semibold text-foreground">${formatPrice(cancellationFee)}</span>
                   </div>
                   <div className="flex justify-between text-ds-11">
-                    <span className="text-muted-foreground">Platform fee (up to {commissionPercent}%)</span>
+                    <span className="text-muted-foreground">{crewQuote ? `Platform fee per Helpr (${feeLabel})` : `Platform fee (${feeLabel})`}</span>
                     <span className="text-muted-foreground">−${formatPrice(platformCut)}</span>
                   </div>
                   <div className="border-t border-border pt-1.5 flex justify-between text-ds-11">

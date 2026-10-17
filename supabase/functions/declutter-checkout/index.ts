@@ -106,8 +106,10 @@ async function startCheckout(asBuyer: Db, sellerId: string, handover: string): P
  * null = could not tell (the caller answers "try again").
  */
 async function porchRefused(admin: Db, buyerId: string, sellerId: string): Promise<boolean | null> {
-  // Service-role read, scoped to the signed-in buyer (user.id from auth.getUser)
-  // and this seller; the same lines the RPC groups (in_cart, inside the 48 h).
+  // Service-role read, because this runs BEFORE the RPC (whose own read is the
+  // protection), so no RLS applies: scoped here to the signed-in buyer (user.id
+  // from auth.getUser, never the request body) and this seller, reading the same
+  // lines the RPC's v_lines groups (in_cart, checkout_by still in the future).
   const { data: lines, error: linesErr } = await admin.from("declutter_cart_items").select("item_id")
     .eq("buyer_id", buyerId).eq("seller_id", sellerId).eq("status", "in_cart")
     .gt("checkout_by", new Date().toISOString());

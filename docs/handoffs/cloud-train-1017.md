@@ -80,3 +80,6 @@ Still before landing:
 - Sensitive-Review trailers.
 
 Reported, not changed: the hint text at ShopItemEditor.tsx:264 and ShopEditView.tsx:260 still says "members reach you in the app".
+
+## Update: the stack's land-vitest-changed run finished
+fix/stack-export-wanted @ 113670a88c: `node scripts/land-vitest-changed.mjs origin/main` covered 319 related test files in 6 chunks, all passed, EXIT 0. Still not run: land's second (named-tests) set and the full suite.

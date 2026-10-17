@@ -169,11 +169,20 @@ describe("refs/lh/* is never a branch to report or prune (lead, 2026-10-17)", ()
     expect(sh(clone, "for-each-ref", "--format=%(refname)", CLAIMS_REF).trim()).toBe(CLAIMS_REF);
     const listed = sh(clone, "for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes/origin");
     expect(listed).not.toMatch(/landing-claims/);
+    // Inventory floor (vacuity, run 39032021419: a scan that finds nothing proves nothing): one
+    // local branch in the clone with content main does not have, which the inventory must list.
+    sh(clone, "switch", "-q", "-c", "wip/floor");
+    writeFileSync(join(clone, "floor.ts"), "export const floor = 1;\n");
+    sh(clone, "add", "-A");
+    sh(clone, "commit", "-q", "-m", "floor");
+    sh(clone, "switch", "-q", "main");
     const git = makeGit(clone);
     setMainRef("origin/main");
     const index = buildMainIndex(git, "origin/main");
     const gh = (_argv: string[], o?: { raw?: boolean }) => (o?.raw ? "" : []);
     const items = [...localInventory(git, index, { cwdOf: () => [] }), ...remoteInventory(git, index, gh)];
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.map((i: { id: string }) => i.id).join(" ")).toContain("wip/floor");
     expect(items.map((i: { id: string }) => i.id).filter((id: string) => /landing-claims|refs\/lh/.test(id))).toEqual([]);
   });
   it("land.sh wires the claim: frozen copy, claim on start (check on --dry-run), PR recorded, released when merged or closed, override parsed", () => {

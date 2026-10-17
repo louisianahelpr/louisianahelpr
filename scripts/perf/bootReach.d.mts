@@ -7,3 +7,10 @@ export function signedInOnlyModules(root: string): {
   reachable: Set<string>;
   sharedModules: number;
 };
+export const EVERY_PAGE_ROOTS: string[];
+export function firstScreenRoots(root: string): string[];
+export function signedInSplit(root: string): {
+  signedInOnly: Set<string>;
+  firstScreen: Set<string>;
+  deep: Set<string>;
+};

@@ -40,7 +40,7 @@
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { gzipSync } from "node:zlib";
-import { signedInOnlyModules, stripComments } from "./perf/bootReach.mjs";
+import { signedInOnlyModules, signedInSplit, stripComments } from "./perf/bootReach.mjs";
 
 const DIST = "dist";
 const ASSETS = `${DIST}/assets`;
@@ -303,6 +303,18 @@ if (ROUTE_ROOTS.length < 8) {
 // (ConversationSwipeLayer.tsx, PhotoReorderGrid.tsx).
 const KNOWN_ROUTE_CLOSURE_VIOLATIONS = {};
 
+// signed-in-deep (2026-10-17): the signed-in shared code no first screen reaches
+// statically (bootReach.mjs signedInSplit) has its own chunk, fetched when a lazy
+// page or dialog opens. A first-screen closure that carries a chunk holding one of
+// those modules is that code back on a first screen's critical path (/posts carried
+// ~8 KB gz of it), whether the group was deleted, its test changed, or the walk
+// and the bundler disagree.
+const deepWanted = new Set([...signedInSplit(process.cwd()).deep].map((abs) => abs.slice(process.cwd().length + 1)));
+const deepCarriers = all.filter((f) => [...(sourcesIn(f) ?? [])].some((src) => deepWanted.has(src)));
+if (deepWanted.size < 30 || !deepCarriers.length) {
+  fail(`bootReach found ${deepWanted.size} signed-in-deep modules and ${deepCarriers.length} chunk(s) carrying them. ` +
+       `Either the walk is blind (routePreload.ts changed shape) or the .js.map files are gone. Fix the scan.`);
+}
 const routeFound = [];
 for (const { label, name } of ROUTE_ROOTS) {
   const re = new RegExp(`^${name}-[\\w-]{6,}\\.js$`);
@@ -318,6 +330,15 @@ for (const { label, name } of ROUTE_ROOTS) {
   }
   if (par.size < 2) fail(`the closure of ${rootChunk} has ${par.size} chunk(s); the import syntax changed. Fix the walk.`);
   const chainFrom = (f) => { const out = [f]; let cur = f; while (par.get(cur)) { cur = par.get(cur); out.push(cur); } return out.reverse().join(" → "); };
+  for (const chunk of [...par.keys()].filter((f) => deepCarriers.includes(f))) {
+    const mods = [...(sourcesIn(chunk) ?? [])].filter((src) => deepWanted.has(src));
+    violations.push({
+      chunk,
+      why: `first screen ${label}: ${mods.length} module(s) no first screen reaches statically (signed-in-deep) are in its closure, e.g. ${mods.slice(0, 3).join(", ")}`,
+      gzip: bytes(chunk),
+      chain: chainFrom(chunk),
+    });
+  }
   for (const { pkg, why } of DEFERRED_PACKAGES) {
     for (const chunk of [...par.keys()].filter((f) => packagesIn(f)?.has(pkg))) {
       routeFound.push({ label, pkg, chunk, why: `${pkg}: ${why}`, gzip: bytes(chunk), chain: chainFrom(chunk) });
@@ -366,5 +387,6 @@ if (violations.length) {
 }
 
 console.log(`\n✓ no signed-in-only shared module is on the boot path (bootReach.mjs vs the built sourcemaps)`);
+console.log(`\n✓ no first-screen closure carries a signed-in-deep module (${deepWanted.size} modules, ${deepCarriers.length} carrier chunk(s))`);
 console.log(`\n✓ no first-screen closure (${ROUTE_ROOTS.length} roots from ENTRY_ROUTE_CHUNKS + MobileNav, PageTransition, ScrollToTop, SuccessMomentHost) carries a deferred package beyond the ${Object.keys(known).length} known`);
 console.log(`\n✓ no deferred vendor (${[...DEFERRED.map((d) => d.prefix + "*"), ...DEFERRED_PACKAGES.map((d) => d.pkg), ...DEFERRED_MODULES.map((d) => d.file)].join(", ")}) is statically reachable from the entry`);

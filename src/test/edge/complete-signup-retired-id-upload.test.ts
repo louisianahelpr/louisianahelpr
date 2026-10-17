@@ -84,10 +84,19 @@ describe("complete-signup — the retired ID / portfolio uploads (Q40)", () => {
   });
   afterEach(() => capRead.mockRestore());
 
-  it("stores nothing, writes neither column and returns no path", async () => {
+  // Both paths (Q1885): the no-session path is default-deny now, so the
+  // signed-in path is the one where a re-added upload would be read.
+  it.each(["no-session", "signed-in"] as const)("%s: stores nothing, writes neither column and returns no path", async (path) => {
     seed();
+    if (path === "signed-in") scenario.authUser = { id: USER_ID, email: "retired-id@test.com" };
     const fn = await load();
-    const res = await fn.fetch(fn.request({ body: retiredBody }));
+    const res = await fn.fetch(
+      fn.request(
+        path === "signed-in"
+          ? { body: retiredBody, headers: { Authorization: "Bearer user-jwt" } }
+          : { body: retiredBody },
+      ),
+    );
     expect(res.status).toBe(200);
 
     // Nothing was uploaded to any bucket.

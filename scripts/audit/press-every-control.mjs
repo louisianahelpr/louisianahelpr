@@ -778,6 +778,12 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel, rowSel }
         el.dataset.state === "active" || el.closest('[data-state="active"]') !== null,
       external, self,
       inToast: el.closest("[data-sonner-toaster]") !== null,
+      // A popup's close-only acknowledgement (DialogAcknowledgeAction,
+      // dialog.tsx: a Radix Close that accepts no event handler). Its label may
+      // match DESTRUCTIVE_RX ("Got it"), but it can only do what the dialog's
+      // own × does, which the sweep presses ungated anyway. Honoured only inside
+      // an open popup. See src/test/pressDrivesTheRealPressPath.test.tsx.
+      dismissOnly: el.hasAttribute("data-popup-dismiss") && el.closest('[role="dialog"], [role="alertdialog"]') !== null,
       // See TRANSIENT_STATUS_SKIP / isHiddenFormMirror — read here, judged in node.
       inStatus: el.closest(transientSel) !== null,
       ariaHidden: el.getAttribute("aria-hidden"),
@@ -1600,29 +1606,10 @@ async function main() {
           const ckey = chromeKey({ persona, chain: entry.chain.slice(0, -1), sig: meta.sig });
           const chromeWhy = chromeDisposition({ fromChrome: item.fromChrome, depth: item.depth, key: ckey, passedOn: chromePassedOn });
           if (chromeWhy) { entry.pressedOn = chromePassedOn.get(ckey); skip(chromeWhy); continue; }
-          if (DESTRUCTIVE_RX.test(label) || isAdminWrite({ persona, label }) || meta.type === "submit" || isCommitControl(meta) || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label })) {
+          if ((DESTRUCTIVE_RX.test(label) && !meta.dismissOnly) || isAdminWrite({ persona, label }) || meta.type === "submit" || isCommitControl(meta) || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label })) {
             const why = await gate(label, meta, item.chainOwned);
             if (why) { skip(why); continue; }
             entry.mutating = true;
-            // THE GATE APPROVED ONE RECORD; THE CLICK MUST LAND ON IT (run
-            // 39014836855 leg 4: twelve identical "Got It"s, each addressed by a
-            // path that had shifted to the next card once an earlier ack moved
-            // its own card out of the list). See pressTargetRecord.
-            const liveRowText = await target.first().evaluate(LIVE_ROW_TEXT, RECORD_ROW_SEL).catch(() => null);
-            if (liveRowText !== null) {
-              const now = await enumerate(item.step.scope);
-              const placed = pressTargetRecord({ liveRowText, meta, now });
-              if (placed.verdict === "moved") {
-                item.step.path = placed.control.path; target = locate(item.step); entry.relocated = true;
-              }
-              if (placed.verdict === "gone") {
-                if (rowGoneAfterOwnWrite({ rowText: meta.rowText, mutatedRows, now })) { skip(ROW_CONSUMED_SKIP); continue; }
-                entry.result = "FAIL"; entry.why = "its record is no longer on the screen (a write here would have landed on a different record, so it was not pressed)";
-                rec.failed++; failedPresses++;
-                entry.shot = await shoot(`record-gone-${slug(label)}`);
-                continue;
-              }
-            }
           }
 
           // Baseline: the resting page with the opener chain replayed.
@@ -1712,6 +1699,34 @@ async function main() {
             continue;
           }
           target = target.first();
+
+          /*
+           * THE GATE APPROVED ONE RECORD; THE CLICK MUST LAND ON IT (run
+           * 39014836855 leg 4: twelve identical "Got It"s, each addressed by a
+           * path that had shifted to the next card once an earlier ack moved
+           * its own card out of the list). See pressTargetRecord. Read HERE,
+           * once `target` is the element about to be clicked: after any reload
+           * or replay above, not before them (ready/reds-1017-9 read it before
+           * `let target` and threw on every gate-approved write;
+           * src/test/pressDrivesTheRealPressPath.test.tsx runs this loop).
+           */
+          if (entry.mutating) {
+            const liveRowText = await target.evaluate(LIVE_ROW_TEXT, RECORD_ROW_SEL).catch(() => null);
+            if (liveRowText !== null) {
+              const now = await enumerate(item.step.scope);
+              const placed = pressTargetRecord({ liveRowText, meta, now });
+              if (placed.verdict === "moved") {
+                item.step.path = placed.control.path; target = locate(item.step).first(); entry.relocated = true;
+              }
+              if (placed.verdict === "gone") {
+                if (rowGoneAfterOwnWrite({ rowText: meta.rowText, mutatedRows, now })) { skip(ROW_CONSUMED_SKIP); continue; }
+                entry.result = "FAIL"; entry.why = "its record is no longer on the screen (a write here would have landed on a different record, so it was not pressed)";
+                rec.failed++; failedPresses++;
+                entry.shot = await shoot(`record-gone-${slug(label)}`);
+                continue;
+              }
+            }
+          }
 
           /**
            * IS IT STILL ENABLED? `meta.disabled` was read at ENUMERATION time,

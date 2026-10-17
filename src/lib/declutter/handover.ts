@@ -142,7 +142,7 @@ export async function porchPhoto(
  * photo to `<uid>/declutter/handover/<order>/<file>`, the only path the SQL
  * accepts. Returns the path for porchPhoto / reportProblem.
  *
- * The bucket is PRIVATE (20261015092723): a porch photo shows the seller's
+ * The bucket is PRIVATE (20261017054625): a porch photo shows the seller's
  * home, so it is never a public URL. Only the two sides of the order and
  * admins can read it, through a signed URL (storage createSignedUrl).
  */

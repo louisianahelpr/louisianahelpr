@@ -7,7 +7,7 @@
  *
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs                  # all PASS
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-reconcile   # RED: the reconcile left out
- *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-against     # RED: 20261015092457 left out (problems filed against the member missing)
+ *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-against     # RED: 20261017054604 left out (problems filed against the member missing)
  *
  * Two orders, each in its own database, starting from 20261014200728 (the
  * last export_my_data both lines of history share):
@@ -44,8 +44,8 @@ const SLICE3B = "20261014224914_declutter_slice3b_payments.sql";
 const SLICE4 = "20261015042253_declutter_slice4_handover_payout.sql";
 const MAIN_CAT = "20261015052622_export_my_data_category_suggestions.sql";
 const RECONCILE = "20261015084728_export_my_data_declutter_reconcile.sql";
-// 20261015092457 restates the reconcile's body plus declutter_problems_about_me (problems filed AGAINST the member).
-const AGAINST = "20261015092457_export_my_data_declutter_problems_against.sql";
+// 20261017054604 restates the reconcile's body plus declutter_problems_about_me (problems filed AGAINST the member).
+const AGAINST = "20261017054604_export_my_data_declutter_problems_against.sql";
 const NO_AGAINST = process.argv.includes("--no-against");
 
 const DECLUTTER_SECTIONS = [
@@ -110,6 +110,9 @@ const tail = NO_RECONCILE ? [] : [RECONCILE, ...(NO_AGAINST ? [] : [AGAINST])];
 const replay = await installedAfter("REPLAY (version order)", [BASE, SLICE3, SLICE3B, SLICE4, MAIN_CAT, ...tail]);
 const prod = await installedAfter("PROD (main's 052622 live, branch versions pending)", [BASE, MAIN_CAT, SLICE3, SLICE3B, SLICE4, ...tail]);
 check("both orders end with the same body", replay.def === prod.def);
+// main's newer restatement (20261016053541, Declutter wanted posts) is part of the union this body restates.
+check("the body keeps main's newest section (declutter_wanted, 20261016053541) as well as declutter_problems_about_me",
+  NO_AGAINST || (replay.def.includes("'declutter_wanted'") && replay.def.includes("'declutter_problems_about_me'")));
 
 // ---------------------------------------------------------------------------
 // RUN it: stub every table the body reads, with the columns it reads.

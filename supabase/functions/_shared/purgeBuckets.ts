@@ -56,7 +56,7 @@ export const IDENTITY_BUCKETS = [
 export const IDENTITY_SUBFOLDERS = [
   { bucket: "job-photos", folder: "declutter" },
   { bucket: "job-photos", folder: "quotes" },
-  // Porch and problem photos (20261015092723): the PRIVATE declutter-handover
+  // Porch and problem photos (20261017054625): the PRIVATE declutter-handover
   // bucket, same <uid>/declutter/ folder, erased with the account as before.
   { bucket: "declutter-handover", folder: "declutter" },
 ] as const;
@@ -77,7 +77,7 @@ export const IDENTITY_SUBFOLDERS = [
  *
  * TEMPORARY: an entry is retired once its bucket exists on prod (for
  * declutter-handover: `select id from storage.buckets where id =
- * 'declutter-handover'` returns a row, i.e. 20261015092723 applied). Then
+ * 'declutter-handover'` returns a row, i.e. 20261017054625 applied). Then
  * empty this list and set the EXACT check in
  * src/test/declutterPhotosPurged.test.ts to [] in the same commit.
  */

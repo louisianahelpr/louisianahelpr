@@ -192,7 +192,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
  * not by a person column of that table but through a parent row the caller is a
  * party to. `scope` is the exact WHERE the section must carry (whitespace-free
  * compare): anything wider fails "every section is filtered to the caller".
- * declutter_problems_about_me (20261015092457, lane J): problems the OTHER side of
+ * declutter_problems_about_me (20261017054604, lane J): problems the OTHER side of
  * the member's order filed about them (RLS lets both parties read a problem),
  * without the reporter's id, photos or the deciding admin.
  */

@@ -15,8 +15,8 @@
 -- exported, as in the reporter's own section). The existing declutter_problems
 -- section is unchanged.
 --
--- The body is 20261015084728's export_my_data (the NEWEST, no later copy on
--- main or this branch, checked 2026-10-15 09:25Z) verbatim plus that one
+-- The body is 20261016053541's export_my_data (the NEWEST, no later copy on
+-- main or this branch, checked 2026-10-17 05:46Z) verbatim plus that one
 -- section. Any later restatement must start from THIS body.
 --
 -- Replay-safe: CREATE OR REPLACE of the one (uuid) overload; the no-argument
@@ -309,6 +309,10 @@ BEGIN
   v_out := v_out || jsonb_build_object('category_suggestions', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'reviewed_by' - 'admin_note'), '[]'::jsonb) FROM public.category_suggestions t
       WHERE t.user_id = v_uid));
 
+  -- Declutter wanted posts (20261016053541). The match ledger holds no person
+  -- column; a seller's alerts are in 'notifications' above.
+  v_out := v_out || jsonb_build_object('declutter_wanted', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.declutter_wanted t
+      WHERE t.user_id = v_uid));
   RETURN v_out;
 END;
 $function$;

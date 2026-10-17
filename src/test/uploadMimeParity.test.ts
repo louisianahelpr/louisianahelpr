@@ -82,7 +82,7 @@ const SITES: Site[] = [
   { file: "src/pages/post-job/useJobMediaUpload.ts", bucket: "job-photos", gate: ["src/pages/post-job/useJobMediaUpload.ts", "allowedImageTypes"], via: ["allowedImageTypes"] },
   // Declutter listing photos: cleaned to JPEG first (src/lib/declutter/photos.ts).
   { file: "src/lib/declutter/api.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["LISTING_PHOTO_UPLOAD_TYPES"] },
-  // Declutter porch and problem photos (20261015092723): the same JPEG clean, into the PRIVATE handover bucket.
+  // Declutter porch and problem photos (20261017054625): the same JPEG clean, into the PRIVATE handover bucket.
   { file: "src/lib/declutter/handover.ts", bucket: "declutter-handover", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
   // Quote past-work photos: cleaned to JPEG the same way (src/lib/quotes/api.ts).
   { file: "src/lib/quotes/api.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["LISTING_PHOTO_UPLOAD_TYPES"] },

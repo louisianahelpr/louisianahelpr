@@ -537,17 +537,17 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
   should-fixes. (1) money (a): a refund that gives up (12 tries) writes one error_logs row per refund row per day
   (source declutter-refund-gave-up -> ops ledger item, verify_kind manual, re-raised daily while unsettled) and tells
   the buyer once in-app "Your refund is being sent by hand" (declutter_refund_gave_up_check, from
-  declutter_refund_executed / _reversed and every declutter-money run; 20261015091757). (2) money (b): charge.refunded
+  declutter_refund_executed / _reversed and every declutter-money run; 20261017054624). (2) money (b): charge.refunded
   on a Declutter charge (transfer_group declutter_order_*, metadata kind declutter_order, or a Declutter refund on it)
   records a refund Declutter did not create in declutter_hand_refunds (idempotent per Stripe refund id); it settles the
   payment's unsettled refund row only when it covers the row's amount, else it is recorded and pages; nothing moves.
   (3) money (c): the webhook lists the PaymentIntent's refunds and adopts its row's refund before refunds.create (the
   cron's list-and-adopt), so a redelivery 25 h later is one refund (edge test). (4) authz (a): porch and problem
-  photos live in the PRIVATE bucket declutter-handover (20261015092723): a party writes into their own folder, the two
+  photos live in the PRIVATE bucket declutter-handover (20261017054625): a party writes into their own folder, the two
   parties and admins read (signed URL), no member update/delete; the two RPCs take photos only from it; account
   deletion purges it. Prod measured read-only 2026-10-15 ~09:30Z: 0 objects under */declutter/*, no Declutter tables.
   (5) export (a): export_my_data adds declutter_problems_about_me (problems filed against the member, minus
-  reporter_id, photo_paths, decided_by; 20261015092457, restated from 20261015084728).
+  reporter_id, photo_paths, decided_by; 20261017054604, restated from 20261015084728).
 - BUILT 2026-10-17 (lane J session 3, owner answer 7): a buyer who pays just as the SELLER can no longer sell
   (declutter_seller_out: banned, suspended, 3 strikes, under 18, flagged business-like) gets every cent back and the
   card fee is the SELLER's debt (new reason seller_out -> full_seller_pays_fee; declutter_seller_fee_debts, taken
@@ -580,7 +580,7 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
   run concluded): that one bucket, by an exact allowlist (purgeBuckets.ts SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET), is
   "not created yet, nothing to erase", logged; every other missing bucket still fails the step (Q219;
   src/test/declutterPhotosPurged.test.ts, red on the old code). lh-authz-rls REVIEW-ONLY (e2d709110): approve-with-notes;
-  its should-fix for the lead: once 20261015092723 is live on prod (the bucket row exists), empty
+  its should-fix for the lead: once 20261017054625 is live on prod (the bucket row exists), empty
   SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET and set its EXACT test to [] in one commit (until then an out-of-band drop of
   that bucket would read as a note, not a failed step); better long-term: a nightly probe that goes red while an
   entry's bucket already exists;

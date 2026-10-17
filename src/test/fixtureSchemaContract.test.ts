@@ -321,6 +321,11 @@ describe("every fixture literal could be inserted", () => {
     // Test bodies that set a jobs read (`job({ status: "completed" })`) beside
     // a clawback row; the job's status was graded against chargeback_clawbacks.
     { file: "src/test/edge/chargebackHeldPayoutNotice.test.ts", keys: ["rows", "stripe_transfer_id", "amount_reversed", "original_transfer_id"] },
+    // A test BODY (a charge.refunded event, mock reads and an RPC call), not a row. It was skipped as ambiguous
+    // while stripe_refund_id belonged only to payment_refunds; declutter_hand_refunds (2026-10-17) shares that
+    // column, which left only disputes' keys (payout_split, execution_status) and graded a Stripe refund's
+    // `status: "succeeded"` against disputes_status_check.
+    { file: "src/test/edge/disputeSettlementWebhook.test.ts", keys: ["payment_intent", "amount_refunded", "refunds", "payout_split", "settle_dispute_by_external_refund"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

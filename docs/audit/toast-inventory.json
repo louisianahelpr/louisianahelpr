@@ -113,16 +113,68 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 276,
+      "line": 295,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
-        "text": "cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence })",
+        "text": "cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift })",
         "from": "src/lib/cancelRefundCopy.ts",
         "branches": [
           {
             "form": "literal",
+            "text": "Job cancelled. Your checkout was never completed, so your card was never charged, and the gift you set aside goes back to your gift balance within the hour."
+          },
+          {
+            "form": "literal",
             "text": "Job cancelled. Your checkout was never completed, so you were never charged — there's nothing to refund."
+          },
+          {
+            "form": "template",
+            "text": "Job cancelled. We'll send you a note with exactly what comes back to you within the hour.${keptFeeSentence}"
+          },
+          {
+            "form": "template",
+            "text": "Job cancelled. Your gift goes back to your gift balance and any card payment returns to your card, less up to the $${formatPriceExact(appliedFee)} cancellation fee and ${cardKeeps}. We'll send you the exact amounts.${keptFeeSentence}",
+            "holes": {
+              "cardKeeps": [
+                {
+                  "form": "dynamic",
+                  "text": "flatModel ? \"the card-processing fee Stripe keeps\" : \"the service fee you paid at checkout\"",
+                  "branches": [
+                    {
+                      "form": "literal",
+                      "text": "the card-processing fee Stripe keeps"
+                    },
+                    {
+                      "form": "literal",
+                      "text": "the service fee you paid at checkout"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "form": "template",
+            "text": "Job cancelled — your gift goes back to your gift balance within the hour, and any card payment returns to your card, less ${cardKeeps}.${keptFeeSentence}",
+            "holes": {
+              "cardKeeps": [
+                {
+                  "form": "dynamic",
+                  "text": "flatModel ? \"the card-processing fee Stripe keeps\" : \"the service fee you paid at checkout\"",
+                  "branches": [
+                    {
+                      "form": "literal",
+                      "text": "the card-processing fee Stripe keeps"
+                    },
+                    {
+                      "form": "literal",
+                      "text": "the service fee you paid at checkout"
+                    }
+                  ]
+                }
+              ]
+            }
           },
           {
             "form": "template",
@@ -166,7 +218,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 290,
+      "line": 309,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

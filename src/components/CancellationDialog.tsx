@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { cancellationHelperShare } from "@/lib/cancellationHelperShare";
 import { isFlatFeeJob, type FlatFeeStamp } from "@/lib/helprFlatFee";
-import { cancelRefundToast } from "@/lib/cancelRefundCopy";
+import { cancelRefundToast, giftOnJobFromRead } from "@/lib/cancelRefundCopy";
 // The ladder this dialog quotes IS the ladder Community Rules publishes —
 // read the same two constants CommunitySection does rather than restating
 // "25"/"50" as prose.
@@ -264,6 +264,25 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         return;
       }
 
+      // Q?gift-cancel-copy: a gift that paid toward this job goes back to the
+      // gift balance, not to a card, so the toast has to know whether one did.
+      // Read now, while it is still 'redeemed' / 'reserved' (the hourly sweep
+      // restores it). A failed read says "unknown" and the toast stays neutral.
+      let gift: ReturnType<typeof giftOnJobFromRead> = "unknown";
+      try {
+        const { data: giftRows, error: giftErr } = await supabase
+          .from("gift_cards")
+          .select("status")
+          .eq("job_id", jobId)
+          .in("status", ["redeemed", "reserved"])
+          .limit(5);
+        if (giftErr) report(giftErr, { severity: "warning", tags: { source: "CancellationDialog.giftRead" }, context: { job_id: jobId } });
+        gift = giftOnJobFromRead(giftRows, giftErr);
+      } catch (giftReadErr) {
+        // The cancel itself succeeded; only the wording falls back to neutral.
+        report(giftReadErr, { severity: "warning", tags: { source: "CancellationDialog.giftRead" }, context: { job_id: jobId } });
+      }
+
       hapticSuccess();
       // Cancelling used to end in silence — the dialog closed, the card
       // vanished, and nothing said what happened to the money. That refund is
@@ -277,7 +296,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         // Nothing charged -> nothing to refund (an unfunded cancel used to be
         // told "the full amount returns to your card"); otherwise the refund
         // sentence for this job's fee model (src/lib/cancelRefundCopy.ts).
-        cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence }),
+        cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift }),
         { action: { label: "Dismiss", onClick: () => { /* toast closes itself */ } } },
       );
       onCancelled();

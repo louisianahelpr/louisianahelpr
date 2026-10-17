@@ -29,9 +29,13 @@ RUN_BASE="${RUN_BASE:-local-$(date +%s)}"
 # PRESS_LAST_WAVE=0 on an earlier leg hands unwalked rows to the next one.
 export PRESS_QUEUE_DIR="${PRESS_QUEUE_DIR:-test-results/press-queue/$RUN_BASE}"
 export PRESS_LAST_WAVE="${PRESS_LAST_WAVE:-1}"
-# The shards of one wave share the run's load ceiling: each paces to 1/width of
-# it (press-every-control.mjs paceToCeiling), since the budget step sums them.
+# The shards of one wave share the run's load ceiling, since the budget step sums
+# them. Lead ruling 2026-10-17: they pace against ONE leg meter in PRESS_PACE_DIR
+# (pressSharedCeiling.mjs) instead of 1/width each, so a light shard's unused
+# share goes to its sibling. PRESS_WAVE_WIDTH is the fallback split without it.
 export PRESS_WAVE_WIDTH="$#"
+export PRESS_PACE_DIR="${PRESS_PACE_DIR:-test-results/press-pace/$RUN_BASE-wave-$1}"
+rm -rf "$PRESS_PACE_DIR"
 
 pids=()
 for n in "$@"; do

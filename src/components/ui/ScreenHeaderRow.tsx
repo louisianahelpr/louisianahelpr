@@ -93,7 +93,7 @@ const SEARCH_TRIGGER_SLOT_WIDTH = "44px";
  * line under the title, and the floor that decision is made against.
  *
  * Exported for the guard that proves the field stays typable
- * (`src/test/activityHeaderPhoneWidthBudget.test.ts`), which derives both from
+ * (`src/test/activityTabLabelsFitAPhone.test.ts`), which derives both from
  * here rather than restating them. The Tailwind classes on the row, title and
  * field wrapper are LITERALS — `max-[499px]:flex-wrap`, `max-[499px]:basis-full`
  * … — because a template built from this constant compiles to no rule at all.

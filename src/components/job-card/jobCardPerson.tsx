@@ -63,7 +63,7 @@ import {
  * Exactly one JobStepCard is ever mounted per card (the poster's five steps
  * come off a `switch`, the helper's off `deriveHelperStep`), so the claim
  * count is 0 or 1 and the name prints exactly once either way. The guard for
- * that is `src/test/jobCardPersonTileOnce.test.tsx`, which counts profile
+ * that is `src/test/jobCardPersonTileAboveRow.test.tsx`, which counts profile
  * links rather than trusting this paragraph.
  *
  * COLLAPSED CARDS SHOW NOTHING (V6, reaffirmed by the owner 2026-09-19). That

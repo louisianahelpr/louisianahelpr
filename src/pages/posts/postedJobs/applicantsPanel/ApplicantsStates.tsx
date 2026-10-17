@@ -408,8 +408,7 @@ export function ApplicantsEmptyState({
            (owner, 2026-10-01: "This is kind of low."; measured gap from card
            top to icon 142px at 375 / 173px at 1440 against 56px padding).
            One return serves every phase (fresh / quiet / imminent / overdue),
-           so all four move together. Guarded by applicantsEmptyTop.test.tsx
-           and e2e/prod-audit/applicants-empty-position.spec.ts. */
+           so all four move together. Guarded by applicantsEmptyTop.test.tsx. */
         align="top-phone"
         icon={icon}
         /* NO eyebrow: EmptyState has none (its hidden eyebrow was removed

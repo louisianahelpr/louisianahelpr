@@ -16,7 +16,7 @@
 // raw id ("Your pro pass ended."). This file is the plain-TS source both
 // runtimes can reach; `src/lib/subscriptionTiers.ts` re-exports it, and
 // `src/lib/tierNames.parity.test.ts` asserts these strings and TIER_PERKS never
-// drift apart. Mirrors the `_shared/proTiers.ts` + `src/lib/proTiers.ts` pattern.
+// drift apart. Plain TS like `_shared/proTiers.ts`, which tests import directly.
 //
 // There is no "Business" entry. It was removed on 2026-09-01 together with the
 // `business` rung in `helperFees.ts` and the `business` row in TIER_PERKS —

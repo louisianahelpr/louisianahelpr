@@ -12,7 +12,7 @@
  * renders ALL FOUR phases (fresh / quiet / imminent / overdue — chosen by
  * created_at and date_needed exactly as applicantsEmptyPhase reads them) and
  * asserts each card is `justify-start`, never `justify-center`. Where the
- * icon actually lands is e2e/prod-audit/applicants-empty-position.spec.ts.
+ * icon actually lands in pixels is NOT measured by any browser check.
  *
  * Shown red on the original:
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx | align="top-phone" | align="center"

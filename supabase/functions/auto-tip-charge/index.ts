@@ -16,9 +16,10 @@
 // tip. The Helpr gets 100%; the poster covers the card fee.
 //
 // Safety properties, in order of how much they matter:
-//   1. At most ONE automatic tip per job, enforced by a UNIQUE index, not by
-//      this function's bookkeeping. Overlapping ticks or a slow Stripe call
-//      cannot double-charge.
+//   1. At most ONE automatic tip per (job, Helpr) — one for a single-Helpr
+//      job, one per hired member of a crew — enforced by a UNIQUE index
+//      (tips_one_auto_per_job_member), not by this function's bookkeeping.
+//      Overlapping ticks or a slow Stripe call cannot double-charge.
 //   2. The tips row is written BEFORE the charge. A row with no payment is
 //      recoverable and visible; a payment with no row is money nobody can
 //      account for.
@@ -591,7 +592,7 @@ serve(async (req) => {
             },
           },
           {
-            // Keyed on the tips row id (unique per job by the index above) and
+            // Keyed on the tips row id (one per (job, member) by the index above) and
             // the amount charged, so a Stripe-level retry of this exact call
             // can never mint a second charge, and a retry with a different
             // charge total is a new request rather than a parameter mismatch.

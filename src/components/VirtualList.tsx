@@ -29,8 +29,7 @@ import { useVirtualizer, useWindowVirtualizer } from "@tanstack/react-virtual";
  *    threads: 16 rows mounted at 375, still 16 after scrolling the real
  *    container 1758px — 13 threads unreachable behind a blank panel.
  *
- * The class guard is scripts/check-virtual-list-scroll-source.mjs +
- * src/test/virtualListScrollSource.test.ts: any call site on an app-shell
+ * The class guard is src/test/virtualListScrollSource.test.ts: any call site on an app-shell
  * route that omits `scrollElementRef` fails CI.
  *
  * Use it for very long lists (dashboard job feed, activity tabs, inbox) so the

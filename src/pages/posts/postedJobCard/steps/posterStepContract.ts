@@ -202,7 +202,7 @@ export function posterConfirmationRung(
   // accepted, nobody is coming, so there is no arrival to confirm and no box at
   // all: no disabled primary-looking control for an action that cannot exist
   // yet. The card's move on an offer is the answer-by countdown and Cancel.
-  // Guard: src/test/offerCardNoArrivalControl.test.tsx.
+  // Guard: src/test/offerCardHierarchy.test.tsx (claim 1).
   if (step === "scheduled" && !job.helper_confirmed_at) return null;
 
   // Near-miss stands in for an arrival on the IN-PROGRESS step only — that is

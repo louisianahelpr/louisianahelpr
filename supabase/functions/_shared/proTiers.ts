@@ -5,9 +5,9 @@
 // in src/lib/subscriptionTiers.ts. Drift between what the UI shows and what
 // Stripe charges is caught by src/lib/proTiers.parity.test.ts.
 //
-// Mirrors the businessSeatTiers.ts pattern: plain TS (no Deno imports at module
-// scope) so vitest can import it directly, with a thin client re-export at
-// src/lib/proTiers.ts.
+// Plain TS (no Deno imports at module scope) so vitest can import it directly
+// from supabase/functions/_shared/proTiers.ts. There is no client re-export:
+// src/lib/proTiers.ts was deleted as dead code on 2026-09-24 (01c9878bd).
 //
 // STRIPE MODE ENV OVERRIDE: the hardcoded IDs below are the LIVE Price
 // objects. When the edge function runs against test-mode Stripe (test

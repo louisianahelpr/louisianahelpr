@@ -4,7 +4,8 @@
  * status in plain words, incl. waiting for a review: row 33). Hidden unless
  * the 'declutter' switch is on for the member (DeclutterGate).
  */
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -30,7 +31,10 @@ import { ConditionStars, DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./de
 import { useDeclutterOrigin, type DeclutterOrigin } from "./useDeclutterOrigin";
 import { CartView, OffersView, StrikeCount } from "./DeclutterTradeViews";
 import { WantedView } from "./DeclutterWantedViews";
-import { DeliverView } from "./DeclutterDeliveryViews";
+// The delivery screens load on their own (Q178, 2026-10-17): imported statically
+// from two Declutter screens, the shared Helpr task module rode in
+// signed-in-shared and put /posts over its critical-path budget.
+const DeliverView = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.DeliverView })));
 
 type View = "browse" | "mine" | "offers" | "cart" | "deliver" | "wanted";
 const VIEWS: View[] = ["browse", "mine", "offers", "cart", "deliver", "wanted"];
@@ -306,7 +310,7 @@ export default function DeclutterHome() {
       {view === "browse" ? <BrowseView userId={user.id} />
         : view === "mine" ? <MyListingsView userId={user.id} />
           : view === "offers" ? <OffersView />
-            : view === "deliver" ? <DeliverView />
+            : view === "deliver" ? <Suspense fallback={<HelprSpinner />}><DeliverView /></Suspense>
               : view === "wanted" ? <WantedView />
               : <CartView />}
     </AppPage>

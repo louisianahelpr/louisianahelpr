@@ -88,8 +88,9 @@ export async function fetchRequestPhotos(requestId: string): Promise<Maintenance
 }
 export interface RequestJobState {
   jobId: string | null;
-  /** booked = funded; paying = checkout in flight; refunding = money going back; none = nothing live (post again). */
-  booking: "booked" | "paying" | "refunding" | "none";
+  /** booked = funded; paying = a checkout that may still complete; refunding = money going back or contested;
+   *  unpaid = open, never funded, no checkout running (cancel it to post again); none = settled (post again). */
+  booking: "booked" | "paying" | "refunding" | "unpaid" | "none";
   jobStatus: string | null;
 }
 /** The linked job's state (rentals_request_job_state): "a job id is set" is not "booked". */
@@ -213,6 +214,25 @@ export const approveRequest = (id: string) => rpcVoid(supabase.rpc("rentals_appr
 export const declineRequest = (id: string, code: string, text: string) =>
   rpcVoid(supabase.rpc("rentals_decline_request", { p_request_id: id, p_reason_code: code, p_reason_text: text }), (e) => rpcErrorMessage("rentals_decline_request", e));
 export const withdrawRequest = (id: string) => rpcVoid(supabase.rpc("rentals_withdraw_request", { p_request_id: id }), (e) => rpcErrorMessage("rentals_withdraw_request", e));
+/** Cancel the request's open, never-paid job (no checkout running) so the landlord can post again (slice 3). */
+export const cancelRequestJob = (requestId: string) =>
+  rpcVoid(supabase.rpc("rentals_cancel_request_job", { p_request_id: requestId }), (e) => rpcErrorMessage("rentals_cancel_request_job", e));
+/** Visit time (owner Q41): the hired Helpr proposes, the tenant confirms the exact time on file. */
+export const proposeVisit = (jobId: string, at: string) =>
+  rpcVoid(supabase.rpc("rentals_propose_visit", { p_job_id: jobId, p_at: at }), (e) => rpcErrorMessage("rentals_propose_visit", e));
+export const confirmVisit = (requestId: string, at: string) =>
+  rpcVoid(supabase.rpc("rentals_confirm_visit", { p_request_id: requestId, p_at: at }), (e) => rpcErrorMessage("rentals_confirm_visit", e));
+export interface JobVisit {
+  requestId: string;
+  proposedFor: string | null;
+  confirmedAt: string | null;
+}
+/** The visit for a job, for its Helpr or poster (rentals_visit_for_job). Null when the job came from no request. */
+export async function fetchVisitForJob(jobId: string): Promise<JobVisit | null> {
+  const row = (unwrap(await supabase.rpc("rentals_visit_for_job", { p_job_id: jobId })) ?? [])[0];
+  if (!row) return null;
+  return { requestId: row.request_id, proposedFor: row.proposed_for ?? null, confirmedAt: row.confirmed_at ?? null };
+}
 export const answerFixed = (id: string, fixed: boolean, note: string) =>
   rpcVoid(supabase.rpc("rentals_tenant_answer_fixed", { p_request_id: id, p_fixed: fixed, p_note: note }), (e) => rpcErrorMessage("rentals_tenant_answer_fixed", e));
 

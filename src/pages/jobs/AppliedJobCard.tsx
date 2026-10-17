@@ -1,4 +1,5 @@
-import { memo, useRef, useState } from "react";
+import { lazy, memo, Suspense, useRef, useState } from "react";
+import { report } from "@/lib/errorLogger";
 import { BackoutBanner } from "@/components/job-card/BackoutBanner";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
@@ -33,6 +34,17 @@ import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { HelperSeriesRow, ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
 import { useCardNotes } from "@/components/job-card/JobNotes";
+
+// Rentals (owner Q41): the hired Helpr offers the tenant a visit time on a job
+// posted from a repair request. Lazy (off /posts' shared chunk); renders nothing
+// for every other job. A chunk that cannot load renders nothing (reported).
+const RentalVisitHelpr = lazy(() =>
+  import("@/components/rentals/RentalVisitHelpr").catch((err: unknown) => {
+    report(err, { severity: "warning", tags: { source: "AppliedJobCard.rentalVisit" } });
+    return { default: () => null };
+  }),
+);
+const VISIT_STATUSES = new Set(["accepted", "in_progress", "revision_requested"]);
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -468,6 +480,11 @@ function AppliedJobCardInner({
               </section>
             )}
             {showNotes && notes}
+            {!isMinimalCard && expandedJobIds.has(app.job_id) && app.status === "accepted" && VISIT_STATUSES.has(job.status ?? "") && (
+              <Suspense fallback={null}>
+                <RentalVisitHelpr jobId={app.job_id} />
+              </Suspense>
+            )}
             {showBodyPhotos && <JobCardPhotoStrip urls={job.photos || []} size="sm" stopPropagation />}
 
             {/* The poster, as a PersonTile — the same shared tile the poster

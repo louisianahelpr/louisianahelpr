@@ -26,7 +26,7 @@ export interface MaintenancePrefill {
   location: string;
   /** The tenant's gate/lock info (Q41): goes into the job's private access notes. */
   accessNotes: string;
-  /** Already linked to a FUNDED job or one whose checkout is in flight: offer nothing to post. */
+  /** Already linked to a live (not settled) job: offer nothing to post. */
   alreadyPosted: boolean;
   /** Not approved (submitted, declined, withdrawn): nothing to post. */
   notApproved: boolean;
@@ -51,12 +51,21 @@ interface RequestRow {
   jobs?: { status: string; payment_status: string | null; stripe_session_id?: string | null } | null;
 }
 
-const FUNDED = new Set(["escrow", "payout_pending", "released"]);
-/** Funded, or a checkout in flight (a session exists and may still complete): the link RPC's own rule. */
+const MONEY_BACK = new Set(["refunded", "cancelled"]);
+const NEVER_FUNDED = new Set(["unpaid", "failed", "abandoned"]);
+/**
+ * Not settled = live: the link RPC's own rule (20261017220911, one live job per
+ * request). Settled is money back ('refunded' / 'cancelled'), or a CANCELLED job
+ * that was never funded with no checkout that could still complete. Anything
+ * else (funded, mid-checkout, open and still payable, chargeback, cancelling)
+ * keeps the request on its job.
+ */
 function isLive(j: RequestRow["jobs"]): boolean {
-  if (!j || j.status === "cancelled") return false;
-  if (FUNDED.has(j.payment_status ?? "")) return true;
-  return (j.payment_status === "unpaid" || j.payment_status === "cancelling") && !!j.stripe_session_id;
+  if (!j) return false;
+  const pay = j.payment_status ?? "unpaid";
+  if (MONEY_BACK.has(pay)) return false;
+  if (j.status === "cancelled" && NEVER_FUNDED.has(pay) && (!j.stripe_session_id || pay === "abandoned")) return false;
+  return true;
 }
 /** public.jobs CHECKs (Q782): title <= 32 and description <= 1000 code points. */
 const fit = (s: string, n: number) => Array.from(s).slice(0, n).join("").trim();

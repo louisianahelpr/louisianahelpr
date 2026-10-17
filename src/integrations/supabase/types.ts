@@ -5173,6 +5173,10 @@ export type Database = {
           unit_label: string
           updated_at: string
           urgency: string
+          visit_confirmed_at: string | null
+          visit_job_id: string | null
+          visit_proposed_at: string | null
+          visit_proposed_for: string | null
         }
         Insert: {
           access_notes?: string
@@ -5203,6 +5207,10 @@ export type Database = {
           unit_label: string
           updated_at?: string
           urgency: string
+          visit_confirmed_at?: string | null
+          visit_job_id?: string | null
+          visit_proposed_at?: string | null
+          visit_proposed_for?: string | null
         }
         Update: {
           access_notes?: string
@@ -5233,6 +5241,10 @@ export type Database = {
           unit_label?: string
           updated_at?: string
           urgency?: string
+          visit_confirmed_at?: string | null
+          visit_job_id?: string | null
+          visit_proposed_at?: string | null
+          visit_proposed_for?: string | null
         }
         Relationships: [
           {
@@ -12069,9 +12081,29 @@ export type Database = {
         Args: { p_property_id: string; p_storage_path: string }
         Returns: undefined
       }
+      rentals_cancel_request_job: {
+        Args: { p_request_id: string }
+        Returns: undefined
+      }
+      rentals_confirm_visit: {
+        Args: { p_at: string; p_request_id: string }
+        Returns: undefined
+      }
+      rentals_propose_visit: {
+        Args: { p_at: string; p_job_id: string }
+        Returns: undefined
+      }
       rentals_tenant_answer_fixed: {
         Args: { p_fixed: boolean; p_note: string; p_request_id: string }
         Returns: undefined
+      }
+      rentals_visit_for_job: {
+        Args: { p_job_id: string }
+        Returns: {
+          confirmed_at: string
+          proposed_for: string
+          request_id: string
+        }[]
       }
       rentals_withdraw_request: {
         Args: { p_request_id: string }

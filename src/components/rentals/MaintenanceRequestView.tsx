@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
-import { answerFixed, approveRequest, declineRequest, fetchRequest, fetchRequestJobState, fetchRequestPhotos, signedFileUrl, withdrawRequest } from "@/lib/rentals/api";
+import { answerFixed, approveRequest, cancelRequestJob, confirmVisit, declineRequest, fetchRequest, fetchRequestJobState, fetchRequestPhotos, signedFileUrl, withdrawRequest } from "@/lib/rentals/api";
 import {
   DECLINE_REASON_LABEL,
   REQUEST_STATUS_LABEL,
@@ -75,6 +75,9 @@ export default function MaintenanceRequestView() {
   const decline = useMutation({ mutationFn: () => declineRequest(id, reason, reasonText), onSuccess: done, onError });
   const withdraw = useMutation({ mutationFn: () => withdrawRequest(id), onSuccess: done, onError });
   const fixed = useMutation({ mutationFn: (yes: boolean) => answerFixed(id, yes, note), onSuccess: done, onError });
+  // The exact time on screen is sent: the server refuses it if the Helpr changed it since (visit_time_changed).
+  const cancelJob = useMutation({ mutationFn: () => cancelRequestJob(id), onSuccess: done, onError });
+  const okVisit = useMutation({ mutationFn: (at: string) => confirmVisit(id, at), onSuccess: done, onError });
 
   if (!validId) return <MaintenanceRequestUnavailable />;
   if (q.isError) return <AppPage title="Repair request" backTo="/rentals"><ErrorState onRetry={() => q.refetch()} /></AppPage>;
@@ -88,6 +91,8 @@ export default function MaintenanceRequestView() {
   // (rentals_request_job_state; lh-money-escrow review #1).
   const job = q.data.job;
   const workStarted = job.booking === "booked" && ["in_progress", "pending_approval", "completed", "revision_requested", "disputed"].includes(job.jobStatus ?? "");
+  // Visit time (owner Q41): the hired Helpr's offer, shown only while it is for the request's current, booked job.
+  const visitAt = job.booking === "booked" && r.visit_job_id != null && r.visit_job_id === r.job_id ? r.visit_proposed_for : null;
 
   return (
     <AppPage title="Repair request" backTo="/rentals">
@@ -186,9 +191,17 @@ export default function MaintenanceRequestView() {
           </RentalsCard>
         )}
         {isLandlord && job.booking === "paying" && (
-          <p className="text-sm">Checkout started. If you closed it, you can post the job again within the hour.</p>
+          <p className="text-sm">Checkout started. If you closed it, you can cancel the job and post again once the checkout expires.</p>
         )}
         {isLandlord && job.booking === "refunding" && <p className="text-sm">Refund in progress.</p>}
+        {isLandlord && r.status === "approved" && job.booking === "unpaid" && (
+          <RentalsCard title="Posted, not paid yet">
+            <p className="text-sm">This repair's job was posted but never paid. Cancel it to post the repair again.</p>
+            <Button type="button" size="sm" variant="outline" disabled={cancelJob.isPending} onClick={() => cancelJob.mutate()}>
+              Cancel that job
+            </Button>
+          </RentalsCard>
+        )}
         {isLandlord && job.booking === "booked" && job.jobId && (
           <p className="text-sm">
             Booked. <Link to={`/jobs/${job.jobId}`} className="underline font-semibold">Open the job</Link>
@@ -196,6 +209,21 @@ export default function MaintenanceRequestView() {
         )}
         {isTenant && r.status === "approved" && (
           <p className="text-sm">{job.booking === "booked" ? "A Helpr job is booked for this repair." : "Approved, not booked yet."}</p>
+        )}
+
+        {r.status === "approved" && visitAt && (
+          <RentalsCard title="Visit time">
+            <p className="text-sm">The Helpr offered {fmtDate(visitAt)}.</p>
+            {r.visit_confirmed_at ? (
+              <p className="text-sm">{isTenant ? "You OK'd this time." : "Your tenant OK'd this time."}</p>
+            ) : isTenant ? (
+              <Button type="button" size="sm" disabled={okVisit.isPending} onClick={() => okVisit.mutate(visitAt)}>
+                OK this time
+              </Button>
+            ) : (
+              <p className="text-sm">Waiting for your tenant to OK it.</p>
+            )}
+          </RentalsCard>
         )}
 
         {isTenant && r.status === "submitted" && (

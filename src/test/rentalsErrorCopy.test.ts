@@ -7,13 +7,14 @@
  * @mutate src/lib/rentals/copy.ts |   return RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY; |   return code;
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { RENTALS_ERROR_COPY, rentalsErrorMessage } from "@/lib/rentals/copy";
 
 const DIR = join(process.cwd(), "supabase/migrations");
-const RENTALS_FILES = ["20261017205605_rentals_maintenance_requests.sql"];
+// Every Rentals migration (S1 and each later restatement), read from the directory, not listed by hand.
+const RENTALS_FILES = readdirSync(DIR).filter((f) => /^\d{14}_rentals_.*\.sql$/.test(f)).sort();
 // require_feature (20261012031120) raises feature_disabled on every RPC.
 const SHARED = ["feature_disabled"];
 
@@ -29,6 +30,7 @@ function raisedCodes(): Set<string> {
 describe("Rentals error copy is exact (both ways)", () => {
   const codes = raisedCodes();
   it("reads a real inventory", () => {
+    expect(RENTALS_FILES.length).toBeGreaterThan(2);
     expect(codes.size).toBeGreaterThan(25);
   });
   it("every code a rentals migration raises has plain words", () => {

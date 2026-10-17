@@ -160,11 +160,16 @@ async function jobIsFunded(jobId: string): Promise<boolean | null> {
  * an unlinked job never shows on the tenant's request and the tenant cannot
  * answer "Was it fixed?" for it.
  *
- * "stop" when the server refused because the request already points at a job
- * that is paid or mid-checkout (another tab or device got there first): paying
- * for this one would pay for the same repair twice (lh-money-escrow review of
- * 01f8eab54 #2). A refusal whose reason cannot be read back also stops, since
- * the money-safe answer to "is it already paid?" is not to pay again.
+ * "stop" when the request already points at another live job (paid, mid-
+ * checkout, or posted and still payable: another tab or device got there
+ * first): paying for this one would pay for the same repair twice
+ * (lh-money-escrow reviews of 01f8eab54 #2 and bb5b8bc6e #3). The request is
+ * re-read after a refusal AND after a link call that failed (network, timeout,
+ * deadlock), since a failed call says nothing about the request. A re-read
+ * that cannot be made (the chunk did not load, or the read failed) also stops:
+ * the money-safe answer to "is it already paid?" is not to pay again. A re-read
+ * showing the request already on THIS job (the link landed, its answer was
+ * lost) goes on with nothing to tell.
  */
 async function linkMaintenanceJobOrTell(requestId: string, jobId: string): Promise<"go" | "stop"> {
   let linkErr: unknown;
@@ -180,13 +185,14 @@ async function linkMaintenanceJobOrTell(requestId: string, jobId: string): Promi
     linkErr = err;
   }
   report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkMaintenance" }, context: { job_id: jobId, request_id: requestId } });
-  if (mod && (linkErr as Error).message === "maintenance link refused") {
-    const now = await mod.fetchMaintenancePrefill(requestId).catch((readErr: unknown) => {
-      report(readErr, { severity: "warning", tags: { source: "useJobSubmit.linkMaintenanceRecheck" }, context: { request_id: requestId } });
-      return undefined;
-    });
-    if (now === undefined || now?.alreadyPosted) return "stop";
-  }
+  if (!mod) return "stop";
+  const now = await mod.fetchMaintenancePrefill(requestId).catch((readErr: unknown) => {
+    report(readErr, { severity: "warning", tags: { source: "useJobSubmit.linkMaintenanceRecheck" }, context: { request_id: requestId } });
+    return undefined;
+  });
+  if (now === undefined) return "stop";
+  if (now?.linkedJobId === jobId) return "go";
+  if (now?.alreadyPosted) return "stop";
   toast.error("Your job posted, but it isn't linked to the repair request", {
     description: "Your tenant won't see it on their request. Tell them once a Helpr is booked.",
   });

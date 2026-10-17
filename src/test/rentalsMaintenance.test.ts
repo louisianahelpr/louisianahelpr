@@ -32,8 +32,14 @@
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql |   IF p_staff THEN\n    IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN |   IF false THEN\n    IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN
 // @mutate src/lib/rentals/api.ts | ownership_review_note, auto_approve_limit_cents, created_at, updated_at"; | ownership_review_note, auto_approve_limit_cents, created_at, updated_at, ownership_reviewed_by";
 // @mutate src/lib/rentals/copy.ts |   approved: "Approved by Louisiana Helpr", |   approved: "Owner verified",
+// @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |    WHERE j.id = p_job_id AND j.helper_id = v_uid | WHERE j.id = p_job_id
+// @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |                                   WHERE r.id = p_request_id AND r.visit_proposed_for = p_at) THEN |                                   WHERE r.id = p_request_id) THEN
+// @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |        AND (j.helper_id = v_uid OR j.customer_id = v_uid); |        ;
+// @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                        AND (cur.stripe_session_id IS NULL OR cur.payment_status = 'abandoned'))) |                        )) 
+// @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                    OR (cur.status = 'cancelled' |                    OR (true
+// @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |     AND COALESCE(j.payment_status, 'unpaid') IN ('unpaid', 'failed', 'abandoned')\n     AND (j.stripe_session_id IS NULL OR j.payment_status = 'abandoned')\n   FOR UPDATE; |     FOR UPDATE;
 import { describe, expect, it } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -44,6 +50,9 @@ const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");
 const FILE = "20261017205605_rentals_maintenance_requests.sql";
 const MIG = blankSqlComments(readFileSync(join(MIG_DIR, FILE), "utf8"));
+/** S1 plus every later Rentals migration (read from the directory): their grants join the callable inventory. */
+const LATER = readdirSync(MIG_DIR).filter((f) => /^\d{14}_rentals_.*\.sql$/.test(f) && f > FILE).sort();
+const ALL_MIG = [MIG, ...LATER.map((f) => blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8")))].join("\n");
 const DEFS = effectiveDefs(MIG_DIR);
 const body = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "");
 const flat = (s: string) => s.replace(/\s+/g, " ");
@@ -63,7 +72,10 @@ const MEMBER_RPCS = [
 ];
 /** RPCs that only take access away or link a job (banned / under-18 may still leave). */
 const OTHER_RPCS = ["rentals_end_tenancy", "rentals_withdraw_request", "link_maintenance_request_job", "rentals_admin_review_property"];
-const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes"];
+const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes", "rentals_visit_for_job"];
+/** Slice 3 writes: visit time (the Helpr, not a Rentals member, proposes; the tenant confirms through
+ *  rentals_assert_member) and the landlord's cancel of an unpaid repair job. */
+const VISIT_RPCS = ["rentals_propose_visit", "rentals_confirm_visit", "rentals_cancel_request_job"];
 /** Shared helpers this migration restates with their live grants (authenticated keeps EXECUTE). */
 const SHARED_RESTATED = ["is_submitted_credential_object"];
 const POLICY_HELPERS = ["rentals_caller_is_active_tenant_of"];
@@ -73,7 +85,7 @@ const TABLES = ["rental_properties", "rental_units", "rental_tenancies", "mainte
 /** Functions the migration GRANTs EXECUTE to authenticated. */
 function clientCallable(): Set<string> {
   const out = new Set<string>();
-  for (const m of MIG.matchAll(/(GRANT\s+EXECUTE|REVOKE\s+ALL)\s+ON\s+FUNCTION\s+public\.(\w+)\s*\([^)]*\)\s+(?:TO|FROM)\s+([^;]+);/gi)) {
+  for (const m of ALL_MIG.matchAll(/(GRANT\s+EXECUTE|REVOKE\s+ALL)\s+ON\s+FUNCTION\s+public\.(\w+)\s*\([^)]*\)\s+(?:TO|FROM)\s+([^;]+);/gi)) {
     const roles = m[3].toLowerCase();
     if (/^grant/i.test(m[1]) && /\bauthenticated\b/.test(roles)) out.add(m[2]);
     if (/^revoke/i.test(m[1]) && /\bauthenticated\b/.test(roles)) out.delete(m[2]);
@@ -87,18 +99,19 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
   it("reads a real inventory (floors)", () => {
     expect(DEFS.has("rentals_file_request")).toBe(true);
     expect(callable.size).toBeGreaterThan(10);
-    expect([...callable].sort()).toEqual([...MEMBER_RPCS, ...OTHER_RPCS, ...READ_RPCS, ...POLICY_HELPERS, ...SHARED_RESTATED].sort());
+    expect(LATER.length).toBeGreaterThan(1);
+    expect([...callable].sort()).toEqual([...MEMBER_RPCS, ...OTHER_RPCS, ...READ_RPCS, ...VISIT_RPCS, ...POLICY_HELPERS, ...SHARED_RESTATED].sort());
   });
 
   it("1. every client-callable Rentals RPC starts with require_feature('rentals')", () => {
-    const missing = [...MEMBER_RPCS, ...OTHER_RPCS, ...READ_RPCS].filter(
+    const missing = [...MEMBER_RPCS, ...OTHER_RPCS, ...READ_RPCS, ...VISIT_RPCS].filter(
       (fn) => !/\bBEGIN\s+PERFORM\s+public\.require_feature\('rentals'\);/i.test(body(fn)),
     );
     expect(missing).toEqual([]);
   });
 
   it("2. write RPCs name is_caller_banned(), read the caller from auth.uid(), and member RPCs run the member gates", () => {
-    for (const fn of [...MEMBER_RPCS, "link_maintenance_request_job", "rentals_admin_review_property"]) {
+    for (const fn of [...MEMBER_RPCS, ...VISIT_RPCS, "link_maintenance_request_job", "rentals_admin_review_property"]) {
       const b = body(fn);
       expect(b, `${fn} must not be STABLE/IMMUTABLE (it writes)`).not.toMatch(/\b(STABLE|IMMUTABLE)\b/i);
       expect(b, `${fn} names is_caller_banned()`).toMatch(/public\.is_caller_banned\(\)/);
@@ -127,7 +140,22 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
     expect(file).toContain("v_leak := public.contact_leak_reason(");
     expect(file).toContain("WHERE id = p_tenancy_id AND tenant_id = v_uid AND status = 'active'");
     // A funded job OR a checkout in flight is never re-pointed (no double payment).
-    expect(flat(body("link_maintenance_request_job"))).toContain("OR (cur.payment_status IN ('unpaid', 'cancelling') AND cur.stripe_session_id IS NOT NULL)");
+    // Slice 3 (20261017220911): the request moves off its job only once that job is SETTLED (money back, or
+    // cancelled and never funded with no live checkout); the reader's 'none' is the same test.
+    const settled = "COALESCE(cur.payment_status, 'unpaid') IN ('refunded', 'cancelled') OR (cur.status = 'cancelled' AND COALESCE(cur.payment_status, 'unpaid') IN ('unpaid', 'failed', 'abandoned') AND (cur.stripe_session_id IS NULL OR cur.payment_status = 'abandoned'))";
+    expect(flat(body("link_maintenance_request_job"))).toContain(`AND NOT (${settled}) FOR SHARE) THEN RETURN false;`);
+    expect(flat(body("rentals_request_job_state"))).toContain(`WHEN ${settled.replace(/cur\./g, "j.").replace("j.status =", "j.status::text =")} THEN 'none'`);
+    // The way out: only the landlord, only an open never-funded job with no checkout running, under its row lock.
+    const cancel = flat(body("rentals_cancel_request_job"));
+    expect(cancel).toContain("WHERE r.id = p_request_id AND r.landlord_id = v_uid AND r.status = 'approved' FOR UPDATE;");
+    expect(cancel).toContain("WHERE j.id = v_job AND j.customer_id = v_uid AND j.status = 'open' AND COALESCE(j.payment_status, 'unpaid') IN ('unpaid', 'failed', 'abandoned') AND (j.stripe_session_id IS NULL OR j.payment_status = 'abandoned') FOR UPDATE;");
+    expect(cancel).toContain("PERFORM public.poster_cancel_job(v_job,");
+    // Slice 3 visit time (owner Q41): only the job's Helpr proposes, only the tenant confirms the exact time on
+    // file, and the job-side read answers only the job's Helpr and poster (behaviour: the PGlite "visit:" cases).
+    expect(flat(body("rentals_propose_visit"))).toContain("WHERE j.id = p_job_id AND j.helper_id = v_uid");
+    expect(flat(body("rentals_confirm_visit"))).toContain("WHERE r.id = p_request_id AND r.tenant_id = v_uid AND r.status = 'approved'");
+    expect(flat(body("rentals_confirm_visit"))).toContain("WHERE r.id = p_request_id AND r.visit_proposed_for = p_at) THEN");
+    expect(flat(body("rentals_visit_for_job"))).toContain("AND (j.helper_id = v_uid OR j.customer_id = v_uid);");
     // The job state the screen reads answers only the request's two parties.
     expect(flat(body("rentals_request_job_state"))).toContain("WHERE r.id = p_request_id AND (r.tenant_id = v_uid OR r.landlord_id = v_uid)");
     // Review fixes (lh-authz-rls of 3e84eea25): tenant deletion ends the tenancy; tenants never read the

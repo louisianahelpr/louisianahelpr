@@ -13,8 +13,14 @@
 //
 // @mutate src/pages/post-job/useJobSubmit.ts |   toast.error("Your job posted, but it isn't linked to the repair request", { |   void ("Your job posted, but it isn't linked to the repair request", {
 // @mutate src/pages/post-job/useJobSubmit.ts |     if (await mod.linkMaintenanceJob(requestId, jobId)) return "go"; |     await mod.linkMaintenanceJob(requestId, jobId); return "go";
-// @mutate src/pages/post-job/useJobSubmit.ts |     if (now === undefined \|\| now?.alreadyPosted) return "stop"; |     if (now?.alreadyPosted) return "stop";
-// @mutate src/pages/post-job/useJobSubmit.ts |     if (now === undefined \|\| now?.alreadyPosted) return "stop"; |     if (now === undefined) return "stop";
+// @mutate src/pages/post-job/useJobSubmit.ts |   if (now === undefined) return "stop"; |   if (now === undefined) return "go";
+// @mutate src/pages/post-job/useJobSubmit.ts |   if (now?.alreadyPosted) return "stop"; |   if (now === null) return "stop";
+// @mutate src/pages/post-job/useJobSubmit.ts |   if (now?.linkedJobId === jobId) return "go"; |   if (now === null) return "go";
+// @mutate src/pages/post-job/useJobSubmit.ts |   if (!mod) return "stop"; |   if (!mod) return "go";
+//
+// Slice 3 (lh-money-escrow re-review of bb5b8bc6e #3): a link call that FAILS
+// (as opposed to answering false) re-reads the request too, so a dropped call
+// while another tab's job is live stops instead of paying twice.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 
@@ -144,10 +150,19 @@ vi.mock("@/lib/storageCleanup", () => ({ removeJobPhotos: async (id: string) => 
 const link = vi.hoisted(() => ({
   calls: [] as Array<[string, string]>,
   answer: true as boolean | Error,
-  /** What a re-read of the request says after a refusal: already posted (paid or paying) or not; an Error = the read failed. */
-  recheck: { alreadyPosted: false } as { alreadyPosted: boolean } | null | Error,
+  /** What a re-read of the request says after a refusal or a failed call: already on a live job or not; an Error = the read failed. */
+  recheck: { alreadyPosted: false } as { alreadyPosted: boolean; linkedJobId?: string | null } | null | Error,
   rechecks: 0,
+  chunkFails: false,
 }));
+vi.mock("@/lib/chunkReload", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/chunkReload")>();
+  return {
+    ...real,
+    backgroundImport: (load: () => Promise<unknown>, name: string) =>
+      link.chunkFails && name === "maintenance-prefill" ? Promise.reject(new Error("Failed to fetch dynamically imported module")) : load(),
+  };
+});
 vi.mock("./maintenancePrefill", () => ({
   linkMaintenanceJob: async (requestId: string, jobId: string) => {
     link.calls.push([requestId, jobId]);
@@ -231,6 +246,7 @@ beforeEach(() => {
   link.answer = true;
   link.recheck = { alreadyPosted: false };
   link.rechecks = 0;
+  link.chunkFails = false;
   server.deletes = 0;
   vi.mocked(toast.error).mockClear();
   vi.mocked(report).mockClear();
@@ -258,11 +274,45 @@ describe("Rentals: Post a Job tells the landlord when the maintenance link fails
     expect(server.photoRemovals, "a refused link must not clean up the posted job").toEqual([]);
   });
 
-  it("a link that throws (switch off, banned, network) is told the same way", async () => {
+  it("a link that throws (switch off, banned, network) is re-checked, then told the same way", async () => {
     link.answer = Object.assign(new Error("feature_disabled"), { code: "42501" });
     await post();
+    expect(link.rechecks).toBe(1);
     expect(errorToasts()).toEqual([NOT_LINKED]);
     expect(server.paymentCalls).toEqual(["job-1"]);
+  });
+
+  it("a link call that drops while the repair is on another tab's live job stops before payment", async () => {
+    link.answer = new Error("TypeError: Failed to fetch");
+    link.recheck = { alreadyPosted: true, linkedJobId: "job-other" };
+    await post();
+    expect(server.paymentCalls, "a dropped link call went on to pay for the same repair twice").toEqual([]);
+    expect(server.jobs).toHaveLength(0);
+    expect(errorToasts()).toEqual(["This repair may already have a job"]);
+  });
+
+  it("a link call whose answer was lost but which landed (the request is on THIS job) pays with nothing to tell", async () => {
+    link.answer = new Error("TypeError: Failed to fetch");
+    link.recheck = { alreadyPosted: true, linkedJobId: "job-1" };
+    await post();
+    expect(errorToasts()).toEqual([]);
+    expect(server.paymentCalls).toEqual(["job-1"]);
+  });
+
+  it("a link chunk that cannot load stops (nothing can tell whether the repair already has a live job)", async () => {
+    link.chunkFails = true;
+    await post();
+    expect(link.calls).toEqual([]);
+    expect(server.paymentCalls).toEqual([]);
+    expect(errorToasts()).toEqual(["This repair may already have a job"]);
+  });
+
+  it("a link call that drops and whose re-read fails also stops", async () => {
+    link.answer = new Error("TypeError: Failed to fetch");
+    link.recheck = new Error("TypeError: Failed to fetch");
+    await post();
+    expect(server.paymentCalls).toEqual([]);
+    expect(errorToasts()).toEqual(["This repair may already have a job"]);
   });
 
   it("a refusal because the repair already has a paid or paying job (another tab) stops before payment and removes this unpaid job", async () => {

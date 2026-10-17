@@ -9435,6 +9435,10 @@ export type Database = {
         }[]
       }
       declutter_seller_out: { Args: { p_seller: string }; Returns: boolean }
+      declutter_seller_out_fee_notice: {
+        Args: { p_refund_id: string }
+        Returns: undefined
+      }
       declutter_set_delivery_dropoff: { Args: { p_address: string; p_area_label: string; p_buyer: string; p_lat: number; p_lng: number; p_seller: string }; Returns: undefined }
       declutter_set_pickup_windows: { Args: { p_windows: Json }; Returns: number }
       declutter_set_porch_ok: {

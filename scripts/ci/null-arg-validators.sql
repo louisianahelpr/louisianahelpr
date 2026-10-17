@@ -82,6 +82,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('helpr_task_source_held',        'deny',     'TRUE = the source holds the money (an open problem): no confirm or payout (20261017052705)'),
   ('helpr_task_source_slot_ok',     'allow',    'TRUE = the task''s source accepts this pickup time (20261017052705)'),
   ('helpr_task_vehicle_fits',       'allow',    'TRUE = this Helpr''s vehicle can carry this size (row 41; 20261017052705)'),
+  ('declutter_link_setup_job',      'action',   'VOLATILE: links the caller''s own open, not-yet-paid job (any category) to their own paid Declutter order and reports whether it did; a NULL job matches no job and raises not your open job, a NULL order matches no order and answers FALSE ("Add a Helpr"; 20261017073146)'),
   ('declutter_seller_out',          'deny',     'TRUE = the seller cannot sell now (out, under 18, business-like): refused (20261014210518)'),
   ('is_helper_shadowbanned',        'deny',     'TRUE hides the helper'),
   ('is_submitted_credential_object','deny',     'TRUE freezes the object (storage UPDATE/DELETE policies use NOT)'),

@@ -1710,6 +1710,58 @@ export type Database = {
         Relationships: [
         ]
       }
+      declutter_order_jobs: {
+        Row: {
+          created_at: string
+          job_id: string
+          order_id: string | null
+          purpose: string
+          seller_fault_at: string | null
+          seller_fault_refund_id: string | null
+          seller_fee_billed_cents: number | null
+        }
+        Insert: {
+          created_at?: string
+          job_id: string
+          order_id?: string | null
+          purpose: string
+          seller_fault_at?: string | null
+          seller_fault_refund_id?: string | null
+          seller_fee_billed_cents?: number | null
+        }
+        Update: {
+          created_at?: string
+          job_id?: string
+          order_id?: string | null
+          purpose?: string
+          seller_fault_at?: string | null
+          seller_fault_refund_id?: string | null
+          seller_fee_billed_cents?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_order_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "declutter_order_jobs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "declutter_order_jobs_seller_fault_refund_id_fkey"
+            columns: ["seller_fault_refund_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_refunds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declutter_orders: {
         Row: {
           delivery_cents: number
@@ -8984,6 +9036,10 @@ export type Database = {
         Args: { p_item_id: string; p_user_id: string }
         Returns: string
       }
+      declutter_admin_apply_seller_fault: {
+        Args: { p_include_committed?: boolean; p_refund_id: string }
+        Returns: number
+      }
       declutter_admin_decide_delivery_damage: { Args: { p_note: string; p_problem_id: string }; Returns: Json }
       declutter_admin_decide_problem: {
         Args: {
@@ -9017,6 +9073,10 @@ export type Database = {
       declutter_admin_review_item: {
         Args: { p_approve: boolean; p_item_id: string; p_note: string }
         Returns: string
+      }
+      declutter_apply_seller_fault: {
+        Args: { p_include_committed?: boolean; p_refund_id: string }
+        Returns: number
       }
       declutter_area_label_problem: {
         Args: { p_area: string; p_pickup_address: string }
@@ -9144,6 +9204,10 @@ export type Database = {
       declutter_leave_review: {
         Args: { p_comment: string; p_order_id: string; p_stars: number }
         Returns: string
+      }
+      declutter_link_setup_job: {
+        Args: { p_job_id: string; p_order_id: string }
+        Returns: boolean
       }
       declutter_lock_buyable_item: {
         Args: { p_buyer: string; p_item_id: string }
@@ -9452,6 +9516,11 @@ export type Database = {
       declutter_set_watch: {
         Args: { p_item_id: string; p_watch: boolean }
         Returns: string
+      }
+      declutter_setup_helpr: { Args: { p_order_id: string }; Returns: Json }
+      declutter_setup_job_fee_debt: {
+        Args: { p_card_fee_cents: number; p_job_id: string }
+        Returns: number
       }
       declutter_slot_in_windows: {
         Args: { p_seller: string; p_start: string }

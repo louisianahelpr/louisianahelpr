@@ -259,6 +259,10 @@ describe("fixture-job visibility — one switch, every surface", () => {
     ["public.sweep_confirm_reminders_and_repost", "cron over booked jobs; writes, never lists them to anyone"],
     // Q768: links the caller's own STR turnover to the caller's own job; it
     // reads `status = 'open'` of that one job as a precondition.
+    // Declutter "Add a Helpr" (20261017073146): links the caller's own open,
+    // not-yet-paid job to the caller's own paid order; status and
+    // payment_status of that one job are preconditions, nothing is listed.
+    ["public.declutter_link_setup_job", "single-job mutation on the caller's own job; status is a precondition"],
     ["public.link_str_turnover_job", "single-job mutation on the caller's own job; status is a precondition"],
     // Q1460: books an already-staffed crew (open -> accepted) at its hiring
     // cutoff; a server sweep over funded crews with hired members, not a feed.
@@ -507,3 +511,4 @@ describe("fixture-job visibility — one switch, every surface", () => {
 // there and the flag flips every other surface quiet while the public page
 // keeps advertising fixture jobs.
 // @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql | AND (NOT j.is_seed OR NOT public.seed_jobs_hidden_publicly()) |
+// @mutate src/config/showSeedJobs.parity.test.ts |     ["public.declutter_link_setup_job", "single-job mutation on the caller's own job; status is a precondition"],\n | \n

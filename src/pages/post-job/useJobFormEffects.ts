@@ -1,4 +1,6 @@
 import { fetchTurnoverPrefill } from "./turnoverPrefill";
+import { buildSetupJobPrefill, fetchSetupHelpr, isBookedSetupJob, parseSetupKind } from "@/lib/declutter/setupHelpr";
+import { todayYmd } from "@/lib/jobDate";
 import { useEffect, useCallback } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { formatName } from "@/lib/utils";
@@ -328,6 +330,36 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
       (err) => {
         report(err, { severity: "warning", tags: { source: "useJobFormEffects.turnoverPrefill" } });
         if (live) toast.error("Couldn't load that checkout — fill in the cleaning job yourself.");
+      },
+    );
+    return () => { live = false; };
+    // The setters are stable useState setters; the param is the trigger.
+  }, [searchParams]);
+
+  // Declutter "Add a Helpr" (`?declutterOrder=<order id>&help=<kind>`, from
+  // the paid order's card): pre-fill an assembly or handyman job for the
+  // buyer's place. The buyer sets the price and pays here like any new post;
+  // useJobSubmit links the order to the job (setupHelpr.ts).
+  useEffect(() => {
+    const orderId = searchParams.get("declutterOrder");
+    if (!orderId) return;
+    const kind = parseSetupKind(searchParams.get("help"));
+    let live = true;
+    fetchSetupHelpr(orderId).then(
+      (info) => {
+        if (!live) return;
+        if (info.jobs.some(isBookedSetupJob)) {
+          toast("You already booked a Helpr for this purchase. This posts another job.");
+        }
+        const p = buildSetupJobPrefill(info, kind, todayYmd());
+        setCategory(p.category);
+        setTitle(p.title);
+        setDescription(p.description);
+        if (p.dateNeeded) setDateNeeded?.(p.dateNeeded);
+      },
+      (err) => {
+        report(err, { severity: "warning", tags: { source: "useJobFormEffects.declutterSetupPrefill" } });
+        if (live) toast.error("Couldn't load that purchase. Fill in the job yourself.");
       },
     );
     return () => { live = false; };

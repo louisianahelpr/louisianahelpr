@@ -421,7 +421,7 @@ export async function membershipsSwitchFor(
     if (data === false) return "off";
     return "unknown";
   } catch (e) {
-    console.error(`[appleAppStore] memberships switch read threw for ${userId}: ${e instanceof Error ? e.message : String(e)}`);
+    console.error(`[appleAppStore] memberships switch read threw for ${userId}: ${caughtMessage(e)}`);
     return "unknown";
   }
 }

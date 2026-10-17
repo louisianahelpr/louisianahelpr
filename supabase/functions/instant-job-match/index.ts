@@ -4,6 +4,7 @@ import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { skillMatchesCategory } from "../_shared/categorySkillMatch.ts";
+import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -230,8 +231,21 @@ serve(async (req) => {
     const jobLocation = job.location.toLowerCase();
     const jobCategory = job.category.toLowerCase();
 
+    // Q1844 (roadmap F4a, owner 2026-10-15): a membership tier is a paid perk,
+    // and every paid perk is off while the memberships switch is off for that
+    // Helpr. So the tier tie-break below counts a tier only for a Helpr the
+    // switch is on for, asked the same way create-boost-payment and
+    // instant-payout ask it (fail closed: an error counts as off). Filled
+    // below for the Helprs who scored and hold a tier (prod 2026-10-15: 0 of 94).
+    const tierCounts = new Set<string>();
+    const tierRankOf = (h: { user_id: string; subscription_tier?: string | null }): number => {
+      if (!tierCounts.has(h.user_id)) return 0;
+      const tierRank: Record<string, number> = { elite: 3, pro: 2, basic: 1 };
+      return tierRank[h.subscription_tier ?? ""] ?? 0;
+    };
+
     // Score helpers by relevance
-    const scored = activeHelpers
+    const matchedPool = activeHelpers
       .map((h) => {
         let score = 0;
         const helperLoc = (h.location || "").toLowerCase();
@@ -268,12 +282,18 @@ serve(async (req) => {
         }
         return { ...h, score };
       })
-      .filter((h) => h.score > 0)
+      .filter((h) => h.score > 0);
+    await Promise.all(
+      [...new Set(matchedPool.filter((h) => !!h.subscription_tier).map((h) => h.user_id as string))].map(async (id) => {
+        if (await featureEnabledForUser(supabase, "memberships", { id })) tierCounts.add(id);
+      }),
+    );
+    const scored = matchedPool
       .sort((a, b) => {
-        // Tie-break score by tier: Elite > Pro > Basic > none.
+        // Tie-break score by tier: Elite > Pro > Basic > none, while
+        // memberships are on for that Helpr (tierRankOf, Q1844).
         if (b.score !== a.score) return b.score - a.score;
-        const tierRank: Record<string, number> = { elite: 3, pro: 2, basic: 1 };
-        return (tierRank[b.subscription_tier ?? ""] ?? 0) - (tierRank[a.subscription_tier ?? ""] ?? 0);
+        return tierRankOf(b) - tierRankOf(a);
       })
       // Ranked candidates, not the final 20: enqueue_instant_job_match keeps
       // the first 20 the browse gate admits for each recipient (a user below

@@ -271,6 +271,7 @@ export type PosterWait =
   | "payment_failed"
   | "dispute_settling"
   | "done_payout_pending"
+  | "done_refunded"
   | "done_paid"
   | "done_tip_open"
   | "done_review_open"
@@ -377,6 +378,13 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
      moved — the same class of bug `dispute_settling` (Q344) fixed above, for
      the ordinary case instead of the disputed one. */
   done_payout_pending: { detail: "Done · payout pending" },
+  /* REFUNDED IS NOT PENDING (Q757(2), lh-money-escrow note on Q451): a full
+     Stripe refund closes a completed job's `payout_pending` to `refunded`
+     (stripe-webhook chargeRefunded, REFUND_CLOSABLE_PAYMENT_STATES), and this
+     card then said "payout pending" over money that had gone back to the
+     card. The line states only what the row holds: the payment was refunded.
+     Same words on both tabs (completedAndRefunded). */
+  done_refunded: { detail: "Done · payment refunded" },
   done_paid: { detail: "Done · paid and closed" },
   done_tip_open: { detail: "Reviewed — tip still open", tone: "them" },
   done_review_open: { detail: "Tip left — review still open", tone: "them" },
@@ -419,6 +427,15 @@ function payoutNotSettled(job: { payment_status?: string | null }): boolean {
   return job.payment_status !== "released";
 }
 
+/**
+ * Q757(2): a completed job whose payment went back to the card. Checked
+ * before the status switch on both tabs, after the card-problem states, so
+ * neither "payout pending" nor a loose-end line is drawn over a refund.
+ */
+function completedAndRefunded(job: { status?: string | null; payment_status?: string | null }): boolean {
+  return job.status === "completed" && job.payment_status === "refunded";
+}
+
 /** The job, flagged when its dispute is decided but not yet executed. */
 export function withDisputeSettling<J extends { id: string }>(
   job: J,
@@ -459,6 +476,7 @@ export function derivePosterWait(
   // `jobs.status`, so the switch below would call the job healthy.
   const problem = problemWait(job);
   if (problem) return problem;
+  if (completedAndRefunded(job)) return "done_refunded";
   switch (job.status) {
     case "cancelled":
       return disputeSettling(job) ? "dispute_settling" : "cancelled";
@@ -651,6 +669,7 @@ export type HelperWait =
   | "payment_failed"
   | "dispute_settling"
   | "done_payout_pending"
+  | "done_refunded"
   | "done_paid";
 
 /**
@@ -739,6 +758,9 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
      existing "Paid out" line claimed the transfer had happened the moment the
      poster approved, which is up to a few days early. */
   done_payout_pending: { detail: "Done · payout pending" },
+  /* Q757(2): see POSTER_WAIT.done_refunded. It says nothing about the Helpr's
+     own payout, which this row cannot tell. */
+  done_refunded: { detail: "Done · payment refunded" },
   done_paid: { detail: "Paid out" },
 };
 
@@ -789,6 +811,7 @@ export function deriveHelperWait(app: AppliedApp, progress?: HelperCardProgress)
   // same `app.status !== "rejected"` gate.
   const problem = app.status === "rejected" ? null : problemWait(job);
   if (problem) return problem;
+  if (completedAndRefunded(job)) return "done_refunded";
 
   switch (job.status) {
     case "cancelled":

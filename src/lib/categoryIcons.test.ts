@@ -104,4 +104,9 @@ describe("getCategoryIcon — fallback behavior", () => {
 // a migration does) without touching CATEGORY_ICONS. The previous hand-typed
 // mirror could not see this at all: it iterated its own twelve strings, so a
 // thirteenth category rendered the Briefcase fallback with the suite green.
-// @mutate src/integrations/supabase/types.ts |       job_category: [ |       job_category: ["appliance_repair",
+// The planted value is a sentinel no migration will ever add. It used to be
+// "appliance_repair", which was a real future category: once the enum and
+// CATEGORY_ICONS both gained it, the mutation only duplicated a mapped value
+// and the guard rightly stayed green (equivalent mutant, vacuity run
+// 39005114806, 2026-10-17).
+// @mutate src/integrations/supabase/types.ts |       job_category: [ |       job_category: ["vacuity_unmapped_category",

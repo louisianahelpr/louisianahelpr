@@ -22,7 +22,7 @@ import { REVIEW_COUNT_COLUMNS, countsTowardRating } from "@/lib/reviewStats";
  */
 export type AdminProfileJob = Pick<
   Tables<"jobs">,
-  | "id" | "title" | "status" | "payment_status" | "budget" | "helper_fee_percent"
+  | "id" | "title" | "status" | "payment_status" | "budget" | "helper_fee_percent" | "helper_fee_flat_cents"
   | "customer_fee_amount" | "platform_fee_amount" | "sales_tax_amount" | "customer_id"
   | "helper_id" | "created_at" | "updated_at" | "poster_completed_at"
   | "helper_completed_at" | "parish" | "helpers_needed" | "is_group_job" | "urgent_fee"
@@ -74,7 +74,7 @@ export const makeOpenProfile = (deps: OpenProfileDeps) => {
         : Promise.resolve({ data: [] as Pick<Tables<"email_send_log">, "template_name" | "message_id" | "status" | "created_at">[], error: null }),
       supabase
         .from("jobs")
-        .select("id, title, status, payment_status, budget, helper_fee_percent, customer_fee_amount, platform_fee_amount, sales_tax_amount, customer_id, helper_id, created_at, updated_at, poster_completed_at, helper_completed_at, parish, helpers_needed, is_group_job, urgent_fee")
+        .select("id, title, status, payment_status, budget, helper_fee_percent, helper_fee_flat_cents, customer_fee_amount, platform_fee_amount, sales_tax_amount, customer_id, helper_id, created_at, updated_at, poster_completed_at, helper_completed_at, parish, helpers_needed, is_group_job, urgent_fee")
         .or(`customer_id.eq.${profile.user_id},helper_id.eq.${profile.user_id}`)
         .order("created_at", { ascending: false })
         .limit(500),

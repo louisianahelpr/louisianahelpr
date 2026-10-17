@@ -69,6 +69,11 @@ export const JOB_READABLE_COLUMN_LIST = [
   "helper_completed_at",
   "helper_confirmed_at",
   "helper_dayof_confirmed_at",
+  // The jobs flat-fee stamp (roadmap F3, 20261015023908; live since
+  // 2026-10-15). In the shared list, not JOB_COLUMNS_AHEAD_OF_DB, so every
+  // whole-row read that carries helper_fee_percent carries the stamp with it:
+  // without it a flat job is priced on the viewer's tier (Q1839).
+  "helper_fee_flat_cents",
   "helper_fee_percent",
   "helper_id",
   "helper_on_the_way_at",
@@ -160,8 +165,9 @@ export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on", "series_split_ok", "
  * src/test/offeredHelperPrivacy.test.ts counts these as covered.
  */
 // onboarding_fee_amount: the setup fee a first job kept (Q1346, 20261012171259).
-// helper_fee_flat_cents: the jobs flat-fee stamp (roadmap F3, 20261015023908).
-export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount", "helper_fee_flat_cents"] as const;
+// helper_fee_flat_cents moved into JOB_READABLE_COLUMN_LIST once it was live
+// (Q1839, measured on prod 2026-10-17).
+export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount"] as const;
 
 /** `select` with every JOB_COLUMNS_AHEAD_OF_DB column taken out. */
 function withoutJobColumnsAheadOfDb(select: string): string {

@@ -93,7 +93,7 @@ function seedFreshSignup() {
 
 /** The profile UPDATE this function makes, or undefined if it never made one. */
 function profileUpdate(): Record<string, unknown> | undefined {
-  // The completion, not the no-session claim before it (Q?signup-one-shot-atomic).
+  // The completion, not the no-session claim before it (Q1887).
   const w = completionUpdate();
   return w?.payload as Record<string, unknown> | undefined;
 }

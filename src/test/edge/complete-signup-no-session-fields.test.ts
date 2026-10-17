@@ -214,7 +214,7 @@ function seedFreshSignup(profile: Record<string, unknown> = {}) {
 }
 
 function profileUpdate(): Record<string, unknown> | undefined {
-  // The completion, not the no-session claim before it (Q?signup-one-shot-atomic).
+  // The completion, not the no-session claim before it (Q1887).
   const w = completionUpdate();
   return w?.payload as Record<string, unknown> | undefined;
 }
@@ -335,7 +335,7 @@ describe("Q1885: complete-signup's no-session path reads only what the sign-up f
     });
   });
 
-  describe("Q?signup-one-shot-atomic: the one-shot rule holds under a race (lh-authz-rls review of a02d0cd80, #1 and #3)", () => {
+  describe("Q1887: the one-shot rule holds under a race (lh-authz-rls review of a02d0cd80, #1 and #3)", () => {
     /** The live row (see liveProfileRow): reads see writes, an UPDATE lands only when its WHERE matches. */
     function liveFreshSignup() {
       seedFreshSignup();

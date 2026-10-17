@@ -134,6 +134,34 @@ export interface FixturePlan {
   preLive?: Array<{ row: FixtureRow; why: string }>;
   /** Set (to LIVE_PAY_SKIP) only in live mode when the plan would otherwise pay. */
   skip?: string;
+  /** Never-paid fixture rows to DELETE as poster-e2e (only present when there are some). */
+  discard?: FixtureRow[];
+}
+
+/**
+ * NEVER-PAID LEFTOVERS ARE DELETED, NOT HOARDED (lead lane, 2026-10-17).
+ *
+ * A run whose checkout never completed leaves its fixture row `unpaid`, and
+ * void-cancelled-payments marks it `abandoned` an hour later. The plan re-pays
+ * at most ONE such row, so every other one stayed open on poster-e2e for good:
+ * measured 2026-10-17 05:05Z, eight open "Prod audit funded fixture" rows
+ * (abandoned, created 10-09..10-13) beside the one in escrow. They hold no
+ * money and no cap slot, but they are open jobs on the shared poster's Posts.
+ *
+ * Discarded: every never-paid row except the one this plan pays, limited to
+ * what the poster's own DELETE policy ("Customers can delete their own jobs")
+ * admits: `abandoned`, or `unpaid` with no Checkout Session. An `unpaid` row
+ * WITH a session may be a checkout in flight; void-cancelled-payments abandons
+ * it within the hour and the next run deletes it.
+ */
+export function discardableNeverPaid(rows: readonly FixtureRow[], keep: FixtureRow | null): FixtureRow[] {
+  return rows.filter(
+    (r) =>
+      r !== keep &&
+      r.status === "open" &&
+      !r.helper_id &&
+      (r.payment_status === "abandoned" || (r.payment_status === "unpaid" && !r.stripe_session_id)),
+  );
 }
 
 const FUNDED = new Set(["escrow", "cancelling"]);
@@ -184,12 +212,16 @@ export function planFundedOpenJob(
     else reuse = r;
   }
   const extra = preLive.length ? { preLive } : {};
-  if (reuse) return { reuse, pay: null, retire, ...extra };
+  const withDiscard = (keep: FixtureRow | null) => {
+    const discard = discardableNeverPaid(mine, keep);
+    return discard.length ? { discard } : {};
+  };
+  if (reuse) return { reuse, pay: null, retire, ...extra, ...withDiscard(null) };
   if (mode === "live") return { reuse: null, pay: null, retire, ...extra, skip: LIVE_PAY_SKIP };
   const repayable = mine.find(
     (r) => REPAYABLE.has(r.payment_status ?? "unpaid") && daysBetween(opts.today, r.date_needed) >= MIN_RUNWAY_DAYS,
   );
-  return { reuse: null, pay: repayable ?? "new", retire, ...extra };
+  return { reuse: null, pay: repayable ?? "new", retire, ...extra, ...withDiscard(repayable ?? null) };
 }
 
 /**

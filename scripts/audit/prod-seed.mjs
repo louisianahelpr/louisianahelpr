@@ -170,6 +170,65 @@ async function upsert(table, rows, onConflict = "id", { verifyByIdInstead = fals
 }
 
 /**
+ * JOBS ARE REPAIRED IN PLACE, NEVER RE-INSERTED.
+ *
+ * `enforce_open_job_limit` is a BEFORE INSERT trigger, and Postgres fires
+ * BEFORE INSERT row triggers for an INSERT ... ON CONFLICT DO UPDATE even when
+ * the row already exists. So `upsert("jobs", ...)` was judged as a brand-new
+ * open job of the poster on every run: whenever poster-e2e held 5 cap-counted
+ * open jobs from anything else, every --apply died with
+ * `POST jobs → 400 P0001 "You can have a maximum of 5 open jobs at a time"`
+ * although it inserted nothing (prod-audit run 38689259675, 2026-10-15 05:55Z:
+ * the 05:00Z auto-expire-jobs run had re-opened three past-dated escrow
+ * journey jobs for an hour, beside the browse and funded fixtures).
+ *
+ * A row that exists is PATCHed with only the columns that differ (one PATCH
+ * per distinct change set, so 111 heavy rows whose date moved are one call);
+ * only a missing row is INSERTed. Every write is read back by count.
+ * src/test/prodSeedJobsRepairInPlace.test.ts holds this.
+ */
+async function writeSeedJobs(rows) {
+  const existing = new Map();
+  const ids = rows.map((r) => r.id);
+  for (let i = 0; i < ids.length; i += 100) {
+    for (const row of await select(`jobs?id=${inList(ids.slice(i, i + 100))}&select=*`)) existing.set(row.id, row);
+  }
+  const same = (a, b) => (a ?? null) === (b ?? null) || (typeof a === "number" && Number(b) === a);
+  const groups = new Map();
+  for (const r of rows) {
+    const cur = existing.get(r.id);
+    if (!cur) continue;
+    const diff = Object.fromEntries(Object.entries(r).filter(([k, v]) => k !== "id" && !same(v, cur[k])));
+    if (!Object.keys(diff).length) continue;
+    const key = JSON.stringify(diff);
+    if (!groups.has(key)) groups.set(key, { diff, ids: [] });
+    groups.get(key).ids.push(r.id);
+  }
+  let patched = 0;
+  for (const { diff, ids: gids } of groups.values()) {
+    for (let i = 0; i < gids.length; i += 100) {
+      const chunk = gids.slice(i, i + 100);
+      const out = await rest("PATCH", `jobs?id=${inList(chunk)}`, diff, { prefer: "return=representation" });
+      if (!Array.isArray(out) || out.length !== chunk.length) throw new Error(`jobs: PATCH ${Object.keys(diff).join(",")} matched ${out?.length ?? 0} of ${chunk.length}`);
+      patched += chunk.length;
+    }
+  }
+  const missing = rows.filter((r) => !existing.has(r.id));
+  if (missing.length) {
+    try {
+      await upsert("jobs", missing);
+    } catch (e) {
+      if (!/maximum of 5 open jobs/.test(String(e?.message))) throw e;
+      // Name what holds the cap (the trigger's own WHERE), so the leak is found by its rows, not guessed at.
+      const owners = [...new Set(missing.map((r) => r.customer_id))];
+      const held = await select(`jobs?customer_id=${inList(owners)}&status=eq.open&or=(payment_status.is.null,payment_status.not.in.(unpaid,abandoned,failed))&select=id,customer_id,title,payment_status,updated_at&order=updated_at.desc`);
+      throw new Error(`${e.message}\n  cap-counted open jobs of ${owners.join(",")}: ${held.map((h) => `${h.id} "${h.title}" ${h.payment_status} (updated ${h.updated_at})`).join("; ")}`);
+    }
+  }
+  console.log(`jobs: ${rows.length} seed rows — ${existing.size} present (${patched} repaired), ${missing.length} inserted`);
+}
+
+/**
  * THE SEEDED LICENCE'S DOCUMENT IS A REAL user-documents OBJECT (Q130).
  *
  * helper_credentials.document_url must name the member's own uploaded object,
@@ -635,7 +694,7 @@ async function applyGroupJob(posterId, helperId, applicantId) {
   // trg_group_job_has_no_lead (20260925154606, Q396) rejects any group job
   // with a lead. Setting it to the first helper made every --apply 400 from
   // 2026-09-25 (prod-audit run 36272080924).
-  await upsert("jobs", [{ ...jobBase, ...GROUP_JOB_ROW, id: jobId, customer_id: posterId, helper_id: null }]);
+  await writeSeedJobs([{ ...jobBase, ...GROUP_JOB_ROW, id: jobId, customer_id: posterId, helper_id: null }]);
   await upsert("group_job_helpers", groupJobHelperRows(jobId, helperId, applicantId), "id", { naturalKey: "job_id,helper_id" });
   return jobId;
 }
@@ -730,7 +789,7 @@ async function apply() {
       status: "open",
     })),
   ].map((j) => ({ ...jobBase, ...j }));
-  await upsert("jobs", [...posterJobs, ...heavyJobs]);
+  await writeSeedJobs([...posterJobs, ...heavyJobs]);
   await applyGroupJob(posterId, helperId, ids.applicant01);
 
   // The real funded pair job to hang the thread, reviews and dispute on.

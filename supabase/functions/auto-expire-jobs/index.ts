@@ -257,6 +257,47 @@ serve(async (req) => {
       }
     }
 
+    // 3. Expire UNANSWERED offers past their response_deadline.
+    //
+    // Runs after step 1 and BEFORE step 2's past-date cancel: it is really
+    // step 1's missing half: this keys on the deadline the poster actually
+    // set, reopens the job and tells both sides.
+    //
+    // WHY BEFORE STEP 2. An offer's answer-by is capped at the job's start
+    // (job_offer_cutoff), so on a job dated yesterday it runs out exactly when
+    // the date rolls over and this re-opens a job whose date has already
+    // passed. Run after step 2 (as it was), that job then sat open + escrow
+    // for a whole hour until the next run cancelled it: listed as open, and
+    // holding one of its poster's five open-job slots (enforce_open_job_limit).
+    // On 2026-10-15 05:00Z it re-opened three past-dated funded journey jobs,
+    // poster-e2e reached 5, and prod-audit's seed at 05:55Z was refused
+    // "maximum of 5 open jobs" (run 38689259675; cancelled 06:00Z, refunded
+    // 06:10Z). Same again 2026-10-17 05:00Z. Here, step 2 below cancels such
+    // a job in the same run, and void-cancelled-payments refunds it as before. It files no strike, and
+    // neither does decline_job_offer (owner, 2026-10-05, Q1281: an offer is
+    // free to decline or let run out; strikes are for backing out after an
+    // accept).
+    let unansweredExpired = 0;
+    // PGRST202 is deliberately NOT a defect: it means the migration merged but
+    // db-deploy has not finished, which is expected for a few minutes on every
+    // deploy. Any other RPC error is a real one.
+    try {
+      const { data: unRpc, error: unRpcErr } = await sweepRpc(() => supabase.rpc("expire_unanswered_offers"));
+      if (unRpcErr) {
+        // PGRST202 = the migration has merged but db-deploy has not finished.
+        // Expected for a few minutes on every deploy; not worth an error line.
+        if (unRpcErr.code !== "PGRST202") {
+          console.error("expire_unanswered_offers error:", unRpcErr);
+          defects.record(`expire_unanswered_offers: ${unRpcErr.message}`);
+        }
+      } else {
+        unansweredExpired = (unRpc as number) || 0;
+      }
+    } catch (e) {
+      console.error("Unanswered offer expiry call failed:", e);
+      defects.record(`expire_unanswered_offers threw: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
     // 2. Auto-cancel open jobs whose expires_at has passed OR date_needed is in the past
     const { data: expiredByTime, error: expTimeErr } = await supabase
       .from("jobs")
@@ -358,35 +399,6 @@ serve(async (req) => {
       });
 
       cancelledCount++;
-    }
-
-    // 3. Expire UNANSWERED offers past their response_deadline.
-    //
-    // Runs BEFORE the direct-offer sweep and after step 1, but it is really
-    // step 1's missing half: this keys on the deadline the poster actually
-    // set, reopens the job and tells both sides. It files no strike, and
-    // neither does decline_job_offer (owner, 2026-10-05, Q1281: an offer is
-    // free to decline or let run out; strikes are for backing out after an
-    // accept).
-    let unansweredExpired = 0;
-    // PGRST202 is deliberately NOT a defect: it means the migration merged but
-    // db-deploy has not finished, which is expected for a few minutes on every
-    // deploy. Any other RPC error is a real one.
-    try {
-      const { data: unRpc, error: unRpcErr } = await sweepRpc(() => supabase.rpc("expire_unanswered_offers"));
-      if (unRpcErr) {
-        // PGRST202 = the migration has merged but db-deploy has not finished.
-        // Expected for a few minutes on every deploy; not worth an error line.
-        if (unRpcErr.code !== "PGRST202") {
-          console.error("expire_unanswered_offers error:", unRpcErr);
-          defects.record(`expire_unanswered_offers: ${unRpcErr.message}`);
-        }
-      } else {
-        unansweredExpired = (unRpc as number) || 0;
-      }
-    } catch (e) {
-      console.error("Unanswered offer expiry call failed:", e);
-      defects.record(`expire_unanswered_offers threw: ${e instanceof Error ? e.message : String(e)}`);
     }
 
     // 4. Expire pending direct offers (window is whatever the poster picked

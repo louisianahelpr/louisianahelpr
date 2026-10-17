@@ -15,6 +15,8 @@
  *
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | else if (opts.appliedJobIds.has(r.id)) retire | else if (opts.appliedJobIds.has(r.id) && false) retire
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | else if (runway < MIN_RUNWAY_DAYS) retire | else if (runway < 0) retire
+ * @mutate e2e/prod-audit/fundedOpenJobPlan.ts |       r !== keep && |       r !== keep && false &&
+ * @mutate e2e/prod-audit/fundedOpenJob.ts |   for (const row of plan.discard ?? []) log.push(await discardNeverPaidFixture(api, poster, row)); |   void discardNeverPaidFixture;
  * @mutate e2e/prod-audit/deep-links.spec.ts | const funded = await unlessLivePay(() => ensureFundedOpenJob(request, browser, poster, helper)); | const funded = { value: null, livePay: null };
  */
 import { describe, it, expect } from "vitest";
@@ -114,6 +116,41 @@ describe("planFundedOpenJob", () => {
     const hired = row({ helper_id: "h" });
     const closed = row({ status: "cancelled" });
     expect(plan([other, hired, closed])).toEqual({ reuse: null, pay: "new", retire: [] });
+  });
+
+  // Lead lane 2026-10-17 05:05Z: eight open never-paid "Prod audit funded
+  // fixture" rows (abandoned, 10-09..10-13) sat on poster-e2e beside the
+  // escrowed one, because the plan re-paid at most one and kept the rest.
+  it("DISCARDS every never-paid leftover beside a reused funded fixture", () => {
+    const funded = row();
+    const a1 = row({ payment_status: "abandoned", stripe_session_id: "cs_test_x" });
+    const a2 = row({ payment_status: "abandoned" });
+    const fresh = row({ payment_status: "unpaid" });
+    const p = plan([funded, a1, a2, fresh]);
+    expect(p.reuse).toBe(funded);
+    expect(p.discard?.map((r) => r.id).sort()).toEqual([a1.id, a2.id, fresh.id].sort());
+  });
+
+  it("keeps the one it re-pays and discards the other never-paid rows", () => {
+    const a1 = row({ payment_status: "abandoned", created_at: "2020-01-10T00:00:00Z" });
+    const a2 = row({ payment_status: "abandoned", created_at: "2020-01-09T00:00:00Z" });
+    const p = plan([a1, a2]);
+    expect(p.pay).toBe(a1);
+    expect(p.discard?.map((r) => r.id)).toEqual([a2.id]);
+  });
+
+  it("never discards an unpaid row WITH a Checkout Session (a checkout may be in flight), a hired one, or a funded one", () => {
+    const funded = row();
+    const inFlight = row({ payment_status: "unpaid", stripe_session_id: "cs_test_live1" });
+    const hired = row({ payment_status: "abandoned", helper_id: "h" });
+    const p = plan([funded, inFlight, hired]);
+    expect(p.discard).toBeUndefined();
+  });
+
+  it("ensureFundedOpenJob deletes what the plan discards, and reads the deleted count back", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../../e2e/prod-audit/fundedOpenJob.ts"), "utf8"));
+    expect(src).toMatch(/for \(const row of plan\.discard \?\? \[\]\) log\.push\(await discardNeverPaidFixture\(api, poster, row\)\);/);
+    expect(src).toMatch(/if \(gone\.length !== 1\) throw/);
   });
 });
 

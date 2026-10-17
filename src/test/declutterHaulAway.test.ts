@@ -22,6 +22,7 @@
  * @mutate src/test/pglite/declutterHaulAway.pglite.mjs | if (foreign.length > 0) { | if (false) {
  * @mutate src/test/pglite/declutterHaulAway.pglite.mjs | const onMain = migrationsAt("origin/main"); | const onMain = readdirSync(MIG_DIR);
  * @mutate scripts/ci/definer-exec-allowlist.json | when every one is already linked to p_job_id and that job is the caller's | when the items are the caller's
+ * @mutate src/pages/post-job/useJobSubmit.ts | import { linkTurnoverJob } from "./turnoverPrefill"; | import { linkTurnoverJob } from "./turnoverPrefill";\nimport { linkSetupJob } from "@/lib/declutter/setupHelpr";
  * @mutate src/pages/post-job/useHaulAwayPrefill.ts | const declutter = () => import("@/lib/declutter/haulAway"); | const declutter = () => Promise.all([import("@/lib/declutter/api"), import("@/lib/declutter/haulAway")]).then(([a, h]) => ({ ...a, ...h }));
  * @mutate src/components/declutter/DeclutterHomeView.tsx | import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam"; | import { oneTripGroup, type HaulAwayRow } from "@/lib/declutter/haulAwayParam";\nvoid oneTripGroup;
  * @mutate src/lib/declutter/errors.ts |   // Haul-away (20261017070827): its words |   haul_away_too_many: "One haul-away can take up to 10 items.",\n  // Haul-away (20261017070827): its words
@@ -190,7 +191,8 @@ describe("Declutter haul-away (20261017070827)", () => {
   });
 
   it("re-review 2026-10-17 #4: the put-back-on-sale sweep is ONE open item and a condition for the switch going to everyone", () => {
-    const open = readFileSync(join(process.cwd(), "docs/OPEN.md"), "utf8").split("\n").filter((l) => /^- \[ \] \*\*Q\S* [A-Z]+ Declutter haul-away/.test(l));
+    const open = readFileSync(join(process.cwd(), "docs/OPEN.md"), "utf8").split("\n").filter((l) => /^- \[ \] \*\*Q\S* [A-Z]+ Declutter haul-away/.test(l) && l.includes("put items back on sale"));
+    // (Other open haul-away items exist: the v2 review notes, Q?haul-undo-failed-count and friends.)
     expect(open).toHaveLength(1);
     expect(open[0]).toContain("CONDITION FOR GOING LIVE: the declutter_haul_away switch stays testers-only until the put-back-on-sale sweep below is live on prod");
   });
@@ -208,9 +210,15 @@ describe("Declutter haul-away (20261017070827)", () => {
     for (const f of screens) for (const i of importsOf(f)) {
       if (i.from === "@/lib/declutter/haulAwayParam") { seen++; expect(i.type, `${f} imports haulAwayParam at run time`).toBe(true); }
     }
-    // 2. Post a Job loads exactly one haul-away module, lazily, and nothing a screen shares.
+    // 2. Post a Job loads exactly one haul-away module, lazily, and nothing a screen shares. The one other
+    //    Declutter module it may name is Add a Helpr's ./setupHelpr, also lazily (the train's merge, 2026-10-17).
+    const LAZY_OK = ["@/lib/declutter/haulAway", "@/lib/declutter/setupHelpr"];
     for (const f of postJob) for (const i of importsOf(f)) {
-      if (/declutter\//.test(i.from)) { seen++; expect(i, f).toEqual({ type: false, from: "@/lib/declutter/haulAway", dynamic: true }); }
+      if (/declutter\//.test(i.from)) {
+        seen++;
+        expect(LAZY_OK, `${f} imports ${i.from}`).toContain(i.from);
+        expect(i, f).toEqual({ type: false, from: i.from, dynamic: true });
+      }
     }
     // 3. ./haulAwayParam (lazy) shares nothing with ./haulAwayLink (the screen's).
     expect(importsOf("src/lib/declutter/haulAwayParam.ts").map((i) => i.from)).not.toContain("./haulAwayLink");

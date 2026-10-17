@@ -22,6 +22,7 @@ not queue numbers.
 | # | Question | Decision | When |
 |---|----------|----------|------|
 | 1 | Business promotion model | Every business gets a FREE profile; businesses pay for BOOSTS (featured at the top of a section/area for a week or a month) | 2026-10-14 |
+| 2 | A shop takes a rejected item down and lists it again (lh-authz-rls re-review N2) | "Hold new items": after an admin rejects any of a shop owner's items, EVERY item that owner publishes waits for an admin before it goes live, whatever its title or photos (not a title match). "Recent" = 30 days from the last rejection: the lead's default, as no window was given (D13). Built in shops_publish_item (20261017061157), read from admin_audit_log, so it survives withdraw, delete and closing the shop | 2026-10-17 |
 
 Everything else is below as owner questions (L1..L92).
 
@@ -789,3 +790,4 @@ default. Each row is a **default chosen by lane, owner to confirm**. Cited in th
 | D10 | Editing a live item | Stock count and lead time change in place; any other edit takes the item off the shop page (back to draft) until it is published again, so nothing an admin or the AI judged changes while it stays up | 2026-10-16 | default chosen by lane, owner to confirm |
 | D12 | A shop that turns selling off (quotes only) | Its live items stop showing to members (they stay listed for the owner and come back when selling is on again), and no item is approved for it | 2026-10-16 | default chosen by lane, owner to confirm |
 | D11 | The kind `rental` | Reserved in the item table (section 5 lists it in S2) but refused by every call until the rentals slice (S5, the Shops rentals item in docs/OPEN.md) | 2026-10-16 | default chosen by lane, owner to confirm |
+| D13 | Decided #2's "recent" rejection | 30 days from the owner's last admin rejection; then items go back to the normal checks (first 3, AI, word check) | 2026-10-17 | default chosen by lead, owner to confirm |

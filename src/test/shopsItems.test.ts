@@ -28,6 +28,8 @@
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN v_approved < 3 THEN 'pending_review' |     WHEN v_approved < 0 THEN 'pending_review'
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN v_text_flag IS NOT NULL THEN 'pending_review'\n | \n
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN v_recent_rejection THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261017061157_shops_items.sql | jsonb_build_object('note', v_note, 'owner_id', v_owner, 'shop_id', v_shop)); | jsonb_build_object('note', v_note));
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish', 'label_says_home_kitchen', | WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish',
@@ -132,7 +134,12 @@ describe("Shops slice 2: items, hidden and gated (20261017061157)", () => {
       "WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'",
       "WHEN v_priv.ai_checked_at IS NULL OR v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review'",
       "WHEN v_text_flag IS NOT NULL THEN 'pending_review'",
+      // Hold after a rejection (owner 2026-10-17): 30 days of every publish
+      // waiting for an admin, read from the log the owner cannot write.
+      "WHEN v_recent_rejection THEN 'pending_review'",
+      "WHERE l.action = 'shop_item_rejected' AND l.details->>'owner_id' = v_uid::text AND l.created_at > now() - interval '30 days'",
     ]) expect(p).toContain(must);
+    expect(flat(body("shops_admin_review_item"))).toContain("jsonb_build_object('note', v_note, 'owner_id', v_owner, 'shop_id', v_shop)");
     // A content edit takes a live item down and clears what was judged (D10).
     const u = flat(body("shops_update_item"));
     expect(u).toContain("status = 'draft'");

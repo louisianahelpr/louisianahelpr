@@ -229,13 +229,33 @@ export async function withdrawJobQuote(quoteId: string): Promise<void> {
 }
 
 /**
- * Whether the job a quote was booked into is paid for (anything past the
- * never-paid states). The poster reads their own job (jobs RLS).
+ * Where the money stands on the job a quote was booked into (Q1874). The
+ * poster reads their own job (jobs RLS). Only escrow / payout_pending /
+ * released read as paid: a refunded, cancelled or charged-back job is named
+ * as such, and a status this list does not know is never called paid.
  */
-export async function fetchBookedJobPaid(jobId: string): Promise<boolean> {
-  const row = unwrap(await supabase.from("jobs").select("payment_status").eq("id", jobId).maybeSingle());
-  const status = row?.payment_status ?? "unpaid";
-  return !(NEVER_PAID_STATUSES as readonly string[]).includes(status);
+export type BookedJobPayment = "not_paid" | "paid" | "refunded" | "cancelled" | "cancelling" | "disputed" | "unknown";
+
+const PAID_STATUSES: readonly string[] = ["escrow", "payout_pending", "released"];
+
+export function bookedJobPayment(status: string | null | undefined, jobStatus?: string | null): BookedJobPayment {
+  const s = status ?? "unpaid";
+  // A job that closed unpaid (auto-expire cancels an open job whose time
+  // passed and leaves payment_status 'unpaid') can no longer be paid for:
+  // create-payment refuses it, so it never offers Pay (lh-money-escrow review, should-fix 1).
+  if (jobStatus === "cancelled" && (NEVER_PAID_STATUSES as readonly string[]).includes(s)) return "cancelled";
+  if ((NEVER_PAID_STATUSES as readonly string[]).includes(s)) return "not_paid";
+  if (PAID_STATUSES.includes(s)) return "paid";
+  if (s === "refunded") return "refunded";
+  if (s === "cancelled") return "cancelled";
+  if (s === "cancelling") return "cancelling";
+  if (s === "chargeback") return "disputed";
+  return "unknown";
+}
+
+export async function fetchBookedJobPayment(jobId: string): Promise<BookedJobPayment> {
+  const row = unwrap(await supabase.from("jobs").select("payment_status, status").eq("id", jobId).maybeSingle());
+  return bookedJobPayment(row?.payment_status, row?.status);
 }
 
 /** Whole dollars, no cents: every quote price is a whole-dollar amount. */

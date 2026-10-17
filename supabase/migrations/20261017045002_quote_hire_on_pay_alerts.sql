@@ -660,3 +660,55 @@ BEGIN
   END IF;
 END
 $do$;
+
+-- ---------------------------------------------------------------------------
+-- Q1864 (lh-authz-rls review of e99531466, nit 2): a block between a poster
+-- and a quoter closes their PENDING quotes, both ways round. respond_to_job_quote
+-- refuses every action across a block (decline included), so before this a
+-- pending quote sat 'pending' until its 48 h ran out and still counted as open
+-- on both sides' lists. An AFTER INSERT trigger on user_blocks rather than a
+-- restatement of block_user_and_settle: it covers every way a block row is
+-- written, and it leaves that function's newest body untouched. A failure here
+-- never undoes the block (the safety action wins): it is recorded in error_logs
+-- and the quote stays pending, exactly as before. Accepted quotes are left as
+-- they are: booking one is already refused across a block (applicant_blocked).
+-- Guard: src/test/pglite/quoteHireOnPay.pglite.mjs ("Q1864 a block closes the
+-- pair's pending quotes", the block written as the member through RLS) and
+-- src/test/quoteHireOnPay.test.ts.
+
+CREATE OR REPLACE FUNCTION public.quote_close_pending_across_block()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  BEGIN
+    UPDATE public.job_quotes q
+       SET status = 'closed', updated_at = now()
+      FROM public.job_quote_requests r
+     WHERE r.id = q.request_id
+       AND q.status = 'pending'
+       AND ((r.poster_id = NEW.blocker_id AND q.quoter_id = NEW.blocked_id)
+         OR (r.poster_id = NEW.blocked_id AND q.quoter_id = NEW.blocker_id));
+  EXCEPTION WHEN OTHERS THEN
+    BEGIN
+      INSERT INTO public.error_logs (severity, message, tags, context)
+      VALUES ('error', 'Pending quotes not closed across a block',
+              jsonb_build_object('source', 'quote_close_pending_across_block'),
+              jsonb_build_object('blocker_id', NEW.blocker_id, 'blocked_id', NEW.blocked_id,
+                                 'sqlstate', SQLSTATE, 'error', SQLERRM));
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'quote_close_pending_across_block: % blocked %, quotes not closed and the error_logs row failed: %',
+        NEW.blocker_id, NEW.blocked_id, SQLERRM;
+    END;
+  END;
+  RETURN NULL;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.quote_close_pending_across_block() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_quote_close_pending_across_block ON public.user_blocks;
+CREATE TRIGGER trg_quote_close_pending_across_block
+  AFTER INSERT ON public.user_blocks
+  FOR EACH ROW EXECUTE FUNCTION public.quote_close_pending_across_block();

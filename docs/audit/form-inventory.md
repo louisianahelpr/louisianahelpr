@@ -91,13 +91,13 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/declutter/DeclutterItemView.tsx` | input×2 | text | 1000, 500 | Write an answer · Photos · declutter-question · Ask the seller a question |
+| `src/components/declutter/DeclutterItemView.tsx` | input×2 | text | 1000, 500 | Write an answer · Photos · declutter-porch-line · declutter-question · Ask the seller a question |
 
 ## /declutter/sell
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/declutter/DeclutterSellView.tsx` | input×8, textarea×1, select×4, checkbox/switch/radio×1, date/calendar×2 | text, file, time | 80, 2000, 300 | sell-details · sell-title · Oak rocking chair · sell-desc · sell-category · sell-condition · sell-size · sell-price |
+| `src/components/declutter/DeclutterSellView.tsx` | input×8, textarea×1, select×4, checkbox/switch/radio×2, date/calendar×2 | text, file, time | 80, 2000, 300 | sell-details · sell-title · Oak rocking chair · sell-desc · sell-category · sell-condition · sell-size · sell-price |
 
 ## /forgot-password
 

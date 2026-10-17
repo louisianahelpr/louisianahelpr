@@ -171,10 +171,12 @@ $function$;
 // Real definitions: every allow function (21 on 2026-09-26) plus the helpers they call.
 const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job", "can_send_message_to_in_job",
   "check_dispute_velocity", "credential_document_path_ok", "dispute_evidence_url_ok", "has_role",
-  "helper_credential_document_ok", "helper_has_advanced_analytics", "identity_is_verified", "is_party_to_job",
+  "helper_credential_document_ok", "identity_is_verified", "is_party_to_job",
   "is_party_to_job_folder", "job_announceable_to", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
   "can_read_job_detail_change", "feature_enabled_for_user", "feature_enabled_for",
+  // After feature_enabled_for_user: since 20261017085012 (Q1844) its SQL body calls it, and a SQL body is validated at CREATE.
+  "helper_has_advanced_analytics",
   "declutter_in_agreed_sale", "declutter_slot_in_windows", "declutter_handover_photo_access",
   // Declutter slice 5 (20261017055505).
   "declutter_delivery_slot_ok", "helpr_task_photo_access", "helpr_task_photo_ok", "helpr_task_same_stripe_mode",

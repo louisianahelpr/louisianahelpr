@@ -223,7 +223,7 @@ describe("loading states: the Profile tab placeholder fills the screen", () => {
     // A cold deep link into ?tab=gift_card used to paint an avatar hero and
     // three stat tiles, because the boot branch special-cased one tab.
     const src = strip(readFileSync(PROFILE, "utf8"));
-    const branch = src.slice(src.indexOf("if (loading) {"), src.indexOf("const displayName"));
+    const branch = src.slice(src.indexOf("if (showSkeleton) {"), src.indexOf("const displayName"));
     expect(branch.length, "Profile.tsx's loading branch not found - guard rotted").toBeGreaterThan(100);
     expect(branch).toContain("ProfileTabFallback");
     // The PAIRING, not the presence of either half. `/tab === "landing"/`

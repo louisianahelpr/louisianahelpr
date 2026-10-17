@@ -36,6 +36,14 @@ function whyWaiting(row: PendingShopItem): string {
   return "Waiting for a review";
 }
 
+/** The 30-day hold's context: "This owner had an item rejected on Oct 17: <reason>". */
+function recentRejectionLine(row: Pick<PendingShopItem, "owner_last_rejected_at" | "owner_last_rejection_note">): string | null {
+  if (!row.owner_last_rejected_at) return null;
+  const day = new Date(row.owner_last_rejected_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const why = row.owner_last_rejection_note?.trim();
+  return why ? `This owner had an item rejected on ${day}: ${why}` : `This owner had an item rejected on ${day}`;
+}
+
 function PendingItem({ row }: { row: PendingShopItem }) {
   const qc = useQueryClient();
   const [note, setNote] = useState("");
@@ -62,6 +70,9 @@ function PendingItem({ row }: { row: PendingShopItem }) {
       <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
         {row.shop_name} · {SHOP_ITEM_KIND_LABEL[row.kind] ?? row.kind}, {SHOP_ITEM_TYPE_LABEL[row.subtype] ?? row.subtype} · {whyWaiting(row)}
       </p>
+      {recentRejectionLine(row) && (
+        <p className="text-xs font-medium text-destructive [overflow-wrap:anywhere]">{recentRejectionLine(row)}</p>
+      )}
       {row.description && <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{row.description}</p>}
       <label className="block text-xs font-medium" htmlFor={`shop-item-note-${row.item_id}`}>Reason, if you reject it (the owner sees this)</label>
       <input

@@ -30,6 +30,7 @@
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'\n | \n
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN v_recent_rejection THEN 'pending_review'\n | \n
 // @mutate supabase/migrations/20261017061157_shops_items.sql | jsonb_build_object('note', v_note, 'owner_id', v_owner, 'shop_id', v_shop)); | jsonb_build_object('note', v_note));
+// @mutate supabase/migrations/20261017061157_shops_items.sql |            rj.created_at, rj.details->>'note' |            NULL::timestamptz, NULL::text
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish', 'label_says_home_kitchen', | WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish',
@@ -140,6 +141,11 @@ describe("Shops slice 2: items, hidden and gated (20261017061157)", () => {
       "WHERE l.action = 'shop_item_rejected' AND l.details->>'owner_id' = v_uid::text AND l.created_at > now() - interval '30 days'",
     ]) expect(p).toContain(must);
     expect(flat(body("shops_admin_review_item"))).toContain("jsonb_build_object('note', v_note, 'owner_id', v_owner, 'shop_id', v_shop)");
+    // The admin sees why a held item waits: the owner's last rejection (lh-silent-failure finding 1).
+    const q = flat(body("shops_admin_pending_items"));
+    expect(q).toContain("owner_last_rejected_at timestamptz, owner_last_rejection_note text");
+    expect(q).toContain("rj.created_at, rj.details->>'note'");
+    expect(q).toContain("WHERE l.action = 'shop_item_rejected' AND l.details->>'owner_id' = i.owner_id::text");
     // A content edit takes a live item down and clears what was judged (D10).
     const u = flat(body("shops_update_item"));
     expect(u).toContain("status = 'draft'");

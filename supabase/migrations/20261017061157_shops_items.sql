@@ -183,7 +183,9 @@ ALTER TABLE public.shop_items ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.shop_items FROM PUBLIC, anon, authenticated;
 -- Column grants (lh-authz-rls review nit 5): admin_approved_at (which items
 -- went through an admin) is not client-readable; the owner reads their own
--- review state through shops_my_item_review.
+-- review state through shops_my_item_review. Download My Data still carries it
+-- for the owner's own items: it is their data, not a staff id (lh-authz-rls
+-- review of 63a55df2c, nit 4).
 GRANT SELECT (id, shop_id, owner_id, kind, subtype, status, title, description, price_cents, lead_time_days,
               stock_count, is_seed, created_at, updated_at, submitted_at, live_at)
   ON TABLE public.shop_items TO authenticated;
@@ -1390,7 +1392,10 @@ CREATE OR REPLACE FUNCTION public.shops_admin_pending_items()
 RETURNS TABLE(
   item_id uuid, shop_id uuid, shop_name text, owner_id uuid, kind text, subtype text, title text,
   description text, price_cents integer, submitted_at timestamptz, ai_checked_at timestamptz,
-  ai_flag_reason text, text_flag_reason text, approved_items integer, photo_paths text[]
+  ai_flag_reason text, text_flag_reason text, approved_items integer, photo_paths text[],
+  -- The 30-day hold's context (lh-silent-failure review of 63a55df2c, finding 1):
+  -- the owner's latest rejection, so a held re-listing is reviewed knowing why.
+  owner_last_rejected_at timestamptz, owner_last_rejection_note text
 )
 LANGUAGE plpgsql
 STABLE
@@ -1411,10 +1416,16 @@ BEGIN
            (SELECT count(*)::integer FROM public.shop_items a
              WHERE a.shop_id = i.shop_id AND a.admin_approved_at IS NOT NULL),
            (SELECT COALESCE(array_agg(ph.storage_path ORDER BY ph.position), ARRAY[]::text[])
-              FROM public.shop_item_photos ph WHERE ph.item_id = i.id)
+              FROM public.shop_item_photos ph WHERE ph.item_id = i.id),
+           rj.created_at, rj.details->>'note'
       FROM public.shop_items i
       JOIN public.shops s ON s.id = i.shop_id
       LEFT JOIN public.shop_item_private p ON p.item_id = i.id
+      LEFT JOIN LATERAL (
+        SELECT l.created_at, l.details FROM public.admin_audit_log l
+         WHERE l.action = 'shop_item_rejected' AND l.details->>'owner_id' = i.owner_id::text
+           AND l.created_at > now() - interval '30 days'
+         ORDER BY l.created_at DESC LIMIT 1) rj ON true
      WHERE i.status = 'pending_review'
      ORDER BY i.submitted_at NULLS LAST, i.id
      LIMIT 200;

@@ -3,6 +3,12 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts | if (intent.status !== "succeeded") { | if (false) {
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const FUNDED_PAYMENT_STATES = new Set(["escrow", "payout_pending", "released"]); | const FUNDED_PAYMENT_STATES = new Set(["payout_pending", "released"]);
 // @mutate supabase/functions/stripe-webhook/index.ts | "payment_intent.payment_failed": handlePaymentIntentPaymentFailed, | "payment_intent.payment_failedX": handlePaymentIntentPaymentFailed,
+// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   PERFORM set_config('app.sanctioned_cancel', 'on', true);\n  PERFORM set_config('app.payment_failed_cancel', 'on', true); |   PERFORM set_config('app.payment_failed_cancel', 'on', true);
+// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   IF COALESCE(current_setting('app.payment_failed_cancel', true), '') = 'on' THEN\n    RETURN NULL;\n  END IF; |   NULL;
+// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |          cancellation_fee = 0, |          cancellation_fee = 1,
+// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   WHERE id = v_job.id\n     AND stripe_payment_intent_id = p_payment_intent_id\n     AND payment_status IN ('escrow', 'payout_pending'); |   WHERE id = v_job.id;
+// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |       EXECUTE 'SELECT public.return_bounced_gift_card($1, $2)' INTO v_gift USING v_job.id, p_gift_card_id; |       v_gift := NULL;
+// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql | GRANT EXECUTE ON FUNCTION public.cancel_job_after_failed_bank_payment(uuid, text, uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.cancel_job_after_failed_bank_payment(uuid, text, uuid) TO service_role, authenticated;
 /**
  * CLASS GUARD: a job is 'escrow' only once the poster's money has ARRIVED, and
  * leaves it when that money fails (ach-fix, 2026-10-17).
@@ -24,6 +30,15 @@
  *     funded (public.job_payment_is_funded, newest migration), and is the
  *     handler wired to payment_intent.payment_failed. A funded state the
  *     handler does not know is the 7440a72d hole again.
+ *  D. (Q1972, owner 2026-10-17) A HIRED job whose bank payment failed is
+ *     CANCELLED, not left hired: the handler asks
+ *     public.cancel_job_after_failed_bank_payment first, and that RPC's
+ *     newest definition is a sanctioned cancel (app.sanctioned_cancel around
+ *     its one UPDATE, pinned to the job's PI and a funded state) that charges
+ *     no fee, strikes nobody, gives back a gift the checkout spent, and is
+ *     service_role only; record_backout_notice's newest definition stays
+ *     quiet for it. Behaviour: src/test/pglite/failedBankPaymentCancelsHiredJob
+ *     .pglite.mjs; handler: src/test/edge/fundedJobPaymentFailed.test.ts.
  *  C. Every edge function that sends a Stripe transfer AND reads a job's
  *     stripe_payment_intent_id refuses when that PaymentIntent is not
  *     succeeded. The behaviour is proven per path in their own edge tests
@@ -37,7 +52,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
-import { blankComments } from "./helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { newestFunction } from "./helpers/parityReaders";
 
 const REPO = resolve(__dirname, "../..");
@@ -159,4 +174,61 @@ describe("every escrow payout path refuses an unsucceeded charge (C)", () => {
       expect(code(join(FUNCTIONS, f))).toMatch(/\.status\s*(?:!==|===)\s*"succeeded"/);
     });
   }
+});
+
+describe("a hired job whose bank payment failed is cancelled, not left hired (D, Q1972)", () => {
+  const MIGRATIONS = join(REPO, "supabase/migrations");
+  const handler = code(join(FUNCTIONS, "stripe-webhook/handlers/paymentIntentPaymentFailed.ts"));
+
+  it("the handler asks the cancel RPC before its own un-fund write, after the released and live-status gates", () => {
+    const rpc = handler.indexOf('"cancel_job_after_failed_bank_payment"');
+    const released = handler.indexOf('if (job.payment_status === "released") {');
+    const live = handler.indexOf("if (!liveStatus || !FAILED_PI_STATUSES.has(liveStatus)) {");
+    const unfund = handler.indexOf('.update({ payment_status: "failed", stripe_session_id: null })');
+    expect(Math.min(rpc, released, live, unfund)).toBeGreaterThan(-1);
+    expect(live).toBeLessThan(released);
+    expect(released).toBeLessThan(rpc);
+    expect(rpc).toBeLessThan(unfund);
+  });
+
+  it("the RPC's newest definition is a sanctioned, fee-free, strike-free cancel pinned to the failing PI", () => {
+    const fn = newestFunction("cancel_job_after_failed_bank_payment");
+    const body = blankSqlComments(fn.body);
+    // One row lock, then the sanctioned hatch around the ONE jobs UPDATE.
+    expect(body).toMatch(/FROM public\.jobs j\s+WHERE j\.id = p_job_id\s+FOR UPDATE;/);
+    const on = body.indexOf("PERFORM set_config('app.sanctioned_cancel', 'on', true);");
+    const quiet = body.indexOf("PERFORM set_config('app.payment_failed_cancel', 'on', true);");
+    const upd = body.indexOf("UPDATE public.jobs");
+    const off = body.indexOf("PERFORM set_config('app.sanctioned_cancel', 'off', true);");
+    expect(Math.min(on, quiet, upd, off)).toBeGreaterThan(-1);
+    expect(on).toBeLessThan(upd);
+    expect(quiet).toBeLessThan(upd);
+    expect(upd).toBeLessThan(off);
+    expect(body.match(/UPDATE public\.jobs/g)).toHaveLength(1);
+    const update = body.slice(upd, body.indexOf(";", upd));
+    expect(update).toMatch(/status = 'cancelled'::job_status/);
+    expect(update).toMatch(/payment_status = 'failed'/);
+    expect(update).toMatch(/cancellation_fee = 0,/);
+    expect(update).toMatch(/cancellation_fee_status = NULL/);
+    expect(update).toMatch(/AND stripe_payment_intent_id = p_payment_intent_id\s+AND payment_status IN \('escrow', 'payout_pending'\)/);
+    // Nobody is struck and nobody is charged.
+    expect(body).not.toMatch(/apply_cancellation_violation_consequence|apply_consequence_ladder|user_violations|crew_cancellation_fee_shares/);
+    // A spent gift goes back in the same transaction (Q1876's single put-back).
+    expect(body).toMatch(/EXECUTE 'SELECT public\.return_bounced_gift_card\(\$1, \$2\)' INTO v_gift USING v_job\.id, p_gift_card_id;/);
+  });
+
+  it("only the service role can run it", () => {
+    const fn = newestFunction("cancel_job_after_failed_bank_payment");
+    const sql = blankSqlComments(readFileSync(join(MIGRATIONS, fn.file), "utf8"));
+    expect(sql).toMatch(/REVOKE ALL ON FUNCTION public\.cancel_job_after_failed_bank_payment\(uuid, text, uuid\) FROM PUBLIC, anon, authenticated;/);
+    const grants = [...sql.matchAll(/GRANT EXECUTE ON FUNCTION public\.cancel_job_after_failed_bank_payment\([^)]*\) TO ([^;]+);/g)].map((m) => m[1].trim());
+    expect(grants).toEqual(["service_role"]);
+  });
+
+  it("the back-out notice stays quiet for it (newest record_backout_notice)", () => {
+    const body = blankSqlComments(newestFunction("record_backout_notice").body);
+    expect(body).toMatch(/IF COALESCE\(current_setting\('app\.payment_failed_cancel', true\), ''\) = 'on' THEN\s+RETURN NULL;\s+END IF;/);
+    // ...before any branch that writes a notice.
+    expect(body.indexOf("app.payment_failed_cancel")).toBeLessThan(body.indexOf("INSERT INTO public.backout_notices"));
+  });
 });

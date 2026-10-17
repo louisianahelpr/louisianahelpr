@@ -237,9 +237,14 @@ export function screenErrorText(snap) {
 }
 /** Labels that MUTATE something. Pressed only on a test-owned target (see pressProdSafety.mjs). */
 export const SENTRY_PROBE_RX = /uncaught:\s*Sentry uncaught test\b/i;
-export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout)\b/i;
+// end / leave / give up / turn down / escalate / take back (2026-10-17): a
+// recurring series' "End series" and "Leave series", "Give up" its dates, a
+// crew's "Turn Down" / "Leave Crew", a dispute's "Escalate to Admin" and a
+// document's "Take It Back" named none of the words before them, so the sweep
+// would press them ungated. Guard: src/test/pressGatesEveryIrreversibleControl.test.ts.
+export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout|end|leave|give up|turn down|escalate|take (?:it )?back)\b/i;
 export { ACCOUNT_DESTROY_RX, SESSION_END_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
-import { PAYMENT_RX, isAccountSettingToggle, isAdminStateToggle, isAdminWrite } from "./pressProdSafety.mjs";
+import { PAYMENT_RX, isAccountSettingToggle, isAdminStateToggle, isAdminWrite, isCommitControl } from "./pressProdSafety.mjs";
 import { RequestMeter } from "../../e2e/requestMeter.mjs";
 /** Console lines the HARNESS causes, not the app. */
 /**
@@ -698,6 +703,9 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
       // isAdminStateToggle (pressProdSafety.mjs) reads it: a role="switch" is a
       // setting, and as admin a setting is platform-wide state (Q42).
       role: el.getAttribute("role"),
+      // isCommitControl (pressProdSafety.mjs): the app's own marker for the
+      // control that does the consequential thing (src/components/ui/dialog.tsx).
+      commit: el.getAttribute("data-commit") || "",
       // isAccountSettingToggle (Q200): a toggle inside a <form> is a draft
       // field; one outside it saves the setting the moment it is pressed.
       inForm: el.closest("form") !== null,
@@ -1533,7 +1541,7 @@ async function main() {
           const ckey = chromeKey({ persona, chain: entry.chain.slice(0, -1), sig: meta.sig });
           const chromeWhy = chromeDisposition({ fromChrome: item.fromChrome, depth: item.depth, key: ckey, passedOn: chromePassedOn });
           if (chromeWhy) { entry.pressedOn = chromePassedOn.get(ckey); skip(chromeWhy); continue; }
-          if (DESTRUCTIVE_RX.test(label) || isAdminWrite({ persona, label }) || meta.type === "submit" || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label })) {
+          if (DESTRUCTIVE_RX.test(label) || isAdminWrite({ persona, label }) || meta.type === "submit" || isCommitControl(meta) || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label })) {
             const why = await gate(label, meta, item.chainOwned);
             if (why) { skip(why); continue; }
             entry.mutating = true;

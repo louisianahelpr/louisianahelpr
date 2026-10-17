@@ -18,6 +18,15 @@
  * Over-approximating the reachable set is harmless (a module stays in
  * app-shared, as before); the bundler's own graph decides correctness. The
  * walk is read from source on every build, so there is no list to go stale.
+ *
+ * The same walk then splits that set once more (signedInSplit): the part some
+ * signed-in FIRST SCREEN reaches (a page whose chunk the entry starts, the
+ * ProtectedRoute gate, or a component App.tsx mounts beside every page) stays
+ * in `signed-in-shared`, which those screens fetch on their first round; the
+ * rest (Declutter's api, crew lifecycle, en-route tracking, admin and support
+ * helpers, ...) is only ever reached from a lazy page or dialog and gets its
+ * own `signed-in-deep` chunk, fetched when that page or dialog opens. Measured
+ * 2026-10-17: /posts carried ~8 KB gz of it on its critical path.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -89,6 +98,52 @@ export function publicRoots(root) {
     throw new Error(`bootReach: read ${roots.length} guest roots from routePreload.ts (expected 5+, all resolvable). Fix the scan.`);
   }
   return [path.join(root, "src/main.tsx"), ...roots];
+}
+
+/**
+ * Components App.tsx mounts beside EVERY page, each a lazy chunk fetched once
+ * the page has settled. scripts/check-deferred-vendors.mjs walks the same
+ * ones (its ROUTE_ROOTS) and fails if any of their built closures carries a
+ * `signed-in-deep` module, so a root missing here is caught on the build.
+ */
+export const EVERY_PAGE_ROOTS = [
+  "src/components/MobileNav.tsx",
+  "src/components/PageTransition.tsx",
+  "src/components/ScrollToTop.tsx",
+  "src/components/feedback/SuccessMomentHost.tsx",
+  "src/pages/info/Legal.tsx",
+];
+
+/** Every first screen: each page in ENTRY_ROUTE_CHUNKS (guest and signed in), protectedRoute, EVERY_PAGE_ROOTS. */
+export function firstScreenRoots(root) {
+  const src = stripComments(fs.readFileSync(path.join(root, "src/boot/routePreload.ts"), "utf8"));
+  const table = src.match(/export const ENTRY_ROUTE_CHUNKS[\s\S]*?\n\};/)?.[0];
+  if (!table) throw new Error("bootReach: no ENTRY_ROUTE_CHUNKS table in src/boot/routePreload.ts. Fix the scan.");
+  const specs = new Set([...table.matchAll(/import\(\s*["']@\/([^"']+)["']\s*\)/g)].map((m) => m[1]));
+  const protectedSpec = src.match(/const\s+protectedRoute\s*=\s*\(\)\s*=>\s*import\(\s*["']@\/([^"']+)["']/)?.[1];
+  if (protectedSpec) specs.add(protectedSpec);
+  const roots = [...specs].map((s) => resolveSpecifier(root, root + "/src/x.ts", "@/" + s));
+  if (roots.length < 10 || roots.some((r) => !r) || !protectedSpec) {
+    throw new Error(`bootReach: read ${roots.length} first-screen roots from routePreload.ts (expected 10+, all resolvable, protectedRoute among them). Fix the scan.`);
+  }
+  for (const r of EVERY_PAGE_ROOTS) {
+    if (!fs.existsSync(path.join(root, r))) throw new Error(`bootReach: EVERY_PAGE_ROOTS names ${r}, which does not exist. Fix the list.`);
+  }
+  return [...roots, ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r)))];
+}
+
+/**
+ * signedInOnly split by whether any first screen statically reaches it:
+ * `firstScreen` rides in `signed-in-shared`, `deep` in `signed-in-deep`.
+ * Over-approximating the reach is harmless here too (a module stays in
+ * signed-in-shared, as before).
+ */
+export function signedInSplit(root) {
+  const { signedInOnly } = signedInOnlyModules(root);
+  const reach = staticReach(root, firstScreenRoots(root));
+  const firstScreen = new Set([...signedInOnly].filter((f) => reach.has(f)));
+  const deep = new Set([...signedInOnly].filter((f) => !reach.has(f)));
+  return { signedInOnly, firstScreen, deep };
 }
 
 /** Shared-code modules (the `app-shared` directories) that no public cold load reaches. */

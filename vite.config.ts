@@ -5,7 +5,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { signedInOnlyModules } from "./scripts/perf/bootReach.mjs";
+import { signedInOnlyModules, signedInSplit } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -164,6 +164,7 @@ function restartOnDependencyChange(): Plugin {
 }
 
 const { signedInOnly } = signedInOnlyModules(process.cwd());
+const { deep: signedInDeep } = signedInSplit(process.cwd());
 
 export default defineConfig(({ mode }) => ({
   define: {
@@ -773,6 +774,25 @@ export default defineConfig(({ mode }) => ({
             // first screens fetch this chunk beside their own page chunk, in
             // the same round. scripts/check-deferred-vendors.mjs fails if any of
             // these modules is found in a chunk of the boot graph again.
+            // The signed-in shared code no FIRST SCREEN reaches (scripts/perf/bootReach.mjs
+            // signedInSplit: every page in ENTRY_ROUTE_CHUNKS, ProtectedRoute, and the
+            // components App.tsx mounts beside every page). It rode in signed-in-shared,
+            // so /posts, /home, /messages, ... each fetched it on their first round
+            // although only a lazy page or dialog runs it (Declutter's api, crew
+            // lifecycle, en-route tracking, admin and support helpers): ~8 KB gz on
+            // /posts, 2026-10-17. Above signed-in-shared's priority so it wins those
+            // modules; scripts/check-deferred-vendors.mjs fails if a first-screen
+            // closure carries a chunk holding one of them again.
+            {
+              name: "signed-in-deep",
+              test: (id: string) => signedInDeep.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 16,
+              minSize: 0,
+              // As signed-in-shared below (no trailing comma: that group's @mutate
+              // in src/test/bootReach.test.ts matches its own line).
+              includeDependenciesRecursively: false
+            },
             {
               name: "signed-in-shared",
               test: (id: string) => signedInOnly.has(id.split("?")[0].replace(/\\/g, "/")),

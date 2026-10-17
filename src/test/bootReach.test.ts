@@ -12,11 +12,14 @@
  * @mutate scripts/perf/bootReach.mjs | const reach = staticReach(root, publicRoots(root)); | const reach = new Set();
  * @mutate vite.config.ts | name: "signed-in-shared", | name: "signed-in-shared-off",
  * @mutate vite.config.ts | includeDependenciesRecursively: false, | includeDependenciesRecursively: true,
+ * @mutate scripts/perf/bootReach.mjs | const deep = new Set([...signedInOnly].filter((f) => !reach.has(f))); | const deep = new Set();
+ * @mutate vite.config.ts | name: "signed-in-deep", | name: "signed-in-deep-off",
+ * @mutate vite.config.ts | const { deep: signedInDeep } = signedInSplit(process.cwd()); | const signedInDeep = new Set<string>();
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { publicRoots, signedInOnlyModules, staticReach } from "../../scripts/perf/bootReach.mjs";
+import { firstScreenRoots, publicRoots, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
@@ -55,6 +58,33 @@ describe("bootReach: what a signed-out cold load can reach", () => {
   });
 });
 
+describe("signedInSplit: signed-in code no first screen reaches (signed-in-deep, 2026-10-17)", () => {
+  const { signedInOnly, firstScreen, deep } = signedInSplit(ROOT);
+
+  it("starts from every page in ENTRY_ROUTE_CHUNKS, ProtectedRoute and the every-page components", () => {
+    const roots = firstScreenRoots(ROOT).map((r) => r.split("\\").join("/"));
+    for (const rel of ["src/pages/posts/PostsPage.tsx", "src/pages/home/Dashboard.tsx", "src/pages/messages/Messages.tsx", "src/pages/profile/Profile.tsx", "src/components/ProtectedRoute.tsx", "src/components/MobileNav.tsx"]) {
+      expect(roots, rel).toContain(abs(rel));
+    }
+  });
+
+  it("partitions signedInOnly exactly, and both halves are real", () => {
+    expect(firstScreen.size + deep.size).toBe(signedInOnly.size);
+    for (const f of deep) expect(firstScreen.has(f), f).toBe(false);
+    expect(firstScreen.size).toBeGreaterThan(80); // 130 on 2026-10-17
+    expect(deep.size).toBeGreaterThan(40); // 73 on 2026-10-17
+  });
+
+  it("first-screen code stays in signed-in-shared, lazy-only code goes deep", () => {
+    for (const rel of ["src/hooks/useActivityData.ts", "src/lib/lifecycleErrors.ts", "src/lib/awardGate.ts"]) {
+      expect(firstScreen.has(abs(rel)), rel).toBe(true);
+    }
+    for (const rel of ["src/lib/crewLifecycle.ts", "src/lib/enRouteLocation.ts", "src/lib/adminBanStatus.ts"]) {
+      expect(deep.has(abs(rel)), rel).toBe(true);
+    }
+  });
+});
+
 describe("vite.config.ts wires the group", () => {
   const cfg = blankComments(readFileSync(join(ROOT, "vite.config.ts"), "utf8"));
   const group = cfg.match(/name:\s*"signed-in-shared"[\s\S]*?\n\s*\},/)?.[0] ?? "";
@@ -66,6 +96,15 @@ describe("vite.config.ts wires the group", () => {
     const prio = Number(group.match(/priority:\s*(\d+)/)?.[1]);
     const appShared = Number(cfg.match(/name:\s*"app-shared"[\s\S]*?priority:\s*(\d+)/)?.[1]);
     expect(prio).toBeGreaterThan(appShared);
+  });
+
+  it("has a signed-in-deep group fed by signedInSplit, above signed-in-shared's priority", () => {
+    const deepGroup = cfg.match(/name:\s*"signed-in-deep"[\s\S]*?\n\s*\},/)?.[0] ?? "";
+    expect(deepGroup).not.toBe("");
+    expect(cfg).toMatch(/\{\s*deep:\s*signedInDeep\s*\}\s*=\s*signedInSplit\(process\.cwd\(\)\)/);
+    expect(deepGroup).toMatch(/signedInDeep\.has\(/);
+    expect(deepGroup).toMatch(/includeDependenciesRecursively:\s*false/);
+    expect(Number(deepGroup.match(/priority:\s*(\d+)/)?.[1])).toBeGreaterThan(Number(group.match(/priority:\s*(\d+)/)?.[1]));
   });
 
   it("does not drag the boot modules these import into the chunk", () => {

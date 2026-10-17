@@ -291,7 +291,7 @@ const SQL_POLICIES = {
       declutter_hand_refund_failed: "20261017052700_declutter_refund_hand_settle.sql df3bdc676a1d434c",
       // Owner answer 7 (20261017060455): the three seller-out paths record
       // 'seller_out' (full refund, the card fee is the seller's debt) instead of order_closed / sold_elsewhere.
-      declutter_mark_order_paid: "20261017060455_declutter_seller_out_pays_fee.sql 02348795de81a3f6",
+      declutter_mark_order_paid: "20261017060455_declutter_seller_out_pays_fee.sql 25677976af75c7a5",
       declutter_money_rows_seed: "20261014224914_declutter_slice3b_payments.sql eb41800cf45bee87",
       declutter_order_refunds_recorded_cents: "20261017052705_declutter_helpr_delivery.sql 180fd5a89917ba6d",
       declutter_record_hand_refund: "20261017052700_declutter_refund_hand_settle.sql e91bafe49bc1f340",

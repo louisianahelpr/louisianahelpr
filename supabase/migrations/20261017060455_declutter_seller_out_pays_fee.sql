@@ -259,12 +259,16 @@ BEGIN
          AND s.reason = 'missed_checkout' AND s.removed_at IS NULL;
       SELECT count(*), count(*) FILTER (WHERE c.status = 'missed') INTO v_lines, v_live
         FROM public.declutter_cart_items c WHERE c.order_id = p_order_id;
-      v_sale_ok := v_lines > 0 AND v_live = v_lines
+      -- The items part apart from the blocks part (lh-money-escrow review of
+      -- 905501cb2 #1): whether the seller being out is the one thing that
+      -- stops the sale is judged on the items alone, as path (c) does.
+      v_items_ok := v_lines > 0 AND v_live = v_lines
         AND NOT EXISTS (SELECT 1 FROM public.declutter_cart_items c JOIN public.declutter_items i ON i.id = c.item_id
                          WHERE c.order_id = p_order_id AND i.status <> 'live')
         AND NOT EXISTS (SELECT 1 FROM public.declutter_cart_items c
                           JOIN public.declutter_cart_items c2 ON c2.item_id = c.item_id AND c2.id <> c.id
-                         WHERE c.order_id = p_order_id AND c2.status IN ('in_cart', 'paid'))
+                         WHERE c.order_id = p_order_id AND c2.status IN ('in_cart', 'paid'));
+      v_sale_ok := v_items_ok
         AND NOT EXISTS (SELECT 1 FROM public.user_blocks b
                          WHERE (b.blocker_id = o.seller_id AND b.blocked_id = o.buyer_id)
                             OR (b.blocker_id = o.buyer_id AND b.blocked_id = o.seller_id));
@@ -276,7 +280,12 @@ BEGIN
         -- Owner 2026-10-17 (answer 7): when the seller being out is the ONLY
         -- thing that stops the sale, the seller (not us) owes the card fee; the
         -- buyer still gets every cent. An item that went elsewhere is ours.
-        v_reason := CASE WHEN v_sale_ok AND v_cant THEN 'seller_out' ELSE 'sold_elsewhere' END;
+        -- As in path (c): a seller who is out wins over a BUYER who blocked
+        -- them; a seller who blocked the buyer is left as before (filed in docs/OPEN.md).
+        v_reason := CASE WHEN v_items_ok AND v_cant
+                               AND NOT EXISTS (SELECT 1 FROM public.user_blocks b
+                                                WHERE b.blocker_id = o.seller_id AND b.blocked_id = o.buyer_id)
+                         THEN 'seller_out' ELSE 'sold_elsewhere' END;
         v_refund := public.declutter_record_refund(o.id, p_payment_intent_id, v_reason, p_amount_cents, p_card_fee_cents);
         IF v_reason = 'seller_out' THEN
           PERFORM public.declutter_seller_out_fee_notice(v_refund);

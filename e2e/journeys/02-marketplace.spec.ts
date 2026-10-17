@@ -25,6 +25,7 @@ import { isoDayIn } from "../calendarPicker";
 import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
+import { findChip } from "./cardChips";
 import { ZONE, fillJobDetails, fillLogistics, fillBudget, slotAhead } from "./postJobForm";
 
 /**
@@ -561,10 +562,12 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("poster messages the helper with an attachment", async () => {
-      await pp.goto("/posts");
-      await openStatusTab(pp, scheduledTab());
-      await pp.getByText(TITLE).first().click();
-      await pp.getByRole("button", { name: "Message Helpr" }).first().click();
+      // Message may be on the row or in More: at 390px the booked card's row
+      // is More + "I'm Still On" (e2e-journeys 39020810698, 2026-10-17).
+      const booked = await card(pp, "/posts", scheduledTab());
+      const message = await findChip(pp, booked, /^Message\b/, 30_000);
+      expect(message, `the poster's ${scheduledTab()} card offers no Message, on the row or in More`).not.toBeNull();
+      await message!.click();
       await expect(pp).toHaveURL(/\/messages/, { timeout: 30_000 });
       const box = pp.getByRole("textbox", { name: "Type a message" });
       await expect(box).toBeVisible({ timeout: 30_000 });
@@ -701,42 +704,6 @@ test.describe.serial("marketplace chain", () => {
     const c = page.locator("div.liquid-glass").filter({ has: heading }).last();
     if (!(await c.getByRole("group", { name: /Job progress/ }).isVisible().catch(() => false))) await heading.click();
     return c;
-  }
-
-  /**
-   * A card control by name, ON THE ROW OR IN ITS "More" OVERFLOW.
-   *
-   * A step whose action row cannot hold every chip parks the rest behind
-   * JobActionRow's overflow chip (`data-job-step-overflow`), whose panel
-   * (`data-job-step-overflow-panel`) is a Radix popover PORTALED to <body> —
-   * so a locator scoped to the card cannot see a chip in it, open or shut.
-   * Measured 2026-09-26 (e2e-journeys probe runs 36212737517 / 36213134702,
-   * wip/vac1797-probe-journeys): the poster's Done card of this very journey
-   * (it carries proof photos, so its row is Photos · More · Hire Again) had
-   * its review row in `reviews` (02:34:06Z), and its "Reviewed" chip was in
-   * the More panel next to "Tip" — `card.getByRole("button", { name:
-   * /^Reviewed\b/ })` counted 0 while the page had it. That, not the cache,
-   * is what 120s of reloads could not find in e2e-journeys 36211846948.
-   * Guarded by src/test/journeyChipsReachOverflow.test.ts.
-   */
-  async function findChip(page: Page, scope: ReturnType<Page["locator"]>, name: RegExp, timeout: number) {
-    const deadline = Date.now() + timeout;
-    const panel = page.locator("[data-job-step-overflow-panel]").filter({ visible: true });
-    for (;;) {
-      const inOpenPanel = panel.getByRole("button", { name }).first();
-      if (await inOpenPanel.isVisible().catch(() => false)) return inOpenPanel;
-      const onRow = scope.getByRole("button", { name }).filter({ visible: true }).first();
-      if (await onRow.isVisible().catch(() => false)) return onRow;
-      const more = scope.locator("[data-job-step-overflow]").filter({ visible: true }).first();
-      if (await more.isVisible().catch(() => false)) {
-        await more.click();
-        const inPanel = panel.getByRole("button", { name }).first();
-        if (await inPanel.waitFor({ state: "visible", timeout: 3_000 }).then(() => true, () => false)) return inPanel;
-        await page.keyboard.press("Escape");
-      }
-      if (Date.now() >= deadline) return null;
-      await page.waitForTimeout(1_000);
-    }
   }
 
   /**

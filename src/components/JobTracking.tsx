@@ -1521,6 +1521,8 @@ export function JobTracking({
     done: jobStamps.helperCompletedAt ?? jobStamps.posterCompletedAt,
   };
   const [openStepTooltip, setOpenStepTooltip] = useState<string | null>(null);
+  /** The step whose tooltip the pointer opened (not yet pinned by a click). */
+  const hoverOpenedStepRef = useRef<string | null>(null);
 
   const displaySteps = includePostingSteps ? [...PRE_STATUSES, ...STATUSES] : STATUSES;
   // ONE definition of the offset, shared with the collapsed card's compact
@@ -1884,10 +1886,30 @@ export function JobTracking({
                           type: "button" as const,
                           onClick: (e: ReactMouseEvent) => {
                             e.stopPropagation();
+                            /* A CLICK NEVER HIDES WHAT THE HOVER JUST SHOWED.
+                               A mouse reaches the dot before it clicks it, so
+                               the hover had already opened this tooltip and the
+                               toggle closed it again: clicking "Done — <date>"
+                               showed nothing (press-every-control 38536821617,
+                               shard 11, /jobs/d3034be8 "no observable change").
+                               A click on a hover-opened tooltip keeps it open
+                               (leaving the dot still closes it); a click on a
+                               tap- or click-opened one closes it, as before. */
+                            if (hoverOpenedStepRef.current === s.key) {
+                              hoverOpenedStepRef.current = null;
+                              setOpenStepTooltip(s.key);
+                              return;
+                            }
                             setOpenStepTooltip((k) => (k === s.key ? null : s.key));
                           },
-                          onMouseEnter: () => setOpenStepTooltip(s.key),
-                          onMouseLeave: () => setOpenStepTooltip((k) => (k === s.key ? null : k)),
+                          onMouseEnter: () => {
+                            hoverOpenedStepRef.current = s.key;
+                            setOpenStepTooltip(s.key);
+                          },
+                          onMouseLeave: () => {
+                            hoverOpenedStepRef.current = null;
+                            setOpenStepTooltip((k) => (k === s.key ? null : k));
+                          },
                           "aria-label": `${s.label} — ${new Date(ts as string).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
                         }
                       : {})}

@@ -337,6 +337,7 @@ function errorCopyLines(src: string): number[] {
 const EXCUSED_INLINE: Record<string, string> = {
   "components/InstantPayoutDialog.tsx": "an inline error line inside the payout dialog, not a screen",
   "components/admin/AdminNotifications.tsx": "one admin-only <p> under a settings card",
+  "components/admin/settings/DeclutterProblemsCard.tsx": "one admin-only line where a Helpr's evidence photo would be (the problem card itself loaded); the photo read is a signed URL, not a page load",
   "components/profile/ProfileSectionError.tsx": "a one-line row inside a Profile sub-section; the profile itself loaded",
   "components/profile/SecurityTab.tsx": "one line of the session-history list; reported as SecurityTab.sessions",
   "components/profile/profileEditForm/PhotoNameSection.tsx": "a field hint under the avatar picker",

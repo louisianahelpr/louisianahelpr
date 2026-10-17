@@ -21,6 +21,7 @@
  *     the job in full (setup fee kept) and bills the card fee to the seller (declutter_setup_job_fee_debt);
  *     proven in PGlite A1-A10 and src/test/edge/void-cancelled-payments.declutterSellerFault.test.ts.
  *
+ * @mutate src/pages/post-job/useJobSubmit.ts | await backgroundImport(() => import("@/lib/declutter/setupHelpr"), "declutter-setup-helpr"); | await import("@/lib/declutter/setupHelpr");
  * @mutate src/pages/post-job/usePostJobForm.ts | const noDraft = !!(searchParams.get("haulAway") \|\| searchParams.get("declutterOrder")); | const noDraft = !!searchParams.get("haulAway");
  * @mutate src/pages/post-job/useJobSubmit.ts |           if ((!haulAwayItemIds \|\| haulAwayItemIds.length === 0) && !declutterOrderId) {\n            flushDraft(); |           if (!haulAwayItemIds \|\| haulAwayItemIds.length === 0) {\n            flushDraft();
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |    WHERE id = p_order_id AND buyer_id = v_uid; |    WHERE id = p_order_id;
@@ -207,6 +208,9 @@ describe("Declutter Add a Helpr", () => {
     expect(code("src/pages/post-job/useJobFormEffects.ts")).toMatch(/searchParams\.get\("declutterOrder"\)[\s\S]*?fetchSetupHelpr\(orderId\)[\s\S]*?buildSetupJobPrefill\(/);
     const submit = code("src/pages/post-job/useJobSubmit.ts");
     expect(submit).toContain("if (!(await linkSetupJob(orderId, jobId))) linkErr = ");
+    // Loaded lazily as a BACKGROUND import: a stale chunk is a failed link the buyer is told about, never
+    // a recovery reload between the job row and the checkout redirect (lh-money-escrow review of 6ef39799d #3a).
+    expect(submit).toContain('const { linkSetupJob } = await backgroundImport(() => import("@/lib/declutter/setupHelpr"), "declutter-setup-helpr");');
     expect(submit).toContain("if (declutterOrderId) await linkSetupJobOrTell(declutterOrderId, jobData.id);");
     // The retry of a lost payment answer links again first (money review of 4f45a073f #4) ...
     expect(submit).toMatch(/if \(attempt\.jobId\) \{[\s\S]*?if \(declutterOrderId\) await linkSetupJobOrTell\(declutterOrderId, attempt\.jobId\);[\s\S]*?await startPayment\(attempt\.jobId/);

@@ -45,7 +45,7 @@ import { blankComments } from "./helpers/blankNonCode";
 const ALLOWED = new Map<string, string>([
   [
     "src/hooks/useSessionTimeout.ts | (anonymous) | window.location.href = \"/login\"",
-    "the 30-minute idle sign-out of a session that IS present, and not mounted at all (App.tsx SessionManager; a test below keeps it unmounted while it is listed)",
+    "the 30-minute idle sign-out of a session that IS present, and not mounted at all (SessionManager.tsx, mounted by App.tsx; a test below keeps it unmounted while it is listed)",
   ],
   [
     "src/lib/openExternalUrl.ts | openExternalUrl | window.location.href = url",
@@ -291,8 +291,12 @@ describe("involuntary sign-outs confirm the session is really gone", () => {
   });
 
   it("the allowlisted idle sign-out stays unmounted", () => {
-    const app = blankComments(readFileSync(join("src", "App.tsx"), "utf8"));
-    expect(/\buseSessionTimeout\s*\(/.test(app)).toBe(false);
+    // App.tsx and the boot-hook component it mounts (moved out of App.tsx, Q806).
+    for (const f of [join("src", "App.tsx"), join("src", "components", "SessionManager.tsx")]) {
+      const app = blankComments(readFileSync(f, "utf8"));
+      expect(app.length, `${f} is empty`).toBeGreaterThan(200);
+      expect(/\buseSessionTimeout\s*\(/.test(app), f).toBe(false);
+    }
   });
 
   it("confirmSessionLost() refreshes first and treats a network failure as NOT lost", () => {

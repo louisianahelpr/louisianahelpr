@@ -36,7 +36,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = { feature: true, featureSettled: true };
 
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature }));
+// DeclutterHome reads its tab-row switches with useFeatureStatus (Q?declutter-settle):
+// each answers at once, like useFeature, so only the gate's own read is ever pending.
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature, useFeatureStatus: () => ({ on: state.feature, settled: true }) }));
 // What Browse lists; empty unless a test puts an item up.
 const live: { items: unknown[] } = { items: [] };
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));

@@ -92,6 +92,7 @@ const ALLOWED: Record<string, { n: number; why: string }> = {
   "src/pages/auth/ForgotPassword.tsx": { n: 1, why: "AuthShell card form rhythm" },
   "src/pages/auth/ResetPassword.tsx": { n: 1, why: "AuthShell card form rhythm" },
   "src/pages/auth/SignupPending.tsx": { n: 1, why: "AuthShell card rhythm" },
+  "src/pages/auth/Unsubscribe.tsx": { n: 1, why: "AuthShell card rhythm (the public /unsubscribe card, the same liquid-glass card as AccountBanned)" },
   "src/pages/auth/AccountBanned.tsx": { n: 1, why: "AuthShell card rhythm" },
   "src/pages/auth/CompleteProfile.tsx": { n: 1, why: "the profile-completion card's own field rhythm" },
   // Centred compositions with no title row (NOT_A_TITLE_ROW in shell-spacing.spec).

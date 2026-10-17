@@ -1,5 +1,5 @@
 /**
- * Rentals S1 data access (20261015061259). Every write is an RPC; the tables
+ * Rentals S1 data access (20261017061457). Every write is an RPC; the tables
  * have no client write privilege. Reads go through RLS (landlord, tenant, or
  * admin for the ownership queue) and only work while the 'rentals' switch is
  * on for the member.

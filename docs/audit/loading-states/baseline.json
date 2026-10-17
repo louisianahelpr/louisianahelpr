@@ -213,6 +213,24 @@
       "kind": "jump",
       "was": "row 144px → 122px (-22px)",
       "ruling": "Owner decision 2026-10-17 (asked in the reds-guards lane, answer \"Keep full-profile reserve\"): the /user/:id masthead skeleton (ProfileHeroSkeleton) reserves a COMPLETE profile, two bio lines and three detail lines (place, Since, last active), so complete profiles do not move and shorter ones shrink upward. The shared test accounts have an 18-character bio (one line) and the Helpr one fewer detail line, so they measure the shrink (loading-states-refresh 38323051459 onward: poster page row 144px -> 122px, Helpr page 144px -> 104px). Reserving the minimum instead was offered and declined: content above the fold would then push the page down for every profile with a bio."
+    },
+    {
+      "key": "customer /profile?tab=work_record #5",
+      "kind": "jump",
+      "was": "row 590px → 816px (+226px) (run 38958608457, 2026-10-16)",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx. The work-record sheet keys its column as cluster #5 since WorkRecordReserve drew the sheet row by row (2026-10-08): #0-#4 are the header, identity and stat rows, matched to the sheet (loading-states-refresh 38958608457 fix, 2026-10-17); #5 is the whole column, a 590px reserve that the sheet, its footer band and the Share/Print controls grow below. Until a re-measurement lands, docs/audit/loading-states/measurements.json is the 2026-10-07 run, which keys the same column as #0; that entry stays until then (an entry that stops breaching is not a failure)."
+    },
+    {
+      "key": "helper /profile?tab=work_record #4",
+      "kind": "jump",
+      "was": "stat row 2: row 57px → 117px (run 38958608457, 2026-10-16; 74px → 117px expected once the reserve draws the zero-state tiles)",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx. The reserve draws the zero-state Work Summary (Q722, data-aware skeletons: a cold visit draws the state known before the data, and most members have no completed jobs), so the Active Period tile is one line (\"—\"). A member with jobs prints \"October 2026 – October 2026\", four lines in a 114px tile, and that row grows downward; nothing above it moves."
+    },
+    {
+      "key": "helper /profile?tab=work_record #5",
+      "kind": "jump",
+      "was": "row 590px → 770px (+180px) (run 38958608457, 2026-10-16)",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx. The work-record sheet keys its column as cluster #5 since WorkRecordReserve drew the sheet row by row (2026-10-08): #0-#4 are the header, identity and stat rows, matched to the sheet (loading-states-refresh 38958608457 fix, 2026-10-17); #5 is the whole column, a 590px reserve that the sheet, its footer band and the Share/Print controls grow below. Until a re-measurement lands, docs/audit/loading-states/measurements.json is the 2026-10-07 run, which keys the same column as #0; that entry stays until then (an entry that stops breaching is not a failure)."
     }
   ],
   "byDesignNote": "NOT DEBT. These are suppressed because a decision was MADE, not because nobody has got to them. Unlike `allow`, an entry here that stops breaching is not a failure: a tab whose content happens to fit one screenful simply does not jump, and that is no evidence the ruling was abandoned. Every entry must carry a `ruling`. Do not add to this list to silence a breach — that is what `allow` is for, and `allow` is the one that shrinks."

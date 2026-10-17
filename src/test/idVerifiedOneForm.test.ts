@@ -29,7 +29,7 @@ const EXEMPT: Record<string, string> = {
   "src/components/admin/adminUserHelpers.tsx": "admin-only console status badges, never shown to members",
   "src/components/admin/userDetail/ActionsTab.tsx": "admin-only action copy, never shown to members",
   "src/lib/workRecordDocument.ts": "the printable work-record PDF's table row, not an on-screen badge",
-  "src/pages/profile/WorkRecord.tsx": "the work-record sheet's field label (\"ID verified by Stripe: Verified\"), the on-screen twin of the PDF row, not a badge",
+  "src/components/profile/WorkRecordReserve.tsx": "WORK_RECORD_ID_FIELD, the work-record sheet's field label (\"ID verified by Stripe: Verified\"), the on-screen twin of the PDF row, not a badge; WorkRecord.tsx prints it and the loading reserve ghosts the same words",
   "src/components/TrustRow.tsx": "DEAD branch, reported 2026-10-06 not removed: its only caller (JobPosterCard.tsx) never passes idVerified; a caller that starts passing it must use the pill instead",
 };
 

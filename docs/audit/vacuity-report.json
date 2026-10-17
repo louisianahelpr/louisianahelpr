@@ -1,10 +1,11 @@
 {
-  "generated": "2026-10-17T11:47:27.993Z",
-  "guards": 1892,
-  "registered": 1892,
+  "generated": "2026-10-17T12:21:07.643Z",
+  "guards": 1895,
+  "registered": 1895,
   "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/test/landClaims.test.ts"
   ],
   "classD_selfReferential": [
     {

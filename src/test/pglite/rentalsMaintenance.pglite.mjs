@@ -39,7 +39,8 @@ const RENTAL_PROPERTY_COLUMNS = readFileSync(new URL("../../lib/rentals/api.ts",
   .match(/export const RENTAL_PROPERTY_COLUMNS =\s*"([^"]+)";/)?.[1] ?? "id";
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
 // Rentals slice 3 restatements, applied (3x) after S1 in version order. S3=skip leaves S1's bodies (the RED run).
-const S3_FILES = ["20261017220911_rentals_link_one_live_job.sql", "20261017221621_rentals_visit_time.sql"];
+const S3_FILES = ["20261017220911_rentals_link_one_live_job.sql", "20261017221621_rentals_visit_time.sql",
+  "20261017223352_rentals_ownership_review_alert.sql"];
 const S3 = process.env.S3 === "skip" ? "SELECT 1" : S3_FILES.map((f) => readFileSync(`${MIG_DIR}${f}`, "utf8")).join("\n");
 
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */
@@ -115,7 +116,7 @@ const LANDLORD = U(1), TENANT = U(2), STRANGER = U(3), MINOR = U(4), BANNED = U(
 const db = new PGlite();
 await db.exec(SCHEMA);
 // Q807 gate: the migration calls attach_unconfirmed_email_gate() (newest definitions, read by name).
-for (const name of ["is_caller_banned", "member_under_18", "contact_leak_reason",
+for (const name of ["ops_alert_normalise", "is_caller_banned", "member_under_18", "contact_leak_reason",
   "session_email_unconfirmed", "refuse_unconfirmed_email_write", "attach_unconfirmed_email_gate"]) {
   await db.exec(newestDefinition(name).stmt);
 }
@@ -215,6 +216,20 @@ ok(Array.isArray(await as("authenticated", LANDLORD,
   "proof in the landlord's own folder for this property is accepted");
 ok(one(await svc(`SELECT ownership_status FROM public.rental_properties WHERE id = '${prop}'`)) === "pending_review",
   "the property waits for admin review");
+// Slice 3 ("no alert when ownership proof waits for review"): the admin-queue alert, once, closing itself.
+const proofAlerts = () => svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${ADMIN}' AND title = 'Ownership proof waits for review' AND type = 'admin_alert'`);
+ok(one(await proofAlerts()) === 1, "alert: every admin is told the proof waits (admin_alert)");
+ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${LANDLORD}' AND title = 'Ownership proof waits for review'`)) === 0,
+  "alert: the landlord is not");
+ok(Array.isArray(await as("authenticated", LANDLORD,
+  `SELECT public.rentals_submit_ownership_proof('${prop}', '${LANDLORD}/rentals/${prop}/deed.pdf')`)) && one(await proofAlerts()) === 1,
+  "alert: a re-upload while it already waits does not page again");
+ok(one(await svc(`SELECT public.admin_alert_close_rule('Ownership proof waits for review')`)) === "rentals-ownership-review",
+  "alert: its title has a close rule (the admin-queue class, Q355)");
+ok(one(await svc(`SELECT public.admin_queue_still_pending('rentals-ownership-review', '{}'::jsonb, now())`)) === true,
+  "alert: it stays open while the proof waits");
+ok(one(await svc(`SELECT public.admin_alert_close_rule('Ban settlement review still waiting')`)) === "ban-settlement-review",
+  "alert: the restated close rule keeps the live rows");
 ok(refused(await as("authenticated", STRANGER, `SELECT public.rentals_admin_review_property('${prop}', true, NULL)`), /not_authorized/, "42501"),
   "a non-admin cannot approve ownership");
 ok(refused(await as("authenticated", ADMIN, `SELECT public.rentals_admin_review_property('${prop}', false, '')`), /reason_required/, "22023"),
@@ -230,6 +245,8 @@ ok(one(await svc(`SELECT ownership_reviewed_by FROM public.rental_properties WHE
   "the server still records which admin reviewed it");
 ok(refused(await as("authenticated", LANDLORD, `SELECT ownership_reviewed_by FROM public.rental_properties WHERE id = '${prop}'`), /permission denied/),
   "the landlord cannot read ownership_reviewed_by");
+ok(one(await svc(`SELECT public.admin_queue_still_pending('rentals-ownership-review', '{}'::jsonb, now())`)) === false,
+  "alert: it closes once no proof waits");
 ok(refused(await as("authenticated", LANDLORD, `SELECT * FROM public.rental_properties WHERE id = '${prop}'`), /permission denied/),
   "nor through select * (the client names its columns)");
 const ownerRow = rows(await as("authenticated", LANDLORD, `SELECT to_jsonb(t) AS j FROM (SELECT ${RENTAL_PROPERTY_COLUMNS} FROM public.rental_properties WHERE id = '${prop}') t`))[0]?.j;

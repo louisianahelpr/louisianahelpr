@@ -150,7 +150,7 @@ describe("auto-expire-jobs · Q1817: the auto-cancel notice is emailed to the po
     const fn = await load();
     seedPastOpenJob({
       id: "job-draft", title: "Unpaid draft", customer_id: "poster-1", status: "open",
-      payment_status: "pending", date_needed: lastWeek, expires_at: null, is_group_job: false,
+      payment_status: "unpaid", date_needed: lastWeek, expires_at: null, is_group_job: false,
     });
     const res = await fn.fetch(cronRequest(fn));
     expect(res.status).toBe(200);

@@ -25814,6 +25814,19 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/unsubscribe",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4319",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/unsubscribe",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -25908,6 +25921,16 @@
         "anon /shops/test"
       ],
       "replaced": []
+    },
+    {
+      "at": "2026-10-17T10:43:18.958Z",
+      "base": "http://127.0.0.1:4319",
+      "surfaces": [
+        "anon /unsubscribe"
+      ],
+      "replaced": [
+        "anon /unsubscribe"
+      ]
     }
   ]
 }

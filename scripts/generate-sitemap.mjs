@@ -73,6 +73,7 @@ const NOINDEX = {
   "/forgot-password": "transactional auth step, reached from /login",
   "/reset-password": "consumes a one-time token from an email; no canonical URL",
   "/payment-success": "post-checkout receipt screen, bound to one session",
+  "/unsubscribe": "email opt-out step; needs the signed link from one email (Q1655)",
 };
 
 /**

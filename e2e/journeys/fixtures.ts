@@ -109,6 +109,25 @@ export async function getSession(api: APIRequestContext, role: Role, fresh = fal
   let session: Session;
   if (creds) {
     /**
+     * A RESTARTED WORKER REUSES THE SESSION ITS PREDECESSOR MINTED.
+     *
+     * Playwright replaces the worker process after every failed test, and the
+     * in-memory cache above dies with it, so each failure cost one more
+     * metered sign-in per role the next spec needed. prod-audit 38689259675
+     * (2026-10-15): legs 3 and 4 failed 14 + 4 tests on one worker each and
+     * the whole-run budget counted 38 sign-ins against its 0. The session is
+     * kept on the runner's disk (node_modules/.cache: never an artifact,
+     * mode 0600) and reused while GoTrue still accepts it with 10+ minutes
+     * left, exactly as the local path below already does. Only a session for
+     * THIS account's address is reused. forgetSession() deletes it.
+     */
+    const cacheFile = sessionCacheFile(role);
+    const disk = fresh ? null : await readLiveCache<Session>(cacheFile, { minFreshMs: 10 * 60_000, isAlive });
+    if (disk && disk.user?.email?.toLowerCase() === creds.email.toLowerCase()) {
+      sessionCache.set(role, disk);
+      return disk;
+    }
+    /**
      * THE SUITE'S OWN SIGN-IN NEEDS HEADROOM AND A SECOND CHANCE.
      *
      * This POST inherited `actionTimeout` — 20s for the prod-audit project —
@@ -173,6 +192,7 @@ export async function getSession(api: APIRequestContext, role: Role, fresh = fal
     if (isSharedTestAccount(creds.email)) {
       await ensureTestAccountsEnrolled({ supabaseUrl: SUPABASE_URL, serviceKey: creds.serviceKey, userIds: [session.user.id], note: `e2e journeys mint (${role})` }); // TEST-ACCOUNT-ENROLMENT at mint
     }
+    writeCache(cacheFile, session);
   } else {
     // GoTrue rate-limits magic links (429), so a minted session is reused from
     // disk while its access token has 20+ minutes left AND GoTrue still accepts

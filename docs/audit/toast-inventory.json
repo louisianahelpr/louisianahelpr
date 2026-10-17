@@ -3619,48 +3619,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/admin/userDetail/DocumentsTab.tsx",
@@ -6251,48 +6212,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
@@ -6320,48 +6242,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
@@ -6369,48 +6252,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
@@ -6418,48 +6262,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
@@ -6477,48 +6282,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
@@ -6536,48 +6302,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
@@ -6595,48 +6322,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
@@ -6644,48 +6332,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
@@ -6693,48 +6342,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
@@ -6762,48 +6372,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
@@ -6831,48 +6402,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopItemsSection.tsx",
@@ -6890,48 +6422,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopView.tsx",
@@ -6939,48 +6432,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopView.tsx",
@@ -7008,48 +6462,9 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "shopsErrorMessage(err)",
-        "from": "src/lib/shops/errors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          },
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOPS_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "SHOP_ITEM_AI_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "message"
-          },
-          {
-            "form": "literal",
-            "text": "Check the details: each field must be filled in."
-          },
-          {
-            "form": "dynamic",
-            "text": "GENERIC"
-          }
-        ]
+        "text": "shopsErrorMessage(err)"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message",
-        "title: e.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/hooks/useAgeGate.ts",

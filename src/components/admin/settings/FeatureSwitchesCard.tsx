@@ -12,7 +12,7 @@ import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { useFeature } from "@/hooks/useFeature";
 import { FEATURE_AUDIENCES, FEATURE_AUDIENCE_LABEL, type FeatureAudience, type FeatureKey } from "@/config/featureSwitches";
 import { AdminCard } from "../AdminViewShell";

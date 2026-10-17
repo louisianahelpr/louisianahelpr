@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
+import { HELPR_TASK_RPC_ERROR_COPY } from "@/lib/helprTasks/errorCopy";
 import {
   anonExecuteRevoked,
   clientRpcCalls,
@@ -117,7 +118,8 @@ for (const rpc of calls.keys()) {
   const codes = codesReachableFrom(rpc, defs);
   if (codes.size) inventory.set(rpc, codes);
 }
-const COPY = RPC_ERROR_COPY as CopyTable;
+// The helpr_* RPCs keep their words beside the delivery screens (src/lib/helprTasks/errorCopy.ts).
+const COPY = { ...RPC_ERROR_COPY, ...HELPR_TASK_RPC_ERROR_COPY } as CopyTable;
 const source = (file: string) => readFileSync(resolve(ROOT, file), "utf8");
 
 describe("the inventory still sees the world", () => {

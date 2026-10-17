@@ -19,7 +19,7 @@
  *
  * @mutate src/components/messages/useMessageReactions.ts | "‼️", "❓"] as const; | "‼️", "❓", "🔥"] as const;
  * @mutate supabase/migrations/20260811120000_message_pins_reactions_replies.sql | CHECK (emoji IN ('❤️', '👍', '👎', '😂', '‼️', '❓')) | CHECK (emoji IN ('❤️', '👍', '👎', '😂', '‼️'))
- * @mutate src/components/ReportDialog.tsx | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application"; | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application" \| "profile";
+ * @mutate src/components/reportDialog/reportReasons.ts | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application"; | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application" \| "profile";
  * @mutate supabase/migrations/20260924182505_report_against_application.sql | 'review'::text, 'application'::text])); | 'review'::text]));
  * @mutate src/components/admin/AdminReports.tsx | type ReportFilter = "pending" \| "investigating" | type ReportFilter = "pending" \| "triage"
  * @mutate src/components/DisputeTimelineDialog.tsx | status: "open" \| "decided" \| "withdrawn" \| "superseded"; | status: "open" \| "decided" \| "withdrawn";
@@ -81,7 +81,7 @@ const ROWS: Row[] = [
   {
     id: "report target types (ReportDialog ReportedType vs reports_reported_type_check)",
     relation: "subset",
-    client: () => stringUnion("src/components/ReportDialog.tsx", "ReportedType"),
+    client: () => stringUnion("src/components/reportDialog/reportReasons.ts", "ReportedType"),
     server: () => dbEnum("reports", "reported_type"),
   },
   {

@@ -8,6 +8,7 @@ import { PayoutStatusRow } from "./profileLanding/PayoutStatusRow";
 import { DeclutterEntryRow } from "./profileLanding/DeclutterEntryRow";
 import { ShopsEntryRow } from "./profileLanding/ShopsEntryRow";
 import { RentalsEntryRow } from "./profileLanding/RentalsEntryRow";
+import { QuotesEntryRow } from "./profileLanding/QuotesEntryRow";
 import { PROFILE_PAGE_TITLE } from "./profileLanding/headingContract";
 
 export function ProfileLanding({
@@ -111,10 +112,11 @@ export function ProfileLanding({
           under a quiet section label. (Replaces the old mix of square
           category tiles + a separate row list — list-of-rows scales
           cleaner and is easier to scan.) */}
-      {/* Declutter (hidden switch): renders nothing unless it is on. */}
+      {/* Declutter, Shops, Rentals and Quotes (hidden switches): each renders nothing unless it is on. */}
       <DeclutterEntryRow />
       <ShopsEntryRow />
       <RentalsEntryRow />
+      <QuotesEntryRow />
 
       <SettingsSection
         menuGroups={menuGroups}

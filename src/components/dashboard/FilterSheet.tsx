@@ -6,7 +6,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { Bookmark, Clock, Rocket, SearchCheck, X, Zap } from "lucide-react";
+import { Bookmark, Clock, FileText, Rocket, SearchCheck, X, Zap } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -537,6 +537,10 @@ interface JobFilterSectionsArgs {
   savedOnly?: boolean;
   onToggleSavedOnly?: () => void;
   savedCount?: number;
+  /* ---- "Wants Quotes" row (owner answer 12, 2026-10-17): only passed while
+     the hidden 'quotes' switch is on for a signed-in member ---- */
+  wantsQuotes?: boolean;
+  onToggleWantsQuotes?: () => void;
   /**
    * Hide the "Nearby radius" section.
    *
@@ -626,6 +630,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
     urgentOnly, setUrgentOnly,
     userLocStatus, userLocMessage,
     savedOnly = false, onToggleSavedOnly, savedCount = 0,
+    wantsQuotes = false, onToggleWantsQuotes,
     showAvailability = true,
     showNearby = true,
     savedSearchesButton, signupHref,
@@ -675,6 +680,20 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
       title: "Show only",
       content: (
         <div className="space-y-2.5">
+          {onToggleWantsQuotes && (
+            <ToggleRow
+              icon={FileText}
+              label="Wants Quotes"
+              hint={
+                <p className="text-ds-11 text-muted-foreground leading-snug">
+                  Jobs where people ask for your price
+                </p>
+              }
+              checked={wantsQuotes}
+              onChange={() => onToggleWantsQuotes()}
+              ariaLabel="Show jobs that want quotes"
+            />
+          )}
           {onToggleSavedOnly && (
             <ToggleRow
               icon={Bookmark}

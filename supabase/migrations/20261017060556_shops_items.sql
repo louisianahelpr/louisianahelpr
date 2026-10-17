@@ -13,11 +13,11 @@
 --              jams/jellies, pickles, sauces/syrups, spices. Permit foods
 --              (L6: plate lunches, gumbo, boudin, seafood) need an admin-
 --              checked health permit; that credential type does not exist yet
---              (docs/OPEN.md Q1887), so no permit-food subtype exists (D1).
+--              (docs/OPEN.md, the Shops admin queue item), so no permit-food subtype exists (D1).
 --   farm       eggs from the seller's own hens (L9), whole uncut home-grown
 --              produce (L10). Plants/seedlings/flowers are not at launch (L11).
 --   rental     RESERVED only (spec section 5 lists it in S2's kinds; rentals
---              are S5, Q1884): the CHECK allows it, every RPC refuses it
+--              are S5, the Shops rentals item in docs/OPEN.md): the CHECK allows it, every RPC refuses it
 --              ('rental_not_available'), as Declutter reserved 'auction'.
 -- The subtypes are rows of shop_item_subtypes, so the server refuses
 -- anything off the list whatever the client sends.
@@ -66,8 +66,12 @@
 --
 -- ALSO: shops_close_my_shop is restated so closing a shop returns the item
 -- photo paths too (else they stayed public by URL after the CASCADE), and
--- export_my_data is restated from its NEWEST body (20261015084728) adding the
--- shop and item sections, which closes docs/OPEN.md Q1881.
+-- export_my_data is restated from its NEWEST body (20261017052706, the
+-- Declutter stack's Helpr-delivery export, which already carries the wanted
+-- and delivery sections) adding the shop and item sections, which closes the
+-- Shops export item in docs/OPEN.md. This file was re-cut from
+-- 20261016212915 to a timestamp newer than 20261017052706 (2026-10-17) so
+-- prod, which applies an out-of-order file last, still ends on this body.
 --
 -- Error codes: 42501 refusals, 22023 bad input, P0002 an item the caller
 -- cannot act on (a stranger is never told "exists but not yours"), 40001 a
@@ -404,7 +408,7 @@ BEGIN
     RAISE EXCEPTION USING
       ERRCODE = 'check_violation',
       -- lh-silent-failure re-review: shops have no Message button yet
-      -- (docs/OPEN.md Q1882), so the refusal no longer points at one.
+      -- (the Shops Message button item in docs/OPEN.md), so the refusal no longer points at one.
       MESSAGE = v_reason || ' in the ' || v_where || '. Keep phone numbers, emails and websites off your items; Louisiana Helpr does not allow contact details in Shops.';
   END IF;
   RETURN NEW;
@@ -418,7 +422,7 @@ CREATE TRIGGER trg_reject_contact_leak_in_shop_item
 
 --    8c'. Slice 1's shop-profile filter (newest body: 20261015123029), restated
 --         verbatim but for its last words: it told members to use a Message
---         button shops do not have yet (docs/OPEN.md Q1882). The trigger
+--         button shops do not have yet (the Shops Message button item in docs/OPEN.md). The trigger
 --         itself is slice 1's and is not touched.
 CREATE OR REPLACE FUNCTION public.reject_contact_leak_in_shop()
 RETURNS trigger
@@ -668,7 +672,7 @@ SET search_path TO 'public', 'pg_temp'
 AS $fn$
 BEGIN
   IF p_kind = 'rental' THEN
-    -- Reserved for the rentals slice (S5, Q1884).
+    -- Reserved for the rentals slice (S5, the Shops rentals item in docs/OPEN.md).
     RAISE EXCEPTION 'rental_not_available' USING ERRCODE = '22023',
       HINT = 'Renting things out is coming later.';
   END IF;
@@ -1527,9 +1531,11 @@ REVOKE ALL ON FUNCTION public.shops_close_my_shop() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.shops_close_my_shop() TO authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
--- 13. Download My Data (closes docs/OPEN.md Q1881). The body is the NEWEST
---     export_my_data, 20261015084728_export_my_data_declutter_reconcile.sql,
---     verbatim, with the Shops sections added before RETURN. Any later
+-- 13. Download My Data (closes the Shops export item in docs/OPEN.md). The
+--     body is the NEWEST export_my_data,
+--     20261017052706_export_my_data_helpr_delivery.sql, verbatim, with the
+--     Shops sections added before RETURN (body-diffed 2026-10-17: 0 lines
+--     removed, 27 added). Any later
 --     restatement must start from THIS body. Grants restated as there:
 --     EXECUTE for service_role only, revoked from PUBLIC, anon and
 --     authenticated; the no-argument door stays dropped (Q408). Every table
@@ -1799,6 +1805,14 @@ BEGIN
       WHERE t.buyer_id = v_uid OR t.seller_id = v_uid));
   v_out := v_out || jsonb_build_object('declutter_problems', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'decided_by'), '[]'::jsonb) FROM public.declutter_problems t
       WHERE t.reporter_id = v_uid));
+  -- Problems the OTHER side of the member's order reported about them (RLS
+  -- already lets both sides read a problem). Without the reporter's private
+  -- fields: who reported it (reporter_id), the reporter's photo paths, and
+  -- which admin decided (decided_by, never exported).
+  v_out := v_out || jsonb_build_object('declutter_problems_about_me', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'decided_by' - 'reporter_id' - 'photo_paths'), '[]'::jsonb) FROM public.declutter_problems t
+      WHERE t.reporter_id IS DISTINCT FROM v_uid
+        AND EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id
+                     AND (o.buyer_id = v_uid OR o.seller_id = v_uid))));
   v_out := v_out || jsonb_build_object('declutter_payouts', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'stripe_transfer_id' - 'last_error'), '[]'::jsonb) FROM public.declutter_payouts t
       WHERE t.seller_id = v_uid));
   v_out := v_out || jsonb_build_object('declutter_reviews', (SELECT coalesce(jsonb_agg(CASE WHEN t.reviewer_id = v_uid THEN to_jsonb(t) ELSE to_jsonb(t) - 'reviewer_id' END), '[]'::jsonb) FROM public.declutter_reviews t
@@ -1812,7 +1826,30 @@ BEGIN
   v_out := v_out || jsonb_build_object('category_suggestions', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'reviewed_by' - 'admin_note'), '[]'::jsonb) FROM public.category_suggestions t
       WHERE t.user_id = v_uid));
 
-  -- Shops slice 1 (20261015123029) and slice 2 (20261016212915): the
+  -- Declutter wanted posts (20261016053541). The match ledger holds no person
+  -- column; a seller's alerts are in 'notifications' above.
+  v_out := v_out || jsonb_build_object('declutter_wanted', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.declutter_wanted t
+      WHERE t.user_id = v_uid));
+
+  -- Slice 5, Helpr delivery (20261017052705): the Helpr's vehicle, the
+  -- deliveries the member made as the Helpr (area words only: the buyer's and
+  -- the seller's exact addresses, points and ids, the drop-off code and the
+  -- staff close note belong to them or to us, not the Helpr),
+  -- the steps they took on any delivery, their delivery pay (the Stripe transfer
+  -- id is ours), and the drop-off addresses they typed as a buyer.
+  v_out := v_out || jsonb_build_object('helpr_vehicles', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.helpr_vehicles t
+      WHERE t.user_id = v_uid));
+  v_out := v_out || jsonb_build_object('helpr_tasks', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'dropoff_code' - 'pickup_address' - 'pickup_lat' - 'pickup_lng'
+      - 'dropoff_address' - 'dropoff_lat' - 'dropoff_lng' - 'customer_id' - 'pickup_contact_id' - 'close_note'), '[]'::jsonb) FROM public.helpr_tasks t
+      WHERE t.helpr_id = v_uid));
+  v_out := v_out || jsonb_build_object('helpr_task_events', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.helpr_task_events t
+      WHERE t.actor_id = v_uid));
+  v_out := v_out || jsonb_build_object('helpr_task_payouts', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'stripe_transfer_id' - 'last_error'), '[]'::jsonb) FROM public.helpr_task_payouts t
+      WHERE t.helpr_id = v_uid));
+  v_out := v_out || jsonb_build_object('declutter_delivery_dropoffs', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.declutter_delivery_dropoffs t
+      WHERE t.buyer_id = v_uid));
+
+  -- Shops slice 1 (20261015123029) and slice 2 (20261017060556): the
   -- member's own shop (who checked its registration and who hid it are staff
   -- ids, dropped; the hide reason is about them and stays), photo paths, the shops they follow, their items and item photos, the item
   -- review state (the AI and word-check reasons are staff-only, dropped; the
@@ -1838,7 +1875,6 @@ BEGIN
       WHERE t.owner_id = v_uid));
   v_out := v_out || jsonb_build_object('shop_cottage_sales', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.shop_cottage_sales t
       WHERE t.owner_id = v_uid));
-
   RETURN v_out;
 END;
 $function$;

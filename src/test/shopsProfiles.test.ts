@@ -26,7 +26,7 @@
 // @mutate supabase/migrations/20261015123029_shops_profiles.sql |   IF public.declutter_active_strike_count(v_uid) >= 3 THEN | IF public.declutter_active_strike_count(v_uid) >= 4 THEN
 // @mutate supabase/migrations/20261015123029_shops_profiles.sql |   IF public.helper_award_block_reason(v_uid) IS NOT NULL THEN | IF false THEN
 // @mutate supabase/migrations/20261015123029_shops_profiles.sql | VALUES ('shops', 'off', | VALUES ('shops', 'testers',
-// @mutate supabase/migrations/20261016212915_shops_items.sql |   IF EXISTS (SELECT 1 FROM public.shops WHERE owner_id = v_uid AND hidden_at IS NOT NULL) THEN | IF false THEN
+// @mutate supabase/migrations/20261017060556_shops_items.sql |   IF EXISTS (SELECT 1 FROM public.shops WHERE owner_id = v_uid AND hidden_at IS NOT NULL) THEN | IF false THEN
 // @mutate supabase/migrations/20261015123029_shops_profiles.sql | REVOKE ALL ON FUNCTION public.shops_assert_owner_eligible() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_assert_owner_eligible() FROM PUBLIC, anon;
 // @mutate src/lib/shops/errors.ts |   invalid_hours: "Each time needs a day, and an opening time before its closing time.",\n | \n
 import { describe, expect, it } from "vitest";
@@ -127,7 +127,7 @@ describe("Shops slice 1: hidden, gated, no contact details (20261015123029)", ()
   });
 
   it("6. SHOPS_ERROR_COPY is exact against the codes the shops migrations raise (slice 1 + slice 2 items)", () => {
-    const ITEMS = blankSqlComments(readFileSync(join(MIG_DIR, "20261016212915_shops_items.sql"), "utf8"));
+    const ITEMS = blankSqlComments(readFileSync(join(MIG_DIR, "20261017060556_shops_items.sql"), "utf8"));
     const raised = new Set([...(MIG + ITEMS).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
     raised.add("feature_disabled"); // require_feature's code
     expect(raised.size).toBeGreaterThan(20);

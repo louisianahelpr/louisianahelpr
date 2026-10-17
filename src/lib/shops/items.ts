@@ -1,6 +1,6 @@
 /**
  * Shop items, client calls and the words the maker ticks (Shops slice 2,
- * migration 20261016212915_shops_items; docs/specs/local-shops-prep.md
+ * migration 20261017060556_shops_items; docs/specs/local-shops-prep.md
  * L5-L22, L51, L52 and the dated D1-D11 defaults). Every write is a shops_*
  * RPC; each refuses server-side without the 'shops' switch, so this file is
  * never the protection. No orders, checkout or money here (S3).

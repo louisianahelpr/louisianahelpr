@@ -20,6 +20,8 @@
  * @mutate src/components/shops/ShopItemsSection.tsx |       ) : items.isError && !items.data ? ( |       ) : items.isError ? (
  * @mutate src/components/shops/ShopItemsSection.tsx |           <Button type="button" variant="outline" size="sm" onClick={() => void items.refetch()} disabled={items.isFetching}> |           <Button type="button" variant="outline" size="sm" onClick={() => undefined} disabled={items.isFetching}>
  * @mutate src/components/shops/ShopItemsSection.tsx |             <p className="text-sm">This item isn't available any more.</p> |             <p className="text-sm">Loading…</p>
+ * @mutate src/components/shops/ShopItemsSection.tsx |         ) : items.isError ? (\n          // A reload that failed | ) : false ? (\n          // A reload that failed
+ * @mutate src/components/shops/ShopItemsSection.tsx |           {items.isError ? (\n            // The list on screen | {false ? (\n            // The list on screen
  * @mutate src/components/shops/ShopItemsList.tsx |           <Button type="button" variant="outline" size="sm" onClick={() => void items.refetch()} disabled={items.isFetching}> |           <Button type="button" variant="outline" size="sm" onClick={() => undefined} disabled={items.isFetching}>
  * @mutate src/components/admin/settings/ShopItemsReviewCard.tsx |     mutationFn: (approve: boolean) => reviewShopItem(row.item_id, row.submitted_at, approve, approve ? null : note.trim()), |     mutationFn: (approve: boolean) => reviewShopItem(row.item_id, null, approve, approve ? null : note.trim()),
  * @mutate src/components/admin/settings/ShopItemsReviewCard.tsx |       // item_changed / item_not_pending: show the version waiting now.\n      void qc.invalidateQueries | void 0;\n      void qc.getQueryData
@@ -135,6 +137,44 @@ describe("ShopItemsSection (/shops/mine items)", () => {
     expect(await screen.findByText("This item isn't available any more.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Back to your items" }));
     expect(screen.getByRole("button", { name: "Add an item" })).toBeTruthy();
+  });
+
+  it("an open item missing from a list whose reload failed shows the load error, never 'isn't available'", async () => {
+    // lh-silent-failure re-review finding 1: a saved item missing only because
+    // the reload failed must not read as gone.
+    api.fetchShopItems.mockResolvedValueOnce([item()]).mockResolvedValueOnce([]).mockRejectedValue(new Error("feature_disabled"));
+    const { qc } = renderWith(<ShopItemsSection shopId="s1" ownerId="u1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
+    await act(async () => {
+      await qc.refetchQueries({ queryKey: ["shops", "items", "s1"] });
+    });
+    await screen.findByText("This item isn't available any more.");
+    await act(async () => {
+      await qc.refetchQueries({ queryKey: ["shops", "items", "s1"] });
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    expect(qc.getQueryState(["shops", "items", "s1"])?.status).toBe("error");
+    const alert = await screen.findByRole("alert");
+    expect(within(alert).getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(within(alert).getByRole("button", { name: "Back to your items" })).toBeTruthy();
+    expect(screen.queryByText("This item isn't available any more.")).toBeNull();
+  });
+
+  it("a failed reload under a loaded list says the list could not refresh, with Try again", async () => {
+    // lh-silent-failure re-review finding 2.
+    api.fetchShopItems.mockResolvedValueOnce([item()]).mockRejectedValueOnce(new Error("feature_disabled")).mockResolvedValue([item(), item({ id: "it2", title: "Pecan pie" })]);
+    const { qc } = renderWith(<ShopItemsSection shopId="s1" ownerId="u1" />);
+    await screen.findByText("Fig candle");
+    await act(async () => {
+      await qc.refetchQueries({ queryKey: ["shops", "items", "s1"] });
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Couldn't refresh your items.");
+    expect(screen.getByText("Fig candle")).toBeTruthy();
+    fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("Pecan pie")).toBeTruthy();
+    expect(screen.queryByText("Couldn't refresh your items.")).toBeNull();
   });
 });
 

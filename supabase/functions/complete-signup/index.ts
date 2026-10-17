@@ -135,7 +135,44 @@ async function signupRateLimitPerHour(): Promise<number | null> {
   }
 }
 
+/**
+ * Q?signup-one-shot-atomic: the no-session one-shot rule is a CLAIM, not a read.
+ *
+ * The rule used to be read-then-write: read terms_accepted_at, and much later
+ * (after the photo upload) write it in the profile UPDATE. Two no-session calls
+ * that overlap (Q1810's re-send of a request whose answer was lost while the
+ * first is still running, or a racing stranger holding the id) both read NULL,
+ * both pass, both upload a photo to the account's fixed avatar key and both
+ * complete; the later one wins the photo, bio, opt-in and consent record.
+ *
+ * Now the no-session path takes the slot with ONE conditional UPDATE
+ * (`terms_accepted_at = now() WHERE user_id = $1 AND terms_accepted_at IS
+ * NULL`, returning the row) BEFORE anything is uploaded or written. Postgres
+ * row locking makes that atomic: exactly one caller gets the row back; every
+ * other gets zero rows and the same "Profile already completed" answer the
+ * read gives. The holder's completion overwrites the stamp with the real
+ * consent time. If the holder does NOT finish (any answer but 200, or a throw),
+ * `release` puts terms_accepted_at back to NULL, keyed on the holder's own
+ * stamp, so the member's own retry is not locked out by a failed attempt.
+ * Guard: src/test/edge/complete-signup-no-session-fields.test.ts (the race).
+ */
+interface NoSessionClaim {
+  /** Set once the claim is taken; cleared once the completion is recorded. */
+  release: (() => Promise<void>) | null;
+}
+
 serve(async (req) => {
+  const claim: NoSessionClaim = { release: null };
+  let res: Response | undefined;
+  try {
+    res = await completeSignup(req, claim);
+    return res;
+  } finally {
+    if (claim.release && !res?.ok) await claim.release();
+  }
+});
+
+async function completeSignup(req: Request, claim: NoSessionClaim): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -356,6 +393,49 @@ serve(async (req) => {
         });
       }
 
+      // Q?signup-one-shot-atomic: the read above is only the fast answer. The slot
+      // itself is taken HERE, atomically, before any upload or write (see
+      // NoSessionClaim). Zero rows = another no-session call took it first.
+      const claimAt = new Date().toISOString();
+      const { data: claimedRows, error: claimErr } = await supabase
+        .from("profiles")
+        .update({ terms_accepted_at: claimAt })
+        .eq("user_id", bodyUserId)
+        .is("terms_accepted_at", null)
+        .select("user_id");
+      if (claimErr) {
+        console.error("[complete-signup] no-session claim failed:", claimErr.message);
+        return new Response(JSON.stringify({ error: "We couldn't load your account. Please try again." }), {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if ((claimedRows?.length ?? 0) === 0) {
+        return new Response(JSON.stringify({ error: "Profile already completed. Please log in." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const claimedUserId: string = bodyUserId;
+      claim.release = async () => {
+        // Keyed on THIS call's stamp, so it never clears a completion recorded
+        // since. Never dropped: a release that did not land leaves the member
+        // to finish through Log In, and the log says so.
+        const { data: released, error: releaseErr } = await supabase
+          .from("profiles")
+          .update({ terms_accepted_at: null })
+          .eq("user_id", claimedUserId)
+          .eq("terms_accepted_at", claimAt)
+          .select("user_id");
+        if (releaseErr || (released?.length ?? 0) === 0) {
+          console.error(
+            `[complete-signup] no-session claim NOT released for ${claimedUserId}: ${
+              releaseErr?.message ?? "zero rows (the stamp changed)"
+            }; the member finishes through Log In`,
+          );
+        }
+      };
+
       userId = bodyUserId;
     }
 
@@ -464,6 +544,59 @@ serve(async (req) => {
           error: `This account is suspended. Contact support at ${SUPPORT_EMAIL}.`,
           code: "account_locked",
         }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Runs BEFORE any upload (lh-authz-rls review of a8e881b8c, note b): every
+    // value it reads (ageAttested, the saved and the sent birthday) is known
+    // here, and a refusal placed after the uploads let a no-session caller
+    // put a public photo under someone else's id, get refused (claim
+    // released), and repeat.
+    // 4b. Server-side 18+ gate — a legal requirement on a real-money platform,
+    // so it must be enforced here, not just client-side.
+    //
+    // DOB is DEFERRED at signup (collected later on first post/apply), so an
+    // initial completion legitimately arrives with NO date_of_birth. In that
+    // case the gate is satisfied by the explicit 18+ attestation checkbox the
+    // signup form now forces (ageAttested). When a DOB *is* present (a
+    // resubmission, or a user who filled it in), we still hard-validate that
+    // it's a real date; one under 18 is saved (below). A direct API call that skips the form — no DOB
+    // AND no attestation — is refused, so no signup is recorded without
+    // proof of age.
+    // Q1586(c): a SAVED birthday that makes the member under 18 is not theirs
+    // to replace. The profiles trigger lock_under_18_birthday refuses the
+    // member's own write, but this function writes with the service role, so
+    // without this check one POST here with an adult date undid the
+    // Apply/Post gate (lh-authz-rls review of 30e7034c4, must-fix 1).
+    const savedDob: string | null = currentProfile?.date_of_birth ?? null;
+    if (savedDob && dateOfBirth && dateOfBirth !== savedDob && savedBirthdayUnder18(savedDob)) {
+      return new Response(
+        JSON.stringify({ error: "Your saved birthday can only be corrected by Louisiana Helpr support." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const effectiveDob: string | null = dateOfBirth || savedDob || null;
+    if (effectiveDob) {
+      const dob = new Date(effectiveDob);
+      if (isNaN(dob.getTime())) {
+        return new Response(
+          JSON.stringify({ error: "Invalid date of birth." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // A birthday under 18 is SAVED, never refused (owner, 2026-10-13,
+      // Q1586(c)): refusing it left the account with no birthday, so nothing
+      // greyed out and the database let the minor apply and post (lh-authz-rls
+      // review of 0f7786627, must-fix 1). Saved below, the profiles lock
+      // (lock_under_18_birthday) holds it and refuse_under_18_member stops
+      // every Apply and Post until the 18th birthday.
+      if (savedBirthdayUnder18(effectiveDob)) {
+        console.warn(`[COMPLETE-SIGNUP] birthday under 18 saved for ${userId}; Apply and Post stay off until 18`);
+      }
+    } else if (ageAttested !== true) {
+      return new Response(
+        JSON.stringify({ error: "You must confirm you are at least 18 years old to use Helpr." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -626,54 +759,6 @@ serve(async (req) => {
       );
     }
 
-    // 4b. Server-side 18+ gate — a legal requirement on a real-money platform,
-    // so it must be enforced here, not just client-side.
-    //
-    // DOB is DEFERRED at signup (collected later on first post/apply), so an
-    // initial completion legitimately arrives with NO date_of_birth. In that
-    // case the gate is satisfied by the explicit 18+ attestation checkbox the
-    // signup form now forces (ageAttested). When a DOB *is* present (a
-    // resubmission, or a user who filled it in), we still hard-validate that
-    // it's a real date; one under 18 is saved (below). A direct API call that skips the form — no DOB
-    // AND no attestation — is refused, so no signup is recorded without
-    // proof of age.
-    // Q1586(c): a SAVED birthday that makes the member under 18 is not theirs
-    // to replace. The profiles trigger lock_under_18_birthday refuses the
-    // member's own write, but this function writes with the service role, so
-    // without this check one POST here with an adult date undid the
-    // Apply/Post gate (lh-authz-rls review of 30e7034c4, must-fix 1).
-    const savedDob: string | null = currentProfile?.date_of_birth ?? null;
-    if (savedDob && dateOfBirth && dateOfBirth !== savedDob && savedBirthdayUnder18(savedDob)) {
-      return new Response(
-        JSON.stringify({ error: "Your saved birthday can only be corrected by Louisiana Helpr support." }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    const effectiveDob: string | null = dateOfBirth || savedDob || null;
-    if (effectiveDob) {
-      const dob = new Date(effectiveDob);
-      if (isNaN(dob.getTime())) {
-        return new Response(
-          JSON.stringify({ error: "Invalid date of birth." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      // A birthday under 18 is SAVED, never refused (owner, 2026-10-13,
-      // Q1586(c)): refusing it left the account with no birthday, so nothing
-      // greyed out and the database let the minor apply and post (lh-authz-rls
-      // review of 0f7786627, must-fix 1). Saved below, the profiles lock
-      // (lock_under_18_birthday) holds it and refuse_under_18_member stops
-      // every Apply and Post until the 18th birthday.
-      if (savedBirthdayUnder18(effectiveDob)) {
-        console.warn(`[COMPLETE-SIGNUP] birthday under 18 saved for ${userId}; Apply and Post stay off until 18`);
-      }
-    } else if (ageAttested !== true) {
-      return new Response(
-        JSON.stringify({ error: "You must confirm you are at least 18 years old to use Helpr." }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     // avatar/bio/phone/location are DEFERRED at signup (soft-prompted later on
     // first post/apply), so they are intentionally NOT required on the initial
     // path: hard-requiring them rejected every real signup.
@@ -817,6 +902,9 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    // Recorded: the no-session claim (if any) is now the real completion, so a
+    // later answer must not release it.
+    claim.release = null;
 
     // The row is confirmed on the new photo, so only NOW retire every other
     // `avatar.*` sibling (a different format, or the old client-controlled key
@@ -998,4 +1086,4 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}

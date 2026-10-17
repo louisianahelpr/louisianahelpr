@@ -35,6 +35,7 @@ import { describe, it, expect, beforeEach, afterEach, type MockInstance } from "
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
+import { completionUpdate, completionUpdateFails, completionUpdateMatchesNoRow, releaseUpdates } from "./mocks/completeSignupWrites";
 import { resetSharedMocks } from "./mocks/shared";
 import { stubSignupCapRead } from "./mocks/signupCapFetch";
 
@@ -121,7 +122,7 @@ describe("complete-signup — avatar row before avatar object", () => {
     const res = await fn.fetch(fn.request({ body: signupBody() }));
     expect(res.status).toBe(200);
 
-    const update = scenario.writes.find((w) => w.table === "profiles" && w.op === "update");
+    const update = completionUpdate();
     expect((update?.payload as Record<string, unknown>)?.avatar_url).toContain(
       `${AVATARS}/avatar.png`,
     );
@@ -144,7 +145,7 @@ describe("complete-signup — avatar row before avatar object", () => {
     // The function 500s — and the previous photo must still be in the bucket,
     // because the row that names it was never moved.
     seedFreshSignup();
-    scenario.writeSelectRows.profiles = [];
+    completionUpdateMatchesNoRow();
     scenario.storage.objects.add(`${AVATARS}/avatar.jpg`);
 
     const fn = await load();
@@ -157,7 +158,7 @@ describe("complete-signup — avatar row before avatar object", () => {
 
   it("a FAILED profile update deletes NOTHING", async () => {
     seedFreshSignup();
-    scenario.writeErrors.profiles = { message: "deadlock detected", code: "40P01" };
+    completionUpdateFails({ message: "deadlock detected", code: "40P01" });
     scenario.storage.objects.add(`${AVATARS}/avatar.jpg`);
 
     const fn = await load();
@@ -236,7 +237,9 @@ describe("complete-signup — avatar row before avatar object", () => {
 
     expect(scenario.storage.removeCalls).toEqual([]);
     expect(objects()).toEqual([`${AVATARS}/avatar.jpg`]);
-    expect(scenario.writes.some((w) => w.table === "profiles" && w.op === "update")).toBe(false);
+    expect(completionUpdate()).toBeUndefined();
+    // The no-session claim this call took is handed back, so the member's retry is not locked out.
+    expect(releaseUpdates()).toHaveLength(1);
   });
 
   it("refuses a type the bucket would reject before touching storage", async () => {

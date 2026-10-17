@@ -1,5 +1,6 @@
 import { posterPaidDollars, type PosterChargedJob } from "@/lib/posterJobCost";
 import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
+import { stripeProcessingCostCents } from "../../supabase/functions/_shared/stripeFees";
 
 /**
  * WHAT A POSTER REALLY SPENT on the jobs they posted: what left their card,
@@ -62,8 +63,8 @@ import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
  * Recurring visits are job rows of their own, so they count like any job.
  * The one-time account setup fee COUNTS (owner, 2026-10-12, Q1346), on the job
  * whose checkout kept it (jobs.onboarding_fee_amount, stamped by
- * stripe-webhook). A cancel refunds the capture less the service fee, so the
- * $2 comes back with it and charged - refunded stays right.
+ * stripe-webhook). Since Q1674 (owner, 2026-10-12) a cancel or refund keeps
+ * it ("paid and done"), so charged - refunded includes it.
  * STILL OUT (not job spend, owner not asked): boosts, subscriptions and
  * gift-card purchases.
  */
@@ -141,6 +142,8 @@ export interface SpentRow<J> {
   cents: number;
   /** The tips part of `cents`. */
   tipCents: number;
+  /** Refunds ledgered against the job's own charge (0 for a tip row). */
+  refundedCents: number;
 }
 
 /**
@@ -184,11 +187,38 @@ export function spentRows<J extends PosterSpendJob>(
   for (const job of jobs) {
     const tipCents = tipCentsByJob.get(job.id) ?? 0;
     const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0) + tipCents;
-    if (c > 0) rows.push({ job, tip: null, cents: c, tipCents });
+    if (c > 0) rows.push({ job, tip: null, cents: c, tipCents, refundedCents: refundedByJob.get(job.id) ?? 0 });
   }
-  for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents });
+  for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, refundedCents: 0 });
   return rows;
 }
 
 /** The Spent total: the sum of spentRows(), in cents. */
 export const spentTotalCents = (rows: readonly { cents: number }[]) => rows.reduce((s, r) => s + r.cents, 0);
+
+/**
+ * The receipt line for a job that carried the one-time setup fee (owner,
+ * 2026-10-12, Q1674: kept on a cancel or refund, "paid and done"). Read from
+ * the MONEY, not the status (lh-money-escrow review): no refund = the charge
+ * includes it; a refund that left at least the fee on the charge = it was
+ * kept; a refund that took it back too (before Q1674) = no line. Empty for
+ * every job with no fee.
+ */
+export function setupFeeReceiptNote(
+  job: PosterChargedJob & { onboarding_fee_amount?: number | null; dispute_status?: string | null },
+  refundedCents: number,
+): string {
+  const feeCents = cents(Number(job.onboarding_fee_amount ?? 0));
+  if (!Number.isFinite(feeCents) || feeCents <= 0) return "";
+  const amount = `$${(feeCents / 100).toFixed(2)}`;
+  if (!(refundedCents > 0)) return ` · includes ${amount} one-time setup fee`;
+  // What every refund path keeps BESIDES the setup fee: a cancel keeps the
+  // service fee (floored at Stripe's cost), a dispute refund only Stripe's
+  // cost. The fee was kept when what stayed on the card covers both; the two
+  // real first jobs refunded before Q1674 kept only the service fee, so they
+  // get no line (lh-money-escrow review).
+  const chargedCents = cents(posterPaidDollars(job));
+  const stripeCents = stripeProcessingCostCents(chargedCents);
+  const otherKeptCents = job.dispute_status ? stripeCents : Math.max(cents(job.customer_fee_amount ?? 0), stripeCents);
+  return chargedCents - refundedCents + 1 >= feeCents + otherKeptCents ? ` · ${amount} one-time setup fee kept (not refundable)` : "";
+}

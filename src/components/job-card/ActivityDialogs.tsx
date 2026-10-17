@@ -203,6 +203,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           jobDate={props.cancelDialogJob.date_needed}
           jobStartTime={props.cancelDialogJob.start_time ?? null}
           jobBudget={props.cancelDialogJob.budget}
+          setupFeeKept={(props.cancelDialogJob as { onboarding_fee_amount?: number | null }).onboarding_fee_amount ?? null}
           hasHelper={
             props.cancelDialogJob.is_group_job
               ? crewMembers(props.groupHelpersByJob?.[props.cancelDialogJob.id]).some((m) => crewMemberCommitted(m.confirmed))

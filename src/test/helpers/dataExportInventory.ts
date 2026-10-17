@@ -150,6 +150,19 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   helpr_task_events: { by: ["actor_id"] },
   helpr_task_payouts: { by: ["helpr_id"] },
   declutter_delivery_dropoffs: { by: ["buyer_id"] },
+  // Shops slice 1 (20261015123029) and the slice-two item tables (20261016212915), exported
+  // by 20261016212915 (Q1881): the member's shop, photos, follows, items, item
+  // photos, review state, confirmations, and the home-food year confirmations
+  // and counted sales.
+  shops: { by: ["owner_id"] },
+  shop_photos: { by: ["owner_id"] },
+  shop_follows: { by: ["user_id"] },
+  shop_items: { by: ["owner_id"] },
+  shop_item_private: { by: ["owner_id"] },
+  shop_item_photos: { by: ["owner_id"] },
+  shop_item_attestations: { by: ["owner_id"] },
+  shop_cottage_confirmations: { by: ["owner_id"] },
+  shop_cottage_sales: { by: ["owner_id"] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },
@@ -422,15 +435,8 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // sections wait for it to land; the 'quotes' switch stays off until they do.
   "job_quote_requests.poster_id": { reason: "quotes slice 1: export pending (OPEN Q?quotes-export); switch 'quotes' is off, so no rows exist" },
   "job_quotes.quoter_id": { reason: "quotes slice 1: export pending (OPEN Q?quotes-export); switch 'quotes' is off, so no rows exist" },
-  // Shops slice 1 (20261015123029): NOT exported yet, tracked by docs/OPEN.md
-  // Q?shops-export. export_my_data has restatements pending on other branches
-  // (declutter-4, rentals-s1, quotes), so the shops sections wait for them;
-  // the 'shops' switch stays off until they land.
-  "shops.owner_id": { reason: "shops slice 1 (20261015123029): export pending (OPEN Q?shops-export); export_my_data has restatements pending on other branches, and the 'shops' switch is off, so no rows exist" },
-  "shops.sos_verified_by": { reason: "shops slice 1 (20261015123029): export pending (OPEN Q?shops-export); export_my_data has restatements pending on other branches, and the 'shops' switch is off, so no rows exist" },
-  "shops.hidden_by": { reason: "shops slice 1 (20261015123029): export pending (OPEN Q?shops-export); export_my_data has restatements pending on other branches, and the 'shops' switch is off, so no rows exist" },
-  "shop_photos.owner_id": { reason: "shops slice 1 (20261015123029): export pending (OPEN Q?shops-export); export_my_data has restatements pending on other branches, and the 'shops' switch is off, so no rows exist" },
-  "shop_follows.user_id": { reason: "shops slice 1 (20261015123029): export pending (OPEN Q?shops-export); export_my_data has restatements pending on other branches, and the 'shops' switch is off, so no rows exist" },
+  "shops.sos_verified_by": { reason: "the staff member who checked a shop's Secretary of State number; the shop is the member's (exported by shops.owner_id, 20261016212915, with this staff id dropped)", stripped: true },
+  "shops.hidden_by": { reason: "the staff member who hid a shop; the shop is the member's (exported by shops.owner_id, 20261016212915, with this staff id dropped; the hide reason stays)", stripped: true },
   "declutter_strikes.removed_by": { reason: "the staff member who removed a Declutter strike; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_strikes.appeal_decided_by": { reason: "the staff member who decided a Declutter strike appeal; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_offers.respond_by": { reason: "a deadline timestamp (when the offer must be answered), not a person; the offer is exported by declutter_offers.buyer_id/seller_id (20261014210518)" },

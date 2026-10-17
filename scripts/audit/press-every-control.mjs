@@ -51,6 +51,8 @@
  *                                             (#1582); SHARD then only names the shard
  *   PRESS_LAST_WAVE=0                       … a later wave follows: stop at the budget and
  *                                             hand unwalked rows on instead of reporting them
+ *                                             (with a queue and SHARD, rows are walked in the
+ *                                             order pressShardPlan.mjs plans from measured times)
  *   CLEANUP_SINCE=<iso>                     … clean-up only (the workflow's final job)
  *
  * Needs `.env` with VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY and
@@ -73,6 +75,8 @@ import {
 } from "./pressFailureClass.mjs";
 import { budgetFor } from "../e2e/request-budget.mjs";
 import { recordRouteProbePasses, routeProbePasses } from "./pressRouteProbe.mjs";
+import { inPart, legRatePerMin, loadRowTimes, planShards, shardWalkOrder, unitFits } from "./pressShardPlan.mjs";
+import { sharedCeilingWaitMs } from "./pressSharedCeiling.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const REPO = resolve(HERE, "../..");
@@ -963,11 +967,25 @@ async function main() {
   const WAVE_WIDTH = Math.max(1, Number.parseInt(process.env.PRESS_WAVE_WIDTH ?? "1", 10) || 1);
   const recentCycles = [];
   let cycleStartTotal = null;
+  // Lead ruling 2026-10-17: the shards of a wave share ONE ceiling through
+  // PRESS_PACE_DIR (press-wave.sh; pressSharedCeiling.mjs) instead of a fixed
+  // half each, so a light sibling's unused half is not wasted. Same total.
+  const PACE_DIR = process.env.PRESS_PACE_DIR || "";
+  const PACE_SHARD = String(process.env.SHARD ?? process.pid).split("/")[0];
   const paceToCeiling = async (page) => {
     if (cycleStartTotal !== null) recentCycles.push(requestMeter.total - cycleStartTotal);
     if (recentCycles.length > 50) recentCycles.shift();
-    const wait = ceilingWaitMs({ minutes: requestMeter.minutes, ceiling: Math.floor((LOAD_CEILING * PACE_HEADROOM) / WAVE_WIDTH), burst: cycleBurstEstimate(recentCycles) });
-    if (wait > 0) await page.waitForTimeout(wait);
+    if (PACE_DIR) {
+      const legCeiling = Math.floor(LOAD_CEILING * PACE_HEADROOM);
+      for (;;) {
+        const wait = sharedCeilingWaitMs({ dir: PACE_DIR, shard: PACE_SHARD, used: (minute) => requestMeter.minutes[minute] ?? 0, ceiling: legCeiling, burst: cycleBurstEstimate(recentCycles) });
+        if (!(wait > 0)) break;
+        await page.waitForTimeout(wait); // the sibling may fill the next minute first: ask again
+      }
+    } else {
+      const wait = ceilingWaitMs({ minutes: requestMeter.minutes, ceiling: Math.floor((LOAD_CEILING * PACE_HEADROOM) / WAVE_WIDTH), burst: cycleBurstEstimate(recentCycles) });
+      if (wait > 0) await page.waitForTimeout(wait);
+    }
     cycleStartTotal = requestMeter.total;
   };
   // Shared across every route × persona: create-payment's limiter is per
@@ -1052,25 +1070,43 @@ async function main() {
     }
   };
 
+  // Lead ruling 2026-10-17 (press 39014836855 leg 6): with a queue, each shard
+  // walks the units pressShardPlan.mjs planned for it from MEASURED row times
+  // (giant rows split into parts), longest first, then other shards' unclaimed
+  // whole rows; an earlier wave claims nothing it cannot finish in time.
+  const planRows = routeSet.flatMap((route, routeIdx) => (route.redirect
+    ? [{ routeIdx, url: route.url, persona: "-", redirect: true }]
+    : route.personas.filter((p) => PERSONAS.includes(p)).map((persona) => ({ routeIdx, url: route.url, persona, redirect: false }))));
+  const shardNo = Number(String(process.env.SHARD ?? "").split("/")[0]) || 0;
+  const shardPlan = QUEUE_DIR && shardNo ? planShards({ rows: planRows, times: loadRowTimes(), ceilingPerMinute: LOAD_CEILING }) : null;
+  const walkUnits = shardPlan
+    ? shardWalkOrder(shardPlan, shardNo, { lastWave: LAST_WAVE })
+    : planRows.map((r) => ({ ...r, key: r.redirect ? `${String(r.routeIdx).padStart(3, "0")}-redirect` : `${String(r.routeIdx).padStart(3, "0")}-${r.persona}`, part: 1, parts: 1, est: 0 }));
+  if (shardPlan) console.log(`press plan: shard ${shardNo} planned ${shardPlan.bins[shardNo - 1]?.minutes.toFixed(1)} min of work over ${shardPlan.bins[shardNo - 1]?.units.length} unit(s); ${walkUnits.length} unit(s) in its walk order`);
+
   let queueStopped = false;
   let claimedElsewhere = 0;
-  for (const [routeIdx, route] of routeSet.entries()) {
+  for (const unit of walkUnits) {
     if (queueStopped) break;
+    const routeIdx = unit.routeIdx;
+    const route = routeSet[routeIdx];
     if (route.redirect) {
       if (QUEUE_DIR && !claimRow({ dir: QUEUE_DIR, key: `${String(routeIdx).padStart(3, "0")}-redirect` })) { claimedElsewhere += 1; continue; }
       results.push({ route: route.url, persona: "-", status: "redirect", note: "pure redirect route — its target is walked on its own row", controls: [] });
       continue;
     }
-    const personas = route.personas.filter((p) => PERSONAS.includes(p));
-    for (const persona of personas) {
-      const rowKey = `${String(routeIdx).padStart(3, "0")}-${persona}`;
+    // One unit is one row (route x persona), or one part of a split row.
+    for (const persona of [unit.persona]) {
+      const rowKey = unit.key;
       if (QUEUE_DIR) {
         const action = queuedRowAction({ overBudget: overTimeBudget({ startedAt: runStart, budgetMs: TIME_BUDGET_MS }), lastWave: LAST_WAVE });
         // An earlier wave out of time leaves every unclaimed row to the next wave.
         if (action === "stop") { queueStopped = true; break; }
+        // Not enough time left for this one: leave it to a later wave, try a shorter unit.
+        if (!unitFits({ estMin: Math.max(unit.est, unit.req / (legRatePerMin(LOAD_CEILING) / WAVE_WIDTH)), elapsedMs: Date.now() - runStart, budgetMs: TIME_BUDGET_MS, lastWave: LAST_WAVE })) continue;
         if (!claimRow({ dir: QUEUE_DIR, key: rowKey })) { claimedElsewhere += 1; continue; } // another shard has it
       }
-      const rec = { route: route.url, persona, status: "ok", landedOn: null, found: 0, pressed: 0, passed: 0, failed: 0, skipped: 0, controls: [], notes: [], net: null, nonApp: [], startedAt: Date.now(), paceMs: 0 };
+      const rec = { route: route.url, persona, part: unit.parts > 1 ? `${unit.part}/${unit.parts}` : undefined, status: "ok", landedOn: null, found: 0, pressed: 0, passed: 0, failed: 0, skipped: 0, controls: [], notes: [], net: null, nonApp: [], startedAt: Date.now(), paceMs: 0 };
       results.push(rec);
       if (overTimeBudget({ startedAt: runStart, budgetMs: TIME_BUDGET_MS })) {
         rec.status = NOT_REACHED_STATUS;
@@ -1455,7 +1491,8 @@ async function main() {
 
         // The work queue: every control found on the page, then every control
         // found inside any overlay a press opened.
-        const queue = (await enumerate("page")).map((c) => ({ chain: [], step: { scope: "page", path: c.path }, meta: c, depth: 0, chainOwned: false, scopeKey: "page", fromChrome: false }));
+        // A split row's part presses every n-th top-level control (pressShardPlan.mjs).
+        const queue = (await enumerate("page")).filter((_, i) => inPart(i, unit.part, unit.parts)).map((c) => ({ chain: [], step: { scope: "page", path: c.path }, meta: c, depth: 0, chainOwned: false, scopeKey: "page", fromChrome: false }));
         const seenOverlays = new Set();
         /** scopeKey → the signatures of the controls this run has actually clicked in it. */
         const pressedInScope = new Map([["page", new Set()]]);

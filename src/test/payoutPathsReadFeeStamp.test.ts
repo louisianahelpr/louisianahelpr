@@ -24,7 +24,7 @@
 // @mutate supabase/functions/void-cancelled-payments/index.ts | customer_id, helper_fee_percent, helper_fee_flat_cents, is_group_job, | customer_id, helper_fee_percent, is_group_job,
 // @mutate supabase/functions/auto-release-payment/index.ts | const helperCommission = jobHelprCommissionDollars(job, perHelperBudget, helperFeePercent, netUrgentFeeDollars(job.urgent_fee) / helpersCount); | const helperCommission = helperCommissionDollars(perHelperBudget, helperFeePercent);
 // @mutate supabase/functions/void-cancelled-payments/index.ts | helper_fee_percent: job.helper_fee_percent, helper_fee_flat_cents: job.helper_fee_flat_cents }, | helper_fee_percent: job.helper_fee_percent },
-// @mutate supabase/functions/create-payment/index.ts |             platform_fee_amount: helprFlatFeeCents(Math.round(job.budget * 100) + urgentFeeCents) / 100, |             platform_fee_amount: 0,
+// @mutate supabase/functions/create-payment/index.ts |             platform_fee_amount: escrowFlatFeeCents / 100, |             platform_fee_amount: 0,
 // @mutate src/hooks/useProfileTabData.ts | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, helper_fee_flat_cents`, | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}`,
 // @mutate supabase/functions/create-payment/index.ts | const customerFeeAmount = 0; | const customerFeeAmount = urgentBonusCardFeeCents(urgentFeeCents) / 100;
 import { describe, expect, it } from "vitest";
@@ -112,7 +112,9 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
     expect(cp).toMatch(/const customerFeeAmount = 0;/);
     // The model stamp also records the flat fee (review N4), so a gift-funded
     // job is never graded against a NULL platform_fee_amount.
-    expect(cp).toMatch(/\.update\(\{\s*helper_fee_flat_cents:\s*HELPR_FLAT_FEE_CENTS,\s*helper_fee_percent:\s*HELPR_FLAT_FEE_PERCENT,\s*platform_fee_amount:\s*helprFlatFeeCents\(Math\.round\(job\.budget \* 100\) \+ urgentFeeCents\) \/ 100,?\s*\}\)/);
+    expect(cp).toMatch(/\.update\(\{\s*helper_fee_flat_cents:\s*HELPR_FLAT_FEE_CENTS,\s*helper_fee_percent:\s*HELPR_FLAT_FEE_PERCENT,\s*platform_fee_amount:\s*escrowFlatFeeCents \/ 100,?\s*\}\)/);
+    // ...summed over the crew (Q1845): each member's 5% + 70c on their share.
+    expect(cp).toMatch(/const escrowFlatFeeCents = jobFlatFeeTotalCents\(Math\.round\(job\.budget \* 100\), urgentFeeCents, escrowHelprCount\);/);
   });
 
   it("(D) a job object rebuilt by hand carries the stamp with the percent", () => {

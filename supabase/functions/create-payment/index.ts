@@ -11,12 +11,13 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
-import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, flatFeePercentOf, helprFlatFeeCents } from "../_shared/helprFlatFee.ts";
+import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, flatFeePercentOf } from "../_shared/helprFlatFee.ts";
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { POSTER_SERVICE_FEE_PERCENT, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
 import { cardCostFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";
+import { jobFlatFeeTotalCents } from "../_shared/crewShares.ts";
 
 /**
  * Q1415 (b): what a release answers while an open ban settlement review holds
@@ -623,6 +624,12 @@ serve(async (req) => {
             URGENT_FEE_CEILING_CENTS,
           )
         : 0;
+      // The whole job's flat Helpr fee, in cents (Q1845): each Helpr pays
+      // 5% + 70c on THEIR OWN share of budget + bonus, so a crew of N records
+      // the SUM of the N members' fees (the same largest-remainder split the
+      // payout uses), not one 70c for the whole job.
+      const escrowHelprCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+      const escrowFlatFeeCents = jobFlatFeeTotalCents(Math.round(job.budget * 100), urgentFeeCents, escrowHelprCount);
 
       // ─── Fee model stamp (roadmap F3, owner 2026-10-14/15) ───
       // Every job funded from here on is on the FLAT model: the poster pays
@@ -659,7 +666,7 @@ serve(async (req) => {
             // (lh-money-escrow review N4): the full-gift path (redeem_gift_card)
             // and the gift-shortfall stamp never write platform_fee_amount, so
             // money-reconciliation graded a gift-funded flat job against NULL.
-            platform_fee_amount: helprFlatFeeCents(Math.round(job.budget * 100) + urgentFeeCents) / 100,
+            platform_fee_amount: escrowFlatFeeCents / 100,
           })
           .eq("id", jobId))
           .eq("status", job.status)
@@ -896,10 +903,10 @@ serve(async (req) => {
       // budget + bonus at payout. customer_fee_amount is 0, so a refund keeps
       // Stripe's actual card fee (refundToPayerCents) and returns the rest.
       const customerFeeAmount = 0;
-      // The Helpr's flat fee is deducted at payout time, not charged to the
-      // poster. Stored as platform_fee_amount for the single-Helpr case, as
-      // the tier commission was.
-      const helperFeeAmount = helprFlatFeeCents(Math.round(job.budget * 100) + urgentFeeCents) / 100;
+      // The Helprs' flat fee is deducted at payout time, not charged to the
+      // poster. Stored as platform_fee_amount: the whole job's fee, summed
+      // per member on a crew (Q1845, escrowFlatFeeCents above).
+      const helperFeeAmount = escrowFlatFeeCents / 100;
 
       // ─── Louisiana sales-tax classification ───
       // The category list now lives in `_shared/salesTax.ts` so the Post-a-Task

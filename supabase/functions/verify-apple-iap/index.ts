@@ -41,12 +41,14 @@ import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
 import { TIER_FEE_PERCENT, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import {
   computeExpiry,
   expectsProduction,
   fetchAppleTransaction,
   isAppleTestAccount,
   isSandboxTransaction,
+  membershipsSwitchFor,
   resolveProduct,
 } from "../_shared/appleAppStore.ts";
 
@@ -273,6 +275,29 @@ serve(async (req) => {
         });
       } catch (e) {
         console.error("[verify-apple-iap] could not raise double-subscription flag:", e);
+      }
+    }
+
+    // Q1849: a purchase that reached Apple without our purchase gate (a
+    // pre-approved StoreKit transaction, an offer code, Restore Purchases after
+    // an iOS Settings resubscribe) is still granted: Apple already charged. A
+    // member the memberships switch is off for is reported so a human refunds
+    // them. Asked AFTER the write, and never fails the grant.
+    const membershipsSwitch = await membershipsSwitchFor(admin, user.id);
+    if (membershipsSwitch !== "on") {
+      try {
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "warning",
+          title: "Apple charged a member for a membership that is switched off",
+          message: membershipsSwitch === "off"
+            ? "verify-apple-iap granted an Apple membership to someone the memberships switch is off for, so they are paying Apple for perks that are off. The grant was kept (Apple already charged). Refund them in App Store Connect or tell them how to cancel."
+            : "verify-apple-iap granted an Apple membership, but whether the memberships switch is on for this member could not be read. The grant was kept (Apple already charged). Check the switch for this member; if it is off, refund them.",
+          fields: { user_id: user.id, product: tx.productId },
+          oncePerDayKey: `apple-memberships-off:${user.id}:${tx.originalTransactionId}`,
+        });
+      } catch (e) {
+        console.error("[verify-apple-iap] memberships-off alert failed:", caughtMessage(e));
       }
     }
 

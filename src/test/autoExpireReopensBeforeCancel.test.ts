@@ -17,7 +17,7 @@
  * The class: every write or RPC in auto-expire-jobs that can put a job back to
  * `open` comes before the cancel step's reads.
  *
- * @mutate supabase/functions/auto-expire-jobs/index.ts |     // 2. Auto-cancel open jobs whose expires_at has passed OR date_needed is in the past | // 2. Auto-cancel moved\n    const { data: _early } = await supabase.from("jobs").select("id").eq("status", "open").lt("date_needed", today);\n    void _early;\n    // 2. Auto-cancel open jobs whose expires_at has passed OR date_needed is in the past
+ * @mutate supabase/functions/auto-expire-jobs/index.ts |     const defects = defectTracker(); |     const defects = defectTracker();\n    const { data: _early } = await supabase.from("jobs").select("id").eq("status", "open").lt("date_needed", today);\n    void _early;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

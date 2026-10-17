@@ -1,6 +1,7 @@
 import { fetchTurnoverPrefill } from "./turnoverPrefill";
 import { buildSetupJobPrefill, fetchSetupHelpr, isBookedSetupJob, parseSetupKind } from "@/lib/declutter/setupHelpr";
 import { todayYmd } from "@/lib/jobDate";
+import { fetchMaintenancePrefill } from "./maintenancePrefill";
 import { useEffect, useCallback } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { formatName } from "@/lib/utils";
@@ -75,6 +76,10 @@ export interface UseJobFormEffectsParams {
   setParish: (v: string | null) => void;
   setOfferToHelperId: (v: string | null) => void;
   setOfferToHelperName: (v: string) => void;
+  /** Rentals S1: leave a `?maintenance=` request that cannot be posted from
+   *  (already booked / paying -> its job; not approved or unreadable -> a plain
+   *  Post a Job), so the submit never links or pays twice (lh-money-escrow #3). */
+  onMaintenanceUnusable?: (linkedJobId: string | null) => void;
   // Autosave fields
   title: string;
   description: string;
@@ -129,6 +134,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     setParish,
     setOfferToHelperId,
     setOfferToHelperName,
+    onMaintenanceUnusable,
     title,
     description,
     category,
@@ -360,6 +366,54 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
       (err) => {
         report(err, { severity: "warning", tags: { source: "useJobFormEffects.declutterSetupPrefill" } });
         if (live) toast.error("Couldn't load that purchase. Fill in the job yourself.");
+      },
+    );
+    return () => { live = false; };
+    // The setters are stable useState setters; the param is the trigger.
+  }, [searchParams]);
+
+  // Rentals S1 (Q39): an approved maintenance request (`?maintenance=<id>`,
+  // from the Rentals request screen) pre-fills a normal job; the landlord
+  // checks the price and pays here like any new job.
+  useEffect(() => {
+    const requestId = searchParams.get("maintenance");
+    if (!requestId) return;
+    let live = true;
+    fetchMaintenancePrefill(requestId).then(
+      (p) => {
+        if (!live) return;
+        if (!p || p.notApproved) {
+          toast.error("Couldn't load that repair request — fill in the job yourself.");
+          onMaintenanceUnusable?.(null);
+          return;
+        }
+        if (p.alreadyPosted) {
+          toast("You already posted the job for this repair request.");
+          onMaintenanceUnusable?.(p.linkedJobId);
+          return;
+        }
+        if (p.autoApproveLimit) toast(`Your auto-approve limit for this property is $${p.autoApproveLimit}.`);
+        setCategory(p.category);
+        setTitle(p.title);
+        setDescription(p.description);
+        if (p.budget) setBudget(p.budget);
+        if (p.accessNotes) setSpecialRequirements(p.accessNotes);
+        const parsedLoc = parseLocationIntoFields(p.location);
+        if (parsedLoc.city !== undefined) {
+          setStreetAddress(parsedLoc.streetAddress);
+          setCity(parsedLoc.city);
+          setAddrState(parsedLoc.addrState ?? "");
+          setZipCode(parsedLoc.zipCode ?? "");
+        } else {
+          setStreetAddress(p.location);
+        }
+      },
+      (err) => {
+        report(err, { severity: "warning", tags: { source: "useJobFormEffects.maintenancePrefill" } });
+        if (live) {
+          toast.error("Couldn't load that repair request — fill in the job yourself.");
+          onMaintenanceUnusable?.(null);
+        }
       },
     );
     return () => { live = false; };

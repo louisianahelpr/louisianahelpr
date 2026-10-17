@@ -12,6 +12,7 @@
  */
 import posthog from "posthog-js";
 
+import { redactInviteProps } from "./redactInviteToken";
 const KEY =
   (import.meta.env.VITE_POSTHOG_KEY as string | undefined) ||
   "phc_yA2vkpkovtyfY3zMTsBsxZpqdF5xh78hjvSaZ8mfuunj";
@@ -30,6 +31,8 @@ export function initPostHog() {
       person_profiles: "identified_only",
       capture_pageview: true,
       capture_pageleave: true,
+      // Rentals invite links carry a join token: never send it (redactInviteToken.ts).
+      sanitize_properties: (props) => redactInviteProps(props),
       // PostHog 1.396.5 introduced an eval() call inside its exception-capture
       // code path that the production CSP (no `unsafe-eval`) correctly blocks,
       // generating a flood of unhandled-rejection Sentry events (JAVASCRIPT-17).

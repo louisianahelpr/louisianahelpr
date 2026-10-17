@@ -55,6 +55,7 @@ import {
 import { resolveSentryRelease } from "./sentryRelease";
 import { isAutomatedBrowser } from "./automatedBrowser";
 import { attachColdLaunchSink } from "./coldLaunchPhases";
+import { redactInviteToken } from "./redactInviteToken";
 
 /**
  * Audit #2 from the 2026-05-27 cold-launch regression triage: a tag that
@@ -287,7 +288,20 @@ export function initSentry() {
         if (!import.meta.env.DEV && isLocalBuildHost(window.location)) {
           return null;
         }
-        return isBenignEvent(event) ? null : event;
+        if (isBenignEvent(event)) return null;
+        // Rentals invite links carry a join token (redactInviteToken.ts).
+        if (event.request?.url) event.request.url = redactInviteToken(event.request.url);
+        if (event.transaction) event.transaction = redactInviteToken(event.transaction);
+        return event;
+      },
+      beforeBreadcrumb(crumb) {
+        if (crumb.data) {
+          for (const k of ["from", "to", "url"]) {
+            if (typeof crumb.data[k] === "string") crumb.data[k] = redactInviteToken(crumb.data[k]);
+          }
+        }
+        if (crumb.message) crumb.message = redactInviteToken(crumb.message);
+        return crumb;
       },
     });
     initialized = true;

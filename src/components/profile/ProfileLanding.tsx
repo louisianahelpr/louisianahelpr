@@ -7,6 +7,7 @@ import { SettingsSection } from "./profileLanding/SettingsSection";
 import { PayoutStatusRow } from "./profileLanding/PayoutStatusRow";
 import { DeclutterEntryRow } from "./profileLanding/DeclutterEntryRow";
 import { ShopsEntryRow } from "./profileLanding/ShopsEntryRow";
+import { RentalsEntryRow } from "./profileLanding/RentalsEntryRow";
 import { PROFILE_PAGE_TITLE } from "./profileLanding/headingContract";
 
 export function ProfileLanding({
@@ -113,6 +114,7 @@ export function ProfileLanding({
       {/* Declutter (hidden switch): renders nothing unless it is on. */}
       <DeclutterEntryRow />
       <ShopsEntryRow />
+      <RentalsEntryRow />
 
       <SettingsSection
         menuGroups={menuGroups}

@@ -120,6 +120,13 @@ CREATE TABLE public.messages (job_id uuid, sender_id uuid, receiver_id uuid, cre
 CREATE TABLE public.reviews (job_id uuid, reviewer_id uuid);
 CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid);
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
+-- Rentals S1 (20261015061259): rentals_caller_is_active_tenant_of reads rental_tenancies; the class SQL's
+-- fixture inserts a property, a unit and an active tenancy (the columns it writes).
+CREATE TABLE public.rental_properties (id uuid PRIMARY KEY, owner_id uuid, label text, street_address text, city text,
+  zip_code text, ownership_status text);
+CREATE TABLE public.rental_units (id uuid PRIMARY KEY, property_id uuid, owner_id uuid, label text);
+CREATE TABLE public.rental_tenancies (id uuid PRIMARY KEY, unit_id uuid, property_id uuid, landlord_id uuid, tenant_id uuid,
+  status text, invite_token_sha256 text, invite_expires_at timestamptz, accepted_at timestamptz);
 CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NULL, description text NOT NULL);
 -- job_announceable_to (newest body) also reads Q1401's cutoff (loaded verbatim as a HELPER below) and Q1411's ban
 -- review queue (created below as live).
@@ -182,7 +189,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "declutter_delivery_slot_ok", "helpr_task_photo_access", "helpr_task_photo_ok", "helpr_task_same_stripe_mode",
   "helpr_task_source_slot_ok", "helpr_task_vehicle_fits",
   // Shops slice 1 (20261017061155).
-  "shop_owner_in_good_standing", "shop_publicly_visible", "shop_visible_to"];
+  "shop_owner_in_good_standing", "shop_publicly_visible", "shop_visible_to",
+  // Rentals S1 (20261017061457).
+  "rentals_caller_is_active_tenant_of"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, so it comes after it).
 const AFTER_STUBS = ["job_announceable_to", "shop_publicly_visible", "shop_visible_to"];

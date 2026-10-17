@@ -13,6 +13,12 @@
  * not parse).
  *
  * @mutate scripts/ci/definer-exec-allowlist.json |     "nudge_confirm(uuid)": "client",\n |
+ *
+ * 2026-10-15: a REVOKE ON TABLE (no FUNCTION in it) used to match lazily across
+ * statements up to the next "ON FUNCTION", swallowing the CREATE FUNCTION in
+ * between, so rentals_caller_is_active_tenant_of (a policy helper granted to
+ * authenticated) was never seen. A REVOKE is now one statement ([^;]).
+ * The floor below names it, so the old parser fails that floor (proved 2026-10-15).
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -27,7 +33,7 @@ function clientCallableNewDefiners(): string[] {
   for (const f of readdirSync(dir).filter((x) => x.endsWith(".sql") && x >= SINCE).sort()) {
     const s = blankSqlComments(readFileSync(`${dir}/${f}`, "utf8"));
     const re =
-      /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([\w."]+)\s*\(([\s\S]*?)\)\s*RETURNS\s+([\s\S]*?)AS\s+(\$\w*\$)[\s\S]*?\4|REVOKE\s+[\s\S]*?ON\s+FUNCTION\s+([\w."]+)\s*\([^)]*\)\s+FROM\s+([^;]+);|GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+([\w."]+)\s*\([^)]*\)\s+TO\s+([^;]+);|DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?([\w."]+)/gi;
+      /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([\w."]+)\s*\(([\s\S]*?)\)\s*RETURNS\s+([\s\S]*?)AS\s+(\$\w*\$)[\s\S]*?\4|REVOKE\s+[^;]*?ON\s+FUNCTION\s+([\w."]+)\s*\([^)]*\)\s+FROM\s+([^;]+);|GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+([\w."]+)\s*\([^)]*\)\s+TO\s+([^;]+);|DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?([\w."]+)/gi;
     let m: RegExpExecArray | null;
     while ((m = re.exec(s))) {
       if (m[1]) {
@@ -57,7 +63,9 @@ const listed = new Set([...Object.keys(allow.authenticated), ...Object.keys(allo
 describe("a new app-callable SECURITY DEFINER function is allowlisted before it ships", () => {
   it("finds the functions this window adds (inventory floor)", () => {
     expect(clientCallableNewDefiners().length).toBeGreaterThan(1);
-    expect(clientCallableNewDefiners()).toEqual(expect.arrayContaining(["ack_backout_notice", "nudge_confirm"]));
+    expect(clientCallableNewDefiners()).toEqual(
+      expect.arrayContaining(["ack_backout_notice", "nudge_confirm", "rentals_caller_is_active_tenant_of"]),
+    );
   });
   it("each has an entry in definer-exec-allowlist.json", () => {
     expect(clientCallableNewDefiners().filter((n) => !listed.has(n))).toEqual([]);

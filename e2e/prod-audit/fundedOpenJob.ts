@@ -34,6 +34,7 @@ import { test } from "../prodTest";
 import { ANON, SUPABASE_URL, stripeModeFromCheckoutUrl, type Session } from "../journeys/fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { openCardFields, waitForStripePaymentMethods } from "../stripeCheckoutCard";
+import { answerStripeReturn } from "../stripeReturn";
 import {
   ACCEPTED_FIXTURE_TITLE,
   planAcceptedJob,
@@ -218,6 +219,10 @@ async function payCheckout(browser: Browser, url: string): Promise<void> {
   if (!/\/cs_test_[A-Za-z0-9]+/.test(url)) throw new Error(`funded fixture: refusing to pay ${url.slice(0, 80)} — not a cs_test_ session`);
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
+  // Q1255: Stripe's return goes to create-payment's APP_URL, the DEPLOYED
+  // site. Answered locally, never loaded from Vercel; the webhook below is
+  // the authority on the charge, not the landing page.
+  const answer = await answerStripeReturn(page);
   try {
     await page.goto(url, { waitUntil: "domcontentloaded" });
     const card = page.locator("#cardNumber");
@@ -246,6 +251,7 @@ async function payCheckout(browser: Browser, url: string): Promise<void> {
     }
     throw new Error("funded fixture: Stripe Checkout never submitted after 3 Pay taps");
   } finally {
+    await answer.stop();
     await ctx.close().catch(() => {});
   }
 }

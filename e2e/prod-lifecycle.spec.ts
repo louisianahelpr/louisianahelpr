@@ -2,6 +2,7 @@ import { test, expect, type APIRequestContext, type Page, type Locator } from ".
 import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { openCardFields, waitForStripePaymentMethods } from "./stripeCheckoutCard";
+import { answerStripeReturn } from "./stripeReturn";
 import { skipLivePay } from "./prod-audit/fundedOpenJob";
 import { ageJobPastEarlyAccess } from "./ageJobPastEarlyAccess";
 import { join } from "node:path";
@@ -702,6 +703,9 @@ test.describe("full money loop against production", () => {
       if (mode === "live") skipLivePay(`money loop: create-payment minted a live Checkout Session for ${job.id}`);
       throw new Error(`create-payment returned a Checkout URL with no cs_test_/cs_live_ session id: ${String(checkoutUrl).slice(0, 80)}`);
     } else {
+      // Q1255: Stripe's return goes to create-payment's APP_URL, the DEPLOYED
+      // site; it is answered locally and never loaded from Vercel.
+      const stripeReturn = await answerStripeReturn(page);
       await page.goto(String(checkoutUrl), { waitUntil: "domcontentloaded" });
 
       /* Stripe's hosted page, driven the way it actually behaves. The previous
@@ -786,8 +790,10 @@ test.describe("full money loop against production", () => {
         );
       }
       /* Wait to LEAVE Stripe — deliberately not for /payment-success.
+         (Since Q1255 the return is answered with an empty document and the
+         app never loads at all; the history below is why it was never needed.)
          This suite authenticates over REST; `page` is a plain browser context
-         with no app session in it. So when Stripe returns to the prod origin,
+         with no app session in it. So when Stripe returned to the prod origin,
          ProtectedRoute often bounces straight to
          /login?redirect=%2Fpayment-success, and asserting the success path made
          the run fail roughly half the time on a race between first paint and
@@ -802,6 +808,7 @@ test.describe("full money loop against production", () => {
       await page.waitForURL((url) => url.hostname.toLowerCase() !== "checkout.stripe.com", {
         timeout: 120_000,
       });
+      await stripeReturn.stop();
 
       // The webhook, not the redirect, is what moves the row. Poll for it — a
       // redirect that lands before `checkout.session.completed` is delivered is

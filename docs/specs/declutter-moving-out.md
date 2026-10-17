@@ -42,7 +42,7 @@ ordinary Helpr job until they land.
 | M9 | Ending the sale | "End the moving sale" clears the date; items stay up as ordinary listings | Never takes anything down without the seller asking | 2026-10-16 — default chosen by lane, owner to confirm |
 | M10 | After the move-out date | The banner disappears the day after the move-out date (never "Moved out", which would advertise an empty home); the items stay for sale; a "Haul away what's left" link goes to posting a Helpr job until haul-away (Q?declutter-haul-away) lands | Automatic take-downs or bookings are money/time decisions for the owner | 2026-10-16 — default chosen by lane, owner to confirm |
 | M11 | Fees | None new: each item sells under the Declutter rules (seller keeps 100%, buyer fee F1) | Nothing about moving changes the money | 2026-10-16 — default chosen by lane, owner to confirm |
-| M12 | Four tax confirmations | Asked once for the batch, recorded per item on the server (declutter_attest_item for each) | The same statements, said once for everything listed now. Whether one statement for a batch is legally enough is the owner's call (flagged by the review) | 2026-10-16 — default chosen by lane, owner to confirm |
+| M12 | Four tax confirmations | OWNER DECIDED 2026-10-17: "one batch statement is fine". Asked once for the batch, recorded per item on the server (declutter_attest_item for each) | The same four statements, said once for everything listed now | 2026-10-17 — owner decision |
 
 ## Reviews (2026-10-16, on 831f71870)
 

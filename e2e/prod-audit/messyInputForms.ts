@@ -541,7 +541,7 @@ export const FORMS: FormSpec[] = [
       await reject.click();
       await page.getByRole("textbox", { name: /credential rejection reason/i }).waitFor({ timeout: 10_000 });
     },
-    covers: ["src/components/admin/AdminCredentialQueue.tsx"],
+    covers: ["src/components/admin/AdminCredentialQueue.tsx", "src/components/admin/credentialQueue/ExpiryField.tsx"],
   },
   {
     name: "admin-dispute-decide", url: "/admin?view=disputes", as: "admin",

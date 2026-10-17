@@ -17,7 +17,7 @@ export async function handlePaymentIntentSucceeded(
   // view and 1099 reconciliation both depend on this being accurate.
   const { data: taxJob, error: taxJobErr } = await supabase
     .from("jobs")
-    .select("id, sales_tax_amount, payment_status, customer_id, title, is_seed")
+    .select("id, sales_tax_amount, payment_status, status, customer_id, title, is_seed")
     .eq("stripe_payment_intent_id", pi.id)
     .maybeSingle();
 
@@ -66,18 +66,47 @@ export async function handlePaymentIntentSucceeded(
     // session marks the job 'failed' first; if the poster then retries with ACH
     // on that same session, the bank debit succeeds and this handler fires — the
     // job must not stay stuck in 'failed' with captured funds.
+    // "abandoned" too (Q1879, lh-money-escrow R4 review of PR #3197, #2): the
+    // abandon sweep (void-cancelled-payments Parts B/B2) marks an unpaid job
+    // 'abandoned' once its checkout session is expired or gone: Part B on an
+    // OPEN job, Part B2 on a job that was ALREADY cancelled (the sweep marks,
+    // it never cancels). ME-046 keeps that off a job whose bank debit is in
+    // flight, but if it ever happens and the debit settles anyway, the money
+    // is captured and nothing else would ever fund the job (prod 2026-10-17:
+    // 102 abandoned jobs, 101 cancelled, none with a PaymentIntent yet).
+    // A CANCELLED job is promoted too, on purpose: void-cancelled-payments
+    // Part A (status 'cancelled' + payment_status 'escrow') refunds it on its
+    // next run, the same as an unpaid cancelled job promoted here always was.
+    // Only a COMPLETED job is refused: escrow there is money nothing pays out
+    // or refunds, so it is paged to ops to refund instead.
     // If the job is already "escrow" (sync card payment — this PI also fires for
     // those) or further along, the UPDATE matches zero rows, which is the no-op.
     const isStillUnpaid =
       taxJob.payment_status == null ||
       taxJob.payment_status === "unpaid" ||
-      taxJob.payment_status === "failed";
-    if (isStillUnpaid) {
+      taxJob.payment_status === "failed" ||
+      taxJob.payment_status === "abandoned";
+    const pageClosedUnfunded = async (jobStatus: string, paymentStatus: string | null) => {
+      logStep("Bank payment settled on a completed or deleted unfunded job — not promoted; ops paged to refund", { jobId: taxJob.id, piId: pi.id, status: jobStatus });
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: "critical",
+        title: "Bank payment settled on a job that can never be funded — refund it",
+        message: `A bank (ACH) payment settled for job ${taxJob.id}, but the job is ${jobStatus} and was never funded, so it was NOT moved to escrow (nothing would pay it out or refund it). Refund this PaymentIntent from the Stripe dashboard.`,
+        fields: { job_id: taxJob.id, payment_intent: pi.id, job_status: jobStatus, payment_status: paymentStatus ?? "null" },
+        oncePerDayKey: `ach-settled-unfundable-job:${pi.id}`,
+        seed: taxJob.is_seed ?? false,
+      });
+    };
+    if (isStillUnpaid && taxJob.status === "completed") {
+      await pageClosedUnfunded("completed", taxJob.payment_status);
+    } else if (isStillUnpaid) {
       const { data: escrowRow, error: escrowErr } = await supabase
         .from("jobs")
         .update({ payment_status: "escrow" })
         .eq("id", taxJob.id)
-        .or("payment_status.is.null,payment_status.eq.unpaid,payment_status.eq.failed")
+        .or("payment_status.is.null,payment_status.eq.unpaid,payment_status.eq.failed,payment_status.eq.abandoned")
+        .neq("status", "completed")
         .select("id")
         .maybeSingle();
       if (escrowErr) {
@@ -107,16 +136,41 @@ export async function handlePaymentIntentSucceeded(
           logStep("WARN: instant-job-match threw after ACH settlement", { jobId: taxJob.id, error: String(matchErr) });
         }
       } else {
-        // Zero rows: the job moved past unpaid between our select and this write
-        // (e.g. a concurrent delivery already set escrow). Log and ack; the job
-        // is in a valid funded state.
-        logStep("ACH PI succeeded but job already past unpaid — no escrow write needed", { jobId: taxJob.id, piId: pi.id, paymentStatus: taxJob.payment_status });
+        // Zero rows: the job changed between our select and this write. Re-read
+        // it (Q1879): a concurrent delivery that already set escrow is a valid
+        // funded state, but a job COMPLETED meanwhile and still unfunded holds
+        // captured money nothing will pay out, and is paged as money at risk.
+        const { data: now, error: nowErr } = await supabase
+          .from("jobs")
+          .select("status, payment_status")
+          .eq("id", taxJob.id)
+          .maybeSingle();
+        if (nowErr) {
+          // Throw: the idempotency row rolls back and Stripe retries, so the
+          // money is never acked without knowing where it landed.
+          throw new Error(`ACH escrow re-read failed for job ${taxJob.id} (PI ${pi.id}): ${nowErr.message}`);
+        }
+        const nowUnfunded = now != null && (
+          now.payment_status == null ||
+          ["unpaid", "failed", "abandoned"].includes(String(now.payment_status))
+        );
+        if (!now) {
+          // Deleted between the select and the write: captured money with no
+          // job to hold it.
+          await pageClosedUnfunded("deleted", null);
+          return;
+        }
+        if (nowUnfunded && now.status === "completed") {
+          await pageClosedUnfunded("completed", now.payment_status ?? null);
+          return;
+        }
+        logStep("ACH PI succeeded but job already past unpaid — no escrow write needed", { jobId: taxJob.id, piId: pi.id, paymentStatus: now.payment_status });
         await postSlackOpsAlert({
           kind: "custom",
           severity: "warning",
-          title: "ACH PI succeeded but job was already funded",
-          message: "payment_intent.succeeded fired for an ACH job that was no longer unpaid. This may indicate a duplicate-funding race or a redelivery after checkout.session.completed already set escrow. No action taken; verify the job's payment state.",
-          fields: { job_id: taxJob.id, payment_intent: pi.id, payment_status: taxJob.payment_status ?? "null" },
+          title: "ACH PI succeeded but the job was no longer unpaid",
+          message: `payment_intent.succeeded fired for an ACH job that was no longer unpaid (now ${String(now.payment_status ?? "null")}). This may indicate a duplicate-funding race or a redelivery after checkout.session.completed already set escrow. No action taken; verify the job's payment state.`,
+          fields: { job_id: taxJob.id, payment_intent: pi.id, payment_status: String(now.payment_status ?? "null") },
           oncePerDayKey: `ach-already-funded:${taxJob.id}`,
           seed: taxJob.is_seed ?? false,
         });

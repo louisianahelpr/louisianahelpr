@@ -9,7 +9,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 
 export type SuggestionArea = "jobs" | "declutter";
 export type SuggestionStatus = "pending" | "approved" | "declined";
@@ -65,7 +65,9 @@ export async function suggestCategory(area: SuggestionArea, suggestion: string):
 
 export async function fetchCategorySuggestions(status: SuggestionStatus): Promise<CategorySuggestionRow[]> {
   const res = await supabase.rpc("admin_list_category_suggestions", { p_status: status });
-  return (rpcResult(res, (e) => rpcErrorMessage("admin_list_category_suggestions", e)) ?? []) as CategorySuggestionRow[];
+  // Admin-only copy is fetched only on a refusal (lifecycleErrors.ts, loadAdminRpcErrorCopy).
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return (rpcResult(res, (e) => admin?.rpcErrorMessage("admin_list_category_suggestions", e) ?? null) ?? []) as CategorySuggestionRow[];
 }
 
 export async function reviewCategorySuggestion(id: string, approve: boolean, note: string | null): Promise<number> {
@@ -74,8 +76,9 @@ export async function reviewCategorySuggestion(id: string, approve: boolean, not
     p_approve: approve,
     p_note: note?.trim() || undefined,
   });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
   // Never null on success: the review returns the count it resolved or raises.
-  return rpcResult(res, (e) => rpcErrorMessage("admin_review_category_suggestion", e)) as number;
+  return rpcResult(res, (e) => admin?.rpcErrorMessage("admin_review_category_suggestion", e) ?? null) as number;
 }
 
 /** The words to show for any error these helpers threw. */

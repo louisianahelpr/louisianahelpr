@@ -26,6 +26,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CREW_ACCEPT_COPY } from "@/pages/jobs/appliedJobCard/crewAcceptCopy";
 import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
+import { ADMIN_RPC_ERROR_COPY } from "@/components/admin/adminRpcErrorCopy";
 import { HELPER_WAIT } from "@/components/job-card/jobStatusLine";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -36,7 +37,8 @@ for (const [k, v] of Object.entries(CREW_ACCEPT_COPY)) sentences.push([`CREW_ACC
 for (const [k, v] of Object.entries(RPC_ERROR_COPY.rpc_group_member_confirm)) {
   sentences.push([`rpc_group_member_confirm.${k}`, v]);
 }
-for (const [rpc, codes] of Object.entries(RPC_ERROR_COPY)) {
+// Both tables: an admin-gated RPC keeps its copy in ADMIN_RPC_ERROR_COPY.
+for (const [rpc, codes] of Object.entries({ ...RPC_ERROR_COPY, ...ADMIN_RPC_ERROR_COPY })) {
   const v = (codes as Record<string, string>).helper_not_confirmed;
   if (v) sentences.push([`${rpc}.helper_not_confirmed`, v]);
 }

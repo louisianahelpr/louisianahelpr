@@ -14,7 +14,7 @@ import { report } from "@/lib/errorLogger";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import type { DisputedJob, DisputeRecord } from "./types";
 
 export function settlementEscapes({

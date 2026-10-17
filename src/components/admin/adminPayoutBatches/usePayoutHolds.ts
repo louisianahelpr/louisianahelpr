@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 import { userFacingError } from "@/lib/userFacingError";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 
 /** The server-side payout holds (Q764) for the admin payout queue: the rows, and the three admin writes. */
 export function usePayoutHolds(adminId: string | undefined) {

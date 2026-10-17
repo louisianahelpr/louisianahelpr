@@ -8,7 +8,11 @@
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs                  # all PASS
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-reconcile   # RED: the reconcile left out
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-against     # RED: 20261017052701 left out (problems filed against the member missing)
- *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-delivery    # RED: 20261017052706 left out (Helpr delivery sections missing)
+ *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-delivery    # RED: 20261017052706 left out (Helpr delivery sections
+ *                                                                          #   missing, and declutter_wanted too: 052701 predates it, the
+ *                                                                          #   db-deploy partial-failure window, authz note N1)
+ *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-wanted      # still PASS: 20261016053541 left out, 052706 carries
+ *                                                                          #   declutter_wanted on its own
  *
  * Two orders, each in its own database, starting from 20261014200728 (the
  * last export_my_data both lines of history share):
@@ -45,10 +49,13 @@ const SLICE3B = "20261014224914_declutter_slice3b_payments.sql";
 const SLICE4 = "20261015042253_declutter_slice4_handover_payout.sql";
 const MAIN_CAT = "20261015052622_export_my_data_category_suggestions.sql";
 const RECONCILE = "20261015084728_export_my_data_declutter_reconcile.sql";
-// 20261017052701 restates the reconcile's body plus declutter_problems_about_me (problems filed AGAINST the member).
+// 20261016053541 (main's wanted posts) restates the reconcile's body plus declutter_wanted.
+const WANTED = "20261016053541_declutter_wanted_price_hint.sql";
+const NO_WANTED = process.argv.includes("--no-wanted");
+// 20261017052701 restates 053541's body plus declutter_problems_about_me (problems filed AGAINST the member).
 const AGAINST = "20261017052701_export_my_data_declutter_problems_against.sql";
 const NO_AGAINST = process.argv.includes("--no-against");
-// 20261017052706 restates 092457's body plus the Helpr-delivery sections (slice 5).
+// 20261017052706 restates 052701's body plus the Helpr-delivery sections (slice 5).
 const DELIVERY = "20261017052706_export_my_data_helpr_delivery.sql";
 const NO_DELIVERY = process.argv.includes("--no-delivery");
 const DELIVERY_SECTIONS = ["helpr_vehicles", "helpr_tasks", "helpr_task_events", "helpr_task_payouts", "declutter_delivery_dropoffs"];
@@ -56,6 +63,7 @@ const DELIVERY_SECTIONS = ["helpr_vehicles", "helpr_tasks", "helpr_task_events",
 const DECLUTTER_SECTIONS = [
   "declutter_offers", "declutter_orders", "declutter_cart_items", "declutter_buyer_cards",
   "declutter_seller_fee_debts", "declutter_bookings", "declutter_problems", "declutter_payouts", "declutter_reviews",
+  "declutter_wanted",
 ];
 
 let failures = 0;
@@ -95,7 +103,7 @@ async function installedAfter(label, files) {
   const db = new PGlite();
   await db.exec(ROLES);
   for (const f of files) {
-    for (let i = 0; i < (f === RECONCILE || f === AGAINST || f === DELIVERY ? 3 : 1); i++) await db.exec(exportStatements(f)); // the reconcile 3x: replay-safe
+    for (let i = 0; i < (f === RECONCILE || f === WANTED || f === AGAINST || f === DELIVERY ? 3 : 1); i++) await db.exec(exportStatements(f)); // the reconcile 3x: replay-safe
   }
   const def = (await db.query(`SELECT pg_get_functiondef('public.export_my_data(uuid)'::regprocedure) AS d`)).rows[0].d;
   const acl = (await db.query(`SELECT
@@ -111,7 +119,9 @@ async function installedAfter(label, files) {
   return { db, def };
 }
 
-const tail = NO_RECONCILE ? [] : [RECONCILE, ...(NO_AGAINST ? [] : [AGAINST]), ...(NO_AGAINST || NO_DELIVERY ? [] : [DELIVERY])];
+// The stack's restatements (052701, 052706) carry 053541's declutter_wanted forward; leaving 053541 out
+// (--no-wanted) drops it from the tail, and the stack's bodies must still carry the section on their own.
+const tail = NO_RECONCILE ? [] : [RECONCILE, ...(NO_WANTED ? [] : [WANTED]), ...(NO_AGAINST ? [] : [AGAINST]), ...(NO_AGAINST || NO_DELIVERY ? [] : [DELIVERY])];
 const replay = await installedAfter("REPLAY (version order)", [BASE, SLICE3, SLICE3B, SLICE4, MAIN_CAT, ...tail]);
 const prod = await installedAfter("PROD (main's 052622 live, branch versions pending)", [BASE, MAIN_CAT, SLICE3, SLICE3B, SLICE4, ...tail]);
 check("both orders end with the same body", replay.def === prod.def);
@@ -211,7 +221,9 @@ INSERT INTO public.helpr_tasks (helpr_id, dropoff_code, pickup_address, pickup_l
   ('${OTHER}', '1111', 'x', 0, 0, 'y', 0, 0, '${ME}', '${STAFF}', NULL, 'Elsewhere');
 INSERT INTO public.helpr_task_events (actor_id) VALUES ('${ME}'), ('${OTHER}');
 INSERT INTO public.helpr_task_payouts (helpr_id, stripe_transfer_id, last_error, amount_cents) VALUES ('${ME}', 'tr_x', 'boom', 2620), ('${OTHER}', 'tr_y', NULL, 1);
-INSERT INTO public.declutter_delivery_dropoffs (buyer_id, address) VALUES ('${ME}', '5 My Home Ln'), ('${OTHER}', '9 Buyer Rd');`);
+INSERT INTO public.declutter_delivery_dropoffs (buyer_id, address) VALUES ('${ME}', '5 My Home Ln'), ('${OTHER}', '9 Buyer Rd');
+-- 20261016053541: my wanted post and someone else's.
+INSERT INTO public.declutter_wanted (user_id) VALUES ('${ME}'), ('${OTHER}');`);
 let out;
 try {
   out = (await db.query(`SELECT public.export_my_data('${ME}') AS x`)).rows[0].x;
@@ -231,6 +243,8 @@ if (out) {
       && len("declutter_problems") === 1 && !("decided_by" in out.declutter_problems[0])
       && len("declutter_reviews") === 1 && !("reviewer_id" in out.declutter_reviews[0]),
     JSON.stringify({ o: len("declutter_offers"), ord: len("declutter_orders"), b: len("declutter_bookings"), p: len("declutter_payouts"), pr: out.declutter_problems, r: out.declutter_reviews }));
+  check("the member's own wanted post is exported, nobody else's (declutter_wanted, 20261016053541)",
+    len("declutter_wanted") === 1 && out.declutter_wanted[0]?.user_id === ME, JSON.stringify(out.declutter_wanted));
   // lh-authz-rls should-fix (a) of the reconcile review: problems filed AGAINST the member are exported too.
   const about = Array.isArray(out.declutter_problems_about_me) ? out.declutter_problems_about_me : [];
   check("problems filed AGAINST the member are in the export (declutter_problems_about_me): both on my order, none from elsewhere",
@@ -259,5 +273,5 @@ if (out) {
   }
 }
 
-console.log(`\n${failures === 0 ? "ALL PASS" : `${failures} FAIL`}${NO_RECONCILE ? " [--no-reconcile]" : ""}${NO_AGAINST ? " [--no-against]" : ""}${NO_DELIVERY ? " [--no-delivery]" : ""}  (${tables.size} tables stubbed from the body)`);
+console.log(`\n${failures === 0 ? "ALL PASS" : `${failures} FAIL`}${NO_RECONCILE ? " [--no-reconcile]" : ""}${NO_AGAINST ? " [--no-against]" : ""}${NO_DELIVERY ? " [--no-delivery]" : ""}${NO_WANTED ? " [--no-wanted]" : ""}  (${tables.size} tables stubbed from the body)`);
 process.exit(failures ? 1 : 0);

@@ -125,16 +125,18 @@ afterEach(() => {
 });
 
 describe("the Profile landing waits for its switches (Q1894)", () => {
-  it("keeps the skeleton until BOTH switches answer, then paints the landing", async () => {
+  it("keeps the skeleton until EVERY switch answers, then paints the landing", async () => {
     renderLanding();
     await act(async () => { await vi.advanceTimersByTimeAsync(50); });
     expect(screen.queryByTestId("skeleton")).toBeTruthy();
     expect(screen.queryByTestId("landing")).toBeNull();
-    // Both reads start with the page, not with the landing.
-    expect([...switches.pending.keys()].sort()).toEqual(["declutter", "memberships"]);
+    // Every read starts with the page, not with the landing.
+    expect([...switches.pending.keys()].sort()).toEqual(["declutter", "memberships", "shops"]);
     await answer("declutter", true);
     expect(screen.queryByTestId("landing"), "painted before 'memberships' answered").toBeNull();
     await answer("memberships", false);
+    expect(screen.queryByTestId("landing"), "painted before 'shops' answered").toBeNull();
+    await answer("shops", false);
     expect(await screen.findByTestId("landing")).toBeTruthy();
     expect(screen.queryByTestId("skeleton")).toBeNull();
   });

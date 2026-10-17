@@ -22,6 +22,7 @@ import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
 import { createThrowaway, deleteThrowaway, serviceKey, type Throwaway } from "./throwaway";
 import { srFetch } from "../serviceRoleFetch";
+import { cardByTitle, findChip } from "./cardChips";
 
 /**
  * Journeys 9-11: the admin and safety outcomes nothing else drove on the real
@@ -459,7 +460,9 @@ test.describe.serial("admin and safety journeys", () => {
     await test.step("before the start, No-Show is not offered", async () => {
       await openCard(pp, jobId, JOB_TITLE);
       if (Date.now() < slot.at.getTime() - 20_000) {
-        await expect(pp.getByRole("button", { name: /^No-Show/ }), "No-Show offered before the scheduled start").toHaveCount(0);
+        // On the row OR in More: a count on the card alone would pass with the
+        // chip parked in the overflow (journeyChipsReachOverflow.test.ts).
+        expect(await findChip(pp, cardByTitle(pp, JOB_TITLE), /^No-Show/, 3_000), "No-Show offered before the scheduled start").toBeNull();
       }
       await journey.milestone(pp, "before-start");
     });
@@ -468,9 +471,9 @@ test.describe.serial("admin and safety journeys", () => {
       const wait = slot.at.getTime() + 15_000 - Date.now();
       if (wait > 0) await pp.waitForTimeout(wait);
       await openCard(pp, jobId, JOB_TITLE);
-      const chip = pp.getByRole("button", { name: /^No-Show/ }).first();
-      await expect(chip, "No-Show is not offered after the start with no arrival").toBeVisible({ timeout: 30_000 });
-      await chip.click();
+      const chip = await findChip(pp, cardByTitle(pp, JOB_TITLE), /^No-Show/, 30_000);
+      expect(chip, "No-Show is not offered after the start with no arrival, on the row or in More").not.toBeNull();
+      await chip!.click();
       const dlg = pp.getByRole("dialog").filter({ hasText: "Report No-Show" }).first();
       await expect(dlg).toBeVisible();
       await journey.milestone(pp, "no-show-dialog");
@@ -501,7 +504,7 @@ test.describe.serial("admin and safety journeys", () => {
 
     await test.step("the reopened job is back on the poster's desk", async () => {
       await openCard(pp, jobId, JOB_TITLE);
-      await expect(pp.getByRole("button", { name: /^No-Show/ })).toHaveCount(0);
+      expect(await findChip(pp, cardByTitle(pp, JOB_TITLE), /^No-Show/, 3_000), "the reopened job still offers No-Show").toBeNull();
       await assertHealthy(pp, "reopened job");
       await journey.milestone(pp, "reopened");
     });

@@ -691,12 +691,12 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
 - [ ] **Q1816 MEDIUM Fix the test robots: 14 overnight checks red.** One item for every red overnight check (owner 2026-10-14: "All failing robot checks roll into ONE 'fix the test robots' item instead of 18"); each one below still gets a root cause, a fix and a green re-run of its own workflow. Rewritten by `scripts/open-sync-trackers.mjs` on every sync; it is ticked when no check is red. Guard src/test/openRobotsRollup.test.ts. rollup: nightly-red
   - nightly-red-age: issue #2244, newest red run: see the issue's latest comment. notes: Q1275. feed: issue #2244 · feed: ledger ab6fdbe8c882
   - prod-audit: issue #2245, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38689259675. notes: Q785. feed: issue #2245 · feed: ledger 16e6e91f6701
-  - press-every-control: issue #2353, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38536821617. notes: Q1374. feed: issue #2353 · feed: ledger 7e141f206640
+  - press-every-control: issue #2353, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39014836855. notes: Q1374. feed: issue #2353 · feed: ledger 7e141f206640
   - branch-prune: issue #2366, newest red run: see the issue's latest comment. notes: Q1376. feed: issue #2366 · feed: ledger 7f88b9cc45df
   - a11y-webkit-prod: issue #2375, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38911703338. notes: Q593. feed: issue #2375 · feed: ledger 6205197429d4
   - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38882683467. notes: Q1429. feed: issue #2436 · feed: ledger 43d77e26f272
   - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38958608457. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
-  - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39032021419. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
+  - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39038453863. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #2937, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38858111043. notes: Q1775. feed: issue #2937 · feed: ledger a8ceee56bbd5
   - nightly-webkit: issue #2962, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39034702084. notes: Q1780. feed: issue #2962 · feed: ledger 70e7b0decb9a
   - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38982141882. notes: Q1807. feed: issue #2993

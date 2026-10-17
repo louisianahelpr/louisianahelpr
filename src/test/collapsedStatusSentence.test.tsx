@@ -54,6 +54,7 @@
  * @mutate src/pages/posts/PostedJobCard.tsx | {!isExpanded && (\n              <PosterStatusStrip | {(true) && (\n              <PosterStatusStrip
  * @mutate src/components/job-card/jobStatusLine.ts | return "done_both_open";\n      }\n      return payoutNotSettled(job) ? "done_payout_pending" : "done_paid"; | return "done_both_open";\n      }\n      return "done_paid";
  * @mutate src/pages/jobs/AppliedJobCard.tsx | reviewed={isFullyDone} tracking={initialTracking} /> | reviewed={isFullyDone} />
+ * @mutate src/components/job-card/jobStatusLine.ts | return job.status === "completed" && job.payment_status === "refunded"; | return false;
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -320,6 +321,12 @@ const POSTER_FIXTURES: Record<
     job: job({ status: "completed", helper_id: HELPER, payment_status: "payout_pending" }),
     completion: { tipped: true, reviewed: true },
   },
+  /* Q757(2): a full refund closed the payout to 'refunded'. Loose ends open
+     on purpose: the refund line wins over them. */
+  done_refunded: {
+    job: job({ status: "completed", helper_id: HELPER, payment_status: "refunded" }),
+    completion: { tipped: false, reviewed: false },
+  },
   done_paid: {
     job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
     completion: { tipped: true, reviewed: true },
@@ -434,6 +441,8 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
   dispute_settling: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "escrow", dispute_status: "resolved", dispute_settling: true }),
   /* Q451: the helper's half of done_payout_pending. */
   done_payout_pending: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "payout_pending" }),
+  /* Q757(2): the helper's half of done_refunded. */
+  done_refunded: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "refunded" }),
   done_paid: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "released" }),
 };
 
@@ -570,8 +579,10 @@ describe("every state a collapsed card can be in has a sentence", () => {
  * never could, so looping them here would assert a code path this guard
  * cannot exercise rather than a gap in the Q451 fix itself. */
 describe("a completed job whose payout has not settled is never called paid (Q451)", () => {
+  /* 'refunded' is not here: its money went back to the card, so it has its
+     own line (Q757(2), the case below). */
   const NOT_YET_SETTLED = [
-    "unpaid", "escrow", "payout_pending", "refunded",
+    "unpaid", "escrow", "payout_pending",
     "cancelled", "abandoned", "cancelling",
   ] as const;
 
@@ -592,6 +603,20 @@ describe("a completed job whose payout has not settled is never called paid (Q45
       const id = deriveHelperWait(makeApp({}, { status: "completed", helper_id: HELPER, payment_status }));
       expect(id, `payment_status "${payment_status}" derived "${id}"`).toBe("done_payout_pending");
     }
+  });
+
+  it("a completed job whose payment was refunded says so, never 'payout pending' (Q757(2))", () => {
+    const posterId = derivePosterWait(
+      job({ status: "completed", helper_id: HELPER, payment_status: "refunded" }),
+      0,
+      undefined,
+      { tipped: true, reviewed: true },
+    );
+    const helperId = deriveHelperWait(makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "refunded" }));
+    expect(posterId).toBe("done_refunded");
+    expect(helperId).toBe("done_refunded");
+    expect(POSTER_WAIT[posterId].detail).toBe("Done · payment refunded");
+    expect(HELPER_WAIT[helperId].detail).toBe("Done · payment refunded");
   });
 
   it("a settled payout keeps the existing paid wording, on both sides", () => {

@@ -14,7 +14,7 @@
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql | REVOKE ALL ON FUNCTION public.declutter_create_move_drafts(date, text, text, numeric, numeric, jsonb) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_create_move_drafts(date, text, text, numeric, numeric, jsonb) FROM PUBLIC;
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |    WHERE seller_id = v_uid\n     AND in_moving_sale\n     AND status IN | WHERE in_moving_sale\n     AND status IN
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |        AND i.seller_id = v_uid AND p.seller_id = v_uid\n       AND i.in_moving_sale\n       AND i.status IN ('draft' |        AND i.in_moving_sale\n       AND i.status IN ('draft'
- * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |   IF v_date IS NULL OR v_date < date_trunc('month', v_today)::date THEN |   IF v_date IS NULL OR v_date < v_today THEN
+ * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |   IF v_date IS NULL OR v_date < v_today THEN |   IF v_date IS NULL THEN
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql | VALUES ('declutter_moving_out', 'testers', | VALUES ('declutter_moving_out', 'everyone',
  * @mutate supabase/functions/declutter-ai-draft/index.ts |   const refused = await requireFeature(admin, "declutter_moving_out", user, corsHeaders); |   const refused = null;
  * @mutate supabase/functions/declutter-ai-draft/index.ts |   const { error: gateErr } = await anon.rpc("declutter_assert_can_scan_room"); |   const gateErr = null as { message?: string } \| null;
@@ -75,16 +75,16 @@ describe("Declutter moving-out mode (20261016053625)", () => {
     expect(b).toMatch(/IF p_move_out_on IS NOT NULL THEN PERFORM public\.declutter_assert_member\(true\);/);
   });
 
-  it("the date lives on the private half; other members get only the month, which never changes on the day", () => {
+  it("the date lives on the private half; other members get it only through the gated reader, and nothing after it", () => {
     expect(flat(MIG)).toContain("ALTER TABLE public.declutter_item_private ADD COLUMN IF NOT EXISTS move_out_on date;");
     expect(MIG).not.toMatch(/ALTER TABLE public\.declutter_items ADD COLUMN IF NOT EXISTS move_out_on/);
     const r = flat(body("declutter_seller_moving_sale"));
-    expect(r).toContain("RETURNS TABLE(move_month date)");
-    expect(r).not.toMatch(/moving_soon/);
-    expect(r).toContain("IF v_date IS NULL OR v_date < date_trunc('month', v_today)::date THEN RETURN;");
+    expect(r).toContain("RETURNS TABLE(move_out_on date)");
+    expect(r).not.toMatch(/pickup_address/);
+    expect(r).toContain("IF v_date IS NULL OR v_date < v_today THEN RETURN;");
     expect(r).toContain("public.declutter_seller_hidden(p_seller_id)");
     expect(r).toContain("public.are_users_blocked(v_uid, p_seller_id)");
-    expect(r).toContain("move_month := date_trunc('month', v_date)::date;");
+    expect(r).toContain("move_out_on := v_date;");
   });
 
   it("anon is revoked from each client RPC, and the date helper is internal", () => {

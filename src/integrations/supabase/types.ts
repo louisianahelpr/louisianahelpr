@@ -8851,7 +8851,7 @@ export type Database = {
       declutter_seller_moving_sale: {
         Args: { p_seller_id: string }
         Returns: {
-          move_month: string
+          move_out_on: string
         }[]
       }
       declutter_seller_item_private: {

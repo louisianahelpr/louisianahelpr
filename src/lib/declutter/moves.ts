@@ -11,7 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto } from "@/lib/declutter/photos";
+import { daysBetween, formatMoveDate, louisianaToday } from "@/lib/declutter/moveDates";
 import { attestItem, publishItem, requestAiCheck, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
+
+// The calendar helpers live in moveDates.ts (shared with the banner).
+export { daysBetween, formatMoveDate, louisianaToday };
 
 /** One item the photo tool found in a room (nothing is saved yet). */
 export interface RoomItem {
@@ -38,18 +42,6 @@ const MOVE_DATE_MAX_DAYS = 180;
 /** declutter-ai-draft allows 6 calls a minute per member: one photo check every 10.5 s stays under it. */
 export const AI_CHECK_GAP_MS = 10_500;
 
-/** Today's date in Louisiana as YYYY-MM-DD (the server's day). */
-export function louisianaToday(now: Date = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
-}
-
-/** Whole days from `from` to `to` (both YYYY-MM-DD). */
-export function daysBetween(from: string, to: string): number {
-  const a = Date.UTC(+from.slice(0, 4), +from.slice(5, 7) - 1, +from.slice(8, 10));
-  const b = Date.UTC(+to.slice(0, 4), +to.slice(5, 7) - 1, +to.slice(8, 10));
-  return Math.round((b - a) / 86_400_000);
-}
-
 /** What is wrong with a move-out date, in plain words, or null. Mirrors declutter_move_out_date_problem. */
 export function moveDateProblem(date: string, today: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "Pick your move-out date.";
@@ -58,12 +50,6 @@ export function moveDateProblem(date: string, today: string): string | null {
   if (d < 0) return "Your move-out date can't be in the past.";
   if (d > MOVE_DATE_MAX_DAYS) return "Pick a move-out date within the next 6 months.";
   return null;
-}
-
-/** "Saturday, Nov 14" for a YYYY-MM-DD date (read as a calendar day, no time zone shift). */
-export function formatMoveDate(date: string): string {
-  const [y, m, d] = date.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, d)));
 }
 
 /** Dollars as typed -> whole cents, or null. */

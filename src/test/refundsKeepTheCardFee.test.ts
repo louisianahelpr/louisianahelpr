@@ -274,8 +274,8 @@ const SQL_POLICIES = {
       // gave-up check pages and tells the buyer; a hand refund records the amount a person refunded in
       // Stripe and settles the row only when it covers refund_cents; a failed hand refund reopens the row
       // at the same refund_cents. None of them decides or changes a refund amount or the kept fee.
-      declutter_hand_refund_failed: "20261015091757_declutter_refund_hand_settle.sql 0fb09153f76a7a2b",
-      declutter_record_hand_refund: "20261015091757_declutter_refund_hand_settle.sql ce5dfbb9af73bb40",
+      declutter_hand_refund_failed: "20261015091757_declutter_refund_hand_settle.sql bac22e5c967145e9",
+      declutter_record_hand_refund: "20261015091757_declutter_refund_hand_settle.sql 032a3441e23792ff",
       declutter_refund_gave_up_check: "20261015091757_declutter_refund_hand_settle.sql 1fa348b4a38b6f7c",
       declutter_card_fee_estimate: "20261014224914_declutter_slice3b_payments.sql c3eec727dc09fe3e",
       declutter_close_paid_order: "20261015042253_declutter_slice4_handover_payout.sql 26e41fe4a577d2c8",

@@ -62,6 +62,8 @@ export const NOT_MATCHED = {
   "declutter_refunds.stripe_payment_intent_id": "Declutter (slices 3/3b, switch OFF, no money taken yet): the restore check does not read Declutter orders; add the order PaymentIntent and refund ids to DB_ID_COLUMNS before the switch goes past testers (spec, open after slice 3b)",
   "declutter_refunds.stripe_refund_ref": "Declutter (slices 3/3b, switch OFF, no money taken yet): the restore check does not read Declutter orders; add the order PaymentIntent and refund ids to DB_ID_COLUMNS before the switch goes past testers (spec, open after slice 3b)",
   "declutter_refunds.refund_cents": "an amount, not a Stripe id",
+  "declutter_hand_refunds.stripe_payment_intent_id": "Declutter (lane J, switch OFF, no money taken yet): the PaymentIntent a refund made by hand in the Stripe Dashboard was taken on; the same PaymentIntent as declutter_orders.stripe_payment_intent_id, which the restore check does not read yet (spec, open after slice 3b)",
+  "declutter_hand_refunds.stripe_refund_id": "Declutter (lane J, switch OFF, no money taken yet): a refund a person made in the Stripe Dashboard, recorded from charge.refunded; add it to DB_ID_COLUMNS with the other Declutter refund ids before the switch goes past testers (spec, open after slice 3b)",
   "declutter_payouts.stripe_transfer_id": "Declutter (slice 4, switch OFF, no money moved yet): the restore check does not read Declutter payouts; add the transfer id to DB_ID_COLUMNS before the switch goes past testers (spec, open after slice 4)",
   "declutter_seller_fee_debts.refund_id": "our own declutter_refunds row id, not a Stripe id",
   "tips.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through tips.stripe_payment_intent_id",

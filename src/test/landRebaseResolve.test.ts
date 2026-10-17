@@ -181,7 +181,7 @@ describe("land.sh wiring", () => {
     expect(exec).toBeGreaterThan(-1);
     expect(exec).toBeLessThan(land.indexOf("git fetch -q origin main"));
     for (const t of ["landRebaseResolve.mjs", "openItemMerge.mjs", "landRecount.mjs"]) expect(land).toContain(t);
-    expect(land).toMatch(/for t in landRebaseResolve\.mjs openItemMerge\.mjs landRecount\.mjs landGh\.mjs; do/);
+    expect(land).toMatch(/for t in landRebaseResolve\.mjs openItemMerge\.mjs landRecount\.mjs landGh\.mjs landClaims\.mjs; do/);
   });
   it("the rebase loop calls the resolver for any conflict and skips a commit resolved to nothing", () => {
     expect(land).toMatch(/if node "\$LAND_FROZEN_DIR\/landRebaseResolve\.mjs"; then\n\s+# [^\n]*\n\s+GIT_EDITOR=true git rebase --continue/);

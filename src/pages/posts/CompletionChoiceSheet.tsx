@@ -35,14 +35,17 @@ import { hapticSuccess, hapticError, hapticMedium } from "@/lib/haptics";
 import { notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { PhotoProofGroup } from "@/components/PhotoProof";
+import { backgroundImport } from "@/lib/chunkReload";
 
 // Rentals: the tenant's "Was it fixed?" answer, for a job posted from a repair
 // request. Loaded only when the sheet opens (off /posts' shared chunk) and
 // renders nothing for every other job.
 // A chunk that cannot load renders nothing (reported): it must never take the
 // release decision down with it.
+// A background import: a stale chunk after a deploy never reloads the page
+// out from under the sheet (lh-money-escrow review of 3674fa1e4 #3).
 const TenantFixedAnswer = lazy(() =>
-  import("@/components/rentals/TenantFixedAnswer").catch((err: unknown) => {
+  backgroundImport(() => import("@/components/rentals/TenantFixedAnswer"), "rentals-fixed-answer").catch((err: unknown) => {
     report(err, { severity: "warning", tags: { source: "CompletionChoiceSheet.tenantFixedAnswer" } });
     return { default: () => null };
   }),
@@ -247,12 +250,6 @@ export function CompletionChoiceSheet({
           <>
             <SheetHero title="How Did It Go?" />
 
-            {open && (
-              <Suspense fallback={null}>
-                <TenantFixedAnswer jobId={jobId} userId={userId} />
-              </Suspense>
-            )}
-
             {(proofBeforeUrls.length > 0 || proofAfterUrls.length > 0) && (
               <div className="space-y-1.5 mb-3">
                 <p
@@ -341,6 +338,16 @@ export function CompletionChoiceSheet({
                 </div>
               </button>
             </div>
+
+            {/* BELOW the two choices, never above: it appears only once its
+                chunk, the switch check and the read settle, and drawn above it
+                pushed "Release Payment" into the place "Request a Revision"
+                held a moment before (lh-money-escrow review of 3674fa1e4 #1). */}
+            {open && (
+              <Suspense fallback={null}>
+                <TenantFixedAnswer jobId={jobId} userId={userId} />
+              </Suspense>
+            )}
           </>
         ) : (
           <>

@@ -157,25 +157,40 @@ async function jobIsFunded(jobId: string): Promise<boolean | null> {
  * Rentals: point the approved maintenance request at the job just posted from
  * it. Best effort: the job exists either way, but the landlord is told when
  * the link fails or is refused (lh-authz-rls review of ca8e149b9 #10), because
- * an unlinked job never shows as booked on the tenant's request and the tenant
- * cannot answer "Was it fixed?" for it.
+ * an unlinked job never shows on the tenant's request and the tenant cannot
+ * answer "Was it fixed?" for it.
+ *
+ * "stop" when the server refused because the request already points at a job
+ * that is paid or mid-checkout (another tab or device got there first): paying
+ * for this one would pay for the same repair twice (lh-money-escrow review of
+ * 01f8eab54 #2). A refusal whose reason cannot be read back also stops, since
+ * the money-safe answer to "is it already paid?" is not to pay again.
  */
-async function linkMaintenanceJobOrTell(requestId: string, jobId: string): Promise<void> {
-  let linkErr: unknown = null;
+async function linkMaintenanceJobOrTell(requestId: string, jobId: string): Promise<"go" | "stop"> {
+  let linkErr: unknown;
+  let mod: typeof import("./maintenancePrefill") | null = null;
   try {
     // Loaded only for a post opened from a request (off /posts' shared chunk);
     // a background import, so a stale chunk never reloads the page mid-submit.
     // A chunk that cannot load is a failed link, told below.
-    const { linkMaintenanceJob } = await backgroundImport(() => import("./maintenancePrefill"), "maintenance-prefill");
-    if (!(await linkMaintenanceJob(requestId, jobId))) linkErr = new Error("maintenance link refused");
+    mod = await backgroundImport(() => import("./maintenancePrefill"), "maintenance-prefill");
+    if (await mod.linkMaintenanceJob(requestId, jobId)) return "go";
+    linkErr = new Error("maintenance link refused");
   } catch (err) {
     linkErr = err;
   }
-  if (!linkErr) return;
   report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkMaintenance" }, context: { job_id: jobId, request_id: requestId } });
+  if (mod && (linkErr as Error).message === "maintenance link refused") {
+    const now = await mod.fetchMaintenancePrefill(requestId).catch((readErr: unknown) => {
+      report(readErr, { severity: "warning", tags: { source: "useJobSubmit.linkMaintenanceRecheck" }, context: { request_id: requestId } });
+      return undefined;
+    });
+    if (now === undefined || now?.alreadyPosted) return "stop";
+  }
   toast.error("Your job posted, but it isn't linked to the repair request", {
-    description: "Your tenant won't see it booked. Let them know a Helpr is coming.",
+    description: "Your tenant won't see it on their request. Tell them once a Helpr is booked.",
   });
+  return "go";
 }
 
 /**
@@ -820,7 +835,23 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     /* Rentals S1: point the maintenance request at this job (best effort, the
        turnover rule): the tenant then sees it booked and can answer "Was it fixed?".
        A failed or refused link is reported AND told to the landlord. */
-    if (maintenanceRequestId) await linkMaintenanceJobOrTell(maintenanceRequestId, jobData.id);
+    if (maintenanceRequestId && (await linkMaintenanceJobOrTell(maintenanceRequestId, jobData.id)) === "stop") {
+      // The repair already has a paid (or paying) job: remove this unpaid one
+      // and stop before payment, like a refused haul-away link.
+      await cleanupOrphanJob(jobData.id);
+      attemptRef.current = null;
+      safeStorage.removeItem(COOLDOWN_KEY);
+      hapticError();
+      toast.error("This repair already has a job", {
+        description: "It was posted from another tab or device and is paid or being paid, so nothing was charged here. Find it under your posted jobs.",
+      });
+      setSaving(false);
+      setRedirecting(false);
+      setStep("checkout");
+      setConfirmed(false);
+      submittingRef.current = false;
+      return;
+    }
 
     // Stash the just-posted job id so the post-payment success sheet can
     // show share-this-link / view-applicants / post-another-like-this

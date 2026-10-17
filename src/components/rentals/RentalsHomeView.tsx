@@ -178,7 +178,11 @@ function PropertyCard({
             {tenancies.filter((t) => t.unit_id === u.id).map((t) => (
               <div key={t.id} className="flex items-center justify-between gap-2 pl-3 text-xs">
                 <span className="text-muted-foreground">
-                  {t.status === "active" ? `Tenant connected ${fmtDate(t.accepted_at)}` : `Invite not used yet (link sent ${fmtDate(t.created_at)})`}
+                  {t.status === "active"
+                    ? `Tenant connected ${fmtDate(t.accepted_at)}`
+                    : new Date(t.invite_expires_at).getTime() < Date.now()
+                      ? `Invite expired ${fmtDate(t.invite_expires_at)}, never used`
+                      : `Invite not used yet (works until ${fmtDate(t.invite_expires_at)})`}
                 </span>
                 <EndTenancyButton tenancyId={t.id} kind={t.status === "active" ? "end" : "cancel-invite"} onDone={onChange} />
               </div>

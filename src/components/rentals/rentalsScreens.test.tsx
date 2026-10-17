@@ -292,14 +292,19 @@ describe("Rentals screens", () => {
       state.units = [{ id: "u9", property_id: "p1", label: "A" }];
       state.live = [
         { id: "ta", unit_id: "u9", status: "active", accepted_at: "2026-10-16T12:00:00Z", invite_expires_at: "2026-10-30T12:00:00Z", created_at: "2026-10-16T11:00:00Z" },
-        { id: "ti", unit_id: "u9", status: "invited", accepted_at: null, invite_expires_at: "2026-10-30T12:00:00Z", created_at: "2026-10-17T11:00:00Z" },
+        { id: "ti", unit_id: "u9", status: "invited", accepted_at: null, invite_expires_at: "2099-10-30T12:00:00Z", created_at: "2026-10-17T11:00:00Z" },
+        { id: "tx", unit_id: "u9", status: "invited", accepted_at: null, invite_expires_at: "2026-10-01T12:00:00Z", created_at: "2026-09-17T11:00:00Z" },
       ];
       renderAt("/rentals");
       expect(await screen.findByText(/Tenant connected/)).toBeTruthy();
       expect(screen.getByText(/Invite not used yet/)).toBeTruthy();
+      // An invite past its date says so, and can still be cancelled (lh-money-escrow review of 801589ae1 #5).
+      expect(screen.getByText(/Invite expired .*never used/)).toBeTruthy();
       await confirmIn("End tenancy", "End tenancy");
       await vi.waitFor(() => expect(vi.mocked(endTenancy)).toHaveBeenCalledWith("ta"));
-      await confirmIn("Cancel invite", "Cancel invite");
+      fireEvent.click((await screen.findAllByRole("button", { name: "Cancel invite" }))[0]);
+      const dialog = await screen.findByRole("alertdialog");
+      fireEvent.click(Array.from(dialog.querySelectorAll("button")).find((b) => b.textContent === "Cancel invite")!);
       await vi.waitFor(() => expect(vi.mocked(endTenancy)).toHaveBeenCalledWith("ti"));
     });
 

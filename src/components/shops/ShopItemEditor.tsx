@@ -261,7 +261,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
       <div className="space-y-1.5">
         <Label htmlFor="item-description">Description</Label>
         <Textarea id="item-description" value={d.description} maxLength={2000} rows={4} onChange={(e) => set("description", e.target.value)} />
-        <p className="text-xs text-muted-foreground">No phone numbers, emails or websites: members reach you in the app.</p>
+        <p className="text-xs text-muted-foreground">No phone numbers, emails or websites: Shops does not allow contact details.</p>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">

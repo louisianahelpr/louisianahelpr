@@ -62,6 +62,12 @@ says more.
   on 2026-10-14 each turned a landing red after a lane reported "all green":
   `npx vitest run src/test/mutateRegistrationsResolve.test.ts src/test/mutateTargetsTheNewestDefinition.test.ts src/test/raceClassGuard.test.ts src/test/openPartlyDoneItemsSayDoneWhen.test.ts`
   A stale `@mutate` is rewritten to break the NEW code the same way, never deleted.
+- Heavy runs (typecheck, multi-file vitest, build, playwright, land.sh) go through
+  `~/.lh-tools/with-lock.sh <your-lane> <command>`: it waits for the lock and for a waiting landing,
+  and removes only a lock it created. Never hand-write `mkdir`/`rm -rf ~/.lh-heavy.lock` (on 2026-10-17
+  `mkdir lock && x; rm -rf lock` deleted another lane's lock).
+- Stop only processes YOU started, by the PID you saved. Never kill by port or name
+  (`lsof -ti:<port> | xargs kill`, `pkill node`): other agents' servers share those ports.
 - If you change UI, copy, forms or tests that read the source tree, ALSO run the
   repo-wide guards CI caught late on 2026-10-15 (trades took 7 land tries, #3138):
   `npx vitest run src/test/wrappingButtonTextAligns.test.ts src/test/q248HoverUnderlineRatchet.test.ts src/test/messyInputCoverageDecided.test.ts src/test/toastCopy.test.ts src/test/noSrcDirectoryWalksInTests.test.ts`

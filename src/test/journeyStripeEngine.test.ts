@@ -20,12 +20,21 @@
  *      (e2e/journeys/stripeInChromium.ts), which launches `chromium`.
  *   3. Every e2e-journeys.yml job that runs a journeys project installs the
  *      chromium browser, so rule 2 has an engine to launch.
+ *   4. prod-audit's `fund(api, browser, ...)` pays Checkout in the Browser it
+ *      is handed. A journey hands it `chrome` from `withChromium`
+ *      (e2e/journeys/stripeInChromium.ts), or its file skips WebKit outright.
+ *      journeys-webkit's admin-refund passed its WebKit browser and Stripe
+ *      answered "Something went wrong" on 4 of 4 runs measured (e2e-journeys
+ *      38527058685, 38749234414, 38882683467, 39004547274).
  */
 
 // @mutate e2e/journeys/02-marketplace.spec.ts | await payCheckoutSession(page); | await payOnStripeCheckout(page);
 // @mutate e2e/journeys/fixtures.ts | if (engineOf(page) === "chromium") { | if (engineOf(page) !== "") {
 // @mutate .github/workflows/e2e-journeys.yml | playwright-install.sh webkit chromium | playwright-install.sh webkit
 // @mutate e2e/journeys/stripeInChromium.ts | const browser = await chromium.launch(); | const browser = await webkit.launch();
+// @mutate e2e/journeys/04-admin-safety.spec.ts | await withChromium(browser, (chrome) => fund(api, chrome, poster, { id: jobId } as Row, log)); | await fund(api, browser, poster, { id: jobId } as Row, log);
+// @mutate e2e/journeys/stripeInChromium.ts |   if (browser.browserType().name() === "chromium") return run(browser); |   return run(browser);
+// @mutate e2e/journeys/stripeInChromium.ts |   const chrome = await chromium.launch(); |   const chrome = browser;
 
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -87,6 +96,25 @@ describe("journeys pay Stripe in the engine the product shows it in", () => {
     expect(inChromium, "payInChromium is gone from e2e/journeys/stripeInChromium.ts").not.toBe("");
     expect(inChromium).toMatch(/await chromium\.launch\(/);
     expect(inChromium).toMatch(/await pay\(page\)/);
+  });
+
+  it("a journey hands prod-audit's fund() a chromium browser in every engine (rule 4)", () => {
+    const calls = files.flatMap((f) => [...f.code.matchAll(/\bfund\(\s*\w+,\s*(\w+)\s*,/g)].map((m) => ({ rel: f.rel, arg: m[1], code: f.code })));
+    // Floor: admin-safety's one call and money-outcomes' three.
+    expect(calls.length).toBeGreaterThan(3);
+    for (const c of calls) {
+      if (c.arg === "chrome") {
+        expect(c.code, `${c.rel} passes \`chrome\` to fund() without taking it from withChromium`).toMatch(/withChromium\(browser, \(chrome\) => fund\(/);
+        continue;
+      }
+      expect(c.code, `${c.rel} hands fund() its own \`${c.arg}\` and does not skip WebKit: wrap it in withChromium`).toMatch(
+        /test\.skip\(\(\{ browserName \}\) => browserName === "webkit"/,
+      );
+    }
+    const wrap = fnBody(stripeInChromium, "withChromium<T>");
+    expect(wrap, "withChromium is gone from e2e/journeys/stripeInChromium.ts").not.toBe("");
+    expect(wrap).toMatch(/if \(browser\.browserType\(\)\.name\(\) === "chromium"\) return run\(browser\);/);
+    expect(wrap).toMatch(/const chrome = await chromium\.launch\(\);[\s\S]*?return await run\(chrome\);[\s\S]*?await chrome\.close\(\)/);
   });
 
   it("every journeys job in e2e-journeys.yml installs chromium", () => {

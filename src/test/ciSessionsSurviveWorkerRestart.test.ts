@@ -15,6 +15,7 @@
  *
  * @mutate e2e/journeys/fixtures.ts |     writeCache(cacheFile, session);\n  } else { |   } else {
  * @mutate e2e/journeys/fixtures.ts |     if (disk && disk.user?.email?.toLowerCase() === creds.email.toLowerCase()) { |     if (false) {
+ * @mutate .github/workflows/prod-audit.yml | path: test-results/messy-input-prod/credits/ | path: node_modules/.cache/lh-journeys/
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -51,8 +52,30 @@ describe("CI sessions survive a worker restart without a new sign-in", () => {
     expect(files.length).toBeGreaterThan(20);
     const leaks = files.filter((f) => {
       const y = readFileSync(join(dir, f), "utf8");
-      return /uses: actions\/(upload-artifact|cache)@[\s\S]{0,400}?path:[^\n]*(\n\s+[^\n:]+)*node_modules/.test(y);
+      return pathBlocksAfterUses(y).some((block) => block.includes("node_modules"));
     });
     expect(leaks).toEqual([]);
   });
 });
+
+/**
+ * Each upload-artifact / cache step's `path:` value: the rest of its line plus
+ * the indented, colon-free lines under it. Read line by line, not with one
+ * backtracking regex (CodeQL js/redos flagged `(\n\s+[^\n:]+)*` on PR #3295).
+ */
+function pathBlocksAfterUses(yaml: string): string[] {
+  const blocks: string[] = [];
+  const uses = /uses: actions\/(?:upload-artifact|cache)@/g;
+  for (let m = uses.exec(yaml); m; m = uses.exec(yaml)) {
+    const at = yaml.slice(m.index, m.index + 400).indexOf("path:");
+    if (at < 0) continue;
+    const lines = yaml.slice(m.index + at + "path:".length).split("\n");
+    const block = [lines[0]];
+    for (const line of lines.slice(1)) {
+      if (!/^[ \t]/.test(line) || line.includes(":")) break;
+      block.push(line);
+    }
+    blocks.push(block.join("\n"));
+  }
+  return blocks;
+}

@@ -11,7 +11,9 @@
  * map itself is pinned in src/test/refundsKeepTheCardFee.test.ts.
  *
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     ELSIF o.close_reason = 'seller_out' THEN | ELSIF false THEN
- * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql | v_reason := CASE WHEN v_sale_ok AND v_cant THEN 'seller_out' ELSE 'sold_elsewhere' END; | v_reason := CASE WHEN v_cant THEN 'seller_out' ELSE 'sold_elsewhere' END;
+ * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql | v_reason := CASE WHEN v_items_ok AND v_cant | v_reason := CASE WHEN v_cant
+ * lh-money-escrow review of 905501cb2 #1: (b) judges seller_out on the items alone, so a buyer's block does not hand the fee to us.
+ * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |       v_sale_ok := v_items_ok\n        AND NOT EXISTS | v_items_ok := v_items_ok AND NOT EXISTS (SELECT 1 FROM public.user_blocks b WHERE b.blocked_id = o.seller_id OR b.blocker_id = o.seller_id);\n      v_sale_ok := v_items_ok\n        AND NOT EXISTS
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql | WHEN v_cant AND v_items_ok THEN 'seller_out' | WHEN v_cant THEN 'seller_out'
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |   IF o.seller_id IS NULL OR v_debt IS NULL OR v_debt <= 0 THEN |   IF true THEN
  */
@@ -45,7 +47,14 @@ describe("Declutter: a seller who can no longer sell owes the card fee (20261017
     expect(b).toContain("v_cant := public.declutter_seller_out(o.seller_id);");
     // (b) a late in-time payment that cannot be honoured: only when being out is the sole blocker.
     expect(b).toContain("v_honour := v_sale_ok AND NOT v_cant;");
-    expect(b).toContain("v_reason := CASE WHEN v_sale_ok AND v_cant THEN 'seller_out' ELSE 'sold_elsewhere' END;");
+    // Judged on the items alone (lh-money-escrow review of 905501cb2 #1), as (c) does: a seller who is
+    // out wins over a buyer who blocked them; a seller's own block is not seller_out.
+    expect(b).toMatch(/v_sale_ok := v_items_ok AND NOT EXISTS \(SELECT 1 FROM public\.user_blocks b/);
+    const itemsOk = [...b.matchAll(/v_items_ok := [^;]*;/g)].map((m) => m[0]);
+    expect(itemsOk.length).toBeGreaterThan(1); // (b) and (c)
+    for (const a of itemsOk) expect(a, "v_items_ok never reads a block").not.toContain("user_blocks");
+    expect(b).toContain("v_reason := CASE WHEN v_items_ok AND v_cant AND NOT EXISTS (SELECT 1 FROM public.user_blocks b"
+      + " WHERE b.blocker_id = o.seller_id AND b.blocked_id = o.buyer_id) THEN 'seller_out' ELSE 'sold_elsewhere' END;");
     // (c) an open checkout: after the seller's own block, before the buyer's, only on a whole sale.
     expect(b).toMatch(/THEN 'seller_backed_out' WHEN v_cant AND v_items_ok THEN 'seller_out' WHEN EXISTS/);
   });

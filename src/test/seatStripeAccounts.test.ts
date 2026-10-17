@@ -1,0 +1,91 @@
+/*
+ * CLASS GUARD: the shared test accounts hold no Stripe Connect account, and
+ * every sweep says so by name when one does.
+ *
+ * nightly-red #2436 (e2e-journeys 38749234414, 38882683467): helper-e2e
+ * (7b923b19) was given a half-onboarded TEST-mode Express account
+ * (acct_1UQigP3qNyg1xGcp, created 2026-10-15 07:02Z by a stripe-connect POST
+ * from a local node script). helper_accept_missing's is_seed carve-out only
+ * holds with NO Stripe account, so accept_job_offer answered pending_setup
+ * {payout_setup, stripe_id}: hire-settle-tip failed, and every settle-forward
+ * of a stranded escrow job with it. The runs failed on those symptoms; the
+ * cause was named nowhere (seedStateFixtures.mjs printed a NOTE, CI never ran it).
+ *
+ *   1. stripeSeatViolations flags exactly the measured incident row.
+ *   2. The sweeper reads BOTH seats with their own tokens and fails on a
+ *      violation in every phase (pre and teardown), not only teardown.
+ *   3. --restore is the reset stripe-connect does, scoped to the id it read
+ *      and to is_seed rows, and touches nothing at Stripe.
+ *   4. e2e-journeys runs the roster check before its pre sweep.
+ */
+
+// @mutate scripts/e2e/seatStripeAccounts.mjs | .filter((r) => r && r.stripe_account_id) | .filter((r) => r && r.stripe_account_id && r.stripe_payouts_enabled)
+// @mutate scripts/e2e/prod-lifecycle-sweeper.mjs |   failures.push(`seat Stripe account: ${v}`); |   if (PHASE === "teardown") failures.push(`seat Stripe account: ${v}`);
+// @mutate scripts/e2e/prod-lifecycle-sweeper.mjs |   if (HELPER_TOKEN) seats.push([HELPER_TOKEN, HELPER_ID]); |   void HELPER_ID;
+// @mutate scripts/e2e/seatStripeAccounts.mjs | &stripe_account_id=eq.${encodeURIComponent(row.stripe_account_id)}&is_seed=is.true& | &
+// @mutate .github/workflows/e2e-journeys.yml |         run: node scripts/e2e/seatStripeAccounts.mjs $RESTORE |         run: echo skipped
+
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { parse } from "yaml";
+import { RESET_FIELDS, stripeSeatViolations } from "../../scripts/e2e/seatStripeAccounts.mjs";
+import { blankComments } from "./helpers/blankNonCode";
+
+const root = join(__dirname, "..", "..");
+const read = (p: string) => readFileSync(join(root, p), "utf8");
+
+describe("nightly-red #2436: a test seat with a Stripe account is named, in every sweep", () => {
+  it("flags the measured incident row and nothing else", () => {
+    // profiles read on prod 2026-10-17 (two of the test_accounts roster).
+    const rows = [
+      { user_id: "7b923b19-aba5-44cb-8730-8c33ba2b9321", email: "helpr-e2e-helper-0902@mailinator.com", stripe_account_id: "acct_1UQigP3qNyg1xGcp" },
+      { user_id: "951264df-1e7c-4b6f-912e-a1be37e0dbfb", email: "helpr-e2e-poster-0902@mailinator.com", stripe_account_id: null },
+    ];
+    const bad = stripeSeatViolations(rows);
+    expect(bad).toHaveLength(1);
+    expect(bad[0]).toContain("acct_1UQigP3qNyg1xGcp");
+    expect(bad[0]).toContain("helpr-e2e-helper-0902@mailinator.com");
+    expect(stripeSeatViolations([rows[1]])).toEqual([]);
+  });
+
+  it("restore clears exactly what stripe-connect's reset clears", () => {
+    const connect = read("supabase/functions/stripe-connect/index.ts");
+    const resetBlock = connect.slice(connect.indexOf("const resetClear"), connect.indexOf(".eq(\"user_id\", user.id)", connect.indexOf("const resetClear")));
+    for (const [k, v] of Object.entries(RESET_FIELDS)) expect(resetBlock, `reset clears ${k}`).toContain(`${k}: ${String(v)}`);
+    expect(Object.keys(RESET_FIELDS)).toHaveLength(4);
+  });
+
+  it("restore is scoped to the id it read and to is_seed rows, and never calls Stripe", () => {
+    const src = blankComments(read("scripts/e2e/seatStripeAccounts.mjs"));
+    expect(src).toMatch(/stripe_account_id=eq\.\$\{encodeURIComponent\(row\.stripe_account_id\)\}&is_seed=is\.true/);
+    expect(src).not.toMatch(/api\.stripe\.com|stripe\.accounts/);
+    expect(src).toMatch(/if \(bad\.length\) \{[\s\S]*process\.exit\(1\)/);
+  });
+
+  it("the sweeper reads both seats and fails on a violation in every phase", () => {
+    const src = blankComments(read("scripts/e2e/prod-lifecycle-sweeper.mjs"));
+    expect(src).toContain("if (HELPER_TOKEN) seats.push([HELPER_TOKEN, HELPER_ID]);");
+    const at = src.indexOf("for (const v of await seatStripeViolations())");
+    expect(at, "the sweeper never checks the seats").toBeGreaterThan(0);
+    const body = src.slice(at, src.indexOf("\n}", at) + 2);
+    expect(body).toContain("failures.push(`seat Stripe account: ${v}`);");
+    expect(body, "the seat check must not be teardown-only").not.toMatch(/PHASE/);
+    // Before the sweep's verdict, so it reaches the exit code.
+    expect(at).toBeLessThan(src.indexOf("if (failures.length)"));
+  });
+
+  it("e2e-journeys checks the roster before its pre sweep", () => {
+    const wf = parse(read(".github/workflows/e2e-journeys.yml")) as { jobs: Record<string, { steps?: Array<{ name?: string; run?: string; env?: Record<string, string> }> }> };
+    let checked = 0;
+    for (const job of Object.values(wf.jobs)) {
+      const steps = job.steps ?? [];
+      const check = steps.findIndex((s) => /node scripts\/e2e\/seatStripeAccounts\.mjs/.test(s.run ?? ""));
+      const pre = steps.findIndex((s) => s.env?.SWEEP_PHASE === "pre");
+      if (check < 0) continue;
+      checked++;
+      expect(pre, "the roster check runs before the pre sweep").toBeGreaterThan(check);
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+});

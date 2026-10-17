@@ -29,6 +29,10 @@ on:
         description: "Pin one scenario (SCENARIO=<id from a test title>)"
         type: string
         default: ""
+      restore_seat_stripe:
+        description: "Unlink any Stripe account a shared test account holds before the run (scripts/e2e/seatStripeAccounts.mjs --restore; logged)"
+        type: boolean
+        default: false
 
 # Q1161: no group is shared any more. A scheduled run is ordered by the
 # `prod-load-turn` job below (a FIFO queue); this group is per run, so GitHub
@@ -210,6 +214,14 @@ jobs:
           # An env var, NOT a .env file: a .env in the checkout switches other
           # journeys (trailing-icon's incomplete-e2e mint) into local mode.
           echo "SUPABASE_SERVICE_ROLE_KEY=$KEY" >> "$GITHUB_ENV"
+      - name: The shared test accounts hold no Stripe account (nightly-red #2436)
+        # A seat with a Stripe account is not a ready Helpr (accept_job_offer:
+        # pending_setup). The sweeps below fail on it by name; a dispatch with
+        # restore_seat_stripe unlinks it first, printing each row before/after.
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          RESTORE: ${{ inputs.restore_seat_stripe && '--restore' || '' }}
+        run: node scripts/e2e/seatStripeAccounts.mjs $RESTORE
       - name: Sweep anything a previous run stranded
         env:
           SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}

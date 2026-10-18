@@ -47,15 +47,55 @@ export function stripeProcessingCostCents(amountCents: number): number {
  * `pi` must be a PaymentIntent retrieved with
  * `{ expand: ["latest_charge.balance_transaction"] }` — anything less (a
  * string id, or a charge with an unexpanded balance_transaction) falls back
- * to the card-rate estimate via `fallbackAmountCents`, so every call site
+ * to an estimate on `fallbackAmountCents` (the card rate, or the Pay-in-4 rate
+ * on a Pay-in-4 charge: estimatedFeeCentsFor), so every call site
  * still gets a safe floor even if the expand was missed or the transaction
  * genuinely isn't available yet (e.g. an async payment method still settling).
  */
 export function actualOrEstimatedFeeCents(
-  pi: { latest_charge?: unknown } | null | undefined,
+  pi: { latest_charge?: unknown; payment_method_types?: unknown } | null | undefined,
   fallbackAmountCents: number,
 ): number {
-  return actualStripeFeeCents(pi) ?? stripeProcessingCostCents(fallbackAmountCents);
+  return actualStripeFeeCents(pi) ?? estimatedFeeCentsFor(pi, fallbackAmountCents);
+}
+
+/**
+ * Stripe's US Pay-in-4 rates (read 2026-10-18 06:15Z from
+ * stripe.com/pricing/local-payment-methods): Klarna 5.99% + 30c, Afterpay
+ * 6% + 30c. About twice the card rate, so a Pay-in-4 refund that withheld the
+ * CARD estimate would leave the platform paying ~3% of the charge (Q2082 (c),
+ * lh-money-escrow review of slice 4). Only the two methods a job checkout
+ * offers (_shared/jobCheckout.ts PAY_IN_FOUR_PAYMENT_METHOD_TYPES; never Affirm).
+ */
+const STRIPE_BNPL_PCT: Readonly<Record<string, number>> = {
+  klarna: 0.0599,
+  afterpay_clearpay: 0.06,
+};
+
+/**
+ * The fee ESTIMATE for a charge whose real fee could not be read: the
+ * method's own rate when the charge says how it was paid, or when every
+ * method the PaymentIntent allowed is a Pay-in-4 one (a Pay-in-4 checkout
+ * offers only Klarna + Afterpay, so the highest of their rates); the card
+ * rate otherwise.
+ */
+export function estimatedFeeCentsFor(
+  pi: { latest_charge?: unknown; payment_method_types?: unknown } | null | undefined,
+  amountCents: number,
+): number {
+  if (!(amountCents > 0)) return 0;
+  const charge = pi?.latest_charge as { payment_method_details?: { type?: unknown } | null } | null | undefined;
+  const paidWith = typeof charge === "object" && charge ? charge.payment_method_details?.type : undefined;
+  let pct: number | undefined;
+  if (typeof paidWith === "string") {
+    pct = STRIPE_BNPL_PCT[paidWith];
+  } else {
+    const allowed = Array.isArray(pi?.payment_method_types) ? pi.payment_method_types as unknown[] : [];
+    const rates = allowed.map((t) => (typeof t === "string" ? STRIPE_BNPL_PCT[t] : undefined));
+    if (rates.length > 0 && rates.every((r) => r !== undefined)) pct = Math.max(...(rates as number[]));
+  }
+  if (pct === undefined) return stripeProcessingCostCents(amountCents);
+  return Math.round(amountCents * pct) + STRIPE_FLAT_CENTS;
 }
 
 /**

@@ -47,6 +47,8 @@
 -- notices change, to quote_notify_about(..., true)), cancel_quote_request
 -- (the agreed branch deletes the never-funded job), quote_notify (now a thin
 -- wrapper; accept / decline notices stay push-only, as before).
+-- And from 20261018024631 (train J, the newest): notify_helper_on_direct_offer,
+-- with only the agreed-quote exclusion added (section 8).
 --
 -- Replay-safe: ADD COLUMN IF NOT EXISTS, CREATE OR REPLACE, DROP TRIGGER IF
 -- EXISTS before CREATE TRIGGER, cron.schedule upserts by name, the work
@@ -373,9 +375,11 @@ BEGIN
       -- Owner answer 11 (2026-10-17): the unpaid job goes with the agreement.
       -- Deleted only when it provably never held money: open, nobody hired,
       -- unpaid / abandoned (the poster's own delete policy), no Checkout Session
-      -- and no PaymentIntent ever attached. A 'failed' payment (it carries a
-      -- PaymentIntent) keeps its job for the record, as before; a cancelled job
-      -- is left as it is.
+      -- and no PaymentIntent attached. A 'failed' payment (it carries a
+      -- PaymentIntent) keeps its job, as before (Q2117); once a new checkout has
+      -- cleared that dead PaymentIntent (create-payment, only one Stripe reports
+      -- requires_payment_method / canceled) and expired, the job never held
+      -- money and goes too. A cancelled job is left as it is.
       IF FOUND AND v_job_status = 'open' AND v_helper IS NULL
          AND COALESCE(v_pay, 'unpaid') IN ('unpaid', 'abandoned')
          AND NOT public.job_payment_is_funded(v_pay)
@@ -419,6 +423,27 @@ GRANT EXECUTE ON FUNCTION public.cancel_quote_request(uuid) TO authenticated, se
 -- ---------------------------------------------------------------------------
 -- 5. Owner answer 8: paying for an agreed quote hires the quoter.
 
+-- The one test of "this job was booked from an agreed quote and is offered to
+-- the quoter who won it". The hire trigger below acts on it and the direct-
+-- offer notice (section 8) stands aside for it, so the two can never disagree
+-- (lh-money-escrow review of 8ef7cd25b, nit 9).
+CREATE OR REPLACE FUNCTION public.quote_job_offered_to_quoter(p_job_id uuid, p_helper uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT p_helper IS NOT NULL AND EXISTS (
+    SELECT 1
+      FROM public.job_quote_requests r
+      JOIN public.job_quotes q ON q.request_id = r.id AND q.status = 'accepted'
+     WHERE r.job_id = p_job_id AND r.status = 'agreed'
+       AND q.quoter_id = p_helper
+  );
+$fn$;
+REVOKE ALL ON FUNCTION public.quote_job_offered_to_quoter(uuid, uuid) FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.quote_job_funded_hires_quoter()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -446,13 +471,14 @@ BEGIN
   -- Booked from an agreed quote, and offered to the quoter who won it. Not
   -- locked: cancel_quote_request locks request then job, and this already
   -- holds the job; it waits for this transaction and then sees the job funded.
-  SELECT q.quoter_id, r.title INTO v_quoter, v_title
-    FROM public.job_quote_requests r
-    JOIN public.job_quotes q ON q.request_id = r.id AND q.status = 'accepted'
-   WHERE r.job_id = NEW.id AND r.status = 'agreed';
-  IF NOT FOUND OR v_quoter IS DISTINCT FROM NEW.offered_to_helper_id THEN
+  IF NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id) THEN
     RETURN NULL;
   END IF;
+  v_quoter := NEW.offered_to_helper_id;
+  SELECT r.title INTO v_title
+    FROM public.job_quote_requests r
+   WHERE r.job_id = NEW.id AND r.status = 'agreed'
+   LIMIT 1;
   -- Still the pending direct offer book_accepted_quote made. A paid quote job
   -- whose offer already lapsed (expire_pending_direct_offers, 48 h from
   -- booking) hires nobody: recorded, never silent (lh-silent-failure review of
@@ -483,7 +509,7 @@ BEGIN
       VALUES (NEW.id, v_quoter)
       ON CONFLICT (job_id) DO NOTHING;
       PERFORM public.quote_notify_about(v_quoter, 'Finish setup to start',
-        'The poster paid for "' || COALESCE(v_title, 'your quote') || '". Finish your payout setup and ID check and you''re booked.',
+        'Payment arrived for "' || COALESCE(v_title, 'your quote') || '". Finish your payout setup and ID check and you''re booked.',
         NEW.customer_id, false);
       RETURN NULL;
     END IF;
@@ -515,13 +541,37 @@ BEGIN
       RAISE WARNING 'quote_job_funded_hires_quoter: job % not hired (%), and the error_logs row failed: %',
         NEW.id, COALESCE(v_reason, v_err), SQLERRM;
     END;
+    -- The completion THREW (nothing refused it): the offer is still the
+    -- quoter's to accept by hand, and section 8 kept the direct-offer notice
+    -- back for this job, so the quoter hears it here (lh-money-escrow review
+    -- of 8ef7cd25b, #2). Only when the offer is re-read live as still pending,
+    -- open and in time, and never across a block (the throw may have been the
+    -- block check itself).
+    IF v_err IS NOT NULL AND v_reason IS NULL THEN
+      BEGIN
+        IF NOT public.are_users_blocked(v_quoter, NEW.customer_id)
+           AND EXISTS (
+             SELECT 1 FROM public.jobs j
+              WHERE j.id = NEW.id AND j.status::text = 'open' AND j.helper_id IS NULL
+                AND j.offered_to_helper_id = v_quoter AND j.direct_offer_status = 'pending'
+                AND (j.direct_offer_expires_at IS NULL OR j.direct_offer_expires_at > now())
+                AND (j.date_needed IS NULL OR public.job_offer_cutoff(j.date_needed, j.start_time) > now())
+           ) THEN
+          PERFORM public.quote_notify_about(v_quoter, 'Accept to start',
+            'Payment arrived for "' || COALESCE(v_title, 'your quote') || '". Accept the direct offer to start.',
+            NEW.customer_id, false);
+        END IF;
+      EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING 'quote_job_funded_hires_quoter: accept-by-hand notice for job % failed: %', NEW.id, SQLERRM;
+      END;
+    END IF;
     RETURN NULL;
   END IF;
 
   -- complete_job_accept already told the poster "<name> accepted your offer".
   BEGIN
     PERFORM public.quote_notify_about(v_quoter, 'You''re booked',
-      'The poster paid for "' || COALESCE(v_title, 'your quote') || '". You''re hired for it.',
+      'Payment arrived for "' || COALESCE(v_title, 'your quote') || '". You''re hired for it.',
       NEW.customer_id, false);
   EXCEPTION WHEN OTHERS THEN
     BEGIN
@@ -712,3 +762,71 @@ DROP TRIGGER IF EXISTS trg_quote_close_pending_across_block ON public.user_block
 CREATE TRIGGER trg_quote_close_pending_across_block
   AFTER INSERT ON public.user_blocks
   FOR EACH ROW EXECUTE FUNCTION public.quote_close_pending_across_block();
+
+-- ---------------------------------------------------------------------------
+-- 8. One notice when a paid quote hires its quoter (lh-money-escrow review of
+--    quotes-2 against train J). 20261018024631 moved the direct-offer notice
+--    to the funding UPDATE, the same UPDATE section 5 reacts to, so a quoter
+--    being hired also heard "You got a direct job offer!" (an offer they never
+--    have to answer), a quoter finishing setup heard it beside "Finish setup to
+--    start", and a quoter blocked since booking heard it ACROSS the block
+--    (section 5 tells nobody across a block). On a job booked from an agreed
+--    quote, offered to the quoter who won it, the hire trigger owns that
+--    notice. Restated from the newest body (20261018024631); only the quote
+--    exclusion is added. Every other direct offer is unchanged.
+
+CREATE OR REPLACE FUNCTION public.notify_helper_on_direct_offer()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_poster_name text;
+BEGIN
+  IF NEW.offered_to_helper_id IS NOT NULL
+     AND NEW.direct_offer_status = 'pending'
+     -- No notice for a job whose money has not arrived (owner, 2026-10-17).
+     AND public.job_payment_is_funded(NEW.payment_status)
+     -- Only a live job's offer is news (review #4: not a pending_approval or
+     -- cancelled row).
+     AND NEW.status::text = 'open'
+     -- Money that arrives after the job's start cutoff cannot be answered in
+     -- time: no notice about an offer nobody can accept (review #3).
+     AND (NEW.date_needed IS NULL
+          OR public.job_offer_cutoff(NEW.date_needed, NEW.start_time) > now())
+     AND (
+       TG_OP = 'INSERT'
+       -- The money just arrived for the FIRST time: the notice that waited
+       -- for it goes out now. "Never paid" is the set a job leaves only when
+       -- money arrives (NULL, unpaid, abandoned, failed), NOT "anything not
+       -- funded": escrow -> cancelling -> escrow (cancel_escrow putting a
+       -- cancel claim back) is the same money, already announced (review #2).
+       OR OLD.payment_status IS NULL
+       OR OLD.payment_status IN ('unpaid', 'abandoned', 'failed')
+       -- A funded job's offer moved to a different Helpr.
+       OR OLD.offered_to_helper_id IS DISTINCT FROM NEW.offered_to_helper_id
+     )
+     -- A job booked from an agreed quote, offered to its quoter: paying hires
+     -- them (quote_job_funded_hires_quoter), which sends the one notice.
+     AND NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id)
+  THEN
+    SELECT COALESCE(full_name, 'Someone') INTO v_poster_name
+      FROM public.profiles WHERE user_id = NEW.customer_id;
+
+    INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
+    VALUES (
+      NEW.offered_to_helper_id,
+      'You got a direct job offer!',
+      v_poster_name || ' offered you a job: "' || NEW.title || '" for $' || NEW.budget,
+      'new_offers',
+      '/jobs?job=' || NEW.id::text,
+      NEW.id
+    );
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.notify_helper_on_direct_offer() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.notify_helper_on_direct_offer() TO service_role;

@@ -114,5 +114,9 @@ describe("jobs poster fee (owner 2026-10-18)", () => {
     expect(checked).toBeGreaterThan(30);
     expect(cancellationHelperShare(25, { helper_fee_flat_cents: 0 }).platformCut).toBe(0);
     expect(cancellationHelperShare(25, { helper_fee_flat_cents: 0 }).helperPayout).toBe(25);
+    // Review #4: the label says "No fee" (never "0% + $0.00") and the dialog hides the line.
+    // @mutate src/lib/cancellationHelperShare.ts |   if (helprPaysNoFee(job)) { |   if (false) {
+    expect(cancellationHelperShare(25, P_STAMP)).toEqual({ platformCut: 0, helperPayout: 25, feeLabel: "No fee", noFee: true });
+    expect(cancellationHelperShare(25, { helper_fee_flat_cents: 70, helper_fee_percent: 5 }).noFee).toBe(false);
   });
 });

@@ -166,7 +166,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // A flat-model job (Q1839) is priced from its own stamp, 5% + 70c, the cut
   // void-cancelled-payments takes. Floored to the whole dollar the transfer
   // really pays (Q236), in cancellationHelperShare.
-  const { platformCut, helperPayout, feeLabel } = cancellationHelperShare(payeeFee, feeStamp);
+  const { platformCut, helperPayout, feeLabel, noFee } = cancellationHelperShare(payeeFee, feeStamp);
   // Q1842: a flat-model job (F3, stamped at funding) was charged the job
   // price only, so there is no service fee to keep: its refund is what was
   // paid less the card-processing fee Stripe keeps (refundToPayerCents in
@@ -407,10 +407,13 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     </span>
                     <span className="font-semibold text-foreground">${formatPrice(cancellationFee)}</span>
                   </div>
-                  <div className="flex justify-between text-ds-11">
-                    <span className="text-muted-foreground">{crewQuote ? `Platform fee per Helpr (${feeLabel})` : `Platform fee (${feeLabel})`}</span>
-                    <span className="text-muted-foreground">−${formatPrice(platformCut)}</span>
-                  </div>
+                  {/* No fee line when the Helpr pays none (poster-fee model). */}
+                  {!noFee && (
+                    <div className="flex justify-between text-ds-11">
+                      <span className="text-muted-foreground">{crewQuote ? `Platform fee per Helpr (${feeLabel})` : `Platform fee (${feeLabel})`}</span>
+                      <span className="text-muted-foreground">−${formatPrice(platformCut)}</span>
+                    </div>
+                  )}
                   <div className="border-t border-border pt-1.5 flex justify-between text-ds-11">
                     <span className="text-muted-foreground">{crewQuote ? "Each hired Helpr receives" : `${helperName || "Helpr"} receives`}</span>
                     <span className="font-semibold text-primary">at least ${formatPrice(helperPayout)}</span>

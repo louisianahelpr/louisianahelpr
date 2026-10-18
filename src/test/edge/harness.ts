@@ -151,6 +151,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/posterJobFee.ts";`,
   );
 
+  // Job checkout payment methods + fee-model decision (owner 2026-10-18):
+  // `_shared/jobCheckout.ts` has ZERO imports, so point at the REAL module.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/jobCheckout\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/jobCheckout.ts";`,
+  );
+
   // Client-safe errors: `_shared/publicError.ts` has ZERO imports (a class and
   // a pure function). Point at the real module so the tests exercise the real
   // PublicError / publicErrorMessage split (create-payment, 2026-09-23).

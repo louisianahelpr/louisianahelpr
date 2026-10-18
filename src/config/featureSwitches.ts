@@ -67,6 +67,11 @@ export const FEATURE_SWITCH_KEYS = [
   // tenants send maintenance requests that become Helpr jobs. Created OFF by
   // 20261017205605; every rentals_* RPC refuses without it (require_feature).
   "rentals",
+  // Jobs poster fee (owner 2026-10-18): the poster pays 5% + $0.70 at checkout
+  // and the Helpr keeps 100%. Created OFF by 20261017234656; create-payment
+  // prices an escrow checkout on it only when the switch is on for the poster,
+  // and the Post a Job checkout shows the fee line from the same switch.
+  "jobs_poster_fee",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

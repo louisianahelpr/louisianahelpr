@@ -9,7 +9,7 @@ import { useFirstPayoutFeeCents } from "@/hooks/useFirstPayoutFee";
 import { formatPriceExact as formatPrice, formatPriceFloor } from "@/lib/format";
 import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
-import { HELPR_FLAT_FEE_CENTS, flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "@/lib/helprFlatFee";
+import { HELPR_FLAT_FEE_CENTS, flatFeePercentOf, helprFlatFeeCents, helprPaysNoFee, isFlatFeeJob } from "@/lib/helprFlatFee";
 
 /**
  * ApplyEarningsBreakdown — the "You earn" take-home block on the apply step.
@@ -51,6 +51,9 @@ export function ApplyEarningsBreakdown({
   const commission = flat
     ? helprFlatFeeCents(Math.round(perHelper * 100) + Math.round(netUrgent * 100), confirmApplyJob) / 100
     : perHelper * platformFee / 100;
+  // Poster-fee model (owner 2026-10-18): the Helpr pays no fee, so no fee
+  // line and no "0% + $0.00" label (lh-money-escrow review #4).
+  const noFee = helprPaysNoFee(confirmApplyJob);
   const feeLabel = flat
     ? `${flatFeePercentOf(confirmApplyJob)}% + $${(Math.round(Number(confirmApplyJob.helper_fee_flat_cents ?? HELPR_FLAT_FEE_CENTS)) / 100).toFixed(2)}`
     : `${platformFee}%`;
@@ -72,7 +75,7 @@ export function ApplyEarningsBreakdown({
   const summary = [
     `$${formatPrice(confirmApplyJob.budget)} budget`,
     helpers > 1 ? `÷ ${helpers} Helprs` : null,
-    `− ${feeLabel} fee`,
+    noFee ? "no fee" : `− ${feeLabel} fee`,
     hasUrgent ? "+ urgent bonus" : null,
     firstPayoutFee > 0 ? "− one-time fee" : null,
   ]
@@ -132,10 +135,12 @@ export function ApplyEarningsBreakdown({
             <span className="font-sans">Budget{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
             <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${formatPrice(perHelper)}</span>
           </div>
-          <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            <span className="font-sans">− {feeLabel} platform fee</span>
-            <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(commission)}</span>
-          </div>
+          {!noFee && (
+            <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <span className="font-sans">− {feeLabel} platform fee</span>
+              <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(commission)}</span>
+            </div>
+          )}
           {hasUrgent && (
             <div className="flex justify-between">
               <span className="font-sans" style={{ color: "hsl(var(--burnt-sienna))" }}>+ urgent bonus{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>

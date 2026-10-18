@@ -12,7 +12,7 @@
  * @mutate src/components/quotes/QuoteAnswerControls.tsx |   return n >= MIN_QUOTE_DOLLARS && n <= MAX_QUOTE_DOLLARS ? n : null; |   return n;
  * @mutate src/pages/quotes/SendQuotePage.tsx |   const ready = dollarsTyped != null && note.trim().length > 0 && when.trim().length > 0 && !uploading; |   const ready = !uploading;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |   const bookedJobId = request && (request.status === "agreed" \|\| request.status === "closed") ? request.job_id : null; |   const bookedJobId = request?.status === "agreed" ? request.job_id : null;
- * @mutate src/pages/quotes/QuoteRequestPage.tsx |     mutationFn: () => openEscrowCheckout(bookedJobId as string), |     mutationFn: () => bookAcceptedQuote(id),
+ * @mutate src/pages/quotes/QuoteRequestPage.tsx |     mutationFn: () => openEscrowCheckout(bookedJobId as string, feeQuote), |     mutationFn: () => bookAcceptedQuote(id),
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |             Book and pay\n |             Book and pay {dollars(accepted.price_cents)}\n
  * @mutate src/components/quotes/MyQuoteCard.tsx |   const myTurn = pending && quote.last_offer_side === "poster"; |   const myTurn = pending;
  * @mutate src/components/quotes/quotesUi.tsx |   return settled ? <NotFound /> : <QuotesGateFrame title={title} backTo={backTo} label={label} />; |   return settled ? <NotFound /> : null;
@@ -220,7 +220,7 @@ describe("the poster's quotes on a request", () => {
     await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.com/c/pay/cs_test"]));
     expect(state.calls.find((c) => c.fn === "book_accepted_quote")?.args).toEqual({ p_request_id: "r1" });
     expect(state.invokes).toEqual([
-      { name: "create-payment", body: { action: "escrow", jobId: "job-77", native: false, saveCardForFuture: false } },
+      { name: "create-payment", body: { action: "escrow", jobId: "job-77", native: false, saveCardForFuture: false, feeQuote: { model: "poster", payInFour: false, totalShown: false }, payInFour: false } },
     ]);
   });
 });
@@ -236,7 +236,7 @@ describe("a job made from a request but not paid yet can always be paid (lh-mone
     fireEvent.click(screen.getByRole("button", { name: "Pay now" }));
     await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.com/c/pay/cs_test"]));
     expect(state.invokes).toEqual([
-      { name: "create-payment", body: { action: "escrow", jobId: "job-88", native: false, saveCardForFuture: false } },
+      { name: "create-payment", body: { action: "escrow", jobId: "job-88", native: false, saveCardForFuture: false, feeQuote: { model: "poster", payInFour: false, totalShown: false }, payInFour: false } },
     ]);
     // A closed request refuses book_accepted_quote (no_agreed_quote): paying never goes through it.
     expect(state.calls.some((c) => c.fn === "book_accepted_quote")).toBe(false);

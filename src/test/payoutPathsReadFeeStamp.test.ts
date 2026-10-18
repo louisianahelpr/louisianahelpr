@@ -43,7 +43,7 @@
 // @mutate src/components/job-card/ActivityDialogs.tsx |           feeStamp={props.cancelDialogJob} |           feeStamp={null}
 // @mutate src/components/browseMap/fetchJobForPin.ts | credential_tier, parish, helper_fee_flat_cents"; | credential_tier, parish";
 // @mutate src/pages/home/QuickApplyHandler.tsx | latitude, longitude, helper_fee_flat_cents"; | latitude, longitude";
-// @mutate supabase/functions/create-payment/index.ts | const customerFeeAmount = 0; | const customerFeeAmount = urgentBonusCardFeeCents(urgentFeeCents) / 100;
+// @mutate supabase/functions/create-payment/index.ts | const customerFeeAmount = isPosterFee ? posterFeeCents / 100 : 0; | const customerFeeAmount = isPosterFee ? posterFeeCents / 100 : urgentBonusCardFeeCents(urgentFeeCents) / 100;
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
@@ -123,14 +123,19 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
     // flat series; a series funded before F3 keeps the fee it was sold with).
     const serviceLines = [...cp.matchAll(/name:\s*"Service fee"/g)].length;
     const rowPriced = [...cp.matchAll(/name:\s*"Service fee",\s*tax_code:\s*NONTAXABLE_TAX_CODE\s*\},\s*unit_amount:\s*row\.fee_cents/g)].length;
+    // The poster-fee model's line (owner 2026-10-18), only behind its stamp.
+    const posterPriced = [...cp.matchAll(/if \(isPosterFee && posterFeeCents > 0\) \{\s*lineItems\.push\(\{[\s\S]{0,200}?name:\s*"Service fee"[\s\S]{0,400}?unit_amount:\s*posterFeeCents,/g)].length;
     expect(rowPriced).toBe(1);
-    expect(serviceLines).toBe(rowPriced);
+    expect(posterPriced).toBe(1);
+    expect(serviceLines).toBe(rowPriced + posterPriced);
     expect(cp).not.toMatch(/name:\s*"Urgent bonus card fee"/);
     expect(cp).not.toMatch(/\burgentBonusCardFeeCents\s*\(/);
-    expect(cp).toMatch(/const customerFeeAmount = 0;/);
+    expect(cp).toMatch(/const customerFeeAmount = isPosterFee \? posterFeeCents \/ 100 : 0;/);
     // The model stamp also records the flat fee (review N4), so a gift-funded
     // job is never graded against a NULL platform_fee_amount.
-    expect(cp).toMatch(/\.update\(\{\s*helper_fee_flat_cents:\s*HELPR_FLAT_FEE_CENTS,\s*helper_fee_percent:\s*HELPR_FLAT_FEE_PERCENT,\s*platform_fee_amount:\s*escrowFlatFeeCents \/ 100,?\s*\}\)/);
+    // Its flat branch (switch off, or a gift / recurring checkout): the
+    // poster-fee branch (owner 2026-10-18) stamps the Helpr 0/0 instead.
+    expect(cp).toMatch(/:\s*\{\s*\.\.\.\(job\.poster_fee_flat_cents != null \? \{ poster_fee_flat_cents: null \} : \{\}\),\s*helper_fee_flat_cents:\s*HELPR_FLAT_FEE_CENTS,\s*helper_fee_percent:\s*HELPR_FLAT_FEE_PERCENT,\s*platform_fee_percent:\s*POSTER_SERVICE_FEE_PERCENT,\s*customer_fee_amount:\s*0,\s*platform_fee_amount:\s*escrowFlatFeeCents \/ 100,?\s*\}\)/);
     // ...summed over the crew (Q1845): each member's 5% + 70c on their share.
     expect(cp).toMatch(/const escrowFlatFeeCents = jobFlatFeeTotalCents\(Math\.round\(job\.budget \* 100\), urgentFeeCents, escrowHelprCount\);/);
   });

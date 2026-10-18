@@ -5,6 +5,7 @@ import { useHelprActivity } from "@/hooks/useHelprActivity";
 import { isScheduleTooSoon } from "@/lib/jobExpiry";
 import { jobStartDateTime } from "@/lib/dateUtils";
 import { detailsBlocker } from "./detailsBlocker";
+import { buildFeeQuote } from "@/lib/jobCheckout";
 
 /**
  * useJobDerived — derived values for the Post-a-Task form: checkout
@@ -50,6 +51,12 @@ export interface UseJobDerivedParams {
    * refuse — see usePostJobGiftCard). Drives the gift math below.
    */
   giftCardAmount?: number | null;
+  /** A recurring series (the per-visit poster fee is a later slice: flat for now). */
+  isRecurring?: boolean;
+  /** The gift card id riding on this post (create-payment decides the model by it). */
+  giftCardId?: string | null;
+  /** jobs_poster_fee is on for this poster (usePostJobForm reads it once); absent = off. */
+  posterFeeOn?: boolean;
 }
 
 /**
@@ -165,7 +172,18 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // comes out of the Helpr's flat 5% + $0.70 (src/lib/helprFlatFee.ts). Same
   // as create-payment, so the shown total equals the Stripe charge.
   const urgentCardFeeAmount = 0;
-  const customerFeeAmount = 0;
+  // Jobs poster fee (owner 2026-10-18, behind the jobs_poster_fee switch): the
+  // poster pays 5% of budget + bonus + $0.70, shown as the "Service Fee" line.
+  // The SAME decision create-payment makes (src/lib/jobCheckout.ts), and the
+  // same quote useJobSubmit sends, so a stale screen is refused, never charged.
+  // Off (or still loading) = the flat model above: no fee.
+  const posterFeeOn = params.posterFeeOn === true;
+  const customerFeeAmount = (buildFeeQuote({
+    switchOn: posterFeeOn,
+    giftFunded: !!params.giftCardId || hasGift,
+    recurring: !!params.isRecurring,
+    jobPriceCents: Math.round((budgetNum + urgentFeeNum) * 100),
+  }).serviceFeeCents ?? 0) / 100;
   // Every charged line EXCEPT sales tax. Tax is added by CheckoutStep, which
   // is where the parish rate resolves — and for the great majority of
   // categories it is $0, because create-payment marks every line but assembly

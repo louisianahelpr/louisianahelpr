@@ -4,14 +4,15 @@
  * in SQL by src/test/pglite/shopsPickupAddress.pglite.mjs):
  *
  *  1. The buyer's order card shows where to pick up ONLY once the shop accepted
- *     (accepted / handed_over); a held order never asks, and the shop's own
+ *     (accepted only: after handover the buyer no longer reads it, authz review
+ *     2026-10-18); a held or handed-over order never asks, and the shop's own
  *     card never shows it.
  *  2. The owner's pickup form (ShopPickupAddressSection): says an address is
  *     needed to take orders, refuses a non-Louisiana ZIP before sending, sends
  *     the fields, and loads a saved address back.
  *  3. ShopEditView mounts the form for an existing shop.
  *
- * @mutate src/components/shops/ShopOrderCard.tsx | const PICKUP_VISIBLE = new Set(["accepted", "handed_over"]); | const PICKUP_VISIBLE = new Set(["held", "accepted", "handed_over"]);
+ * @mutate src/components/shops/ShopOrderCard.tsx | const PICKUP_VISIBLE = new Set(["accepted"]); | const PICKUP_VISIBLE = new Set(["held", "accepted", "handed_over"]);
  * @mutate src/components/shops/ShopOrderCard.tsx |       {side === "buyer" && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />} |       {PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />}
  * @mutate src/components/shops/ShopPickupAddressSection.tsx |     if (!LOUISIANA_ZIP.test(zip.trim())) { |     if (false) {
  * @mutate src/components/shops/ShopPickupAddressSection.tsx |     mutationFn: () => saveMyPickupAddress({ line1, line2, city, postal_code: zip.trim() }), |     mutationFn: async () => undefined,
@@ -64,7 +65,7 @@ beforeEach(() => {
 });
 
 describe("the buyer sees where to pick up only once the shop accepted", () => {
-  it.each(["accepted", "handed_over"] as const)("%s: the address is on the buyer's card", async (status) => {
+  it.each(["accepted"] as const)("%s: the address is on the buyer's card", async (status) => {
     wrap(<ul><ShopOrderCard order={order(status)} side="buyer" heading="Bayou Bakes" /></ul>);
     const box = await screen.findByTestId("shop-order-pickup-address");
     expect(box.textContent).toContain("705 W University Ave");
@@ -72,7 +73,7 @@ describe("the buyer sees where to pick up only once the shop accepted", () => {
     expect(api.fetchOrderPickupAddress).toHaveBeenCalledWith(`order-${status}`);
   });
 
-  it.each(["held", "declined", "expired", "cancelled"] as const)("%s: never asked for, never shown", async (status) => {
+  it.each(["held", "handed_over", "declined", "expired", "cancelled"] as const)("%s: never asked for, never shown", async (status) => {
     wrap(<ul><ShopOrderCard order={order(status)} side="buyer" heading="Bayou Bakes" /></ul>);
     await screen.findByText("Bayou Bakes");
     expect(screen.queryByTestId("shop-order-pickup-address")).toBeNull();

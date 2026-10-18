@@ -27,10 +27,13 @@
  * @mutate supabase/functions/stripe-webhook/handlers/shopCheckout.ts |   if (pi.status !== "requires_capture") { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/shopCheckout.ts |     p_livemode: event.livemode === true,\n  }); |     p_livemode: false,\n  });
  * @mutate supabase/functions/declutter-money/index.ts |     const swept = await admin.rpc("shop_order_sweep", {}); |     const swept = { error: null, data: {} };
- * @mutate supabase/functions/shop-checkout/index.ts |     name, tax_details: { tax_code: taxCode, performance_location: location }, |     name, tax_details: { tax_code: taxCode, performance_location: "" },
- * @mutate supabase/functions/shop-checkout/index.ts |   if (a.stripe_tax_location_id && a.stripe_tax_location_mode === mode) return a.stripe_tax_location_id; |   if (a.stripe_tax_location_id) return a.stripe_tax_location_id;
- * @mutate supabase/functions/shop-checkout/index.ts |   if (!location) return json({ error: "pickup_address_missing" }, 409); |
+ * @mutate supabase/functions/shop-checkout/index.ts |     name, tax_details: { tax_code: taxCode, performance_location: performanceLocation }, |     name, tax_details: { tax_code: taxCode, performance_location: "" },
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (a.stripe_tax_location_id && a.stripe_tax_location_mode === mode) return { id: a.stripe_tax_location_id }; |   if (a.stripe_tax_location_id) return a.stripe_tax_location_id;
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (loc === "missing") return json({ error: "pickup_address_missing" }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |     .eq("shop_id", shopId).eq("updated_at", a.updated_at); |     .eq("shop_id", shopId);
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (err?.type === "StripeInvalidRequestError" && err.code !== "idempotency_key_in_use") { |     if (false) {
+ * @mutate supabase/functions/shop-checkout/index.ts |       if ((e as { code?: string } \| null)?.code !== "idempotency_key_in_use") throw e; |       throw e;
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (!mode \|\| !location \|\| o.seller_id !== ownerId) { |   if (!mode \|\| !location) {
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -99,11 +102,12 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     scenario.reads.stripe_customers = { rows: [] };
     scenario.rpc.shop_attach_checkout_session = null;
     scenario.reads.shop_pickup_addresses = { rows: [pickup()] };
+    scenario.reads.shops = { rows: [{ owner_id: MAKER }] };
     stripeMock.rawRequest.mockResolvedValue({ id: "taxloc_new", type: "performance" });
   }
   /** The shop's private pickup address row (M1b part 2), as the service-role read returns it. */
   const pickup = (over: Record<string, unknown> = {}) => ({
-    line1: "705 W University Ave", line2: null, city: "Lafayette", state: "LA", postal_code: "70506",
+    line1: "705 W University Ave", line2: null, city: "Lafayette", state_code: "LA", postal_code: "70506",
     stripe_tax_location_id: null, stripe_tax_location_mode: null, updated_at: "2026-10-18T03:00:00.123456+00:00", ...over,
   });
 
@@ -229,6 +233,59 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     expect(res.status).toBe(409);
     expect((await json(res)).error).toBe("pickup_address_missing");
     expect(stripeMock.rawRequest).not.toHaveBeenCalled();
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("the location is made BEFORE the order is frozen: an unusable address retires no page and freezes nothing (review findings 2, 3)", async () => {
+    const fn = await load();
+    frozen();
+    stripeMock.rawRequest.mockRejectedValue(Object.assign(new Error("Invalid address"), { type: "StripeInvalidRequestError", code: "parameter_invalid" }));
+    const res = await fn.fetch(ask(fn));
+    expect(res.status).toBe(409);
+    expect((await json(res)).error).toBe("pickup_address_unusable");
+    expect(rpcs("shops_request_order")).toHaveLength(0);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    expect(scenario.writes.filter((w) => w.table === "shop_pickup_addresses")).toHaveLength(0);
+  });
+
+  it("a passing Stripe failure on the location is a try-again: no page, no cache, nothing frozen (review finding 6)", async () => {
+    const fn = await load();
+    frozen();
+    stripeMock.rawRequest.mockRejectedValue(Object.assign(new Error("socket hang up"), { type: "StripeConnectionError" }));
+    const res = await fn.fetch(ask(fn));
+    expect(res.status).toBeGreaterThanOrEqual(500);
+    expect(rpcs("shops_request_order")).toHaveLength(0);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    expect(scenario.writes.filter((w) => w.table === "shop_pickup_addresses")).toHaveLength(0);
+  });
+
+  it("two first orders at once: idempotency_key_in_use is retried once with the same key (review finding 4)", async () => {
+    const fn = await load();
+    frozen();
+    stripeMock.rawRequest
+      .mockRejectedValueOnce(Object.assign(new Error("in use"), { type: "StripeInvalidRequestError", code: "idempotency_key_in_use" }))
+      .mockResolvedValueOnce({ id: "taxloc_new", type: "performance" });
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6475 });
+    expect((await fn.fetch(ask(fn))).status).toBe(200);
+    expect(stripeMock.rawRequest).toHaveBeenCalledTimes(2);
+    expect(stripeMock.rawRequest.mock.calls[1][3].idempotencyKey).toBe(stripeMock.rawRequest.mock.calls[0][3].idempotencyKey);
+  });
+
+  it("a failed cache write still taxes this order at the location (review finding 6)", async () => {
+    const fn = await load();
+    frozen();
+    scenario.writeErrors = { ...scenario.writeErrors, shop_pickup_addresses: { message: "boom" } };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6475 });
+    expect((await fn.fetch(ask(fn))).status).toBe(200);
+    expect(stripeMock.checkout.sessions.create.mock.calls[0][0].line_items[0].price_data.product_data.tax_details.performance_location).toBe("taxloc_new");
+  });
+
+  it("an order whose seller is not the shop's owner read first is never given a page", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.shops = { rows: [{ owner_id: BUYER }] };
+    const res = await fn.fetch(ask(fn));
+    expect(res.status).toBe(500);
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 

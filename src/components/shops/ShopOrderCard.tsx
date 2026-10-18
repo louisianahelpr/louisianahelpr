@@ -13,7 +13,7 @@ import { CANCEL_POLICY_TEXT, formatCents, orderStatusLabel, type ShopOrder } fro
 import { fetchOrderPickupAddress } from "@/lib/shops/pickupAddress";
 
 /** The order statuses in which the buyer may read the shop's pickup address (shops_order_pickup_address). */
-const PICKUP_VISIBLE = new Set(["accepted", "handed_over"]);
+const PICKUP_VISIBLE = new Set(["accepted"]);
 
 function PickupAddress({ orderId }: { orderId: string }) {
   const q = useQuery({

@@ -8380,7 +8380,7 @@ export type Database = {
           owner_id: string
           postal_code: string
           shop_id: string
-          state: string
+          state_code: string
           stripe_tax_location_id: string | null
           stripe_tax_location_mode: string | null
           updated_at: string
@@ -8394,7 +8394,7 @@ export type Database = {
           owner_id: string
           postal_code: string
           shop_id: string
-          state?: string
+          state_code?: string
           stripe_tax_location_id?: string | null
           stripe_tax_location_mode?: string | null
           updated_at?: string
@@ -8408,7 +8408,7 @@ export type Database = {
           owner_id?: string
           postal_code?: string
           shop_id?: string
-          state?: string
+          state_code?: string
           stripe_tax_location_id?: string | null
           stripe_tax_location_mode?: string | null
           updated_at?: string

@@ -274,17 +274,41 @@ const acc = await member(OWNER, `SELECT public.shops_accept_order('${o1}')`);
 ok((await svc(`SELECT status FROM public.shop_orders WHERE id = '${o1}'`))[0]?.status === "accepted", `the maker accepts (${JSON.stringify(acc)})`);
 const seen = await pickupFor(BUYER, o1);
 ok(seen?.length === 1 && seen[0].line1 === "12 Main St" && seen[0].city === "Broussard", `accepted: the buyer sees where to pick up (${JSON.stringify(seen)})`);
-// handed_over is M2's; until then accepted is the last state a buyer reaches.
 ok((await pickupFor(BUYER2, o1))?.length === 0, "another buyer sees nothing of this order");
+// Authz review 2026-10-18 finding 1 (MEDIUM): never the shop's CURRENT address forever.
+await svc(`UPDATE public.shop_orders SET status = 'handed_over' WHERE id = '${o1}'`);
+ok((await svc(`SELECT status FROM public.shop_orders WHERE id = '${o1}'`))[0]?.status === "handed_over" && (await pickupFor(BUYER, o1))?.length === 0
+  && (await pickupFor(OWNER, o1))?.length === 1, "handed over (M2): the buyer no longer reads the address; the seller still does");
+await svc(`UPDATE public.shop_orders SET status = 'accepted' WHERE id = '${o1}'`);
+const readyWas = (await svc(`SELECT ready_date::text AS d FROM public.shop_orders WHERE id = '${o1}'`))[0]?.d;
+await svc(`UPDATE public.shop_orders SET ready_date = current_date - 8 WHERE id = '${o1}'`);
+ok((await svc(`SELECT (ready_date = current_date - 8) AS y FROM public.shop_orders WHERE id = '${o1}'`))[0]?.y === true && (await pickupFor(BUYER, o1))?.length === 0,
+  "accepted but more than a week past the ready date: the buyer no longer reads it");
+await svc(`UPDATE public.shop_orders SET ready_date = current_date - 7 WHERE id = '${o1}'`);
+ok((await pickupFor(BUYER, o1))?.length === 1, "exactly a week past the ready date: still shown (the boundary)");
+await svc(`UPDATE public.shop_orders SET ready_date = '${readyWas}' WHERE id = '${o1}'`);
+// Finding 2 (LOW): a banned buyer reads nothing.
+await svc(`UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = '${BUYER}'`);
+ok((await pickupFor(BUYER, o1))?.length === 0, "a banned buyer reads no pickup address");
+await svc(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${BUYER}'`);
+ok((await pickupFor(BUYER, o1))?.length === 1, "unbanned again: shown again (the ban was the only reason)");
 
 // --- 4. the Stripe Tax location is dropped when the address changes, kept when it does not
+const stampBefore = (await svc(`SELECT updated_at::text AS u FROM public.shop_pickup_addresses WHERE shop_id = '${shopA}'`))[0]?.u;
 await svc(`UPDATE public.shop_pickup_addresses SET stripe_tax_location_id = 'taxloc_test1', stripe_tax_location_mode = 'test' WHERE shop_id = '${shopA}'`);
+// Review finding 5: the cache write keeps updated_at (the Stripe idempotency key is built from it).
+ok(typeof stampBefore === "string" && (await svc(`SELECT updated_at::text AS u FROM public.shop_pickup_addresses WHERE shop_id = '${shopA}'`))[0]?.u === stampBefore,
+  "caching the Stripe Tax location does not move updated_at");
 await addr(OWNER, "12 Main St", null, "Broussard", "70518");
+ok((await svc(`SELECT updated_at::text AS u FROM public.shop_pickup_addresses WHERE shop_id = '${shopA}'`))[0]?.u === stampBefore,
+  "saving the same address does not move updated_at either");
 ok((await svc(`SELECT stripe_tax_location_id FROM public.shop_pickup_addresses WHERE shop_id = '${shopA}'`))[0]?.stripe_tax_location_id === "taxloc_test1",
   "saving the same address keeps the Stripe Tax location");
 await addr(OWNER, "14 Main St", null, "Broussard", "70518");
 const moved = (await svc(`SELECT stripe_tax_location_id, stripe_tax_location_mode FROM public.shop_pickup_addresses WHERE shop_id = '${shopA}'`))[0];
 ok(moved?.stripe_tax_location_id === null && moved?.stripe_tax_location_mode === null, "a new address drops the old Stripe Tax location");
+ok((await svc(`SELECT updated_at::text AS u FROM public.shop_pickup_addresses WHERE shop_id = '${shopA}'`))[0]?.u !== stampBefore,
+  "a new address moves updated_at (a fresh idempotency key for its new location)");
 ok(!Array.isArray(await svc(`UPDATE public.shop_pickup_addresses SET stripe_tax_location_id = 'taxloc_x' WHERE shop_id = '${shopA}'`)),
   "a location id without its mode is refused (pair CHECK)");
 

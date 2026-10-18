@@ -122,22 +122,48 @@ async function stripeForOrder(admin: Db, o: OrderMoneyRow): Promise<Stripe> {
  * through rawRequest, and a Lafayette location taxed a Baton Rouge buyer's
  * line at Lafayette's 9% instead of Baton Rouge's 10.5%.
  */
-async function pickupTaxLocation(stripe: Stripe, admin: Db, shopId: string, mode: StripeMode): Promise<string | null> {
+async function pickupTaxLocation(
+  stripe: Stripe, admin: Db, shopId: string, mode: StripeMode,
+): Promise<{ id: string } | "missing" | "unusable"> {
   const { data, error } = await admin.from("shop_pickup_addresses")
-    .select("line1, line2, city, state, postal_code, stripe_tax_location_id, stripe_tax_location_mode, updated_at")
+    .select("line1, line2, city, state_code, postal_code, stripe_tax_location_id, stripe_tax_location_mode, updated_at")
     .eq("shop_id", shopId).maybeSingle();
   if (error) throw new Error(`pickup address read failed: ${error.message}`);
   const a = data as {
-    line1: string; line2: string | null; city: string; state: string; postal_code: string;
+    line1: string; line2: string | null; city: string; state_code: string; postal_code: string;
     stripe_tax_location_id: string | null; stripe_tax_location_mode: string | null; updated_at: string;
   } | null;
-  if (!a) return null;
-  if (a.stripe_tax_location_id && a.stripe_tax_location_mode === mode) return a.stripe_tax_location_id;
-  const created = await stripe.rawRequest("POST", "/v1/tax/locations", {
+  if (!a) return "missing";
+  if (a.stripe_tax_location_id && a.stripe_tax_location_mode === mode) return { id: a.stripe_tax_location_id };
+  const make = () => stripe.rawRequest("POST", "/v1/tax/locations", {
     type: "performance",
     description: `Shop pickup ${shopId}`,
-    address: { line1: a.line1, ...(a.line2 ? { line2: a.line2 } : {}), city: a.city, state: a.state, postal_code: a.postal_code, country: "US" },
-  }, { idempotencyKey: `shop-taxloc-${shopId}-${mode}-${a.updated_at}` }) as unknown as { id?: string };
+    address: { line1: a.line1, ...(a.line2 ? { line2: a.line2 } : {}), city: a.city, state: a.state_code, postal_code: a.postal_code, country: "US" },
+  }, { idempotencyKey: `shop-taxloc-${shopId}-${mode}-${a.updated_at}` }) as unknown as Promise<{ id?: string }>;
+  let created: { id?: string };
+  try {
+    try {
+      created = await make();
+    } catch (e) {
+      // Two first orders at once share the key: Stripe answers the second with
+      // idempotency_key_in_use while the first runs. One retry gets the first's
+      // answer (review 2026-10-18, finding 4).
+      if ((e as { code?: string } | null)?.code !== "idempotency_key_in_use") throw e;
+      await new Promise((r) => setTimeout(r, 750));
+      created = await make();
+    }
+  } catch (e) {
+    // Stripe refusing the address itself (an invalid_request on the address)
+    // will refuse it on every try: say so in its own words instead of a
+    // generic error forever (review 2026-10-18, finding 2). Anything else
+    // (network, 5xx, auth) is a try-again.
+    const err = e as { type?: string; code?: string; message?: string } | null;
+    if (err?.type === "StripeInvalidRequestError" && err.code !== "idempotency_key_in_use") {
+      console.error(JSON.stringify({ event: "shop_pickup_address_unusable", shop: shopId, mode, detail: err.message ?? null }));
+      return "unusable";
+    }
+    throw e;
+  }
   const id = typeof created?.id === "string" && created.id.startsWith("taxloc_") ? created.id : null;
   if (!id) throw new Error("tax location create returned no id");
   // Cache it only for the address it was made from (an edit since then cleared
@@ -150,7 +176,7 @@ async function pickupTaxLocation(stripe: Stripe, admin: Db, shopId: string, mode
     // Stripe's idempotency window, gets back) the same one.
     console.error(JSON.stringify({ event: "shop_tax_location_cache_failed", shop: shopId, detail: saveErr.message }));
   }
-  return id;
+  return { id };
 }
 
 /** Stripe's product_data with tax_details (tax code + performance location): newer than stripe@18.5.0's types. */
@@ -166,6 +192,26 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   if (!Array.isArray(body.lines)) return json({ error: "invalid_order_lines" }, 400);
   const note = typeof body.note === "string" ? body.note : "";
   const native = isNativeRequest(body);
+
+  // The shop's pickup address as a Stripe Tax location FIRST: shops_request_order
+  // retires the buyer's previous page, so nothing that can fail on the address
+  // may run after it (review 2026-10-18, finding 3). No shop row: the SQL below
+  // refuses in its own words.
+  const { data: shopRow, error: shopErr } = await admin.from("shops").select("owner_id").eq("id", shopId).maybeSingle();
+  if (shopErr) {
+    console.error(`[shop-checkout] shop read failed: ${shopErr.message}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  const ownerId = (shopRow as { owner_id?: string | null } | null)?.owner_id ?? null;
+  let mode: StripeMode | null = null;
+  let location: string | null = null;
+  if (ownerId) {
+    mode = await stripeModeForParties(admin, [user.id, ownerId]);
+    const loc = await pickupTaxLocation(stripeFor(mode), admin, shopId, mode);
+    if (loc === "missing") return json({ error: "pickup_address_missing" }, 409);
+    if (loc === "unusable") return json({ error: "pickup_address_unusable" }, 409);
+    location = loc.id;
+  }
 
   const { data, error } = await asBuyer.rpc("shops_request_order", {
     p_shop_id: shopId, p_lines: body.lines, p_ready_date: readyDate, p_note: note,
@@ -190,13 +236,16 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     return json({ error: TRY_AGAIN }, 500);
   }
 
-  const mode = await stripeModeForParties(admin, [user.id, o.seller_id]);
+  // The mode and location were made for the shop's owner; the order must be theirs.
+  if (!mode || !location || o.seller_id !== ownerId) {
+    console.error(`[shop-checkout] order ${o.id} seller is not the shop's owner read before it`);
+    return json({ error: TRY_AGAIN }, 500);
+  }
   const stripe = stripeFor(mode);
-  const location = await pickupTaxLocation(stripe, admin, shopId, mode);
-  if (!location) return json({ error: "pickup_address_missing" }, 409);
+  const performanceLocation = location;
   // Stripe takes tax_code OR tax_details on a line, never both.
   const taxed = (name: string, taxCode: string): TaxedProductData => ({
-    name, tax_details: { tax_code: taxCode, performance_location: location },
+    name, tax_details: { tax_code: taxCode, performance_location: performanceLocation },
   });
   // One wallet (owner 2026-10-18): the buyer's ONE stored Stripe customer in this mode pre-fills the
   // page, read only through _shared/stripeCustomer.ts (never by email, never declutter_buyer_cards).

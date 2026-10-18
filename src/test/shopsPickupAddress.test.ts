@@ -14,11 +14,13 @@
  *   5. A new order needs the address (the BEFORE INSERT trigger on shop_orders).
  *
  * Behaviour (red/green, 3x replay): src/test/pglite/shopsPickupAddress.pglite.mjs
- * (34 PASS; NEW_MIGRATION=skip 26 FAIL; a buyer branch without the status test
- * 3 FAIL; the location reset removed 2 FAIL; measured 2026-10-18).
+ * (45 PASS; the review-fixed buyer branch and updated_at rule put back to the
+ * old code: 5 FAIL; measured 2026-10-18).
  */
 // @mutate supabase/migrations/20261018180859_shops_pickup_address.sql | REVOKE ALL ON TABLE public.shop_pickup_addresses FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.shop_pickup_addresses TO authenticated;
-// @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |          OR (o.buyer_id = auth.uid() AND o.status IN ('accepted', 'handed_over'))); |          OR o.buyer_id = auth.uid());
+// @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |              AND o.status = 'accepted'\n | \n
+// @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |              AND current_date <= o.ready_date + 7\n | \n
+// @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |              AND NOT public.is_caller_banned())); | ));
 // @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |   PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN | IF public.is_caller_banned() THEN
 // @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |   BEFORE INSERT ON public.shop_orders\n | BEFORE INSERT ON public.shop_order_lines\n
 import { describe, expect, it } from "vitest";
@@ -46,10 +48,13 @@ describe("Shops pickup address stays private (20261018180859)", () => {
     expect(MIG).not.toMatch(/GRANT\s+[^;]*ON\s+TABLE\s+public\.shop_pickup_addresses\s+TO\s+[^;]*\b(anon|authenticated|PUBLIC)\b/i);
   });
 
-  it("2. the buyer sees it only after acceptance; the seller always", () => {
+  // Authz review 2026-10-18: accepted ONLY (never after handover, never "forever"),
+  // at most a week past the ready date, never a banned buyer.
+  it("2. the buyer sees it only while accepted (a week past the ready date at most, never banned); the seller always", () => {
     const b = body("shops_order_pickup_address");
     expect(b).toMatch(/o\.seller_id\s*=\s*auth\.uid\(\)/i);
-    expect(b).toMatch(/o\.buyer_id\s*=\s*auth\.uid\(\)\s+AND\s+o\.status\s+IN\s*\(\s*'accepted',\s*'handed_over'\s*\)/i);
+    expect(b).toMatch(/o\.buyer_id\s*=\s*auth\.uid\(\)\s+AND\s+o\.status\s*=\s*'accepted'\s+AND\s+current_date\s*<=\s*o\.ready_date\s*\+\s*7\s+AND\s+NOT\s+public\.is_caller_banned\(\)/i);
+    expect(b).not.toMatch(/handed_over/i);
     // Every buyer test in the body carries the status test (no second, bare buyer branch).
     expect((b.match(/o\.buyer_id\s*=\s*auth\.uid\(\)/gi) ?? []).length).toBe(1);
   });
@@ -64,7 +69,9 @@ describe("Shops pickup address stays private (20261018180859)", () => {
     for (const [name, def] of DEFS) {
       if (!/shop_pickup_addresses/i.test(blankSqlComments(def.stmt))) continue;
       expect(["shops_save_my_pickup_address", "shops_my_pickup_address", "shops_order_pickup_address",
-        "shop_orders_need_pickup_address", "shop_pickup_addresses_owner_is_shop_owner"], name).toContain(name);
+        "shop_orders_need_pickup_address", "shop_pickup_addresses_owner_is_shop_owner",
+        // Download My Data: the owner's own row only (proven in the PGlite file, section 4b).
+        "export_my_data"], name).toContain(name);
     }
   });
 

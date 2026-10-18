@@ -5,8 +5,11 @@
 --
 -- Who sees it:
 --   * the shop's owner: always (shops_my_pickup_address);
---   * the order's buyer: only once the maker has ACCEPTED the order
---     (status accepted or handed_over), through shops_order_pickup_address;
+--   * the order's buyer: only while the maker has ACCEPTED the order and it
+--     is not yet picked up (status accepted, until 7 days after the ready
+--     date), never a banned buyer, through shops_order_pickup_address. After
+--     handover (M2's handed_over) the buyer no longer reads the shop's
+--     CURRENT address (authz review 2026-10-18, finding 1: "forever");
 --   * the edge functions (service_role): to make the Stripe Tax location.
 --   Never shops, shops_browse, shops_get_shop or anything anon can read: the
 --   public page keeps the rough 2-decimal pin and the area label (L50).
@@ -23,7 +26,10 @@ CREATE TABLE IF NOT EXISTS public.shop_pickup_addresses (
   line2 text CHECK (line2 IS NULL OR char_length(btrim(line2)) BETWEEN 1 AND 120),
   city text NOT NULL CHECK (char_length(btrim(city)) BETWEEN 2 AND 60),
   -- Shops is Louisiana only; Louisiana ZIP codes run 70001-71497.
-  state text NOT NULL DEFAULT 'LA' CHECK (state = 'LA'),
+  -- Named state_code, not state: a bare `state` column would be the only one in
+  -- the schema, so every fixture's `state: ...` (job card states, UI states)
+  -- would be graded as this table's row (fixtureSchemaContract, 2026-10-18).
+  state_code text NOT NULL DEFAULT 'LA' CHECK (state_code = 'LA'),
   postal_code text NOT NULL CHECK (postal_code ~ '^7[01][0-9]{3}$'),
   -- The Stripe Tax location made from this address (tax/locations, type
   -- performance) and the mode it was made in. Cleared whenever the address
@@ -56,8 +62,16 @@ BEGIN
        IS DISTINCT FROM (OLD.line1, OLD.line2, OLD.city, OLD.postal_code) THEN
     NEW.stripe_tax_location_id := NULL;
     NEW.stripe_tax_location_mode := NULL;
+    NEW.updated_at := now();
+  ELSIF TG_OP = 'UPDATE' THEN
+    -- Only an address change moves updated_at: the edge function's cache
+    -- write (location id + mode) keeps it, so the Stripe idempotency key
+    -- (shop-taxloc-<shop>-<mode>-<updated_at>) stays the address's own
+    -- (review 2026-10-18, finding 5).
+    NEW.updated_at := OLD.updated_at;
+  ELSE
+    NEW.updated_at := now();
   END IF;
-  NEW.updated_at := now();
   RETURN NEW;
 END;
 $fn$;
@@ -116,7 +130,7 @@ STABLE
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $fn$
-  SELECT a.line1, a.line2, a.city, a.state, a.postal_code, a.updated_at
+  SELECT a.line1, a.line2, a.city, a.state_code, a.postal_code, a.updated_at
   FROM public.shop_pickup_addresses a
   JOIN public.shops s ON s.id = a.shop_id
   WHERE s.owner_id = auth.uid() AND a.owner_id = auth.uid();
@@ -124,9 +138,10 @@ $fn$;
 REVOKE ALL ON FUNCTION public.shops_my_pickup_address() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.shops_my_pickup_address() TO authenticated, service_role;
 
--- Where to pick up an order: to the order's seller always, to its buyer only
--- once the maker accepted it. Anyone else, or too early: no row (never an
--- error that says whether the order exists).
+-- Where to pick up an order: to the order's seller always; to its buyer only
+-- while it is accepted and not past a week after the ready date, and never to
+-- a banned buyer. Anyone else, too early or too late: no row (never an error
+-- that says whether the order exists).
 CREATE OR REPLACE FUNCTION public.shops_order_pickup_address(p_order_id uuid)
 RETURNS TABLE (line1 text, line2 text, city text, state text, postal_code text)
 LANGUAGE sql
@@ -134,13 +149,16 @@ STABLE
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $fn$
-  SELECT a.line1, a.line2, a.city, a.state, a.postal_code
+  SELECT a.line1, a.line2, a.city, a.state_code, a.postal_code
   FROM public.shop_orders o
   JOIN public.shop_pickup_addresses a ON a.shop_id = o.shop_id
   WHERE o.id = p_order_id
     AND auth.uid() IS NOT NULL
     AND (o.seller_id = auth.uid()
-         OR (o.buyer_id = auth.uid() AND o.status IN ('accepted', 'handed_over')));
+         OR (o.buyer_id = auth.uid()
+             AND o.status = 'accepted'
+             AND current_date <= o.ready_date + 7
+             AND NOT public.is_caller_banned()));
 $fn$;
 REVOKE ALL ON FUNCTION public.shops_order_pickup_address(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.shops_order_pickup_address(uuid) TO authenticated, service_role;

@@ -6739,7 +6739,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 60,
+      "line": 67,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6749,7 +6749,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 66,
+      "line": 73,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6759,15 +6759,15 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 72,
+      "line": 79,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
-        "text": "which === \"got_it\" ? \"Thanks! The order is done.\" : \"Marked picked up. Your payout is on its way.\"",
+        "text": "which === \"got_it\" ? \"Thanks. The order is done.\" : \"Marked picked up. Your payout is on its way.\"",
         "branches": [
           {
             "form": "literal",
-            "text": "Thanks! The order is done."
+            "text": "Thanks. The order is done."
           },
           {
             "form": "literal",
@@ -6779,7 +6779,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 81,
+      "line": 88,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6789,7 +6789,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 94,
+      "line": 102,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

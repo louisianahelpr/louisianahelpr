@@ -315,7 +315,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/shops/ShopHandoverActions.tsx` | input×1, textarea×1 | file |  | shop-payout-line · shop-handover-problem · shop-handover-actions · Nobody was there at pickup |
+| `src/components/shops/ShopHandoverActions.tsx` | input×1, textarea×1 | file |  | Nobody was there at pickup · shop-handover-problem · shop-payout-line · shop-handover-actions |
 
 ## /signup
 

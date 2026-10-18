@@ -18,7 +18,7 @@
  * @mutate supabase/functions/_shared/heldTipRepay.ts |       rowStripe = await stripeForJob!((tipJob?.job_id as string \| undefined) ?? null, [r.helper_id]); |       rowStripe = liveStripe;
  * @mutate supabase/functions/_shared/chargebackClawback.ts |       const stripe = ctx.stripeForJob ? await ctx.stripeForJob(jobId, [...(payees.get(disputeId) ?? [])]) : ctx.stripe; |       const stripe = ctx.stripe;
  * @mutate supabase/functions/_shared/chargebackClawback.ts | await ctx.stripeForJob(jobId, [...(payees.get(disputeId) ?? [])]) | await ctx.stripeForJob(jobId, [])
- * @mutate supabase/functions/auto-tip-charge/index.ts |         ({ stripe } = await stripes.clientForJob(jobId, "new", [c.customer_id as string \| null, c.helper_id as string \| null])); |         ({ stripe } = { stripe: stripes.clientFor("live") });
+ * @mutate supabase/functions/auto-tip-charge/index.ts |         ({ stripe, mode } = await stripes.clientForJob(jobId, "new", [c.customer_id as string \| null, c.helper_id as string \| null])); |         ({ stripe, mode } = { stripe: stripes.clientFor("live"), mode: "live" });
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -267,6 +267,20 @@ describe("money crons choose each job's Stripe client by its mode (owner 2026-10
       await run();
       expect(stripeMock.__keys).toContain(TEST_KEY);
       expect(stripeMock.__calls.filter((c) => c.key === LIVE_KEY)).toEqual([]);
+    });
+
+    it("a tip between two test accounts reads the poster's TEST wallet (Q2138)", async () => {
+      candidate(TEST_POSTER, TEST_HELPR);
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+      scenario.adminUsers = { [TEST_POSTER]: { email: "poster@test.com" } };
+      scenario.reads.stripe_customers = { rows: [] };
+      enrol(TEST_POSTER, TEST_HELPR);
+      await run();
+      const q = (scenario.readQueries ?? []).find((r) => r.table === "stripe_customers");
+      expect(q?.filters).toEqual(expect.arrayContaining([
+        expect.objectContaining({ op: "eq", column: "user_id", value: TEST_POSTER }),
+        expect.objectContaining({ op: "eq", column: "wallet_mode", value: "test" }),
+      ]));
     });
 
     it("a tip from a real poster to a test Helpr is new money across modes: no client, no charge", async () => {

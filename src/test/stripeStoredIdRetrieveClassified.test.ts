@@ -210,6 +210,10 @@ const EXEMPT: Record<string, string> = {
   // in). No Declutter order predates the 2026-09-27 live switch (prod had no declutter_orders table, 2026-10-15); a
   // failed read is a failed payout attempt that backs off (declutter_payout_executed).
   "declutter-money/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)": "a Declutter order's own payment (wholeCharge, before a seller or Helpr payout), on its parties' mode; minted after the live switch",
+  // Q2138 (one wallet): the poster's wallet customer is stored PER MODE (stripe_customers keyed
+  // user_id + wallet_mode) and read on the client of that same mode, so a test customer never meets the
+  // live key; a missing one (resource_missing) is handled as deleted (Q2140), anything else retries.
+  "auto-tip-charge/index.ts::stripe.customers.retrieve(customerId)": "the poster's stored wallet customer, keyed by the job's mode and read on that mode's client; minted after the live switch",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(intent.id)": FRESH,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)": OUTER,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)#2": OUTER,

@@ -32,6 +32,7 @@ import { caughtMessage } from "./caughtMessage.ts";
 import { fetchFunction } from "./functionFetch.ts";
 import { setupFeeKeptCents } from "./posterFees.ts";
 import { posterCancelKeptFeeCents } from "./refundAmount.ts";
+import { crewBlockFeeCents, readCrewBlockFees } from "./crewBlockFeeRead.ts";
 import { stripeModeForParties } from "./stripeMode.ts";
 
 // deno-lint-ignore no-explicit-any
@@ -174,9 +175,14 @@ interface JobRow {
   dispute_status: string | null;
   onboarding_fee_amount?: number | string | null;
   poster_fee_flat_cents?: number | string | null;
+  is_group_job?: boolean | null;
+  helper_id?: string | null;
+  /** A cancelled crew's block fees (crew_block_fees, every row but a void one),
+   *  read by sendRefundNotice, not a column. */
+  blockFeeCents?: number;
 }
 
-const JOB_COLS = "id, customer_id, title, status, cancellation_fee, customer_fee_amount, dispute_status, onboarding_fee_amount, poster_fee_flat_cents";
+const JOB_COLS = "id, customer_id, title, status, cancellation_fee, customer_fee_amount, dispute_status, onboarding_fee_amount, poster_fee_flat_cents, is_group_job, helper_id";
 
 /** "$100" or "$41.87": the poster's money is never rounded (formatExactDollars). */
 export function refundDollars(cents: number): string {
@@ -270,13 +276,18 @@ function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "keptRea
     // Q1674: a first job's one-time $2 setup fee is kept on every refund; it
     // is named on its own, never counted as a service or card fee (the
     // fallback when charge.refunded arrives before the path's own notice).
-    const setupCents = Math.min(keptCents - feeCents, setupFeeKeptCents(job));
-    const restCents = keptCents - feeCents - setupCents;
+    // Q2082 (f): a cancelled crew also keeps the block fees it paid the
+    // members it closed close to the start (void-cancelled-payments withholds
+    // them): named on their own, never counted as a card or service fee.
+    const blockCents = Math.min(keptCents - feeCents, Math.max(0, job.blockFeeCents ?? 0));
+    const setupCents = Math.min(keptCents - feeCents - blockCents, setupFeeKeptCents(job));
+    const restCents = keptCents - feeCents - blockCents - setupCents;
     // The service fee a cancel keeps: 0 on a poster-fee job, whose cancel
     // keeps only the card processing fee (Q2082 slice 4).
     const serviceCents = posterCancelKeptFeeCents(job);
     const parts: string[] = [];
     if (feeCents > 0) parts.push(`${refundDollars(feeCents)} cancellation fee paid to your Helpr`);
+    if (blockCents > 0) parts.push(`${refundDollars(blockCents)} for the crew spots you closed close to the start`);
     if (restCents > 0) {
       parts.push(serviceCents === 0
         ? `${refundDollars(restCents)} card processing fee, which can't be returned`
@@ -285,10 +296,10 @@ function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "keptRea
         : `${refundDollars(restCents)} in service and card processing fees, which aren't refunded when a job is cancelled`);
     }
     if (setupCents > 0) parts.push(`${refundDollars(setupCents)} one-time account setup fee, which is paid once and never refunded`);
-    if (parts.length === 1 && restCents > 0 && serviceCents === 0 && feeCents === 0 && setupCents === 0) {
+    if (parts.length === 1 && restCents > 0 && serviceCents === 0 && feeCents === 0 && blockCents === 0 && setupCents === 0) {
       return ` We kept ${kept}: the card processing fee, which can't be returned.`;
     }
-    if (parts.length === 1 && restCents === serviceCents && feeCents === 0 && setupCents === 0) {
+    if (parts.length === 1 && restCents === serviceCents && feeCents === 0 && blockCents === 0 && setupCents === 0) {
       return ` We kept ${kept}: the service fee, which isn't refunded when a job is cancelled.`;
     }
     return ` We kept ${kept}: ${parts.join(" and ")}.`;
@@ -573,6 +584,24 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
         job = r.job;
         jobOwnsCharge = !!md.job_id;
       }
+    }
+    // Q2082 (f): what a cancelled crew kept includes its block fees; read them
+    // so the fallback words name them. Only when keptSentence will reach its
+    // cancelled-job branch (no reason given, no dispute / fee-withheld
+    // metadata), and only for a crew with no lead, the crews whose block fees
+    // void-cancelled-payments withholds (its is_group_job && !helper_id read).
+    // A failed read fails the notice before any claim (like a failed job
+    // read): the webhook pages ops to tell the poster by hand, and a refund on
+    // the ledger is re-sent by the hourly untold-refund sweep (Part G).
+    const keptWordsFromJob = !input.keptReason && !md.kept_reason && !md.dispute_id &&
+      md.source !== "admin_refund_dispute" && md.fee_withheld !== "true";
+    if (
+      job && jobOwnsCharge && keptWordsFromJob && job.status === "cancelled" &&
+      job.is_group_job === true && !job.helper_id && Number(input.keptCents ?? 0) > 0
+    ) {
+      const bf = await readCrewBlockFees(supabase, job.id);
+      if (!bf.ok) return { status: "failed", error: `crew_block_fees read: ${bf.error}` };
+      job = { ...job, blockFeeCents: crewBlockFeeCents(bf.rows) };
     }
     let recipient: string | null = input.recipientId ?? job?.customer_id ??
       md.customer_id ?? md.payer_id ?? md.tipper_id ?? md.donor_id ?? md.supabase_user_id ?? md.user_id ?? null;

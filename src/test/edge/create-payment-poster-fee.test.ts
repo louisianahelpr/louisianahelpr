@@ -18,9 +18,9 @@
  * @mutate supabase/functions/create-payment/index.ts |       if (isPosterFee && posterFeeCents > 0) { |       if (false) {
  * @mutate supabase/functions/create-payment/index.ts |       if (quoteRefusal) { |       if (false) {
  * @mutate supabase/functions/create-payment/index.ts |         payment_method_types: payInFour ? payInFourMethods : [...JOB_CHECKOUT_PAYMENT_METHOD_TYPES], |         payment_method_types: payInFour ? payInFourMethods : undefined,
- * @mutate supabase/functions/create-payment/index.ts |         recurring: job.recurrence_days != null, |         recurring: false,
+ * @mutate supabase/functions/create-payment/index.ts |       if (payInFour && job.recurrence_days != null) throw | if (false) throw
  * @mutate supabase/functions/create-payment/index.ts |               tax_code: laborTaxable ? laborTaxCode(job.category) : NONTAXABLE_TAX_CODE, |               tax_code: NONTAXABLE_TAX_CODE,
- * @mutate supabase/functions/_shared/jobCheckout.ts |   return i.switchOn && !i.recurring ? "poster" : "flat"; |   return !i.recurring ? "poster" : "flat";
+ * @mutate supabase/functions/_shared/jobCheckout.ts |   return i.switchOn ? "poster" : "flat"; |   return "poster";
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -86,7 +86,7 @@ const lineNamed = (args: Record<string, any> | undefined, name: string) =>
   (args?.line_items ?? []).find((li: any) => li.price_data.product_data.name === name);
 
 const quote = (jobPriceCents: number, payInFour = false) =>
-  buildFeeQuote({ switchOn: true, recurring: false, jobPriceCents, payInFour });
+  buildFeeQuote({ switchOn: true, jobPriceCents, payInFour });
 
 describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-10-18)", () => {
   beforeEach(() => {
@@ -154,7 +154,7 @@ describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-1
 
   const STALE: Array<[string, unknown]> = [
     ["no quote (an app built before the change)", undefined],
-    ["a flat quote", buildFeeQuote({ switchOn: false, recurring: false, jobPriceCents: 10_000 })],
+    ["a flat quote", buildFeeQuote({ switchOn: false, jobPriceCents: 10_000 })],
     ["a fee 1c low", { ...quote(10_000), serviceFeeCents: 569 }],
     ["a fee 1c high", { ...quote(10_000), serviceFeeCents: 571 }],
     ["an old price", quote(9_000)],
@@ -180,7 +180,7 @@ describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-1
 
   it("a screen that shows no total (quote booking) sends the model only and is charged the poster fee", async () => {
     seed({ switchOn: true });
-    const { res, args } = await escrow({ feeQuote: buildFeeQuote({ switchOn: true, recurring: false }) });
+    const { res, args } = await escrow({ feeQuote: buildFeeQuote({ switchOn: true }) });
     expect(res.status).toBe(200);
     expect(lineNamed(args, "Service fee")?.price_data.unit_amount).toBe(570);
   });
@@ -205,13 +205,39 @@ describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-1
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
-  it("switch ON: a recurring series stays on the flat model until the per-visit slice lands", async () => {
+  it("switch ON: a recurring series is on the poster-fee model (this checkout pays the first visit + its fee)", async () => {
     seed({ switchOn: true, extra: { recurrence_days: [1], recurrence_weeks: 4 } });
-    const { res, args, modelStamp } = await escrow({ saveCardForFuture: true });
+    const { res, args, modelStamp } = await escrow({ saveCardForFuture: true, feeQuote: quote(10_000) });
     expect(res.status).toBe(200);
-    expect(lineNamed(args, "Service fee")).toBeUndefined();
-    expect(modelStamp).toMatchObject({ helper_fee_flat_cents: 70, helper_fee_percent: 5 });
-    expect(modelStamp).not.toHaveProperty("poster_fee_flat_cents");
+    expect(lineNamed(args, "Service fee")?.price_data.unit_amount).toBe(570);
+    expect(modelStamp).toMatchObject({ poster_fee_flat_cents: 70, platform_fee_percent: 5, helper_fee_flat_cents: 0, helper_fee_percent: 0 });
+  });
+
+  it("Pay in 4 is never offered on a recurring series (later visits need a saved card)", async () => {
+    seed({ switchOn: true, extra: { recurrence_days: [1], recurrence_weeks: 4 } });
+    const { res, payload, modelStamp } = await escrow({ saveCardForFuture: true, payInFour: true, feeQuote: quote(10_000, true) });
+    expect(res.status).not.toBe(200);
+    expect(String(payload.error)).toMatch(/Pay in 4 isn't available for a repeating job/);
+    expect(modelStamp).toBeUndefined();
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  // Recurring review #4: the series check above reads the job once; a job
+  // turned into a series after that read must not take a 9% stamp. The model
+  // stamp re-asserts recurrence_days IS NULL on a Pay-in-4 checkout only.
+  // @mutate supabase/functions/create-payment/index.ts | const oneOffWhenPayInFour = (q: any) => payInFour ? q.is("recurrence_days", null) : q; | const oneOffWhenPayInFour = (q: any) => q;
+  it("a Pay-in-4 model stamp re-asserts the one-off shape it read (a series made meanwhile is not stamped 9%)", async () => {
+    const stampFilters = () => scenario.writes
+      .filter((w) => w.table === "jobs" && w.op === "update" && "helper_fee_flat_cents" in (w.payload as object) && !("stripe_session_id" in (w.payload as object)))
+      .map((w) => w.filters);
+    seed({ switchOn: true, budget: 100 });
+    let r = await escrow({ feeQuote: quote(10_000, true), payInFour: true });
+    expect(r.res.status).toBe(200);
+    expect(stampFilters()[0]).toContainEqual(expect.objectContaining({ op: "is", column: "recurrence_days", value: null }));
+    seed({ switchOn: true, budget: 100 });
+    r = await escrow({ feeQuote: quote(10_000) });
+    expect(r.res.status).toBe(200);
+    expect(stampFilters()[0]).not.toContainEqual(expect.objectContaining({ column: "recurrence_days" }));
   });
 
   // Gift first (owner 2026-10-18; redeem_gift_card 20261018031451 prices the
@@ -257,7 +283,7 @@ describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-1
     scenario.rpc.redeem_gift_card = { outcome: "settled" };
     const { res, payload, modelStamp } = await escrow({
       giftCardId: "gift-1",
-      feeQuote: buildFeeQuote({ switchOn: false, recurring: false, jobPriceCents: 10_000 }),
+      feeQuote: buildFeeQuote({ switchOn: false, jobPriceCents: 10_000 }),
     });
     expect(res.status).not.toBe(200);
     expect(payload.error).toBe(STALE_FEE_QUOTE_MESSAGE);
@@ -277,7 +303,7 @@ describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-1
 
   it("switch OFF: the new app's flat quote (urgent bonus included) is charged; a flat quote at another price is refused (review #7b)", async () => {
     seed({ switchOn: false, budget: 100, extra: { is_urgent: true, urgent_fee: 20 } });
-    const flat = (jobPriceCents: number) => buildFeeQuote({ switchOn: false, recurring: false, jobPriceCents });
+    const flat = (jobPriceCents: number) => buildFeeQuote({ switchOn: false, jobPriceCents });
     let r = await escrow({ feeQuote: flat(12_000) });
     expect(r.res.status).toBe(200);
     expect(lineNamed(r.args, "Service fee")).toBeUndefined();

@@ -412,8 +412,9 @@ serve(async (req) => {
       // The poster-fee model (poster pays 5% + 70c, or 9% + 70c for Pay in 4;
       // the Helpr keeps 100%) applies when the jobs_poster_fee switch is on for
       // this poster, a gift-funded checkout included (the gift pays the job
-      // price + fee first, redeem_gift_card 20261018031451), and not yet on a
-      // recurring checkout (a later slice: _shared/jobCheckout.ts jobFeeModelFor).
+      // price + fee first, redeem_gift_card 20261018031451) and a recurring
+      // series (this checkout pays the first visit + its fee; every later
+      // visit is charged its own fee by charge-recurring-visits).
       // A switch read error is OFF (featureEnabledForUser fails closed), so the
       // checkout stays on the flat model it charges today.
       //
@@ -428,8 +429,6 @@ serve(async (req) => {
       const posterFeeSwitchOn = await featureEnabledForUser(supabaseAdmin, JOBS_POSTER_FEE_SWITCH, user);
       const feeModel = jobFeeModelFor({
         switchOn: posterFeeSwitchOn,
-        // The same test charge-recurring-visits uses to find a series parent.
-        recurring: job.recurrence_days != null,
       });
       const isPosterFee = feeModel === "poster";
       const payInFour = body?.payInFour === true ||
@@ -438,6 +437,9 @@ serve(async (req) => {
       // A gift pays first and any rest is one card/bank checkout: Pay in 4
       // (9% + 70c) never prices a gift-funded job.
       if (payInFour && giftCardId) throw new PublicError("Pay in 4 can't be combined with a gift card. Choose card or bank instead.");
+      // A series charges every later visit to a saved card, and Pay in 4 saves
+      // none (the same test charge-recurring-visits uses to find a series parent).
+      if (payInFour && job.recurrence_days != null) throw new PublicError("Pay in 4 isn't available for a repeating job. Choose card or bank instead.");
       const jobPriceCents = Math.round(Number(job.budget) * 100) + urgentFeeCents;
       const quoteRefusal = feeQuoteRefusal(body?.feeQuote, { model: feeModel, payInFour, jobPriceCents });
       if (quoteRefusal) {
@@ -682,6 +684,14 @@ serve(async (req) => {
         return pinned;
       };
 
+      // A Pay-in-4 model stamp (9%) also re-asserts the one-off shape this
+      // request read: a job turned into a series between that read and the
+      // stamp would carry a 9% series stamp that no saved card can charge
+      // (recurring review #4). Once stamped, the schedule lock
+      // (20261018024950) keeps the shape fixed.
+      // deno-lint-ignore no-explicit-any
+      const oneOffWhenPayInFour = (q: any) => payInFour ? q.is("recurrence_days", null) : q;
+
       const stampSession = async (newSessionId: string, extra: Record<string, unknown>) => {
         const guarded = () => pinnedToReadPrice(supabaseAdmin
           .from("jobs")
@@ -751,7 +761,7 @@ serve(async (req) => {
       // checkout is refused here, before any funding branch (gift redeem,
       // Stripe session).
       {
-        const modelStamp = pinnedToReadPrice(supabaseAdmin
+        const modelStamp = oneOffWhenPayInFour(pinnedToReadPrice(supabaseAdmin
           .from("jobs")
           .update({
             ...(isPosterFee
@@ -800,7 +810,7 @@ serve(async (req) => {
           // (review of slice 3a, #1).
           .or(previousSessionId
             ? `stripe_session_id.is.null,stripe_session_id.eq.${previousSessionId}`
-            : "stripe_session_id.is.null");
+            : "stripe_session_id.is.null"));
         // Pinned to the PI read (and proved dead) above, or to the null a
         // concurrent tap's stamp already cleared it to (delta review #1: a
         // double-tap after a bounced bank payment read the same PI, and an
@@ -1192,7 +1202,7 @@ serve(async (req) => {
         },
       };
       // Pay in 4 never saves a card (Klarna/Afterpay are not cards) and never
-      // reaches a recurring series (jobFeeModelFor keeps those flat).
+      // reaches a recurring series (a series is refused Pay in 4 above).
       if (saveCardForFuture === true && !payInFour) {
         paymentIntentExtras.setup_future_usage = "off_session";
       }

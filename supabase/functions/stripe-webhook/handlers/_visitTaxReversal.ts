@@ -179,8 +179,9 @@ export async function reverseVisitTaxForRefund(args: {
     return "failed_paged";
   }
 
-  // What the transaction recorded: its labor and the tax on it (one line,
-  // tax exclusive). Read from Stripe Tax itself, the record being reversed.
+  // What the transaction recorded: its labor and the tax on it, plus a
+  // poster-fee visit's taxed service_fee line (Q2082), every line summed.
+  // Read from Stripe Tax itself, the record being reversed.
   // Q1828 (the one part of sec-a-1017-13 that Q1782 (2) lacked): an INCLUSIVE
   // line's amount already holds its tax (Stripe Tax API: "If tax_behavior=
   // inclusive, then this amount includes taxes"), so its amount_tax is not

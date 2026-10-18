@@ -1187,7 +1187,7 @@ describe("create-payment edge function", () => {
       // @mutate supabase/functions/create-payment/index.ts | pinned = job.category == null ? pinned.is("category", null) : pinned.eq("category", job.category); |
       // @mutate supabase/functions/create-payment/index.ts |         pinned = job.is_urgent == null ? pinned.is("is_urgent", null) : pinned.eq("is_urgent", job.is_urgent); |
       // @mutate supabase/functions/create-payment/index.ts | const guarded = () => pinnedToReadPrice(supabaseAdmin | const guarded = () => (supabaseAdmin
-      // @mutate supabase/functions/create-payment/index.ts | const modelStamp = pinnedToReadPrice(supabaseAdmin | const modelStamp = (supabaseAdmin
+      // @mutate supabase/functions/create-payment/index.ts | const modelStamp = oneOffWhenPayInFour(pinnedToReadPrice(supabaseAdmin | const modelStamp = oneOffWhenPayInFour((supabaseAdmin
       it("the fee-model stamp and the session stamp are both pinned to the price the request read (Q1846)", async () => {
         const CASES: Array<Record<string, unknown>> = [
           { budget: 100 },

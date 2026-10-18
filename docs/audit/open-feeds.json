@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-18T23:09Z",
+  "measured_at": "2026-10-18T23:50Z",
   "issues": {
     "readable": true,
     "open": [
@@ -43,7 +43,7 @@
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38882683467",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39167770990",
         "runTruncated": false
       },
       {
@@ -179,14 +179,6 @@
         "status": "open",
         "title": "nightly-red: db-drift-detect",
         "issue": 3154
-      },
-      {
-        "fingerprint": "3a55e8af09089860199b4adb8d01fe1b",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: e2e happy-path smoke",
-        "issue": null
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -446,7 +438,6 @@
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 379653db0e8d": "Q1596",
     "ledger 3a3460b71be7": "Q1816",
-    "ledger 3a55e8af0908": "Q1816",
     "ledger 3ab675187ce9": "Q1596",
     "ledger 3c0d6b003e08": "Q1810",
     "ledger 40a33605c7c3": "Q1596",

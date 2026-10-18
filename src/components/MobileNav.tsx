@@ -825,7 +825,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         </div>
       </nav>
 
-      {MOCK.bar === "A" && mockSections.length > 0 && !dockHidden && typeof document !== "undefined" &&
+      {false && MOCK.bar === "A" && mockSections.length > 0 && !dockHidden && typeof document !== "undefined" &&
         createPortal(
           <div
             className="fixed z-[60] flex items-center gap-1.5 lg:hidden"

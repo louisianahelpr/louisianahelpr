@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/NotificationPanel";
+import { MOCK } from "@/lib/mockFlags";
+import { MockTopPair } from "@/components/mobileNav/MockTopPair";
 
 interface DashboardTitleBarProps {
   /** Where the emblem links. Home points at itself; the signed-out guest
@@ -198,6 +200,7 @@ export function DashboardTitleBar({
             <NotificationPanel triggerClassName="h-11 w-11" />
           </span>
         )}
+        {!trailing && MOCK.bar === "A" && <MockTopPair />}
       </div>
     </div>
   );

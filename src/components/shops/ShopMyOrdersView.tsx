@@ -75,7 +75,7 @@ export default function ShopMyOrdersView() {
                   Withdraw order
                 </Button>
               )}
-              {o.status === "accepted" && <ShopHandoverActions order={o} side="buyer" userId={user.id} />}
+              {(o.status === "accepted" || o.status === "handed_over") && <ShopHandoverActions order={o} side="buyer" userId={user.id} />}
             </ShopOrderCard>
           ))}
         </ul>

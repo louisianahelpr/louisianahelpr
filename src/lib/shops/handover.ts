@@ -150,7 +150,8 @@ export function payoutText(p: Pick<ShopPayout, "status" | "amount_cents" | "debt
   switch (p.status) {
     case "succeeded": return `${dollars(p.amount_cents)} sent to your payout account${debt}.`;
     case "nothing_due": return `This order paid off ${dollars(p.debt_cents)} of card fees you owed, so nothing was sent.`;
-    case "failed": return `${dollars(p.amount_cents)} is owed to you${debt}. Sending it did not work yet; we try again.`;
-    case "pending": return `${dollars(p.amount_cents)} is on its way to your payout account${debt}.`;
+    // Not "on its way": a pending payout may still wait for payout setup, a 24-hour buyer window or a review (money review 6).
+    case "failed": return `${dollars(p.amount_cents)} is owed to you${debt}. Sending it hasn't worked yet; we keep trying, and Louisiana Helpr steps in if it keeps failing.`;
+    case "pending": return `${dollars(p.amount_cents)} is owed to you${debt}. It's sent to your payout account once payouts are set up in Settings and any wait for the buyer is over.`;
   }
 }

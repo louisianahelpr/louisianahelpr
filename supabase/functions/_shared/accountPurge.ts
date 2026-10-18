@@ -429,6 +429,26 @@ async function findShopOrderInFlight(admin: PurgeCapableClient, userId: string):
   if (rows.data && rows.data.length > 0) {
     return { ok: true, active: true, detail: `shop order ${rows.data[0].id}`, reason: "shops" };
   }
+  // Shops M2 (20261018184113; lh-money-escrow review of 819e55ce3 #3): a shop still
+  // owed a payout ('pending', or 'failed' and retried) can only be paid to its own
+  // account, and the order's seller_id is SET NULL with the account: blocked, as
+  // helpr_task_payouts are.
+  const owed: PostgrestLike<{ id: string }[]> = await admin
+    .from("shop_payouts")
+    .select("id, shop_orders!inner(seller_id)")
+    .eq("shop_orders.seller_id", userId)
+    .in("status", ["pending", "failed"])
+    .limit(1);
+  if (owed.error) {
+    if (/does not exist|42P01|PGRST205/i.test(`${owed.error.code ?? ""} ${owed.error.message}`)) {
+      return { ok: true, active: false, detail: "shop_payouts absent" };
+    }
+    console.error(`[accountPurge] Shops payout check failed for ${userId}:`, owed.error.message);
+    return { ok: false, active: false, detail: owed.error.message };
+  }
+  if (owed.data && owed.data.length > 0) {
+    return { ok: true, active: true, detail: `shop payout ${owed.data[0].id}`, reason: "shops" };
+  }
   return { ok: true, active: false };
 }
 

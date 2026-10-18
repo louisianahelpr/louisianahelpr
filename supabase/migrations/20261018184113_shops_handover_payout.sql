@@ -15,9 +15,15 @@
 --   24 hours after the end of its ready date (Louisiana time), or after the
 --   ready tap if later. A porch order without its ready photo never finishes
 --   on its own: the photo is the evidence.
---   shops_report_not_received (AS THE BUYER, before the handover) stops the
---   automatic finish and the payout until Louisiana Helpr decides (the
---   decision and its refund are M3/M4).
+--   shops_report_not_received (AS THE BUYER) stops the automatic finish and
+--   the payout until Louisiana Helpr decides (the decision and its refund are
+--   M3/M4, Q2148); every admin is told. It is open from the ready date (or
+--   the shop's ready tap) until the handover, and for 24 hours after a SHOP's
+--   own "Picked up" tap.
+--   Reviews of 819e55ce3 (lh-money-escrow + lh-authz-rls, both must-fix): the
+--   shop's own "Picked up" tap is refused before the ready date, and its payout
+--   waits 24 hours (next_attempt_at) so the buyer can still say "I didn't get
+--   it"; the buyer is told so.
 --
 -- PAYOUT (L40, owner F1: the shop keeps 100% of its prices; the buyer's fee
 -- and the sales tax are not the shop's): ONE shop_payouts row per order, ever
@@ -212,7 +218,8 @@ GRANT ALL ON TABLE public.shop_handovers TO service_role;
 DROP POLICY IF EXISTS "shop handovers: the two sides read" ON public.shop_handovers;
 CREATE POLICY "shop handovers: the two sides read" ON public.shop_handovers
   FOR SELECT TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.shop_orders o WHERE o.id = shop_handovers.order_id
+  USING (public.has_role((SELECT auth.uid()), 'admin')
+         OR EXISTS (SELECT 1 FROM public.shop_orders o WHERE o.id = shop_handovers.order_id
                   AND (o.buyer_id = (SELECT auth.uid()) OR o.seller_id = (SELECT auth.uid()))));
 
 -- One per order, ever. amount = items - the card-fee debt taken from it.
@@ -306,6 +313,11 @@ BEGIN
     RAISE EXCEPTION 'not_in_person' USING ERRCODE = '55000',
       HINT = 'This order is left out for the buyer; it finishes when they tap "I got it".';
   END IF;
+  IF p_how = 'shop' AND public.shop_local_today() < o.ready_date THEN
+    -- The shop's own tap ends the order: never before the day it is ready (review must-fix).
+    RAISE EXCEPTION 'before_ready_date' USING ERRCODE = '55000',
+      HINT = 'You can mark it picked up from the ready date on.';
+  END IF;
   IF p_how <> 'admin' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN
     RAISE EXCEPTION 'problem_open' USING ERRCODE = '55000',
       HINT = 'A problem was reported on this order. Louisiana Helpr decides before anyone is paid.';
@@ -317,9 +329,12 @@ BEGIN
    WHERE id = o.id AND status = 'accepted';
   -- The seller's card-fee debt (Declutter and Shops share one ledger) comes out first.
   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' || o.id::text, o.items_cents);
-  INSERT INTO public.shop_payouts (order_id, items_cents, debt_cents, amount_cents, status)
+  -- After the shop's own tap the payout waits 24 hours: the buyer can still
+  -- say "I didn't get it" (shops_report_not_received), which holds it.
+  INSERT INTO public.shop_payouts (order_id, items_cents, debt_cents, amount_cents, status, next_attempt_at)
   VALUES (o.id, o.items_cents, v_debt, o.items_cents - v_debt,
-          CASE WHEN o.items_cents - v_debt = 0 THEN 'nothing_due' ELSE 'pending' END)
+          CASE WHEN o.items_cents - v_debt = 0 THEN 'nothing_due' ELSE 'pending' END,
+          CASE WHEN p_how = 'shop' THEN now() + interval '24 hours' ELSE now() END)
   ON CONFLICT (order_id) DO NOTHING
   RETURNING id INTO v_payout;
   PERFORM public.declutter_notify(o.seller_id, 'payment', 'Order picked up',
@@ -328,6 +343,9 @@ BEGIN
         format('This order paid off the $%s card fee you owed, so there is nothing to send.', to_char(v_debt / 100.0, 'FM999990.00'))
       WHEN NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id = o.seller_id AND pr.stripe_account_id IS NOT NULL) THEN
         format('Set up payouts in Settings to get your $%s. We send it as soon as you do.', to_char((o.items_cents - v_debt) / 100.0, 'FM999990.00'))
+      WHEN p_how = 'shop' THEN
+        format('$%s is sent to your payout account in 24 hours, once the buyer has had a day to confirm.',
+               to_char((o.items_cents - v_debt) / 100.0, 'FM999990.00'))
       WHEN v_debt > 0 THEN
         format('$%s is on its way to your payout account ($%s card fee you owed was taken out).',
                to_char((o.items_cents - v_debt) / 100.0, 'FM999990.00'), to_char(v_debt / 100.0, 'FM999990.00'))
@@ -335,7 +353,10 @@ BEGIN
     END,
     '/shops/dashboard', o.buyer_id);
   PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Enjoy your order',
-    'The pickup is done and the order is final. Thank you for buying local.', '/shops/orders', o.seller_id);
+    CASE WHEN p_how = 'shop'
+      THEN 'The shop marked your order picked up. If you did not get it, tap "I didn''t get it" in your orders within 24 hours.'
+      ELSE 'The pickup is done and the order is final. Thank you for buying local.' END,
+    '/shops/orders', o.seller_id);
   RETURN jsonb_build_object('result', 'handed_over', 'order_id', o.id, 'payout_id', v_payout, 'by', p_how);
 END;
 $fn$;
@@ -354,6 +375,7 @@ AS $fn$
 DECLARE
   v_uid uuid := (SELECT auth.uid());
   o public.shop_orders;
+  v_was_ready timestamptz;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
@@ -384,10 +406,20 @@ BEGIN
      OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'shop-handover' AND so.name = p_photo_path) THEN
     RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023', HINT = 'Take a photo of the order first.';
   END IF;
+  IF EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'problem_open' USING ERRCODE = '55000',
+      HINT = 'The buyer reported a problem with this order. Louisiana Helpr looks at it before anyone is paid.';
+  END IF;
+  SELECT h.ready_at INTO v_was_ready FROM public.shop_handovers h WHERE h.order_id = o.id;
+  -- A retake replaces the photo but keeps the first ready time (the clock never moves later) and tells nobody again.
   INSERT INTO public.shop_handovers (order_id, ready_photo_path, ready_at) VALUES (o.id, p_photo_path, now())
   ON CONFLICT (order_id) DO UPDATE
-    SET ready_photo_path = COALESCE(EXCLUDED.ready_photo_path, public.shop_handovers.ready_photo_path), ready_at = EXCLUDED.ready_at
+    SET ready_photo_path = COALESCE(EXCLUDED.ready_photo_path, public.shop_handovers.ready_photo_path),
+        ready_at = COALESCE(public.shop_handovers.ready_at, EXCLUDED.ready_at)
    WHERE public.shop_handovers.confirmed_at IS NULL;
+  IF v_was_ready IS NOT NULL THEN
+    RETURN jsonb_build_object('result', 'ready', 'order_id', o.id);
+  END IF;
   PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Your order is ready',
     CASE WHEN o.handover_mode = 'porch'
       THEN format('Your order for %s is left out for you. Tap "I got it" when you have it.', to_char(o.ready_date, 'FMMonth FMDD'))
@@ -470,6 +502,8 @@ AS $fn$
 DECLARE
   v_uid uuid := (SELECT auth.uid());
   o public.shop_orders;
+  h public.shop_handovers;
+  a record;
   v_note text := btrim(COALESCE(p_note, ''));
   v_leak text;
 BEGIN
@@ -491,9 +525,18 @@ BEGIN
   IF NOT FOUND OR o.buyer_id IS DISTINCT FROM v_uid THEN
     RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';
   END IF;
-  IF o.status <> 'accepted' OR o.captured_at IS NULL THEN
+  SELECT * INTO h FROM public.shop_handovers WHERE order_id = o.id FOR UPDATE;
+  -- Open: a charged order not handed over yet, from its ready date (or the
+  -- shop's ready tap); or for 24 hours after the SHOP's own "Picked up" tap,
+  -- while its payout still waits (reviews of 819e55ce3).
+  IF NOT (
+       (o.status = 'accepted' AND o.captured_at IS NOT NULL
+        AND (public.shop_local_today() >= o.ready_date OR h.ready_at IS NOT NULL))
+    OR (o.status = 'handed_over' AND h.confirmed_how = 'shop' AND o.handed_over_at > now() - interval '24 hours'
+        AND EXISTS (SELECT 1 FROM public.shop_payouts p WHERE p.order_id = o.id AND p.status IN ('pending', 'failed', 'nothing_due')))
+  ) THEN
     RAISE EXCEPTION 'order_not_open' USING ERRCODE = '55000',
-      HINT = 'Only a charged order that is not picked up yet can be reported here.';
+      HINT = 'Only a paid order that is due and not picked up can be reported here.';
   END IF;
   INSERT INTO public.shop_handovers (order_id, problem_at, problem_note) VALUES (o.id, now(), v_note)
   ON CONFLICT (order_id) DO UPDATE SET problem_at = COALESCE(public.shop_handovers.problem_at, now()),
@@ -502,6 +545,11 @@ BEGIN
     format('The buyer says they did not get the order for %s. Louisiana Helpr will look at it before anyone is paid.',
            to_char(o.ready_date, 'FMMonth FMDD')),
     '/shops/dashboard', o.buyer_id);
+  -- Every admin is told (as Declutter's problem reports, 20261017055502): the money waits for them.
+  FOR a IN SELECT DISTINCT ur.user_id FROM public.user_roles ur WHERE ur.role = 'admin' LOOP
+    PERFORM public.declutter_notify(a.user_id, 'warning', 'Shops pickup problem reported',
+      'A buyer says they did not get a paid Shops order. The shop''s payout is held until you decide it.', '/admin');
+  END LOOP;
   RETURN jsonb_build_object('result', 'reported', 'order_id', o.id);
 END;
 $fn$;
@@ -529,7 +577,7 @@ BEGIN
        AND (o.handover_mode = 'in_person' OR h.ready_photo_path IS NOT NULL)
        AND greatest(COALESCE(h.ready_at, '-infinity'::timestamptz),
                     ((o.ready_date + 1)::timestamp AT TIME ZONE 'America/Chicago')) + interval '24 hours' <= now()
-     ORDER BY o.id LIMIT 200
+     ORDER BY o.ready_date, o.id LIMIT 200
   LOOP
     BEGIN
       -- shop_complete_handover re-reads the row under its lock and refuses an open problem.

@@ -793,6 +793,7 @@ export const GAPS: Record<string, string> = {
   // (name 2-60, about <= 2000, area 2-80 and not a street address, fixed category list, parishes, SoS number format,
   // contact-leak trigger on name/about/area) as pinned by src/test/pglite/shopsProfiles.pglite.mjs. A FORMS sweep is owed
   // once the switch reaches testers.
+  "src/components/shops/ShopPickupAddressSection.tsx": "behind the 'shops' switch (testers only); field rules pinned by src/test/pglite/shopsPickupAddress.pglite.mjs (length, Louisiana ZIP, blank line 2) and src/components/shops/shopPickupAddressScreens.test.tsx; FORMS sweep owed once on for testers",
   "src/components/shops/ShopEditView.tsx": "behind the 'shops' switch (off); field rules pinned by src/test/pglite/shopsProfiles.pglite.mjs; FORMS sweep owed once on for testers",
   // Shops slice 2 (2026-10-16): items, behind the same switch (off). The server refuses each field (fixed kind/type
   // list, title 3-80, description <= 2000, price $1-$1,000, lead time 0-60, stock 0-9999, daily limit 1-200,

@@ -128,11 +128,16 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
     expect(MIG).toMatch(/INSERT INTO public\.feature_switches \(key, audience, description\)\s+VALUES \('shops', 'off',/);
   });
 
-  it("6. SHOPS_ERROR_COPY is exact against the codes the shops migrations raise (slice 1 + slice 2 items + M1 orders)", () => {
+  it("6. SHOPS_ERROR_COPY is exact against the codes the shops migrations raise (slice 1 + slice 2 items + M1 orders + M1b pickup address)", () => {
     const ITEMS = blankSqlComments(readFileSync(join(MIG_DIR, "20261017061157_shops_items.sql"), "utf8"));
     const ORDERS = blankSqlComments(readFileSync(join(MIG_DIR, "20261018164442_shops_orders_checkout.sql"), "utf8"));
-    const raised = new Set([...(MIG + ITEMS + ORDERS).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
+    const PICKUP = blankSqlComments(readFileSync(join(MIG_DIR, "20261018180859_shops_pickup_address.sql"), "utf8"));
+    const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
     raised.add("feature_disabled"); // require_feature's code
+    // shop-checkout's own answer when Stripe refuses the pickup address (M1b part 2), not a SQL code.
+    const CHECKOUT = readFileSync(join(process.cwd(), "supabase/functions/shop-checkout/index.ts"), "utf8");
+    expect(CHECKOUT).toMatch(/error: "pickup_address_unusable"/);
+    raised.add("pickup_address_unusable");
     expect(raised.size).toBeGreaterThan(20);
     expect([...raised].filter((c) => !(c in SHOPS_ERROR_COPY)).sort()).toEqual([]);
     expect(Object.keys(SHOPS_ERROR_COPY).filter((c) => !raised.has(c)).sort()).toEqual([]);

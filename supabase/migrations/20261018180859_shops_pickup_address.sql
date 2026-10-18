@@ -183,3 +183,12 @@ DROP TRIGGER IF EXISTS trg_shop_orders_need_pickup_address ON public.shop_orders
 CREATE TRIGGER trg_shop_orders_need_pickup_address
   BEFORE INSERT ON public.shop_orders
   FOR EACH ROW EXECUTE FUNCTION public.shop_orders_need_pickup_address();
+
+-- Q807: every public table carries the unconfirmed-email statement gate.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;

@@ -35,6 +35,7 @@ const APP = join(REPO, "src", "App.tsx");
 
 // @two-way src/test/everyLinkIsARealRoute.test.ts:stale NOT_APP_ADDRESSES entry
 const NOT_APP_ADDRESSES: Record<string, string> = {
+  "/v1/tax/locations": "Stripe API path (shop-checkout makes a Stripe Tax location through stripe.rawRequest), not an app address",
   "/_vercel": "Vercel's image optimiser path (src/lib/imageUrl.ts), served by Vercel",
   "/auth": "Supabase OAuth callback and GoTrue paths; stay in the browser (AASA excludes /auth/*)",
   "/:id": "ops_route_key's placeholder for an id segment",

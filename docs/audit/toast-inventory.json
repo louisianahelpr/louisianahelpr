@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 806,
-    "files": 196,
-    "rendering": 713,
-    "suppressedByPolicy": 93,
+    "calls": 808,
+    "files": 197,
+    "rendering": 714,
+    "suppressedByPolicy": 94,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 46,
-      "toast.error": 601,
+      "toast.error": 602,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 97,
+      "toast.success": 98,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 388,
+      "literal": 389,
       "template": 95,
-      "dynamic": 369,
+      "dynamic": 370,
       "jsx": 0
     }
   },
@@ -6669,7 +6669,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 174,
+      "line": 176,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6689,7 +6689,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 178,
+      "line": 180,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6699,7 +6699,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 184,
+      "line": 186,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6709,7 +6709,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 189,
+      "line": 191,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6719,7 +6719,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 195,
+      "line": 197,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6729,7 +6729,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 199,
+      "line": 201,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6910,6 +6910,26 @@
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
       "line": 132,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopPickupAddressSection.tsx",
+      "line": 49,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Pickup address saved."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopPickupAddressSection.tsx",
+      "line": 52,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

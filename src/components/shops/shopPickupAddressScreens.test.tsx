@@ -147,6 +147,7 @@ describe("the owner's pickup address form", () => {
 describe("ShopEditView mounts the form for an existing shop", () => {
   it("renders ShopPickupAddressSection behind myId.data", () => {
     const src = blankComments(readFileSync(join(process.cwd(), "src/components/shops/ShopEditView.tsx"), "utf8"));
+    expect(src.length).toBeGreaterThan(2000); // the real file (measured ~2026-10-18), never an empty read
     expect(src).toMatch(/\{myId\.data && <div className="pb-6"><ShopPickupAddressSection \/><\/div>\}/);
   });
 });

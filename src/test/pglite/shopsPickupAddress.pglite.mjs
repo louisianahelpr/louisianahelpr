@@ -316,7 +316,7 @@ ok(!Array.isArray(await svc(`UPDATE public.shop_pickup_addresses SET stripe_tax_
 {
   const EXPORT_FILE = process.env.EXPORT_PATH ?? `${MIG_DIR}20261018180900_export_my_data_shop_pickup_address.sql`;
   const EXPORT_SQL = readFileSync(EXPORT_FILE, "utf8");
-  // The function reads ~120 tables this proof does not build: the migration is
+  // The function reads ~120 tables (counted 2026-10-18) this proof does not build: the migration is
   // applied 3x (plpgsql resolves tables at run time) and the section's SELECT
   // is lifted out of the newest body and run with v_uid bound.
   if (!skip) for (let i = 0; i < 3; i++) await db.exec(EXPORT_SQL);

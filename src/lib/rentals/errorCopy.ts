@@ -10,10 +10,10 @@
  * here no migration raises.
  */
 export const RENTALS_ERROR_COPY: Record<string, string> = {
-  feature_disabled: "Rentals isn't open for your account yet.",
+  feature_disabled: "Homes isn't open for your account yet.",
   not_authenticated: "Please sign in again to continue.",
-  account_restricted: "Your account is restricted, so Rentals is not available right now.",
-  under_18: "You must be 18 or older to use Rentals.",
+  account_restricted: "Your account is restricted, so Homes is not available right now.",
+  under_18: "You must be 18 or older to use Homes.",
   identity_not_verified: "Verify your ID first. Every landlord on Louisiana Helpr is ID-verified.",
   too_many_properties: "You've added the most properties one account can have.",
   property_not_found: "That property isn't available.",
@@ -49,4 +49,14 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   visit_time_changed: "The Helpr changed the time. Check the new one.",
   visit_time_passed: "That time has passed. Ask the Helpr to offer a new one.",
   job_not_cancellable: "That job can't be cancelled here now. It may have just been paid. Refresh to see it.",
+  // Homes -> Rent listings (20261018185426).
+  listing_not_found: "This listing isn't available.",
+  bad_listing: "Check the listing: every box needs a valid answer (rent, beds, baths, move-in date).",
+  listing_not_editable: "This listing was removed. Start a new one.",
+  wording_flagged: "Some words say who may live here, which fair housing law doesn't allow. Describe the home instead.",
+  unit_already_listed: "This unit already has a listing. Open that one instead.",
+  photo_not_uploaded: "A photo didn't upload. Try adding it again.",
+  photo_already_attached: "That photo is already on this listing.",
+  too_few_photos: "Add at least 5 photos to show the listing.",
+  bad_status: "That change isn't possible for this listing now. Refresh and try again.",
 };

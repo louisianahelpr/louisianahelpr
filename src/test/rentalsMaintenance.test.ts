@@ -44,6 +44,9 @@
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                        AND (cur.stripe_session_id IS NULL OR cur.payment_status = 'abandoned'))) |                        )) 
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                    OR (cur.status = 'cancelled' |                    OR (true
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |     AND COALESCE(j.payment_status, 'unpaid') IN ('unpaid', 'failed', 'abandoned')\n     AND (j.stripe_session_id IS NULL OR j.payment_status = 'abandoned')\n   FOR UPDATE; |     FOR UPDATE;
+// @mutate supabase/migrations/20261018185426_rentals_listings.sql |     IF v_photos < 5 THEN |     IF v_photos < 0 THEN
+// @mutate supabase/migrations/20261018185426_rentals_listings.sql | REVOKE ALL ON FUNCTION public.rentals_listing_visible(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.rentals_listing_visible(uuid) FROM PUBLIC, anon;
+// @mutate supabase/migrations/20261018185426_rentals_listings.sql |          rp.city, rp.zip_code,\n         ARRAY(SELECT ph.storage_path FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5), |          rp.street_address, rp.zip_code,\n         ARRAY(SELECT ph.storage_path FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5),
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -76,10 +79,17 @@ const MEMBER_RPCS = [
   "rentals_approve_request",
   "rentals_decline_request",
   "rentals_tenant_answer_fixed",
+  // Homes -> Rent listings (20261018185426).
+  "rentals_save_listing",
+  "rentals_add_listing_photo",
+  "rentals_remove_listing_photo",
+  "rentals_set_listing_status",
 ];
 /** RPCs that only take access away or link a job (banned / under-18 may still leave). */
 const OTHER_RPCS = ["rentals_end_tenancy", "rentals_withdraw_request", "link_maintenance_request_job", "rentals_admin_review_property"];
-const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes", "rentals_visit_for_job"];
+const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes", "rentals_visit_for_job", "rentals_browse_listings", "rentals_listing"];
+/** Listings helpers (20261018185426): server-only. */
+const LISTING_INTERNAL = ["rentals_listing_wording_flags", "rentals_lock_own_listing", "rentals_listing_visible"];
 /** Slice 3 writes: visit time (the Helpr, not a Rentals member, proposes; the tenant confirms through
  *  rentals_assert_member) and the landlord's cancel of an unpaid repair job. */
 const VISIT_RPCS = ["rentals_propose_visit", "rentals_confirm_visit", "rentals_cancel_request_job"];
@@ -202,6 +212,26 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
     // The policy helper answers only about the caller (no user argument).
     expect(flat(body("rentals_caller_is_active_tenant_of"))).toContain("t.tenant_id = (SELECT auth.uid())");
     expect(body("rentals_caller_is_active_tenant_of")).not.toMatch(/p_user/);
+  });
+
+  it("7. listings (20261018185426): owner-only tables, coarse reads, the fair-housing check gates going live", () => {
+    for (const t of ["rental_listings", "rental_listing_photos"]) {
+      expect(ALL_MIG, t).toMatch(new RegExp(String.raw`ALTER TABLE public\.${t} ENABLE ROW LEVEL SECURITY;`));
+      expect(ALL_MIG).not.toMatch(new RegExp(String.raw`GRANT\s+(?:INSERT|UPDATE|DELETE|ALL)[^;]*\bON\s+(?:TABLE\s+)?[^;]*public\.${t}\b[^;]*\b(anon|authenticated)\b`, "i"));
+    }
+    for (const fn of LISTING_INTERNAL) {
+      expect(callable.has(fn), `${fn} must not be client-callable`).toBe(false);
+      expect(ALL_MIG, fn).toMatch(new RegExp(String.raw`REVOKE ALL ON FUNCTION public\.${fn}\([^)]*\) FROM PUBLIC, anon, authenticated;`));
+    }
+    const live = flat(body("rentals_set_listing_status"));
+    expect(live).toContain("IF cardinality(public.rentals_listing_wording_flags(concat_ws(' ', v_l.headline, v_l.description, v_l.pet_rules))) > 0 THEN RAISE EXCEPTION 'wording_flagged'");
+    expect(live).toContain("IF v_photos < 5 THEN RAISE EXCEPTION 'too_few_photos'");
+    expect(live).toContain("rp.ownership_status = 'approved'");
+    // The browse and the page never return the street address (Q12).
+    for (const fn of ["rentals_browse_listings", "rentals_listing"]) expect(body(fn), fn).not.toMatch(/street_address/);
+    expect(flat(body("rentals_lock_own_listing"))).toContain("WHERE id = p_listing_id AND owner_id = p_uid AND p_uid IS NOT NULL");
+    // The proof exists and names this migration.
+    expect(readFileSync(join(ROOT, "src/test/pglite/rentalsListings.pglite.mjs"), "utf8")).toContain("20261018185426");
   });
 
   it("6. the landlord never learns which admin reviewed the ownership proof (owner, 2026-10-17)", () => {

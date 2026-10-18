@@ -70,10 +70,10 @@ export function RentalsOwnershipCard() {
   const q = useQuery({ queryKey: ["admin-rentals-ownership"], enabled: on, queryFn: fetchPendingOwnership });
   if (!on) return null;
   return (
-    <AdminCard title="Rentals: ownership proof" subtitle="Check the owner's name on the deed, tax bill or assessor page before the property can invite tenants.">
+    <AdminCard title="Homes: ownership proof" subtitle="Check the owner's name on the deed, tax bill or assessor page before the property can invite tenants.">
       {q.isError ? (
         <>
-          <ReportErrorScreen source="RentalsOwnershipCard.load" title="Rentals ownership queue" />
+          <ReportErrorScreen source="RentalsOwnershipCard.load" title="Homes ownership queue" />
           <p className="text-sm">Couldn't load the queue.</p>
         </>
       ) : !q.data ? (

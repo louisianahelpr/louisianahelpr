@@ -109,6 +109,10 @@ const OWNERS = {
   "/rentals": ["lh-long-tail-features"],
   "/rentals/invite/:token": ["lh-long-tail-features", "lh-authz-rls"],
   "/rentals/requests/:id": ["lh-long-tail-features", "lh-trust-safety"],
+  // Homes -> Rent listings (RL1a, 20261018185426): fair-housing wording, coarse location.
+  "/rentals/listings/new": ["lh-long-tail-features", "lh-input-boundary"],
+  "/rentals/listings/:id": ["lh-long-tail-features", "lh-trust-safety"],
+  "/rentals/listings/:id/edit": ["lh-long-tail-features", "lh-input-boundary"],
 
   // ── profile tabs (?tab=) ─────────────────────────────────────────────────
   "?tab=profile": ["lh-input-boundary"],

@@ -14,7 +14,7 @@
  * @mutate src/components/rentals/rentalsUi.tsx |   return settled ? <NotFound /> : <>{skeleton}</>; |   return settled ? <NotFound /> : null;
  * @mutate src/pages/rentals/MaintenanceRequestPage.tsx | : <MaintenanceRequestUnavailable />}> | : <RentalsGateFrame title="Repair request" backTo="/rentals" label="Loading the request" />}>
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |     enabled: validId && !!uid, |     enabled: !!id && !!uid,
- * @mutate src/components/rentals/RentalsHomeView.tsx |   if (!data.isError && !data.data) return <RentalsHomeSkeleton />; |   if (!data.isError && !data.data) return null;
+ * @mutate src/components/rentals/RentalsHomeView.tsx |   if (!data.isError && !data.data) return <RentalsHomeSkeleton tabs={<HomesTabs value={tab} onChange={setTab} />} />; |   if (!data.isError && !data.data) return null;
  * @mutate src/components/rentals/RentalsHomeView.tsx |                   <EndTenancyButton tenancyId={h.tenancy_id} kind="leave" onDone={refresh} /> |                   {null}
  * @mutate src/components/rentals/RentalsHomeView.tsx |                 <EndTenancyButton tenancyId={t.id} kind={t.status === "active" ? "end" : "cancel-invite"} onDone={onChange} /> |                 {null}
  * @mutate src/components/rentals/EndTenancyButton.tsx |     mutationFn: () => endTenancy(tenancyId), |     mutationFn: async () => undefined,
@@ -22,6 +22,11 @@
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |   const cancelJob = useMutation({ mutationFn: () => cancelRequestJob(id), | const cancelJob = useMutation({ mutationFn: async () => undefined,
  * @mutate src/components/rentals/MaintenanceRequestView.tsx | r.visit_job_id != null && r.visit_job_id === r.job_id ? r.visit_proposed_for : null; | r.visit_job_id != null ? r.visit_proposed_for : null;
  * @mutate src/components/rentals/MaintenanceRequestView.tsx | onClick={() => okVisit.mutate(visitAt)}> | onClick={() => okVisit.mutate(new Date().toISOString())}>
+ * @mutate src/components/rentals/HomesTabs.tsx |   const tab: HomesTab = params.get("tab") === "buy" ? "buy" : "rent"; |   const tab: HomesTab = "rent";
+ * @mutate src/components/rentals/RentalsHomeView.tsx |     enabled: !!uid && tab === "rent", |     enabled: !!uid,
+ * @mutate src/components/rentals/RentalsHomeView.tsx |           <HomesBuyComingSoon /> |           {null}
+ * @mutate src/components/rentals/RentalsHomeView.tsx |           <RentBrowse />\n |           {null}\n
+ * @mutate src/components/rentals/listings/RentBrowse.tsx |       to={`/rentals/listings/${l.id}`} |       to="/rentals"
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -34,6 +39,8 @@ const state = {
   switchSettled: true,
   requestReads: 0,
   homeLoads: true,
+  homeReads: 0,
+  browse: [] as unknown[],
   underAge: false,
   tenancies: [] as unknown[],
   properties: [] as unknown[],
@@ -71,7 +78,10 @@ vi.mock("@/lib/rentals/api", () => ({
   fetchUnits: async () => state.units,
   fetchLiveTenancies: async () => state.live,
   endTenancy: vi.fn(async () => undefined),
-  fetchMyHomes: () => (state.homeLoads ? Promise.resolve(state.tenancies) : new Promise(() => {})),
+  fetchMyHomes: () => {
+    state.homeReads++;
+    return state.homeLoads ? Promise.resolve(state.tenancies) : new Promise(() => {});
+  },
   fetchMyRequests: async () => [],
   fetchRequest: async () => {
     state.requestReads++;
@@ -92,6 +102,12 @@ vi.mock("@/lib/rentals/api", () => ({
   addUnit: vi.fn(),
   setAutoApprove: vi.fn(),
   inviteTenant: vi.fn(),
+}));
+
+vi.mock("@/lib/rentals/listings", () => ({
+  fetchBrowseListings: async () => state.browse,
+  fetchMyListings: async () => [],
+  listingPhotoUrl: (p: string) => `https://cdn.test/${p}`,
 }));
 
 import { cancelRequestJob, confirmVisit, endTenancy } from "@/lib/rentals/api";
@@ -129,6 +145,8 @@ beforeEach(() => {
   state.switchSettled = true;
   state.requestReads = 0;
   state.homeLoads = true;
+  state.homeReads = 0;
+  state.browse = [];
   state.underAge = false;
   state.tenancies = [];
   state.properties = [];
@@ -150,15 +168,15 @@ describe("Rentals screens", () => {
       state.feature = false;
       state.switchSettled = false;
       renderAt("/rentals");
-      expect(screen.getByRole("heading", { name: "Rentals" })).toBeTruthy();
-      expect(screen.getByRole("status").textContent).toBe("Loading your rentals");
+      expect(screen.getByRole("heading", { name: "Homes" })).toBeTruthy();
+      expect(screen.getByRole("status").textContent).toBe("Loading Homes");
       expect(screen.queryByText("Homes you rent")).toBeNull();
       expect(screen.queryByText("Page not found")).toBeNull();
     });
     it("/rentals while its data loads: both cards with bones", async () => {
       state.homeLoads = false;
       renderAt("/rentals");
-      expect(await screen.findByRole("status", { name: "Loading your rentals" })).toBeTruthy();
+      expect(await screen.findByRole("status", { name: "Loading Homes" })).toBeTruthy();
       expect(screen.getByText("Homes you rent")).toBeTruthy();
       expect(screen.getByText("Properties you own")).toBeTruthy();
       expect(screen.queryByRole("button", { name: "Add a property" })).toBeNull();
@@ -181,6 +199,49 @@ describe("Rentals screens", () => {
       renderAt("/rentals/requests/test");
       expect(await screen.findByText("This request isn't available.")).toBeTruthy();
       expect(state.requestReads).toBe(0);
+    });
+  });
+
+  describe("HOMES: tabs Rent | Buy (owner 2026-10-18)", () => {
+    it("Rent: homes for rent show rent, beds/baths and city + ZIP, never the street, and link to the listing", async () => {
+      state.browse = [{ id: "11111111-1111-4111-8111-111111111111", headline: "Bright 2 bed", rent_cents: 120000, rent_frequency: "monthly",
+        beds: 2, baths: 1.5, sq_ft: 900, available_on: "2020-01-01", pets: "cats", city: "Lafayette", zip_code: "70501",
+        photo_paths: ["a/rental-listings/b/c.jpg"], is_mine: false, published_at: "2026-10-18T00:00:00Z" }];
+      renderAt("/rentals");
+      const link = await screen.findByRole("link", { name: /Bright 2 bed/ });
+      expect(link.getAttribute("href")).toBe("/rentals/listings/11111111-1111-4111-8111-111111111111");
+      expect(link.textContent).toContain("$1,200 / month");
+      expect(link.textContent).toContain("2 beds · 1.5 baths · Lafayette 70501");
+      expect(link.textContent).toContain("Available now");
+    });
+    it("Rent: no listings says so", async () => {
+      renderAt("/rentals");
+      expect(await screen.findByText(/No homes for rent match yet/)).toBeTruthy();
+    });
+    it("opens on Rent: the Homes title, both tabs, Rent selected, the rentals cards", async () => {
+      renderAt("/rentals");
+      expect(await screen.findByText("Homes you rent")).toBeTruthy();
+      expect(screen.getByRole("heading", { name: "Homes" })).toBeTruthy();
+      expect(screen.getByRole("tab", { name: "Rent" }).getAttribute("aria-selected")).toBe("true");
+      expect(screen.getByRole("tab", { name: "Buy" }).getAttribute("aria-selected")).toBe("false");
+    });
+    it("?tab=buy: Coming soon, and no rentals data is read", async () => {
+      state.homeLoads = false; // a Rent read would hang on the skeleton
+      renderAt("/rentals?tab=buy");
+      expect(await screen.findByText("Coming soon")).toBeTruthy();
+      expect(screen.getByRole("tab", { name: "Buy" }).getAttribute("aria-selected")).toBe("true");
+      expect(screen.queryByText("Homes you rent")).toBeNull();
+      expect(screen.queryByRole("status", { name: "Loading Homes" })).toBeNull();
+      expect(state.homeReads).toBe(0);
+    });
+    it("tapping Buy then Rent swaps the panel", async () => {
+      renderAt("/rentals");
+      await screen.findByText("Homes you rent");
+      fireEvent.click(screen.getByRole("tab", { name: "Buy" }));
+      expect(await screen.findByText("Coming soon")).toBeTruthy();
+      fireEvent.click(screen.getByRole("tab", { name: "Rent" }));
+      expect(await screen.findByText("Homes you rent")).toBeTruthy();
+      expect(screen.queryByText("Coming soon")).toBeNull();
     });
   });
 

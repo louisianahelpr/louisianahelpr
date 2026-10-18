@@ -25,14 +25,50 @@
 
 type WalletStripeMode = "live" | "test";
 
-/** The Stripe surface this needs: customers.create only. */
+/** The Stripe surface this needs: customers.create (and customers.search, only to adopt a tagged customer). */
 interface CustomerCreator {
   customers: {
     create(
       params: { email?: string; name?: string; metadata?: Record<string, string> },
       options?: { idempotencyKey?: string },
     ): Promise<{ id: string }>;
+    search?(params: { query: string; limit?: number }): Promise<{
+      data: Array<{
+        id: string; created?: number; deleted?: unknown; metadata?: Record<string, string> | null;
+        invoice_settings?: { default_payment_method?: unknown } | null;
+      }>;
+    }>;
   };
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Q2139: a member who paid for a job before the wallet existed already has a
+ * Stripe customer that create-payment made and TAGGED with their user id
+ * (metadata.supabase_user_id), holding the card they saved. It is adopted by
+ * that exact tag, NEVER by email (an email can belong to a deleted member's
+ * customer). The search runs under the caller's mode key, so it only sees
+ * that mode's customers. Newest exact match wins. A search that fails returns
+ * null (a fresh customer is made instead: no card is charged wrongly, the
+ * member just saves a card again).
+ */
+async function adoptTaggedCustomer(stripe: CustomerCreator, userId: string): Promise<string | null> {
+  if (!stripe.customers.search || !UUID_RE.test(userId)) return null;
+  try {
+    const found = await stripe.customers.search({ query: `metadata['supabase_user_id']:'${userId}'`, limit: 100 });
+    const mine = (found?.data ?? [])
+      // A customer that already HAS a default card is never adopted: its default
+      // was set outside a save (the Pro billing portal), and the wallet default
+      // is the off-session consent auto-tip charges (lh-money-escrow review of 05df69882 #3).
+      .filter((c) => !c.deleted && c.metadata?.supabase_user_id === userId && CUSTOMER_ID_RE.test(c.id)
+        && !c.invoice_settings?.default_payment_method)
+      .sort((a, b) => (b.created ?? 0) - (a.created ?? 0));
+    return mine[0]?.id ?? null;
+  } catch (err) {
+    console.error(`[stripeCustomer] tagged-customer search failed for ${userId}; making a new wallet customer: ${(err as { message?: unknown } | null)?.message ?? "unknown error"}`);
+    return null;
+  }
 }
 
 /** The supabase-js surface this needs (service-role client). */
@@ -75,24 +111,29 @@ export async function resolveStripeCustomer(
   stripe: CustomerCreator,
   user: { id: string; email?: string | null },
   mode: WalletStripeMode,
+  options: { adoptTagged?: boolean } = {},
 ): Promise<string> {
   const stored = await storedStripeCustomer(admin, user.id, mode);
   if (stored) return stored;
 
-  const created = await stripe.customers.create(
-    {
-      email: user.email ?? undefined,
-      metadata: { supabase_user_id: user.id, wallet_mode: mode },
-    },
-    { idempotencyKey: `lh-wallet-customer-${user.id}-${mode}` },
-  );
-  if (!created?.id || !CUSTOMER_ID_RE.test(created.id)) {
-    throw new StripeCustomerUnavailable("Stripe returned no wallet id");
+  let candidate = options.adoptTagged ? await adoptTaggedCustomer(stripe, user.id) : null;
+  if (!candidate) {
+    const created = await stripe.customers.create(
+      {
+        email: user.email ?? undefined,
+        metadata: { supabase_user_id: user.id, wallet_mode: mode },
+      },
+      { idempotencyKey: `lh-wallet-customer-${user.id}-${mode}` },
+    );
+    if (!created?.id || !CUSTOMER_ID_RE.test(created.id)) {
+      throw new StripeCustomerUnavailable("Stripe returned no wallet id");
+    }
+    candidate = created.id;
   }
   const { data, error } = await admin.rpc("claim_stripe_customer", {
     p_user: user.id,
     p_mode: mode,
-    p_customer: created.id,
+    p_customer: candidate,
   });
   if (error) throw new StripeCustomerUnavailable(`wallet claim failed: ${error.message}`);
   if (typeof data !== "string" || !CUSTOMER_ID_RE.test(data)) {

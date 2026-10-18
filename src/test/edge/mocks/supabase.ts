@@ -293,6 +293,9 @@ function freshScenario(): SupabaseScenario {
       // Q137 seed boundary: `false` (a real subject) is the neutral answer; a
       // scenario ABOUT a seed subject sets `true` (or a function of the args).
       notification_crosses_seed_boundary: false,
+      // One wallet (Q2139): the claim keeps the customer it was offered (first
+      // writer). A scenario about a lost race returns another id.
+      claim_stripe_customer: (a?: unknown) => (a as { p_customer?: string } | undefined)?.p_customer ?? null,
     },
     rpcErrors: {},
     rpcCalls: [],

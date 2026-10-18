@@ -46,45 +46,38 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // EVERY customer record for this email, not just the first.
+    // WHICH Stripe customer (Q2142, lh-money-escrow review of 2340db8b7 #1):
+    // the one the member's subscription names, stored on their profile by
+    // stripe-webhook when the plan was granted (subscriptionLinkage.ts,
+    // profiles.stripe_customer_id), read by the member's own user id. NEVER by
+    // email: this used to list every customer on the caller's address and open
+    // the first that carried a subscription, and an address reused by a new
+    // account (measured 2026-10-18: 3 of 7 live customers carry an email now
+    // owned by a newer account) could open the portal on a deleted member's
+    // customer. A member whose subscription sits on a customer under another
+    // email is found too, because the profile names it.
     //
-    // `limit: 1` was the same bug check-pro-subscription:61-67 and
-    // create-pro-checkout:74-84 each already found and documented: one person
-    // routinely holds MORE THAN ONE Stripe customer record on one address (one
-    // minted by Checkout, another by a Connect or test flow), and `list()`
-    // returns an arbitrary one. Both siblings were fixed; this one was not.
-    //
-    // It matters more here than anywhere else, because this function IS the
-    // self-serve exit. The Billing Portal is scoped to the customer it is
-    // opened for, so opening it on an arbitrary record shows a member whose
-    // subscription lives on a DIFFERENT record an empty portal — no plan, no
-    // card, nothing to cancel — while Stripe keeps billing them every month.
-    // A paying member with no way to stop paying is the worst shape a billing
-    // bug can take, so pick the record that actually carries the subscription.
-    const customers = await stripe.customers.list({ email: user.email, limit: 100 });
-
-    // Prefer a record with a subscription in ANY state — `all` deliberately,
-    // not `active`: a member whose subscription is past_due, unpaid, paused or
-    // already cancelled-at-period-end is exactly who needs the portal most, and
-    // filtering to `active` would send them back to the empty record.
-    //
-    // Q2141 (one wallet): the portal opens ONLY on a record that carries a
-    // subscription, even when there is just one record. It used to fall back
-    // to the first record found, and that can be the member's one-wallet
-    // customer (created with the same email): a card added in the portal
-    // becomes that customer's default card, the card auto-tip charges
-    // off-session. A member with no subscription has nothing to manage here.
+    // Q2141 (one wallet): the portal opens ONLY on a customer that carries a
+    // subscription, in ANY state (`all`: past_due, unpaid, cancel-at-period-end
+    // members need the portal most). The one-wallet customer without one is
+    // never opened: a card added in the portal becomes that customer's default
+    // card, the card auto-tip charges off-session.
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "",
+    );
+    const { data: profile, error: profileError } = await admin
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    // A read that fails is a 500 (the catch below), never "no billing found".
+    if (profileError) throw new Error(`profile read failed: ${profileError.message}`);
+    const stored = (profile as { stripe_customer_id?: unknown } | null)?.stripe_customer_id;
     let customerId: string | null = null;
-    for (const customer of customers.data) {
-      const subs = await stripe.subscriptions.list({
-        customer: customer.id,
-        status: "all",
-        limit: 1,
-      });
-      if (subs.data.length > 0) {
-        customerId = customer.id;
-        break;
-      }
+    if (typeof stored === "string" && /^cus_[A-Za-z0-9]+$/.test(stored)) {
+      const subs = await stripe.subscriptions.list({ customer: stored, status: "all", limit: 1 });
+      if (subs.data.length > 0) customerId = stored;
     }
     if (!customerId) {
       return new Response(JSON.stringify({ error: "No membership billing found for this account." }), {

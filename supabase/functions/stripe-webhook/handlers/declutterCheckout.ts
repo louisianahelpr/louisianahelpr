@@ -7,7 +7,10 @@
 //
 //   declutter_card  (declutter-card, mode=setup)    the buyer saved a card
 //                   (row 36). The card is read off the SetupIntent and stored
-//                   with declutter_save_card. Nothing is charged.
+//                   with declutter_save_card. Nothing is charged. The card
+//                   then becomes the wallet's default card (one wallet card
+//                   everywhere: the most recently saved card, any section;
+//                   _walletDefaultCard.ts, Q2139).
 //   declutter_order (declutter-checkout, mode=payment) the buyer paid an
 //                   order. declutter_mark_order_paid decides, from the order's
 //                   own state and the payment's OWN Stripe time (event.created,
@@ -28,6 +31,7 @@ import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { queueEmail } from "../../_shared/resend.ts";
 import { getAppUrl } from "../../_shared/appUrl.ts";
+import { recordDeclutterCardAsWalletDefault } from "./_walletDefaultCard.ts";
 
 const DECLUTTER_KINDS = new Set(["declutter_card", "declutter_order"]);
 
@@ -62,8 +66,9 @@ async function saveCard(
   event: Stripe.Event,
   session: Stripe.Checkout.Session,
   meta: Record<string, string>,
-  { stripe, supabase, logStep }: WebhookContext,
+  ctx: WebhookContext,
 ): Promise<void> {
+  const { stripe, supabase, logStep } = ctx;
   const userId = meta.user_id;
   if (session.mode !== "setup" || !userId || session.client_reference_id !== userId) {
     // Our own function always sets all three; anything else is not ours to apply.
@@ -93,6 +98,10 @@ async function saveCard(
   });
   if (error) throw new Error(`declutter_save_card failed: ${error.message}`);
   logStep("Declutter card saved", { user: userId });
+  // One wallet card everywhere (owner 2026-10-18, Q2139): the card saved most
+  // recently in ANY section becomes the wallet's default card. After the save,
+  // never throws (a failure pages; the card stays saved).
+  await recordDeclutterCardAsWalletDefault(event, session.id, userId, customer, si, ctx);
 }
 
 /**

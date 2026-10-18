@@ -54,26 +54,45 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} /></Suspense>} |
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 const ROOT = resolve(__dirname, "../..");
+const MIGRATIONS = resolve(ROOT, "supabase/migrations");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 const code = (p: string) => blankComments(read(p));
-const MIGRATION = "supabase/migrations/20261017073146_declutter_add_a_helpr.sql";
 
-/** One function's body from the migration (dollar tag $fn$). */
-function fnBody(sql: string, name: string): string {
-  const at = sql.indexOf(`CREATE OR REPLACE FUNCTION public.${name}(`);
-  expect(at, `${name} is defined`).toBeGreaterThanOrEqual(0);
-  const open = sql.indexOf("$fn$", at);
-  return sql.slice(open, sql.indexOf("$fn$;", open + 4));
+/**
+ * The migration that creates the switch, the link table and the A10 trigger (DDL), found by CONTENT:
+ * a later migration restating one of its functions (20261018050953 restated record_backout_notice)
+ * must never leave this guard grading a superseded body (guardsReadTheNewestMigration).
+ */
+const DDL_FILES = readdirSync(MIGRATIONS)
+  .filter((f) => f.endsWith(".sql"))
+  .filter((f) => blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8")).includes("VALUES ('declutter_add_helpr', 'testers',"));
+const DDL_FILE = DDL_FILES[0] ?? "";
+
+/** Each function's NEWEST definition across every migration. */
+const DEFS = effectiveDefs(MIGRATIONS);
+
+/** One function's body from its newest definition, comments blanked (any dollar-quote tag). */
+function fnBody(name: string): string {
+  const stmt = blankSqlComments(DEFS.get(name)?.stmt ?? "");
+  expect(stmt, `${name} is defined`).not.toBe("");
+  const at = stmt.search(/\bAS\s+\$\w*\$/i);
+  const tag = stmt.slice(at).match(/\$\w*\$/)?.[0] ?? "";
+  expect(at > 0 && tag !== "", `${name} has a dollar-quoted body`).toBe(true);
+  const open = stmt.indexOf(tag, at);
+  return stmt.slice(open, stmt.indexOf(`${tag};`, open + tag.length));
 }
 
 describe("Declutter Add a Helpr", () => {
-  const sql = blankSqlComments(read(MIGRATION));
+  it("exactly one migration creates the switch (the DDL this guard reads)", () => {
+    expect(DDL_FILES).toEqual(["20261017073146_declutter_add_a_helpr.sql"]);
+  });
+  const sql = blankSqlComments(read(`supabase/migrations/${DDL_FILE}`));
 
   it("the switch is created as testers and both functions refuse without it, first", () => {
     expect(sql).toMatch(/VALUES \('declutter_add_helpr', 'testers',/);
@@ -81,7 +100,7 @@ describe("Declutter Add a Helpr", () => {
     const fns = ["declutter_setup_helpr", "declutter_link_setup_job"];
     expect(fns.length).toBeGreaterThan(1);
     for (const fn of fns) {
-      const body = fnBody(sql, fn);
+      const body = fnBody(fn);
       expect(body.indexOf("PERFORM public.require_feature('declutter_add_helpr');"), fn).toBeGreaterThan(0);
       expect(body.indexOf("PERFORM public.require_feature('declutter_add_helpr');")).toBeLessThan(body.indexOf("IF v_uid IS NULL"));
     }
@@ -93,7 +112,7 @@ describe("Declutter Add a Helpr", () => {
     const house = effectiveDefs(resolve(ROOT, "supabase/migrations")).get("helpr_set_vehicle")?.stmt ?? "";
     expect(house).toMatch(/helpr_set_vehicle[\s\S]*?BEGIN\n {2}PERFORM public\.require_feature\('declutter'\);\n {2}IF v_uid IS NULL/);
     for (const fn of ["declutter_setup_helpr", "declutter_link_setup_job"]) {
-      const body = fnBody(sql, fn);
+      const body = fnBody(fn);
       const dc = body.indexOf("PERFORM public.require_feature('declutter');");
       expect(dc, fn).toBeGreaterThan(0);
       expect(dc, fn).toBeLessThan(body.indexOf("PERFORM public.require_feature('declutter_add_helpr');"));
@@ -102,7 +121,7 @@ describe("Declutter Add a Helpr", () => {
   });
 
   it("the link refuses a banned caller before it reads anything, and a job that is already paid for (authz B, money D)", () => {
-    const link = fnBody(sql, "declutter_link_setup_job");
+    const link = fnBody("declutter_link_setup_job");
     const ban = link.indexOf("IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';");
     expect(ban).toBeGreaterThan(link.indexOf("IF v_uid IS NULL"));
     expect(ban).toBeLessThan(link.indexOf("FROM public.jobs j\n   WHERE"));
@@ -114,16 +133,16 @@ describe("Declutter Add a Helpr", () => {
     expect(link.indexOf("WHERE l.job_id = p_job_id AND l.order_id = p_order_id\n                FOR SHARE) THEN")).toBeLessThan(link.indexOf("FROM public.jobs j\n   WHERE j.id = p_job_id AND j.customer_id = v_uid AND j.status = 'open'"));
     // A seller who can no longer sell: no offer, no link (review #2).
     expect(link).toContain("AND NOT public.declutter_seller_out(o.seller_id)");
-    expect(fnBody(sql, "declutter_setup_helpr")).toContain("OR public.declutter_seller_out(o.seller_id) THEN");
+    expect(fnBody("declutter_setup_helpr")).toContain("OR public.declutter_seller_out(o.seller_id) THEN");
     expect(link.indexOf("job_already_funded")).toBeLessThan(link.indexOf("INSERT INTO public.declutter_order_jobs"));
     // The pre-fill read is STABLE: the ban-gate class check (Q281) covers VOLATILE functions only.
-    expect(sql).toMatch(/FUNCTION public\.declutter_setup_helpr\(p_order_id uuid\)\nRETURNS jsonb\nLANGUAGE plpgsql\nSTABLE/);
+    expect(blankSqlComments(DEFS.get("declutter_setup_helpr")?.stmt ?? "")).toMatch(/FUNCTION public\.declutter_setup_helpr\(p_order_id uuid\)\nRETURNS jsonb\nLANGUAGE plpgsql\nSTABLE/);
   });
 
   it("the client has words for every refusal the link can give, and shows them when it fails", async () => {
     const { RPC_ERROR_COPY } = await import("@/lib/lifecycleErrors");
     const copy = RPC_ERROR_COPY.declutter_link_setup_job as Record<string, string>;
-    const raised = [...fnBody(sql, "declutter_link_setup_job").matchAll(/RAISE EXCEPTION '([a-z_]+)'/g)].map((m) => m[1]);
+    const raised = [...fnBody("declutter_link_setup_job").matchAll(/RAISE EXCEPTION '([a-z_]+)'/g)].map((m) => m[1]);
     expect(raised.length).toBeGreaterThan(2);
     const all = [...new Set([...raised, "feature_disabled"])].sort();
     for (const c of all) expect(copy[c], c).toBeTruthy();
@@ -163,7 +182,7 @@ describe("Declutter Add a Helpr", () => {
   });
 
   it("the migration is newer than the Declutter stack's newest, and its proof loads only main + stack migrations (E)", () => {
-    const stamp = MIGRATION.match(/\/(\d{14})_/)?.[1] ?? "";
+    const stamp = DDL_FILE.match(/^(\d{14})_/)?.[1] ?? "";
     expect(stamp > "20261017060455", "newer than the stack's newest (declutter_seller_out_pays_fee)").toBe(true);
     const proof = read("src/test/pglite/declutterAddAHelpr.pglite.mjs");
     expect(proof).toContain('process.env.BASE_REFS ?? "origin/main origin/ready/declutter-stack"');
@@ -171,9 +190,9 @@ describe("Declutter Add a Helpr", () => {
   });
 
   it("acts only for the order's buyer and the caller's own open job", () => {
-    expect(fnBody(sql, "declutter_setup_helpr")).toMatch(/WHERE id = p_order_id AND buyer_id = v_uid;/);
-    expect(fnBody(sql, "declutter_setup_helpr")).toMatch(/WHERE l\.order_id = o\.id AND j\.customer_id = v_uid/);
-    const link = fnBody(sql, "declutter_link_setup_job");
+    expect(fnBody("declutter_setup_helpr")).toMatch(/WHERE id = p_order_id AND buyer_id = v_uid;/);
+    expect(fnBody("declutter_setup_helpr")).toMatch(/WHERE l\.order_id = o\.id AND j\.customer_id = v_uid/);
+    const link = fnBody("declutter_link_setup_job");
     expect(link).toMatch(/WHERE j\.id = p_job_id AND j\.customer_id = v_uid AND j\.status = 'open'/);
     expect(link, "no category gate: a re-picked category must still link (silent-failure review #1)").not.toMatch(/j\.category/);
     expect(link).toMatch(/WHERE o\.id = p_order_id AND o\.buyer_id = v_uid/);
@@ -240,7 +259,7 @@ describe("Declutter Add a Helpr", () => {
 
   it("adds no payment call: nothing in the feature calls a payment function", () => {
     // Code only (comments blanked): A10's comments name Stripe's card fee, its code calls nothing that pays.
-    const files: Array<[string, string]> = [[MIGRATION, sql], ["src/lib/declutter/setupHelpr.ts", code("src/lib/declutter/setupHelpr.ts")],
+    const files: Array<[string, string]> = [[DDL_FILE, sql], ["src/lib/declutter/setupHelpr.ts", code("src/lib/declutter/setupHelpr.ts")],
       ["src/components/declutter/DeclutterAddHelpr.tsx", code("src/components/declutter/DeclutterAddHelpr.tsx")]];
     expect(files.length).toBeGreaterThan(2);
     for (const [f, text] of files) {
@@ -253,18 +272,18 @@ describe("Declutter Add a Helpr", () => {
   it("A10: only a seller-fault refund cancels the setup job, with no fee and no strike, never blocking the refund", () => {
     expect(sql).toMatch(/CREATE TRIGGER trg_declutter_refund_cancels_setup_jobs\s+AFTER INSERT ON public\.declutter_refunds\s+FOR EACH ROW\s+WHEN \(NEW\.fee_policy = 'full_seller_pays_fee'\)/);
     // The trigger only calls the worker, inside its own catch-all (the refund write must land).
-    expect(fnBody(sql, "declutter_refund_cancels_setup_jobs")).toMatch(/PERFORM public\.declutter_apply_seller_fault\(NEW\.id, false\);\s+EXCEPTION WHEN OTHERS THEN/);
-    const body = fnBody(sql, "declutter_apply_seller_fault");
+    expect(fnBody("declutter_refund_cancels_setup_jobs")).toMatch(/PERFORM public\.declutter_apply_seller_fault\(NEW\.id, false\);\s+EXCEPTION WHEN OTHERS THEN/);
+    const body = fnBody("declutter_apply_seller_fault");
     expect(body).toContain("cancellation_fee = 0,");
     expect(body).toContain("late_cancellation = false,");
     expect(body).toContain("SET seller_fault_refund_id = rf.id");
     // A buyer-asserted no-show never cancels a committed Helpr's job fee-free (lh-authz-rls review of c57d948d0 #1).
     expect(body).toContain("IF rf.reason = 'seller_no_show' AND j.committed AND NOT p_include_committed THEN");
-    expect(fnBody(sql, "declutter_admin_apply_seller_fault")).toContain("public.has_role(v_uid, 'admin'::app_role)");
+    expect(fnBody("declutter_admin_apply_seller_fault")).toContain("public.has_role(v_uid, 'admin'::app_role)");
     expect(body).not.toMatch(/apply_cancellation_violation_consequence|declutter_give_strike/);
     expect(body).toMatch(/EXCEPTION WHEN OTHERS THEN\s+PERFORM public\.log_cron_defect\(v_src, r\.job_id::text,/);
     expect(sql).toContain("REVOKE ALL ON FUNCTION public.declutter_setup_job_fee_debt(uuid, integer) FROM PUBLIC, anon, authenticated;");
-    const debt = fnBody(sql, "declutter_setup_job_fee_debt");
+    const debt = fnBody("declutter_setup_job_fee_debt");
     expect(debt).toContain("IF l.seller_fee_billed_cents IS NOT NULL THEN\n    RETURN 0;");
     // The sweep reads the marker and prices a marked job at no fee and no card fee kept.
     const vcp = code("supabase/functions/void-cancelled-payments/index.ts");

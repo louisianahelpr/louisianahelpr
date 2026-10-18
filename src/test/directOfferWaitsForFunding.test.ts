@@ -17,9 +17,13 @@
  * any dollar tag, rewrites applied; comments blanked):
  *   - every function that writes a notification to the OFFERED Helpr about a
  *     pending offer, or returns pending offers to the Helpr they are offered
- *     to, or lapses pending offers, gates on job_payment_is_funded. One known
- *     leak is listed EXACTLY (Q2093, settle_one_off_jobs_for_banned_account's
- *     "Offer closed" notice), so fixing it turns this red until it is removed;
+ *     to, or lapses pending offers, gates on job_payment_is_funded (exact:
+ *     none ungated since Q2093);
+ *   - Q2093, per NOTICE STATEMENT (a function-level check cannot see one
+ *     branch lose its gate while another keeps one): every notification that
+ *     tells the offered Helpr "Offer closed", or tells anyone an offer's job
+ *     is "open to everyone", carries job_payment_is_funded in the statement
+ *     itself, except an EXACT list gated elsewhere (reasons below);
  *   - the offer notice fires on the FIRST arrival of the money (the trigger
  *     listens to payment_status; the body fires when OLD was in the
  *     never-paid set NULL/unpaid/abandoned/failed, NOT "anything unfunded":
@@ -44,6 +48,11 @@
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql |      AND (OLD.payment_status IS NULL\n          OR OLD.payment_status IN ('unpaid', 'abandoned', 'failed'))\n  THEN |   THEN
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql |   BEFORE UPDATE OF payment_status ON public.jobs |   BEFORE UPDATE OF status ON public.jobs
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql |             OR public.job_offer_cutoff(date_needed, start_time) > now()) |             OR true)
+ * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |            v_job.id\n           WHERE public.job_payment_is_funded(v_job.payment_status); |            v_job.id\n           WHERE true;
+ * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |          CASE WHEN public.job_payment_is_funded(v_job.payment_status) THEN\n            format('The person you offered |          CASE WHEN true THEN\n            format('The person you offered
+ * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |              CASE WHEN public.job_payment_is_funded(NEW.payment_status) THEN |              CASE WHEN true THEN
+ * Behaviour (real Postgres): src/test/pglite/offerNoticesWaitForFunding.pglite.mjs
+ * (8 PASS on the fix; with --before U1-U3 FAIL).
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -93,8 +102,44 @@ describe("a direct offer waits for the money (owner, 2026-10-17)", () => {
     ]));
   });
 
-  it("every one of them gates on job_payment_is_funded (exact: one leak left, Q2093)", () => {
-    expect(inventory().ungated).toEqual(["settle_one_off_jobs_for_banned_account"]);
+  it("every one of them gates on job_payment_is_funded (exact: none left since Q2093)", () => {
+    expect(inventory().ungated).toEqual([]);
+  });
+
+  it("every notice that an offer is closed or its job 'open to everyone' gates its own statement on the money (Q2093)", () => {
+    // Gated outside the statement, each for a stated reason (EXACT):
+    const GATED_ELSEWHERE: Record<string, string> = {
+      // its `expired` CTE carries the gate (the @mutate lines above).
+      expire_pending_direct_offers: "sweep",
+      // a hired job's offer (status 'accepted'): funded when hired
+      // (enforce_job_funded_before_award, user sessions); a payment that fails
+      // later while still 'accepted' is Q1971's auto-cancel.
+      decline_job_offer: "hired",
+      expire_unanswered_offers: "hired",
+      // the offered Helpr's own decline: the offer list and the offer notice
+      // are funding-gated, so only a Helpr who knows the job id reaches an
+      // unfunded one (the RPC itself does not check funding on decline).
+      respond_to_direct_offer: "own answer",
+    };
+    const gated: string[] = [];
+    const ungated: string[] = [];
+    for (const [name, def] of defs) {
+      const stmts = bodyOf(def.stmt).match(/INSERT\s+INTO\s+public\.notifications\b[\s\S]*?;/gi) ?? [];
+      for (const st of stmts) {
+        const openToAll = /offer/i.test(st) && /open to everyone/i.test(st);
+        const closedToOfferee = /'Offer closed'/.test(st) && /offered_to_helper_id/.test(st);
+        if (!openToAll && !closedToOfferee) continue;
+        (FUNDED.test(st) ? gated : ungated).push(name);
+      }
+    }
+    // 2026-10-18: the ban settlement's two notices and the retire trigger's.
+    expect(gated.length).toBeGreaterThan(2);
+    expect(gated.sort()).toEqual([
+      "jobs_offer_target_gone_retires_offer",
+      "settle_one_off_jobs_for_banned_account",
+      "settle_one_off_jobs_for_banned_account",
+    ]);
+    expect([...new Set(ungated)].sort()).toEqual(Object.keys(GATED_ELSEWHERE).sort());
   });
 
   it("the offer notice fires on the funding transition, not only at insert", () => {

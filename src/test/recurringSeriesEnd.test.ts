@@ -16,10 +16,10 @@
  * and enforce_series_columns_client_lock live in 20260927012806 (split days);
  * enforce_ban_gate and the helper whitelist in 20260927012804.
  *
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | OR NEW.date_needed IS DISTINCT FROM OLD.date_needed | OR false
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |                  AND EXISTS (SELECT 1 FROM public.series_visit_holds h WHERE h.parent_job_id = OLD.id)); |                  AND false);
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   AND (NEW.recurrence_weeks IS DISTINCT FROM OLD.recurrence_weeks | AND (false
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF NEW.series_ended_on IS DISTINCT FROM OLD.series_ended_on THEN | IF false THEN
+ * @mutate supabase/migrations/20261018024950_poster_fee_job_schedule_locked.sql | OR NEW.date_needed IS DISTINCT FROM OLD.date_needed | OR false
+ * @mutate supabase/migrations/20261018024950_poster_fee_job_schedule_locked.sql |                  AND EXISTS (SELECT 1 FROM public.series_visit_holds h WHERE h.parent_job_id = OLD.id)); |                  AND false);
+ * @mutate supabase/migrations/20261018024950_poster_fee_job_schedule_locked.sql |   AND (NEW.recurrence_weeks IS DISTINCT FROM OLD.recurrence_weeks | AND (false
+ * @mutate supabase/migrations/20261018024950_poster_fee_job_schedule_locked.sql |   IF NEW.series_ended_on IS DISTINCT FROM OLD.series_ended_on THEN | IF false THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   -- ── A Helpr leaves: their future dates go back (owner decision 6) ──────\n  IF v_uid IS DISTINCT FROM v_job.customer_id THEN |   IF false THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |  OR v_uid IS DISTINCT FROM v_job.helper_id) THEN | ) THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC;
@@ -29,7 +29,7 @@
  * @mutate src/components/series/JobSeriesCardControls.tsx | job.recurring_helper_id === userId && job.helper_id === userId && | job.recurring_helper_id === userId &&
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |       SELECT v_job.recurring_helper_id WHERE v_job.recurring_helper_id = v_job.helper_id |       SELECT v_job.recurring_helper_id
  * @mutate supabase/functions/charge-recurring-visits/index.ts | .not("customer_id", "is", null) | .not("id", "is", null)
- * @mutate supabase/functions/charge-recurring-visits/index.ts | recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status, stripe_payment_intent_id, helper_fee_percent, helper_fee_flat_cents", | recurring_helper_id, helper_id, status, payment_status, dispute_status, stripe_payment_intent_id, helper_fee_percent, helper_fee_flat_cents",
+ * @mutate supabase/functions/charge-recurring-visits/index.ts | recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status, stripe_payment_intent_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, platform_fee_percent", | recurring_helper_id, helper_id, status, payment_status, dispute_status, stripe_payment_intent_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, platform_fee_percent",
  * @mutate supabase/functions/charge-recurring-visits/index.ts | Can't make it? Cancel this visit from My Jobs. | Can't make it? Release the date from My Jobs.
  * @mutate src/components/series/JobSeriesCardControls.tsx | <EndSeriesControl jobId={job.id} | <span data-x={job.id}
  * @mutate src/pages/posts/PostedJobSeriesControls.tsx | canEnd={!!job.recurring_helper_id && job.status !== "cancelled"} | canEnd={false}

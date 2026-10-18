@@ -51,8 +51,6 @@ export interface UseJobDerivedParams {
    * refuse — see usePostJobGiftCard). Drives the gift math below.
    */
   giftCardAmount?: number | null;
-  /** A recurring series (the per-visit poster fee is a later slice: flat for now). */
-  isRecurring?: boolean;
   /** jobs_poster_fee is on for this poster (usePostJobForm reads it once); absent = off. */
   posterFeeOn?: boolean;
 }
@@ -159,7 +157,6 @@ export function useJobDerived(params: UseJobDerivedParams) {
   const posterFeeOn = params.posterFeeOn === true;
   const customerFeeAmount = (buildFeeQuote({
     switchOn: posterFeeOn,
-    recurring: !!params.isRecurring,
     jobPriceCents: Math.round((budgetNum + urgentFeeNum) * 100),
   }).serviceFeeCents ?? 0) / 100;
   const giftCreditCents = Math.max(0, Math.round((giftCardAmount ?? 0) * 100));

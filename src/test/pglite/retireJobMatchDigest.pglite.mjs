@@ -103,6 +103,10 @@ CREATE TABLE public.saved_search_alert_queue (id uuid PRIMARY KEY DEFAULT gen_ra
 CREATE TABLE public.match_digest_queue (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, job_id uuid, UNIQUE (user_id, job_id));
 `);
 await db.exec(readFileSync(MIG_DIR + POLICY_FILE, "utf8"));
+// Prod also holds the row 20261014210518 (Declutter slice 3) added; that migration
+// cannot run in this fixture, so its one policy row stands in (salvage 2026-10-18).
+await db.exec(`INSERT INTO public.cron_catchup_policy (jobname, catch_up, max_late, reason)
+  VALUES ('declutter-price-drops', false, interval '1 hour', 'stand-in for 20261014210518') ON CONFLICT (jobname) DO NOTHING;`);
 for (const fn of ["early_access_visible_at", "job_announceable_to", "notify_saved_searches_on_new_job", "deliver_saved_search_alert",
   "job_match_digest_rows"]) {
   // check_function_bodies off: job_announceable_to (read only by the dropped

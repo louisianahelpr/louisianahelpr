@@ -26,6 +26,7 @@ import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
 import { effectiveSalesTaxRate, taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
 import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
 import { isDeclutterSession, settleDeclutterSession } from "./declutterCheckout.ts";
+import { isShopSession, settleShopSession } from "./shopCheckout.ts";
 
 export async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
@@ -46,6 +47,12 @@ async function settleCheckoutSession(
   // the job / Pro / gift branches below, which match by email and job id.
   if (isDeclutterSession(session)) {
     await settleDeclutterSession(event, session, { stripe, supabase, logStep });
+    return;
+  }
+  // Shops M1: a card HOLD for a shop order (capture_method=manual). Nothing is
+  // charged here; the maker's acceptance captures it (shop-checkout).
+  if (isShopSession(session)) {
+    await settleShopSession(event, session, { stripe, supabase, logStep });
     return;
   }
   // Q210(b): a $300+ recurring visit paid on-session. Settled before the

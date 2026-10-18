@@ -358,6 +358,12 @@ function rewriteExternalImports(src: string): string {
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/threeDSecure\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/threeDSecure.ts";`,
   );
+  // Shops tax codes (Shops M1, owner O1): `_shared/shopTaxCodes.ts` has ZERO
+  // imports (a fixed table and a lookup), so the REAL table runs.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/shopTaxCodes\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/shopTaxCodes.ts";`,
+  );
 
   // Captured-escrow resolver: `_shared/capturedEscrow.ts` has ZERO imports (it
   // is structurally typed over the PaymentIntent), so the generated file points
@@ -876,7 +882,7 @@ const serve = (h) => __hReg(h);
  * harness mocks (slack-alerts). Q1223 moved the chargeback clawback here from
  * stripe-webhook/handlers so process-scheduled-payouts can call it.
  */
-const SHARED_WALKED = ["/_shared/chargebackClawback.ts", "/_shared/heldTipRepay.ts", "/_shared/connectGateSync.ts", "/_shared/crewBlockFees.ts"];
+const SHARED_WALKED = ["/_shared/chargebackClawback.ts", "/_shared/heldTipRepay.ts", "/_shared/connectGateSync.ts", "/_shared/crewBlockFees.ts", "/_shared/shopHolds.ts"];
 
 function isLocalModuleSpecifier(spec: string): boolean {
   return (

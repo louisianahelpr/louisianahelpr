@@ -640,7 +640,9 @@ ok(typeof one(await as("authenticated", STRANGER, createProp("Confirmed place"))
 
 // --- export_my_data reconcile (20261017205607): the newest-timestamp restatement
 // of the export must leave the UNION: every section of main's newest OTHER
-// definition (read below, not hard-coded, so a later main restatement moves it)
+// definition BEFORE it (read below, not hard-coded, so a later main restatement
+// moves it; a restatement sorting after the reconcile, e.g. Shops' 20261017235038,
+// is a later layer with its own proof, so it is not part of what this one unions)
 // plus the five Rentals sections, EXECUTE for service_role only.
 const RECONCILE = readFileSync(
   process.env.RECONCILE_PATH ?? `${MIG_DIR}20261017205607_export_my_data_rentals_reconcile.sql`,
@@ -650,7 +652,7 @@ const sectionKeys = (sql) => [...sql.matchAll(/jsonb_build_object\('([a-z_]+)'/g
 const RECONCILE_FILE = "20261017205607_export_my_data_rentals_reconcile.sql";
 const mainExport = (() => {
   let found = null;
-  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && x !== RECONCILE_FILE && !x.startsWith(SELF)).sort()) {
+  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && x < RECONCILE_FILE && !x.startsWith(SELF)).sort()) {
     const sql = readFileSync(`${MIG_DIR}${f}`, "utf8");
     const at = sql.search(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.export_my_data\s*\(\s*p_user_id/i);
     if (at < 0) continue;

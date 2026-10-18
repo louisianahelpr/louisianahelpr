@@ -8159,6 +8159,173 @@ export type Database = {
           },
         ]
       }
+      shop_order_lines: {
+        Row: {
+          created_at: string
+          id: string
+          is_seed: boolean
+          item_id: string | null
+          kind: string
+          line_cents: number
+          order_id: string
+          quantity: number
+          title: string
+          unit_cents: number
+          variant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          item_id?: string | null
+          kind: string
+          line_cents: number
+          order_id: string
+          quantity: number
+          title: string
+          unit_cents: number
+          variant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          item_id?: string | null
+          kind?: string
+          line_cents?: number
+          order_id?: string
+          quantity?: number
+          title?: string
+          unit_cents?: number
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_order_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_order_lines_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "shop_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_orders: {
+        Row: {
+          accept_by: string | null
+          accepted_at: string | null
+          buyer_id: string | null
+          cancel_policy: string
+          capture_attempts: number
+          capture_last_attempt_at: string | null
+          capture_last_error: string | null
+          captured_at: string | null
+          card_fee_cents: number | null
+          close_reason: string | null
+          closed_at: string | null
+          created_at: string
+          decline_reason: string | null
+          held_at: string | null
+          hold_release_attempts: number
+          hold_release_last_error: string | null
+          hold_released_at: string | null
+          id: string
+          is_seed: boolean
+          items_cents: number
+          note: string
+          payment_livemode: boolean | null
+          premium_cents: number
+          ready_date: string
+          seller_id: string | null
+          shop_id: string | null
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          tax_cents: number
+          total_cents: number
+        }
+        Insert: {
+          accept_by?: string | null
+          accepted_at?: string | null
+          buyer_id?: string | null
+          cancel_policy: string
+          capture_attempts?: number
+          capture_last_attempt_at?: string | null
+          capture_last_error?: string | null
+          captured_at?: string | null
+          card_fee_cents?: number | null
+          close_reason?: string | null
+          closed_at?: string | null
+          created_at?: string
+          decline_reason?: string | null
+          held_at?: string | null
+          hold_release_attempts?: number
+          hold_release_last_error?: string | null
+          hold_released_at?: string | null
+          id?: string
+          is_seed?: boolean
+          items_cents: number
+          note?: string
+          payment_livemode?: boolean | null
+          premium_cents: number
+          ready_date: string
+          seller_id?: string | null
+          shop_id?: string | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          tax_cents?: number
+          total_cents: number
+        }
+        Update: {
+          accept_by?: string | null
+          accepted_at?: string | null
+          buyer_id?: string | null
+          cancel_policy?: string
+          capture_attempts?: number
+          capture_last_attempt_at?: string | null
+          capture_last_error?: string | null
+          captured_at?: string | null
+          card_fee_cents?: number | null
+          close_reason?: string | null
+          closed_at?: string | null
+          created_at?: string
+          decline_reason?: string | null
+          held_at?: string | null
+          hold_release_attempts?: number
+          hold_release_last_error?: string | null
+          hold_released_at?: string | null
+          id?: string
+          is_seed?: boolean
+          items_cents?: number
+          note?: string
+          payment_livemode?: boolean | null
+          premium_cents?: number
+          ready_date?: string
+          seller_id?: string | null
+          shop_id?: string | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          tax_cents?: number
+          total_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_orders_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_photos: {
         Row: {
           created_at: string
@@ -8197,10 +8364,58 @@ export type Database = {
           },
         ]
       }
+      shop_strikes: {
+        Row: {
+          expires_at: string
+          given_at: string
+          id: string
+          is_seed: boolean
+          offender_side: string
+          order_id: string | null
+          reason: string
+          removed_at: string | null
+          removed_by: string | null
+          user_id: string
+        }
+        Insert: {
+          expires_at: string
+          given_at?: string
+          id?: string
+          is_seed?: boolean
+          offender_side: string
+          order_id?: string | null
+          reason: string
+          removed_at?: string | null
+          removed_by?: string | null
+          user_id: string
+        }
+        Update: {
+          expires_at?: string
+          given_at?: string
+          id?: string
+          is_seed?: boolean
+          offender_side?: string
+          order_id?: string | null
+          reason?: string
+          removed_at?: string | null
+          removed_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_strikes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "shop_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shops: {
         Row: {
           about: string
           area_label: string
+          cancel_policy: string
           category: string
           created_at: string
           daily_order_cap: number | null
@@ -8226,6 +8441,7 @@ export type Database = {
         Insert: {
           about?: string
           area_label: string
+          cancel_policy?: string
           category: string
           created_at?: string
           daily_order_cap?: number | null
@@ -8251,6 +8467,7 @@ export type Database = {
         Update: {
           about?: string
           area_label?: string
+          cancel_policy?: string
           category?: string
           created_at?: string
           daily_order_cap?: number | null
@@ -12406,6 +12623,10 @@ export type Database = {
         Args: { p_user: string }
         Returns: Json
       }
+      shop_active_strike_count: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       shop_badges: { Args: { p_shop_id: string }; Returns: Json }
       shop_cottage_cap_reached: {
         Args: { p_owner_id: string }
@@ -12424,6 +12645,67 @@ export type Database = {
         Args: { p_description: string; p_kind: string; p_title: string }
         Returns: string
       }
+      shop_attach_checkout_session: {
+        Args: { p_order_id: string; p_session_id: string }
+        Returns: undefined
+      }
+      shop_captures_due: {
+        Args: { p_limit: number }
+        Returns: {
+          attempts: number
+          buyer_id: string
+          checkout_session_id: string
+          livemode: boolean
+          order_id: string
+          payment_intent_id: string
+          seller_id: string
+          total_cents: number
+        }[]
+      }
+      shop_day_count: {
+        Args: { p_day: string; p_seller: string; p_statuses: string[] }
+        Returns: number
+      }
+      shop_hold_release_failed: {
+        Args: { p_error: string; p_order_id: string }
+        Returns: undefined
+      }
+      shop_hold_released: { Args: { p_order_id: string }; Returns: undefined }
+      shop_holds_to_release: {
+        Args: { p_limit: number }
+        Returns: {
+          buyer_id: string
+          checkout_session_id: string
+          livemode: boolean
+          order_id: string
+          payment_intent_id: string
+          seller_id: string
+        }[]
+      }
+      shop_line_unit_cents: {
+        Args: { p_item_id: string; p_variant_id: string }
+        Returns: number
+      }
+      shop_local_today: { Args: never; Returns: string }
+      shop_mark_order_held: {
+        Args: {
+          p_amount_total: number
+          p_livemode: boolean
+          p_payment_intent_id: string
+          p_session_id: string
+          p_tax_cents: number
+        }
+        Returns: Json
+      }
+      shop_order_capture_failed: {
+        Args: { p_error: string; p_final: boolean; p_order_id: string }
+        Returns: Json
+      }
+      shop_order_captured: {
+        Args: { p_card_fee_cents: number; p_order_id: string }
+        Returns: Json
+      }
+      shop_order_sweep: { Args: never; Returns: Json }
       shop_owner_in_good_standing: {
         Args: { p_owner_id: string }
         Returns: boolean
@@ -12444,6 +12726,26 @@ export type Database = {
         Args: { p_shop_id: string; p_viewer: string }
         Returns: boolean
       }
+      shops_accept_order: { Args: { p_order_id: string }; Returns: Json }
+      shops_cancel_order_request: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      shops_decline_order: {
+        Args: { p_order_id: string; p_reason: string }
+        Returns: Json
+      }
+      shops_order_terms: { Args: { p_shop_id: string }; Returns: Json }
+      shops_request_order: {
+        Args: {
+          p_lines: Json
+          p_note: string
+          p_ready_date: string
+          p_shop_id: string
+        }
+        Returns: Json
+      }
+      shops_set_cancel_policy: { Args: { p_policy: string }; Returns: string }
       shops_add_item_photo: {
         Args: { p_item_id: string; p_storage_path: string }
         Returns: string

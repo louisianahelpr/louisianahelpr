@@ -60,6 +60,12 @@ interface DatePickerFieldProps {
   inline?: boolean;
   /** With `inline`: the id of the visible label naming the calendar. */
   labelledBy?: string;
+  /**
+   * Extra days that cannot be picked (`YYYY-MM-DD` in, true = greyed out),
+   * on top of `min`/`max`: e.g. a shop's closed weekdays and full days.
+   * Unlike `max` it does not switch the caption to dropdowns.
+   */
+  isDateDisabled?: (iso: string) => boolean;
 }
 
 /** Day cells spread across the column (seven equal tracks) instead of the
@@ -95,6 +101,7 @@ export function DatePickerField({
   showCompleteCheck = false,
   inline = false,
   labelledBy,
+  isDateDisabled,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
 }: DatePickerFieldProps) {
@@ -132,7 +139,7 @@ export function DatePickerField({
             mode="single"
             selected={selected}
             onSelect={(d) => d && onChange(toLocalIso(d))}
-            disabled={(d) => d < minDate || (maxDate ? d > maxDate : false)}
+            disabled={(d) => d < minDate || (maxDate ? d > maxDate : false) || (isDateDisabled ? isDateDisabled(toLocalIso(d)) : false)}
             defaultMonth={selected}
             classNames={INLINE_GRID}
             className="p-3 w-full"
@@ -200,7 +207,7 @@ export function DatePickerField({
               onChange(toLocalIso(d));
               setOpen(false);
             }}
-            disabled={(d) => d < minDate || (maxDate ? d > maxDate : false)}
+            disabled={(d) => d < minDate || (maxDate ? d > maxDate : false) || (isDateDisabled ? isDateDisabled(toLocalIso(d)) : false)}
             defaultMonth={selected ?? maxDate}
             startMonth={maxDate ? minDate : undefined}
             endMonth={maxDate}

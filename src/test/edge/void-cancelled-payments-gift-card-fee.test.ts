@@ -28,7 +28,7 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (cardShortCents > 0 && !feesFitCard) { | if (false) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (cardShortCents > 0 && !feesFitCard) { | if (cardShortCents > 0) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | blockFeeCents - (capturedCents - Math.max(0, chargeRefundedCents)))) | blockFeeCents - capturedCents))
- * @mutate supabase/functions/void-cancelled-payments/index.ts | if (!cardGift && chargeRefundedCents > voidSplit.ceilingCents + 1) { | if (chargeRefundedCents > voidSplit.ceilingCents + 1) {
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | if (!cardGift && !cardGiftGone && chargeRefundedCents > voidSplit.ceilingCents + 1) { | if (!cardGiftGone && chargeRefundedCents > voidSplit.ceilingCents + 1) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if ((cardGift \|\| cardGiftGone) && !refundFeeOnLedger) { | if (false) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (funding.donationReversed \|\| funding.cents < shortCents) { | if (funding.cents < shortCents) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (funding.donationReversed \|\| funding.cents < shortCents) { | if (funding.donationReversed) {
@@ -55,13 +55,14 @@ import { sourceChargeFor } from "../../../supabase/functions/_shared/money.ts";
 
 const CRON_SECRET = "cron-secret-void-gift-card-fee";
 
-async function load(): Promise<EdgeHarness> {
+async function load(extraEnv: Record<string, string> = {}): Promise<EdgeHarness> {
   setEnv({
     SUPABASE_URL: "https://x.supabase.co",
     SUPABASE_ANON_KEY: "anon-key",
     SUPABASE_SERVICE_ROLE_KEY: "service-key",
     STRIPE_SECRET_KEY: "sk_test_void",
     CRON_SECRET,
+    ...extraEnv,
   });
   return loadEdgeFunction("void-cancelled-payments");
 }
@@ -148,7 +149,7 @@ const heldPi = () => ({ id: "pi_1", status: "requires_capture", amount: CARD, am
 
 /** The spent gift row, reversed: it is the root of its tree, so it carries the donor's PaymentIntent. */
 const reversedGift = () => {
-  scenario.reads.gift_cards = { rows: [{ payment_status: "refunded", parent_credit_id: null, stripe_payment_intent_id: "pi_gift" }] };
+  scenario.reads.gift_cards = { rows: [{ id: "gift-spent", payment_status: "refunded", parent_credit_id: null, stripe_payment_intent_id: "pi_gift" }] };
 };
 const restoreCalls = () =>
   (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job").map((c) => c.args as Record<string, unknown>);
@@ -439,6 +440,9 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
       expect(jobFlips()).toHaveLength(0);
       expect(cappedPaged()).toBe(false);
       expect(waitsPaged()).toBe(true);
+      // Delta re-review #3: the alert names the row a person flips back.
+      const waits = (slackAlerts as Array<{ title?: string; fields?: Record<string, unknown> }>).find((a) => /waits for a chargeback/.test(String(a.title)));
+      expect(waits?.fields?.spent_gift_id).toBe("gift-spent");
     });
   }
 
@@ -533,6 +537,72 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
       expect.objectContaining({ payment_status: "refunded", cancellation_fee_status: "charged", cancellation_fee: want }),
     ]);
     expect(cappedAlert()?.fields?.gift_kept_cents).toBe(KEPT);
+  });
+
+  // Delta re-review #1: with a kept part K of the gift AND an earlier refund
+  // R on the card, the capped fee (card left after R + K) leaves a refund
+  // ceiling below R. The gift pays K, so that is not money refunded past the
+  // kept fees: the job settles, no daily "refunded past" page.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if (!cardGift && !cardGiftGone && chargeRefundedCents > voidSplit.ceilingCents + 1) { | if (!cardGift && chargeRefundedCents > voidSplit.ceilingCents + 1) {
+  it("delta #1: a kept gift part plus an earlier card refund settles at card-left + kept, with no refunded-past page", async () => {
+    seed();
+    const KEPT = 1000;
+    const R = 200;
+    const want = (CARD - R - CARD_FEE + KEPT) / 100;
+    giftRpc({ outcome: "already_restored", credit_id: "gift-2", applied_cents: GIFT, restore_cents: GIFT - KEPT });
+    scenario.writeSelectRows["cancellation_fee_transfers:insert"] = [{
+      id: "fee-1", job_id: "job-1", helper_id: "helper-1", status: "pending", stripe_transfer_id: null,
+      created_at: new Date().toISOString(), fee_amount: want, commission_percent: 12, platform_cut: 6.75, helper_amount: 49.50,
+    }];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi({ amount_refunded: R }));
+    const h = await load();
+    await h.fetch(cronReq());
+
+    expect(feeClaims().map((c) => Number(c.fee_amount))).toEqual([want]);
+    expect(jobFlips().map((w) => w.payload)).toEqual([
+      expect.objectContaining({ payment_status: "refunded", cancellation_fee_status: "charged", cancellation_fee: want }),
+    ]);
+    expect((slackAlerts as Array<{ severity?: string }>).filter((a) => a.severity === "critical")).toEqual([]);
+  });
+
+  // Delta re-review #2: a live gift can fund a test-mode job, so the
+  // donation is read in the mode whose Stripe knows its PaymentIntent.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if ((e as { code?: string } \| null)?.code === "resource_missing") continue; | if ((e as { code?: string } \| null)?.code === "resource_missing") return null;
+  it("delta #2: the donation's PaymentIntent unknown in one mode is looked up in the other", async () => {
+    seed();
+    reversedGift();
+    let giftReads = 0;
+    stripeMock.paymentIntents.retrieve.mockImplementation(async (id: string) => {
+      if (id === "pi_gift") {
+        giftReads++;
+        if (giftReads === 1) throw Object.assign(new Error("No such payment_intent: 'pi_gift'"), { code: "resource_missing" });
+        return { id: "pi_gift", status: "succeeded" };
+      }
+      return capturedPi();
+    });
+    stripeMock.disputes.list.mockResolvedValue({ data: [{ id: "dp_1", status: "needs_response" }] });
+    const h = await load({ STRIPE_TEST_SECRET_KEY: "sk_test_gift_mode" });
+    await h.fetch(cronReq());
+
+    expect(giftReads).toBe(2);
+    expect(stripeMock.disputes.list).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_gift" }));
+    expect(jobFlips()).toHaveLength(0);
+    expect(waitsPaged()).toBe(true);
+  });
+
+  it("delta #2: a donation unknown in every mode settles nothing (fails closed)", async () => {
+    seed();
+    reversedGift();
+    stripeMock.paymentIntents.retrieve.mockImplementation(async (id: string) => {
+      if (id === "pi_gift") throw Object.assign(new Error("No such payment_intent"), { code: "resource_missing" });
+      return capturedPi();
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+
+    expect(feeTransferCalls()).toHaveLength(0);
+    expect(jobFlips()).toHaveLength(0);
+    expect(cappedPaged()).toBe(false);
   });
 
   // Review of 8354ebb0e #4: a reversed gift comes back minted 'refunded' and

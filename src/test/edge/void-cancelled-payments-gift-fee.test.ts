@@ -242,7 +242,7 @@ describe("void-cancelled-payments: a fully gift-funded job's late-cancellation f
 
   // Review of Q1806 #1: revoke_gift_card_for_refund keeps a spent gift 'redeemed'
   // and flips its payment_status; the dry run still values it.
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |       if (spentRow.payment_status === "paid") return { cents, restored, donationReversed: false, disputeOpen: false }; |       if (true) return { cents, restored, donationReversed: false, disputeOpen: false };
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if (spentRow.payment_status === "paid") return | if (true) return
   it("a gift whose donation was refunded funds no fee: no transfer, settled without the fee, a person is told", async () => {
     seedSingle();
     scenario.reads.gift_cards = { rows: [{ payment_status: "refunded", parent_credit_id: null, stripe_payment_intent_id: "pi_gift" }] };

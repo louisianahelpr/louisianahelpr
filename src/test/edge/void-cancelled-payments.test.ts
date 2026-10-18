@@ -467,7 +467,7 @@ describe("void-cancelled-payments — Q1675: a charge already partly refunded", 
   // than this cancel may ($105 back of $110, $100 refundable) are paged and the job
   // is left alone; settling would pay the Helpr's fee out of money that
   // already went back to the poster.
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (chargeRefundedCents > voidSplit.ceilingCents + 1) { |           if (false) {
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | && chargeRefundedCents > voidSplit.ceilingCents + 1) { | && false) {
   it("a charge already refunded past what the cancel keeps is not settled and pages", async () => {
     seedCancelledEscrowJob();
     stripeMock.paymentIntents.retrieve.mockResolvedValue({

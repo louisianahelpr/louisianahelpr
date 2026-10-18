@@ -324,6 +324,21 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     });
   }
 
+  // Q1806 review of 8354ebb0e #3: a capped fee that never reached its ledger
+  // is not settled as 'charged' (Part E would have no row to pay); the job
+  // stays in escrow and the next run prices the same cap.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if ((cardGift \|\| cardGiftGone) && !refundFeeOnLedger) { | if (cardGift && !refundFeeOnLedger) {
+  it("Q2000: a capped fee whose ledger claim fails settles nothing", async () => {
+    seed();
+    scenario.reads.gift_cards = { rows: [{ payment_status: "refunded" }] };
+    scenario.writeErrors.cancellation_fee_transfers = { message: "claim insert failed" };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransferCalls()).toHaveLength(0);
+    expect(jobFlips()).toHaveLength(0);
+  });
+
   it("Q2000: on an uncaptured hold the whole hold is captured and the fee is capped at what it covered (same as the captured retry)", async () => {
     seed();
     scenario.reads.gift_cards = { rows: [{ payment_status: "refunded" }] };

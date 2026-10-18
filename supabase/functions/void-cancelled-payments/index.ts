@@ -1529,7 +1529,7 @@ serve(async (req) => {
           continue;
         }
         try {
-          const retryPi = job.stripe_payment_intent_id ? await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id) : null;
+          const retryPi = job.stripe_payment_intent_id ? await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id, { expand: ["latest_charge"] }) : null;
           await payCrewCancellationFees(job, shares, retryPi, stripe);
           crewSharesRetried += shares.length;
           results.push({ job_id: job.id, title: job.title, status: "crew_shares_retried", shares: shares.length });
@@ -1561,7 +1561,7 @@ serve(async (req) => {
           continue;
         }
         try {
-          const retryPi = job.stripe_payment_intent_id ? await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id) : null;
+          const retryPi = job.stripe_payment_intent_id ? await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id, { expand: ["latest_charge"] }) : null;
           await payHelperCancellationFee(
             { id: job.id, title: job.title, helper_id: owed.helper_id, helper_fee_percent: job.helper_fee_percent, helper_fee_flat_cents: job.helper_fee_flat_cents },
             Number(owed.fee_amount),
@@ -2168,7 +2168,7 @@ serve(async (req) => {
             ].filter((x): x is string => !!x);
             const holdFeeOnLedger = await payCancellationFee(cancellationFee, captured);
             await payBlockFees(captured);
-            if (holdGift && !holdFeeOnLedger) {
+            if ((holdGift || holdGiftGone) && !holdFeeOnLedger) {
               // Review #4: the gift is not kept for a fee with no ledger row for
               // Part E to pay it from. The hold is captured; the next run takes
               // the captured path, prices the same shortfall and retries.
@@ -2517,7 +2517,7 @@ serve(async (req) => {
 
           // Transfer the agreed fee to the helper (minus platform commission).
           const refundFeeOnLedger = await payCancellationFee(cancellationFee, pi);
-          if (cardGift && !refundFeeOnLedger) {
+          if ((cardGift || cardGiftGone) && !refundFeeOnLedger) {
             // Review #4: the gift is not kept for a fee with no ledger row for
             // Part E to pay it from. Nothing went back to the card; the next
             // run retries.

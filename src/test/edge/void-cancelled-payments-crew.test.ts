@@ -346,7 +346,7 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
       expect(body.defects).toBe(0);
       expect(body.defectReasons).toBeUndefined();
       expect(body.crew_shares_retried).toBe(0);
-      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_test_old");
+      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_test_old", { expand: ["latest_charge"] });
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       expect(ledgerFlips()).toHaveLength(0);

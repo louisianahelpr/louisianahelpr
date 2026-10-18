@@ -151,6 +151,9 @@ function runCli(code: number, body: unknown): Promise<{ code: number; out: strin
   reply = { code, body };
   const env = {
     PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "/tmp",
+    // The child is this test's stub run, not a prod write: under vitest assertFreshCheckout steps aside
+    // (a CI checkout has no origin/main ref, and this env drops GITHUB_ACTIONS).
+    VITEST: "true",
     SUPABASE_ACCESS_TOKEN: "stub", SUPABASE_PROJECT_REF: "stub", LH_SUPABASE_API_BASE: base,
   };
   return new Promise((done) => {

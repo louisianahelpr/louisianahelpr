@@ -109,7 +109,7 @@ describe("page gates that wait on the profile say offline (Q571)", () => {
 
   it("Profile wraps its whole boot placeholder in the gate", () => {
     const src = blankComments(readFileSync("src/pages/profile/Profile.tsx", "utf8"));
-    const branch = src.slice(src.indexOf("if (loading) {"), src.indexOf("const displayName"));
+    const branch = src.slice(src.indexOf("if (showSkeleton) {"), src.indexOf("const displayName"));
     expect(branch.length).toBeGreaterThan(100);
     expect(branch).toMatch(/<ProfileOfflineGate tab=\{tab\} onBack=\{backFromTab\}>\s*\{tab === "landing"/);
   });

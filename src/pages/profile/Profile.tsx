@@ -19,6 +19,8 @@ import { hapticSuccess, hapticError } from "@/lib/haptics";
 import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useFeatureStatus } from "@/hooks/useFeature";
+import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { stripeConnectStatusKey } from "@/hooks/useStripeConnectStatus";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
@@ -29,13 +31,7 @@ import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { splitName } from "@/lib/splitName";
 import { requireOnline } from "@/lib/requireOnline";
-import {
-  useProfileStats,
-  useProfileReviews,
-  useProfileEarnings,
-  useProfileSchedule,
-  useProfileViolations,
-} from "@/hooks/useProfileTabData";
+import { useProfileTabQueries } from "./useProfileTabQueries";
 
 // Only the landing tab + its lightweight header are needed on first paint.
 // Every other tab panel and the rarely-opened dialogs are code-split so the
@@ -98,6 +94,19 @@ const ProfilePage = () => {
   const [justSaved, setJustSaved] = useState(false);
   const initialTab = resolveTab(searchParams.get("tab"));
   const [tab, setTab] = useState<Tab>(initialTab);
+  // ONE SETTLED PAINT for the landing (Q169, Q?profile-declutter-shift). The
+  // landing shows rows only while a hidden switch is on: Declutter, Membership,
+  // Shops and Rentals (DeclutterEntryRow, useProfileLandingDerived, ShopsEntryRow,
+  // RentalsEntryRow). Painted before the answer, such a row lands later and pushes
+  // Settings down (prod, 375: the Declutter row came ~50 ms late, moved it 90px, CLS
+  // 0.0599, prod-audit run 39008504928). The reads start with the profile read; the
+  // skeleton holds until all answer, at most ARRIVAL_CAP_MS, so Log out never hides.
+  const declutterSwitch = useFeatureStatus("declutter");
+  const membershipsSwitch = useFeatureStatus("memberships");
+  const shopsSwitch = useFeatureStatus("shops");
+  const rentalsSwitch = useFeatureStatus("rentals");
+  const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled);
+  const showSkeleton = tab === "landing" ? !landingReady : loading;
 
   /**
    * Back out of a tab — to the Profile landing when that is where you came
@@ -186,45 +195,24 @@ const ProfilePage = () => {
   // populated; the requests are simply already in flight when it clears.
   const userId = user?.id ?? cachedUser?.id;
 
-  // Per-tab data — each section is its own `enabled`-gated React Query keyed
-  // under ["profile", userId, <section>], so switching away from a tab and
-  // back hits the cache, in-flight requests dedupe, and the prior
-  // loading/loaded flag pairs are gone. Each section still surfaces failures
-  // through its own inline <ProfileSectionError /> (driven by `.isError`)
-  // rather than a page-level banner — so one section failing never blanks
-  // the core profile (name, avatar) that loaded fine.
-  const statsQuery = useProfileStats(userId);
-  // Reviews feed the reviews tab only — the landing's 2-review hero
-  // preview was removed, so fetching on the landing bought nothing.
-  const reviewsQuery = useProfileReviews(userId, tab === "reviews");
-  // Also enabled on the landing tab so the header earnings-sparkline
-  // teaser has its (cheap jobs+tips) data without a second query. The
-  // result is cached, so opening the Earnings tab next is instant.
-  const earningsQuery = useProfileEarnings(
-    userId,
-    tab === "earnings" || tab === "payment" || tab === "landing",
-  );
-  // Schedule data drives the merged Schedule + Availability tab — gate
-  // on either sub-view so the calendar grid is hot the moment the user
-  // flips the internal toggle from Hours → Calendar.
-  // Availability is its own tab again and renders no job list, so it no
-  // longer needs the schedule fetch — only the calendar tab does.
-  const scheduleQuery = useProfileSchedule(userId, tab === "schedule");
-  const violationsQuery = useProfileViolations(userId, tab === "warnings");
-
-  const completedCount = statsQuery.data?.completedCount ?? 0;
-  const postedCount = statsQuery.data?.postedCount ?? 0;
-  const avgRating = statsQuery.data?.avgRating ?? null;
-  const reviewCount = statsQuery.data?.reviewCount ?? 0;
-  // Ladder-badge inputs AS A HELPR (VN-14) — same builder as the public profile.
-  const helperBadgeStats = statsQuery.data?.helperBadgeStats ?? null;
-
-  const reviews = reviewsQuery.data ?? [];
-  const earningsJobs = earningsQuery.data?.jobs ?? [];
-  const tips = earningsQuery.data?.tips ?? [];
-  const schedulePostedJobs = scheduleQuery.data?.posted ?? [];
-  const scheduleAssignedJobs = scheduleQuery.data?.assigned ?? [];
-  const violations = violationsQuery.data ?? [];
+  const {
+    statsQuery,
+    reviewsQuery,
+    earningsQuery,
+    scheduleQuery,
+    violationsQuery,
+    completedCount,
+    postedCount,
+    avgRating,
+    reviewCount,
+    helperBadgeStats,
+    reviews,
+    earningsJobs,
+    tips,
+    schedulePostedJobs,
+    scheduleAssignedJobs,
+    violations,
+  } = useProfileTabQueries(userId, tab);
 
   // Profile fields
   const [, setFullName] = useState("");
@@ -312,13 +300,13 @@ const ProfilePage = () => {
   // Pathname, not `key` — see profileScrollByKey above.
   const routeKey = routeLocation.pathname;
   useEffect(() => {
-    // `loading` is in the deps deliberately. Profile early-returns a SKELETON
-    // while loading, so PullToRefreshWrapper — and therefore containerRef — does
+    // `showSkeleton` is in the deps deliberately. Profile early-returns a SKELETON
+    // while it is set, so PullToRefreshWrapper — and therefore containerRef — does
     // not exist on first mount. Without this dep the effect bailed on the null
     // ref and never re-ran when the real list appeared, so the scroll listener
     // was never attached and nothing was ever saved. That is what defeated the
     // previous attempt at this fix, verified on device.
-    if (loading || tab !== "landing") return;
+    if (showSkeleton || tab !== "landing") return;
     const el = containerRef.current;
     if (!el) return;
 
@@ -342,7 +330,7 @@ const ProfilePage = () => {
       if (raf) cancelAnimationFrame(raf);
       el.removeEventListener("scroll", onScroll);
     };
-  }, [loading, tab, routeKey, containerRef]);
+  }, [showSkeleton, tab, routeKey, containerRef]);
 
   // Stripe payout status is fetched by `useStripeConnectStatus()` inside
   // <ProfileLanding />, not here — it used to be a `useState` + `useEffect`
@@ -545,7 +533,7 @@ const ProfilePage = () => {
   // broke deletion for 100% of users — see the hook's header.
   const deleteAccount = useDeleteAccount();
 
-  if (loading) {
+  if (showSkeleton) {
     // Loading state mirrors the loaded state's shell so there's no
     // header jump when the skeleton resolves. Uses AppShell + the same
     // DashboardHeader (which carries `.glass-header` → safe-area-top
@@ -569,8 +557,13 @@ const ProfilePage = () => {
             "mirrors the loaded state's shell so there's no header jump"; the
             declaration did not. Trust the declaration, never the comment
             beside it — which is also why `ProfilePageSkeleton` now draws the
-            landing's title row. */}
-        <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-4 flex-1 min-h-0 overflow-y-auto">
+            landing's title row.
+
+            aria-busy, as on ProfileRouteSkeleton (the frame before this one):
+            the skeleton's real Work rows are a loading frame, not the page
+            arriving. Without it the landing's wait for its switch answers
+            (Q?profile-declutter-shift) read as a second content wave. */}
+        <div aria-busy="true" className="container mx-auto px-5 lg:px-6 xl:px-6 pb-4 flex-1 min-h-0 overflow-y-auto">
           <div className="page-measure mx-auto">
             {/* THE PLACEHOLDER MUST BE THE SCREEN YOU ASKED FOR. This line
                 used to read `isEarningsTabUrl() ? <EarningsPageSkeleton /> :

@@ -21,7 +21,8 @@
     "cordova-plugin-purchase",
     "pg",
     "@electric-sql/pglite",
-    "@microsoft/eslint-formatter-sarif"
+    "@microsoft/eslint-formatter-sarif",
+    "@radix-ui/react-focus-scope"
   ],
   "rules": {
     "files": "error",

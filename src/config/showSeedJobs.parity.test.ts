@@ -253,6 +253,10 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // test, never a list of jobs shown to anyone.
     ["public.declutter_haul_away_state", "the seller's own haul-away job's state; not a feed"],
     ["public.declutter_link_haul_away", "single-job mutation on the caller's own job; status is a precondition"],
+    // Rentals S3 (20261017220911): the landlord cancels the ONE job linked to
+    // their own maintenance request (customer_id = auth.uid()); 'open' is a
+    // precondition, the function returns nothing.
+    ["public.rentals_cancel_request_job", "single-job mutation on the caller's own job; status is a precondition"],
     // A service_role sweep that tells a series POSTER their own funded visit is
     // still empty tomorrow (20261012195747); it shows no job to anyone else.
     ["public.sweep_unfilled_series_visit_reminders", "service_role sweep notifying the poster of their own series visit; not a feed"],
@@ -269,6 +273,10 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // payment_status of that one job are preconditions, nothing is listed.
     ["public.declutter_link_setup_job", "single-job mutation on the caller's own job; status is a precondition"],
     ["public.link_str_turnover_job", "single-job mutation on the caller's own job; status is a precondition"],
+    // Rentals S1 (20261017205605): the same rule for a maintenance request: it
+    // links the landlord's own approved request to the landlord's own job and
+    // reads `status = 'open'` of that one job as a precondition.
+    ["public.link_maintenance_request_job", "single-job mutation on the caller's own job; status is a precondition"],
     // Q1460: books an already-staffed crew (open -> accepted) at its hiring
     // cutoff; a server sweep over funded crews with hired members, not a feed.
     ["public.start_underfilled_crews", "server sweep that books staffed crews; not a feed"],

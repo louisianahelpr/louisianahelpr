@@ -149,6 +149,18 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
     uncovered:
       "the 'quotes' switch is created OFF (feature_switches, 20261015091114) and every caller (submit_job_quote, respond_to_job_quote) refuses with feature_disabled until it is on for the shared accounts; a two-account quote journey waits for the switch to be on for testers",
   },
+  "sql:rentals_notify": {
+    uncovered:
+      "Rentals S1 (20261017205605): every caller is a Rentals RPC behind the hidden 'rentals' switch, created OFF, so require_feature refuses the two shared accounts until the switch reaches testers. The rows (landlord told of a new / emergency request and a tenant joining; tenant told of approve / decline; owner told of the ownership check) are proven in src/test/pglite/rentalsMaintenance.pglite.mjs.",
+  },
+  "sql:rentals_submit_ownership_proof": {
+    uncovered:
+      "Rentals S3 (20261017223352): the 'Ownership proof waits for review' admin alert; the RPC starts with require_feature('rentals'), the hidden switch created OFF, so it refuses the shared accounts until the switch reaches testers, and a test landlord's upload never pages a real admin (notification_crosses_seed_boundary). Proven in src/test/pglite/rentalsMaintenance.pglite.mjs (one alert per waiting spell to the admin, none to the landlord, the close rule maps it).",
+  },
+  "sql:cancel_job_after_failed_bank_payment": {
+    uncovered:
+      "Q1972 (20261017205845): runs only from the stripe-webhook payment_intent.payment_failed handler (EXECUTE service_role only) when a hired job's bank payment fails; Stripe is live and the journeys never pay, so no bank payment can be made to fail. Proven in src/test/pglite/failedBankPaymentCancelsHiredJob.pglite.mjs (the confirmed Helpr told once, the poster told plainly, no fee, no strike).",
+  },
   "sql:request_job_schedule_change": { uncovered: GAP("request_job_schedule_change on a hired journey job (the other party answers with respond_job_schedule_change)") },
   "sql:respond_job_schedule_change": { uncovered: GAP("respond_job_schedule_change after the other party asks to move a hired journey job") },
   "sql:request_job_detail_change": { uncovered: GAP("request_job_detail_change on a hired journey job (each booked Helpr answers with respond_job_detail_change)") },

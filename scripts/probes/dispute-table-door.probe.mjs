@@ -39,6 +39,10 @@ try {
 }
 import fs from "node:fs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const LIVE = fs.readFileSync(new URL("./fixtures/dispute-table-door.live.sql", import.meta.url), "utf8");
 const MIG = fs.readFileSync(new URL("../../supabase/migrations/20260915033734_dispute_markers_server_owned.sql", import.meta.url), "utf8");

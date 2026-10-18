@@ -33,10 +33,13 @@ describe("Activity opens on the first bucket that has anything", () => {
     expect(firstBucketWithItems(ORDER, {}, "needs_you")).toBe("needs_you");
   });
 
-  it("the page applies it once per tab, only on a plain open (no filter or job in the link)", () => {
+  it("the page applies it once per tab, only on a plain open (no filter in the link; a job link is resolved first)", () => {
     const src = readFileSync(join(process.cwd(), "src/components/job-card/JobListPage.tsx"), "utf8");
     const effect = src.slice(src.indexOf("const openedOnFirstBucketFor"), src.indexOf("}, [loading, tab, activeCounts"));
-    expect(effect).toMatch(/if \(deepLinkHadFilter \|\| deepLinkJobId \|\| statusFilter !== defaultFilter\) return;/);
+    // A `?job=` link is waited for, not counted as the open (Q1668; the
+    // driven proof is src/test/activityLinkedJobNotOnList.test.tsx).
+    expect(effect).toMatch(/if \(deepLinkJobId\) return;\s*openedOnFirstBucketFor\.current = tab;/);
+    expect(effect).toMatch(/if \(deepLinkHadFilter \|\| statusFilter !== defaultFilter\) return;/);
     expect(effect).toMatch(/firstBucketWithItems\(activeStatusFilters\.map/);
     expect(effect).toMatch(/if \(next !== statusFilter\) setStatusFilter\(next\);/);
   });

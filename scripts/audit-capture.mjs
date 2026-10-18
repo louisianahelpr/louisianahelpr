@@ -49,6 +49,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseProfileTabKeys } from './lib/profileTabs.mjs';
 import { supabaseBase } from './lib/apiBase.mjs';
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');

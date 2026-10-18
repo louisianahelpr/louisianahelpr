@@ -154,6 +154,58 @@ async function jobIsFunded(jobId: string): Promise<boolean | null> {
 }
 
 /**
+ * Rentals: point the approved maintenance request at the job just posted from
+ * it. Best effort: the job exists either way, but the landlord is told when
+ * the link fails or is refused (lh-authz-rls review of ca8e149b9 #10), because
+ * an unlinked job never shows on the tenant's request and the tenant cannot
+ * answer "Was it fixed?" for it.
+ *
+ * "stop" when the request already points at another live job (paid, mid-
+ * checkout, or posted and still payable: another tab or device got there
+ * first): paying for this one would pay for the same repair twice
+ * (lh-money-escrow reviews of 01f8eab54 #2 and bb5b8bc6e #3). The request is
+ * re-read after a refusal AND after a link call that failed (network, timeout,
+ * deadlock), since a failed call says nothing about the request. A re-read
+ * that cannot be made (the chunk did not load, or the read failed) also stops:
+ * the money-safe answer to "is it already paid?" is not to pay again. A re-read
+ * showing the request already on THIS job (the link landed, its answer was
+ * lost) goes on with nothing to tell.
+ */
+async function linkMaintenanceJobOrTell(requestId: string, jobId: string): Promise<"go" | "stop"> {
+  let linkErr: unknown;
+  let mod: typeof import("./maintenancePrefill") | null = null;
+  try {
+    // Loaded only for a post opened from a request (off /posts' shared chunk);
+    // a background import, so a stale chunk never reloads the page mid-submit.
+    // A chunk that cannot load is a failed link, told below.
+    mod = await backgroundImport(() => import("./maintenancePrefill"), "maintenance-prefill");
+    if (await mod.linkMaintenanceJob(requestId, jobId)) return "go";
+    linkErr = new Error("maintenance link refused");
+  } catch (err) {
+    linkErr = err;
+  }
+  report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkMaintenance" }, context: { job_id: jobId, request_id: requestId } });
+  if (!mod) return "stop";
+  const now = await mod.fetchMaintenancePrefill(requestId).catch((readErr: unknown) => {
+    report(readErr, { severity: "warning", tags: { source: "useJobSubmit.linkMaintenanceRecheck" }, context: { request_id: requestId } });
+    return undefined;
+  });
+  if (now === undefined) return "stop";
+  if (now?.linkedJobId === jobId) return "go";
+  if (now?.alreadyPosted) return "stop";
+  // A failed CALL on a request that is still free: try the link once more, so a
+  // dropped call does not leave the repair offering a second post (re-review nit 3).
+  if (now && (linkErr as Error).message !== "maintenance link refused") {
+    const again = await mod.linkMaintenanceJob(requestId, jobId).catch(() => false);
+    if (again) return "go";
+  }
+  toast.error("Your job posted, but it isn't linked to the repair request", {
+    description: "Your tenant won't see it on their request. Tell them once a Helpr is booked.",
+  });
+  return "go";
+}
+
+/**
  * Declutter "Add a Helpr": point the paid order at this job, so the order card
  * shows the Helpr booked. Best effort: the job exists either way, but the
  * buyer is told when the link fails (lh-silent-failure review #1), so a
@@ -273,6 +325,8 @@ export interface UseJobSubmitParams {
   haulAwayItemIds?: string[] | null;
   /** Declutter "Add a Helpr": the paid order this post was opened from (`?declutterOrder=`), linked to the new job. */
   declutterOrderId?: string | null;
+  /** Rentals S1: the approved maintenance request this post was opened from (`?maintenance=`), linked to the new job. */
+  maintenanceRequestId?: string | null;
   // Media upload callbacks
   uploadAndAttachPhotos: (jobId: string) => Promise<void>;
   uploadAndAttachScopeVideo: (jobId: string) => Promise<void>;
@@ -323,6 +377,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     turnoverId,
     haulAwayItemIds,
     declutterOrderId,
+    maintenanceRequestId,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   } = params;
@@ -789,6 +844,27 @@ export function useJobSubmit(params: UseJobSubmitParams) {
        the buyer is told when the link fails (lh-silent-failure review #1), so a
        missing line on the order card never reads as "nothing booked yet". */
     if (declutterOrderId) await linkSetupJobOrTell(declutterOrderId, jobData.id);
+    /* Rentals S1: point the maintenance request at this job (best effort, the
+       turnover rule): the tenant then sees it booked and can answer "Was it fixed?".
+       A failed or refused link is reported AND told to the landlord. */
+    if (maintenanceRequestId && (await linkMaintenanceJobOrTell(maintenanceRequestId, jobData.id)) === "stop") {
+      // The repair already has a paid (or paying) job: remove this unpaid one
+      // and stop before payment, like a refused haul-away link.
+      await cleanupOrphanJob(jobData.id);
+      attemptRef.current = null;
+      safeStorage.removeItem(COOLDOWN_KEY);
+      hapticError();
+      // "may": a stop also follows a re-check that could not be read.
+      toast.error("This repair may already have a job", {
+        description: "Nothing was charged here. Open the repair request to see its job.",
+      });
+      setSaving(false);
+      setRedirecting(false);
+      setStep("checkout");
+      setConfirmed(false);
+      submittingRef.current = false;
+      return;
+    }
 
     // Stash the just-posted job id so the post-payment success sheet can
     // show share-this-link / view-applicants / post-another-like-this

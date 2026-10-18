@@ -1,4 +1,5 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
+import { BUCKET_LABEL, BUCKET_SHORT_LABEL } from "../../src/lib/activityBuckets";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { APIRequestContext, Browser, BrowserContext, Locator, Page } from "@playwright/test";
@@ -25,6 +26,7 @@ import { isoDayIn } from "../calendarPicker";
 import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
+import { findChip } from "./cardChips";
 import { ZONE, fillJobDetails, fillLogistics, fillBudget, slotAhead } from "./postJobForm";
 
 /**
@@ -177,8 +179,12 @@ async function openStatusTab(page: Page, name: "Needs You" | "Scheduled" | "Wait
   await expect(group.or(show).first(), "the status filter never rendered").toBeVisible({ timeout: 30_000 });
   if (!(await group.isVisible())) await show.first().click();
   await expect(group).toBeVisible();
-  await group.getByRole("button", { name: new RegExp(`^${name}\\b`) }).click();
-  await expect(group.getByRole("button", { name: new RegExp(`^${name}\\b`) })).toHaveAttribute("aria-pressed", "true");
+  // Below 390px each tab wears its short word ("You", "Soon", "Cancel"), and
+  // the short word IS its accessible name (UnderlineTabs hides the long one).
+  const bucket = (Object.keys(BUCKET_LABEL) as Array<keyof typeof BUCKET_LABEL>).find((k) => BUCKET_LABEL[k] === name)!;
+  const tabName = new RegExp(`^(${BUCKET_LABEL[bucket]}|${BUCKET_SHORT_LABEL[bucket]})\\b`);
+  await group.getByRole("button", { name: tabName }).click();
+  await expect(group.getByRole("button", { name: tabName })).toHaveAttribute("aria-pressed", "true");
 }
 
 function title(journey: string, outcome: "smooth" | "revision" | "disputed", persona: "poster-only" | "helper-only" | "both" = "both") {
@@ -504,14 +510,24 @@ test.describe.serial("marketplace chain", () => {
       const deadline = Date.parse(job.response_deadline);
       await atClock(browser, S.helper, new Date(deadline - 90_000), async (page) => {
         const c = await card(page, "/jobs", "Needs You");
-        await expect(c.getByText("1m remaining").first(), "90s before the deadline the offer does not read 1m remaining").toBeVisible({ timeout: 45_000 });
+        // The answer clock reads "<time> left to answer" since the offer
+        // cards share one clock panel (CountdownRows, Q1399, 2026-10-07). This
+        // leg needs a funded job, so it sat skipped in LIVE mode and still
+        // looked for DeadlineCountdown's old "1m remaining" when it ran again
+        // (nightly-red #2436, e2e-journeys 38749234414 / 38882683467).
+        await expect(c.getByText("1m left to answer").first(), "90s before the deadline the offer does not read 1m left to answer").toBeVisible({ timeout: 45_000 });
         await expect(c.getByText(/If you don't answer in time, the job reopens to everyone\. No strike\./).first(), "the offer does not say what silence does").toBeVisible();
         expect(await findChip(page, c, /^Accept\b/, 20_000), "Accept is not offered before the deadline").not.toBeNull();
         await assertHealthy(page, "offer 90s before its deadline");
         await journey.milestone(page, "tt-offer-1m-left");
       });
       await atClock(browser, S.helper, new Date(deadline + 60_000), async (page) => {
-        const c = await card(page, "/jobs", "Needs You");
+        // An expired offer leaves Needs You for Cancelled the moment its card
+        // says so (owner, 2026-10-03; appliedActivityBucket's offerHasExpired).
+        // This leg first ran on a funded job after that rule and looked only
+        // at the four live tabs (nightly-red #2436, e2e-journeys 39004547274:
+        // "is on no /jobs tab").
+        const c = await card(page, "/jobs", "Cancelled");
         await expect(c.getByText("This offer has expired").first(), "a minute past the deadline the offer does not say it expired").toBeVisible({ timeout: 45_000 });
         expect(await findChip(page, c, /^Accept\b/, 5_000), "Accept is still offered after the deadline, where respond refuses it").toBeNull();
         await assertHealthy(page, "offer a minute past its deadline");
@@ -561,10 +577,12 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("poster messages the helper with an attachment", async () => {
-      await pp.goto("/posts");
-      await openStatusTab(pp, scheduledTab());
-      await pp.getByText(TITLE).first().click();
-      await pp.getByRole("button", { name: "Message Helpr" }).first().click();
+      // Message may be on the row or in More: at 390px the booked card's row
+      // is More + "I'm Still On" (e2e-journeys 39020810698, 2026-10-17).
+      const booked = await card(pp, "/posts", scheduledTab());
+      const message = await findChip(pp, booked, /^Message\b/, 30_000);
+      expect(message, `the poster's ${scheduledTab()} card offers no Message, on the row or in More`).not.toBeNull();
+      await message!.click();
       await expect(pp).toHaveURL(/\/messages/, { timeout: 30_000 });
       const box = pp.getByRole("textbox", { name: "Type a message" });
       await expect(box).toBeVisible({ timeout: 30_000 });
@@ -680,14 +698,14 @@ test.describe.serial("marketplace chain", () => {
   }
 
   /** Open this run's card on a tab and return it. */
-  async function card(page: Page, path: "/posts" | "/jobs", tab: "Needs You" | "Scheduled" | "Waiting" | "Done", reload = true) {
+  async function card(page: Page, path: "/posts" | "/jobs", tab: "Needs You" | "Scheduled" | "Waiting" | "Done" | "Cancelled", reload = true) {
     if (reload) await page.goto(path);
     await page.waitForTimeout(1_500);
     await declineLocation(page);
     const heading = page.getByRole("heading", { name: TITLE, level: 2 });
     // The expected tab first; the job's bucket is recorded when it is elsewhere,
     // because which tab a job sits in is itself something a user relies on.
-    const order = [tab, ...(["Needs You", "Scheduled", "Waiting", "Done"] as const).filter((t) => t !== tab)];
+    const order = [tab, ...(["Needs You", "Scheduled", "Waiting", "Done", "Cancelled"] as const).filter((t) => t !== tab)];
     let found = "";
     for (const t of order) {
       await openStatusTab(page, t);
@@ -701,42 +719,6 @@ test.describe.serial("marketplace chain", () => {
     const c = page.locator("div.liquid-glass").filter({ has: heading }).last();
     if (!(await c.getByRole("group", { name: /Job progress/ }).isVisible().catch(() => false))) await heading.click();
     return c;
-  }
-
-  /**
-   * A card control by name, ON THE ROW OR IN ITS "More" OVERFLOW.
-   *
-   * A step whose action row cannot hold every chip parks the rest behind
-   * JobActionRow's overflow chip (`data-job-step-overflow`), whose panel
-   * (`data-job-step-overflow-panel`) is a Radix popover PORTALED to <body> —
-   * so a locator scoped to the card cannot see a chip in it, open or shut.
-   * Measured 2026-09-26 (e2e-journeys probe runs 36212737517 / 36213134702,
-   * wip/vac1797-probe-journeys): the poster's Done card of this very journey
-   * (it carries proof photos, so its row is Photos · More · Hire Again) had
-   * its review row in `reviews` (02:34:06Z), and its "Reviewed" chip was in
-   * the More panel next to "Tip" — `card.getByRole("button", { name:
-   * /^Reviewed\b/ })` counted 0 while the page had it. That, not the cache,
-   * is what 120s of reloads could not find in e2e-journeys 36211846948.
-   * Guarded by src/test/journeyChipsReachOverflow.test.ts.
-   */
-  async function findChip(page: Page, scope: ReturnType<Page["locator"]>, name: RegExp, timeout: number) {
-    const deadline = Date.now() + timeout;
-    const panel = page.locator("[data-job-step-overflow-panel]").filter({ visible: true });
-    for (;;) {
-      const inOpenPanel = panel.getByRole("button", { name }).first();
-      if (await inOpenPanel.isVisible().catch(() => false)) return inOpenPanel;
-      const onRow = scope.getByRole("button", { name }).filter({ visible: true }).first();
-      if (await onRow.isVisible().catch(() => false)) return onRow;
-      const more = scope.locator("[data-job-step-overflow]").filter({ visible: true }).first();
-      if (await more.isVisible().catch(() => false)) {
-        await more.click();
-        const inPanel = panel.getByRole("button", { name }).first();
-        if (await inPanel.waitFor({ state: "visible", timeout: 3_000 }).then(() => true, () => false)) return inPanel;
-        await page.keyboard.press("Escape");
-      }
-      if (Date.now() >= deadline) return null;
-      await page.waitForTimeout(1_000);
-    }
   }
 
   /**

@@ -81,6 +81,8 @@ const SITES: Site[] = [
   { file: "src/components/admin/marketing/marketingMedia.ts", bucket: "marketing-media", gate: ["src/components/admin/marketing/marketingMedia.ts", "MARKETING_MEDIA_MIME_EXT"], via: ["MARKETING_MEDIA_MIME_EXT"] },
   { file: "src/pages/post-job/useJobMediaUpload.ts", bucket: "job-photos", gate: ["src/pages/post-job/useJobMediaUpload.ts", "allowedImageTypes"], via: ["allowedImageTypes"] },
   // Declutter listing photos: cleaned to JPEG first (src/lib/declutter/photos.ts).
+  { file: "src/lib/rentals/api.ts", bucket: "user-documents", gate: [UT, "RENTALS_PROOF_TYPES"], via: ["isAllowedUploadType", "RENTALS_PROOF_TYPES"] },
+  { file: "src/lib/rentals/api.ts", bucket: "user-documents", gate: [UT, "RENTALS_REQUEST_PHOTO_TYPES"], via: ["isAllowedUploadType", "RENTALS_REQUEST_PHOTO_TYPES"] },
   { file: "src/lib/declutter/api.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["LISTING_PHOTO_UPLOAD_TYPES"] },
   // Declutter porch and problem photos (20261017055502): the same JPEG clean, into the PRIVATE handover bucket.
   // Declutter slice 5: Helpr task and vehicle photos, cleaned to JPEG first (the private helpr-tasks bucket).
@@ -121,6 +123,8 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/declutter/DeclutterDeliveryViews.tsx": { bucket: "helpr-tasks" },
   "src/components/shops/ShopEditView.tsx": { bucket: "job-photos" },
   "src/components/shops/ShopItemEditor.tsx": { bucket: "job-photos" },
+  "src/components/rentals/RentalsHomeView.tsx": { bucket: "user-documents" }, // ownership proof
+  "src/components/rentals/MaintenanceRequestForm.tsx": { bucket: "user-documents" }, // request photos
   "src/components/admin/marketing/MarketingComposerDialog.tsx": {
     bucket: "marketing-media",
     constSrc: "src/components/admin/marketing/marketingMedia.ts",

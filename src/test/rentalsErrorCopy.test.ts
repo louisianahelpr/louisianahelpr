@@ -1,0 +1,46 @@
+/**
+ * Every Rentals refusal has plain words. Two-way and EXACT: every code a
+ * rentals migration RAISEs has a line in RENTALS_ERROR_COPY, and every line
+ * there is a code a rentals migration raises.
+ *
+ * @mutate src/lib/rentals/errorCopy.ts |   ownership_not_approved: "You can invite tenants once an admin has checked your ownership proof.",\n | \n
+ * @mutate src/lib/rentals/copy.ts |   return RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY; |   return code;
+ */
+import { describe, expect, it } from "vitest";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { blankSqlComments } from "./helpers/blankNonCode";
+import { RENTALS_ERROR_COPY, rentalsErrorMessage } from "@/lib/rentals/copy";
+
+const DIR = join(process.cwd(), "supabase/migrations");
+// Every Rentals migration (S1 and each later restatement), read from the directory, not listed by hand.
+const RENTALS_FILES = readdirSync(DIR).filter((f) => /^\d{14}_rentals_.*\.sql$/.test(f)).sort();
+// require_feature (20261012031120) raises feature_disabled on every RPC.
+const SHARED = ["feature_disabled"];
+
+function raisedCodes(): Set<string> {
+  const out = new Set<string>(SHARED);
+  for (const f of RENTALS_FILES) {
+    const sql = blankSqlComments(readFileSync(join(DIR, f), "utf8"));
+    for (const m of sql.matchAll(/RAISE\s+EXCEPTION\s+'([a-z_0-9]+)'/g)) out.add(m[1]);
+  }
+  return out;
+}
+
+describe("Rentals error copy is exact (both ways)", () => {
+  const codes = raisedCodes();
+  it("reads a real inventory", () => {
+    expect(RENTALS_FILES.length).toBeGreaterThan(2);
+    expect(codes.size).toBeGreaterThan(25);
+  });
+  it("every code a rentals migration raises has plain words", () => {
+    expect([...codes].filter((c) => !(c in RENTALS_ERROR_COPY)).sort()).toEqual([]);
+  });
+  it("every line in the copy is a code a rentals migration raises", () => {
+    expect(Object.keys(RENTALS_ERROR_COPY).filter((c) => !codes.has(c)).sort()).toEqual([]);
+  });
+  it("maps a server error to its words, and an unknown one to a generic line", () => {
+    expect(rentalsErrorMessage({ message: "ownership_not_approved" })).toMatch(/admin has checked/);
+    expect(rentalsErrorMessage({ message: "weird" })).toBe("Couldn't do that just now. Check your connection and try again.");
+  });
+});

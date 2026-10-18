@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PenLine, FileText, LayoutTemplate, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
 import { sampleJobs } from "@/data/sampleJobs";
-import { useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
+import { usePostedBefore, useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { track } from "@/lib/analytics";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categoryColors } from "@/components/job-card/activityConstants";
@@ -36,6 +36,17 @@ import { useDraftCheckout } from "./useDraftCheckoutState";
  * which has neither, so its column holds 4 cards from first paint to last.
  * The fixed 5 drew the populated column and collapsed 112px at 375 on both
  * test accounts (2026-10-05).
+ *
+ * JOB HISTORY DECIDES THE REPOST CARD (owner, 2026-10-17): a poster with past
+ * jobs gets five bones, everyone else four, so nobody sees a jump. Drawing
+ * four until the read landed grew a returning poster's column by the Repost
+ * card, inserted second (loading-states-refresh 39008870955, poster-e2e at
+ * 375: 452px -> 574px). The answer comes from the read once it lands and,
+ * before that, from what this device learned last visit (usePostedBefore).
+ * On a device that has never asked (a returning poster on a new device, a
+ * cleared cache) the column draws the first-time default of FOUR (lead,
+ * 2026-10-17): a blank region during load is the defect class we avoid, and
+ * only that rare case then sees the Repost card arrive.
  */
 export const ENTRY_BASE_CARD_COUNT = 4;
 
@@ -156,6 +167,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   };
 
   const hasRecent = recentPosted && recentPosted.length > 0;
+  const postedBefore = usePostedBefore(recentPosted);
   // Same predicate FormStep uses; `null` means the preflight count has not
   // landed yet, which must read as "not at the limit", never as a refusal.
   const atOpenJobLimit = form.openJobCount !== null && form.openJobCount >= 5;
@@ -188,10 +200,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     form.draftLoaded && draftCheckoutSettled && recentPosted !== null && form.openJobCount !== null && savedHelpersSettled && giftCardsSettled,
     true,
   );
+  // Job history not known yet on this device (postedBefore null): the
+  // first-time default of four, never an empty column (see
+  // ENTRY_BASE_CARD_COUNT).
   if (!entryReady) {
     const count = entryCardCount({
       draftCard: form.draftLoaded && draftCheckoutSettled && form.hasDraft && draftCheckout !== "paid",
-      repostCard: !!hasRecent,
+      repostCard: postedBefore === true,
     });
     return <EntryChoiceSkeleton count={count} />;
   }

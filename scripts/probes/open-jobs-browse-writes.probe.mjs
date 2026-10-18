@@ -25,6 +25,10 @@ try {
 }
 import fs from "node:fs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 const MIG = fs.readFileSync(new URL("../../supabase/migrations/20260915041247_revoke_open_jobs_browse_writes.sql", import.meta.url), "utf8");
 
 const OWNER = "vbypass"; // stands in for postgres: bypasses RLS, not a superuser

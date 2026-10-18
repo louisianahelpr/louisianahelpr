@@ -160,7 +160,7 @@ jobs:
     #      used 17 of its 42 minutes on 38181023758, and list B no longer fit
     #      leg 4's 28: run 38689259675 timed out at test 133 of 162, rail-inset
     #      alone 8.0 min)
-    #   3  every other prod-audit spec, list A (~29 test-minutes)
+    #   3  every other prod-audit spec, list A (~31 test-minutes)
     #   4  list B (~22) + the Web Vitals lab (~23)
     # Every prod-audit spec is named in exactly one leg
     # (src/test/prodAuditLegs.test.ts); a new spec named in none is also
@@ -674,9 +674,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$GREP" ]; then
-            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP" e2e/prod-audit/shell-spacing.spec.ts e2e/prod-audit/senior-mode-no-silent-cut.spec.ts e2e/prod-audit/clipped-labels.spec.ts e2e/prod-audit/card-maps-hit-area.spec.ts e2e/prod-audit/admin-views.spec.ts e2e/prod-audit/activity-loading-reserve.spec.ts e2e/prod-audit/route-retention-signed-in.spec.ts e2e/prod-audit/activity-tabs-visible.spec.ts e2e/prod-audit/expanding-search-geometry.spec.ts e2e/prod-audit/public-page-fit.spec.ts e2e/prod-audit/notification-panel-jump.spec.ts e2e/prod-audit/profile-tab-scroll-fill.spec.ts e2e/prod-audit/reaction-chip-clearance.spec.ts
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP" e2e/prod-audit/shell-spacing.spec.ts e2e/prod-audit/skeleton-shape.spec.ts e2e/prod-audit/senior-mode-no-silent-cut.spec.ts e2e/prod-audit/clipped-labels.spec.ts e2e/prod-audit/card-maps-hit-area.spec.ts e2e/prod-audit/admin-views.spec.ts e2e/prod-audit/activity-loading-reserve.spec.ts e2e/prod-audit/route-retention-signed-in.spec.ts e2e/prod-audit/activity-tabs-visible.spec.ts e2e/prod-audit/expanding-search-geometry.spec.ts e2e/prod-audit/public-page-fit.spec.ts e2e/prod-audit/notification-panel-jump.spec.ts e2e/prod-audit/profile-tab-scroll-fill.spec.ts e2e/prod-audit/reaction-chip-clearance.spec.ts
           else
-            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts e2e/prod-audit/shell-spacing.spec.ts e2e/prod-audit/senior-mode-no-silent-cut.spec.ts e2e/prod-audit/clipped-labels.spec.ts e2e/prod-audit/card-maps-hit-area.spec.ts e2e/prod-audit/admin-views.spec.ts e2e/prod-audit/activity-loading-reserve.spec.ts e2e/prod-audit/route-retention-signed-in.spec.ts e2e/prod-audit/activity-tabs-visible.spec.ts e2e/prod-audit/expanding-search-geometry.spec.ts e2e/prod-audit/public-page-fit.spec.ts e2e/prod-audit/notification-panel-jump.spec.ts e2e/prod-audit/profile-tab-scroll-fill.spec.ts e2e/prod-audit/reaction-chip-clearance.spec.ts
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts e2e/prod-audit/shell-spacing.spec.ts e2e/prod-audit/skeleton-shape.spec.ts e2e/prod-audit/senior-mode-no-silent-cut.spec.ts e2e/prod-audit/clipped-labels.spec.ts e2e/prod-audit/card-maps-hit-area.spec.ts e2e/prod-audit/admin-views.spec.ts e2e/prod-audit/activity-loading-reserve.spec.ts e2e/prod-audit/route-retention-signed-in.spec.ts e2e/prod-audit/activity-tabs-visible.spec.ts e2e/prod-audit/expanding-search-geometry.spec.ts e2e/prod-audit/public-page-fit.spec.ts e2e/prod-audit/notification-panel-jump.spec.ts e2e/prod-audit/profile-tab-scroll-fill.spec.ts e2e/prod-audit/reaction-chip-clearance.spec.ts
           fi
 
       - name: Keep failure screenshots, samples and traces (leg 3)

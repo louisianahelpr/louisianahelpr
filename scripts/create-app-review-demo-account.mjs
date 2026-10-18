@@ -23,6 +23,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { latestConsentVersions } from "./lib/acceptCurrentTerms.mjs";
 import { supabaseBase } from "./lib/apiBase.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -184,6 +188,15 @@ async function main() {
     console.log("Existing profiles row — updating to reviewer-ready state.");
     await restUpdate("profiles", `user_id=eq.${userId}`, profilePayload);
   }
+
+  // ENROLLED in public.test_accounts: with the launch switch on, an is_seed
+  // account outside that table sees no test job and none sees it (Q552). A
+  // re-created account gets a new id, and the cascade drops the old row
+  // (Q1649), so every run enrols it again. Guarded by
+  // src/test/harnessAccountsAreEnrolled.test.ts.
+  const { ensureTestAccountsEnrolled } = await import("./lib/testAccountEnrolment.mjs");
+  const enrolled = await ensureTestAccountsEnrolled({ supabaseUrl: SUPABASE_URL, serviceKey: SERVICE_ROLE_KEY, userIds: [userId], note: "create-app-review-demo-account" });
+  console.log(enrolled.added.length ? "Enrolled in test_accounts." : "Already enrolled in test_accounts.");
 
   const prefRows = await restQuery(
     "notification_preferences",

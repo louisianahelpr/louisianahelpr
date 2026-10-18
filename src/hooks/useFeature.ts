@@ -19,9 +19,29 @@ import type { FeatureKey } from "@/config/featureSwitches";
  * reads every call to keep the registry exact.
  */
 export function useFeature(key: FeatureKey): boolean {
+  return useFeatureStatus(key).on;
+}
+
+/**
+ * useFeature, plus WHETHER THE ANSWER IS IN. `settled` turns true once the
+ * server has answered (yes, no, or an error: an error is an answer too, and it
+ * reads as off), and straight away when signed out, since there is nothing to
+ * ask. It is false while auth or the read is pending.
+ *
+ * For a page that must paint in ONE settled commit (Q169). Content that shows
+ * only while a switch is on otherwise arrives after the rest of the page and
+ * pushes it down (Q?profile-declutter-shift: on /profile at 375 the Declutter
+ * row landed about 50 ms after Settings and moved it 90px, CLS 0.0599). Feed
+ * `settled` to the page's useArrivalGate so the skeleton holds until the
+ * answer is in.
+ *
+ * The string-literal rule is the same as useFeature's
+ * (featureSwitchRegistry.test.ts reads both).
+ */
+export function useFeatureStatus(key: FeatureKey): { on: boolean; settled: boolean } {
   const { user, isReady } = useAuthReady();
   const uid = user?.id ?? null;
-  const { data, isSuccess } = useQuery({
+  const { data, isSuccess, isError } = useQuery({
     queryKey: ["feature-enabled", key, uid],
     enabled: isReady && !!uid,
     staleTime: 5 * 60_000,
@@ -29,5 +49,7 @@ export function useFeature(key: FeatureKey): boolean {
   });
   // isSuccess, not data: a refetch that fails keeps the last data but flips
   // the status to error, and an error reads as off.
-  return isReady && !!uid && isSuccess && data === true;
+  const on = isReady && !!uid && isSuccess && data === true;
+  const settled = isReady && (!uid || isSuccess || isError);
+  return { on, settled };
 }

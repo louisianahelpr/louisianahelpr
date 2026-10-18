@@ -111,7 +111,7 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
     // tab. Read from the source, because this branch runs before any query
     // resolves and no render test reaches it.
     const src = blankComments(readFileSync(resolve(__dirname, "../../pages/profile/Profile.tsx"), "utf8"));
-    const branch = src.slice(src.indexOf("if (loading) {"), src.indexOf("const displayName"));
+    const branch = src.slice(src.indexOf("if (showSkeleton) {"), src.indexOf("const displayName"));
     expect(branch.length, "Profile.tsx's loading branch was not found — this guard has rotted").toBeGreaterThan(100);
     expect(branch, "the boot skeleton must render the tab's own placeholder").toContain("ProfileTabFallback");
     // The PAIRING, not the presence of either half: `/tab === "landing"/`

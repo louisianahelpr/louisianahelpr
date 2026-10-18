@@ -15,11 +15,31 @@
  * path immutable names a prefix no rewrite to /index.html may match. A new
  * immutable path, or a widened catch-all, fails here.
  *
+ * Q1737 (2026-10-17): the 404 itself must not carry the immutable header.
+ * vercel.json's header rules stamp every response under /assets/ and /fonts/,
+ * found or not (curl -sI on www, 2026-10-12 and 2026-10-17: 404 text/plain
+ * with `public, max-age=31536000, immutable`). Each immutable prefix now has a
+ * rewrite to api/missing-asset.ts, which only a path with no file reaches
+ * (filesystem first), and whose own `no-store` beats the header rule
+ * (MEASURED on a Vercel preview 2026-10-17 with this exact headers/rewrites
+ * block: real /assets/ and /fonts/ files 200 immutable, missing ones 404
+ * no-store). prod-freshness.yml re-measures it live after every deploy
+ * (scripts/check-missing-asset-headers.mjs).
+ *
  * @mutate vercel.json | "source": "/((?!api/\|_vercel/\|assets/\|fonts/).*)" | "source": "/((?!api/\|_vercel/\|fonts/).*)"
+ * @mutate vercel.json | "source": "/fonts/(.*)",\n      "destination": "/api/missing-asset" | "source": "/fonts-gone/(.*)",\n      "destination": "/api/missing-asset"
+ * @mutate api/missing-asset.ts | export const MISSING_ASSET_CACHE_CONTROL = "no-store"; | export const MISSING_ASSET_CACHE_CONTROL = "public, max-age=31536000, immutable";
+ * @mutate api/missing-asset.ts |     status: 404, |     status: 200,
+ * @mutate scripts/check-missing-asset-headers.mjs |   if (/\bimmutable\b/.test(v)) return false; |   if (/\bimmutable\b/.test(v)) return true;
+ * @mutate scripts/check-missing-asset-headers.mjs |   if (!real) bad.push( |   if (false) bad.push(
+ * @mutate .github/workflows/prod-freshness.yml |         run: node scripts/check-missing-asset-headers.mjs |         run: echo skipped
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { parse } from "yaml";
+import { missingAssetResponse } from "../../api/missing-asset";
+import { cacheControlKeepsNothing, judgeMissingAssetHeaders } from "../../scripts/check-missing-asset-headers.mjs";
 
 type Header = { source: string; headers: { key: string; value: string }[] };
 type Rewrite = { source: string; destination: string };
@@ -62,5 +82,60 @@ describe("an immutable path never falls through to the SPA page (Q1663)", () => 
     const re = sourceToRegExp(spaRewrites[spaRewrites.length - 1].source);
     for (const route of ["/home", "/jobs", "/messages/abc", "/profile/settings"]) expect(re.test(route), route).toBe(true);
     for (const route of ["/api/share", "/_vercel/insights/script.js"]) expect(re.test(route), route).toBe(false);
+  });
+});
+
+describe("a missing immutable file 404s with nothing cacheable (Q1737)", () => {
+  const MISSING_FN = "/api/missing-asset";
+
+  it("every immutable prefix rewrites its missing files to the no-store 404", () => {
+    const unhandled: string[] = [];
+    for (const src of immutableSources) {
+      for (const path of [src.replace("(.*)", "missing-Q1737-x.js"), src.replace("(.*)", "a/b/missing-Q1737-x.css")]) {
+        // The FIRST rewrite that matches wins; it must be the missing-asset function.
+        const first = (cfg.rewrites ?? []).find((r) => !/:[A-Za-z]/.test(r.source) && sourceToRegExp(r.source).test(path));
+        if (first?.destination !== MISSING_FN) unhandled.push(`${path} -> ${first?.destination ?? "(no rewrite: platform 404 with the immutable header)"}`);
+      }
+    }
+    expect(immutableSources.length).toBeGreaterThanOrEqual(2);
+    expect(unhandled, "a missing immutable file would 404 with the year-long immutable header").toEqual([]);
+  });
+
+  it("the function answers 404 with no-store", async () => {
+    const r = missingAssetResponse();
+    expect(r.status).toBe(404);
+    expect(cacheControlKeepsNothing(r.headers.get("cache-control"))).toBe(true);
+    expect(await r.text()).toMatch(/Not Found/);
+  });
+
+  it("the live check's verdict: red on the measured prod 404, green on the measured preview", () => {
+    const real = { path: "/assets/index-SPawCA1U.js", status: 200, cacheControl: "public, max-age=31536000, immutable" };
+    // prod www, 2026-10-17 (before the fix)
+    const prod = [{ path: "/assets/missing-Q1737-1.js", status: 404, cacheControl: "public, max-age=31536000, immutable" }];
+    expect(judgeMissingAssetHeaders({ real, missing: prod })).toHaveLength(1);
+    // preview with this vercel.json, 2026-10-17
+    const preview = [
+      { path: "/assets/missing-Q1737-1.js", status: 404, cacheControl: "no-store" },
+      { path: "/fonts/missing-x.woff2", status: 404, cacheControl: "no-store" },
+    ];
+    expect(judgeMissingAssetHeaders({ real, missing: preview })).toEqual([]);
+    // Fail closed: nothing measured, a lost immutable on the real file, an SPA 200.
+    expect(judgeMissingAssetHeaders({ real: null, missing: preview })).not.toEqual([]);
+    expect(judgeMissingAssetHeaders({ real, missing: [] })).not.toEqual([]);
+    expect(judgeMissingAssetHeaders({ real: { ...real, cacheControl: "public, max-age=0, must-revalidate" }, missing: preview })).not.toEqual([]);
+    expect(judgeMissingAssetHeaders({ real, missing: [{ ...preview[0], status: 200 }] })).not.toEqual([]);
+    for (const v of ["", "public, max-age=600", "s-maxage=31536000", "max-age=0, immutable"]) expect(cacheControlKeepsNothing(v), v).toBe(false);
+    for (const v of ["no-store", "public, max-age=0, must-revalidate", "no-cache"]) expect(cacheControlKeepsNothing(v), v).toBe(true);
+  });
+
+  it("prod-freshness re-measures it live once prod serves the commit", () => {
+    const wf = parse(readFileSync(resolve(__dirname, "../../.github/workflows/prod-freshness.yml"), "utf8")) as {
+      jobs: Record<string, { steps?: Array<{ name?: string; run?: string }> }>;
+    };
+    const steps = wf.jobs["served-commit"]?.steps ?? [];
+    const wait = steps.findIndex((s) => s.name === "Wait for prod to serve this commit");
+    const check = steps.findIndex((s) => (s.run ?? "").trim() === "node scripts/check-missing-asset-headers.mjs");
+    expect(wait, "the freshness wait step moved").toBeGreaterThanOrEqual(0);
+    expect(check, "no live missing-asset check after the deploy").toBeGreaterThan(wait);
   });
 });

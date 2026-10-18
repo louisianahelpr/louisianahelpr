@@ -18,6 +18,10 @@ import { apiBase } from "./lib/apiBase.mjs";
 import { appendFileSync } from "node:fs";
 import { KEY_EVENTS, alertTitle, evaluateFreshness, freshnessSql } from "./lib/analyticsFreshness.mjs";
 import { failingRunRef, recordOpsAlert } from "./lib/opsAlertLedger.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const env = process.env;
 const SUPA = apiBase(env.LH_SUPABASE_API_BASE, "https://api.supabase.com");

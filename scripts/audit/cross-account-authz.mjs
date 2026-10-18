@@ -10,6 +10,10 @@
  * and should not have is a leak.
  */
 import { execFileSync } from "node:child_process";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const SUPABASE_URL = "https://fncmgoasalhdgfwzhsqa.supabase.co";
 const ANON = "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP";

@@ -33,6 +33,7 @@ import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { HelperSeriesRow, ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
 import { useCardNotes } from "@/components/job-card/JobNotes";
+import { RentalVisitHelprSlot } from "@/components/rentals/RentalVisitHelprSlot";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -92,11 +93,7 @@ function AppliedJobCardInner({
   const firstPayoutFee = useFirstPayoutFeeDollars();
   // Q344: a decided dispute whose money has not moved is not "Paid out".
   const unsettledDisputeJobIds = useUnsettledDisputeJobIds();
-  const viewerFeePercent = tierFeePercent(
-    viewerProfile?.subscription_tier,
-    viewerProfile?.subscription_expires_at ?? null,
-  );
-
+  const viewerFeePercent = tierFeePercent(viewerProfile?.subscription_tier, viewerProfile?.subscription_expires_at ?? null);
 
   useHighlightPulse(highlight, cardRef);
 
@@ -468,6 +465,7 @@ function AppliedJobCardInner({
               </section>
             )}
             {showNotes && notes}
+            <RentalVisitHelprSlot jobId={app.job_id} jobStatus={job.status} show={!isMinimalCard && expandedJobIds.has(app.job_id) && app.status === "accepted" && !!job.helper_confirmed_at} />
             {showBodyPhotos && <JobCardPhotoStrip urls={job.photos || []} size="sm" stopPropagation />}
 
             {/* The poster, as a PersonTile — the same shared tile the poster

@@ -197,6 +197,10 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     // Quotes slice 1 (20261015091114): WRITES the offeree (the agreed quoter) on the
     // booked job's insert and returns only the new job id; never reads it back.
     "function:quote_insert_job": "no-return",
+    // Q1972 (20261017205845): reads offered_to_helper_id only to decide whether anyone was
+    // hired; its verdict names the CONFIRMED Helprs told (helpers_told), never the offeree,
+    // and EXECUTE is service_role only (the stripe-webhook payment_failed handler).
+    "function:cancel_job_after_failed_bank_payment": "no-return",
     // Q1575: reads OLD.offered_to_helper_id to name who declined, for the POSTER's own notice; returns nothing.
     "function:record_backout_notice": "no-return",
     // Q1185: read the offeree to judge or clear a pending direct accept; none returns it.

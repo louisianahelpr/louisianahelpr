@@ -38,6 +38,7 @@ import {
   useActivityFilters,
   postedActivityBucket,
   appliedActivityBucket,
+  jobIsUnfundedDraft,
 } from "@/components/job-card/activityFilters";
 import { PostsHeader, POSTS_HEADER_PADDING } from "@/pages/posts/PostsHeader";
 import { JobsHeader, JOBS_HEADER_PADDING } from "@/pages/jobs/JobsHeader";
@@ -45,8 +46,7 @@ import { ActivityEmptyState } from "@/components/job-card/ActivityEmptyState";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";
 import { toast } from "sonner";
-import { hapticSuccess } from "@/lib/haptics";
-import { upgradeUnverifiedArrival } from "@/lib/arrivalRefresh";
+import { recheckUnverifiedArrival } from "@/components/job-card/recheckUnverifiedArrival";
 import SectionBoundary from "@/components/SectionBoundary";
 import { defaultStatusFilterFor, firstBucketWithItems } from "@/components/job-card/activityConstants";
 
@@ -291,11 +291,15 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     deepLinkResolvedFor.current = deepLinkKey;
 
     let bucket: string | null = null;
+    let onList = false;
     if (tab === "posted") {
       const job = deepLinkJobId
         ? postedJobs.find((j) => j.id === deepLinkJobId)
         : (highlightJobId ? postedJobs.find((j) => j.id === highlightJobId) : undefined);
-      if (job) {
+      // A never-paid job is in the raw list but in NO bucket (jobIsUnfundedDraft),
+      // so for this page it is not on the list either (Q1668).
+      if (job && !jobIsUnfundedDraft(job)) {
+        onList = true;
         bucket = postedActivityBucket(job, pendingApplicantCounts?.[job.id] ?? 0);
         // Parity with the applied branch below: name the card, don't just pick
         // the bucket it lives in.
@@ -308,6 +312,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         (deepLinkJobId ? appliedApps.find((a) => a.job_id === deepLinkJobId) : undefined) ??
         (highlightAppId ? appliedApps.find((a) => a.id === highlightAppId) : undefined);
       if (app) {
+        onList = true;
         bucket = appliedActivityBucket(app);
         // Pulse the card we just navigated to, even when the link only knew
         // the job id.
@@ -319,6 +324,16 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // `deepLinkHadFilter`. With a job in hand the live bucket is the better
     // answer, and honouring a frozen one is what defeated the last two sweeps.
     if (deepLinkHadFilter && !deepLinkJobId) bucket = null;
+
+    // THE LINKED JOB IS NOT ON THIS LIST (Q1668, e2e-journeys 38181872855: a
+    // notification about poster-e2e's cancelled, never-paid job opened My Posts
+    // on an empty "Needs You" with nothing said, while Waiting held a job).
+    // Say so, and set no bucket: the open-on-the-first-bucket rule below
+    // waits while a `?job=` link is unresolved, and once `job` leaves the URL
+    // it chooses exactly as it does for a plain open.
+    if (deepLinkJobId && !onList) {
+      toast.info(`That job is no longer on ${tab === "posted" ? "My Posts" : "My Jobs"}.`);
+    }
 
     const next = new URLSearchParams(searchParams);
     const hadJobParam = next.has("job");
@@ -366,43 +381,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // instance ("/posts" vs "/jobs") tracks its own pull-state so one
   // tab's refresh never leaks into the other.
   const tabRefresh = useCallback(async () => {
-    /* THE GESTURE ALSO RE-CHECKS AN UNVERIFIED ARRIVAL (owner, 2026-09-19).
-       It is what replaces the "Try My Location Again" chip the same ruling
-       removed from the job card's action row — and it had to be built first,
-       because that chip was measurably the ONLY claimed -> verified path in
-       the product (the row's primary in that state reads "Start Working", not
-       "Mark Arrived", so there was nothing else to re-tap).
-
-       DELIBERATELY NOT AWAITED. The gesture's advertised job is refreshing the
-       list, and it must finish on time whatever geolocation does — a denied
-       prompt or a 15-second timeout cannot be allowed to hold the refresh
-       spinner open. `upgradeUnverifiedArrival` never throws, asks for a fix
-       ONLY when there is an arrival it could upgrade (so an ordinary refresh
-       triggers no prompt and no write at all), and remembers a denial for the
-       page's life rather than re-prompting on every pull. The rules and the
-       reasoning are in src/lib/arrivalRefresh.ts.
-
-       Only the Helpr's own tab: on My Posts there is nothing a poster could
-       check in for. `appliedApps` is this tab's data and the predicate filters
-       to `helper_id === user.id` again on top of that. */
-    if (tab === "applied" && user?.id) {
-      const uid = user.id;
-      void upgradeUnverifiedArrival(
-        appliedApps.map((a) => ({ id: a.job_id, ...(a.job ?? {}) })),
-        uid,
-      ).then((res) => {
-        // SILENCE UNLESS IT WORKED. A refresh that could not get a fix has
-        // broken nothing — the arrival is already recorded and the job is not
-        // waiting on it — and the Helpr asked for a refresh, not for this. An
-        // apology for unrequested work is worse than saying nothing. The one
-        // thing worth interrupting for is the win.
-        if (res.outcome === "upgraded") {
-          hapticSuccess();
-          toast.success("GPS confirmed you were at the job.", { duration: 6000 });
-          void refresh();
-        }
-      });
-    }
+    // The gesture also re-checks an unverified arrival; not awaited (see recheckUnverifiedArrival.ts).
+    if (tab === "applied" && user?.id) recheckUnverifiedArrival(appliedApps, user.id, refresh);
     await refresh();
   }, [refresh, tab, user?.id, appliedApps]);
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
@@ -426,12 +406,17 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
      tab, when its data first lands, and only on a plain open: a link that
      names a filter or a job keeps what it named, and a bucket the reader
      picks afterwards is never moved. Supersedes the earlier no-auto-switch
-     rule; ActivityEmptyState's pointer still covers a bucket emptied later. */
+     rule; ActivityEmptyState's pointer still covers a bucket emptied later.
+     A `?job=` link is waited for, not counted as the open (Q1668): the link
+     resolves first and drops `job` from the URL, having chosen the job's
+     bucket when the job is on the list; when it is not, this rule then opens
+     the first bucket that holds anything instead of a silent empty one. */
   const openedOnFirstBucketFor = useRef<string | null>(null);
   useEffect(() => {
     if (loading || openedOnFirstBucketFor.current === tab) return;
+    if (deepLinkJobId) return;
     openedOnFirstBucketFor.current = tab;
-    if (deepLinkHadFilter || deepLinkJobId || statusFilter !== defaultFilter) return;
+    if (deepLinkHadFilter || statusFilter !== defaultFilter) return;
     const next = firstBucketWithItems(activeStatusFilters.map((f) => f.key), activeCounts, defaultFilter);
     if (next !== statusFilter) setStatusFilter(next);
   }, [loading, tab, activeCounts, activeStatusFilters, deepLinkHadFilter, deepLinkJobId, statusFilter, defaultFilter]);

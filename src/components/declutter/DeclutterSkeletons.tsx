@@ -34,19 +34,32 @@ export function DeclutterHomeSkeleton() {
     >
       <p className="text-sm text-muted-foreground">Buy and sell used household items near you. Pick up in person.</p>
       <Skeleton className="h-12 w-full rounded-full" aria-hidden />
-      <div className="space-y-4" role="status" aria-label="Loading items">
-        {/* The distance choices wrap to three rows on a phone (140px at 375)
-            and sit in one row from sm up. */}
-        <Skeleton className="h-[140px] sm:h-12 w-full rounded-2xl" />
-        <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" aria-hidden>
-          {[0, 1, 2, 3].map((i) => (
-            <li key={i} className="min-w-0">
-              <Skeleton className="aspect-square w-full rounded-2xl" />
-            </li>
-          ))}
-        </ul>
-      </div>
+      <DeclutterBrowseBones />
     </AppPage>
+  );
+}
+
+/**
+ * The Browse view's body while it loads: the distance row and the first
+ * cards. Shared by the page skeleton above and BrowseView itself, which shows
+ * it until where you are AND the items are both in, then paints everything at
+ * once (Q?declutter-settle: the distance row used to land above an already
+ * painted "Loading items…" line and push it 238px down at 375).
+ */
+export function DeclutterBrowseBones() {
+  return (
+    <div className="space-y-4" role="status" aria-label="Loading items">
+      {/* The distance choices wrap to three rows on a phone (140px at 375)
+          and sit in one row from sm up. */}
+      <Skeleton className="h-[140px] sm:h-12 w-full rounded-2xl" />
+      <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" aria-hidden>
+        {[0, 1, 2, 3].map((i) => (
+          <li key={i} className="min-w-0">
+            <Skeleton className="aspect-square w-full rounded-2xl" />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

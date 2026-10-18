@@ -1,5 +1,5 @@
 import { appendFileSync } from "node:fs";
-import { afterEach, expect } from "vitest";
+import { afterEach, expect, vi } from "vitest";
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { installProdNetworkGuard } from "./prodNetworkGuard";
@@ -10,6 +10,19 @@ import { installProdNetworkGuard } from "./prodNetworkGuard";
 // after jsdom teardown failed a whole CI shard with "document global ... not
 // defined anymore" (helperDisputeCopy, CI run 36880636360, twice).
 // Guarded by src/test/rtlCleanupIsGlobal.test.ts.
+// Radix FocusScope (every Dialog, Popover, Sheet, AlertDialog) dispatches its
+// unmount event from a setTimeout(0) scheduled DURING that unmount. Registered
+// before the cleanup hook, so with vitest's default "stack" order it runs after
+// it (and it unmounts itself too, so the order cannot matter): wait one real
+// tick so that timer fires while jsdom is alive. Without it, a file's last test
+// could leave the timer to fire after teardown, failing the run with "parameter
+// 1 is not of type 'Event'" while every test passed (land-vitest-changed
+// 2026-10-15). Fake timers left on by a file never fire after teardown.
+// Guarded by src/test/radixUnmountTimerDrains.test.tsx.
+afterEach(async () => {
+  cleanup();
+  if (!vi.isFakeTimers()) await new Promise((r) => setTimeout(r, 0));
+});
 afterEach(() => cleanup());
 
 // Unit tests never reach prod Supabase (Q55a): see src/test/prodNetworkGuard.ts.

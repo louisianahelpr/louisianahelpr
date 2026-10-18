@@ -18,10 +18,15 @@ import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { fund, retireFundedJob, type Row } from "../prod-audit/fundedOpenJob";
 import { settleJobForward } from "../../scripts/e2e/settleForward.mjs";
 import { slotAhead } from "./postJobForm";
+import { withChromium } from "./stripeInChromium";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
+import { moveSeedJobStart } from "../moveSeedJobStart";
 import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
 import { createThrowaway, deleteThrowaway, serviceKey, type Throwaway } from "./throwaway";
 import { srFetch } from "../serviceRoleFetch";
+import { cardByTitle, findChip } from "./cardChips";
+import { refundToPayerCents } from "../../src/lib/refundAmount";
+import { stripeProcessingCostCents } from "../../src/lib/stripeFees";
 
 /**
  * Journeys 9-11: the admin and safety outcomes nothing else drove on the real
@@ -104,7 +109,9 @@ async function postJob(api: APIRequestContext, poster: Session, jobTitle: string
  * turned that refusal into `skipUncovered` here was unreachable.
  */
 async function fundJob(api: APIRequestContext, browser: Browser, poster: Session, jobId: string, log: string[]) {
-  await fund(api, browser, poster, { id: jobId } as Row, log);
+  // Paid in Chromium in every engine: Stripe's hosted page errors in
+  // Playwright's WebKit (withChromium, ./stripeInChromium.ts).
+  await withChromium(browser, (chrome) => fund(api, chrome, poster, { id: jobId } as Row, log));
 }
 
 /** Mark read, then delete, the notifications a journey produced for `s` on `jobId`. */
@@ -200,10 +207,27 @@ test.describe.serial("admin and safety journeys", () => {
         .toBe("cancelled/refunded");
       const rows = await refunds();
       expect(rows, "two Stripe refunds on the ledger").toHaveLength(2);
-      expect(rows[1]).toMatchObject({ is_partial: false, source: "admin_refund_general" });
+      // Every refund keeps the card processing fee since a173ae28e (owner,
+      // 2026-10-14, Q1735: "we should never absorb any fee"), so the full
+      // refund leaves the fee on the charge and the ledger calls it what Stripe
+      // sees, a partial, worded as the full refund it is (nightly-red #2436,
+      // e2e-journeys 38749234414 / 38882683467 read the old is_partial false).
+      expect(rows[1]).toMatchObject({ is_partial: true, source: "admin_refund_general" });
+      expect(rows[1].reason ?? "", "the full refund's ledger row does not say the card fee was kept").toMatch(/full refund less the card processing fee/);
       expect(rows[1].stripe_refund_id).toMatch(/^re_/);
-      // The remainder of a capture of at least the $25 budget.
-      expect(rows[1].amount_cents, "the full refund returned less than the budget minus the partial").toBeGreaterThanOrEqual(2000);
+      // Exactly what the refund rule leaves: the capture less the card fee kept
+      // (Stripe's 2.9% + 30c on it, a173ae28e: "we should never absorb any fee")
+      // less the $5 already returned. A journey job carries no card surcharge
+      // (customer_fee_amount 0, platform_fee_percent 0 since 2026-10-11), so
+      // the capture is the $25 budget: measured in e2e-journeys 39004547274,
+      // PaymentIntent amount 2500, refunds 500 + 1897 (nightly-red #2436; the
+      // old ">= 2000" predates the kept fee).
+      const fees = await request.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${jobId}&select=budget,customer_fee_amount,urgent_fee`, { headers: rest(poster) });
+      const [priced] = (await fees.json()) as Array<{ budget: number; customer_fee_amount: number | null; urgent_fee: number | null }>;
+      expect([Number(priced.customer_fee_amount ?? 0), Number(priced.urgent_fee ?? 0)], "the expected amount assumes a capture of the budget alone").toEqual([0, 0]);
+      const captured = Math.round(Number(priced.budget) * 100);
+      const expected = refundToPayerCents({ capturedCents: captured, actualFeeCents: stripeProcessingCostCents(captured), alreadyRefundedCents: 500 }).refundCents;
+      expect(rows[1].amount_cents, "the full refund is the capture less the kept card fee less the partial").toBe(expected);
       await journey.milestone(page, "admin-after-full-refund");
     });
 
@@ -417,8 +441,12 @@ test.describe.serial("admin and safety journeys", () => {
       test.info().annotations.push({ type: "cleanup", description: `job ${after.status}/${after.payment_status}; ${n} notifications deleted` });
     });
 
-    const slot = slotAhead(4);
-    await test.step("poster-e2e funds a job starting in 4 minutes; a throwaway Helpr is hired and heads out", async () => {
+    // 20+ minutes out: accept_application refuses a hire within 15 minutes of
+    // the start (job_starts_too_soon, e2e-journeys 39071660168). Once hired,
+    // the harness moves the start to ~90 s ahead (moveSeedJobStart).
+    const slot = slotAhead(20);
+    let startAt = slot.at;
+    await test.step("poster-e2e funds a job starting in 20 minutes; a throwaway Helpr is hired, the start moves up, and the Helpr heads out", async () => {
       helpr = await createThrowaway(request, key!, `NoShow ${RUN}`);
       jobId = (await postJob(request, poster, JOB_TITLE, slot)).id;
       await fundJob(request, browser, poster, jobId, log);
@@ -446,6 +474,9 @@ test.describe.serial("admin and safety journeys", () => {
       expect(await acceptedOffer.json(), "the Helpr's accept did not complete").toEqual({ state: "accepted" });
       const told = (await (await request.get(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${poster.user.id}&job_id=eq.${jobId}&select=title`, { headers: rest(poster) })).json()) as { title: string }[];
       expect(told.map((n) => n.title), "the poster was not told the offer was accepted").toContainEqual(expect.stringMatching(/ accepted your offer$/));
+      // Harness concession (moveSeedJobStart, is_seed only): the hire is
+      // done, so the start moves to ~90 s ahead instead of waiting 20 min.
+      startAt = await moveSeedJobStart(SUPABASE_URL, jobId, 90_000, "the no-show job");
       const otw = await request.post(`${SUPABASE_URL}/rest/v1/rpc/helper_mark_on_the_way`, { headers: rest(h), data: { p_job_id: jobId } });
       expect(otw.ok(), `helper_mark_on_the_way: ${otw.status()} ${await otw.text()}`).toBe(true);
       const job = await readJob(request, poster, jobId);
@@ -458,19 +489,21 @@ test.describe.serial("admin and safety journeys", () => {
 
     await test.step("before the start, No-Show is not offered", async () => {
       await openCard(pp, jobId, JOB_TITLE);
-      if (Date.now() < slot.at.getTime() - 20_000) {
-        await expect(pp.getByRole("button", { name: /^No-Show/ }), "No-Show offered before the scheduled start").toHaveCount(0);
+      if (Date.now() < startAt.getTime() - 20_000) {
+        // On the row OR in More: a count on the card alone would pass with the
+        // chip parked in the overflow (journeyChipsReachOverflow.test.ts).
+        expect(await findChip(pp, cardByTitle(pp, JOB_TITLE), /^No-Show/, 3_000), "No-Show offered before the scheduled start").toBeNull();
       }
       await journey.milestone(pp, "before-start");
     });
 
     await test.step("after the start, the poster reports the no-show", async () => {
-      const wait = slot.at.getTime() + 15_000 - Date.now();
+      const wait = startAt.getTime() + 15_000 - Date.now();
       if (wait > 0) await pp.waitForTimeout(wait);
       await openCard(pp, jobId, JOB_TITLE);
-      const chip = pp.getByRole("button", { name: /^No-Show/ }).first();
-      await expect(chip, "No-Show is not offered after the start with no arrival").toBeVisible({ timeout: 30_000 });
-      await chip.click();
+      const chip = await findChip(pp, cardByTitle(pp, JOB_TITLE), /^No-Show/, 30_000);
+      expect(chip, "No-Show is not offered after the start with no arrival, on the row or in More").not.toBeNull();
+      await chip!.click();
       const dlg = pp.getByRole("dialog").filter({ hasText: "Report No-Show" }).first();
       await expect(dlg).toBeVisible();
       await journey.milestone(pp, "no-show-dialog");
@@ -501,7 +534,7 @@ test.describe.serial("admin and safety journeys", () => {
 
     await test.step("the reopened job is back on the poster's desk", async () => {
       await openCard(pp, jobId, JOB_TITLE);
-      await expect(pp.getByRole("button", { name: /^No-Show/ })).toHaveCount(0);
+      expect(await findChip(pp, cardByTitle(pp, JOB_TITLE), /^No-Show/, 3_000), "the reopened job still offers No-Show").toBeNull();
       await assertHealthy(pp, "reopened job");
       await journey.milestone(pp, "reopened");
     });
@@ -513,4 +546,12 @@ test.describe.serial("admin and safety journeys", () => {
 async function openCard(page: Page, jobId: string, jobTitle: string) {
   await page.goto(`/posts?job=${jobId}`);
   await expect(page.getByText(jobTitle).first(), `${jobTitle} is missing from My Posts`).toBeVisible({ timeout: 60_000 });
+  // OPEN it, and prove it opened (02-marketplace's card()). Every card renders
+  // COLLAPSED and a collapsed card has no step chips, so No-Show could never be
+  // found on it: e2e-journeys 39073227265 failed "No-Show is not offered" on a
+  // shut card, and the before-start "not offered" check passed vacuously.
+  const card = cardByTitle(page, jobTitle);
+  const progress = card.getByRole("group", { name: /Job progress/ });
+  if (!(await progress.isVisible().catch(() => false))) await card.getByRole("heading", { name: jobTitle, level: 2 }).click();
+  await expect(progress, `${jobTitle}'s card did not open when its heading was clicked`).toBeVisible({ timeout: 30_000 });
 }

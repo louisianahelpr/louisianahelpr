@@ -83,6 +83,8 @@ const SINGLE_HELPER_ONLY: Record<string, string> = {
   rpc_admin_end_recurring_series: "reads helper_id only to REFUSE an admin who worked the series (admin_is_party); it grants nothing, and a recurring series is a one-Helpr booking",
   nudge_confirm: "one-Helpr booking by design (owner 2026-10-08): a crew's members confirm on their roster rows (rpc_group_member_confirm)",
   record_backout_notice: "returns at once for a group job (crew back-outs have their own notices, Q1409)",
+  rentals_propose_visit: "Rentals S3 (20261017221621): only the job's single CONFIRMED Helpr may offer a visit time; a crew member is refused (job_not_found), never granted. A crew job linked to a maintenance request offers no visit time yet (Q2081)",
+  rentals_visit_for_job: "Rentals S3: reads the visit for the single confirmed Helpr or the poster; a crew member gets no rows, never another member's access",
   accept_job_offer: "the single Helpr's Accept (Q1180); it refuses a group job outright (group_job_not_supported), a crew confirms through rpc_group_member_confirm",
   claim_series_dates: "a recurring series is never a group job (20260831200113 constraint); each date has one Helpr",
   can_review_job: "legacy, service_role only; the review gates are enforce_review_validity + the INSERT policy, both roster-aware",

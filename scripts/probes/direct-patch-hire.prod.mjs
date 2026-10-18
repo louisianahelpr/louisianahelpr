@@ -24,6 +24,10 @@
 //   F  respond_to_direct_offer(accept) RPC by the offer target.
 import { rest, session, URL_, ANON } from "./lib/prodEnv.mjs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const POSTER = ACCOUNTS["poster-e2e"].userId; // poster-e2e
 const HELPER = ACCOUNTS["helper-e2e"].userId; // helper-e2e

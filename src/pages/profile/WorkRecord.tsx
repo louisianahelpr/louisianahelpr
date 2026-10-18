@@ -18,9 +18,10 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
+import { WORK_RECORD_ID_FIELD } from "@/components/profile/WorkRecordReserve";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { shareNative, shareFileNative } from "@/lib/nativeShare";
-import { isNativePlatform } from "@/lib/nativeInit";
+import { canPrintDocument } from "./workRecordPrint";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { formatPriceExact } from "@/lib/format";
@@ -81,26 +82,7 @@ interface WorkRecordData {
 // of the document's content rules, so the shared PDF and this screen cannot
 // render the same date two ways.
 
-// Why the Print button is conditional: `window.print()` is a NO-OP in every
-// WKWebView-hosted context this record actually gets opened from. The shipped
-// app has no `server.url` (capacitor.config.ts), so it runs the bundled dist/
-// inside WKWebView, which ships no print dialog at all; an iOS home-screen
-// install hits the same wall, because manifest.webmanifest declares
-// `display: standalone` and standalone WebKit has no print UI either. The tap
-// fired, nothing happened, and a helper standing in a leasing office concluded
-// the app was broken. So detect those contexts and never render a control that
-// promises a printer that isn't there — route them to the share path instead
-// (which already works: Capacitor Share → OS share sheet) and say plainly where
-// the printable copy lives.
-const isIosStandalonePwa =
-  typeof navigator !== "undefined" &&
-  (navigator as Navigator & { standalone?: boolean }).standalone === true;
-
-const canPrintDocument =
-  !isNativePlatform &&
-  !isIosStandalonePwa &&
-  typeof window !== "undefined" &&
-  typeof window.print === "function";
+// Why the Print button is conditional: see workRecordPrint.ts.
 
 
 /**
@@ -411,7 +393,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                   </div>
                   <div>
                     <p className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                      ID verified by Stripe
+                      {WORK_RECORD_ID_FIELD}
                     </p>
                     <p className="text-ds-13 font-semibold inline-flex items-center gap-1">
                       {data.identityVerified ? (

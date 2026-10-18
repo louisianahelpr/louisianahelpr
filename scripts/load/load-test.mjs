@@ -40,6 +40,10 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseBase } from "../lib/apiBase.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const ROOT = resolve(import.meta.dirname, "../..");
 

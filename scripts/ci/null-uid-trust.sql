@@ -32,6 +32,13 @@
 --       auth.uid() = OLD.customer_id, which a NULL uid can never satisfy, so
 --       pre-excluding NULL changes nothing. The arrival-reset block above it is
 --       not uid-gated and runs for every writer (20260915101102 reconcile).
+--   rentals_notify                  B (reviewed 2026-10-17, lander): the gated
+--       branch only appends the acting member's id to the notice link so the
+--       notifications seed-boundary trigger can judge the row; it guards no
+--       write. EXECUTE is service_role only; its 8 callers are rentals_* RPCs
+--       that each RAISE 42501 on a NULL uid first (rentals_assert_member(), or
+--       their own check in rentals_propose_visit / rentals_admin_review_property),
+--       and the p_staff branch judges the seed boundary itself before any insert.
 --
 -- Shared by:
 --   .github/workflows/db-smoke.yml      replayed schema (deploy gate)
@@ -81,5 +88,6 @@ SELECT DISTINCT c.proname AS function_name,
    AND c.proname NOT IN ('apply_message_scan_consequence',
                          'audit_admin_job_status_change',
                          'enforce_ban_gate',
-                         'enforce_jobs_arrival_integrity')
+                         'enforce_jobs_arrival_integrity',
+                         'rentals_notify')
  ORDER BY 1, 2

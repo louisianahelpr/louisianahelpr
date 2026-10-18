@@ -28,7 +28,11 @@ const state = {
   agreed: false,
 };
 
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature }));
+vi.mock("@/hooks/useFeature", () => ({
+  useFeature: () => state.feature,
+  // DeclutterPage warms the declutter_wanted read with useFeatureStatus (Q?declutter-settle).
+  useFeatureStatus: () => ({ on: state.feature, settled: true }),
+}));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));

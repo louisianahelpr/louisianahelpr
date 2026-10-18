@@ -95,7 +95,7 @@ describe("the prod presser never flips an account setting on a shared test accou
 
   it("the sweep's mutating branch consults it, and ENUMERATE records whether a control is inside a form", () => {
     const src = blankComments(readFileSync(join(ROOT, "scripts/audit/press-every-control.mjs"), "utf8"));
-    const branch = src.match(/if \(DESTRUCTIVE_RX\.test\(label\)[^\n]*\{/);
+    const branch = src.match(/if \(\(?DESTRUCTIVE_RX\.test\(label\)[^\n]*\{/);
     expect(branch, "the mutating-control branch moved; re-point this guard").not.toBeNull();
     expect(branch![0]).toContain("isAccountSettingToggle({ persona, meta, label })");
     expect(src).toMatch(/\binForm:\s*el\.closest\("form"\) !== null/);

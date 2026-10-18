@@ -1,7 +1,14 @@
+import { useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SettingsGroup } from "@/components/profile/profileLanding/SettingsSection";
 import { WORK_MENU_GROUP } from "@/components/profile/profileLanding/workMenuGroup";
+import { DeclutterEntryRowShape } from "@/components/profile/profileLanding/DeclutterRowShape";
+import { declutterRowHint } from "@/components/profile/profileLanding/declutterRowHint";
+import { PayoutStatusRow } from "@/components/profile/profileLanding/PayoutStatusRow";
+
+const RESERVE = { kind: "reserve" } as const;
+const noop = () => {};
 
 /**
  * The landing's identity card, as bones: IdentityHeader's own box
@@ -57,7 +64,11 @@ const IdentityCardSkeleton = () => (
  * "something left to set up". A finished account sees the list rise 64px on
  * load.
  */
-export const ProfilePageSkeleton = () => (
+export const ProfilePageSkeleton = () => {
+  // Read ONCE, at mount: the skeleton's shape never changes while it is up,
+  // so it cannot shift itself (Q1894). See declutterRowHint.ts.
+  const [declutterRow] = useState(declutterRowHint);
+  return (
   <div className="flex flex-col gap-3 lg:gap-4" data-testid="profile-landing-skeleton">
     {/* ProfileLanding's title block, prop for prop (hideBack, width="none",
         topInsetHandled) and with the same `-mb-3 lg:-mb-4` that cancels the
@@ -71,11 +82,22 @@ export const ProfilePageSkeleton = () => (
       />
     </div>
     <IdentityCardSkeleton />
-    <Skeleton className="h-[52px] rounded-ds-md" />
+    {/* The payout row's own RESERVE, not a bone of a guessed height: the
+        landing renders PayoutStatusRow inside this same `space-y-2` wrapper,
+        and every state of that row is one height (StackedCopy), so the slot
+        holds exactly what lands in it at every width. A `h-[52px]` bone here
+        matched the setup row at 375 but not the error row (67px, cls 0.0111). */}
+    <div className="space-y-2">
+      <PayoutStatusRow prompt={RESERVE} onSetUp={noop} onRetry={noop} />
+    </div>
+    {/* The Declutter row (hidden switch), in ProfileLanding's order: after the
+        setup row, before the settings list. */}
+    {declutterRow && <DeclutterEntryRowShape />}
     {/* SettingsSection's own `space-y-4` list wrapper, holding its first
         group. aria-hidden: the loaded list is what a screen reader reads. */}
     <div className="space-y-4" aria-hidden>
       <SettingsGroup group={WORK_MENU_GROUP} />
     </div>
   </div>
-);
+  );
+};

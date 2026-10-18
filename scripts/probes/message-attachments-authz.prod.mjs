@@ -24,6 +24,10 @@
 import crypto from "node:crypto";
 import { URL_, ANON, readEnv, session } from "./lib/prodEnv.mjs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const SR = readEnv().SUPABASE_SERVICE_ROLE_KEY;
 const A_ID = ACCOUNTS["poster-e2e"].userId;

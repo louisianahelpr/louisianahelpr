@@ -18,6 +18,10 @@ try {
 }
 import fs from "node:fs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const read = (p) => fs.readFileSync(new URL(p, import.meta.url), "utf8");
 const LIVE_BASE = read("./fixtures/dispute-table-door.live.sql");

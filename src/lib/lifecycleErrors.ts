@@ -19,6 +19,7 @@ import { JOB_STARTS_TOO_SOON_COPY } from "./offerDeadline";
 import { UNDER_18_APPLY_COPY } from "./ageGate";
 import { DECLUTTER_ERROR_COPY as DC } from "./declutter/errors";
 import { QUOTE_ERROR_COPY as QC } from "./quotes/errorCopy";
+import { RENTALS_ERROR_COPY as RC } from "./rentals/errorCopy";
 
 /**
  * THE ONE SENTENCE FOR THE BEFORE-PHOTO GATE ON "START WORKING".
@@ -934,6 +935,146 @@ export const RPC_ERROR_COPY = {
     quote_closed: QC.quote_closed,
     under_18: QC.under_18,
     unknown_quote: QC.unknown_quote,
+  },
+  // Rentals S1 (20261017205605): the words live in src/lib/rentals/errorCopy.ts
+  // (RENTALS_ERROR_COPY, exact against the migration, rentalsErrorCopy.test.ts);
+  // each RPC maps exactly the codes it can raise (rpcErrorCopyCoverage).
+  rentals_accept_invite: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    invite_not_found: RC.invite_not_found,
+    not_authenticated: RC.not_authenticated,
+    own_invite: RC.own_invite,
+    under_18: RC.under_18,
+  },
+  rentals_add_unit: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    property_not_found: RC.property_not_found,
+    too_many_units: RC.too_many_units,
+    under_18: RC.under_18,
+    unit_exists: RC.unit_exists,
+  },
+  rentals_approve_request: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    request_not_found: RC.request_not_found,
+    under_18: RC.under_18,
+  },
+  rentals_create_property: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    identity_not_verified: RC.identity_not_verified,
+    not_authenticated: RC.not_authenticated,
+    too_many_properties: RC.too_many_properties,
+    under_18: RC.under_18,
+  },
+  rentals_decline_request: {
+    account_restricted: RC.account_restricted,
+    contact_info_not_allowed: RC.contact_info_not_allowed,
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    reason_required: RC.reason_required,
+    request_not_found: RC.request_not_found,
+    too_long: RC.too_long,
+    under_18: RC.under_18,
+  },
+  // Either side ends a tenancy, or the landlord cancels an unused invite (no
+  // ban or age check: leaving only removes access).
+  rentals_end_tenancy: {
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    tenancy_not_found: RC.tenancy_not_found,
+  },
+  rentals_file_request: {
+    account_restricted: RC.account_restricted,
+    bad_category: RC.bad_category,
+    bad_description: RC.bad_description,
+    bad_photo_path: RC.bad_photo_path,
+    bad_urgency: RC.bad_urgency,
+    contact_info_not_allowed: RC.contact_info_not_allowed,
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    tenancy_not_found: RC.tenancy_not_found,
+    too_long: RC.too_long,
+    too_many_photos: RC.too_many_photos,
+    too_many_requests: RC.too_many_requests,
+    under_18: RC.under_18,
+  },
+  rentals_invite_tenant: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    identity_not_verified: RC.identity_not_verified,
+    not_authenticated: RC.not_authenticated,
+    ownership_not_approved: RC.ownership_not_approved,
+    too_many_open_invites: RC.too_many_open_invites,
+    under_18: RC.under_18,
+    unit_not_found: RC.unit_not_found,
+  },
+  rentals_set_auto_approve: {
+    account_restricted: RC.account_restricted,
+    bad_limit: RC.bad_limit,
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    property_not_found: RC.property_not_found,
+    under_18: RC.under_18,
+  },
+  rentals_submit_ownership_proof: {
+    account_restricted: RC.account_restricted,
+    already_approved: RC.already_approved,
+    bad_proof_path: RC.bad_proof_path,
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    property_not_found: RC.property_not_found,
+    under_18: RC.under_18,
+  },
+  rentals_cancel_request_job: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    job_not_cancellable: RC.job_not_cancellable,
+    not_authenticated: RC.not_authenticated,
+    request_not_found: RC.request_not_found,
+    // Raised inside poster_cancel_job, which rentals_cancel_request_job calls only after its own checks
+    // (the caller's own open, never-funded job, row-locked); if one is ever reached the job moved under us.
+    job_not_cancelled: RC.job_not_cancellable,
+    job_not_found: RC.job_not_cancellable,
+    not_authorized: RC.job_not_cancellable,
+    not_cancellable: RC.job_not_cancellable,
+  },
+  rentals_confirm_visit: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    no_visit_proposed: RC.no_visit_proposed,
+    not_authenticated: RC.not_authenticated,
+    request_not_found: RC.request_not_found,
+    under_18: RC.under_18,
+    visit_time_changed: RC.visit_time_changed,
+    visit_time_passed: RC.visit_time_passed,
+    tenancy_not_found: RC.tenancy_not_found,
+  },
+  rentals_propose_visit: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    job_not_found: RC.job_not_found,
+    not_authenticated: RC.not_authenticated,
+    visit_time_invalid: RC.visit_time_invalid,
+  },
+  rentals_tenant_answer_fixed: {
+    account_restricted: RC.account_restricted,
+    answer_required: RC.answer_required,
+    contact_info_not_allowed: RC.contact_info_not_allowed,
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    note_too_long: RC.note_too_long,
+    request_not_found: RC.request_not_found,
+    under_18: RC.under_18,
+  },
+  rentals_withdraw_request: {
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    request_not_found: RC.request_not_found,
   },
 } satisfies Record<string, Record<string, string>>;
 

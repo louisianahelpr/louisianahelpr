@@ -65,7 +65,7 @@ import {
   remintSession, restorePlan, restoreSource, rowNamesTestOwner, sessionStillAlive, snapshotAccounts, urlOwnership,
 } from "./pressProdSafety.mjs";
 import * as pressSafety from "./pressProdSafety.mjs";
-import { isCaptchaGatedAuthRequest, isStripeWriteRequest, SKIP_CAPTCHA_GATED, SKIP_STRIPE_WRITE_BLOCKED } from "./pressProdSafety.mjs";
+import { isCaptchaGatedAuthRequest, isStripeWriteRequest, pressWriteKind, PRESS_WRITE_SURFACE_RX, SKIP_CAPTCHA_GATED, SKIP_STRIPE_WRITE_BLOCKED } from "./pressProdSafety.mjs";
 import { LOADING_SEL, LOADING_TEXT_RX_SOURCE, SELF_HEAL_MS, SELF_HEAL_SEL, awaitLoadingQuiet, awaitSelfHeal, classifyBoot, countLoadingMarkers, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
   CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, PACE_HEADROOM, cycleBurstEstimate, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
@@ -237,9 +237,61 @@ export function screenErrorText(snap) {
 }
 /** Labels that MUTATE something. Pressed only on a test-owned target (see pressProdSafety.mjs). */
 export const SENTRY_PROBE_RX = /uncaught:\s*Sentry uncaught test\b/i;
-export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout)\b/i;
+// end / leave / give up / turn down / escalate / take back (2026-10-17): a
+// recurring series' "End series" and "Leave series", "Give up" its dates, a
+// crew's "Turn Down" / "Leave Crew", a dispute's "Escalate to Admin" and a
+// document's "Take It Back" named none of the words before them, so the sweep
+// would press them ungated. Guard: src/test/pressGatesEveryIrreversibleControl.test.ts.
+/*
+ * "got it" (run 39014836855, leg 4): BackoutBanner's "Got It" calls
+ * ack_backout_notice, and Declutter's "I got it" pays the seller. Neither word
+ * was here, so the sweep pressed twelve "Got It"s on /posts as an ungated,
+ * unrecorded read, cleared twelve backout notices on prod, and then reported
+ * the cards those writes moved out of the "You" bucket as missing.
+ */
+/** The `why` prefix of a press the network gate caught writing ungated (networkGate). */
+export const GATE_MISS = "GATE MISS";
+/**
+ * THE NETWORK GATE (lead, 2026-10-17): the guarantee under the words.
+ * `handler` goes on the browser context with ctx.route(PRESS_WRITE_SURFACE_RX);
+ * `arm()` before a press the gate did NOT class as mutating, `disarm()` after
+ * it (returns what it caught). While armed, a request pressWriteKind calls a
+ * write is aborted before it leaves and recorded as a miss, a side effect is
+ * aborted and recorded apart; everything else, and everything while disarmed,
+ * falls through to the routes registered before it.
+ */
+/**
+ * How a caught request is named: METHOD and path, plus the grant_type or scope
+ * of a GoTrue call, so "POST /auth/v1/token?grant_type=password" and
+ * "POST /auth/v1/logout?scope=global" say which auth write it was.
+ */
+export function gateRequestLabel(method, url) {
+  let u;
+  try { u = new URL(String(url)); } catch { return `${method} ${String(url).slice(0, 120)}`; }
+  const q = u.pathname.startsWith("/auth/v1/") ? ["grant_type", "scope"].filter((k) => u.searchParams.has(k)).map((k) => `${k}=${u.searchParams.get(k)}`).join("&") : "";
+  return `${method} ${u.pathname}${q ? `?${q}` : ""}`;
+}
+export function networkGate() {
+  let armed = null;
+  return {
+    arm() { armed = { misses: [], sideEffects: [] }; },
+    disarm() {
+      const caught = armed ?? { misses: [], sideEffects: [] };
+      armed = null;
+      return { misses: [...new Set(caught.misses)], sideEffects: [...new Set(caught.sideEffects)] };
+    },
+    async handler(route, req) {
+      const kind = pressWriteKind({ method: req.method(), url: req.url(), body: req.postData() });
+      if (!armed || kind === "read") return route.fallback();
+      const request = gateRequestLabel(req.method(), req.url());
+      (kind === "side-effect" ? armed.sideEffects : armed.misses).push(request);
+      return route.abort("blockedbyclient");
+    },
+  };
+}
+export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout|end|leave|give up|turn down|escalate|take (?:it )?back|take down|close my shop|got it)\b/i;
 export { ACCOUNT_DESTROY_RX, SESSION_END_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
-import { PAYMENT_RX, isAccountSettingToggle, isAdminStateToggle, isAdminWrite } from "./pressProdSafety.mjs";
+import { PAYMENT_RX, isAccountSettingToggle, isAdminStateToggle, isAdminWrite, isCommitControl } from "./pressProdSafety.mjs";
 import { RequestMeter } from "../../e2e/requestMeter.mjs";
 /** Console lines the HARNESS causes, not the app. */
 /**
@@ -623,7 +675,59 @@ const CONTROL_SEL =
  * (document.body for the page; the newest open overlay for a recursion).
  * Runs in the page.
  */
-const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
+/**
+ * THE RECORD A CONTROL ACTS ON: the nearest row, card or dialog around it. Its
+ * text (`rowText`) is what the mutation gate reads to decide whether the
+ * record is test-owned, and what ROW_CONSUMED_SKIP matches a vanished control
+ * against.
+ *
+ * `[data-activity-card]` (run 39014836855, leg 4): the My Posts / My Jobs job
+ * card (JobCardShell) is a plain div whose classes never say "card", so every
+ * control on it resolved to NO record at all (rowText "", measured on prod
+ * /posts as poster-e2e, 7 of 7 location chips). With no record, a write on a
+ * card could neither be told apart from the same button on the next card nor
+ * recognised when it removed its own card from the list.
+ */
+export const RECORD_ROW_SEL =
+  'tr, li, article, [role="row"], [role="listitem"], [role="dialog"], [role="alertdialog"], [data-activity-card], [class*="card"], [class*="Card"]';
+
+/** A record's text as ENUMERATE reads it (same collapse, same cut), for a press-time check. Runs in the page. */
+export const LIVE_ROW_TEXT = (el, rowSel) => (el.closest(rowSel)?.innerText || "").replace(/\s+/g, " ").slice(0, 400);
+
+/** Two reads of one record's text: equal, or equal once digits are blanked (a "3m ago" that ticked). */
+export function sameRecord(a, b) {
+  if (!a || !b) return false;
+  return a === b || looseSignature(a) === looseSignature(b);
+}
+
+/**
+ * The control with this signature INSIDE THIS RECORD on the screen as it is
+ * now, or null when the record has left it. A label alone cannot find it: on
+ * /posts every backed-out card carries an identical "Got It", so once one card
+ * leaves the list both the DOM path and the signature ordinal point at the
+ * NEXT card's button.
+ */
+export function recordControl(now, meta) {
+  if (!meta?.rowText) return null;
+  const inRecord = (now ?? []).filter((c) => sameRecord(c.rowText, meta.rowText));
+  return inRecord.find((c) => c.sig === meta.sig) ??
+    inRecord.find((c) => looseSignature(c.sig) === looseSignature(meta.sig)) ??
+    null;
+}
+
+/**
+ * A MUTATING press about to land on a different record than the one the gate
+ * approved. The gate judged `meta.rowText`; the click must hit that record or
+ * nothing. Returns "same" (click as addressed), "moved" (press `control`
+ * instead) or "gone" (the record is no longer on the screen).
+ */
+export function pressTargetRecord({ liveRowText, meta, now }) {
+  if (!meta?.rowText || sameRecord(liveRowText, meta.rowText)) return { verdict: "same" };
+  const control = recordControl(now, meta);
+  return control ? { verdict: "moved", control } : { verdict: "gone" };
+}
+
+const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel, rowSel }) => {
   const root = scope === "overlay"
     ? [...document.querySelectorAll(overlaySel)].pop()
     : document.body;
@@ -698,6 +802,9 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
       // isAdminStateToggle (pressProdSafety.mjs) reads it: a role="switch" is a
       // setting, and as admin a setting is platform-wide state (Q42).
       role: el.getAttribute("role"),
+      // isCommitControl (pressProdSafety.mjs): the app's own marker for the
+      // control that does the consequential thing (src/components/ui/dialog.tsx).
+      commit: el.getAttribute("data-commit") || "",
       // isAccountSettingToggle (Q200): a toggle inside a <form> is a draft
       // field; one outside it saves the setting the moment it is pressed.
       inForm: el.closest("form") !== null,
@@ -711,13 +818,19 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
         el.dataset.state === "active" || el.closest('[data-state="active"]') !== null,
       external, self,
       inToast: el.closest("[data-sonner-toaster]") !== null,
+      // A popup's close-only acknowledgement (DialogAcknowledgeAction,
+      // dialog.tsx: a Radix Close that accepts no event handler). Its label may
+      // match DESTRUCTIVE_RX ("Got it"), but it can only do what the dialog's
+      // own × does, which the sweep presses ungated anyway. Honoured only inside
+      // an open popup. See src/test/pressDrivesTheRealPressPath.test.tsx.
+      dismissOnly: el.hasAttribute("data-popup-dismiss") && el.closest('[role="dialog"], [role="alertdialog"]') !== null,
       // See TRANSIENT_STATUS_SKIP / isHiddenFormMirror — read here, judged in node.
       inStatus: el.closest(transientSel) !== null,
       ariaHidden: el.getAttribute("aria-hidden"),
       tabIndex: el.tabIndex,
       pointerEvents: cs.pointerEvents,
       // The record this control acts on, as the user sees it: the nearest row / card / dialog.
-      rowText: (el.closest('tr, li, article, [role="row"], [role="listitem"], [role="dialog"], [role="alertdialog"], [class*="card"], [class*="Card"]')?.innerText || "").replace(/\s+/g, " ").slice(0, 400),
+      rowText: (el.closest(rowSel)?.innerText || "").replace(/\s+/g, " ").slice(0, 400),
     });
   });
   // Ordinal among controls sharing a label and tag, so a control can be found
@@ -976,6 +1089,8 @@ async function main() {
   const paymentClock = { last: 0 };
   const results = []; // one per route × persona
   let failedPresses = 0, undocumented = 0, totalFound = 0, totalPressed = 0, shots = 0;
+  /** Every write an UNGATED press tried, aborted at the wire: { route, persona, label, requests }. Any one fails the run. */
+  const gateMisses = [];
   const ownershipCache = new Map();
   /** chromeKey → the row where that header-chrome overlay control passed. */
   const chromePassedOn = new Map();
@@ -1139,6 +1254,16 @@ async function main() {
         }
         return route.fallback();
       });
+
+      /**
+       * THE NETWORK GATE (networkGate, above). Registered last, so it sees
+       * each request first. Armed around a press the gate did not class as
+       * mutating, it aborts that press's writes before they leave: a GATE MISS
+       * fails the run (end of main); a side effect of looking is noted only.
+       * Anything else falls through to the Stripe and CAPTCHA backstops above.
+       */
+      const netGate = networkGate();
+      await ctx.route(PRESS_WRITE_SURFACE_RX, netGate.handler);
 
       const page = await ctx.newPage();
       const consoleErrors = [];
@@ -1378,7 +1503,7 @@ async function main() {
       // Signatures are computed HERE, not in the page, so `controlSignature`
       // stays a plain exported function a unit test can drive.
       const enumerate = async (scope) =>
-        withSignatures(await page.evaluate(ENUMERATE, { controlSel: CONTROL_SEL, overlaySel: OPEN_OVERLAY, scope, base: BASE, transientSel: TRANSIENT_REGION_SEL }));
+        withSignatures(await page.evaluate(ENUMERATE, { controlSel: CONTROL_SEL, overlaySel: OPEN_OVERLAY, scope, base: BASE, transientSel: TRANSIENT_REGION_SEL, rowSel: RECORD_ROW_SEL }));
       /**
        * Wait until the newest open overlay stops changing shape. Two identical
        * samples 250ms apart, capped at OVERLAY_FILL_MS; a still-moving overlay
@@ -1444,9 +1569,17 @@ async function main() {
             if (!(await loc.count())) return false;
             const before = await page.locator(OPEN_OVERLAY).count();
             await loc.first().scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => {});
+            // A replayed opener is watched like its first press: an ungated one
+            // never gets a write out on its second, third ... press either.
+            if (!step.mutating) netGate.arm();
             await loc.first().click({ timeout: PRESS_TIMEOUT }).catch(() => {});
             await page.waitForFunction(([sel, n]) => document.querySelectorAll(sel).length > n, [OPEN_OVERLAY, before], { timeout: 3000 }).catch(() => {});
             await page.waitForTimeout(SETTLE_MS);
+            const watched = netGate.disarm();
+            if (watched.misses.length) {
+              gateMisses.push({ route: route.url, persona, label: `${step.label} (replayed opener)`, requests: watched.misses });
+              console.log(`::error title=press GATE MISS::${route.url} (${persona}) replayed opener "${step.label}" wrote ${watched.misses.join(", ")}; aborted`);
+            }
             if ((await page.locator(OPEN_OVERLAY).count()) <= before) return false;
             await settleOverlay();
           }
@@ -1480,6 +1613,7 @@ async function main() {
             break;
           }
           const item = queue[idx++];
+          netGate.disarm(); // a press's window never outlives its own entry
           // Q1405: where a row's time goes. The pace wait (the request ceiling)
           // is timed apart from the press itself; rowTimings() turns both into
           // the "Where the time went" table in coverage.md.
@@ -1533,7 +1667,7 @@ async function main() {
           const ckey = chromeKey({ persona, chain: entry.chain.slice(0, -1), sig: meta.sig });
           const chromeWhy = chromeDisposition({ fromChrome: item.fromChrome, depth: item.depth, key: ckey, passedOn: chromePassedOn });
           if (chromeWhy) { entry.pressedOn = chromePassedOn.get(ckey); skip(chromeWhy); continue; }
-          if (DESTRUCTIVE_RX.test(label) || isAdminWrite({ persona, label }) || meta.type === "submit" || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label })) {
+          if ((DESTRUCTIVE_RX.test(label) && !meta.dismissOnly) || isAdminWrite({ persona, label }) || meta.type === "submit" || isCommitControl(meta) || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label })) {
             const why = await gate(label, meta, item.chainOwned);
             if (why) { skip(why); continue; }
             entry.mutating = true;
@@ -1626,6 +1760,34 @@ async function main() {
             continue;
           }
           target = target.first();
+
+          /*
+           * THE GATE APPROVED ONE RECORD; THE CLICK MUST LAND ON IT (run
+           * 39014836855 leg 4: twelve identical "Got It"s, each addressed by a
+           * path that had shifted to the next card once an earlier ack moved
+           * its own card out of the list). See pressTargetRecord. Read HERE,
+           * once `target` is the element about to be clicked: after any reload
+           * or replay above, not before them (ready/reds-1017-9 read it before
+           * `let target` and threw on every gate-approved write;
+           * src/test/pressDrivesTheRealPressPath.test.tsx runs this loop).
+           */
+          if (entry.mutating) {
+            const liveRowText = await target.evaluate(LIVE_ROW_TEXT, RECORD_ROW_SEL).catch(() => null);
+            if (liveRowText !== null) {
+              const now = await enumerate(item.step.scope);
+              const placed = pressTargetRecord({ liveRowText, meta, now });
+              if (placed.verdict === "moved") {
+                item.step.path = placed.control.path; target = locate(item.step).first(); entry.relocated = true;
+              }
+              if (placed.verdict === "gone") {
+                if (rowGoneAfterOwnWrite({ rowText: meta.rowText, mutatedRows, now })) { skip(ROW_CONSUMED_SKIP); continue; }
+                entry.result = "FAIL"; entry.why = "its record is no longer on the screen (a write here would have landed on a different record, so it was not pressed)";
+                rec.failed++; failedPresses++;
+                entry.shot = await shoot(`record-gone-${slug(label)}`);
+                continue;
+              }
+            }
+          }
 
           /**
            * IS IT STILL ENABLED? `meta.disabled` was read at ENUMERATION time,
@@ -1722,6 +1884,9 @@ async function main() {
             w.__pressAck = new MutationObserver(() => { w.__pressAcked = true; });
             w.__pressAck.observe(el, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["disabled", "aria-busy", "aria-disabled", "class"] });
           }).catch(() => {});
+          // Armed for the press and everything it sets off, up to the
+          // classification below; a gated (mutating) press is not watched.
+          if (!entry.mutating) netGate.arm();
           try {
             await revealIfScrolledAway(target);
             await target.scrollIntoViewIfNeeded({ timeout: 2500 }).catch(() => {});
@@ -1816,6 +1981,21 @@ async function main() {
             continue;
           }
 
+          // The network gate's verdict on THIS press (see networkGate).
+          const watched = netGate.disarm();
+          if (watched.sideEffects.length) rec.notes.push(`"${label}": side-effect write(s) aborted, not counted: ${watched.sideEffects.join(", ")}`);
+          if (watched.misses.length) {
+            const requests = watched.misses;
+            gateMisses.push({ route: route.url, persona, label, requests });
+            entry.gateMiss = requests;
+            entry.result = "FAIL";
+            entry.why = `${GATE_MISS}: the gate did not class "${label}" as mutating, and it wrote: ${requests.join(", ")} (aborted before it left)`;
+            rec.failed++; failedPresses++;
+            console.log(`::error title=press GATE MISS::${route.url} (${persona}) "${label}" wrote ${requests.join(", ")}; aborted`);
+            pageDirty = true;
+            continue;
+          }
+
           // ---- classify ------------------------------------------------
           const problems = [];
           const newErrToasts = after.errorToasts.filter((t) => !before.errorToasts.includes(t));
@@ -1899,7 +2079,7 @@ async function main() {
             const key = inner.map((c) => c.path + c.label).join("|");
             if (inner.length && !seenOverlays.has(key)) {
               seenOverlays.add(key);
-              const nextChain = [...chain, { ...item.step, label }];
+              const nextChain = [...chain, { ...item.step, label, mutating: !!entry.mutating }];
               const chainOwned = item.chainOwned || rowNamesTestOwner(meta.rowText, owners);
               const scopeKey = `overlay:${entry.chain.join(" › ")}`;
               if (!pressedInScope.has(scopeKey)) pressedInScope.set(scopeKey, new Set());
@@ -2017,7 +2197,7 @@ async function main() {
   lines.push("", `## Where the time went (slowest rows)`, "", "| Row | Persona | Minutes | Presses | s / press | Pace wait (min) |", "|---|---|---|---|---|---|");
   for (const t of timed.slice(0, 15)) lines.push(`| ${t.route} | ${t.persona} | ${(t.ms / 60_000).toFixed(1)} | ${t.presses} | ${t.presses ? (t.ms / 1000 / t.presses).toFixed(1) : "-"} | ${(t.paceMs / 60_000).toFixed(1)} |`);
   writeFileSync(`${OUT}/coverage.md`, lines.join("\n") + "\n");
-  writeFileSync(`${OUT}/results.json`, JSON.stringify({ width: WIDTH, theme: THEME, runId: RUN_ID, uncovered: unavailable, sessionDeaths, sessionLostRows, sessionRefreshes, cleanup: cleaned, results }, null, 2));
+  writeFileSync(`${OUT}/results.json`, JSON.stringify({ width: WIDTH, theme: THEME, runId: RUN_ID, uncovered: unavailable, gateMisses, sessionDeaths, sessionLostRows, sessionRefreshes, cleanup: cleaned, results }, null, 2));
   if (telemetryCount) console.log(`::warning title=press telemetry refused::${telemetryCount} request(s) to our own telemetry (Sentry/PostHog) were refused (429s are the reporter being rate-limited) — listed in coverage.md, not counted as control failures`);
 
   // Q94: the synthetic half of the user-error-screen close rule. Every screen
@@ -2040,7 +2220,11 @@ async function main() {
   const uncoveredPersonas = Object.keys(unavailable);
   const drained = drainedQueueShard({ queueDir: QUEUE_DIR, rowsWalked: results.length, claimedElsewhere, stopped: queueStopped });
   if (drained) console.log(`queue drained: earlier waves claimed all ${claimedElsewhere} row(s); this shard had nothing left to press (Q1689)`);
-  if (failedPresses > 0 || undocumented > 0 || sessionDeaths.length > 0 || (totalFound === 0 && !drained) || uncoveredPersonas.length > 0 || notReached.length > 0) {
+  if (gateMisses.length) {
+    console.log(`GATE MISS: ${gateMisses.length} press(es) the gate let through tried to write (each aborted before it left):`);
+    for (const g of gateMisses) console.log(`  - ${g.route} (${g.persona}) "${g.label}": ${g.requests.join(", ")}`);
+  }
+  if (gateMisses.length > 0 || failedPresses > 0 || undocumented > 0 || sessionDeaths.length > 0 || (totalFound === 0 && !drained) || uncoveredPersonas.length > 0 || notReached.length > 0) {
     console.log(`FAIL: ${failedPresses} failed press(es), ${undocumented} control(s) unpressed without a documented reason, ${sessionDeaths.length} session death(s), ${totalFound} control(s) found, ${uncoveredPersonas.length} persona(s) uncovered${uncoveredPersonas.length ? ` (${uncoveredPersonas.join(", ")})` : ""}, ${notReached.length} row(s) not reached (time budget)`);
     process.exit(1);
   }

@@ -66,6 +66,10 @@ import { classifyVerifyRow } from "../lib/moneyStateExpectations.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
 import { SHARED_TEST_ACCOUNTS, ensureTestAccountsEnrolled, findUnenrolled } from "../lib/testAccountEnrolment.mjs";
 import { stateFixtureJobIds } from "../e2e/seedStateFixtures.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MODE = ["--apply", "--verify", "--teardown", "--avatar", "--group-job"].find((f) => process.argv.includes(f));

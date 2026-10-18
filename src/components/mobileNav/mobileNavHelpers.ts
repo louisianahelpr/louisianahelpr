@@ -71,6 +71,10 @@ export const authPages = ["/home", "/posts", "/jobs", "/post-job", "/profile", "
   "/quotes",
   // Shops (hidden switch): the same.
   "/shops",
+  // Rentals (hidden switch 'rentals'): it had the desktop rail but no dock at
+  // 375 (measured 2026-10-15, local build); guard: src/test/dualSurfaceRoutesGetAppChrome.test.ts
+  // (every App.tsx route with the rail has the dock).
+  "/rentals",
   // Standalone settings sub-pages keep the bottom tab bar so they share the
   // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
   // "/benefits" left this list 2026-08-31 with the page itself — the route is
@@ -124,5 +128,5 @@ export const tabStacks: Record<string, string[]> = {
   "/posts": [],
   "/jobs": [],
   "/messages": [],
-  "/profile": ["/support", "/user", "/admin", "/declutter", "/shops"],
+  "/profile": ["/support", "/user", "/admin", "/declutter", "/shops", "/rentals"],
 };

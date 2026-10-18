@@ -25,6 +25,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, rmSync } from "node:fs";
 import { readLiveCache, sessionAlive, writeCache } from "../../e2e/liveSession.ts";
+import { isReadRpcPath, isStorageSignPath } from "../../e2e/readRpc.ts";
 import { resolve } from "node:path";
 import { acceptCurrentTerms } from "../lib/acceptCurrentTerms.mjs";
 import { ensureTestAccountsEnrolled, isSharedTestAccount } from "../lib/testAccountEnrolment.mjs";
@@ -32,6 +33,10 @@ import { DEFAULT_SUPABASE_URL, PUBLIC_ANON_KEY, mintAdminSession, resolveService
 import { removeJobMediaRest, removeMessageAttachmentsRest } from "../lib/jobMediaRest.mjs";
 import { fitJobTitle, runTag } from "../lib/jobTextBounds.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 export const PRESS_MARKER = "[PRESS DO NOT ACCEPT]";
 
@@ -365,7 +370,19 @@ function isStateToggle({ meta = {}, label = "" }) {
  * test-owned record. src/test/pressGatesEveryAdminWrite.test.ts keeps this
  * vocabulary in step with the admin buttons that write, read from the source.
  */
-export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend|end series)\b/i;
+export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend|end series|set to)\b/i;
+/**
+ * THE APP SAYS IT IS THE COMMIT (2026-10-17). DialogPrimaryAction inside a
+ * confirm (role="alertdialog": every BrandConfirmDialog) and every
+ * DialogDestructiveAction render `data-commit` (src/components/ui/dialog.tsx);
+ * ENUMERATE records it as `meta.commit`. Such a control is mutating whatever
+ * its words say: the vocabulary is a second net, not the only one, so a
+ * confirm whose commit names a new verb is still gated ("End series" and
+ * "Leave series" named none, 2026-10-17).
+ */
+export function isCommitControl(meta = {}) {
+  return typeof meta.commit === "string" && meta.commit.length > 0;
+}
 export function isAdminWrite({ persona, label = "" }) {
   return persona === "admin" && ADMIN_WRITE_RX.test(label);
 }
@@ -582,8 +599,30 @@ export async function restoreWeeklyAvailability(s, before) {
   return { ok: true, note: `restored ${before.length} row(s) (replaced ${d.removed})` };
 }
 
-/** Profile columns a press can change through Settings and that the account may write back. Timestamps and server-managed columns stay. */
-const PROFILE_SKIP = new Set(["id", "user_id", "created_at", "updated_at", "last_seen_at", "last_active_at", "rating", "review_count", "jobs_completed", "is_seed"]);
+/**
+ * Profile columns the cleanup never writes back. Timestamps and server-managed
+ * columns stay; so does the LEGAL RECORD of Terms acceptance.
+ *
+ * CONSENT IS NOT RUN STATE (Q?press-restores-consent, 2026-10-17). The
+ * run-level snapshot is taken when a leg starts and written back when it ends,
+ * so every acceptance recorded in between is undone. Measured: press run
+ * 39014836855 leg 2 (snapshot 08:43:46Z) "restored terms_accepted_at" on
+ * poster-e2e and seed-admin at 09:29:19Z, which put poster-e2e's acceptance
+ * back to 2026-10-14 19:28:18Z after it was re-accepted at 09:14:09Z. A
+ * snapshot taken inside a downgrade window would have written the OLD Terms
+ * version back too: the same harm as the 09:13:20Z stale-checkout write.
+ */
+export const PROFILE_SKIP = new Set([
+  "id", "user_id", "created_at", "updated_at", "last_seen_at", "last_active_at", "rating", "review_count", "jobs_completed", "is_seed",
+  "terms_version_accepted", "terms_accepted_at", "accepted_terms_at",
+]);
+
+/** Pure: the columns to write back (snapshot value) — every changed column not in PROFILE_SKIP. */
+export function profileRestorePatch(before, after) {
+  const patch = {};
+  for (const k of Object.keys(before ?? {})) if (!PROFILE_SKIP.has(k) && JSON.stringify(before[k]) !== JSON.stringify(after?.[k])) patch[k] = before[k];
+  return patch;
+}
 
 export async function snapshotProfile(s) {
   try { return (await prodSelect(s, `profiles?select=*&user_id=eq.${s.userId}`))[0] ?? null; } catch { return null; }
@@ -661,8 +700,7 @@ export async function cleanup({ sessions, since, profilesBefore, weeklyAvailabil
     if (before) {
       const after = await snapshotProfile(s);
       if (after) {
-        const patch = {};
-        for (const k of Object.keys(before)) if (!PROFILE_SKIP.has(k) && JSON.stringify(before[k]) !== JSON.stringify(after[k])) patch[k] = before[k];
+        const patch = profileRestorePatch(before, after);
         if (Object.keys(patch).length) {
           const r = await fetch(`${supabaseUrl()}/rest/v1/profiles?user_id=eq.${s.userId}`, { method: "PATCH", headers: headers(s, { Prefer: "return=representation" }), body: JSON.stringify(patch) });
           const rows = r.ok ? await r.json().catch(() => []) : [];
@@ -910,4 +948,104 @@ export function isCaptchaGatedAuthRequest(url, method, body) {
   let token = null;
   try { token = JSON.parse(body ?? "{}")?.gotrue_meta_security?.captcha_token ?? null; } catch { token = null; }
   return !(typeof token === "string" && token.length > 0);
+}
+
+/**
+ * THE NETWORK IS THE GATE'S GUARANTEE (lead, 2026-10-17). Words and markers
+ * decide which presses are gated; they are a guess about what a control does.
+ * The request is the fact. While a press the gate did NOT class as mutating is
+ * in flight, every request on this surface that writes is aborted in the
+ * browser before it leaves, and recorded against the control as a GATE MISS
+ * (press-every-control.mjs fails the run naming each one). /auth/v1 is on
+ * the surface too (lead, 2026-10-17, ready/sec-c-1017-22): a password, email
+ * or phone change, any other user update, a sign-out of any scope, an MFA
+ * factor enrolled, verified or removed, an identity linked or unlinked, a
+ * sign-in or sign-up, an OTP / reset / resend email. See PRESS_AUTH_ALLOWED
+ * for the one auth call that passes.
+ */
+export const PRESS_WRITE_SURFACE_RX = /\/(rest|functions|storage|auth)\/v1\//;
+
+/**
+ * The ONLY GoTrue write a page may make while the gate is armed: the token
+ * refresh supabase-js runs on its own timer (a 401 there would read as a dead
+ * session, not as anything a control did). The harness's own sign-in is NOT a
+ * browser request: prodSession (above) mints in Node with the service-role
+ * generate_link -> POST /auth/v1/verify (scripts/lib/adminSession.mjs) and
+ * injects the session into localStorage, so no page route has to let a
+ * sign-in through, and a /verify or password grant sent BY THE PAGE is a write.
+ * Keys are "METHOD /path?grant_type=..."; each value says why.
+ */
+// @two-way src/test/pressNetworkGateAbortsUngatedAuthWrites.test.ts:auth-js no longer sends it, remove it from PRESS_AUTH_ALLOWED
+export const PRESS_AUTH_ALLOWED = {
+  "POST /auth/v1/token?grant_type=refresh_token": "supabase-js autoRefreshToken: renews the session the harness injected; changes nothing the test account owns",
+};
+
+/**
+ * GoTrue GETs that are writes: each sends mail or binds something to the
+ * signed-in test account, so a GET here is not a read. Every other /auth/v1
+ * GET (the user, settings, factors list, identities) reads.
+ */
+export const PRESS_AUTH_GET_WRITES = {
+  "/auth/v1/reauthenticate": "mails the account a reauthentication nonce (supabase.auth.reauthenticate)",
+  "/auth/v1/user/identities/authorize": "starts binding an outside identity to the signed-in test account (supabase.auth.linkIdentity)",
+};
+
+/** Is this /auth/v1 request the allowed token refresh? */
+function isAllowedAuthRequest(method, u) {
+  const grant = u.searchParams.get("grant_type");
+  return Object.hasOwn(PRESS_AUTH_ALLOWED, `${method} ${u.pathname}${grant ? `?grant_type=${grant}` : ""}`);
+}
+
+/**
+ * Edge functions that only READ, called with POST because that is what
+ * supabase.functions.invoke sends. Every other function counts as a write
+ * (fail closed). Each entry says why.
+ */
+export const PRESS_READ_FUNCTIONS = {
+  "calculate-tax": "stateless tax quote, no account, customer or charge (STRIPE_WRITE_EXEMPT); fires on page load",
+};
+
+/**
+ * Writes that are a SIDE EFFECT of looking, not of a control: still aborted (a
+ * test account must not inflate a real member's view count or file the run's
+ * own console noise), noted on the row, but not a gate miss. Exact paths,
+ * each with its reason; pg_get_functiondef read on prod 2026-10-17.
+ */
+export const PRESS_SIDE_EFFECT_WRITES = {
+  "/rest/v1/error_logs": "the app's own error reporter (src/lib/errorLogger.ts); the sweep reads console errors itself",
+  "/rest/v1/rpc/record_job_view": "INSERT job_views ON CONFLICT DO NOTHING when a job's detail opens",
+  "/rest/v1/rpc/record_profile_view": "INSERT profile_views (hourly bucket) when a profile opens",
+};
+
+/** A storage LIST is a POST that reads (`/object/list/<bucket>`). */
+const isStorageListPath = (pathname) => /^\/storage\/v1\/object\/list\//.test(pathname);
+
+/**
+ * "read" | "side-effect" | "write" for one browser request. On /auth/v1
+ * every POST / PUT / PATCH / DELETE writes bar PRESS_AUTH_ALLOWED, and a GET
+ * writes only when PRESS_AUTH_GET_WRITES names it. Elsewhere GET / HEAD /
+ * OPTIONS and anything off PRESS_WRITE_SURFACE_RX read; a read-named RPC
+ * (e2e/readRpc.ts, held to pg_proc.provolatile by its own test), a storage
+ * sign or list, a stripe-connect read action and PRESS_READ_FUNCTIONS read;
+ * PRESS_SIDE_EFFECT_WRITES are side effects; every other POST / PATCH / PUT /
+ * DELETE writes. An unparseable URL writes (fail closed).
+ */
+export function pressWriteKind({ method, url, body = null }) {
+  const m = String(method ?? "GET").toUpperCase();
+  const safeMethod = m === "GET" || m === "HEAD" || m === "OPTIONS";
+  let u;
+  try { u = new URL(String(url)); } catch { return safeMethod ? "read" : "write"; }
+  const pathname = u.pathname;
+  if (pathname.startsWith("/auth/v1/")) {
+    if (safeMethod) return Object.hasOwn(PRESS_AUTH_GET_WRITES, pathname) ? "write" : "read";
+    return isAllowedAuthRequest(m, u) ? "read" : "write";
+  }
+  if (safeMethod) return "read";
+  if (!PRESS_WRITE_SURFACE_RX.test(pathname)) return "read";
+  if (Object.hasOwn(PRESS_SIDE_EFFECT_WRITES, pathname)) return "side-effect";
+  if (isReadRpcPath(pathname) || isStorageSignPath(pathname) || isStorageListPath(pathname)) return "read";
+  const fn = /^\/functions\/v1\/([a-z0-9-]+)/.exec(pathname)?.[1];
+  if (fn === "stripe-connect" && !isStripeWriteRequest(url, body)) return "read";
+  if (fn && Object.hasOwn(PRESS_READ_FUNCTIONS, fn)) return "read";
+  return "write";
 }

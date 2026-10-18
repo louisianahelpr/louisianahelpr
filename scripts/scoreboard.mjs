@@ -50,6 +50,10 @@ import { feedCounts } from "./lib/openFeeds.mjs";
 import { INVENTORY as EXPIRY_INVENTORY, inventoryCounts, runAll as runExpiry, scoreboardRows as expiryScoreboardRows } from "./lib/expiryMonitor.mjs";
 import { measureSlos, realIo, sloRecord, sloTargetRows } from "./slo.mjs";
 import { logsQueryUrl } from "./lib/supabaseLogs.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 export const REPO = resolve(import.meta.dirname, "..");
 export const SCOREBOARD = "docs/SCOREBOARD.md";

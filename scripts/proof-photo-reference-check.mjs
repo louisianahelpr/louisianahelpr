@@ -55,6 +55,10 @@
  *         with a clean result.
  */
 import { createClient } from "@supabase/supabase-js";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const args = process.argv.slice(2);
 const AS_JSON = args.includes("--json");

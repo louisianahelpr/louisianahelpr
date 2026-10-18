@@ -9,6 +9,10 @@ import { execSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const REPO = resolve(new URL("../..", import.meta.url).pathname);
 const OUT = resolve(process.argv[2] ?? "test-results/a11y-repro");

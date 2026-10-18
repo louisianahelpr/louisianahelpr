@@ -99,6 +99,27 @@ describe("no driver waits on a payment-method radio alone (Stripe's button accor
     const tsWithRadio = files.filter((f) => f.rel.endsWith(".ts") && /getByRole\(["']radio["']\)/.test(f.code));
     expect(tsWithRadio.map((f) => f.rel), "wait via stripePaymentMethodControl / waitForStripePaymentMethods instead").toEqual([]);
   });
+
+  /*
+   * NAMING the button is not WAITING on it (vacuity run 39033154991, main
+   * 970fc02a1: mint-funded-seed-jobs.prod.mjs's wait cut back to
+   * `card.or(radio)` stayed green above, because `cardButton` was still
+   * declared on the line before). The wait itself is what sat 60s on Stripe's
+   * button accordion, so every wait whose locator names a radio must also
+   * wait on the Card method button, by its variable or its test id.
+   */
+  it("every wait that includes a radio also waits on the Card method button", () => {
+    const waits = files.flatMap((f) => {
+      const buttonVars = [...f.code.matchAll(/(?:const|let)\s+(\w+)\s*=\s*[^;\n]*card-accordion-item-button/g)].map((m) => m[1]);
+      return [...f.code.matchAll(/await\s+([^;\n]*)\.waitFor\(/g)]
+        .map((m) => m[1])
+        .filter((expr) => /\bradio\b|getByRole\(["']radio["']\)/.test(expr))
+        .map((expr) => ({ rel: f.rel, expr, ok: expr.includes("card-accordion-item-button") || buttonVars.some((v) => new RegExp(`\\b${v}\\b`).test(expr)) }));
+    });
+    // Floor: the probe's own wait is one of them.
+    expect(waits.filter((w) => w.rel === "scripts/probes/mint-funded-seed-jobs.prod.mjs").length).toBeGreaterThan(0);
+    expect(waits.filter((w) => !w.ok).map((w) => `${w.rel}: ${w.expr}`)).toEqual([]);
+  });
 });
 
 type Layout = "single" | "radio" | "button" | "unknown";

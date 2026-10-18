@@ -27,6 +27,10 @@ import {
   dollars, evaluateBalance, lowSample, parseAvailableUsdCents,
 } from "./lib/stripeBalanceMonitor.mjs";
 import { failingRunRef, recordOpsAlert } from "./lib/opsAlertLedger.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const env = process.env;
 const STRIPE = apiBase(env.LH_STRIPE_API_BASE, "https://api.stripe.com");

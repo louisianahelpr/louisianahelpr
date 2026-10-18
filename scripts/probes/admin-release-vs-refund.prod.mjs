@@ -56,6 +56,10 @@
 import { readFileSync } from "node:fs";
 import { rest, session, invoke, rpcSr } from "./lib/prodEnv.mjs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const args = process.argv.slice(2);
 const piFile = args.find((a) => !a.startsWith("--"));

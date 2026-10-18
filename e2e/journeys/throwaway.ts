@@ -28,6 +28,7 @@ import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
 import { strongTestPassword } from "../../src/test/strongTestPassword";
 import { serviceHeaders, srFetch } from "../serviceRoleFetch";
 import { ACCOUNTS } from "../../scripts/test-signin-link.mjs";
+import { ensureTestAccountsEnrolled } from "../../scripts/lib/testAccountEnrolment.mjs";
 
 export const THROWAWAY_EMAIL_RE = /^helpr-journey-throwaway-[a-z0-9]{6,20}@mailinator\.com$/;
 
@@ -136,6 +137,15 @@ export async function createThrowaway(api: APIRequestContext, key: string, label
   );
   if (patched.length !== 1) throw new Error(`completing ${email}'s profile matched ${patched.length} rows`);
   await requireThrowaway(key, userId);
+  // ENROLLED, or it cannot touch a test job. With the launch switch on
+  // (seed_jobs_hidden_publicly() = true on prod since 2026-10-07) an is_seed
+  // job refuses every applicant outside public.test_accounts
+  // (enforce_application_job_state C6, seed_hidden_for): the no-show journey's
+  // throwaway got apply_to_job 403 job_not_available (e2e-journeys
+  // 39020810698, 2026-10-17). The row goes with the account (ON DELETE
+  // CASCADE on auth.users), so deleteThrowaway needs nothing more.
+  // Guarded by src/test/harnessAccountsAreEnrolled.test.ts.
+  await ensureTestAccountsEnrolled({ supabaseUrl: SUPABASE_URL, serviceKey: key, userIds: [userId], note: `journey throwaway (${label})` });
   return { userId, email, session };
 }
 

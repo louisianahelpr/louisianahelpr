@@ -18,6 +18,10 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "@playwright/test";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const BASE = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:4173";
 const OUT = process.env.SWEEP_OUTPUT_DIR || resolve(process.cwd(), "test-results/messages-lane");

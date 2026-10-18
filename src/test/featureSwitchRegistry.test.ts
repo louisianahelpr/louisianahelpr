@@ -1,6 +1,6 @@
 // @mutate supabase/migrations/20261012031120_hidden_feature_switches.sql | VALUES ('switch_canary', 'testers', | VALUES ('switch_canary', 'everyone',
 // @mutate supabase/migrations/20261012031120_hidden_feature_switches.sql | ON CONFLICT (key) DO NOTHING; | ON CONFLICT (key) DO UPDATE SET audience = EXCLUDED.audience;
-// @mutate src/config/featureSwitches.ts |   "declutter_add_helpr",\n] as const; |   "declutter_add_helpr",\n  "orphan_switch",\n] as const;
+// @mutate src/config/featureSwitches.ts |   "rentals",\n] as const; |   "rentals",\n  "orphan_switch",\n] as const;
 // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx | useFeature("switch_canary") | useFeature("switch_canarx")
 /**
  * Hidden feature switches (owner decision 2026-10-11; migration
@@ -121,9 +121,13 @@ export function readUseFeatureKeys(srcDir = path.join(ROOT, "src")): { keys: Set
     const raw = readSource(file);
     if (raw === null) continue;
     const code = blankComments(raw);
-    for (const m of code.matchAll(/\buseFeature\s*\(([^)]*)\)/g)) {
-      // The hook's own declaration `function useFeature(key: FeatureKey)`.
+    for (const m of code.matchAll(/\buseFeature(?:Status)?\s*\(([^)]*)\)/g)) {
+      // The hooks' own declarations `function useFeature(key: FeatureKey)`
+      // and `function useFeatureStatus(key: FeatureKey)`.
       if (/function\s+$/.test(code.slice(Math.max(0, m.index - 12), m.index))) continue;
+      // useFeature's own body delegates `useFeatureStatus(key)`; the key is
+      // checked at useFeature's call sites.
+      if (path.relative(ROOT, file) === path.join("src", "hooks", "useFeature.ts") && m[1].trim() === "key") continue;
       calls++;
       const arg = m[1].trim();
       const lit = /^(["'])([a-z][a-z0-9_]*)\1$/.exec(arg);

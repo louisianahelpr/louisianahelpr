@@ -44,6 +44,10 @@ import { appendFileSync } from "node:fs";
 import { QUOTAS, alertSeverity, alertTitle, evaluateQuotas, unreadableTitle } from "./lib/quotaMonitor.mjs";
 import { failingRunRef, recordOpsAlert } from "./lib/opsAlertLedger.mjs";
 import { logsQueryUrl } from "./lib/supabaseLogs.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const env = process.env;
 const SUPA = apiBase(env.LH_SUPABASE_API_BASE, "https://api.supabase.com");

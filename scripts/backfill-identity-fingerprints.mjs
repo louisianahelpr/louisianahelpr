@@ -46,6 +46,10 @@
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const APPLY = process.argv.includes("--apply");

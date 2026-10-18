@@ -14,7 +14,7 @@ import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogBody, DialogContent, DialogHero, DialogFooter, DialogPrimaryAction } from "@/components/ui/dialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { LATEST_PRIVACY_VERSION, LATEST_TERMS_VERSION } from "@/lib/consent";
+import { LATEST_PRIVACY_VERSION, LATEST_TERMS_VERSION, termsAcceptanceIsCurrent } from "@/lib/consent";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
@@ -86,7 +86,7 @@ export function TermsReconsentDialog() {
     };
   }, [isEligible, userId]);
 
-  const isStale = loaded && acceptedVersion !== LATEST_TERMS_VERSION;
+  const isStale = loaded && !termsAcceptanceIsCurrent(acceptedVersion, LATEST_TERMS_VERSION);
   const open = !!isEligible && !!isStale && !RECONSENT_EXEMPT_PATHS.includes(pathname);
 
   const handleAccept = async () => {

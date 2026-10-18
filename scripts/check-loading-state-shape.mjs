@@ -85,17 +85,37 @@ export function breaches(results) {
       const key = clusterKey(r, i);
       if (!c.realBox) return; // nothing landed there; reported separately
       if (c.deltaRowH != null && Math.abs(c.deltaRowH) > ROW_BUDGET) {
-        out.push({ key, kind: "jump", detail: `row ${c.rowH[0]}px → ${c.rowH[1]}px (${c.deltaRowH > 0 ? "+" : ""}${c.deltaRowH}px)` });
+        out.push({ key, kind: "jump", path: c.path, delta: c.deltaRowH, detail: `row ${c.rowH[0]}px → ${c.rowH[1]}px (${c.deltaRowH > 0 ? "+" : ""}${c.deltaRowH}px)` });
       }
       if (c.rows?.[0] !== c.rows?.[1]) {
-        out.push({ key, kind: "rows", detail: `${c.rows[0]} placeholder row(s) → ${c.rows[1]} real row(s)` });
+        out.push({ key, kind: "rows", path: c.path, detail: `${c.rows[0]} placeholder row(s) → ${c.rows[1]} real row(s)` });
       }
       if (Math.abs((c.media?.[0] ?? 0) - (c.media?.[1] ?? 0)) > 1) {
-        out.push({ key, kind: "media", detail: `${c.media[0]} avatar/media bone(s) → ${c.media[1]} real` });
+        out.push({ key, kind: "media", path: c.path, detail: `${c.media[0]} avatar/media bone(s) → ${c.media[1]} real` });
       }
     });
   }
   return out;
+}
+
+/**
+ * Does a `byDesign` entry cover this breach? Key and kind must match, and an
+ * entry may narrow itself further (loading-states run 39020198289, 2026-10-17):
+ *   path        — only the element measured at that key (keys are by index,
+ *                 so on another run `#0` can be a different element);
+ *   maxDeltaPx  — only a jump where the real row is TALLER than its placeholder
+ *                 by at most this many px, the size the decision accepts. A
+ *                 bigger jump, or a placeholder taller than what replaces it,
+ *                 is not the decided case and is reported like any other breach.
+ * An entry with neither keeps the whole-key rule the profile tabs rely on.
+ */
+export function byDesignCovers(b, entries) {
+  return entries.some((e) => {
+    if (e.key !== b.key || e.kind !== b.kind) return false;
+    if (e.path && e.path !== b.path) return false;
+    if (e.maxDeltaPx != null && !(typeof b.delta === "number" && b.delta > 0 && b.delta <= e.maxDeltaPx)) return false;
+    return true;
+  });
 }
 
 /**
@@ -169,7 +189,7 @@ function main() {
   //   allow     — wrong, nobody has fixed it yet. MAY ONLY SHRINK: an entry
   //               that stops breaching is itself a failure, so it cannot rot
   //               into a permanent excuse.
-  //   byDesign  — a decision was MADE. The 26 `/profile?tab=*` jumps are the
+  //   byDesign  — a decision was MADE. The `/profile?tab=*` jumps are the
   //               owner's 2026-09-19 pop-up ruling ("SKELETON FILLS THE SCREEN,
   //               GROWS BELOW"), which explicitly DECLINED a per-tab skeleton
   //               reserving full content height. An entry here that stops
@@ -185,13 +205,12 @@ function main() {
   const allow = new Set((base.allow ?? []).map((a) => `${a.key}|${a.kind}`));
   const byDesign = new Set((base.byDesign ?? []).map((a) => `${a.key}|${a.kind}`));
   const unruled = (base.byDesign ?? []).filter((a) => !String(a.ruling ?? "").trim());
-  const suppressed = new Set([...allow, ...byDesign]);
   const found = breaches(results);
   const seen = new Set();
   for (const b of found) {
     const id = `${b.key}|${b.kind}`;
     seen.add(id);
-    if (!suppressed.has(id)) problems.push(`${b.kind.toUpperCase()}: ${b.key} — ${b.detail}`);
+    if (!allow.has(id) && !byDesignCovers(b, base.byDesign ?? [])) problems.push(`${b.kind.toUpperCase()}: ${b.key} — ${b.detail}`);
   }
   // A baseline entry that no longer breaches is stale and must be removed, or
   // the list rots into a permanent excuse the way every unshrinkable one has.

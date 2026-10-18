@@ -157,6 +157,16 @@ export const NOINDEX_PAGE_META = {
     ogDescription: "This Helpr account has been banned. Contact support if you think this is a mistake.",
     robots: NOINDEX_ROBOTS,
   },
+  // Q1655: the email footer's unsubscribe link lands here (email-unsubscribe
+  // GET answers 303 to it), so it asks before anything changes.
+  "/unsubscribe": {
+    title: "Email Settings — Helpr",
+    description: "Turn off a kind of Helpr email.",
+    canonical: `${SITE_ORIGIN}/unsubscribe`,
+    ogTitle: "Email Settings — Helpr",
+    ogDescription: "Turn off a kind of Helpr email.",
+    robots: NOINDEX_ROBOTS,
+  },
 };
 
 /** The noindex head values for a path, or null when it is not one of those pages. */

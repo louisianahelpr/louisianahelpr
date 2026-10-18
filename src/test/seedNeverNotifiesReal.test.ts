@@ -247,6 +247,9 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   // trigger cannot judge the row; the producers apply Q137 themselves.
   "sql:declutter_notify#1": "Declutter notice: the counterpart is passed as p_other and the insert is skipped when p_other is seed and the recipient is not (the Q137 rule inside the producer; PGlite: declutterSlice3 'a seed (test) seller's sale never notifies a real buyer')",
   "sql:declutter_wanted_notify#1": "Declutter wanted alert: never called for a seed/real mix, because declutter_wanted_pairs (20261016053541) matches a post and a listing only when both the row stamps (w.is_seed = i.is_seed) and both LIVE profiles' is_seed agree, before any alert or cap (PGlite: declutterWantedPriceHint 'a test (seed) post never meets a real listing' and 'an account marked test after it posted')",
+  // Rentals S3 (20261017223352): the admin-queue alert's link names no job, so the
+  // producer judges Q137 itself with the landlord as the actor.
+  "sql:rentals_submit_ownership_proof#1": "operator broadcast to every admin: an ownership proof waits for review; the insert skips every admin for whom notification_crosses_seed_boundary(admin, NULL, NULL, landlord) is true, so a test landlord never pages a real admin (PGlite: rentalsMaintenance)",
   "sql:declutter_price_drop_sweep#1": "Price dropped to watchers: a seed listing alerts only seed watchers (AND (NOT r.is_seed OR COALESCE(wp.is_seed, false)))",
 };
 // DIGEST: one row about MANY jobs; the producer must exclude seed jobs for
@@ -370,7 +373,15 @@ describe("Q137: a seed subject never notifies a real person", () => {
   it("every SQL email producer also writes the notifications row (the email sender re-checks)", () => {
     const emailers = sqlCalling("send-notification-email");
     // Q225 (2026-09-26): the parish fan-out queues; deliver_parish_match_alert sends.
-    expect(emailers).toEqual(["deliver_job_match", "deliver_parish_match_alert", "deliver_saved_search_alert", "notify_on_application", "send_backout_email"]);
+    // Rentals S1 (2026-10-15): rentals_notify mails beside its own notifications row, judged with the actor (20261017205605).
+    expect(emailers).toEqual([
+      "deliver_job_match",
+      "deliver_parish_match_alert",
+      "deliver_saved_search_alert",
+      "notify_on_application",
+      "rentals_notify",
+      "send_backout_email",
+    ]);
     // Q1575: the back-out email rides beside the RPCs' own notifications row,
     // so it applies the row's seed boundary itself instead of writing a second row.
     for (const fn of emailers.filter((f) => f !== "send_backout_email")) expect(/INSERT\s+INTO\s+(?:public\.)?notifications\b/i.test(liveDef(fn)!.body), fn).toBe(true);

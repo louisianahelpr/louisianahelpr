@@ -1,3 +1,4 @@
+import type { Browser } from "@playwright/test";
 import { chromium, type Page } from "../prodTest";
 
 /**
@@ -79,5 +80,27 @@ export async function payInChromium(checkoutUrl: string, pay: (page: Page) => Pr
     return returned;
   } finally {
     await browser.close().catch(() => undefined);
+  }
+}
+
+/**
+ * Run `run` with a CHROMIUM browser: the one it was given when that already is
+ * chromium, else a throwaway one launched here and closed after.
+ *
+ * For callers that hand a Browser to a helper which pays Stripe's hosted
+ * Checkout in it, i.e. prod-audit's `fund()` (e2e/prod-audit/fundedOpenJob.ts):
+ * the reason is `payCheckoutSession`'s in ./fixtures.ts. journeys-webkit's
+ * admin-refund passed its WebKit browser to `fund()`, and Stripe answered with
+ * "Something went wrong" on every run measured (e2e-journeys 38527058685,
+ * 38749234414, 38882683467, 39004547274), which the helper then misreported
+ * as "Stripe changed its DOM". Guard: src/test/journeyStripeEngine.test.ts.
+ */
+export async function withChromium<T>(browser: Browser, run: (chrome: Browser) => Promise<T>): Promise<T> {
+  if (browser.browserType().name() === "chromium") return run(browser);
+  const chrome = await chromium.launch();
+  try {
+    return await run(chrome);
+  } finally {
+    await chrome.close().catch(() => undefined);
   }
 }

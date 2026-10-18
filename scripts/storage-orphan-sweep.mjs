@@ -34,6 +34,10 @@
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { recordOpsAlert } from "./lib/opsAlertLedger.mjs";
 import { DEFAULTS, checkCaps, emptyListingError, formatMB, orphanReason, selectOrphans, uncacheableAvatars } from "./lib/storageOrphans.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(`--${name}`);

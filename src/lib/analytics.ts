@@ -11,6 +11,7 @@
 import { backgroundImport } from "@/lib/chunkReload";
 import { postRows } from "@/lib/restInsert";
 import { sessionKnown, whenSessionKnown } from "@/lib/sessionKnown";
+import { redactInviteToken } from "@/lib/redactInviteToken";
 
 type AnalyticsEventRow = {
   event: string;
@@ -203,8 +204,8 @@ export function track(event: EventName, props: Record<string, unknown> = {}) {
     event,
     user_id: resolveUserId(),
     properties: Object.keys(campaign).length ? { ...campaign, ...props } : props,
-    url: window.location.pathname,
-    referrer: document.referrer || null,
+    url: redactInviteToken(window.location.pathname),
+    referrer: redactInviteToken(document.referrer) || null,
     platform: (window as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.() ?? "web",
   };
   // Before the app's Keychain restore lands the session is unreadable, not

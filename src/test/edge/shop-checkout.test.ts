@@ -111,7 +111,14 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     expect(params.payment_intent_data.transfer_data).toBeUndefined();
     expect(params.payment_intent_data.transfer_group).toBe(`shop_order_${ORDER}`);
     expect(params.automatic_tax).toEqual({ enabled: true });
-    expect(params.line_items.map((l: any) => l.price_data.product_data.tax_code)).toEqual(["txcd_99999999", "txcd_99999999", "txcd_00000000"]);
+    // Tax memo Q2/Q5: the kolaches are food for home, the candle general goods, and the 375c fee
+    // follows them pro rata (221 + 154), one fee line per code.
+    expect(params.line_items.map((l: any) => [l.price_data.product_data.tax_code, l.price_data.unit_amount])).toEqual([
+      ["txcd_40040000", 1800], ["txcd_99999999", 2500], ["txcd_40040000", 221], ["txcd_99999999", 154],
+    ]);
+    expect(params.line_items.slice(2).map((l: any) => l.price_data.product_data.name)).toEqual([
+      "Service fee (5% + $0.70), food items", "Service fee (5% + $0.70), made items",
+    ]);
     expect(params.metadata).toMatchObject({ kind: "shop_order", order_id: ORDER, buyer_id: BUYER, payer_id: BUYER, seller_id: MAKER });
     expect(opts.idempotencyKey).toBe(`shop-order-${ORDER}`);
     expect(stripeMock.__key).toBe("sk_live_shops");

@@ -95,7 +95,7 @@ export default function ShopsHomeView() {
       <p className="text-sm">
         <Link to="/shops/orders" className="underline">My orders</Link>
       </p>
-      <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1" role="group" aria-label="Category">
+      <div className="chip-row flex gap-2 overflow-x-auto -mx-1 px-1 pb-1" role="group" aria-label="Category">
         <Button type="button" size="sm" aria-pressed={group === null} variant={group === null ? "default" : "outline"} className={group === null ? "btn-grad-primary shrink-0" : "shrink-0"} onClick={() => setGroup(null)}>
           All
         </Button>

@@ -522,7 +522,7 @@ describe("tips honour the payout hold", () => {
     ];
     scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
     scenario.reads.payout_holds = { rows: [HELD] };
-    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_1" }] });
+    scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_1" }] };
     stripeMock.paymentMethods.list.mockResolvedValue({ data: [{ id: "pm_1" }] });
     stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_auto_1", status: "succeeded" });
     const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` } }));

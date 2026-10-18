@@ -239,8 +239,8 @@ describe("auto-tip-charge edge function", () => {
       ];
       scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_1" }] };
       scenario.adminUsers = { "poster-1": { email: "poster@test.com" } };
-      // No Stripe customer → giveUp(..., notify: true).
-      stripeMock.customers.list.mockResolvedValue({ data: [] });
+      // No stored wallet customer (Q2138) → giveUp(..., notify: true).
+      scenario.reads.stripe_customers = { rows: [] };
 
       await fn.fetch(cronRequest(fn));
       // Whether we managed to RECORD the failure has no bearing on whether it
@@ -270,10 +270,11 @@ describe("auto-tip-charge edge function", () => {
         { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10 },
       ];
       scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
-      // The Stripe customer is resolved by email (there is no
-      // stripe_customer_id column on profiles), so the poster needs one.
+      // The card sits on the poster's stored wallet customer (Q2138: never
+      // a customer found by email); the email is for the receipt only.
       scenario.adminUsers = { "poster-1": { email: "poster@test.com" } };
-      stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_1" }] });
+      scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_1" }] };
+      stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_1", invoice_settings: { default_payment_method: { id: "pm_1", type: "card", customer: "cus_1" } } });
       stripeMock.paymentMethods.list.mockResolvedValue({ data: [{ id: "pm_1" }] });
       stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_auto_1", status: "succeeded" });
       return fn.fetch(cronRequest(fn));

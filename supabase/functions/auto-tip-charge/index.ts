@@ -34,7 +34,8 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
-import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { createStripeModeResolver, StripeModeRefused, type StripeMode } from "../_shared/stripeMode.ts";
+import { storedStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 
 /** ME-011: a charge whose outcome is unknown (lost response, Stripe 5xx). */
 class AmbiguousCharge extends Error {}
@@ -121,6 +122,13 @@ serve(async (req) => {
     // a declined card. Paging on it would fire every hour for one bad card,
     // which is how a watcher gets muted. `defects` counts only the broken ones.
     const defects = defectTracker();
+    /**
+     * Q2138: tips not charged because the poster's wallet has no stored
+     * customer or no default card. One summary defect per run (review of
+     * ad052465c #5), so the gap Q2139 closes stays visible without one alert
+     * per job.
+     */
+    const walletGaps: string[] = [];
 
     // Q1324 (money review 2026-10-06): an account under an open ban
     // settlement review moves no money, as poster or as Helpr, until an admin
@@ -226,8 +234,9 @@ serve(async (req) => {
         continue;
       }
       let stripe: Stripe;
+      let mode: StripeMode;
       try {
-        ({ stripe } = await stripes.clientForJob(jobId, "new", [c.customer_id as string | null, c.helper_id as string | null]));
+        ({ stripe, mode } = await stripes.clientForJob(jobId, "new", [c.customer_id as string | null, c.helper_id as string | null]));
       } catch (e) {
         if (!(e instanceof StripeModeRefused)) throw e;
         log("No Stripe mode for this job — tip not charged", { jobId, reason: e.reason });
@@ -530,66 +539,90 @@ serve(async (req) => {
           continue;
         }
 
-        // ONE EMAIL, MANY STRIPE CUSTOMERS. Stripe does not treat email as a
-        // key: every checkout that did not explicitly reuse an existing
-        // customer mints a new record, and this function used to resolve by
-        // `customers.list({ email, limit: 1 })` — picking whichever record
-        // is newest, with no regard for which one (if any) actually holds a
-        // saved card. A poster who had checked out more than once could have
-        // their real, working card sitting on an older record while the
-        // newest one was empty: this would call `giveUp("no_saved_card",
-        // true)`, tell the poster their payment had a problem, and never
-        // charge them — for a card that was fine all along.
+        // Q2138 (one wallet, owner 2026-10-18): the card charged is the
+        // DEFAULT card of the poster's OWN stored Stripe customer
+        // (public.stripe_customers, this job's mode), never a customer found by
+        // email. This used to scan every customer carrying the poster's email
+        // and charge the first card it met. Stripe does not treat email as a
+        // key, so that pool held a deleted member's customer whenever an
+        // address was reused (measured 2026-10-18: 3 of 7 live customers carry
+        // an email that now belongs to a newer account) and any other section's
+        // customer, all charged off-session.
         //
-        // `charge-recurring-visits` hit and fixed the identical bug
-        // (documented there in full) by scanning every candidate record for
-        // one that actually has a card, batched so it costs one round trip
-        // per MAX_CUSTOMER_RECORDS_PER_BATCH candidates rather than one per
-        // record. With a single customer record — the common case — this is
-        // byte-for-byte the old behaviour; it only differs where the old
-        // code picked the wrong record.
-        const customers = await stripe.customers.list({ email, limit: 100 });
-        let customerId: string | undefined;
-        let paymentMethodId: string | undefined;
-        const MAX_CUSTOMER_RECORDS_PER_BATCH = 10;
-        for (
-          let i = 0;
-          i < customers.data.length && !customerId;
-          i += MAX_CUSTOMER_RECORDS_PER_BATCH
-        ) {
-          const batch = customers.data.slice(i, i + MAX_CUSTOMER_RECORDS_PER_BATCH);
-          const cards = await Promise.all(
-            batch.map(async (candidate) => {
-              const methods = await stripe.paymentMethods.list({
-                customer: candidate.id,
-                type: "card",
-                limit: 1,
-              });
-              return methods.data[0]?.id;
-            }),
-          );
-          const hit = cards.findIndex((id) => !!id);
-          if (hit >= 0) {
-            customerId = batch[hit].id;
-            paymentMethodId = cards[hit];
-          }
-        }
-
-        if (!customerId) {
-          await giveUp("no_stripe_customer", true);
-          results.prompted++;
+        // Only the wallet's DEFAULT card, never "any card on it" (lh-money-escrow
+        // review of ad052465c #1): a Declutter card sits on the same customer and
+        // was saved with "never charged until you check out and pay". Setting the
+        // default is the off-session consent step; nothing sets it yet, so until
+        // Jobs' "save card for next time" does (Q2139) auto-tip charges nobody:
+        // the poster is asked to tip by hand and the run reports it.
+        let customerId: string | null;
+        try {
+          customerId = await storedStripeCustomer(supabase, c.customer_id as string, mode);
+        } catch (walletErr) {
+          if (!(walletErr instanceof StripeCustomerUnavailable)) throw walletErr;
+          // Transient: release the claim so the next tick retries.
+          log("ERROR reading the poster's wallet — deleting claim for retry", { jobId, error: walletErr.message });
+          await releaseClaimForRetry("wallet read");
+          results.failed++;
+          defects.record(`wallet read ${jobId}: ${walletErr.message}`);
           continue;
         }
-        // A saved card is what makes this possible without a redirect. It
-        // exists only if the poster ticked "Save card for next time" at
-        // checkout (setup_future_usage). Without one we stop and let the app
-        // ask — never a silent no-op.
+        if (!customerId) {
+          await giveUp("no_wallet_customer", true);
+          results.prompted++;
+          walletGaps.push(`${jobId} (no stored ${mode} customer)`);
+          continue;
+        }
+
+        type WalletCard = { id?: string; type?: string; customer?: string | { id?: string } | null };
+        type WalletCustomer = {
+          deleted?: boolean;
+          invoice_settings?: { default_payment_method?: string | WalletCard | null } | null;
+        } | null;
+        let walletCustomer: WalletCustomer;
+        try {
+          walletCustomer = await stripe.customers.retrieve(customerId, {
+            expand: ["invoice_settings.default_payment_method"],
+          }) as WalletCustomer;
+        } catch (lookupErr) {
+          if ((lookupErr as { code?: string } | null)?.code === "resource_missing") {
+            walletCustomer = { deleted: true };
+          } else {
+            // A Stripe outage is not a failed tip: release the claim so the
+            // next tick retries (review of ad052465c #2).
+            const lookupMessage = caughtMessage(lookupErr);
+            log("ERROR reading the poster's wallet in Stripe — deleting claim for retry", { jobId, error: lookupMessage });
+            await releaseClaimForRetry("wallet card lookup");
+            results.failed++;
+            defects.record(`wallet card lookup ${jobId}: ${lookupMessage}`);
+            continue;
+          }
+        }
+        // A customer deleted in Stripe (Dashboard, test-data wipe) has no card
+        // to charge; recovery is Q2140.
+        if (walletCustomer?.deleted) {
+          await giveUp("wallet_customer_deleted", true);
+          results.prompted++;
+          defects.record(`auto-tip ${jobId}: the poster's stored Stripe customer ${customerId} is deleted in Stripe (${mode}); nothing charged (Q2140)`);
+          continue;
+        }
+        const defaultCard = walletCustomer?.invoice_settings?.default_payment_method;
+        const defaultCardOwner = typeof defaultCard === "object" && defaultCard
+          ? (typeof defaultCard.customer === "string" ? defaultCard.customer : defaultCard.customer?.id)
+          : undefined;
+        // Charged only when it is a CARD attached to THIS customer.
+        const paymentMethodId =
+          typeof defaultCard === "object" && defaultCard?.type === "card" && defaultCardOwner === customerId
+            ? defaultCard.id
+            : undefined;
+
+        // Without one we stop and let the app ask — never a silent no-op.
         if (!paymentMethodId) {
           await giveUp("no_saved_card", true);
           results.prompted++;
+          walletGaps.push(`${jobId} (no default card on the ${mode} wallet)`);
           continue;
         }
-
 
         const createIntent = () => stripe.paymentIntents.create(
           {
@@ -728,6 +761,11 @@ serve(async (req) => {
       }
     }
 
+    if (walletGaps.length > 0) {
+      defects.record(
+        `auto-tip: ${walletGaps.length} tip(s) not charged, the poster's wallet has no stored customer or no default card (Q2138 fails closed, never by email; Q2139 records Jobs' saved card): ${walletGaps.join(", ")}`,
+      );
+    }
     log("done", results);
     return cronResult("auto-tip-charge", results, defects.defects, corsHeaders);
   } catch (err) {

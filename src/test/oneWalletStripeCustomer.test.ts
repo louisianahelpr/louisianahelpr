@@ -34,10 +34,9 @@ const RESOLVER = "supabase/functions/_shared/stripeCustomer.ts";
 // @two-way src/test/oneWalletStripeCustomer.test.ts:stale baseline entry ${f} — remove it (lower the baseline)
 const LEGACY_CUSTOMER_CREATE = ["supabase/functions/create-payment/index.ts"];
 
-/** Functions that still find a customer BY EMAIL (plan slices 0/3: auto-tip first). */
+/** Functions that still find a customer BY EMAIL (plan slice 3; auto-tip left in slice 0, Q2138). */
 // @two-way src/test/oneWalletStripeCustomer.test.ts:stale baseline entry ${f} — remove it (lower the baseline)
 const LEGACY_EMAIL_LOOKUP = [
-  "supabase/functions/auto-tip-charge/index.ts",
   "supabase/functions/check-pro-subscription/index.ts",
   "supabase/functions/create-bgc-payment/index.ts",
   "supabase/functions/create-boost-payment/index.ts",
@@ -87,6 +86,15 @@ describe("one wallet: a member's Stripe customer comes from ONE place", () => {
     expect(src).toMatch(/admin\.rpc\("claim_stripe_customer"/);
     // A read error throws (fail closed), never falls through to creating a second customer.
     expect(src).toMatch(/if \(error\) throw new StripeCustomerUnavailable/);
+  });
+
+  it("auto-tip charges only the poster's stored wallet customer (Q2138)", () => {
+    const tip = code("supabase/functions/auto-tip-charge/index.ts");
+    expect(tip).toMatch(/storedStripeCustomer\(supabase, c\.customer_id as string, mode\)/);
+    expect(tip).not.toMatch(/customers\s*\.\s*(list|search)\s*\(/);
+    // Only the wallet's default card, never "any card on it" (a Declutter card shares the customer).
+    expect(tip).not.toMatch(/paymentMethods\s*\.\s*list\s*\(/);
+    expect(tip).toMatch(/defaultCard\?\.type === "card" && defaultCardOwner === customerId/);
   });
 
   it("Declutter's card page and checkout use the wallet, not their own customer", () => {

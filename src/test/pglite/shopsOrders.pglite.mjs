@@ -591,13 +591,13 @@ ok(refused(await request(BUYER, lines([itemC, 1]), open[12]), /too_many_order_re
     "members cannot read the Shops strike table or call its count");
 }
 
-// --- 15. Download My Data (20261017235038): the shop_orders, shop_order_lines and
+// --- 15. Download My Data (20261018035642, which restates 20261017235038): the shop_orders, shop_order_lines and
 // shop_strikes sections of the NEWEST export_my_data, run as written against this schema.
 // The function itself reads about 120 tables (counted 2026-10-18) this proof does not build, so each
 // section's SELECT is lifted out of the body and run with v_uid bound; the
 // whole migration is also applied 3x (replay-safe).
 {
-  const EXPORT_FILE = process.env.EXPORT_PATH ?? `${MIG_DIR}20261017235038_export_my_data_shop_orders.sql`;
+  const EXPORT_FILE = process.env.EXPORT_PATH ?? `${MIG_DIR}20261018035642_export_my_data_shop_pickup_address.sql`;
   const EXPORT_SQL = readFileSync(EXPORT_FILE, "utf8");
   if (!skip) for (let i = 0; i < 3; i++) await db.exec(EXPORT_SQL);
   const newest = newestDefinition("export_my_data");

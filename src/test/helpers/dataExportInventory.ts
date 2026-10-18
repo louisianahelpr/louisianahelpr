@@ -177,6 +177,9 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   shop_order_lines: { by: [] },
   // Shops' own strikes (20261018003046, per section), exported by 20261017235038.
   shop_strikes: { by: ["user_id"] },
+  // The shop's private pickup address (M1b part 2, 20261018033224), exported by
+  // 20261018035642 to its owner only (the Stripe Tax location id is internal, dropped).
+  shop_pickup_addresses: { by: ["owner_id"] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },

@@ -288,6 +288,28 @@ ok(moved?.stripe_tax_location_id === null && moved?.stripe_tax_location_mode ===
 ok(!Array.isArray(await svc(`UPDATE public.shop_pickup_addresses SET stripe_tax_location_id = 'taxloc_x' WHERE shop_id = '${shopA}'`)),
   "a location id without its mode is refused (pair CHECK)");
 
+// --- 4b. Download My Data (20261018035642): the owner's own address, without the Stripe Tax location
+{
+  const EXPORT_FILE = process.env.EXPORT_PATH ?? `${MIG_DIR}20261018035642_export_my_data_shop_pickup_address.sql`;
+  const EXPORT_SQL = readFileSync(EXPORT_FILE, "utf8");
+  // The function reads ~120 tables this proof does not build: the migration is
+  // applied 3x (plpgsql resolves tables at run time) and the section's SELECT
+  // is lifted out of the newest body and run with v_uid bound.
+  if (!skip) for (let i = 0; i < 3; i++) await db.exec(EXPORT_SQL);
+  const body = process.env.EXPORT_PATH ? EXPORT_SQL : newestDefinition("export_my_data").stmt;
+  const m = /jsonb_build_object\('shop_pickup_addresses', \(([\s\S]*?)\)\);\n/.exec(body);
+  const run = async (uid) => (m ? one(await svc(`SELECT (${m[1].replaceAll("v_uid", `'${uid}'::uuid`)}) AS v`)) : null);
+  await svc(`UPDATE public.shop_pickup_addresses SET stripe_tax_location_id = 'taxloc_test2', stripe_tax_location_mode = 'live' WHERE shop_id = '${shopA}'`);
+  const own = await run(OWNER);
+  ok(Array.isArray(own) && own.length === 1 && own[0].line1 === "14 Main St" && own[0].owner_id === OWNER
+    && !("stripe_tax_location_id" in own[0]) && !("stripe_tax_location_mode" in own[0]),
+    `export: the owner gets their shop's pickup address, without the Stripe Tax location (${JSON.stringify(own)})`);
+  const buyer = await run(BUYER);
+  ok(Array.isArray(buyer) && buyer.length === 0, `export: a buyer who saw it on an accepted order does not get the shop's address (${JSON.stringify(buyer)})`);
+  const acl = one(await svc(`SELECT array_to_string(proacl, ',') FROM pg_proc WHERE proname = 'export_my_data'`)) ?? "";
+  ok(skip || (!/(^|,)anon=/.test(acl) && !/(^|,)authenticated=/.test(acl) && /service_role=X/.test(acl)), `export: only service_role may run export_my_data (${acl})`);
+}
+
 // --- 5. grants, and no public read touches the table
 for (const fn of ["shops_save_my_pickup_address", "shops_my_pickup_address", "shops_order_pickup_address"]) {
   const acl = one(await svc(`SELECT array_to_string(proacl, ',') FROM pg_proc WHERE proname = '${fn}'`)) ?? "";

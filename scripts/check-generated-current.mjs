@@ -241,7 +241,7 @@ export const EVIDENCE = [
     script: "scripts/audit/press-row-times.mjs",
     outputs: ["scripts/audit/press-row-times.json"],
     refresh: "gh run download <press run> -n press-every-control-leg-<1..6>, then node scripts/audit/press-row-times.mjs <run-id>=<dir> ... (the run's artifacts, no prod access)",
-    refreshedBy: "by hand from a finished press-every-control.yml run's artifacts (Q1921: re-measured once a scheduled run finishes with 0 rows not reached)",
+    refreshedBy: "by hand from a finished press-every-control.yml run's artifacts (Q2153: re-measured once a scheduled run finishes with 0 rows not reached)",
     checkedBy: "src/test/pressShardPlan.test.ts (measuredFrom names its runs, over 90% of the real route set measured, every leg's modelled time fits 45 x 0.9)",
   },
 ];

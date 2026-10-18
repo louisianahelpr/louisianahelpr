@@ -73,7 +73,7 @@ const RELEASE_EXEMPT: Record<string, string> = {
   "supabase/functions/create-payment/index.ts":
     "cancels the PaymentIntent of an abandoned 3D Secure challenge before a new checkout: the challenge never completed, so nothing was authorised or held",
   "supabase/functions/_shared/shopHolds.ts":
-    "Shops M1 (20261018154737): releases the never-captured hold of a Shops order that already ended unpaid; nothing was charged, so there is no refund to announce, and the SQL that closed the order told the buyer the hold is released (shops_decline_order 'Order declined', shop_order_sweep 'Order not answered', shop_mark_order_held 'That day filled up' / 'Order could not go through'), or the buyer withdrew or replaced the order themselves; the one silent case is shop_mark_order_held's order_missing (a paid page with no order row)",
+    "Shops M1 (20261018164442): releases the never-captured hold of a Shops order that already ended unpaid; nothing was charged, so there is no refund to announce, and the SQL that closed the order told the buyer the hold is released (shops_decline_order 'Order declined', shop_order_sweep 'Order not answered', shop_mark_order_held 'That day filled up' / 'Order could not go through'), or the buyer withdrew or replaced the order themselves; the one silent case is shop_mark_order_held's order_missing (a paid page with no order row)",
 };
 
 /**

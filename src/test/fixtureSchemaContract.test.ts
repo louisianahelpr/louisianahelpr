@@ -307,7 +307,7 @@ describe("every fixture literal could be inserted", () => {
     // row), and a source string `count: ..., stars: 0` (ReviewsSection's display object, not a declutter_reviews row).
     { file: "src/test/edge/verification-webhook.test.ts", keys: ["certificate_id", "expiration_date"] },
     { file: "src/test/edge/charge-recurring-visits.test.ts", keys: ["rows", "count"] },
-    // Shops M1 (20261018154737) gave shop_orders a decline_reason, so an applications mock read `{ rows: [{
+    // Shops M1 (20261018164442) gave shop_orders a decline_reason, so an applications mock read `{ rows: [{
     // status, decline_reason }], count }` lost its applications marker and `count` pointed at ops_alert_ledger.
     { file: "src/test/edge/create-notification.test.ts", keys: ["rows", "status", "decline_reason", "count"] },
     { file: "src/test/reviewCountOneSource.test.ts", keys: ["stars"] },

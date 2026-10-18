@@ -1,6 +1,6 @@
 /**
  * shop-checkout — the Stripe step of a Shops order (Shops M1, migration
- * 20261018154737_shops_orders_checkout; docs/specs/local-shops-prep.md L17-L22,
+ * 20261018164442_shops_orders_checkout; docs/specs/local-shops-prep.md L17-L22,
  * L37/F1, L41 + O2, O1; plan ~/.lh-wt/handoffs-1017/shops-s3-plan.md).
  *
  *   order   { shop_id, lines: [{item_id, quantity}], ready_date, note }  THE BUYER.

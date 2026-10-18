@@ -214,7 +214,7 @@ ok(refused(await as("anon", null, saveSql()), /permission denied/), "anon cannot
 ok(refused(await as("authenticated", MINOR, saveSql()), /under_18/, "42501"), "under 18: refused (L82)");
 ok(refused(await as("authenticated", BANNED, saveSql()), /account_restricted/, "42501"), "banned: refused");
 ok(refused(await as("authenticated", STRUCK, saveSql()), /shop_strikes_blocked/, "42501"),
-  "3 active strikes: refused (HISTORICAL L45 shared count as of slice 1; per section since 20261018154740, proved in shopsOrders.pglite.mjs section 16)");
+  "3 active strikes: refused (HISTORICAL L45 shared count as of slice 1; per section since 20261018164444, proved in shopsOrders.pglite.mjs section 16)");
 ok(refused(await as("authenticated", NOPAYOUT, saveSql()), /payout_setup_incomplete/, "42501"),
   "no payout setup: refused (L3)");
 
@@ -396,7 +396,7 @@ const bannedRest = await as("authenticated", FAN, `SELECT id FROM public.shops W
 ok(Array.isArray(bannedRest) && bannedRest.length === 0, "... and REST");
 await svc(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${ORDINARY}'`);
 // HISTORICAL (slice 1, L45 shared count): this proof applies slice 1's own body last, which still reads
-// Declutter's strikes; Shops reads its own count since 20261018154740 (shopsOrders.pglite.mjs section 16).
+// Declutter's strikes; Shops reads its own count since 20261018164444 (shopsOrders.pglite.mjs section 16).
 await svc(`INSERT INTO public.declutter_strikes (user_id, offender_side, reason, expires_at)
   SELECT '${ORDINARY}', 'buyer', 'missed_checkout', now() + interval '1 year' FROM generate_series(1, 3)`);
 const struck = await as("authenticated", FAN, `SELECT id FROM public.shops_browse(NULL, NULL)`);

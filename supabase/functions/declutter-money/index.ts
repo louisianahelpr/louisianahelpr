@@ -37,7 +37,7 @@
  *      "declutter_refund" so the webhook's charge.refunded path leaves it to
  *      this function.
  *
- *   5. SHOPS (M1, migration 20261018154737) the order clock (shop_order_sweep),
+ *   5. SHOPS (M1, migration 20261018164442) the order clock (shop_order_sweep),
  *      then every card hold to cancel (shop_holds_to_release) and every
  *      accepted order whose capture did not land (shop_captures_due), through
  *      _shared/shopHolds.ts with one idempotency key per capture attempt. Isolated: a
@@ -230,7 +230,7 @@ serve(async (req) => {
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
   };
 
-  // 5. SHOPS M1 (migration 20261018154737): the order clock, then every hold to
+  // 5. SHOPS M1 (migration 20261018164442): the order clock, then every hold to
   //    cancel (an order that ended unpaid: nothing is kept, cancelling costs
   //    nothing) and every accepted order's capture that did not land on the tap
   //    (_shared/shopHolds.ts, one key per capture attempt). Its own try: a Shops failure

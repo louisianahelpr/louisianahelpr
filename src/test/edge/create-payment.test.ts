@@ -437,6 +437,102 @@ describe("create-payment edge function", () => {
         expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
       });
 
+      /**
+       * lh-money-escrow review of a2f1618d0, #1 (the 7440a72d sequence): a
+       * bounced bank payment leaves 'failed', no session and the bank's PI on
+       * the row. A card retry used to stamp 'unpaid' + a new session with that
+       * PI kept, which My Posts reads as "waiting for your bank"
+       * (jobAwaitsBankPayment) and every refund keys on.
+       */
+      describe("a bounced bank payment's PaymentIntent on the row", () => {
+        function seedBounced(piStatus: string | Error) {
+          seedRemintable("failed", null);
+          scenario.reads.jobs.rows![0].stripe_payment_intent_id = "pi_ach_bounced";
+          if (piStatus instanceof Error) stripeMock.paymentIntents.retrieve.mockRejectedValue(piStatus);
+          else stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_ach_bounced", status: piStatus });
+        }
+        const feeModelStamp = () => scenario.writes.find(
+          (w) => w.table === "jobs" && w.op === "update" &&
+            (w.payload as Record<string, unknown>)?.helper_fee_flat_cents !== undefined,
+        );
+
+        // @mutate supabase/functions/create-payment/index.ts | ...(rowPaymentIntentId ? { stripe_payment_intent_id: null } : {}), |
+        // @mutate supabase/functions/create-payment/index.ts | modelStamp.or(`stripe_payment_intent_id.eq.${rowPaymentIntentId},stripe_payment_intent_id.is.null`) | modelStamp.eq("stripe_payment_intent_id", rowPaymentIntentId)
+        for (const dead of ["requires_payment_method", "canceled"]) {
+          it(`clears a ${dead} PI on re-mint, so the card retry is never read as a bank payment in flight`, async () => {
+            seedBounced(dead);
+            const fn = await load();
+            const res = await fn.fetch(
+              fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+            );
+            expect(res.status).toBe(200);
+            expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_ach_bounced");
+            const stamp = feeModelStamp();
+            expect(stamp).toBeTruthy();
+            expect((stamp!.payload as Record<string, unknown>).stripe_payment_intent_id).toBeNull();
+            // Pinned to the PI proved dead, or the null a concurrent tap's stamp
+            // left (a double-tap shares one session; delta review #1). A PI
+            // written since is not ours to clear.
+            expect(stamp!.filters).toContainEqual(
+              expect.objectContaining({ op: "or", value: "stripe_payment_intent_id.eq.pi_ach_bounced,stripe_payment_intent_id.is.null" }),
+            );
+            expect(stamp!.filters).not.toContainEqual(
+              expect.objectContaining({ op: "eq", column: "stripe_payment_intent_id" }),
+            );
+          });
+        }
+
+        // @mutate supabase/functions/create-payment/index.ts | if (rowPi && !["requires_payment_method", "canceled"].includes(rowPi.status)) { | if (false) {
+        for (const live of ["processing", "requires_capture", "succeeded"]) {
+          it(`refuses the re-mint while the row's PI is ${live} (money may still land)`, async () => {
+            seedBounced(live);
+            const fn = await load();
+            const res = await fn.fetch(
+              fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+            );
+            expect((await json(res)).error).toMatch(/still being processed/i);
+            expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+            expect(feeModelStamp()).toBeUndefined();
+          });
+        }
+
+        // @mutate supabase/functions/create-payment/index.ts | if (!isTestObjectUnderLiveKey(rowPiErr)) throw rowPiErr; |
+        it("any other error reading the row's PI refuses (fail closed)", async () => {
+          seedBounced(new Error("Stripe is down"));
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(500);
+          expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+          expect(feeModelStamp()).toBeUndefined();
+        });
+
+        it("a test-mode PI under the live key holds no money and is cleared", async () => {
+          seedBounced(testModeUnderLiveKey("payment_intent", "pi_ach_bounced"));
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(200);
+          expect((feeModelStamp()!.payload as Record<string, unknown>).stripe_payment_intent_id).toBeNull();
+        });
+
+        it("a row with no PI reads none from Stripe and leaves the column alone", async () => {
+          seedRemintable("failed", null);
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(200);
+          expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+          expect(feeModelStamp()!.payload as Record<string, unknown>).not.toHaveProperty("stripe_payment_intent_id");
+          expect(feeModelStamp()!.filters).toContainEqual(
+            expect.objectContaining({ op: "is", column: "stripe_payment_intent_id", value: null }),
+          );
+        });
+      });
+
       it("keeps the plain idempotency key for a job that never had a session", async () => {
         seedRemintable("unpaid", null);
         const fn = await load();
@@ -1091,7 +1187,7 @@ describe("create-payment edge function", () => {
       // @mutate supabase/functions/create-payment/index.ts | pinned = job.category == null ? pinned.is("category", null) : pinned.eq("category", job.category); |
       // @mutate supabase/functions/create-payment/index.ts |         pinned = job.is_urgent == null ? pinned.is("is_urgent", null) : pinned.eq("is_urgent", job.is_urgent); |
       // @mutate supabase/functions/create-payment/index.ts | const guarded = () => pinnedToReadPrice(supabaseAdmin | const guarded = () => (supabaseAdmin
-      // @mutate supabase/functions/create-payment/index.ts | const { data: modelRows, error: modelErr } = await pinnedToReadPrice(supabaseAdmin | const { data: modelRows, error: modelErr } = await (supabaseAdmin
+      // @mutate supabase/functions/create-payment/index.ts | const modelStamp = pinnedToReadPrice(supabaseAdmin | const modelStamp = (supabaseAdmin
       it("the fee-model stamp and the session stamp are both pinned to the price the request read (Q1846)", async () => {
         const CASES: Array<Record<string, unknown>> = [
           { budget: 100 },

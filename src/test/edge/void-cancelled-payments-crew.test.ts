@@ -346,7 +346,7 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
       expect(body.defects).toBe(0);
       expect(body.defectReasons).toBeUndefined();
       expect(body.crew_shares_retried).toBe(0);
-      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_test_old");
+      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_test_old", { expand: ["latest_charge"] });
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       expect(ledgerFlips()).toHaveLength(0);
@@ -500,7 +500,7 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
   });
 
   // Part F: a fee still owed on a settled job is paid by the sweep, once.
-  // @mutate supabase/functions/void-cancelled-payments/index.ts | const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", settled: true }, fj, byJob.get(fj.id) ?? [], chargeId); | const paid = { problems: [] as string[] };
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", settled: true, linkPi }, fj, byJob.get(fj.id) ?? [], chargeId); | const paid = { problems: [] as string[] };
   it("Part F pays a block fee still owed on a settled job, keyed on its row", async () => {
     scenario.reads.jobs = {
       rows: [],
@@ -513,7 +513,8 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
       rows: [{ id: "bf-9", job_id: "job-done", helper_id: "member-d", slot_no: 1, share_basis_cents: 10000, fee_percent: 25, fee_cents: 2500, status: "failed", stripe_transfer_id: null }],
     };
     scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_member", subscription_tier: null }] };
-    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_done", status: "succeeded", latest_charge: "ch_done" });
+    // A real succeeded PaymentIntent reports what it captured (Q1806: a fee is linked only while it fits in the charge).
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_done", status: "succeeded", amount: 33000, amount_received: 33000, latest_charge: "ch_done" });
     stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string } }) => ({ id: `tr_${params.metadata.helper_id}` }));
     const h = await load();
     await h.fetch(cronReq());
@@ -527,7 +528,9 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
 
   // Round 2 nit 1: a fully refunded charge (an admin full refund) cannot fund
   // a source_transaction; the platform balance pays rather than failing hourly.
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |                 else if (ch && Number(ch.amount_refunded ?? 0) < Number(ch.amount ?? 0)) chargeId = ch.id; |                 else if (ch) chargeId = ch.id;
+  // Q1806: the sweep hands payCrewBlockFees the PaymentIntent, whose
+  // sourceChargeFor counts the refunded part as no room.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | fn: "void-cancelled-payments", settled: true, linkPi }, fj, | fn: "void-cancelled-payments", settled: true }, fj,
   it("Part F never links a fully refunded charge to the fee transfer", async () => {
     scenario.reads.jobs = {
       rows: [],

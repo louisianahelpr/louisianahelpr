@@ -189,7 +189,7 @@ describe("void-cancelled-payments: a fully gift-funded job's late-cancellation f
     expect(jobSettles().map((w) => w.payload)).toEqual([{ payment_status: "cancelled" }]);
   });
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (funding === null) { |           if (false) {
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if (funding === null) {\n            console.error(`[void-cancelled-payments] job ${job.id}: could not read what its gift paid | if (false) {\n            console.error(`[void-cancelled-payments] job ${job.id}: could not read what its gift paid
   it("an unreadable gift settles nothing this run (fails closed)", async () => {
     seedSingle();
     scenario.rpcErrors = { restore_gift_card_for_job: { message: "boom" } };
@@ -242,16 +242,32 @@ describe("void-cancelled-payments: a fully gift-funded job's late-cancellation f
 
   // Review of Q1806 #1: revoke_gift_card_for_refund keeps a spent gift 'redeemed'
   // and flips its payment_status; the dry run still values it.
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |       return { cents, restored, donationReversed: spentRow.payment_status !== "paid" }; |       return { cents, restored, donationReversed: false };
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if (spentRow.payment_status === "paid") return | if (true) return
   it("a gift whose donation was refunded funds no fee: no transfer, settled without the fee, a person is told", async () => {
     seedSingle();
-    scenario.reads.gift_cards = { rows: [{ payment_status: "refunded" }] };
+    scenario.reads.gift_cards = { rows: [{ payment_status: "refunded", parent_credit_id: null, stripe_payment_intent_id: "pi_gift" }] };
     const h = await load();
     await h.fetch(cronReq());
     expect(feeTransferCalls()).toHaveLength(0);
     expect(scenario.writes.filter((w) => w.table === "cancellation_fee_transfers")).toHaveLength(0);
     expect(jobSettles().map((w) => w.payload)).toEqual([{ payment_status: "cancelled" }]);
     expect((slackAlerts as Array<{ title: string }>).some((a) => /Cancellation fee not paid on a gift-funded job/.test(String(a.title)))).toBe(true);
+  });
+
+  // Review of 8354ebb0e #1: a chargeback on the donation that can still be
+  // won is not a final loss, and a gift-funded job has no hold that expires,
+  // so it waits in escrow instead of settling without the fee for good.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |          if (funding.disputeOpen) { |          if (false) {
+  it("a gift whose donation has an OPEN chargeback waits in escrow: no fee, no settlement, a warning", async () => {
+    seedSingle();
+    scenario.reads.gift_cards = { rows: [{ payment_status: "refunded", parent_credit_id: null, stripe_payment_intent_id: "pi_gift" }] };
+    stripeMock.disputes.list.mockResolvedValue({ data: [{ id: "dp_1", status: "needs_response" }] });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransferCalls()).toHaveLength(0);
+    expect(jobSettles()).toHaveLength(0);
+    expect((slackAlerts as Array<{ title: string }>).some((a) => /Cancellation fee waits for a chargeback on its gift/.test(String(a.title)))).toBe(true);
+    expect((slackAlerts as Array<{ title: string }>).some((a) => /Cancellation fee not paid on a gift-funded job/.test(String(a.title)))).toBe(false);
   });
 
   // @mutate supabase/functions/void-cancelled-payments/index.ts |       if (!spentRow) return null; |       if (!spentRow) return { cents, restored, donationReversed: false };

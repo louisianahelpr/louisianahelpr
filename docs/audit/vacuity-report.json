@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-18T03:20:38.652Z",
-  "guards": 1989,
-  "registered": 1989,
+  "generated": "2026-10-18T06:27:41.451Z",
+  "guards": 1995,
+  "registered": 1995,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
@@ -179,6 +179,7 @@
       "tests": [
         "src/test/activityLinkedJobNotOnList.test.tsx",
         "src/test/desktopScreenNameIsSrOnly.test.tsx",
+        "src/components/job-card/JobListPage.pendingBankPayment.test.tsx",
         "src/components/job-card/JobListPage.visitPaymentCard.test.tsx"
       ],
       "parents": [

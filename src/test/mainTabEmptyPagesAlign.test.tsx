@@ -119,7 +119,7 @@ describe("main-tab empty pages put their circle, title and button in one place",
     }
     expect(msgs).toMatch(/triggerWidth: isWebDesktop \? "28px" : "44px"/);
     // The row itself: My Posts' compact geometry on the desktop website.
-    expect(posts).toContain('className={inlineFilters ? "[&>div:first-child]:!py-0" : undefined}');
+    expect(posts).toContain('className={inlineFilters ? "[&>div:first-child]:!py-0" : personal ? "flex-auto gap-2" : undefined}');
     expect(msgs).toContain('${isWebDesktop && !embedded ? "[&>div:first-child]:!py-0" : ""}');
     expect(msgs).toContain('minHeight: embedded ? "52px" : isWebDesktop ? COMPACT_HEADER_ROW_MIN_HEIGHT : undefined,');
   });

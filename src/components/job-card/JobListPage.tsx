@@ -508,10 +508,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       setSearchOpen={setSearchOpen}
       searchQuery={searchQuery}
       setSearchQuery={setSearchQuery}
-      // Jobs & Posts' section header carries Messages + you on phone, the
-      // same pair as the Browse feed's title bar (owner 2026-10-18 G1/G3).
-      // The desktop website's top bar carries them there.
-      personal={isWebDesktop ? undefined : <SectionHeaderActions section="jobs" post={null} />}
+      personal={isWebDesktop ? undefined : <SectionHeaderActions section="jobs" post={null} /> /* Messages + you, as on the feed (owner 2026-10-18 G1/G3); desktop: the top bar */}
     />
   );
 
@@ -520,11 +517,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       {/* ONE BOX on the desktop website (owner: "merge into 1"). The header
           used to be the scaffold's own floating title card, so the screen was
           two stacked liquid-glass boxes with a gap between them saying one
-          thing between them. On desktop it is now the panel's first child,
-          under a hairline, so the count + controls sit directly on top of the
-          cards they describe. Phone and native keep the two-card stack: there the header carries
-          the VISIBLE page name (no app bar exists to carry it), and that name
-          reads as chrome rather than as a row of the list. */}
+          thing between them. On desktop it is now the panel's first child, under a hairline, so the count +
+          controls sit on the cards they describe. Phone and native keep the two-card stack: there the header
+          carries the VISIBLE page name (no app bar carries it), which reads as chrome, not as a list row. */}
       <PageScaffold
         animate={!skeletonShownRef.current}
         titleCard={isWebDesktop ? undefined : headerEl}

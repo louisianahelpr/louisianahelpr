@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-18T06:15Z",
+  "measured_at": "2026-10-18T15:40Z",
   "issues": {
     "readable": true,
     "open": [
@@ -15,7 +15,7 @@
         "number": 2245,
         "title": "nightly-red: prod-audit",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39030048100",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39102037116",
         "runTruncated": false
       },
       {
@@ -57,7 +57,7 @@
         "number": 2894,
         "title": "nightly-red: vacuity",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39094107920",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39121239972",
         "runTruncated": false
       },
       {
@@ -71,7 +71,7 @@
         "number": 2962,
         "title": "nightly-red: nightly-webkit",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39034702084",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39131032798",
         "runTruncated": false
       },
       {
@@ -85,7 +85,7 @@
         "number": 3307,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39039856658",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39136859301",
         "runTruncated": false
       },
       {
@@ -211,14 +211,6 @@
         "status": "open",
         "title": "nightly-red: a11y-webkit-prod",
         "issue": 2375
-      },
-      {
-        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: sensitive review record",
-        "issue": 3178
       },
       {
         "fingerprint": "70e7b0decb9a9e19db5e1f2de4e52559",
@@ -497,7 +489,6 @@
     "ledger de37efb6fa8e": "Q1596",
     "ledger e06748071241": "Q1596",
     "ledger e306dea6b044": "Q1596",
-    "ledger e41c806b9175": "Q1816",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger e81647556a56": "Q1596",
     "ledger ec743a639c38": "Q1596",

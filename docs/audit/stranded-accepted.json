@@ -2,6 +2,402 @@
   "_about": "Work that is NOT on main by content and is deliberately not landed. Remote ids (pr:, remote:) are read by scripts/stranded-work.mjs --remote --check (nightly: .github/workflows/branch-prune.yml, job stranded); local ids (branch:, worktree:...@HEAD) only by --local on the Mac that holds those refs (splitAccepted). Exact both ways: an entry whose ref is gone or moved fails the check. Each reason names where the work went or the open item that decides it. Owner rule 2026-10-03: nothing is closed without merging, so new entries should be rare.",
   "accepted": [
     {
+      "id": "remote:origin/ready/ach-escrow-1017",
+      "sha": "1b9124028c952320df6173dcfbfc8f9ede914cdd",
+      "reason": "Landed under the same subject. Its two leftover test cases (replays 7440a72d: a funded job whose ACH failed leaves escrow) were replaced by the owner's Q1971 design on main (a hired job whose bank payment fails is cancelled: migration 20261017205845_failed_bank_payment_cancels_hired_job.sql, ready/sec-a-1017-q1971 landed).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-add-a-helpr",
+      "sha": "1707ae54627066dc70093f0081dc7d50d8b2900e",
+      "reason": "Add a Helpr v1 (one commit). Superseded by v2, which landed: main carries supabase/migrations/20261017073146_declutter_add_a_helpr.sql and all 22 code commits of ready/declutter-add-a-helpr-v2 under the same subjects. Its leftover lines are v1 wording and the v1 migration name.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-add-a-helpr-v2",
+      "sha": "a269923d5aa8f0c3689a635b3fb70423cb943219",
+      "reason": "Landed on main by a train: 22 of 22 code commits are on main under the same subjects (e.g. 2c4601676, eae702597, ccf3b6524, 73dbd6ef6). The 219 added line(s) not found verbatim are older wording of lines main has since changed (207 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 5 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-haul-away",
+      "sha": "1fcb30b00cc3bb913b5ab6ecb9dfa828be97fcfc",
+      "reason": "Haul-away v1 (one commit, 2026-10-16). Superseded by haul-away v2, which landed: main carries supabase/migrations/20261017070827_declutter_haul_away.sql and all 22 code commits of ready/declutter-haul-away-v2 under the same subjects. Its leftover lines are v1 wording (spec draft, the v1 'Book it again' screen, the v1 allowlist note).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-haul-away-v2",
+      "sha": "e435032b3b339c32171a89c23ea8aa5c42fe6919",
+      "reason": "Landed on main by a train: 22 of 22 code commits are on main under the same subjects (e.g. 0c45145a1, eae702597, ccf3b6524, 73dbd6ef6). The 226 added line(s) not found verbatim are older wording of lines main has since changed (213 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 4 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-moving-out",
+      "sha": "f8689043088b48cdd4687670873312aa8781ff94",
+      "reason": "Landed on main by a train: 3 of 3 code commits are on main under the same subjects (e.g. 26d92c41b, db9a5e550, 79f20ac25). The 8 added line(s) not found verbatim are older wording of lines main has since changed (6 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-stack",
+      "sha": "7b5aaba3d7ad7dc9ecf1b4af5345ce6ac0080861",
+      "reason": "Landed on main by a train: 21 of 21 code commits are on main under the same subjects (e.g. eae702597, ccf3b6524, 73dbd6ef6, 8b159ba74). The 198 added line(s) not found verbatim are older wording of lines main has since changed (189 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 4 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-wanted",
+      "sha": "064a3cd692deca5599f17d9278e9ddd322b26dce",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. 7d2666724). The 31 added line(s) not found verbatim are older wording of lines main has since changed (30 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/jobs-fee-1017-3",
+      "sha": "fe4f28734c49ed02c6685d8f242e9c66ca6cc37a",
+      "reason": "Jobs poster fee slice 3a landed as PR #3326 (MERGED 2026-10-18). The one leftover line is CheckoutStep's earlier useStripeSalesTax call that #3326 rewrote.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/lessons-1017",
+      "sha": "d4b902334d1c4b75e2d5f6f67461e07261bffbbc",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. df767015f). The 1 added line(s) not found verbatim are older wording of lines main has since changed (1 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/posts-diet-1017",
+      "sha": "4cf6eb3f35407a8e82a577c76a87489a095398f5",
+      "reason": "Landed on main by a train: 2 of 2 code commits are on main under the same subjects (e.g. 7be467d8b, 73647b440). The 1 added line(s) not found verbatim are older wording of lines main has since changed (1 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 14 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/proofs-1017-1",
+      "sha": "e9e771d7bcfb13594a890251c039c02d37832c97",
+      "reason": "Landed on main by a train: 78 of 78 code commits are on main under the same subjects (e.g. 33e863c0e, 3a7966eae, e191f994a, 420cd1c31). The 20 added line(s) not found verbatim are older wording of lines main has since changed (17 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 15 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/quotes",
+      "sha": "e18d88519db4d965ac34b24108362d01add9dc60",
+      "reason": "Landed on main by a train: 6 of 6 code commits are on main under the same subjects (e.g. 671fed415, 9df37330e, 2f406b309, 41b3fd80e). The 14 added line(s) not found verbatim are older wording of lines main has since changed (14 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/reds-1017-1",
+      "sha": "3c83b9734a212413121cd0896d2cbf9f9ee95ebf",
+      "reason": "Landed on main by a train: 11 of 11 code commits are on main under the same subjects (e.g. ec541997d, 240ea59d8, f252d2f59, eee33d4c0). The 1 added line(s) not found verbatim are older wording of lines main has since changed (0 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 2 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/reds-1017-10",
+      "sha": "3c6537014d9ed857a97236049ea54d2a7ca36ccf",
+      "reason": "Landed on main by a train: 2 of 2 code commits are on main under the same subjects (e.g. 9ce705709, 0f72e3741). The 6 added line(s) not found verbatim are older wording of lines main has since changed (6 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/reds-1017-2",
+      "sha": "b34109c5b8e96d04a326565439178a174d3b1b3b",
+      "reason": "Landed on main by a train: 12 of 12 code commits are on main under the same subjects (e.g. bf6b3248e, ec541997d, 240ea59d8, f252d2f59). The 1 added line(s) not found verbatim are older wording of lines main has since changed (0 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 2 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/reds-1017-9",
+      "sha": "baa7b483e8b2b484be930ce4a525a35e5473eabe",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. 0f72e3741). The 11 added line(s) not found verbatim are older wording of lines main has since changed (9 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/rentals-s1",
+      "sha": "6ed71a3f27f5aa5669c0359edce753956185ebd3",
+      "reason": "Rentals S1 as of 2026-10-15 (sessions 3-5). Superseded by ready/rentals-s1-1017, -s2-1017 and -s3-1017, which landed (main: 20261017205605_rentals_maintenance_requests.sql, 20261017220911_rentals_link_one_live_job.sql, the visit time moved into RentalVisitHelprSlot by 07ebfe61f). Leftover lines are this early version's PropertyCard, copy and the maintenancePrefill rule main has since rewritten (NEVER_FUNDED).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/rentals-s1-1017",
+      "sha": "aad8aace3e4e27872239a4373479dbf14280fe27",
+      "reason": "Landed on main by a train: 38 of 38 code commits are on main under the same subjects (e.g. d7fdd8ccd, 8adebd4b1, ea9e776d8, f495a9efe). The 83 added line(s) not found verbatim are older wording of lines main has since changed (66 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 7 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/rentals-s2-1017",
+      "sha": "352b8580ceb5af1cd9b142d7da064fbb346177b0",
+      "reason": "Landed on main by a train: 43 of 43 code commits are on main under the same subjects (e.g. df1326991, 30db59edf, cb4ef337d, a59769832). The 77 added line(s) not found verbatim are older wording of lines main has since changed (64 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 7 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/rentals-s3-1017",
+      "sha": "9fb3b1ac6548f3e52603c2e0887580d17f8e8014",
+      "reason": "Landed on main by a train: 134 of 134 code commits are on main under the same subjects (e.g. cfb46f6b2, 2d795ccec, 7f8622cef, dbe49fcbf). The 39 added line(s) not found verbatim are older wording of lines main has since changed (33 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 23 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-1",
+      "sha": "9495961865d95762b9b5fc299b3d473de763255a",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. e4ceb0ca3). The 4 added line(s) not found verbatim are older wording of lines main has since changed (3 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-1017-1",
+      "sha": "293d211edcb3b7aa68d827ec00ca4e9d598c3680",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. 38e9b0634). The 1 added line(s) not found verbatim are older wording of lines main has since changed (1 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-1017-10",
+      "sha": "af899ea7682f802f444c2a4041b1ad1a22daf9f6",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. 9820c377e). The 12 added line(s) not found verbatim are older wording of lines main has since changed (11 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 2 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-1017-12",
+      "sha": "db5b94ab672b13de5175160b2be963a2bf80ea79",
+      "reason": "Landed on main by a train: 6 of 6 code commits are on main under the same subjects (e.g. 523c89d49, 1f5520249, a89445c35, 7d91f4f68). The 24 added line(s) not found verbatim are older wording of lines main has since changed (20 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 3 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-1017-13",
+      "sha": "4e0ca9266f2c6c37e12280c492d5e39f6eddba4e",
+      "reason": "Q1828 (a partly refunded taxed visit reverses its own tax share) is done on main and archived: main's _visitTaxReversal.ts reverses per refund under reference refund:<re_id> with taxReversalMetadataKey (22bea52c1, e2b8f7d53). This branch's version of that file and its tests are the earlier draft main rewrote.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-1017-15",
+      "sha": "ebb2f9a9b862cc73e3117a7b2171df62b9401f62",
+      "reason": "Landed on main by a train: 7 of 7 code commits are on main under the same subjects (e.g. ee435b05f, 523c89d49, 1f5520249, a89445c35). The 11 added line(s) not found verbatim are older wording of lines main has since changed (10 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 3 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-1017-3",
+      "sha": "8b626268d236cadc6a0b4692453ac7f9efe200b8",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. 87e597ffc). The 7 added line(s) not found verbatim are older wording of lines main has since changed (7 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 3 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-1017-7",
+      "sha": "510fb49c3d6ba7ec5fdfd5ef9c70aea579a2aed2",
+      "reason": "Landed on main by a train: 2 of 2 code commits are on main under the same subjects (e.g. 47ece61e9, 87e597ffc). The 10 added line(s) not found verbatim are older wording of lines main has since changed (9 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 3 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-1017-8",
+      "sha": "e4387f5b1734a2965f0bd03c971d49d0d4bf8374",
+      "reason": "Landed on main by a train: 4 of 4 code commits are on main under the same subjects (e.g. 1a591777c, 8ae4bf8a0, b31842401, 47a97e694). The 1 added line(s) not found verbatim are older wording of lines main has since changed (1 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-1017-q1971",
+      "sha": "b47c41e08d0ddb63c67b112e0d4189b7086c34ff",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. e246d8137). The 4 added line(s) not found verbatim are older wording of lines main has since changed (4 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 1 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-11",
+      "sha": "63ed0a7249fcc65246c0e23178eeac079a5b3703",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. 22bea52c1). The 5 added line(s) not found verbatim are older wording of lines main has since changed (5 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 18 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-12",
+      "sha": "7be04641187ab1671819e90d0836c786de802b9d",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. d569a300a). The 6 added line(s) not found verbatim are older wording of lines main has since changed (3 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-14",
+      "sha": "fec13dec7fd522856c5a1594884dcde710915585",
+      "reason": "Landed on main by a train: 4 of 4 code commits are on main under the same subjects (e.g. be881bd2e, 5bcd8bf94, 414e5abb0, 671928c3e). The 3 added line(s) not found verbatim are older wording of lines main has since changed (3 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-15",
+      "sha": "cbbdea088241ea6e4ce3ad3e0f81cfa611b3f21b",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. 4c0076a60). The 1 added line(s) not found verbatim are older wording of lines main has since changed (1 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-2",
+      "sha": "ef7b4768a8058341e9a368a65ee20295bf9635f3",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. 80f810d44). The 20 added line(s) not found verbatim are older wording of lines main has since changed (20 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 3 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-4",
+      "sha": "a338f453236fd74974b84f7a0da1790f192ab103",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. 1d7a5eff8). The 9 added line(s) not found verbatim are older wording of lines main has since changed (7 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-5",
+      "sha": "071fbe16ef67e238b1034ca59716f838a9dbefc4",
+      "reason": "Landed on main by a train: 2 of 2 code commits are on main under the same subjects (e.g. 1879c6d8d, e3dbc0c8d). The 6 added line(s) not found verbatim are older wording of lines main has since changed (5 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 1 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-money",
+      "sha": "ea5fe071933e8594fb8593aeddc52f92d0f0e1c7",
+      "reason": "Landed on main by a train: 2 of 2 code commits are on main under the same subjects (e.g. 1d7a5eff8, e4ceb0ca3). The 13 added line(s) not found verbatim are older wording of lines main has since changed (10 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-train",
+      "sha": "5109f5029e1a428e556a6832e57dc70d1b9d600e",
+      "reason": "Landed on main by a train: 13 of 13 code commits are on main under the same subjects (e.g. e957d6bda, df1ad99ae, d569a300a, 22bea52c1). The 34 added line(s) not found verbatim are older wording of lines main has since changed (31 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 22 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-1017-1",
+      "sha": "8fca0b72f190156963f2ecdabcc36e94cc0d750f",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. be7e117b5). The 13 added line(s) not found verbatim are older wording of lines main has since changed (4 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 1 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-1017-10",
+      "sha": "7ef80b38461ef4861a63d788486842c2c25538e4",
+      "reason": "Landed on main by a train: 3 of 3 code commits are on main under the same subjects (e.g. becbdb1a7, 5ecc70ec7, 761ad1ba6). Every line it adds is on main; only its 5 deleted line(s) are still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-1017-4",
+      "sha": "17507e70c5087257b4ae615566c50e3454fdd6a6",
+      "reason": "Landed on main by a train: 2 of 2 code commits are on main under the same subjects (e.g. c26cd789b, be7e117b5). The 25 added line(s) not found verbatim are older wording of lines main has since changed (9 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 1 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-1017-5",
+      "sha": "8533128e8524e9f71299f0dece6aa3626b945bfd",
+      "reason": "complete-signup's default-deny no-session path (Q?signup-no-session) is on main (NO_SESSION_FIELDS in supabase/functions/complete-signup/index.ts); its other commits landed under the same subjects. Leftover lines are this branch's earlier test and comment wording.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-1017-6",
+      "sha": "0864ba2df8e2a13f0a2b1ca82c0408971f3be03b",
+      "reason": "complete-signup's default-deny no-session path (Q?signup-no-session) is on main (NO_SESSION_FIELDS in supabase/functions/complete-signup/index.ts); its other commits landed under the same subjects. Leftover lines are this branch's earlier test and comment wording.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-1017-11",
+      "sha": "ce60a1819ae395396fadae3cef4d6ec05d9a9d06",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. 145c7ca99). The 1 added line(s) not found verbatim are older wording of lines main has since changed (1 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 1 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-1017-14",
+      "sha": "2ee665cfa55cdaca9e669fed076f6b1c501c9d79",
+      "reason": "Landed on main by a train: 2 of 2 code commits are on main under the same subjects (e.g. c08c66d86, 9b34b239c). The 1 added line(s) not found verbatim are older wording of lines main has since changed (1 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-1017-17",
+      "sha": "7ba87631b2aed155819f77f2b9106e3e62665b92",
+      "reason": "Landed on main by a train: 3 of 3 code commits are on main under the same subjects (e.g. 644cf7c47, 4ff210cd4, 0a9b29559). The 1 added line(s) not found verbatim are older wording of lines main has since changed (1 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-1017-19",
+      "sha": "e38422e53b7594c91987eb71d1093ff66293396e",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. 66128314f). The 6 added line(s) not found verbatim are older wording of lines main has since changed (6 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-1017-2",
+      "sha": "ad6ee05d5f4085621368825b99212365bf186c31",
+      "reason": "Landed on main by a train: 3 of 3 code commits are on main under the same subjects (e.g. 4d5d1b08c, 662579e32, 10c98cd49). The 1 added line(s) not found verbatim are older wording of lines main has since changed (1 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-1017-21",
+      "sha": "421d15f4a6d93dcf96881a39572a0decc0e8a055",
+      "reason": "Landed on main by a train: 2 of 2 code commits are on main under the same subjects (e.g. 5bc1aaed4, 66128314f). The 17 added line(s) not found verbatim are older wording of lines main has since changed (14 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-1017-22",
+      "sha": "39bb58e3335990218d0a28ac1c3e13edad95cb01",
+      "reason": "Landed on main by a train: 3 of 3 code commits are on main under the same subjects (e.g. d15d28c9d, 5bc1aaed4, 66128314f). The 6 added line(s) not found verbatim are older wording of lines main has since changed (6 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-1017-3",
+      "sha": "31728668a3cd19e41875dc25cecbf6eb1512f83b",
+      "reason": "Landed on main by a train: 5 of 5 code commits are on main under the same subjects (e.g. c6c381fca, 2d988b772, 783a12e93, 69eacd05b). The 16 added line(s) not found verbatim are older wording of lines main has since changed (9 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 2 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-1017-4",
+      "sha": "1ff10a5e162efad5c33d6fc20d7668e3547afddd",
+      "reason": "Q1670 landed on main (780cc2bf4 test(mapkit-token): the Origin-locked token response sends Vary: Origin; 0167773b0): main's mapkit-token sends Vary: Origin with its own comment. Leftover lines are this branch's comment wording.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-1017-7",
+      "sha": "e65a8f79daee17a0e4199ab8c5afb3429dbb101c",
+      "reason": "Landed on main by a train: 11 of 11 code commits are on main under the same subjects (e.g. e422f6ba8, 20b77d110, ce0737c3f, 5026d703a). The 46 added line(s) not found verbatim are older wording of lines main has since changed (29 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 1 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-1017-9",
+      "sha": "f785215d445da771e619fd31db0e71bfb4e2cac3",
+      "reason": "Landed on main by a train: 12 of 12 code commits are on main under the same subjects (e.g. 420b547fe, e422f6ba8, 20b77d110, ce0737c3f). The 2 added line(s) not found verbatim are older wording of lines main has since changed (1 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 1 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-2",
+      "sha": "9ecb4515e5d06bbcb9cdfda7ca3a29ba43e8da92",
+      "reason": "Landed on main by a train: 12 of 12 code commits are on main under the same subjects (e.g. eb408d11a, 82ae7e38a, 35fcecd26, a9a727ebe). The 4 added line(s) not found verbatim are older wording of lines main has since changed (4 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 2 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-3",
+      "sha": "f0c3fdb3f4547023d7b6e02ef2d08741de909265",
+      "reason": "Landed on main by a train: 14 of 14 code commits are on main under the same subjects (e.g. e6e1023dd, 7ac56366e, eb408d11a, 82ae7e38a). The 12 added line(s) not found verbatim are older wording of lines main has since changed (9 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 2 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-4",
+      "sha": "49161093a38ecd64da61b50800cce227157b7383",
+      "reason": "Landed on main by a train: 20 of 20 code commits are on main under the same subjects (e.g. 2c8fbb4d6, a6fb43ab3, 834f12e3c, 0c303d517). The 16 added line(s) not found verbatim are older wording of lines main has since changed (14 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 4 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-6",
+      "sha": "e08296c36ef8d0e791e4d8d01d29ae3b755c27d2",
+      "reason": "Landed on main by a train: 26 of 26 code commits are on main under the same subjects (e.g. 734874b40, 65cb5da67, 493120fa9, 65193e416). The 4 added line(s) not found verbatim are older wording of lines main has since changed (3 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 3 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/shops",
+      "sha": "319a30b3fc61e0d6ee4061eb91f46c0f7f53efc7",
+      "reason": "Landed on main by a train: 31 of 31 code commits are on main under the same subjects (e.g. 3203c14ef, 8813aeee6, f0e5e19c0, 3e9c86bec). The 208 added line(s) not found verbatim are older wording of lines main has since changed (199 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 4 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/shops-2",
+      "sha": "eb30a99b23e4efe0e571923bc284179b9190a6c8",
+      "reason": "Landed on main by a train: 3 of 3 code commits are on main under the same subjects (e.g. f7cf6331c, 118d0d600, 0b7b538dd). The 150 added line(s) not found verbatim are older wording of lines main has since changed (127 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sweep-1017",
+      "sha": "b17bc7a8fd8502a31cda69d988d080f36f122d5b",
+      "reason": "Landed on main by a train: 2 of 2 code commits are on main under the same subjects (e.g. 61aebd894, f3af59f4d). The 3 added line(s) not found verbatim are older wording of lines main has since changed (3 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 1 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/train-sec-a-money-1016",
+      "sha": "19ba8bb338348d46712fe4d8be1c581c0aaf3632",
+      "reason": "Landed on main by a train: 7 of 7 code commits are on main under the same subjects (e.g. 1d21ea470, b0a7b1dc8, 4c0076a60, be881bd2e). The 4 added line(s) not found verbatim are older wording of lines main has since changed (4 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 1 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/train-shops-1",
+      "sha": "d0d8aa296f53b41f8d3af76d0da6a10535f776d2",
+      "reason": "Landed on main by a train: 2 of 2 code commits are on main under the same subjects (e.g. 118d0d600, 0b7b538dd). The 67 added line(s) not found verbatim are older wording of lines main has since changed (54 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote).",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
+      "id": "remote:origin/ready/trim-posts-1017",
+      "sha": "a71acb670f61387f2e384777b0c8b4e7c369d281",
+      "reason": "Landed on main by a train: 1 of 1 code commits are on main under the same subjects (e.g. 73647b440). The 1 added line(s) not found verbatim are older wording of lines main has since changed (1 have a close match in main's copy of the same file; the rest are comments, test names or counts that later commits rewrote), and 14 deleted line(s) still on main, kept or restated by main's own landed version of the same change.",
+      "checked": "2026-10-18 (ready-triage: every added line of every changed file checked against origin/main c760d2ead with scripts/lib/strandedContent.mjs, each leftover line compared with main's copy of the same file, every commit matched to main by subject)"
+    },
+    {
       "id": "pr:2155",
       "sha": "cd55ba16238b9e77d276c9fd068e1645add8722f",
       "reason": "Copilot's guest-browse probe auth change: main's probe keeps its headers and e2e-journeys is green on main (2026-10-03 04:00Z dispatch).",

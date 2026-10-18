@@ -19,7 +19,7 @@
  * @mutate supabase/functions/_shared/refundNotice.ts |   if (m.type && METHOD_TYPES[m.type]) return METHOD_TYPES[m.type]; |   if (m.type) return m.type;
  * @mutate supabase/functions/_shared/refundNotice.ts |       if (Date.now() - Date.parse(h.created_at) <= 5 * 60_000) return { status: "in_flight" }; |       if (false) return { status: "in_flight" };
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             await tellPosterMoneyBack(job, pi, { key: `release:${pi.id}`, kind: "release", amountCents: Number(pi.amount ?? 0), keptCents: 0, keptReason: null }); |             void tellPosterMoneyBack;
- * @mutate supabase/functions/void-cancelled-payments/index.ts |               amountCents: Math.max(0, Number(pi.amount ?? 0) - feeCents), keptCents: feeCents, |               amountCents: 0, keptCents: feeCents,
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |               amountCents: Math.max(0, Number(pi.amount ?? 0) - captureCents), keptCents: captureCents, |               amountCents: 0, keptCents: captureCents,
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             if (cancellationRefundNotice) await tellPosterMoneyBack(job, pi, cancellationRefundNotice); |             void cancellationRefundNotice;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |       if (pathAnnouncesRefund(md) \|\| madeByAPath.has(r.id)) { |       if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |         typeof r.created === "number" && Math.abs(r.created - releaseTold.createdS) < 600 |         false

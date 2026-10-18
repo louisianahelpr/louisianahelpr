@@ -2269,7 +2269,7 @@ serve(async (req) => {
             // priced from the charge's real fee after the capture.
             const holdCents = Math.max(0, Math.round(Number(pi.amount_capturable ?? pi.amount ?? 0)));
             const captureCents = Math.min(feeCents, holdCents);
-            let holdGift: { cents: number } | null = null;
+            let holdGift: { cents: number; uncollectable?: true } | null = null;
             /** Q2000: the gift can never pay its part; the fee is capped at the card below. */
             let holdGiftGone = false;
             /** Review of 8354ebb0e #2: what an earlier restore kept of the gift, still paying its part. */

@@ -189,7 +189,7 @@ describe("void-cancelled-payments: a fully gift-funded job's late-cancellation f
     expect(jobSettles().map((w) => w.payload)).toEqual([{ payment_status: "cancelled" }]);
   });
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (funding === null) { |           if (false) {
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if (funding === null) {\n            console.error(`[void-cancelled-payments] job ${job.id}: could not read what its gift paid | if (false) {\n            console.error(`[void-cancelled-payments] job ${job.id}: could not read what its gift paid
   it("an unreadable gift settles nothing this run (fails closed)", async () => {
     seedSingle();
     scenario.rpcErrors = { restore_gift_card_for_job: { message: "boom" } };

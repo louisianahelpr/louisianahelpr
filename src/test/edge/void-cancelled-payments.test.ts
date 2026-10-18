@@ -378,7 +378,7 @@ describe("void-cancelled-payments — Q891: a test-mode Stripe object under the 
 // releases the rest. The amount lived only in Stripe: the job row kept the
 // client-written cancellation_fee, which Spent and the fee pill read. The
 // settle write now carries the fee this capture charged.
-// @mutate supabase/functions/void-cancelled-payments/index.ts |               cancellation_fee_status: "charged",\n              cancellation_fee: cancellationFee,\n | cancellation_fee_status: "charged",\n
+// @mutate supabase/functions/void-cancelled-payments/index.ts | cancellation_fee_status: holdGiftGone && cancellationFee <= 0 ? null : "charged",\n              cancellation_fee: cancellationFee,\n | cancellation_fee_status: holdGiftGone && cancellationFee <= 0 ? null : "charged",\n
 describe("void-cancelled-payments — Q1345: a fee captured from an uncaptured hold is stamped on the job", () => {
   beforeEach(() => {
     resetStripeMock();

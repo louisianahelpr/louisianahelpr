@@ -38,7 +38,7 @@ export function JobsPostsBar() {
               className="min-h-11 shrink-0 rounded-full px-3 text-ds-14 whitespace-nowrap ctl-tint"
               style={{
                 fontWeight: on ? 700 : 500,
-                color: on ? "hsl(var(--brand))" : "hsl(var(--ink-deep))",
+                color: on ? "hsl(var(--brand-ink))" : "hsl(var(--ink-deep))",
                 background: on ? "hsl(var(--brand) / 0.10)" : "transparent",
               }}
             >

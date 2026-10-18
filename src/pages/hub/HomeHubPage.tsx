@@ -54,7 +54,7 @@ export default function HomeHubPage() {
                   onClick={s.key === "jobs" ? gate("post", () => navigate(s.post!.path)) : () => navigate(s.post!.path)}
                   className="flex w-full min-h-11 items-center gap-3 rounded-ds-md px-3 py-2 text-left ctl-tint"
                 >
-                  <s.icon className="h-5 w-5 shrink-0" aria-hidden style={{ color: "hsl(var(--brand))" }} />
+                  <s.icon className="h-5 w-5 shrink-0" aria-hidden style={{ color: "hsl(var(--brand-ink))" }} />
                   <span className="flex-1 text-ds-15 font-semibold">
                     {s.post!.label} <span className="font-normal text-muted-foreground">in {s.label}</span>
                   </span>
@@ -82,7 +82,7 @@ export default function HomeHubPage() {
                 className="flex w-full min-h-11 items-center gap-2 rounded-ds-md px-3 py-2 text-left ctl-tint"
                 style={{ background: "hsl(var(--brand) / 0.06)" }}
               >
-                <Icon className="h-4 w-4 shrink-0" aria-hidden style={{ color: "hsl(var(--brand))" }} />
+                <Icon className="h-4 w-4 shrink-0" aria-hidden style={{ color: "hsl(var(--brand-ink))" }} />
                 <span className="text-ds-14 font-medium">{label}</span>
               </button>
             </li>
@@ -93,7 +93,7 @@ export default function HomeHubPage() {
       {rows.map((s) => (
         <section key={s.key} aria-labelledby={`hub-${s.key}`} className="rounded-2xl border border-border bg-card p-4" data-hub-section={s.key}>
           <div className="flex items-center gap-3">
-            <s.icon className="h-6 w-6 shrink-0" aria-hidden style={{ color: "hsl(var(--brand))" }} />
+            <s.icon className="h-6 w-6 shrink-0" aria-hidden style={{ color: "hsl(var(--brand-ink))" }} />
             <div className="min-w-0 flex-1">
               <h2 id={`hub-${s.key}`} className="text-ds-17 font-semibold">{s.label}</h2>
               <p className="text-ds-13 text-muted-foreground">{SECTION_BLURB[s.key]}</p>
@@ -103,7 +103,7 @@ export default function HomeHubPage() {
               onClick={() => navigate(s.path)}
               aria-label={`See all in ${s.label}`}
               className="inline-flex min-h-11 shrink-0 items-center gap-0.5 rounded-full px-3 text-ds-14 font-semibold ctl-tint"
-              style={{ color: "hsl(var(--brand))" }}
+              style={{ color: "hsl(var(--brand-ink))" }}
             >
               See all
               <ChevronRight className="h-4 w-4" aria-hidden />

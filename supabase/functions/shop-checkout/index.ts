@@ -193,6 +193,13 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   const note = typeof body.note === "string" ? body.note : "";
   const native = isNativeRequest(body);
 
+  // The SQL's own gates first, as the buyer (switch, ban, the shop visible to them,
+  // not blocked): nothing is sent to Stripe for a caller the order would refuse,
+  // and the address answers below tell nothing to such a caller (authz review
+  // 2026-10-18, note 1).
+  const { error: termsErr } = await asBuyer.rpc("shops_order_terms", { p_shop_id: shopId });
+  if (termsErr) return rpcRefusal(termsErr);
+
   // The shop's pickup address as a Stripe Tax location FIRST: shops_request_order
   // retires the buyer's previous page, so nothing that can fail on the address
   // may run after it (review 2026-10-18, finding 3). No shop row: the SQL below

@@ -7,7 +7,7 @@
 --   * the shop's owner: always (shops_my_pickup_address);
 --   * the order's buyer: only while the maker has ACCEPTED the order and it
 --     is not yet picked up (status accepted, until 7 days after the ready
---     date), never a banned buyer, through shops_order_pickup_address. After
+--     date on M1's Louisiana clock, shop_local_today), never a banned buyer, through shops_order_pickup_address. After
 --     handover (M2's handed_over) the buyer no longer reads the shop's
 --     CURRENT address (authz review 2026-10-18, finding 1: "forever");
 --   * the edge functions (service_role): to make the Stripe Tax location.
@@ -154,10 +154,12 @@ AS $fn$
   JOIN public.shop_pickup_addresses a ON a.shop_id = o.shop_id
   WHERE o.id = p_order_id
     AND auth.uid() IS NOT NULL
+    -- The address is the order's seller's own (defence if shops ever change hands).
+    AND a.owner_id = o.seller_id
     AND (o.seller_id = auth.uid()
          OR (o.buyer_id = auth.uid()
              AND o.status = 'accepted'
-             AND current_date <= o.ready_date + 7
+             AND public.shop_local_today() <= o.ready_date + 7
              AND NOT public.is_caller_banned()));
 $fn$;
 REVOKE ALL ON FUNCTION public.shops_order_pickup_address(uuid) FROM PUBLIC, anon;

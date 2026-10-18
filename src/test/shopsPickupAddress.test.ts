@@ -19,7 +19,7 @@
  */
 // @mutate supabase/migrations/20261018180859_shops_pickup_address.sql | REVOKE ALL ON TABLE public.shop_pickup_addresses FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.shop_pickup_addresses TO authenticated;
 // @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |              AND o.status = 'accepted'\n | \n
-// @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |              AND current_date <= o.ready_date + 7\n | \n
+// @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |              AND public.shop_local_today() <= o.ready_date + 7\n | \n
 // @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |              AND NOT public.is_caller_banned())); | ));
 // @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |   PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN | IF public.is_caller_banned() THEN
 // @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |   BEFORE INSERT ON public.shop_orders\n | BEFORE INSERT ON public.shop_order_lines\n
@@ -53,8 +53,10 @@ describe("Shops pickup address stays private (20261018180859)", () => {
   it("2. the buyer sees it only while accepted (a week past the ready date at most, never banned); the seller always", () => {
     const b = body("shops_order_pickup_address");
     expect(b).toMatch(/o\.seller_id\s*=\s*auth\.uid\(\)/i);
-    expect(b).toMatch(/o\.buyer_id\s*=\s*auth\.uid\(\)\s+AND\s+o\.status\s*=\s*'accepted'\s+AND\s+current_date\s*<=\s*o\.ready_date\s*\+\s*7\s+AND\s+NOT\s+public\.is_caller_banned\(\)/i);
+    expect(b).toMatch(/o\.buyer_id\s*=\s*auth\.uid\(\)\s+AND\s+o\.status\s*=\s*'accepted'\s+AND\s+public\.shop_local_today\(\)\s*<=\s*o\.ready_date\s*\+\s*7\s+AND\s+NOT\s+public\.is_caller_banned\(\)/i);
     expect(b).not.toMatch(/handed_over/i);
+    // The address must be the order's seller's own (authz review 2026-10-18, note 4).
+    expect(b).toMatch(/a\.owner_id\s*=\s*o\.seller_id/i);
     // Every buyer test in the body carries the status test (no second, bare buyer branch).
     expect((b.match(/o\.buyer_id\s*=\s*auth\.uid\(\)/gi) ?? []).length).toBe(1);
   });

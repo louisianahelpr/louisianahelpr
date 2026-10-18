@@ -281,10 +281,10 @@ ok((await svc(`SELECT status FROM public.shop_orders WHERE id = '${o1}'`))[0]?.s
   && (await pickupFor(OWNER, o1))?.length === 1, "handed over (M2): the buyer no longer reads the address; the seller still does");
 await svc(`UPDATE public.shop_orders SET status = 'accepted' WHERE id = '${o1}'`);
 const readyWas = (await svc(`SELECT ready_date::text AS d FROM public.shop_orders WHERE id = '${o1}'`))[0]?.d;
-await svc(`UPDATE public.shop_orders SET ready_date = current_date - 8 WHERE id = '${o1}'`);
-ok((await svc(`SELECT (ready_date = current_date - 8) AS y FROM public.shop_orders WHERE id = '${o1}'`))[0]?.y === true && (await pickupFor(BUYER, o1))?.length === 0,
+await svc(`UPDATE public.shop_orders SET ready_date = public.shop_local_today() - 8 WHERE id = '${o1}'`);
+ok((await svc(`SELECT (ready_date = public.shop_local_today() - 8) AS y FROM public.shop_orders WHERE id = '${o1}'`))[0]?.y === true && (await pickupFor(BUYER, o1))?.length === 0,
   "accepted but more than a week past the ready date: the buyer no longer reads it");
-await svc(`UPDATE public.shop_orders SET ready_date = current_date - 7 WHERE id = '${o1}'`);
+await svc(`UPDATE public.shop_orders SET ready_date = public.shop_local_today() - 7 WHERE id = '${o1}'`);
 ok((await pickupFor(BUYER, o1))?.length === 1, "exactly a week past the ready date: still shown (the boundary)");
 await svc(`UPDATE public.shop_orders SET ready_date = '${readyWas}' WHERE id = '${o1}'`);
 // Finding 2 (LOW): a banned buyer reads nothing.

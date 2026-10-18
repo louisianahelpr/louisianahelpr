@@ -34,6 +34,7 @@
  * @mutate supabase/functions/shop-checkout/index.ts |     if (err?.type === "StripeInvalidRequestError" && err.code !== "idempotency_key_in_use") { |     if (false) {
  * @mutate supabase/functions/shop-checkout/index.ts |       if ((e as { code?: string } \| null)?.code !== "idempotency_key_in_use") throw e; |       throw e;
  * @mutate supabase/functions/shop-checkout/index.ts |   if (!mode \|\| !location \|\| o.seller_id !== ownerId) { |   if (!mode \|\| !location) {
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (termsErr) return rpcRefusal(termsErr); |
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -287,6 +288,18 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     const res = await fn.fetch(ask(fn));
     expect(res.status).toBe(500);
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("the shop's terms are asked AS THE BUYER first: a refused caller sends nothing to Stripe and learns nothing of the address (authz note 1)", async () => {
+    const fn = await load();
+    frozen();
+    scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), shops_order_terms: { message: "account_restricted", code: "42501" } };
+    const res = await fn.fetch(ask(fn));
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect((await json(res)).error).toBe("account_restricted");
+    expect(stripeMock.rawRequest).not.toHaveBeenCalled();
+    expect(rpcs("shops_request_order")).toHaveLength(0);
+    expect(clientOf(rpcs("shops_order_terms")[0])?.key).not.toBe("service-key");
   });
 
   it("expires the page a superseded order had open", async () => {

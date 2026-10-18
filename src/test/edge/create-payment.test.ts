@@ -30,6 +30,7 @@ import {
 import { rateLimitState, resetSharedMocks, slackAlerts, notificationEmails } from "./mocks/shared";
 import { posterCardCostFeeCents } from "../../../supabase/functions/_shared/posterFees";
 import { TIER_FEE_PERCENT } from "../../../supabase/functions/_shared/helperFees";
+import { buildFeeQuote } from "../../../supabase/functions/_shared/jobCheckout";
 
 const AUTH = { Authorization: "Bearer test-jwt" };
 const POSTER = { id: "poster-1", email: "poster@test.com" };
@@ -1100,6 +1101,25 @@ describe("create-payment edge function", () => {
         expect((scenario.rpcCalls ?? []).some((c) => c.name === "redeem_gift_card")).toBe(false);
         expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
         expect(scenario.writes.filter((w) => w.table === "jobs")).toEqual([]);
+      });
+
+      // lh-money-escrow review of the salvage rebase (2026-10-18, should-fix 1):
+      // under the poster-fee model the charge is budget + urgent bonus + fee,
+      // but the agreed price is the BUDGET (book_accepted_quote books it from
+      // price_cents). An urgent quote job with the switch on is still charged.
+      // @mutate supabase/functions/create-payment/index.ts | jobId, job.budget); | jobId, jobPriceCents / 100);
+      it("an urgent quote job on the poster-fee model compares the budget, not the charged total", async () => {
+        seedQuoteJob(250, [{ price_cents: 25000 }]);
+        scenario.reads.jobs = {
+          rows: [{ id: "job-q", customer_id: POSTER.id, budget: 250, category: "cleaning", title: "Quote job", status: "open",
+            payment_status: "unpaid", is_urgent: true, urgent_fee: 10 }],
+        };
+        scenario.rpc.feature_enabled_for_user = true;
+        const feeQuote = buildFeeQuote({ switchOn: true, giftFunded: false, recurring: false, jobPriceCents: 26_000, payInFour: false });
+        const { res, body } = await escrow({ feeQuote });
+        expect(body.error).toBeUndefined();
+        expect(res.status).toBe(200);
+        expect(stripeMock.checkout.sessions.create).toHaveBeenCalledTimes(1);
       });
 
       it("refuses when the quote tables cannot be read (fail closed)", async () => {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Q1657: the job-match digest is retired. Runs
- * 20261015065619_retire_job_match_digest.sql VERBATIM (3x) over the
+ * 20261018035944_retire_job_match_digest.sql VERBATIM (3x) over the
  * definitions it replaces (taken from the migrations before it), the catch-up
  * policy it restates (20261012214444, run verbatim first) and a stand-in
  * cron.job, then drives the saved-search path: fund a job -> the trigger
@@ -24,7 +24,7 @@ import os from "node:os";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const NEW_FILE = "20261015065619_retire_job_match_digest.sql";
+const NEW_FILE = "20261018035944_retire_job_match_digest.sql";
 const POLICY_FILE = "20261012214444_unfilled_series_reminder_catchup_policy.sql";
 const RED = process.env.NEW_MIGRATION === "skip";
 if (RED) console.log("NEW_MIGRATION=skip: running the PREVIOUS definitions (expect FAILs)");

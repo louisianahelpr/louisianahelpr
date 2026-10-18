@@ -586,9 +586,9 @@ describe("inventory", () => {
 // @mutate src/pages/post-job/PaymentSuccess.tsx | track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps }); | void 0;
 // @mutate src/pages/post-job/PaymentSuccess.tsx | if (!urlJobId \|\| !UUID_RE.test(urlJobId)) return; | void 0;
 // @mutate src/pages/post-job/PaymentSuccess.tsx | const urlJobId = searchParams.get("job_id"); | const urlJobId = searchParams.get("job_id") ?? resolvedJobId;
-// @mutate src/pages/post-job/PaymentSuccess.tsx | if (paid?.length === 1 && paid[0].id === jobId) { | if ((paid?.length ?? 0) <= 1) {
-// @mutate src/pages/post-job/PaymentSuccess.tsx | if (paid?.length === 1 && paid[0].id === jobId) { | if (paid?.length === 1) {
-// @mutate src/pages/post-job/PaymentSuccess.tsx | if (paidError) { | if (false) {
+// @mutate src/pages/post-job/firstPaymentCollected.ts | if (paid?.length === 1 && paid[0].id === jobId) { | if ((paid?.length ?? 0) <= 1) {
+// @mutate src/pages/post-job/firstPaymentCollected.ts | if (paid?.length === 1 && paid[0].id === jobId) { | if (paid?.length === 1) {
+// @mutate src/pages/post-job/firstPaymentCollected.ts | if (paidError) { | if (false) {
 // @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts | trackJobCompleted(jobId, data, "activity", user?.id); | void 0;
 // @mutate src/lib/jobCompletedEvent.ts | if (emitted.has(jobId)) return false; | void 0;
 // @mutate src/components/reviewPanel/ReviewForm.tsx | track(AhaEvent.ReviewLeft, { job_id: jobId, rating }); | void 0;

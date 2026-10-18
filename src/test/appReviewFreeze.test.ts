@@ -39,7 +39,7 @@ import { replayTablePrivileges, type Priv } from "./helpers/tablePrivilegeReplay
 
 // @mutate release/app-review-freeze.json | "liveClientCompatFloor": 1, | "liveClientCompatFloor": 0,
 // @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql | GRANT EXECUTE ON FUNCTION public.member_under_18(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.member_under_18(uuid) TO service_role;\nREVOKE UPDATE (phone) ON public.profiles FROM anon, authenticated;
-// @mutate src/test/appReviewFreeze.test.ts |     if (createsTable(m.code, t)) continue;\n    const word |     if (createsTable(m.code, t) \|\| t === "profiles") continue;\n    const word
+// @mutate src/test/appReviewFreeze.test.ts |     if (createsTable(m.code, t) \|\| createsNewView(m.code, t, files.slice(0, idx))) continue;\n    const word |     if (createsTable(m.code, t) \|\| createsNewView(m.code, t, files.slice(0, idx)) \|\| t === "profiles") continue;\n    const word
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");
@@ -121,6 +121,15 @@ function revokedTables(code: string): string[] {
 const createsTable = (code: string, t: string) =>
   new RegExp(String.raw`\bcreate\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?${t}"?\s*\(`, "i").test(code);
 
+/**
+ * A view this migration creates that no earlier migration names (2026-10-18,
+ * analytics_events_real): like a new table, it has no older reader to strand.
+ * A CREATE OR REPLACE of a view an earlier migration made still counts.
+ */
+const createsNewView = (code: string, t: string, earlier: { code: string }[]) =>
+  new RegExp(String.raw`\bcreate\s+(?:or\s+replace\s+)?view\s+(?:public\.)?"?${t}"?\b`, "i").test(code) &&
+  !earlier.some((f) => new RegExp(String.raw`\b${t}\b`, "i").test(f.code));
+
 /** "table: role" for every privilege migration `idx` takes away from a client role. */
 function narrowedTables(idx: number, files: Mig[]): string[] {
   const m = files[idx];
@@ -130,7 +139,7 @@ function narrowedTables(idx: number, files: Mig[]): string[] {
       out.push("ALL TABLES");
       continue;
     }
-    if (createsTable(m.code, t)) continue;
+    if (createsTable(m.code, t) || createsNewView(m.code, t, files.slice(0, idx))) continue;
     const word = new RegExp(String.raw`\b${t}\b|all\s+tables\s+in\s+schema`, "i");
     const prior = files.slice(0, idx).filter((f) => word.test(f.code)).map((f) => ({ name: f.name, sql: f.code }));
     for (const role of ROLES) {

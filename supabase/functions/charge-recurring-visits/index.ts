@@ -75,8 +75,9 @@ import {
 } from "../_shared/helperFees.ts";
 import { flatFeePercentOf, isFlatFeeJob } from "../_shared/helprFlatFee.ts";
 import { POSTER_SERVICE_FEE_PERCENT, posterCardCostFeeCents } from "../_shared/posterFees.ts";
+import { isPosterFeeJob, posterJobFeeCents } from "../_shared/posterJobFee.ts";
 import { THREE_D_SECURE_MIN_CENTS } from "../_shared/threeDSecure.ts";
-import { effectiveSalesTaxRate, isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
+import { effectiveSalesTaxRate, isLaborTaxable, jobEscrowTaxableBaseCents, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
@@ -598,7 +599,7 @@ serve(async (req) => {
     const q = supabase
       .from("jobs")
       .select(
-        "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status, stripe_payment_intent_id, helper_fee_percent, helper_fee_flat_cents",
+        "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status, stripe_payment_intent_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, platform_fee_percent",
         countOpt,
       )
       // Offset paging over an unordered result is sampling, not paging.
@@ -1486,7 +1487,12 @@ serve(async (req) => {
         // before 2026-10-11 may carry a tier percent). Every NEW visit is
         // priced at no platform percentage: the poster pays Stripe's card
         // cost only (owner, 2026-10-11).
-        const feePercent = paidRow ? Number(paidRow.fee_percent) : POSTER_SERVICE_FEE_PERCENT;
+        // A poster-fee series (owner 2026-10-18) charges every visit its own
+        // 5% + 70c at the percent the series was funded at; flat/legacy as before.
+        const posterFeeSeries = isPosterFeeJob(parent);
+        const feePercent = paidRow
+          ? Number(paidRow.fee_percent)
+          : posterFeeSeries ? Number(parent.platform_fee_percent) : POSTER_SERVICE_FEE_PERCENT;
         // No urgent tip and no onboarding fee on a recurring visit: urgency is a
         // property of a one-off post, and onboarding is charged once per account
         // and was already paid on the first visit.
@@ -1514,6 +1520,10 @@ serve(async (req) => {
         // transaction once the visit exists (off-session PaymentIntents get no
         // automatic_tax, so nothing else ever reports this tax).
         let taxCalculationId: string | null = paidRow ? paidRow.tax_calculation_id : null;
+        // The poster fee is a percent of the visit price only, so it is known
+        // BEFORE the tax; on a taxable category it is taxed like the labor (the
+        // owner-adopted tax memo, as create-payment's "Service fee" line).
+        const posterFeeCents = posterFeeSeries ? posterJobFeeCents(budgetCents, parent) : 0;
         // A paid row carries the tax the payer was charged; no new calculation.
         if (!paidRow && isLaborTaxable(parent.category as string)) {
           try {
@@ -1524,7 +1534,12 @@ serve(async (req) => {
                 reference: "labor",
                 tax_behavior: "exclusive",
                 tax_code: TAXABLE_LABOR_TAX_CODE,
-              }],
+              }, ...(posterFeeCents > 0 ? [{
+                amount: posterFeeCents,
+                reference: "service_fee",
+                tax_behavior: "exclusive" as const,
+                tax_code: TAXABLE_LABOR_TAX_CODE,
+              }] : [])],
               customer_details: {
                 address: {
                   postal_code: (parent.zip_code as string) ?? "",
@@ -1555,7 +1570,11 @@ serve(async (req) => {
         // helper_fee_flat_cents stamp) charges the poster the visit price only;
         // a series funded before the change keeps the card-cost fee it was
         // sold with (owner: posted jobs keep their old fees).
-        const computedFeeCents = isFlatFeeJob(parent) ? 0 : posterCardCostFeeCents(budgetCents, taxCents);
+        // A poster-fee series (its parent carries poster_fee_flat_cents; its
+        // Helpr stamp is 0/0, so isFlatFeeJob is ALSO true) is asked first.
+        const computedFeeCents = posterFeeSeries
+          ? posterFeeCents
+          : isFlatFeeJob(parent) ? 0 : posterCardCostFeeCents(budgetCents, taxCents);
         const feeCents = paidRow ? paidRow.fee_cents : computedFeeCents;
         const totalCents = budgetCents + feeCents + taxCents;
 
@@ -2094,12 +2113,23 @@ serve(async (req) => {
             // The visit inherits its series' fee model (F3): payout paths price
             // the visit by THIS row's stamp. Null on a legacy series.
             helper_fee_flat_cents: isFlatFeeJob(parent) ? Number(parent.helper_fee_flat_cents) : null,
+            // A poster-fee series' visit carries the poster stamp too, or the
+            // CHECK jobs_poster_fee_model_consistent refuses this insert (a 0c
+            // Helpr stamp only with the poster stamp) AFTER the card was charged
+            // (lh-money-escrow review of slice 3a, #6). Written only on such a
+            // series, so a flat visit never names the column.
+            ...(posterFeeSeries ? { poster_fee_flat_cents: Number(parent.poster_fee_flat_cents) } : {}),
             // Derived from the amount Stripe actually calculated rather than a
             // rate we looked up ourselves — that second source of truth is the
             // one that was retired. A FRACTION (effectiveSalesTaxRate): the
             // CHECK ck_jobs_sales_tax_rate_range admits 0..1, and the percent
             // this wrote would have failed the visit insert after the charge.
-            sales_tax_rate: effectiveSalesTaxRate(taxCents, budgetCents),
+            // Over the base Stripe taxed: the labor, plus the poster fee on a
+            // taxable poster-fee series (jobEscrowTaxableBaseCents).
+            sales_tax_rate: effectiveSalesTaxRate(taxCents, jobEscrowTaxableBaseCents({
+              budget: budgetCents / 100, category: parent.category as string,
+              customer_fee_amount: feeCents / 100, poster_fee_flat_cents: posterFeeSeries ? parent.poster_fee_flat_cents : null,
+            })),
             sales_tax_amount: taxCents / 100,
             // A recurring visit is never a one-time template itself.
             is_recurring: false,

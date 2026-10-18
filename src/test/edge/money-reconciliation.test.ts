@@ -30,7 +30,7 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
-import { resetStripeMock } from "./mocks/stripe";
+import { resetStripeMock, stripeMock } from "./mocks/stripe";
 import { jobLocalDateISO } from "../helpers/jobLocalDate";
 
 const CRON_SECRET = "cron-secret";
@@ -262,6 +262,70 @@ describe("money-reconciliation edge function", () => {
       expect(b.error).toBeUndefined();
       const checks = ((b.findings ?? []) as Array<{ check: string }>).map((f) => f.check);
       expect(checks.filter((c) => /cancellation|late_cancellation/.test(c))).toEqual([]);
+    });
+
+    // Q2000 (owner, 2026-10-17, option A): a late-cancelled single-Helpr job
+    // paid partly by a gift that can never pay (its donation refunded, or the
+    // gift already given back) settles with the fee CAPPED at what the card
+    // covered, below the ladder on purpose. The reconciler accepts that stored
+    // fee only with such a gift AND a fee ledger that agrees with the stamp.
+    // @mutate supabase/functions/money-reconciliation/index.ts |       const expectedFee = noMoneyArrived ? 0 : cappedFeeJobs.has(job.id as string) ? storedFee : expectedCancellationFee(job); |       const expectedFee = noMoneyArrived ? 0 : expectedCancellationFee(job);
+    // @mutate supabase/functions/money-reconciliation/index.ts |             if (!giftGone) continue; |
+    // @mutate supabase/functions/money-reconciliation/index.ts |             if (ledgerAgrees) cappedFeeJobs.add(id); |             cappedFeeJobs.add(id);
+    describe("a fee capped at the card because the gift can never pay (Q2000 option A)", () => {
+      const cappedJob = (fee: number, gifts: Record<string, unknown>[], ledger: Record<string, unknown>[]) => {
+        cancelledJob({
+          dispute_status: null, payment_status: "refunded", stripe_payment_intent_id: "pi_capped",
+          cancellation_fee: fee, cancellation_fee_status: fee > 0 ? "charged" : null, late_cancellation: true,
+          cancelled_at: new Date(Date.now() - 4 * 86_400_000).toISOString(),
+        });
+        scenario.reads.gift_cards = { rows: gifts };
+        scenario.reads.cancellation_fee_transfers = { rows: ledger };
+        // The Stripe-side hold check reads the PaymentIntent; nothing is held.
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_capped", status: "canceled" });
+      };
+      const redeemedRefundedGift = { id: "gc-cap", parent_credit_id: null, job_id: "job-d", restored_from_job_id: null, status: "redeemed", payment_status: "refunded", amount: 50 };
+      const feeChecks = (b: Record<string, unknown>) =>
+        ((b.findings ?? []) as Array<{ check: string }>).map((f) => f.check)
+          .filter((c) => c === "cancellation_fee_mismatch" || c === "cancellation_fee_status_incoherent");
+
+      it("capped fee + a gift whose donation was refunded + a ledger row that agrees: no fee finding", async () => {
+        const fn = await loadConfigured();
+        cappedJob(30, [redeemedRefundedGift], [{ job_id: "job-d", fee_amount: 30 }]);
+        const b = await body(await fn.fetch(cronRequest(fn)));
+        expect(b.error).toBeUndefined();
+        expect(feeChecks(b)).toEqual([]);
+        expect(JSON.stringify(b)).toMatch(/capped at the card/);
+      });
+
+      it("a zero fee (the card covered nothing) + the gift given back + no ledger row: no fee finding", async () => {
+        const fn = await loadConfigured();
+        cappedJob(0, [{ ...redeemedRefundedGift, id: "gc-new", job_id: null, restored_from_job_id: "job-d", status: "sent", payment_status: "paid" }], []);
+        const b = await body(await fn.fetch(cronRequest(fn)));
+        expect(b.error).toBeUndefined();
+        expect(feeChecks(b)).toEqual([]);
+      });
+
+      it("the same low fee with NO uncollectable gift is still a mismatch", async () => {
+        const fn = await loadConfigured();
+        cappedJob(30, [], [{ job_id: "job-d", fee_amount: 30 }]);
+        const b = await body(await fn.fetch(cronRequest(fn)));
+        expect(feeChecks(b)).toContain("cancellation_fee_mismatch");
+      });
+
+      it("a gift that still paid (payment_status paid) does not excuse the low fee", async () => {
+        const fn = await loadConfigured();
+        cappedJob(30, [{ ...redeemedRefundedGift, payment_status: "paid" }], [{ job_id: "job-d", fee_amount: 30 }]);
+        const b = await body(await fn.fetch(cronRequest(fn)));
+        expect(feeChecks(b)).toContain("cancellation_fee_mismatch");
+      });
+
+      it("a fee ledger that disagrees with the stamp is still a mismatch", async () => {
+        const fn = await loadConfigured();
+        cappedJob(30, [redeemedRefundedGift], [{ job_id: "job-d", fee_amount: 50 }]);
+        const b = await body(await fn.fetch(cronRequest(fn)));
+        expect(feeChecks(b)).toContain("cancellation_fee_mismatch");
+      });
     });
   });
 

@@ -114,11 +114,22 @@ test("one sheet, one step: the apply form is on the job detail surface", async (
   const applyNow = sheet.getByRole("button", { name: /^apply now$/i });
   await expect(applyNow).toBeVisible();
 
-  // The CTA wears the real gloss. Asserting the CLASS passes on a flat
-  // control (an inline `background` shorthand beats `.btn-grad-primary`), so
-  // read the COMPUTED background-image and require a gradient.
-  const cta = await applyNow.evaluate((el) => getComputedStyle(el).backgroundImage);
-  expect(cta, `Apply Now background-image: ${cta}`).toMatch(/gradient\(/);
+  // The CTA wears the real primary surface: SOLID olive since 2026-10-18
+  // (owner, option 3B "nearly flat"). Asserting the CLASS passes on a control
+  // whose fill was lost (an inline `background` shorthand beats
+  // `.btn-grad-primary`), so read the COMPUTED style: no gradient image, and a
+  // background-color equal to `hsl(var(--bark))` resolved on this same page.
+  const cta = await applyNow.evaluate((el) => {
+    const probe = document.createElement("div");
+    probe.style.backgroundColor = "hsl(var(--bark))";
+    document.body.appendChild(probe);
+    const olive = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    const cs = getComputedStyle(el);
+    return { image: cs.backgroundImage, color: cs.backgroundColor, olive };
+  });
+  expect(cta.image, `Apply Now background-image: ${cta.image}`).toBe("none");
+  expect(cta.color, `Apply Now background-color ${cta.color}, the olive is ${cta.olive}`).toBe(cta.olive);
 
   // 3. NOTHING STEPS. Typing into the note must not swap the body out — the
   //    job is still on screen, which is the property the two-step version
@@ -275,9 +286,9 @@ test("dismissing the sheet abandons the apply", async ({ helperPage: page }) => 
   await expect(page.getByRole("button", { name: /^apply now$/i })).toHaveCount(0);
 });
 
-// "Apply Now" is the sheet's one primary, and primaries wear the gradient
-// (CLAUDE.md: gloss tests assert the computed background-image, never the
-// class name — which is what line ~121 does). Handing the Button an `outline`
-// variant strips the gradient while leaving the class list plausible, so a
-// class-name assertion would sail straight past it.
+// "Apply Now" is the sheet's one primary, and primaries wear the solid olive
+// (CLAUDE.md: primary-surface tests assert the computed style, never the
+// class name — which is what the check above does). Handing the Button an
+// `outline` variant strips the olive while leaving the class list plausible,
+// so a class-name assertion would sail straight past it.
 // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | onClick={handleConfirm} | variant="outline" onClick={handleConfirm}

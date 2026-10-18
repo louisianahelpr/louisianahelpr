@@ -35,7 +35,6 @@
  * @mutate src/pages/shops/ShopOrdersPage.tsx |       <ShopMyOrdersView />\n | \n
  * @mutate src/pages/shops/ShopDashboardPage.tsx |       <ShopDashboardView />\n | \n
  * @mutate src/components/shops/ShopsHomeView.tsx |           {mine.data && ( |           {false && (
- * @mutate src/components/profile/profileLanding/ShopsEntryRow.tsx |     {mine.data && ( |     {false && (
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -117,7 +116,6 @@ import ShopPage from "@/pages/shops/ShopPage";
 import ShopOrdersPage from "@/pages/shops/ShopOrdersPage";
 import ShopDashboardPage from "@/pages/shops/ShopDashboardPage";
 import ShopsPage from "@/pages/shops/ShopsPage";
-import { ShopsEntryRow } from "@/components/profile/profileLanding/ShopsEntryRow";
 import { readyDateProblem } from "@/lib/shops/orders";
 
 const page = (over: Partial<ShopPageData> = {}): ShopPageData => ({
@@ -307,16 +305,11 @@ describe("the handover: the buyer confirms, the shop never finishes its own orde
 });
 
 describe("the dashboard entries", () => {
-  it("Shops home and the Profile row link it once the member has a shop", async () => {
+  it("Shops home links it once the member has a shop", async () => {
     api.fetchMyShopId.mockResolvedValue("s1");
     renderAt("/shops", "/shops", <ShopsPage />);
     expect(await screen.findByRole("button", { name: "Shop dashboard" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "My orders" }).getAttribute("href")).toBe("/shops/orders");
-  });
-  it("the Profile row", async () => {
-    api.fetchMyShopId.mockResolvedValue("s1");
-    renderAt("/profile", "/profile", <ShopsEntryRow />);
-    expect((await screen.findByRole("link", { name: /Shop dashboard/ })).getAttribute("href")).toBe("/shops/dashboard");
   });
   it("App.tsx routes both screens to their pages", () => {
     const app = readFileSync(join(process.cwd(), "src/App.tsx"), "utf8");

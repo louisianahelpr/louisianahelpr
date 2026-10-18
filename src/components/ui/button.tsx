@@ -28,9 +28,11 @@ import { cn } from "@/lib/utils";
 // MUST be referenced as `hsl(var(--token) / alpha)` — `bg-ink-deep` is a
 // no-op class.
 // ─────────────────────────────────────────────────────────────────────────────
+// Nearly flat (owner, 2026-10-18, option 3B): one small soft shadow, no inner
+// top highlight (that "shine" is what made the olive read as glossy).
 const ELEV_FILLED =
-  "shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12),0_4px_12px_-2px_hsl(var(--ink-deep)/0.08)] " +
-  "active:scale-[0.97] active:shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.14)]";
+  "shadow-[0_1px_2px_hsl(var(--ink-deep)/0.10),0_2px_6px_-2px_hsl(var(--ink-deep)/0.12)] " +
+  "active:scale-[0.97] active:shadow-[0_1px_1px_hsl(var(--ink-deep)/0.14)]";
 const ELEV_OUTLINE =
   "shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.08),0_2px_6px_hsl(var(--ink-deep)/0.10),0_4px_12px_-2px_hsl(var(--ink-deep)/0.06)] " +
   "active:scale-[0.97] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.10)]";

@@ -3,19 +3,19 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
-  Send,
+  Briefcase,
   ClipboardList,
   MessageSquare,
   User,
   Plus,
   ShieldAlert,
   ChevronDown,
-  Sofa,
-  Store,
   FileText,
   type LucideIcon,
 } from "lucide-react";
 import { useFeature } from "@/hooks/useFeature";
+import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
+import { POST_FAB_STYLE } from "@/components/mobileNav/postFabStyle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { useAdminBadges } from "@/components/admin/adminBadgeStore";
@@ -54,8 +54,10 @@ const NAV_ITEMS: Array<{
   badgeKey?: "messages" | "posts" | "jobs";
 }> = [
   { path: "/home", icon: Home, label: "Home" },
-  { path: "/posts", icon: Send, label: "Posts", badgeKey: "posts" },
-  { path: "/jobs", icon: ClipboardList, label: "Jobs", badgeKey: "jobs" },
+  // The dock's own Posts and Jobs icons (mobileNavHelpers leftItems /
+  // rightItems), so one destination wears one icon on every surface.
+  { path: "/posts", icon: ClipboardList, label: "Posts", badgeKey: "posts" },
+  { path: "/jobs", icon: Briefcase, label: "Jobs", badgeKey: "jobs" },
   { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" },
   { path: "/profile", icon: User, label: "Profile" },
 ];
@@ -100,18 +102,17 @@ const DesktopSidebarNav = () => {
   // Declutter (docs/specs/declutter-auctions.md row 1: its own tab) joins the
   // destinations after Messages only while the hidden switch is on for this
   // member; for everyone else the panel is unchanged.
-  const declutterOn = useFeature("declutter");
-  // Shops (docs/specs/local-shops-prep.md L1-L2: its own destination) joins
-  // after Declutter the same way, only while the hidden 'shops' switch is on.
-  const shopsOn = useFeature("shops");
+  // Shops (docs/specs/local-shops-prep.md L1-L2) follows it, and Homes (the
+  // 'rentals' switch; owner 2026-10-18: the nav says Homes) follows Shops:
+  // the dock's section tabs, read from the same hook so the two cannot drift.
+  const sectionTabs = useSectionTabs();
   // Quotes (owner answer 12, 2026-10-17: Helprs find quote requests in BOTH
   // the Jobs browse filter and a Quotes link in the menu) joins the same way,
   // only while the hidden 'quotes' switch is on for this member.
   const quotesOn = useFeature("quotes");
   const navItems = [
     ...NAV_ITEMS.slice(0, 4),
-    ...(declutterOn ? [{ path: "/declutter", icon: Sofa, label: "Declutter" }] : []),
-    ...(shopsOn ? [{ path: "/shops", icon: Store, label: "Shops" }] : []),
+    ...sectionTabs.map(({ path, icon, label }) => ({ path, icon, label })),
     ...(quotesOn ? [{ path: "/quotes", icon: FileText, label: "Quotes" }] : []),
     ...NAV_ITEMS.slice(4),
   ];
@@ -240,12 +241,9 @@ const DesktopSidebarNav = () => {
           onMouseEnter={() => prefetchRoute("/post-job")}
           className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-sans font-semibold text-ds-15 transition-transform active:scale-[0.98]"
           style={{
-            background:
-              "radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-deep)) 100%)",
-            color: "hsl(var(--parchment))",
-            border: "1px solid hsl(var(--bark-border))",
-            boxShadow:
-              "inset 0 1.5px 1px 0 rgba(255,255,255,0.28), 0 8px 18px -6px hsl(var(--bark) / 0.5)",
+            // Nearly flat (owner, 2026-10-18, option 3B): the dock FAB's
+            // surface, solid olive with one small soft shadow.
+            ...POST_FAB_STYLE,
           }}
         >
           <Plus className="h-5 w-5" strokeWidth={2.5} />

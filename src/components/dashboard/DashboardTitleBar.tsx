@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/NotificationPanel";
+import { HomeTopPair } from "@/components/dashboard/HomeTopPair";
 
 interface DashboardTitleBarProps {
   /** Where the emblem links. Home points at itself; the signed-out guest
@@ -198,6 +199,10 @@ export function DashboardTitleBar({
             <NotificationPanel triggerClassName="h-11 w-11" />
           </span>
         )}
+        {/* Messages + Profile join the bell while the dock carries the
+            section tabs instead (owner, 2026-10-18, option 1A). Default path
+            only: the guest feed's custom `trailing` never gets them. */}
+        {!trailing && <HomeTopPair />}
       </div>
     </div>
   );

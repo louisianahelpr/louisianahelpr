@@ -182,7 +182,8 @@ function BrowseView({ userId }: { userId: string }) {
         <>
           <SegmentedControl
             ariaLabel="How far away"
-            layout="wrap"
+            layout={tweak(7) ? "row" : "wrap"}
+            className={tweak(7) ? "mock-chip-row" : undefined}
             value={maxMiles === null ? "any" : String(maxMiles)}
             onChange={(v) => setMaxMiles(v === "any" ? null : Number(v))}
             options={DISTANCE_CHOICES.map((m) => ({ value: m === null ? "any" : String(m), label: m === null ? "Any distance" : `${m} mi` }))}

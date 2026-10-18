@@ -4579,8 +4579,8 @@ html.mock-t4 .page-title-card {
   padding-left: 0.25rem !important;
   padding-right: 0.25rem !important;
 }
-html.mock-t4 .page-title-card h1,
-html.mock-t4 [data-app-page-scroll] h1.text-page-title { font-size: 2.125rem !important; line-height: 1.1 !important; }
+html.mock-t4 .page-title-card h1 { font-size: 2.125rem !important; line-height: 1.1 !important; }
+html.mock-t4 [data-app-page-scroll] h1.text-page-title { font-size: 1.75rem !important; line-height: 1.1 !important; }
 html.mock-t4.mock-scrolled .page-title-card {
   padding-top: 0.15rem !important;
   padding-bottom: 0.15rem !important;
@@ -4590,7 +4590,7 @@ html.mock-t4.mock-scrolled .page-title-card {
   border-radius: 0 !important;
   border-bottom: 0.5px solid hsl(var(--border)) !important;
 }
-html.mock-t4.mock-scrolled .page-title-card h1 { font-size: 1.0625rem !important; }
+html.mock-t4.mock-scrolled .page-title-card h1 { font-size: 1.0625rem !important; margin-left: auto !important; margin-right: auto !important; }
 @media (prefers-reduced-motion: no-preference) {
   html.mock-t4 .page-title-card, html.mock-t4 .page-title-card h1 { transition: font-size 0.22s ease, padding 0.22s ease, background-color 0.22s ease; }
 }
@@ -4633,6 +4633,11 @@ html.mock-t5[data-theme="dark"] [data-skeleton]::after {
   --tw-enter-translate-y: 100% !important; --tw-exit-translate-y: 100% !important;
   box-shadow: 0 -8px 30px -12px hsl(220 14% 20% / 0.25) !important;
 }
+.mock-bottom-sheet.p-0 > :nth-child(2) { padding: 0.25rem 0.5rem 0 1.25rem; }
+html.mock-t6 .fixed.inset-0.z-50.backdrop-blur-\[24px\] {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  background-color: hsl(0 0% 0% / 0.28) !important;
+}
 .mock-grab-handle {
   width: 36px; height: 5px; border-radius: 3px; flex-shrink: 0;
   margin: 8px auto 2px;
@@ -4640,18 +4645,18 @@ html.mock-t5[data-theme="dark"] [data-skeleton]::after {
 }
 
 /* T7 — pill filter chips: one sideways-scrolling row, edge fade shows there is more. */
-html.mock-t7 [aria-label="Filter by category"],
+html.mock-t7 .category-chip-row,
 html.mock-t7 .mock-chip-row {
   display: flex !important; flex-wrap: nowrap !important; gap: 0.5rem !important;
   overflow-x: auto !important; scrollbar-width: none;
   -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
   mask-image: linear-gradient(to right, #000 88%, transparent);
 }
-html.mock-t7 [aria-label="Filter by category"] { border-bottom: 0 !important; padding-top: 0.25rem !important; padding-bottom: 0.5rem !important; }
+html.mock-t7 .category-chip-row { border-bottom: 0 !important; padding-top: 0.25rem !important; padding-bottom: 0.5rem !important; }
 html.mock-t7 .mock-chip-row { background: transparent !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; }
-html.mock-t7 [aria-label="Filter by category"]::-webkit-scrollbar,
+html.mock-t7 .category-chip-row::-webkit-scrollbar,
 html.mock-t7 .mock-chip-row::-webkit-scrollbar { display: none; }
-html.mock-t7 [aria-label="Filter by category"] > button,
+html.mock-t7 .category-chip-row > button,
 html.mock-t7 .mock-chip-row > button {
   flex: 0 0 auto !important; border-radius: 9999px !important;
   min-height: 36px; padding: 0 0.95rem !important; font-size: 0.875rem !important; font-weight: 600 !important;
@@ -4659,8 +4664,9 @@ html.mock-t7 .mock-chip-row > button {
   background: hsl(var(--card)) !important; background-image: none !important;
   color: hsl(var(--foreground)) !important; box-shadow: none !important;
 }
-html.mock-t7 [aria-label="Filter by category"] > button[aria-pressed="true"],
-html.mock-t7 .mock-chip-row > button[aria-selected="true"] {
+html.mock-t7 .category-chip-row > button[aria-pressed="true"],
+html.mock-t7 .mock-chip-row > button[aria-selected="true"],
+html.mock-t7 .mock-chip-row > button[aria-checked="true"] {
   background: hsl(var(--bark)) !important; border-color: hsl(var(--bark)) !important;
   color: hsl(var(--parchment)) !important;
 }

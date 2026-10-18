@@ -648,6 +648,7 @@ BEGIN
   END IF;
   IF o.status = 'accepted' THEN
     -- A retry after the capture step failed to answer: the edge function captures again (idempotent).
+    -- Not re-checked for a block made since: the order was accepted (hired) before it, as for every hire.
     RETURN jsonb_build_object('result', 'already_accepted', 'order_id', o.id, 'captured', o.captured_at IS NOT NULL);
   END IF;
   IF o.status <> 'held' THEN
@@ -663,7 +664,13 @@ BEGIN
   END IF;
   -- The buyer must still be able to buy from this maker (a block or a ban
   -- since the order was sent): the maker declines instead, and the hold drops.
-  IF o.buyer_id IS NULL OR public.are_users_blocked(v_uid, o.buyer_id) OR EXISTS (
+  -- A block is refused on its own, before any write, with the code every hire
+  -- RPC uses (Q345, hireRefusedAcrossBlock; its words never say who blocked).
+  IF public.are_users_blocked(v_uid, o.buyer_id) THEN
+    RAISE EXCEPTION 'applicant_blocked' USING ERRCODE = '42501',
+      HINT = 'This order can no longer be accepted. Decline it so the buyer''s hold is released.';
+  END IF;
+  IF o.buyer_id IS NULL OR EXISTS (
        SELECT 1 FROM public.profiles pr
         WHERE pr.user_id = o.buyer_id
           AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')

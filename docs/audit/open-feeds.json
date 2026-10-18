@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-18T16:31Z",
+  "measured_at": "2026-10-18T19:09Z",
   "issues": {
     "readable": true,
     "open": [
@@ -57,7 +57,7 @@
         "number": 2894,
         "title": "nightly-red: vacuity",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39142921667",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39156137759",
         "runTruncated": false
       },
       {
@@ -395,6 +395,14 @@
         "status": "open",
         "title": "error: your account is created, but your details didn't save — the connection dropped. log in to finish your profile.",
         "issue": null
+      },
+      {
+        "fingerprint": "e62e32bec0c415c8c17d26c4ff5e035f",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-money returned 500 (# defect(s) reported)",
+        "issue": null
       }
     ]
   },
@@ -490,6 +498,7 @@
     "ledger e06748071241": "Q1596",
     "ledger e306dea6b044": "Q1596",
     "ledger e49f68d9cbd6": "Q1475",
+    "ledger e62e32bec0c4": "Q2144",
     "ledger e81647556a56": "Q1596",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",

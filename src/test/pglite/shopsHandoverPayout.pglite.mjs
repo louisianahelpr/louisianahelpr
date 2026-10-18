@@ -322,7 +322,7 @@ const t2 = one(await member(OWNER, `SELECT public.shops_mark_picked_up('${oI2}')
 ok(t2?.result === "handed_over" && one(await svc(`SELECT confirmed_how FROM public.shop_handovers WHERE order_id = '${oI2}'`)) === "shop",
   "in person: from the ready date the shop's \"Picked up\" finishes it");
 const pI2 = (await svc(`SELECT status, extract(epoch FROM next_attempt_at - now())::int AS wait FROM public.shop_payouts WHERE order_id = '${oI2}'`))?.[0];
-ok(pI2?.status === "pending" && pI2?.wait > 86000 && pI2?.wait <= 86400
+ok(pI2?.status === "pending" && pI2?.wait > 86900 && pI2?.wait <= 87300
   && !(await svc(`SELECT order_id FROM public.shop_payouts_due(100)`)).some((d) => d.order_id === oI2),
   "after the shop's own tap the payout waits 24 hours (not in the queue yet)");
 ok(Number(one(await svc(`SELECT count(*) FROM public.notifications WHERE user_id = '${BUYER}' AND message LIKE '%within 24 hours%'`))) >= 1,

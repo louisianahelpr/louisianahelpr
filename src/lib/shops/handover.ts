@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { isStorageObjectPath } from "@/lib/storagePath";
 import { rpcErrorMessage, type ShopsRpc } from "./rpcErrorCopy";
 
 export type HandoverMode = "porch" | "in_person";
@@ -111,6 +112,7 @@ export async function uploadReadyPhoto(userId: string, orderId: string, file: Fi
 
 /** A short-lived link to the ready photo (the two sides and admins may read it). */
 export async function readyPhotoUrl(path: string): Promise<string | null> {
+  if (!isStorageObjectPath(path)) return null;
   const { data, error } = await supabase.storage.from(SHOP_HANDOVER_BUCKET).createSignedUrl(path, 600);
   if (error) {
     console.warn("[shops] ready photo link failed", error.message);

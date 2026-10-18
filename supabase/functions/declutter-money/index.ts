@@ -318,12 +318,12 @@ serve(async (req) => {
         out.ban_review++;
         continue;
       }
-      const hold = await checkPayoutHold(admin, p.seller_id);
-      if (hold.kind === "error") {
-        defects.record(`shop payout ${p.payout_id}: hold read failed: ${hold.message}`);
+      const shopHold = await checkPayoutHold(admin, p.seller_id);
+      if (shopHold.kind === "error") {
+        defects.record(`shop payout ${p.payout_id}: hold read failed: ${shopHold.message}`);
         continue;
       }
-      if (hold.kind === "held") {
+      if (shopHold.kind === "held") {
         out.held++;
         continue;
       }
@@ -346,11 +346,11 @@ serve(async (req) => {
           const meta = (t.metadata ?? {}) as Record<string, string>;
           return meta.kind === "shop_payout" && meta.payout_id === p.payout_id && !t.reversed;
         });
-        let transfer = existing;
-        if (!transfer) {
+        let shopTransfer = existing;
+        if (!shopTransfer) {
           // From the order's OWN charge, only while it is whole (paid, nothing refunded, not disputed).
           const charge = await wholeCharge(stripe, p.payment_intent_id, 0);
-          transfer = await stripe.transfers.create(
+          shopTransfer = await stripe.transfers.create(
             {
               amount: p.amount_cents,
               currency: "usd",
@@ -363,10 +363,10 @@ serve(async (req) => {
           );
         }
         const { error } = await admin.rpc("shop_payout_executed", {
-          p_payout_id: p.payout_id, p_transfer_id: transfer.id, p_succeeded: true, p_error: null,
+          p_payout_id: p.payout_id, p_transfer_id: shopTransfer.id, p_succeeded: true, p_error: null,
         });
         if (error) {
-          defects.record(`shop payout ${p.payout_id}: transfer ${transfer.id} not recorded: ${error.message}`);
+          defects.record(`shop payout ${p.payout_id}: transfer ${shopTransfer.id} not recorded: ${error.message}`);
           continue;
         }
         if (existing) out.shop_payouts_reconciled++;

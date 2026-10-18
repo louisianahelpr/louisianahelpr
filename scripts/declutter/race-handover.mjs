@@ -12,18 +12,19 @@
  *   ROUNDS=<n> node scripts/declutter/race-handover.mjs            (default 20)
  *
  * Races (each round on a fresh paid, booked order; two real sessions at once):
- *   I  seller scans the QR while the buyer taps "I got it"   -> one handover, one payout
- *   J  seller scans while the 24 h auto-pay sweep runs        -> one handover, one payout
+ *   (No QR and no 4-digit code since 20261018183715: owner 2026-10-18, porch pickup.)
+ *   I  the buyer taps "I got it" twice at once (two phones)  -> one handover, one payout
+ *   J  the buyer taps "I got it" while the 24 h auto-pay runs -> one handover, one payout
+ *   L  door pickup: the seller taps "Picked up" while the buyer taps "I got it" -> one handover, one payout
  *   K  buyer taps "I got it" while reporting a problem        -> handed over XOR problem open (never both, never paid with a problem)
- *   L  the seller scans twice at once (two phones)            -> one handover, one payout
  *   M  the auto-pay sweep runs twice at once                  -> one payout
- *   N  buyer reports a seller no-show while the seller scans  -> refunded XOR handed over (never a refund AND a payout)
+ *   N  buyer reports a seller no-show while (other phone) tapping "I got it" -> refunded XOR handed over (never a refund AND a payout)
  *   O  porch: the buyer's "Picked up" photo (pays at once, row 99) while the seller reports a problem
  *                                                             -> handed over XOR problem open (never paid with a problem)
  */
 import os from "node:os";
 import { mkdirSync, rmSync } from "node:fs";
-import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FILE } from "./slice3Harness.mjs";
+import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FILE, NO_QR_FILE } from "./slice3Harness.mjs";
 
 const PG_DIR = process.env.EMBEDDED_PG_DIR ?? `${os.homedir()}/.lh-embedded-pg`;
 const { default: EmbeddedPostgres } = await import(`${PG_DIR}/node_modules/embedded-postgres/dist/index.js`);
@@ -45,7 +46,7 @@ try {
   const admin = conn();
   await admin.connect();
   const slice4 = process.env.MIGRATION_PATH ? { path: process.env.MIGRATION_PATH, times: 3 } : { file: SLICE4_FILE, times: 3 };
-  for (const sql of setupStatements({ times: 3, times3b: 3, extra: [{ file: FEE_F1_FILE, times: 3 }, slice4] })) await admin.query(sql);
+  for (const sql of setupStatements({ times: 3, times3b: 3, extra: [{ file: FEE_F1_FILE, times: 3 }, slice4, { file: NO_QR_FILE, times: 3 }] })) await admin.query(sql);
   await admin.query(`CREATE OR REPLACE FUNCTION public.log_cron_defect(a text, b text, c text) RETURNS void LANGUAGE plpgsql AS $f$ BEGIN RAISE WARNING 'cron defect % % %', a, b, c; END $f$;`);
   await admin.query(CARDS_SQL);
   await admin.query(`INSERT INTO public.declutter_pickup_windows (seller_id, weekday, starts_local, ends_local)
@@ -74,7 +75,7 @@ try {
   const outcome = (settled) => settled.map(res).sort().join("+");
   const tomorrowNoon = `((date_trunc('day', now() AT TIME ZONE 'America/Chicago') + interval '1 day 12 hours') AT TIME ZONE 'America/Chicago')`;
 
-  /** A fresh paid, booked order for SELLER/BUYER; returns { id, code }. `ago` (minutes) moves the slot into the past. */
+  /** A fresh paid, booked order for SELLER/BUYER; returns { id }. `ago` (minutes) moves the slot into the past. */
   async function paidBooked(race, r, ago, handover = "pickup_home") {
     const item = `66666666-${race.charCodeAt(0).toString(16).padStart(4, "0")}-0000-0000-${String(r).padStart(12, "0")}`;
     await admin.query(liveItemSql({ id: item, title: `Race ${race} ${r}`, price: 2000, floor: 100 }));
@@ -86,8 +87,7 @@ try {
       await admin.query(`UPDATE public.declutter_bookings SET slot_start = now() - make_interval(mins => $2),
         slot_end = now() - make_interval(mins => $2) + interval '30 minutes' WHERE order_id = $1`, [o.order_id, ago]);
     }
-    const code = (await q1(admin, `SELECT code FROM public.declutter_handovers WHERE order_id = $1`, [o.order_id])).code;
-    return { id: o.order_id, code };
+    return { id: o.order_id };
   }
   const state = async (id) => ({
     status: (await q1(admin, `SELECT status FROM public.declutter_orders WHERE id = $1`, [id])).status,
@@ -95,7 +95,6 @@ try {
     refunds: await n(`SELECT count(*) AS n FROM public.declutter_refunds WHERE order_id = $1`, [id]),
     open: await n(`SELECT count(*) AS n FROM public.declutter_problems WHERE order_id = $1 AND status = 'open'`, [id]),
   });
-  const scan = (c, o) => c.query(`SELECT public.declutter_confirm_handover($1, 'scan', $2) AS r`, [o.id, o.code]);
   const gotIt = (c, o) => c.query(`SELECT public.declutter_confirm_handover($1, 'buyer', NULL) AS r`, [o.id]);
   const sweep = (c) => c.query(`SELECT public.declutter_handover_sweep() AS r`);
   const handedOnce = (s) => s.status === "handed_over" && s.payouts === 1 && s.refunds === 0;
@@ -103,13 +102,13 @@ try {
   for (let r = 0; r < ROUNDS; r++) {
     { // I
       const o = await paidBooked("I", r);
-      const st = await Promise.allSettled([scan(S.seller, o), gotIt(S.buyer, o)]);
+      const st = await Promise.allSettled([gotIt(S.buyer, o), gotIt(S.buyer2, o)]);
       const s = await state(o.id);
       tally("I", handedOnce(s) && outcome(st) === "already_handed_over+handed_over", `${outcome(st)} payouts=${s.payouts}`);
     }
     { // J
       const o = await paidBooked("J", r, 60 * 24 + 5);
-      const st = r % 2 ? await Promise.allSettled([scan(S.seller, o), sweep(S.svcA)]) : await Promise.allSettled([sweep(S.svcA), scan(S.seller, o)]);
+      const st = r % 2 ? await Promise.allSettled([gotIt(S.buyer, o), sweep(S.svcA)]) : await Promise.allSettled([sweep(S.svcA), gotIt(S.buyer, o)]);
       const s = await state(o.id);
       tally("J", handedOnce(s), `${outcome(st)} payouts=${s.payouts}`);
     }
@@ -123,10 +122,10 @@ try {
       tally("K", handed !== held, `${outcome(st)} status=${s.status} open=${s.open} payouts=${s.payouts}`);
     }
     { // L
-      const o = await paidBooked("L", r);
-      const st = await Promise.allSettled([scan(S.seller, o), scan(S.seller2, o)]);
+      const o = await paidBooked("L", r, 5);
+      const st = await Promise.allSettled([S.seller.query(`SELECT public.declutter_seller_picked_up($1, NULL) AS r`, [o.id]), gotIt(S.buyer, o)]);
       const s = await state(o.id);
-      tally("L", handedOnce(s), `${outcome(st)} payouts=${s.payouts}`);
+      tally("L", handedOnce(s) && outcome(st) === "already_handed_over+handed_over", `${outcome(st)} payouts=${s.payouts}`);
     }
     { // M
       const o = await paidBooked("M", r, 60 * 24 + 5);
@@ -136,7 +135,7 @@ try {
     }
     { // N
       const o = await paidBooked("N", r, 20);
-      const st = await Promise.allSettled([scan(S.seller, o), S.buyer.query(`SELECT public.declutter_report_no_show($1) AS r`, [o.id])]);
+      const st = await Promise.allSettled([gotIt(S.buyer2, o), S.buyer.query(`SELECT public.declutter_report_no_show($1) AS r`, [o.id])]);
       const s = await state(o.id);
       const refunded = s.status === "refunded" && s.refunds === 1 && s.payouts === 0;
       tally("N", handedOnce(s) !== refunded, `${outcome(st)} status=${s.status} refunds=${s.refunds} payouts=${s.payouts}`);

@@ -6,7 +6,7 @@
  *
  * Nothing here knows about Declutter: a task names its source (`source_kind`,
  * `source_id`) and every rule (who may take it, when, the photos at each end,
- * the drop-off code, the Helpr's pay) is enforced in SQL (helpr_task_*). The
+ * the door photo, the Helpr's pay) is enforced in SQL (helpr_task_*). The
  * exact addresses come only from helpr_task_view, and only to the assigned
  * Helpr while the task is active. A refusal throws an Error whose message is
  * the server's code; screens word it with declutterErrorMessage (the codes are
@@ -67,8 +67,6 @@ export interface TaskView {
   dropoff_address: string | null;
   dropoff_lat: number | null;
   dropoff_lng: number | null;
-  dropoff_code: string | null;
-  code_locked: boolean;
   pickup_photo_path: string | null;
   dropoff_photo_path: string | null;
 }
@@ -95,8 +93,6 @@ export interface MyVehicle {
 export type DeliveredResult =
   | { result: "confirmed"; distance_m?: number | null }
   | { result: "delivered"; distance_m?: number | null; held?: boolean }
-  | { result: "wrong_code"; attempts_left: number }
-  | { result: "code_locked" }
   | { result: "already_confirmed" };
 
 /**
@@ -155,19 +151,18 @@ export async function markPickedUp(taskId: string, photoPath: string, where: { l
   data(await supabase.rpc("helpr_task_picked_up", { p_task_id: taskId, p_photo_path: photoPath, p_lat: where.lat, p_lng: where.lng }), (e) => rpcErrorMessage("helpr_task_picked_up", e));
 }
 
-/** The drop-off: a photo at the address, with the customer's 4-digit code when they are there. */
+/** The drop-off: a photo at the door (no code: owner 2026-10-18); the customer's "I got it" or 24 h confirms it. */
 export async function markDelivered(
   taskId: string,
   photoPath: string | null,
   where: { lat: number; lng: number } | null,
-  code: string | null,
 ): Promise<DeliveredResult> {
   return data<DeliveredResult>(await supabase.rpc("helpr_task_delivered", {
     p_task_id: taskId,
     p_photo_path: photoPath as string,
     p_lat: (where?.lat ?? null) as number,
     p_lng: (where?.lng ?? null) as number,
-    p_code: code as string,
+    p_code: null as unknown as string,
   }), (e) => rpcErrorMessage("helpr_task_delivered", e));
 }
 

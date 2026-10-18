@@ -39,10 +39,10 @@ premium, 7 days to pay + book pickup, 5% cancel/relist fee, $1 missed-pickup fee
 | 22 | Seller fee | None: seller keeps 100% of the winning bid | 2026-10-14 |
 | 23 | Stripe payout setup | Required before a seller's FIRST LISTING (same gate as Helprs) | 2026-10-14 |
 | 24 | Handover options at launch | Pickup at seller's home, porch pickup, Helpr delivery. Shipping NOT at launch. Porch is the default and listed first (row 101) | 2026-10-14 |
-| 25 | Confirming handover (in person) | Owner: "both": seller/Helpr scans the buyer's QR (4-digit code backup) OR buyer taps "I got it" (auto-release rule: round 7). Only when the buyer meets at the seller's home (row 101); porch uses row 99 | 2026-10-14 |
+| 25 | Confirming handover (in person) | **Superseded 2026-10-18 (owner pop-up): NO QR and NO 4-digit code anywhere in Declutter (20261018183715, 20261018184535).** Porch: seller's "Left on porch" photo, then the buyer's "I got it" (or pickup photo). Door pickup for big items (porch off): the buyer's "I got it" OR the seller's "Picked up" (photo optional), with safety tips for both and "Add a Helpr" offered. Was: Owner: "both": seller/Helpr types the buyer's 4-digit code OR buyer taps "I got it" (auto-release rule: round 7). No QR code (owner 2026-10-17: no QR codes anywhere; removed by 20261018183715). Only when the buyer meets at the seller's home (row 101); porch uses row 99 | 2026-10-14 |
 | 26 | Porch pickup | Seller posts a photo of the item on the porch when it's set out; buyer takes a photo + taps "Picked up" while at the address; seller auto-paid 24 h after the booked time unless the buyer reports a problem | 2026-10-14 |
 | 27 | Location before paying | Area + miles only; exact address to the paid buyer or the Helpr who accepted the delivery | 2026-10-14 |
-| 28 | Auto-pay rule | Seller is paid when the seller/Helpr scans the buyer's QR (or types the 4-digit code) OR the buyer taps "I got it"; if neither, auto-paid 24 h after the booked time unless the buyer reported a problem | 2026-10-14 |
+| 28 | Auto-pay rule | **Superseded 2026-10-18 (owner pop-up): NO QR and NO 4-digit code anywhere in Declutter (20261018183715, 20261018184535).** Paid on "I got it", the buyer's porch photo, or the seller's door "Picked up"; else auto-paid 24 h after the booked time unless a problem is open, and a PORCH order only if the seller posted the "Left on porch" photo. Was: Seller is paid when the seller/Helpr types the buyer's 4-digit code OR the buyer taps "I got it"; if neither, auto-paid 24 h after the booked time unless the buyer reported a problem | 2026-10-14 |
 | 29 | Helpr delivery price | $10 base + $2 per road mile + size add-on ($0 small / $20 large / $40 extra large two-person; add-on amounts carried from the earlier proposal, owner picked this row) | 2026-10-14 |
 | 30 | Max delivery distance | No limit: the buyer pays the per-mile price whatever the distance | 2026-10-14 |
 | 31 | Photos per item | At least 3, up to 12; app checks they're real photos, not internet pictures | 2026-10-14 |
@@ -87,7 +87,7 @@ premium, 7 days to pay + book pickup, 5% cancel/relist fee, $1 missed-pickup fee
 | 70 | Price cap | Highest price per item $1,000 (was $10,000 in B3); floor/offers/price drops all within it | 2026-10-14 |
 | 91 | Buyer restarted checkout and paid twice | The extra payment is refunded MINUS the card fee (buyer caused it; never-absorb rule) | 2026-10-14 |
 | 92 | Seller banned / 3 strikes after the buyer paid | Buyer gets everything back; the card fee becomes the SELLER's fee debt (same as row 60) | 2026-10-14 |
-| 93 | When the seller is paid | Right away: the moment handover is confirmed (QR scan, buyer's "I got it", or 24 h auto-pay) the item price transfers to the seller's Stripe account; bank timing is Stripe's normal schedule (same-day = row 84, later) | 2026-10-14 |
+| 93 | When the seller is paid | Right away: the moment handover is confirmed (buyer's "I got it" or porch photo, the seller's door "Picked up", or the 24 h auto-pay; no code since 2026-10-18) the item price transfers to the seller's Stripe account; bank timing is Stripe's normal schedule (same-day = row 84, later) | 2026-10-14 |
 | 94 | No-show wait | 15 minutes after the booked time the waiting side gets a "They didn't show" button | 2026-10-14 |
 | 95 | Buyer no-show | First miss: buyer may rebook once within the 7 days. Second miss or no rebook: sale cancelled, item price back minus the 15% premium, 1 buyer strike (as row 18); seller relists free | 2026-10-14 |
 | 96 | "Report a problem" window | Any time until the seller is paid (handover confirmed); after that the sale is final (row 15) | 2026-10-14 |
@@ -95,7 +95,7 @@ premium, 7 days to pay + book pickup, 5% cancel/relist fee, $1 missed-pickup fee
 | 98 | Exact address | Shown to the buyer right after paying (to plan and book); before paying only area + miles (row 27) | 2026-10-14 |
 | 99 | Porch "Picked up" | The buyer's photo + "Picked up" tap pays the seller RIGHT AWAY (same as "I got it"); the 24 h auto-pay only covers buyers who never tap (supersedes row 26's wait) | 2026-10-15 |
 | 100 | No-fault admin refund | Keeps the card fee (never-absorb rule); only refunds caused by our own mistakes are full | 2026-10-15 |
-| 101 | Porch is the default | Owner: "I'd rather porch pick up and not having to meet someone for a code or qr code." Porch pickup is pre-selected at checkout and shown first. The SELLER can turn porch off per item when listing (too valuable / too big to leave out); an order with any such item offers only pickup at the seller's home, and the server refuses porch for it. The buyer can still choose to meet at the seller's home; the code/QR is used only then (rows 25, 28). The listing says "Porch pickup available" or "Meet at the seller's home only". Helpr delivery (row 63) unchanged | 2026-10-16 |
+| 101 | Porch is the default | Owner: "I'd rather porch pick up and not having to meet someone for a code or qr code." Porch pickup is pre-selected at checkout and shown first. The SELLER can turn porch off per item when listing (too valuable / too big to leave out); an order with any such item offers only pickup at the seller's home, and the server refuses porch for it. The buyer can still choose to meet at the seller's home; the 4-digit code is used only then (rows 25, 28; no QR since 2026-10-17). The listing says "Porch pickup available" or "Meet at the seller's home only". Helpr delivery (row 63) unchanged | 2026-10-16 |
 | 102 | Launch with delivery | Owner 2026-10-16: "Yes, launch with delivery". Helpr delivery (slice 5) is part of the launch; the 'declutter' switch stays at testers until delivery is ready. Supersedes row 63 | 2026-10-16 |
 
 ## Approved for later slices (details still to ask the owner)
@@ -116,7 +116,7 @@ Owner-approved 2026-10-14; NOT built in slice 3b. The owner did NOT pick "give t
 | 81 | Bundles / lots | Sell several items as one ("bag of 15 kids' shirts"), or a seller-set discount when a buyer combines items | 2026-10-14 |
 | 82 | Refer a friend | Both get Declutter credit when the friend makes a first purchase (existing referral credit ledger) | 2026-10-14 |
 | 83 | "On my way" + live ETA | Buyer taps On my way at pickup time; seller sees them on the map (reuse the Helpr-arrival GPS); "Running late" button | 2026-10-14 |
-| 84 | Same-day seller payout | Seller paid the same day the QR is scanned, via the existing instant-payout feature | 2026-10-14 |
+| 84 | Same-day seller payout | Seller paid the same day the handover is confirmed, via the existing instant-payout feature | 2026-10-14 |
 | 85 | Fast-reply badge | Sellers who answer questions/offers quickly get a badge and rank higher | 2026-10-14 |
 | 86 | Saved searches + instant alerts | Push alert when a matching item is listed nearby (reuse job saved-search alerts) | 2026-10-14 |
 | 87 | "Good deal" tags | Items priced below similar past Declutter sales get a tag | 2026-10-14 |
@@ -462,9 +462,9 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
   screen). `declutter_item_address`/`declutter_seller_item_private` lose the switch gate for a party to an
   agreed/paid sale (row 62, authz NOTE 5) and return the exact address only to the PAID buyer.
 - Handover (rows 25, 28, 93): `declutter_handovers` per order: `code_hash` (4 digits, per order, shown to the buyer
-  only; the QR encodes order id + code), `confirmed_at`, `confirmed_by` 'scan' | 'code' | 'buyer' | 'auto' | 'admin',
+  only), `confirmed_at`, `confirmed_by` 'code' | 'buyer' | 'auto' | 'admin',
   attempts counter (5 wrong codes = locked, ask the buyer to tap "I got it"). One transition `paid -> handed_over`
-  under the order row lock with a status predicate, so scan vs "I got it" vs the auto-pay sweep vs a problem report
+  under the order row lock with a status predicate, so typed code vs "I got it" vs the auto-pay sweep vs a problem report
   can never both win (race proof: two real sessions, scripts/declutter/race-accept.mjs style).
 - Porch (rows 26, 97): seller "Set out" photo (job-photos `<uid>/declutter/handover/<order>/`), buyer "Picked up" photo
   + location (server compares to the private pickup point, ~200 m); auto-pay 24 h after the booked time unless a
@@ -503,8 +503,8 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
   items_cents, row 95 as the owner confirmed 2026-10-15; `kept_cents` = the buyer's fee + tax, table CHECK);
   `seller_no_show`, `not_as_described` -> `full_seller_pays_fee` (card fee to the seller's debt, row 60);
   `admin_no_fault` -> `keep_card_fee` (never absorb a fee).
-- B52. Handover code: 4 digits per order in `declutter_handovers` (NO client privilege; the buyer reads it through
-  `declutter_my_handover`, the seller never). QR payload `lhdeclutter:<order>:<code>`. Wrong codes are returned (so
+- B52. (REMOVED 2026-10-18: no code reaches anyone; the row still draws one, unread.) Handover code: 4 digits per order in `declutter_handovers` (NO client privilege; the buyer reads it through
+  `declutter_my_handover`, the seller never). (The QR payload `lhdeclutter:<order>:<code>` was removed 2026-10-18, 20261018183715: no QR codes.) Wrong codes are returned (so
   the count survives), 5 = locked; the buyer's "I got it" still works. Porch: seller "set out" photo, buyer "picked
   up" photo within 200 m of the private pickup point (distance stored, not the buyer's position). OWNER 2026-10-15
   (row 99): the buyer's "picked up" photo + tap PAYS THE SELLER RIGHT AWAY (handover confirmed_by 'porch'), same as
@@ -605,8 +605,8 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
 - BUILT: screens behind the switch (DeclutterHandoverViews: book/move pickup, address, 4-digit code + "I got it",
   seller types the code, porch timing + photos, "They didn't show" at +15 min, Report a problem, payout status,
   reviews) and the admin "Declutter problems" card; messy-input GAPS for both; plain words for every new code.
-  NOT BUILT: drawing the QR and scanning it with the camera (no QR or barcode library in the app; adding one is a
-  dependency + bundle decision for the lead). The 4-digit code does the same job. Photos on a problem report are not
+  No QR code: the owner ruled out QR codes everywhere (2026-10-17), so the QR payload and the 'scan' method were
+  removed (20261018183715); the 4-digit code does the job. Photos on a problem report are not
   offered yet (the RPC takes up to 6). Old handed-over orders stay in the cart list (no "done" archive yet).
 - Owner answered 2026-10-15: a porch "picked up" photo pays the seller at once (row 99); a no-fault admin refund keeps
   the card fee (row 100). Still not special-cased: an international card whose fee exceeds the kept buyer's fee.
@@ -708,7 +708,7 @@ module; the client is src/lib/helprTasks/api.ts and the screens reuse it unchang
 | B62 | The buyer types the drop-off address; the declutter-checkout edge function geocodes it on the server (the same Nominatim lookup jobs use), so nobody can type the point the price is measured from. Any US address (rows 30, 69). The buyer's fee (5% + 70c) is on the items only, not on the delivery fee. The fee and the drop-off are frozen on the order at checkout | default chosen by lane, owner to confirm | 2026-10-16 |
 | B63 | The Helpr picks the 30-minute pickup time when taking the delivery, inside the seller's pickup times and before the 7-day pickup deadline; the seller and the buyer are told. A delivery order has no buyer booking | default chosen by lane, owner to confirm | 2026-10-16 |
 | B64 | A Helpr may back out before the pickup; under 2 hours before the pickup time it costs a delivery strike. Not picked up 2 hours after the pickup time = a Helpr no-show strike. Either way the delivery goes back up with at least 24 more hours (never later than 2 hours before the 7-day deadline) | default chosen by lane, owner to confirm | 2026-10-16 |
-| B65 | Drop-off: in person with the buyer's 4-digit code (the seller and the Helpr are paid at once; the Helpr may be up to 1 km from the geocoded point with the right code, 200 m without, so a point the geocoder put a little off never strands the Helpr), or left at the door with a photo taken within 200 m of the address; then the buyer taps "I got it", or it confirms itself 24 hours later unless the buyer reported a problem (row 28's rule) | default chosen by lane, owner to confirm | 2026-10-16 |
+| B65 | Drop-off: **Superseded 2026-10-18 (owner pop-up): NO QR and NO 4-digit code anywhere in Declutter (20261018183715, 20261018184535).** The Helpr leaves it at the door with a photo within 200 m; then the buyer's "I got it" or the 24 h auto-confirm. Was: in person with the buyer's 4-digit code (the seller and the Helpr are paid at once; the Helpr may be up to 1 km from the geocoded point with the right code, 200 m without, so a point the geocoder put a little off never strands the Helpr), or left at the door with a photo taken within 200 m of the address; then the buyer taps "I got it", or it confirms itself 24 hours later unless the buyer reported a problem (row 28's rule) | default chosen by lane, owner to confirm | 2026-10-16 |
 | B66 | Helpr delivery strikes use the jobs consequence ladder (warning, final warning, account review), violation types delivery_damage / delivery_backed_out / delivery_no_show, one per task and type; they are not Declutter strikes | default chosen by lane, owner to confirm | 2026-10-16 |
 | B67 | The seller is not there for the Helpr ("The seller wasn't there", from 15 minutes after the pickup time, with a photo taken within 200 m of the pickup address): it opens a problem for an admin, the money waits and the Helpr is not counted a no-show meanwhile. Revised after lh-authz-rls review #3 (2026-10-16): on the Helpr's word alone a Helpr could keep the item and cancel the sale. An admin who decides it a seller no-show refunds the buyer (row 19: everything back, delivery fee included; card fee to the seller's debt; strike). The Helpr is NOT paid for the wasted trip | default chosen by lane, owner to confirm (a trip fee charged to the seller?) | 2026-10-16 |
 | B68 | Row 40: the whole delivery fee goes back (the platform absorbs the ~2.9% card cost on it: nothing the buyer did); the order becomes a pickup at the seller's home and the 7-day clock keeps running. "The buyer may raise the pay" is NOT built (it needs a second payment): Q?delivery-raise-pay | default chosen by lane, owner to confirm | 2026-10-16 |

@@ -7,16 +7,25 @@
  *
  * Behaviour (127 checks, 3x replay, slice 4 skipped = RED, 10
  * planted defects each caught, measured 2026-10-15):
- * src/test/pglite/declutterSlice4.pglite.mjs. Concurrency (scan vs "I got it"
- * vs auto-pay vs problem vs no-show; two real sessions): scripts/declutter/race-handover.mjs.
+ * src/test/pglite/declutterSlice4.pglite.mjs. Concurrency (typed code vs "I got it"
+ * vs auto-pay vs problem vs no-show; two real sessions; the typed code is gone since 20261018183715): scripts/declutter/race-handover.mjs.
  *
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  o := public.declutter_lock_order(p_order_id); | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
+ * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  o := public.declutter_lock_order(p_order_id); | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
+ * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'confirmed_by' |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'code', h.code, 'confirmed_by'
+ * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF p_method IS NULL OR p_method <> 'buyer' THEN |   IF p_method IS NULL OR p_method NOT IN ('code', 'buyer') THEN
+ * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF v_side <> 'buyer' THEN | IF false THEN
+ * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('code', 'buyer', 'seller', 'porch', 'auto', 'admin')); |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('scan', 'code', 'buyer', 'porch', 'auto', 'admin'));
+ * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF o.handover <> 'pickup_home' THEN\n    RAISE EXCEPTION 'not_a_door_pickup' | IF false THEN\n    RAISE EXCEPTION 'not_a_door_pickup'
+ * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN |          THEN
+ * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF NEW.confirmed_by = 'code' AND | IF false AND
+ * @mutate supabase/migrations/20261018184535_declutter_delivery_no_dropoff_code.sql |   IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN |   IF p_by IS NULL OR p_by NOT IN ('code', 'customer', 'auto', 'admin') THEN
+ * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start > now()) THEN | IF false THEN
+ * @mutate supabase/migrations/20261018184535_declutter_delivery_no_dropoff_code.sql | They leave it at your door with a photo; | Have your 4-digit code ready;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   order_id uuid NOT NULL UNIQUE REFERENCES public.declutter_orders(id) ON DELETE RESTRICT, |   order_id uuid NOT NULL REFERENCES public.declutter_orders(id) ON DELETE RESTRICT,
  * @mutate supabase/migrations/20261017055505_declutter_helpr_delivery.sql | IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
  * @mutate supabase/migrations/20261017055505_declutter_helpr_delivery.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents); |   v_debt := 0;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |     'code', CASE WHEN v_side = 'buyer' AND o.status = 'paid' THEN h.code END, |     'code', CASE WHEN o.status = 'paid' THEN h.code END,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   v_from := b.slot_start + interval '15 minutes'; |   v_from := b.slot_start;
  * @mutate supabase/migrations/20261015051301_declutter_shared_star_rating.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true
  * @mutate supabase/migrations/20261017055502_declutter_handover_private_bucket.sql |   v_done := public.declutter_complete_handover(o.id, 'porch'); |   v_done := '{}'::jsonb;
@@ -37,13 +46,16 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 const MIG_DIR = join(process.cwd(), "supabase/migrations");
 const FILE = "20261015042253_declutter_slice4_handover_payout.sql";
 const MIG = blankSqlComments(readFileSync(join(MIG_DIR, FILE), "utf8"));
+const NO_QR_FILE = "20261018183715_declutter_handover_no_qr_no_code.sql";
+const NO_QR = blankSqlComments(readFileSync(join(MIG_DIR, NO_QR_FILE), "utf8"));
+const NO_DROPOFF_CODE_FILE = "20261018184535_declutter_delivery_no_dropoff_code.sql";
 const DEFS = effectiveDefs(MIG_DIR);
 const body = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "");
 const flat = (s: string) => s.replace(/\s+/g, " ");
 
 /** Member RPCs that change something: banned callers refused, no switch needed (row 62), order locked. */
 const MEMBER_WRITES = [
-  "declutter_book_pickup", "declutter_set_porch_time", "declutter_confirm_handover", "declutter_porch_photo",
+  "declutter_book_pickup", "declutter_set_porch_time", "declutter_confirm_handover", "declutter_porch_photo", "declutter_seller_picked_up",
   "declutter_report_no_show", "declutter_report_problem",
 ];
 const MEMBER_OTHER = ["declutter_my_handover", "declutter_leave_review", "declutter_visible_reviews", "declutter_admin_decide_problem"];
@@ -93,20 +105,57 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(flat(body("declutter_record_refund"))).toContain("WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN 'full_seller_pays_fee'");
   });
 
-  it("row 25, B52: the code is the buyer's alone; wrong codes are counted (returned, not raised) and lock at 5", () => {
-    expect(flat(body("declutter_my_handover"))).toContain("'code', CASE WHEN v_side = 'buyer' AND o.status = 'paid' THEN h.code END,");
+  it("row 25 (owner 2026-10-18: porch pickup, no code): no code reaches either side; the handover table stays service-only", () => {
+    expect(flat(body("declutter_my_handover"))).not.toMatch(/'code'|'code_locked'|h\.code/);
     expect(flat(MIG)).toContain("REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon, authenticated; GRANT ALL ON TABLE public.declutter_handovers TO service_role;");
     const c = flat(body("declutter_confirm_handover"));
-    expect(c).toContain("RETURN jsonb_build_object('result', 'wrong_code', 'attempts_left', 4 - h.wrong_attempts);");
-    expect(c).toContain("IF h.wrong_attempts >= 5 THEN RETURN jsonb_build_object('result', 'code_locked');");
-    expect(c).toContain("IF (p_method = 'buyer') <> (v_side = 'buyer') THEN");
+    expect(c).not.toMatch(/wrong_code|code_locked|p_code IS|h\.code/);
+    expect(c).toContain("IF v_side <> 'buyer' THEN RAISE EXCEPTION 'wrong_side' USING ERRCODE = '42501';");
   });
 
   it("row 99 (owner, 2026-10-15): the buyer's porch \"Picked up\" photo pays the seller right away unless a problem is open", () => {
     const p = flat(body("declutter_porch_photo"));
     expect(p).toContain("v_done := public.declutter_complete_handover(o.id, 'porch');");
     expect(p).toContain("IF EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN");
-    expect(flat(MIG)).toContain("confirmed_by IN ('scan', 'code', 'buyer', 'porch', 'auto', 'admin')");
+    expect(flat(NO_QR)).toContain("confirmed_by IN ('code', 'buyer', 'seller', 'porch', 'auto', 'admin')");
+  });
+
+  it("no QR and no 4-digit code (owner 2026-10-17 + 2026-10-18 pop-up): \"Left on porch\" with a photo, \"I got it\", the porch photo and the auto-pay only", () => {
+    expect(DEFS.get("declutter_my_handover")?.file).toBe(NO_QR_FILE);
+    expect(DEFS.get("declutter_confirm_handover")?.file).toBe(NO_QR_FILE);
+    const h = flat(body("declutter_my_handover"));
+    expect(h).not.toMatch(/'qr'|lhdeclutter:|'code'/);
+    const c = flat(body("declutter_confirm_handover"));
+    expect(c).toContain("IF p_method IS NULL OR p_method <> 'buyer' THEN RAISE EXCEPTION 'invalid_method'");
+    expect(c).not.toMatch(/'scan'|'code'/);
+    // "Left on porch" needs the photo: declutter_porch_photo refuses a missing object.
+    expect(flat(body("declutter_porch_photo"))).toContain("RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';");
+    // The newest confirmed_by check has no 'scan' ('code' stays: Helpr delivery's drop-off code records here).
+    const f = flat(NO_QR);
+    expect(f).toContain("ADD CONSTRAINT declutter_handovers_confirmed_by_check CHECK (confirmed_by IS NULL OR confirmed_by IN ('code', 'buyer', 'seller', 'porch', 'auto', 'admin'));");
+    expect(f).not.toMatch(/IN \('scan'/);
+  });
+
+  it("owner 2026-10-18: porch auto-pay needs the set-out photo; door pickups end by the seller's \"Picked up\"; no NEW 'code' anywhere; Helpr delivery has no code", () => {
+    const sw = flat(body("declutter_handover_sweep"));
+    expect(DEFS.get("declutter_handover_sweep")?.file).toBe(NO_QR_FILE);
+    // both the query and the re-check under the lock
+    expect(sw.split("h.set_out_photo_path IS NOT NULL").length - 1).toBe(2);
+    const sp = flat(body("declutter_seller_picked_up"));
+    expect(sp).toContain("IF v_side <> 'seller' THEN RAISE EXCEPTION 'wrong_side'");
+    expect(sp).toContain("IF o.handover <> 'pickup_home' THEN RAISE EXCEPTION 'not_a_door_pickup'");
+    expect(sp).toContain("v_out := public.declutter_complete_handover(o.id, 'seller');");
+    expect(sp).toContain("IF EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start > now()) THEN RAISE EXCEPTION 'before_pickup_time'");
+    expect(DEFS.get("declutter_delivery_on_task_event")?.file).toBe(NO_DROPOFF_CODE_FILE);
+    expect(flat(body("declutter_delivery_on_task_event"))).not.toMatch(/4-digit|drop-off code/);
+    expect(flat(NO_QR)).toContain("CREATE TRIGGER trg_declutter_handovers_no_new_code BEFORE INSERT OR UPDATE OF confirmed_by ON public.declutter_handovers");
+    expect(flat(body("declutter_no_new_code_confirmation"))).toContain("IF NEW.confirmed_by = 'code' AND (TG_OP = 'INSERT' OR OLD.confirmed_by IS DISTINCT FROM 'code') THEN");
+    for (const fn of ["helpr_task_delivered", "helpr_task_view", "helpr_task_confirm"]) expect(DEFS.get(fn)?.file).toBe(NO_DROPOFF_CODE_FILE);
+    expect(flat(body("helpr_task_confirm"))).toContain("IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN");
+    expect(flat(body("helpr_task_view"))).not.toMatch(/dropoff_code|code_locked/);
+    expect(flat(body("helpr_task_delivered"))).not.toMatch(/dropoff_code|wrong_code|'confirmed', 'code'/);
+    const g = flat(blankSqlComments(readFileSync(join(MIG_DIR, NO_DROPOFF_CODE_FILE), "utf8")));
+    expect(g).toContain("CREATE TRIGGER trg_helpr_tasks_no_new_code BEFORE INSERT OR UPDATE OF confirmed_by ON public.helpr_tasks");
   });
 
   it("row 45 (lead 2026-10-15): ONE public star rating across job and Declutter reviews, public ones only", () => {
@@ -143,7 +192,7 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     for (const fn of MEMBER_WRITES) {
       expect(body(fn), fn).toMatch(/public\.is_caller_banned\(\)/);
       expect(body(fn), fn).not.toMatch(/require_feature/);
-      expect(MIG, fn).toMatch(new RegExp(`REVOKE ALL ON FUNCTION public\\.${fn}\\([^)]*\\) FROM PUBLIC, anon;`));
+      expect(MIG + NO_QR, fn).toMatch(new RegExp(`REVOKE ALL ON FUNCTION public\\.${fn}\\([^)]*\\) FROM PUBLIC, anon;`));
     }
     for (const fn of ["declutter_leave_review", "declutter_admin_decide_problem"]) expect(body(fn), fn).toMatch(/public\.is_caller_banned\(\)/);
     expect(flat(body("declutter_admin_decide_problem"))).toContain("IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin') THEN");

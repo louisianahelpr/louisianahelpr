@@ -5,8 +5,7 @@
  * src/test/pglite/declutterDelivery.pglite.mjs.
  *
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const canConfirm = side === "buyer" && (v.status === "picked_up" \|\| v.status === "delivered"); |   const canConfirm = v.status === "picked_up" \|\| v.status === "delivered";
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {side === "buyer" && v.dropoff_code && ( |       {v.dropoff_code && (
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |                 disabled={deliver.isPending \|\| (v.status === "picked_up" && !dropPhoto) \|\| (v.status === "delivered" && code.length !== 4)} |                 disabled={deliver.isPending}
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | disabled={deliver.isPending \|\| !dropPhoto} | disabled={deliver.isPending}
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       await reportPickupNoShow(t.task_id, awayUploaded.current.path, where); |       await reportPickupNoShow(t.task_id, "", { lat: 0, lng: 0 });
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
  */
@@ -55,7 +54,7 @@ const VIEW = {
   take_home_cents: null, pay_cents: null, fee_cents: null, open_until: "2026-10-18T15:00:00Z", latest_pickup_at: "2026-10-23T15:00:00Z",
   pickup_slot_start: null, accepted_at: null, picked_up_at: null, delivered_at: null, confirmed_at: null, confirmed_by: null,
   helpr_first_name: null, pickup_address: null, pickup_lat: null, pickup_lng: null, dropoff_address: null, dropoff_lat: null,
-  dropoff_lng: null, dropoff_code: null, code_locked: false, pickup_photo_path: null, dropoff_photo_path: null,
+  dropoff_lng: null, pickup_photo_path: null, dropoff_photo_path: null,
 };
 const jpeg = () => new File([new Uint8Array([1])], "p.jpg", { type: "image/jpeg" });
 
@@ -77,19 +76,18 @@ describe("OrderDeliveryPanel (the buyer's and the seller's card)", () => {
     expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
   });
 
-  it("taken: the buyer sees the Helpr's first name, the pickup time and their drop-off code", async () => {
+  it("taken: the buyer sees the Helpr's first name and the pickup time, and no drop-off code (owner 2026-10-18)", async () => {
     state.view = { ...VIEW, status: "accepted", pickup_slot_start: "2026-10-17T20:00:00Z", helpr_first_name: "Dana", dropoff_code: "4821" };
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
     expect(await screen.findByText(/Dana picks it up from the seller/)).toBeInTheDocument();
-    expect(screen.getByText("4821")).toBeInTheDocument();
-    expect(screen.getByText(/Never share it before/)).toBeInTheDocument();
+    expect(screen.queryByText("4821")).toBeNull();
+    expect(screen.queryByText(/drop-off code/i)).toBeNull();
   });
 
-  it("the seller never sees the drop-off code", async () => {
-    state.view = { ...VIEW, role: "pickup_contact", status: "accepted", pickup_slot_start: "2026-10-17T20:00:00Z", dropoff_code: "4821" };
+  it("the seller sees progress only", async () => {
+    state.view = { ...VIEW, role: "pickup_contact", status: "accepted", pickup_slot_start: "2026-10-17T20:00:00Z" };
     show(<OrderDeliveryPanel taskId="t1" side="seller" orderId="o1" />);
     expect(await screen.findByText(/Have it ready/)).toBeInTheDocument();
-    expect(screen.queryByText("4821")).toBeNull();
     expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
   });
 
@@ -169,7 +167,7 @@ describe("DeliverView (the Helpr's screen)", () => {
     await waitFor(() => expect(state.calls[0]).toEqual(["no_show", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }]));
   });
 
-  it("my delivery, picked up: the drop-off needs a photo; with the code it is handed over", async () => {
+  it("my delivery, picked up: the drop-off needs a photo and no code (owner 2026-10-18)", async () => {
     state.mine = [{ task_id: "t1", status: "picked_up", size: "small", title: "Lamp", pickup_area: "Mid-City", dropoff_area: "Baker, LA",
       trip_miles: 9, take_home_cents: 2620, pickup_slot_start: "2026-10-20T15:00:00Z", payout_status: null }];
     state.view = { ...VIEW, role: "helpr", status: "picked_up", pickup_slot_start: "2026-10-20T15:00:00Z", pickup_address: "1234 Example St", dropoff_address: "900 Far Rd" };
@@ -177,9 +175,9 @@ describe("DeliverView (the Helpr's screen)", () => {
     expect(await screen.findByText("900 Far Rd")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Left at the door" })).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Photo at the drop-off address"), { target: { files: [jpeg()] } });
-    fireEvent.change(screen.getByLabelText(/4-digit code/), { target: { value: "48a21" } });
-    fireEvent.click(screen.getByRole("button", { name: "Handed over" }));
-    await waitFor(() => expect(state.calls[0]).toEqual(["delivered", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }, "4821"]));
+    expect(screen.queryByLabelText(/code/i)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Left at the door" }));
+    await waitFor(() => expect(state.calls[0]).toEqual(["delivered", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }]));
   });
 
   it("a finished delivery says whether it was paid", async () => {

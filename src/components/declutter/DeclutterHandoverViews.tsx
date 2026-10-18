@@ -5,8 +5,11 @@
  *   - the exact pickup address (the paid buyer, row 98),
  *   - book / move the 30-minute pickup (buyer books first; each side may move
  *     it once; 7-day deadline),
- *   - pickup at home: the buyer's 4-digit handover code and "I got it"; the
- *     seller types the code (rows 25, 28, 93),
+ *   - the buyer's "I got it" (both pickups), which pays the seller; at the
+ *     door (big items), the seller's "Picked up" (photo optional) does too;
+ *     with neither, the 24 h auto-pay, which on a porch pickup needs the
+ *     "Left on porch" photo (rows 25, 28, 93; owner 2026-10-18),
+ *   - at the door: short safety tips for both sides, and "Add a Helpr" to carry it,
  *   - porch: the seller's "out all day / out until" and "Set out" photo; the
  *     buyer's "Picked up" photo, taken at the address, which pays the seller
  *     right away (rows 26, 97, 99),
@@ -17,8 +20,9 @@
  * Every rule is enforced by the server (20261015042253); these screens only
  * explain it. Plain words come from declutterErrorMessage.
  *
- * NOT BUILT (needs a dependency decision first, see the handoff): drawing the
- * QR and scanning it with the camera. The 4-digit code does the same job.
+ * No QR code and no 4-digit code (owner 2026-10-17 + 2026-10-18: porch pickup,
+ * buyer and seller never meet): the "Set out" photo, "I got it", the "Picked up"
+ * photo and the 24 h auto-pay are the whole handover (20261018183715).
  */
 import { lazy, Suspense, useState } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
@@ -32,11 +36,11 @@ import {
   confirmHandover,
   fetchItemAddress,
   fetchMyBookings,
-  fetchMyHandover,
   fetchMyPayouts,
   leaveReview,
   porchPhoto,
   reportNoShow,
+  sellerPickedUp,
   reportProblem,
   setPorchTime,
   uploadHandoverPhoto,
@@ -175,9 +179,9 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
         <>
           {order.side === "buyer" && <PickupAddresses lines={order.lines} />}
           <BookingPanel order={order} booking={booking} />
-          {booking?.slot_start && (order.handover === "porch"
-            ? <PorchPanel order={order} userId={userId} booking={booking} />
-            : <HandoverPanel order={order} />)}
+          {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
+          {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} />}
+          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} />}
           {booking?.slot_start && <NoShowButton order={order} slotStart={booking.slot_start} />}
           <ProblemForm orderId={order.orderId} />
         </>
@@ -256,61 +260,90 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
   );
 }
 
-function HandoverPanel({ order }: { order: PaidOrder }) {
+/** A pickup at the door (big items): short safety tips for both sides (owner 2026-10-18). */
+function DoorPickupTips({ side }: { side: "buyer" | "seller" }) {
+  return (
+    <div className="rounded-xl border border-border p-3 text-xs text-muted-foreground">
+      <p className="font-medium text-foreground">Pickup at the door</p>
+      <ul className="mt-1 list-disc space-y-0.5 pl-4">
+        <li>Pick a daytime slot.</li>
+        <li>Bring someone with you{side === "seller" ? ", or have someone home" : ""}.</li>
+        <li>Meet at the door; nobody needs to go inside.</li>
+        {side === "buyer" && <li>Too big to carry? Add a Helpr below.</li>}
+      </ul>
+    </div>
+  );
+}
+
+function HandoverPanel({ order, userId, slotStart }: { order: PaidOrder; userId: string; slotStart: string }) {
   const qc = useQueryClient();
-  const [code, setCode] = useState("");
-  const card = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId) });
+  const [photo, setPhoto] = useState<File | null>(null);
   const confirm = useMutation({
-    mutationFn: (v: { method: "code" | "buyer"; code: string | null }) => confirmHandover(order.orderId, v.method, v.code),
-    onSuccess: (r) => {
-      if (r.result === "wrong_code") toast.error(`That code isn't right. ${r.attempts_left} ${r.attempts_left === 1 ? "try" : "tries"} left.`);
-      else if (r.result === "code_locked") toast.error("Too many wrong codes. The buyer can tap \"I got it\" instead.");
-      else toast.success(order.side === "seller" ? "Handover done. You're being paid." : "Handover done. Enjoy your item.");
-      setCode("");
+    mutationFn: () => confirmHandover(order.orderId),
+    onSuccess: () => {
+      toast.success("Handover done. Enjoy your item.");
       invalidate(qc, order.orderId);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  if (card.isError) return <p className="text-sm" role="alert">{declutterErrorMessage(card.error)}</p>;
-  if (order.side === "buyer") {
+  const pickedUp = useMutation({
+    mutationFn: async () => sellerPickedUp(order.orderId, photo ? await uploadHandoverPhoto(userId, order.orderId, photo) : null),
+    onSuccess: () => {
+      toast.success("Picked up. You're being paid.");
+      setPhoto(null);
+      invalidate(qc, order.orderId);
+    },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  if (order.side === "seller") {
+    if (order.handover !== "pickup_home") {
+      return (
+        <p className="text-sm text-muted-foreground">
+          You're paid when the buyer taps "I got it" or takes their pickup photo, or automatically 24 hours after the pickup time if you posted the "Left on porch" photo and no problem is reported.
+        </p>
+      );
+    }
+    const fileId = `dcl-door-${order.orderId}`;
+    // From the booked time only (the server checks again: before_pickup_time).
+    if (Date.now() < new Date(slotStart).getTime()) {
+      return (
+        <p className="text-sm text-muted-foreground">
+          You're paid when the buyer taps "I got it", or you tap "Picked up" from the pickup time, or automatically 24 hours after the pickup time unless a problem is reported.
+        </p>
+      );
+    }
     return (
       <div className="space-y-2">
-        {card.data?.code && (
-          <p className="text-sm">
-            Your handover code: <span className="font-mono text-2xl font-bold tracking-widest" aria-hidden="true">{card.data.code}</span><span className="sr-only">{card.data.code.split("").join(" ")}</span>
-            <span className="block text-xs text-muted-foreground">Show it to the seller when you have the item. Never share it before.</span>
-          </p>
-        )}
+        <p className="text-sm text-muted-foreground">
+          You're paid when the buyer taps "I got it" or you tap "Picked up", or automatically 24 hours after the pickup time unless a problem is reported.
+        </p>
+        <label htmlFor={fileId} className="block text-xs font-medium">Photo of the handover (optional)</label>
+        <input id={fileId} type="file" accept="image/*" capture="environment" disabled={pickedUp.isPending}
+          onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
         <button
           type="button"
           className={primary}
-          disabled={confirm.isPending}
+          disabled={pickedUp.isPending}
           onClick={() => {
-            if (window.confirm("Do you have the item? Tapping \"I got it\" pays the seller and makes the sale final.")) confirm.mutate({ method: "buyer", code: null });
+            if (window.confirm("Did the buyer take the item? Tapping \"Picked up\" makes the sale final.")) pickedUp.mutate();
           }}
         >
-          I got it
+          Picked up
         </button>
       </div>
     );
   }
-  const id = `dcl-code-${order.orderId}`;
   return (
-    <div className="space-y-2">
-      <label htmlFor={id} className="block text-xs font-medium">The buyer's 4-digit code (when you hand it over)</label>
-      {card.data?.code_locked ? (
-        <p className="text-sm">Too many wrong codes. The buyer can tap "I got it" instead.</p>
-      ) : (
-        <div className="flex gap-2">
-          <input id={id} inputMode="numeric" autoComplete="off" maxLength={4} className={input} value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))} />
-          <button type="button" className={primary} disabled={confirm.isPending || code.length !== 4}
-            onClick={() => confirm.mutate({ method: "code", code })}>
-            Confirm
-          </button>
-        </div>
-      )}
-    </div>
+    <button
+      type="button"
+      className={primary}
+      disabled={confirm.isPending}
+      onClick={() => {
+        if (window.confirm("Do you have the item? Tapping \"I got it\" pays the seller and makes the sale final.")) confirm.mutate();
+      }}
+    >
+      I got it
+    </button>
   );
 }
 
@@ -329,7 +362,7 @@ function PorchPanel({ order, userId, booking }: { order: PaidOrder; userId: stri
       return porchPhoto(order.orderId, path, where);
     },
     onSuccess: (r) => {
-      if (r.result === "set_out") toast.success("Set out. The buyer is told.");
+      if (r.result === "set_out") toast.success("Left on porch. The buyer is told.");
       else if (r.paid === false) toast.success("Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid.");
       else toast.success("Picked up. The seller is paid and the sale is final.");
       invalidate(qc, order.orderId);
@@ -353,7 +386,7 @@ function PorchPanel({ order, userId, booking }: { order: PaidOrder; userId: stri
         </>
       )}
       <label htmlFor={fileId} className="block text-xs font-medium">
-        {order.side === "seller" ? "Photo of the item on your porch (\"Set out\")" : "Photo when you pick it up, taken at the address (\"Picked up\": this pays the seller)"}
+        {order.side === "seller" ? "Photo of the item on your porch (\"Left on porch\": needed before you can be paid automatically)" : "Photo when you pick it up, taken at the address (\"Picked up\": this pays the seller)"}
       </label>
       <input id={fileId} type="file" accept="image/*" capture="environment" disabled={photo.isPending}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) photo.mutate(f); e.target.value = ""; }} />

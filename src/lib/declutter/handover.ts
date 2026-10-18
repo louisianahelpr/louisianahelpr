@@ -1,8 +1,7 @@
 /**
  * Declutter slice 4 client calls (docs/specs/declutter-auctions.md rows 14-15,
- * 18-19, 25-28, 45, 52, 93-99; B49-B58): pickup booking, the handover card
- * (buyer's QR + 4-digit code), the seller's scan / typed code, the buyer's
- * "I got it", porch photos, "They didn't show", "Report a problem", reviews,
+ * 18-19, 25-28, 45, 52, 93-99; B49-B58): pickup booking, the handover card,
+ * the buyer's "I got it" (no QR, no 4-digit code: owner 2026-10-18), porch photos, "They didn't show", "Report a problem", reviews,
  * the seller's payout status and the admin problems queue.
  *
  * Every write is a declutter_* RPC; every rule (who, when, how much) is in SQL
@@ -35,19 +34,6 @@ export interface MyBooking {
   slot_end: string | null;
   porch_mode: "all_day" | "until" | null;
   porch_until: string | null;
-}
-
-interface MyHandover {
-  order_id: string;
-  status: string;
-  side: "buyer" | "seller";
-  code: string | null;
-  qr: string | null;
-  code_locked: boolean;
-  confirmed_by: string | null;
-  confirmed_at: string | null;
-  set_out_at: string | null;
-  picked_up_at: string | null;
 }
 
 export interface MyPayout {
@@ -94,25 +80,26 @@ export async function setPorchTime(orderId: string, mode: "all_day" | "until", u
   );
 }
 
-/** The handover card: the BUYER gets the code + QR, the seller never does. */
-export async function fetchMyHandover(orderId: string): Promise<MyHandover> {
-  return rpcData(
-    await supabase.rpc("declutter_my_handover", { p_order_id: orderId }),
-    (e) => rpcErrorMessage("declutter_my_handover", e),
-  ) as unknown as MyHandover;
-}
-
 type HandoverResult =
   | { result: "handed_over"; payout_id: string | null; by: string }
-  | { result: "already_handed_over" }
-  | { result: "wrong_code"; attempts_left: number }
-  | { result: "code_locked" };
+  | { result: "already_handed_over" };
 
-/** Seller: scanned QR ('scan') or typed code ('code'). Buyer: "I got it" ('buyer', no code). */
-export async function confirmHandover(orderId: string, method: "scan" | "code" | "buyer", code: string | null): Promise<HandoverResult> {
+/** The buyer's "I got it" ('buyer'): the only way a person confirms a Declutter handover (owner 2026-10-18). */
+export async function confirmHandover(orderId: string): Promise<HandoverResult> {
   return rpcData(
-    await supabase.rpc("declutter_confirm_handover", { p_order_id: orderId, p_method: method, p_code: code as string }),
+    await supabase.rpc("declutter_confirm_handover", { p_order_id: orderId, p_method: "buyer", p_code: null as unknown as string }),
     (e) => rpcErrorMessage("declutter_confirm_handover", e),
+  ) as unknown as HandoverResult;
+}
+
+/**
+ * The seller's "Picked up" on a pickup at the door (big items, porch_ok off; owner 2026-10-18):
+ * completes the handover like the buyer's "I got it". The photo is optional.
+ */
+export async function sellerPickedUp(orderId: string, photoPath: string | null): Promise<HandoverResult> {
+  return rpcData(
+    await supabase.rpc("declutter_seller_picked_up", { p_order_id: orderId, p_photo_path: photoPath as string }),
+    (e) => rpcErrorMessage("declutter_seller_picked_up", e),
   ) as unknown as HandoverResult;
 }
 

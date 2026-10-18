@@ -87,9 +87,7 @@ describe("hero font loading (Q371)", () => {
       ...[...css.matchAll(/font-family:\s*("Bodoni Moda"\s*,[^;]*);/g)].map((m) => m[1]),
       ...[...read("tailwind.config.ts").matchAll(/\[\s*"\\"Bodoni Moda\\""[^\]]*\]/g)].map((m) => m[0].replace(/\\"/g, '"')),
     ];
-    // One stack since 2026-10-17: Bodoni is the landing H1's alone (tailwind
-    // `hero`); `.text-page-title` moved to the sans (Warm Modern).
-    expect(stacks.length).toBeGreaterThanOrEqual(1);
+    expect(stacks.length).toBeGreaterThanOrEqual(2);
     for (const s of stacks) {
       const g = s.indexOf('"Bodoni Moda Fallback"');
       const l = s.indexOf('"Bodoni Moda Fallback Liberation"');

@@ -37,7 +37,7 @@
          (This previously claimed to match "#FAF9F5" while the manifest was
          teal and Capacitor was warm #ECE9E4; three comments each asserted
          agreement that did not exist.) -->
-    <meta name="theme-color" content="#F7F3EC" />
+    <meta name="theme-color" content="#F1F2F4" />
     <meta name="application-name" content="Helpr" />
     <!-- Read by the inline boot watchdog (Q229), which runs before the bundle and so cannot see import.meta.env. Public values: the same URL and publishable key ship in every bundle. -->
     <meta name="lh-supabase-url" content="%VITE_SUPABASE_URL%" />
@@ -842,12 +842,12 @@
       React's createRoot().render() clears #root's children on its first
       commit, so this markup is removed the instant the app paints.
     -->
-    <div id="root" style="background:#F7F3EC;background-color:#F7F3EC;min-height:100vh;">
+    <div id="root" style="background:linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);background-color:#F0F2F4;min-height:100vh;">
       <div
         id="boot-loader"
         role="status"
         aria-label="Loading Helpr"
-        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#F7F3EC;background-color:#F7F3EC;"
+        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);background-color:#F0F2F4;"
       >
         <!-- Owner, 2026-09-23: nothing but the page background while the
              bundle loads (no H mark then: on iPhone its filter shadow rendered

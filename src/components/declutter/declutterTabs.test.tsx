@@ -15,7 +15,7 @@
  *
  * @mutate src/components/declutter/DeclutterHomeView.tsx |         : view === "buying" ? <BuyingView /> |         : view === "buying" ? <WantedView />
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       <OffersSection side="seller" />\n      <SalesWaiting /> |       <SalesWaiting />
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side); |   const lines = cart.data ?? [];
+ * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side); |   const lines = cart.data ?? [];
  * @mutate src/lib/declutter/tabs.ts |   if (view === "mine") return "selling"; |   if (view === "mine") return "buying";
  * @mutate src/lib/declutter/tabs.ts |   return sellerWaiting > 0 && buyerWaiting === 0 ? "selling" : "buying"; |   return "buying";
  * @mutate src/lib/declutter/tabs.ts |     selling: sellerOffers + salesOpen, |     selling: sellerOffers,

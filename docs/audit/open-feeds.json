@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-18T03:50Z",
+  "measured_at": "2026-10-18T06:06Z",
   "issues": {
     "readable": true,
     "open": [
@@ -82,13 +82,6 @@
         "runTruncated": false
       },
       {
-        "number": 3178,
-        "title": "nightly-red: main: Sensitive review record",
-        "label": "nightly-red",
-        "run": null,
-        "runTruncated": true
-      },
-      {
         "number": 3307,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
@@ -153,14 +146,6 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
-        "issue": null
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -418,14 +403,6 @@
         "status": "open",
         "title": "error: your account is created, but your details didn't save — the connection dropped. log in to finish your profile.",
         "issue": null
-      },
-      {
-        "fingerprint": "8114e0acbcb0b5370d95baf9346598cb",
-        "source_kind": "workflow",
-        "source": "expiry-monitor",
-        "status": "open",
-        "title": "a credential or certificate expires within # days",
-        "issue": null
       }
     ]
   },
@@ -443,7 +420,6 @@
     "issue #2937": "Q1816",
     "issue #2962": "Q1816",
     "issue #3154": "Q1816",
-    "issue #3178": "Q1816",
     "issue #3307": "Q1816",
     "issue #3311": "Q1816",
     "ledger 03faea228969": "Q1596",

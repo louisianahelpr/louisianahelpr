@@ -22,7 +22,7 @@
  */
 // @mutate supabase/migrations/20261017134720_cancel_retires_direct_offer.sql |     NEW.direct_offer_status := 'withdrawn'; |     NULL;
 // @mutate supabase/migrations/20261017134720_cancel_retires_direct_offer.sql |   BEFORE UPDATE OF status ON public.jobs | BEFORE UPDATE OF title ON public.jobs
-// @mutate supabase/migrations/20261017134720_cancel_retires_direct_offer.sql |        AND status::text = 'open' |        AND true
+// @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql |        AND status::text = 'open' |        AND true
 import { describe, it, expect } from "vitest";
 import { join, relative } from "node:path";
 import { readFileSync } from "node:fs";

@@ -19,7 +19,7 @@
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHERE public.is_late_cancellation(\n           true, |   WHERE (true OR public.is_late_cancellation(\n           true,
  * @mutate supabase/migrations/20261015034054_open_jobs_browse_fee_stamp.sql | ELSE 0 END) > 0)) AND parent_job_id IS NULL AND (date_needed IS NULL | ELSE 0 END) > 0)) AND (date_needed IS NULL
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon;
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF NEW.series_split_ok IS DISTINCT FROM OLD.series_split_ok | IF false
+ * @mutate supabase/migrations/20261018024950_poster_fee_job_schedule_locked.sql |   IF NEW.series_split_ok IS DISTINCT FROM OLD.series_split_ok | IF false
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHEN (OLD.recurring_helper_id IS DISTINCT FROM NEW.recurring_helper_id) |   WHEN (false)
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |    AND c.helper_id IS NOT NULL\n   AND c.status::text <> 'cancelled'\n   AND c.date_needed >= | AND false\n   AND c.status::text <> 'cancelled'\n   AND c.date_needed >=
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |      AND j.recurring_helper_id IS DISTINCT FROM j.helper_id\n     AND NOT EXISTS | AND false\n     AND NOT EXISTS

@@ -67,6 +67,9 @@ export interface ShopOrder {
   accepted_at: string | null;
   captured_at: string | null;
   closed_at: string | null;
+  /** Shops M2 (20261018184113): how this order is handed over, frozen when it was asked for. */
+  handover_mode: "porch" | "in_person";
+  handed_over_at: string | null;
   shop_order_lines: OrderLine[];
   /** The shop's name (buyer list only); null once the shop is gone or hidden from the buyer. */
   shops?: { name: string } | null;
@@ -84,7 +87,7 @@ export interface OrderTerms {
 
 const ORDER_COLUMNS =
   "id, buyer_id, seller_id, shop_id, status, close_reason, ready_date, cancel_policy, note, decline_reason, items_cents, " +
-  "premium_cents, tax_cents, total_cents, created_at, held_at, accept_by, accepted_at, captured_at, closed_at, " +
+  "premium_cents, tax_cents, total_cents, created_at, held_at, accept_by, accepted_at, captured_at, closed_at, handover_mode, handed_over_at, " +
   "shop_order_lines (id, item_id, title, kind, unit_cents, quantity, line_cents)";
 
 /** The member's orders as a buyer (newest first); a page that was never paid is not an order to show. */

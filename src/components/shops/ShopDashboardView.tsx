@@ -4,7 +4,9 @@
  * after 24 hours), Accept (the buyer's card is charged) and Decline with a
  * reason (the hold drops, nothing is charged), the rest of the shop's orders,
  * and the cancel rule buyers read before paying (O2 presets). Later slices
- * add handovers, payouts, items and stats. No visual pass yet.
+ * add items and stats. M2 (20261018184113) adds the handover on each accepted
+ * order (ShopHandoverActions), the payout line on handed-over ones and the
+ * handover choice (ShopHandoverModePicker). No visual pass yet.
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -31,6 +33,8 @@ import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
 import { ShopOrderCard } from "./ShopOrderCard";
 import CancelPolicyPicker from "./ShopCancelPolicyPicker";
+import HandoverModePicker from "./ShopHandoverModePicker";
+import { ShopHandoverActions } from "./ShopHandoverActions";
 
 const REASON_MAX = 200;
 
@@ -166,7 +170,11 @@ export default function ShopDashboardView() {
               <section className="space-y-2" aria-labelledby="shop-accepted">
                 <h2 id="shop-accepted" className="text-sm font-semibold">Accepted: make these</h2>
                 <ul className="space-y-3">
-                  {accepted.map((o) => <ShopOrderCard key={o.id} order={o} side="shop" heading="Accepted order" />)}
+                  {accepted.map((o) => (
+                    <ShopOrderCard key={o.id} order={o} side="shop" heading="Accepted order">
+                      {user && <ShopHandoverActions order={o} side="shop" userId={user.id} />}
+                    </ShopOrderCard>
+                  ))}
                 </ul>
               </section>
             )}
@@ -174,12 +182,17 @@ export default function ShopDashboardView() {
               <section className="space-y-2" aria-labelledby="shop-earlier">
                 <h2 id="shop-earlier" className="text-sm font-semibold">Earlier orders</h2>
                 <ul className="space-y-3">
-                  {earlier.map((o) => <ShopOrderCard key={o.id} order={o} side="shop" heading="Order" />)}
+                  {earlier.map((o) => (
+                    <ShopOrderCard key={o.id} order={o} side="shop" heading="Order">
+                      {user && o.status === "handed_over" && <ShopHandoverActions order={o} side="shop" userId={user.id} />}
+                    </ShopOrderCard>
+                  ))}
                 </ul>
               </section>
             )}
           </>
         )}
+        <HandoverModePicker shopId={myId.data} />
         <CancelPolicyPicker shopId={myId.data} />
       </div>
       <BrandConfirmDialog

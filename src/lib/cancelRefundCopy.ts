@@ -30,7 +30,8 @@ type GiftRow = { status: string | null; amount?: number | string | null; payment
  * failed read show neutral copy, never the card copy).
  *
  * `costCents` is the poster-side cost redeem_gift_card compares the gift with
- * (budget + urgent fee): a gift worth at least that settled the job alone.
+ * (giftCostCents: budget + urgent fee, + the poster fee on a poster-fee job):
+ * a gift worth at least that settled the job alone.
  * Null/undefined: not known, so a spent gift is just "redeemed".
  */
 export function giftOnJobFromRead(rows: GiftRow[] | null, error: unknown, costCents?: number | null): GiftOnJob {
@@ -55,6 +56,24 @@ export function giftOnJobFromRead(rows: GiftRow[] | null, error: unknown, costCe
     return "reserved";
   }
   return "none";
+}
+
+/**
+ * The poster-side cost redeem_gift_card (20261018031451) compares a gift with,
+ * in cents: budget + urgent fee, plus, on a poster-fee job (poster_fee_flat_cents
+ * set), the 5% + 70c fee it stamped in customer_fee_amount, which the gift pays
+ * first too (Q2082 (d), lh-money-escrow review of slice 4). Null when the
+ * urgent fee was not passed (the caller does not know the cost).
+ */
+export function giftCostCents(
+  budget: number,
+  urgentFee: number | null | undefined,
+  job?: { poster_fee_flat_cents?: number | string | null; customer_fee_amount?: number | string | null } | null,
+): number | null {
+  if (urgentFee === undefined) return null;
+  const stamped = job?.poster_fee_flat_cents != null && job.poster_fee_flat_cents !== "";
+  const feeCents = stamped ? Math.round(Number(job?.customer_fee_amount ?? 0) * 100) : 0;
+  return Math.round((budget + (urgentFee ?? 0)) * 100) + (Number.isFinite(feeCents) && feeCents > 0 ? feeCents : 0);
 }
 
 /**

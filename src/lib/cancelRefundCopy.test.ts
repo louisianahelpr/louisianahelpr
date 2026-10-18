@@ -38,7 +38,7 @@
 // @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }), |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { cancelRefundToast, cardShareCentsFromRead, giftOnJobFromRead } from "./cancelRefundCopy";
+import { cancelRefundToast, cardShareCentsFromRead, giftCostCents, giftOnJobFromRead } from "./cancelRefundCopy";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 const kept = " The one-time $2.00 account setup fee is kept: it is paid once and never refunded.";
@@ -158,3 +158,22 @@ describe("cancelRefundToast", () => {
     expect(src).not.toMatch(/returns to your card/);
   });
 });
+
+describe("giftCostCents (Q2082 d): the cost redeem_gift_card compares a gift with", () => {
+  it("budget + urgent fee on a flat or legacy job", () => {
+    expect(giftCostCents(100, 20, null)).toBe(12000);
+    expect(giftCostCents(100, null, { poster_fee_flat_cents: null, customer_fee_amount: 3 })).toBe(10000);
+  });
+  it("plus the stamped 5% + 70c on a poster-fee job, which the gift pays first too", () => {
+    expect(giftCostCents(100, null, { poster_fee_flat_cents: 70, customer_fee_amount: 5.7 })).toBe(10570);
+    expect(giftCostCents(40, 0, { poster_fee_flat_cents: "70", customer_fee_amount: "2.70" })).toBe(4270);
+    // A gift between the job price and price + fee did not pay it all.
+    const cost = giftCostCents(100, null, { poster_fee_flat_cents: 70, customer_fee_amount: 5.7 });
+    expect(giftOnJobFromRead([{ status: "redeemed", amount: 102, payment_status: "paid" }], null, cost)).toBe("gift_and_card");
+    expect(cardShareCentsFromRead([{ status: "redeemed", amount: 102, payment_status: "paid" }], cost)).toBe(370);
+  });
+  it("unknown when the urgent fee was not passed", () => {
+    expect(giftCostCents(100, undefined, { poster_fee_flat_cents: 70, customer_fee_amount: 5.7 })).toBeNull();
+  });
+});
+

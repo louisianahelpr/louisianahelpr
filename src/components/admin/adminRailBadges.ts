@@ -40,7 +40,7 @@ export function adminBadgeFor(
  * ["admin-stalled-job-queue"] prefix, so the screen's resolve invalidation
  * refreshes the badge too. A failed read throws (unwrap) and shows as the
  * page's data error, never as a confident "nothing stuck" (and the RPC is on
- * prod, so a missing one is a failure too, Q?admin-badge-not-deployed). Test jobs (either party a
+ * prod, so a missing one is a failure too, Q2086). Test jobs (either party a
  * seed account, the screen's own Test tag rule) are left out, like every
  * other rail and dashboard count.
  */
@@ -78,7 +78,7 @@ export type QueueCounts = {
  * left out like every other rail count. Each key sits under its screen's own
  * query-key prefix, so the screen's invalidation after a decision refreshes
  * the number too. A failed read throws (unwrap) and shows as the page's data
- * error, never as a confident zero (Q?admin-badge-not-deployed: no "not
+ * error, never as a confident zero (Q2086: no "not
  * deployed yet" branch either; every table and RPC read here is on prod, so a
  * missing one, or a dropped column, is a real failure).
  */

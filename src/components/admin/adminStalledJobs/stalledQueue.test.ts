@@ -90,7 +90,7 @@ describe("isMissingRpc", () => {
     expect(isMissingRpc({ code: "PGRST202", message: "Could not find the function" })).toBe(true);
   });
 
-  it("an error raised inside the RPC, or a changed signature, is a real failure (Q?admin-badge-not-deployed)", () => {
+  it("an error raised inside the RPC, or a changed signature, is a real failure (Q2086)", () => {
     expect(isMissingRpc({ code: "42703", message: "column j.no_such_col does not exist" })).toBe(false);
     expect(isMissingRpc({ code: "42P01", message: 'relation "public.x" does not exist' })).toBe(false);
     expect(isMissingRpc({ code: "42883", message: "function public.helper(uuid) does not exist" })).toBe(false);

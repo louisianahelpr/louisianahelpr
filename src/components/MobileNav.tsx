@@ -774,7 +774,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               <Plus
                 className="w-7 h-7 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:rotate-90 motion-safe:group-active:rotate-180"
                 strokeWidth={2.75}
-                style={{ color: "hsl(var(--brand-foreground))" }}
+                style={{ color: "hsl(var(--parchment))" }}
               />
             </button>
           </div>

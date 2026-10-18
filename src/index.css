@@ -2229,11 +2229,9 @@ body[data-scroll-locked] .offline-banner {
   --headline-card: clamp(0.95rem, 0.6vw + 0.55rem, 1.05rem);
 }
 
-/* 2026-10-17 (Warm Modern): page titles are the one sans, upright (C2
-   mocks); Bodoni is the landing H1's alone (`font-hero`). */
 .text-page-title {
-  font-family: "Plus Jakarta Sans", "Plus Jakarta Sans Fallback", system-ui, sans-serif !important;
-  font-style: normal !important;
+  font-family: "Bodoni Moda", "Bodoni Moda Fallback", "Bodoni Moda Fallback Liberation", Georgia, serif !important;
+  font-style: italic !important;
   font-weight: 700 !important;
   font-size: var(--headline-hero) !important;
   line-height: 1.1 !important;

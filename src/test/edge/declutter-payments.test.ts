@@ -29,7 +29,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (refused) return json({ error: "porch_unavailable" }, 400); |         if (false) return json({ error: "porch_unavailable" }, 400);
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (parties && (parties.buyer_id !== meta.buyer_id \|\| parties.seller_id !== meta.seller_id)) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (refunded === "sent") { |   if (true) {
- * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> \| null)?.kind === "declutter_refund")) { |   if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> \| null)?.kind === "declutter_refund")) { |   if (allRefunds.length > 0 && allRefunds.some((r) => (r?.metadata as Record<string, string> \| null)?.kind === "declutter_refund")) {
  * @mutate supabase/functions/declutter-checkout/index.ts |     payer_id: user.id, |
  * @mutate supabase/functions/declutter-checkout/index.ts |   const off = await requireFeature(admin, "declutter", user, corsHeaders);\n  if (off) return off; |
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (deliveryCents > 0) { |   if (false) {
@@ -355,6 +355,8 @@ describe("stripe-webhook: Declutter order paid", () => {
     expect(slackAlerts.some((a: any) => a.severity === "critical")).toBe(false);
   });
 
+  // Also the kill for chargeRefunded's every -> some mutation: one Declutter refund must not hide a hand refund
+  // beside it. (`if (false)` there is an equivalent mutant: recordDeclutterHandRefunds skips Declutter refunds itself.)
   it("a Declutter charge is known by its PaymentIntent's metadata too, and only the hand refund is recorded next to a Declutter one", async () => {
     scenario.rpc.declutter_record_hand_refund = "settled";
     const res = await deliverChargeRefunded(handCharge([

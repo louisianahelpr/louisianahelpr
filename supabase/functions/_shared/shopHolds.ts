@@ -2,7 +2,7 @@
 // payment Stripe captured for an order that ended, which is money that moved whoever owns it.
 //
 // shopHolds — the two Stripe moves of a Shops order's card hold (Shops M1,
-// migration 20261018154737_shops_orders_checkout; docs/specs/local-shops-prep.md
+// migration 20261018164442_shops_orders_checkout; docs/specs/local-shops-prep.md
 // L17/L18): CAPTURE when the maker accepts, CANCEL when the order ends unpaid.
 // One copy, used by shop-checkout (the tap) and declutter-money (the 10-minute
 // retry), so the two can never disagree.

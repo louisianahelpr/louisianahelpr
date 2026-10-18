@@ -315,7 +315,7 @@ export async function findActiveWork(
   const declutter = await findDeclutterInFlight(admin, userId);
   if (!declutter.ok || declutter.active) return declutter;
 
-  // 1d. A Shops order in progress (Shops M1, 20261018154737), as the buyer or
+  // 1d. A Shops order in progress (Shops M1, 20261018164442), as the buyer or
   //     the shop: a Stripe page open, a card held, or an accepted order not
   //     yet handed over. The database refuses the deletion too
   //     (shop_orders_open_has_parties); this says why in plain words.
@@ -376,7 +376,7 @@ export async function findActiveWork(
   return { ok: true, active: false };
 }
 
-/** The order statuses shop_orders_open_has_parties keeps a buyer, seller and shop on (20261018154737). */
+/** The order statuses shop_orders_open_has_parties keeps a buyer, seller and shop on (20261018164442). */
 export const SHOP_ORDER_OPEN_STATUSES = ["awaiting_hold", "held", "accepted"];
 
 /** What the member is told when a Shops order in progress blocks deleting their account. */

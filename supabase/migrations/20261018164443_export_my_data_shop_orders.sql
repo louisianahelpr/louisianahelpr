@@ -1,7 +1,7 @@
 -- export_my_data: Download My Data gains the Shops M1 sections (shop_orders
 -- as buyer or seller and their shop_order_lines, from
--- 20261018154737_shops_orders_checkout; the member's shop_strikes, from
--- 20261018154740_shops_own_strike_count, which runs later: that section is
+-- 20261018164442_shops_orders_checkout; the member's shop_strikes, from
+-- 20261018164444_shops_own_strike_count, which runs later: that section is
 -- read only once the table exists, IF to_regclass(...), so the export works
 -- between the two migrations too).
 --
@@ -363,7 +363,7 @@ BEGIN
   v_out := v_out || jsonb_build_object('maintenance_request_photos', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.maintenance_request_photos t
       WHERE t.tenant_id = v_uid));
 
-  -- Shops M1 (20261018154737): the member's orders as buyer or as the shop
+  -- Shops M1 (20261018164442): the member's orders as buyer or as the shop
   -- (both sides were shown the whole order: lines, date, note, money), and
   -- the lines of those orders. The Stripe ids and the capture / hold-release
   -- error text are internal, dropped.
@@ -371,7 +371,7 @@ BEGIN
       WHERE t.buyer_id = v_uid OR t.seller_id = v_uid));
   v_out := v_out || jsonb_build_object('shop_order_lines', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.shop_order_lines t
       WHERE t.order_id IN (SELECT o.id FROM public.shop_orders o WHERE o.buyer_id = v_uid OR o.seller_id = v_uid)));
-  -- The member's Shops strikes (20261018154740; the staff member who removed
+  -- The member's Shops strikes (20261018164444; the staff member who removed
   -- one is dropped, as for declutter_strikes). That migration sorts AFTER this
   -- one, so the section is skipped until the table exists: Download My Data
   -- never fails with 42P01 in between (both reviews of the strikes change).

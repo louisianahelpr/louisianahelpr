@@ -8,7 +8,7 @@
  *
  * EXACT: src/test/shopsProfiles.test.ts reads every RAISE EXCEPTION code in the
  * shops migrations (slice 1, slice 2's 20261017061157_shops_items and M1's
- * 20261018154737_shops_orders_checkout) and
+ * 20261018164442_shops_orders_checkout) and
  * fails on one with no line here, and on a line here no shops migration raises.
  */
 import { ListingPhotoError } from "@/lib/declutter/errors";
@@ -76,7 +76,7 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   own_item: "Another admin must review your own item.",
   owner_not_eligible:
     "This shop can't sell right now (restricted, strikes, age, payouts, hidden, or at the home-food limit). Reject it instead.",
-  // M1: orders and the card hold (20261018154737_shops_orders_checkout).
+  // M1: orders and the card hold (20261018164442_shops_orders_checkout).
   shop_paused: "This shop is taking a break and isn't taking new orders right now.",
   invalid_order_lines: "Pick 1 to 20 items, each one once, with how many you want.",
   invalid_quantity: "Order 1 to 20 of each item.",

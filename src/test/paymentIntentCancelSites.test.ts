@@ -37,7 +37,7 @@ const FN_ROOT = resolve(__dirname, "../../supabase/functions");
 const KNOWN_CANCEL_SITES: Record<string, { count: number; reason: string }> = {
   "create-payment/index.ts": { count: 1, reason: "abandoned 3D Secure challenge, cancelled while the poster re-mints the checkout in the app" },
   "void-cancelled-payments/index.ts": { count: 1, reason: "releases the uncaptured hold of a job that is already cancelled, and tells the poster" },
-  "_shared/shopHolds.ts": { count: 1, reason: "Shops M1 (20261018154737): releases the uncaptured card hold of a Shops order that already ended unpaid (declined, not answered in 24 h, day full, amounts off, withdrawn or superseded by the buyer); the SQL that closed the order told the buyer \"the hold on your card is released\" (or the buyer did it themselves); the one silent case is shop_mark_order_held's order_missing (a paid page with no order row), where there is no order to report on" },
+  "_shared/shopHolds.ts": { count: 1, reason: "Shops M1 (20261018164442): releases the uncaptured card hold of a Shops order that already ended unpaid (declined, not answered in 24 h, day full, amounts off, withdrawn or superseded by the buyer); the SQL that closed the order told the buyer \"the hold on your card is released\" (or the buyer did it themselves); the one silent case is shop_mark_order_held's order_missing (a paid page with no order row), where there is no order to report on" },
 };
 
 function tsFiles(dir: string): string[] {

@@ -8,6 +8,8 @@ export interface InventoryItem {
   sourceOfTruth: string;
   read: { method: string; [key: string]: unknown };
   ciReadable: boolean;
+  /** Overrides the inventory-wide warnDays for this item (e.g. an auto-renewed registration). */
+  warnDays?: number;
 }
 export interface Inventory {
   warnDays?: number;

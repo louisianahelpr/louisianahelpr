@@ -109,7 +109,7 @@ describe("Declutter slice 3 screens", () => {
   it("no saved card: says why, shows no Buy or offer button, and Save a card opens Stripe's page (row 36)", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
     expect(await screen.findByText("Save a card to buy or make offers.")).toBeInTheDocument();
-    expect(screen.getByText(/never charged until you check out/)).toBeInTheDocument();
+    expect(screen.getByText(/charged only when you buy, or automatically where you turned on automatic charges/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Buy for/ })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Save a card" }));
     await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.test/setup"]));

@@ -50,7 +50,7 @@ premium, 7 days to pay + book pickup, 5% cancel/relist fee, $1 missed-pickup fee
 | 33 | Admin review of listings | Only AI-flagged listings wait for an admin; a new seller's first 3 listings always wait for an admin's OK | 2026-10-14 |
 | 34 | Banned items | Weapons/ammo/weapon knives, alcohol, prescription + illegal drugs, vapes; any recalled product, cribs made before mid-2011, used car seats; counterfeits, adult items; live animals, vehicles/boats, real estate. AI flags at posting -> admin queue | 2026-10-14 |
 | 35 | Questions before buying | Public Q&A on the item page, through the contact-leak filter; private messages only after checkout | 2026-10-14 |
-| 36 | Card to bid/offer | Saved card required; never charged automatically | 2026-10-14 |
+| 36 | Card to bid/offer | Saved card required; charged only when you buy, or automatically where you turned on automatic charges (one wallet card everywhere, owner 2026-10-18; was "never charged automatically", 2026-10-14) | 2026-10-18 |
 | 37 | New-seller limits | No limit on live items (first 3 listings still wait for admin OK, row 33) | 2026-10-14 |
 | 38 | Several items, same seller | One checkout: one payment, one pickup time, one delivery base + miles (size add-ons per item), $1 minimum premium once | 2026-10-14 |
 | 39 | Storms | Admin pause switch (all Louisiana or chosen parishes) freezes checkout + pickup clocks and new strikes; clocks resume where they stopped. Doesn't exist yet (checked) | 2026-10-14 |

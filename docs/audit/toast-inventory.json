@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 806,
-    "files": 195,
+    "files": 196,
     "rendering": 713,
     "suppressedByPolicy": 93,
     "byKind": {
@@ -6568,6 +6568,26 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopCancelPolicyPicker.tsx",
+      "line": 20,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Cancel rule saved. New orders use it."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopCancelPolicyPicker.tsx",
+      "line": 23,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/shops/ShopDailyCap.tsx",
       "line": 32,
       "kind": "toast.success",
@@ -6599,27 +6619,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 57,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Cancel rule saved. New orders use it."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 60,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "shopsErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 115,
+      "line": 65,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6639,7 +6639,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 120,
+      "line": 70,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6649,7 +6649,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 128,
+      "line": 78,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6659,7 +6659,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 134,
+      "line": 84,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

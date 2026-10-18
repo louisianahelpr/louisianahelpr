@@ -86,6 +86,14 @@ export function isLaborTaxable(category: string | null | undefined): boolean {
 export const NONTAXABLE_TAX_CODE = "txcd_00000000";
 
 /**
+ * Stripe "General - Tangible Goods": the one goods code confirmed in the Tax
+ * Codes API list (GET /v1/tax_codes, 2026-10-17). Every Shops item kind uses it
+ * until the CPA answers CPA2 (_shared/shopTaxCodes.ts maps kinds to codes;
+ * docs/OPEN.md Q2101).
+ */
+export const GENERAL_TANGIBLE_GOODS_TAX_CODE = "txcd_99999999";
+
+/**
  * The code on a TAXABLE labor line: Stripe's "Repair of Tangible Personal
  * Property", the LA R.S. 47:301.3 item-7 service the Q374 decision taxes
  * (assembly, handyman and the trades: labor to fabricate, repair or maintain movable

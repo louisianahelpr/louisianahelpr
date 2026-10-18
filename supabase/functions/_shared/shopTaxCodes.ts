@@ -11,7 +11,9 @@
 // parish tax): that may OVER-collect on exempt food, a different exposure, not
 // none (same trade as salesTax.ts's handyman note). Changing a kind's code is
 // an owner/CPA decision; src/test/shopTaxCodes.test.ts pins this table.
-const GENERAL_TANGIBLE_GOODS_TAX_CODE = "txcd_99999999";
+// The code itself lives in salesTax.ts, the one module that may spell a txcd_ code
+// (src/test/stripeTaxCodes.test.ts).
+import { GENERAL_TANGIBLE_GOODS_TAX_CODE } from "./salesTax.ts";
 
 export const SHOP_KIND_TAX_CODE: Readonly<Record<"made" | "home_food" | "farm", string>> = {
   made: GENERAL_TANGIBLE_GOODS_TAX_CODE,

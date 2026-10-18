@@ -27000,6 +27000,32 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/shops/dashboard",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4391",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fshops%2Fdashboard",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/shops/orders",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4391",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fshops%2Forders",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -27118,6 +27144,15 @@
         "customer /rentals/requests/test",
         "helper /rentals/requests/test",
         "anon /rentals/requests/test"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-10-18T16:23:55.507Z",
+      "base": "http://127.0.0.1:4391",
+      "surfaces": [
+        "anon /shops/dashboard",
+        "anon /shops/orders"
       ],
       "replaced": []
     }

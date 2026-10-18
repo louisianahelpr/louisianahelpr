@@ -17,7 +17,8 @@
  * reproduces the exact Q759 defect (see the RED test below).
  */
 // @mutate src/components/admin/adminusers/useOpenProfile.ts | poster_completed_at, helper_completed_at, parish, helpers_needed | poster_completed_at, helper_completed_at, parish
-// @mutate src/components/admin/adminusers/useOpenProfile.ts | budget, helper_fee_percent, helper_fee_flat_cents, customer_fee_amount | budget, helper_fee_percent, customer_fee_amount
+// @mutate src/components/admin/adminusers/useOpenProfile.ts | budget, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents | budget, helper_fee_percent, poster_fee_flat_cents
+// @mutate src/components/admin/adminusers/useOpenProfile.ts | helper_fee_flat_cents, poster_fee_flat_cents, customer_fee_amount | helper_fee_flat_cents, customer_fee_amount
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -133,18 +134,13 @@ export function jobsSelectColumns(source: string): string[] {
 describe("admin Jobs-tab earnings columns are all selected (Q759)", () => {
   const jobsTabSrc = readFileSync(JOBS_TAB, "utf8");
   const openProfileSrc = readFileSync(OPEN_PROFILE, "utf8");
-  // A column still ahead of the DB (JOB_COLUMNS_AHEAD_OF_DB: its migration has
-  // not deployed) cannot be in a plain select without a 400; each one carries
-  // its own fallback (poster_fee_flat_cents: a 0c flat stamp already says
-  // "the Helpr pays nothing", helprFlatFee.ts helprPaysNoFee). It joins this
-  // check the day it moves into JOB_READABLE_COLUMN_LIST.
+  // No exemption: every column calcEarning reads must be in the select
+  // (poster_fee_flat_cents moved into JOB_READABLE_COLUMN_LIST once live,
+  // 2026-10-18). A column still ahead of the DB has no place in calcEarning.
   const ahead = JOB_COLUMNS_AHEAD_OF_DB as readonly string[];
-  const earningsCols = calcEarningColumns(jobsTabSrc).filter((c) => !ahead.includes(c));
-  // EXACTLY the one column that has its fallback: any other ahead-of-DB column
-  // calcEarning comes to read is a real gap, and this goes red the day
-  // poster_fee_flat_cents leaves the ahead list (then drop the exemption).
-  it("exempts only poster_fee_flat_cents as ahead of the DB", () => {
-    expect(calcEarningColumns(jobsTabSrc).filter((c) => ahead.includes(c))).toEqual(["poster_fee_flat_cents"]);
+  const earningsCols = calcEarningColumns(jobsTabSrc);
+  it("reads no column that is still ahead of the DB", () => {
+    expect(earningsCols.filter((c) => ahead.includes(c))).toEqual([]);
   });
   const selectCols = jobsSelectColumns(openProfileSrc);
 
@@ -159,6 +155,8 @@ describe("admin Jobs-tab earnings columns are all selected (Q759)", () => {
     expect(earningsCols).toContain("payment_status");
     // Reached only through helprFlatFee.ts's isFlatFeeJob (Q1839).
     expect(earningsCols).toContain("helper_fee_flat_cents");
+    // Reached only through helprFlatFee.ts's poster-fee branch (2026-10-18).
+    expect(earningsCols).toContain("poster_fee_flat_cents");
   });
 
   it("inventories the jobs select for AdminProfileJob (a broken extractor must not pass vacuously)", () => {

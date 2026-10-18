@@ -23,7 +23,7 @@ import {
 } from "../../_shared/subscriptionLinkage.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
-import { effectiveSalesTaxRate, taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
+import { effectiveSalesTaxRate, jobEscrowTaxableBaseCents, taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
 import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
 import { isDeclutterSession, settleDeclutterSession } from "./declutterCheckout.ts";
 
@@ -1146,19 +1146,29 @@ async function settleCheckoutSession(
         // lived, which resolved to a rate of 0 for seven ZIP codes.
         //
         // The effective rate is the only honest one: tax over the base it was
-        // charged on. Tax lands on the LABOR line only (the fees all ship as
-        // txcd_00000000), so the base is the budget. Stored as a FRACTION
+        // charged on: the LABOR line, plus the "Service fee" line on a
+        // poster-fee job in a taxable category (it carries the labor's tax
+        // code; every other fee ships as txcd_00000000), per
+        // jobEscrowTaxableBaseCents. Stored as a FRACTION
         // (effectiveSalesTaxRate): the CHECK ck_jobs_sales_tax_rate_range
         // admits 0..1, and the percent this wrote would have failed this very
         // escrow update on the first taxed job.
         const { data: jobRow } = await supabase
           .from("jobs")
-          .select("budget")
+          .select("budget, category, customer_fee_amount, poster_fee_flat_cents")
           .eq("id", jobId)
           .maybeSingle();
-        const budgetCents = Math.round(Number(jobRow?.budget ?? 0) * 100);
-        if (budgetCents > 0) {
-          updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, budgetCents);
+        // The fee THIS charge carried (its PaymentIntent's service_fee_cents,
+        // written by create-payment) wins over the row's, which a re-mint at
+        // another price may have changed since (lh-money-escrow review of the
+        // pre-flip items, #2). A PaymentIntent without it reads the row.
+        const piFeeRaw = String((taxPi.metadata as Record<string, string> | undefined)?.service_fee_cents ?? "");
+        const taxedRow = jobRow && /^\d+$/.test(piFeeRaw)
+          ? { ...jobRow, customer_fee_amount: Number(piFeeRaw) / 100 }
+          : jobRow;
+        const taxableBaseCents = jobEscrowTaxableBaseCents(taxedRow);
+        if (taxableBaseCents > 0) {
+          updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, taxableBaseCents);
         } else if (taxCents === 0) {
           // A genuine zero with no base to divide by — an exempt category.
           updateData.sales_tax_rate = 0;

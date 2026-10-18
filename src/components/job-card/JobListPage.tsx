@@ -554,19 +554,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           >
           {showEmptyState ? (
             <>
-            {/* Q1465: a $300+ recurring visit waiting on the poster's payment
-                is shown even when this bucket is empty. It lived only inside
-                PostedJobsTab, which this branch replaces, so a payer landing
-                on an empty "Needs you" never saw it. Renders nothing when no
-                visit waits. */}
+            {/* Q1465: a $300+ recurring visit awaiting payment shows even on an empty bucket (it lived only in PostedJobsTab, which this branch replaces). */}
             {tab === "posted" && user && <RecurringVisitPayments userId={user.id} className="mx-4 mt-3" />}
-            {/* A job whose bank payment is on its way is not a post (no
-                bucket, no count), so with nothing else posted this branch is
-                the one its poster lands on (owner, 2026-10-17). */}
+            {/* A job whose bank payment is on its way is not a post (no bucket, no count); with nothing else posted its poster lands here (owner, 2026-10-17). */}
             {tab === "posted" && <PendingBankPayments jobs={postedJobs} className="mx-4 mt-3" />}
-            {/* Empty state — a liquid-glass card that fills the panel and
-                bleeds beneath the dock (flat bottom, no hard edge), matching
-                the Dashboard / Messages empty-state pattern. */}
+            {/* Empty state — a liquid-glass card that fills the panel and bleeds beneath the
+                dock (flat bottom, no hard edge), matching the Dashboard / Messages pattern. */}
             <ActivityEmptyState
               tab={tab}
               loadError={!!loadError}

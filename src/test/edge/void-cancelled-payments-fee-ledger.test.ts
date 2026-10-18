@@ -451,6 +451,7 @@ describe("void-cancelled-payments — a fee owed across Stripe modes goes back t
 // select lists), so a select that drops it goes red too.
 // @mutate supabase/functions/void-cancelled-payments/index.ts |           const serviceFeeCents = posterCancelKeptFeeCents(job); |           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
 // @mutate supabase/functions/void-cancelled-payments/index.ts | helper_fee_flat_cents, poster_fee_flat_cents, is_group_job | helper_fee_flat_cents, is_group_job
+// @mutate supabase/functions/void-cancelled-payments/index.ts | ${isPosterFeeJob(job) ? "card processing" : "service"} fee | service fee
 describe("void-cancelled-payments — a poster-fee job keeps the card cost only (Q2082 slice 4)", () => {
   beforeEach(() => {
     resetEnv();
@@ -475,5 +476,8 @@ describe("void-cancelled-payments — a poster-fee job keeps the card cost only 
     const refundParams = stripeMock.refunds.create.mock.calls[0][0] as { amount?: number };
     // 2.9% of $315.70 + $0.30 = $9.46 kept, $150 to the Helpr: 31570 - 946 - 15000.
     expect(refundParams.amount).toBe(15_624);
+    // The ledger names what was kept: the card processing fee, not a service fee.
+    const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
+    expect((ledger?.payload as { reason?: string } | undefined)?.reason).toBe("cancellation refund (minus cancellation + card processing fee)");
   });
 });

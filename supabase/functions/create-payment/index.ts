@@ -18,7 +18,7 @@ import { POSTER_SERVICE_FEE_PERCENT, setupFeeKeptCents, setupFeeKeptReason } fro
 import { cardCostFeeCents, posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";
 import { jobFlatFeeTotalCents } from "../_shared/crewShares.ts";
-import { POSTER_JOB_FEE_CENTS, POSTER_JOB_FEE_DESCRIPTION } from "../_shared/posterJobFee.ts";
+import { POSTER_JOB_FEE_CENTS, POSTER_JOB_FEE_DESCRIPTION, isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import {
   JOBS_POSTER_FEE_SWITCH,
   JOB_CHECKOUT_PAYMENT_METHOD_TYPES,
@@ -2452,9 +2452,9 @@ serve(async (req) => {
               paymentIntentId: cancelPaymentIntentId,
               source: "cancel_escrow",
               isPartial: nonRefundableCents > 0,
-              reason: setupFeeCents > 0
-                ? "escrow cancellation refund (minus non-refundable service fee and the kept $2 setup fee)"
-                : "escrow cancellation refund (minus non-refundable service fee)",
+              // A poster-fee job keeps the card processing cost, not a service
+              // fee (Q2082 slice 4 review #7 / BEFORE THE FLIP (e)).
+              reason: `escrow cancellation refund (minus ${isPosterFeeJob(job) ? "the card processing fee" : "non-refundable service fee"}${setupFeeCents > 0 ? " and the kept $2 setup fee" : ""})`,
               initiatedByUserId: user.id,
             });
             // Q1714: the poster is told at once, with what was kept and why

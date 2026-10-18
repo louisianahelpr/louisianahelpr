@@ -12,6 +12,7 @@ import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
 import { posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { feeTransferIdempotencyKey, formatExactDollars, isDefiniteStripeRefusal, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
@@ -2219,9 +2220,9 @@ serve(async (req) => {
               is_partial: cancellationFee > 0 || nonRefundableCents > 0,
               reason: sellerFault
                 ? `Declutter seller backed out: full refund, card fee billed to the seller${setupFeeKeptCents(job) > 0 ? " (the $2 setup fee kept)" : ""}`
-                : setupFeeKeptCents(job) > 0
-                ? "cancellation refund (minus cancellation + service fee and the kept $2 setup fee)"
-                : "cancellation refund (minus cancellation + service fee)",
+                // A poster-fee job keeps the card processing cost, not a
+                // service fee (Q2082 slice 4 review #7 / BEFORE THE FLIP (e)).
+                : `cancellation refund (minus cancellation + ${isPosterFeeJob(job) ? "card processing" : "service"} fee${setupFeeKeptCents(job) > 0 ? " and the kept $2 setup fee" : ""})`,
               source: "void_cancelled_payments",
               initiated_by_user_id: null,
             }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });

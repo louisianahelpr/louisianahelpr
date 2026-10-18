@@ -41,7 +41,8 @@ describe("blockReplayIfTestProfile (Q379)", () => {
     const applied = src.match(/setSentryUser\(\{[^}]*\}\);\s*replayPolicy\([^)]*\);/g) ?? [];
     expect(identifies.length).toBeGreaterThan(1);
     expect(applied.length).toBe(identifies.length);
-    expect(src).toMatch(/blockReplayIfTestProfile\(supabase, userId, blockReplayForTestProfile\)/);
+    // Q2112: the same is_seed answer also opts PostHog out for this page.
+    expect(src).toMatch(/blockReplayIfTestProfile\(supabase, userId, \(\) => \{\s*blockReplayForTestProfile\(\);\s*optOutTestProfile\(\);\s*\}\)/);
   });
 
   it("leaves replay on when the read fails or finds no row", async () => {

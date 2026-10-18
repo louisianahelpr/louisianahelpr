@@ -211,6 +211,7 @@
     "APPLE_IAP_ENVIRONMENT": "config flag",
     "APPLE_MAPKIT_TEAM_ID": "identifier, not a credential",
     "APP_URL": "config, not a credential",
+    "ASC_REVIEW_DEMO_PASSWORD": "self-generated App Review demo password (Q1790 rotation script); no issuer, no expiry",
     "ASC_TEAM_ID": "identifier, not a credential",
     "BACKUP_PASSPHRASE": "self-generated passphrase; no issuer, no expiry",
     "CERTIFICIAL_WEBHOOK_SECRET": "shared HMAC secret; no expiry at the vendor",

@@ -34,6 +34,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 // @ts-expect-error - plain .mjs tool script, no types
 import * as harness from "../../scripts/audit/press-every-control.mjs";
 import { RequestMeter } from "../../e2e/requestMeter.mjs";
+import { ACCOUNTS } from "../../scripts/test-signin-link.mjs";
 
 const ROOT = resolve(__dirname, "..", "..");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
@@ -122,7 +123,7 @@ describe("a press that wrote consumed its own record (the request is the fact)",
 });
 
 describe("public storage objects are cached per context, as the disabled HTTP cache would", () => {
-  const avatar = `${SB}/storage/v1/object/public/avatars/951264df-1e7c-4b6f-912e-a1be37e0dbfb/avatar.jpg?t=1791917654078`;
+  const avatar = `${SB}/storage/v1/object/public/avatars/${ACCOUNTS["poster-e2e"].userId}/avatar.jpg?t=1791917654078`;
   const ok = { status: 200, headers: { "cache-control": "public, max-age=31536000" }, body: Buffer.from("jpg") };
 
   it("a 200 with max-age is kept until it expires; errors and no-cache are never kept", () => {
@@ -132,7 +133,7 @@ describe("public storage objects are cached per context, as the disabled HTTP ca
     expect(c.hit("GET", avatar, 1000)?.status).toBe(200);
     expect(c.hit("HEAD", avatar, 1000)).toBe(null);
     expect(c.hit("GET", avatar, 31536000 * 1000)).toBe(null);
-    const missing = `${SB}/storage/v1/object/public/avatars/5af6ce6d-68a8-4f98-b9d4-4fab20f1a607/avatar.jpg?t=1`;
+    const missing = `${SB}/storage/v1/object/public/avatars/${ACCOUNTS.helper.userId}/avatar.jpg?t=1`;
     expect(c.store(missing, { status: 400, headers: { "cache-control": "public, max-age=31536000" }, body: Buffer.from("") }, 0)).toBe(false);
     expect(c.hit("GET", missing, 1)).toBe(null);
     expect(c.store(avatar, { ...ok, headers: { "cache-control": "no-cache" } }, 0)).toBe(false);

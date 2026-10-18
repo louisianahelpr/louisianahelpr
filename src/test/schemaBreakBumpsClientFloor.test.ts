@@ -34,6 +34,7 @@ import { replayTablePrivileges, type Priv } from "./helpers/tablePrivilegeReplay
 // @mutate src/lib/clientCompat.ts | export const CLIENT_COMPAT_EPOCH = 1; | export const CLIENT_COMPAT_EPOCH = 2;
 // @mutate supabase/migrations/20261005191110_client_compat_floor.sql | AS $$ SELECT 1 $$; | AS $$ SELECT 0 $$;
 // @mutate src/test/schemaBreakBumpsClientFloor.test.ts | client_compat_floor.sql";\n | payout_holds_server_side.sql";\n
+// @mutate src/test/schemaBreakBumpsClientFloor.test.ts | "i").test(code) &&\n  !earlier.some | "i").test(code) &&\n  earlier.some
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");
@@ -80,6 +81,15 @@ function revokedTables(code: string): string[] {
 const createsTable = (code: string, t: string) =>
   new RegExp(String.raw`\bcreate\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?${t}"?\s*\(`, "i").test(code);
 
+/**
+ * A view this migration creates that no earlier migration names (2026-10-18,
+ * analytics_events_real): like a new table, it has no older reader to strand.
+ * A CREATE OR REPLACE of a view an earlier migration made still counts.
+ */
+const createsNewView = (code: string, t: string, earlier: { code: string }[]) =>
+  new RegExp(String.raw`\bcreate\s+(?:or\s+replace\s+)?view\s+(?:public\.)?"?${t}"?\b`, "i").test(code) &&
+  !earlier.some((f) => new RegExp(String.raw`\b${t}\b`, "i").test(f.code));
+
 /** Does migration `idx` take away a privilege `authenticated` held on any table? Returns those tables. */
 function narrowedBy(idx: number, files: File[] = ALL): string[] {
   const m = files[idx];
@@ -90,7 +100,7 @@ function narrowedBy(idx: number, files: File[] = ALL): string[] {
       continue;
     }
     // A table this migration creates has no older reader to strand.
-    if (createsTable(m.code, t)) continue;
+    if (createsTable(m.code, t) || createsNewView(m.code, t, files.slice(0, idx))) continue;
     const word = new RegExp(String.raw`\b${t}\b|all\s+tables\s+in\s+schema`, "i");
     const prior = files.slice(0, idx).filter((f) => word.test(f.code)).map((f) => ({ name: f.name, sql: f.code }));
     const before = replayTablePrivileges(prior, t, "authenticated");
@@ -144,6 +154,17 @@ describe("a migration that narrows authenticated privileges raises client_compat
     expect(narrowedBy(1, files)).toEqual([]);
     expect(narrowedBy(2, files)).toEqual(["t"]);
     expect(narrowedBy(3, files)).toEqual([]);
+  });
+
+  it("a view first created by the revoking migration is new; replacing an older view and revoking still narrows", () => {
+    const files: File[] = [
+      { name: "a.sql", sql: "", code: "grant all on all tables in schema public to authenticated;" },
+      { name: "b.sql", sql: "", code: "create or replace view public.v as select 1; revoke all on public.v from public, anon, authenticated;" },
+      { name: "c.sql", sql: "", code: "create view public.w as select 1; grant select on public.w to authenticated;" },
+      { name: "d.sql", sql: "", code: "create or replace view public.w as select 2; revoke all on public.w from authenticated;" },
+    ];
+    expect(narrowedBy(1, files)).toEqual([]);
+    expect(narrowedBy(3, files)).toEqual(["w"]);
   });
 
   it("history inventory: the detector finds narrowing migrations before the floor existed (floor of the scan)", () => {

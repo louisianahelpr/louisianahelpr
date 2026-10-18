@@ -114,11 +114,16 @@ test("one sheet, one step: the apply form is on the job detail surface", async (
   const applyNow = sheet.getByRole("button", { name: /^apply now$/i });
   await expect(applyNow).toBeVisible();
 
-  // The CTA wears the real gloss. Asserting the CLASS passes on a flat
+  // The CTA wears the real primary fill: the FLAT brand green (owner,
+  // 2026-10-17, gloss retired). Asserting the CLASS passes on an unpainted
   // control (an inline `background` shorthand beats `.btn-grad-primary`), so
-  // read the COMPUTED background-image and require a gradient.
-  const cta = await applyNow.evaluate((el) => getComputedStyle(el).backgroundImage);
-  expect(cta, `Apply Now background-image: ${cta}`).toMatch(/gradient\(/);
+  // read the COMPUTED paint.
+  const cta = await applyNow.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { image: cs.backgroundImage, color: cs.backgroundColor };
+  });
+  expect(cta.image, `Apply Now background-image: ${cta.image}`).toBe("none");
+  expect(cta.color, `Apply Now background-color: ${cta.color}`).toBe("rgb(14, 122, 74)");
 
   // 3. NOTHING STEPS. Typing into the note must not swap the body out — the
   //    job is still on screen, which is the property the two-step version

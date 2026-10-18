@@ -234,12 +234,10 @@ const DesktopSidebarNav = () => {
           onMouseEnter={() => prefetchRoute("/post-job")}
           className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-sans font-semibold text-ds-15 transition-transform active:scale-[0.98]"
           style={{
-            background:
-              "radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-deep)) 100%)",
-            color: "hsl(var(--parchment))",
-            border: "1px solid hsl(var(--bark-border))",
-            boxShadow:
-              "inset 0 1.5px 1px 0 rgba(255,255,255,0.28), 0 8px 18px -6px hsl(var(--bark) / 0.5)",
+            // Flat brand green, the same fill as .btn-grad-primary in both
+            // themes (owner, 2026-10-17: flat buttons).
+            backgroundColor: "hsl(var(--brand))",
+            color: "hsl(var(--brand-foreground))",
           }}
         >
           <Plus className="h-5 w-5" strokeWidth={2.5} />

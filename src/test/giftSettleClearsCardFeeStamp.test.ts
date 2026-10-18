@@ -19,8 +19,14 @@
  * Behaviour (real Postgres, old RED / new GREEN, applied 3x):
  * src/test/pglite/giftSettleClearsCardFeeStamp.pglite.mjs.
  *
- * @mutate supabase/migrations/20261012231646_gift_settle_clears_card_fee_stamp.sql | stripe_session_id = null, customer_fee_amount = 0 where | stripe_session_id = null where
- * @mutate supabase/migrations/20261012231646_gift_settle_clears_card_fee_stamp.sql | stripe_session_id = null, customer_fee_amount = 0 where | stripe_session_id = null, customer_fee_amount = 1 where
+ * Since 20261018031451 (jobs poster fee, owner 2026-10-18) the settle writes
+ * customer_fee_amount = v_fee_cents / 100: 0 on the flat model (still zeroing a
+ * stale card fee), the stamped fee the gift paid on a poster-fee job. The
+ * guard pins that v_fee_cents is 0 whenever the job carries no poster stamp.
+ *
+ * @mutate supabase/migrations/20261018031451_poster_fee_gift_first.sql | stripe_session_id = null, customer_fee_amount = v_fee_cents::numeric / 100 where | stripe_session_id = null where
+ * @mutate supabase/migrations/20261018031451_poster_fee_gift_first.sql | stripe_session_id = null, customer_fee_amount = v_fee_cents::numeric / 100 where | stripe_session_id = null, customer_fee_amount = 1 where
+ * @mutate supabase/migrations/20261018031451_poster_fee_gift_first.sql |   else\n    v_fee_cents := 0;\n |   else\n    v_fee_cents := 1;\n
  * @mutate supabase/functions/create-payment/index.ts | const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: | const diffStamp = await stampSession(diffSession.id, { customer_card_fee: 0, customer_fee_amount:
  */
 import { describe, it, expect } from "vitest";
@@ -56,7 +62,16 @@ describe("a gift-settled job keeps no card fee stamp", () => {
       .filter((set) => /payment_status\s*=\s*'escrow'/i.test(set));
     expect(escrowWrites.length).toBeGreaterThan(0);
     for (const set of escrowWrites) {
-      for (const col of cols) expect(set, `escrow flip leaves ${col} as stamped`).toMatch(new RegExp(`\\b${col}\\s*=\\s*0\\b`, "i"));
+      for (const col of cols) {
+        // 0, or the poster-fee amount v_fee_cents (0 off the poster stamp, below).
+        expect(set, `escrow flip leaves ${col} as stamped`).toMatch(
+          new RegExp(`\\b${col}\\s*=\\s*(0\\b|v_fee_cents::numeric\\s*/\\s*100\\b)`, "i"));
+      }
+    }
+    // v_fee_cents is non-zero ONLY under the poster stamp: the flat branch sets 0.
+    if (/v_fee_cents/i.test(body)) {
+      expect(body).toMatch(/if\s+v_job\.poster_fee_flat_cents\s+is\s+not\s+null\s+then[\s\S]*?else\s+v_fee_cents\s*:=\s*0\s*;\s*end\s+if\s*;/i);
+      expect([...body.matchAll(/v_fee_cents\s*:=/gi)].length).toBe(2);
     }
   });
 });

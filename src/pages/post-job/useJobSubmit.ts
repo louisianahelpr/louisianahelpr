@@ -978,7 +978,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         // so create-payment can refuse a stale quote (owner 2026-10-18).
         feeQuote: buildFeeQuote({
           switchOn: posterFeeOn,
-          giftFunded: !!giftCardId,
           recurring: isRecurring,
           jobPriceCents: Math.round(((parseFloat(budget) || 0) + (isUrgent ? parseFloat(urgentFee) || 0 : 0)) * 100),
         }),

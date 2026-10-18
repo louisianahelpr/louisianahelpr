@@ -11986,6 +11986,10 @@ export type Database = {
         }
         Returns: string
       }
+      quote_job_offered_to_quoter: {
+        Args: { p_helper: string; p_job_id: string }
+        Returns: boolean
+      }
       quote_notify: {
         Args: { p_message: string; p_title: string; p_user: string }
         Returns: undefined

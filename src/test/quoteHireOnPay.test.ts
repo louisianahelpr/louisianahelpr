@@ -32,6 +32,9 @@
  * @mutate supabase/migrations/20261018042506_quote_hire_on_pay_alerts.sql |   AFTER INSERT ON public.user_blocks | AFTER INSERT ON public.job_quotes
  * @mutate supabase/migrations/20261018042506_quote_hire_on_pay_alerts.sql |          OR (r.poster_id = NEW.blocked_id AND q.quoter_id = NEW.blocker_id)); |          OR false);
  * @mutate supabase/migrations/20261018042506_quote_hire_on_pay_alerts.sql |   EXCEPTION WHEN OTHERS THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes | EXCEPTION WHEN unique_violation THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes
+ * @mutate supabase/migrations/20261018042506_quote_hire_on_pay_alerts.sql |      AND NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id)\n |      AND true\n
+ * @mutate supabase/migrations/20261018042506_quote_hire_on_pay_alerts.sql |         IF NOT public.are_users_blocked(v_quoter, NEW.customer_id)\n           AND EXISTS ( |         IF EXISTS (
+ * @mutate supabase/migrations/20261018042506_quote_hire_on_pay_alerts.sql |        AND q.quoter_id = p_helper\n |        AND true\n
  * @mutate supabase/migrations/20261015091114_job_quotes.sql |   v_close := LEAST(now() + make_interval(hours => v_window), v_start - interval '2 hours'); |   v_close := now() + make_interval(hours => v_window);
  */
 import { describe, expect, it } from "vitest";
@@ -58,7 +61,7 @@ const allSql = readdirSync(DIR)
 describe("quotes: owner answers 8-11", () => {
   it("reads real definitions (cannot pass vacuously)", () => {
     for (const fn of ["create_quote_request", "respond_to_job_quote", "submit_job_quote", "cancel_quote_request",
-      "quote_job_funded_hires_quoter", "quote_notify_about", "sweep_quote_alerts"]) {
+      "quote_job_funded_hires_quoter", "quote_notify_about", "sweep_quote_alerts", "notify_helper_on_direct_offer"]) {
       expect(body(fn).length, fn).toBeGreaterThan(300);
     }
   });
@@ -92,8 +95,21 @@ describe("quotes: owner answers 8-11", () => {
     );
     expect(b).toContain("v_reason := 'offer_not_pending:'");
     // Only the quoter who won the agreed quote, on the still-pending offer.
-    expect(b).toContain("WHERE r.job_id = NEW.id AND r.status = 'agreed';");
-    expect(b).toContain("IF NOT FOUND OR v_quoter IS DISTINCT FROM NEW.offered_to_helper_id THEN RETURN NULL;");
+    expect(b).toContain("IF NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id) THEN RETURN NULL; END IF; v_quoter := NEW.offered_to_helper_id;");
+    expect(body("quote_job_offered_to_quoter")).toContain(
+      "SELECT p_helper IS NOT NULL AND EXISTS ( SELECT 1 FROM public.job_quote_requests r JOIN public.job_quotes q ON q.request_id = r.id AND q.status = 'accepted' WHERE r.job_id = p_job_id AND r.status = 'agreed' AND q.quoter_id = p_helper );",
+    );
+    // Train J sends the direct-offer notice on the same funding UPDATE: the
+    // newest notify_helper_on_direct_offer stands aside for exactly the jobs
+    // this trigger hires for (one notice, never one across a block), and a
+    // completion that THREW tells the quoter to accept by hand, never across a
+    // block, only on a live pending offer (lh-money-escrow review of 8ef7cd25b).
+    expect(body("notify_helper_on_direct_offer")).toContain(
+      "AND NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id) THEN",
+    );
+    expect(b).toMatch(
+      /IF v_err IS NOT NULL AND v_reason IS NULL THEN BEGIN IF NOT public\.are_users_blocked\(v_quoter, NEW\.customer_id\) AND EXISTS \( SELECT 1 FROM public\.jobs j WHERE j\.id = NEW\.id AND j\.status::text = 'open' AND j\.helper_id IS NULL AND j\.offered_to_helper_id = v_quoter AND j\.direct_offer_status = 'pending'/,
+    );
     // The existing completion, or the existing wait for payout setup / ID.
     expect(b).toContain("v_done := public.complete_direct_offer_accept(NEW.id, v_quoter);");
     expect(b).toMatch(/INSERT INTO public\.job_accept_pending \(job_id, helper_id\) VALUES \(NEW\.id, v_quoter\) ON CONFLICT \(job_id\) DO NOTHING;/);

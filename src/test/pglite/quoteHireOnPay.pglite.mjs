@@ -25,6 +25,10 @@
  *       changes nothing; an unready quoter's yes waits in job_accept_pending; a
  *       refused completion (a block) still lands the payment and is logged; a
  *       plain direct offer (no quote) is untouched
+ *       (with train J's notify_helper_on_direct_offer + clock-restart triggers
+ *       loaded from main) the quoter hears ONE notice at funding, never also
+ *       "You got a direct job offer!", and nothing across a block; a completion
+ *       that throws tells the quoter to accept by hand, never across a block
  *   11  cancelling an agreed, never-funded request deletes its job; a funded one
  *       is refused and the job stays; a 'failed' payment (PaymentIntent) keeps
  *       its job
@@ -51,9 +55,13 @@ const REPLAY = process.argv.includes("--replay");
 const BEFORE = process.argv.includes("--before");
 
 const DEFS = effectiveDefs(DIR, { before: BASE });
-function fnStmt(name) {
-  const d = DEFS.get(name);
-  if (!d) throw new Error(`no migration before ${BASE} defines ${name}`);
+// Main's newest bodies BEFORE this migration (train J's direct-offer funding
+// gate, 20261018024631): the offer notice and the clock restart both fire on
+// the same funding UPDATE as the hire trigger.
+const DEFS_MAIN = effectiveDefs(DIR, { before: THIS });
+function fnStmt(name, defs = DEFS) {
+  const d = defs.get(name);
+  if (!d) throw new Error(`no migration before ${defs === DEFS ? BASE : THIS} defines ${name}`);
   const open = /\bAS\s+(\$\w*\$)/i.exec(d.stmt);
   const end = d.stmt.indexOf(open[1], open.index + open[0].length);
   return `${d.stmt.slice(0, end + open[1].length)};`;
@@ -152,6 +160,11 @@ for (const fn of ["feature_enabled_for", "require_feature", "contact_leak_reason
 await db.exec(`CREATE TRIGGER trg_jobs_insert_column_lock BEFORE INSERT ON public.jobs
   FOR EACH ROW EXECUTE FUNCTION public.enforce_jobs_insert_column_lock();`);
 await db.exec(readFileSync(DIR + BASE, "utf8"));
+for (const fn of ["notify_helper_on_direct_offer", "restart_direct_offer_clock_on_funding"]) await db.exec(fnStmt(fn, DEFS_MAIN));
+await db.exec(`CREATE TRIGGER trg_notify_helper_on_direct_offer AFTER INSERT OR UPDATE OF offered_to_helper_id, payment_status ON public.jobs
+  FOR EACH ROW EXECUTE FUNCTION public.notify_helper_on_direct_offer();
+CREATE TRIGGER trg_restart_direct_offer_clock_on_funding BEFORE UPDATE OF payment_status ON public.jobs
+  FOR EACH ROW EXECUTE FUNCTION public.restart_direct_offer_clock_on_funding();`);
 if (!BEFORE) {
   for (let i = 0; i < (REPLAY ? 3 : 1); i++) await db.exec(MIGRATION);
 }
@@ -267,6 +280,61 @@ await step("8 a refused completion still lands the payment and is logged", async
     "8 a refused completion still lands the payment and is logged",
     e === null && j.payment_status === "escrow" && j.status === "open" && j.helper_id === null && logged === 1 && toldQC === 0 && pendQC === 0,
     `err=${e} ${j.payment_status} ${j.status} logged=${logged} toldAcrossBlock=${toldQC} pending=${pendQC}`,
+  );
+});
+
+await step("8 at funding the quoter hears one notice, never also the direct-offer notice", async () => {
+  // Train J (20261018024631) sends "You got a direct job offer!" on the same
+  // funding UPDATE that hires the quoter; the hire trigger owns that moment.
+  const offerNotices = async (uid, job) => (await svc(`SELECT count(*)::int AS n FROM public.notifications WHERE user_id = '${uid}' AND job_id = '${job}' AND title = 'You got a direct job offer!'`))[0].n;
+  const a = await agreedJob(QA);
+  await svc(`UPDATE public.jobs SET payment_status = 'escrow', stripe_payment_intent_id = 'pi_8' WHERE id = '${a.job}'`);
+  const qaHired = await offerNotices(QA, a.job);
+  // Unready quoter: "Finish setup to start" only.
+  await db.exec(`INSERT INTO public.stub_unready VALUES ('${QB}')`);
+  const b = await agreedJob(QB);
+  await svc(`UPDATE public.jobs SET payment_status = 'escrow', stripe_payment_intent_id = 'pi_9' WHERE id = '${b.job}'`);
+  await db.exec(`DELETE FROM public.stub_unready`);
+  const qbPending = await offerNotices(QB, b.job);
+  // A block after booking: nothing reaches the quoter across it.
+  const c = await agreedJob(QC);
+  await db.exec(`INSERT INTO public.stub_blocks VALUES ('${QC}', '${POSTER}')`);
+  await svc(`UPDATE public.jobs SET payment_status = 'escrow', stripe_payment_intent_id = 'pi_10' WHERE id = '${c.job}'`);
+  await db.exec(`DELETE FROM public.stub_blocks`);
+  const qcBlocked = (await svc(`SELECT count(*)::int AS n FROM public.notifications WHERE user_id = '${QC}' AND job_id = '${c.job}'`))[0].n;
+  check(
+    "8 at funding the quoter hears one notice, never also the direct-offer notice",
+    qaHired === 0 && qbPending === 0 && qcBlocked === 0,
+    `hired=${qaHired} pendingSetup=${qbPending} acrossBlock=${qcBlocked}`,
+  );
+});
+
+await step("8 a completion that throws: the quoter is told to accept by hand, never across a block", async () => {
+  // Plant a throw (not a refusal) in the completion, then in the block check.
+  const plant = (fn, args) => db.exec(`CREATE OR REPLACE FUNCTION public.${fn}(${args}) RETURNS ${fn === "complete_direct_offer_accept" ? "jsonb" : "text"}
+    LANGUAGE plpgsql AS $p$ BEGIN RAISE EXCEPTION 'planted'; END $p$;`);
+  const told = async (uid) => (await svc(`SELECT count(*)::int AS n FROM public.notifications WHERE user_id = '${uid}' AND title = 'Accept to start'`))[0].n;
+  const a = await agreedJob(QA);
+  await plant("complete_direct_offer_accept", "p_job_id uuid, p_helper uuid");
+  const e = await svc(`UPDATE public.jobs SET payment_status = 'escrow', stripe_payment_intent_id = 'pi_11' WHERE id = '${a.job}' RETURNING id`)
+    .then(() => null, (x) => String(x.message));
+  await db.exec(fnStmt("complete_direct_offer_accept"));
+  const j = (await svc(`SELECT status::text, helper_id, payment_status, direct_offer_status FROM public.jobs WHERE id = '${a.job}'`))[0];
+  const tA = await told(QA);
+  const logged = (await svc(`SELECT context->>'error' AS e FROM public.error_logs WHERE tags->>'job_id' = '${a.job}'`));
+  // A block since booking, and the block check itself throws: nobody is told.
+  const c = await agreedJob(QC);
+  await db.exec(`INSERT INTO public.stub_blocks VALUES ('${POSTER}', '${QC}')`);
+  await plant("direct_accept_block_reason", "p_job_id uuid, p_helper uuid");
+  await svc(`UPDATE public.jobs SET payment_status = 'escrow', stripe_payment_intent_id = 'pi_12' WHERE id = '${c.job}'`);
+  await db.exec(fnStmt("direct_accept_block_reason"));
+  await db.exec(`DELETE FROM public.stub_blocks`);
+  const tC = await told(QC);
+  check(
+    "8 a completion that throws: the quoter is told to accept by hand, never across a block",
+    e === null && j.payment_status === "escrow" && j.helper_id === null && j.direct_offer_status === "pending" &&
+      tA === 1 && logged.length === 1 && /planted/.test(logged[0].e ?? "") && tC === 0,
+    `err=${e} ${j.payment_status} ${j.direct_offer_status} toldA=${tA} logged=${JSON.stringify(logged)} acrossBlock=${tC}`,
   );
 });
 

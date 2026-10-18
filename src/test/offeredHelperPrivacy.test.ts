@@ -248,6 +248,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:notify_helpers_on_job_post": "no-return",
     "function:notify_saved_searches_on_new_job": "no-return",
     "function:prevent_job_field_escalation": "no-return",
+    // Quotes (owner answer 8): the AFTER UPDATE trigger that hires the quoter a
+    // paid quote job is offered to; reads NEW.offered_to_helper_id, returns NULL.
+    "function:quote_job_funded_hires_quoter": "no-return",
     "function:purge_user_data": "no-return",
     "function:respond_to_direct_offer": "no-return",
     // Q327: declines a pending offer on a banned poster's cancelled job or to a

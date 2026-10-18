@@ -5,35 +5,20 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Elevation system — TestFlight #2 feedback "buttons look flat next to cards"
+// Elevation system — FLAT (owner, 2026-10-17: design C "Warm Modern", flat
+// buttons, the gloss rule retired; docs/DESIGN_SYSTEM.md).
 //
-// Four cumulative depth treatments, applied selectively per variant so the
-// hierarchy stays legible (a ghost button and a primary CTA must NOT read at
-// the same elevation):
-//
-//   1. ELEVATION  — 3-layer drop shadow: tight 1px contact shadow + a medium
-//      2px/6px ambient + a very soft 8px halo. Three layers prevent the
-//      "single hard line" pasted-on look and give the button real lift.
-//   2. HIGHLIGHT  — inner 1px top-edge cream highlight (cream for filled,
-//      white for outline), picking up light from above so the button feels
-//      embossed / lit rather than painted flat.
-//   3. PRESS      — on `:active`, scale 0.97 (crisper than translate alone)
-//      AND collapse the ambient + halo shadows so the button physically
-//      depresses under the finger. Spring easing bounces back cleanly.
-//   4. GRADIENT   — barely-perceptible 0% → 92% vertical gradient on the
-//      bark PRIMARY CTA only. Just enough that the surface reads as
-//      "solid + lit from above" instead of a flat fill.
+// Buttons carry NO drop shadow, NO inner highlight and NO gradient. Hierarchy
+// comes from fill (flat brand green for primary, outline/ghost for the rest),
+// not depth. The one treatment kept is the PRESS: on `:active`, scale 0.97
+// with the spring easing, so a tap still feels physical.
 //
 // Brand tokens live as raw HSL CSS vars (NOT in tailwind.config.ts), so they
 // MUST be referenced as `hsl(var(--token) / alpha)` — `bg-ink-deep` is a
 // no-op class.
 // ─────────────────────────────────────────────────────────────────────────────
-const ELEV_FILLED =
-  "shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12),0_4px_12px_-2px_hsl(var(--ink-deep)/0.08)] " +
-  "active:scale-[0.97] active:shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.14)]";
-const ELEV_OUTLINE =
-  "shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.08),0_2px_6px_hsl(var(--ink-deep)/0.10),0_4px_12px_-2px_hsl(var(--ink-deep)/0.06)] " +
-  "active:scale-[0.97] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.10)]";
+const ELEV_FILLED = "shadow-none active:scale-[0.97]";
+const ELEV_OUTLINE = "shadow-none active:scale-[0.97]";
 
 // Hover shared by ALL green primary CTAs. `hover:brightness-110` and nothing
 // else — the filled-surface arm of the one interaction treatment (see "THE ONE
@@ -55,10 +40,10 @@ const ELEV_OUTLINE =
 //
 //   hover:shadow-[...bark glow...]  — REMOVED. A second, competing treatment
 //     on the same gesture: the primary grew a glow while every other variant
-//     did not. The resting 3-layer ELEV_FILLED shadow already says "this is
-//     raised"; restating it louder on hover said nothing new.
+//     did not. Buttons are flat now (2026-10-17), so there is no resting depth
+//     for a glow to restate.
 //
-// The `active:` press (scale + shadow collapse) from ELEV_FILLED is untouched
+// The `active:` press (scale) from ELEV_FILLED is untouched
 // and still wins on tap, because Tailwind orders `active` after `hover`.
 const GREEN_CTA_HOVER = "hover:brightness-110";
 
@@ -103,12 +88,10 @@ const buttonVariants = cva(
           "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] " +
           GREEN_CTA_HOVER + " " +
           ELEV_FILLED,
-        // Destructive: shadow + highlight + press, NO gradient — keep red
-        // flat-looking so it doesn't get accidentally pressed.
+        // Destructive: flat red fill + press.
         destructive:
           "bg-destructive !text-[hsl(var(--destructive-foreground))] [&_*]:!text-[hsl(var(--destructive-foreground))] hover:brightness-110 " + ELEV_FILLED,
-        // Outline: shadow #1 ONLY — outlines stay clean and minimal, no
-        // inner highlight, no gradient.
+        // Outline: flat, hairline border + press.
         //
         // Hover was `hover:bg-secondary hover:text-secondary-foreground` — a
         // SOLID sand fill that replaced the translucent background outright,
@@ -120,7 +103,7 @@ const buttonVariants = cva(
         outline:
           "ctl-tint border border-border/60 bg-background/70 backdrop-blur-md " +
           ELEV_OUTLINE,
-        // Secondary / parchment-tint: shadow + highlight + press, no gradient.
+        // Secondary / parchment-tint: flat fill + press.
         //
         // This one is FILLED (sand), so it takes the filled arm — a tint by
         // filter, because a `bg-*` on hover would swap the fill rather than

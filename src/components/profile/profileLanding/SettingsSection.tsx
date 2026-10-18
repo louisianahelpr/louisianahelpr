@@ -55,7 +55,7 @@ export function SettingsSection({
             style={{
               color: "hsl(var(--foreground))",
               border: "1px solid hsl(var(--bark) / 0.32)",
-              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontFamily: "'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif",
               fontWeight: 600,
             }}
           >
@@ -69,7 +69,7 @@ export function SettingsSection({
               background: "transparent",
               border: "1px solid hsl(var(--burnt-sienna) / 0.32)",
               color: "hsl(var(--burnt-sienna))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontFamily: "'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif",
               fontWeight: 600,
             }}
           >

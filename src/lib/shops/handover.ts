@@ -25,7 +25,7 @@ export type HandoverMode = "porch" | "in_person";
 export const HANDOVER_MODE_TEXT: Record<HandoverMode, { label: string; detail: string }> = {
   in_person: {
     label: "Pick up in person",
-    detail: "The buyer picks the order up from you. They tap \"I got it\", or you tap \"Picked up\". If neither of you does, the order finishes 24 hours after the ready date.",
+    detail: "The buyer picks the order up from you. They tap \"I got it\" when they have it. If they don't, the order finishes on its own 24 hours after the ready date.",
   },
   porch: {
     label: "Left out for pickup",
@@ -133,12 +133,6 @@ export async function confirmPickup(orderId: string): Promise<void> {
   if (error) rpcFail("shops_confirm_pickup", error);
 }
 
-/** The shop, in person only: "Picked up". */
-export async function markPickedUp(orderId: string): Promise<void> {
-  const { error } = await supabase.rpc("shops_mark_picked_up", { p_order_id: orderId });
-  if (error) rpcFail("shops_mark_picked_up", error);
-}
-
 /** The buyer did not get it: no automatic finish and no payout until Louisiana Helpr decides. */
 export async function reportNotReceived(orderId: string, note: string): Promise<void> {
   const { error } = await supabase.rpc("shops_report_not_received", { p_order_id: orderId, p_note: note.trim() });
@@ -152,8 +146,8 @@ export function payoutText(p: Pick<ShopPayout, "status" | "amount_cents" | "debt
   switch (p.status) {
     case "succeeded": return `${dollars(p.amount_cents)} sent to your payout account${debt}.`;
     case "nothing_due": return `This order paid off ${dollars(p.debt_cents)} of card fees you owed, so nothing was sent.`;
-    // Not "on its way": a pending payout may still wait for payout setup, a 24-hour buyer window or a review (money review 6).
+    // Not "on its way": a pending payout may still wait for payout setup, a payout hold or a review (money review 6).
     case "failed": return `${dollars(p.amount_cents)} is owed to you${debt}. Sending it hasn't worked yet; we keep trying, and Louisiana Helpr steps in if it keeps failing.`;
-    case "pending": return `${dollars(p.amount_cents)} is owed to you${debt}. It's sent to your payout account once payouts are set up in Settings and any wait for the buyer is over.`;
+    case "pending": return `${dollars(p.amount_cents)} is owed to you${debt}. It's sent to your payout account once payouts are set up in Settings and nothing is on hold.`;
   }
 }

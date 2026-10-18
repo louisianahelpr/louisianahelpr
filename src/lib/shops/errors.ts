@@ -100,9 +100,7 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   // M2 (20261018184113): the handover.
   invalid_handover_mode: "Pick how buyers get their orders: in person or left out.",
   order_not_charged_yet: "The buyer's card isn't charged yet. Try again in a few minutes.",
-  not_in_person: "This order is left out for the buyer. It finishes when they tap \"I got it\".",
   problem_open: "The buyer reported a problem with this order. Louisiana Helpr looks at it before anyone is paid.",
-  before_ready_date: "You can mark it picked up from the ready date on.",
   handover_mode_frozen: "An order keeps the pickup way it was placed under.",
   invalid_method: "That action isn't available. Reload the page and try again.",
   invalid_transfer: "We couldn't send this payout just now. We'll try again.",

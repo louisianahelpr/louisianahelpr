@@ -4,7 +4,9 @@
  * person", NO codes anywhere).
  *
  *   Shop: "Mark ready" (left out: a photo is required; in person: optional),
- *         "Picked up" (in person only), and once handed over the payout line.
+ *         and once handed over the payout line. The shop can NEVER finish its
+ *         own order (owner 2026-10-18 ~21:00Z): only the buyer's "I got it" or
+ *         the automatic finish 24 hours after the ready date does.
  *   Buyer: "I got it" (the shop is paid), "I didn't get it" (the money waits
  *         for Louisiana Helpr), and the shop's ready photo.
  *
@@ -23,7 +25,6 @@ import {
   confirmPickup,
   fetchHandovers,
   fetchMyShopPayouts,
-  markPickedUp,
   markReady,
   payoutText,
   readyPhotoUrl,
@@ -33,7 +34,6 @@ import {
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
 const NOTE_MAX = 500;
-const DAY_MS = 86_400_000;
 
 /** Today in Louisiana (ready dates are local dates; the server uses shop_local_today()). */
 function louisianaToday(now: number = Date.now()): string {
@@ -43,7 +43,7 @@ function louisianaToday(now: number = Date.now()): string {
 export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder; side: "buyer" | "shop"; userId: string }) {
   const qc = useQueryClient();
   const fileId = useId();
-  const [confirming, setConfirming] = useState<"got_it" | "picked_up" | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [note, setNote] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -74,13 +74,13 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
     onError,
   });
   const finish = useMutation({
-    mutationFn: (which: "got_it" | "picked_up") => (which === "got_it" ? confirmPickup(order.id) : markPickedUp(order.id)),
-    onSuccess: (_d, which) => {
-      toast.success(which === "got_it" ? "Thanks. The order is done." : "Marked picked up. Your payout is on its way.");
-      setConfirming(null);
+    mutationFn: () => confirmPickup(order.id),
+    onSuccess: () => {
+      toast.success("Thanks. The order is done.");
+      setConfirming(false);
       refresh();
     },
-    onError: (err) => { setConfirming(null); onError(err); },
+    onError: (err) => { setConfirming(false); onError(err); },
   });
   const report = useMutation({
     mutationFn: () => reportNotReceived(order.id, note),
@@ -127,25 +127,11 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   const porch = order.handover_mode === "porch";
   const today = louisianaToday();
   const due = today >= order.ready_date;
-  // After the SHOP's own "Picked up" tap the buyer has 24 hours to say otherwise (the payout waits).
-  const shopTapWindow = order.status === "handed_over" && h?.confirmed_how === "shop" && !h?.problem_at
-    && !!order.handed_over_at && Date.now() - new Date(order.handed_over_at).getTime() < DAY_MS;
 
   if (side === "shop" && order.status === "handed_over") {
     const p = (payouts.data ?? []).find((x) => x.order_id === order.id);
     if (h?.problem_at) return <p className="text-xs font-semibold" data-testid="shop-handover-problem">The buyer reported a problem. Louisiana Helpr looks at it before anyone is paid.</p>;
     return p ? <p className="text-xs font-semibold" data-testid="shop-payout-line">{payoutText(p)}</p> : null;
-  }
-  if (side === "buyer" && shopTapWindow) {
-    return (
-      <div className="space-y-2" data-testid="shop-handover-actions">
-        <p className="text-xs text-muted-foreground">The shop marked this picked up. Didn't get it? Tell us within 24 hours.</p>
-        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setNote(""); setReporting(true); }}>
-          I didn't get it
-        </Button>
-        {reportDialog}
-      </div>
-    );
   }
   if (!open) return null;
 
@@ -189,11 +175,11 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           {!porch && !h?.ready_at && (
             <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => ready.mutate(null)}>Mark ready</Button>
           )}
-          {!porch && due && (
-            <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming("picked_up")}>
-              Picked up
-            </Button>
-          )}
+          <p className="w-full text-xs text-muted-foreground" data-testid="shop-handover-wait">
+            {porch
+              ? "The buyer taps \"I got it\". If they don't, it finishes on its own 24 hours after the ready date, once your photo is in."
+              : "The buyer taps \"I got it\" when they have it. If they don't, it finishes on its own 24 hours after the ready date."}
+          </p>
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
@@ -202,7 +188,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
               See the shop's photo
             </Button>
           )}
-          <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming("got_it")}>
+          <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming(true)}>
             I got it
           </Button>
           {(due || !!h?.ready_at) && (
@@ -213,17 +199,15 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
         </div>
       )}
       <BrandConfirmDialog
-        open={!!confirming}
-        onOpenChange={(o) => { if (!o) setConfirming(null); }}
-        title={confirming === "got_it" ? "Got your order?" : "Did the buyer pick it up?"}
-        description={confirming === "got_it"
-          ? "The shop is paid now and the order is final. Only tap this once you have it."
-          : "The order is final and your payout is sent. Only tap this once the buyer has it."}
-        primaryLabel={finish.isPending ? "Saving…" : confirming === "got_it" ? "I got it" : "Mark picked up"}
+        open={confirming}
+        onOpenChange={(o) => { if (!o) setConfirming(false); }}
+        title="Got your order?"
+        description="The shop is paid now and the order is final. Only tap this once you have it."
+        primaryLabel={finish.isPending ? "Saving…" : "I got it"}
         primaryDisabled={finish.isPending}
         onPrimary={(e) => {
           e.preventDefault();
-          if (confirming) finish.mutate(confirming);
+          finish.mutate();
         }}
         secondaryLabel="Cancel"
       />

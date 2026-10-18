@@ -8,9 +8,16 @@
 --               photo (shops_mark_ready); the buyer taps "I got it"
 --               (shops_confirm_pickup); else the automatic finish, which needs
 --               that photo.
---   'in_person' "Pick up in person" at the shop: the buyer taps "I got it", or
---               the shop taps "Picked up" (shops_mark_picked_up); else the
---               automatic finish. A ready tap (photo optional) tells the buyer.
+--   'in_person' "Pick up in person" at the shop: the buyer taps "I got it";
+--               else the automatic finish. A ready tap (photo optional) tells
+--               the buyer.
+--   THE BUYER MUST CONFIRM (owner pop-up via the lead, 2026-10-18 ~21:00Z):
+--   an order completes ONLY by the buyer's "I got it" (shops_confirm_pickup),
+--   the automatic finish below, or an admin. The SHOP can never complete its
+--   own order: there is no shop "Picked up" RPC, and shop_complete_handover
+--   refuses any method but 'buyer', 'auto' and 'admin'
+--   (src/test/pglite/shopsHandoverPayout.pglite.mjs proves no member RPC lets
+--   the shop finish it).
 --   shop_handover_sweep (declutter-money, every 10 minutes) finishes an order
 --   24 hours after the end of its ready date (Louisiana time), or after the
 --   ready tap if later. A porch order without its ready photo never finishes
@@ -18,12 +25,7 @@
 --   shops_report_not_received (AS THE BUYER) stops the automatic finish and
 --   the payout until Louisiana Helpr decides (the decision and its refund are
 --   M3/M4, Q2148); every admin is told. It is open from the ready date (or
---   the shop's ready tap) until the handover, and for 24 hours after a SHOP's
---   own "Picked up" tap.
---   Reviews of 819e55ce3 (lh-money-escrow + lh-authz-rls, both must-fix): the
---   shop's own "Picked up" tap is refused before the ready date, and its payout
---   waits 24 hours (next_attempt_at) so the buyer can still say "I didn't get
---   it"; the buyer is told so.
+--   the shop's ready tap) until the handover.
 --
 -- PAYOUT (L40, owner F1: the shop keeps 100% of its prices; the buyer's fee
 -- and the sales tax are not the shop's): ONE shop_payouts row per order, ever
@@ -199,7 +201,7 @@ CREATE TABLE IF NOT EXISTS public.shop_handovers (
   ready_photo_path text CHECK (ready_photo_path IS NULL OR char_length(ready_photo_path) <= 300),
   ready_at timestamptz,
   confirmed_at timestamptz,
-  confirmed_how text CHECK (confirmed_how IS NULL OR confirmed_how IN ('buyer', 'shop', 'auto', 'admin')),
+  confirmed_how text CHECK (confirmed_how IS NULL OR confirmed_how IN ('buyer', 'auto', 'admin')),
   -- The buyer says they did not get it: no automatic finish, no payout, until decided (M3/M4).
   problem_at timestamptz,
   problem_note text CHECK (problem_note IS NULL OR char_length(problem_note) <= 500),
@@ -294,7 +296,8 @@ DECLARE
   v_debt integer;
   v_payout uuid;
 BEGIN
-  IF p_how IS NULL OR p_how NOT IN ('buyer', 'shop', 'auto', 'admin') THEN
+  -- Never 'shop': the shop cannot complete its own order (owner 2026-10-18 ~21:00Z).
+  IF p_how IS NULL OR p_how NOT IN ('buyer', 'auto', 'admin') THEN
     RAISE EXCEPTION 'invalid_method' USING ERRCODE = '22023';
   END IF;
   SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;
@@ -308,16 +311,6 @@ BEGIN
     RAISE EXCEPTION 'order_not_charged_yet' USING ERRCODE = '55000',
       HINT = 'This order is not charged yet, so it cannot be handed over.';
   END IF;
-  IF p_how = 'shop' AND o.handover_mode <> 'in_person' THEN
-    -- Left-out orders are finished by the buyer or the clock, never by the shop's own tap.
-    RAISE EXCEPTION 'not_in_person' USING ERRCODE = '55000',
-      HINT = 'This order is left out for the buyer; it finishes when they tap "I got it".';
-  END IF;
-  IF p_how = 'shop' AND public.shop_local_today() < o.ready_date THEN
-    -- The shop's own tap ends the order: never before the day it is ready (review must-fix).
-    RAISE EXCEPTION 'before_ready_date' USING ERRCODE = '55000',
-      HINT = 'You can mark it picked up from the ready date on.';
-  END IF;
   IF p_how <> 'admin' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN
     RAISE EXCEPTION 'problem_open' USING ERRCODE = '55000',
       HINT = 'A problem was reported on this order. Louisiana Helpr decides before anyone is paid.';
@@ -329,14 +322,10 @@ BEGIN
    WHERE id = o.id AND status = 'accepted';
   -- The seller's card-fee debt (Declutter and Shops share one ledger) comes out first.
   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' || o.id::text, o.items_cents);
-  -- After the shop's own tap the payout waits 24 hours 15 minutes: the buyer can
-  -- still say "I didn't get it" for 24 hours (shops_report_not_received), which
-  -- holds it; the 15 minutes clear a report racing the money cron's read
-  -- (re-reviews of 4395cd1b9).
   INSERT INTO public.shop_payouts (order_id, items_cents, debt_cents, amount_cents, status, next_attempt_at)
   VALUES (o.id, o.items_cents, v_debt, o.items_cents - v_debt,
           CASE WHEN o.items_cents - v_debt = 0 THEN 'nothing_due' ELSE 'pending' END,
-          CASE WHEN p_how = 'shop' THEN now() + interval '24 hours 15 minutes' ELSE now() END)
+          now())
   ON CONFLICT (order_id) DO NOTHING
   RETURNING id INTO v_payout;
   PERFORM public.declutter_notify(o.seller_id, 'payment', 'Order picked up',
@@ -345,9 +334,6 @@ BEGIN
         format('This order paid off the $%s card fee you owed, so there is nothing to send.', to_char(v_debt / 100.0, 'FM999990.00'))
       WHEN NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id = o.seller_id AND pr.stripe_account_id IS NOT NULL) THEN
         format('Set up payouts in Settings to get your $%s. We send it as soon as you do.', to_char((o.items_cents - v_debt) / 100.0, 'FM999990.00'))
-      WHEN p_how = 'shop' THEN
-        format('$%s is sent to your payout account in 24 hours, once the buyer has had a day to confirm.',
-               to_char((o.items_cents - v_debt) / 100.0, 'FM999990.00'))
       WHEN v_debt > 0 THEN
         format('$%s is on its way to your payout account ($%s card fee you owed was taken out).',
                to_char((o.items_cents - v_debt) / 100.0, 'FM999990.00'), to_char(v_debt / 100.0, 'FM999990.00'))
@@ -355,9 +341,7 @@ BEGIN
     END,
     '/shops/dashboard', o.buyer_id);
   PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Enjoy your order',
-    CASE WHEN p_how = 'shop'
-      THEN 'The shop marked your order picked up. If you did not get it, tap "I didn''t get it" in your orders within 24 hours.'
-      ELSE 'The pickup is done and the order is final. Thank you for buying local.' END,
+    'The pickup is done and the order is final. Thank you for buying local.',
     '/shops/orders', o.seller_id);
   RETURN jsonb_build_object('result', 'handed_over', 'order_id', o.id, 'payout_id', v_payout, 'by', p_how);
 END;
@@ -464,36 +448,6 @@ $fn$;
 REVOKE ALL ON FUNCTION public.shops_confirm_pickup(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.shops_confirm_pickup(uuid) TO authenticated, service_role;
 
--- In person only: the shop taps "Picked up" (owner pop-up, 2026-10-18).
-CREATE OR REPLACE FUNCTION public.shops_mark_picked_up(p_order_id uuid)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public', 'pg_temp'
-AS $fn$
-DECLARE
-  v_uid uuid := (SELECT auth.uid());
-  o public.shop_orders;
-BEGIN
-  IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
-  END IF;
-  IF public.is_caller_banned() THEN
-    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
-  END IF;
-  SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;
-  IF NOT FOUND OR o.seller_id IS DISTINCT FROM v_uid THEN
-    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';
-  END IF;
-  IF o.status = 'handed_over' THEN
-    RETURN jsonb_build_object('result', 'already_handed_over', 'order_id', o.id);
-  END IF;
-  RETURN public.shop_complete_handover(o.id, 'shop');
-END;
-$fn$;
-REVOKE ALL ON FUNCTION public.shops_mark_picked_up(uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.shops_mark_picked_up(uuid) TO authenticated, service_role;
-
 -- The buyer did not get it: the money waits for Louisiana Helpr (M3/M4 decide).
 CREATE OR REPLACE FUNCTION public.shops_report_not_received(p_order_id uuid, p_note text)
 RETURNS jsonb
@@ -529,14 +483,10 @@ BEGIN
   END IF;
   SELECT * INTO h FROM public.shop_handovers WHERE order_id = o.id FOR UPDATE;
   -- Open: a charged order not handed over yet, from its ready date (or the
-  -- shop's ready tap); or for 24 hours after the SHOP's own "Picked up" tap,
-  -- while its payout still waits (reviews of 819e55ce3).
-  IF (
-       (o.status = 'accepted' AND o.captured_at IS NOT NULL
-        AND (public.shop_local_today() >= o.ready_date OR h.ready_at IS NOT NULL))
-    OR (o.status = 'handed_over' AND h.confirmed_how = 'shop' AND o.handed_over_at > now() - interval '24 hours'
-        AND EXISTS (SELECT 1 FROM public.shop_payouts p WHERE p.order_id = o.id AND p.status IN ('pending', 'failed', 'nothing_due')))
-  ) IS NOT TRUE THEN
+  -- shop's ready tap). Once the buyer said "I got it" or the clock finished it,
+  -- the order is final.
+  IF (o.status = 'accepted' AND o.captured_at IS NOT NULL
+      AND (public.shop_local_today() >= o.ready_date OR h.ready_at IS NOT NULL)) IS NOT TRUE THEN
     RAISE EXCEPTION 'order_not_open' USING ERRCODE = '55000',
       HINT = 'Only a paid order that is due and not picked up can be reported here.';
   END IF;
@@ -600,8 +550,7 @@ GRANT EXECUTE ON FUNCTION public.shop_handover_sweep() TO service_role;
 -- ---------------------------------------------------------------------------
 -- 6. The payout queue (service only). The shop's payout account is read off
 --    the order's seller; a problem reported before the handover (only an admin
---    can then hand it over) or within a day after the shop's own "Picked up"
---    tap (M3 decides it, Q2148) still holds the money.
+--    can then hand it over, Q2148) holds the money.
 CREATE OR REPLACE FUNCTION public.shop_payouts_due(p_limit integer)
 RETURNS TABLE (payout_id uuid, order_id uuid, buyer_id uuid, seller_id uuid, amount_cents integer,
                stripe_account_id text, payment_intent_id text, livemode boolean, checkout_session_id text, attempts integer)

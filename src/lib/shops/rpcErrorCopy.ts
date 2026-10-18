@@ -295,24 +295,10 @@ export const SHOPS_RPC_ERROR_COPY = {
   },
   shops_confirm_pickup: {
     account_restricted: SC.account_restricted,
-    // shop_complete_handover's check for the SHOP's own tap; the buyer's call never passes 'shop'.
-    before_ready_date: SC.before_ready_date,
     invalid_method: SC.invalid_method,
     // declutter_consume_fee_debt's guard (a NULL seller): an accepted order always keeps its seller.
     invalid_payout: "Something went wrong finishing this order. Please try again.",
     not_authenticated: SC.not_authenticated,
-    not_in_person: SC.not_in_person,
-    order_not_charged_yet: SC.order_not_charged_yet,
-    order_not_found: SC.order_not_found,
-    problem_open: SC.problem_open,
-  },
-  shops_mark_picked_up: {
-    account_restricted: SC.account_restricted,
-    before_ready_date: SC.before_ready_date,
-    invalid_method: SC.invalid_method,
-    invalid_payout: "Something went wrong finishing this order. Please try again.",
-    not_authenticated: SC.not_authenticated,
-    not_in_person: SC.not_in_person,
     order_not_charged_yet: SC.order_not_charged_yet,
     order_not_found: SC.order_not_found,
     problem_open: SC.problem_open,
@@ -322,7 +308,7 @@ export const SHOPS_RPC_ERROR_COPY = {
     invalid_note: "Say what happened, in under 500 characters.",
     not_authenticated: SC.not_authenticated,
     order_not_found: SC.order_not_found,
-    order_not_open: "You can report an order from its ready date until it's picked up, or for a day after the shop marks it picked up.",
+    order_not_open: "You can report an order from its ready date until you tap \"I got it\" or it finishes on its own.",
   },
 } as const;
 

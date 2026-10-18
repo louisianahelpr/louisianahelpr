@@ -12960,7 +12960,6 @@ export type Database = {
         }[]
       }
       shops_confirm_pickup: { Args: { p_order_id: string }; Returns: Json }
-      shops_mark_picked_up: { Args: { p_order_id: string }; Returns: Json }
       shops_mark_ready: {
         Args: { p_order_id: string; p_photo_path: string }
         Returns: Json

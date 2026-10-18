@@ -68,8 +68,8 @@ export function HandoverModeNote({ shopId }: { shopId: string }) {
       <p className="text-sm font-semibold">{t.label}</p>
       <p className="text-xs text-muted-foreground">
         {mode.data === "porch"
-          ? "The shop leaves your order out with a photo. Tap \"I got it\" when you have it."
-          : "You pick your order up from the shop. Tap \"I got it\" when you have it."}
+          ? "The shop leaves your order out with a photo. Tap \"I got it\" when you have it. If you don't, it finishes on its own 24 hours after the ready date."
+          : "You pick your order up from the shop. Tap \"I got it\" when you have it. If you don't, it finishes on its own 24 hours after the ready date."}
       </p>
     </div>
   );

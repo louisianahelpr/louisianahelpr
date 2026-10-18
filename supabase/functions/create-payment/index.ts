@@ -2211,6 +2211,61 @@ serve(async (req) => {
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: holder.error ? 503 : 409 });
         }
       }
+      // ── A crew emptied by a block still owes its block fees (Q2133) ──
+      // block_user_and_settle sets a crew whose last member the poster blocked
+      // back to 'open' with nobody on the roster, so it passes every check
+      // here, while the blocked members' fees stay in crew_block_fees. This
+      // refund has no block-fee term: it returned that money to the poster,
+      // and void-cancelled-payments Part F then paid the members from the
+      // platform's own balance. Cancel job (poster_cancel_job, then the sweep)
+      // withholds the fees and pays them, so this door refuses and sends the
+      // poster there. Any row but a void one counts (a paid one already left
+      // from this charge). Checked here, after the allowlist and the claim-holder
+      // check (so a disputed job or an admin's claim keeps its own reply), with
+      // no claim taken, and again after the claim below (the race: a block
+      // that commits in between). Fails
+      // CLOSED: a read error refuses too, with no database text shown.
+      // A job read 'cancelling' is an earlier stranded claim: Cancel job on it
+      // would leave cancelled/cancelling, which nothing settles, so it is not
+      // sent there; ops is paged instead (money review of Q2133 #1).
+      const refuseOwedBlockFees = async (blocked: { status: number; error: string; cents: number }) => {
+        const unreadable = blocked.status === 503;
+        console.error(
+          `[create-payment] cancel_escrow REFUSED on job ${jobId} (caller ${user.id}): ${unreadable ? `crew block fees unreadable (${blocked.error})` : `${blocked.cents}¢ of crew block fees owed`}, payment_status=${job.payment_status}`,
+        );
+        const json = (b: Record<string, unknown>, status: number) =>
+          new Response(JSON.stringify(b), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status });
+        if (unreadable) {
+          return json({ error: "Couldn't check whether a crew member is owed a fee on this job. No money was moved; try again." }, 503);
+        }
+        const strandedClaim = job.payment_status === "cancelling";
+        if (strandedClaim) {
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "critical",
+            title: "Stranded crew cancel owes block fees",
+            message: `cancel_escrow was re-run on crew job ${jobId}, left 'cancelling' by an earlier run, and a blocked crew member is owed $${(blocked.cents / 100).toFixed(2)} from its payment. Nothing was moved. Check Stripe for a refund on this job's charge, set payment_status back to 'escrow' by hand if none went out, then cancel the job (the sweep keeps the fee).`,
+            fields: { job_id: jobId, block_fee_cents: blocked.cents, payment_status: String(job.payment_status) },
+            oncePerDayKey: `cancel-escrow-block-fee-stranded:${jobId}`,
+          });
+          return json({
+            error: "A refund of this job is already in progress and could not be finished here. No money was moved; support has the details.",
+            crewBlockFeeCents: blocked.cents,
+          }, 409);
+        }
+        return json({
+          error: `A crew member you blocked on this job is owed a $${(blocked.cents / 100).toFixed(2)} fee from its payment, so this job has to be cancelled with Cancel job: that keeps the fee and refunds you the rest, less the card fee. No money was moved.`,
+          useCancelJob: true,
+          crewBlockFeeCents: blocked.cents,
+        }, 409);
+      };
+      // Only where the claim below could succeed: any other payment_status is
+      // refused by the claim itself ("can no longer be cancelled").
+      if (job.payment_status === "escrow" || job.payment_status === "cancelling") {
+        const owedBeforeClaim = await crewBlockFeeRefusal(supabaseAdmin, job);
+        if (owedBeforeClaim) return await refuseOwedBlockFees(owedBeforeClaim);
+      }
+
       const { data: claimed, error: claimErr } = await supabaseAdmin
         .from("jobs")
         .update({ payment_status: "cancelling" })
@@ -2361,6 +2416,21 @@ serve(async (req) => {
           testModePayment: true,
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
       };
+
+      // Q2133, again after the claim: a block that committed between the
+      // check above and the claim. Final here: only a block of a hired member
+      // writes a fee row, and the post-claim roster read above saw nobody (no
+      // hire lands on a 'cancelling' job). Nothing moved, so a fresh claim is
+      // put back; a re-entered one stays 'cancelling', as on the session-read
+      // exit (an earlier run may already have refunded).
+      {
+        const owedAfterClaim = await crewBlockFeeRefusal(supabaseAdmin, job);
+        if (owedAfterClaim) {
+          const why = `crew block fees ${owedAfterClaim.status === 503 ? "could not be read" : `of ${owedAfterClaim.cents}¢ are owed`}`;
+          if (job.payment_status === "escrow") await putCancelClaimBack(why);
+          return await refuseOwedBlockFees(owedAfterClaim);
+        }
+      }
 
       // Q86 (a): ONE meaning per payment_status. A captured charge that this
       // cancel refunds (less the non-refundable fee) ends 'refunded', the

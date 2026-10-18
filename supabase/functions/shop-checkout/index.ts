@@ -21,7 +21,9 @@
  *
  * Money: the buyer pays the item prices + Declutter's F1 fee (5% + 70c, the
  * card cost inside it; the shop keeps 100% of its prices) + Stripe Tax, all
- * frozen or checked in SQL. The money stays on the platform until handover
+ * frozen or checked in SQL. M1b part 2 (tax memo Q3): a pickup sale is taxed
+ * where the buyer takes it, so every line carries the shop's private pickup
+ * address as a Stripe Tax performance location (pickupTaxLocation). The money stays on the platform until handover
  * (M2): no transfer_data here.
  *
  * L91: order and accept need the 'shops' switch (in SQL); decline and cancel
@@ -107,6 +109,53 @@ async function stripeForOrder(admin: Db, o: OrderMoneyRow): Promise<Stripe> {
   return stripeFor(mode);
 }
 
+/**
+ * The shop's pickup address as a Stripe Tax location (type performance), made
+ * once per address and Stripe mode and cached on shop_pickup_addresses (the
+ * table's trigger clears the cache when the address changes). Null when the
+ * shop has no pickup address (the SQL refuses such an order first; this is the
+ * race where it vanished). MEASURED in Stripe TEST mode 2026-10-18 (probe,
+ * ~/.lh-wt/handoffs-1017/shops-s3-taxloc-probe-1018.json): stripe@18.5.0 has no
+ * stripe.tax.locations, POST /v1/tax/locations works on 2025-08-27.basil
+ * through rawRequest, and a Lafayette location taxed a Baton Rouge buyer's
+ * line at Lafayette's 9% instead of Baton Rouge's 10.5%.
+ */
+async function pickupTaxLocation(stripe: Stripe, admin: Db, shopId: string, mode: StripeMode): Promise<string | null> {
+  const { data, error } = await admin.from("shop_pickup_addresses")
+    .select("line1, line2, city, state, postal_code, stripe_tax_location_id, stripe_tax_location_mode, updated_at")
+    .eq("shop_id", shopId).maybeSingle();
+  if (error) throw new Error(`pickup address read failed: ${error.message}`);
+  const a = data as {
+    line1: string; line2: string | null; city: string; state: string; postal_code: string;
+    stripe_tax_location_id: string | null; stripe_tax_location_mode: string | null; updated_at: string;
+  } | null;
+  if (!a) return null;
+  if (a.stripe_tax_location_id && a.stripe_tax_location_mode === mode) return a.stripe_tax_location_id;
+  const created = await stripe.rawRequest("POST", "/v1/tax/locations", {
+    type: "performance",
+    description: `Shop pickup ${shopId}`,
+    address: { line1: a.line1, ...(a.line2 ? { line2: a.line2 } : {}), city: a.city, state: a.state, postal_code: a.postal_code, country: "US" },
+  }, { idempotencyKey: `shop-taxloc-${shopId}-${mode}-${a.updated_at}` }) as unknown as { id?: string };
+  const id = typeof created?.id === "string" && created.id.startsWith("taxloc_") ? created.id : null;
+  if (!id) throw new Error("tax location create returned no id");
+  // Cache it only for the address it was made from (an edit since then cleared
+  // the cache and moved updated_at, so this matches no row).
+  const { error: saveErr } = await admin.from("shop_pickup_addresses")
+    .update({ stripe_tax_location_id: id, stripe_tax_location_mode: mode })
+    .eq("shop_id", shopId).eq("updated_at", a.updated_at);
+  if (saveErr) {
+    // Not fatal: this order uses the location; the next one makes (or, within
+    // Stripe's idempotency window, gets back) the same one.
+    console.error(JSON.stringify({ event: "shop_tax_location_cache_failed", shop: shopId, detail: saveErr.message }));
+  }
+  return id;
+}
+
+/** Stripe's product_data with tax_details (tax code + performance location): newer than stripe@18.5.0's types. */
+type TaxedProductData = Omit<Stripe.Checkout.SessionCreateParams.LineItem.PriceData.ProductData, "tax_code"> & {
+  tax_details: { tax_code: string; performance_location: string };
+};
+
 async function order(body: Record<string, unknown>, user: { id: string; email?: string }, asBuyer: Db, admin: Db) {
   const shopId = typeof body.shop_id === "string" ? body.shop_id : "";
   const readyDate = typeof body.ready_date === "string" ? body.ready_date : "";
@@ -141,6 +190,12 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
 
   const mode = await stripeModeForParties(admin, [user.id, o.seller_id]);
   const stripe = stripeFor(mode);
+  const location = await pickupTaxLocation(stripe, admin, shopId, mode);
+  if (!location) return json({ error: "pickup_address_missing" }, 409);
+  // Stripe takes tax_code OR tax_details on a line, never both.
+  const taxed = (name: string, taxCode: string): TaxedProductData => ({
+    name, tax_details: { tax_code: taxCode, performance_location: location },
+  });
   // The buyer's saved card's customer pre-fills the page, in the same mode only.
   const { data: card, error: cardErr } = await admin.from("declutter_buyer_cards").select("stripe_customer_id, card_mode")
     .eq("user_id", user.id).maybeSingle();
@@ -165,7 +220,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     quantity: l.quantity,
     price_data: {
       currency: "usd", unit_amount: l.unit_cents, tax_behavior: "exclusive",
-      product_data: { name: l.title.slice(0, 120), tax_code: shopTaxCode(l.kind) },
+      product_data: taxed(l.title.slice(0, 120), shopTaxCode(l.kind)),
     },
   }));
   // Memo Q5: the buyer's fee is taxed like the items it is charged on, split
@@ -176,7 +231,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       quantity: 1,
       price_data: {
         currency: "usd", unit_amount: part.cents, tax_behavior: "exclusive",
-        product_data: { name: feeLineName(part.tax_code, feeParts.length), tax_code: part.tax_code },
+        product_data: taxed(feeLineName(part.tax_code, feeParts.length), part.tax_code),
       },
     });
   }
@@ -186,7 +241,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       mode: "payment",
       payment_method_types: ["card"],
       line_items: lineItems,
-      // O1: Stripe Tax from the buyer's billing address.
+      // O1: Stripe Tax. Each line is taxed at the pickup location; Stripe still needs the buyer's address.
       automatic_tax: { enabled: true },
       billing_address_collection: "required",
       ...(customerId ? { customer: customerId, customer_update: { address: "auto" } } : { customer_email: user.email ?? undefined }),

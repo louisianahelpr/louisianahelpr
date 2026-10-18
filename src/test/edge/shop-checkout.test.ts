@@ -25,6 +25,10 @@
  * @mutate supabase/functions/stripe-webhook/handlers/shopCheckout.ts |   if (pi.status !== "requires_capture") { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/shopCheckout.ts |     p_livemode: event.livemode === true,\n  }); |     p_livemode: false,\n  });
  * @mutate supabase/functions/declutter-money/index.ts |     const swept = await admin.rpc("shop_order_sweep", {}); |     const swept = { error: null, data: {} };
+ * @mutate supabase/functions/shop-checkout/index.ts |     name, tax_details: { tax_code: taxCode, performance_location: location }, |     name, tax_details: { tax_code: taxCode, performance_location: "" },
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (a.stripe_tax_location_id && a.stripe_tax_location_mode === mode) return a.stripe_tax_location_id; |   if (a.stripe_tax_location_id) return a.stripe_tax_location_id;
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (!location) return json({ error: "pickup_address_missing" }, 409); |
+ * @mutate supabase/functions/shop-checkout/index.ts |     .eq("shop_id", shopId).eq("updated_at", a.updated_at); |     .eq("shop_id", shopId);
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -92,7 +96,14 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     ] };
     scenario.reads.declutter_buyer_cards = { rows: [] };
     scenario.rpc.shop_attach_checkout_session = null;
+    scenario.reads.shop_pickup_addresses = { rows: [pickup()] };
+    stripeMock.rawRequest.mockResolvedValue({ id: "taxloc_new", type: "performance" });
   }
+  /** The shop's private pickup address row (M1b part 2), as the service-role read returns it. */
+  const pickup = (over: Record<string, unknown> = {}) => ({
+    line1: "705 W University Ave", line2: null, city: "Lafayette", state: "LA", postal_code: "70506",
+    stripe_tax_location_id: null, stripe_tax_location_mode: null, updated_at: "2026-10-18T03:00:00.123456+00:00", ...over,
+  });
 
   it("freezes the order AS THE BUYER and opens a manual-capture page for exactly the items + the F1 fee, tax by Stripe", async () => {
     const fn = await load();
@@ -113,7 +124,7 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     expect(params.automatic_tax).toEqual({ enabled: true });
     // Tax memo Q2/Q5: the kolaches are food for home, the candle general goods, and the 375c fee
     // follows them pro rata (221 + 154), one fee line per code.
-    expect(params.line_items.map((l: any) => [l.price_data.product_data.tax_code, l.price_data.unit_amount])).toEqual([
+    expect(params.line_items.map((l: any) => [l.price_data.product_data.tax_details.tax_code, l.price_data.unit_amount])).toEqual([
       ["txcd_40040000", 1800], ["txcd_99999999", 2500], ["txcd_40040000", 221], ["txcd_99999999", 154],
     ]);
     expect(params.line_items.slice(2).map((l: any) => l.price_data.product_data.name)).toEqual([
@@ -125,6 +136,60 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     const attach = rpcs("shop_attach_checkout_session")[0];
     expect(attach?.args).toEqual({ p_order_id: ORDER, p_session_id: "cs_live_shop" });
     expect(clientOf(attach)?.key).toBe("service-key");
+  });
+
+  it("taxes every line at the shop's pickup address: a Stripe Tax location made once, cached for that address", async () => {
+    const fn = await load();
+    frozen();
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6475 });
+    expect((await fn.fetch(ask(fn))).status).toBe(200);
+    expect(stripeMock.rawRequest).toHaveBeenCalledTimes(1);
+    const [method, path, params, opts] = stripeMock.rawRequest.mock.calls[0];
+    expect([method, path]).toEqual(["POST", "/v1/tax/locations"]);
+    expect(params).toMatchObject({ type: "performance", address: { line1: "705 W University Ave", city: "Lafayette", state: "LA", postal_code: "70506", country: "US" } });
+    expect(params.address).not.toHaveProperty("line2");
+    expect(opts.idempotencyKey).toBe(`shop-taxloc-${SHOP}-live-2026-10-18T03:00:00.123456+00:00`);
+    const [session] = stripeMock.checkout.sessions.create.mock.calls[0];
+    for (const l of session.line_items) {
+      expect(l.price_data.product_data.tax_details.performance_location).toBe("taxloc_new");
+      // Stripe takes tax_code OR tax_details (measured in TEST mode: "only one of these parameters").
+      expect(l.price_data.product_data).not.toHaveProperty("tax_code");
+    }
+    const cache = scenario.writes.filter((w) => w.table === "shop_pickup_addresses");
+    expect(cache).toHaveLength(1);
+    expect(cache[0].payload).toEqual({ stripe_tax_location_id: "taxloc_new", stripe_tax_location_mode: "live" });
+    expect(cache[0].filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ column: "shop_id", value: SHOP }),
+      expect.objectContaining({ column: "updated_at", value: "2026-10-18T03:00:00.123456+00:00" }),
+    ]));
+  });
+
+  it("reuses the cached location in the same Stripe mode, and makes a new one for the other mode", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.shop_pickup_addresses = { rows: [pickup({ stripe_tax_location_id: "taxloc_cached", stripe_tax_location_mode: "live" })] };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6475 });
+    expect((await fn.fetch(ask(fn))).status).toBe(200);
+    expect(stripeMock.rawRequest).not.toHaveBeenCalled();
+    expect(stripeMock.checkout.sessions.create.mock.calls[0][0].line_items[0].price_data.product_data.tax_details.performance_location).toBe("taxloc_cached");
+    expect(scenario.writes.filter((w) => w.table === "shop_pickup_addresses")).toHaveLength(0);
+
+    stripeMock.checkout.sessions.create.mockClear();
+    scenario.reads.shop_pickup_addresses = { rows: [pickup({ stripe_tax_location_id: "taxloc_cached", stripe_tax_location_mode: "test" })] };
+    expect((await fn.fetch(ask(fn))).status).toBe(200);
+    expect(stripeMock.rawRequest).toHaveBeenCalledTimes(1);
+    expect(stripeMock.checkout.sessions.create.mock.calls[0][0].line_items[0].price_data.product_data.tax_details.performance_location).toBe("taxloc_new");
+  });
+
+  it("no pickup address: refused in its own words, no location and no page", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.shop_pickup_addresses = { rows: [] };
+    const res = await fn.fetch(ask(fn));
+    expect(res.status).toBe(409);
+    expect((await json(res)).error).toBe("pickup_address_missing");
+    expect(stripeMock.rawRequest).not.toHaveBeenCalled();
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
   it("expires the page a superseded order had open", async () => {

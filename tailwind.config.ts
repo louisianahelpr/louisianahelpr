@@ -78,8 +78,12 @@ export default {
         //              2026-09-07 (owner: three typefaces → two); there is no
         //              `serif` token on purpose — do not add one back.
         //   - Script:  Beth Ellen (personal authentic — micro-accents / signatures)
-        sans: ["Montserrat", "\"Montserrat Fallback\"", "system-ui", "-apple-system", "sans-serif"],
-        display: ["\"Bodoni Moda\"", "\"Bodoni Moda Fallback\"", "\"Bodoni Moda Fallback Liberation\"", "Georgia", "serif"],
+        // 2026-10-17 (owner, Warm Modern): ONE sans, Plus Jakarta Sans. `display`
+        // (151 heading call sites) now resolves to the same sans so every in-app
+        // heading flips at once; Bodoni Moda survives ONLY as `hero`, the landing H1.
+        sans: ["\"Plus Jakarta Sans\"", "\"Plus Jakarta Sans Fallback\"", "system-ui", "-apple-system", "sans-serif"],
+        display: ["\"Plus Jakarta Sans\"", "\"Plus Jakarta Sans Fallback\"", "system-ui", "-apple-system", "sans-serif"],
+        hero: ["\"Bodoni Moda\"", "\"Bodoni Moda Fallback\"", "\"Bodoni Moda Fallback Liberation\"", "Georgia", "serif"],
         script: ["\"Beth Ellen\"", "cursive"],
       },
       colors: {

@@ -11,7 +11,7 @@ import { blankCssComments, blankComments as blankTsComments } from "./helpers/bl
 // from the LOCKED hero H1 reds the last test, and putting a real `font-serif`
 // call site back reds the second one (at the right line number) while the same
 // token inside a COMMENT correctly stays green.
-// @mutate src/components/landing/HeroSection.tsx | relative z-10 font-display font-black | relative z-10 font-black
+// @mutate src/components/landing/HeroSection.tsx | relative z-10 font-hero font-black | relative z-10 font-black
 
 /**
  * TWO TYPEFACES, NOT THREE — owner decision 2026-09-07.
@@ -28,7 +28,11 @@ import { blankCssComments, blankComments as blankTsComments } from "./helpers/bl
  * a stray `family=EB+Garamond` in index.html downloads ~60KB of font for zero
  * elements. This file is the only thing that notices either.
  *
- * The hero is LOCKED (CLAUDE.md): H1 in Bodoni Moda, subhead in Montserrat.
+ * 2026-10-17 (owner, design C "Warm Modern"): ONE sans, Plus Jakarta Sans,
+ * replaces Montserrat everywhere; Bodoni Moda survives only as the `hero`
+ * token on the landing H1.
+ *
+ * The hero is LOCKED (CLAUDE.md): H1 in Bodoni Moda, subhead in Plus Jakarta Sans.
  * That is asserted from the rendered element's own style, not from a class
  * name, because a class name can be present and compile to nothing (see the
  * gloss rule in CLAUDE.md for the same trap).
@@ -133,27 +137,43 @@ describe("two-font type system", () => {
     expect(offenders, `font-serif has no token and compiles to nothing at:\n${offenders.join("\n")}`).toEqual([]);
   });
 
-  it("the Tailwind fontFamily has exactly sans, display and script", () => {
+  it("no file in src/, index.html or the Tailwind config selects Montserrat (retired 2026-10-17)", () => {
+    const offenders = files
+      .filter((f) => !f.endsWith("twoFontTypeSystem.test.tsx"))
+      .flatMap((f) => {
+        const text = readOrSkip(f);
+        if (text === null) return [];
+        const lines = blankComments(text, f).split("\n");
+        return lines
+          .map((line, i) => ({ line, i }))
+          .filter(({ line }) => /family=Montserrat|["']Montserrat["']|font-family:\s*["']?Montserrat|montserrat[\w-]*\.woff2/i.test(line))
+          .map(({ i }) => `${f.replace(ROOT + "/", "")}:${i + 1}`);
+      });
+    expect(offenders, `Montserrat is still selected at:\n${offenders.join("\n")}`).toEqual([]);
+  });
+
+  it("the Tailwind fontFamily has exactly sans, display, hero and script", () => {
     const src = readFileSync(join(ROOT, "tailwind.config.ts"), "utf8");
     const block = src.slice(src.indexOf("fontFamily: {"), src.indexOf("},", src.indexOf("fontFamily: {")));
-    expect(block).toMatch(/sans:\s*\["Montserrat"/);
-    expect(block).toMatch(/display:\s*\["\\"Bodoni Moda\\""/);
+    expect(block).toMatch(/sans:\s*\["\\"Plus Jakarta Sans\\""/);
+    expect(block).toMatch(/display:\s*\["\\"Plus Jakarta Sans\\""/);
+    expect(block).toMatch(/hero:\s*\["\\"Bodoni Moda\\""/);
     expect(block).not.toMatch(/serif:/);
   });
 
-  it("the hero H1 is Bodoni Moda and the subhead is Montserrat (LOCKED)", () => {
+  it("the hero H1 is Bodoni Moda and the subhead is Plus Jakarta Sans (LOCKED)", () => {
     render(
       <MemoryRouter>
         <HeroSection />
       </MemoryRouter>,
     );
     const h1 = screen.getByRole("heading", { level: 1 });
-    expect(h1.textContent).toBe("Louisiana’s Local Job Partner.");
+    expect(h1.textContent).toBe("Louisiana’s Local Partner.");
     // jsdom has no stylesheet, so the class list is the contract here: the
-    // `font-display` token is the only route to Bodoni Moda in the app.
-    expect(h1.className.split(/\s+/)).toContain("font-display");
-    const subhead = screen.getByText("Hire a Helpr or find local work. For everyday jobs, big and small.");
-    expect(subhead.style.fontFamily).toMatch(/^Montserrat/);
+    // `font-hero` token is the only route to Bodoni Moda in the app.
+    expect(h1.className.split(/\s+/)).toContain("font-hero");
+    const subhead = screen.getByText("Jobs, Declutter, Shops and Homes: everything local, in one place.");
+    expect(subhead.style.fontFamily).toMatch(/^["']?Plus Jakarta Sans/);
     expect(subhead.className.split(/\s+/)).not.toContain("font-display");
   });
 });

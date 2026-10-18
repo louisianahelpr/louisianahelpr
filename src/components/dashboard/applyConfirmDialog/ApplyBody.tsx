@@ -345,11 +345,9 @@ export function ApplyBody({
           />
           {/* Colour, not opacity, carries the disabled state — dimming the
               whole row with opacity-* drops the label under WCAG AA. */}
-          <span
-            className={`font-sans text-ds-12 ${
-              differsFromTemplate ? "text-muted-foreground" : "text-muted-foreground/90"
-            }`}
-          >
+          {/* One muted ink in both states (2026-10-17): the old /90 dim on
+              the unchanged state composited under AA on the Warm Modern page. */}
+          <span className="font-sans text-ds-12 text-muted-foreground">
             Save as my default pitch
           </span>
         </label>

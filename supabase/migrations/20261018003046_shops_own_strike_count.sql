@@ -291,3 +291,12 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shops_request_order(uuid, jsonb, date, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.shops_request_order(uuid, jsonb, date, text) TO authenticated, service_role;
+
+-- Q807: every public table carries the unconfirmed-email statement gate (shop_strikes is new here).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;

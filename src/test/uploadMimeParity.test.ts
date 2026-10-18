@@ -94,6 +94,8 @@ const SITES: Site[] = [
   { file: "src/lib/shops/api.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["LISTING_PHOTO_UPLOAD_TYPES"] },
   // Shop item photos (slice 2): the same cleaning.
   { file: "src/lib/shops/items.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
+  // Shops M2 ready photos (20261018184113): the same JPEG clean, into the PRIVATE shop-handover bucket.
+  { file: "src/lib/shops/handover.ts", bucket: "shop-handover", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
   { file: "src/pages/post-job/useJobMediaUpload.ts", bucket: "job-photos", gate: ["src/lib/scopeVideo.ts", "SCOPE_VIDEO_TYPES"], via: ["scopeVideoFileProblem", "SCOPE_VIDEO_BUCKET"], bucketSrc: "src/lib/scopeVideo.ts" },
 ];
 
@@ -123,6 +125,7 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/declutter/DeclutterDeliveryViews.tsx": { bucket: "helpr-tasks" },
   "src/components/shops/ShopEditView.tsx": { bucket: "job-photos" },
   "src/components/shops/ShopItemEditor.tsx": { bucket: "job-photos" },
+  "src/components/shops/ShopHandoverActions.tsx": { bucket: "shop-handover" },
   "src/components/rentals/RentalsHomeView.tsx": { bucket: "user-documents" }, // ownership proof
   "src/components/rentals/MaintenanceRequestForm.tsx": { bucket: "user-documents" }, // request photos
   "src/components/admin/marketing/MarketingComposerDialog.tsx": {

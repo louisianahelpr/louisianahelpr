@@ -46,7 +46,7 @@
  * @mutate supabase/functions/create-payment/index.ts |           const refundAmount = cancelSplit.refundCents; |           const refundAmount = capturedCents - cancelSplit.setupKeptCents;
  * @mutate supabase/functions/execute-dispute-split/index.ts | refundableCents = posterBase.ceilingCents | refundableCents = capturedCents - posterBase.setupKeptCents
  * @mutate supabase/functions/process-scheduled-payouts/index.ts | const owedCents = unfilledCents - flatCardFeeKeptCents + feeReturnCents + taxReturnCents; | const owedCents = unfilledCents - flatCardFeeKeptCents + feeProRataCents + taxReturnCents;
- * @mutate supabase/functions/process-scheduled-payouts/index.ts |       const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents }); |       const feeReturnCents = feeProRataCents;
+ * @mutate supabase/functions/process-scheduled-payouts/index.ts |       const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? crewStripeFeeCents : 0, proRataCents: feeProRataCents }); |       const feeReturnCents = feeProRataCents;
  * @mutate supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts |         // own-mistake full refund (owner, 2026-10-14): we charged the one-time |         // we charged the one-time
  * The three charge-recurring-visits own-mistake branches (owner pop-up, 2026-10-14 ~3 PM CT, confirmed each):
  * @mutate supabase/functions/charge-recurring-visits/index.ts | // own-mistake full refund (owner, 2026-10-14): this run charged | // this run charged
@@ -399,7 +399,7 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     // has no poster fee line to hold Stripe's fee, so the unfilled share of
     // the card fee is kept out of the refund here.
     "flatCardFeeKeptCents = isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0 ? Math.min(unfilledCents, Math.floor((crewStripeFeeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents)) : 0",
-    "feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents })",
+    "feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? crewStripeFeeCents : 0, proRataCents: feeProRataCents })",
     "taxReturnCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0",
     "unpaidBudgetCents = Math.max(0, budgetCents - paidBudget)",
     "urgentCents = Math.round(Number(job.urgent_fee ?? 0) * 100)",

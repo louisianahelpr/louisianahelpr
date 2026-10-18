@@ -12,7 +12,11 @@
  * pays $42.70 and leaves $7.30, keeping the $2.70 stamp; a $30 gift leaves a
  * $12.70 difference; a flat job is unchanged (fee 0, a stale stamp zeroed); a
  * poster-fee job with no positive fee stamp is refused (P0001) and the gift is
- * untouched; and the ACL is service_role only.
+ * untouched; and the ACL is service_role only. Slice 4 (refunds): the
+ * newest restore_gift_card_for_job (20260922165121, loaded verbatim) gives the
+ * whole $42.70 back on a cancel of the gift-funded poster-fee job, so the
+ * gift-paid part of the fee comes back whole (a gift carries no card cost),
+ * and a half share (a dispute split) is half of the job + fee.
  */
 import os from "node:os";
 import { readFileSync } from "node:fs";
@@ -22,6 +26,11 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const mig = (f) => readFileSync(fileURLToPath(new URL(`../../../supabase/migrations/${f}`, import.meta.url)), "utf8");
 const NEW = mig("20261018031451_poster_fee_gift_first.sql");
 const OLD = mig("20261012231646_gift_settle_clears_card_fee_stamp.sql");
+const RESTORE_SRC = mig("20260922165121_revoked_gift_cannot_be_reminted.sql");
+const RESTORE = RESTORE_SRC.slice(
+  RESTORE_SRC.indexOf("create or replace function public.restore_gift_card_for_job("),
+  RESTORE_SRC.indexOf("grant execute on function public.restore_gift_card_for_job(uuid, integer, boolean) to service_role;"),
+);
 
 const db = new PGlite();
 await db.exec(`
@@ -95,6 +104,15 @@ const g4 = await giftRow("pNoFee");
 const row4 = await jobRow("pNoFee");
 if (g4.status !== "sent" || row4.payment_status !== "unpaid") fails.push(`refused redeem touched state: ${JSON.stringify({ g4, row4 })}`);
 
+// Slice 4: a cancel gives the gift-paid fee back whole.
+await db.exec(`alter table public.gift_cards add column occasion text, add column design_id text,
+  add column restored_from_job_id uuid unique, add column created_at timestamptz default now();`);
+await db.exec(RESTORE);
+const half = (await db.query(`select public.restore_gift_card_for_job('${JOB.pFull}', 5000, true) as r`)).rows[0].r;
+if (half.outcome !== "would_restore" || half.applied_cents !== 4270 || half.restore_cents !== 2135) fails.push(`half-share restore: ${JSON.stringify(half)}`);
+const back = (await db.query(`select public.restore_gift_card_for_job('${JOB.pFull}') as r`)).rows[0].r;
+if (back.outcome !== "restored" || back.restore_cents !== 4270) fails.push(`cancel restore (job + fee): ${JSON.stringify(back)}`);
+
 const acl = (await db.query(`select proacl::text a from pg_proc where proname = 'redeem_gift_card'`)).rows[0].a;
 if (/anon=|authenticated=|=X\//.test(acl.replace(/(postgres|service_role)=X\/\w+/g, ""))) fails.push(`ACL wider than service_role: ${acl}`);
 
@@ -102,4 +120,4 @@ if (fails.length) {
   console.error("FAIL\n- " + fails.join("\n- "));
   process.exit(1);
 }
-console.log("NEW STATE GREEN (applied 3x): the gift pays job + fee first ($42.70, $7.30 left), shortfall $12.70, flat unchanged, missing fee stamp refused; ACL", acl);
+console.log("NEW STATE GREEN (applied 3x): the gift pays job + fee first ($42.70, $7.30 left), shortfall $12.70, flat unchanged, missing fee stamp refused; a cancel restores $42.70 (fee included), a half share $21.35; ACL", acl);

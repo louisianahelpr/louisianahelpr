@@ -105,6 +105,19 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
     stripeMock.refunds.list.mockResolvedValue({ data: [OWNER_REFUND] });
   });
 
+  // Q2082 slice 4 (lh-money-escrow review #4): a cancelled poster-fee job
+  // keeps only the card processing fee, so a fallback notice never says a
+  // service fee was kept.
+  // @mutate supabase/functions/_shared/refundNotice.ts |     const serviceCents = posterCancelKeptFeeCents(job); |     const serviceCents = cents(job.customer_fee_amount);
+  it("a cancelled poster-fee job ($105.70, $102.33 back): the fallback names the card processing fee, not a service fee", async () => {
+    scenario.reads.jobs = { rows: [{ ...OWNER_JOB, customer_fee_amount: "5.70", poster_fee_flat_cents: 70 }] };
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 10_233 }] });
+    await deliverChargeRefunded({ amount: 10_570, amount_refunded: 10_233 });
+    const msg = String(posterNotices()[0]?.message);
+    expect(msg).toContain("We kept $3.37: the card processing fee, which can't be returned.");
+    expect(msg).not.toMatch(/service fee/);
+  });
+
   it("the owner's case: a $100.00 partial refund of $112.00 sends ONE notice and ONE email with the card, reference, timing and the kept fee", async () => {
     const res = await deliverChargeRefunded();
     expect(res.status).toBe(200);

@@ -36,8 +36,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
-import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
-import { shopTaxCode } from "../_shared/shopTaxCodes.ts";
+import { SHOP_KIND_TAX_CODE, shopTaxCode, splitBuyerFeeByTaxCode } from "../_shared/shopTaxCodes.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { storedStripeCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
@@ -155,6 +154,14 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     return json({ error: TRY_AGAIN }, 503);
   }
 
+  /** The order sheet's own name for the fee; a mixed cart's lines say which items each is for. */
+  const feeLineName = (code: string, parts: number) => {
+    const base = "Service fee (5% + $0.70)";
+    if (parts <= 1) return base;
+    if (code === SHOP_KIND_TAX_CODE.made) return `${base}, made items`;
+    if (code === SHOP_KIND_TAX_CODE.home_food) return `${base}, food items`;
+    return `${base}, other items`;
+  };
   const meta = { kind: "shop_order", order_id: o.id, buyer_id: user.id, payer_id: user.id, seller_id: o.seller_id };
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = lines.map((l) => ({
     quantity: l.quantity,
@@ -163,13 +170,18 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       product_data: { name: l.title.slice(0, 120), tax_code: shopTaxCode(l.kind) },
     },
   }));
-  lineItems.push({
-    quantity: 1,
-    price_data: {
-      currency: "usd", unit_amount: o.premium_cents, tax_behavior: "exclusive",
-      product_data: { name: "Buyer's fee (5% + 70¢)", tax_code: NONTAXABLE_TAX_CODE },
-    },
-  });
+  // Memo Q5: the buyer's fee is taxed like the items it is charged on, split
+  // pro rata when the cart mixes food and other goods (one line per code).
+  const feeParts = splitBuyerFeeByTaxCode(lines, o.premium_cents);
+  for (const part of feeParts) {
+    lineItems.push({
+      quantity: 1,
+      price_data: {
+        currency: "usd", unit_amount: part.cents, tax_behavior: "exclusive",
+        product_data: { name: feeLineName(part.tax_code, feeParts.length), tax_code: part.tax_code },
+      },
+    });
+  }
   const expiresAt = Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S;
   const session = await stripe.checkout.sessions.create(
     {

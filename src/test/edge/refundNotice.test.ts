@@ -124,7 +124,7 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
   // @mutate supabase/functions/_shared/refundNotice.ts |       job.is_group_job === true && !job.helper_id && Number(input.keptCents ?? 0) > 0 |       false
   // The read only sees a crew when the job query SELECTS is_group_job (the mock
   // returns seeded columns whatever is selected, so the base row lacks it).
-  // @mutate supabase/functions/_shared/refundNotice.ts | poster_fee_flat_cents, is_group_job, helper_id"; | poster_fee_flat_cents, helper_id";
+  // @mutate supabase/functions/_shared/refundNotice.ts | poster_fee_flat_cents, is_group_job, helper_id, sales_tax_amount"; | poster_fee_flat_cents, helper_id, sales_tax_amount";
   it("a cancelled poster-fee CREW: the fallback names the block fees, and only the rest as the card processing fee (Q2082 f)", async () => {
     const crewJob = { ...OWNER_JOB, customer_fee_amount: "5.70", poster_fee_flat_cents: 70, is_group_job: true };
     const { is_group_job: _g, ...noFlag } = crewJob;
@@ -164,7 +164,7 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
 
   // @mutate supabase/functions/_shared/refundNotice.ts |       job.is_group_job === true && !job.helper_id && Number(input.keptCents ?? 0) > 0 |       job.is_group_job === true && Number(input.keptCents ?? 0) > 0
   // The lead is only seen when the job query SELECTS helper_id (the base row lacks it).
-  // @mutate supabase/functions/_shared/refundNotice.ts | poster_fee_flat_cents, is_group_job, helper_id"; | poster_fee_flat_cents, is_group_job";
+  // @mutate supabase/functions/_shared/refundNotice.ts | poster_fee_flat_cents, is_group_job, helper_id, sales_tax_amount"; | poster_fee_flat_cents, is_group_job, sales_tax_amount";
   it("a crew with a lead (old-style, the sweep withholds no block fees) is not read (Q2082 f)", async () => {
     const leadCrew = { ...OWNER_JOB, customer_fee_amount: "5.70", poster_fee_flat_cents: 70, is_group_job: true, helper_id: "lead-1" };
     const { helper_id: _h, ...noLead } = leadCrew;
@@ -381,6 +381,23 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
   // Q1674 with Q1714: the webhook's own wording (charge.refunded first) names a
   // first job's kept $2 setup fee instead of folding it into "card fees".
   // @mutate supabase/functions/_shared/refundNotice.ts |     const setupCents = Math.min(keptCents - feeCents - blockCents, setupFeeKeptCents(job)); |     const setupCents = 0;
+  // Q2082 (a), owner 2026-10-18: the sales tax on what is kept is kept too,
+  // and the notice says so in plain words. The job's tax is read only when
+  // the job query SELECTS sales_tax_amount (the mock returns seeded columns
+  // whatever is selected).
+  // @mutate supabase/functions/_shared/refundNotice.ts | helper_id, sales_tax_amount"; | helper_id";
+  // @mutate supabase/functions/_shared/refundNotice.ts |     const andTax = taxed ? " and the sales tax on what we kept" : ""; |     const andTax = "";
+  it("a cancelled TAXED poster-fee job: the fallback names the sales tax kept with the card processing fee (Q2082 a)", async () => {
+    const taxedJob = { ...OWNER_JOB, customer_fee_amount: "5.70", poster_fee_flat_cents: 70, sales_tax_amount: "11.05" };
+    const { sales_tax_amount: _t, ...noTax } = taxedJob;
+    void _t;
+    scenario.reads.jobs = { rows: [noTax], selectOverrides: [{ includes: "sales_tax_amount", result: { rows: [taxedJob] } }] };
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 11_267 }] });
+    await deliverChargeRefunded({ amount: 11_675, amount_refunded: 11_267 });
+    const msg = String(posterNotices()[0]?.message);
+    expect(msg).toContain("We kept $4.08: the card processing fee and the sales tax on what we kept, which can't be returned.");
+  });
+
   it("a first job's kept $2 setup fee is named on its own in the webhook's notice (Q1674)", async () => {
     scenario.reads.jobs = { rows: [{ ...OWNER_JOB, onboarding_fee_amount: "2" }] };
     const res = await deliverChargeRefunded({ amount: 11400 });

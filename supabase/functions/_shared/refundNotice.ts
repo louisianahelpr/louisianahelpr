@@ -60,6 +60,12 @@ export interface RefundNoticeInput {
   keptCents?: number | null;
   /** Why it was kept, when the caller knows better than the job row does. */
   keptReason?: string | null;
+  /**
+   * The sales tax kept with the kept parts (refundToPayerCents taxKeptCents;
+   * owner 2026-10-18, Q2082 (a)): when > 0 a caller's keptReason is followed
+   * by the plain words for it.
+   */
+  taxKeptCents?: number | null;
   /** Refund metadata from Stripe (source, dispute_id, fee_withheld, kept_reason). */
   metadata?: Record<string, string> | null;
   method?: PaymentMethodLabel | null;
@@ -177,12 +183,14 @@ interface JobRow {
   poster_fee_flat_cents?: number | string | null;
   is_group_job?: boolean | null;
   helper_id?: string | null;
+  /** The sales tax the charge carried (Q2082 (a): the tax on a kept part is kept too). */
+  sales_tax_amount?: number | string | null;
   /** A cancelled crew's block fees (crew_block_fees, every row but a void one),
    *  read by sendRefundNotice, not a column. */
   blockFeeCents?: number;
 }
 
-const JOB_COLS = "id, customer_id, title, status, cancellation_fee, customer_fee_amount, dispute_status, onboarding_fee_amount, poster_fee_flat_cents, is_group_job, helper_id";
+const JOB_COLS = "id, customer_id, title, status, cancellation_fee, customer_fee_amount, dispute_status, onboarding_fee_amount, poster_fee_flat_cents, is_group_job, helper_id, sales_tax_amount";
 
 /** "$100" or "$41.87": the poster's money is never rounded (formatExactDollars). */
 export function refundDollars(cents: number): string {
@@ -261,16 +269,21 @@ const cents = (dollars: number | string | null | undefined): number => {
  * their receipt. The caller's reason wins; then the refund's own metadata;
  * then what the job says happened to it.
  */
-function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "keptReason" | "metadata">, job: JobRow | null): string {
+function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "keptReason" | "metadata" | "taxKeptCents">, job: JobRow | null): string {
   if (!(keptCents > 0)) return "";
   const kept = refundDollars(keptCents);
   const why = input.keptReason ?? input.metadata?.kept_reason ?? null;
-  if (why) return ` We kept ${kept}: ${why}.`;
+  // Q2082 (a), owner 2026-10-18: the sales tax on what is kept is kept too.
+  const taxKept = Math.min(keptCents, Math.max(0, Math.round(Number(input.taxKeptCents ?? 0))));
+  // The tax is INSIDE the kept total, never on top of it (review of 461a6b724 #6).
+  if (why) return ` We kept ${kept}: ${why}${taxKept > 0 ? `; ${refundDollars(taxKept)} of that is the sales tax on what we kept, which isn't refunded` : ""}.`;
   const md = input.metadata ?? {};
   if (md.dispute_id || md.source === "admin_refund_dispute") {
     return ` We kept ${kept}: the part of the payment the dispute decision gave the Helpr.`;
   }
-  if (md.fee_withheld === "true") return ` We kept ${kept}: the card processor's fee, which can't be returned.`;
+  // Q2082 (a), owner 2026-10-18: the sales tax on a kept fee is kept too, and
+  // the notice says so (a visit's tax lives on the visit, not this job row).
+  if (md.fee_withheld === "true") return ` We kept ${kept}: the card processor's fee and any sales tax on it, which can't be returned.`;
   if (job?.status === "cancelled") {
     const feeCents = Math.min(keptCents, Math.max(0, cents(job.cancellation_fee)));
     // Q1674: a first job's one-time $2 setup fee is kept on every refund; it
@@ -285,19 +298,23 @@ function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "keptRea
     // The service fee a cancel keeps: 0 on a poster-fee job, whose cancel
     // keeps only the card processing fee (Q2082 slice 4).
     const serviceCents = posterCancelKeptFeeCents(job);
+    // Q2082 (a), owner 2026-10-18: on a taxed charge the tax on everything
+    // kept is kept too (refundToPayerCents taxKeptCents); it sits in the rest.
+    const taxed = cents(job.sales_tax_amount) > 0;
+    const andTax = taxed ? " and the sales tax on what we kept" : "";
     const parts: string[] = [];
     if (feeCents > 0) parts.push(`${refundDollars(feeCents)} cancellation fee paid to your Helpr`);
     if (blockCents > 0) parts.push(`${refundDollars(blockCents)} for the crew spots you closed close to the start`);
     if (restCents > 0) {
       parts.push(serviceCents === 0
-        ? `${refundDollars(restCents)} card processing fee, which can't be returned`
+        ? `${refundDollars(restCents)} card processing fee${andTax}, which can't be returned`
         : restCents === serviceCents
         ? `${refundDollars(restCents)} service fee, which isn't refunded when a job is cancelled`
-        : `${refundDollars(restCents)} in service and card processing fees, which aren't refunded when a job is cancelled`);
+        : `${refundDollars(restCents)} in service and card processing fees${andTax}, which aren't refunded when a job is cancelled`);
     }
     if (setupCents > 0) parts.push(`${refundDollars(setupCents)} one-time account setup fee, which is paid once and never refunded`);
     if (parts.length === 1 && restCents > 0 && serviceCents === 0 && feeCents === 0 && blockCents === 0 && setupCents === 0) {
-      return ` We kept ${kept}: the card processing fee, which can't be returned.`;
+      return ` We kept ${kept}: the card processing fee${andTax}, which can't be returned.`;
     }
     if (parts.length === 1 && restCents === serviceCents && feeCents === 0 && blockCents === 0 && setupCents === 0) {
       return ` We kept ${kept}: the service fee, which isn't refunded when a job is cancelled.`;

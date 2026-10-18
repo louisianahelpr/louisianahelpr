@@ -2,6 +2,7 @@
 // @mutate supabase/functions/_shared/refundAmount.ts |   const remainingCents = Math.max(0, ceilingCents - cents(i.alreadyRefundedCents)); |   const remainingCents = ceilingCents;
 // @mutate supabase/functions/_shared/refundAmount.ts |   if (pct == null \|\| pct === "" \|\| Number(pct) !== 0) return 0; |   if (pct == null \|\| pct === "") return 0;
 // @mutate src/lib/refundAmount.ts |   const feeKeptCents = Math.max(cents(i.customerFeeCents), cents(i.actualFeeCents)); |   const feeKeptCents = cents(i.customerFeeCents);
+// @mutate src/lib/refundAmount.ts |   return Math.min(tax, Math.ceil((kept * tax) / (captured - tax))); |   return Math.min(tax, Math.floor((kept * tax) / (captured - tax)));
 import { describe, it, expect } from "vitest";
 import {
   refundToPayerCents as uiRefund,
@@ -103,6 +104,13 @@ describe("refund amount: never absorb a fee (owner, 2026-10-14)", () => {
               for (const requestedCents of [null, 500, 99_999]) {
                 const i = { capturedCents, actualFeeCents, customerFeeCents, setupFeeCents, alreadyRefundedCents, requestedCents };
                 expect(uiRefund(i), JSON.stringify(i)).toEqual(edgeRefund(i));
+                // Q2082 (a): the tax on the kept parts, same on both sides.
+                for (const taxCents of [0, 263, 1105]) {
+                  for (const taxBaseCents of [null, Math.max(0, capturedCents - 500)]) {
+                    const t = { ...i, taxCents, taxBaseCents };
+                    expect(uiRefund(t), JSON.stringify(t)).toEqual(edgeRefund(t));
+                  }
+                }
                 expect(uiCrew({ customerFeeCents, actualFeeCents, proRataCents: requestedCents ?? 0 })).toBe(
                   edgeCrew({ customerFeeCents, actualFeeCents, proRataCents: requestedCents ?? 0 }),
                 );

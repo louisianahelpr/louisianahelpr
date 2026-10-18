@@ -63,7 +63,7 @@ import { getHelperFeePercent, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCEN
 import { flatFeePercentOf } from "../_shared/helprFlatFee.ts";
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
-import { cardCostFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { cardCostFeeCents, chargeTaxCentsFor, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
@@ -649,6 +649,7 @@ serve(async (req) => {
     actualFeeCents: pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0,
     customerFeeCents: pi ? cardCostFeeCents(job) : 0,
     setupFeeCents: pi ? setupFeeKeptCents(job) : 0,
+    taxCents: await chargeTaxCentsFor(stripe, pi),
   });
   const nonRefundableCents = posterBase.feeKeptCents;
   const refundableCents = posterBase.ceilingCents;
@@ -1910,6 +1911,8 @@ serve(async (req) => {
         // share of it and the card processing fee, so refunded + kept is the
         // receipt's total. A gift's share is not on the card at all.
         keptCents: Math.max(0, capturedCents - refundCents),
+        // Q2082 (a): the poster's share of the tax kept on the kept card fee.
+        taxKeptCents: Math.round(posterBase.taxKeptCents * posterShare),
         // The Helpr is named only when the decision gave them a share.
         // Q1674: a first job also keeps its one-time $2 setup fee; named last.
         keptReason: setupFeeKeptReason(movedHelperCents > 0

@@ -86,7 +86,7 @@
 // Q415 (e): the mid-run refunds withhold Stripe's fee; a platform failure does not.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (withholdMidRun) { |             if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (withholdMidRun) { |             if (true) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts | refundToPayerCents({ capturedCents: captured, actualFeeCents: actualOrEstimatedFeeCents(pi, captured) }) | refundToPayerCents({ capturedCents: captured, actualFeeCents: 0 })
+// @mutate supabase/functions/charge-recurring-visits/index.ts | refundToPayerCents({ capturedCents: captured, actualFeeCents: actualOrEstimatedFeeCents(pi, captured), taxCents | refundToPayerCents({ capturedCents: captured, actualFeeCents: 0, taxCents
 // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (refundParams.amount !== 0) ({ alreadyRefunded, refund: refundMade } = await createRefundOnce( |             ({ alreadyRefunded, refund: refundMade } = await createRefundOnce(
 // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (!prior.data.some((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled")) throw e; |     return;
 // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (type !== "StripeIdempotencyError" && type !== "idempotency_error" && code !== "charge_already_refunded") throw e; |     throw e;
@@ -574,7 +574,7 @@ describe("charge-recurring-visits edge function", () => {
       .find((p) => p.user_id === POSTER_ID);
     expect(notice?.message).toContain("We refunded $96.80");
     // Q1714: THE refund notice: amount, reference, and the card fee kept.
-    expect(notice?.message).toContain("We kept $3.20: the card processor's fee, which can't be returned.");
+    expect(notice?.message).toContain("We kept $3.20: the card processor's fee and any sales tax on it, which can't be returned.");
     expect(notice?.message).toContain("the date changed hands");
   });
 

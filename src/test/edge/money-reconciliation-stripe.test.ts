@@ -266,6 +266,37 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
     expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toBeUndefined();
   });
 
+  // Q2082 (a), owner 2026-10-18: a refund also keeps the sales tax on what it
+  // keeps (refundToPayerCents taxKeptCents), so the ceiling allows that and
+  // not a cent more.
+  // @mutate supabase/functions/money-reconciliation/index.ts |             + taxOnKeptCents({ keptCents: keptBeforeTaxCents, taxCents: chargeTax, capturedCents }); |             + 0;
+  it("a cancelled TAXED poster-fee job may keep the card fee plus the tax on it, and not a cent more (Q2082 a)", async () => {
+    // $100 job + $5.70 fee + $11.05 tax = 11675 captured; Stripe's real fee 369c;
+    // the tax on it ceil(369 x 1105 / 10570) = 39c.
+    const stampless = cancelledJob({ budget: 100, customer_fee_amount: 5.7, payment_status: "refunded" });
+    const job = { ...stampless, poster_fee_flat_cents: 70, helper_fee_percent: 0, helper_fee_flat_cents: 0 };
+    const seedTaxed = (ledger: number) => {
+      seed(stampless, ledger);
+      scenario.reads.jobs = { rows: [stampless], selectOverrides: [{ includes: "poster_fee_flat_cents", result: { rows: [job] } }] };
+    };
+    // basil PIs carry no tax figure: the Checkout Session's total_details does.
+    const taxedPi = (refunded: number) => {
+      stripeMock.checkout.sessions.list.mockResolvedValue({ data: [{ total_details: { amount_tax: 1105 } }] });
+      return refundedPi({ captured: 11675, refunded, fee: 369 });
+    };
+    let fn = await load();
+    seedTaxed(11675 - 369 - 39);
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(taxedPi(11675 - 369 - 39));
+    expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toBeUndefined();
+
+    // Two cents more kept than the fee and its tax: an under-refund.
+    resetSupabaseMock(); resetSharedMocks(); resetStripeMock();
+    fn = await load();
+    seedTaxed(11675 - 369 - 41);
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(taxedPi(11675 - 369 - 41));
+    expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toMatchObject({ count: 1 });
+  });
+
   it("does not grade a job whose refund an executed dispute split decided", async () => {
     // Prod job e7e09075 (2026-09-23): dispute decided {poster:1,helper:0},
     // execution_status 'executed', $26.89 of $28 refunded. A split decision

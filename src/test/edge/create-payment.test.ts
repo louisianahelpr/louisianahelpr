@@ -3060,7 +3060,7 @@ describe("create-payment edge function", () => {
 
     // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept even when
     // the poster wins the dispute, and the refund notice says so.
-    // @mutate supabase/functions/create-payment/index.ts |               setupFeeCents: setupFeeKeptCents(job),\n              alreadyRefundedCents: disputeOtherRefundedCents,\n            });\n            const nonRefundableCents = disputeSplit |               setupFeeCents: 0,\n              alreadyRefundedCents: disputeOtherRefundedCents,\n            });\n            const nonRefundableCents = disputeSplit
+    // @mutate supabase/functions/create-payment/index.ts |               setupFeeCents: setupFeeKeptCents(job),\n              alreadyRefundedCents: disputeOtherRefundedCents,\n              taxCents: await chargeTaxCentsFor(stripe, pi),\n            });\n            const nonRefundableCents = disputeSplit |               setupFeeCents: 0,\n              alreadyRefundedCents: disputeOtherRefundedCents,\n              taxCents: await chargeTaxCentsFor(stripe, pi),\n            });\n            const nonRefundableCents = disputeSplit
     // @mutate supabase/functions/create-payment/index.ts | : null, disputeSetupKeptCents) | : null, 0)
     it("admin_refund_dispute on a first job keeps the $2 setup fee and the notice says so (Q1674)", async () => {
       seedAuth(scenario, ADMIN);
@@ -4919,6 +4919,35 @@ describe("create-payment edge function", () => {
           (w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === POSTER.id,
         );
         expect(String((note?.payload as Record<string, unknown>)?.message)).toContain("the card processing fee, which can't be returned");
+      });
+
+      // Q2082 (a), owner pop-up 2026-10-18: the sales tax Stripe leaves
+      // collected on the kept card fee is kept too (we never pay it), and the
+      // notice says so. A $100 taxable job: $5.70 fee, $11.05 tax, $116.75
+      // paid, Stripe's fee $3.69: the tax on it, ceil(369 x 1105 / 10570) = 39c.
+      // @mutate supabase/functions/create-payment/index.ts |             requestedCents: isPartial ? requestedCents : null,\n            taxCents: await chargeTaxCentsFor(stripe, pi), |             requestedCents: isPartial ? requestedCents : null,
+      // @mutate supabase/functions/_shared/refundNotice.ts |   if (why) return ` We kept ${kept}: ${why}${taxKept > 0 ? `; ${refundDollars(taxKept)} of that is the sales tax on what we kept, which isn't refunded` : ""}.`; |   if (why) return ` We kept ${kept}: ${why}.`;
+      // @mutate supabase/functions/create-payment/index.ts |               taxKeptCents: generalSplit.taxKeptCents, |               taxKeptCents: 0,
+      it("a taxed job: a full admin refund also keeps the sales tax on the kept card fee, and the notice says so (Q2082 a)", async () => {
+        seedFull();
+        scenario.reads.jobs.rows![0] = { ...scenario.reads.jobs.rows![0], budget: 100, customer_fee_amount: 0, platform_fee_percent: 0 };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({
+          id: "pi_g", status: "succeeded", amount: 11675, amount_received: 11675,
+          latest_charge: { id: "ch_g", amount_refunded: 0, balance_transaction: { fee: 369 } },
+        });
+        stripeMock.refunds.list.mockResolvedValue({ data: [] });
+        stripeMock.refunds.create.mockImplementation(async (p: { amount: number }) => ({ id: "re_tax", amount: p.amount }));
+        // The edge pins basil, whose PI has no tax figure: the Checkout Session says what was taxed.
+        stripeMock.checkout.sessions.list.mockResolvedValue({ data: [{ total_details: { amount_tax: 1105 } }] });
+        const res = await call();
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create.mock.calls[0][0].amount).toBe(11675 - 369 - 39);
+        const note = scenario.writes.find(
+          (w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === POSTER.id,
+        );
+        expect(String((note?.payload as Record<string, unknown>)?.message)).toContain(
+          "We kept $4.08: the card processing fee, which can't be returned; $0.39 of that is the sales tax on what we kept, which isn't refunded.",
+        );
       });
 
       it("a full admin refund keeps Stripe's real fee when it is the larger one (no fee was charged to the poster)", async () => {

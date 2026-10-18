@@ -46,6 +46,8 @@ export interface StripeMock {
        */
       expire: ReturnType<typeof vi.fn>;
       listLineItems: ReturnType<typeof vi.fn>;
+      /** Q2082 (a): chargeTaxCentsFor reads a charge's tax from its Checkout Session. Unset = no session. */
+      list: ReturnType<typeof vi.fn>;
     };
   };
   paymentIntents: {
@@ -180,6 +182,7 @@ export const stripeMock: StripeMock = {
       retrieve: vi.fn(),
       expire: vi.fn().mockResolvedValue({ status: "expired" }),
       listLineItems: vi.fn(),
+      list: vi.fn(),
     },
   },
   paymentIntents: {

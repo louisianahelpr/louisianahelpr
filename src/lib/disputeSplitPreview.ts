@@ -132,6 +132,9 @@ export function previewDisputeSplit(
     actualFeeCents: capturedCents > 0 ? stripeProcessingCostCents(capturedCents) : 0,
     customerFeeCents: cardCostFeeCents(job),
     setupFeeCents: keptSetupFeeCents,
+    // Q2082 (a): the tax on the kept card fee is kept too, as the executor
+    // keeps it (chargeTaxCents reads the PI's figure; the job's stored tax here).
+    taxCents: Math.round((job.sales_tax_amount ?? 0) * 100),
   }).ceilingCents;
   // `Math.round` to whole cents, mirroring the executor's
   // `refundCents = Math.max(0, Math.round(refundableCents * posterShare))`.

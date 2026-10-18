@@ -313,8 +313,9 @@ serve(async (req) => {
       : await loadBanReviewUsers(admin, [...new Set(shopPayouts.flatMap((p) => [p.buyer_id, p.seller_id]).filter((x): x is string => !!x))]);
     // Fail closed: a ban-review read that failed moves no shop money this run.
     if (!shopReview.ok) defects.record(`shop payouts: ban review read failed: ${shopReview.message}`);
+    const underReview: Set<string> = shopReview.ok ? shopReview.users : new Set();
     for (const p of shopReview.ok ? shopPayouts : []) {
-      if ((p.seller_id && shopReview.users.has(p.seller_id)) || (p.buyer_id && shopReview.users.has(p.buyer_id))) {
+      if ((p.seller_id && underReview.has(p.seller_id)) || (p.buyer_id && underReview.has(p.buyer_id))) {
         out.ban_review++;
         continue;
       }

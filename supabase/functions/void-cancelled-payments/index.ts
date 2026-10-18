@@ -26,6 +26,13 @@ import { paymentMethodFromCharge, refundDollars, refundNoticeProblem, retryFaile
  * people now is the owner's call, not this cron's.
  */
 const UNTOLD_REFUND_SWEEP_FROM = "2026-10-12T12:00:00Z";
+/**
+ * Review of Q1806 (8354ebb0e) #1: dispute statuses on a gift's donation whose
+ * reversal is not final. Open ones can still be won; a WON one brought the
+ * money back, but the gift stays revoked until a person restores it
+ * (alertGiftDisputeClosed is report-only). 'lost' and a plain refund are final.
+ */
+const GIFT_DISPUTE_NOT_FINAL = new Set(["needs_response", "under_review", "warning_needs_response", "warning_under_review", "won"]);
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
 import { readCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFeeRead.ts";
@@ -153,7 +160,7 @@ serve(async (req) => {
       // A null `error` is not proof the restore happened — read the outcome
       // the function reports and accept only the ones it actually defines.
       const result = (data ?? null) as
-        | { outcome?: string; credit_id?: string; recipient_id?: string; restore_cents?: number }
+        | { outcome?: string; credit_id?: string; recipient_id?: string; restore_cents?: number; payment_status?: string | null }
         | null;
       const outcome = rpcErr ? null : (result?.outcome ?? null);
 
@@ -177,7 +184,16 @@ serve(async (req) => {
         // a failed notification must not undo the settlement. Never dropped
         // silently, though — a gift that reappears with no explanation is a
         // support ticket.
-        if (result?.recipient_id) {
+        // Review of 8354ebb0e #4: a gift whose donation was reversed comes back
+        // minted 'refunded' (the RPC inherits the parent's payment_status), so
+        // it cannot be spent: "available again" would be false. No notice.
+        const reversedCopy = result?.payment_status != null && result.payment_status !== "paid";
+        if (reversedCopy) {
+          console.warn(
+            `[void-cancelled-payments] gift for job ${job.id} came back as ${result?.payment_status} (its donation was reversed); the recipient is not told it is available again.`,
+          );
+        }
+        if (result?.recipient_id && !reversedCopy) {
           const { error: noteErr } = await supabaseAdmin.from("notifications").insert({
             user_id: result.recipient_id,
             job_id: job.id,
@@ -337,11 +353,19 @@ serve(async (req) => {
      *     the gift was refunded or charged back (revoke_gift_card_for_refund
      *     stamps the spent row's payment_status), so the platform no longer
      *     holds that money and a fee "from the gift" would be its own.
+     *   - `disputeOpen` (review of 8354ebb0e #1): that reversal is a chargeback
+     *     the platform can still win, or won and a person has not yet given the
+     *     gift back (revoke_gift_card_for_refund stamps 'refunded' when the
+     *     dispute OPENS, and a won dispute is never flipped back by itself), so
+     *     the loss is not final. Read from the donor's PaymentIntent (the root
+     *     of the gift's tree) with Stripe's disputes list. A plain refund or a
+     *     lost dispute is final.
      * Null: unreadable, and the caller fails closed.
      */
     const giftFeeFunding = async (
       jobId: string,
-    ): Promise<{ cents: number; restored: boolean; donationReversed: boolean } | null> => {
+      stripe: Stripe,
+    ): Promise<{ cents: number; restored: boolean; donationReversed: boolean; disputeOpen: boolean } | null> => {
       const { data, error: dryErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", {
         p_job_id: jobId,
         p_dry_run: true,
@@ -358,23 +382,50 @@ serve(async (req) => {
           ? 0
           : Math.max(0, Math.floor(Number(d.applied_cents)) - Math.floor(Number(d.restore_cents ?? 0)));
       } else if (d?.outcome === "no_credit" || d?.outcome === "would_unreserve" || d?.outcome === "job_not_found") {
-        return { cents: 0, restored: false, donationReversed: false };
+        return { cents: 0, restored: false, donationReversed: false, disputeOpen: false };
       } else {
         return null;
       }
-      if (cents <= 0) return { cents, restored, donationReversed: false };
+      if (cents <= 0) return { cents, restored, donationReversed: false, disputeOpen: false };
       const { data: spent, error: spentErr } = await supabaseAdmin
         .from("gift_cards")
-        .select("payment_status")
+        .select("payment_status, parent_credit_id, stripe_payment_intent_id")
         .eq("job_id", jobId)
         .eq("status", "redeemed")
         .limit(1);
       if (spentErr) return null;
       // A gift that paid something always has its 'redeemed' row: none back is
       // unreadable, never "not reversed" (re-review nit 1, fails closed).
-      const spentRow = (spent ?? [])[0] as { payment_status?: string | null } | undefined;
+      type GiftRow = { payment_status?: string | null; parent_credit_id?: string | null; stripe_payment_intent_id?: string | null };
+      const spentRow = (spent ?? [])[0] as GiftRow | undefined;
       if (!spentRow) return null;
-      return { cents, restored, donationReversed: spentRow.payment_status !== "paid" };
+      if (spentRow.payment_status === "paid") return { cents, restored, donationReversed: false, disputeOpen: false };
+      // Reversed: is it final? The donor's PaymentIntent sits on the root of
+      // the gift's tree (a leftover or a restore points at its parent).
+      let node: GiftRow = spentRow;
+      for (let hop = 0; !node.stripe_payment_intent_id && node.parent_credit_id && hop < 20; hop++) {
+        const { data: parent, error: parentErr } = await supabaseAdmin
+          .from("gift_cards")
+          .select("parent_credit_id, stripe_payment_intent_id")
+          .eq("id", node.parent_credit_id)
+          .limit(1);
+        if (parentErr) return null;
+        const next = (parent ?? [])[0] as GiftRow | undefined;
+        if (!next) return null;
+        node = next;
+      }
+      // No donor payment to ask Stripe about: unreadable, never "final".
+      if (!node.stripe_payment_intent_id) return null;
+      let disputes: Array<{ status?: string | null }>;
+      try {
+        const list = await stripe.disputes.list({ payment_intent: node.stripe_payment_intent_id, limit: 10 });
+        disputes = (list?.data ?? []) as Array<{ status?: string | null }>;
+      } catch (e) {
+        console.error(`[void-cancelled-payments] job ${jobId}: the disputes on its gift's donation could not be read: ${e instanceof Error ? e.message : String(e)}`);
+        return null;
+      }
+      const disputeOpen = disputes.some((d) => GIFT_DISPUTE_NOT_FINAL.has(String(d.status ?? "")));
+      return { cents, restored, donationReversed: true, disputeOpen };
     };
 
     const settleCancelledJob = async (
@@ -1894,32 +1945,69 @@ serve(async (req) => {
        * job whose gift cannot pay (settled without that fee); never absorb a
        * fee. A crew (fee shares, block fees) still fails closed.
        */
-      const giftCoversShortfall = async (shortCents: number, stage: string): Promise<{ cents: number; uncollectable?: true } | null> => {
-        const funding = await giftFeeFunding(job.id);
+      const giftCoversShortfall = async (
+        shortCents: number,
+        stage: string,
+        /** An uncaptured hold (it expires, so it cannot wait for a chargeback). */
+        onHold: boolean,
+      ): Promise<{ cents: number; uncollectable?: true } | null> => {
+        const funding = await giftFeeFunding(job.id, stripe);
         if (funding === null) {
           console.error(`[void-cancelled-payments] job ${job.id}: its card payment is ${shortCents}c short of the fees it owes and its gift could not be read; not settling this run (${stage}).`);
           defects.record(`gift fee funding read ${job.id} (${stage}): unreadable — not settled`);
           results.push({ job_id: job.id, title: job.title, status: "gift_fee_funding_unreadable" });
           return null;
         }
+        // Review of 8354ebb0e #1: a chargeback on the gift's donation that the
+        // platform can still win (or won, with the gift not yet restored) is
+        // not a permanent loss, so the fee is not capped for good. A captured
+        // charge loses nothing by waiting: the job stays in escrow until the
+        // dispute is decided. An uncaptured hold expires, so it is capped below
+        // and the alert names what the Helpr is owed if the dispute is won.
+        if (funding.disputeOpen && !onHold) {
+          console.warn(`[void-cancelled-payments] job ${job.id}: its card payment is ${shortCents}c short of the fees it owes and a chargeback on its gift's donation is not decided; waiting (${stage}).`);
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "warning",
+            title: "Cancellation fee waits for a chargeback on its gift",
+            message: `Job ${job.id} ("${job.title}") was paid partly by gift and partly by card and cancelled late. The card paid less than the fee, and the donation behind the gift has a chargeback that is still open (or was won and the gift is not restored yet), so whether the gift can pay its part is not decided. No money moved and the job stays in escrow until it is; restore the gift by hand if the dispute was won.`,
+            fields: { job_id: job.id, stage, short_cents: shortCents, gift_paid_cents: funding.cents, dispute_open: "yes" },
+            oncePerDayKey: `gift-card-fee-dispute-open:${job.id}`,
+          });
+          results.push({ job_id: job.id, title: job.title, status: "gift_fee_dispute_open" });
+          return null;
+        }
         if (funding.donationReversed || funding.cents < shortCents) {
           const why = funding.donationReversed
-            ? "the donation behind its gift was refunded or charged back"
+            ? funding.disputeOpen
+              ? "a chargeback on the donation behind its gift is not decided yet"
+              : "the donation behind its gift was refunded or charged back"
             : `its gift paid ${funding.cents}c`;
           // Q2000: permanent, on a single Helpr: settle with the fee capped at
           // the card (said once; the job leaves escrow this run).
           if ((funding.donationReversed || funding.restored) && !crewShares && blockFeeRows.length === 0) {
-            const whyGone = funding.donationReversed ? why : "an earlier run already returned its gift";
-            console.warn(`[void-cancelled-payments] job ${job.id}: its card payment is ${shortCents}c short of the fees it owes and ${whyGone}; the Helpr gets the part of the fee the card covered (${stage}).`);
+            // Review of 8354ebb0e #2: what an earlier restore KEPT of a live
+            // gift is still the gift's money and pays its part; only the rest is
+            // uncollectable. A reversed donation keeps nothing.
+            const keptCents = funding.donationReversed ? 0 : funding.cents;
+            const whyGone = funding.donationReversed
+              ? why
+              : keptCents > 0
+                ? `an earlier run already returned its gift, keeping ${keptCents}c of it for the fee`
+                : "an earlier run already returned its gift";
+            console.warn(`[void-cancelled-payments] job ${job.id}: its card payment is ${shortCents}c short of the fees it owes and ${whyGone}; the Helpr gets the part of the fee the card${keptCents > 0 ? " and the kept gift" : ""} covered (${stage}).`);
             await postSlackOpsAlert({
               kind: "custom",
               severity: "warning",
               title: "Cancellation fee capped at what the card paid",
-              message: `Job ${job.id} ("${job.title}") was paid partly by gift and partly by card and cancelled late. The card paid less than the fee, and ${whyGone}, so the gift's part of the fee cannot be collected. Owner rule (2026-10-17, option A): the Helpr gets the part of the fee the card covered; the rest is not paid and the platform does not pay it.`,
-              fields: { job_id: job.id, stage, short_cents: shortCents, gift_paid_cents: funding.cents, donation_reversed: funding.donationReversed ? "yes" : "no" },
+              message: `Job ${job.id} ("${job.title}") was paid partly by gift and partly by card and cancelled late. The card paid less than the fee, and ${whyGone}, so the gift's part of the fee cannot be collected. Owner rule (2026-10-17, option A): the Helpr gets the part of the fee the card covered; the rest is not paid and the platform does not pay it.` +
+                (funding.disputeOpen
+                  ? " The card hold could not wait for the chargeback. If the platform wins it, the gift's part of the fee is collectable: restore the gift by hand keeping that part, and pay it to the Helpr."
+                  : ""),
+              fields: { job_id: job.id, stage, short_cents: shortCents, gift_paid_cents: funding.cents, gift_kept_cents: keptCents, donation_reversed: funding.donationReversed ? "yes" : "no", dispute_open: funding.disputeOpen ? "yes" : "no" },
               oncePerDayKey: `gift-card-fee-capped:${job.id}`,
             });
-            return { cents: 0, uncollectable: true };
+            return { cents: keptCents, uncollectable: true };
           }
           console.error(`CRITICAL: [void-cancelled-payments] job ${job.id}: its card payment is ${shortCents}c short of the fees it owes and ${why}; not settling (${stage}).`);
           defects.record(`gift fee funding ${job.id} (${stage}): card ${shortCents}c short, ${why} — not settled`);
@@ -1928,7 +2016,7 @@ serve(async (req) => {
             severity: "critical",
             title: "Cancelled job owes more in fees than its card and gift paid",
             message: `Job ${job.id} ("${job.title}") was cancelled late. Its card payment is smaller than the cancellation fee plus the card fee kept, and ${why}, so the rest of the fee cannot come from the poster's money. No money moved and the job stays in escrow; settle it by hand.`,
-            fields: { job_id: job.id, stage, short_cents: shortCents, gift_paid_cents: funding.cents, donation_reversed: funding.donationReversed ? "yes" : "no" },
+            fields: { job_id: job.id, stage, short_cents: shortCents, gift_paid_cents: funding.cents, donation_reversed: funding.donationReversed ? "yes" : "no", dispute_open: funding.disputeOpen ? "yes" : "no" },
             oncePerDayKey: `gift-card-fee-shortfall:${job.id}`,
           });
           results.push({ job_id: job.id, title: job.title, status: "gift_fee_shortfall" });
@@ -2030,12 +2118,29 @@ serve(async (req) => {
         // fee is paid from the platform's own money (never absorb a fee).
         let giftFeeCents = Math.round(jobCancellationFee * 100);
         if (giftFeeCents > 0) {
-          const funding = await giftFeeFunding(job.id);
+          const funding = await giftFeeFunding(job.id, stripe);
           const blockCentsNow = crewBlockFeeCents(blockFeeRows);
           if (funding === null) {
             console.error(`[void-cancelled-payments] job ${job.id}: could not read what its gift paid; not settling this run.`);
             defects.record(`gift fee funding read ${job.id}: unreadable — not settled`);
             results.push({ job_id: job.id, title: job.title, status: "gift_fee_funding_unreadable" });
+            continue;
+          }
+          if (funding.disputeOpen) {
+            // Review of 8354ebb0e #1: a chargeback on the donation that can
+            // still be won (or was won, gift not yet restored) is not a final
+            // loss, and a gift-funded job has no hold that expires: it waits in
+            // escrow rather than settling without the fee for good.
+            console.warn(`[void-cancelled-payments] job ${job.id}: $${jobCancellationFee.toFixed(2)} cancellation fee owed; a chargeback on its gift's donation is not decided; waiting.`);
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "warning",
+              title: "Cancellation fee waits for a chargeback on its gift",
+              message: `Job ${job.id} ("${job.title}") was paid by a gift card and cancelled late, so a $${jobCancellationFee.toFixed(2)} cancellation fee is owed, but the donation behind the gift has a chargeback that is still open (or was won and the gift is not restored yet). No money moved and the job stays in escrow until it is decided; restore the gift by hand if the dispute was won.`,
+              fields: { job_id: job.id, fee: jobCancellationFee, gift_paid_cents: funding.cents, dispute_open: "yes" },
+              oncePerDayKey: `gift-fee-dispute-open:${job.id}`,
+            });
+            results.push({ job_id: job.id, title: job.title, status: "gift_fee_dispute_open" });
             continue;
           }
           if (funding.cents === 0 && !funding.restored) {
@@ -2139,12 +2244,15 @@ serve(async (req) => {
             let holdGift: { cents: number } | null = null;
             /** Q2000: the gift can never pay its part; the fee is capped at the card below. */
             let holdGiftGone = false;
+            /** Review of 8354ebb0e #2: what an earlier restore kept of the gift, still paying its part. */
+            let holdGiftKeptOnlyCents = 0;
             if (feeCents > holdCents) {
               const estFeeCents = Math.max(stripeProcessingCostCents(holdCents), Math.round(holdCents * 0.0599) + 30);
-              holdGift = await giftCoversShortfall(cardNonRefundableCents(holdCents, estFeeCents) + feeCents - holdCents, "fee capture");
+              holdGift = await giftCoversShortfall(cardNonRefundableCents(holdCents, estFeeCents) + feeCents - holdCents, "fee capture", true);
               if (!holdGift) continue;
               if (holdGift.uncollectable) {
                 holdGiftGone = true;
+                holdGiftKeptOnlyCents = holdGift.cents;
                 holdGift = null;
               }
             }
@@ -2157,7 +2265,7 @@ serve(async (req) => {
               // it after the card's own kept fees (cardNonRefundableCents, the
               // SAME formula the captured path caps with on a retry).
               const cardLeftCents = Math.max(0, captureCents - cardNonRefundableCents(captureCents, actualOrEstimatedFeeCents(captured, captureCents)));
-              cancellationFee = Math.min(Math.round(cancellationFee * 100), cardLeftCents) / 100;
+              cancellationFee = Math.min(Math.round(cancellationFee * 100), cardLeftCents + holdGiftKeptOnlyCents) / 100;
             }
             // Q1714: the rest of the hold goes back; the poster is told what and
             // why once the job is settled below.
@@ -2272,15 +2380,16 @@ serve(async (req) => {
           if (cardShortCents > 0 && !feesFitCard) {
             // Review #2: an earlier refund on the charge left the card even
             // less to pay with; the gift covers that too.
-            cardGift = await giftCoversShortfall(cardShortCents + Math.max(0, chargeRefundedCents), "refund");
+            cardGift = await giftCoversShortfall(cardShortCents + Math.max(0, chargeRefundedCents), "refund", false);
             if (!cardGift) continue;
             if (cardGift.uncollectable) {
               // Q2000 (owner, option A): the fee is what the card still holds
-              // after its own kept fees; the gift's part is not paid.
+              // after its own kept fees, plus what an earlier restore kept of a
+              // live gift (review of 8354ebb0e #2); the rest is not paid.
               cardGiftGone = true;
-              cardGift = null;
               const cardLeftCents = Math.max(0, capturedCents - Math.max(0, chargeRefundedCents) - keptOfCard);
-              cancellationFee = Math.min(feeOwedCents, cardLeftCents) / 100;
+              cancellationFee = Math.min(feeOwedCents, cardLeftCents + cardGift.cents) / 100;
+              cardGift = null;
             }
           }
           // Q1390: the crew's block fees are tried first and withheld from the refund.

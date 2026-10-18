@@ -643,7 +643,7 @@ serve(async (req) => {
       ).map((job) => job.id as string);
       if (candidates.length) {
         const [{ data: capGifts, error: capGiftErr }, { data: capFees, error: capFeeErr }] = await Promise.all([
-          admin.from("gift_cards").select("job_id, restored_from_job_id, status, payment_status")
+          admin.from("gift_cards").select("job_id, restored_from_job_id, status, payment_status, amount")
             .or(`job_id.in.(${candidates.join(",")}),restored_from_job_id.in.(${candidates.join(",")})`),
           admin.from("cancellation_fee_transfers").select("job_id, fee_amount").in("job_id", candidates),
         ]);
@@ -651,11 +651,21 @@ serve(async (req) => {
           notes.push(`capped cancellation fees not checked, none accepted: ${(capGiftErr ?? capFeeErr)!.message}`);
         } else {
           for (const id of candidates) {
-            const gifts = ((capGifts ?? []) as Array<{ job_id: string | null; restored_from_job_id: string | null; status: string | null; payment_status: string | null }>);
-            const giftGone = gifts.some((g) =>
-              g.restored_from_job_id === id || (g.job_id === id && g.status === "redeemed" && g.payment_status !== "paid"));
-            if (!giftGone) continue;
+            const gifts = ((capGifts ?? []) as Array<{ job_id: string | null; restored_from_job_id: string | null; status: string | null; payment_status: string | null; amount: number | string | null }>);
             const stored = money(jobById.get(id)?.cancellation_fee);
+            const spent = gifts.filter((g) => g.job_id === id && g.status === "redeemed");
+            const replacement = gifts.filter((g) => g.restored_from_job_id === id);
+            // Review of 8354ebb0e #2: a replacement gift alone is every normal
+            // partial restore. It explains a capped fee only when the restore
+            // gave the gift back WHOLE (it kept nothing toward the fee). A cap
+            // that also used a kept part of the gift is rare and still reports,
+            // for a person to check (fails closed).
+            const keptOfGift = spent.length === 1 && replacement.length === 1
+              ? money(spent[0].amount) - money(replacement[0].amount)
+              : null;
+            const giftGone = spent.some((g) => g.payment_status !== "paid") ||
+              (keptOfGift !== null && Math.abs(keptOfGift) <= EPSILON);
+            if (!giftGone) continue;
             const rows = ((capFees ?? []) as Array<{ job_id: string; fee_amount: number | string | null }>).filter((r) => r.job_id === id);
             const ledgerAgrees = stored <= EPSILON
               ? rows.length === 0

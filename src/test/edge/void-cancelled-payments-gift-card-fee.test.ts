@@ -29,7 +29,7 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (cardShortCents > 0 && !feesFitCard) { | if (cardShortCents > 0) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | blockFeeCents - (capturedCents - Math.max(0, chargeRefundedCents)))) | blockFeeCents - capturedCents))
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (!cardGift && chargeRefundedCents > voidSplit.ceilingCents + 1) { | if (chargeRefundedCents > voidSplit.ceilingCents + 1) {
- * @mutate supabase/functions/void-cancelled-payments/index.ts | if (cardGift && !refundFeeOnLedger) { | if (false) {
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | if ((cardGift \|\| cardGiftGone) && !refundFeeOnLedger) { | if (false) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (funding.donationReversed \|\| funding.cents < shortCents) { | if (funding.cents < shortCents) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (funding.donationReversed \|\| funding.cents < shortCents) { | if (funding.donationReversed) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | Math.max(0, cardNonRefundableCents(captureCents, actualOrEstimatedFeeCents(captured, captureCents)) + owedCents - captureCents) | Math.max(0, actualOrEstimatedFeeCents(captured, captureCents) + owedCents - captureCents)
@@ -37,8 +37,8 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts | }, "refund", cardGiftKeptCents, | }, "refund", 0,
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if ((funding.donationReversed \|\| funding.restored) && !crewShares && blockFeeRows.length === 0) { | if (false) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if ((funding.donationReversed \|\| funding.restored) && !crewShares && blockFeeRows.length === 0) { | if (!crewShares && blockFeeRows.length === 0) {
- * @mutate supabase/functions/void-cancelled-payments/index.ts | cancellationFee = Math.min(feeOwedCents, cardLeftCents) / 100; | cancellationFee = feeOwedCents / 100;
- * @mutate supabase/functions/void-cancelled-payments/index.ts | cancellationFee = Math.min(Math.round(cancellationFee * 100), cardLeftCents) / 100; | cancellationFee = cancellationFee;
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | cancellationFee = Math.min(feeOwedCents, cardLeftCents + cardGift.cents) / 100; | cancellationFee = feeOwedCents / 100;
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | cancellationFee = Math.min(Math.round(cancellationFee * 100), cardLeftCents + holdGiftKeptOnlyCents) / 100; | cancellationFee = cancellationFee;
  * @mutate supabase/functions/void-cancelled-payments/index.ts | ...(cardGiftGone ? { cancellation_fee: cancellationFee } : {}), | ...({}),
  * @mutate supabase/functions/void-cancelled-payments/index.ts | } else if (cardGift \|\| cardGiftGone) { | } else if (cardGift) {
  * @mutate supabase/functions/_shared/money.ts | return total <= chargeCents ? chargeId : undefined; | return chargeId;
@@ -146,6 +146,10 @@ const capturedPi = (over: Record<string, unknown> = {}) => ({
 });
 const heldPi = () => ({ id: "pi_1", status: "requires_capture", amount: CARD, amount_capturable: CARD, latest_charge: "ch_1" });
 
+/** The spent gift row, reversed: it is the root of its tree, so it carries the donor's PaymentIntent. */
+const reversedGift = () => {
+  scenario.reads.gift_cards = { rows: [{ payment_status: "refunded", parent_credit_id: null, stripe_payment_intent_id: "pi_gift" }] };
+};
 const restoreCalls = () =>
   (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job").map((c) => c.args as Record<string, unknown>);
 const restoredCents = () => {
@@ -293,7 +297,7 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
   const giftWithheld = () => restoreCalls().filter((c) => !c.p_dry_run).some((c) => Number(c.p_share_bps ?? 10000) < 10000);
 
   for (const [label, gone] of [
-    ["the donation behind it was reversed", () => { scenario.reads.gift_cards = { rows: [{ payment_status: "refunded" }] }; }],
+    ["the donation behind it was reversed", () => { reversedGift(); }],
     ["an earlier run already gave it back whole", () => { giftRpc({ outcome: "already_restored", credit_id: "gift-2", applied_cents: GIFT, restore_cents: GIFT }); }],
   ] as const) {
     it(`Q2000: a gift that can never pay (${label}): the card's part of the fee goes to the Helpr, the job settles, no daily page`, async () => {
@@ -330,7 +334,7 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
   // @mutate supabase/functions/void-cancelled-payments/index.ts | if ((cardGift \|\| cardGiftGone) && !refundFeeOnLedger) { | if (cardGift && !refundFeeOnLedger) {
   it("Q2000: a capped fee whose ledger claim fails settles nothing", async () => {
     seed();
-    scenario.reads.gift_cards = { rows: [{ payment_status: "refunded" }] };
+    reversedGift();
     scenario.writeErrors.cancellation_fee_transfers = { message: "claim insert failed" };
     stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
     const h = await load();
@@ -341,7 +345,7 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
 
   it("Q2000: on an uncaptured hold the whole hold is captured and the fee is capped at what it covered (same as the captured retry)", async () => {
     seed();
-    scenario.reads.gift_cards = { rows: [{ payment_status: "refunded" }] };
+    reversedGift();
     cappedClaim();
     stripeMock.paymentIntents.retrieve.mockResolvedValueOnce(heldPi());
     stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
@@ -404,6 +408,166 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
 
     expect((feeTransferCalls()[0][0] as { source_transaction?: string }).source_transaction).toBe("ch_1");
     expect(shortfallPaged()).toBe(false);
+  });
+
+  // Review of 8354ebb0e #1: revoke_gift_card_for_refund stamps the gift
+  // 'refunded' when a chargeback OPENS, and a won one is never flipped back by
+  // itself. Option A's cap is for a FINAL loss only: a chargeback still open
+  // (or won, gift not restored) on a captured charge waits in escrow; an
+  // uncaptured hold (it expires) is capped now and the alert says what the
+  // Helpr is owed if it is won. A plain refund or a lost dispute is final.
+  const waitsPaged = () =>
+    (slackAlerts as Array<{ title?: string }>).some((a) => /Cancellation fee waits for a chargeback on its gift/.test(String(a.title)));
+  const cappedAlert = () =>
+    (slackAlerts as Array<{ title?: string; message?: string; fields?: Record<string, unknown> }>).find((a) => /Cancellation fee capped at what the card paid/.test(String(a.title)));
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if (funding.disputeOpen && !onHold) { | if (false) {
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | "warning_under_review", "won"]); | "warning_under_review"]);
+  for (const status of ["needs_response", "under_review", "won"]) {
+    it(`review #1: a chargeback on the gift's donation that is ${status} keeps a captured job in escrow: no fee, no refund, no cap`, async () => {
+      seed();
+      reversedGift();
+      stripeMock.disputes.list.mockResolvedValue({ data: [{ id: "dp_1", status }] });
+      stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
+      const h = await load();
+      await h.fetch(cronReq());
+
+      expect(stripeMock.disputes.list).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_gift" }));
+      expect(feeTransferCalls()).toHaveLength(0);
+      expect(feeClaims()).toHaveLength(0);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(jobFlips()).toHaveLength(0);
+      expect(cappedPaged()).toBe(false);
+      expect(waitsPaged()).toBe(true);
+    });
+  }
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | const disputeOpen = disputes.some((d) => GIFT_DISPUTE_NOT_FINAL.has(String(d.status ?? ""))); | const disputeOpen = disputes.length > 0;
+  it("review #1: a LOST chargeback is final: the fee is capped at the card and the job settles", async () => {
+    seed();
+    reversedGift();
+    cappedClaim();
+    stripeMock.disputes.list.mockResolvedValue({ data: [{ id: "dp_1", status: "lost" }] });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
+    const h = await load();
+    await h.fetch(cronReq());
+
+    expect(feeClaims().map((c) => Number(c.fee_amount))).toEqual([CAPPED_FEE]);
+    expect(jobFlips()).toHaveLength(1);
+    expect(waitsPaged()).toBe(false);
+    expect(cappedAlert()?.fields?.dispute_open).toBe("no");
+  });
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if (funding.disputeOpen && !onHold) { | if (funding.disputeOpen) {
+  it("review #1: on an uncaptured hold an open chargeback cannot be waited for: the hold is captured, the fee capped, and the alert says what is owed if it is won", async () => {
+    seed();
+    reversedGift();
+    cappedClaim();
+    stripeMock.disputes.list.mockResolvedValue({ data: [{ id: "dp_1", status: "needs_response" }] });
+    stripeMock.paymentIntents.retrieve.mockResolvedValueOnce(heldPi());
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
+    const h = await load();
+    await h.fetch(cronReq());
+
+    expect((stripeMock.paymentIntents.capture.mock.calls[0]?.[1] as { amount_to_capture?: number } | undefined)?.amount_to_capture).toBe(CARD);
+    expect(feeClaims().map((c) => Number(c.fee_amount))).toEqual([CAPPED_FEE]);
+    expect(jobFlips()).toHaveLength(1);
+    const alert = cappedAlert();
+    expect(alert?.fields?.dispute_open).toBe("yes");
+    expect(String(alert?.message)).toMatch(/If the platform wins it/);
+    expect(waitsPaged()).toBe(false);
+  });
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | for (let hop = 0; !node.stripe_payment_intent_id && node.parent_credit_id && hop < 20; hop++) { | for (let hop = 0; false; hop++) {
+  it("review #1: a leftover gift asks Stripe about its ROOT's donation", async () => {
+    seed();
+    scenario.reads.gift_cards = {
+      selectOverrides: [
+        { includes: "payment_status, parent_credit_id", result: { rows: [{ payment_status: "refunded", parent_credit_id: "gift-root", stripe_payment_intent_id: null }] } },
+        { includes: "parent_credit_id, stripe_payment_intent_id", result: { rows: [{ parent_credit_id: null, stripe_payment_intent_id: "pi_root" }] } },
+      ],
+      rows: [],
+    };
+    stripeMock.disputes.list.mockResolvedValue({ data: [{ id: "dp_1", status: "under_review" }] });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
+    const h = await load();
+    await h.fetch(cronReq());
+
+    expect(stripeMock.disputes.list).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_root" }));
+    expect(jobFlips()).toHaveLength(0);
+    expect(waitsPaged()).toBe(true);
+  });
+
+  it("review #1: disputes that cannot be read settle nothing this run (fails closed)", async () => {
+    seed();
+    reversedGift();
+    stripeMock.disputes.list.mockRejectedValue(new Error("stripe down"));
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
+    const h = await load();
+    await h.fetch(cronReq());
+
+    expect(feeTransferCalls()).toHaveLength(0);
+    expect(jobFlips()).toHaveLength(0);
+    expect(cappedPaged()).toBe(false);
+  });
+
+  // Review of 8354ebb0e #2: an earlier run restored the gift KEEPING 10.00 of
+  // it for the fee, then its status flip failed. That kept part is still the
+  // gift's money: the fee is capped at the card's part PLUS it, not the card alone.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | const keptCents = funding.donationReversed ? 0 : funding.cents; | const keptCents = 0;
+  it("review #2: a gift an earlier run restored while keeping part of it pays that part: fee = the card's part + the kept part", async () => {
+    seed();
+    const KEPT = 1000;
+    const want = (CARD - CARD_FEE + KEPT) / 100;
+    giftRpc({ outcome: "already_restored", credit_id: "gift-2", applied_cents: GIFT, restore_cents: GIFT - KEPT });
+    scenario.writeSelectRows["cancellation_fee_transfers:insert"] = [{
+      id: "fee-1", job_id: "job-1", helper_id: "helper-1", status: "pending", stripe_transfer_id: null,
+      created_at: new Date().toISOString(), fee_amount: want, commission_percent: 12, platform_cut: 6.99, helper_amount: 51.26,
+    }];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
+    const h = await load();
+    await h.fetch(cronReq());
+
+    expect(feeClaims().map((c) => Number(c.fee_amount))).toEqual([want]);
+    expect(jobFlips().map((w) => w.payload)).toEqual([
+      expect.objectContaining({ payment_status: "refunded", cancellation_fee_status: "charged", cancellation_fee: want }),
+    ]);
+    expect(cappedAlert()?.fields?.gift_kept_cents).toBe(KEPT);
+  });
+
+  // Review of 8354ebb0e #4: a reversed gift comes back minted 'refunded' and
+  // cannot be spent, so the recipient is not told it is "available again".
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | const reversedCopy = result?.payment_status != null && result.payment_status !== "paid"; | const reversedCopy = false;
+  it("review #4: a restored copy of a reversed gift sends no 'Your gift is back' notice", async () => {
+    seed();
+    reversedGift();
+    cappedClaim();
+    scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
+      const a = (args ?? {}) as { p_dry_run?: boolean };
+      if (a.p_dry_run) return { outcome: "would_restore", credit_id: "gift-1", applied_cents: GIFT, restore_cents: GIFT };
+      return { outcome: "restored", credit_id: "gift-2", recipient_id: "poster-1", applied_cents: GIFT, restore_cents: GIFT, payment_status: "refunded" };
+    };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
+    const h = await load();
+    await h.fetch(cronReq());
+
+    expect(restoreCalls().filter((c) => !c.p_dry_run)).toHaveLength(1);
+    expect(scenario.writes.filter((w) => w.table === "notifications" && (w.payload as { title?: string }).title === "Your gift is back")).toHaveLength(0);
+  });
+
+  it("review #4: a restored copy of a live gift still tells the poster", async () => {
+    seed();
+    cappedClaim();
+    scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
+      const a = (args ?? {}) as { p_dry_run?: boolean };
+      if (a.p_dry_run) return { outcome: "would_restore", credit_id: "gift-1", applied_cents: GIFT, restore_cents: GIFT };
+      return { outcome: "restored", credit_id: "gift-2", recipient_id: "poster-1", applied_cents: GIFT, restore_cents: GIFT - SHORT, payment_status: "paid" };
+    };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
+    const h = await load();
+    await h.fetch(cronReq());
+
+    expect(scenario.writes.filter((w) => w.table === "notifications" && (w.payload as { title?: string }).title === "Your gift is back")).toHaveLength(1);
   });
 });
 

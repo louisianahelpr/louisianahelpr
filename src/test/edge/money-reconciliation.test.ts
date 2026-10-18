@@ -300,10 +300,26 @@ describe("money-reconciliation edge function", () => {
 
       it("a zero fee (the card covered nothing) + the gift given back + no ledger row: no fee finding", async () => {
         const fn = await loadConfigured();
-        cappedJob(0, [{ ...redeemedRefundedGift, id: "gc-new", job_id: null, restored_from_job_id: "job-d", status: "sent", payment_status: "paid" }], []);
+        cappedJob(0, [
+          { ...redeemedRefundedGift, payment_status: "paid" },
+          { ...redeemedRefundedGift, id: "gc-new", parent_credit_id: "gc-cap", job_id: null, restored_from_job_id: "job-d", status: "sent", payment_status: "paid" },
+        ], []);
         const b = await body(await fn.fetch(cronRequest(fn)));
         expect(b.error).toBeUndefined();
         expect(feeChecks(b)).toEqual([]);
+      });
+
+      // Review of 8354ebb0e #2: a replacement gift is every normal partial
+      // restore; only one that gave the gift back WHOLE explains a capped fee.
+      // @mutate supabase/functions/money-reconciliation/index.ts |               (keptOfGift !== null && Math.abs(keptOfGift) <= EPSILON); |               replacement.length > 0;
+      it("a PARTIAL restore (the gift kept part of itself) does not excuse a low fee", async () => {
+        const fn = await loadConfigured();
+        cappedJob(0, [
+          { ...redeemedRefundedGift, payment_status: "paid" },
+          { ...redeemedRefundedGift, id: "gc-new", parent_credit_id: "gc-cap", job_id: null, restored_from_job_id: "job-d", status: "sent", payment_status: "paid", amount: 20 },
+        ], []);
+        const b = await body(await fn.fetch(cronRequest(fn)));
+        expect(feeChecks(b)).toContain("cancellation_fee_mismatch");
       });
 
       it("the same low fee with NO uncollectable gift is still a mismatch", async () => {

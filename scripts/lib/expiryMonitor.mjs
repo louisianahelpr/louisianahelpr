@@ -42,7 +42,9 @@ export function evaluate(item, reading, now, warnDays) {
   if (!reading) return { ...base, status: "UNREADABLE", expiresAt: null, daysLeft: null, detail: "no reader ran" };
   if (reading.noExpiry) return { ...base, status: "NO_EXPIRY", expiresAt: null, daysLeft: null, detail: reading.detail };
   if (!reading.expiresAt) return { ...base, status: "UNREADABLE", expiresAt: null, daysLeft: null, detail: reading.detail || "unreadable here" };
-  const c = classify(reading.expiresAt, now, warnDays);
+  // An item may carry its own warnDays (an auto-renewed registration only alarms
+  // when renewal has not happened by then); otherwise the inventory-wide one.
+  const c = classify(reading.expiresAt, now, item.warnDays ?? warnDays);
   const expiresAt = c.status === "UNREADABLE" ? null : new Date(reading.expiresAt).toISOString();
   return { ...base, ...c, expiresAt, detail: c.status === "UNREADABLE" ? `unparseable date ${JSON.stringify(reading.expiresAt)}` : reading.detail };
 }

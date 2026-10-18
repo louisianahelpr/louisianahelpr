@@ -25,7 +25,8 @@
       "label": "Domain registration louisianahelpr.com",
       "env": [],
       "hosts": [],
-      "sourceOfTruth": "RDAP (IANA bootstrap -> .com registry) event 'expiration'",
+      "sourceOfTruth": "RDAP (IANA bootstrap -> .com registry) event 'expiration'. Registrar Squarespace Domains, AUTO-RENEW ON (owner, 2026-10-18), so it alarms only 7 days out: a registry expiry still that close means the renewal did not go through.",
+      "warnDays": 7,
       "read": { "method": "rdap", "domain": "louisianahelpr.com" },
       "ciReadable": true
     },

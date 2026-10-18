@@ -19,6 +19,8 @@
  */
 // @mutate scripts/lib/expiryMonitor.mjs | return { status: daysLeft <= warnDays ? "DUE" : "OK", daysLeft }; | return { status: "OK", daysLeft };
 // @mutate scripts/lib/expiryMonitor.mjs | if (!reading.expiresAt) return { ...base, status: "UNREADABLE", | if (!reading.expiresAt) return { ...base, status: "OK",
+// @mutate scripts/lib/expiryMonitor.mjs | const c = classify(reading.expiresAt, now, item.warnDays ?? warnDays); | const c = classify(reading.expiresAt, now, warnDays);
+// @mutate scripts/audit/expiry-inventory.json |       "warnDays": 7,\n |
 // @mutate scripts/lib/expiryMonitor.mjs | const blind = ci ? unreadable.filter((r) => r.ciReadable) : []; | const blind = [];
 // @mutate scripts/expiry-check.mjs | for (const r of v.unreadable) { | for (const r of []) {
 // @mutate scripts/lib/expiryMonitor.mjs | const SB_STATUS = { OK: "PASS", DUE: "FAIL", EXPIRED: "FAIL", NO_EXPIRY: "INFO", UNREADABLE: "UNKNOWN" }; | const SB_STATUS = { OK: "PASS", DUE: "PASS", EXPIRED: "FAIL", NO_EXPIRY: "INFO", UNREADABLE: "PASS" };
@@ -93,6 +95,21 @@ describe("(a) a date inside the warn window fails", () => {
     const r = cli([manual("later", "2099-01-01")]);
     expect(r.code).toBe(0);
     expect(r.out).toMatch(/1 items: 1 OK/);
+  });
+});
+
+describe("(a2) an item's own warnDays overrides the inventory's (auto-renewed domain, owner 2026-10-18)", () => {
+  it("evaluate: 20 days out is OK with the item's 7, DUE without it; 5 days out is DUE either way", () => {
+    const autoRenewed = { ...manual("domain", null), warnDays: 7 };
+    const read = (d: number) => ({ expiresAt: inDays(d), detail: "fixture" });
+    expect(evaluate(autoRenewed, read(20), NOW, 30).status).toBe("OK");
+    expect(evaluate(manual("plain", null), read(20), NOW, 30).status).toBe("DUE");
+    expect(evaluate(autoRenewed, read(5), NOW, 30).status).toBe("DUE");
+  });
+
+  it("the live inventory gives the domain registration (auto-renew on) 7 days, and only it", () => {
+    const own = loadInventory(ROOT).items.filter((i) => i.warnDays !== undefined);
+    expect(own.map((i) => [i.id, i.warnDays])).toEqual([["domain-registration", 7]]);
   });
 });
 

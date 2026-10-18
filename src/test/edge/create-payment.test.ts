@@ -624,6 +624,15 @@ describe("create-payment edge function", () => {
         scenario.writeSelectRows.jobs = [{ id: "job-1" }];
         stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_diff", url: "https://checkout.stripe.test/cs_diff" });
       };
+      // The jobs update that records the shortfall checkout (stripe_session_id
+      // cs_diff). Exactly one, so a test never reads another write by accident.
+      const shortfallStamp = () => {
+        const stamps = scenario.writes.filter(
+          (w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>)?.stripe_session_id === "cs_diff",
+        );
+        expect(stamps).toHaveLength(1);
+        return stamps[0].payload as Record<string, unknown>;
+      };
 
       // Q975 race 15: the redeem is told which card checkout this request closed,
       // so a concurrent tap's fresh checkout (any other id) makes it refuse.
@@ -685,8 +694,11 @@ describe("create-payment edge function", () => {
           const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
           expect(params.line_items, `urgent ${urgent}`).toHaveLength(1);
           expect(params.line_items[0].price_data.unit_amount).toBe(diff);
-          const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && "customer_fee_amount" in (w.payload as object))?.payload as Record<string, unknown>;
-          expect(stamp.customer_fee_amount).toBe(0);
+          // The SHORTFALL session's own stamp, not the fee-model stamp that
+          // runs first and also writes customer_fee_amount 0 (a first-match
+          // find read that one, so a wrong shortfall stamp stayed green).
+          const stamp = shortfallStamp();
+          expect(stamp, `urgent ${urgent}`).toHaveProperty("customer_fee_amount", 0);
         }
       });
 
@@ -697,8 +709,9 @@ describe("create-payment edge function", () => {
         await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1" } }));
         const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
         expect(params.line_items).toHaveLength(1);
-        const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && "customer_fee_amount" in (w.payload as object))?.payload as Record<string, unknown>;
-        expect(stamp.customer_fee_amount).toBe(0);
+        // Read the shortfall session's stamp itself: the fee-model stamp
+        // before it also writes customer_fee_amount 0, so it cannot stand in.
+        expect(shortfallStamp()).toHaveProperty("customer_fee_amount", 0);
       });
 
       // @mutate supabase/functions/create-payment/index.ts | ...(saveCardForFuture === true ? { setup_future_usage: "off_session" as const } : {}), | setup_future_usage: "off_session" as const,

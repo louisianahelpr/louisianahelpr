@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261018042506_quote_hire_on_pay_alerts.sql (quotes on
+ * PGlite proof for 20261018155222_quote_hire_on_pay_alerts.sql (quotes on
  * jobs, owner answers 8, 10 and 11 of docs/specs/owner-questions-hub-1015.md).
  *
  *   npx tsx src/test/pglite/quoteHireOnPay.pglite.mjs [--replay] [--before]
@@ -49,7 +49,7 @@ const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const BASE = "20261015091114_job_quotes.sql";
-const THIS = "20261018042506_quote_hire_on_pay_alerts.sql";
+const THIS = "20261018155222_quote_hire_on_pay_alerts.sql";
 // QUOTES2_MIGRATION: a planted-defect copy, for the mutant runs in the report.
 const MIGRATION = readFileSync(process.env.QUOTES2_MIGRATION ?? DIR + THIS, "utf8");
 const REPLAY = process.argv.includes("--replay");

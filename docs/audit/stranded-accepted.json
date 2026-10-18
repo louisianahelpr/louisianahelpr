@@ -2888,19 +2888,19 @@
     {
       "id": "remote:origin/ready/quotes-2",
       "sha": "06c467a0dec65c9274eea5f10adf145936032f73",
-      "reason": "quotes-2 (5 commits), rebased onto main and carried whole by ready/salvage-quotes2-1018 (salvage lane 2026-10-18). Its migration 20261017045002_quote_hire_on_pay_alerts.sql is carried as 20261018042506 on ready/salvage-quotes2-1018; landing this copy after that one would apply the old bodies out of order (no train-J notice carve-out, the old cancel), so it must never land (lh-money-escrow review of 8ef7cd25b, #1).",
+      "reason": "quotes-2 (5 commits), rebased onto main and carried whole by ready/salvage-quotes2-1018 (salvage lane 2026-10-18). Its migration 20261017045002_quote_hire_on_pay_alerts.sql is carried as 20261018155222 on ready/salvage-quotes2-1018; landing this copy after that one would apply the old bodies out of order (no train-J notice carve-out, the old cancel), so it must never land (lh-money-escrow review of 8ef7cd25b, #1).",
       "checked": "2026-10-18 (salvage lane: commit subjects matched one to one against ready/salvage-quotes2-1018)"
     },
     {
       "id": "remote:origin/wip/hub-quotes-2",
       "sha": "957d894a6e5ca8caa8bc449695d3050135875856",
-      "reason": "An earlier push of ready/quotes-2's first 3 commits (same subjects), carried by ready/salvage-quotes2-1018. Its migration 20261017045002_quote_hire_on_pay_alerts.sql is carried as 20261018042506 on ready/salvage-quotes2-1018; landing this copy after that one would apply the old bodies out of order (no train-J notice carve-out, the old cancel), so it must never land (lh-money-escrow review of 8ef7cd25b, #1).",
+      "reason": "An earlier push of ready/quotes-2's first 3 commits (same subjects), carried by ready/salvage-quotes2-1018. Its migration 20261017045002_quote_hire_on_pay_alerts.sql is carried as 20261018155222 on ready/salvage-quotes2-1018; landing this copy after that one would apply the old bodies out of order (no train-J notice carve-out, the old cancel), so it must never land (lh-money-escrow review of 8ef7cd25b, #1).",
       "checked": "2026-10-18 (salvage lane: commit subjects matched one to one against ready/salvage-quotes2-1018)"
     },
     {
       "id": "remote:origin/wip/quotes-2",
       "sha": "294956046504729bce617946e40b44b53ccc83c4",
-      "reason": "The quotes lane's unsquashed history (9 wip commits); squashed into ready/quotes-2's 'paying hires the quoter' and 'agreed-price check' commits and carried by ready/salvage-quotes2-1018 (its Q1883-Q1888 items renumbered Q2116-Q2125). Its migration 20261017045002_quote_hire_on_pay_alerts.sql is carried as 20261018042506 on ready/salvage-quotes2-1018; landing this copy after that one would apply the old bodies out of order (no train-J notice carve-out, the old cancel), so it must never land (lh-money-escrow review of 8ef7cd25b, #1).",
+      "reason": "The quotes lane's unsquashed history (9 wip commits); squashed into ready/quotes-2's 'paying hires the quoter' and 'agreed-price check' commits and carried by ready/salvage-quotes2-1018 (its Q1883-Q1888 items renumbered Q2116-Q2125). Its migration 20261017045002_quote_hire_on_pay_alerts.sql is carried as 20261018155222 on ready/salvage-quotes2-1018; landing this copy after that one would apply the old bodies out of order (no train-J notice carve-out, the old cancel), so it must never land (lh-money-escrow review of 8ef7cd25b, #1).",
       "checked": "2026-10-18 (salvage lane: commit subjects matched one to one against ready/salvage-quotes2-1018)"
     }
   ]

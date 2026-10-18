@@ -29,6 +29,7 @@
 // @mutate scripts/check-performance-advisor.mjs |     if (!(name in counts) && b > 0) out.under.push( |     if (false) out.under.push(
 // @mutate scripts/check-performance-advisor.mjs |     if (seen[c].size === 0 && known.size > 0) { |     if (false) {
 // @mutate scripts/check-performance-advisor.mjs |   if (!m) throw new Error(`an unused_index finding names no index | if (false) throw new Error(`an unused_index finding names no index
+// @mutate scripts/ci/performance-advisor-baseline.json |     "public.shop_strikes.shop_strikes_removed_by_idx" |     "public.shop_strikes.shop_strikes_order_idx"
 // @mutate scripts/ci/performance-advisor-baseline.json |     "public.tips.idx_tips_tipper_id", |     "public.tips.idx_tips_tipper_id", "public.applications.idx_applications_job",
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -197,6 +198,28 @@ function droppedByMigration(names: string[], sqlByFile: [string, string][]): str
   });
 }
 
+/**
+ * Non-unique public indexes that migrations NEWER than the baseline's `measured`
+ * minute create and leave alive, as schema.table.index. Such an index is unused
+ * until traffic first scans it, so the nightly advisor reports it as a NEW
+ * unused_index name: it must be named in the baseline in the same change.
+ */
+function createdSince(sqlByFile: [string, string][], measured: string): string[] {
+  const stamp = measured.replace(/\D/g, "").slice(0, 12);
+  const { index, table } = migrationFate(sqlByFile);
+  const out = new Set<string>();
+  const re = /create\s+index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?"?(\w+)"?\s+on\s+(?:only\s+)?(?:"?(\w+)"?\.)?"?(\w+)"?/gi;
+  for (const [file, raw] of sqlByFile) {
+    if (file.replace(/\D/g, "").slice(0, 12) <= stamp) continue;
+    for (const m of blankSqlComments(raw).matchAll(re)) {
+      const [, i, schema = "public", t] = m;
+      if (schema.toLowerCase() !== "public" || index.get(i) === "dead" || table.get(t) === "dead") continue;
+      out.add(`public.${t}.${i}`);
+    }
+  }
+  return [...out].sort();
+}
+
 describe("unused_index baseline loses a name in the same change a migration drops it (exact, both ways)", () => {
   const dir = join(REPO, "supabase/migrations");
   const migrations = (): [string, string][] =>
@@ -223,5 +246,26 @@ describe("unused_index baseline loses a name in the same change a migration drop
     // Inventory floor: the parser sees the repo's real index history.
     expect([...index.values()].filter((v) => v === "dead").length).toBeGreaterThan(10);
     expect(droppedByMigration(b.unused_index, all)).toEqual([]);
+  });
+
+  it("createdSince reads only newer files, non-unique public indexes still alive", () => {
+    const sql: [string, string][] = [
+      ["20261001000000_a.sql", "CREATE INDEX old_idx ON public.t(x);"],
+      ["20261020000000_b.sql", "CREATE INDEX IF NOT EXISTS new_idx ON public.t (y); CREATE UNIQUE INDEX u_idx ON public.t(z); CREATE INDEX p_idx ON private.t(z); CREATE INDEX gone_idx ON t(w); -- CREATE INDEX c_idx ON t(v);"],
+      ["20261021000000_c.sql", "DROP INDEX IF EXISTS public.gone_idx;"],
+    ];
+    expect(createdSince(sql, "2026-10-18T21:13Z")).toEqual(["public.t.new_idx"]);
+  });
+
+  it("every non-unique index a migration newer than `measured` creates is named in unused_index (nightly-red #3154)", async () => {
+    const all = migrations();
+    const b = (await load()).loadBaseline();
+    // Inventory floor: the parser reads the repo's index creations (all of history).
+    expect(createdSince(all, "2000-01-01T00:00Z").length).toBeGreaterThan(100);
+    const missing = createdSince(all, b.measured).filter((k) => !b.unused_index.includes(k));
+    // Fix: add each name to "unused_index" in scripts/ci/performance-advisor-baseline.json
+    // (it is unused until traffic scans it). Removing a line the nightly says left
+    // the set? Re-measure and move "measured" to the minute you read the advisor.
+    expect(missing).toEqual([]);
   });
 });

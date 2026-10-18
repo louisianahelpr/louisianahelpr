@@ -108,11 +108,14 @@ describe("/analytics quiet 11px text meets WCAG AA on the white panel", () => {
   it("reproduces the failures axe reported, proving the measurement is right", () => {
     // axe: 3.35 / 4.10 / 4.46 for 0.55 / 0.62 / 0.65 (#8c8d85, #7d7e76, #77786f
     // on #ffffff). Within 0.02 confirms this calculator agrees with axe-core.
-    expect(ratioOver(fg, 0.55, WHITE)).toBeCloseTo(3.36, 1);
-    expect(ratioOver(fg, 0.62, WHITE)).toBeCloseTo(4.1, 1);
-    expect(ratioOver(fg, 0.65, WHITE)).toBeCloseTo(4.46, 1);
+    // axe measured the 2026-09 token (`64 16% 16%`, #2E2F22); the Warm Modern
+    // palette (2026-10-17) replaced it, so this calibration pins that colour.
+    const axeEra = hslToRgb(64, 0.16, 0.16);
+    expect(ratioOver(axeEra, 0.55, WHITE)).toBeCloseTo(3.36, 1);
+    expect(ratioOver(axeEra, 0.62, WHITE)).toBeCloseTo(4.1, 1);
+    expect(ratioOver(axeEra, 0.65, WHITE)).toBeCloseTo(4.46, 1);
     // …and every one of them is under the bar.
-    for (const a of [0.55, 0.62, 0.65]) expect(ratioOver(fg, a, WHITE)).toBeLessThan(AA_NORMAL);
+    for (const a of [0.55, 0.62, 0.65]) expect(ratioOver(axeEra, a, WHITE)).toBeLessThan(AA_NORMAL);
   });
 
   it("every quiet 11px line in every analytics panel now passes", () => {
@@ -146,6 +149,6 @@ describe("/analytics quiet 11px text meets WCAG AA on the white panel", () => {
  * file's job is to stop the specific numbers regressing between axe runs. */
 
 // The token itself: darkening/lightening --olivewood moves every composite.
-// @mutate src/index.css | --olivewood:    64 16% 16% | --olivewood:    64 16% 46%
+// @mutate src/index.css | --olivewood:    145.7 10.8% 12.7% | --olivewood:    145.7 10.8% 52.7%
 // A single panel re-lightened to the exact alpha axe failed on in 2026-09.
 // @mutate src/components/analytics/NotEnoughYet.tsx | hsl(var(--olivewood) / 0.7) | hsl(var(--olivewood) / 0.55)

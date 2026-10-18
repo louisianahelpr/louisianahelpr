@@ -15,13 +15,14 @@
  * the resolver fails until it is removed from its list (slices 2-3 of the plan
  * drive both to empty).
  *
- * @mutate supabase/functions/declutter-card/index.ts | const customerId = await resolveStripeCustomer(admin, stripe, user, mode); | const customerId = (await stripe.customers.create({ email: user.email ?? undefined })).id;
+ * @mutate supabase/functions/declutter-card/index.ts | const customerId = await resolveStripeCustomer(admin, stripe, user, mode, { adoptTagged: true }); | const customerId = (await stripe.customers.create({ email: user.email ?? undefined })).id;
  * @mutate supabase/functions/declutter-checkout/index.ts | customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; | customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id;
  * @mutate supabase/functions/shop-checkout/index.ts | customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; | customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id;
  * @mutate supabase/functions/_shared/stripeCustomer.ts | .eq("wallet_mode", mode) | .eq("user_id", userId)
  * @mutate supabase/migrations/20261018090700_one_wallet_stripe_customers.sql | LANGUAGE plpgsql\nSECURITY INVOKER | LANGUAGE plpgsql\nSECURITY DEFINER
  * @mutate supabase/migrations/20261018090700_one_wallet_stripe_customers.sql | GRANT SELECT, INSERT, DELETE ON TABLE public.stripe_customers TO service_role; | GRANT ALL ON TABLE public.stripe_customers TO service_role;
- * @mutate supabase/functions/pro-customer-portal/index.ts |     let customerId: string \| null = null; |     let customerId: string \| null = customers.data[0]?.id ?? null;
+ * @mutate supabase/functions/_shared/stripeCustomer.ts | query: `metadata['supabase_user_id']:'${userId}'` | query: `email:'${userId}'`
+ * @mutate supabase/functions/pro-customer-portal/index.ts |     let customerId: string \| null = null; |     let customerId: string \| null = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id ?? null;
  * @mutate supabase/functions/pro-customer-portal/index.ts |     const portalSession = await stripe.billingPortal.sessions.create({ |     await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: "pm_x" } });\n    const portalSession = await stripe.billingPortal.sessions.create({
  * @mutate supabase/migrations/20261018160108_declutter_card_notice_one_wallet.sql | 'Your card is saved. It is charged only when you buy, or automatically where you turned on automatic charges.' | 'Your card is saved for Declutter. It is never charged until you check out and pay.'
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | <p>Your card is charged only when you buy, or automatically where you turned on automatic charges (like auto-tip).</p> | <p>Your card is never charged until you check out and pay.</p>
@@ -35,19 +36,21 @@ import { readdirSync, trackedFiles } from "./helpers/trackedFiles";
 const REPO = resolve(__dirname, "../..");
 const RESOLVER = "supabase/functions/_shared/stripeCustomer.ts";
 
-/** Functions that still mint a Stripe customer themselves (plan slice 3 moves create-payment). */
+/** Functions that still mint a Stripe customer themselves (create-payment moved onto the wallet in Q2139). */
 // @two-way src/test/oneWalletStripeCustomer.test.ts:stale baseline entry ${f} — remove it (lower the baseline)
-const LEGACY_CUSTOMER_CREATE = ["supabase/functions/create-payment/index.ts"];
+const LEGACY_CUSTOMER_CREATE: string[] = [];
 
 /**
  * Edge functions that set a Stripe customer's DEFAULT card (invoice_settings.default_payment_method).
  * That default is the off-session consent auto-tip charges (Q2138), so only the wallet save-card
- * path may set it in our code (Q2139 adds it here). Exact, both directions. Outside our code, the
+ * path may set it in our code: _walletDefaultCard.ts, called by BOTH save paths (Jobs' "save card for
+ * next time" and Declutter's card page; the most recently saved card in any section wins, owner
+ * 2026-10-18, Q2139). Exact, both directions. Outside our code, the
  * Stripe Billing Portal can set it too when a member's Pro subscription sits on their wallet
  * customer: the member choosing their own wallet card (one wallet card everywhere, owner 2026-10-18).
  */
 // @two-way src/test/oneWalletStripeCustomer.test.ts:stale default-card setter ${f} — remove it (lower the baseline)
-const DEFAULT_CARD_SETTERS: string[] = [];
+const DEFAULT_CARD_SETTERS = ["supabase/functions/stripe-webhook/handlers/_walletDefaultCard.ts"];
 
 /** Functions that still find a customer BY EMAIL (plan slice 3; auto-tip left in slice 0, Q2138). */
 // @two-way src/test/oneWalletStripeCustomer.test.ts:stale baseline entry ${f} — remove it (lower the baseline)
@@ -56,10 +59,8 @@ const LEGACY_EMAIL_LOOKUP = [
   "supabase/functions/create-bgc-payment/index.ts",
   "supabase/functions/create-boost-payment/index.ts",
   "supabase/functions/create-gift-card-checkout/index.ts",
-  "supabase/functions/create-payment/index.ts",
   "supabase/functions/create-pro-checkout/index.ts",
   "supabase/functions/pay-onboarding-fee/index.ts",
-  "supabase/functions/pro-customer-portal/index.ts",
 ];
 
 const edgeFiles = (readdirSync(join(REPO, "supabase/functions"), { recursive: true }) as string[])
@@ -75,8 +76,11 @@ describe("one wallet: a member's Stripe customer comes from ONE place", () => {
   });
 
   const creates = (f: string) => /\bcustomers\s*\.\s*create\s*\(/.test(code(f));
+  // A search counts as a lookup unless its query is the exact supabase_user_id metadata tag (Q2139 adoption).
+  const searchNotByTag = (src: string) => [...src.matchAll(/\bcustomers\s*\.\s*search\s*\??\.?\s*\(([^;]*)/g)]
+    .some((m) => !/^\s*\{\s*query:\s*`metadata\['supabase_user_id'\]:'\$\{userId\}'`/.test(m[1]));
   const emailLookup = (f: string) => /\bcustomers\s*\.\s*(list|search)\s*\(\s*\{[^}]*\bemail\b/.test(code(f))
-    || /\bcustomers\s*\.\s*search\s*\(/.test(code(f));
+    || searchNotByTag(code(f));
 
   it("only the resolver (and the exact legacy list) creates Stripe customers", () => {
     const creators = edgeFiles.filter((f) => f !== RESOLVER && creates(f));
@@ -96,7 +100,10 @@ describe("one wallet: a member's Stripe customer comes from ONE place", () => {
 
   it("the resolver never looks a customer up by email and reads by member AND mode", () => {
     const src = code(RESOLVER);
-    expect(src).not.toMatch(/customers\s*\.\s*(list|search)/);
+    expect(src).not.toMatch(/customers\s*\.\s*list/);
+    // Adoption (Q2139) searches only by the exact supabase_user_id tag and re-checks it on every result.
+    expect(searchNotByTag(src)).toBe(false);
+    expect(src).toMatch(/c\.metadata\?\.supabase_user_id === userId/);
     expect(src).toMatch(/\.from\("stripe_customers"\)[\s\S]*?\.eq\("user_id", userId\)\s*\.eq\("wallet_mode", mode\)/);
     expect(src).toMatch(/admin\.rpc\("claim_stripe_customer"/);
     // A read error throws (fail closed), never falls through to creating a second customer.
@@ -114,7 +121,7 @@ describe("one wallet: a member's Stripe customer comes from ONE place", () => {
 
   it("Declutter's card page and checkout use the wallet, not their own customer", () => {
     const card = code("supabase/functions/declutter-card/index.ts");
-    expect(card).toMatch(/resolveStripeCustomer\(admin, stripe, user, mode\)/);
+    expect(card).toMatch(/resolveStripeCustomer\(admin, stripe, user, mode, \{ adoptTagged: true \}\)/);
     expect(card).not.toMatch(/declutter_buyer_cards/);
     const checkout = code("supabase/functions/declutter-checkout/index.ts");
     expect(checkout).toMatch(/storedStripeCustomer\(admin, user\.id, mode\)/);
@@ -161,6 +168,9 @@ describe("one wallet: a member's Stripe customer comes from ONE place", () => {
     expect(portalOpeners).toEqual(["supabase/functions/pro-customer-portal/index.ts"]);
     const portal = code(portalOpeners[0]);
     expect(portal).not.toMatch(/customers\.data\[0\]/);
+    // Q2142: the customer the member's subscription names, read by user id; never by email.
+    expect(portal).not.toMatch(/customers\s*\.\s*(list|search)\s*\(/);
+    expect(portal).toMatch(/\.select\("stripe_customer_id"\)\s*\.eq\("user_id", user\.id\)/);
     expect(portal).toMatch(/let customerId: string \| null = null;/);
     expect(portal).toMatch(/if \(!customerId\) \{[\s\S]{0,200}?status: 404/);
   });

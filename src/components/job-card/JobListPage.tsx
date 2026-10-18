@@ -14,6 +14,7 @@ import { useActivityData } from "@/hooks/useActivityData";
 import { ActivityDialogs } from "@/components/job-card/ActivityDialogs";
 import { ActivityOfferDialogs } from "@/components/job-card/ActivityOfferDialogs";
 import { RecurringVisitPayments } from "@/pages/posts/postedJobs/RecurringVisitPayments";
+import { PendingBankPayments } from "@/pages/posts/postedJobs/PendingBankPayments";
 import { type Tab } from "@/components/job-card/activityConstants";
 
 // Tab content is lazy-split so the initial Activity chunk only contains the
@@ -559,6 +560,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                 on an empty "Needs you" never saw it. Renders nothing when no
                 visit waits. */}
             {tab === "posted" && user && <RecurringVisitPayments userId={user.id} className="mx-4 mt-3" />}
+            {/* A job whose bank payment is on its way is not a post (no
+                bucket, no count), so with nothing else posted this branch is
+                the one its poster lands on (owner, 2026-10-17). */}
+            {tab === "posted" && <PendingBankPayments jobs={postedJobs} className="mx-4 mt-3" />}
             {/* Empty state — a liquid-glass card that fills the panel and
                 bleeds beneath the dock (flat bottom, no hard edge), matching
                 the Dashboard / Messages empty-state pattern. */}
@@ -591,6 +596,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               className="min-h-full flex flex-col"
               style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))" }}
             >
+          {/* Jobs waiting for the poster's bank payment: shown, never bucketed. */}
+          {tab === "posted" && <PendingBankPayments jobs={postedJobs} className="mb-3" />}
           {tab === "posted" && (
             /* `space-y-list` (12px, Q213a), which is what PostedJobsTab and the grouped
                ActivitySectionedView both use. It said `space-y-2.5` — 10px

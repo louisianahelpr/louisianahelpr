@@ -65,7 +65,9 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 2026-10-14 (proof3 lane, re-applying the proof2 batch): Q654 goes back to [ ] (about 26 KB gz of ~140 KiB came off; the rest is unbuilt code work), so it leaves the list.
 // 2026-10-17 (lander, deadline train): Q1895 (reds lane, hidden unread thread) is built and waits on a green prod-audit /messages run and the bar-to-list gap decision.
 // 2026-10-17 (lander, batch1): Q1787 (sec-c, turnover title) is built and waits on a live look at a seeded turnover after deploy (prod has 0 str_processed_events rows).
+// 2026-10-18 (salvage of ready/train-big-1016): Q2093 (robot analytics tagging, built) waits on its deploy.
 const MARKERLESS_PARTLY_DONE: Record<string, string> = {
+  Q2093: "after deploy: the live tag_automated_analytics_event, its trigger and analytics_events_real read back (pg_get_functiondef, pg_class ACL) and a day of robot events tagged; no marker kind reads a deployed migration's effect on new rows",
   Q44: "closes when Vacuity's push runs on main are green for a whole day; no marker kind reads a workflow's run history over a window",
   Q52: "area 1 waits on a full vacuity sweep that finishes and reports the e2e registrations conclusively; no marker kind reads a vacuity report's verdicts",
   Q71: "marker removed by the lead 2026-10-03; what is left is the owner's VoiceOver pass on a device each release",

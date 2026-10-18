@@ -108,6 +108,14 @@ const DashboardRouteSkeleton = () => (
             <span className="dashboard-title-bell h-11 w-11 flex items-center justify-center">
               <Skeleton className="h-10 w-10 rounded-full" />
             </span>
+            {/* Messages + you (SectionHeaderActions after the bell, design
+                slice 2): two more 44px boxes on phone, so the cluster does not
+                widen when the bar lands. On web-desktop the real pair is not
+                drawn here (the top bar carries it), hence the bell's class. */}
+            <span className="dashboard-title-bell flex items-center gap-1.5">
+              <Skeleton className="h-11 w-11 rounded-full" />
+              <Skeleton className="h-8 w-8 m-1.5 rounded-full" />
+            </span>
           </div>
         </div>
       }

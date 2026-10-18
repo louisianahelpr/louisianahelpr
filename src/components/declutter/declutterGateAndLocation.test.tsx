@@ -61,6 +61,9 @@ vi.mock("@/components/AppPage", () => ({
 vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchHasAgreedSales: async () => false,
+  // The Buying / Selling badges (DeclutterHome reads them with the tab row).
+  fetchMyCart: async () => [],
+  fetchMyOffers: async () => [],
   fetchLiveItems: async () => live.items,
   fetchMyItems: async () => [],
   fetchPhotos: async () => [],

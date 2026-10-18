@@ -274,6 +274,46 @@ export const SHOPS_RPC_ERROR_COPY = {
     shop_strikes_blocked: SC.shop_strikes_blocked,
     under_18: SC.under_18,
   },
+  // M2 (20261018184113): the handover and the shop's handover choice.
+  shops_set_handover_mode: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_handover_mode: SC.invalid_handover_mode,
+    not_authenticated: SC.not_authenticated,
+    payout_setup_incomplete: SC.payout_setup_incomplete,
+    shop_not_found: SC.shop_not_found,
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    under_18: SC.under_18,
+  },
+  shops_mark_ready: {
+    account_restricted: SC.account_restricted,
+    not_authenticated: SC.not_authenticated,
+    order_not_charged_yet: SC.order_not_charged_yet,
+    order_not_found: SC.order_not_found,
+    photo_not_uploaded: SC.photo_not_uploaded,
+  },
+  shops_confirm_pickup: {
+    account_restricted: SC.account_restricted,
+    not_authenticated: SC.not_authenticated,
+    order_not_charged_yet: SC.order_not_charged_yet,
+    order_not_found: SC.order_not_found,
+    problem_open: SC.problem_open,
+  },
+  shops_mark_picked_up: {
+    account_restricted: SC.account_restricted,
+    not_authenticated: SC.not_authenticated,
+    not_in_person: SC.not_in_person,
+    order_not_charged_yet: SC.order_not_charged_yet,
+    order_not_found: SC.order_not_found,
+    problem_open: SC.problem_open,
+  },
+  shops_report_not_received: {
+    account_restricted: SC.account_restricted,
+    invalid_note: SC.invalid_problem_note,
+    not_authenticated: SC.not_authenticated,
+    order_not_found: SC.order_not_found,
+    order_not_open: SC.report_not_open,
+  },
 } as const;
 
 export type ShopsRpc = keyof typeof SHOPS_RPC_ERROR_COPY;

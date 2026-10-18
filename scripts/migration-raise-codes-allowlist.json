@@ -24,6 +24,12 @@
       "function": "public.mark_helper_arrival",
       "code": "arrival_location_invalid",
       "reason": "Same 2026-09-19 reversal. Out-of-range coordinates still prove nothing and still withhold helper_arrival_verified_at; they no longer refuse the claim. Returned as basis='location_invalid'."
+    },
+    {
+      "migration": "20261018183715_declutter_handover_no_qr_no_code.sql",
+      "function": "public.declutter_confirm_handover",
+      "code": "not_booked_yet",
+      "reason": "Only the removed seller-typed 4-digit code path raised it (it read the handover row the booking creates, to compare the code). The owner removed the code (2026-10-18: porch pickup, no code); the buyer's \"I got it\" never required a booking before or after this migration."
     }
   ]
 }

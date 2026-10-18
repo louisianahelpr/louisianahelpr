@@ -194,7 +194,7 @@ async function settleOrder(
       `You paid ${dollars(amount)} for your Declutter order. The money is held until you have your items; then the seller is paid. ${
         parties?.handover === "delivery"
           // Slice 5 (lh-money-escrow #8): a delivery order has no pickup to make.
-          ? "Next: a Helpr picks your items up from the seller and brings them to you. Your 4-digit drop-off code is in the app."
+          ? "Next: a Helpr picks your items up from the seller and leaves them at your door with a photo. Tap \"I got it\" in the app when you have them."
           : "Next: pick up your items at the time you chose."}`);
     return;
   }

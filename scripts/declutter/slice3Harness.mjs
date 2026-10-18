@@ -30,6 +30,8 @@ export const PRICE_CAP_FILE = "20261014230342_declutter_price_cap_1000.sql";
 export const FEE_F1_FILE = "20261015023613_declutter_buyer_fee_f1.sql";
 /** Slice 4 handover + payout, applied after F1 by `extra`. */
 export const SLICE4_FILE = "20261015042253_declutter_slice4_handover_payout.sql";
+/** No QR handover (owner 2026-10-17): the 4-digit code only; applied after slice 4. */
+export const NO_QR_FILE = "20261018183715_declutter_handover_no_qr_no_code.sql";
 const LOADED_BY_HAND = [SLICE1_FILE, SLICE2_FILE, SLICE3_FILE, SLICE3B_FILE, PRICE_CAP_FILE, FEE_F1_FILE, SLICE4_FILE].map((f) => f.slice(0, 14));
 
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */

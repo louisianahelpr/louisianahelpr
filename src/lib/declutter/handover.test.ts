@@ -69,9 +69,9 @@ import {
   adminDecideProblem,
   bookPickup,
   confirmHandover,
+  sellerPickedUp,
   fetchItemAddress,
   fetchMyBookings,
-  fetchMyHandover,
   fetchMyPayouts,
   fetchOpenProblemsForAdmin,
   leaveReview,
@@ -144,11 +144,11 @@ describe("writes send exactly the SQL's parameters", () => {
     h.queue.push(ok(null));
     await setPorchTime("o1", "until", "2026-10-20T18:00:00Z");
 
-    h.queue.push(ok({ order_id: "o1", side: "buyer", code: "1234" }));
-    expect(await fetchMyHandover("o1")).toMatchObject({ code: "1234" });
+    h.queue.push(ok({ result: "handed_over", payout_id: "p9", by: "buyer" }));
+    expect(await confirmHandover("o1")).toEqual({ result: "handed_over", payout_id: "p9", by: "buyer" });
 
-    h.queue.push(ok({ result: "wrong_code", attempts_left: 2 }));
-    expect(await confirmHandover("o1", "code", "9999")).toEqual({ result: "wrong_code", attempts_left: 2 });
+    h.queue.push(ok({ result: "handed_over", payout_id: "p8", by: "seller" }));
+    expect(await sellerPickedUp("o1", null)).toEqual({ result: "handed_over", payout_id: "p8", by: "seller" });
 
     h.queue.push(ok({ result: "picked_up", paid: true }));
     expect(await porchPhoto("o1", "u1/declutter/handover/o1/a.jpg", { lat: 30, lng: -92 })).toEqual({ result: "picked_up", paid: true });
@@ -171,8 +171,8 @@ describe("writes send exactly the SQL's parameters", () => {
     expect(h.rpcs).toEqual([
       ["declutter_book_pickup", { p_order_id: "o1", p_slot_start: "2026-10-20T15:00:00Z" }],
       ["declutter_set_porch_time", { p_order_id: "o1", p_mode: "until", p_until: "2026-10-20T18:00:00Z" }],
-      ["declutter_my_handover", { p_order_id: "o1" }],
-      ["declutter_confirm_handover", { p_order_id: "o1", p_method: "code", p_code: "9999" }],
+      ["declutter_confirm_handover", { p_order_id: "o1", p_method: "buyer", p_code: null }],
+      ["declutter_seller_picked_up", { p_order_id: "o1", p_photo_path: null }],
       ["declutter_porch_photo", { p_order_id: "o1", p_photo_path: "u1/declutter/handover/o1/a.jpg", p_lat: 30, p_lng: -92 }],
       ["declutter_porch_photo", { p_order_id: "o1", p_photo_path: "u1/declutter/handover/o1/b.jpg", p_lat: null, p_lng: null }],
       ["declutter_report_no_show", { p_order_id: "o1" }],
@@ -183,8 +183,8 @@ describe("writes send exactly the SQL's parameters", () => {
   });
 
   it("a refusal is thrown, never swallowed, and carries a userMessage", async () => {
-    h.queue.push(refused("not_booked_yet"));
-    const err = await confirmHandover("o1", "code", "0000").catch((e: unknown) => e);
+    h.queue.push(refused("order_not_paid"));
+    const err = await confirmHandover("o1").catch((e: unknown) => e);
     expect(err).toBeInstanceOf(Error);
     expect(typeof (err as { userMessage?: unknown }).userMessage).toBe("string");
     expect((err as { userMessage: string }).userMessage.length).toBeGreaterThan(0);

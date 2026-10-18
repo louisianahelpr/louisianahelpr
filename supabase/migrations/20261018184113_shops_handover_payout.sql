@@ -531,12 +531,12 @@ BEGIN
   -- Open: a charged order not handed over yet, from its ready date (or the
   -- shop's ready tap); or for 24 hours after the SHOP's own "Picked up" tap,
   -- while its payout still waits (reviews of 819e55ce3).
-  IF NOT (
+  IF (
        (o.status = 'accepted' AND o.captured_at IS NOT NULL
         AND (public.shop_local_today() >= o.ready_date OR h.ready_at IS NOT NULL))
     OR (o.status = 'handed_over' AND h.confirmed_how = 'shop' AND o.handed_over_at > now() - interval '24 hours'
         AND EXISTS (SELECT 1 FROM public.shop_payouts p WHERE p.order_id = o.id AND p.status IN ('pending', 'failed', 'nothing_due')))
-  ) THEN
+  ) IS NOT TRUE THEN
     RAISE EXCEPTION 'order_not_open' USING ERRCODE = '55000',
       HINT = 'Only a paid order that is due and not picked up can be reported here.';
   END IF;

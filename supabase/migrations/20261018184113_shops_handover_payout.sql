@@ -329,12 +329,14 @@ BEGIN
    WHERE id = o.id AND status = 'accepted';
   -- The seller's card-fee debt (Declutter and Shops share one ledger) comes out first.
   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' || o.id::text, o.items_cents);
-  -- After the shop's own tap the payout waits 24 hours: the buyer can still
-  -- say "I didn't get it" (shops_report_not_received), which holds it.
+  -- After the shop's own tap the payout waits 24 hours 15 minutes: the buyer can
+  -- still say "I didn't get it" for 24 hours (shops_report_not_received), which
+  -- holds it; the 15 minutes clear a report racing the money cron's read
+  -- (re-reviews of 4395cd1b9).
   INSERT INTO public.shop_payouts (order_id, items_cents, debt_cents, amount_cents, status, next_attempt_at)
   VALUES (o.id, o.items_cents, v_debt, o.items_cents - v_debt,
           CASE WHEN o.items_cents - v_debt = 0 THEN 'nothing_due' ELSE 'pending' END,
-          CASE WHEN p_how = 'shop' THEN now() + interval '24 hours' ELSE now() END)
+          CASE WHEN p_how = 'shop' THEN now() + interval '24 hours 15 minutes' ELSE now() END)
   ON CONFLICT (order_id) DO NOTHING
   RETURNING id INTO v_payout;
   PERFORM public.declutter_notify(o.seller_id, 'payment', 'Order picked up',
@@ -598,7 +600,8 @@ GRANT EXECUTE ON FUNCTION public.shop_handover_sweep() TO service_role;
 -- ---------------------------------------------------------------------------
 -- 6. The payout queue (service only). The shop's payout account is read off
 --    the order's seller; a problem reported before the handover (only an admin
---    can then hand it over) still holds the money.
+--    can then hand it over) or within a day after the shop's own "Picked up"
+--    tap (M3 decides it, Q2148) still holds the money.
 CREATE OR REPLACE FUNCTION public.shop_payouts_due(p_limit integer)
 RETURNS TABLE (payout_id uuid, order_id uuid, buyer_id uuid, seller_id uuid, amount_cents integer,
                stripe_account_id text, payment_intent_id text, livemode boolean, checkout_session_id text, attempts integer)

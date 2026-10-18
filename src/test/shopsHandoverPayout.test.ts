@@ -23,7 +23,7 @@
 // @mutate supabase/migrations/20261018184113_shops_handover_payout.sql |   VALUES (o.id, o.items_cents, v_debt, o.items_cents - v_debt, |   VALUES (o.id, o.total_cents, v_debt, o.total_cents - v_debt,
 // @mutate supabase/migrations/20261018184113_shops_handover_payout.sql |   IF p_how <> 'admin' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN |   IF false THEN
 // @mutate supabase/migrations/20261018184113_shops_handover_payout.sql |   IF p_how = 'shop' AND public.shop_local_today() < o.ready_date THEN |   IF false THEN
-// @mutate supabase/migrations/20261018184113_shops_handover_payout.sql |           CASE WHEN p_how = 'shop' THEN now() + interval '24 hours' ELSE now() END) |           now())
+// @mutate supabase/migrations/20261018184113_shops_handover_payout.sql |           CASE WHEN p_how = 'shop' THEN now() + interval '24 hours 15 minutes' ELSE now() END) |           now())
 // @mutate supabase/migrations/20261018184113_shops_handover_payout.sql | CREATE OR REPLACE FUNCTION public.shops_confirm_pickup(p_order_id uuid)\nRETURNS jsonb\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_uid uuid := (SELECT auth.uid());\n  o public.shop_orders;\nBEGIN\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF; | CREATE OR REPLACE FUNCTION public.shops_confirm_pickup(p_order_id uuid)\nRETURNS jsonb\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_uid uuid := (SELECT auth.uid());\n  o public.shop_orders;\nBEGIN\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -95,7 +95,7 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
   it("6. the shop's own \"Picked up\" waits for the ready date, and its payout waits 24 hours for the buyer (reviews of 819e55ce3)", () => {
     const done = body("shop_complete_handover");
     expect(done).toMatch(/IF\s+p_how\s*=\s*'shop'\s+AND\s+public\.shop_local_today\(\)\s*<\s*o\.ready_date\s+THEN\s+RAISE\s+EXCEPTION\s+'before_ready_date'/i);
-    expect(done).toMatch(/CASE\s+WHEN\s+p_how\s*=\s*'shop'\s+THEN\s+now\(\)\s*\+\s*interval\s+'24 hours'\s+ELSE\s+now\(\)\s+END\)/i);
+    expect(done).toMatch(/CASE\s+WHEN\s+p_how\s*=\s*'shop'\s+THEN\s+now\(\)\s*\+\s*interval\s+'24 hours 15 minutes'\s+ELSE\s+now\(\)\s+END\)/i);
     const report = body("shops_report_not_received");
     expect(report).toMatch(/h\.confirmed_how\s*=\s*'shop'\s+AND\s+o\.handed_over_at\s*>\s*now\(\)\s*-\s*interval\s+'24 hours'/i);
     expect(report).toMatch(/ur\.role\s*=\s*'admin'/i);

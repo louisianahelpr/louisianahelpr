@@ -75,6 +75,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_in_agreed_sale',      'allow',    'TRUE = this member is a side of an agreed sale (in a cart or paid) on this item: may read its pickup details (20261015042253)'),
   ('declutter_slot_in_windows',     'allow',    'TRUE = a 30-minute pickup slot at this time fits one of this seller''s windows: the booking is valid (20261015042253)'),
   ('declutter_handover_photo_access', 'allow',  'TRUE = the caller may write (own folder, paid order) or read (a party or an admin) this declutter-handover object (20261017055502)'),
+  ('shop_handover_photo_access',    'allow',    'TRUE = the caller may write (the shop, own folder, charged accepted order) or read (a party or an admin) this shop-handover object (20261018184113)'),
   ('declutter_refund_set_mode',     'action',   'VOLATILE: records a Declutter refund''s Stripe mode once and returns it (service only; 20261015042253)'),
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
   ('declutter_set_porch_ok',        'action',   'VOLATILE: the seller sets porch pickup on their own draft and gets the stored value back; a NULL choice raises invalid_porch_choice (row 101; 20261017055504)'),
@@ -199,6 +200,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('declutter_slot_in_windows',     NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''2026-10-19 20:00:00+00''::timestamptz'], ARRAY[1,2]),
   -- D is an admin, so reading a well-formed declutter-handover path is TRUE for D (no order row needed).
   ('declutter_handover_photo_access', '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/declutter/handover/00000000-0000-4000-8140-000000000401/x.jpg''', 'false'], ARRAY[1,2]),
+  -- D is an admin, so reading a well-formed shop-handover path is TRUE for D (no order row needed).
+  ('shop_handover_photo_access',    '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/shops/handover/00000000-0000-4000-8140-000000000401/x.jpg''', 'false'], ARRAY[1,2]),
   -- Slice 5 (the 'delivery' fixture step): O is B's paid delivery order from seller A, whose windows cover
   -- every day 09:00-18:00 Louisiana time, so tomorrow 10:00 there is a valid pickup time.
   ('declutter_delivery_slot_ok',    NULL, ARRAY['''00000000-0000-4000-8140-000000000501''::uuid', '((((now() AT TIME ZONE ''America/Chicago'')::date + 1) + time ''10:00'') AT TIME ZONE ''America/Chicago'')'], ARRAY[1,2]),

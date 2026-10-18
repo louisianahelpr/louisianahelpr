@@ -9,6 +9,16 @@ const VIEWS = [
   { path: "/jobs", label: "My jobs" },
 ] as const;
 
+/* FITS AT EVERY WIDTH (design slice 2, measured at 320). The three views and
+   the '+ Post' pill need ~333px at the roomy padding, so below 400px the views
+   tighten to px-2 (one line down to ~360px), and below that the row WRAPS:
+   the views keep the first line and '+ Post' drops to a second, right
+   aligned. Nothing scrolls out of sight (it used to show "M" of "My jobs" at
+   320). The skeleton uses the same three constants, so nothing moves (Q169). */
+const BAR_ROW = "flex flex-wrap items-center justify-end gap-x-2 gap-y-1.5";
+const VIEWS_ROW = "flex min-w-0 flex-auto items-center gap-1 overflow-x-auto";
+const VIEW_PAD = "px-3 max-[399px]:px-2";
+
 /**
  * JOBS & POSTS' section strip (owner, 2026-10-18, G2: a Browse | Mine switch in
  * every section; NO '+' in the bottom bar, a labeled '+ Post' pill in the
@@ -24,8 +34,8 @@ export function JobsPostsBar() {
   // Q1586(c): a saved birthday under 18 greys Post out; a tap says why.
   const { gate, gatedProps } = useAgeGate();
   return (
-    <div className="flex items-center gap-2" data-testid="jobs-posts-bar">
-      <nav aria-label="Jobs & Posts" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+    <div className={BAR_ROW} data-testid="jobs-posts-bar">
+      <nav aria-label="Jobs & Posts" className={VIEWS_ROW}>
         {VIEWS.map((v) => {
           const on = location.pathname === v.path;
           return (
@@ -35,7 +45,7 @@ export function JobsPostsBar() {
               aria-current={on ? "page" : undefined}
               onClick={() => (on ? undefined : navigate(v.path))}
               onMouseEnter={() => prefetchRoute(v.path)}
-              className="min-h-11 shrink-0 rounded-full px-3 text-ds-14 whitespace-nowrap ctl-tint"
+              className={`min-h-11 shrink-0 rounded-full ${VIEW_PAD} text-ds-14 whitespace-nowrap ctl-tint`}
               style={{
                 fontWeight: on ? 700 : 500,
                 color: on ? "hsl(var(--brand-ink))" : "hsl(var(--ink-deep))",
@@ -70,14 +80,14 @@ export function JobsPostsBar() {
  */
 export function JobsPostsBarSkeleton({ current }: { current: (typeof VIEWS)[number]["path"] }) {
   return (
-    <div className="flex items-center gap-2" data-testid="jobs-posts-bar-skeleton" aria-hidden>
-      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+    <div className={BAR_ROW} data-testid="jobs-posts-bar-skeleton" aria-hidden>
+      <div className={VIEWS_ROW}>
         {VIEWS.map((v) => {
           const on = v.path === current;
           return (
             <span
               key={v.path}
-              className="inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-ds-14 whitespace-nowrap"
+              className={`inline-flex min-h-11 shrink-0 items-center rounded-full ${VIEW_PAD} text-ds-14 whitespace-nowrap`}
               style={{
                 fontWeight: on ? 700 : 500,
                 color: on ? "hsl(var(--brand-ink))" : "hsl(var(--ink-deep))",

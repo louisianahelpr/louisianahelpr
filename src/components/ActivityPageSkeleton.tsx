@@ -83,7 +83,11 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
           list into one cluster). It used to be one 128px bar alone in a 44px
           box: a single leaf standing in for a two-part row, "0 placeholder
           rows -> 2 real" on customer /jobs in run 36158775025. */}
+      {/* + the Messages + you pair (PostsHeader/JobsHeader `personal`), with
+          the loaded row's own wrapping box, so the row lands without moving. */}
+      <div className="flex flex-wrap items-center justify-end gap-x-1 gap-y-1">
       <ScreenHeaderRow
+        className="flex-auto gap-2"
         title={tab === "posted" ? "My Posts" : "My Jobs"}
         decorativeTitle
         actions={
@@ -97,6 +101,11 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
           </>
         }
       />
+      <div className="shrink-0 -mr-1.5 flex items-center gap-1.5">
+        <Skeleton className="h-11 w-11 rounded-full" />
+        <Skeleton className="h-8 w-8 m-1.5 rounded-full" />
+      </div>
+      </div>
       {!isWebDesktop && tabRowOpens && (
         // The real scroller's box, class for class (`-mx-5 px-5 … pb-0.5`), so
         // the reserved line cannot drift from the line it reserves.

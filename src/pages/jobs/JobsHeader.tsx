@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 import { COMPACT_HEADER_ROW_MIN_HEIGHT, ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
@@ -63,6 +63,12 @@ export interface JobsHeaderProps {
   setSearchOpen: (open: boolean) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  /** Phone only: the section header's Messages + you pair
+   *  (SectionHeaderActions, owner 2026-10-18 G1/G3), after the chevron. It is
+   *  its own wrapping item: on a phone too narrow for the title, two controls
+   *  and the pair (below ~375px) it drops to a second line, right aligned,
+   *  instead of truncating the title or clipping the avatar. */
+  personal?: ReactNode;
 }
 
 /** The filter My Jobs opens on. Read from the same function JobListPage
@@ -81,6 +87,7 @@ export function JobsHeader({
   setSearchOpen,
   searchQuery,
   setSearchQuery,
+  personal,
 }: JobsHeaderProps) {
   /* The tab set drops the catch-all "All" (owner: it spent a tab on a
      duplicate of Active). Which tab opens selected is the page's call
@@ -364,12 +371,14 @@ export function JobsHeader({
           }}
         />
       ) : (
-        /* Normal mode — title + action buttons. */
+        /* Normal mode — title + action buttons (+ the personal pair, which
+           wraps under them on a narrow phone; see `personal`). */
+        <div className={personal ? "flex flex-wrap items-center justify-end gap-x-1 gap-y-1" : "contents"}>
         <ScreenHeaderRow
           title={TITLE}
           titleSrOnly={titleSrOnly}
           style={inlineFilters ? { minHeight: COMPACT_HEADER_ROW_MIN_HEIGHT } : undefined}
-          className={inlineFilters ? "[&>div:first-child]:!py-0" : undefined}
+          className={inlineFilters ? "[&>div:first-child]:!py-0" : personal ? "flex-auto gap-2" : undefined}
           /* The desktop tabs sit to the RIGHT of the name, in the row's `meta`
              slot — the same shape Messages uses for "1 unread". They carry the
              same id as the phone row below; only ONE of the two ever renders
@@ -419,6 +428,10 @@ export function JobsHeader({
             </>
           }
         />
+        {/* -mr-1.5: the avatar's 32px disc sits 6px inside its 44px box, so
+            this puts the disc (not the box) on the card's content edge. */}
+        {personal && <div className="shrink-0 -mr-1.5">{personal}</div>}
+        </div>
       )}
 
       {/* PHONE: the same tabs, on their own line under the title row. Rendered

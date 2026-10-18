@@ -152,8 +152,13 @@ export function DashboardTitleBar({
     // phone, which is not a search field.
     return <div className="flex items-center gap-2">{searchBar}</div>;
   }
+  // With the Messages + you pair the row is FOUR-to-six 44px controls, which
+  // fits from ~330px up; below that the pair WRAPS onto a second line, right
+  // aligned, rather than clipping the avatar off the card (320, design slice
+  // 2). The emblem's `mr-auto` holds the rest to the right on one line.
+  const wrapPersonal = !trailing && !!personal;
   return (
-    <div className="flex items-center justify-between gap-1 sm:gap-2">
+    <div className={wrapPersonal ? "flex flex-wrap items-center justify-end gap-x-1.5 gap-y-1 sm:gap-x-2" : "flex items-center justify-between gap-1 sm:gap-2"}>
       {/* `dashboard-title-emblem` is hidden on web-desktop by index.css — the
           new full-bleed DashboardHeader above the title card now carries the
           emblem there, so showing it here too would say "Helpr" twice in one
@@ -179,7 +184,7 @@ export function DashboardTitleBar({
         to={emblemTo}
         size="sm"
         emblemOnly
-        className={`shrink-0 ${trailing ? "" : "dashboard-title-emblem"}`}
+        className={`shrink-0 ${trailing ? "" : "dashboard-title-emblem"}${wrapPersonal ? " mr-auto" : ""}`}
       />
       {/* The negative margin pulls a trailing ICON button's own inner padding
           back to the card's optical edge, so the bell lines up with the content
@@ -191,7 +196,7 @@ export function DashboardTitleBar({
           reclaims 8px — small, but this row is decided by single-digit
           margins: at 375 the actions overran the card by 16px and the bell,
           being last, was the part that fell off the edge. */}
-      <div ref={actionsRef} className={`flex items-center gap-1.5 sm:gap-2 shrink-0${trailing ? "" : " -mr-2"}`}>
+      <div ref={actionsRef} className={`flex items-center gap-1.5 sm:gap-2 shrink-0${trailing || wrapPersonal ? "" : " -mr-2"}`}>
         {status}
         {actions}
         {/* Only the DEFAULT bell (no custom `trailing` passed) is hidden on
@@ -206,11 +211,12 @@ export function DashboardTitleBar({
             <NotificationPanel triggerClassName="h-11 w-11" />
           </span>
         )}
-        {/* After the bell: Messages (this section's inbox) and you, the same
-            spot as every section header (owner 2026-10-18: no Messages or
-            Profile tab). The signed-in feed only, never the guest pair. */}
-        {!trailing && personal}
       </div>
+      {/* After the bell: Messages (this section's inbox) and you, the same
+          spot as every section header (owner 2026-10-18: no Messages or
+          Profile tab). The signed-in feed only, never the guest pair. Its own
+          flex item so it is what wraps on a narrow phone. */}
+      {wrapPersonal && personal}
     </div>
   );
 }

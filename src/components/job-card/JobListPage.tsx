@@ -6,6 +6,7 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { JobsPostsBar } from "@/components/mobileNav/JobsPostsBar";
+import { SectionHeaderActions } from "@/components/mobileNav/SectionHeaderActions";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 import { ActivityPageSkeleton } from "@/components/ActivityPageSkeleton";
@@ -507,6 +508,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       setSearchOpen={setSearchOpen}
       searchQuery={searchQuery}
       setSearchQuery={setSearchQuery}
+      // Jobs & Posts' section header carries Messages + you on phone, the
+      // same pair as the Browse feed's title bar (owner 2026-10-18 G1/G3).
+      // The desktop website's top bar carries them there.
+      personal={isWebDesktop ? undefined : <SectionHeaderActions section="jobs" post={null} />}
     />
   );
 

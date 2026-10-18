@@ -53,7 +53,7 @@ const DashboardRouteSkeleton = () => (
       panelElevation="raised"
       beforePanel={<JobsPostsBarSkeleton current="/home" />}
       titleCard={
-        <div className="flex items-center justify-between gap-1 sm:gap-2" aria-hidden>
+        <div className="flex flex-wrap items-center justify-end gap-x-1.5 gap-y-1 sm:gap-x-2" aria-hidden>
           {/* MIRRORS DashboardTitleBar's emblem PROP FOR PROP, because three
               ways of not doing so were measured on prod 2026-09-22 (1440,
               throttled, signed in) as a visible header rearrangement between
@@ -78,21 +78,21 @@ const DashboardRouteSkeleton = () => (
             to={null}
             emblemOnly
             size="sm"
-            className="shrink-0 dashboard-title-emblem"
+            className="shrink-0 dashboard-title-emblem mr-auto"
           />
           {/* THREE controls, not one. The real row (DashboardTitleBar +
               BrowseTasksActions) ends in search · filters · bell — two
               `h-10 w-10` ghost buttons and one `size="icon"` Button, which is
               `h-14 w-14` (button.tsx:106) — inside a `gap-1.5 sm:gap-2
-              shrink-0 -mr-2` cluster. This skeleton stood ONE 44px circle
+              shrink-0` cluster. This skeleton stood ONE 44px circle
               there, so at 375/slow-3G the header visibly rearranged when the
               real bar landed (~17.3s cold): the emblem stayed put and the
               trailing cluster jumped from 44px wide to 148px.
-              Geometry mirrored exactly — same gaps, same `-mr-2`, same three
+              Geometry mirrored exactly — same gaps, same three
               box widths. The bell bone is drawn at 40px inside its 56px box
               because 56px of solid fill would read as a button that isn't
               there; the RESERVATION is what has to match, and it does. */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 -mr-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* 44px, not the buttons' declared `h-10 w-10`: index.css's
                 `:where(button…)` floor (min-height/min-width 44px, every
                 pointer) renders those two buttons 44x44. Measured on prod
@@ -108,15 +108,16 @@ const DashboardRouteSkeleton = () => (
             <span className="dashboard-title-bell h-11 w-11 flex items-center justify-center">
               <Skeleton className="h-10 w-10 rounded-full" />
             </span>
-            {/* Messages + you (SectionHeaderActions after the bell, design
-                slice 2): two more 44px boxes on phone, so the cluster does not
-                widen when the bar lands. On web-desktop the real pair is not
-                drawn here (the top bar carries it), hence the bell's class. */}
-            <span className="dashboard-title-bell flex items-center gap-1.5">
-              <Skeleton className="h-11 w-11 rounded-full" />
-              <Skeleton className="h-8 w-8 m-1.5 rounded-full" />
-            </span>
           </div>
+          {/* Messages + you (SectionHeaderActions after the bell, design
+              slice 2): two more 44px boxes on phone, as the bar's OWN wrapping
+              item (it drops to a second line below ~330px), so nothing moves
+              when the bar lands. On web-desktop the real pair is not drawn
+              here (the top bar carries it), hence the bell's class. */}
+          <span className="dashboard-title-bell flex items-center gap-1.5 shrink-0">
+            <Skeleton className="h-11 w-11 rounded-full" />
+            <Skeleton className="h-8 w-8 m-1.5 rounded-full" />
+          </span>
         </div>
       }
       titleCardClassName={TITLE_BAR_PADDING}

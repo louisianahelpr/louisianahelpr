@@ -119,7 +119,7 @@ function MessagesButton({ inbox, label, unreadCount = 0 }: { inbox: string; labe
 /**
  * Home and Jobs & Posts only: every thread today is about a job
  * (inboxForSection), so only these two carry the unread count. Declutter,
- * Shops and Homes have no threads yet (Q2132), so their headers never open the
+ * Shops and Homes have no threads yet (Q2135), so their headers never open the
  * unread store's realtime channel at all: a section page renders its header
  * without the messaging layer underneath it.
  */

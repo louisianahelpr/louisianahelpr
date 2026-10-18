@@ -7,6 +7,7 @@ import {
   refundToPayerCents as uiRefund,
   cardCostFeeCents as uiCardCostFee,
   crewFeeShareReturnCents as uiCrew,
+  posterCancelKeptFeeCents as uiPosterCancelKept,
 } from "./refundAmount";
 // The edge module has zero imports, so vitest loads it directly. This is the
 // guard that keeps the admin console's previews and the refunds Stripe is sent
@@ -15,8 +16,10 @@ import {
   refundToPayerCents as edgeRefund,
   cardCostFeeCents as edgeCardCostFee,
   crewFeeShareReturnCents as edgeCrew,
+  posterCancelKeptFeeCents as edgePosterCancelKept,
 } from "../../supabase/functions/_shared/refundAmount";
 import { stripeProcessingCostCents } from "./stripeFees";
+import { isFlatFeeJob } from "./helprFlatFee";
 
 describe("refund amount: never absorb a fee (owner, 2026-10-14)", () => {
   it("b108a7ae-style admin full refund: a $26.06 charge returns $25.00, the $1.06 card fee is kept", () => {
@@ -60,6 +63,33 @@ describe("refund amount: never absorb a fee (owner, 2026-10-14)", () => {
     expect(edgeCrew({ customerFeeCents: 1200, actualFeeCents: 900, proRataCents: 600 })).toBe(300);
   });
 
+  // Jobs poster fee (Q2082 slice 4; owner-approved wording 2026-10-18: "the
+  // poster gets back what they paid (tax included) less the card-processing
+  // cost"): a poster's own cancel of a poster-fee job keeps only Stripe's real
+  // fee, never the whole 5% + 70c; every other job keeps the fee it was paid.
+  // @mutate supabase/functions/_shared/refundAmount.ts |   if (stamp != null && stamp !== "") return 0; |   if (stamp != null && stamp !== "") return cents(Math.round(Number(job?.customer_fee_amount ?? 0) * 100));
+  it("a poster's cancel of a poster-fee job keeps the card cost only: $105.70 paid, $102.33 back", () => {
+    const P = { customer_fee_amount: 5.7, poster_fee_flat_cents: 70, platform_fee_percent: 5 };
+    expect(edgePosterCancelKept(P)).toBe(0);
+    expect(edgePosterCancelKept({ ...P, poster_fee_flat_cents: "70" })).toBe(0);
+    const captured = 10_570;
+    const r = edgeRefund({ capturedCents: captured, actualFeeCents: stripeProcessingCostCents(captured), customerFeeCents: edgePosterCancelKept(P) });
+    expect(r.feeKeptCents).toBe(337); // 2.9% of $105.70 + $0.30
+    expect(r.refundCents).toBe(10_233);
+    // Pay in 4: Stripe's real (higher) fee is what is kept, not the 9% + 70c.
+    expect(edgeRefund({ capturedCents: 10_970, actualFeeCents: 687, customerFeeCents: edgePosterCancelKept({ ...P, platform_fee_percent: 9, customer_fee_amount: 9.7 }) }).refundCents).toBe(10_970 - 687);
+    // A legacy or flat job keeps the fee its poster paid, as before.
+    expect(edgePosterCancelKept({ customer_fee_amount: 12, platform_fee_percent: 12 })).toBe(1200);
+    expect(edgePosterCancelKept({ customer_fee_amount: 0, platform_fee_percent: 0, poster_fee_flat_cents: null })).toBe(0);
+    expect(edgePosterCancelKept({ customer_fee_amount: "1.06" })).toBe(106);
+    expect(edgePosterCancelKept(null)).toBe(0);
+    // The cancel dialog and its toast (CancellationDialog flatModel,
+    // cancelRefundToast) say "refunded less card fee" on a job isFlatFeeJob
+    // calls flat; a poster-fee job (Helpr stamp 0) reads that copy, which is
+    // now what the server does.
+    expect(isFlatFeeJob({ helper_fee_flat_cents: 0 })).toBe(true);
+  });
+
   it("UI mirror and edge module agree on a grid", () => {
     let n = 0;
     for (const capturedCents of [0, 100, 2606, 11200, 50_000]) {
@@ -82,6 +112,15 @@ describe("refund amount: never absorb a fee (owner, 2026-10-14)", () => {
     }
     for (const job of [{ customer_fee_amount: 1.06, platform_fee_percent: 0 }, { customer_fee_amount: 12, platform_fee_percent: 12 }, null, {}]) {
       expect(uiCardCostFee(job)).toBe(edgeCardCostFee(job));
+      n++;
+    }
+    for (const job of [
+      { customer_fee_amount: 5.7, poster_fee_flat_cents: 70, platform_fee_percent: 5 },
+      { customer_fee_amount: 9.7, poster_fee_flat_cents: "70", platform_fee_percent: 9 },
+      { customer_fee_amount: 12, platform_fee_percent: 12, poster_fee_flat_cents: null },
+      { customer_fee_amount: "1.06", poster_fee_flat_cents: "" }, null, {},
+    ]) {
+      expect(uiPosterCancelKept(job)).toBe(edgePosterCancelKept(job));
       n++;
     }
     expect(n).toBeGreaterThan(700);

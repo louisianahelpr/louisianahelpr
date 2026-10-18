@@ -15,7 +15,7 @@ import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, flatFeePercentOf } from "
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { POSTER_SERVICE_FEE_PERCENT, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
-import { cardCostFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { cardCostFeeCents, posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";
 import { jobFlatFeeTotalCents } from "../_shared/crewShares.ts";
 import { POSTER_JOB_FEE_CENTS, POSTER_JOB_FEE_DESCRIPTION } from "../_shared/posterJobFee.ts";
@@ -2385,7 +2385,10 @@ serve(async (req) => {
           // money to fees regardless of payment method — cards, Klarna/Affirm/
           // Afterpay, and ACH all carry different real rates.
           const capturedCents = pi.amount_received ?? pi.amount;
-          const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
+          // A poster-fee job keeps no service fee, only Stripe's real fee
+          // (posterCancelKeptFeeCents, Q2082 slice 4); any other job keeps
+          // the fee its poster paid.
+          const serviceFeeCents = posterCancelKeptFeeCents(job);
           // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept on a
           // cancel ("paid and done": never refunded, never charged again).
           const setupFeeCents = setupFeeKeptCents(job);

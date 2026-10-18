@@ -442,3 +442,38 @@ describe("void-cancelled-payments — a fee owed across Stripe modes goes back t
     expect(refundParams.amount).toBe(15000);
   });
 });
+
+// Jobs poster fee, slice 4 (Q2082; owner-approved wording 2026-10-18: "the
+// poster gets back what they paid (tax included) less the card-processing
+// cost, any cancellation fee owed to the Helpr"): the sweep keeps Stripe's
+// card cost on a poster-fee job, never the whole 5% + 70c. The stamp is served
+// ONLY to a sweep read that names poster_fee_flat_cents (the mock ignores
+// select lists), so a select that drops it goes red too.
+// @mutate supabase/functions/void-cancelled-payments/index.ts |           const serviceFeeCents = posterCancelKeptFeeCents(job); |           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
+// @mutate supabase/functions/void-cancelled-payments/index.ts | helper_fee_flat_cents, poster_fee_flat_cents, is_group_job | helper_fee_flat_cents, is_group_job
+describe("void-cancelled-payments — a poster-fee job keeps the card cost only (Q2082 slice 4)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+  });
+
+  it("a late-cancelled $300 poster-fee job: $315.70 less the $9.46 card cost and the $150 Helpr fee comes back", async () => {
+    seed();
+    const P = {
+      ...cancelledJob(), customer_fee_amount: 15.7, poster_fee_flat_cents: 70, platform_fee_percent: 5,
+      helper_fee_percent: 0, helper_fee_flat_cents: 0,
+    };
+    scenario.reads.jobs!.selectOverrides!.unshift({ includes: "poster_fee_flat_cents", result: { rows: [P] } });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", amount: 31_570, amount_received: 31_570, latest_charge: "ch_1",
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    const refundParams = stripeMock.refunds.create.mock.calls[0][0] as { amount?: number };
+    // 2.9% of $315.70 + $0.30 = $9.46 kept, $150 to the Helpr: 31570 - 946 - 15000.
+    expect(refundParams.amount).toBe(15_624);
+  });
+});

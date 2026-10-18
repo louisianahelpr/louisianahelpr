@@ -214,6 +214,14 @@ const EXEMPT: Record<string, string> = {
   // user_id + wallet_mode) and read on the client of that same mode, so a test customer never meets the
   // live key; a missing one (resource_missing) is handled as deleted (Q2140), anything else retries.
   "auto-tip-charge/index.ts::stripe.customers.retrieve(customerId)": "the poster's stored wallet customer, keyed by the job's mode and read on that mode's client; minted after the live switch",
+  // Shops M1 (20261017225605): a Shops order's own hold, read on the client of the mode the order recorded
+  // (shopOrderMode: payment_livemode / the page's cs_test_ prefix, else its parties). No Shops order predates the
+  // 2026-09-27 live switch (prod had no shop_orders table, 2026-10-18); a failed read is a capture or release attempt
+  // that the money cron retries.
+  "_shared/shopHolds.ts::stripe.paymentIntents.retrieve(paymentIntentId)": "a Shops order's own hold after capture (its charge and fee), on the order's recorded mode; minted after the live switch",
+  "_shared/shopHolds.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2": "a Shops order's own hold, re-read when a capture is refused, on the order's recorded mode; minted after the live switch",
+  "_shared/shopHolds.ts::stripe.paymentIntents.retrieve(piId)": "a Shops order's own hold before it is cancelled, on the order's recorded mode; minted after the live switch",
+  "stripe-webhook/handlers/shopCheckout.ts::stripe.paymentIntents.retrieve(piId)": "the completed session's own PaymentIntent, from the event, on the event's mode",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(intent.id)": FRESH,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)": OUTER,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)#2": OUTER,

@@ -21,20 +21,16 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { fetchMyShopId } from "@/lib/shops/api";
 import {
   acceptOrder,
-  CANCEL_POLICIES,
-  CANCEL_POLICY_TEXT,
   declineOrder,
-  fetchCancelPolicy,
   fetchShopOrders,
   formatCents,
-  setCancelPolicy,
   timeLeftText,
-  type CancelPolicy,
   type ShopOrder,
 } from "@/lib/shops/orders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
 import { ShopOrderCard } from "./ShopOrderCard";
+import CancelPolicyPicker from "./ShopCancelPolicyPicker";
 
 const REASON_MAX = 200;
 
@@ -46,52 +42,6 @@ function useMinuteTick(): number {
     return () => window.clearInterval(t);
   }, []);
   return now;
-}
-
-function CancelPolicyPicker({ shopId }: { shopId: string }) {
-  const qc = useQueryClient();
-  const policy = useQuery({ queryKey: ["shops", "cancel-policy", shopId], queryFn: () => fetchCancelPolicy(shopId) });
-  const save = useMutation({
-    mutationFn: (p: CancelPolicy) => setCancelPolicy(p),
-    onSuccess: () => {
-      toast.success("Cancel rule saved. New orders use it.");
-      void qc.invalidateQueries({ queryKey: ["shops", "cancel-policy", shopId] });
-    },
-    onError: (err) => toast.error(shopsErrorMessage(err)),
-  });
-  return (
-    <section className="space-y-2" aria-labelledby="shop-cancel-rule">
-      <h2 id="shop-cancel-rule" className="text-sm font-semibold">Your cancel rule</h2>
-      <p className="text-xs text-muted-foreground">Buyers read it before they pay. Orders already placed keep the rule they were placed under.</p>
-      {policy.isLoading ? (
-        <Skeleton className="h-24 w-full rounded-2xl" />
-      ) : policy.isError ? (
-        <ErrorState variant="inline" title="We couldn't load your cancel rule." body={shopsErrorMessage(policy.error)} onRetry={() => void policy.refetch()} />
-      ) : (
-        <div className="space-y-2" role="group" aria-label="Cancel rule">
-          {CANCEL_POLICIES.map((p) => {
-            const on = policy.data === p;
-            return (
-              <Button
-                key={p}
-                type="button"
-                variant={on ? "default" : "outline"}
-                className={`${on ? "btn-grad-primary " : ""}h-auto w-full justify-start whitespace-normal py-2 text-left`}
-                aria-pressed={on}
-                disabled={save.isPending}
-                onClick={() => { if (!on) save.mutate(p); }}
-              >
-                <span className="block">
-                  <span className="block text-sm font-semibold">{CANCEL_POLICY_TEXT[p].label}</span>
-                  <span className="block text-xs font-normal">{CANCEL_POLICY_TEXT[p].detail}</span>
-                </span>
-              </Button>
-            );
-          })}
-        </div>
-      )}
-    </section>
-  );
 }
 
 export default function ShopDashboardView() {
@@ -247,7 +197,7 @@ export default function ShopDashboardView() {
           e.preventDefault();
           if (accepting) accept.mutate(accepting.id);
         }}
-        secondaryLabel="Not yet"
+        secondaryLabel="Cancel"
       />
       <BrandConfirmDialog
         open={!!declining}

@@ -94,6 +94,8 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   order_expired: "The 24 hours to accept this order have passed, so it dropped. Nothing was charged.",
   order_accepted: "The shop already accepted this order, so its cancel policy applies.",
   buyer_unavailable: "This order can't be accepted any more. Decline it so the buyer's card hold is released.",
+  // Q345: a block between the two since the order was sent (never says who blocked).
+  applicant_blocked: "This order can't be accepted any more. Decline it so the buyer's card hold is released.",
   invalid_cancel_policy: "Pick one of the three cancel policies.",
   invalid_reason: "Keep the reason under 200 characters.",
   shop_has_open_orders: "Finish or decline your open orders before closing your shop.",

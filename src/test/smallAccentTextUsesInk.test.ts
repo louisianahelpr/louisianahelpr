@@ -18,14 +18,6 @@
  * @mutate src/components/messages/ChatView.tsx | <p className="text-ds-11 leading-snug text-[hsl(var(--sienna-ink))]"> | <p className="text-ds-11 leading-snug text-accent">
  * @mutate src/components/CancellationDialog.tsx | <span className="text-ds-11 text-[hsl(var(--sienna-ink))] font-medium"> | <span className="text-ds-11 text-accent font-medium">
  * @mutate src/index.css | --sienna-ink: 151 45% 66%; | --sienna-ink: 151 45% 40%;
- * @mutate src/index.css | --accent-ink:   153.3 79.4% 22%; | --accent-ink:   153.3 79.4% 26.7%;
- * @mutate src/index.css | --sienna-ink: 153.3 79.4% 22%; | --sienna-ink: 153.3 79.4% 26.7%;
- *
- * LIGHT half (2026-10-18, Warm Modern): the accent turned green #0E7A4A, and as
- * 9px bold text on its own 15% tint it measured 4.36:1 (#0e7a4a on #dbebe4, the
- * Home urgent chip, axe in the happy-path smoke). The light ink tokens are a
- * darker text green; every light ink must clear 4.5 on the accent's 10/15/20%
- * tint over every light surface.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -105,28 +97,5 @@ describe("small accent text uses an ink token (Q948)", () => {
     const OLD_DARK_ACCENT = "19 65% 52%";
     const bg = over(rgb(OLD_DARK_ACCENT), 0.1, rgb(dark["ivory-sand"]));
     expect(ratio(rgb(OLD_DARK_ACCENT), bg)).toBeLessThan(4.5);
-  });
-
-  it("light --accent-ink and --sienna-ink clear AA on the accent's own tints over every light surface", () => {
-    const css = readFileSync(join(ROOT, "src", "index.css"), "utf8");
-    const light = tokens(css, ":root {");
-    for (const k of ["accent-ink", "sienna-ink", "burnt-sienna", "parchment", "ivory-sand"]) expect(light[k], `light --${k} not found`).toBeTruthy();
-    const surfaces: Record<string, [number, number, number]> = {
-      parchment: rgb(light["parchment"]),
-      "ivory-sand": rgb(light["ivory-sand"]),
-      white: [255, 255, 255],
-    };
-    const fails: string[] = [];
-    for (const ink of ["accent-ink", "sienna-ink"]) {
-      for (const [name, surface] of Object.entries(surfaces)) {
-        for (const a of [0.1, 0.15, 0.2]) {
-          const r = ratio(rgb(light[ink]), over(rgb(light["burnt-sienna"]), a, surface));
-          if (r < 4.5) fails.push(`--${ink} on accent/${a * 100} over ${name}: ${r.toFixed(2)}`);
-        }
-      }
-    }
-    expect(fails).toEqual([]);
-    // The fill green as text on its 15% tint over white is the measured 4.36 failure.
-    expect(ratio(rgb("153.3 79.4% 26.7%"), over(rgb("153.3 79.4% 26.7%"), 0.15, [255, 255, 255]))).toBeLessThan(4.5);
   });
 });

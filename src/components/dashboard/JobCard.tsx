@@ -488,9 +488,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   // --accent-ink, not --accent: 9px bold label text on the
                   // accent's own 15% tint. Raw --accent measured 3.75:1 in
                   // dark mode (#d46735 on #382b27, device-pass /home
-                  // 375-dark + 1440-dark), under the 4.5 AA bar. Light mode's
-                  // --accent-ink is the darker text green (#0B6440) since
-                  // 2026-10-18: #0E7A4A here measured 4.36:1 on #dbebe4.
+                  // 375-dark + 1440-dark), under the 4.5 AA bar. Light mode
+                  // is unchanged — the two tokens are byte-identical there.
                   color: "hsl(var(--accent-ink))",
                   background: "hsl(var(--accent) / 0.15)",
                   borderColor: "hsl(var(--accent) / 0.5)",

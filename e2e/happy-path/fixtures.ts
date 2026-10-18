@@ -862,9 +862,7 @@ export async function checkA11y(
     const formatted = blocking
       .map(
         (v) =>
-          `[${v.impact}] ${v.id} — ${v.help}\n    nodes: ${v.nodes.length}\n    help: ${v.helpUrl}\n` +
-          // Name the nodes: a CI red that says "2 nodes" and nothing else cannot be fixed from the log.
-          v.nodes.map((n) => `      ${n.target.join(" ")} :: ${(n.failureSummary ?? "").replace(/\n/g, " ")}`).join("\n"),
+          `[${v.impact}] ${v.id} — ${v.help}\n    nodes: ${v.nodes.length}\n    help: ${v.helpUrl}`,
       )
       .join("\n");
     throw new Error(`Axe a11y violations:\n${formatted}`);

@@ -14,7 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useFeature } from "@/hooks/useFeature";
-import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
+import { useSectionTabs, comingSoonLabel, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { POST_FAB_STYLE } from "@/components/mobileNav/postFabStyle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
@@ -112,7 +112,9 @@ const DesktopSidebarNav = () => {
   const quotesOn = useFeature("quotes");
   const navItems = [
     ...NAV_ITEMS.slice(0, 4),
-    ...sectionTabs.map(({ path, icon, label }) => ({ path, icon, label })),
+    // A section switched off for this viewer is listed GREYED and says
+    // "coming soon" instead of navigating (owner, 2026-10-18).
+    ...sectionTabs.map(({ path, icon, label, on }) => ({ path, icon, label, comingSoon: !on })),
     ...(quotesOn ? [{ path: "/quotes", icon: FileText, label: "Quotes" }] : []),
     ...NAV_ITEMS.slice(4),
   ];
@@ -263,16 +265,21 @@ const DesktopSidebarNav = () => {
           `overflow-y-auto` never has anything to scroll — the list just grows
           past the bottom of the panel instead. */}
       <ul className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-3 py-2">
-        {navItems.map(({ path, icon: Icon, label, badgeKey }) => {
-          const active = isActive(path);
-          const count = badgeFor(badgeKey);
+        {navItems.map((item) => {
+          const { path, icon: Icon, label } = item;
+          const badgeKey = "badgeKey" in item ? item.badgeKey : undefined;
+          const soon = "comingSoon" in item && !!item.comingSoon;
+          const active = !soon && isActive(path);
+          const count = soon ? 0 : badgeFor(badgeKey);
           return (
             <li key={path}>
               <button
-                onClick={() => navigate(path)}
-                onMouseEnter={() => prefetchRoute(path)}
+                onClick={() => (soon ? sayComingSoon(label) : navigate(path))}
+                onMouseEnter={() => !soon && prefetchRoute(path)}
                 aria-current={active ? "page" : undefined}
-                className="group relative flex w-full items-center gap-3 rounded-ds-md px-3 py-2.5 text-left transition-colors"
+                aria-disabled={soon ? true : undefined}
+                aria-label={soon ? comingSoonLabel(label) : undefined}
+                className={`group relative flex w-full items-center gap-3 rounded-ds-md px-3 py-2.5 text-left transition-colors${soon ? " opacity-50 cursor-not-allowed" : ""}`}
                 style={{
                   background: active ? "hsl(var(--bark) / 0.08)" : "transparent",
                   color: active ? "hsl(var(--bark))" : "hsl(var(--ink-deep))",
@@ -302,6 +309,11 @@ const DesktopSidebarNav = () => {
                 >
                   {label}
                 </span>
+                {soon && (
+                  <span aria-hidden className="ml-auto font-sans text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
+                    Soon
+                  </span>
+                )}
               </button>
             </li>
           );

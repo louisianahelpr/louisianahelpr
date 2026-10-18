@@ -30,7 +30,7 @@ import {
   tabStacks,
   jobsAndPostsItem,
 } from "@/components/mobileNav/mobileNavHelpers";
-import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
+import { useSectionTabs, comingSoonLabel, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
@@ -76,13 +76,13 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // badges (new applicants on your posts; pending direct offers to you).
   // Count-only queries — deliberately not the heavy useActivityData hook.
   const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
-  // The section tabs (owner, 2026-10-18, option 1A). While at least one is on
-  // for this viewer the dock is Home, Jobs & Posts, then the sections, and
-  // Messages + Profile move to Home's top row (DashboardTitleBar). With none
-  // on, the dock is the five tabs it always was: nothing a viewer has would
-  // disappear from it with nothing taking its place.
+  // The section tabs (owner, 2026-10-18, option 1A). A signed-in member's
+  // dock is Home, Jobs & Posts, then Declutter, Shops and Homes, and Messages
+  // + Profile sit on Home's top row (HomeTopPair). A section whose switch is
+  // off for them is GREYED and says "coming soon" instead of navigating
+  // (owner, 2026-10-18). Guests keep the five-tab dock, which locks for them.
   const sectionTabs = useSectionTabs();
-  const sectionDock = !isGuest && sectionTabs.length > 0;
+  const sectionDock = !isGuest;
   // Signed-out visitors get no bottom dock (below), so nothing should reserve
   // space for one. This class zeroes `--bottom-nav-h`, which feeds Tailwind's
   // `safe-nav` token — collapsing the ~112px strip on all 22 `pb-safe-nav`
@@ -405,7 +405,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     setGateOpen(true);
   };
 
-  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "posts" | "jobs" | "jobsAndPosts" }) => {
+  const renderItem = ({ path, icon: Icon, label, badgeKey, comingSoon }: { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "posts" | "jobs" | "jobsAndPosts"; comingSoon?: boolean }) => {
+    // A switched-off section: shown, muted, aria-disabled, never navigates.
+    const soon = !!comingSoon && !isGuest;
     // Guest-mode tab remap: Home -> /browse (the read-only home dashboard
     // that mirrors the real /home), Profile -> /login. Other tabs stay
     // visually present but show a lock + open the signup sheet.
@@ -441,6 +443,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     const showBadge = badgeCount > 0;
 
     const handleClick = () => {
+      if (soon) {
+        sayComingSoon(label);
+        return;
+      }
       // Swallow the trailing click a completed long-press's touchend
       // produces — see the comment on `justLongPressedRef` above.
       if ((path === "/posts" || path === "/messages") && justLongPressedRef.current) {
@@ -480,10 +486,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     // A section tab is lit anywhere inside its section; the one Jobs & Posts
     // tab is lit on both lists.
     const isActive =
-      active ||
+      !soon && (active ||
       inStack ||
       (sectionDock && sectionTabs.some((t) => t.path === path) && location.pathname.startsWith(`${path}/`)) ||
-      (badgeKey === "jobsAndPosts" && location.pathname === "/posts");
+      (badgeKey === "jobsAndPosts" && location.pathname === "/posts"));
     // Long-press quick menus only wire up for Posts and Messages, and only
     // for a real signed-in account — guests never navigate has-status
     // filters or conversations. handleClick above already double-checks
@@ -499,10 +505,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       <TabButton
         key={path}
         onTap={handleClick}
-        onPrefetch={() => !locked && prefetchRoute(effectivePath)}
-        ariaLabel={locked ? `${label} — locked until your account is approved` : label}
+        onPrefetch={() => !locked && !soon && prefetchRoute(effectivePath)}
+        ariaLabel={soon ? comingSoonLabel(label) : locked ? `${label} — locked until your account is approved` : label}
         ariaCurrent={isActive ? "page" : undefined}
-        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""}`}
+        ariaDisabled={soon}
+        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""} ${soon ? "opacity-40" : ""}`}
         style={{ color: isActive ? "hsl(var(--bark))" : "hsl(48 9% 47%)" }}
         longPress={longPress}
       >
@@ -746,7 +753,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 container padding the Home chip sat 10px in from the dock's inner
                 edge; at 6px it sits 8px in. Height is untouched (h-14). */}
             <div className="flex items-stretch h-14 px-1.5">
-              {(sectionDock ? [leftItems[0], jobsAndPostsItem, ...sectionTabs] : [...leftItems, ...rightItems]).map((item) => (
+              {(sectionDock
+                ? [leftItems[0], jobsAndPostsItem, ...sectionTabs.map(({ path, icon, label, on }) => ({ path, icon, label, comingSoon: !on }))]
+                : [...leftItems, ...rightItems]).map((item) => (
                 <div key={item.path} className="flex flex-1 items-stretch relative">
                   {renderItem(item)}
                 </div>

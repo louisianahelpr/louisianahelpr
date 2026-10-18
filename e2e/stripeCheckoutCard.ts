@@ -140,7 +140,7 @@ export async function pressStripePay(page: Page, presses = 3): Promise<void> {
     await page.getByRole("heading", { name: /^Pay / }).first().click().catch(() => undefined);
     await page.getByTestId("hosted-payment-submit-button").click();
     if (await confirm) return;
-    if (!page.url().includes(STRIPE_CHECKOUT_HOST)) return;
+    if (new URL(page.url()).hostname !== STRIPE_CHECKOUT_HOST) return; // left Stripe: the press went through
     console.log(`::warning title=Stripe Pay did not submit::press ${i}/${presses} sent no /confirm request; pressing again`);
   }
 }

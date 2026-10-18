@@ -625,6 +625,48 @@ serve(async (req) => {
       });
     };
 
+    // Q2000 (owner, 2026-10-17, option A): a late-cancelled single-Helpr job
+    // paid partly by gift and partly by card, whose gift can never pay its part
+    // of the fee (the donation behind it was refunded or charged back, or the
+    // gift was already given back), is settled by void-cancelled-payments with
+    // the fee CAPPED at what the card covered, and stamped with that fee. Its
+    // stored fee is below the ladder on purpose. Accepted only when the job
+    // carries such a gift AND the fee ledger agrees with the stamp (a zero fee
+    // has no row); anything else still reports. An unreadable lookup accepts
+    // nothing (fails closed).
+    const cappedFeeJobs = new Set<string>();
+    {
+      const candidates = jobRows.filter((job) =>
+        job.status === "cancelled" && job.is_group_job !== true && !!job.stripe_payment_intent_id &&
+        (job.payment_status === "refunded") &&
+        money(job.cancellation_fee) + EPSILON < expectedCancellationFee(job)
+      ).map((job) => job.id as string);
+      if (candidates.length) {
+        const [{ data: capGifts, error: capGiftErr }, { data: capFees, error: capFeeErr }] = await Promise.all([
+          admin.from("gift_cards").select("job_id, restored_from_job_id, status, payment_status")
+            .or(`job_id.in.(${candidates.join(",")}),restored_from_job_id.in.(${candidates.join(",")})`),
+          admin.from("cancellation_fee_transfers").select("job_id, fee_amount").in("job_id", candidates),
+        ]);
+        if (capGiftErr || capFeeErr) {
+          notes.push(`capped cancellation fees not checked, none accepted: ${(capGiftErr ?? capFeeErr)!.message}`);
+        } else {
+          for (const id of candidates) {
+            const gifts = ((capGifts ?? []) as Array<{ job_id: string | null; restored_from_job_id: string | null; status: string | null; payment_status: string | null }>);
+            const giftGone = gifts.some((g) =>
+              g.restored_from_job_id === id || (g.job_id === id && g.status === "redeemed" && g.payment_status !== "paid"));
+            if (!giftGone) continue;
+            const stored = money(jobById.get(id)?.cancellation_fee);
+            const rows = ((capFees ?? []) as Array<{ job_id: string; fee_amount: number | string | null }>).filter((r) => r.job_id === id);
+            const ledgerAgrees = stored <= EPSILON
+              ? rows.length === 0
+              : rows.length === 1 && Math.abs(money(rows[0].fee_amount) - stored) <= EPSILON;
+            if (ledgerAgrees) cappedFeeJobs.add(id);
+          }
+          if (cappedFeeJobs.size) notes.push(`cancellation fees capped at the card (Q2000, gift uncollectable): ${[...cappedFeeJobs].join(", ")}`);
+        }
+      }
+    }
+
     // ── Cancelled-job checks ─────────────────────────────────────────────────
     for (const job of jobRows) {
       if (job.status !== "cancelled") continue;
@@ -640,8 +682,9 @@ serve(async (req) => {
       // chose to cancel. Recomputing the ladder would page every one of them.
       const noMoneyArrived = job.payment_status === "failed";
       // Recompute from the SAME module void-cancelled-payments settles with.
-      const expectedFee = noMoneyArrived ? 0 : expectedCancellationFee(job);
       const storedFee = money(job.cancellation_fee);
+      // Q2000: a fee capped at the card (above) is what was owed.
+      const expectedFee = noMoneyArrived ? 0 : cappedFeeJobs.has(job.id as string) ? storedFee : expectedCancellationFee(job);
 
       if (!(Math.abs(storedFee - expectedFee) <= EPSILON)) {
         checks.cancellationFee.add({

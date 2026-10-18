@@ -63,6 +63,11 @@ export const FEATURE_SWITCH_KEYS = [
   // item. Created 'testers' by 20261017073146; declutter_setup_helpr and
   // declutter_link_setup_job refuse without it (require_feature).
   "declutter_add_helpr",
+  // Jobs poster fee (owner 2026-10-18): the poster pays 5% + $0.70 at checkout
+  // and the Helpr keeps 100%. Created OFF by 20261017234656; create-payment
+  // prices an escrow checkout on it only when the switch is on for the poster,
+  // and the Post a Job checkout shows the fee line from the same switch.
+  "jobs_poster_fee",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

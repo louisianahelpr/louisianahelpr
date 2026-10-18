@@ -157,7 +157,13 @@ export function CheckoutStep({
     salesTax,
     loading: taxLoading,
     jurisdiction,
-  } = useStripeSalesTax(budgetNum, category, zipCode);
+  } = useStripeSalesTax(
+    // The poster's service fee on a taxable job is taxed with it (tax memo,
+    // owner 2026-10-18); 0 on the flat model, so nothing changes there.
+    budgetNum + (hasTaxableLine(category) ? customerFeeAmount : 0),
+    category,
+    zipCode,
+  );
   // Sales tax, resolved ONCE. Both the summary card at the top of the screen
   // and the payment breakdown at the bottom read this — the two used to be
   // computed independently (summary showed `totalCharge`, breakdown added an

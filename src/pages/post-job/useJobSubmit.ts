@@ -31,6 +31,7 @@ import {
 } from "@/lib/moneyLimits";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { requestEscrowCheckout } from "@/lib/escrowCheckout";
+import { buildFeeQuote } from "@/lib/jobCheckout";
 import { removeJobPhotos } from "@/lib/storageCleanup";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { userFacingError } from "@/lib/userFacingError";
@@ -276,6 +277,8 @@ export interface UseJobSubmitParams {
   // Media upload callbacks
   uploadAndAttachPhotos: (jobId: string) => Promise<void>;
   uploadAndAttachScopeVideo: (jobId: string) => Promise<void>;
+  /** jobs_poster_fee is on for this poster (owner 2026-10-18); absent = off. */
+  posterFeeOn?: boolean;
 }
 
 export function useJobSubmit(params: UseJobSubmitParams) {
@@ -326,6 +329,9 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   } = params;
+  // The jobs_poster_fee switch as the checkout screen read it (usePostJobForm
+  // reads it once for both hooks): the quote below must say what it showed.
+  const posterFeeOn = params.posterFeeOn === true;
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -892,6 +898,14 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       const { data: paymentData, error: paymentError } = await requestEscrowCheckout(jobId, {
         saveCardForFuture: saveCardForFuture || isRecurring,
         giftCardId,
+        // The fee this screen showed (useJobDerived makes the same decision),
+        // so create-payment can refuse a stale quote (owner 2026-10-18).
+        feeQuote: buildFeeQuote({
+          switchOn: posterFeeOn,
+          giftFunded: !!giftCardId,
+          recurring: isRecurring,
+          jobPriceCents: Math.round(((parseFloat(budget) || 0) + (isUrgent ? parseFloat(urgentFee) || 0 : 0)) * 100),
+        }),
       });
 
 

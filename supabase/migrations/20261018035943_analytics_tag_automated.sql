@@ -1,4 +1,4 @@
--- Q?analytics-test-traffic: robot traffic is TAGGED in analytics_events, and
+-- Q2093: robot traffic is TAGGED in analytics_events, and
 -- the owner's funnel reads analytics_events_real, which leaves it out.
 --
 -- MEASURED 2026-10-15 (prod, last 30 days): signup_started 4573 rows, 4556
@@ -107,7 +107,7 @@ REVOKE ALL ON public.analytics_events_real FROM PUBLIC, anon, authenticated, ser
 GRANT SELECT ON public.analytics_events_real TO service_role;
 
 COMMENT ON VIEW public.analytics_events_real IS
-  'Q?analytics-test-traffic: analytics_events without robot traffic (rows tagged properties.automated, or from an is_seed profile), for reading the sign-up funnel. Selects e.*: a DROP COLUMN on analytics_events must recreate this view.';
+  'Q2093: analytics_events without robot traffic (rows tagged properties.automated, or from an is_seed profile), for reading the sign-up funnel. Selects e.*: a DROP COLUMN on analytics_events must recreate this view.';
 
 -- One-time backfill: mark (never delete) the past rows that are provably robots.
 UPDATE public.analytics_events e

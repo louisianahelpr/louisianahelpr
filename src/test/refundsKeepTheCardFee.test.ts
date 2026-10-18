@@ -206,6 +206,8 @@ const MIGRATIONS = join(ROOT, "supabase/migrations");
  * still green (lh-money-escrow re-review of a701ff757, item 3). Today they are reads and the one pinned fee.
  */
 const TS_MONEY_TOUCHES: string[] = [
+  // Shops M1: the card fee Stripe kept at capture, recorded on the order (no refund here).
+  'supabase/functions/_shared/shopHolds.ts: const { error } = await admin.rpc("shop_order_captured", { p_order_id: orderId, p_card_fee_cents: fee });',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id, handover").eq("id", orderId).maybeSingle()',
@@ -316,6 +318,9 @@ const SQL_POLICIES = {
       declutter_apply_seller_fault: "20261017073146_declutter_add_a_helpr.sql 9fb6ded3b0740512",
       // A10: adds the setup job's card fee to the seller's debt for that refund, once; never a refund amount.
       declutter_setup_job_fee_debt: "20261017073146_declutter_add_a_helpr.sql 4d24b4a83bd33864",
+      // Shops M1: records the card fee Stripe kept when a held order is captured (or the 2.9% + 30c estimate),
+      // for a later refund to keep; it records no refund and decides no refund amount.
+      shop_order_captured: "20261017225605_shops_orders_checkout.sql 3fe4dbb559a29a1f",
     } as Record<string, string>,
     /**
      * Every top-level statement (outside a function body) that names declutter_refunds (table, ALTER, policy,

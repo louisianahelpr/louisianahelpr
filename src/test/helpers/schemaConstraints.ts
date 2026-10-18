@@ -151,6 +151,11 @@ function parseCheck(bodyRaw: string): ConstraintSpec | null {
     nullable = true;
     b = norm(nul[2]);
   }
+  // `a IS NULL OR <predicate on b>` is a two-column rule ("when a is set, b
+  // must be ..."), not a nullable enum on b: shop_orders_captured_is_accepted
+  // (`captured_at IS NULL OR status IN (...)`) read that way refused every
+  // uncaptured order's status. Only the SAME column makes it nullable.
+  const same = <T extends { column: string }>(rec: T): T | null => (nul && nul[1] !== rec.column ? null : rec);
 
   // `col IN (…)` / `col = ANY (ARRAY[…])`
   const inList = new RegExp(`^${COL}\\s+(?:IN|=\\s*ANY)\\s*\\(`, "i").exec(b);
@@ -167,15 +172,15 @@ function parseCheck(bodyRaw: string): ConstraintSpec | null {
     // digits, so a numeric column's allowed set compares like any other enum.
     if (!values.length && /^[\s\d,]+$/.test(inner)) values = inner.split(",").map((v) => v.trim()).filter(Boolean);
     if (!values.length) return null;
-    return { kind: "enum", column: inList[1], values, nullable };
+    return same({ kind: "enum", column: inList[1], values, nullable });
   }
 
   // `col = 'literal'` — a one-value enum. jobs_pricing_mode_check is this shape.
   const eq = new RegExp(`^${COL}\\s*=\\s*'((?:[^']|'')*)'(?:::[a-z_ ]+)?$`, "i").exec(b);
-  if (eq) return { kind: "enum", column: eq[1], values: [eq[2].replace(/''/g, "'")], nullable };
+  if (eq) return same({ kind: "enum", column: eq[1], values: [eq[2].replace(/''/g, "'")], nullable });
 
   const between = new RegExp(`^${COL}\\s+BETWEEN\\s+(-?[\\d.]+)\\s+AND\\s+(-?[\\d.]+)$`, "i").exec(b);
-  if (between) return { kind: "range", column: between[1], min: +between[2], max: +between[3], nullable };
+  if (between) return same({ kind: "range", column: between[1], min: +between[2], max: +between[3], nullable });
 
   const cmp = `${COL}\\s*(>=|<=|>|<)\\s*\\(?(-?[\\d.]+)\\)?(?:::[a-z_ ]+)?`;
   const range =
@@ -206,7 +211,7 @@ function parseCheck(bodyRaw: string): ConstraintSpec | null {
         exclusiveMax = true;
       }
     }
-    return { kind: "range", column: parts[0][0], min, max, exclusiveMin, exclusiveMax, nullable };
+    return same({ kind: "range", column: parts[0][0], min, max, exclusiveMin, exclusiveMax, nullable });
   }
 
   return null;

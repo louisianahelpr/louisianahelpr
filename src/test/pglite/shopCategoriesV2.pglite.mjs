@@ -132,6 +132,7 @@ await db.exec(`
     ('${SEEDY}',    'acct_e', true,  '1990-01-01', 'active', NULL, true);
   INSERT INTO public.user_roles (user_id, role) VALUES ('${ADMIN}', 'admin'), ('${ORDINARY}', 'helper');
   INSERT INTO public.test_accounts (user_id) VALUES ('${OWNER}'), ('${FAN}'), ('${MINOR}'), ('${BANNED}'), ('${STRUCK}'), ('${NOPAYOUT}'), ('${ADMIN}'), ('${SEEDY}');
+  -- HISTORICAL fixture (L45 shared count as of v2.2); Shops reads its own count since 20261018003046.
   INSERT INTO public.declutter_strikes (user_id, offender_side, reason, expires_at)
     SELECT '${STRUCK}', 'seller', 'seller_no_show', now() + interval '1 year' FROM generate_series(1, 3);
   INSERT INTO public.helper_credentials (user_id, credential_type, status) VALUES

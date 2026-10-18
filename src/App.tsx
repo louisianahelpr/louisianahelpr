@@ -127,6 +127,8 @@ const ShopEditPage = lazyWithPreload(() => import("./pages/shops/ShopEditPage"))
 const RentalsPage = lazyWithPreload(() => import("./pages/rentals/RentalsPage"));
 const RentalsInvitePage = lazyWithPreload(() => import("./pages/rentals/RentalsInvitePage"));
 const MaintenanceRequestPage = lazyWithPreload(() => import("./pages/rentals/MaintenanceRequestPage"));
+const ShopOrdersPage = lazyWithPreload(() => import("./pages/shops/ShopOrdersPage"));
+const ShopDashboardPage = lazyWithPreload(() => import("./pages/shops/ShopDashboardPage"));
 
 const Legal = lazyWithPreload(() => import("./pages/info/Legal"));
 const NotFound = lazyWithPreload(() => import("./pages/info/NotFound"));
@@ -248,6 +250,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/quotes/send/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><SendQuotePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/shops" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/shops/mine" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopEditPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/shops/orders" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopOrdersPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/shops/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopDashboardPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/shops/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/rentals" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/rentals/invite/:token" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsInvitePage /></ProtectedRoute>)}</RouteErrorBoundary>} />

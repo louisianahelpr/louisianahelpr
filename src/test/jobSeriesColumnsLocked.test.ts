@@ -5,9 +5,9 @@
  * of both columns, and scripts/probes/direct-patch-hire.prod.mjs (doors G, H)
  * shows it on prod.
  *
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | IF NEW.recurrence_days IS DISTINCT FROM OLD.recurrence_days AND v_hired THEN | IF false THEN
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF NEW.parent_job_id IS DISTINCT FROM OLD.parent_job_id THEN | IF false THEN
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | BEFORE INSERT OR UPDATE OF parent_job_id, recurrence_days, | BEFORE UPDATE OF parent_job_id,
+ * @mutate supabase/migrations/20261018024950_poster_fee_job_schedule_locked.sql | IF NEW.recurrence_days IS DISTINCT FROM OLD.recurrence_days AND v_hired THEN | IF false THEN
+ * @mutate supabase/migrations/20261018024950_poster_fee_job_schedule_locked.sql |   IF NEW.parent_job_id IS DISTINCT FROM OLD.parent_job_id THEN | IF false THEN
+ * @mutate supabase/migrations/20261018024950_poster_fee_job_schedule_locked.sql | BEFORE INSERT OR UPDATE OF parent_job_id, recurrence_days, | BEFORE UPDATE OF parent_job_id,
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

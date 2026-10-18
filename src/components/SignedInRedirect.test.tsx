@@ -23,7 +23,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => useCurrentUserMock(),
 }));
 
-const LANDING = "Louisiana's Local Partner.";
+const LANDING = "Louisiana's Local Job Partner.";
 
 const renderAt = (path = "/") =>
   render(

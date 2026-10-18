@@ -68,7 +68,7 @@ const INLINE_GRID = {
   months: "w-full",
   month: "w-full space-y-4",
   weekdays: "grid grid-cols-7",
-  weekday: "rounded-md text-center font-sans uppercase text-ds-10 tracking-[0.18em] text-[hsl(var(--accent-ink))]",
+  weekday: "rounded-md text-center font-sans uppercase text-ds-10 tracking-[0.18em] text-[hsl(var(--accent-ink)/0.9)]",
   week: "grid grid-cols-7 w-full mt-2",
   day: "h-11 flex items-center justify-center text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
 };

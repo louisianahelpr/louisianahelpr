@@ -90,12 +90,8 @@ describe("small accent text uses an ink token (Q948)", () => {
       const bg = over(rgb(dark["burnt-sienna"]), 0.1, rgb(dark[surface]));
       expect(ratio(rgb(dark["sienna-ink"]), bg), `--sienna-ink on accent/10 over dark --${surface}`).toBeGreaterThanOrEqual(4.5);
     }
-    // Can fail: the original bug's colour (the pre-2026-10-17 dark sienna
-    // accent, 19 65% 52%, as small text on its own tint over the dark card)
-    // measures under AA with the same arithmetic. Pinned as a literal because
-    // the live accent is green now and passes.
-    const OLD_DARK_ACCENT = "19 65% 52%";
-    const bg = over(rgb(OLD_DARK_ACCENT), 0.1, rgb(dark["ivory-sand"]));
-    expect(ratio(rgb(OLD_DARK_ACCENT), bg)).toBeLessThan(4.5);
+    // Can fail: the bare accent itself, the original bug, does not.
+    const bg = over(rgb(dark["burnt-sienna"]), 0.1, rgb(dark["ivory-sand"]));
+    expect(ratio(rgb(dark["burnt-sienna"]), bg)).toBeLessThan(4.5);
   });
 });

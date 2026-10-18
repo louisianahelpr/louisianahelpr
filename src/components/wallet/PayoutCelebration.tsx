@@ -288,7 +288,7 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
                   background: "hsl(var(--bark))",
                   color: "hsl(var(--parchment))",
                   border: "1px solid hsl(var(--bark-border))",
-                  fontFamily: "'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif",
+                  fontFamily: "Montserrat, system-ui, sans-serif",
                   fontWeight: 600,
                   fontSize: "0.72rem",
                   letterSpacing: "0.01em",

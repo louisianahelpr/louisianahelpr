@@ -76,11 +76,11 @@ stories go in the lessons file, never here.
 - **Proof of fit for any page touched:** at 1440 and 375, assert `documentElement.scrollWidth <= clientWidth`, no element wider than the viewport, column centered with no dead band; screenshot both.
 - **Phone web == native app: ONE surface.** Never branch nav or layout on `Capacitor.isNativePlatform()` (genuine native capability only). A defect at 375 in a browser is an app defect.
 - **Never role-based.** Every account posts and does jobs; every feature shows to everyone. Role bleed is not a bug, role-gating is never the fix, and copy addressing only Helprs or only posters is a defect.
-- **The landing hero is LOCKED:** H1 "Louisiana's Local Partner." (Bodoni Moda, "Partner." italic in the brand green) and subhead "Jobs, Declutter, Shops and Homes: everything local, in one place." (owner, 2026-10-17/18) — font, colour and copy are off-limits without an explicit instruction naming them.
+- **The landing hero is LOCKED:** H1 "Louisiana's Local Job Partner." (Bodoni Moda) and subhead "Hire a Helpr or find local work..." — font, colour and copy are off-limits without an explicit instruction naming them.
 - **Portal overlays to `document.body`.** `position: fixed` inside a page is never viewport-relative (any ancestor transform/filter/`backdrop-filter`). [L](docs/lessons/CLAUDE-lessons.md#fixed-containing-block)
 - A portaled sibling of an open Radix modal needs `pointer-events: auto`, and must not end up `aria-hidden` via `hideOthers()`. [L](docs/lessons/CLAUDE-lessons.md#fixed-containing-block)
-- **Primary and selected controls wear `btn-grad-primary`, the FLAT brand green** (`--brand` #0E7A4A, no gradient, no gloss, no shadow; owner 2026-10-17, design C "Warm Modern", `docs/DESIGN_SYSTEM.md`). Never put a Tailwind variant over it (compiles to nothing; toggle in JS); never an inline `background` over it. [L](docs/lessons/CLAUDE-lessons.md#gloss)
-- **Primary-fill tests assert the computed background is the flat brand green** (`background-image: none`, `background-color` rgb(14, 122, 74)), never the class name. [L](docs/lessons/CLAUDE-lessons.md#gloss)
+- **Primary and selected controls wear `btn-grad-primary`.** Never put a Tailwind variant over it (compiles to nothing; toggle in JS); never an inline `background` shorthand over it (use `backgroundImage`, or better nothing). [L](docs/lessons/CLAUDE-lessons.md#gloss)
+- **Gloss tests assert the computed `background-image` is a real gradient**, never the class name. [L](docs/lessons/CLAUDE-lessons.md#gloss)
 - **Reduced transparency = opaque form of each surface's OWN colour, per theme**, never a blanket `hsl(var(--background))`. [L](docs/lessons/CLAUDE-lessons.md#css-minifier)
 
 ## Data and money
@@ -102,7 +102,7 @@ stories go in the lessons file, never here.
 ## Platform gotchas
 - **Never `await` or resolve a promise with a Capacitor plugin object** (thenable assimilation = silent no-op). Destructure: `const { App } = await import("@capacitor/app")`. [L](docs/lessons/CLAUDE-lessons.md#capacitor-await)
 - **Never add explanation keys to `vercel.json`** (every entry is `additionalProperties: false`; `JSON.parse` passing is not validation). Explain in the commit message or beside dependent code; `scripts/check-vercel-config.mjs` guards pre-commit. [L](docs/lessons/CLAUDE-lessons.md#vercel-json)
-- WebKit, minifier, fixed-position and primary-fill rules live under Verification and UI above.
+- WebKit, minifier, fixed-position and gloss rules live under Verification and UI above.
 
 ## Process
 - **Land ONLY with `bash scripts/land.sh`** (owner Q44; ruleset "main" with strict up-to-date ON, owner kept it 2026-10-05): it rebases, resets the whole-tree totals to main's (only main regenerates them), refreshes inventories, runs the exact-count guards and (when the bundle's inputs changed) `npx vite build` + the critical-path budget (Q178; CI's Bundle Size Check is not required), opens a PR with rebase auto-merge (REST only, so cloud sessions land too) and waits for MERGED, re-rebasing at once on DIRTY. Main requires Vitest, Test and both Playwright checks, plus CodeQL (code scanning, Q1151; list in src/test/helpers/requiredChecks.ts), enforce_admins; a direct push is refused. vacuity runs on every push to main (not required on PRs). Locally run `npm run typecheck` (+ `npx vitest run` for tested code). [L](docs/lessons/CLAUDE-lessons.md#commit-main)

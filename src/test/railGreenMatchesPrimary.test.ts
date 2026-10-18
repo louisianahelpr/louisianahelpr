@@ -43,13 +43,7 @@
  * asserts they are NOT green, so a future "make the rail one colour" cannot
  * quietly flatten them here.
  *
- * ── 2026-10-17: FLAT ───────────────────────────────────────────────────
- * The owner retired the gloss (design C "Warm Modern"): `.btn-grad-primary`
- * is a flat `background-color: hsl(var(--brand))`. The pip now paints
- * `--brand` itself, so pip and button are one token in BOTH themes (in dark,
- * `--bark` became the mint TEXT green and would no longer match the button).
- *
- * @mutate src/components/job-card/jobRailTone.ts |     fill: "hsl(var(--brand))",\n    ring: "hsl(var(--brand) / 0.30)", |     fill: "hsl(var(--bark))",\n    ring: "hsl(var(--brand) / 0.30)",
+ * @mutate src/components/job-card/jobRailTone.ts |     fill: "hsl(var(--bark))",\n    ring: "hsl(var(--bark) / 0.30)", |     fill: "hsl(var(--success-ink))",\n    ring: "hsl(var(--bark) / 0.30)",
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -120,39 +114,45 @@ function completedPipTokens(): string[] {
   return [...tones];
 }
 
-/** The token `.btn-grad-primary` fills with (flat since 2026-10-17). */
-function primaryFillToken(): string {
-  const block = /\.btn-grad-primary\s*\{[^}]*?background-color:\s*hsl\(var\(--([\w-]+)\)\)/.exec(CSS);
-  expect(block, ".btn-grad-primary no longer declares a token background-color").not.toBeNull();
-  return block![1];
+/** The token stops of `.btn-grad-primary`'s radial gradient, in order. */
+function primaryGradientStops(): string[] {
+  const block = /\.btn-grad-primary\s*\{[\s\S]*?background-image:\s*radial-gradient\(([\s\S]*?)\);/.exec(CSS);
+  expect(block, ".btn-grad-primary no longer declares a radial-gradient background-image").not.toBeNull();
+  const stops = [...block![1].matchAll(/hsl\(var\(--([\w-]+)\)\)/g)].map((m) => m[1]);
+  expect(stops.length, "the primary gradient has no token stops to match against").toBeGreaterThanOrEqual(2);
+  return stops;
 }
 
 describe("the rail's completed green IS the primary button's green", () => {
-  it("every completed pip paints the primary's own fill token", () => {
-    const fill = primaryFillToken();
+  it("every completed pip paints from a token the primary gradient is built from", () => {
+    const stops = primaryGradientStops();
     const pips = completedPipTokens();
     expect(pips.length, "no completed-pip tones found — the inventory is empty").toBeGreaterThan(0);
     for (const token of pips) {
       expect(
-        token,
-        `a completed step pip paints --${token}, but the primary button fills with --${fill}. ` +
-          `Owner, 2026-09-19: "the posted offered accepted etc buttons should all be the same ` +
-          `primary green as the buttons not a different shade".`,
-      ).toBe(fill);
+        stops,
+        `a completed step pip paints --${token}, which is not one of the primary button's ` +
+          `gradient stops (${stops.map((s) => `--${s}`).join(", ")}). Owner, 2026-09-19: ` +
+          `"the posted offered accepted etc buttons should all be the same primary green as ` +
+          `the buttons not a different shade".`,
+      ).toContain(token);
     }
   });
 
-  it("and it resolves to the SAME H S% L% as the primary's fill, in both themes", () => {
-    const fill = primaryFillToken();
+  it("and it resolves to the SAME H S% L% as the gradient's dominant stop, in both themes", () => {
+    // The dominant stop is the middle one (46% of a 125% radial), which is what
+    // the button reads as across most of its width.
+    const stops = primaryGradientStops();
+    const dominant = stops[Math.floor(stops.length / 2)];
     for (const token of completedPipTokens()) {
       for (const theme of ["first", "last"] as const) {
         expect(
           resolveToken(token, theme),
           `${theme === "first" ? "light" : "dark"} theme: the completed pip resolves to ` +
-            `"${resolveToken(token, theme)}" and the primary's fill to ` +
-            `"${resolveToken(fill, theme)}". These are the two greens the owner said ` +
+            `"${resolveToken(token, theme)}" and the primary's dominant stop to ` +
+            `"${resolveToken(dominant, theme)}". These are the two greens the owner said ` +
             `must be the same; comparing class names would not have caught it.`,
-        ).toBe(resolveToken(fill, theme));
+        ).toBe(resolveToken(dominant, theme));
       }
     }
   });
@@ -173,11 +173,11 @@ describe("the rail's completed green IS the primary button's green", () => {
     // the step that went wrong", amber means "you are on this step".
     expect(RULE, "the disputed pip must stay --destructive").toMatch(/hsl\(var\(--destructive\)\)/);
     expect(RULE, "the current-step pip must stay --amber-solid").toMatch(/hsl\(var\(--amber-solid\)\)/);
-    const fill = primaryFillToken();
+    const stops = primaryGradientStops();
     for (const token of ["destructive", "amber-solid"]) {
       expect(
-        [fill],
-        `--${token} is now the primary's fill, so the "completed pips match ` +
+        stops,
+        `--${token} is now one of the primary's gradient stops, so the "completed pips match ` +
           `the primary" rule would also make the alarm/current pips green. Those two carry ` +
           `meaning (src/test/alarmColourInvariant.test.ts).`,
       ).not.toContain(token);

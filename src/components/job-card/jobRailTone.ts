@@ -68,14 +68,15 @@ const PAINT: Record<RailTone, Omit<RailStepPaint, "tone">> = {
     ringEnd: "hsl(var(--amber-solid) / 0)",
     ink: "hsl(var(--parchment))",
   },
-  // THE PRIMARY BUTTON'S GREEN (owner, 2026-09-19). Since 2026-10-17 the
-  // primary is a flat `--brand` fill, so the pip paints `--brand` itself:
-  // the same green as the button in BOTH themes, white tick on it.
+  // THE PRIMARY BUTTON'S GREEN (owner, 2026-09-19). `--bark` is the dominant
+  // mid stop of `.btn-grad-primary`'s radial; the class itself would paint a
+  // 28px dot almost entirely from its LIGHT stop and read lighter than the
+  // button it is supposed to match.
   green: {
-    fill: "hsl(var(--brand))",
-    ring: "hsl(var(--brand) / 0.30)",
-    ringEnd: "hsl(var(--brand) / 0)",
-    ink: "hsl(var(--brand-foreground))",
+    fill: "hsl(var(--bark))",
+    ring: "hsl(var(--bark) / 0.30)",
+    ringEnd: "hsl(var(--bark) / 0)",
+    ink: "hsl(var(--parchment))",
   },
   "bark-tint": {
     fill: "hsl(var(--bark) / 0.18)",

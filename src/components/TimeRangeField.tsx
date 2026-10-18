@@ -118,7 +118,7 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
             background: "hsl(var(--bark))",
             color: "hsl(var(--parchment))",
             border: "1px solid hsl(var(--bark))",
-            fontFamily: "'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif",
+            fontFamily: "Montserrat, system-ui, sans-serif",
             fontWeight: 600,
             letterSpacing: "0.01em",
             boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 6px 16px -4px hsl(var(--bark) / 0.30)",

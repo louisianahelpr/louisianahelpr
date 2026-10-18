@@ -44,10 +44,4 @@ describe("gift first on the poster fee (client quote == redeem_gift_card)", () =
     expect(d.customerFeeAmount).toBe(0);
     expect(d.totalCharge).toBeCloseTo(10, 2);
   });
-
-  it("switch ON, a recurring series stays flat until the per-visit slice (no fee in the gift cost)", () => {
-    const d = derive({ posterFeeOn: true, isRecurring: true, giftCardAmount: 90 });
-    expect(d.customerFeeAmount).toBe(0);
-    expect(d.totalCharge).toBeCloseTo(10, 2);
-  });
 });

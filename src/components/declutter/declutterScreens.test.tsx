@@ -142,13 +142,14 @@ describe("Declutter screens", () => {
     at("/declutter", <DeclutterPage />);
     expect(await screen.findByText("Declutter is closed for now.")).toBeInTheDocument();
     expect(screen.queryByText("Page not found")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Sell an item" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Sell" })).toBeNull();
   });
 
   it("switch on: Browse with a Sell button, and an empty state in plain words", async () => {
     at("/declutter", <DeclutterPage />);
     expect(screen.getByRole("heading", { name: "Declutter" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Sell an item" })).toBeInTheDocument();
+    // The section header's '+ Sell' pill (design slice 2, owner 2026-10-18).
+    expect(screen.getByRole("button", { name: "Sell" })).toBeInTheDocument();
     expect(await screen.findByText("Nothing for sale yet.")).toBeInTheDocument();
   });
 
@@ -242,8 +243,9 @@ describe("Declutter controls are the shared ones", () => {
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     await screen.findByRole("button", { name: "Answer" });
     check();
-    // Inventory floor: Sell an item x2, Finish listing, Save details, List this item, Ask, Answer.
-    expect(seen).toBeGreaterThan(5);
+    // Inventory floor: 5 on 2026-10-18 (Finish listing, Save details, List this item, Ask,
+    // Answer). The header's 'Sell an item' became the section header's flat '+ Sell' pill.
+    expect(seen).toBeGreaterThan(4);
   });
 
   it("the four tax confirmations and the porch switch are the shared Checkbox, not native inputs", async () => {

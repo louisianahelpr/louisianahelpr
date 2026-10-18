@@ -2902,6 +2902,30 @@
       "sha": "294956046504729bce617946e40b44b53ccc83c4",
       "reason": "The quotes lane's unsquashed history (9 wip commits); squashed into ready/quotes-2's 'paying hires the quoter' and 'agreed-price check' commits and carried by ready/salvage-quotes2-1018 (its Q1883-Q1888 items renumbered Q2116-Q2125). Its migration 20261017045002_quote_hire_on_pay_alerts.sql is carried as 20261018155222 on ready/salvage-quotes2-1018; landing this copy after that one would apply the old bodies out of order (no train-J notice carve-out, the old cancel), so it must never land (lh-money-escrow review of 8ef7cd25b, #1).",
       "checked": "2026-10-18 (salvage lane: commit subjects matched one to one against ready/salvage-quotes2-1018)"
+    },
+    {
+      "id": "pr:3176",
+      "sha": "2dc48ce529e5b73651215ea31d3dc5023da091e5",
+      "reason": "Closed PR (head fix/ach-escrow-no-money-me046): ME-046 ACH checkout must not set escrow until the PaymentIntent succeeds. All 6 of its commits are on main by patch-id (git cherry: every line '-'; landed as 41c7848c9 and its follow-ups; the local branch was accepted in 37d9eaeb5). Its 59 leftover lines are the first wording of stripe-webhook handlers checkoutSessionCompleted/paymentIntentPaymentFailed/paymentIntentSucceeded and their tests, which main rewrote afterwards (ME-046 session-pin refactor, d3506446b Q1970, e246d8137 Q1971, 62f72f6fd/8d88090f6 gift fixes, 9b18844dd one wallet): superseded wording, not lost work.",
+      "checked": "2026-10-18 (reds run 9: content-checked against origin/main 4c657a922 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by git cherry patch-id or by subject; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:3285",
+      "sha": "7d071f4b8dc0256dc2acf95d9bc4c8876183802e",
+      "reason": "Closed PR (head land/ready-declutter-moving-out-6e15e405): Declutter moving-out mode. Its feature commit landed as 79f20ac25 (same subject); 3e0a961dc and 09da47b2a are on main by patch-id; 7d071f4b8 is a generated-inventory refresh. Its 8 leftover lines are older forms main has since rewritten: MovingOutEntry now takes an `on` prop (DeclutterHomeView.tsx, f560d28d3/63a3db271), the declutter-ai-draft prompt and tool lines and the declutter_seller_moving_sale allowlist entry are on main reworded, and the Declutter error-copy inventories were recounted when the train's migrations landed (ca795e94f, 117ace287).",
+      "checked": "2026-10-18 (reds run 9: content-checked against origin/main 4c657a922 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by git cherry patch-id or by subject; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:3288",
+      "sha": "851a76a72f66461701b38acd61abb6250c65993a",
+      "reason": "Closed PR (head land/lander-trim-posts-331ce1bc): /posts trim, admin-only RPC refusal copy moved out of RPC_ERROR_COPY. 6984d0251 is on main by patch-id (73647b440, same subject; src/components/admin/adminRpcErrorCopy.ts holds the admin copy); its two review notes Q1900/Q1901 landed renumbered as Q1883/Q1884 in docs/OPEN.md; 851a76a72 is a generated refresh. Leftovers: the 'removed but still on main' lifecycleErrors.ts/api.ts/handover.ts lines are identical member-RPC lines that legitimately remain (e.g. empty_message at lifecycleErrors.ts:428, rpcData returns), and its one added test line is main's later `const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL }`.",
+      "checked": "2026-10-18 (reds run 9: content-checked against origin/main 4c657a922 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by git cherry patch-id or by subject; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:3330",
+      "sha": "248059d5731e5563ad05599e441f5045c04d4f4b",
+      "reason": "Closed PR (head land/lander14-shops-s3-5282681e): Shops M1 (orders + card-hold checkout, per-section strikes). Landed on main by a re-timed reland: bfad43266 (same subject), migrations renamed 20261017225605/20261017235038/20261018003046 -> 20261018164442/164443/164444 (c7e899403, 25d85729f), its other commits by subject (6e7fd2db8 Profile Shops row on demand, 3cb3f768e definer allowlist, 22d23d224 slice-3 spec), then fb1b63d95 (M1 repo-wide guards). 146 leftover lines fall to 51 once the migration names are mapped; those 51 are older code main replaced: the cancel-policy picker moved to src/components/shops/ShopCancelPolicyPicker.tsx, shop-checkout's tax codes and _shared/shopTaxCodes.ts rewritten by cbd89cbeb (M1b tax part 1) and 858f89afc, the accept-order block check rewritten by fb1b63d95, and exact counts (userIdForeignKeys) moved on.",
+      "checked": "2026-10-18 (reds run 9: content-checked against origin/main 4c657a922 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by git cherry patch-id or by subject; each leftover line compared with main's copy of the same file)"
     }
   ]
 }

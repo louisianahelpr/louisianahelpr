@@ -25,6 +25,7 @@ import { applyPrePaintShellClasses } from "./lib/prePaintShellClasses";
 import { bounceToNativeAppIfReturning } from "./lib/nativeReturnBounce";
 import { purgeApiCache, purgeApiCacheOnControllerChange } from "./lib/apiCachePurge";
 import { hasPersistedAuthToken as tokenProbeAtBoot } from "./lib/persistedAuthToken";
+import { installLargeTitles } from "./lib/largeTitles";
 
 // Build identifier — exposed on window so a deploy with only doc/cosmetic
 // changes still produces a new bundle hash, evicting stale CacheFirst
@@ -231,6 +232,7 @@ if (bounceToNativeAppIfReturning()) {
 // Suppress success/info toasts before any code can fire one. Failures still
 // surface — see src/lib/toastPolicy.ts for why the split exists.
 applyToastPolicy();
+installLargeTitles();
 // Hand the native splash off to the app's own first paint. Two rAFs: the
 // first is scheduled before React has committed + painted, the second runs
 // on the frame after pixels are on screen. The splash background

@@ -152,13 +152,12 @@ export function BrowseTasksToolbar({
           title just the H logo"). */}
       {renderHeading && <h1 className="sr-only">{headingTitle}</h1>}
 
-      {/* One-tap category picker row. */}
-      {filters.selectedCategory && (
-        <CategoryChipRow
-          selectedCategory={filters.selectedCategory}
-          setSelectedCategory={filters.setSelectedCategory}
-        />
-      )}
+      {/* One-tap category picker row, always shown (owner 2026-10-18, tweak 7:
+          pill chips in one sideways row with an edge fade). */}
+      <CategoryChipRow
+        selectedCategory={filters.selectedCategory}
+        setSelectedCategory={filters.setSelectedCategory}
+      />
 
       {/* Unified filter bottom sheet — the SlidersHorizontal button above
           toggles `filtersOpen`, which opens this sheet with all the filter

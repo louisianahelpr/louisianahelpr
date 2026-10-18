@@ -2237,12 +2237,12 @@ body[data-scroll-locked] .offline-banner {
 }
 
 .text-page-title {
-  font-family: "Bodoni Moda", "Bodoni Moda Fallback", "Bodoni Moda Fallback Liberation", Georgia, serif !important;
-  font-style: italic !important;
-  font-weight: 700 !important;
+  font-family: Montserrat, "Montserrat Fallback", system-ui, -apple-system, sans-serif !important;
+  font-style: normal !important;
+  font-weight: 650 !important;
   font-size: var(--headline-hero) !important;
   line-height: 1.1 !important;
-  letter-spacing: -0.025em !important;
+  letter-spacing: -0.02em !important;
   color: hsl(var(--ink-deep));
 }
 
@@ -4450,4 +4450,170 @@ html.senior-mode *::after {
   aspect-ratio: 256 / 220;
   height: auto;
   object-fit: contain;
+}
+
+/* ── Small modern tweaks (owner 2026-10-18, approved on the mock-ups in
+   wip/design-tweaks-mock). Same olive/rust tokens and Montserrat; Bodoni
+   stays on the landing H1 only. ── */
+
+/* T1 — plain upright titles: every display title is Montserrat semibold,
+   upright. The landing H1 (.landing-h1) is the one Bodoni headline left. */
+.font-display:not(.landing-h1, .landing-h1 *) {
+  font-family: Montserrat, "Montserrat Fallback", system-ui, -apple-system, sans-serif !important;
+  font-style: normal !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* T2 — cleaner cards: no outline, no inner rim, no blur; a faint soft shadow. */
+.liquid-glass,
+:where(.bg-card),
+[data-feed-card],
+[data-activity-card] {
+  border-color: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 1px 2px hsl(220 14% 20% / 0.06), 0 4px 14px -6px hsl(220 14% 20% / 0.10) !important;
+}
+.page-panel { box-shadow: none !important; background-color: transparent !important; }
+[data-feed-card] > div, [data-activity-card] { border-radius: 1rem; }
+:root[data-theme="dark"] .liquid-glass,
+:root[data-theme="dark"] :where(.bg-card),
+:root[data-theme="dark"] [data-feed-card],
+:root[data-theme="dark"] [data-activity-card] {
+  background-color: hsl(0 0% 11%) !important;
+  box-shadow: none !important;
+}
+
+/* T3 — simpler job cards: price is plain bold ink, the category an icon + label. */
+.money-chip {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.money-chip, .money-chip * { color: hsl(var(--foreground)) !important; }
+.money-chip > :first-child { font-size: 1.25rem !important; font-weight: 800 !important; }
+.job-card-title { font-size: 1.0625rem !important; }
+.job-cat-label { padding-left: 1rem; padding-top: 0.75rem; }
+[data-activity-card] div.pt-6 { padding-top: 2.25rem !important; }
+[data-feed-card] .job-cat-label { padding-left: 0.875rem; }
+
+/* T4 — iOS large titles that shrink into the bar on scroll
+   (html.page-scrolled is set by src/lib/largeTitles.ts). */
+.page-title-card {
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;
+}
+.page-title-card h1 { font-size: 2.125rem !important; line-height: 1.1 !important; }
+[data-app-page-scroll] h1.text-page-title { font-size: 1.75rem !important; line-height: 1.1 !important; }
+html.page-scrolled .page-title-card {
+  padding-top: 0.15rem !important;
+  padding-bottom: 0.15rem !important;
+  background-color: hsl(var(--background) / 0.88) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  border-radius: 0 !important;
+  border-bottom: 0.5px solid hsl(var(--border)) !important;
+}
+html.page-scrolled .page-title-card h1 { font-size: 1.0625rem !important; margin-left: auto !important; margin-right: auto !important; }
+@media (prefers-reduced-motion: no-preference) {
+  .page-title-card, .page-title-card h1 { transition: font-size 0.22s ease, padding 0.22s ease, background-color 0.22s ease; }
+}
+.compact-title-bar {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 60;
+  padding-top: var(--safe-area-top, 0px);
+  height: calc(44px + var(--safe-area-top, 0px));
+  display: flex; align-items: center; justify-content: center;
+  font: 600 17px/1 Montserrat, system-ui, sans-serif; letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background) / 0.88);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 0.5px solid hsl(var(--border));
+  opacity: 0; pointer-events: none;
+}
+.compact-title-bar.on { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  .compact-title-bar { transition: opacity 0.18s ease; }
+}
+
+/* T5 — loading placeholders: a clearer grey shimmer on every skeleton bone. */
+[data-skeleton] { background-color: hsl(220 12% 91%) !important; }
+[data-skeleton]::after {
+  background-image: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.65), transparent) !important;
+  animation-duration: 1.3s !important;
+}
+:root[data-theme="dark"] [data-skeleton] { background-color: hsl(0 0% 17%) !important; }
+:root[data-theme="dark"] [data-skeleton]::after {
+  background-image: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.07), transparent) !important;
+}
+
+/* T6 — slide-up sheet (SheetContent floor): glued to the bottom edge, grab handle, plain dim scrim. */
+.sheet-floor {
+  top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
+  margin: 0 auto !important; height: auto !important;
+  width: 100% !important; max-width: 40rem !important;
+  border-radius: 1.5rem 1.5rem 0 0 !important;
+  border-bottom-width: 0 !important;
+  padding-bottom: var(--safe-area-bottom, 0px) !important;
+  --tw-enter-scale: 1 !important; --tw-exit-scale: 1 !important;
+  --tw-enter-translate-y: 100% !important; --tw-exit-translate-y: 100% !important;
+  box-shadow: 0 -8px 30px -12px hsl(220 14% 20% / 0.25) !important;
+}
+.sheet-floor.p-0 > :nth-child(2) { padding: 0.25rem 0.5rem 0 1.25rem; }
+.sheet-floor-scrim {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  background-color: hsl(0 0% 0% / 0.28) !important;
+}
+.sheet-grab-handle {
+  width: 36px; height: 5px; border-radius: 3px; flex-shrink: 0;
+  margin: 8px auto 2px;
+  background: hsl(var(--muted-foreground) / 0.35);
+}
+
+/* T7 — pill filter chips: one sideways-scrolling row, an edge fade shows there is more. */
+.category-chip-row,
+.chip-row {
+  display: flex !important; flex-wrap: nowrap !important; gap: 0.5rem !important;
+  overflow-x: auto !important; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
+  mask-image: linear-gradient(to right, #000 88%, transparent);
+}
+.category-chip-row { border-bottom: 0 !important; padding-top: 0.25rem !important; padding-bottom: 0.5rem !important; }
+.chip-row { background: transparent !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; }
+.category-chip-row::-webkit-scrollbar,
+.chip-row::-webkit-scrollbar { display: none; }
+.category-chip-row > button,
+.chip-row > button {
+  flex: 0 0 auto !important; border-radius: 9999px !important;
+  min-height: 36px; padding: 0 0.95rem !important; font-size: 0.875rem !important; font-weight: 600 !important;
+  border: 1px solid hsl(var(--border)) !important;
+  background: hsl(var(--card)) !important; background-image: none !important;
+  color: hsl(var(--foreground)) !important; box-shadow: none !important;
+}
+.category-chip-row > button[aria-pressed="true"],
+.chip-row > button[aria-selected="true"],
+.chip-row > button[aria-checked="true"] {
+  background: hsl(var(--bark)) !important; border-color: hsl(var(--bark)) !important;
+  color: hsl(var(--parchment)) !important;
+}
+
+/* T8 — press: cards and buttons dip to 97% under the finger (Reduce Motion: no movement). */
+@media (prefers-reduced-motion: no-preference) {
+  [data-feed-card], [data-activity-card], button {
+    transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  [data-feed-card]:active, [data-activity-card]:active, button:active {
+    transform: scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button:active, [data-feed-card]:active, [data-activity-card]:active { transform: none !important; }
 }

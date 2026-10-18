@@ -14,6 +14,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -130,6 +131,30 @@ function OriginLine({
   );
 }
 
+/** Grey shimmer rows shaped like the listing cards (owner 2026-10-18, tweak 5). */
+function ListingsSkeleton() {
+  return (
+    <ul className="space-y-3" role="status" aria-label="Loading your listings">
+      {[0, 1, 2].map((i) => (
+        <li key={i} className="rounded-2xl bg-card p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/5" />
+              <Skeleton className="h-3.5 w-1/4" />
+            </div>
+            <Skeleton className="h-6 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-3 w-4/5" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-24 rounded-full" />
+            <Skeleton className="h-8 w-20 rounded-full" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function BrowseView({ userId }: { userId: string }) {
   const [maxMiles, setMaxMiles] = useState<number | null>(25);
   // No location prompt on landing: miles come from what we already know, and
@@ -165,7 +190,8 @@ function BrowseView({ userId }: { userId: string }) {
         <>
           <SegmentedControl
             ariaLabel="How far away"
-            layout="wrap"
+            layout="row"
+            className="chip-row"
             value={maxMiles === null ? "any" : String(maxMiles)}
             onChange={(v) => setMaxMiles(v === "any" ? null : Number(v))}
             options={DISTANCE_CHOICES.map((m) => ({ value: m === null ? "any" : String(m), label: m === null ? "Any distance" : `${m} mi` }))}
@@ -276,7 +302,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   if (mine.isError) {
     return <ErrorState variant="inline" title="We couldn't load your listings." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   }
-  if (mine.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading your listings…</p>;
+  if (mine.isLoading) return <ListingsSkeleton />;
   const list = (mine.data ?? []).filter((i) => i.status !== "withdrawn");
   if (list.length === 0) {
     return (
@@ -439,7 +465,8 @@ export default function DeclutterHome() {
         ariaLabel="Declutter view"
         semantics="tab"
         value={view}
-        layout="wrap"
+        layout="row"
+        className="chip-row"
         onChange={(v) => setParams(v === "browse" ? {} : { view: v }, { replace: true })}
         options={[
           { value: "browse", label: "Browse" },

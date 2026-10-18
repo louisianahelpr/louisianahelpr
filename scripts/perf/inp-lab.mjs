@@ -149,7 +149,7 @@ export const SCENARIOS = {
   "/post-job": {
     session: "poster",
     from: "/home",
-    arrive: "button[aria-label='Post a new job']:visible, button:has-text('Post a Job'):visible",
+    arrive: "button:text-is('Post'):visible, button:has-text('Post a Job'):visible",
     steps: [
       { tap: "button:has-text('Start Fresh')" },
       { tap: "button[aria-label='Cleaning']" },

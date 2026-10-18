@@ -575,8 +575,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         aria-hidden={navHidden || undefined}
         // `aria-hidden` alone on a bar full of buttons is an
         // aria-hidden-focus failure, not an accommodation: the dock is
-        // translated 130px BELOW the viewport but its five tabs and the Post
-        // FAB stay in the tab order, so a keyboard or switch user tabs into
+        // translated 130px BELOW the viewport but its section tabs
+        // stay in the tab order, so a keyboard or switch user tabs into
         // controls that are announced to nobody and painted nowhere. `inert`
         // takes them out of the tab order (and out of hit-testing) for exactly
         // as long as the bar is off-screen.

@@ -105,6 +105,12 @@ const EXPECTED_CALLERS = [
   "offer_series_dates",
   "respond_to_direct_offer",
   "respond_to_job_quote",
+  // Shops M1 (20261017225605): each passes v_uid := auth.uid() as one
+  // argument: the maker vs the order's buyer (accept), the buyer vs the shop's
+  // owner (order terms, request order).
+  "shops_accept_order",
+  "shops_order_terms",
+  "shops_request_order",
   "submit_job_quote",
 ];
 

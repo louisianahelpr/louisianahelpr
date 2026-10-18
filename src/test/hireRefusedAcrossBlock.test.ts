@@ -24,6 +24,7 @@ import { readFileSync } from "node:fs";
 import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
+import { SHOPS_ERROR_COPY } from "@/lib/shops/errors";
 
 const MIG_DIR = join(process.cwd(), "supabase/migrations");
 
@@ -37,7 +38,22 @@ const HIRE_WRITE =
 // respond_to_job_quote (20261015091114, quotes on jobs): an accept agrees the
 // quote at its price, which is the hire (book_accepted_quote then offers the
 // job to that quoter and refuses across a block too).
-const EXPECTED = ["accept_application", "accept_group_application", "claim_series_dates", "complete_direct_offer_accept", "respond_to_job_quote"];
+// shops_accept_order (20261017225605, Shops M1): a maker accepting a held
+// order (status 'accepted') hires the maker for the buyer's order; a block
+// between them since the order was sent is refused before any write.
+const EXPECTED = ["accept_application", "accept_group_application", "claim_series_dates", "complete_direct_offer_accept", "respond_to_job_quote", "shops_accept_order"];
+
+/**
+ * Hire RPCs a client reaches only through an EDGE function, whose refusal comes
+ * back to the screen as the bare code: their words live in that section's code
+ * table, not RPC_ERROR_COPY (rpcErrorCopyCoverage would call a shared-table
+ * entry stale: no client .rpc() calls them).
+ */
+const EDGE_COPY: Record<string, Record<string, string>> = {
+  // shop-checkout { action: "accept" } runs it as the maker and answers
+  // { error: code }; shopsErrorMessage words it from SHOPS_ERROR_COPY.
+  shops_accept_order: SHOPS_ERROR_COPY,
+};
 
 /**
  * Hire functions no client can call (EXECUTE revoked from authenticated): the
@@ -126,7 +142,7 @@ describe("Q345: every hire RPC refuses across a block", () => {
 
     for (const door of INTERNAL_HIRES[name] ?? [name]) {
       it(`${door} has copy for applicant_blocked that does not say who blocked`, () => {
-        const copy = (RPC_ERROR_COPY as Record<string, Record<string, string>>)[door]?.applicant_blocked;
+        const copy = EDGE_COPY[door]?.applicant_blocked ?? (RPC_ERROR_COPY as Record<string, Record<string, string>>)[door]?.applicant_blocked;
         expect(copy).toBeTruthy();
         expect(copy).not.toMatch(/block/i);
         expect(copy).not.toMatch(/\bhelpr\b|\bposter\b/i);
@@ -173,5 +189,7 @@ describe("Q345: every hire RPC refuses across a block", () => {
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF public.are_users_blocked(p_helper, v_customer) THEN |   IF false THEN
 // @mutate supabase/migrations/20261015091114_job_quotes.sql | IF public.are_users_blocked(v_req.poster_id, v_q.quoter_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261015091114_job_quotes.sql | IF public.are_users_blocked(v_uid, v_q.quoter_id) THEN | IF false THEN
+// @mutate supabase/migrations/20261017225605_shops_orders_checkout.sql |   IF public.are_users_blocked(v_uid, o.buyer_id) THEN\n    RAISE EXCEPTION 'applicant_blocked' |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked'
+// @mutate src/lib/shops/errors.ts |   applicant_blocked: "This order can't be accepted any more. Decline it so the buyer's card hold is released.",\n |
 // The accept copy removed.
 // @mutate src/lib/lifecycleErrors.ts | applicant_blocked: "This person can no longer be hired for this job.", | x_unused: "x",

@@ -17,6 +17,9 @@ import os from "node:os";
 import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FILE } from "../../../scripts/declutter/slice3Harness.mjs";
 
 const NEW_FILE = "20261017055505_declutter_helpr_delivery.sql";
+// No drop-off code, porch auto-pay needs the set-out photo (owner 2026-10-18): applied after NEW_FILE,
+// 3x each. NO_CODE=skip runs the state before them, to show the checks below red on it.
+const NO_CODE_FILES = ["20261018183715_declutter_handover_no_qr_no_code.sql", "20261018184535_declutter_delivery_no_dropoff_code.sql"];
 const BEFORE = [
   "20261017055500_declutter_refund_hand_settle.sql",
   "20261017055502_declutter_handover_private_bucket.sql",
@@ -37,6 +40,7 @@ await db.exec(`CREATE SCHEMA IF NOT EXISTS storage;
   INSERT INTO storage.buckets (id, name, public) VALUES ('job-photos', 'job-photos', true);`);
 const extra = [{ file: FEE_F1_FILE, times: 1 }, { file: SLICE4_FILE, times: 1 }, ...BEFORE.map((file) => ({ file, times: 1 }))];
 if (!skip) extra.push(process.env.MIGRATION_PATH ? { path: process.env.MIGRATION_PATH, times: 3 } : { file: NEW_FILE, times: 3 });
+if (!skip && process.env.NO_CODE !== "skip") for (const file of NO_CODE_FILES) extra.push({ file, times: 3 });
 const stmts = setupStatements({ times: 1, times3b: 1, extra });
 // Stubs for the jobs strike ladder and the cron defect log (their real bodies
 // need half the jobs schema); they record what they were asked.
@@ -264,7 +268,7 @@ ok(Array.isArray(near) && near.length === 1 && near[0].take_home_cents === T1.pa
     `a Helpr's miles to the pickup come from the rounded point, so they cannot trilaterate the home (${seen}; rounded ${rounded}, exact ${exact})`);
 }
 const cand = await view(HELPR, t1);
-ok(cand?.role === "candidate" && cand.pickup_address === null && cand.dropoff_address === null && cand.dropoff_code === null,
+ok(cand?.role === "candidate" && cand.pickup_address === null && cand.dropoff_address === null && !("dropoff_code" in cand),
   "an open task's view for a Helpr: no address, no code");
 ok(refused(await me(OUTSIDER, `SELECT * FROM public.helpr_tasks_open_near(30, -91, 5)`), /feature_disabled/), "the switch gates finding tasks");
 ok(refused(await me(MINOR, `SELECT * FROM public.helpr_tasks_open_near(30, -91, 5)`), /under_18/), "under 18 cannot deliver");
@@ -282,13 +286,13 @@ ok(acc?.result === "accepted", "the Helpr takes it with a pickup time");
 await truck(HELPR2);
 ok(refused(await me(HELPR2, `SELECT public.helpr_task_accept('${t1}', '${slot}')`), /task_taken/), "a second Helpr cannot take it (first wins)");
 const hv = await view(HELPR, t1);
-ok(hv?.role === "helpr" && hv.pickup_address?.includes("Example St") && hv.dropoff_address === null && hv.dropoff_code === null,
-  "the Helpr now reads the pickup address; not the drop-off yet, never the code");
+ok(hv?.role === "helpr" && hv.pickup_address?.includes("Example St") && hv.dropoff_address === null && !("dropoff_code" in hv),
+  "the Helpr now reads the pickup address; not the drop-off yet");
 const bv = await view(BUYER, t1);
-ok(bv?.role === "customer" && /^[0-9]{4}$/.test(bv.dropoff_code ?? "") && bv.pickup_address === null && bv.dropoff_address === null,
-  "the buyer reads their drop-off code, no addresses");
+ok(bv?.role === "customer" && !("dropoff_code" in bv) && !("code_locked" in bv) && bv.pickup_address === null && bv.dropoff_address === null,
+  "the buyer reads no drop-off code (owner 2026-10-18: no codes) and no addresses");
 const sv = await view(SELLER, t1);
-ok(sv?.role === "pickup_contact" && sv.dropoff_code === null && sv.dropoff_address === null, "the seller reads progress only");
+ok(sv?.role === "pickup_contact" && !("dropoff_code" in sv) && sv.dropoff_address === null, "the seller reads progress only");
 ok(refused(await me(OUTSIDER, `SELECT public.helpr_task_view('${t1}')`), /task_not_found|feature_disabled/), "anyone else is told nothing");
 ok(refused(await me(HELPR2, `SELECT public.helpr_task_view('${t1}')`), /task_not_found/), "another Helpr cannot read a taken task");
 ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${BUYER}' AND title = 'A Helpr took your delivery'`)) === 1,
@@ -324,23 +328,26 @@ ok((await view(HELPR, t1))?.dropoff_address?.includes("Far Rd"), "now the Helpr 
 ok(refused(await me(HELPR, `SELECT public.helpr_task_release('${t1}')`), /already_picked_up/), "a Helpr with the item cannot back out");
 ok(refused(await me(SELLER, `SELECT public.declutter_report_no_show('${o1c.order_id}')`), /not_booked_yet/), "the booking no-show path does not apply");
 
-// 8. Drop-off with the code (B65): seller and Helpr paid at once.
+// 8. Drop-off (B65, owner 2026-10-18: no code): the door photo, then the buyer's "I got it" pays the seller and the Helpr.
 await photo(HELPR, t1, "d.jpg");
-const code1 = (await view(BUYER, t1)).dropoff_code;
-const wrong = code1 === "0000" ? "1111" : "0000";
-const w1 = one(await me(HELPR, `SELECT public.helpr_task_delivered('${t1}', '${HELPR}/task/${t1}/d.jpg', ${DROP.lat + 0.045}, ${DROP.lng}, '${wrong}')`));
-ok(w1?.result === "wrong_code" && w1.attempts_left === 4, "a wrong code is counted and returned (4 left)");
+const realCode = one(await svc(`SELECT dropoff_code FROM public.helpr_tasks WHERE id = '${t1}'`));
+ok(refused(await me(HELPR, `SELECT public.helpr_task_delivered('${t1}', '${HELPR}/task/${t1}/d.jpg', ${30.541234 + 0.045}, ${-91.154321}, '${realCode}')`), /not_at_dropoff/),
+  "even the right code no longer confirms anything or widens the 200 m rule (5 km away: refused)");
 ok(refused(await me(HELPR, `SELECT public.helpr_task_delivered('${t1}', '${HELPR}/task/${t1}/p.jpg', ${30.541234}, ${-91.154321}, NULL)`), /photo_not_uploaded/),
   "the pickup photo cannot double as the drop-off photo");
-ok(refused(await me(HELPR, `SELECT public.helpr_task_delivered('${t1}', '${HELPR}/task/${t1}/d.jpg', ${PICK.lat}, ${PICK.lng}, '${code1}')`), /not_at_dropoff/),
+ok(refused(await me(HELPR, `SELECT public.helpr_task_delivered('${t1}', '${HELPR}/task/${t1}/d.jpg', ${PICK.lat}, ${PICK.lng}, NULL)`), /not_at_dropoff/),
   "away from the drop-off point it is refused");
-const d1raw = await me(HELPR, `SELECT public.helpr_task_delivered('${t1}', '${HELPR}/task/${t1}/d.jpg', 30.541234, -91.154321, '${code1}')`);
-const d1 = one(d1raw);
-if (!d1) console.log("drop-off:", JSON.stringify(d1raw));
+const d1 = one(await me(HELPR, `SELECT public.helpr_task_delivered('${t1}', '${HELPR}/task/${t1}/d.jpg', 30.541234, -91.154321, '${realCode}')`));
+ok(d1?.result === "delivered" && (await task(t1)).status === "delivered" && (await order(o1c.order_id)).status === "paid",
+  "a code sent by an old build is ignored: left at the door, nobody paid yet");
+ok(refused(await svc(`SELECT public.helpr_task_confirm('${t1}', 'code', NULL)`), /invalid_method/), "helpr_task_confirm refuses 'code'");
+ok(refused(await svc(`UPDATE public.helpr_tasks SET status = 'confirmed', confirmed_at = now(), confirmed_by = 'code', closed_at = now() WHERE id = '${t1}'`), /code_handover_removed/),
+  "  and no write can record a NEW 'code' confirmation on a task");
+const c1 = one(await me(BUYER, `SELECT public.helpr_task_customer_confirm('${t1}')`));
 const r1d = await order(o1c.order_id);
 const T1d = await task(t1);
-ok(d1?.result === "confirmed" && r1d.status === "handed_over" && T1d.status === "confirmed" && T1d.confirmed_by === "code",
-  "with the buyer's code at the drop-off: confirmed, the order handed over");
+ok(c1?.result === "handed_over" && r1d.status === "handed_over" && T1d.status === "confirmed" && T1d.confirmed_by === "customer",
+  "the buyer's \"I got it\": confirmed, the order handed over");
 const sp = (await svc(`SELECT * FROM public.declutter_payouts WHERE order_id = '${o1c.order_id}'`))[0];
 const hp = (await svc(`SELECT * FROM public.helpr_task_payouts WHERE task_id = '${t1}'`))[0];
 ok(sp?.amount_cents === 5000 && sp.status === "pending", "the seller is owed exactly the item price");
@@ -352,7 +359,7 @@ ok(due?.payment_intent_id === "pi_dl_1c" && due.transfer_group === `declutter_or
   "the Helpr payout is due from the order's own charge, in the order's transfer group");
 ok(one(await me(HELPR, `SELECT count(*)::int FROM public.helpr_task_payouts`)) === 1 && one(await me(BUYER, `SELECT count(*)::int FROM public.helpr_task_payouts`)) === 0,
   "the Helpr reads their own payout; the buyer does not");
-ok(one(await me(HELPR, `SELECT public.helpr_task_delivered('${t1}', '${HELPR}/task/${t1}/d.jpg', 30.541234, -91.154321, '${code1}')`))?.result === "already_confirmed",
+ok(one(await me(HELPR, `SELECT public.helpr_task_delivered('${t1}', '${HELPR}/task/${t1}/d.jpg', 30.541234, -91.154321, NULL)`))?.result === "already_confirmed",
   "a second drop-off tap changes nothing");
 ok(one(await svc(`SELECT public.helpr_task_payout_executed('${hp.id}', 'tr_h1', true, NULL)`)) === "succeeded"
   && one(await svc(`SELECT count(*)::int FROM public.helpr_task_payouts_due(10) WHERE task_id = '${t1}'`)) === 0,

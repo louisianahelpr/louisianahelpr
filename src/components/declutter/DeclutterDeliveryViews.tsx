@@ -3,11 +3,11 @@
  * rows 24, 29-30, 40-43; B59-B72):
  *   - OrderDeliveryPanel: the buyer's and the seller's view of a paid delivery
  *     order (waiting for a Helpr, the pickup time, on its way, at the door), the
- *     buyer's 4-digit drop-off code and "I got it", the photos from both ends;
+ *     buyer's "I got it" (no drop-off code: owner 2026-10-18), the photos from both ends;
  *   - DeliverView (/declutter?view=deliver): a Helpr's vehicle (row 41), the
  *     deliveries near them they can take with a pickup time, and their own
  *     deliveries: the exact addresses, "Picked up" photo at the pickup, the
- *     drop-off with the buyer's code or a door photo, backing out, "The seller
+ *     drop-off with a door photo, backing out, "The seller
  *     wasn't there", and their pay.
  * Built on the shared Helpr task module (src/lib/helprTasks/api.ts); every rule
  * is enforced in SQL (20261017055505), these screens only explain it.
@@ -141,13 +141,6 @@ export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; 
     <div className="space-y-2">
       <p className="text-sm">{line}</p>
       <p className="text-xs text-muted-foreground">To {v.dropoff_area} · {SIZE_WORDS[v.size]}</p>
-      {side === "buyer" && v.dropoff_code && (
-        <p className="text-sm">
-          Your drop-off code: <span className="font-mono text-2xl font-bold tracking-widest" aria-hidden="true">{v.dropoff_code}</span>
-          <span className="sr-only">{v.dropoff_code.split("").join(" ")}</span>
-          <span className="block text-xs text-muted-foreground">Give it to the Helpr when you have the item. Never share it before.</span>
-        </p>
-      )}
       <TaskPhotos view={v} />
       {canConfirm && (
         <button type="button" className={primary} disabled={gotIt.isPending}
@@ -248,7 +241,6 @@ function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
   const active = t.status === "accepted" || t.status === "picked_up" || t.status === "delivered";
   const view = useQuery({ queryKey: ["helpr-tasks", "view", t.task_id], queryFn: () => fetchTaskView(t.task_id), enabled: active });
   const [dropPhoto, setDropPhoto] = useState<File | null>(null);
-  const [code, setCode] = useState("");
   const done = (msg: string) => { toast.success(msg); invalidateTasks(qc); };
   const pickedUp = useMutation({
     mutationFn: async (file: File) => {
@@ -258,7 +250,7 @@ function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
     onSuccess: () => done("Picked up. The buyer is told it's on the way."),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  // The drop-off photo is uploaded once: a retry after a wrong code reuses it (lh-silent-failure #10).
+  // The drop-off photo is uploaded once: a retry after a refusal reuses it (lh-silent-failure #10).
   const uploaded = useRef<{ file: File; path: string } | null>(null);
   const deliver = useMutation({
     mutationFn: async () => {
@@ -268,14 +260,9 @@ function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
         path = uploaded.current.path;
       }
       const where = path ? await currentPosition() : null;
-      return markDelivered(t.task_id, path, where, code.length === 4 ? code : null);
+      return markDelivered(t.task_id, path, where);
     },
     onSuccess: (r) => {
-      setCode("");
-      // The view's code lock may have changed: read it again either way.
-      if (r.result === "wrong_code" || r.result === "code_locked") void qc.invalidateQueries({ queryKey: ["helpr-tasks", "view", t.task_id] });
-      if (r.result === "wrong_code") { toast.error(`That code isn't right. ${r.attempts_left} ${r.attempts_left === 1 ? "try" : "tries"} left.`); return; }
-      if (r.result === "code_locked") { toast.error("Too many wrong codes. Leave it with a photo, and the buyer taps \"I got it\"."); return; }
       setDropPhoto(null);
       done(r.result === "delivered"
         ? r.held
@@ -304,7 +291,6 @@ function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
   const v = view.data;
   const pickId = `helpr-pick-${t.task_id}`;
   const dropId = `helpr-drop-${t.task_id}`;
-  const codeId = `helpr-code-${t.task_id}`;
   const awayId = `helpr-away-${t.task_id}`;
   return (
     <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
@@ -349,25 +335,12 @@ function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
               )}
             </>
           )}
-          {(v.status === "picked_up" || v.status === "delivered") && (
+          {v.status === "picked_up" && (
             <div className="space-y-2 rounded-xl border border-border p-3">
-              {v.status === "picked_up" && (
-                <>
-                  <label htmlFor={dropId} className="block text-xs font-medium">Photo at the drop-off address</label>
-                  <input id={dropId} type="file" accept="image/*" capture="environment" onChange={(e) => setDropPhoto(e.target.files?.[0] ?? null)} />
-                </>
-              )}
-              <label htmlFor={codeId} className="block text-xs font-medium">The buyer's 4-digit code (leave empty if nobody is home)</label>
-              {v.code_locked ? (
-                <p className="text-sm">Too many wrong codes. Leave it with a photo; the buyer taps "I got it".</p>
-              ) : (
-                <input id={codeId} inputMode="numeric" autoComplete="off" maxLength={4} className={input} value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))} />
-              )}
-              <button type="button" className={primary}
-                disabled={deliver.isPending || (v.status === "picked_up" && !dropPhoto) || (v.status === "delivered" && code.length !== 4)}
-                onClick={() => deliver.mutate()}>
-                {v.status === "delivered" ? "Confirm with the code" : code.length === 4 ? "Handed over" : "Left at the door"}
+              <label htmlFor={dropId} className="block text-xs font-medium">Photo at the drop-off address</label>
+              <input id={dropId} type="file" accept="image/*" capture="environment" onChange={(e) => setDropPhoto(e.target.files?.[0] ?? null)} />
+              <button type="button" className={primary} disabled={deliver.isPending || !dropPhoto} onClick={() => deliver.mutate()}>
+                Left at the door
               </button>
             </div>
           )}
@@ -395,7 +368,7 @@ export function DeliverView() {
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Deliver Declutter items near you. You pick the item up at the seller's, take a photo there, and hand it over with the buyer's code or leave it at the door with a photo. You keep the delivery fee minus 5% + 70¢.
+        Deliver Declutter items near you. You pick the item up at the seller's, take a photo there, and leave it at the buyer's door with a photo. You keep the delivery fee minus 5% + 70¢.
       </p>
       <VehicleForm userId={userId} />
       <section className="space-y-3" aria-label="Your deliveries">

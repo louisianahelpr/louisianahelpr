@@ -5,8 +5,10 @@
  * is src/test/pglite/declutterSlice4.pglite.mjs.
  *
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |         {card.data?.code && ( |         {false && (
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |             onClick={() => confirm.mutate({ method: "code", code })}> |             onClick={() => confirm.mutate({ method: "buyer", code: null })}>
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} />} |
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home") { |     if (true) {
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") { |   if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (l.status !== "paid" \|\| !l.order_id) continue; |     if (!l.order_id) continue;
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     queries: lines.map((l) => ({ |     queries: lines.slice(0, 1).map((l) => ({
@@ -19,7 +21,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const state = {
   bookings: [] as unknown[],
   payouts: [] as unknown[],
-  handover: { code: "4821", code_locked: false } as Record<string, unknown>,
   calls: [] as unknown[][],
 };
 
@@ -28,12 +29,12 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => state.payouts,
-  fetchMyHandover: async () => state.handover,
   fetchItemAddress: async (itemId: string) => ({
     pickup_address: itemId === "i2" ? "9 Far Rd, Baton Rouge" : "1234 Example St, Baton Rouge", pickup_lat: 30.45, pickup_lng: -91.15,
   }),
   bookPickup: async (...a: unknown[]) => { state.calls.push(["book", ...a]); return { result: "booked" }; },
   confirmHandover: async (...a: unknown[]) => { state.calls.push(["confirm", ...a]); return { result: "handed_over" }; },
+  sellerPickedUp: async (...a: unknown[]) => { state.calls.push(["seller_picked_up", ...a]); return { result: "handed_over" }; },
   setPorchTime: async (...a: unknown[]) => { state.calls.push(["porch_time", ...a]); },
   porchPhoto: async (...a: unknown[]) => { state.calls.push(["porch_photo", ...a]); return { result: "set_out" }; },
   uploadHandoverPhoto: async () => "me/declutter/handover/o1/x.jpg",
@@ -66,7 +67,6 @@ describe("Declutter slice 4: paid-order cards", () => {
   beforeEach(() => {
     state.bookings = [];
     state.payouts = [];
-    state.handover = { code: "4821", code_locked: false };
     state.calls = [];
     vi.spyOn(window, "confirm").mockReturnValue(true);
   });
@@ -105,32 +105,54 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.getByText(/Oak chair, Lamp/)).toBeInTheDocument();
   });
 
-  it("pickup at home: the buyer gets the 4-digit code and \"I got it\"; the seller types the code (rows 25, 93)", async () => {
+  it("no code anywhere (owner 2026-10-18): the buyer gets \"I got it\", the seller is told how they're paid (rows 25, 93)", async () => {
     state.bookings = [slot(-60)];
     const { unmount } = show([line()]);
-    expect(await screen.findByText("4821")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "I got it" }));
-    await waitFor(() => expect(state.calls).toContainEqual(["confirm", "o1", "buyer", null]));
+    fireEvent.click(await screen.findByRole("button", { name: "I got it" }));
+    await waitFor(() => expect(state.calls).toContainEqual(["confirm", "o1"]));
+    expect(screen.queryByText(/4-digit|handover code/i)).toBeNull();
     unmount();
     state.calls = [];
-    state.handover = { code: null, code_locked: false };
+    state.bookings = [slot(10)];
     show([line({ my_side: "seller" })]);
-    fireEvent.change(await screen.findByLabelText(/The buyer's 4-digit code/), { target: { value: "48a21" } });
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-    await waitFor(() => expect(state.calls).toContainEqual(["confirm", "o1", "code", "4821"]));
-    expect(screen.queryByText("4821")).toBeNull();
+    expect(await screen.findByText(/You're paid when the buyer taps "I got it" or you tap "Picked up"/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
+    expect(screen.queryByLabelText(/code/i)).toBeNull();
+    expect(screen.getByText("Pickup at the door")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Picked up" }));
+    await waitFor(() => expect(state.calls).toContainEqual(["seller_picked_up", "o1", null]));
   });
 
-  it("porch: the buyer is told the \"Picked up\" photo pays the seller (row 99)", async () => {
+  it("door pickup (owner 2026-10-18): both sides get the safety tips; the buyer is pointed to Add a Helpr; porch has no tips and no seller \"Picked up\"", async () => {
+    state.bookings = [slot(-60)];
+    const { unmount } = show([line()]);
+    expect(await screen.findByText("Pickup at the door")).toBeInTheDocument();
+    expect(screen.getByText(/Add a Helpr below/)).toBeInTheDocument();
+    unmount();
+    show([line({ handover: "porch", my_side: "seller" })]);
+    expect(await screen.findByText(/if you posted the "Left on porch" photo/)).toBeInTheDocument();
+    expect(screen.queryByText("Pickup at the door")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Picked up" })).toBeNull();
+  });
+
+  it("door pickup: the seller's \"Picked up\" appears only from the booked time (lh-money-escrow review #1)", async () => {
+    state.bookings = [slot(-60)];
+    show([line({ my_side: "seller" })]);
+    expect(await screen.findByText(/you tap "Picked up" from the pickup time/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Picked up" })).toBeNull();
+  });
+
+  it("porch: the buyer is told the \"Picked up\" photo pays the seller (row 99), and can tap \"I got it\" instead", async () => {
     state.bookings = [slot(-60)];
     show([line({ handover: "porch" })]);
     expect(await screen.findByLabelText(/this pays the seller/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "I got it" })).toBeInTheDocument();
   });
 
   it("\"They didn't show\" appears only 15 minutes after the booked time (row 94)", async () => {
     state.bookings = [slot(10)];
     const { unmount } = show([line()]);
-    await screen.findByText("4821");
+    await screen.findByRole("button", { name: "I got it" });
     expect(screen.queryByRole("button", { name: "They didn't show" })).toBeNull();
     unmount();
     state.bookings = [slot(16)];

@@ -31,7 +31,7 @@ Everything else is below as owner questions (L1..L92).
 - **Order request**: a buyer asks for items; nothing is charged until the shop accepts.
 - **Card hold**: the money is set aside on the buyer's card but not taken. It drops off if not used.
 - **Boost**: a paid spot at the top of a list, always marked "Ad".
-- **Handover**: the moment the buyer gets the order (QR scan, 4-digit code, or "I got it").
+- **Handover**: the moment the buyer gets the order (4-digit code or "I got it"; no QR codes, owner 2026-10-17).
 
 ---
 
@@ -54,7 +54,7 @@ Everything else is below as owner questions (L1..L92).
 | Business-like seller flag + tax refusal hook | `declutter_seller_flags`, `seller_tax_not_ready` | Shops are businesses: tax ON from day one |
 | Account deletion refused while a sale is in flight | findActiveWork (slice 3) | Same for open orders/rentals |
 | Data export sections | src/test/helpers/dataExportInventory.ts | Add shop sections before go-live |
-| Planned, not built yet: Stripe step (slice 3b), QR handover + auto-pay (slice 4), Helpr delivery (slice 5), storm pause (row 39), strike appeals (row 49) | spec rows 25-29, 39, 49; B38 | Shops should wait for these and share them |
+| Planned, not built yet: Stripe step (slice 3b), code handover + auto-pay (slice 4), Helpr delivery (slice 5), storm pause (row 39), strike appeals (row 49) | spec rows 25-29, 39, 49; B38 | Shops should wait for these and share them |
 
 ### From the live app (origin/main e5e09c44a)
 | Piece | Where | Use |
@@ -337,7 +337,7 @@ Each question: options, **recommended first**, one line why. The owner answers b
 - **L22. Limit orders per day?**
   (a) **Yes: maker sets a max per day; full days grey out** — stops overbooking. (b) No limit. (c) Per-item limits.
 - **L23. Proving the buyer got it?**
-  (a) **Same as Declutter: maker scans the buyer's QR (4-digit code backup) or buyer taps "I got it"; auto-done 24 h
+  (a) **Same as Declutter: maker types the buyer's 4-digit code (no QR: owner 2026-10-17) or buyer taps "I got it"; auto-done 24 h
   after the date unless the buyer reports a problem** — one handover system. (b) Photo of the handover. (c) Buyer
   confirm only.
 - **L24. Delivery?**

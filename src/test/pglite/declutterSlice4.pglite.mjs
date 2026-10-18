@@ -12,7 +12,7 @@
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite.
  */
 import os from "node:os";
-import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FILE } from "../../../scripts/declutter/slice3Harness.mjs";
+import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FILE, NO_QR_FILE } from "../../../scripts/declutter/slice3Harness.mjs";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
@@ -22,6 +22,9 @@ const skip = process.env.NEW_MIGRATION === "skip";
 const db = new PGlite();
 const extra = [{ file: FEE_F1_FILE, times: 1 }];
 if (!skip) extra.push(process.env.MIGRATION_PATH ? { path: process.env.MIGRATION_PATH, times: 3 } : { file: SLICE4_FILE, times: 3 });
+// No QR and no 4-digit code (owner 2026-10-17 + 2026-10-18: porch pickup, never meet).
+// NO_QR=skip runs the pre-removal state, to show the B checks below red on it.
+if (!skip && process.env.NO_QR !== "skip") extra.push({ file: NO_QR_FILE, times: 3 });
 for (const sql of setupStatements({ times: 1, times3b: 1, extra })) await db.exec(sql);
 await db.exec(CARDS_SQL);
 await db.exec(`CREATE OR REPLACE FUNCTION public.log_cron_defect(a text, b text, c text) RETURNS void LANGUAGE plpgsql AS $f$ BEGIN RAISE WARNING 'cron defect % % %', a, b, c; END $f$;`);
@@ -90,22 +93,25 @@ ok(Array.isArray(privOff) && privOff.length === 1, "and the seller still reads t
 const hOff = await me(BUYER, `SELECT public.declutter_my_handover('${A.order_id}') AS h`);
 await svc(`UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'declutter'`);
 
-// B. Handover code (rows 25, 28, 93; B50, B52).
+// B. Handover (rows 25, 28, 93): no QR and no 4-digit code (owner 2026-10-18).
 const hb = one(hOff);
 const hs = one(await me(SELLER, `SELECT public.declutter_my_handover('${A.order_id}') AS h`));
-ok(/^[0-9]{4}$/.test(hb?.code ?? "") && hb?.qr === `lhdeclutter:${A.order_id}:${hb?.code}`, "the buyer gets the 4-digit code and the QR payload (switch off too)");
-ok(hs && hs.code == null && hs.qr == null, "the seller never gets the code");
+ok(hb != null && !("code" in hb) && !("qr" in hb) && !("code_locked" in hb), "the buyer's handover card carries NO code and NO QR (switch off too)");
+ok(hs != null && !("code" in hs) && !("qr" in hs), "  nor does the seller's");
 ok(refused(await me(SELLER, `SELECT code FROM public.declutter_handovers`), /permission denied/),
   "no client role can read the handover table");
-ok(refused(await me(BUYER, `SELECT public.declutter_confirm_handover('${A.order_id}', 'code', '${hb?.code}')`), /wrong_side/),
-  "the buyer cannot 'scan' themself paid");
+const realCode = one(await svc(`SELECT code FROM public.declutter_handovers WHERE order_id = '${A.order_id}'`));
+ok(refused(await me(SELLER, `SELECT public.declutter_confirm_handover('${A.order_id}', 'code', '${realCode}')`), /invalid_method/),
+  "the seller cannot complete a handover by a code any more, even the right one");
+ok(refused(await me(SELLER, `SELECT public.declutter_confirm_handover('${A.order_id}', 'scan', '${realCode}')`), /invalid_method/),
+  "  nor by a QR scan ('scan')");
 ok(refused(await me(SELLER, `SELECT public.declutter_confirm_handover('${A.order_id}', 'buyer', NULL)`), /wrong_side/),
   "the seller cannot tap \"I got it\"");
-const wrong = hb?.code === "0000" ? "0001" : "0000";
-const w1 = one(await me(SELLER, `SELECT public.declutter_confirm_handover('${A.order_id}', 'code', '${wrong}') AS r`));
-ok(w1?.result === "wrong_code" && w1.attempts_left === 4, "a wrong code is refused and counted (4 tries left)");
-const done = one(await me(SELLER, `SELECT public.declutter_confirm_handover('${A.order_id}', 'scan', '${hb?.code}') AS r`));
-ok(done?.result === "handed_over", "scanning the buyer's QR completes the handover");
+ok(await status(A.order_id) === "paid", "  and none of those moved the order");
+ok(refused(await svc(`UPDATE public.declutter_handovers SET confirmed_at = now(), confirmed_by = 'scan' WHERE order_id = '${A.order_id}'`), /check constraint/),
+  "  and no handover row can record 'scan'");
+const done = one(await me(BUYER, `SELECT public.declutter_confirm_handover('${A.order_id}', 'buyer', NULL) AS r`));
+ok(done?.result === "handed_over", "the buyer's \"I got it\" completes the handover");
 ok(await status(A.order_id) === "handed_over", "  the order is handed_over");
 const pA = (await svc(`SELECT items_cents, debt_cents, amount_cents, status FROM public.declutter_payouts WHERE order_id = '${A.order_id}'`))[0];
 ok(pA?.items_cents === 4000 && pA.debt_cents === 0 && pA.amount_cents === 4000 && pA.status === "pending",
@@ -116,17 +122,6 @@ ok(Number(one(await svc(`SELECT count(*) FROM public.declutter_payouts WHERE ord
 ok(refused(await me(BUYER, `SELECT public.declutter_report_problem('${A.order_id}', 'damaged', 'Broken leg', NULL)`), /sale_final/),
   "after the seller is paid a problem cannot be opened (row 96)");
 ok(one(await svc(`SELECT status FROM public.declutter_items WHERE id = '${I(1)}'`)) === "completed", "  the item is completed");
-
-// Five wrong codes lock the code (B52).
-const L = await paidOrder(2, BUYER2, SELLER, 2000);
-await book(BUYER2, L.order_id, at(12));
-const codeL = one(await me(BUYER2, `SELECT public.declutter_my_handover('${L.order_id}') AS h`))?.code;
-const wrongL = codeL === "0000" ? "0001" : "0000";
-for (let i = 0; i < 5; i++) await me(SELLER, `SELECT public.declutter_confirm_handover('${L.order_id}', 'code', '${wrongL}')`);
-ok(one(await me(SELLER, `SELECT public.declutter_confirm_handover('${L.order_id}', 'code', '${codeL}') AS r`))?.result === "code_locked",
-  "after 5 wrong codes even the right code is refused (the count survives: returned, not raised)");
-ok(one(await me(BUYER2, `SELECT public.declutter_confirm_handover('${L.order_id}', 'buyer', NULL) AS r`))?.result === "handed_over",
-  "the buyer's \"I got it\" still completes it");
 
 // C. Seller fee debt comes out of the payout (row 60, B43, B53).
 const C = await paidOrder(3, BUYER3, SELLER, 3000, "pickup_home", 120);
@@ -151,9 +146,8 @@ const prob = one(await me(BUYER, `SELECT public.declutter_report_problem('${E.or
 ok(/^[0-9a-f-]{36}$/.test(prob ?? ""), "the buyer reports a problem with a photo");
 ok(one(await me(SELLER2, `SELECT public.declutter_report_problem('${E.order_id}', 'other', 'They are lying', NULL) AS id`)) === prob,
   "a second report while one is open returns the open one");
-const codeE = one(await me(BUYER, `SELECT public.declutter_my_handover('${E.order_id}') AS h`))?.code;
-ok(refused(await me(SELLER2, `SELECT public.declutter_confirm_handover('${E.order_id}', 'code', '${codeE}')`), /problem_open/),
-  "an open problem blocks the handover");
+ok(refused(await me(BUYER, `SELECT public.declutter_confirm_handover('${E.order_id}', 'buyer', NULL)`), /problem_open/),
+  "an open problem blocks the handover (even the buyer's \"I got it\")");
 await slotAgo(E.order_id, 60 * 25);
 await svc(`SELECT public.declutter_handover_sweep()`);
 ok(await status(E.order_id) === "paid", "  and the 24 h auto-pay (rows 26, 28)");
@@ -254,6 +248,57 @@ await slotAgo(K.order_id, 60 * 24 + 1);
 await svc(`SELECT public.declutter_handover_sweep()`);
 ok(await status(K.order_id) === "handed_over" && one(await svc(`SELECT confirmed_by FROM public.declutter_handovers WHERE order_id = '${K.order_id}'`)) === "auto",
   "24 h after the booked time: auto-paid (row 28)");
+
+// F2. Owner 2026-10-18 (porch pickup, no code). A porch order with NO "Left on porch" photo is never auto-paid;
+// with the photo it is. A door pickup (big item) completes by the seller's "Picked up" (photo optional).
+const PN = await paidOrder(60, BUYER3, SELLER2, 1100, "porch");
+await book(BUYER3, PN.order_id, at(12));
+await slotAgo(PN.order_id, 60 * 24 + 5);
+await svc(`SELECT public.declutter_handover_sweep()`);
+ok(await status(PN.order_id) === "paid", "porch, no set-out photo, 24 h after the pickup time: NOT auto-paid");
+const pnPhoto = `${SELLER2}/declutter/handover/${PN.order_id}/out.jpg`;
+await svc(`INSERT INTO storage.objects (bucket_id, name) VALUES ('job-photos', '${pnPhoto}')`);
+await me(SELLER2, `SELECT public.declutter_porch_photo('${PN.order_id}', '${pnPhoto}', NULL, NULL)`);
+await svc(`SELECT public.declutter_handover_sweep()`);
+ok(await status(PN.order_id) === "handed_over" && one(await svc(`SELECT confirmed_by FROM public.declutter_handovers WHERE order_id = '${PN.order_id}'`)) === "auto",
+  "  with the set-out photo the sweep auto-pays it");
+const SP = await paidOrder(61, BUYER3, SELLER2, 1300);
+ok(refused(await me(SELLER2, `SELECT public.declutter_seller_picked_up('${SP.order_id}', NULL)`), /not_booked_yet/), "door pickup: \"Picked up\" needs a booked time");
+await book(BUYER3, SP.order_id, at(12));
+ok(refused(await me(SELLER2, `SELECT public.declutter_seller_picked_up('${SP.order_id}', NULL)`), /before_pickup_time/),
+  "  not before the booked time (the seller cannot be paid before the buyer could come)");
+await slotAgo(SP.order_id, 5);
+ok(refused(await me(BUYER3, `SELECT public.declutter_seller_picked_up('${SP.order_id}', NULL)`), /wrong_side/), "  only the seller taps \"Picked up\"");
+ok(refused(await me(SELLER2, `SELECT public.declutter_seller_picked_up('${SP.order_id}', '${SELLER2}/declutter/handover/${SP.order_id}/none.jpg')`), /photo_not_uploaded/),
+  "  a photo, when given, must be uploaded");
+const spPhoto = `${SELLER2}/declutter/handover/${SP.order_id}/door.jpg`;
+await svc(`INSERT INTO storage.objects (bucket_id, name) VALUES ('declutter-handover', '${spPhoto}')`);
+const spr = one(await me(SELLER2, `SELECT public.declutter_seller_picked_up('${SP.order_id}', '${spPhoto}') AS r`));
+ok(spr?.result === "handed_over" && await status(SP.order_id) === "handed_over", "  the seller's \"Picked up\" completes the door pickup");
+const spH = (await svc(`SELECT confirmed_by, picked_up_photo_path FROM public.declutter_handovers WHERE order_id = '${SP.order_id}'`))[0];
+ok(spH?.confirmed_by === "seller" && spH.picked_up_photo_path === spPhoto, "  recorded as 'seller', with the photo kept");
+ok(Number(one(await svc(`SELECT count(*) FROM public.declutter_payouts WHERE order_id = '${SP.order_id}'`))) === 1, "  one payout row");
+ok(one(await me(SELLER2, `SELECT public.declutter_seller_picked_up('${SP.order_id}', NULL) AS r`))?.result === "already_handed_over", "  a second tap is a no-op");
+const SP2 = await paidOrder(62, BUYER3, SELLER2, 900);
+await book(BUYER3, SP2.order_id, at(12));
+await slotAgo(SP2.order_id, 5);
+ok(one(await me(SELLER2, `SELECT public.declutter_seller_picked_up('${SP2.order_id}', NULL) AS r`))?.result === "handed_over", "  the photo is optional");
+const PP = await paidOrder(63, BUYER3, SELLER2, 900, "porch");
+await book(BUYER3, PP.order_id, at(12));
+await slotAgo(PP.order_id, 5);
+ok(refused(await me(SELLER2, `SELECT public.declutter_seller_picked_up('${PP.order_id}', NULL)`), /not_a_door_pickup/), "  never on a porch order (the buyer confirms those)");
+const PRB = await paidOrder(64, BUYER2, SELLER2, 900);
+await book(BUYER2, PRB.order_id, at(12));
+await slotAgo(PRB.order_id, 5);
+await me(BUYER2, `SELECT public.declutter_report_problem('${PRB.order_id}', 'other', 'Not what I paid for', NULL)`);
+ok(refused(await me(SELLER2, `SELECT public.declutter_seller_picked_up('${PRB.order_id}', NULL)`), /problem_open/), "  never over an open problem");
+ok(refused(await svc(`UPDATE public.declutter_handovers SET confirmed_at = now(), confirmed_by = 'code' WHERE order_id = '${PP.order_id}'`), /code_handover_removed/),
+  "no write can record a NEW 'code' handover");
+// A historical 'code' row (as prod's one test order has), written past the trigger, then touched again.
+await db.exec(`SET session_replication_role = replica; UPDATE public.declutter_handovers SET confirmed_by = 'code' WHERE order_id = '${PN.order_id}'; SET session_replication_role = origin;`);
+ok(Array.isArray(await svc(`UPDATE public.declutter_handovers SET wrong_attempts = wrong_attempts + 1 WHERE order_id = '${PN.order_id}'`))
+  && one(await svc(`SELECT confirmed_by FROM public.declutter_handovers WHERE order_id = '${PN.order_id}'`)) === "code",
+  "  while a historical 'code' row is left alone (it can still be updated)");
 
 // G. Porch pickup (rows 26, 97).
 const P = await paidOrder(11, BUYER, SELLER2, 2200, "porch");

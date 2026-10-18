@@ -10660,6 +10660,10 @@ export type Database = {
         }[]
       }
       declutter_seller_out: { Args: { p_seller: string }; Returns: boolean }
+      declutter_seller_picked_up: {
+        Args: { p_order_id: string; p_photo_path: string }
+        Returns: Json
+      }
       declutter_seller_out_fee_notice: {
         Args: { p_refund_id: string }
         Returns: undefined

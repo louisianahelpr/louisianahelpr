@@ -170,9 +170,10 @@ describe("Q1255 — a Stripe payer never loads the deployed site on the return",
   const { sites, unanswered } = unansweredPayers(WORLD);
 
   it("found the Pay presses (inventory floor)", () => {
-    // fixtures.ts, stripeCheckoutCard.ts, fundedOpenJob.ts, prod-lifecycle.spec.ts,
-    // mint-funded-seed-jobs.prod.mjs on 2026-10-17.
-    expect(sites.length).toBeGreaterThan(4);
+    // fixtures.ts, stripeCheckoutCard.ts (pressStripePay, which prod-lifecycle.spec.ts
+    // now calls instead of its own press), fundedOpenJob.ts and
+    // mint-funded-seed-jobs.prod.mjs on 2026-10-18.
+    expect(sites.length).toBeGreaterThan(3);
   });
 
   it("every press of Stripe's Pay button has the return answered", () => {

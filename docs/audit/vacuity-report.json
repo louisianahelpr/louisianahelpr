@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-18T18:22:49.434Z",
-  "guards": 2018,
-  "registered": 2018,
+  "generated": "2026-10-18T22:42:39.990Z",
+  "guards": 2024,
+  "registered": 2024,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
@@ -232,18 +232,6 @@
       ],
       "parents": [
         "src/components/MobileNav.tsx"
-      ]
-    },
-    {
-      "module": "src/components/NotificationPanel.tsx",
-      "tests": [
-        "src/test/bellFeedBoundOnEveryRoute.test.tsx",
-        "src/components/NotificationPanel.failedLoad.test.tsx"
-      ],
-      "parents": [
-        "src/components/DesktopTopNav.tsx",
-        "src/components/dashboard/DashboardTitleBar.tsx",
-        "src/components/admin/AdminTopBar.tsx"
       ]
     },
     {

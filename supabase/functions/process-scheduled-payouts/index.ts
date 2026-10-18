@@ -7,6 +7,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { readHelperFeePercentStrict, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { flatFeePercentOf, isFlatFeeJob } from "../_shared/helprFlatFee.ts";
+import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { crewFeeShareReturnCents } from "../_shared/refundAmount.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
@@ -100,7 +101,7 @@ serve(async (req) => {
     const includeSeed = new URL(req.url).searchParams.get("include_seed") === "1";
     let jobQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, helper_fee_flat_cents, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate, sales_tax_amount, customer_fee_amount, is_seed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, helper_fee_flat_cents, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate, sales_tax_amount, customer_fee_amount, poster_fee_flat_cents, is_seed")
       .eq("status", "completed")
       .eq("payment_status", "payout_pending")
       // Never pay out a job under dispute. A CREW whose dispute CLOSED
@@ -609,7 +610,12 @@ serve(async (req) => {
       const crewStripeFeeCents = a.stripeFeeCents ?? stripeProcessingCostCents(a.capturedCents);
       /** Q1827: only Stripe's ACTUAL fee is final; an estimate can be undercut by the real fee read later. */
       const crewStripeFeeSource: "actual" | "estimate" = a.stripeFeeCents != null && a.stripeFeeActual === true ? "actual" : "estimate";
-      const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents });
+      // Jobs poster fee (Q2082 slice 4, re-review #1): a poster-fee job's 5% +
+      // 70c is a percent of the budget, not the card cost, so its unfilled
+      // share comes back whole; the share of Stripe's fee is kept once, by
+      // flatCardFeeKeptCents below (isFlatFeeJob is true at its 0c Helpr stamp).
+      const feeHoldsCardFee = !isPosterFeeJob(job);
+      const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? crewStripeFeeCents : 0, proRataCents: feeProRataCents });
       // Roadmap F3 (lh-money-escrow review N2, 2026-10-15): a FLAT job charged
       // the poster no fee line (customer_fee_amount 0), so nothing above holds
       // back the card fee, and only the filled spots pay the Helpr's 5% + 70c.
@@ -630,7 +636,7 @@ serve(async (req) => {
        */
       const owedAtFee = (stripeFee: number) =>
         owedCents
-        - feeReturnCents + crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: stripeFee, proRataCents: feeProRataCents })
+        - feeReturnCents + crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? stripeFee : 0, proRataCents: feeProRataCents })
         + flatCardFeeKeptCents - (isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0
           ? Math.min(unfilledCents, Math.floor((stripeFee * (unpaidBudgetCents - blockFeeCents)) / budgetCents))
           : 0);

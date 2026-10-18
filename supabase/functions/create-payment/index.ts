@@ -15,10 +15,10 @@ import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, flatFeePercentOf } from "
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { POSTER_SERVICE_FEE_PERCENT, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
-import { cardCostFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { cardCostFeeCents, posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";
 import { jobFlatFeeTotalCents } from "../_shared/crewShares.ts";
-import { POSTER_JOB_FEE_CENTS, POSTER_JOB_FEE_DESCRIPTION } from "../_shared/posterJobFee.ts";
+import { POSTER_JOB_FEE_CENTS, POSTER_JOB_FEE_DESCRIPTION, isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import {
   JOBS_POSTER_FEE_SWITCH,
   JOB_CHECKOUT_PAYMENT_METHOD_TYPES,
@@ -2434,7 +2434,10 @@ serve(async (req) => {
           // money to fees regardless of payment method — cards, Klarna/Affirm/
           // Afterpay, and ACH all carry different real rates.
           const capturedCents = pi.amount_received ?? pi.amount;
-          const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
+          // A poster-fee job keeps no service fee, only Stripe's real fee
+          // (posterCancelKeptFeeCents, Q2082 slice 4); any other job keeps
+          // the fee its poster paid.
+          const serviceFeeCents = posterCancelKeptFeeCents(job);
           // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept on a
           // cancel ("paid and done": never refunded, never charged again).
           const setupFeeCents = setupFeeKeptCents(job);
@@ -2498,9 +2501,9 @@ serve(async (req) => {
               paymentIntentId: cancelPaymentIntentId,
               source: "cancel_escrow",
               isPartial: nonRefundableCents > 0,
-              reason: setupFeeCents > 0
-                ? "escrow cancellation refund (minus non-refundable service fee and the kept $2 setup fee)"
-                : "escrow cancellation refund (minus non-refundable service fee)",
+              // A poster-fee job keeps the card processing cost, not a service
+              // fee (Q2082 slice 4 review #7 / BEFORE THE FLIP (e)).
+              reason: `escrow cancellation refund (minus ${isPosterFeeJob(job) ? "the card processing fee" : "non-refundable service fee"}${setupFeeCents > 0 ? " and the kept $2 setup fee" : ""})`,
               initiatedByUserId: user.id,
             });
             // Q1714: the poster is told at once, with what was kept and why

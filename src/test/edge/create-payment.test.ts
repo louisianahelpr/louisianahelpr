@@ -1944,7 +1944,7 @@ describe("create-payment edge function", () => {
     // jobs.customer_fee_amount, never a fee recomputed from today's rule, so an
     // old job's tier fee is withheld exactly as charged and a new job withholds
     // its card-cost fee (floored at Stripe's actual fee on that charge).
-    // @mutate supabase/functions/create-payment/index.ts |           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100); |           const serviceFeeCents = posterCardCostFeeCents(Math.round(Number(job.budget ?? 0) * 100));
+    // @mutate supabase/functions/create-payment/index.ts |           const serviceFeeCents = posterCancelKeptFeeCents(job); |           const serviceFeeCents = posterCardCostFeeCents(Math.round(Number(job.budget ?? 0) * 100));
     it("a job charged before 2026-10-11 keeps its stored fee at cancellation; a new job withholds its card-cost fee", async () => {
       const cases = [
         // Old: $100 at the free tier's 12% → $12.00 fee, $112.00 captured.

@@ -353,6 +353,8 @@ ok(Number(await sweep()) === 0 && (await status(oI2)) === "accepted", "a reporte
 const oI3 = await charged();
 await pastDue(oI3);
 ok(Number(await sweep()) === 1 && (await status(oI3)) === "handed_over", "in person: the clock finishes it without any tap");
+ok(Number(one(await svc(`SELECT count(*) FROM public.notifications WHERE user_id = '${BUYER}' AND title = 'Order finished' AND message LIKE '%on its own 24 hours%'`))) >= 1,
+  "the clock's finish is not called a pickup (money review of 201265b4c)");
 
 // --- 4. the buyer did not get it: no clock, no payout, until Louisiana Helpr decides
 const oX = await charged();

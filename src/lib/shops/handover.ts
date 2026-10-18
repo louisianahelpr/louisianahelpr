@@ -39,7 +39,7 @@ export interface ShopHandover {
   ready_at: string | null;
   ready_photo_path: string | null;
   confirmed_at: string | null;
-  confirmed_how: "buyer" | "shop" | "auto" | "admin" | null;
+  confirmed_how: "buyer" | "auto" | "admin" | null;
   problem_at: string | null;
 }
 

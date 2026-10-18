@@ -28,6 +28,7 @@
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql |   IF p_how <> 'admin' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN |   IF false THEN
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'auto', 'admin') THEN |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'shop', 'auto', 'admin') THEN
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | confirmed_how IN ('buyer', 'auto', 'admin')), | confirmed_how IN ('buyer', 'shop', 'auto', 'admin')),
+// @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | DROP FUNCTION IF EXISTS public.shops_mark_picked_up(uuid); | SELECT 1;
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | REVOKE ALL ON FUNCTION public.shops_confirm_pickup(uuid) FROM PUBLIC, anon; | CREATE OR REPLACE FUNCTION public.shops_mark_picked_up(p uuid) RETURNS jsonb LANGUAGE sql AS $m$ SELECT public.shop_complete_handover(p, 'auto') $m$; REVOKE ALL ON FUNCTION public.shops_confirm_pickup(uuid) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql |   IF NOT FOUND OR o.buyer_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'handed_over' THEN\n    RETURN jsonb_build_object('result', 'already_handed_over', 'order_id', o.id);\n  END IF;\n  RETURN public.shop_complete_handover(o.id, 'buyer'); |   IF NOT FOUND OR o.seller_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'handed_over' THEN\n    RETURN jsonb_build_object('result', 'already_handed_over', 'order_id', o.id);\n  END IF;\n  RETURN public.shop_complete_handover(o.id, 'buyer');
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | CREATE OR REPLACE FUNCTION public.shops_confirm_pickup(p_order_id uuid)\nRETURNS jsonb\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_uid uuid := (SELECT auth.uid());\n  o public.shop_orders;\nBEGIN\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF; | CREATE OR REPLACE FUNCTION public.shops_confirm_pickup(p_order_id uuid)\nRETURNS jsonb\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_uid uuid := (SELECT auth.uid());\n  o public.shop_orders;\nBEGIN\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;
@@ -110,6 +111,13 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
       .map(([name]) => name).sort();
     expect(callers).toEqual(["shop_handover_sweep", "shops_confirm_pickup"]);
     expect(DEFS.has("shops_mark_picked_up")).toBe(false);
+    // And the transition stays the ONLY writer of a finished handover: no other function marks the
+    // order handed over, stamps confirmed_at or writes a payout row (authz review of 201265b4c).
+    const writers = (re: RegExp) => [...DEFS.entries()].filter(([, d]) => re.test(blankSqlComments(d.stmt))).map(([n]) => n).sort();
+    expect(writers(/UPDATE\s+public\.shop_orders\b[^;]*?\bSET\s+status\s*=\s*'handed_over'/i)).toEqual(["shop_complete_handover"]);
+    expect(writers(/(UPDATE\s+public\.shop_handovers\b[^;]*?\bconfirmed_at\s*=|INSERT\s+INTO\s+public\.shop_handovers\s*\([^)]*\bconfirmed_at\b)/i)).toEqual(["shop_complete_handover"]);
+    expect(writers(/INSERT\s+INTO\s+public\.shop_payouts\b/i)).toEqual(["shop_complete_handover"]);
+    expect(MIG).toMatch(/DROP\s+FUNCTION\s+IF\s+EXISTS\s+public\.shops_mark_picked_up\(uuid\)/i);
     // "I got it" acts only for the order's BUYER, and the clock passes 'auto'.
     const got = body("shops_confirm_pickup");
     expect(got).toMatch(/IF\s+NOT\s+FOUND\s+OR\s+o\.buyer_id\s+IS\s+DISTINCT\s+FROM\s+v_uid\s+THEN\s+RAISE\s+EXCEPTION\s+'order_not_found'/i);

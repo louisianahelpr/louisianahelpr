@@ -212,6 +212,16 @@ CREATE TABLE IF NOT EXISTS public.shop_handovers (
   CONSTRAINT shop_handovers_ready CHECK (ready_photo_path IS NULL OR ready_at IS NOT NULL),
   CONSTRAINT shop_handovers_problem CHECK ((problem_at IS NULL) = (problem_note IS NULL))
 );
+-- A database that applied an earlier draft of this migration (a preview or
+-- branch database; never prod) may still allow 'shop': swap the CHECK so a
+-- replay leaves only the buyer, the clock and an admin (authz review).
+DO $do$
+BEGIN
+  ALTER TABLE public.shop_handovers DROP CONSTRAINT IF EXISTS shop_handovers_confirmed_how_check;
+  ALTER TABLE public.shop_handovers ADD CONSTRAINT shop_handovers_confirmed_how_check
+    CHECK (confirmed_how IS NULL OR confirmed_how IN ('buyer', 'auto', 'admin')) NOT VALID;
+END
+$do$;
 ALTER TABLE public.shop_handovers ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.shop_handovers FROM PUBLIC, anon, authenticated;
 GRANT SELECT (order_id, ready_photo_path, ready_at, confirmed_at, confirmed_how, problem_at, problem_note, created_at)
@@ -328,7 +338,8 @@ BEGIN
           now())
   ON CONFLICT (order_id) DO NOTHING
   RETURNING id INTO v_payout;
-  PERFORM public.declutter_notify(o.seller_id, 'payment', 'Order picked up',
+  -- The clock finishing an order is not a pickup anybody saw: say so (money review of 201265b4c).
+  PERFORM public.declutter_notify(o.seller_id, 'payment', CASE WHEN p_how = 'buyer' THEN 'Order picked up' ELSE 'Order finished' END,
     CASE
       WHEN o.items_cents - v_debt = 0 THEN
         format('This order paid off the $%s card fee you owed, so there is nothing to send.', to_char(v_debt / 100.0, 'FM999990.00'))
@@ -340,8 +351,12 @@ BEGIN
       ELSE format('$%s is on its way to your payout account.', to_char((o.items_cents - v_debt) / 100.0, 'FM999990.00'))
     END,
     '/shops/dashboard', o.buyer_id);
-  PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Enjoy your order',
-    'The pickup is done and the order is final. Thank you for buying local.',
+  PERFORM public.declutter_notify(o.buyer_id, 'payment', CASE WHEN p_how = 'buyer' THEN 'Enjoy your order' ELSE 'Order finished' END,
+    CASE p_how
+      WHEN 'buyer' THEN 'The pickup is done and the order is final. Thank you for buying local.'
+      WHEN 'auto' THEN 'Your order finished on its own 24 hours after the ready date, and the shop is paid.'
+      ELSE 'Louisiana Helpr finished this order, and the shop is paid.'
+    END,
     '/shops/orders', o.seller_id);
   RETURN jsonb_build_object('result', 'handed_over', 'order_id', o.id, 'payout_id', v_payout, 'by', p_how);
 END;
@@ -417,6 +432,10 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shops_mark_ready(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.shops_mark_ready(uuid, text) TO authenticated, service_role;
+
+-- The shop's own "Picked up" (an earlier draft) is gone: the shop never completes
+-- its own order (owner 2026-10-18 ~21:00Z). Dropped for any database that had it.
+DROP FUNCTION IF EXISTS public.shops_mark_picked_up(uuid);
 
 -- The buyer's "I got it": the shop is owed right away.
 CREATE OR REPLACE FUNCTION public.shops_confirm_pickup(p_order_id uuid)

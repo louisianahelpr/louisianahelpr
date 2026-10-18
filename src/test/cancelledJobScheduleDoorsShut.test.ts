@@ -22,7 +22,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 
 // Shown able to fail: each line alone reds this test.
-// @mutate supabase/migrations/20260927012806_recurring_split_days.sql |           OR OLD.status::text = 'cancelled'\n |
+// @mutate supabase/migrations/20261018024950_poster_fee_job_schedule_locked.sql |           OR OLD.status::text = 'cancelled'\n |
 // @mutate supabase/migrations/20261015015604_schedule_change_uses_booking_rule.sql |      OR v_job.status::text <> 'accepted'\n     OR v_job.date_needed IS DISTINCT FROM v_req.old_date |      OR v_job.date_needed IS DISTINCT FROM v_req.old_date
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));

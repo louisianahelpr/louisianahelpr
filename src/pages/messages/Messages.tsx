@@ -413,7 +413,7 @@ const Messages = () => {
   const listEl = (
     <ConversationList
       conversations={inboxForSection(inboxSection, conversations)}
-      allConversations={inboxForSection(inboxSection, allConversations)}
+      allConversations={allConversations && inboxForSection(inboxSection, allConversations)}
       loading={loading}
       loadError={loadError}
       retryInbox={retryInbox}

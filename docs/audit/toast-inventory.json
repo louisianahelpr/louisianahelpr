@@ -4138,7 +4138,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 248,
+      "line": 249,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4158,7 +4158,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 251,
+      "line": 252,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4168,7 +4168,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 256,
+      "line": 257,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4178,7 +4178,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 261,
+      "line": 262,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4188,7 +4188,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 264,
+      "line": 265,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4768,7 +4768,7 @@
     },
     {
       "file": "src/components/job-card/JobListPage.tsx",
-      "line": 336,
+      "line": 337,
       "kind": "toast.info",
       "title": {
         "form": "template",
@@ -6166,7 +6166,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 68,
+      "line": 69,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6176,7 +6176,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 71,
+      "line": 72,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6197,7 +6197,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 114,
+      "line": 115,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6207,7 +6207,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 117,
+      "line": 118,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6228,7 +6228,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 125,
+      "line": 126,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6249,7 +6249,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 130,
+      "line": 131,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6269,7 +6269,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 133,
+      "line": 134,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6290,7 +6290,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 138,
+      "line": 139,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6311,7 +6311,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 199,
+      "line": 200,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6321,7 +6321,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 199,
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6331,7 +6331,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 234,
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7468,7 +7468,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 337,
+      "line": 338,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -7478,7 +7478,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 757,
+      "line": 754,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8023,7 +8023,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 332,
+      "line": 336,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8033,7 +8033,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 372,
+      "line": 376,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -8043,7 +8043,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 382,
+      "line": 386,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9188,7 +9188,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 375,
+      "line": 372,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9198,7 +9198,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 399,
+      "line": 396,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9208,7 +9208,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 420,
+      "line": 417,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9218,7 +9218,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 501,
+      "line": 498,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9238,7 +9238,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 516,
+      "line": 513,
       "kind": "toast.error",
       "title": {
         "form": "literal",

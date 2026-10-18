@@ -147,6 +147,8 @@ const CLASSIFIED: Record<string, string> = {
   "components/TipDialog.tsx::data.url": STRIPE_EDGE_URL,
   "components/profile/BackgroundCheckCard.tsx::data.url": STRIPE_EDGE_URL,
   "components/profile/SubscriptionTab.tsx::data.url": STRIPE_EDGE_URL,
+  // Shops M1: requestOrder() returns shop-checkout's Checkout session url (server-built).
+  "components/shops/ShopOrderSheet.tsx::url": STRIPE_EDGE_URL,
   "pages/profile/GiftCard.tsx::data.url": STRIPE_EDGE_URL,
   "pages/posts/postedJobs/RecurringVisitPayments.tsx::url": STRIPE_EDGE_URL,
   "components/declutter/DeclutterTradeViews.tsx::await startCardSave()": STRIPE_EDGE_URL,

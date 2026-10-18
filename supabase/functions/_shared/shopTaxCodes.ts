@@ -63,9 +63,10 @@ export function splitBuyerFeeByTaxCode(
   }
   const total = [...byCode.values()].reduce((a, b) => a + b, 0);
   if (total <= 0) throw new Error("no items to split the buyer fee against");
+  // Integer math (review nit, 2026-10-18): the remainder is exact, so ties break by order alone.
   const parts = [...byCode.entries()].map(([tax_code, cents], i) => {
-    const exact = (feeCents * cents) / total;
-    return { tax_code, cents: Math.floor(exact), rem: exact - Math.floor(exact), i };
+    const rem = (feeCents * cents) % total;
+    return { tax_code, cents: (feeCents * cents - rem) / total, rem, i };
   });
   let left = feeCents - parts.reduce((a, p) => a + p.cents, 0);
   for (const p of [...parts].sort((a, b) => b.rem - a.rem || a.i - b.i)) {

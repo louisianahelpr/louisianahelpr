@@ -7,6 +7,7 @@ import {
   Sofa,
   Store,
   House,
+  KeyRound,
   LayoutGrid,
   MessageSquare,
   type LucideIcon,
@@ -90,7 +91,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const mockSections: { path: string; icon: LucideIcon; label: string }[] = [
     ...(mockDeclutterOn ? [{ path: "/declutter", icon: Sofa, label: "Declutter" }] : []),
     ...(mockShopsOn ? [{ path: "/shops", icon: Store, label: "Shops" }] : []),
-    ...(mockRentalsOn ? [{ path: "/rentals", icon: House, label: "Homes" }] : []),
+    ...(mockRentalsOn ? [{ path: "/rentals", icon: KeyRound, label: "Homes" }] : []),
   ];
   const [mockMoreOpen, setMockMoreOpen] = useState(!!MOCK.more);
   // Signed-out visitors get no bottom dock (below), so nothing should reserve
@@ -494,7 +495,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     const mockSectionPaths = ["/declutter", "/shops", "/rentals"];
     const isActive =
       path === "#more"
-        ? mockMoreOpen || [...mockSectionPaths, "/profile"].some((p) => location.pathname.startsWith(p))
+        ? [...mockSectionPaths, "/profile"].some((p) => location.pathname.startsWith(p))
         : mockSectionPaths.includes(path)
           ? location.pathname.startsWith(path)
           : MOCK.bar === "A" && path === "/jobs" && location.pathname === "/posts"

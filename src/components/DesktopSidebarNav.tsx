@@ -1,5 +1,5 @@
 import { MOCK } from "@/lib/mockFlags";
-import { House } from "lucide-react";
+import { KeyRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -111,7 +111,7 @@ const DesktopSidebarNav = () => {
     ...(declutterOn ? [{ path: "/declutter", icon: Sofa, label: "Declutter" }] : []),
     ...(shopsOn ? [{ path: "/shops", icon: Store, label: "Shops" }] : []),
     // MOCK-UP ONLY: Homes (the 'rentals' switch) joins the rail beside the other two.
-    ...(MOCK.bar && rentalsOn ? [{ path: "/rentals", icon: House, label: "Homes" }] : []),
+    ...(MOCK.bar && rentalsOn ? [{ path: "/rentals", icon: KeyRound, label: "Homes" }] : []),
     ...NAV_ITEMS.slice(4),
   ];
   // Admin's own sections, collapsed by default so an admin's panel is the same

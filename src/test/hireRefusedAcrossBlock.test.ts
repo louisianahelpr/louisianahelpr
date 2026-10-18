@@ -38,7 +38,7 @@ const HIRE_WRITE =
 // respond_to_job_quote (20261015091114, quotes on jobs): an accept agrees the
 // quote at its price, which is the hire (book_accepted_quote then offers the
 // job to that quoter and refuses across a block too).
-// shops_accept_order (20261017225605, Shops M1): a maker accepting a held
+// shops_accept_order (20261018154737, Shops M1): a maker accepting a held
 // order (status 'accepted') hires the maker for the buyer's order; a block
 // between them since the order was sent is refused before any write.
 const EXPECTED = ["accept_application", "accept_group_application", "claim_series_dates", "complete_direct_offer_accept", "respond_to_job_quote", "shops_accept_order"];
@@ -189,7 +189,7 @@ describe("Q345: every hire RPC refuses across a block", () => {
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF public.are_users_blocked(p_helper, v_customer) THEN |   IF false THEN
 // @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql | IF public.are_users_blocked(v_req.poster_id, v_q.quoter_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261015091114_job_quotes.sql | IF public.are_users_blocked(v_uid, v_q.quoter_id) THEN | IF false THEN
-// @mutate supabase/migrations/20261017225605_shops_orders_checkout.sql |   IF public.are_users_blocked(v_uid, o.buyer_id) THEN\n    RAISE EXCEPTION 'applicant_blocked' |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked'
+// @mutate supabase/migrations/20261018154737_shops_orders_checkout.sql |   IF public.are_users_blocked(v_uid, o.buyer_id) THEN\n    RAISE EXCEPTION 'applicant_blocked' |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked'
 // @mutate src/lib/shops/errors.ts |   applicant_blocked: "This order can't be accepted any more. Decline it so the buyer's card hold is released.",\n |
 // The accept copy removed.
 // @mutate src/lib/lifecycleErrors.ts | applicant_blocked: "This person can no longer be hired for this job.", | x_unused: "x",

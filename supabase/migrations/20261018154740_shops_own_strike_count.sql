@@ -17,7 +17,7 @@
 --     hint saying "Shops strikes":
 --       shop_owner_in_good_standing (20261017061155), shops_assert_owner_eligible
 --       (20261017061155), shop_owner_sell_block_reason (20261017061157),
---       shops_request_order (20261017225605).
+--       shops_request_order (20261018154737).
 --   Declutter's count and gates are untouched: a Shops strike never counts there.
 --
 -- Replay-safe: CREATE TABLE / INDEX IF NOT EXISTS (RLS on with NO policy:
@@ -140,7 +140,7 @@ $fn$;
 REVOKE ALL ON FUNCTION public.shop_owner_sell_block_reason(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_owner_sell_block_reason(uuid) TO service_role;
 
--- shops_request_order: newest body 20261017225605_shops_orders_checkout.sql, strike count swapped.
+-- shops_request_order: newest body 20261018154737_shops_orders_checkout.sql, strike count swapped.
 CREATE OR REPLACE FUNCTION public.shops_request_order(p_shop_id uuid, p_lines jsonb, p_ready_date date, p_note text)
 RETURNS jsonb
 LANGUAGE plpgsql

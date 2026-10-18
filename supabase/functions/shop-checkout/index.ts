@@ -1,6 +1,6 @@
 /**
  * shop-checkout — the Stripe step of a Shops order (Shops M1, migration
- * 20261017225605_shops_orders_checkout; docs/specs/local-shops-prep.md L17-L22,
+ * 20261018154737_shops_orders_checkout; docs/specs/local-shops-prep.md L17-L22,
  * L37/F1, L41 + O2, O1; plan ~/.lh-wt/handoffs-1017/shops-s3-plan.md).
  *
  *   order   { shop_id, lines: [{item_id, quantity}], ready_date, note }  THE BUYER.
@@ -39,6 +39,8 @@ import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { shopTaxCode } from "../_shared/shopTaxCodes.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
+import { storedStripeCustomer } from "../_shared/stripeCustomer.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { captureShopHold, releaseShopHold, shopOrderMode } from "../_shared/shopHolds.ts";
 import {
   sessionIdMode,
@@ -142,16 +144,16 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
 
   const mode = await stripeModeForParties(admin, [user.id, o.seller_id]);
   const stripe = stripeFor(mode);
-  // The buyer's saved card's customer pre-fills the page, in the same mode only.
-  const { data: card, error: cardErr } = await admin.from("declutter_buyer_cards").select("stripe_customer_id, card_mode")
-    .eq("user_id", user.id).maybeSingle();
-  if (cardErr) {
-    // Not fatal: without the saved card the page asks for a card (customer_email below).
-    console.error(JSON.stringify({ event: "shop_checkout_card_read_failed", detail: cardErr.message }));
+  // One wallet (owner 2026-10-18): the buyer's ONE stored Stripe customer in this mode pre-fills the
+  // page, read only through _shared/stripeCustomer.ts (never by email, never declutter_buyer_cards).
+  // A failed read stops here rather than opening a page on a guessed customer (declutter-checkout's rule).
+  let customerId: string | undefined;
+  try {
+    customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined;
+  } catch (e) {
+    console.error(`[shop-checkout] ${caughtMessage(e)}`);
+    return json({ error: TRY_AGAIN }, 503);
   }
-  const customerId = card && (card as { card_mode?: string }).card_mode === mode
-    ? (card as { stripe_customer_id?: string }).stripe_customer_id ?? undefined
-    : undefined;
 
   const meta = { kind: "shop_order", order_id: o.id, buyer_id: user.id, payer_id: user.id, seller_id: o.seller_id };
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = lines.map((l) => ({

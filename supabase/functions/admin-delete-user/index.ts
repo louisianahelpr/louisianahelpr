@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { describeDeleteError, findActiveWork, purgeAccount } from "../_shared/accountPurge.ts";
+import { closeUnpaidShopPages, describeDeleteError, findActiveWork, purgeAccount } from "../_shared/accountPurge.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { publicErrorMessage } from "../_shared/publicError.ts";
 
@@ -142,6 +142,17 @@ serve(async (req) => {
     // and because the check fails closed, admin deletion answered 500 for
     // every target in that window — including users with no jobs at all. A
     // comment is not a mechanism; a shared function is.
+    // An unpaid Shops payment page holds no money: close it first, as the
+    // 2-hour sweep would, so it cannot block the deletion (closeUnpaidShopPages).
+    // Intended even when another check below then refuses the deletion: a page
+    // paid afterwards is a closed order whose hold is released, no money lost.
+    const pages = await closeUnpaidShopPages(supabaseAdmin, userId);
+    if (!pages.ok) {
+      return new Response(
+        JSON.stringify({ error: "Couldn't verify account state. Please try again." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     const active = await findActiveWork(supabaseAdmin, userId);
 
     if (!active.ok) {
@@ -156,6 +167,8 @@ serve(async (req) => {
         JSON.stringify({
           error: active.reason === "series"
             ? "This user is on a recurring series that is still running (posted, or holding visit dates). The series has to end first: the person who posted it ends it, or the Helpr leaves it."
+            : active.reason === "shops"
+            ? "This user has a Shops order in progress (a payment page open, a card held, or an accepted order not handed over). It has to close first: withdrawn, declined, expired or finished."
             : "This user has an active job or funds held in escrow. Resolve or cancel it and let any payment settle before deleting the account.",
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },

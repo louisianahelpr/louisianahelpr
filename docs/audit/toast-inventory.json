@@ -8833,7 +8833,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 1049,
+      "line": 1048,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8853,7 +8853,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 1117,
+      "line": 1116,
       "kind": "toast.error",
       "title": {
         "form": "literal",

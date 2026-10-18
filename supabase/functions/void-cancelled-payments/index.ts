@@ -11,7 +11,8 @@ import { crewCancellationFee } from "../_shared/crewShares.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
-import { refundToPayerCents } from "../_shared/refundAmount.ts";
+import { posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { feeTransferIdempotencyKey, formatExactDollars, isDefiniteStripeRefusal, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
@@ -1009,7 +1010,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -2074,7 +2075,9 @@ serve(async (req) => {
           // specific charge (read from the balance transaction) so the platform
           // never loses money regardless of payment method — cards, Klarna/
           // Affirm/Afterpay, and ACH all carry different real rates.
-          const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
+          // A poster-fee job keeps no service fee, only Stripe's real fee
+          // (posterCancelKeptFeeCents, Q2082 slice 4).
+          const serviceFeeCents = posterCancelKeptFeeCents(job);
           // An unfilled or ban-ended series visit gets the service fee back
           // too, but never Stripe's processing fee: the platform never absorbs
           // a fee and never refunds more than it netted (owner decision
@@ -2217,9 +2220,9 @@ serve(async (req) => {
               is_partial: cancellationFee > 0 || nonRefundableCents > 0,
               reason: sellerFault
                 ? `Declutter seller backed out: full refund, card fee billed to the seller${setupFeeKeptCents(job) > 0 ? " (the $2 setup fee kept)" : ""}`
-                : setupFeeKeptCents(job) > 0
-                ? "cancellation refund (minus cancellation + service fee and the kept $2 setup fee)"
-                : "cancellation refund (minus cancellation + service fee)",
+                // A poster-fee job keeps the card processing cost, not a
+                // service fee (Q2082 slice 4 review #7 / BEFORE THE FLIP (e)).
+                : `cancellation refund (minus cancellation + ${isPosterFeeJob(job) ? "card processing" : "service"} fee${setupFeeKeptCents(job) > 0 ? " and the kept $2 setup fee" : ""})`,
               source: "void_cancelled_payments",
               initiated_by_user_id: null,
             }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });

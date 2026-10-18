@@ -90,13 +90,32 @@ export function refundToPayerCents(i: RefundToPayerInput): RefundToPayerResult {
  * or unknown) it is a service fee and counts as 0, leaving Stripe's real fee as
  * what is kept. Example: a $100 legacy job with a $12 fee: the card fee
  * (~$3.55) is kept, not $12. A poster's own cancel (cancel_escrow) does NOT use
- * this: it keeps the fee the poster paid, as it always has.
+ * this: it uses posterCancelKeptFeeCents below.
  */
 export function cardCostFeeCents(
   job: { customer_fee_amount?: number | string | null; platform_fee_percent?: number | string | null } | null | undefined,
 ): number {
   const pct = job?.platform_fee_percent;
   if (pct == null || pct === "" || Number(pct) !== 0) return 0;
+  return cents(Math.round(Number(job?.customer_fee_amount ?? 0) * 100));
+}
+
+/**
+ * The fee a POSTER's own cancel (create-payment cancel_escrow, the
+ * void-cancelled-payments sweep) keeps besides Stripe's real fee, in cents.
+ * Jobs poster-fee model (jobs.poster_fee_flat_cents set; owner-approved
+ * wording 2026-10-18, Q2082 slice 4: "the poster gets back what they paid
+ * (tax included) less the card-processing cost"): 0, so only Stripe's real
+ * fee is kept and the rest of the 5% + 70c comes back. A gift-paid part of the
+ * fee carries no card cost and comes back whole (restore_gift_card_for_job).
+ * Every other job keeps the fee its poster paid at checkout, as it always has
+ * (on a flat-model job that is 0; on a legacy job its card-cost service fee).
+ */
+export function posterCancelKeptFeeCents(
+  job: { customer_fee_amount?: number | string | null; poster_fee_flat_cents?: number | string | null } | null | undefined,
+): number {
+  const stamp = job?.poster_fee_flat_cents;
+  if (stamp != null && stamp !== "") return 0;
   return cents(Math.round(Number(job?.customer_fee_amount ?? 0) * 100));
 }
 

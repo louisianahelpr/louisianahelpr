@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-17T19:18Z",
+  "measured_at": "2026-10-18T03:37Z",
   "issues": {
     "readable": true,
     "open": [
@@ -50,14 +50,14 @@
         "number": 2601,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38958608457",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39062180513",
         "runTruncated": false
       },
       {
         "number": 2894,
         "title": "nightly-red: vacuity",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39038453863",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39091809738",
         "runTruncated": false
       },
       {
@@ -75,17 +75,10 @@
         "runTruncated": false
       },
       {
-        "number": 2993,
-        "title": "nightly-red: expiry-monitor",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38982141882",
-        "runTruncated": false
-      },
-      {
         "number": 3154,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38939285895",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39049204801",
         "runTruncated": false
       },
       {
@@ -100,6 +93,13 @@
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39039856658",
+        "runTruncated": false
+      },
+      {
+        "number": 3311,
+        "title": "nightly-red: e2e-real-backend",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39039797666",
         "runTruncated": false
       }
     ]
@@ -156,6 +156,14 @@
         "issue": null
       },
       {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
+        "issue": null
+      },
+      {
         "fingerprint": "e49f68d9cbd6a2ac70d216dee53051a5",
         "source_kind": "error_logs",
         "source": "push-tokens-empty",
@@ -186,6 +194,14 @@
         "status": "open",
         "title": "nightly-red: db-drift-detect",
         "issue": 3154
+      },
+      {
+        "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: e2e-real-backend",
+        "issue": 3311
       },
       {
         "fingerprint": "43d77e26f2722c7e54d5d41caa0665e2",
@@ -426,10 +442,10 @@
     "issue #2894": "Q1816",
     "issue #2937": "Q1816",
     "issue #2962": "Q1816",
-    "issue #2993": "Q1816",
     "issue #3154": "Q1816",
     "issue #3178": "Q1816",
     "issue #3307": "Q1816",
+    "issue #3311": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",
@@ -445,6 +461,7 @@
     "ledger 346e19be0736": "Q1596",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 379653db0e8d": "Q1596",
+    "ledger 3a3460b71be7": "Q1816",
     "ledger 3ab675187ce9": "Q1596",
     "ledger 3c0d6b003e08": "Q1810",
     "ledger 40a33605c7c3": "Q1596",
@@ -453,6 +470,7 @@
     "ledger 43738529abd4": "Q1596",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4b5ace7af165": "Q1596",
+    "ledger 54ef0bfdcec3": "Q2085",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5d35922623b5": "Q1596",
     "ledger 60298a019ea3": "Q1776",

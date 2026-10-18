@@ -123,7 +123,7 @@ function keyOf(r: Row) {
 describe("low-alpha foreground contrast", () => {
   const { rows, failing } = collectLowAlphaForegrounds() as { rows: Row[]; failing: Row[] };
 
-  // @mutate src/components/CancellationDialog.tsx | text-muted-foreground/40 | text-muted-foreground/60
+  // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | "text-muted-foreground/90" | "text-muted-foreground/60"
   it("sees Tailwind slash opacity — a known `text-muted-foreground/40` is found", () => {
     // The blind spot (archive L2242): "Save as my default pitch" was
     // `text-muted-foreground/70`, 3.07:1, and the scanner used to miss it.

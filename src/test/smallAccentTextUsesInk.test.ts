@@ -17,7 +17,7 @@
  *
  * @mutate src/components/messages/ChatView.tsx | <p className="text-ds-11 leading-snug text-[hsl(var(--sienna-ink))]"> | <p className="text-ds-11 leading-snug text-accent">
  * @mutate src/components/CancellationDialog.tsx | <span className="text-ds-11 text-[hsl(var(--sienna-ink))] font-medium"> | <span className="text-ds-11 text-accent font-medium">
- * @mutate src/index.css | --sienna-ink: 151 45% 66%; | --sienna-ink: 151 45% 40%;
+ * @mutate src/index.css | --sienna-ink: 19 72% 68%; | --sienna-ink: 19 65% 52%;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";

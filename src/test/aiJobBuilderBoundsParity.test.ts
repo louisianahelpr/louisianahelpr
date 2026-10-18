@@ -4,7 +4,7 @@
  * bounds of the post-job form the output is poured into
  * (src/pages/post-job/useJobEntry.ts applyAiJob assigns every field verbatim).
  *
- * FOUND 2026-09-26 (Q54 sweep, docs/audit/parity-matrix-2026-09-26.md F1):
+ * FOUND 2026-09-26 (Q54 sweep, docs/archive/parity-matrix-2026-09-26.md F1):
  * only the title agreed. The sanitizer let a description reach 4000 chars
  * (form 1000), special_requirements 1000 (form 500), budget [0, 100000] (form
  * and jobs_budget_range [10, 1000]) and helpers_needed [1, 20] (group-job

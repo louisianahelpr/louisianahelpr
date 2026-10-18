@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-10-18 (staleness-watch, nightly-red #3307: report last touched 2026-10-02, over the 14-day limit): every finding was already queued or guarded. F1 is Q782 (done); "Still open" 1 is src/test/uploadMimeParity.test.ts, 2 is src/test/savedSearchRadiusParity.test.ts, 3 is F1/Q782, and 4 is a note on how the 2026-09-26 numbers were read, not open work. The tables remain the inventory the parity guards cite.
+
 # Front/back parity matrix (Q54), measured 2026-09-26
 
 Every rule the client enforces that the server also enforces, and every server

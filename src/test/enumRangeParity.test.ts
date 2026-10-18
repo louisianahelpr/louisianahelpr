@@ -7,7 +7,7 @@
  * value the CHECK does not admit is an insert refused with 23514 (the
  * `application` report type shipped that way, 20260924182505); a CHECK value
  * the client's display union does not name is a row the screen cannot render.
- * The inventory is docs/audit/parity-matrix-2026-09-26.md, family "Enums and
+ * The inventory is docs/archive/parity-matrix-2026-09-26.md, family "Enums and
  * ranges".
  *
  * HOW. The client side is read from its source (comments blanked, via

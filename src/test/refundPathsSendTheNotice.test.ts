@@ -72,6 +72,8 @@ const releaseSites = sites(/\bpaymentIntents\.cancel\(|\bamount_to_capture\b/);
 const RELEASE_EXEMPT: Record<string, string> = {
   "supabase/functions/create-payment/index.ts":
     "cancels the PaymentIntent of an abandoned 3D Secure challenge before a new checkout: the challenge never completed, so nothing was authorised or held",
+  "supabase/functions/_shared/shopHolds.ts":
+    "Shops M1 (20261018154737): releases the never-captured hold of a Shops order that already ended unpaid; nothing was charged, so there is no refund to announce, and the SQL that closed the order told the buyer the hold is released (shops_decline_order 'Order declined', shop_order_sweep 'Order not answered', shop_mark_order_held 'That day filled up' / 'Order could not go through'), or the buyer withdrew or replaced the order themselves; the one silent case is shop_mark_order_held's order_missing (a paid page with no order row)",
 };
 
 /**
@@ -128,7 +130,7 @@ describe("Q1714: every refund path tells the person their money is back", () => 
     // EXACT, both directions: a new site moves the number (2026-10-12).
     // 14 since Declutter slice 5: declutter-money's delivery-fee refund (the buyer is told in SQL and by email).
     expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(14);
-    expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(3);
+    expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(4); // 4 since Shops M1: _shared/shopHolds.ts releases an ended order's hold (RELEASE_EXEMPT)
     // Floors, so a parser that silently reads nothing cannot pass.
     expect(refundSites.length).toBeGreaterThan(8);
     expect(new Set(refundSites.map((s) => s.file)).size).toBeGreaterThan(5);

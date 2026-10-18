@@ -366,8 +366,9 @@ function rewriteExternalImports(src: string): string {
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/threeDSecure\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/threeDSecure.ts";`,
   );
-  // Shops tax codes (Shops M1, owner O1): `_shared/shopTaxCodes.ts` has ZERO
-  // imports (a fixed table and a lookup), so the REAL table runs.
+  // Shops tax codes (Shops M1, owner O1): `_shared/shopTaxCodes.ts` imports only
+  // `./salesTax.ts` (itself pure apart from ./posterJobFee.ts; both run as real
+  // modules), so the REAL table runs.
   out = out.replace(
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/shopTaxCodes\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/shopTaxCodes.ts";`,

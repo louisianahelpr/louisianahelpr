@@ -31,7 +31,8 @@
  * @mutate supabase/functions/shop-checkout/index.ts |   if (a.stripe_tax_location_id && a.stripe_tax_location_mode === mode) return { id: a.stripe_tax_location_id }; |   if (a.stripe_tax_location_id) return a.stripe_tax_location_id;
  * @mutate supabase/functions/shop-checkout/index.ts |     if (loc === "missing") return json({ error: "pickup_address_missing" }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |     .eq("shop_id", shopId).eq("updated_at", a.updated_at); |     .eq("shop_id", shopId);
- * @mutate supabase/functions/shop-checkout/index.ts |     if (err?.type === "StripeInvalidRequestError" && err.code !== "idempotency_key_in_use") { |     if (false) {
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (err?.type === "StripeInvalidRequestError" && err.statusCode === 400 && typeof err.param === "string" && err.param.startsWith("address")) { |     if (false) {
+ * @mutate supabase/functions/shop-checkout/index.ts |  && typeof err.param === "string" && err.param.startsWith("address")) { | ) {
  * @mutate supabase/functions/shop-checkout/index.ts |       if ((e as { code?: string } \| null)?.code !== "idempotency_key_in_use") throw e; |       throw e;
  * @mutate supabase/functions/shop-checkout/index.ts |   if (!mode \|\| !location \|\| o.seller_id !== ownerId) { |   if (!mode \|\| !location) {
  * @mutate supabase/functions/shop-checkout/index.ts |   if (termsErr) return rpcRefusal(termsErr); |
@@ -240,13 +241,24 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
   it("the location is made BEFORE the order is frozen: an unusable address retires no page and freezes nothing (review findings 2, 3)", async () => {
     const fn = await load();
     frozen();
-    stripeMock.rawRequest.mockRejectedValue(Object.assign(new Error("Invalid address"), { type: "StripeInvalidRequestError", code: "parameter_invalid" }));
+    stripeMock.rawRequest.mockRejectedValue(Object.assign(new Error("Invalid address"), { type: "StripeInvalidRequestError", code: "parameter_invalid", statusCode: 400, param: "address[postal_code]" }));
     const res = await fn.fetch(ask(fn));
     expect(res.status).toBe(409);
     expect((await json(res)).error).toBe("pickup_address_unusable");
     expect(rpcs("shops_request_order")).toHaveLength(0);
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     expect(scenario.writes.filter((w) => w.table === "shop_pickup_addresses")).toHaveLength(0);
+  });
+
+  it("an invalid_request that names no address field (Stripe Tax off, an API change) is the platform's: a try-again, never 'unusable' (money review #1)", async () => {
+    const fn = await load();
+    frozen();
+    stripeMock.rawRequest.mockRejectedValue(Object.assign(new Error("Stripe Tax is not active"), { type: "StripeInvalidRequestError", code: "tax_not_active", statusCode: 400 }));
+    const res = await fn.fetch(ask(fn));
+    expect(res.status).toBeGreaterThanOrEqual(500);
+    expect((await json(res)).error).not.toBe("pickup_address_unusable");
+    expect(rpcs("shops_request_order")).toHaveLength(0);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
   it("a passing Stripe failure on the location is a try-again: no page, no cache, nothing frozen (review finding 6)", async () => {

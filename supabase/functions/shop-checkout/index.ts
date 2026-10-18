@@ -157,8 +157,12 @@ async function pickupTaxLocation(
     // will refuse it on every try: say so in its own words instead of a
     // generic error forever (review 2026-10-18, finding 2). Anything else
     // (network, 5xx, auth) is a try-again.
-    const err = e as { type?: string; code?: string; message?: string } | null;
-    if (err?.type === "StripeInvalidRequestError" && err.code !== "idempotency_key_in_use") {
+    // Only a 400 that names an address field is the address's fault; any other
+    // invalid_request (Stripe Tax off, an unknown URL, a parameter_unknown after
+    // an API change) is the platform's and must surface as a try-again, never
+    // as "this shop's address needs fixing" to every buyer (money review #1).
+    const err = e as { type?: string; code?: string; message?: string; param?: string; statusCode?: number } | null;
+    if (err?.type === "StripeInvalidRequestError" && err.statusCode === 400 && typeof err.param === "string" && err.param.startsWith("address")) {
       console.error(JSON.stringify({ event: "shop_pickup_address_unusable", shop: shopId, mode, detail: err.message ?? null }));
       return "unusable";
     }

@@ -33,12 +33,13 @@
  * @mutate supabase/migrations/20261018042506_quote_hire_on_pay_alerts.sql |          OR (r.poster_id = NEW.blocked_id AND q.quoter_id = NEW.blocker_id)); |          OR false);
  * @mutate supabase/migrations/20261018042506_quote_hire_on_pay_alerts.sql |   EXCEPTION WHEN OTHERS THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes | EXCEPTION WHEN unique_violation THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes
  * @mutate supabase/migrations/20261018042506_quote_hire_on_pay_alerts.sql |      AND NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id)\n |      AND true\n
- * @mutate supabase/migrations/20261018042506_quote_hire_on_pay_alerts.sql |         IF NOT public.are_users_blocked(v_quoter, NEW.customer_id)\n           AND EXISTS ( |         IF EXISTS (
+ * @mutate supabase/migrations/20261018042506_quote_hire_on_pay_alerts.sql |         IF FOUND AND NOT public.are_users_blocked(v_quoter, NEW.customer_id) THEN | IF FOUND THEN
  * @mutate supabase/migrations/20261018042506_quote_hire_on_pay_alerts.sql |        AND q.quoter_id = p_helper\n |        AND true\n
  * @mutate supabase/migrations/20261015091114_job_quotes.sql |   v_close := LEAST(now() + make_interval(hours => v_window), v_start - interval '2 hours'); |   v_close := now() + make_interval(hours => v_window);
  */
 import { describe, expect, it } from "vitest";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { resolve } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -108,7 +109,7 @@ describe("quotes: owner answers 8-11", () => {
       "AND NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id) THEN",
     );
     expect(b).toMatch(
-      /IF v_err IS NOT NULL AND v_reason IS NULL THEN BEGIN IF NOT public\.are_users_blocked\(v_quoter, NEW\.customer_id\) AND EXISTS \( SELECT 1 FROM public\.jobs j WHERE j\.id = NEW\.id AND j\.status::text = 'open' AND j\.helper_id IS NULL AND j\.offered_to_helper_id = v_quoter AND j\.direct_offer_status = 'pending'/,
+      /IF v_err IS NOT NULL AND v_reason IS NULL THEN BEGIN PERFORM 1 FROM public\.jobs j WHERE j\.id = NEW\.id AND j\.status::text = 'open' AND j\.helper_id IS NULL AND j\.offered_to_helper_id = v_quoter AND j\.direct_offer_status = 'pending' .* FOR SHARE; IF FOUND AND NOT public\.are_users_blocked\(v_quoter, NEW\.customer_id\) THEN PERFORM public\.quote_notify_about\(v_quoter, 'Accept to start'/,
     );
     // The existing completion, or the existing wait for payout setup / ID.
     expect(b).toContain("v_done := public.complete_direct_offer_accept(NEW.id, v_quoter);");

@@ -27000,6 +27000,19 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/hub",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4648",
+      "stage": {
+        "waves": 2,
+        "ended": "empty"
+      },
+      "finalUrl": "/hub",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (2 wave(s) of data released)",
+      "requests": 17
     }
   ],
   "merged": [
@@ -27118,6 +27131,14 @@
         "customer /rentals/requests/test",
         "helper /rentals/requests/test",
         "anon /rentals/requests/test"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-10-18T07:26:27.095Z",
+      "base": "http://127.0.0.1:4648",
+      "surfaces": [
+        "helper /hub"
       ],
       "replaced": []
     }

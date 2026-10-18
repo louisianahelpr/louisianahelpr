@@ -135,6 +135,18 @@ const UNREACHABLE: Allowlist = {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
   },
+  // Homes -> Rent listings (20261019043000): the browse list and the listing
+  // page are reads; a failed read shows the load-error state, and the listing
+  // page shows "This listing isn't available." for a listing the caller may not see.
+  rentals_browse_listings: {
+    feature_disabled: { reason: RENTALS_READ },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+  },
+  rentals_listing: {
+    feature_disabled: { reason: RENTALS_READ },
+    listing_not_found: { reason: "no code's words at this site: ListingPage shows its own fixed 'This listing isn't available.' state for any failed read (a paused, expired or removed listing, or one the caller may not see)." },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+  },
   rentals_request_job_state: {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },

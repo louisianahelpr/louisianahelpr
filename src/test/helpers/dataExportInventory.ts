@@ -169,6 +169,9 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   rental_tenancies: { by: ["landlord_id", "tenant_id"] },
   maintenance_requests: { by: ["tenant_id", "landlord_id"] },
   maintenance_request_photos: { by: ["tenant_id"] },
+  // Homes -> Rent listings (20261019043000), exported by 20261019043100.
+  rental_listings: { by: ["owner_id"] },
+  rental_listing_photos: { by: ["owner_id"] },
   // Shops M1 orders (20261018164442), exported by 20261018164443: as buyer or
   // as the shop; the lines go with their order (no person column of their own).
   shop_orders: { by: ["buyer_id", "seller_id"] },

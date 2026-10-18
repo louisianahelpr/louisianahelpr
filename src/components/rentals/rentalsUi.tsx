@@ -39,3 +39,7 @@ export function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "";
   return new Date(iso).toLocaleString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
+
+/** A native <select> that matches the Input field (same height, radius, border, glass fill and focus ring). */
+export const fieldSelectClass =
+  "h-12 w-full rounded-2xl border border-[hsl(var(--ink-deep)/0.15)] glass-field px-4 text-ds-15 focus-visible:outline-none focus-visible:border-[hsl(var(--olivewood)/0.6)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood)/0.25)] disabled:cursor-not-allowed disabled:opacity-50";

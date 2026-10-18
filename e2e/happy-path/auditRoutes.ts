@@ -283,6 +283,10 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "rentals", url: "/rentals" },
   { name: "rentals-request-missing", url: "/rentals/requests/10000000-0000-4000-8000-00000000dead" },
   { name: "rentals-invite-bad-token", url: "/rentals/invite/not-a-real-token" },
+  // Homes -> Rent listings (RL1a): a listing that is not there, and the editor for a unit that is not the caller's.
+  { name: "rentals-listing-missing", url: "/rentals/listings/10000000-0000-4000-8000-00000000dead" },
+  { name: "rentals-listing-new-bad-unit", url: "/rentals/listings/new?unit=10000000-0000-4000-8000-00000000dead" },
+  { name: "rentals-listing-edit-missing", url: "/rentals/listings/10000000-0000-4000-8000-00000000dead/edit" },
   // All 18 Profile tabs.
   { name: "profile-landing", url: "/profile" },
   { name: "profile-edit", url: "/profile?tab=profile" },

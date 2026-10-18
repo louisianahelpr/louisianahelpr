@@ -128,6 +128,8 @@ const ShopEditPage = lazyWithPreload(() => import("./pages/shops/ShopEditPage"))
 const RentalsPage = lazyWithPreload(() => import("./pages/rentals/RentalsPage"));
 const RentalsInvitePage = lazyWithPreload(() => import("./pages/rentals/RentalsInvitePage"));
 const MaintenanceRequestPage = lazyWithPreload(() => import("./pages/rentals/MaintenanceRequestPage"));
+const ListingPage = lazyWithPreload(() => import("./pages/rentals/ListingPage"));
+const ListingEditPage = lazyWithPreload(() => import("./pages/rentals/ListingEditPage"));
 const ShopOrdersPage = lazyWithPreload(() => import("./pages/shops/ShopOrdersPage"));
 const ShopDashboardPage = lazyWithPreload(() => import("./pages/shops/ShopDashboardPage"));
 
@@ -257,6 +259,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/rentals" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/rentals/invite/:token" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsInvitePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/rentals/requests/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><MaintenanceRequestPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/rentals/listings/new" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ListingEditPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/rentals/listings/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ListingPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/rentals/listings/:id/edit" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ListingEditPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /support is linked from PolicyFooter (the card that closes the legal
           policy tabs AND the Help Center), and the account-banned screen, so it must resolve WITHOUT auth — a suspended or
           not-yet-approved account has no other route to a human. NOT from

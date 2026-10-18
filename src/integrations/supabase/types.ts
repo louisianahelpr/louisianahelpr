@@ -9082,6 +9082,39 @@ export type Database = {
       }
     }
     Views: {
+      analytics_events_real: {
+        Row: {
+          created_at: string | null
+          event: string | null
+          id: string | null
+          platform: string | null
+          properties: Json | null
+          referrer: string | null
+          url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event?: string | null
+          id?: string | null
+          platform?: string | null
+          properties?: Json | null
+          referrer?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event?: string | null
+          id?: string | null
+          platform?: string | null
+          properties?: Json | null
+          referrer?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       jobs_helper_safe: {
         Row: {
           boost_expires_at: string | null
@@ -11623,13 +11656,6 @@ export type Database = {
           _updated_at: string
         }
         Returns: string
-      }
-      job_match_digest_rows: {
-        Args: { p_queue_ids: string[] }
-        Returns: {
-          id: string
-          send: boolean
-        }[]
       }
       job_messaging_closes_at: { Args: { _job_id: string }; Returns: string }
       job_payment_is_funded: {

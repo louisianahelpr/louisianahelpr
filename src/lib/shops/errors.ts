@@ -7,7 +7,8 @@
  * written for the member, so it is shown as it is.
  *
  * EXACT: src/test/shopsProfiles.test.ts reads every RAISE EXCEPTION code in the
- * shops migrations (slice 1 and slice 2's 20261017061157_shops_items) and
+ * shops migrations (slice 1, slice 2's 20261017061157_shops_items and M1's
+ * 20261017225605_shops_orders_checkout) and
  * fails on one with no line here, and on a line here no shops migration raises.
  */
 import { ListingPhotoError } from "@/lib/declutter/errors";
@@ -18,7 +19,7 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   account_restricted: "Your account is restricted, so Shops is not available right now.",
   under_18: "You must be 18 or older to have a shop.",
   shop_strikes_blocked:
-    "You have 3 marketplace strikes, so your shop is paused. It opens again when one of them expires.",
+    "You have 3 Shops strikes, so Shops is paused for you. It opens again when one of them expires.",
   payout_setup_incomplete: "Set up your payouts first. Opening a shop needs payout setup, which includes an ID check.",
   invalid_name: "Give your shop a name of 2 to 60 characters.",
   about_too_long: "Keep the About section under 2,000 characters.",
@@ -75,6 +76,41 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   own_item: "Another admin must review your own item.",
   owner_not_eligible:
     "This shop can't sell right now (restricted, strikes, age, payouts, hidden, or at the home-food limit). Reject it instead.",
+  // M1: orders and the card hold (20261017225605_shops_orders_checkout).
+  shop_paused: "This shop is taking a break and isn't taking new orders right now.",
+  invalid_order_lines: "Pick 1 to 20 items, each one once, with how many you want.",
+  invalid_quantity: "Order 1 to 20 of each item.",
+  item_unavailable: "An item in this order isn't listed any more. Take it out and try again.",
+  out_of_stock: "There aren't enough of an item left for this order. Lower the number and try again.",
+  invalid_note: "Keep the note under 500 characters.",
+  ready_date_too_soon: "That date is too soon for these items. Pick a later day.",
+  ready_date_too_far: "Pick a date in the next 90 days.",
+  shop_closed_that_day: "The shop doesn't fill orders on that day. Pick another day.",
+  day_full: "That day is full. Pick another day.",
+  cottage_limit_reached:
+    "This home kitchen has reached its yearly sales limit, so home-kitchen food can't be ordered or accepted this year.",
+  order_not_found: "This order isn't available.",
+  order_not_open: "This order isn't waiting for an answer any more.",
+  order_expired: "The 24 hours to accept this order have passed, so it dropped. Nothing was charged.",
+  order_accepted: "The shop already accepted this order, so its cancel policy applies.",
+  buyer_unavailable: "This order can't be accepted any more. Decline it so the buyer's card hold is released.",
+  invalid_cancel_policy: "Pick one of the three cancel policies.",
+  invalid_reason: "Keep the reason under 200 characters.",
+  shop_has_open_orders: "Finish or decline your open orders before closing your shop.",
+  too_many_order_requests: "You've started a lot of orders in the last hour. Wait a while and try again.",
+  // Service steps: a member only meets these through shop-checkout, which answers "try again".
+  invalid_payment: "We couldn't open the payment page just now. Please try again.",
+  invalid_session: "We couldn't open the payment page just now. Please try again.",
+  order_not_payable: "This order can't be paid any more. Start a new order.",
+  order_not_accepted: "This order isn't accepted yet.",
+  variant_not_available: "That option isn't available. Pick the item without it.",
+};
+
+/** shop-checkout's own answers (not RPC codes). */
+const SHOP_CHECKOUT_COPY: Record<string, string> = {
+  hold_lost: "The buyer's card could not be charged, so this order is cancelled. Don't make it; nothing was charged.",
+  payment_unavailable: "Payments aren't available right now. Nothing was charged. Please try again in a few minutes.",
+  invalid_action: "That action isn't available. Reload the page and try again.",
 };
 
 /** The AI helper's own answers (the declutter-ai-draft edge function, target 'shop_item'): not RPC codes. */
@@ -98,6 +134,7 @@ export function shopsErrorMessage(err: unknown): string {
   const message = typeof e.message === "string" ? e.message.trim() : typeof err === "string" ? err.trim() : "";
   if (message && Object.prototype.hasOwnProperty.call(SHOPS_ERROR_COPY, message)) return SHOPS_ERROR_COPY[message];
   if (message && Object.prototype.hasOwnProperty.call(SHOP_ITEM_AI_COPY, message)) return SHOP_ITEM_AI_COPY[message];
+  if (message && Object.prototype.hasOwnProperty.call(SHOP_CHECKOUT_COPY, message)) return SHOP_CHECKOUT_COPY[message];
   // The contact-leak filters (check_violation; reject_contact_leak_in_shop and
   // _in_shop_item, 20261017061157) speak to the member already.
   if (e.code === "23514" && /does not allow contact details in Shops\.$/.test(message)) return message;

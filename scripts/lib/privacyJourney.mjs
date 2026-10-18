@@ -113,6 +113,7 @@ export const EXPORT_SECTIONS = [
   "shops", "shop_photos", "shop_follows", "shop_items", "shop_item_private", "shop_item_photos",
   "shop_item_attestations", "shop_cottage_confirmations", "shop_cottage_sales",
   "rental_properties", "rental_units", "rental_tenancies", "maintenance_requests", "maintenance_request_photos",
+  "shop_orders", "shop_order_lines", "shop_strikes",
   "storage_objects",
 ];
 

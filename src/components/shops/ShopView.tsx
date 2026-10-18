@@ -4,11 +4,13 @@
  * photos, badges (L47, L55, L56), the owner's one star rating (G11), Follow
  * (L92). No phone, email or website (L49).
  *
- * Items (slice 2): the live items, ShopItemsList.
+ * Items (slice 2): the live items, ShopItemsList. Ordering (M1): the
+ * ShopOrderSheet, for everyone but the owner while the shop sells and is
+ * not paused.
  *
  * NOT here yet (docs/OPEN.md): the Message button (L48: messages are
- * job-threaded today, so a shop thread needs its own backend), orders
- * (L17+), request-a-quote (L53), and a map for the pin (L50).
+ * job-threaded today, so a shop thread needs its own backend),
+ * request-a-quote (L53), and a map for the pin (L50).
  */
 import { useParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,6 +23,7 @@ import { fetchShop, setShopFollow, setShopPaused, shopPhotoUrl, type ShopPage } 
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { categoryLabel, ShopBadgeList, ShopRating, ShopsNotice, useShopCategories, WEEKDAYS } from "./shopsUi";
 import ShopItemsList from "./ShopItemsList";
+import ShopOrderSheet from "./ShopOrderSheet";
 
 function hoursText(h: { opens: string; closes: string }): string {
   const fmt = (t: string) => {
@@ -104,9 +107,14 @@ export default function ShopView() {
       backTo="/shops"
       titleActions={
         s.mine ? (
-          <Button type="button" size="sm" variant="outline" className="whitespace-nowrap" onClick={() => navigate("/shops/mine")}>
-            Edit shop
-          </Button>
+          <div className="flex gap-2">
+            <Button type="button" size="sm" variant="outline" className="whitespace-nowrap" onClick={() => navigate("/shops/dashboard")}>
+              Dashboard
+            </Button>
+            <Button type="button" size="sm" variant="outline" className="whitespace-nowrap" onClick={() => navigate("/shops/mine")}>
+              Edit shop
+            </Button>
+          </div>
         ) : (
           <Button
             type="button"
@@ -185,11 +193,12 @@ export default function ShopView() {
           </section>
         )}
         {s.offers_selling && <ShopItemsList shopId={s.id} />}
+        {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />}
         <section className="space-y-1" aria-labelledby="shop-offers">
           <h2 id="shop-offers" className="text-sm font-semibold">What this shop offers</h2>
           <p className="text-sm text-muted-foreground">
-            {s.offers_selling && s.offers_quotes ? "Sells items and gives quotes." : s.offers_selling ? "Sells items." : "Gives quotes."}{" "}
-            Ordering and quotes open here soon.
+            {s.offers_selling && s.offers_quotes ? "Sells items and gives quotes." : s.offers_selling ? "Sells items." : "Gives quotes."}
+            {s.offers_quotes ? " Quotes open here soon." : ""}
           </p>
         </section>
         {s.mine && (

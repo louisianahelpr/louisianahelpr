@@ -47,6 +47,7 @@
 // Proven able to fail 2026-09-20: putting the historic impossible value back
 // into JOB_BASE turns it red (jobs_pricing_mode_check admits only set_price).
 // @mutate e2e/happy-path/seedData.ts | pricing_mode: "set_price", | pricing_mode: "fixed",
+// @mutate src/test/helpers/schemaConstraints.ts | (nul && nul[1] !== rec.column ? null : rec) | (rec)
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -167,6 +168,8 @@ describe("the constraint reader really read the constraints", () => {
     // fixed-mode tip up to 500. Both are live; both must be skipped.
     expect(constraints.get("marketing_content")?.has("marketing_content_instagram_needs_media")).toBeFalsy();
     expect(constraints.get("profiles")?.has("profiles_auto_tip_valid")).toBeFalsy();
+    // `captured_at IS NULL OR status IN (...)` constrains status only once captured.
+    expect(constraints.get("shop_orders")?.has("shop_orders_captured_is_accepted")).toBeFalsy();
   });
 
   it("reads the table shapes from the generated types", () => {
@@ -304,6 +307,9 @@ describe("every fixture literal could be inserted", () => {
     // row), and a source string `count: ..., stars: 0` (ReviewsSection's display object, not a declutter_reviews row).
     { file: "src/test/edge/verification-webhook.test.ts", keys: ["certificate_id", "expiration_date"] },
     { file: "src/test/edge/charge-recurring-visits.test.ts", keys: ["rows", "count"] },
+    // Shops M1 (20261017225605) gave shop_orders a decline_reason, so an applications mock read `{ rows: [{
+    // status, decline_reason }], count }` lost its applications marker and `count` pointed at ops_alert_ledger.
+    { file: "src/test/edge/create-notification.test.ts", keys: ["rows", "status", "decline_reason", "count"] },
     { file: "src/test/reviewCountOneSource.test.ts", keys: ["stars"] },
     { file: "e2e/visual-audit/responsive.spec.ts", keys: ["screen", "url", "notes"] },
     // Slice 5 (20261017055505) gave declutter_problems a named decision CHECK, so the admin audit-log `details`

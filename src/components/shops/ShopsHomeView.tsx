@@ -1,7 +1,8 @@
 /**
  * /shops: browse shops and businesses (L69, L87: all of Louisiana, nearest
  * first, then rating), filtered by category group (L54). The member's own
- * shop sits in the title row ("Open a shop" / "My shop"). Hidden unless the
+ * shop sits in the title row ("Open a shop" / "My shop", and "Shop dashboard"
+ * once it exists); "My orders" (the member's orders as a buyer) under the intro. Hidden unless the
  * 'shops' switch is on for the member (ShopsGate). No boosts and no "Ad"
  * cards yet (L57-L68, a later slice).
  */
@@ -72,18 +73,28 @@ export default function ShopsHomeView() {
     <AppPage
       title="Shops"
       titleActions={
-        <Button
-          type="button"
-          size="sm"
-          className="whitespace-nowrap"
-          disabled={mine.isLoading}
-          onClick={() => navigate(mine.data ? `/shops/${mine.data}` : "/shops/mine")}
-        >
-          {mine.data ? "My shop" : "Open a shop"}
-        </Button>
+        <div className="flex gap-2">
+          {mine.data && (
+            <Button type="button" size="sm" variant="outline" className="whitespace-nowrap" onClick={() => navigate("/shops/dashboard")}>
+              Shop dashboard
+            </Button>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            className="whitespace-nowrap"
+            disabled={mine.isLoading}
+            onClick={() => navigate(mine.data ? `/shops/${mine.data}` : "/shops/mine")}
+          >
+            {mine.data ? "My shop" : "Open a shop"}
+          </Button>
+        </div>
       }
     >
       <p className="text-sm text-muted-foreground">Local makers, bakers, trades and businesses near you. Every shop is free.</p>
+      <p className="text-sm">
+        <Link to="/shops/orders" className="underline">My orders</Link>
+      </p>
       <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1" role="group" aria-label="Category">
         <Button type="button" size="sm" aria-pressed={group === null} variant={group === null ? "default" : "outline"} className={group === null ? "btn-grad-primary shrink-0" : "shrink-0"} onClick={() => setGroup(null)}>
           All

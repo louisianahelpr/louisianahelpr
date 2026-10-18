@@ -3,7 +3,7 @@
  * L5-L22): photo, title, price, when it can be ready, its type, and on every
  * home-kitchen food item the notice the law asks for (L7, R.S. 40:4.9 D(1)).
  * Only LIVE items show here; the owner manages every item on /shops/mine.
- * Ordering is the next slice (S3): no order button until it exists.
+ * Ordering is ShopOrderSheet, below this list on the shop's page (M1).
  */
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -66,12 +66,9 @@ export default function ShopItemsList({ shopId }: { shopId: string }) {
       ) : live.length === 0 ? (
         <p className="text-sm text-muted-foreground">No items listed yet.</p>
       ) : (
-        <>
-          <p className="text-xs text-muted-foreground">Ordering opens here soon.</p>
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {live.map((i) => <ItemCard key={i.id} item={i} />)}
-          </ul>
-        </>
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {live.map((i) => <ItemCard key={i.id} item={i} />)}
+        </ul>
       )}
     </section>
   );

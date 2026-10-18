@@ -237,7 +237,7 @@ ok(refused(await member(ORDINARY, createSql()), /feature_disabled/, "42501"), "t
 ok(refused(await as("anon", null, createSql()), /permission denied/), "anon cannot execute shops_create_item");
 ok(refused(await member(MINOR, createSql()), /under_18/, "42501"), "under 18: refused (L82)");
 ok(refused(await member(BANNED, createSql()), /account_restricted/, "42501"), "banned: refused");
-ok(refused(await member(STRUCK, createSql()), /shop_strikes_blocked/, "42501"), "3 shared marketplace strikes: refused (L45)");
+ok(refused(await member(STRUCK, createSql()), /shop_strikes_blocked/, "42501"), "3 strikes: refused (HISTORICAL L45 shared count as of slice 2; per section since 20261018003046, proved in shopsOrders.pglite.mjs section 16)");
 ok(refused(await member(NOPAYOUT, createSql()), /payout_setup_incomplete/, "42501"), "no payout setup: refused (L3)");
 ok(refused(await member(FAN, createSql()), /shop_not_found/, "P0002"), "a member with no shop cannot list an item");
 

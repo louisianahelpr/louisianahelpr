@@ -28,7 +28,9 @@ import {
   authPages,
   noNavPages,
   tabStacks,
+  jobsAndPostsItem,
 } from "@/components/mobileNav/mobileNavHelpers";
+import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
@@ -74,6 +76,13 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // badges (new applicants on your posts; pending direct offers to you).
   // Count-only queries — deliberately not the heavy useActivityData hook.
   const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
+  // The section tabs (owner, 2026-10-18, option 1A). While at least one is on
+  // for this viewer the dock is Home, Jobs & Posts, then the sections, and
+  // Messages + Profile move to Home's top row (DashboardTitleBar). With none
+  // on, the dock is the five tabs it always was: nothing a viewer has would
+  // disappear from it with nothing taking its place.
+  const sectionTabs = useSectionTabs();
+  const sectionDock = !isGuest && sectionTabs.length > 0;
   // Signed-out visitors get no bottom dock (below), so nothing should reserve
   // space for one. This class zeroes `--bottom-nav-h`, which feeds Tailwind's
   // `safe-nav` token — collapsing the ~112px strip on all 22 `pb-safe-nav`
@@ -396,7 +405,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     setGateOpen(true);
   };
 
-  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "posts" | "jobs" }) => {
+  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "posts" | "jobs" | "jobsAndPosts" }) => {
     // Guest-mode tab remap: Home -> /browse (the read-only home dashboard
     // that mirrors the real /home), Profile -> /login. Other tabs stay
     // visually present but show a lock + open the signup sheet.
@@ -422,6 +431,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       ? 0
       : badgeKey === "messages"
         ? unreadCount
+        : badgeKey === "jobsAndPosts"
+          ? postsCount + jobsCount
         : badgeKey === "posts"
           ? postsCount
           : badgeKey === "jobs"
@@ -466,7 +477,13 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       }
     };
 
-    const isActive = active || inStack;
+    // A section tab is lit anywhere inside its section; the one Jobs & Posts
+    // tab is lit on both lists.
+    const isActive =
+      active ||
+      inStack ||
+      (sectionDock && sectionTabs.some((t) => t.path === path) && location.pathname.startsWith(`${path}/`)) ||
+      (badgeKey === "jobsAndPosts" && location.pathname === "/posts");
     // Long-press quick menus only wire up for Posts and Messages, and only
     // for a real signed-in account — guests never navigate has-status
     // filters or conversations. handleClick above already double-checks
@@ -593,7 +610,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             className="absolute bottom-0.5 w-6 h-[3px] rounded-full pointer-events-none"
             style={{
               background: "hsl(var(--burnt-sienna))",
-              boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.45)",
             }}
             transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
           />
@@ -730,7 +746,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 container padding the Home chip sat 10px in from the dock's inner
                 edge; at 6px it sits 8px in. Height is untouched (h-14). */}
             <div className="flex items-stretch h-14 px-1.5">
-              {[...leftItems, ...rightItems].map((item) => (
+              {(sectionDock ? [leftItems[0], jobsAndPostsItem, ...sectionTabs] : [...leftItems, ...rightItems]).map((item) => (
                 <div key={item.path} className="flex flex-1 items-stretch relative">
                   {renderItem(item)}
                 </div>
@@ -738,24 +754,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </div>
           </div>
 
-          {/* Post FAB — flat deep-olive (bark) puck with a soft static
-              green halo plus a slow pulsing ring behind it to draw the
-              eye to the primary action. Guest gating is handled by the
-              gate sheet on tap, so no lock badge needed on the surface. */}
+          {/* Post FAB — a flat solid-olive (bark) puck with one small soft
+              shadow (owner, 2026-10-18, option 3B "nearly flat": no shine, no
+              halo, no pulse). Guest gating is handled by the gate sheet on
+              tap, so no lock badge needed on the surface. */}
           <div className="relative shrink-0 w-14 h-14">
-            {/* Slow pulsing halo — sits behind the button so it draws the
-                eye without competing with the icon. motion-safe gates it
-                for users with reduced-motion preferences. */}
-            <span
-              aria-hidden
-              className="absolute inset-0 rounded-full motion-safe:animate-pulse pointer-events-none"
-              style={{
-                background:
-                  "radial-gradient(circle, hsl(var(--bark) / 0.38) 0%, hsl(var(--bark) / 0) 72%)",
-                filter: "blur(8px)",
-                transform: "scale(1.28)",
-              }}
-            />
             <button
               onClick={handlePostClick}
               {...ageGatedProps("post")}

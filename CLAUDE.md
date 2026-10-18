@@ -76,11 +76,11 @@ stories go in the lessons file, never here.
 - **Proof of fit for any page touched:** at 1440 and 375, assert `documentElement.scrollWidth <= clientWidth`, no element wider than the viewport, column centered with no dead band; screenshot both.
 - **Phone web == native app: ONE surface.** Never branch nav or layout on `Capacitor.isNativePlatform()` (genuine native capability only). A defect at 375 in a browser is an app defect.
 - **Never role-based.** Every account posts and does jobs; every feature shows to everyone. Role bleed is not a bug, role-gating is never the fix, and copy addressing only Helprs or only posters is a defect.
-- **The landing hero is LOCKED:** H1 "Louisiana's Local Job Partner." (Bodoni Moda) and subhead "Hire a Helpr or find local work..." — font, colour and copy are off-limits without an explicit instruction naming them.
+- **The landing hero is LOCKED:** H1 "Louisiana's Local Partner." (Bodoni Moda, "Partner." in the rust italic) and subhead "Jobs, Declutter, Shops and Homes: everything local, in one place." (owner, 2026-10-18) — font, colour and copy are off-limits without an explicit instruction naming them.
 - **Portal overlays to `document.body`.** `position: fixed` inside a page is never viewport-relative (any ancestor transform/filter/`backdrop-filter`). [L](docs/lessons/CLAUDE-lessons.md#fixed-containing-block)
 - A portaled sibling of an open Radix modal needs `pointer-events: auto`, and must not end up `aria-hidden` via `hideOthers()`. [L](docs/lessons/CLAUDE-lessons.md#fixed-containing-block)
-- **Primary and selected controls wear `btn-grad-primary`.** Never put a Tailwind variant over it (compiles to nothing; toggle in JS); never an inline `background` shorthand over it (use `backgroundImage`, or better nothing). [L](docs/lessons/CLAUDE-lessons.md#gloss)
-- **Gloss tests assert the computed `background-image` is a real gradient**, never the class name. [L](docs/lessons/CLAUDE-lessons.md#gloss)
+- **Primary and selected controls wear `btn-grad-primary`, which is now SOLID olive (`--bark`), nearly flat: one small soft shadow, no gradient, shine, halo or pulse (owner, 2026-10-18, option 3B).** Never put a Tailwind variant over it (compiles to nothing; toggle in JS); never an inline `background` shorthand over it (it resets the fill; better nothing). [L](docs/lessons/CLAUDE-lessons.md#gloss)
+- **Primary-surface tests assert the computed style** (`background-color` is the olive, `background-image` is `none`), never the class name. [L](docs/lessons/CLAUDE-lessons.md#gloss)
 - **Reduced transparency = opaque form of each surface's OWN colour, per theme**, never a blanket `hsl(var(--background))`. [L](docs/lessons/CLAUDE-lessons.md#css-minifier)
 
 ## Data and money

@@ -140,7 +140,7 @@ const HeroSection = () => {
               letterSpacing: "-0.03em",
             }}
           >
-            Louisiana&rsquo;s Local Job{" "}
+            Louisiana&rsquo;s Local{" "}
             <em
               className="relative inline-block"
               style={{
@@ -163,7 +163,7 @@ const HeroSection = () => {
             color: "hsl(var(--stormy-sky))",
           }}
         >
-          Hire a Helpr or find local work. For everyday jobs, big and small.
+          Jobs, Declutter, Shops and Homes: everything local, in one place.
         </p>
 
         {/* Primary CTA sits horizontally next to a demoted Browse Jobs

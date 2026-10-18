@@ -95,17 +95,14 @@ const ProfilePage = () => {
   const initialTab = resolveTab(searchParams.get("tab"));
   const [tab, setTab] = useState<Tab>(initialTab);
   // ONE SETTLED PAINT for the landing (Q169, Q?profile-declutter-shift). The landing shows rows only while a
-  // hidden switch is on: Declutter, Membership, Shops, Rentals and Quotes (DeclutterEntryRow, useProfileLandingDerived,
-  // ShopsEntryRow, RentalsEntryRow, QuotesEntryRow). Painted before the answer, such a row lands later and pushes
+  // hidden switch is on: Membership and Quotes (useProfileLandingDerived, QuotesEntryRow; Declutter, Shops and
+  // Homes left the landing for the dock 2026-10-18). Painted before the answer, such a row lands later and pushes
   // Settings down (prod, 375: the Declutter row came ~50 ms late, moved it 90px, CLS 0.0599, prod-audit run
   // 39008504928). The reads start with the profile read; the skeleton holds until all answer, at most
   // ARRIVAL_CAP_MS, so Log out never hides.
-  const declutterSwitch = useFeatureStatus("declutter");
   const membershipsSwitch = useFeatureStatus("memberships");
-  const shopsSwitch = useFeatureStatus("shops");
-  const rentalsSwitch = useFeatureStatus("rentals");
   const quotesSwitch = useFeatureStatus("quotes");
-  const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled && quotesSwitch.settled);
+  const landingReady = useArrivalGate(!loading, membershipsSwitch.settled && quotesSwitch.settled);
   const showSkeleton = tab === "landing" ? !landingReady : loading;
 
   /**

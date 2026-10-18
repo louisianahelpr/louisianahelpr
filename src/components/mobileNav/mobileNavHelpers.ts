@@ -4,6 +4,9 @@ import {
   MessageSquare,
   UserRound,
   ClipboardList,
+  Sofa,
+  Store,
+  KeyRound,
 } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
 
@@ -58,6 +61,27 @@ export const rightItems = [
   { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" as const },
   { path: "/profile", icon: UserRound, label: "Profile" },
 ];
+
+/**
+ * The section tabs (owner, 2026-10-18, option 1A): Declutter, Shops and Homes
+ * (the 'rentals' switch; the nav says Homes) sit in the dock beside Home and
+ * one Jobs & Posts tab. Each shows only while its feature switch is on for the
+ * viewer. The rail uses the same three, in the same order and icons.
+ */
+export const sectionItems = [
+  { path: "/declutter", icon: Sofa, label: "Declutter", feature: "declutter" as const },
+  { path: "/shops", icon: Store, label: "Shops", feature: "shops" as const },
+  { path: "/rentals", icon: KeyRound, label: "Homes", feature: "rentals" as const },
+];
+
+/** One tab for both lists while the section tabs are on: it opens Jobs and is
+ *  lit on Posts too. Its badge is the Posts and Jobs badges added together. */
+export const jobsAndPostsItem = {
+  path: "/jobs",
+  icon: Briefcase,
+  label: "Jobs & Posts",
+  badgeKey: "jobsAndPosts" as const,
+};
 
 /** The nav's own icon for a page: an empty page wears it (owner, 2026-10-08, Q1558). */
 export function navIconFor(path: "/home" | "/posts" | "/jobs" | "/messages") {

@@ -2,7 +2,6 @@ import { ChevronRight, ClipboardList, Store } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useFeature } from "@/hooks/useFeature";
-import { fetchMyShopId } from "@/lib/shops/api";
 
 /**
  * The phone entry to Shops (docs/specs/local-shops-prep.md L1-L2), on the
@@ -14,7 +13,13 @@ import { fetchMyShopId } from "@/lib/shops/api";
  */
 export function ShopsEntryRow() {
   const on = useFeature("shops");
-  const mine = useQuery({ queryKey: ["shops", "mine"], queryFn: fetchMyShopId, enabled: on });
+  // Imported on demand: a static import put @/lib/shops/api (and Sentry through
+  // storageCleanup) on every signed-in first screen's critical path (/posts +79 KB gz, Q178).
+  const mine = useQuery({
+    queryKey: ["shops", "mine"],
+    queryFn: async () => (await import("@/lib/shops/api")).fetchMyShopId(),
+    enabled: on,
+  });
   if (!on) return null;
   return (
     <>

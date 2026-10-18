@@ -28,6 +28,8 @@ export interface StripeMock {
    */
   __trackClients: boolean;
   __calls: Array<{ key: string; method: string }>;
+  /** Shops M1b part 2: shop-checkout makes Stripe Tax locations through rawRequest (stripe@18.5.0 has no tax.locations). */
+  rawRequest: ReturnType<typeof vi.fn>;
   customers: {
     list: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
@@ -169,6 +171,7 @@ export const stripeMock: StripeMock = {
   __opts: undefined,
   __trackClients: false,
   __calls: [],
+  rawRequest: vi.fn(),
   customers: {
     list: vi.fn(),
     create: vi.fn(),
@@ -271,6 +274,7 @@ export function resetStripeMock() {
   stripeMock.__opts = undefined;
   stripeMock.__trackClients = false;
   stripeMock.__calls = [];
+  stripeMock.rawRequest.mockReset();
   for (const group of [
     stripeMock.customers,
     stripeMock.checkout.sessions,

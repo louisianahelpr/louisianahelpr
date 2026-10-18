@@ -264,6 +264,17 @@ export const SHOPS_RPC_ERROR_COPY = {
     not_authenticated: SC.not_authenticated,
     shop_not_found: SC.shop_not_found,
   },
+  shops_save_my_pickup_address: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_pickup_address: SC.invalid_pickup_address,
+    not_authenticated: SC.not_authenticated,
+    payout_setup_incomplete: SC.payout_setup_incomplete,
+    pickup_address_not_in_louisiana: SC.pickup_address_not_in_louisiana,
+    shop_not_found: SC.shop_not_found,
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    under_18: SC.under_18,
+  },
   shops_set_cancel_policy: {
     account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,

@@ -52,6 +52,8 @@ export const DB_ID_COLUMNS = {
  * with the reason. Two-way with types.ts in the test.
  */
 export const NOT_MATCHED = {
+  "shop_pickup_addresses.stripe_tax_location_id": "a cache of a Stripe Tax location made from the row's own address; after a restore shop-checkout simply makes (or, by idempotency key, gets back) a fresh one, nothing to reconcile",
+  "shop_pickup_addresses.stripe_tax_location_mode": "the Stripe mode of that cached location (live/test), not a Stripe id",
   "stuck_payment_stripe_checks.stripe_session_id": "a cache of Stripe's answer about jobs.stripe_session_id, rewritten every 15 minutes by stuck-payment-check; the job row is the record",
   "stuck_payment_stripe_checks.payment_intent_id": "the session's PaymentIntent as stuck-payment-check last read it, for the alert text only; jobs.stripe_payment_intent_id is the matched record",
   "jobs.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through jobs.stripe_payment_intent_id",

@@ -11,8 +11,8 @@
 // @mutate supabase/functions/_shared/shopTaxCodes.ts |   home_food: FOOD_FOR_HOME_TAX_CODE, |   home_food: GENERAL_TANGIBLE_GOODS_TAX_CODE,
 // @mutate supabase/functions/_shared/shopTaxCodes.ts |   farm: FOOD_FOR_HOME_TAX_CODE, |   farm: GENERAL_TANGIBLE_GOODS_TAX_CODE,
 // @mutate supabase/functions/_shared/shopTaxCodes.ts |     p.cents += 1; |     p.cents += 0;
-// @mutate supabase/functions/shop-checkout/index.ts | product_data: { name: feeLineName(part.tax_code, feeParts.length), tax_code: part.tax_code }, | product_data: { name: feeLineName(part.tax_code, feeParts.length), tax_code: "txcd_00000000" },
-// @mutate supabase/functions/shop-checkout/index.ts | tax_code: shopTaxCode(l.kind) | tax_code: "txcd_99999999"
+// @mutate supabase/functions/shop-checkout/index.ts | product_data: taxed(feeLineName(part.tax_code, feeParts.length), part.tax_code), | product_data: taxed(feeLineName(part.tax_code, feeParts.length), "txcd_00000000"),
+// @mutate supabase/functions/shop-checkout/index.ts | product_data: taxed(l.title.slice(0, 120), shopTaxCode(l.kind)), | product_data: taxed(l.title.slice(0, 120), "txcd_99999999"),
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -65,7 +65,7 @@ describe("Shops tax codes: one table, every kind mapped (owner O1, lead 2026-10-
 
   it("shop-checkout takes each item line's code from the table", () => {
     const src = blankComments(readFileSync(join(ROOT, "supabase/functions/shop-checkout/index.ts"), "utf8"));
-    expect(src).toMatch(/tax_code:\s*shopTaxCode\(l\.kind\)/);
+    expect(src).toMatch(/taxed\(l\.title\.slice\(0, 120\), shopTaxCode\(l\.kind\)\)/);
     expect(src.match(/txcd_\d{8}/g) ?? []).toEqual([]);
     // The buyer's fee carries the items' codes (memo Q5), never the non-taxable one.
     expect(src).not.toMatch(/NONTAXABLE_TAX_CODE/);

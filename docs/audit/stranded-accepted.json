@@ -2398,6 +2398,72 @@
       "sha": "3f86308975d57250223553c85fe714117951db09",
       "reason": "Superseded by the Declutter train (PR #3312, merged 2026-10-17 20:47Z, main 117ace287). This save is Add a Helpr v1 caught mid-cherry-pick (unresolved conflict markers in featureSwitches.ts, jobQuotes.test.ts, featureSwitchRegistry.test.ts; migration 20261016053527). The train carries Add a Helpr v2 (migration 20261017073146): AddHelprPanel (lazy) in DeclutterHandoverViews, declutter_link_setup_job, linkSetupJob in useJobSubmit, setupHelpr.ts/tests, all larger than and rebuilt from this save. Nothing in it is missing from main except the v1 migration name and the conflict markers.",
       "checked": "2026-10-17 (lander9: line-level comparison of every file in the save against the train tip)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-1017-16",
+      "sha": "80d3afb4ddacfe8df57df767b80db3eec49b0585",
+      "reason": "Q1670 landed on main as 0167773b0 (fix(maps): the MapKit token response varies by Origin): main's mapkit-token/index.ts sends Vary: Origin with its own Q1670 comment and the branch's mapkit-token.test.ts lines are all on main; the rest is the Q1670 archive refresh.",
+      "checked": "2026-10-18 (lander13: every commit matched to a main commit by subject, and every added line of each changed file checked against origin/main 431f2073d; only generated counts/inventories differ)"
+    },
+    {
+      "id": "remote:origin/ready/reds-1017-6",
+      "sha": "fc9f3987ff631a97dcd0fa0db450bce3b286de27",
+      "reason": "Landed on main under the same subjects: f560d28d3 (/profile and /declutter paint once), c957a873c (aria-busy frame), 565be1d2d (pinned busy frame), afb4226b5 (Q?native-checkbox-floor, now Q2047). Main has since grown the same arrival gate to four switches (Profile.tsx useArrivalGate with shops + rentals), which is why lines differ.",
+      "checked": "2026-10-18 (lander13: every commit matched to a main commit by subject, and every added line of each changed file checked against origin/main 431f2073d; only generated counts/inventories differ)"
+    },
+    {
+      "id": "remote:origin/ready/reds-1017-7",
+      "sha": "eac1d204851e6d7b54ae9c813596a598e2e122e0",
+      "reason": "Superset of reds-1017-6 plus da2771dd2, which landed as a5c059c21 (IDV review name at 375, rail inset on resize); main's AdminIDVReview has the later Q1892 follow-up on top. Placeholders numbered on main (native checkbox Q2047).",
+      "checked": "2026-10-18 (lander13: every commit matched to a main commit by subject, and every added line of each changed file checked against origin/main 431f2073d; only generated counts/inventories differ)"
+    },
+    {
+      "id": "remote:origin/ready/reds-1017-8",
+      "sha": "26aff3972ec4b9a7d79f386d2db19041922e1b10",
+      "reason": "Superset of reds-1017-7 plus 26aff3972, which landed as 967034ebf (Q1894, ticked by 175833576); main's switch-hold test and Profile gate carry the later four-switch form.",
+      "checked": "2026-10-18 (lander13: every commit matched to a main commit by subject, and every added line of each changed file checked against origin/main 431f2073d; only generated counts/inventories differ)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-1017-11",
+      "sha": "9ec55507a1a6a3587b60a45d87443925a22b6f75",
+      "reason": "All seven Q806 refactors landed under the same subjects (a3b2125aa, 752550a7a, 1f561d3ac, becbdb1a7, 5ecc70ec7, 638d1b192, 761ad1ba6); the tip 9ec55507a is a generated form-inventory refresh that main regenerates itself.",
+      "checked": "2026-10-18 (lander13: every commit matched to a main commit by subject, and every added line of each changed file checked against origin/main 431f2073d; only generated counts/inventories differ)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-1017-12",
+      "sha": "0f26cf3f109212a5c587dea79090c08023bf9f05",
+      "reason": "Landed under the same subjects: 1e5cc3351 (Q955/Q237 docs), 8ccaf358d (payout tiles, Q237), c476507d0 (composer panel opaque, Q237); the tip is a generated refresh.",
+      "checked": "2026-10-18 (lander13: every commit matched to a main commit by subject, and every added line of each changed file checked against origin/main 431f2073d; only generated counts/inventories differ)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-1017-13",
+      "sha": "3a7c83cca2c97e5c2ad3283934f8fb2f52fb0e48",
+      "reason": "Superset of sec-b-1017-12 plus 3a7c83cca, which landed as c9dba5fc5 (Q1891 cancelling a job retires its pending direct offer).",
+      "checked": "2026-10-18 (lander13: every commit matched to a main commit by subject, and every added line of each changed file checked against origin/main 431f2073d; only generated counts/inventories differ)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-1017-15",
+      "sha": "b07bd549523dfca51461717fe4a534e5633a2dcf",
+      "reason": "b07bd5495 landed as 2f0cacc78 (Q1119/Q1120 tick, Host Automation item, now Q1996 on main). bf7955635 is a duplicate of the ReportDialog reason-table move that landed as becbdb1a7 (src/components/reportDialog/reportReasons.ts on main); it is not landed on purpose.",
+      "checked": "2026-10-18 (lander13: every commit matched to a main commit by subject, and every added line of each changed file checked against origin/main 431f2073d; only generated counts/inventories differ)"
+    },
+    {
+      "id": "remote:origin/ready/proofs-1017-3",
+      "sha": "20db8652cf1ec2238998bfaee431b690ea918640",
+      "reason": "Q1655 landed as 145c7ca99 (an unsubscribe link's GET writes nothing; a public /unsubscribe page asks first): Unsubscribe.tsx, unsubscribeGetWritesNothing.test.ts and publicPageMeta lines are all on main; the tip is that rebase's generated refresh. Duplicate of D's /unsubscribe fix: not landed on purpose.",
+      "checked": "2026-10-18 (lander13: every commit matched to a main commit by subject, and every added line of each changed file checked against origin/main 431f2073d; only generated counts/inventories differ)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-1017-17",
+      "sha": "e9442704b5d5540cc05a42c348293bdf0498d4fb",
+      "reason": "Folded into train D: e9442704b landed as e2b8f7d53 (tax-inclusive visit line not counted twice; Q1828). Only OPEN counts and generated SCOREBOARD differ.",
+      "checked": "2026-10-18 (lander13: every commit matched to a main commit by subject, and every added line of each changed file checked against origin/main 431f2073d; only generated counts/inventories differ)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-17",
+      "sha": "3f880b03a9db41608a3db8e0453003b8ae5ad8c2",
+      "reason": "Folded into train D: 3f880b03a landed as 1d21ea470 (Q1806 gift-funded late-cancellation fee paid from the gift); its four Q? placeholders are on main as Q1913, Q1914, Q1915, Q1916.",
+      "checked": "2026-10-18 (lander13: every commit matched to a main commit by subject, and every added line of each changed file checked against origin/main 431f2073d; only generated counts/inventories differ)"
     }
   ]
 }

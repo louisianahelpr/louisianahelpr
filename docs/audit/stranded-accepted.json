@@ -2464,6 +2464,30 @@
       "sha": "3f880b03a9db41608a3db8e0453003b8ae5ad8c2",
       "reason": "Folded into train D: 3f880b03a landed as 1d21ea470 (Q1806 gift-funded late-cancellation fee paid from the gift); its four Q? placeholders are on main as Q1913, Q1914, Q1915, Q1916.",
       "checked": "2026-10-18 (lander13: every commit matched to a main commit by subject, and every added line of each changed file checked against origin/main 431f2073d; only generated counts/inventories differ)"
+    },
+    {
+      "id": "remote:origin/ready/jobs-fee-1017-1",
+      "sha": "b1f9dbc33ba5a6a279e9164ce82a89c633885f66",
+      "reason": "Landed in train G (#3324): migration 20261017230824 (jobs.poster_fee_flat_cents + CHECKs + lock). Its OPEN item Q1996 was renumbered Q2082 on landing and later rewritten by slice 3a.",
+      "checked": "2026-10-18 (lander14: every added line of each changed file checked against origin/main c760d2ead; only OPEN renumbering/counts, generated docs and the 1-line-shorter CheckoutStep tax call differ)"
+    },
+    {
+      "id": "remote:origin/ready/jobs-fee-1017-2",
+      "sha": "35d20d5d6f37d5dc84bbc83fb762dff6ee5515be",
+      "reason": "Landed in train G (#3324): shared poster-fee rule _shared/posterJobFee.ts + client mirror + parity. OPEN item Q1996 renumbered Q2082 and later rewritten by slice 3a.",
+      "checked": "2026-10-18 (lander14: every added line of each changed file checked against origin/main c760d2ead; only OPEN renumbering/counts, generated docs and the 1-line-shorter CheckoutStep tax call differ)"
+    },
+    {
+      "id": "remote:origin/ready/jobs-fee-1017-taxq",
+      "sha": "7bddc9404f73b47c99be385c8e89a03add726c85",
+      "reason": "Landed in train G (#3324): the tax-memo item, renumbered Q1997 -> Q2083 (text identical apart from the Q2082 pointer).",
+      "checked": "2026-10-18 (lander14: every added line of each changed file checked against origin/main c760d2ead; only OPEN renumbering/counts, generated docs and the 1-line-shorter CheckoutStep tax call differ)"
+    },
+    {
+      "id": "remote:origin/ready/jobs-fee-1017-3",
+      "sha": "fe4f28734c49ed02c6685d8f242e9c66ca6cc37a",
+      "reason": "Landed in train H (#3326, merge c760d2ead) as be4b207c8: slice 3a, switch jobs_poster_fee created OFF (20261017234656). Q1996 -> Q2082 and Q1998 -> Q2084 (both identical after renumbering); CheckoutStep's tax call folded into one taxedAmount line (component-size ratchet).",
+      "checked": "2026-10-18 (lander14: every added line of each changed file checked against origin/main c760d2ead; only OPEN renumbering/counts, generated docs and the 1-line-shorter CheckoutStep tax call differ)"
     }
   ]
 }

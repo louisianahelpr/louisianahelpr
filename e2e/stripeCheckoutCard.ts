@@ -115,6 +115,36 @@ export async function openCardFields(page: Page, attempts = 3): Promise<Locator>
 
 const STRIPE_CHECKOUT_HOST = "checkout.stripe.com";
 
+/** The hosted page's submit: a POST to /v1/payment_pages/<cs>/confirm. */
+const STRIPE_CONFIRM_REQUEST = /api\.stripe\.com\/v1\/payment_pages\/[^/?]+\/confirm/;
+
+/**
+ * Press Pay until Stripe actually submits. Line 1 opens Google's address
+ * autocomplete; when Escape does not close it, the FIRST click on Pay only
+ * dismisses that dropdown. Scheduled e2e-real-backend run 39039797666
+ * (2026-10-17) sat 120s on a fully filled page with Pay focused and the
+ * Address combobox still `expanded`, and its trace holds no /confirm request
+ * at all (journeys/fixtures.ts and prod-audit/fundedOpenJob.ts had this
+ * guard; the money loop and gift card journey did not). So the proof a press took is the /confirm request itself; with none
+ * within 8s the button is pressed again (at most 3 presses). A press that did
+ * submit is never repeated, so this cannot pay twice.
+ */
+export async function pressStripePay(page: Page, presses = 3): Promise<void> {
+  for (let i = 1; i <= presses; i++) {
+    const confirm = page.waitForRequest(STRIPE_CONFIRM_REQUEST, { timeout: 8_000 }).then(
+      () => true,
+      () => false,
+    );
+    // Blur first, as journeys/fixtures.ts and prod-audit/fundedOpenJob.ts
+    // already do: a click on the "Pay <merchant>" heading closes the dropdown.
+    await page.getByRole("heading", { name: /^Pay / }).first().click().catch(() => undefined);
+    await page.getByTestId("hosted-payment-submit-button").click();
+    if (await confirm) return;
+    if (!page.url().includes(STRIPE_CHECKOUT_HOST)) return;
+    console.log(`::warning title=Stripe Pay did not submit::press ${i}/${presses} sent no /confirm request; pressing again`);
+  }
+}
+
 /**
  * Pay a TEST-mode hosted Checkout Session with 4242 4242 4242 4242 and wait to
  * leave Stripe. The same field-by-field fill e2e/prod-lifecycle.spec.ts does
@@ -174,7 +204,7 @@ async function submitTestCard(page: Page, checkoutUrl: string): Promise<void> {
   if ((await linkOptIn.count()) && (await linkOptIn.isChecked().catch(() => false))) {
     await linkOptIn.uncheck({ force: true }).catch(() => undefined);
   }
-  await page.getByTestId("hosted-payment-submit-button").click();
+  await pressStripePay(page);
   await page.waitForURL((url) => url.hostname !== STRIPE_CHECKOUT_HOST, { timeout: 120_000 }).catch(async (err) => {
     const complaints = await page
       .locator('[role="alert"], .FieldError, [class*="Error"]')

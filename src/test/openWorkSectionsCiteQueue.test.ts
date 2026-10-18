@@ -9,7 +9,8 @@
  * counts. On origin/main 672ffe2e7, six such sections cited no Q number, bus id
  * or OPEN.md. Two of them were already tracked:
  *   - the q441 tax research questions are Q374 and Q441;
- *   - the parity-matrix "Still open" items are Q54 and Q782, both done.
+ *   - the parity-matrix "Still open" items are Q54 and Q782, both done (that
+ *     report is in docs/archive/ since 2026-10-18).
  * Those two now cite their items. The other four are UNTRACKED_OPEN_SECTIONS
  * below, until each is filed as a Q item and its section cites it.
  *
@@ -23,7 +24,7 @@
  *   - headings marked "(resolved".
  */
 // @mutate scripts/lib/openWorkSections.mjs | if (!QUEUE_REF.test(section)) out.push | if (false) out.push
-// @mutate docs/audit/parity-matrix-2026-09-26.md | Tracked as Q54 in docs/OPEN.md, with F1 moved to Q782 | Tracked as Q-54 in the queue, with F1 moved later
+// @mutate docs/audit/launch-2026-09/inbox/q441-louisiana-tax-research.md | These are tracked in [docs/OPEN.md](../../../OPEN.md) as Q374 (the CPA's answers before launch) and Q441 (the Stripe Tax half) | These are tracked in the queue
 // @mutate scripts/audit-bus.mjs | "Open work is tracked ONLY in [docs/OPEN.md] | "Open work is tracked in [the queue]
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";

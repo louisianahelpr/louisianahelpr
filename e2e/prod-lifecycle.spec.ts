@@ -1,7 +1,7 @@
 import { test, expect, type APIRequestContext, type Page, type Locator } from "./prodTest";
 import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { openCardFields, waitForStripePaymentMethods } from "./stripeCheckoutCard";
+import { openCardFields, pressStripePay, waitForStripePaymentMethods } from "./stripeCheckoutCard";
 import { answerStripeReturn } from "./stripeReturn";
 import { skipLivePay } from "./prod-audit/fundedOpenJob";
 import { ageJobPastEarlyAccess } from "./ageJobPastEarlyAccess";
@@ -418,8 +418,13 @@ async function uploadProofThroughTheApp(
   // what stops a mis-click on the wrong chip when both are briefly present.
   // The dialog title check below confirms the type a second time.
   const askLabel = type === "before" ? "Before Photo" : "After Photo";
+  // THIRD SHAPE (owner "photo first", 2026-10-08, primaryPhotoAsk.ts): on a
+  // one-Helpr job the OWED photo is the step's primary, drawn by PhotoProof as
+  // JobStepPrimaryButton "Take <label>" — not the outline chip. Scheduled run
+  // 39039797666 (2026-10-17) failed here with `button "Take After Photo"` on
+  // the card. Either shape opens the same dialog.
   const askChip = card.getByRole("button", {
-    name: new RegExp(`^${askLabel} — add the ${type} photo for this job$`),
+    name: new RegExp(`^(Take ${askLabel}|${askLabel} — add the ${type} photo for this job)$`),
   });
   await expect(
     askChip,
@@ -762,7 +767,9 @@ test.describe("full money loop against production", () => {
       if ((await linkOptIn.count()) && (await linkOptIn.isChecked().catch(() => false))) {
         await linkOptIn.uncheck({ force: true }).catch(() => {});
       }
-      await page.getByTestId("hosted-payment-submit-button").click();
+      // Pressed until Stripe sends /confirm: an open address autocomplete eats
+      // the first press (run 39039797666, see pressStripePay).
+      await pressStripePay(page);
 
       /* If Pay does not take, say WHY. Without this the only symptom is a
          120s navigation timeout, which names the wait rather than the cause —

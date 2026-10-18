@@ -9,7 +9,7 @@
  * Both halves of every pair below were hand-kept "in lockstep" by a comment
  * ("mirrors Support.tsx", "matches MAX_NOTE_LENGTH in the donate UI") and
  * nothing read either number back. The inventory is in
- * docs/audit/parity-matrix-2026-09-26.md (family "Text lengths").
+ * docs/archive/parity-matrix-2026-09-26.md (family "Text lengths").
  *
  * HOW. Each row reads its client number out of the client source (comments
  * blanked) and its server number out of the NEWEST migration event for that

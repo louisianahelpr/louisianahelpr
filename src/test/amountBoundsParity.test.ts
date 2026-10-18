@@ -3,7 +3,7 @@
  * a round trip say the same number as the SERVER that refuses them.
  *
  * Covered here (everything else in the money family already has a parity
- * test — see docs/audit/parity-matrix-2026-09-26.md, family "Amounts"):
+ * test — see docs/archive/parity-matrix-2026-09-26.md, family "Amounts"):
  *   - gift card min/max: GiftCard.tsx MIN_GIFT/MAX_GIFT (dollars) vs
  *     create-gift-card-checkout MIN_GIFT_CENTS/MAX_GIFT_CENTS. Both sides
  *     carried a "matches …" comment and nothing compared them.

@@ -281,6 +281,13 @@ const pOwner = await photo(OWNER, oP);
 ok(one(await member(OWNER, `SELECT public.shops_mark_ready('${oP}', '${pOwner}')`))?.result === "ready", "the shop marks it ready with its photo");
 ok(Number(one(await svc(`SELECT count(*) FROM public.notifications WHERE user_id = '${BUYER}' AND title = 'Your order is ready' AND message LIKE '%left out%'`))) === 1,
   "the buyer is told it is left out for them");
+const firstReady = one(await svc(`SELECT ready_at::text FROM public.shop_handovers WHERE order_id = '${oP}'`));
+const pOwner2 = await photo(OWNER, oP, "c.jpg");
+ok(one(await member(OWNER, `SELECT public.shops_mark_ready('${oP}', '${pOwner2}')`))?.result === "ready"
+  && one(await svc(`SELECT ready_at::text FROM public.shop_handovers WHERE order_id = '${oP}'`)) === firstReady
+  && one(await svc(`SELECT ready_photo_path FROM public.shop_handovers WHERE order_id = '${oP}'`)) === pOwner2
+  && Number(one(await svc(`SELECT count(*) FROM public.notifications WHERE user_id = '${BUYER}' AND title = 'Your order is ready'`))) === 1,
+  "a retake replaces the photo, keeps the first ready time (the clock never moves later) and tells nobody again");
 ok(refused(await member(OWNER, `SELECT public.shops_mark_picked_up('${oP}')`), /not_in_person/, "55000"),
   "left out: the shop cannot finish it with its own tap");
 ok(Number(await sweep()) === 0 && (await status(oP)) === "accepted", "the clock does not finish it before 24 h after the ready date");
@@ -306,20 +313,39 @@ ok(one(await member(OWNER, `SELECT public.shops_mark_ready('${oI}', NULL)`))?.re
 ok(one(await member(BUYER, `SELECT public.shops_confirm_pickup('${oI}')`))?.result === "handed_over", "in person: the buyer's \"I got it\"");
 const oI2 = await charged();
 ok(refused(await member(BUYER, `SELECT public.shops_mark_picked_up('${oI2}')`), /order_not_found/, "P0002"), "the buyer cannot tap the shop's \"Picked up\"");
+ok(refused(await member(OWNER, `SELECT public.shops_mark_picked_up('${oI2}')`), /before_ready_date/, "55000"),
+  "the shop's \"Picked up\" is refused before the ready date (review must-fix: it would end the buyer's recourse)");
+ok(refused(await member(BUYER, `SELECT public.shops_report_not_received('${oI2}', 'early')`), /order_not_open/, "55000"),
+  "the buyer cannot report before the ready date (nothing is due yet) unless the shop marked it ready");
+await pastDue(oI2);
 const t2 = one(await member(OWNER, `SELECT public.shops_mark_picked_up('${oI2}')`));
 ok(t2?.result === "handed_over" && one(await svc(`SELECT confirmed_how FROM public.shop_handovers WHERE order_id = '${oI2}'`)) === "shop",
-  "in person: the shop's \"Picked up\" finishes it");
+  "in person: from the ready date the shop's \"Picked up\" finishes it");
+const pI2 = (await svc(`SELECT status, extract(epoch FROM next_attempt_at - now())::int AS wait FROM public.shop_payouts WHERE order_id = '${oI2}'`))?.[0];
+ok(pI2?.status === "pending" && pI2?.wait > 86000 && pI2?.wait <= 86400
+  && !(await svc(`SELECT order_id FROM public.shop_payouts_due(100)`)).some((d) => d.order_id === oI2),
+  "after the shop's own tap the payout waits 24 hours (not in the queue yet)");
+ok(Number(one(await svc(`SELECT count(*) FROM public.notifications WHERE user_id = '${BUYER}' AND message LIKE '%within 24 hours%'`))) >= 1,
+  "the buyer is told the shop marked it picked up and they have 24 hours to say otherwise");
+ok(one(await member(BUYER, `SELECT public.shops_report_not_received('${oI2}', 'I never got it')`))?.result === "reported",
+  "within those 24 hours the buyer can still say they did not get it");
+await svc(`UPDATE public.shop_payouts SET next_attempt_at = now() - interval '1 minute' WHERE order_id = '${oI2}'`);
+ok(!(await svc(`SELECT order_id FROM public.shop_payouts_due(100)`)).some((d) => d.order_id === oI2),
+  "a report after the shop's tap holds the payout even once the wait is over");
+ok(Number(one(await svc(`SELECT count(*) FROM public.notifications WHERE user_id IN ('${ADMIN}', '${ADMIN2}') AND title = 'Shops pickup problem reported'`))) === 2,
+  "every admin is told of the report");
 const oI3 = await charged();
 await pastDue(oI3);
 ok(Number(await sweep()) === 1 && (await status(oI3)) === "handed_over", "in person: the clock finishes it without any tap");
 
 // --- 4. the buyer did not get it: no clock, no payout, until Louisiana Helpr decides
 const oX = await charged();
+await pastDue(oX);
 ok(refused(await member(BUYER, `SELECT public.shops_report_not_received('${oX}', 'Call me 337 555 1234')`), /Phone number detected/),
   "contact details are refused in the note");
 ok(refused(await member(OWNER, `SELECT public.shops_report_not_received('${oX}', 'x')`), /order_not_found/, "P0002"), "only the buyer reports it");
 ok(one(await member(BUYER, `SELECT public.shops_report_not_received('${oX}', 'Nobody was there')`))?.result === "reported", "the buyer reports it");
-await pastDue(oX);
+ok(refused(await member(OWNER, `SELECT public.shops_mark_ready('${oX}', NULL)`), /problem_open/, "55000"), "the shop cannot mark a reported order ready (no false 'ready' to the buyer)");
 ok(Number(await sweep()) === 0 && (await status(oX)) === "accepted", "a reported order is never finished by the clock");
 ok(refused(await member(OWNER, `SELECT public.shops_mark_picked_up('${oX}')`), /problem_open/, "55000"), "nor by the shop's tap");
 ok(refused(await member(BUYER, `SELECT public.shops_confirm_pickup('${oX}')`), /problem_open/, "55000"), "nor by the buyer's tap (an admin decides)");

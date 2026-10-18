@@ -58,6 +58,7 @@ import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
+import { posterCancelKeptFeeCents } from "../_shared/refundAmount.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { loadPayoutHolds } from "../_shared/payoutHold.ts";
 
@@ -553,7 +554,7 @@ serve(async (req) => {
       const q = admin
         .from("jobs")
         .select(
-          "id, is_seed, status, payment_status, budget, urgent_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, helper_fee_flat_cents, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at, stripe_payment_intent_id, stripe_session_id, customer_fee_amount, onboarding_fee_amount",
+          "id, is_seed, status, payment_status, budget, urgent_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at, stripe_payment_intent_id, stripe_session_id, customer_fee_amount, onboarding_fee_amount",
           countOpt,
         )
         // Paging without an ORDER BY is sampling, not paging: the cap and the
@@ -1800,8 +1801,12 @@ serve(async (req) => {
           if (job.status !== "cancelled") return;
           if (decidedBySplit === null ? job.dispute_status != null : decidedBySplit.has(job.id as string)) return;
           const feeCents = Math.round(expectedCancellationFee(job) * 100);
+          // Q2082 (b): a poster's cancel of a poster-fee job keeps Stripe's
+          // real card fee only, never the 5% + 70c (the same rule
+          // cancel_escrow and void-cancelled-payments refund by), so its
+          // ceiling must not allow the margin either.
           const nonRefundableCents = Math.max(
-            Math.round(money(job.customer_fee_amount) * 100),
+            posterCancelKeptFeeCents(job as { customer_fee_amount?: number | string | null; poster_fee_flat_cents?: number | string | null }),
             actualOrEstimatedFeeCents(pi, capturedCents),
           );
           // Q1390: a cancelled crew also keeps the block fees it paid out.

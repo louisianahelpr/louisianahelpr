@@ -602,9 +602,7 @@
      the full 4.5:1, not the 3:1 large-text allowance). Kept separate from
      --burnt-sienna so raising it for legibility does not shift the brand
      accent everywhere it is used as a fill, border, or icon. */
-  --accent-ink:   153.3 79.4% 22%;   /* #0B6440: TEXT green on light. The #0E7A4A fill measured 4.36:1 as 9px bold on its own
-                                   15% tint (#dbebe4, the urgent chip, axe happy-path 2026-10-18); 22% clears 5.3:1 on that tint over
-                                   --parchment and 5.8:1 over white. Guard: src/test/smallAccentTextUsesInk.test.ts. */
+  --accent-ink:   153.3 79.4% 26.7%;
   --stormy-sky:   92.7 4.5% 39.4%;  /* #646960 muted text. The C2 mock's #6B706A measured 4.19:1 on --sand, so it is
                                    one step darker: 4.66:1 on --sand, 5.09:1 on --parchment. Old note: 38% measured 4.48:1 for 11px muted text on a
                                    #dedfdf card — a 0.02 fail, and this repo has shipped
@@ -908,7 +906,7 @@
      its own tint: the "In progress" status chip measured 3.83:1 on dark and
      "Disputed" 3.52:1, both under AA. Light value is byte-identical to
      --burnt-sienna, so light mode does not move at all. */
-  --sienna-ink: 153.3 79.4% 22%;   /* label on the accent's own tint: the darker TEXT green (== --accent-ink), see there */
+  --sienna-ink: 153.3 79.4% 26.7%;   /* == --burnt-sienna in light (GREEN since 2026-10-17: green only) */
 
   /* Cancel red — destructive "Cancel job" action button. Warmer & more
      saturated than the muted system --destructive, kept as its own pair.

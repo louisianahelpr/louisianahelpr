@@ -143,7 +143,7 @@ export default function MoveFlow() {
   if (!user) return null;
   if (underAge) {
     return (
-      <AppPage title="Moving out" backTo="/declutter?view=mine">
+      <AppPage title="Moving out" backTo="/declutter?view=selling">
         <DeclutterNotice tone="warn" title="You must be 18 or older to sell on Declutter.">
           You can still look around. Selling opens when your birthday on file says you're 18.
         </DeclutterNotice>
@@ -271,7 +271,7 @@ export default function MoveFlow() {
   }
 
   return (
-    <AppPage title="Moving out" backTo="/declutter?view=mine">
+    <AppPage title="Moving out" backTo="/declutter?view=selling">
       <p className="text-sm text-muted-foreground">
         Photograph each room. The photo tool lists what it sees, you set the prices, and everything goes up together as one moving sale on your profile.
       </p>

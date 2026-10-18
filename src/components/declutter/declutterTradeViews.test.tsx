@@ -18,7 +18,7 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={opening \|\| (delivering && !liveQuote)} |         disabled={opening}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents; |   const payCents = totalCents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} | porchOk={true}
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <SalesWaiting />\n    </AppPage> |       <SalesWaiting />\n    </AppPage>
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -70,7 +70,7 @@ vi.mock("./DeclutterHandoverViews", () => ({ PaidOrdersSection: () => null }));
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: async (url: string) => { state.opened.push(url); } }));
 vi.mock("@/components/AppPage", () => ({ default: ({ title, children }: { title: string; children: React.ReactNode }) => <main><h1>{title}</h1>{children}</main> }));
 
-import { CartView, FinishSalesView, OfferPanel, OffersView, StrikeCount, dollarsInputToCents } from "./DeclutterTradeViews";
+import { CartView, FinishSalesView, OfferPanel, OffersSection, StrikeCount, dollarsInputToCents } from "./DeclutterTradeViews";
 
 function show(el: React.ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -149,8 +149,10 @@ describe("Declutter slice 3 screens", () => {
       { ...OFFER, offer_id: "o3", amount_cents: 3500, item_title: "Desk" },
       { ...OFFER, offer_id: "o2", my_side: "buyer", awaiting: "seller", floor_price_cents: null, item_title: "Lamp" },
     ];
-    show(<OffersView />);
-    expect(await screen.findByText("Offers on your items")).toBeInTheDocument();
+    // Selling holds the offers on your items, Buying the ones you sent (tabs, 2026-10-18).
+    show(<><OffersSection side="seller" /><OffersSection side="buyer" /></>);
+    expect(await screen.findByRole("heading", { name: /^Offers on your items\s*· 2 to answer$/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Your offers" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Accept" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Answer with a price" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Say no" })).toHaveLength(2);

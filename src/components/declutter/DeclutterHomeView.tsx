@@ -1,10 +1,14 @@
 /**
- * /declutter — Declutter's own tab (spec rows 1, 2): Browse (nearest first,
- * a distance filter, area + miles only: rows 5, 27) and My listings (every
- * status in plain words, incl. waiting for a review: row 33). Hidden unless
- * the 'declutter' switch is on for the member (DeclutterGate).
+ * /declutter — Declutter's own tab (spec rows 1, 2). Its tabs (owner,
+ * 2026-10-18; src/lib/declutter/tabs.ts): Browse (nearest first, a distance
+ * filter, area + miles only: rows 5, 27) · Buying (cart, your offers,
+ * purchases) · Selling (your listings with every status in plain words, incl.
+ * waiting for a review: row 33; offers on your items; sales waiting to be paid;
+ * paid sales and payouts) · Wanted · Deliver. Old links (?view=mine|offers|cart)
+ * open the tab that now holds them. Hidden unless the 'declutter' switch is on
+ * for the member (DeclutterGate).
  */
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,7 +33,14 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, formatPrice, milesLabel, nearestFirst } from "@/lib/declutter/distance";
 import { ConditionStars, DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
 import { useDeclutterOrigin, type DeclutterOrigin } from "./useDeclutterOrigin";
-import { CartView, OffersView, StrikeCount } from "./DeclutterTradeViews";
+import { BuyingView, OffersSection, PaidOrders, SalesWaiting, SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
+import {
+  DECLUTTER_TABS,
+  OLD_DECLUTTER_VIEWS,
+  oldDeclutterView,
+  type DeclutterTab,
+  type OldDeclutterView,
+} from "@/lib/declutter/tabs";
 import { WantedView } from "./DeclutterWantedViews";
 import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine } from "./DeclutterHaulAway";
 import { report } from "@/lib/errorLogger";
@@ -47,8 +58,6 @@ const haulLib = () => import("@/lib/declutter/haulAway");
 // signed-in-shared and put /posts over its critical-path budget.
 const DeliverView = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.DeliverView })));
 
-type View = "browse" | "mine" | "offers" | "cart" | "deliver" | "wanted";
-const VIEWS: View[] = ["browse", "mine", "offers", "cart", "deliver", "wanted"];
 
 function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
   const out = new Map<string, string>();
@@ -270,10 +279,16 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   if (mine.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading your listings…</p>;
   const list = (mine.data ?? []).filter((i) => i.status !== "withdrawn");
   if (list.length === 0) {
-    return <DeclutterNotice title="You haven't listed anything yet.">Tap "Sell an item" to start.</DeclutterNotice>;
+    return (
+      <section className="space-y-2" aria-label="Your listings">
+        <SectionHeading title="Your listings" />
+        <DeclutterNotice title="You haven't listed anything yet.">Tap "Sell an item" to start.</DeclutterNotice>
+      </section>
+    );
   }
   return (
-    <div className="space-y-3">
+    <section className="space-y-3" aria-label="Your listings">
+      <SectionHeading title="Your listings" />
       {haulOn && !haul.isError && <HaulAwayCard group={haul.data?.trip ?? []} />}
     {haulOn && haul.isError && (
       <ErrorState variant="inline" title="We couldn't check your haul-aways." body={declutterErrorMessage(haul.error)} onRetry={() => void haul.refetch()} />
@@ -329,6 +344,24 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+/**
+ * Selling (owner, 2026-10-18): your listings, the offers on your items, sales
+ * waiting for the buyer to pay, and paid sales (pickup, handover, payout).
+ */
+function SellingView({ userId, haulOn, movingOutOn }: { userId: string; haulOn: boolean; movingOutOn: boolean }) {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <MovingOutEntry on={movingOutOn} />
+        <MyListingsView userId={userId} haulOn={haulOn} />
+      </div>
+      <OffersSection side="seller" />
+      <SalesWaiting />
+      <PaidOrders side="seller" />
     </div>
   );
 }
@@ -365,10 +398,31 @@ export default function DeclutterHome() {
   // they are read here and waited for with it (one paint, no late card).
   const haulAway = useFeatureStatus("declutter_haul_away");
   const movingOut = useFeatureStatus("declutter_moving_out");
-  const tabsReady = useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled);
+  // The Buying / Selling badges (what needs the member) are read with the
+  // switches and waited for with them: a count landing after the tab row
+  // painted would widen its tab and could re-wrap the row (Q?declutter-settle).
+  // The same reads fill the Buying and Selling tabs, so those open filled.
+  const { todo, settled: todoSettled } = useDeclutterTodo();
+  const tabsReady = useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled && todoSettled);
   const wantedOn = wanted.on;
-  const asked = params.get("view") as View | null;
-  const view: View = asked && VIEWS.includes(asked) && (asked !== "wanted" || wantedOn) ? asked : "browse";
+  const asked = params.get("view");
+  const legacy = OLD_DECLUTTER_VIEWS.includes(asked as OldDeclutterView) ? (asked as OldDeclutterView) : null;
+  const view: DeclutterTab = legacy
+    ? oldDeclutterView(legacy, todo)
+    : asked && DECLUTTER_TABS.includes(asked as DeclutterTab) && (asked !== "wanted" || wantedOn)
+      ? (asked as DeclutterTab)
+      : "browse";
+  // An old link (?view=mine|offers|cart, still in sent notifications and
+  // emails) is rewritten to its new tab once the badges' reads are in (they
+  // decide which side an offers/cart link meant), keeping its other params.
+  useEffect(() => {
+    if (!legacy || !tabsReady) return;
+    setParams((p) => {
+      const next = new URLSearchParams(p);
+      next.set("view", view);
+      return next;
+    }, { replace: true });
+  }, [legacy, tabsReady, view, setParams]);
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
   return (
@@ -389,21 +443,30 @@ export default function DeclutterHome() {
         onChange={(v) => setParams(v === "browse" ? {} : { view: v }, { replace: true })}
         options={[
           { value: "browse", label: "Browse" },
-          { value: "mine", label: "My listings" },
-          { value: "offers", label: "Offers" },
-          { value: "cart", label: "Cart" },
-          { value: "deliver", label: "Deliver" },
+          {
+            value: "buying",
+            label: "Buying",
+            count: todo?.buying,
+            countTone: "attention",
+            countLabel: todo?.buying ? `${todo.buying} need${todo.buying === 1 ? "s" : ""} you` : undefined,
+          },
+          {
+            value: "selling",
+            label: "Selling",
+            count: todo?.selling,
+            countTone: "attention",
+            countLabel: todo?.selling ? `${todo.selling} need${todo.selling === 1 ? "s" : ""} you` : undefined,
+          },
           ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []),
+          { value: "deliver", label: "Deliver" },
         ]}
       />
       <StrikeCount userId={user.id} />
-      {view === "mine" && <MovingOutEntry on={movingOut.on} />}
       {view === "browse" ? <BrowseView userId={user.id} />
-        : view === "mine" ? <MyListingsView userId={user.id} haulOn={haulAway.on} />
-          : view === "offers" ? <OffersView />
+        : view === "buying" ? <BuyingView />
+          : view === "selling" ? <SellingView userId={user.id} haulOn={haulAway.on} movingOutOn={movingOut.on} />
             : view === "deliver" ? <Suspense fallback={<HelprSpinner />}><DeliverView /></Suspense>
-              : view === "wanted" ? <WantedView />
-              : <CartView />}
+              : <WantedView />}
     </AppPage>
   );
 }

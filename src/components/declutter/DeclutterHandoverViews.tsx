@@ -24,7 +24,7 @@
  * buyer and seller never meet): the "Set out" photo, "I got it", the "Picked up"
  * photo and the 24 h auto-pay are the whole handover (20261018183715).
  */
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -103,8 +103,11 @@ function invalidate(qc: ReturnType<typeof useQueryClient>, orderId: string) {
   void qc.invalidateQueries({ queryKey: ["declutter", "payouts"] });
 }
 
-/** Every paid order the member is on, buyer or seller (the cart's paid lines). */
-export function PaidOrdersSection({ cart }: { cart: CartLine[] }) {
+/**
+ * Every paid order in `cart` (the cart's paid lines). The Buying and Selling
+ * tabs pass one side's lines and their own heading (PaidOrders in DeclutterTradeViews).
+ */
+export function PaidOrdersSection({ cart, heading, label }: { cart: CartLine[]; heading?: ReactNode; label?: string }) {
   const { user } = useCurrentUser();
   const userId = user?.id ?? "";
   const orders = paidOrdersFromCart(cart);
@@ -124,8 +127,8 @@ export function PaidOrdersSection({ cart }: { cart: CartLine[] }) {
     return <ErrorState variant="inline" title="We couldn't load your pickups." body={declutterErrorMessage(bookings.error)} onRetry={() => void bookings.refetch()} />;
   }
   return (
-    <section className="space-y-3" aria-label="Paid sales">
-      <h2 className="text-base font-semibold">Paid: pickup and handover</h2>
+    <section className="space-y-3" aria-label={label ?? "Paid sales"}>
+      {heading ?? <h2 className="text-base font-semibold">Paid: pickup and handover</h2>}
       {orders.map((o) => (
         <OrderCard
           key={o.orderId}

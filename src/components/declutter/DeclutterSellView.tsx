@@ -181,7 +181,7 @@ export default function SellFlow() {
   }
   if (itemId && item.data && item.data.status !== "draft") {
     return (
-      <AppPage title="Sell an item" backTo="/declutter?view=mine">
+      <AppPage title="Sell an item" backTo="/declutter?view=selling">
         <DeclutterNotice title="This item is already listed.">
           <Link to={`/declutter/item/${itemId}`} className="underline">See the listing</Link>
         </DeclutterNotice>
@@ -315,7 +315,7 @@ export default function SellFlow() {
       toast.success(
         status === "live" ? "Your item is for sale." : "Sent for a review. We'll let you know when it's up for sale.",
       );
-      navigate("/declutter?view=mine");
+      navigate("/declutter?view=selling");
     } catch (err) {
       toast.error(declutterErrorMessage(err));
     } finally {
@@ -325,7 +325,7 @@ export default function SellFlow() {
 
   const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
   return (
-    <AppPage title="Sell an item" backTo="/declutter?view=mine">
+    <AppPage title="Sell an item" backTo="/declutter?view=selling">
       {payoutBlock && (
         <DeclutterNotice tone="warn" title="Set up payouts before you list.">
           We pay you through the same payout account Helprs use. You can write the listing now and list it once payouts are set up.{" "}

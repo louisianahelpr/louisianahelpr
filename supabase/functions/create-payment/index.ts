@@ -197,18 +197,19 @@ const TAX_BEHAVIOR = "exclusive" as const;
 const FUNDING_CLOSED_JOB_STATUSES = new Set(["completed", "cancelled"]);
 
 /**
- * Q1862: the in-app pages a cancelled escrow checkout may return to. Post a Job
- * is the default; a quote checkout returns to its request page. A returnPath
- * outside this list is refused (never used as a redirect).
+ * Q1862: where a cancelled escrow checkout returns. Post a Job is the default;
+ * a quote checkout returns to its request page, /quotes/request/<uuid>. Any
+ * other returnPath is refused (never used as a redirect). Returns the quote
+ * request id, or null for the default; the caller spells each target as a
+ * literal buildRedirectUrl path (src/test/deepLinkOneRouter.test.ts proves
+ * every literal is a route App.tsx serves).
  */
-const ESCROW_RETURN_PATHS: readonly RegExp[] = [
-  /^\/quotes\/request\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-];
-const DEFAULT_ESCROW_CANCEL_PATH = "/post-job";
+const QUOTE_REQUEST_RETURN_PATH = /^\/quotes\/request\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
 
-function escrowCancelPath(returnPath: unknown): string {
-  if (returnPath === undefined || returnPath === null) return DEFAULT_ESCROW_CANCEL_PATH;
-  if (typeof returnPath === "string" && ESCROW_RETURN_PATHS.some((re) => re.test(returnPath))) return returnPath;
+function escrowCancelQuoteRequestId(returnPath: unknown): string | null {
+  if (returnPath === undefined || returnPath === null) return null;
+  const m = typeof returnPath === "string" ? QUOTE_REQUEST_RETURN_PATH.exec(returnPath) : null;
+  if (m) return m[1];
   throw new PublicError("That page can't be used to come back from checkout.");
 }
 
@@ -516,9 +517,9 @@ serve(async (req) => {
 
       // ─── Where a cancelled checkout lands (Q1862) ───
       // Post a Job by default; the quote screens send their own request page.
-      // Only allowlisted in-app paths (ESCROW_RETURN_PATHS): anything else is
-      // refused, never redirected to.
-      const cancelPath = escrowCancelPath(body.returnPath);
+      // Only the allowlisted in-app path (a quote request page): anything else
+      // is refused, never redirected to.
+      const cancelQuoteRequestId = escrowCancelQuoteRequestId(body.returnPath);
 
       // ─── Retire the previous Checkout Session before minting another ───
       //
@@ -1295,7 +1296,9 @@ serve(async (req) => {
         ),
         payment_intent_data: paymentIntentExtras,
         success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),
-        cancel_url: buildRedirectUrl(cancelPath, isNative),
+        cancel_url: cancelQuoteRequestId === null
+          ? buildRedirectUrl(`/post-job`, isNative)
+          : buildRedirectUrl(`/quotes/request/${cancelQuoteRequestId}`, isNative),
         expires_at: checkoutExpiresAt,
         metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents) },
       }, {

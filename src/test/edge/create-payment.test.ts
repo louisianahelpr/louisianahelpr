@@ -1045,8 +1045,8 @@ describe("create-payment edge function", () => {
     // @mutate supabase/functions/create-payment/index.ts |       await refuseQuoteJobPriceMismatch(supabaseAdmin, jobId, job.budget); |       void refuseQuoteJobPriceMismatch;
     // @mutate supabase/functions/create-payment/index.ts |   if (linkErr) {\n    console.error(`[create-payment] quote request read failed | if (false) {\n    console.error(`[create-payment] quote request read failed
     // @mutate supabase/functions/create-payment/index.ts |   if (acceptedErr) {\n    console.error( | if (false) {\n    console.error(
-    // @mutate supabase/functions/create-payment/index.ts |         cancel_url: buildRedirectUrl(cancelPath, isNative), |         cancel_url: buildRedirectUrl(`/post-job`, isNative),
-    // @mutate supabase/functions/create-payment/index.ts |   if (typeof returnPath === "string" && ESCROW_RETURN_PATHS.some((re) => re.test(returnPath))) return returnPath; |   if (typeof returnPath === "string") return returnPath;
+    // @mutate supabase/functions/create-payment/index.ts |           : buildRedirectUrl(`/quotes/request/${cancelQuoteRequestId}`, isNative), |           : buildRedirectUrl(`/post-job`, isNative),
+    // @mutate supabase/functions/create-payment/index.ts |   if (m) return m[1];\n  throw new PublicError("That page can't be used to come back from checkout."); |   return m ? m[1] : null;
     describe("a job booked from an agreed quote (Q1867, Q1862)", () => {
       const REQ_ID = "6f1c2a0e-1b2c-4d5e-8f90-123456789abc";
       function seedQuoteJob(budget: number, accepted: Array<{ price_cents: number }> | Error, links: Array<{ id: string }> | Error = [{ id: REQ_ID }]) {
@@ -1115,7 +1115,7 @@ describe("create-payment edge function", () => {
             payment_status: "unpaid", is_urgent: true, urgent_fee: 10 }],
         };
         scenario.rpc.feature_enabled_for_user = true;
-        const feeQuote = buildFeeQuote({ switchOn: true, giftFunded: false, recurring: false, jobPriceCents: 26_000, payInFour: false });
+        const feeQuote = buildFeeQuote({ switchOn: true, jobPriceCents: 26_000, payInFour: false });
         const { res, body } = await escrow({ feeQuote });
         expect(body.error).toBeUndefined();
         expect(res.status).toBe(200);
@@ -1154,9 +1154,11 @@ describe("create-payment edge function", () => {
         "//evil.example",
         "/quotes/request/not-a-uuid",
         `/quotes/request/${REQ_ID}?next=https://evil.example`,
+        `/quotes/request/${REQ_ID}\n`,
+        `/quotes/request/${REQ_ID.toUpperCase()}`,
         "/admin",
         42,
-      ])("refuses a non-allowlisted returnPath %s before Stripe", async (returnPath) => {
+      ])("refuses a non-allowlisted returnPath %s before any checkout session", async (returnPath) => {
         seedQuoteJob(250, [{ price_cents: 25000 }]);
         const { body } = await escrow({ returnPath });
         expect(body.error).toMatch(/can't be used to come back from checkout/);

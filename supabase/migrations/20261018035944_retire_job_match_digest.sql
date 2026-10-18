@@ -49,7 +49,7 @@ $do$;
 
 -- cronCatchUpPolicy (Q30) reads the NEWEST migration that seeds
 -- public.cron_catchup_policy as the whole policy, so this restates every row of
--- 20261012214444 verbatim, minus 'daily-match-digest'.
+-- 20261014210518 (the newest seeding, salvaged 2026-10-18) verbatim, minus 'daily-match-digest'.
 DO $do$
 BEGIN
   IF to_regclass('public.cron_catchup_policy') IS NOT NULL THEN
@@ -80,7 +80,8 @@ INSERT INTO public.cron_catchup_policy (jobname, catch_up, max_late, reason) VAL
   ('cleanup-observability-tables',    true,  interval '20 hours', 'Q167: deletes analytics_events over 90 days and error_logs over 30; relative windows, idempotent, so a late run is the same prune.'),
   ('prune-retention-tables',          true,  interval '20 hours', 'CJ-003/CS-003: age-based deletes (login_history, notification_logs, profile_views, job_views, rate logs, W-9s over 4 years); every window is relative to now(), so a late run deletes exactly what an on-time one would have.'),
   ('purge-old-seed-data',             true,  interval '20 hours', 'Q65: age-based purge of is_seed test jobs (never money, never a fixture id, never profiles) and seed notifications; the window is relative to now() and every run is bounded and recorded, so a late run is the same purge.'),
-  ('unfilled-series-visit-reminders', false, interval '1 hour',   'Tells a poster an empty series visit is TOMORROW (20261012195747). The text is relative to the run''s own day, so a late run past midnight would name the wrong day; its own once-per-visit ledger already stops a double send. Not re-run late.')
+  ('unfilled-series-visit-reminders', false, interval '1 hour',   'Tells a poster an empty series visit is TOMORROW (20261012195747). The text is relative to the run''s own day, so a late run past midnight would name the wrong day; its own once-per-visit ledger already stops a double send. Not re-run late.'),
+  ('declutter-price-drops',           false, interval '1 hour',   'Declutter evening price drop (20261014210518): once per Louisiana day; a missed evening is simply skipped and the next evening drops 5% as usual. Not re-run late: a late run past midnight would spend the NEXT day''s drop.')
 ON CONFLICT (jobname) DO UPDATE
   SET catch_up = EXCLUDED.catch_up, max_late = EXCLUDED.max_late,
       reason = EXCLUDED.reason, updated_at = now();

@@ -1,5 +1,5 @@
 /**
- * GUARD (Q?admin-badge-not-deployed): no admin count or queue reads a real
+ * GUARD (Q2086): no admin count or queue reads a real
  * failure as "not deployed yet".
  *
  * THE BUG (lh-authz-rls review of Q1691, 2026-10-14): src/components/admin/
@@ -49,7 +49,7 @@ function readBlock(src: string, start: string): string {
   return src.slice(i, i + 1200);
 }
 
-describe("an admin count or queue never reads a real failure as 'not deployed' (Q?admin-badge-not-deployed)", () => {
+describe("an admin count or queue never reads a real failure as 'not deployed' (Q2086)", () => {
   it("scans the admin tree (floor)", () => {
     expect(adminFiles.length).toBeGreaterThan(80);
   });

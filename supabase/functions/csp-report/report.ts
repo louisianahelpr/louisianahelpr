@@ -190,7 +190,7 @@ function noisy(u: string): boolean {
 // eval). Only this exact shape is dropped: the wasm-eval keyword raised by
 // MapKit's own csr script. The 1.x.x URL is updated in place by Apple, so a
 // later build that needs WebAssembly for the map itself would be hidden here:
-// Q?mapkit-wasm-drift tracks a check for that.
+// Q2091 tracks a check for that.
 function isMapKitHillshadeWasm(v: Violation): boolean {
   if (v.blockedURL.trim().toLowerCase() !== "wasm-eval") return false;
   let src: URL;

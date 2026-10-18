@@ -8447,6 +8447,27 @@ export type Database = {
           },
         ]
       }
+      stripe_customers: {
+        Row: {
+          created_at: string
+          stripe_customer_id: string
+          wallet_mode: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          stripe_customer_id: string
+          wallet_mode: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          stripe_customer_id?: string
+          wallet_mode?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stripe_webhook_events: {
         Row: {
           event_id: string
@@ -10663,6 +10684,10 @@ export type Database = {
       cleanup_observability_tables: { Args: never; Returns: Json }
       cleanup_stripe_webhook_events: { Args: never; Returns: number }
       clear_available_now: { Args: never; Returns: undefined }
+      claim_stripe_customer: {
+        Args: { p_customer: string; p_mode: string; p_user: string }
+        Returns: string
+      }
       clear_test_mode_dispute_ledger: {
         Args: {
           _admin: string

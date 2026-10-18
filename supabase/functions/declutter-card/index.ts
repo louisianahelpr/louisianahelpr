@@ -24,6 +24,7 @@ import { requireFeature } from "../_shared/featureSwitch.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
+import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,27 +63,9 @@ serve(async (req) => {
     const mode = await stripeModeForParties(admin, [user.id]);
     const stripe = new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" });
 
-    // Reuse the member's Stripe customer from their saved card, in the same mode only.
-    const { data: saved, error: savedErr } = await admin
-      .from("declutter_buyer_cards")
-      .select("stripe_customer_id, card_mode")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (savedErr) {
-      console.error(`[declutter-card] saved card read failed: ${savedErr.message}`);
-      return json({ error: "We couldn't open the card page just now. Please try again." }, 503);
-    }
-    let customerId = saved && (saved as { card_mode?: string }).card_mode === mode
-      ? (saved as { stripe_customer_id?: string }).stripe_customer_id ?? null
-      : null;
-    if (!customerId) {
-      const customer = await stripe.customers.create(
-        { email: user.email ?? undefined, metadata: { user_id: user.id, purpose: "declutter" } },
-        // One customer per member per mode, however many taps.
-        { idempotencyKey: `declutter-customer-${user.id}-${mode}` },
-      );
-      customerId = customer.id;
-    }
+    // One wallet: the member's ONE Stripe customer in this mode (stored, else
+    // made and claimed once). Never found by email.
+    const customerId = await resolveStripeCustomer(admin, stripe, user, mode);
 
     const session = await stripe.checkout.sessions.create({
       mode: "setup",
@@ -99,6 +82,10 @@ serve(async (req) => {
     return json({ url: session.url });
   } catch (error) {
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);
+    if (error instanceof StripeCustomerUnavailable) {
+      console.error(`[declutter-card] ${error.message}`);
+      return json({ error: "We couldn't open the card page just now. Please try again." }, 503);
+    }
     console.error("[declutter-card] error:", error);
     return json({ error: "We couldn't open the card page just now. Please try again." }, 500);
   }

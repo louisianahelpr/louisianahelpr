@@ -458,6 +458,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // Q552: the service-role-only enrolment of the platform's OWN test accounts
   // (the launch switch keeps test jobs visible to them). No member is ever in it.
   "test_accounts.user_id": { reason: "platform test-account enrolment, service role only; holds no member's data" },
+  "stripe_customers.user_id": { reason: "one wallet (20261018090700): the member's Stripe Customer id per Stripe mode, service role only; a Stripe internal handle, not member-entered data, stripped from the export like declutter_buyer_cards.stripe_customer_id (the member's saved cards are exported via declutter_buyer_cards)" },
   // Q1575: a seen/unseen flag over a back-out the person was ALSO told by an
   // in-app notification and email (notifications are exported); no content of its own.
   // Q1714: the dedupe claim behind a refund notice; the notice itself (amount,

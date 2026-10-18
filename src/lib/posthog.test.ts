@@ -22,7 +22,19 @@ vi.mock("posthog-js", () => ({
   },
 }));
 
+// Q2112: initPostHog skips a robot or an http://localhost page, and jsdom IS
+// http://localhost. The wrapper tests below run as a real visitor's page;
+// the skip itself is asserted at the end of this file.
+const automation = { reason: null as null | string, localDev: false };
+vi.mock("@/lib/automatedBrowser", () => ({
+  automationReason: () => automation.reason,
+  isLocalDevOrigin: () => automation.localDev,
+  markTestProfileSession: () => {},
+}));
+
 beforeEach(() => {
+  automation.reason = null;
+  automation.localDev = false;
   vi.resetModules();
   initMock.mockReset();
   captureMock.mockReset();
@@ -162,3 +174,21 @@ describe("initPostHog", () => {
 });
 
 // @mutate src/lib/posthog.ts | disable_session_recording: true, | disable_session_recording: false,
+
+describe("initPostHog skips robots and local dev pages (Q2112)", () => {
+  it("a webdriver or lh_automation page never starts PostHog", async () => {
+    automation.reason = "webdriver";
+    const { initPostHog, captureEvent } = await loadFresh();
+    initPostHog();
+    captureEvent("button_clicked", {});
+    expect(initMock).not.toHaveBeenCalled();
+    expect(captureMock).not.toHaveBeenCalled();
+  });
+
+  it("an http://localhost page never starts PostHog", async () => {
+    automation.localDev = true;
+    const { initPostHog } = await loadFresh();
+    initPostHog();
+    expect(initMock).not.toHaveBeenCalled();
+  });
+});

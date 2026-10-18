@@ -34,6 +34,9 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { DEFAULT_SUPABASE_URL, resolveServiceKey } from "./lib/adminSession.mjs";
 import { supabaseBase } from "./lib/apiBase.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+assertFreshCheckout(import.meta.url);
 
 export const REVIEWER_EMAIL = "apple-reviewer@louisianahelpr.com";
 export const SECRET_NAME = "ASC_REVIEW_DEMO_PASSWORD";

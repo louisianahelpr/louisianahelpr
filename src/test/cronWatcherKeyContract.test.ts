@@ -70,6 +70,12 @@ function registeredExpectations(): Expectation[] {
         migration: file,
       });
     }
+    // A retired job's row is deleted (20261018035944 retires
+    // daily-match-digest): DELETE ... WHERE jobname IN ('a', 'b') or = 'a'.
+    const code = blankSqlComments(sql);
+    for (const d of code.matchAll(/\bdelete\s+from\s+(?:public\.)?cron_work_expectations\s+where\s+jobname\s*(?:in\s*\(([^)]*)\)|=\s*('[^']*'))/gi)) {
+      for (const n of (d[1] ?? d[2]).matchAll(/'([a-z0-9-]+)'/g)) byJob.delete(n[1]);
+    }
   }
   return [...byJob.values()].sort((a, b) => a.jobname.localeCompare(b.jobname));
 }
@@ -149,6 +155,7 @@ function emitsKeyAsBoolean(src: string, key: string): boolean {
 // silent-failure detection for EVERY cron, not just this one.
 // @mutate supabase/functions/marketing-publish/index.ts | skipped: 0, | skipped: true,
 // @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql | 'already_alerted', v_already_alerted, | 'already_alerted_x', v_already_alerted,
+// @mutate supabase/migrations/20261018035944_retire_job_match_digest.sql |     DELETE FROM public.cron_work_expectations WHERE jobname IN ('daily-match-digest'); |     NULL;
 
 const expectations = registeredExpectations();
 

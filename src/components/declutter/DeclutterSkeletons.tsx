@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeclutterNotice } from "./declutterUi";
 
-/** /declutter: the title row, the intro, the Browse / My listings tabs, the distance row and the first cards. */
+/** /declutter: the title row, the intro, the tab row, the distance row and the first cards. */
 export function DeclutterHomeSkeleton() {
   const navigate = useNavigate();
   return (
@@ -88,7 +88,7 @@ export function DeclutterItemSkeleton() {
  */
 export function DeclutterSellSkeleton() {
   return (
-    <AppPage title="Sell an item" backTo="/declutter?view=mine">
+    <AppPage title="Sell an item" backTo="/declutter?view=selling">
       <p role="status" className="sr-only">Loading the form</p>
     </AppPage>
   );
@@ -120,7 +120,7 @@ export function DeclutterItemUnavailable({ detail }: { detail?: string }) {
 /** /declutter/move: the real header, no bones (as the sell form: its first rows come and go with the member). */
 export function DeclutterMoveSkeleton() {
   return (
-    <AppPage title="Moving out" backTo="/declutter?view=mine">
+    <AppPage title="Moving out" backTo="/declutter?view=selling">
       <p role="status" className="sr-only">Loading your moving sale</p>
     </AppPage>
   );

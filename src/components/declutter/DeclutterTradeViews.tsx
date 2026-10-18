@@ -3,7 +3,12 @@
  * 36, 38, 56-59; build decisions B25-B38): the buy/offer panel on an item, the
  * Offers view (offers on your items + your offers, accept / decline / counter),
  * the Cart view (what you must check out, by seller, with the one total), and
- * the strike count. Plain words only. Every rule is enforced by the server
+ * the strike count. Plain words only.
+ *
+ * Tabs (owner, 2026-10-18; src/lib/declutter/tabs.ts): BuyingView holds the
+ * cart, "Your offers" and Purchases; the Selling tab (DeclutterHomeView) holds
+ * the listings, "Offers on your items" (OffersSection side="seller"),
+ * SalesWaiting and the paid sales (PaidOrders side="seller"). Every rule is enforced by the server
  * (20261014210518); the app only explains it.
  *
  * Saving a card and paying (slice 3b, B39/B45): "Save a card" opens Stripe's
@@ -42,6 +47,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { checkoutAmounts, minOfferCents } from "@/lib/declutter/money";
 import { fetchDeliveryQuote, type DeliveryQuote } from "@/lib/declutter/delivery";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { declutterTodo, type DeclutterTodo } from "@/lib/declutter/tabs";
 import { DeclutterNotice } from "./declutterUi";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 
@@ -64,6 +70,29 @@ function timeLeft(iso: string, now = Date.now()): string {
 
 function invalidateTrades(qc: ReturnType<typeof useQueryClient>) {
   void qc.invalidateQueries({ queryKey: ["declutter"] });
+}
+
+/**
+ * What needs the member on each side (the Buying / Selling badges), from the
+ * same two reads the tabs show, so a tab never counts something it doesn't list.
+ * `settled` is true once both reads answered (an error is an answer: no badge).
+ */
+export function useDeclutterTodo(): { todo: DeclutterTodo | null; settled: boolean } {
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
+  const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers });
+  const settled = !cart.isLoading && !offers.isLoading;
+  const todo = cart.data && offers.data ? declutterTodo(cart.data, offers.data) : null;
+  return { todo, settled };
+}
+
+/** A Buying / Selling section's heading, with how many of its things need the member. */
+export function SectionHeading({ title, todo, todoWords }: { title: string; todo?: number; todoWords?: string }) {
+  return (
+    <h2 className="text-base font-semibold">
+      {title}
+      {todo ? <span className="font-normal text-muted-foreground"> · {todo} {todoWords}</span> : null}
+    </h2>
+  );
 }
 
 /** "You have N of 3 strikes" (rows 7, 16, 17). Nothing when there are none. */
@@ -314,41 +343,36 @@ function OfferRow({ o }: { o: MyOffer }) {
   );
 }
 
-/** Offers on your items and your own offers (rows 57-58). */
-export function OffersView() {
+/**
+ * Offers on your items (side="seller", the Selling tab) or the offers you sent
+ * (side="buyer", the Buying tab): rows 57-58.
+ */
+export function OffersSection({ side }: { side: "buyer" | "seller" }) {
   const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers });
+  const seller = side === "seller";
+  const title = seller ? "Offers on your items" : "Your offers";
   if (offers.isError) {
     return <ErrorState variant="inline" title="We couldn't load offers." body={declutterErrorMessage(offers.error)} onRetry={() => void offers.refetch()} />;
   }
   if (offers.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading offers…</p>;
-  const all = offers.data ?? [];
-  const onMine = all.filter((o) => o.my_side === "seller");
-  const mineOut = all.filter((o) => o.my_side === "buyer");
+  const mine = (offers.data ?? []).filter((o) => o.my_side === side);
+  const toAnswer = mine.filter((o) => o.status === "open" && o.awaiting === side).length;
   return (
-    <div className="space-y-6">
-      <section className="space-y-2">
-        <h2 className="text-base font-semibold">Offers on your items</h2>
-        {onMine.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No offers yet. Buyers can offer at least half your price; you have 48 hours to answer each one.</p>
-        ) : (
-          <ul className="space-y-3">{onMine.map((o) => <OfferRow key={o.offer_id} o={o} />)}</ul>
-        )}
-      </section>
-      <section className="space-y-2">
-        <h2 className="text-base font-semibold">Your offers</h2>
-        {mineOut.length === 0 ? (
-          <p className="text-sm text-muted-foreground">You haven't made any offers.</p>
-        ) : (
-          <ul className="space-y-3">{mineOut.map((o) => <OfferRow key={o.offer_id} o={o} />)}</ul>
-        )}
-      </section>
-      <SalesWaiting />
-    </div>
+    <section className="space-y-2" aria-label={title}>
+      <SectionHeading title={title} todo={toAnswer} todoWords="to answer" />
+      {mine.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {seller ? "No offers yet. Buyers can offer at least half your price; you have 48 hours to answer each one." : "You haven't made any offers."}
+        </p>
+      ) : (
+        <ul className="space-y-3">{mine.map((o) => <OfferRow key={o.offer_id} o={o} />)}</ul>
+      )}
+    </section>
   );
 }
 
 /** The seller's accepted sales waiting for the buyer to pay, with the way out (row 19). */
-function SalesWaiting() {
+export function SalesWaiting() {
   const qc = useQueryClient();
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
   const cancel = useMutation({
@@ -359,15 +383,15 @@ function SalesWaiting() {
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  // Paid sales are handled by PaidOrdersSection (slice 4) in the cart view.
+  // Paid sales are handled by PaidOrders side="seller" (slice 4), below this on the Selling tab.
   const waiting = (cart.data ?? []).filter((l) => l.my_side === "seller" && l.status === "in_cart");
   if (cart.isError) {
     return <ErrorState variant="inline" title="We couldn't load your sales." body={declutterErrorMessage(cart.error)} onRetry={() => void cart.refetch()} />;
   }
   if (waiting.length === 0) return null;
   return (
-    <section className="space-y-2">
-      <h2 className="text-base font-semibold">Your sales</h2>
+    <section className="space-y-2" aria-label="Sold, waiting for the buyer to pay">
+      <h2 className="text-base font-semibold">Sold, waiting for the buyer to pay</h2>
       <ul className="space-y-3">
         {waiting.map((l) => (
           <li key={l.line_id} className="rounded-2xl border border-border bg-card p-4 space-y-2">
@@ -515,8 +539,55 @@ export function FinishSalesView() {
         You can still pay for, hand over or cancel the sales you already agreed to. Nothing new can start.
       </DeclutterNotice>
       <CartView />
+      <PaidOrders side="buyer" />
       <SalesWaiting />
+      <PaidOrders side="seller" />
     </AppPage>
+  );
+}
+
+/**
+ * Paid orders on one side (slice 4: book the pickup, hand over, porch photos,
+ * no-shows, problems, payout, reviews): Purchases on Buying, the paid sales on Selling.
+ */
+export function PaidOrders({ side }: { side: "buyer" | "seller" }) {
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
+  const lines = (cart.data ?? []).filter((l) => l.my_side === side);
+  const todo = declutterTodo(lines, []);
+  // CartView / SalesWaiting on the same tab show this read's loading and error.
+  if (!cart.data) return null;
+  if (!lines.some((l) => l.status === "paid" && l.order_id)) {
+    const buyer = side === "buyer";
+    return (
+      <section className="space-y-2" aria-label={buyer ? "Purchases" : "Sold: pickup and payout"}>
+        <SectionHeading title={buyer ? "Purchases" : "Sold: pickup and payout"} />
+        <p className="text-sm text-muted-foreground">
+          {buyer ? "Nothing bought yet. After you pay, each order shows here with its pickup." : "Nothing sold yet. Once a buyer pays, the pickup and your payout show here."}
+        </p>
+      </section>
+    );
+  }
+  return (
+    <PaidOrdersSection
+      cart={lines}
+      label={side === "buyer" ? "Purchases" : "Sold: pickup and payout"}
+      heading={
+        side === "buyer"
+          ? <SectionHeading title="Purchases" todo={todo.purchasesOpen} todoWords="to pick up" />
+          : <SectionHeading title="Sold: pickup and payout" todo={todo.salesOpen} todoWords="to hand over" />
+      }
+    />
+  );
+}
+
+/** Buying (owner, 2026-10-18): the cart, the offers you sent, and your purchases. */
+export function BuyingView() {
+  return (
+    <div className="space-y-6">
+      <CartView />
+      <OffersSection side="buyer" />
+      <PaidOrders side="buyer" />
+    </div>
   );
 }
 
@@ -534,7 +605,8 @@ export function CartView() {
   const bySeller = new Map<string, CartLine[]>();
   for (const l of waiting) bySeller.set(l.seller_id, [...(bySeller.get(l.seller_id) ?? []), l]);
   return (
-    <div className="space-y-6">
+    <section className="space-y-3" aria-label="Your cart">
+      <SectionHeading title="Your cart" todo={waiting.length} todoWords="to check out" />
       {waiting.length === 0 ? (
         <DeclutterNotice title="Your cart is empty.">When a seller accepts your offer, or you tap Buy, the item comes here. You then have 48 hours to check out.</DeclutterNotice>
       ) : (
@@ -543,7 +615,7 @@ export function CartView() {
           const soonest = lines.map((l) => l.checkout_by).sort()[0];
           return (
             <section key={sellerId} className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label={`Checkout ${i + 1}`}>
-              <h2 className="text-base font-semibold">From one seller · one checkout</h2>
+              <h3 className="text-base font-semibold">From one seller · one checkout</h3>
               <ul className="space-y-1">
                 {lines.map((l) => (
                   <li key={l.line_id} className="flex justify-between gap-3 text-sm min-w-0">
@@ -563,8 +635,6 @@ export function CartView() {
           );
         })
       )}
-      {/* Slice 4: book the pickup, hand over, porch photos, no-shows, problems, payout, reviews (both sides). */}
-      <PaidOrdersSection cart={cart.data ?? []} />
-    </div>
+    </section>
   );
 }

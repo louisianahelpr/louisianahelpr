@@ -56,6 +56,10 @@ const Q194 = "20260923152630_notification_links_point_direct_not_at_redirects.sq
  * Two-way: each must actually change one.
  */
 const INTENDED_LINK_CHANGES = new Set([
+  // Quotes (owner answer 10, 2026-10-17): quote_notify is a thin wrapper; the
+  // same '/quotes' / '/quotes?user=<actor>' link is now written by
+  // quote_notify_about, which it calls with auth.uid() as the actor.
+  "20261018042506_quote_hire_on_pay_alerts.sql::quote_notify",
   // 2026-10-09: a "Louisiana Helpr Team" thread row (no job) links to
   // '/messages?teamThread=<user>&userId=<sender>'; the job thread's
   // '/messages?jobId=…&userId=…' link is unchanged beside it (nothing gone).

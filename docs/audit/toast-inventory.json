@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 796,
-    "files": 192,
-    "rendering": 708,
-    "suppressedByPolicy": 88,
+    "calls": 806,
+    "files": 195,
+    "rendering": 713,
+    "suppressedByPolicy": 93,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 46,
-      "toast.error": 596,
+      "toast.error": 601,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 92,
+      "toast.success": 97,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 384,
+      "literal": 388,
       "template": 95,
-      "dynamic": 363,
+      "dynamic": 369,
       "jsx": 0
     }
   },
@@ -6598,8 +6598,78 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopDashboardView.tsx",
+      "line": 57,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Cancel rule saved. New orders use it."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopDashboardView.tsx",
+      "line": 60,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopDashboardView.tsx",
+      "line": 115,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "charged ? \"Accepted. The buyer's card is charged.\" : \"Accepted. The charge finishes within a few minutes.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Accepted. The buyer's card is charged."
+          },
+          {
+            "form": "literal",
+            "text": "Accepted. The charge finishes within a few minutes."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopDashboardView.tsx",
+      "line": 120,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopDashboardView.tsx",
+      "line": 128,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Declined. The buyer's card was not charged."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopDashboardView.tsx",
+      "line": 134,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 173,
+      "line": 174,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6619,7 +6689,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 177,
+      "line": 178,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6629,7 +6699,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 183,
+      "line": 184,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6639,7 +6709,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 188,
+      "line": 189,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6649,7 +6719,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 194,
+      "line": 195,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6659,7 +6729,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 198,
+      "line": 199,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6808,8 +6878,38 @@
       "renders": true
     },
     {
-      "file": "src/components/shops/ShopView.tsx",
-      "line": 76,
+      "file": "src/components/shops/ShopMyOrdersView.tsx",
+      "line": 35,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Order sent. The shop has 24 hours to answer; your card is held, not charged."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopMyOrdersView.tsx",
+      "line": 44,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Order withdrawn. Nothing was charged."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopMyOrdersView.tsx",
+      "line": 49,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopOrderSheet.tsx",
+      "line": 132,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6819,7 +6919,17 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 81,
+      "line": 79,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopView.tsx",
+      "line": 84,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6839,7 +6949,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 84,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

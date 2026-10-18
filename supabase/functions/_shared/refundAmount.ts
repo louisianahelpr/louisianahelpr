@@ -5,8 +5,19 @@
 // should never absorb any fee." Stripe keeps its processing fee on every
 // captured charge and never returns it on a refund, so EVERY refund returns
 // what was paid less that card fee (and less a first job's one-time $2 setup
-// fee, which is "paid and done": Q1346/Q1674). Tax is NOT withheld: it sits
-// inside the captured amount and comes back with the rest.
+// fee, which is "paid and done": Q1346/Q1674).
+//
+// TAX ON WHAT WE KEEP (owner pop-up 2026-10-18, Q2082 (a), "J3"): the sales
+// tax that sits on a kept part (the card fee, a late-cancel fee paid to the
+// Helpr, crew block fees, the setup fee) is kept from the refund too; we never
+// pay it. Stripe Tax reverses a refund's tax in PROPORTION to what it returns
+// (a Checkout charge's refund, and our flat-amount reversal of a recurring
+// visit's Tax API transaction: Stripe docs "Partially refund a sale by a flat
+// amount"), so the tax left collected on a charge is tax x kept / captured. A
+// refund that keeps K therefore also keeps K x tax / (captured - tax): then
+// the tax Stripe leaves collected is exactly the extra amount kept (proof in
+// src/test/refundKeepsTaxOnKeptAmounts.test.ts). The rest of the tax comes
+// back with the refund, as before.
 //
 // The ONE exception (same decision, asked twice, same answer): a refund caused
 // by OUR OWN mistake goes back IN FULL, card fee included. Those call sites do
@@ -40,6 +51,19 @@ export interface RefundToPayerInput {
   alreadyRefundedCents?: number;
   /** A requested amount (an admin's partial refund), in cents; null/undefined = everything refundable. */
   requestedCents?: number | null;
+  /**
+   * The sales tax inside `capturedCents` (chargeTaxCents(pi)), in cents. The
+   * tax on every kept part is kept too (owner, 2026-10-18, Q2082 (a)).
+   * 0 / omitted = an untaxed charge, nothing extra kept.
+   */
+  taxCents?: number | null;
+  /**
+   * The part of `capturedCents` the tax was charged on, tax included, when it
+   * is not the whole charge (a legacy recurring visit: its Stripe Tax
+   * transaction holds the labor and its tax, not the card-cost fee). Only a
+   * kept amount inside that part carries tax. Omitted = the whole capture.
+   */
+  taxBaseCents?: number | null;
 }
 
 export interface RefundToPayerResult {
@@ -51,7 +75,9 @@ export interface RefundToPayerResult {
   setupKeptCents: number;
   /** Card fee + setup fee: what is never refundable on this charge. */
   nonRefundableCents: number;
-  /** The most this charge can ever return: captured less fee, setup and other kept amounts (before earlier refunds). */
+  /** The sales tax on the kept parts (taxOnKeptCents), also kept: the refund notice names it. */
+  taxKeptCents: number;
+  /** The most this charge can ever return: captured less fee, setup, other kept amounts and the tax on them (before earlier refunds). */
   ceilingCents: number;
   /** What is still refundable after earlier refunds: ceiling less already refunded. */
   remainingCents: number;
@@ -71,11 +97,97 @@ export function refundToPayerCents(i: RefundToPayerInput): RefundToPayerResult {
   const feeKeptCents = Math.max(cents(i.customerFeeCents), cents(i.actualFeeCents));
   const setupKeptCents = cents(i.setupFeeCents);
   const nonRefundableCents = feeKeptCents + setupKeptCents;
-  const ceilingCents = Math.max(0, captured - nonRefundableCents - cents(i.otherKeptCents));
+  const keptCents = nonRefundableCents + cents(i.otherKeptCents);
+  const taxBase = i.taxBaseCents == null ? captured : Math.min(captured, cents(i.taxBaseCents));
+  const keptInBase = Math.max(0, keptCents - (captured - taxBase));
+  const taxKeptCents = Math.min(Math.max(0, captured - keptCents), taxOnKeptCents({ keptCents: keptInBase, taxCents: i.taxCents ?? 0, capturedCents: taxBase }));
+  const ceilingCents = Math.max(0, captured - keptCents - taxKeptCents);
   const remainingCents = Math.max(0, ceilingCents - cents(i.alreadyRefundedCents));
   const requested = i.requestedCents == null ? null : cents(i.requestedCents);
   const refundCents = requested == null ? remainingCents : Math.min(requested, remainingCents);
-  return { refundCents, feeKeptCents, setupKeptCents, nonRefundableCents, ceilingCents, remainingCents };
+  return { refundCents, feeKeptCents, setupKeptCents, nonRefundableCents, taxKeptCents, ceilingCents, remainingCents };
+}
+
+/**
+ * The sales tax on a kept part of a taxed charge (owner, 2026-10-18, Q2082
+ * (a)): kept x tax / (captured - tax), rounded UP to the cent, so the tax
+ * Stripe leaves collected on what we keep (tax x (kept + this) / captured) is
+ * never more than this. 0 on an untaxed charge, a charge that kept nothing, or
+ * a nonsense capture (tax >= captured). Never more than the tax itself.
+ */
+export function taxOnKeptCents(i: { keptCents: number; taxCents: number | null | undefined; capturedCents: number }): number {
+  const kept = cents(i.keptCents);
+  const tax = cents(i.taxCents);
+  const captured = cents(i.capturedCents);
+  if (kept === 0 || tax === 0 || captured <= tax) return 0;
+  return Math.min(tax, Math.ceil((kept * tax) / (captured - tax)));
+}
+
+/**
+ * The sales tax inside a PaymentIntent's charge, in cents, when it is known
+ * without another Stripe read: the PI's own `amount_details.tax.total_tax_amount`
+ * when it is above 0 (only API versions from 2025-10-29.clover return it; the
+ * edge functions pin 2025-08-27.basil, whose AmountDetails has only `tip`,
+ * read from stripe@18.5.0's types, lh-money-escrow review of 461a6b724 #2), else
+ * `fallbackCents` (a recurring visit's stored tax_cents: a visit's tax is a Tax
+ * API transaction, never on the PI), else 0. A Checkout charge is priced with
+ * chargeTaxCentsFor below, which asks the Checkout Session.
+ */
+export function chargeTaxCents(
+  pi: { amount_details?: unknown } | null | undefined,
+  fallbackCents?: number | null,
+): number {
+  const t = (pi?.amount_details as { tax?: { total_tax_amount?: unknown } } | null | undefined)?.tax?.total_tax_amount;
+  if (typeof t === "number" && Number.isFinite(t) && t > 0) return cents(t);
+  return cents(fallbackCents);
+}
+
+/** The one Stripe read chargeTaxCentsFor needs, typed structurally (this module has no imports). */
+export interface CheckoutSessionLister {
+  checkout: {
+    sessions: {
+      list(p: { payment_intent: string; limit: number }): Promise<{ data?: Array<{ total_details?: { amount_tax?: number | null } | null }> } | null | undefined>;
+    };
+  };
+}
+
+/**
+ * The sales tax inside a Checkout charge, in cents: what the Checkout Session
+ * that took it says it charged (`total_details.amount_tax`, the figure the
+ * poster saw; a gift shortfall session prices its line untaxed, so it reads 0).
+ * The PI's own figure wins when it is there (chargeTaxCents). No session, or a
+ * read that fails, is 0: the refund then keeps no tax, the behaviour before
+ * Q2082 (a), never more than the poster owes.
+ */
+export async function chargeTaxCentsFor(
+  stripe: CheckoutSessionLister,
+  pi: { id?: string | null; amount_details?: unknown } | null | undefined,
+): Promise<number> {
+  const tax = await checkoutChargeTaxCents(stripe, pi);
+  // A failed read keeps no tax (the old refund), never over-keeps the
+  // poster's money; checkoutChargeTaxCents said so in the function log.
+  return tax ?? 0;
+}
+
+/**
+ * chargeTaxCentsFor, but a failed Checkout Session read is null, not 0: a
+ * checker (money-reconciliation's under-refund ceiling) must call that job
+ * unverified rather than grade it against a ceiling with no tax in it
+ * (lh-money-escrow delta review of 2e397597d #2).
+ */
+export async function checkoutChargeTaxCents(
+  stripe: CheckoutSessionLister,
+  pi: { id?: string | null; amount_details?: unknown } | null | undefined,
+): Promise<number | null> {
+  const own = chargeTaxCents(pi);
+  if (own > 0 || !pi?.id) return own;
+  try {
+    const page = await stripe.checkout.sessions.list({ payment_intent: pi.id, limit: 1 });
+    return cents(page?.data?.[0]?.total_details?.amount_tax ?? 0);
+  } catch (e) {
+    console.warn(`[refundAmount] could not read the Checkout Session tax for ${pi.id}`, e);
+    return null;
+  }
 }
 
 /**

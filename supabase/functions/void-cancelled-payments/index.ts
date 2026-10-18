@@ -11,7 +11,7 @@ import { crewCancellationFee } from "../_shared/crewShares.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
-import { posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { chargeTaxCentsFor, posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
@@ -2435,6 +2435,7 @@ serve(async (req) => {
             setupFeeCents: setupFeeKeptCents(job),
             otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents,
             alreadyRefundedCents: chargeRefundedCents,
+            taxCents: await chargeTaxCentsFor(stripe, pi),
           });
           const nonRefundableCents = voidSplit.nonRefundableCents;
           // Q1806: what the gift keeps, from the fees left after payBlockFees.
@@ -2474,7 +2475,8 @@ serve(async (req) => {
           // raw shortfall to ops, as it did before the shared helper.
           const refundAmount = voidSplit.refundCents > 0 || refundedAtStripe
             ? voidSplit.refundCents
-            : capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents;
+            // Q2082 (a): never hand back the tax just kept (review of 461a6b724 #5).
+            : capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents - voidSplit.taxKeptCents;
           // ── Ledger guard against a SECOND real refund ────────────────────
           // The idempotency key below is permanent and unsalted. That protects
           // an overlapping run within Stripe's ~24h replay window and nothing
@@ -2533,6 +2535,8 @@ serve(async (req) => {
                 blockFeeCents > 0 ? `${refundDollars(blockFeeCents)} for the crew spots you closed close to the start` : null,
                 serviceKeptCents > 0 ? `${refundDollars(serviceKeptCents)} service fee, which isn't refunded when a job is cancelled` : null,
                 processingKeptCents > 0 ? `${refundDollars(processingKeptCents)} card processing fee, which can't be returned` : null,
+                // Q2082 (a), owner 2026-10-18: the tax on what is kept is kept too.
+                voidSplit.taxKeptCents > 0 ? `${refundDollars(voidSplit.taxKeptCents)} sales tax on what we kept, which isn't refunded` : null,
                 setupKeptCents > 0 ? `${refundDollars(setupKeptCents)} one-time account setup fee, which is paid once and never refunded` : null,
               ].filter((x): x is string => !!x);
               const refundedCents = Math.round(Number(refund.amount ?? refundAmount));

@@ -58,7 +58,7 @@ import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
-import { posterCancelKeptFeeCents } from "../_shared/refundAmount.ts";
+import { checkoutChargeTaxCents, posterCancelKeptFeeCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { loadPayoutHolds } from "../_shared/payoutHold.ts";
 
@@ -1864,8 +1864,19 @@ serve(async (req) => {
           );
           // Q1390: a cancelled crew also keeps the block fees it paid out.
           // Q1674 (owner, 2026-10-12): a first job keeps its $2 setup fee.
-          const maxRetainedCents = feeCents + nonRefundableCents + (blockFeeCentsByJob.get(job.id as string) ?? 0)
+          const keptBeforeTaxCents = feeCents + nonRefundableCents + (blockFeeCentsByJob.get(job.id as string) ?? 0)
             + setupFeeKeptCents(job as { onboarding_fee_amount?: number | string | null });
+          // Q2082 (a), owner 2026-10-18: the sales tax on what is kept is kept
+          // too (refundToPayerCents taxKeptCents), so the ceiling allows it.
+          // A failed tax read leaves this job unverified, never graded against
+          // a ceiling with no tax in it (a false critical page).
+          const chargeTax = await checkoutChargeTaxCents(stripe, pi);
+          if (chargeTax === null) {
+            failures.push(`${job.id}: its Checkout Session's tax could not be read`);
+            return;
+          }
+          const maxRetainedCents = keptBeforeTaxCents
+            + taxOnKeptCents({ keptCents: keptBeforeTaxCents, taxCents: chargeTax, capturedCents });
           const retainedCents = capturedCents - refundedCents;
           // One cent of slack for the two roundings above.
           if (retainedCents > maxRetainedCents + 1) {

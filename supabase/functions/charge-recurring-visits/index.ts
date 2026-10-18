@@ -82,7 +82,7 @@ import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
-import { refundToPayerCents } from "../_shared/refundAmount.ts";
+import { chargeTaxCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
@@ -238,6 +238,14 @@ async function refundLessStripeFeeCents(
   stripe: Stripe,
   intent: Stripe.PaymentIntent,
   knownCapturedCents: number,
+  /** The visit's stored sales tax (recurring_visit_payments.tax_cents): a visit PI carries no Stripe Tax figure of its own. */
+  knownTaxCents: number | null | undefined,
+  /**
+   * The part of the charge its tax transaction covers, tax included (the
+   * labor + its tax): a legacy visit's card-cost fee is not in it, so only a
+   * kept amount inside it carries tax (lh-money-escrow review of 461a6b724 #3).
+   */
+  knownTaxBaseCents: number | null | undefined,
 ): Promise<{ refundCents: number; capturedCents: number }> {
   let pi: Stripe.PaymentIntent = intent;
   try {
@@ -248,7 +256,7 @@ async function refundLessStripeFeeCents(
   const captured = pi?.amount_received || pi?.amount || intent.amount || knownCapturedCents;
   // THE refund amount (owner, 2026-10-14: never absorb a fee): _shared/refundAmount.ts.
   const refundCents = Number.isFinite(captured)
-    ? refundToPayerCents({ capturedCents: captured, actualFeeCents: actualOrEstimatedFeeCents(pi, captured) }).refundCents
+    ? refundToPayerCents({ capturedCents: captured, actualFeeCents: actualOrEstimatedFeeCents(pi, captured), taxCents: chargeTaxCents(pi, knownTaxCents), taxBaseCents: knownTaxBaseCents }).refundCents
     : Number.NaN;
   if (!(Number.isFinite(captured) && captured > 0 && Number.isFinite(refundCents))) {
     throw new Error(`could not work out what ${intent.id} captured (${captured})`);
@@ -322,7 +330,8 @@ async function tellVisitRefund(supabase: any, v: {
     paymentIntentId: v.paymentIntentId,
     amountCents: v.refund.cents,
     keptCents: v.keptCents,
-    keptReason: v.keptCents > 0 ? "the card processor's fee, which can't be returned" : null,
+    // Q2082 (a), owner 2026-10-18: the sales tax on the kept fee is kept too.
+    keptReason: v.keptCents > 0 ? "the card processor's fee and any sales tax on it, which can't be returned" : null,
     recipientId: v.recipientId,
     jobId: v.parentJobId,
     jobByPayment: false,
@@ -659,7 +668,7 @@ serve(async (req) => {
   if (!dryRun && !onlyParentId) {
     const { data: stale, error: staleErr } = await supabase
       .from("recurring_visit_payments")
-      .select("id, parent_job_id, visit_date, status, payer_id, helper_id, amount_cents, stripe_payment_intent_id, stripe_session_id")
+      .select("id, parent_job_id, visit_date, status, payer_id, helper_id, amount_cents, fee_cents, tax_cents, stripe_payment_intent_id, stripe_session_id")
       .in("status", ["pending", "paid"])
       .lte("visit_date", today)
       .order("visit_date", { ascending: true })
@@ -1020,7 +1029,7 @@ serve(async (req) => {
         const withholdFee = piObj?.metadata?.refund_withhold_fee === "true" || seriesEndedCause || dateUnheldCause;
         // THE refund amount: _shared/refundAmount.ts.
         const lessFeeCents = Number.isFinite(amountCents)
-          ? refundToPayerCents({ capturedCents: amountCents, actualFeeCents: actualOrEstimatedFeeCents(piObj, amountCents) }).refundCents
+          ? refundToPayerCents({ capturedCents: amountCents, taxCents: chargeTaxCents(piObj, Number(row.tax_cents ?? 0)), taxBaseCents: Number(row.amount_cents ?? 0) - Number(row.fee_cents ?? 0), actualFeeCents: actualOrEstimatedFeeCents(piObj, amountCents) }).refundCents
           : Number.NaN;
         const owedCents = withholdFee ? lessFeeCents : amountCents;
         // Set before any other Stripe call, so a failure below alerts with
@@ -1127,10 +1136,10 @@ serve(async (req) => {
             ? ((refundParams.amount ?? 0) > 0
               ? `The visit on ${row.visit_date} wasn't booked because the series ended or the date changed hands after it was paid. We refunded $${
                 ((refundParams.amount ?? 0) / 100).toFixed(2)
-              }; the card processor's fee of $${((Number(row.amount_cents) - (refundParams.amount ?? 0)) / 100).toFixed(2)} can't be returned.`
+              }; the card processor's fee and any sales tax on it, $${((Number(row.amount_cents) - (refundParams.amount ?? 0)) / 100).toFixed(2)}, can't be returned.`
               : `The visit on ${row.visit_date} wasn't booked because the series ended or the date changed hands after it was paid. The whole $${
                 (Number(row.amount_cents) / 100).toFixed(2)
-              } went to the card processor's fee, which can't be returned, so there was nothing left to refund.`)
+              } went to the card processor's fee and any sales tax on it, which can't be returned, so there was nothing left to refund.`)
             : `The visit on ${row.visit_date} couldn't be booked, so we refunded what you paid for it.`,
           type: "job_updates",
           link,
@@ -2294,7 +2303,9 @@ serve(async (req) => {
               } catch (e) {
                 console.warn(`[charge-recurring-visits] could not mark ${intent.id} as fee-withheld`, e);
               }
-              const split = await refundLessStripeFeeCents(stripe, intent, capturedCents);
+              // A poster-fee series taxes its fee line with the labor (one
+              // transaction), so the fee is inside the tax base; a legacy fee is not.
+              const split = await refundLessStripeFeeCents(stripe, intent, capturedCents, taxCents, budgetCents + (posterFeeSeries ? feeCents : 0) + taxCents);
               refundParams.amount = split.refundCents;
               capturedCents = split.capturedCents;
               // The sweep's mark that this partial refund is the whole of it.
@@ -2372,12 +2383,12 @@ serve(async (req) => {
               message: refundedCents > 0
                 ? `The visit on ${visitDate} wasn't booked because ${
                   seriesEndedMidRun ? "the series ended" : "the date changed hands"
-                } after it was charged. We refunded $${(refundedCents / 100).toFixed(2)}; the card processor's fee of $${
+                } after it was charged. We refunded $${(refundedCents / 100).toFixed(2)}; the card processor's fee and any sales tax on it, $${
                   (withheldCents / 100).toFixed(2)
-                } can't be returned.`
+                }, can't be returned.`
                 : `The visit on ${visitDate} wasn't booked because ${
                   seriesEndedMidRun ? "the series ended" : "the date changed hands"
-                } after it was charged. The whole $${(withheldCents / 100).toFixed(2)} went to the card processor's fee, which can't be returned, so there was nothing left to refund.`,
+                } after it was charged. The whole $${(withheldCents / 100).toFixed(2)} went to the card processor's fee and any sales tax on it, which can't be returned, so there was nothing left to refund.`,
               type: "job_updates",
               link,
             }).select("id");

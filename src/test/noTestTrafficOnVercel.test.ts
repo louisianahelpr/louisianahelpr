@@ -71,6 +71,9 @@ export const SOURCE_EXEMPT: Record<string, string> = {
   "scripts/scoreboard.mjs":
     "EMAIL_DOMAIN names the sending domain whose SPF, DKIM and DMARC TXT records the email-DNS signal " +
     "resolves over DNS; it never requests the Vercel site.",
+  "scripts/check-auth-captcha-matches-client.mjs":
+    "Q2113: asks the LIVE web build whether it sends a captcha token (index.html plus the JS chunks it " +
+    "names, hourly from prod-errors.yml) and compares that with Supabase Auth's captcha switch. A local build cannot show what members run.",
   "scripts/rollback/drill-web.mjs":
     "Q69 live rollback drill (rollback-drill.yml, workflow_dispatch only): it polls the live page's " +
     "build-commit meta tag to time a rollback and its restore. A local build cannot show which deployment prod serves.",

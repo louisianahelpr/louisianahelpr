@@ -254,7 +254,8 @@ describe("auto-tip-charge: no auto-tip is charged on a frozen job", () => {
     ];
     scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
     scenario.adminUsers = { [POSTER]: { email: "poster@test.com" } };
-    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_1" }] });
+    scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_1" }] };
+    stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_1", invoice_settings: { default_payment_method: { id: "pm_1", type: "card", customer: "cus_1" } } });
     stripeMock.paymentMethods.list.mockResolvedValue({ data: [{ id: "pm_1" }] });
     stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_auto_1", status: "succeeded" });
     const fn = await loadEdgeFunction("auto-tip-charge");

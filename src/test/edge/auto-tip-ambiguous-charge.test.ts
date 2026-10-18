@@ -32,7 +32,8 @@ async function run(...outcomes: Array<Error | { id: string; status: string }>) {
   ];
   scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
   scenario.adminUsers = { "poster-1": { email: "poster@test.com" } };
-  stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_1" }] });
+  scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_1" }] };
+  stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_1", invoice_settings: { default_payment_method: { id: "pm_1", type: "card", customer: "cus_1" } } });
   stripeMock.paymentMethods.list.mockResolvedValue({ data: [{ id: "pm_1" }] });
   for (const o of outcomes) {
     if (o instanceof Error) stripeMock.paymentIntents.create.mockRejectedValueOnce(o);

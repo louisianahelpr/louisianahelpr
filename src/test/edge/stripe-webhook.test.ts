@@ -262,7 +262,7 @@ describe("stripe-webhook edge function", () => {
     // jobs.sales_tax_rate has CHECK ck_jobs_sales_tax_rate_range (0..1). The
     // webhook wrote a PERCENT (11.2) in the SAME update that marks the job
     // 'escrow', so the first taxed job would never have been funded.
-    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, budgetCents); |           updateData.sales_tax_rate = Math.round((taxCents / budgetCents) * 100 * 100) / 100;
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, taxableBaseCents); |           updateData.sales_tax_rate = Math.round((taxCents / taxableBaseCents) * 100 * 100) / 100;
     it("a taxed job's escrow write stores sales_tax_rate as a fraction that fits the CHECK", async () => {
       const fn = await loadConfigured();
       scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "assembly", is_seed: false }] };
@@ -290,6 +290,44 @@ describe("stripe-webhook edge function", () => {
       expect(p.sales_tax_amount).toBe(11.2);
       expect(p.sales_tax_rate).toBe(0.112); // 1120 / 10000, a fraction
       expect(Number(p.sales_tax_rate)).toBeLessThanOrEqual(1);
+    });
+
+    // Q1996 (lh-money-escrow review of slice 3a, #5): on a poster-fee job in a
+    // taxable category the "Service fee" line is taxed with the labor, so the
+    // rate is tax over budget + fee. Dividing by the budget alone stored
+    // 0.1105 for a 10.45% rate.
+    // @mutate supabase/functions/_shared/salesTax.ts |   return laborCents + (Number.isFinite(feeCents) && feeCents > 0 ? feeCents : 0); |   return laborCents;
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         const taxableBaseCents = jobEscrowTaxableBaseCents(jobRow); |         const taxableBaseCents = Math.round(Number(jobRow?.budget ?? 0) * 100);
+    it.each([
+      // [label, job, taxCents, rate]
+      ["a taxed poster-fee job divides by budget + the taxed fee", { budget: 100, category: "assembly", customer_fee_amount: 5.7, poster_fee_flat_cents: 70 }, 1105, 0.1045],
+      ["an exempt poster-fee job's fee is not in the base", { budget: 100, category: "yard_work", customer_fee_amount: 5.7, poster_fee_flat_cents: 70 }, 1045, 0.1045],
+      ["a flat-model job divides by the budget", { budget: 100, category: "assembly", customer_fee_amount: 0, poster_fee_flat_cents: null }, 1045, 0.1045],
+    ])("%s", async (_label, job, taxCents, rate) => {
+      const fn = await loadConfigured();
+      scenario.reads.jobs = { rows: [{ id: "job-tax-p", is_seed: false, ...job }] };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax_p", amount_details: { tax: { total_tax_amount: taxCents } } });
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: `evt_tax_rate_p_${job.category}_${job.poster_fee_flat_cents}`,
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_tax_rate_p",
+            mode: "payment",
+            payment_status: "paid",
+            customer_email: "poster@test.com",
+            customer_details: { address: { state: "LA" } },
+            total_details: { amount_tax: taxCents },
+            payment_intent: "pi_tax_p",
+            metadata: { job_id: "job-tax-p" },
+          },
+        },
+      });
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(res.status).toBe(200);
+      const w = scenario.writes.find((x) => x.table === "jobs" && x.op === "update" && (x.payload as Record<string, unknown>).payment_status === "escrow");
+      // 1105 = 10.45% of the $100 labor (1045) + of the $5.70 fee (60): 1105 / 10570.
+      expect(Number((w?.payload as Record<string, unknown>).sales_tax_rate)).toBeCloseTo(rate, 4);
     });
 
     it("stores the payment intent + escrow status on the job", async () => {

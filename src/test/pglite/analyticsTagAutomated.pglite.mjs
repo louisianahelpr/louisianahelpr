@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261015022106_analytics_tag_automated (Q?analytics-test-traffic):
+ * PGlite proof for 20261018035943_analytics_tag_automated (Q?analytics-test-traffic):
  * robot rows in analytics_events are TAGGED on insert (seed user, local
  * preview Origin, headless user agent), a client tag keeps its reason, real
  * people (web, iOS capacitor://localhost, Android https://localhost) are left
@@ -18,7 +18,7 @@ import os from "node:os";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
-const MIG = "20261015022106_analytics_tag_automated.sql";
+const MIG = "20261018035943_analytics_tag_automated.sql";
 const sql = readFileSync(new URL(`../../../supabase/migrations/${MIG}`, import.meta.url).pathname, "utf8");
 const skip = process.env.NEW_MIGRATION === "skip";
 

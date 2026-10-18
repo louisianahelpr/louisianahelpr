@@ -47,7 +47,7 @@
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |             OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id) | OR false
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |          WHERE l.user_id = c.user_id AND l.job_id = NEW.id | WHERE false
  * @mutate supabase/functions/instant-job-match/index.ts | supabase.rpc("enqueue_instant_job_match", { | supabase.rpc("enqueue_instant_job_match_v0", {
- * @mutate supabase/migrations/20261015065619_retire_job_match_digest.sql | DROP FUNCTION IF EXISTS public.job_match_digest_rows(uuid[]); | SELECT 1;
+ * @mutate supabase/migrations/20261018035944_retire_job_match_digest.sql | DROP FUNCTION IF EXISTS public.job_match_digest_rows(uuid[]); | SELECT 1;
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -125,7 +125,7 @@ const SQL_PRODUCERS: Record<string, string> = {
  */
 const EDGE_MENTIONS: Record<string, "producer" | "not-a-producer"> = {
   "supabase/functions/instant-job-match/index.ts": "producer",
-  // daily-match-digest was retired with the digest (Q1657, 20261015065619).
+  // daily-match-digest was retired with the digest (Q1657, 20261018035944).
   // Preference / type maps and the mailer for a row that already exists.
   "supabase/functions/_shared/notificationLog.ts": "not-a-producer",
   "supabase/functions/send-notification-email/index.ts": "not-a-producer",
@@ -329,7 +329,7 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
   });
 
   it("the job-match digest is retired: no edge function, no digest-rows RPC (Q1657)", () => {
-    // Q1585 removed the daily list; 20261015065619 retired its plumbing. A
+    // Q1585 removed the daily list; 20261018035944 retired its plumbing. A
     // second producer of job_match rows must not come back without its gate.
     expect(edgeFiles.some((f) => f.rel.startsWith("supabase/functions/daily-match-digest/"))).toBe(false);
     expect(bodies.has("job_match_digest_rows"), "job_match_digest_rows is still defined by the newest migrations").toBe(false);

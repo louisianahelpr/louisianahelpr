@@ -3,6 +3,8 @@ import { Megaphone, Handshake, Hammer, Wallet } from "lucide-react";
 // is the enforcement point and `earlyAccess.ts` is the client mirror the parity
 // test already pins it to. See the "Posted" caption below.
 import { MAX_EARLY_ACCESS_DELAY_MINUTES } from "@/lib/earlyAccess";
+import { assertNeverSafe } from "@/lib/assertNever";
+import type { JobStatus } from "@/lib/statusLabels";
 
 /** Extracted from PaymentSuccess (component-size ratchet, 2026-10-05); unchanged markup. */
 // Visual lifecycle preview — replaces the dense paragraph that used to
@@ -37,8 +39,11 @@ const LIFECYCLE_STEPS = [
  * No status read yet means the job just posted (step 0, as before). A
  * cancelled job, or a status this list does not know, marks no step.
  */
-export function lifecycleStepFor(status: string | null | undefined, released = false): number | null {
+export function lifecycleStepFor(rawStatus: string | null | undefined, released = false): number | null {
   if (released) return 3;
+  // Typed on the generated job_status enum so a new member is a build error
+  // here (jobStatusExhaustive); a string the enum does not know still marks no step.
+  const status = rawStatus as JobStatus | null | undefined;
   switch (status) {
     case null:
     case undefined:
@@ -53,8 +58,10 @@ export function lifecycleStepFor(status: string | null | undefined, released = f
       return 2;
     case "completed":
       return 3;
-    default:
+    case "cancelled":
       return null;
+    default:
+      return assertNeverSafe(status, null, "PaymentLifecycleSteps status");
   }
 }
 

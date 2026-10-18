@@ -52,6 +52,9 @@ const ALLOWED: Record<string, string> = {
   "src/hooks/useAuthReady.ts": "launch-time session read the person is watching",
   // Native launch: the Keychain hydrate cap, before the first screen.
   "src/integrations/supabase/keychainStorageAdapter.ts": "launch-time Keychain read, no network",
+  // Sign-up's one retry (Q1810): the person tapped Create account; the timer is the pause
+  // BEFORE the second send (no read is raced) and already waits for a visible page.
+  "src/pages/auth/signup/retrySignupCompletion.ts": "foreground sign-up retry pause, already visibility-aware",
 };
 
 /** A timer callback: `() =>`, `(x) =>`, `x =>` or `function () {`. */

@@ -46,6 +46,7 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
   "/message-attachments": "storage bucket path",
   "/preview": "auth-email-hook's own admin preview endpoint",
   "/storage": "Supabase Storage path",
+  "/ti": "Apple MapKit CDN path (cdn.apple-mapkit.com/ti/csr/) that csp-report classifies as vendor noise",
 };
 
 /** App.tsx routes: path pattern → element source. */

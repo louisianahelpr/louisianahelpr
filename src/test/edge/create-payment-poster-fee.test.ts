@@ -248,6 +248,7 @@ describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-1
   it("cancel_escrow on a paid poster-fee job returns $105.70 less Stripe's card cost ($3.37), not less the $5.70 fee", async () => {
     resetSupabaseMock();
     scenario.authUser = POSTER;
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_existing" }] });
     scenario.reads.jobs = {
       rows: [{
         id: "job-pf", customer_id: POSTER.id, status: "open", payment_status: "escrow", stripe_payment_intent_id: "pi_pf",

@@ -46,6 +46,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   const [confirming, setConfirming] = useState<"got_it" | "picked_up" | null>(null);
   const [reporting, setReporting] = useState(false);
   const [note, setNote] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const open = order.status === "accepted" && !!order.captured_at;
   const handover = useQuery({
     queryKey: ["shops", "handover", order.id],
@@ -75,7 +76,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   const finish = useMutation({
     mutationFn: (which: "got_it" | "picked_up") => (which === "got_it" ? confirmPickup(order.id) : markPickedUp(order.id)),
     onSuccess: (_d, which) => {
-      toast.success(which === "got_it" ? "Thanks! The order is done." : "Marked picked up. Your payout is on its way.");
+      toast.success(which === "got_it" ? "Thanks. The order is done." : "Marked picked up. Your payout is on its way.");
       setConfirming(null);
       refresh();
     },
@@ -95,8 +96,9 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
     mutationFn: async (path: string) => {
       const url = await readyPhotoUrl(path);
       if (!url) throw Object.assign(new Error("photo_unavailable"), { userMessage: "We couldn't open the photo. Try again." });
-      window.open(url, "_blank", "noopener,noreferrer");
+      return url;
     },
+    onSuccess: (url) => setPhotoUrl(url),
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
 
@@ -195,7 +197,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
-          {h?.ready_photo_path && (
+          {h?.ready_photo_path && !photoUrl && (
             <Button type="button" size="sm" variant="outline" disabled={photo.isPending} onClick={() => photo.mutate(h.ready_photo_path!)}>
               See the shop's photo
             </Button>
@@ -217,14 +219,15 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
         description={confirming === "got_it"
           ? "The shop is paid now and the order is final. Only tap this once you have it."
           : "The order is final and your payout is sent. Only tap this once the buyer has it."}
-        primaryLabel={finish.isPending ? "Saving…" : confirming === "got_it" ? "I got it" : "Picked up"}
+        primaryLabel={finish.isPending ? "Saving…" : confirming === "got_it" ? "I got it" : "Mark picked up"}
         primaryDisabled={finish.isPending}
         onPrimary={(e) => {
           e.preventDefault();
           if (confirming) finish.mutate(confirming);
         }}
-        secondaryLabel="Not yet"
+        secondaryLabel="Cancel"
       />
+      {photoUrl && <img src={photoUrl} alt="The shop's photo of your order, ready" className="max-h-64 w-full rounded-xl object-cover" />}
       {reportDialog}
     </div>
   );

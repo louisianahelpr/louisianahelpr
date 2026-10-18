@@ -30,8 +30,8 @@ import { blankSqlComments } from "./helpers/blankNonCode";
  * @mutate src/lib/automatedBrowser.ts |   return testProfileSession ? "seed_user" : null; |   return null;
  * @mutate src/lib/posthog.ts |   if (automationReason() \|\| isLocalDevOrigin()) return; |   if (isLocalDevOrigin()) return;
  * @mutate src/lib/posthog.ts |   markTestProfileSession(true); |   markTestProfileSession(false);
- * @mutate supabase/migrations/20261015022106_analytics_tag_automated.sql |       v_reason := 'local_origin'; |       v_reason := NULL;
- * @mutate supabase/migrations/20261015022106_analytics_tag_automated.sql |   BEFORE INSERT ON public.analytics_events |   AFTER INSERT ON public.analytics_events
+ * @mutate supabase/migrations/20261018035943_analytics_tag_automated.sql |       v_reason := 'local_origin'; |       v_reason := NULL;
+ * @mutate supabase/migrations/20261018035943_analytics_tag_automated.sql |   BEFORE INSERT ON public.analytics_events |   AFTER INSERT ON public.analytics_events
  */
 
 const captureEvent = vi.fn();

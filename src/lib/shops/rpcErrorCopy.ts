@@ -295,6 +295,8 @@ export const SHOPS_RPC_ERROR_COPY = {
   },
   shops_confirm_pickup: {
     account_restricted: SC.account_restricted,
+    // shop_complete_handover's check for the SHOP's own tap; the buyer's call never passes 'shop'.
+    before_ready_date: SC.before_ready_date,
     invalid_method: SC.invalid_method,
     // declutter_consume_fee_debt's guard (a NULL seller): an accepted order always keeps its seller.
     invalid_payout: "Something went wrong finishing this order. Please try again.",

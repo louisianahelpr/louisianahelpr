@@ -12,7 +12,7 @@
  * @mutate supabase/functions/declutter-money/index.ts |             { idempotencyKey: `shop-payout-${p.payout_id}` }, |             {},
  * @mutate supabase/functions/declutter-money/index.ts |           return meta.kind === "shop_payout" && meta.payout_id === p.payout_id && !t.reversed; |           return false;
  * @mutate supabase/functions/declutter-money/index.ts |       if (shopHold.kind === "held") { |       if (false) {
- * @mutate supabase/functions/declutter-money/index.ts |       if ((p.seller_id && shopReview.users.has(p.seller_id)) \|\| (p.buyer_id && shopReview.users.has(p.buyer_id))) { |       if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |       if ((p.seller_id && underReview.has(p.seller_id)) \|\| (p.buyer_id && underReview.has(p.buyer_id))) { |       if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |           if (byParties !== mode) throw new Error(`shop order says ${mode} but its parties are ${byParties}`); |
  * @mutate supabase/functions/declutter-money/index.ts |           const charge = await wholeCharge(stripe, p.payment_intent_id, 0); |           const charge = "ch_any";
  * @mutate supabase/functions/declutter-money/index.ts |     const finished = await admin.rpc("shop_handover_sweep", {}); |     const finished = { error: null, data: null };

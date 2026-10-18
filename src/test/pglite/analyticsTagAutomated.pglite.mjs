@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261018035943_analytics_tag_automated (Q?analytics-test-traffic):
+ * PGlite proof for 20261018035943_analytics_tag_automated (Q2093):
  * robot rows in analytics_events are TAGGED on insert (seed user, local
  * preview Origin, headless user agent), a client tag keeps its reason, real
  * people (web, iOS capacitor://localhost, Android https://localhost) are left

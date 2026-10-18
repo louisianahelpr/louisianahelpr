@@ -27,7 +27,7 @@ let optedOutForTestProfile = false;
 
 export function initPostHog() {
   if (initialized || typeof window === "undefined" || !KEY) return;
-  // Q?analytics-test-traffic: a robot (webdriver, the lh_automation flag) or a
+  // Q2093: a robot (webdriver, the lh_automation flag) or a
   // dev/preview build on http://localhost never starts PostHog, so its
   // automatic pageviews never reach the owner's funnel either.
   if (automationReason() || isLocalDevOrigin()) return;

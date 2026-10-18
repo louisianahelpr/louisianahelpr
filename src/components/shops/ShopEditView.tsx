@@ -4,7 +4,8 @@
  * an address; the pin is placed from it, L50), storefront, parishes served,
  * what the shop offers (selling, quotes, or both, L53), the optional
  * Secretary of State number (L56), opening hours, logo, cover and photos;
- * then the shop's items and daily order limit (slice 2, ShopItemsSection).
+ * then the private pickup address (M1b part 2, ShopPickupAddressSection) and
+ * the shop's items and daily order limit (slice 2, ShopItemsSection).
  * No phone, email or website field (L49); the server also rejects them typed
  * into the text.
  *
@@ -44,6 +45,7 @@ import {
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { categoryGroups, useShopCategories, WEEKDAYS } from "./shopsUi";
 import ShopItemsSection from "./ShopItemsSection";
+import ShopPickupAddressSection from "./ShopPickupAddressSection";
 
 interface Form {
   name: string;
@@ -390,6 +392,8 @@ export default function ShopEditView() {
           </Button>
         )}
       </form>
+      {/* The private pickup address (M1b part 2): saves on its own, needed before orders. */}
+      {myId.data && <div className="pb-6"><ShopPickupAddressSection /></div>}
       {/* Items (slice 2): outside the shop form, each item saves on its own. */}
       {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} />}
       {/* The app's own confirm, never window.confirm (off-brand and

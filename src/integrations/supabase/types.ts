@@ -8370,6 +8370,59 @@ export type Database = {
           },
         ]
       }
+      shop_pickup_addresses: {
+        Row: {
+          city: string
+          created_at: string
+          is_seed: boolean
+          line1: string
+          line2: string | null
+          owner_id: string
+          postal_code: string
+          shop_id: string
+          state_code: string
+          stripe_tax_location_id: string | null
+          stripe_tax_location_mode: string | null
+          updated_at: string
+        }
+        Insert: {
+          city: string
+          created_at?: string
+          is_seed?: boolean
+          line1: string
+          line2?: string | null
+          owner_id: string
+          postal_code: string
+          shop_id: string
+          state_code?: string
+          stripe_tax_location_id?: string | null
+          stripe_tax_location_mode?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          is_seed?: boolean
+          line1?: string
+          line2?: string | null
+          owner_id?: string
+          postal_code?: string
+          shop_id?: string
+          state_code?: string
+          stripe_tax_location_id?: string | null
+          stripe_tax_location_mode?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_pickup_addresses_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: true
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_strikes: {
         Row: {
           expires_at: string
@@ -12810,6 +12863,16 @@ export type Database = {
         Args: { p_order_id: string; p_reason: string }
         Returns: Json
       }
+      shops_order_pickup_address: {
+        Args: { p_order_id: string }
+        Returns: {
+          city: string
+          line1: string
+          line2: string
+          postal_code: string
+          state: string
+        }[]
+      }
       shops_order_terms: { Args: { p_shop_id: string }; Returns: Json }
       shops_request_order: {
         Args: {
@@ -12963,6 +13026,17 @@ export type Database = {
           text_flagged: boolean
         }[]
       }
+      shops_my_pickup_address: {
+        Args: never
+        Returns: {
+          city: string
+          line1: string
+          line2: string
+          postal_code: string
+          state: string
+          updated_at: string
+        }[]
+      }
       shops_my_shop_id: { Args: never; Returns: string }
       shops_publish_item: { Args: { p_item_id: string }; Returns: string }
       shops_record_item_ai_check: {
@@ -12980,6 +13054,15 @@ export type Database = {
       }
       shops_remove_item_photo: { Args: { p_photo_id: string }; Returns: string }
       shops_remove_photo: { Args: { p_photo_id: string }; Returns: string }
+      shops_save_my_pickup_address: {
+        Args: {
+          p_city: string
+          p_line1: string
+          p_line2: string
+          p_postal_code: string
+        }
+        Returns: undefined
+      }
       shops_save_my_shop: {
         Args: {
           p_about: string

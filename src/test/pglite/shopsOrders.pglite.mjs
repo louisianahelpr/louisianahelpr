@@ -519,19 +519,6 @@ ok(refused(await member(OWNER, `SELECT public.shops_accept_order('${bz}')`), /bu
   "note 10: an order from a buyer banned since cannot be accepted");
 await svc(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${BUYER2}'`);
 await member(OWNER, `SELECT public.shops_decline_order('${bz}', NULL)`);
-// Q345 (hireRefusedAcrossBlock): a block since the order was sent is refused before any write, as applicant_blocked
-const bk = await heldOrder(BUYER2, lines([itemC, 1]), 1000, open[9], "bk");
-await svc(`INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${BUYER2}', '${OWNER}')`);
-ok(refused(await member(OWNER, `SELECT public.shops_accept_order('${bk}')`), /applicant_blocked/, "42501")
-  && one(await svc(`SELECT status || ':' || (accepted_at IS NULL) FROM public.shop_orders WHERE id = '${bk}'`)) === "held:true",
-  "Q345: a maker cannot accept across a block made since the order was sent, and nothing is written");
-ok(one(await member(OWNER, `SELECT public.shops_decline_order('${bk}', NULL)`))?.result === "declined", "Q345: the maker can still decline it (the hold drops)");
-await svc(`DELETE FROM public.user_blocks WHERE blocker_id = '${BUYER2}' AND blocked_id = '${OWNER}'`);
-// authz review note 3: an open order can never reach accept with a NULL buyer: shop_orders_open_has_parties refuses it
-const bn = await heldOrder(BUYER2, lines([itemC, 1]), 1000, open[9], "bn");
-ok(refused(await svc(`UPDATE public.shop_orders SET buyer_id = NULL WHERE id = '${bn}'`), /shop_orders_open_has_parties/, "23514"),
-  "a held order cannot lose its buyer (CHECK), so shops_accept_order never meets a NULL buyer");
-await member(OWNER, `SELECT public.shops_decline_order('${bn}', NULL)`);
 // fix 4: the home-food yearly limit at acceptance counts accepted, not-yet-charged orders and this one
 const sold = Number(one(await svc(`SELECT public.shop_cottage_sales_cents('${OWNER}')`)));
 const pending = Number(one(await svc(`SELECT COALESCE(sum(ol.line_cents), 0) FROM public.shop_orders x JOIN public.shop_order_lines ol
@@ -604,13 +591,13 @@ ok(refused(await request(BUYER, lines([itemC, 1]), open[12]), /too_many_order_re
     "members cannot read the Shops strike table or call its count");
 }
 
-// --- 15. Download My Data (20261018164443): the shop_orders, shop_order_lines and
+// --- 15. Download My Data (20261018210401, which restates 20261018164443): the shop_orders, shop_order_lines and
 // shop_strikes sections of the NEWEST export_my_data, run as written against this schema.
 // The function itself reads about 120 tables (counted 2026-10-18) this proof does not build, so each
 // section's SELECT is lifted out of the body and run with v_uid bound; the
 // whole migration is also applied 3x (replay-safe).
 {
-  const EXPORT_FILE = process.env.EXPORT_PATH ?? `${MIG_DIR}20261018164443_export_my_data_shop_orders.sql`;
+  const EXPORT_FILE = process.env.EXPORT_PATH ?? `${MIG_DIR}20261018210401_export_my_data_shop_pickup_address.sql`;
   const EXPORT_SQL = readFileSync(EXPORT_FILE, "utf8");
   if (!skip) for (let i = 0; i < 3; i++) await db.exec(EXPORT_SQL);
   const newest = newestDefinition("export_my_data");

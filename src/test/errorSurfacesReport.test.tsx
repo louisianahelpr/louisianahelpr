@@ -335,6 +335,7 @@ function errorCopyLines(src: string): number[] {
 }
 
 const EXCUSED_INLINE: Record<string, string> = {
+  "components/shops/ShopOrderCard.tsx": "one line inside a buyer's accepted order card where the pickup address goes (the order list itself loaded), with a Try again button",
   "components/InstantPayoutDialog.tsx": "an inline error line inside the payout dialog, not a screen",
   "components/admin/AdminNotifications.tsx": "one admin-only <p> under a settings card",
   "components/admin/settings/DeclutterProblemsCard.tsx": "one admin-only line where a Helpr's evidence photo would be (the problem card itself loaded); the photo read is a signed URL, not a page load",

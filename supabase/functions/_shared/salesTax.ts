@@ -86,12 +86,20 @@ export function isLaborTaxable(category: string | null | undefined): boolean {
 export const NONTAXABLE_TAX_CODE = "txcd_00000000";
 
 /**
- * Stripe "General - Tangible Goods": the one goods code confirmed in the Tax
- * Codes API list (GET /v1/tax_codes, 2026-10-17). Every Shops item kind uses it
- * until the CPA answers CPA2 (_shared/shopTaxCodes.ts maps kinds to codes;
- * docs/OPEN.md Q2101).
+ * Stripe "General - Tangible Goods", confirmed in the Tax Codes API list
+ * (GET /v1/tax_codes, 2026-10-17): Shops "made" items
+ * (_shared/shopTaxCodes.ts maps kinds to codes; tax memo Q2, docs/OPEN.md Q2101).
  */
 export const GENERAL_TANGIBLE_GOODS_TAX_CODE = "txcd_99999999";
+
+/**
+ * Stripe "Food for Non-Immediate Consumption", confirmed in the Tax Codes API
+ * list (GET /v1/tax_codes/txcd_40040000, 2026-10-18): Shops home_food and farm
+ * items. Louisiana exempts it from the 5% state tax and taxes it at the local
+ * rate (measured in Stripe TEST mode, 2026-10-18: $100 -> $2.00 in Lafayette
+ * 70506). Candy stays on this code (owner pop-up 2026-10-18 ~17:00Z).
+ */
+export const FOOD_FOR_HOME_TAX_CODE = "txcd_40040000";
 
 /**
  * The code on a TAXABLE labor line: Stripe's "Repair of Tangible Personal

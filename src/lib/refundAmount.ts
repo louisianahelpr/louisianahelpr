@@ -27,6 +27,15 @@ export interface RefundToPayerInput {
   alreadyRefundedCents?: number;
   /** A requested amount (an admin's partial refund), in cents; null/undefined = everything refundable. */
   requestedCents?: number | null;
+  /** The sales tax inside `capturedCents`, in cents: the tax on every kept part is kept too (owner, 2026-10-18, Q2082 (a)). */
+  taxCents?: number | null;
+  /**
+   * The part of `capturedCents` the tax was charged on, tax included, when it
+   * is not the whole charge (a legacy recurring visit: its Stripe Tax
+   * transaction holds the labor and its tax, not the card-cost fee). Only a
+   * kept amount inside that part carries tax. Omitted = the whole capture.
+   */
+  taxBaseCents?: number | null;
 }
 
 export interface RefundToPayerResult {
@@ -38,7 +47,9 @@ export interface RefundToPayerResult {
   setupKeptCents: number;
   /** Card fee + setup fee: what is never refundable on this charge. */
   nonRefundableCents: number;
-  /** The most this charge can ever return: captured less fee, setup and other kept amounts (before earlier refunds). */
+  /** The sales tax on the kept parts (taxOnKeptCents), also kept. */
+  taxKeptCents: number;
+  /** The most this charge can ever return: captured less fee, setup, other kept amounts and the tax on them (before earlier refunds). */
   ceilingCents: number;
   /** What is still refundable after earlier refunds: ceiling less already refunded. */
   remainingCents: number;
@@ -58,11 +69,28 @@ export function refundToPayerCents(i: RefundToPayerInput): RefundToPayerResult {
   const feeKeptCents = Math.max(cents(i.customerFeeCents), cents(i.actualFeeCents));
   const setupKeptCents = cents(i.setupFeeCents);
   const nonRefundableCents = feeKeptCents + setupKeptCents;
-  const ceilingCents = Math.max(0, captured - nonRefundableCents - cents(i.otherKeptCents));
+  const keptCents = nonRefundableCents + cents(i.otherKeptCents);
+  const taxBase = i.taxBaseCents == null ? captured : Math.min(captured, cents(i.taxBaseCents));
+  const keptInBase = Math.max(0, keptCents - (captured - taxBase));
+  const taxKeptCents = Math.min(Math.max(0, captured - keptCents), taxOnKeptCents({ keptCents: keptInBase, taxCents: i.taxCents ?? 0, capturedCents: taxBase }));
+  const ceilingCents = Math.max(0, captured - keptCents - taxKeptCents);
   const remainingCents = Math.max(0, ceilingCents - cents(i.alreadyRefundedCents));
   const requested = i.requestedCents == null ? null : cents(i.requestedCents);
   const refundCents = requested == null ? remainingCents : Math.min(requested, remainingCents);
-  return { refundCents, feeKeptCents, setupKeptCents, nonRefundableCents, ceilingCents, remainingCents };
+  return { refundCents, feeKeptCents, setupKeptCents, nonRefundableCents, taxKeptCents, ceilingCents, remainingCents };
+}
+
+/**
+ * The sales tax on a kept part of a taxed charge (owner, 2026-10-18, Q2082
+ * (a)): kept x tax / (captured - tax), rounded up, never more than the tax.
+ * Mirrors supabase/functions/_shared/refundAmount.ts.
+ */
+function taxOnKeptCents(i: { keptCents: number; taxCents: number | null | undefined; capturedCents: number }): number {
+  const kept = cents(i.keptCents);
+  const tax = cents(i.taxCents);
+  const captured = cents(i.capturedCents);
+  if (kept === 0 || tax === 0 || captured <= tax) return 0;
+  return Math.min(tax, Math.ceil((kept * tax) / (captured - tax)));
 }
 
 /**

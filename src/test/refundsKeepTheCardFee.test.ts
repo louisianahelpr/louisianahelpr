@@ -48,11 +48,13 @@
  * @mutate supabase/functions/process-scheduled-payouts/index.ts | const owedCents = unfilledCents - flatCardFeeKeptCents + feeReturnCents + taxReturnCents; | const owedCents = unfilledCents - flatCardFeeKeptCents + feeProRataCents + taxReturnCents;
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |       const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? crewStripeFeeCents : 0, proRataCents: feeProRataCents }); |       const feeReturnCents = feeProRataCents;
  * @mutate supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts |         // own-mistake full refund (owner, 2026-10-14): we charged the one-time |         // we charged the one-time
+ * Q2082 (a), delta review of 2e397597d #1: a poster-fee visit's taxed fee line stays inside the tax base.
+ * @mutate supabase/functions/charge-recurring-visits/index.ts | budgetCents + (posterFeeSeries ? feeCents : 0) + taxCents); | budgetCents + taxCents);
  * The three charge-recurring-visits own-mistake branches (owner pop-up, 2026-10-14 ~3 PM CT, confirmed each):
  * @mutate supabase/functions/charge-recurring-visits/index.ts | // own-mistake full refund (owner, 2026-10-14): this run charged | // this run charged
  * @mutate supabase/functions/charge-recurring-visits/index.ts | // own-mistake full refund (owner, 2026-10-14), as Q415 (e): the visit | // as Q415 (e): the visit
  * @mutate supabase/functions/charge-recurring-visits/index.ts | // own-mistake full refund (owner, 2026-10-14): everything goes back. | // everything goes back.
- * @mutate supabase/functions/charge-recurring-visits/index.ts |   const refundCents = Number.isFinite(captured)\n    ? refundToPayerCents({ capturedCents: captured, actualFeeCents: actualOrEstimatedFeeCents(pi, captured) }).refundCents |   const refundCents = Number.isFinite(captured)\n    ? captured
+ * @mutate supabase/functions/charge-recurring-visits/index.ts |   const refundCents = Number.isFinite(captured)\n    ? refundToPayerCents({ capturedCents: captured, actualFeeCents: actualOrEstimatedFeeCents(pi, captured), taxCents: chargeTaxCents(pi, knownTaxCents), taxBaseCents: knownTaxBaseCents }).refundCents |   const refundCents = Number.isFinite(captured)\n    ? captured
  * The Declutter sql-policy sites (2026-10-15): (a) a no-fault reason moved to a full refund, in the function and
  * in the table CHECK; the keep-card-fee amount refunding the fee; (b) a new reason added unclassified; the sites
  * sending something other than the row's refund_cents.
@@ -373,22 +375,22 @@ const AMOUNT_DEFS: Record<string, string[]> = {
   "cancel-escrow-": [
     "refundAmount",
     "refundAmount = cancelSplit.refundCents",
-    "cancelSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: serviceFeeCents, setupFeeCents, alreadyRefundedCents, })",
+    "cancelSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: serviceFeeCents, setupFeeCents, alreadyRefundedCents, taxCents: await chargeTaxCentsFor(stripe, pi), })",
   ],
   "refund-dispute-": [
     "refundAmount",
     "refundAmount = disputeSplit.refundCents",
-    "disputeSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: disputeOtherRefundedCents, })",
+    "disputeSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: disputeOtherRefundedCents, taxCents: await chargeTaxCentsFor(stripe, pi), })",
   ],
   "refund-general-": [
     "generalSplit.refundCents",
-    "generalSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: generalAlreadyRefundedCents, requestedCents: isPartial ? requestedCents : null, })",
+    "generalSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: generalAlreadyRefundedCents, requestedCents: isPartial ? requestedCents : null, taxCents: await chargeTaxCentsFor(stripe, pi), })",
   ],
   "poster_share": [
     "refundCents",
     "refundCents = Math.max(0, Math.round(refundableCents * posterShare))",
     "refundableCents = posterBase.ceilingCents",
-    "posterBase = refundToPayerCents({ capturedCents, actualFeeCents: pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0, customerFeeCents: pi ? cardCostFeeCents(job) : 0, setupFeeCents: pi ? setupFeeKeptCents(job) : 0, })",
+    "posterBase = refundToPayerCents({ capturedCents, actualFeeCents: pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0, customerFeeCents: pi ? cardCostFeeCents(job) : 0, setupFeeCents: pi ? setupFeeKeptCents(job) : 0, taxCents: await chargeTaxCentsFor(stripe, pi), })",
   ],
   "crew-dispute-refund-": [
     "refundCents",
@@ -414,8 +416,8 @@ const AMOUNT_DEFS: Record<string, string[]> = {
   ],
   "cancel-refund-": [
     "refundAmount",
-    "refundAmount = voidSplit.refundCents > 0 || refundedAtStripe ? voidSplit.refundCents : capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents",
-    "voidSplit = refundToPayerCents({ capturedCents, actualFeeCents: sellerFault ? 0 : actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: fullSeriesRefund || sellerFault ? 0 : serviceFeeCents, setupFeeCents: setupFeeKeptCents(job), otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents, alreadyRefundedCents: chargeRefundedCents, })",
+    "refundAmount = voidSplit.refundCents > 0 || refundedAtStripe ? voidSplit.refundCents : capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents - voidSplit.taxKeptCents",
+    "voidSplit = refundToPayerCents({ capturedCents, actualFeeCents: sellerFault ? 0 : actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: fullSeriesRefund || sellerFault ? 0 : serviceFeeCents, setupFeeCents: setupFeeKeptCents(job), otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents, alreadyRefundedCents: chargeRefundedCents, taxCents: await chargeTaxCentsFor(stripe, pi), })",
     "capturedCents = pi.amount_received ?? pi.amount",
     "blockFeeCents = crewBlockFeeCents(blockFeeRows)",
     "nonRefundableCents = voidSplit.nonRefundableCents",
@@ -423,12 +425,12 @@ const AMOUNT_DEFS: Record<string, string[]> = {
   "createRefundOnce#0": [
     "owedCents",
     "owedCents = withholdFee ? lessFeeCents : amountCents",
-    "lessFeeCents = Number.isFinite(amountCents) ? refundToPayerCents({ capturedCents: amountCents, actualFeeCents: actualOrEstimatedFeeCents(piObj, amountCents) }).refundCents : Number.NaN",
+    "lessFeeCents = Number.isFinite(amountCents) ? refundToPayerCents({ capturedCents: amountCents, taxCents: chargeTaxCents(piObj, Number(row.tax_cents ?? 0)), taxBaseCents: Number(row.amount_cents ?? 0) - Number(row.fee_cents ?? 0), actualFeeCents: actualOrEstimatedFeeCents(piObj, amountCents) }).refundCents : Number.NaN",
     "amountCents = Number(row.amount_cents)",
   ],
   "createRefundOnce#2": [
     "split.refundCents",
-    "split = await refundLessStripeFeeCents(stripe, intent, capturedCents)",
+    "split = await refundLessStripeFeeCents(stripe, intent, capturedCents, taxCents, budgetCents + (posterFeeSeries ? feeCents : 0) + taxCents)",
   ],
 };
 

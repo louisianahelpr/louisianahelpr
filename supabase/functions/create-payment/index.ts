@@ -15,7 +15,7 @@ import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, flatFeePercentOf } from "
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { POSTER_SERVICE_FEE_PERCENT, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
-import { cardCostFeeCents, posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { cardCostFeeCents, chargeTaxCentsFor, posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";
 import { jobFlatFeeTotalCents } from "../_shared/crewShares.ts";
 import { POSTER_JOB_FEE_CENTS, POSTER_JOB_FEE_DESCRIPTION, isPosterFeeJob } from "../_shared/posterJobFee.ts";
@@ -2600,6 +2600,7 @@ serve(async (req) => {
             customerFeeCents: serviceFeeCents,
             setupFeeCents,
             alreadyRefundedCents,
+            taxCents: await chargeTaxCentsFor(stripe, pi),
           });
           const nonRefundableCents = cancelSplit.nonRefundableCents;
           const refundAmount = cancelSplit.refundCents;
@@ -2656,11 +2657,12 @@ serve(async (req) => {
                 keptCents,
                 // Q1674: what a first job keeps besides the fees is its one-time
                 // $2 setup fee; the notice names it after the fee reason.
+                taxKeptCents: cancelSplit.taxKeptCents,
                 keptReason: keptCents > 0
                   ? setupFeeKeptReason(
-                    keptCents - setupFeeCents <= 0
+                    keptCents - setupFeeCents - cancelSplit.taxKeptCents <= 0
                       ? null
-                      : keptCents - setupFeeCents === serviceFeeCents
+                      : keptCents - setupFeeCents - cancelSplit.taxKeptCents === serviceFeeCents
                       ? "the service fee, which isn't refunded when a job is cancelled"
                       : serviceFeeCents > 0
                       ? "the service fee and card processing fee, which aren't refunded when a job is cancelled"
@@ -3257,6 +3259,8 @@ serve(async (req) => {
       let disputeRefundCents = 0;
       // Q1714: what the capture kept (Stripe's processing fee), for the notice.
       let disputeKeptCents = 0;
+      // Q2082 (a): the sales tax kept with the kept card fee, for the notice.
+      let disputeTaxKeptCents = 0;
       // Hoisted so the success path below can hand the claim back by token. It
       // is TAKEN inside the try (immediately before the Stripe call, after every
       // refusal that moves no money), but RELEASED after the flip, which is out
@@ -3332,6 +3336,7 @@ serve(async (req) => {
               customerFeeCents: cardCostFeeCents(job),
               setupFeeCents: setupFeeKeptCents(job),
               alreadyRefundedCents: disputeOtherRefundedCents,
+              taxCents: await chargeTaxCentsFor(stripe, pi),
             });
             const nonRefundableCents = disputeSplit.nonRefundableCents;
             const refundAmount = disputeSplit.refundCents;
@@ -3458,6 +3463,7 @@ serve(async (req) => {
               disputeRefundCents = Math.round(Number(refund.amount ?? refundAmount));
               // Another flow's earlier refund (Q1675) went back too: not kept.
               disputeKeptCents = Math.max(0, capturedCents - disputeOtherRefundedCents - disputeRefundCents);
+              disputeTaxKeptCents = disputeSplit.taxKeptCents;
               await recordRefund(supabaseAdmin, {
                 refund,
                 jobId,
@@ -3618,6 +3624,7 @@ serve(async (req) => {
           paymentIntentId: paymentIntentId ?? null,
           amountCents: disputeRefundCents,
           keptCents: disputeKeptCents,
+          taxKeptCents: disputeTaxKeptCents,
           // Q1674: a first job also keeps its one-time $2 setup fee; the notice says so.
           keptReason: disputeKeptCents > 0
             ? setupFeeKeptReason(disputeKeptCents > disputeSetupKeptCents ? "the card processing fee, which can't be returned" : null, disputeSetupKeptCents)
@@ -3887,7 +3894,7 @@ serve(async (req) => {
       // have moved, so any stop puts the job claim back.
       let generalRefundSent = false;
       // Q1714: the refund the poster's notice is about (claimed on its id).
-      let generalRefundForNotice: { id: string; amountCents: number; keptCents: number } | null = null;
+      let generalRefundForNotice: { id: string; amountCents: number; keptCents: number; taxKeptCents: number } | null = null;
       // Q1674: what a full refund kept (the setup fee) and sent, for the audit row.
       let generalKeptSetupCents = 0;
       // Owner 2026-10-14: what a full refund kept as the card fee, for the notice and audit row.
@@ -3988,7 +3995,8 @@ serve(async (req) => {
           // _shared/refundAmount.ts: the charge less the CARD fee only, less a
           // first job's kept $2 setup fee (Q1674), less what earlier refunds
           // returned. A full refund sends exactly that; a partial is capped by
-          // it. Tax is not withheld.
+          // it. The sales tax on the kept fee is kept too (owner 2026-10-18,
+          // Q2082 (a): refundToPayerCents taxKeptCents).
           // Owner, 2026-10-14 pop-up: on a legacy job priced with the old 12%
           // poster service fee (platform_fee_percent > 0; prod had 3 funded:
           // 7440a72d, 11f8b084, 9c6ff2de) an admin full refund keeps ONLY the
@@ -4002,6 +4010,7 @@ serve(async (req) => {
             setupFeeCents: setupFeeKeptCents(job),
             alreadyRefundedCents: generalAlreadyRefundedCents,
             requestedCents: isPartial ? requestedCents : null,
+            taxCents: await chargeTaxCentsFor(stripe, pi),
           });
           // Q1320: a partial that, with the refunds already on this charge,
           // returns the WHOLE capture is a full refund in disguise. A partial
@@ -4017,8 +4026,10 @@ serve(async (req) => {
             const keptWords = generalSplit.setupKeptCents > 0
               ? `the $${(generalSplit.feeKeptCents / 100).toFixed(2)} card processing fee and the one-time $${(generalSplit.setupKeptCents / 100).toFixed(2)} setup fee are kept`
               : `the $${(generalSplit.feeKeptCents / 100).toFixed(2)} card processing fee is kept`;
+            // Q2082 (a): the sales tax on what is kept is kept too, so the figure adds up.
+            const keptTaxWords = generalSplit.taxKeptCents > 0 ? `, with $${(generalSplit.taxKeptCents / 100).toFixed(2)} sales tax on it` : "";
             return new Response(JSON.stringify({
-              error: `This partial refund would return everything refundable on the $${(capturedCents / 100).toFixed(2)} charge ($${(generalSplit.ceilingCents / 100).toFixed(2)}: ${keptWords}${generalAlreadyRefundedCents > 0 ? `; $${(generalAlreadyRefundedCents / 100).toFixed(2)} was already refunded` : ""}). Use a full refund instead: it cancels the job and stops its payout (it is refused if the Helpr was already paid). No money was moved.`,
+              error: `This partial refund would return everything refundable on the $${(capturedCents / 100).toFixed(2)} charge ($${(generalSplit.ceilingCents / 100).toFixed(2)}: ${keptWords}${keptTaxWords}${generalAlreadyRefundedCents > 0 ? `; $${(generalAlreadyRefundedCents / 100).toFixed(2)} was already refunded` : ""}). Use a full refund instead: it cancels the job and stops its payout (it is refused if the Helpr was already paid). No money was moved.`,
               useFullRefund: true,
               refundableCents: generalSplit.remainingCents,
             }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
@@ -4118,6 +4129,7 @@ serve(async (req) => {
               keptCents: Number.isFinite(capturedCents)
                 ? Math.max(0, capturedCents - generalAlreadyRefundedCents - (reused ? 0 : refundedCents))
                 : 0,
+              taxKeptCents: generalSplit.taxKeptCents,
             };
             keptFromMoney(capturedCents - generalAlreadyRefundedCents - (reused ? 0 : refundedCents));
           }
@@ -4290,6 +4302,7 @@ serve(async (req) => {
           amountCents: generalRefundForNotice.amountCents,
           // A partial refund leaves the rest paying for the job: nothing "kept".
           keptCents: isPartial ? 0 : generalRefundForNotice.keptCents,
+          taxKeptCents: isPartial ? 0 : generalRefundForNotice.taxKeptCents,
           // Q1674: a full refund of a first job also keeps its one-time $2
           // setup fee; the notice names it after the card fee, which every
           // full refund keeps (owner, 2026-10-14).

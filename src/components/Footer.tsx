@@ -157,7 +157,12 @@ const Footer = () => {
           {/* Single column, matching Legal and Follow. Uneven column LENGTHS
               are normal in a footer — three different list treatments side by
               side is what looks unfinished. */}
-          <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
+          {/* space-y-3, not 2: each link is a ~16px-tall text target (11px x 1.45),
+              and 8px gaps put the centres 24px apart (measured locally, 375):
+              exactly axe's 24px target-spacing floor, with no margin. CI's
+              happy-path smoke failed target-size (2 nodes) on the landing,
+              2026-10-18. 12px gaps give 28px. */}
+          <ul className="space-y-3 text-ds-11 text-[hsl(var(--olivewood))]/85">
             <li>
               {/* Named, not bounced: a signed-in reader goes straight to the
                   authed feed and a visitor to the guest one. Same label either
@@ -204,7 +209,7 @@ const Footer = () => {
           >
             Legal
           </h2>
-          <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
+          <ul className="space-y-3 text-ds-11 text-[hsl(var(--olivewood))]/85">
             <li>
               <Link to="/terms" className="link-standard">
                 Terms

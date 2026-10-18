@@ -129,7 +129,7 @@ describe("void-cancelled-payments: an unfilled or ban-ended series visit is refu
   });
 
   // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is KEPT on a cancel.
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |             setupFeeCents: setupFeeKeptCents(job), |             setupFeeCents: 0,
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |             setupFeeCents: setupFeeKeptCents(job),\n            otherKeptCents: | setupFeeCents: 0,\n            otherKeptCents:
   it("a cancelled FIRST job (no Helpr yet) keeps the service fee and the $2 setup fee; the rest comes back (Q1674)", async () => {
     seed({ helper_id: null, helper_confirmed_at: null, onboarding_fee_amount: 2 });
     expect(await refundedCents()).toBe(11000 - 1000 - 200);

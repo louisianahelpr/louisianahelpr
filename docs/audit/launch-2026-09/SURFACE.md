@@ -14,23 +14,23 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 42 |
+| Routes (non-redirect) | route | 45 |
 | Redirect-only routes | route | 0 |
 | `?tab=` variants | variant | 29 |
 | `?view=` variants | variant | 25 |
 | Overlay surfaces | **instance** | 161 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
-| Toast messages | **call site** | 806 (across 196 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 812 (across 197 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 24 |
 | Multi-step flows — probable | flow | 17 |
 | Back/next navigation only | flow | 43 |
-| Forms (submittable) | form | 57 |
+| Forms (submittable) | form | 59 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 139 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **537** |
-| **Copy surfaces** (strings a person may read) | mixed | **844** |
-| **Total auditable surface** | mixed | **1381** |
+| **Navigable surfaces** (places a person can stand) | mixed | **542** |
+| **Copy surfaces** (strings a person may read) | mixed | **850** |
+| **Total auditable surface** | mixed | **1392** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,11 +67,11 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 42 | 34 | agree |
+| Real routes | 45 | 34 | agree |
 | Redirect-only routes | 0 | 14 | agree |
 | Admin `?view=` | 25 | 24 | agree |
 | Overlay surfaces | 161 | 130 | agree within method (script counts every menu instance) |
-| Forms | 57 | ~38 | agree |
+| Forms | 59 | ~38 | agree |
 | Confirmed multi-step flows | 24 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -114,6 +114,9 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/rentals`
 - [ ] `/rentals/invite/:token`
 - [ ] `/rentals/requests/:id`
+- [ ] `/rentals/listings/new`
+- [ ] `/rentals/listings/:id`
+- [ ] `/rentals/listings/:id/edit`
 - [ ] `/support`
 - [ ] `/legal`
 - [ ] `/terms`
@@ -476,6 +479,8 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/profile/ProfileEditForm.tsx` (form tag)
 - [ ] `src/components/profile/SupportInline.tsx` (form tag)
 - [ ] `src/components/quotes/QuoteAnswerControls.tsx` (form tag)
+- [ ] `src/components/rentals/listings/ListingEditor.tsx` (form tag)
+- [ ] `src/components/rentals/listings/RentBrowse.tsx` (form tag)
 - [ ] `src/components/rentals/MaintenanceRequestForm.tsx` (form tag)
 - [ ] `src/components/rentals/MaintenanceRequestView.tsx` (dialog/mutation)
 - [ ] `src/components/rentals/RentalsHomeView.tsx` (form tag)

@@ -41,6 +41,19 @@ import {
 } from "@/lib/quotes/api";
 import { quoteErrorMessage } from "@/lib/quotes/errors";
 import { openEscrowCheckout } from "@/lib/escrowCheckout";
+import { useFeature } from "@/hooks/useFeature";
+import { buildFeeQuote, type JobFeeQuote } from "@/lib/jobCheckout";
+
+/**
+ * The fee model these screens pay under (owner 2026-10-18, behind
+ * jobs_poster_fee). They show no total ("Checkout shows your total before you
+ * pay"), so the quote carries the model only; create-payment refuses a
+ * mismatch instead of charging a model this build does not know.
+ */
+function useQuoteFeeQuote(): JobFeeQuote {
+  const posterFeeOn = useFeature("jobs_poster_fee");
+  return buildFeeQuote({ switchOn: posterFeeOn, giftFunded: false, recurring: false });
+}
 import { QUOTE_STATUS_LABEL, QuotesGate, QuotesNotice, REQUEST_STATUS_LABEL, dayLabel, timeLeft } from "@/components/quotes/quotesUi";
 import { OfferThread, QuoteAnswerControls, parseWholeDollars } from "@/components/quotes/QuoteAnswerControls";
 
@@ -98,11 +111,12 @@ function SetMyOwnPrice({ request }: { request: MyQuoteRequest }) {
   const [open, setOpen] = useState(false);
   const [price, setPrice] = useState("");
   const budget = parseWholeDollars(price);
+  const feeQuote = useQuoteFeeQuote();
   const go = useMutation({
     mutationFn: async () => {
       const jobId = await switchToSetPrice(request.id, budget ?? 0);
       void qc.invalidateQueries({ queryKey: ["quotes"] });
-      await openEscrowCheckout(jobId);
+      await openEscrowCheckout(jobId, feeQuote);
     },
     onError: (err) => toast.error(quoteErrorMessage(err)),
   });
@@ -154,17 +168,18 @@ function RequestView({ id }: { id: string }) {
     enabled: !!bookedJobId,
     queryFn: () => fetchBookedJobPaid(bookedJobId as string),
   });
+  const feeQuote = useQuoteFeeQuote();
 
   const book = useMutation({
     mutationFn: async () => {
       const jobId = await bookAcceptedQuote(id);
       void qc.invalidateQueries({ queryKey: ["quotes"] });
-      await openEscrowCheckout(jobId);
+      await openEscrowCheckout(jobId, feeQuote);
     },
     onError: (err) => toast.error(quoteErrorMessage(err)),
   });
   const payJob = useMutation({
-    mutationFn: () => openEscrowCheckout(bookedJobId as string),
+    mutationFn: () => openEscrowCheckout(bookedJobId as string, feeQuote),
     onError: (err) => toast.error(quoteErrorMessage(err)),
   });
   const cancel = useMutation({

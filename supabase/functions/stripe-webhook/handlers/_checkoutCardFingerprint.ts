@@ -10,6 +10,7 @@ import {
   checkoutPayerId,
   enforcePaymentFingerprint,
 } from "../../_shared/paymentFingerprint.ts";
+import { nonUsPaymentMethodCountry } from "../../_shared/jobCheckout.ts";
 
 /**
  * Q1324: the card that paid a Checkout session is checked against the cards of
@@ -51,6 +52,26 @@ export async function checkCheckoutCardFingerprint(
     // answer cannot happen here (stripeStoredIdRetrieveClassified: EVENT).
     await reportNotChecked(session.id, payer, `could not read the payment method: ${caughtMessage(err)}`);
     return;
+  }
+
+  // Owner 2026-10-18: cards issued outside the US are blocked by a Radar rule
+  // (`Block if :card_country: != 'US'`) because Stripe's +1.5% international
+  // fee can push the 5% + 70c fee below cost. A foreign card that still paid
+  // means the rule is missing or changed: page ops. No automatic refund (the
+  // money is already settled, and refunding would lose Stripe's fee too).
+  const foreignCountry = nonUsPaymentMethodCountry(paymentMethod);
+  if (foreignCountry) {
+    try {
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: "warning",
+        title: "A card issued outside the US paid a checkout",
+        message: `The card's country is ${foreignCountry}. Non-US cards should be blocked by the Radar rule "Block if :card_country: != 'US'"; check Radar > Rules in the Stripe Dashboard. Nothing was refunded.`,
+        fields: { session_id: session.id, user_id: payer, card_country: foreignCountry },
+      });
+    } catch (err) {
+      console.error(`[STRIPE-WEBHOOK] non-US card alert failed for session ${session.id} (${foreignCountry}): ${caughtMessage(err)}`);
+    }
   }
 
   const fingerprint = cardFingerprintOf(paymentMethod);

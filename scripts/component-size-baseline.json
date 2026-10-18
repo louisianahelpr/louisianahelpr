@@ -15,7 +15,7 @@
     "src/components/NotificationPanel.tsx": 967,
     "src/components/NotificationPreferences.tsx": 969,
     "src/components/PhotoProof.tsx": 634,
-    "src/components/postjob/CheckoutStep.tsx": 818,
+    "src/components/postjob/CheckoutStep.tsx": 817,
     "src/components/profile/CredentialsTab.tsx": 911,
     "src/components/profile/ScheduleTab.tsx": 854,
     "src/components/profile/SubscriptionTab.tsx": 871,

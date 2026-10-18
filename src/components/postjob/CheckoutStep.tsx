@@ -153,11 +153,10 @@ export function CheckoutStep({
   // table, the exact-match lookup missed, and the miss read as a rate of ZERO —
   // so seven ZIP codes were quoted $0 on a charge Stripe taxed at 10%.
   // (owner: "show Stripe's number, delete the table")
-  const {
-    salesTax,
-    loading: taxLoading,
-    jurisdiction,
-  } = useStripeSalesTax(budgetNum, category, zipCode);
+  // The poster's service fee on a taxable job is taxed with it (tax memo,
+  // owner 2026-10-18); 0 on the flat model, so nothing changes there.
+  const taxedAmount = budgetNum + (hasTaxableLine(category) ? customerFeeAmount : 0);
+  const { salesTax, loading: taxLoading, jurisdiction } = useStripeSalesTax(taxedAmount, category, zipCode);
   // Sales tax, resolved ONCE. Both the summary card at the top of the screen
   // and the payment breakdown at the bottom read this — the two used to be
   // computed independently (summary showed `totalCharge`, breakdown added an

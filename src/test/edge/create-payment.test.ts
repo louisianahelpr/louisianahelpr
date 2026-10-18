@@ -285,7 +285,7 @@ describe("create-payment edge function", () => {
           // `escrow-job-1` alone would replay the expired session's response
           // for 24h and hand the poster a url that leads nowhere.
           const opts = stripeMock.checkout.sessions.create.mock.calls[0][1];
-          expect(opts.idempotencyKey).toMatch(/^escrow-job-1-p\d+u\d+-after-cs_dead-b\d+$/);
+          expect(opts.idempotencyKey).toMatch(/^escrow-job-1-p\d+u\d+-mflat-after-cs_dead-b\d+$/);
 
           // payment_status returns to the money-in-flight state: the
           // checkout.session.expired handler, void-cancelled-payments' sweep
@@ -448,7 +448,7 @@ describe("create-payment edge function", () => {
         const [params, opts] = stripeMock.checkout.sessions.create.mock.calls[0];
         // Q770: the key carries the 10-minute expiry bucket, and expires_at is
         // that bucket + 1h — so a double-tap sends identical params under one key.
-        const bucket = Number(/^escrow-job-1-p\d+u\d+-b(\d+)$/.exec(opts.idempotencyKey)?.[1]);
+        const bucket = Number(/^escrow-job-1-p\d+u\d+-mflat-b(\d+)$/.exec(opts.idempotencyKey)?.[1]);
         expect(bucket % 600).toBe(0);
         expect(params.expires_at).toBe(bucket + 3600);
         const now = Math.floor(Date.now() / 1000);
@@ -838,7 +838,7 @@ describe("create-payment edge function", () => {
       // budget + bonus and nothing for the card; the Helpr's 5% + 70c is priced
       // on the whole amount at payout. This replaced Q362 / MQ11's card fee on
       // top (folded into the Service fee line 2026-10-09).
-      // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = 0; |       const customerFeeAmount = 0.45;
+      // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = isPosterFee ? posterFeeCents / 100 : 0; |       const customerFeeAmount = isPosterFee ? posterFeeCents / 100 : 0.45;
       // @mutate supabase/functions/create-payment/index.ts |       const escrowFlatFeeCents = jobFlatFeeTotalCents(Math.round(job.budget * 100), urgentFeeCents, escrowHelprCount); |       const escrowFlatFeeCents = jobFlatFeeTotalCents(Math.round(job.budget * 100), 0, escrowHelprCount);
       it("F3b: an urgent post charges budget + bonus only, and stores no card fee", async () => {
         for (const [budget, urgent] of [[100, 15], [20, 250]] as const) {
@@ -939,9 +939,9 @@ describe("create-payment edge function", () => {
     // src/test/posterCheckoutChargesCardCostOnly.test.ts inventories every
     // Stripe charge site in supabase/functions and requires this describe (and
     // its recurring-visit twin) to exist for the poster-job ones.
-    // @mutate supabase/functions/create-payment/index.ts |       const customerFeePercent = POSTER_SERVICE_FEE_PERCENT; |       const customerFeePercent = 12;
-    // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = 0; |       const customerFeeAmount = 1;
-    // @mutate supabase/functions/create-payment/index.ts |         helper_fee_flat_cents: HELPR_FLAT_FEE_CENTS,\n      }); |       });
+    // @mutate supabase/functions/create-payment/index.ts |       const customerFeePercent = isPosterFee ? posterFeePercent : POSTER_SERVICE_FEE_PERCENT; |       const customerFeePercent = isPosterFee ? posterFeePercent : 12;
+    // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = isPosterFee ? posterFeeCents / 100 : 0; |       const customerFeeAmount = isPosterFee ? posterFeeCents / 100 : 1;
+    // @mutate supabase/functions/create-payment/index.ts |         helper_fee_flat_cents: isPosterFee ? 0 : HELPR_FLAT_FEE_CENTS,\n        // Every model column |         // Every model column
     describe("poster checkout charges the job price only, on every tier (F3, owner 2026-10-14/15)", () => {
       const FUTURE = new Date(Date.now() + 30 * 864e5).toISOString();
       const PAST = new Date(Date.now() - 864e5).toISOString();
@@ -1016,14 +1016,14 @@ describe("create-payment edge function", () => {
 
       // The fee-model stamp is written BEFORE any funding branch, only while
       // the job is unfunded, and a failed write refuses the checkout.
-      // @mutate supabase/functions/create-payment/index.ts |           .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")\n          .select("id");\n        if (modelErr) |           .or("payment_status.is.null")\n          .select("id");\n        if (modelErr)
+      // @mutate supabase/functions/create-payment/index.ts |           .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")\n          // ...and still on the checkout |           .or("payment_status.is.null")\n          // ...and still on the checkout
       it("stamps the flat model on the unfunded job before the checkout opens", async () => {
         seedEscrowJob(100, { onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null });
         await escrow();
         const first = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
         // platform_fee_amount rides the model stamp too (review N4): a $100 job
         // pays 5% + 70c = $5.70 whichever branch funds it (a gift included).
-        expect(first?.payload).toEqual({ helper_fee_flat_cents: 70, helper_fee_percent: 5, platform_fee_amount: 5.7 });
+        expect(first?.payload).toEqual({ helper_fee_flat_cents: 70, helper_fee_percent: 5, platform_fee_percent: 0, customer_fee_amount: 0, platform_fee_amount: 5.7 });
         expect(JSON.stringify(first)).toContain("unpaid,abandoned,failed");
       });
 
@@ -1031,7 +1031,7 @@ describe("create-payment edge function", () => {
       // the stamp re-asserts the status the job was judged fundable in, so a
       // job cancelled or closed between the read and the write is never
       // stamped, and so never funded below.
-      // @mutate supabase/functions/create-payment/index.ts |           .eq("status", job.status)\n          .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")\n          .select("id"); |           .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")\n          .select("id");
+      // @mutate supabase/functions/create-payment/index.ts |           .eq("status", job.status)\n          .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")\n          // ...and still on the checkout |           .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")\n          // ...and still on the checkout
       it("the fee-model stamp is pinned to the status the job was read in", async () => {
         seedEscrowJob(100, { onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null });
         await escrow();
@@ -1126,7 +1126,7 @@ describe("create-payment edge function", () => {
 
       // Review of 91927c016 #1: the retry after a refused stamp is at a new
       // price and must not reuse the old session's idempotency key.
-      // @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}${checkoutKeySuffix}`, | idempotencyKey: `escrow-${jobId}${checkoutKeySuffix}`,
+      // @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${checkoutKeySuffix}`, | idempotencyKey: `escrow-${jobId}-m${feeModel}${payInFour ? "4" : ""}${checkoutKeySuffix}`,
       it("the checkout's idempotency key carries the price, so a new price never replays an old session (Q1846)", async () => {
         const keys: string[] = [];
         for (const budget of [100, 150]) {

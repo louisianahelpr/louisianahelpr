@@ -18,6 +18,18 @@ import { POSTER_SERVICE_FEE_PERCENT, setupFeeKeptCents, setupFeeKeptReason } fro
 import { cardCostFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";
 import { jobFlatFeeTotalCents } from "../_shared/crewShares.ts";
+import { POSTER_JOB_FEE_CENTS, POSTER_JOB_FEE_DESCRIPTION } from "../_shared/posterJobFee.ts";
+import {
+  JOBS_POSTER_FEE_SWITCH,
+  JOB_CHECKOUT_PAYMENT_METHOD_TYPES,
+  STALE_FEE_QUOTE_MESSAGE,
+  feeQuoteRefusal,
+  jobFeeModelFor,
+  payInFourMethodsFor,
+  posterFeePercentFor,
+  serviceFeeCentsFor,
+} from "../_shared/jobCheckout.ts";
+import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 
 /**
  * Q1415 (b): what a release answers while an open ban settlement review holds
@@ -383,6 +395,63 @@ serve(async (req) => {
         );
       }
 
+      // The server-authoritative urgent bonus (see "urgent fee is recomputed,
+      // never trusted" in create-payment.test.ts); hoisted here so the fee-model
+      // stamp below prices the flat fee on the same budget + bonus.
+      const URGENT_FEE_FLOOR_CENTS = 500;
+      const URGENT_FEE_CEILING_CENTS = MAX_URGENT_FEE_DOLLARS * 100;
+      const storedUrgentFeeCents = Math.round((job.urgent_fee ?? 0) * 100);
+      const urgentFeeCents = job.is_urgent
+        ? Math.min(
+            Math.max(storedUrgentFeeCents, URGENT_FEE_FLOOR_CENTS),
+            URGENT_FEE_CEILING_CENTS,
+          )
+        : 0;
+
+      // ─── Fee model of THIS checkout (owner 2026-10-18, behind the switch) ───
+      // The poster-fee model (poster pays 5% + 70c, or 9% + 70c for Pay in 4;
+      // the Helpr keeps 100%) applies when the jobs_poster_fee switch is on for
+      // this poster, and not yet on a gift-funded or recurring checkout (their
+      // fee handling is a later slice: _shared/jobCheckout.ts jobFeeModelFor).
+      // A switch read error is OFF (featureEnabledForUser fails closed), so the
+      // checkout stays on the flat model it charges today.
+      //
+      // Decided BEFORE the previous Checkout Session is retired below, so a
+      // stale app's refused tap never expires the poster's live checkout
+      // (lh-money-escrow review of slice 3a, #3).
+      //
+      // Stale-client protection: the request must carry the model and the
+      // amounts the app showed (feeQuoteRefusal). An app built before the
+      // change sends no quote and is refused on the poster-fee model, so no
+      // poster is charged a total the app never showed them.
+      const posterFeeSwitchOn = await featureEnabledForUser(supabaseAdmin, JOBS_POSTER_FEE_SWITCH, user);
+      const feeModel = jobFeeModelFor({
+        switchOn: posterFeeSwitchOn,
+        giftFunded: !!giftCardId,
+        // The same test charge-recurring-visits uses to find a series parent.
+        recurring: job.recurrence_days != null,
+      });
+      const isPosterFee = feeModel === "poster";
+      const payInFour = body?.payInFour === true ||
+        (typeof body?.feeQuote === "object" && body?.feeQuote !== null && body.feeQuote.payInFour === true);
+      if (payInFour && !isPosterFee) throw new PublicError(STALE_FEE_QUOTE_MESSAGE);
+      const jobPriceCents = Math.round(Number(job.budget) * 100) + urgentFeeCents;
+      const quoteRefusal = feeQuoteRefusal(body?.feeQuote, { model: feeModel, payInFour, jobPriceCents });
+      if (quoteRefusal) {
+        console.warn(`[create-payment] refusing escrow for job ${jobId}: fee quote ${JSON.stringify(body?.feeQuote ?? null)} does not match model=${feeModel} payInFour=${payInFour} price=${jobPriceCents}`);
+        throw new PublicError(quoteRefusal);
+      }
+      const posterFeePercent = posterFeePercentFor(payInFour);
+      const posterFeeCents = serviceFeeCentsFor(feeModel, jobPriceCents, payInFour);
+      // Pay in 4 only where a provider takes the whole charge (fee, $2 setup
+      // and the tax ceiling included, so Checkout can never exceed it).
+      const payInFourMethods = payInFour
+        ? payInFourMethodsFor(jobPriceCents + posterFeeCents + 200 + salesTaxCeilingCents(jobPriceCents + posterFeeCents, job.category))
+        : [];
+      if (payInFour && payInFourMethods.length === 0) {
+        throw new PublicError("Pay in 4 isn't available for this amount. Choose card or bank instead.");
+      }
+
       // ─── Retire the previous Checkout Session before minting another ───
       //
       // Two live sessions on one job is the double-funding shape, so the old
@@ -612,24 +681,13 @@ serve(async (req) => {
         return { ok: false as const, reason: `matched 0 rows; job now holds ${recheck?.stripe_session_id ?? "null"}` };
       };
 
-      // The server-authoritative urgent bonus (see "urgent fee is recomputed,
-      // never trusted" in create-payment.test.ts); hoisted here so the fee-model
-      // stamp below prices the flat fee on the same budget + bonus.
-      const URGENT_FEE_FLOOR_CENTS = 500;
-      const URGENT_FEE_CEILING_CENTS = MAX_URGENT_FEE_DOLLARS * 100;
-      const storedUrgentFeeCents = Math.round((job.urgent_fee ?? 0) * 100);
-      const urgentFeeCents = job.is_urgent
-        ? Math.min(
-            Math.max(storedUrgentFeeCents, URGENT_FEE_FLOOR_CENTS),
-            URGENT_FEE_CEILING_CENTS,
-          )
-        : 0;
       // The whole job's flat Helpr fee, in cents (Q1845): each Helpr pays
       // 5% + 70c on THEIR OWN share of budget + bonus, so a crew of N records
       // the SUM of the N members' fees (the same largest-remainder split the
       // payout uses), not one 70c for the whole job.
       const escrowHelprCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
       const escrowFlatFeeCents = jobFlatFeeTotalCents(Math.round(job.budget * 100), urgentFeeCents, escrowHelprCount);
+
 
       // ─── Fee model stamp (roadmap F3, owner 2026-10-14/15) ───
       // Every job funded from here on is on the FLAT model: the poster pays
@@ -659,18 +717,49 @@ serve(async (req) => {
       {
         const { data: modelRows, error: modelErr } = await pinnedToReadPrice(supabaseAdmin
           .from("jobs")
-          .update({
-            helper_fee_flat_cents: HELPR_FLAT_FEE_CENTS,
-            helper_fee_percent: HELPR_FLAT_FEE_PERCENT,
-            // Every funding branch carries the flat fee it will be paid out at
-            // (lh-money-escrow review N4): the full-gift path (redeem_gift_card)
-            // and the gift-shortfall stamp never write platform_fee_amount, so
-            // money-reconciliation graded a gift-funded flat job against NULL.
-            platform_fee_amount: escrowFlatFeeCents / 100,
-          })
+          .update(isPosterFee
+            ? {
+                // Poster-fee model: the poster's fee is stamped, the Helpr side
+                // is 0/0 so every payout path takes nothing from the Helpr
+                // (CHECK jobs_poster_fee_model_consistent keeps these together).
+                poster_fee_flat_cents: POSTER_JOB_FEE_CENTS,
+                platform_fee_percent: posterFeePercent,
+                customer_fee_amount: posterFeeCents / 100,
+                helper_fee_flat_cents: 0,
+                helper_fee_percent: 0,
+                platform_fee_amount: 0,
+              }
+            : {
+                // A job re-minted on the flat model after a poster-fee
+                // checkout it never paid drops the poster stamp, or the CHECK
+                // would refuse a row carrying both models. Written only when
+                // the job carries one, so a flat checkout never names the
+                // column (deploy order: it works before 20261017230824 lands).
+                ...(job.poster_fee_flat_cents != null ? { poster_fee_flat_cents: null } : {}),
+                helper_fee_flat_cents: HELPR_FLAT_FEE_CENTS,
+                helper_fee_percent: HELPR_FLAT_FEE_PERCENT,
+                // The poster side back to the flat model's, so an earlier
+                // poster-fee attempt's 5/9 and fee never survive into a
+                // gift-funded flat job (review of slice 3a, #4).
+                platform_fee_percent: POSTER_SERVICE_FEE_PERCENT,
+                customer_fee_amount: 0,
+                // Every funding branch carries the flat fee it will be paid out at
+                // (lh-money-escrow review N4): the full-gift path (redeem_gift_card)
+                // and the gift-shortfall stamp never write platform_fee_amount, so
+                // money-reconciliation graded a gift-funded flat job against NULL.
+                platform_fee_amount: escrowFlatFeeCents / 100,
+              })
           .eq("id", jobId))
           .eq("status", job.status)
           .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")
+          // ...and still on the checkout this request read (or released by
+          // its expiry), like stampSession: a concurrent request on the OTHER
+          // model (a gift tap racing a card tap, a switch flip mid-request)
+          // that already stamped its own session is never re-stamped under it
+          // (review of slice 3a, #1).
+          .or(previousSessionId
+            ? `stripe_session_id.is.null,stripe_session_id.eq.${previousSessionId}`
+            : "stripe_session_id.is.null")
           .select("id");
         if (modelErr) {
           console.error(`[create-payment] fee-model stamp failed for job ${jobId}; refusing escrow:`, modelErr);
@@ -679,7 +768,7 @@ serve(async (req) => {
         if (!modelRows || modelRows.length === 0) {
           // Refused whatever the re-read says; it only picks the sentence.
           const { data: moved } = await supabaseAdmin
-            .from("jobs").select("status, payment_status, budget, urgent_fee, is_urgent").eq("id", jobId).maybeSingle();
+            .from("jobs").select("status, payment_status, budget, urgent_fee, is_urgent, helper_fee_flat_cents, poster_fee_flat_cents").eq("id", jobId).maybeSingle();
           console.warn(`[create-payment] fee-model stamp matched 0 rows for job ${jobId} (read status=${job.status}, payment_status=${job.payment_status ?? "null"}; now status=${moved?.status ?? "?"}, payment_status=${moved?.payment_status ?? "?"}); refusing escrow`);
           if (moved && !RE_MINTABLE_PAYMENT_STATUSES.has(moved.payment_status ?? "unpaid")) {
             throw new PublicError("This job's payment has already been processed. Open the job to see its payment status.");
@@ -692,7 +781,16 @@ serve(async (req) => {
               Boolean(moved.is_urgent) !== Boolean(job.is_urgent))) {
             throw new PublicError("This job's pay changed while checkout was opening. Please try again so you pay the new amount.");
           }
-          throw new PublicError("This job changed while checkout was opening.");
+          // A double-tap of THIS request (same model): the other tap stamped
+          // the same model and its session, so this one goes on and gets the
+          // same Checkout Session by its idempotency key (stampSession then
+          // finds the job already holding it). Any other model is refused.
+          const sameModel = !!moved && String(moved.status) === String(job.status) &&
+            (isPosterFee
+              ? Number(moved.poster_fee_flat_cents) === POSTER_JOB_FEE_CENTS && Number(moved.helper_fee_flat_cents) === 0
+              : moved.poster_fee_flat_cents == null && Number(moved.helper_fee_flat_cents) === HELPR_FLAT_FEE_CENTS);
+          if (!sameModel) throw new PublicError("This job changed while checkout was opening.");
+          console.log(`[create-payment] fee-model stamp for job ${jobId} already holds this model (concurrent tap); continuing`);
         }
       }
 
@@ -763,6 +861,10 @@ serve(async (req) => {
           customer_update: { address: "auto" },
           line_items: diffLineItems,
           mode: "payment",
+          // Every job checkout names its methods (owner 2026-10-18) and
+          // presents dollars only (no Adaptive Pricing conversion).
+          payment_method_types: [...JOB_CHECKOUT_PAYMENT_METHOD_TYPES],
+          adaptive_pricing: { enabled: false },
           automatic_tax: { enabled: true },
           // 3D Secure from $300 (Q202): the hosted page runs the challenge.
           payment_method_options: threeDSecureOptions(differenceCents),
@@ -840,7 +942,7 @@ serve(async (req) => {
       // helper_fee_percent from platform_settings is read and null-checked for
       // the same fail-loud reason, but no longer prices anything: every job
       // funded here is on the flat model stamped above (roadmap F3).
-      const helperFeePercent = HELPR_FLAT_FEE_PERCENT;
+      const helperFeePercent = isPosterFee ? 0 : HELPR_FLAT_FEE_PERCENT;
       const onboardingFeeCents = settings.onboarding_fee_cents; // NOT NULL DEFAULT 200 in schema
 
       // Check if the poster owes the one-time onboarding fee (first job post).
@@ -865,7 +967,7 @@ serve(async (req) => {
       // Stamped on the job (platform_fee_percent, the poster-side column) and
       // on the PaymentIntent metadata, so the row records which pricing it was
       // charged under: 0 = card cost only (owner, 2026-10-11).
-      const customerFeePercent = POSTER_SERVICE_FEE_PERCENT;
+      const customerFeePercent = isPosterFee ? posterFeePercent : POSTER_SERVICE_FEE_PERCENT;
 
       // Customer service fee (its own non-taxable line item): Stripe's real
       // processing cost on the WHOLE transaction (budget + fee + urgent tip +
@@ -902,11 +1004,14 @@ serve(async (req) => {
       // Stripe's card cost comes out of the Helpr's flat 5% + $0.70, priced on
       // budget + bonus at payout. customer_fee_amount is 0, so a refund keeps
       // Stripe's actual card fee (refundToPayerCents) and returns the rest.
-      const customerFeeAmount = 0;
+      // Poster-fee model (owner 2026-10-18): the poster's 5% + 70c (9% + 70c
+      // for Pay in 4) is its own line and customer_fee_amount; the Helpr pays 0.
+      const customerFeeAmount = isPosterFee ? posterFeeCents / 100 : 0;
       // The Helprs' flat fee is deducted at payout time, not charged to the
       // poster. Stored as platform_fee_amount: the whole job's fee, summed
-      // per member on a crew (Q1845, escrowFlatFeeCents above).
-      const helperFeeAmount = escrowFlatFeeCents / 100;
+      // per member on a crew (Q1845, escrowFlatFeeCents above). 0 on the
+      // poster-fee model.
+      const helperFeeAmount = isPosterFee ? 0 : escrowFlatFeeCents / 100;
 
       // ─── Louisiana sales-tax classification ───
       // The category list now lives in `_shared/salesTax.ts` so the Post-a-Task
@@ -959,6 +1064,27 @@ serve(async (req) => {
           quantity: 1,
         });
       }
+      // Poster-fee model: the service fee line. Taxed exactly like the job's
+      // labor (owner-adopted tax memo 2026-10-17, R.S. 47:301(13)): on a
+      // taxable category the fee carries the labor's tax code, otherwise it is
+      // non-taxable. Never txcd_90050001 (that code is a fee charged to sellers).
+      if (isPosterFee && posterFeeCents > 0) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
+            product_data: {
+              name: "Service fee",
+              description: payInFour
+                ? `${posterFeePercent}% + $0.70 for Pay in 4, covers payment processing`
+                : POSTER_JOB_FEE_DESCRIPTION,
+              tax_code: laborTaxable ? laborTaxCode(job.category) : NONTAXABLE_TAX_CODE,
+            },
+            unit_amount: posterFeeCents,
+          },
+          quantity: 1,
+        });
+      }
       // One-time onboarding fee — first job post only. Treated as a non-taxable
       // platform setup fee (matching the service-fee treatment above).
       if (owesOnboardingFee) {
@@ -988,11 +1114,17 @@ serve(async (req) => {
           customer_id: user.id,
           customer_fee_percent: String(customerFeePercent),
           helper_fee_percent: String(helperFeePercent),
-          helper_fee_flat_cents: String(HELPR_FLAT_FEE_CENTS),
+          helper_fee_flat_cents: String(isPosterFee ? 0 : HELPR_FLAT_FEE_CENTS),
+          fee_model: feeModel,
+          poster_fee_flat_cents: isPosterFee ? String(POSTER_JOB_FEE_CENTS) : "",
+          service_fee_cents: String(isPosterFee ? posterFeeCents : 0),
+          pay_in_four: payInFour ? "true" : "false",
           onboarding_fee_charged: owesOnboardingFee ? "true" : "false",
         },
       };
-      if (saveCardForFuture === true) {
+      // Pay in 4 never saves a card (Klarna/Afterpay are not cards) and never
+      // reaches a recurring series (jobFeeModelFor keeps those flat).
+      if (saveCardForFuture === true && !payInFour) {
         paymentIntentExtras.setup_future_usage = "off_session";
       }
       const session = await stripe.checkout.sessions.create({
@@ -1000,6 +1132,12 @@ serve(async (req) => {
         customer_update: { address: 'auto' },
         line_items: lineItems,
         mode: "payment",
+        // Explicit methods on every job checkout (owner 2026-10-18): card,
+        // Link and ACH; Pay in 4 is its own session with Klarna/Afterpay only.
+        payment_method_types: payInFour ? payInFourMethods : [...JOB_CHECKOUT_PAYMENT_METHOD_TYPES],
+        // Dollars only: Adaptive Pricing would add a 2-4% conversion to what
+        // the poster pays, so the charge would not be the total the app showed.
+        adaptive_pricing: { enabled: false },
         automatic_tax: { enabled: true },
         // 3D Secure from $300 (Q202), on the line items plus a CEILING on the
         // labor's sales tax (Q1658: since Q1578 a taxable $270-$299 checkout
@@ -1007,7 +1145,10 @@ serve(async (req) => {
         // toward asking for 3DS)
         // (tax is only known once Checkout has the address; it can only add).
         payment_method_options: threeDSecureOptions(
-          lineItems.reduce((sum: number, li: any) => sum + Number(li?.price_data?.unit_amount ?? 0) * Number(li?.quantity ?? 1), 0)
+          // No card options on a Pay-in-4 session (no card can be used there).
+          payInFour ? 0 : lineItems.reduce((sum: number, li: any) => sum + Number(li?.price_data?.unit_amount ?? 0) * Number(li?.quantity ?? 1), 0)
+            // A taxable job's service fee is taxed too (tax memo).
+            + (isPosterFee && laborTaxable ? salesTaxCeilingCents(posterFeeCents, job.category) : 0)
             + salesTaxCeilingCents(Math.round(job.budget * 100), job.category),
         ),
         payment_intent_data: paymentIntentExtras,
@@ -1019,7 +1160,10 @@ serve(async (req) => {
         // Idempotency: a double-submit (double-tap, retried request) for the same
         // job reuses the existing Checkout Session instead of creating a second
         // escrow charge. Scoped per job and 10-minute expiry bucket (see checkoutKeySuffix).
-        idempotencyKey: `escrow-${jobId}${priceKey}${checkoutKeySuffix}`,
+        // The fee model and Pay-in-4 choice are part of the price (owner
+        // 2026-10-18): a session opened on one model is never replayed for
+        // a request on the other.
+        idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${checkoutKeySuffix}`,
       });
 
       // Store both fee structures on the job. Fail the request if this write
@@ -1035,7 +1179,14 @@ serve(async (req) => {
         platform_fee_amount: helperFeeAmount,
         customer_fee_amount: customerFeeAmount,
         helper_fee_percent: helperFeePercent,
-        helper_fee_flat_cents: HELPR_FLAT_FEE_CENTS,
+        helper_fee_flat_cents: isPosterFee ? 0 : HELPR_FLAT_FEE_CENTS,
+        // Every model column is restated with the session (review #7): a
+        // concurrent request's model stamp cannot leave this session's job
+        // on the other model. Named on a flat job only when it holds a
+        // poster stamp to clear (deploy order, as the model stamp above).
+        ...(isPosterFee
+          ? { poster_fee_flat_cents: POSTER_JOB_FEE_CENTS }
+          : job.poster_fee_flat_cents != null ? { poster_fee_flat_cents: null } : {}),
       });
       if (!escrowStamp.ok) {
         console.error(`[create-payment] escrow session ${session.id} created for job ${jobId} but jobs.update failed:`, escrowStamp.reason);
@@ -1626,6 +1777,7 @@ serve(async (req) => {
         // the CARD rate, so a Klarna/Affirm tip would cost the platform the
         // difference (Q383).
         payment_method_types: TIP_PAYMENT_METHOD_TYPES,
+        adaptive_pricing: { enabled: false },
         // 3D Secure from $300 (Q202), same rule as the job charge, measured on
         // what the card is actually charged.
         payment_method_options: threeDSecureOptions(tipQuote.chargeCents),
@@ -1816,6 +1968,7 @@ serve(async (req) => {
         line_items: lineItems,
         mode: "payment",
         payment_method_types: ["card"],
+        adaptive_pricing: { enabled: false },
         // The reason this path exists: 3D Secure from $300 (Q202).
         payment_method_options: threeDSecureOptions(row.amount_cents),
         payment_intent_data: {

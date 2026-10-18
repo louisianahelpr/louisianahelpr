@@ -10,12 +10,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { functionErrorMessage } from "@/lib/supabaseResult";
+import type { JobFeeQuote } from "@/lib/jobCheckout";
 
 export interface EscrowCheckoutOptions {
   /** Ask Stripe to save the card (forced for a recurring series by the caller). */
   saveCardForFuture?: boolean;
   /** Gift card redemption: create-payment settles the gift instead of the full charge. */
   giftCardId?: string | null;
+  /**
+   * What this screen showed (owner 2026-10-18): the fee model and amounts.
+   * create-payment refuses a poster-fee checkout whose request lacks or
+   * mismatches it, so a stale screen is never charged a total it did not show.
+   * Build it with buildFeeQuote (src/lib/jobCheckout.ts).
+   */
+  feeQuote?: JobFeeQuote;
 }
 
 /** create-payment's answer: a Checkout URL, or a refusal sentence in `error`. */
@@ -32,6 +40,7 @@ export function requestEscrowCheckout(jobId: string, opts: EscrowCheckoutOptions
       native: isNativePlatform,
       saveCardForFuture: !!opts.saveCardForFuture,
       ...(opts.giftCardId ? { giftCardId: opts.giftCardId } : {}),
+      ...(opts.feeQuote ? { feeQuote: opts.feeQuote, payInFour: opts.feeQuote.payInFour } : {}),
     },
   });
 }
@@ -50,8 +59,8 @@ export class EscrowCheckoutError extends Error {
   }
 }
 
-export async function openEscrowCheckout(jobId: string): Promise<void> {
-  const { data, error } = await requestEscrowCheckout(jobId);
+export async function openEscrowCheckout(jobId: string, feeQuote?: JobFeeQuote): Promise<void> {
+  const { data, error } = await requestEscrowCheckout(jobId, { feeQuote });
   const url = data?.url;
   const refusal = data?.error;
   if (error || typeof refusal === "string" || typeof url !== "string" || !url) {

@@ -109,6 +109,35 @@ describe("Q1324 — the card that paid a checkout is checked against banned peop
     }
   });
 
+  // Owner 2026-10-18: non-US cards are blocked by a Radar rule; one that
+  // still paid means the rule is missing, so ops is paged (never refunded).
+  // @mutate supabase/functions/stripe-webhook/handlers/_checkoutCardFingerprint.ts |   if (foreignCountry) { |   if (false) {
+  it("a card issued outside the US pages ops (the Radar rule is missing); a US card does not", async () => {
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_q1324",
+      payment_method: { id: "pm_1", type: "card", card: { brand: "visa", fingerprint: "fpIntl", country: "GB" } },
+    });
+    scenario.rpc[RPC] = NOT_BANNED;
+    let res = await deliver("checkout.session.completed", session());
+    expect(res.status).toBe(200);
+    const intl = alerts().filter((a) => /outside the US/.test(a.title));
+    expect(intl).toHaveLength(1);
+    expect(intl[0].kind).toBe("money_at_risk");
+    expect(intl[0].fields).toMatchObject({ session_id: "cs_q1324", card_country: "GB" });
+    // The ban check still ran: the alert is in addition to it.
+    expect(rpcCalls()).toHaveLength(1);
+
+    webhookEnv();
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_q1324",
+      payment_method: { id: "pm_1", type: "card", card: { brand: "visa", fingerprint: "fpUs", country: "US" } },
+    });
+    scenario.rpc[RPC] = NOT_BANNED;
+    res = await deliver("checkout.session.completed", session());
+    expect(res.status).toBe(200);
+    expect(alerts().filter((a) => /outside the US/.test(a.title))).toHaveLength(0);
+  });
+
   it("a match pages an admin (the RPC has already banned the account)", async () => {
     stripeMock.paymentIntents.retrieve.mockResolvedValue(piWithCard("fpBanned"));
     scenario.rpc[RPC] = BANNED_CARD;

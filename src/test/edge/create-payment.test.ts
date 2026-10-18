@@ -2502,6 +2502,151 @@ describe("create-payment edge function", () => {
       expect(jobUpdates.map((w) => (w.payload as Record<string, unknown>).payment_status)).toEqual(["cancelling", "escrow"]);
     });
 
+    // Q2133 (lh-money-escrow review of c29c9ae75 #1): a crew the poster
+    // emptied by blocking its last member is reopened with nobody on the
+    // roster, so it passes the checks above while the member's block fee is
+    // still owed. This refund has no block-fee term: the poster got that money
+    // back and void-cancelled-payments Part F paid the member from the
+    // platform's balance. Now it refuses and sends the poster to Cancel job,
+    // whose sweep withholds the fee.
+    describe("an emptied crew that still owes block fees (Q2133)", () => {
+      const owedRow = { id: "bf-1", job_id: "job-1", helper_id: "member-d", slot_no: 3, share_basis_cents: 10000, fee_percent: 25, fee_cents: 2500, status: "owed", stripe_transfer_id: null };
+      const seedEmptiedCrew = (blockFees: unknown, paymentStatus = "escrow") => {
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, is_group_job: true, helpers_needed: 3, payment_status: paymentStatus, stripe_payment_intent_id: "pi_live", budget: 300, customer_fee_amount: 30 }] };
+        scenario.reads.group_job_helpers = { rows: [] };
+        scenario.reads.crew_block_fees = blockFees as never;
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_live", status: "succeeded", amount: 33000, amount_received: 33000 });
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
+        scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      };
+      // A block that commits between the first check and the claim: the ledger
+      // reads empty until the claim is written, then holds the owed row.
+      const owedOnlyAfterClaim = () => ({
+        get rows() {
+          return scenario.writes.some((w) => w.table === "jobs" && w.op === "update") ? [owedRow] : [];
+        },
+      });
+      const cancel = async () => {
+        const fn = await load();
+        return fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      };
+      const jobPaymentStatusWrites = () =>
+        scenario.writes.filter((w) => w.table === "jobs" && w.op === "update").map((w) => (w.payload as Record<string, unknown>).payment_status);
+
+      // @mutate supabase/functions/create-payment/index.ts |         const owedBeforeClaim = await crewBlockFeeRefusal(supabaseAdmin, job); |         const owedBeforeClaim = null as Awaited<ReturnType<typeof crewBlockFeeRefusal>>;
+      it("an owed block fee: 409 useCancelJob naming the fee, before any claim, no Stripe call", async () => {
+        seedEmptiedCrew({ rows: [owedRow] });
+        const res = await cancel();
+        expect(res.status).toBe(409);
+        const body = await json(res);
+        expect(body.useCancelJob).toBe(true);
+        expect(body.crewBlockFeeCents).toBe(2500);
+        expect(String(body.error)).toContain("$25.00");
+        expect(String(body.error)).toContain("less the card fee");
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts |         const owedAfterClaim = await crewBlockFeeRefusal(supabaseAdmin, job); |         const owedAfterClaim = null as Awaited<ReturnType<typeof crewBlockFeeRefusal>>;
+      // @mutate supabase/functions/create-payment/index.ts |           if (job.payment_status === "escrow") await putCancelClaimBack(why); |           void why;
+      it("a block that lands between the check and the claim: claim put back, 409 useCancelJob, no refund", async () => {
+        seedEmptiedCrew(owedOnlyAfterClaim());
+        const res = await cancel();
+        expect(res.status).toBe(409);
+        expect((await json(res)).useCancelJob).toBe(true);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+        expect(jobPaymentStatusWrites()).toEqual(["cancelling", "escrow"]);
+      });
+
+      // A fee already paid to the member left from this same charge: refunding
+      // it to the poster too spends it twice, so it refuses the same way.
+      it("a block fee already paid from this charge refuses too", async () => {
+        seedEmptiedCrew({ rows: [{ ...owedRow, status: "paid", stripe_transfer_id: "tr_1" }] });
+        const res = await cancel();
+        expect(res.status).toBe(409);
+        const body = await json(res);
+        expect(body.useCancelJob).toBe(true);
+        expect(body.crewBlockFeeCents).toBe(2500);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      });
+
+      it("fails CLOSED: an unreadable block-fee ledger answers 503 without the database text, nothing moved", async () => {
+        seedEmptiedCrew({ error: { message: "read blew up" } });
+        const res = await cancel();
+        expect(res.status).toBe(503);
+        expect(String((await json(res)).error)).not.toContain("read blew up");
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      });
+
+      // An earlier run left the job 'cancelling' and may already have refunded.
+      // Cancel job on it would leave cancelled/cancelling, which nothing
+      // settles (money review of Q2133 #1), so it is not sent there; ops is
+      // paged, and the claim is never put back to 'escrow' (review #2).
+      // @mutate supabase/functions/create-payment/index.ts | const strandedClaim = job.payment_status === "cancelling"; | const strandedClaim = false;
+      it("a re-entered 'cancelling' claim: no Cancel job advice, ops paged, nothing written", async () => {
+        seedEmptiedCrew({ rows: [owedRow] }, "cancelling");
+        scenario.reads.job_refund_claims = { rows: [{ claimed_by: "cancel_escrow", claimed_at: "2026-10-01T00:00:00.000Z" }] };
+        const res = await cancel();
+        expect(res.status).toBe(409);
+        const body = await json(res);
+        expect(body.useCancelJob).toBeUndefined();
+        expect(body.crewBlockFeeCents).toBe(2500);
+        expect(slackAlerts.some((a) => (a as { title?: string }).title === "Stranded crew cancel owes block fees")).toBe(true);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts | if (job.payment_status === "escrow") await putCancelClaimBack(why); | await putCancelClaimBack(why);
+      it("a re-entered claim that meets a block after the claim stays 'cancelling' (never put back to 'escrow')", async () => {
+        seedEmptiedCrew(owedOnlyAfterClaim(), "cancelling");
+        scenario.reads.job_refund_claims = { rows: [{ claimed_by: "cancel_escrow", claimed_at: "2026-10-01T00:00:00.000Z" }] };
+        const res = await cancel();
+        expect(res.status).toBe(409);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+        expect(jobPaymentStatusWrites()).toEqual(["cancelling"]);
+        expect(scenario.writes.filter((w) => w.table === "job_refund_claims" && w.op === "delete")).toHaveLength(0);
+      });
+
+      // The fee check runs after the allowlist and the claim-holder check, so
+      // a disputed crew and an admin's claim keep their own replies (money
+      // re-review of Q2133 #1): Cancel job refuses a disputed job.
+      it("a disputed emptied crew still gets the dispute reply, not Cancel job", async () => {
+        seedEmptiedCrew({ rows: [owedRow] });
+        scenario.reads.jobs.rows![0] = { ...scenario.reads.jobs.rows![0], status: "disputed" };
+        const res = await cancel();
+        expect(res.status).toBe(409);
+        const body = await json(res);
+        expect(body.disputed).toBe(true);
+        expect(body.useCancelJob).toBeUndefined();
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      });
+
+      it("an admin refund's claim keeps the admin reply, with no stranded-cancel page", async () => {
+        seedEmptiedCrew({ rows: [owedRow] }, "cancelling");
+        scenario.reads.job_refund_claims = { rows: [{ claimed_by: "admin_refund_general", claimed_at: "2026-10-01T00:00:00.000Z" }] };
+        const res = await cancel();
+        expect(res.status).toBe(409);
+        expect((await json(res)).refundClaimedBy).toBe("admin_refund_general");
+        expect(slackAlerts.some((a) => (a as { title?: string }).title === "Stranded crew cancel owes block fees")).toBe(false);
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      });
+
+      // The control: a void fee (the member's account was gone) is owed to
+      // nobody, so the emptied crew is refunded as before.
+      it("only void rows: refunded as before (the refusal is not a blanket crew block)", async () => {
+        seedEmptiedCrew({ rows: [{ ...owedRow, status: "void" }] });
+        const res = await cancel();
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+      });
+    });
+
     it("non-owner cannot cancel another poster's escrow", async () => {
       seedAuth(scenario, HELPER);
       scenario.reads.jobs = {

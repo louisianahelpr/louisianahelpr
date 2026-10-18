@@ -1,5 +1,5 @@
 /**
- * Shops orders (Shops M1, migration 20261017225605_shops_orders_checkout;
+ * Shops orders (Shops M1, migration 20261018044013_shops_orders_checkout;
  * docs/specs/local-shops-prep.md L17-L22, L37/F1, L41 + O2).
  *
  * Money moves only through the shop-checkout edge function (it runs the

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261017225605_shops_orders_checkout (Shops M1: orders and
+ * PGlite proof for 20261018044013_shops_orders_checkout (Shops M1: orders and
  * the card-hold checkout; docs/specs/local-shops-prep.md L17-L22, L37/F1, L41
  * + O2, L8, L82, L84, L91; plan ~/.lh-wt/handoffs-1017/shops-s3-plan.md).
  *
@@ -25,7 +25,7 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const SLICE2 = readFileSync(`${MIG_DIR}20261017061157_shops_items.sql`, "utf8");
 const CATEGORIES = readFileSync(`${MIG_DIR}20261017224153_shop_categories_v2.sql`, "utf8");
-const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261017225605_shops_orders_checkout.sql`, "utf8");
+const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261018044013_shops_orders_checkout.sql`, "utf8");
 const SLICE1 = readFileSync(`${MIG_DIR}20261017061155_shops_profiles.sql`, "utf8");
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
 const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sql`, "utf8");
@@ -33,7 +33,7 @@ const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sq
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */
 function newestDefinition(name) {
   let found = null;
-  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && !x.startsWith("20261017061155") && !x.startsWith("20261017061157") && !x.startsWith("20261017225605")).sort()) {
+  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && !x.startsWith("20261017061155") && !x.startsWith("20261017061157") && !x.startsWith("20261018044013")).sort()) {
     const sql = readFileSync(`${MIG_DIR}${f}`, "utf8");
     const re = new RegExp(String.raw`CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.${name}\s*\(`, "gi");
     let m;
@@ -167,8 +167,8 @@ const skip = process.env.NEW_MIGRATION === "skip";
 if (!skip) {
   for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
 }
-// Per-section strikes (20261018003046): STRIKES=skip leaves Shops on Declutter's count (RED for section 16).
-const STRIKES_SQL = readFileSync(process.env.STRIKES_PATH ?? `${MIG_DIR}20261018003046_shops_own_strike_count.sql`, "utf8");
+// Per-section strikes (20261018044015): STRIKES=skip leaves Shops on Declutter's count (RED for section 16).
+const STRIKES_SQL = readFileSync(process.env.STRIKES_PATH ?? `${MIG_DIR}20261018044015_shops_own_strike_count.sql`, "utf8");
 if (!skip && process.env.STRIKES !== "skip") {
   for (let i = 0; i < 3; i++) await db.exec(STRIKES_SQL);
 }
@@ -604,13 +604,13 @@ ok(refused(await request(BUYER, lines([itemC, 1]), open[12]), /too_many_order_re
     "members cannot read the Shops strike table or call its count");
 }
 
-// --- 15. Download My Data (20261017235038): the shop_orders, shop_order_lines and
+// --- 15. Download My Data (20261018044014): the shop_orders, shop_order_lines and
 // shop_strikes sections of the NEWEST export_my_data, run as written against this schema.
 // The function itself reads about 120 tables (counted 2026-10-18) this proof does not build, so each
 // section's SELECT is lifted out of the body and run with v_uid bound; the
 // whole migration is also applied 3x (replay-safe).
 {
-  const EXPORT_FILE = process.env.EXPORT_PATH ?? `${MIG_DIR}20261017235038_export_my_data_shop_orders.sql`;
+  const EXPORT_FILE = process.env.EXPORT_PATH ?? `${MIG_DIR}20261018044014_export_my_data_shop_orders.sql`;
   const EXPORT_SQL = readFileSync(EXPORT_FILE, "utf8");
   if (!skip) for (let i = 0; i < 3; i++) await db.exec(EXPORT_SQL);
   const newest = newestDefinition("export_my_data");
@@ -642,7 +642,7 @@ ok(refused(await request(BUYER, lines([itemC, 1]), open[12]), /too_many_order_re
   const myLines = Number(one(await svc(`SELECT count(*) FROM public.shop_order_lines l JOIN public.shop_orders o ON o.id = l.order_id WHERE o.buyer_id = '${BUYER}' OR o.seller_id = '${BUYER}'`)));
   ok(Array.isArray(bLines) && bLines.length === myLines && myLines > 0 && Array.isArray(xLines) && xLines.length === 0,
     `export: the lines of the member's own orders, and nobody else's (${bLines?.length}/${myLines}, stranger ${xLines?.length})`);
-  // shop_strikes (20261018003046; authz review note 2): the member's own, without removed_by, nobody else's.
+  // shop_strikes (20261018044015; authz review note 2): the member's own, without removed_by, nobody else's.
   await svc(`INSERT INTO public.shop_strikes (user_id, offender_side, reason, expires_at, removed_at, removed_by) VALUES
     ('${BUYER}', 'buyer', 'test', now() + interval '1 year', now(), '${ADMIN}'),
     ('${OWNER}', 'shop', 'test', now() + interval '1 year', NULL, NULL)`);

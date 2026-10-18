@@ -195,7 +195,7 @@ const EXEMPT: Record<string, string> = {
   // in). No Declutter order predates the 2026-09-27 live switch (prod had no declutter_orders table, 2026-10-15); a
   // failed read is a failed payout attempt that backs off (declutter_payout_executed).
   "declutter-money/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)": "a Declutter order's own payment (wholeCharge, before a seller or Helpr payout), on its parties' mode; minted after the live switch",
-  // Shops M1 (20261017225605): a Shops order's own hold, read on the client of the mode the order recorded
+  // Shops M1 (20261018044013): a Shops order's own hold, read on the client of the mode the order recorded
   // (shopOrderMode: payment_livemode / the page's cs_test_ prefix, else its parties). No Shops order predates the
   // 2026-09-27 live switch (prod had no shop_orders table, 2026-10-18); a failed read is a capture or release attempt
   // that the money cron retries.

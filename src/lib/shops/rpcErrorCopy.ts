@@ -1,6 +1,6 @@
 /**
  * Words for every refusal the shops_* RPCs (Shops slices 1 and 2,
- * 20261017061155 and 20261017061157, and M1's 20261017225605) can raise. They live here, not in
+ * 20261017061155 and 20261017061157, and M1's 20261018044013) can raise. They live here, not in
  * RPC_ERROR_COPY (src/lib/lifecycleErrors.ts), because that table is in the
  * bundle every signed-in page loads, and only the Shops screens call these
  * RPCs: keeping them out holds /posts inside its critical-path budget
@@ -256,7 +256,7 @@ export const SHOPS_RPC_ERROR_COPY = {
     not_authenticated: SC.not_authenticated,
     shop_not_found: SC.shop_not_found,
   },
-  // M1 (20261017225605): the two order RPCs the screens call directly; the
+  // M1 (20261018044013): the two order RPCs the screens call directly; the
   // others run inside shop-checkout and come back as its codes.
   shops_order_terms: {
     account_restricted: SC.account_restricted,

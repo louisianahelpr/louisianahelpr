@@ -641,7 +641,7 @@ ok(typeof one(await as("authenticated", STRANGER, createProp("Confirmed place"))
 // --- export_my_data reconcile (20261017205607): the newest-timestamp restatement
 // of the export must leave the UNION: every section of main's newest OTHER
 // definition BEFORE it (read below, not hard-coded, so a later main restatement
-// moves it; a restatement sorting after the reconcile, e.g. Shops' 20261017235038,
+// moves it; a restatement sorting after the reconcile, e.g. Shops' 20261018044014,
 // is a later layer with its own proof, so it is not part of what this one unions)
 // plus the five Rentals sections, EXECUTE for service_role only.
 const RECONCILE = readFileSync(

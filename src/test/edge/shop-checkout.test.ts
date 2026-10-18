@@ -1,5 +1,5 @@
 /**
- * Shops M1, the Stripe side (migration 20261017225605_shops_orders_checkout;
+ * Shops M1, the Stripe side (migration 20261018044013_shops_orders_checkout;
  * docs/specs/local-shops-prep.md L17/L18, F1, O1): shop-checkout (order /
  * accept / decline / cancel), the stripe-webhook hold handler, and
  * declutter-money's shop step, all through _shared/shopHolds.ts.

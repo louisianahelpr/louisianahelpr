@@ -800,7 +800,7 @@ export const GAPS: Record<string, string> = {
   "src/components/shops/ShopItemEditor.tsx": "behind the 'shops' switch (off); field rules pinned by src/test/pglite/shopsItems.pglite.mjs; FORMS sweep owed once on for testers",
   "src/components/shops/ShopDailyCap.tsx": "behind the 'shops' switch (off); the daily order limit (1-200) is pinned by src/test/pglite/shopsItems.pglite.mjs; FORMS sweep owed once on for testers",
   "src/components/shops/ShopOrderSheet.tsx": "behind the 'shops' switch (off); the order lines, quantities, dates and the note's contact-leak filter are pinned by src/test/pglite/shopsOrders.pglite.mjs (shops_request_order); FORMS sweep owed once on for testers",
-  "src/components/shops/ShopDashboardView.tsx": "behind the 'shops' switch (off); the decline reason is checked by shops_decline_order (invalid_reason over 200 characters, 20261017225605; not yet in a PGlite proof); FORMS sweep owed once on for testers",
+  "src/components/shops/ShopDashboardView.tsx": "behind the 'shops' switch (off); the decline reason is checked by shops_decline_order (invalid_reason over 200 characters, 20261018044013; not yet in a PGlite proof); FORMS sweep owed once on for testers",
   "src/components/admin/settings/ShopItemsReviewCard.tsx": "admin-only, behind the 'shops' switch (off); the reject reason (required, <= 500) is pinned by src/test/pglite/shopsItems.pglite.mjs; FORMS sweep owed once on for testers",
   // Suggest a category (2026-10-15, trades): behind the hidden 'suggest_category' switch (testers only on prod); the
   // text rules (2-40 chars, letters, contact-leak scan, 5 per 24h, ban gate, unconfirmed-email gate) are pinned by

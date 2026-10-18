@@ -20,7 +20,7 @@ import {
   authPages,
   noNavPages,
 } from "@/components/mobileNav/mobileNavHelpers";
-import { useVisibleSections, SECTION_NAV, type SectionNavItem } from "@/components/mobileNav/sectionNav";
+import { useVisibleSections, SECTION_NAV, inSectionStack, type SectionNavItem } from "@/components/mobileNav/sectionNav";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
 
@@ -374,9 +374,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const isInStack = (item: SectionNavItem) => {
     if (location.pathname === item.path) return true;
     if (inboxSection && inboxSection === item.key) return true;
-    return item.stack.some((p) =>
-      p.endsWith("/") ? location.pathname.startsWith(p) : location.pathname === p || location.pathname.startsWith(p + "/"),
-    );
+    return inSectionStack(item, location.pathname);
   };
 
   const triggerGate = () => {

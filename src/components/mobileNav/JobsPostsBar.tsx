@@ -61,3 +61,41 @@ export function JobsPostsBar() {
     </div>
   );
 }
+
+/**
+ * The strip's loading copy for the route skeletons (Dashboard, My posts, My
+ * jobs): the same row, the same 44px pills, the same words, so nothing moves
+ * when the page lands (Q169). Hook-free and inert (aria-hidden, no buttons):
+ * a skeleton can render before the router or the age gate is ready.
+ */
+export function JobsPostsBarSkeleton({ current }: { current: (typeof VIEWS)[number]["path"] }) {
+  return (
+    <div className="flex items-center gap-2" data-testid="jobs-posts-bar-skeleton" aria-hidden>
+      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+        {VIEWS.map((v) => {
+          const on = v.path === current;
+          return (
+            <span
+              key={v.path}
+              className="inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-ds-14 whitespace-nowrap"
+              style={{
+                fontWeight: on ? 700 : 500,
+                color: on ? "hsl(var(--brand-ink))" : "hsl(var(--ink-deep))",
+                background: on ? "hsl(var(--brand) / 0.10)" : "transparent",
+              }}
+            >
+              {v.label}
+            </span>
+          );
+        })}
+      </div>
+      <span
+        className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full px-3.5 text-ds-14 font-semibold whitespace-nowrap"
+        style={{ backgroundColor: "hsl(var(--brand))", color: "hsl(var(--brand-foreground))" }}
+      >
+        <Plus className="h-4 w-4" strokeWidth={2.75} aria-hidden />
+        Post
+      </span>
+    </div>
+  );
+}

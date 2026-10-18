@@ -35,7 +35,6 @@ export function SectionHeaderActions({
   const showPersonal = placement === "topbar" || !isWebDesktop;
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
-  const { unreadCount } = useNavUnreadCount(user);
   const def = SECTION_NAV.find((s) => s.key === section)!;
   // Q1586(c): posting a job greys out under 18; a tap says why.
   const { gate } = useAgeGate();
@@ -64,31 +63,11 @@ export function SectionHeaderActions({
       )}
       {showPersonal && (
       <>
-      <button
-        type="button"
-        onClick={() => navigate(inbox)}
-        onMouseEnter={() => prefetchRoute("/messages")}
-        aria-label={
-          // Every thread today is about a job (inboxForSection), so Home and
-          // Jobs & Posts show the same unread count; the other sections have none yet.
-          section === "home" || section === "jobs"
-            ? `${section === "home" ? "Messages" : `${def.label} messages`}${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`
-            : `${def.label} messages`
-        }
-        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full ctl-tint"
-        style={{ color: "hsl(var(--ink-deep))" }}
-      >
-        <MessageSquare className="h-5 w-5" strokeWidth={2} aria-hidden />
-        {(section === "home" || section === "jobs") && unreadCount > 0 && (
-          <span
-            aria-hidden
-            className="absolute top-1 right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-ds-10 font-bold"
-            style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
-          >
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        )}
-      </button>
+      {section === "home" || section === "jobs" ? (
+        <JobsMessagesButton section={section} label={def.label} inbox={inbox} />
+      ) : (
+        <MessagesButton inbox={inbox} label={`${def.label} messages`} />
+      )}
       <button
         type="button"
         onClick={() => navigate("/profile")}
@@ -108,5 +87,51 @@ export function SectionHeaderActions({
       </>
       )}
     </div>
+  );
+}
+
+/** The Messages button itself (44px). */
+function MessagesButton({ inbox, label, unreadCount = 0 }: { inbox: string; label: string; unreadCount?: number }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      onClick={() => navigate(inbox)}
+      onMouseEnter={() => prefetchRoute("/messages")}
+      aria-label={label}
+      className="relative inline-flex h-11 w-11 items-center justify-center rounded-full ctl-tint"
+      style={{ color: "hsl(var(--ink-deep))" }}
+    >
+      <MessageSquare className="h-5 w-5" strokeWidth={2} aria-hidden />
+      {unreadCount > 0 && (
+        <span
+          aria-hidden
+          className="absolute top-1 right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-ds-10 font-bold"
+          style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
+        >
+          {unreadCount > 9 ? "9+" : unreadCount}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/**
+ * Home and Jobs & Posts only: every thread today is about a job
+ * (inboxForSection), so only these two carry the unread count. Declutter,
+ * Shops and Homes have no threads yet (Q2132), so their headers never open the
+ * unread store's realtime channel at all: a section page renders its header
+ * without the messaging layer underneath it.
+ */
+function JobsMessagesButton({ section, label, inbox }: { section: "home" | "jobs"; label: string; inbox: string }) {
+  const { user } = useCurrentUser();
+  const { unreadCount } = useNavUnreadCount(user);
+  const name = section === "home" ? "Messages" : `${label} messages`;
+  return (
+    <MessagesButton
+      inbox={inbox}
+      label={`${name}${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+      unreadCount={unreadCount}
+    />
   );
 }

@@ -244,6 +244,8 @@ export const ANON_SCREENS: ScreenSpec[] = [
 // helpers are customer-rich) — so this is the exhaustive matrix.
 export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "dashboard", url: "/home" },
+  // The Home hub (design slice 2, owner 2026-10-18): the first bottom-bar tab.
+  { name: "hub", url: "/hub" },
   {
     name: "dashboard-map",
     url: "/home",

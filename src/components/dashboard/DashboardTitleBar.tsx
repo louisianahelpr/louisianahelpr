@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/NotificationPanel";
-import { SectionHeaderActions } from "@/components/mobileNav/SectionHeaderActions";
 
 interface DashboardTitleBarProps {
   /** Where the emblem links. Home points at itself; the signed-out guest
@@ -32,6 +31,13 @@ interface DashboardTitleBarProps {
    * labelled controls — never icons, never behind a menu.
    */
   trailing?: ReactNode;
+  /**
+   * The signed-in feed's Messages + you pair (SectionHeaderActions), drawn
+   * after the bell on the default path. Passed in, never imported here: the
+   * guest feed renders this bar too, and a static import would pull the
+   * unread store and the messaging layer into the public cold load (bootReach).
+   */
+  personal?: ReactNode;
   /**
    * Screen controls (search · filters) placed in the SAME row as the bell,
    * immediately to its left. They used to live in a second header row under
@@ -115,6 +121,7 @@ export function DashboardTitleBar({
   emblemTo = "/home",
   status,
   trailing,
+  personal,
   actions,
   searchBar,
 }: DashboardTitleBarProps) {
@@ -202,7 +209,7 @@ export function DashboardTitleBar({
         {/* After the bell: Messages (this section's inbox) and you, the same
             spot as every section header (owner 2026-10-18: no Messages or
             Profile tab). The signed-in feed only, never the guest pair. */}
-        {!trailing && <SectionHeaderActions section="jobs" post={null} />}
+        {!trailing && personal}
       </div>
     </div>
   );

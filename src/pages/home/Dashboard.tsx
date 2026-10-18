@@ -9,6 +9,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useBoostReturn } from "./useBoostReturn";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { JobsPostsBar } from "@/components/mobileNav/JobsPostsBar";
+import { SectionHeaderActions } from "@/components/mobileNav/SectionHeaderActions";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { LoadingHeading } from "@/components/ui/LoadingHeading";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
@@ -382,6 +383,7 @@ const Dashboard = () => {
         // 0.045) and four full-width bars became a narrow column beside a
         // map. It now draws the columns the loaded page draws.
         titleCard={isWebDesktop ? undefined : <DashboardTitleBar
+            personal={<SectionHeaderActions section="jobs" post={null} />}
             actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
           />}
@@ -460,6 +462,7 @@ const Dashboard = () => {
       titleCard={
         isWebDesktop ? undefined : (
           <DashboardTitleBar
+            personal={<SectionHeaderActions section="jobs" post={null} />}
             actions={
               <BrowseTasksActions
                 filters={filters}

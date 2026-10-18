@@ -13,7 +13,8 @@ import { useFeature } from "@/hooks/useFeature";
  *   decision; agents never touch switch audiences).
  * - `label`: the screen-reader name of an icon-only tab (U1) and the rail's
  *   visible word. The bar shows no words (owner, 2026-10-17).
- * - `stack`: sub-routes that light the tab and pop back to its root on tap.
+ * - `stack`: routes whose page and sub-pages light the tab and pop back to its
+ *   root on tap (a section's own root is listed to cover its sub-pages).
  * - `post`: the labeled '+' pill in the section's own header (no '+' in the bar).
  *
  * Guard: src/test/sectionNavOneList.test.ts.
@@ -52,7 +53,7 @@ export const SECTION_NAV: readonly SectionNavItem[] = [
     icon: Sofa,
     label: "Declutter",
     featureKey: "declutter",
-    stack: ["/declutter/"],
+    stack: ["/declutter"],
     post: { label: "Sell", path: "/declutter/sell" },
   },
   {
@@ -61,7 +62,7 @@ export const SECTION_NAV: readonly SectionNavItem[] = [
     icon: Store,
     label: "Shops",
     featureKey: "shops",
-    stack: ["/shops/"],
+    stack: ["/shops"],
     post: { label: "Add item", path: "/shops/mine" },
   },
   // Homes = Rentals renamed (Rent | Buy, owner 2026-10-18); the route stays
@@ -72,7 +73,7 @@ export const SECTION_NAV: readonly SectionNavItem[] = [
     icon: KeyRound,
     label: "Homes",
     featureKey: "rentals",
-    stack: ["/rentals/"],
+    stack: ["/rentals"],
     post: { label: "List", path: "/rentals?add=1" },
   },
 ];
@@ -93,13 +94,18 @@ export function useVisibleSections(): SectionNavItem[] {
   return visibleSections({ declutter, shops, rentals });
 }
 
+/** Pure: is `pathname` one of the section's stack routes or below one. */
+export function inSectionStack(item: SectionNavItem, pathname: string): boolean {
+  return item.stack.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
 /** Which section a pathname belongs to (null: none, e.g. /profile). */
 export function sectionForPath(pathname: string): SectionNavItem | null {
   for (const s of SECTION_NAV) {
     if (pathname === s.path) return s;
   }
   for (const s of SECTION_NAV) {
-    if (s.stack.some((p) => (p.endsWith("/") ? pathname.startsWith(p) : pathname === p || pathname.startsWith(p + "/")))) return s;
+    if (inSectionStack(s, pathname)) return s;
   }
   return null;
 }

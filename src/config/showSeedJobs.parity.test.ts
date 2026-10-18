@@ -336,6 +336,11 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // 20260926034237 (Q342): locks ONE job by id to settle its chargeback; the
     // 'open' it tests is disputes.status, not a jobs feed.
     ["public.settle_dispute_by_chargeback", "single-job money settlement by id; 'open' is the dispute's status"],
+    // Quotes (20261018042506): cancel_quote_request deletes the caller's ONE
+    // never-funded quote job by id; the hire trigger re-reads the ONE job whose
+    // payment it is reacting to. 'open' is a precondition in both, never a feed.
+    ["public.cancel_quote_request", "single-job mutation on the caller's own quote job; status is a precondition"],
+    ["public.quote_job_funded_hires_quoter", "AFTER-trigger re-reading the one job being funded; status is a precondition"],
   ]);
 
   it("every migration object that SELECTS open jobs is gated or declared not-a-feed", () => {

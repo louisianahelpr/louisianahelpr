@@ -26,7 +26,7 @@ export interface EscrowCheckoutOptions {
   feeQuote?: JobFeeQuote;
   /**
    * Where a cancelled checkout comes back to (Q1862). create-payment accepts
-   * only its allowlisted in-app paths (ESCROW_RETURN_PATHS) and refuses any
+   * only a quote request page (/quotes/request/<uuid>) and refuses any
    * other; omitted, it is Post a Job.
    */
   returnPath?: string;

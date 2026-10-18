@@ -43,6 +43,7 @@
 import { readFileSync } from "node:fs";
 import os from "node:os";
 import { effectiveDefs } from "../helpers/effectiveFunctionDefs.ts";
+import { installClock, newestFunction, onFixedClock, setClock } from "./lib/fixedClock.mjs";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
@@ -536,6 +537,53 @@ await step("Q1864 a failure closing the quotes never undoes the block; it is log
     "Q1864 a failure closing the quotes never undoes the block; it is logged and the quote stays pending",
     blockErr === null && blocked === 1 && logged === 1 && pending >= 1,
     `err=${blockErr} blocked=${blocked} logged=${logged} pending=${pending}`,
+  );
+});
+
+// Q1357: the sweep's clock edges on a FIXED clock (fixedClock.mjs). The newest
+// "sweep_quote_alerts" body is reloaded with every now() pointed at
+// _probe_now(), so each boundary is exact: a reply window ending exactly 4 h out
+// reminds and one a second later does not; a quote window closed exactly now
+// notices, one closing a second later does not yet, and one closed exactly a
+// day ago never does. One second later the two waiting rows go. Last on
+// purpose: it replaces the sweep body for the rest of the run. On --before the
+// migration is not loaded, the sweep does not exist, and this fails.
+await step("10 the sweep's 4 h reminder and 1-day close-notice edges, on a fixed clock", async () => {
+  if (BEFORE) throw new Error("sweep_quote_alerts is not on main");
+  await installClock(db);
+  // The newest body prod runs; a planted-defect copy (QUOTES2_MIGRATION) supplies its own.
+  const sweepStmt = process.env.QUOTES2_MIGRATION
+    ? /CREATE OR REPLACE FUNCTION public\.sweep_quote_alerts\(\)[\s\S]*?\$fn\$[\s\S]*?\$fn\$;/.exec(MIGRATION)[0]
+    : newestFunction("sweep_quote_alerts").stmt;
+  await db.exec(onFixedClock(sweepStmt));
+  const T = "2030-06-01T12:00:00Z";
+  await setClock(db, T);
+  await svc("UPDATE public.job_quote_requests SET status = 'cancelled' WHERE status = 'open'");
+  const [ra, rb, rc, rd, re] = [await newRequest(), await newRequest(), await newRequest(), await newRequest(), await newRequest()];
+  const qa = (await one(QA, `SELECT public.submit_job_quote('${ra}', 25000, 'Paint included', 'Saturday') AS id`)).id;
+  const qb = (await one(QB, `SELECT public.submit_job_quote('${rb}', 25000, 'Paint included', 'Saturday') AS id`)).id;
+  await svc(`UPDATE public.job_quote_requests SET date_needed = '2030-06-10', quotes_close_at = '${T}'::timestamptz + interval '10 days'
+    WHERE id IN ('${ra}', '${rb}', '${rc}', '${rd}', '${re}')`);
+  await svc(`UPDATE public.job_quotes SET respond_until = '${T}'::timestamptz + interval '4 hours' WHERE id = '${qa}'`);
+  await svc(`UPDATE public.job_quotes SET respond_until = '${T}'::timestamptz + interval '4 hours 1 second' WHERE id = '${qb}'`);
+  await svc(`UPDATE public.job_quote_requests SET quotes_close_at = '${T}'::timestamptz WHERE id = '${rc}'`);
+  await svc(`UPDATE public.job_quote_requests SET quotes_close_at = '${T}'::timestamptz + interval '1 second' WHERE id = '${rd}'`);
+  await svc(`UPDATE public.job_quote_requests SET quotes_close_at = '${T}'::timestamptz - interval '1 day' WHERE id = '${re}'`);
+  const marks = async () => {
+    const q = await svc(`SELECT id, reminder_sent_for IS NOT NULL AS m FROM public.job_quotes WHERE id IN ('${qa}', '${qb}')`);
+    const r = await svc(`SELECT id, close_notice_sent_at IS NOT NULL AS m FROM public.job_quote_requests WHERE id IN ('${rc}', '${rd}', '${re}')`);
+    const m = Object.fromEntries([...q, ...r].map((x) => [x.id, x.m]));
+    return [m[qa], m[qb], m[rc], m[rd], m[re]].map((b) => (b ? 1 : 0)).join("");
+  };
+  const r1 = (await svc("SELECT public.sweep_quote_alerts() AS r"))[0].r;
+  const m1 = await marks();
+  await setClock(db, "2030-06-01T12:00:01Z");
+  const r2 = (await svc("SELECT public.sweep_quote_alerts() AS r"))[0].r;
+  const m2 = await marks();
+  check(
+    "10 the sweep's 4 h reminder and 1-day close-notice edges, on a fixed clock",
+    r1?.reminders === 1 && r1?.closed_notices === 1 && m1 === "10100" && r2?.reminders === 1 && r2?.closed_notices === 1 && m2 === "11110",
+    `r1=${JSON.stringify(r1)} m1=${m1} r2=${JSON.stringify(r2)} m2=${m2}`,
   );
 });
 

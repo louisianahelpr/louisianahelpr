@@ -279,9 +279,12 @@ describe("PaymentSuccess", () => {
     it("drops the draft that WAS sent to Checkout for the paid job", async () => {
       localStorage.setItem("helpr_draft_job", JSON.stringify({ title: "Spent draft" }));
       localStorage.setItem("helpr_draft_checkout_job", JOB_ID);
+      // The draft is there before the page mounts, so the wait below is for the
+      // drop itself, never satisfied by a first paint (waitForEmptyIsVacuous).
+      expect(localStorage.getItem("helpr_draft_job")).toContain("Spent draft");
       renderAt();
       await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
-      await waitFor(() => expect(localStorage.getItem("helpr_draft_job")).toBeNull());
+      await waitFor(() => expect(localStorage.getItem("helpr_draft_job") ?? "dropped").toBe("dropped"));
       expect(localStorage.getItem("helpr_draft_checkout_job")).toBeNull();
     });
 

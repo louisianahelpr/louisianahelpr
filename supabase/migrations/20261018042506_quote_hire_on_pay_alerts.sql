@@ -549,14 +549,16 @@ BEGIN
     -- block check itself).
     IF v_err IS NOT NULL AND v_reason IS NULL THEN
       BEGIN
-        IF NOT public.are_users_blocked(v_quoter, NEW.customer_id)
-           AND EXISTS (
-             SELECT 1 FROM public.jobs j
-              WHERE j.id = NEW.id AND j.status::text = 'open' AND j.helper_id IS NULL
-                AND j.offered_to_helper_id = v_quoter AND j.direct_offer_status = 'pending'
-                AND (j.direct_offer_expires_at IS NULL OR j.direct_offer_expires_at > now())
-                AND (j.date_needed IS NULL OR public.job_offer_cutoff(j.date_needed, j.start_time) > now())
-           ) THEN
+        -- FOR SHARE: this transaction already holds the row (its payment write
+        -- fired this trigger), so the lock costs nothing; it keeps the read a
+        -- locked one for scripts/check-race-class.mjs.
+        PERFORM 1 FROM public.jobs j
+         WHERE j.id = NEW.id AND j.status::text = 'open' AND j.helper_id IS NULL
+           AND j.offered_to_helper_id = v_quoter AND j.direct_offer_status = 'pending'
+           AND (j.direct_offer_expires_at IS NULL OR j.direct_offer_expires_at > now())
+           AND (j.date_needed IS NULL OR public.job_offer_cutoff(j.date_needed, j.start_time) > now())
+         FOR SHARE;
+        IF FOUND AND NOT public.are_users_blocked(v_quoter, NEW.customer_id) THEN
           PERFORM public.quote_notify_about(v_quoter, 'Accept to start',
             'Payment arrived for "' || COALESCE(v_title, 'your quote') || '". Accept the direct offer to start.',
             NEW.customer_id, false);

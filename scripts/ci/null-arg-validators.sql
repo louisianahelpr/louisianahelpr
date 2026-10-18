@@ -103,6 +103,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('error_log_is_seed',             'classify', 'labels an error_logs row as seed traffic'),
   ('is_category_taxable',           'classify', 'labels an earnings export row Taxable/Exempt'),
   ('is_late_cancellation',          'classify', 'labels a cancellation late (fee ladder)'),
+  ('quote_job_offered_to_quoter',   'classify', 'labels a job as booked from an agreed quote and offered to that quoter (20261018042506): the hire trigger acts on it and the direct-offer notice stands aside; no access decision (EXECUTE revoked from clients), and a NULL job or helper is false'),
   ('is_seed_email',                 'classify', 'labels an address as a seed account'),
   ('is_user_error_screen_row',      'classify', 'labels an error_logs row as a user-facing error screen'),
   ('get_thread_counterparty_deleted', 'classify', 'labels a thread''s other party as a deleted account (read-only notice); grants no access (it discloses one bit, account gone vs exists, see its migration), and a NULL argument returns false (threadCounterpartyDeleted.pglite.mjs)'),

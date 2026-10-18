@@ -19,7 +19,7 @@
  * switch added to the landing without being held here fails.
  */
 // @mutate src/pages/profile/Profile.tsx | const showSkeleton = tab === "landing" ? !landingReady : loading; | const showSkeleton = loading;
-// @mutate src/pages/profile/Profile.tsx | const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled); | const landingReady = useArrivalGate(!loading, declutterSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled);
+// @mutate src/pages/profile/Profile.tsx | const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled && quotesSwitch.settled); | const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled);
 // @mutate src/pages/profile/Profile.tsx |   const membershipsSwitch = useFeatureStatus("memberships"); |   const membershipsSwitch = { on: false, settled: true };
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -131,7 +131,7 @@ describe("the Profile landing waits for its switches (Q1894)", () => {
     expect(screen.queryByTestId("skeleton")).toBeTruthy();
     expect(screen.queryByTestId("landing")).toBeNull();
     // Every read starts with the page, not with the landing.
-    expect([...switches.pending.keys()].sort()).toEqual(["declutter", "memberships", "rentals", "shops"]);
+    expect([...switches.pending.keys()].sort()).toEqual(["declutter", "memberships", "quotes", "rentals", "shops"]);
     await answer("declutter", true);
     expect(screen.queryByTestId("landing"), "painted before 'memberships' answered").toBeNull();
     await answer("memberships", false);
@@ -139,6 +139,8 @@ describe("the Profile landing waits for its switches (Q1894)", () => {
     await answer("shops", false);
     expect(screen.queryByTestId("landing"), "painted before 'rentals' answered").toBeNull();
     await answer("rentals", false);
+    expect(screen.queryByTestId("landing"), "painted before 'quotes' answered").toBeNull();
+    await answer("quotes", false);
     expect(await screen.findByTestId("landing")).toBeTruthy();
     expect(screen.queryByTestId("skeleton")).toBeNull();
   });

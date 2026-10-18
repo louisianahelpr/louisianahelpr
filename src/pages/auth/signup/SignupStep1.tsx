@@ -465,7 +465,7 @@ export function SignupStep1({
         <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         <span
           className="text-ds-11 tracking-[0.2em] uppercase font-sans"
-          style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
+          style={{ color: "hsl(var(--accent-ink))" }}
         >
           or
         </span>
@@ -486,7 +486,7 @@ export function SignupStep1({
         <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         <span
           className="text-ds-11 tracking-[0.2em] uppercase font-sans"
-          style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
+          style={{ color: "hsl(var(--accent-ink))" }}
         >
           or
         </span>

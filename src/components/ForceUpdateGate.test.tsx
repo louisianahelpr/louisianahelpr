@@ -185,9 +185,9 @@ describe("ForceUpdateGate — the block screen is not a dead end", () => {
     const link = await screen.findByRole("link", { name: /Update on the App Store/i });
     expect(link).toHaveAttribute("href", "https://apps.apple.com/us/app/helpr/id6754470134");
     expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
-    // Gloss asserted by CLASS here only because jsdom computes no gradients;
-    // the real assertion is the computed `background-image` read in Chrome,
-    // per the two documented ways this app has silently lost the gloss.
+    // Primary fill asserted by CLASS here only because jsdom computes no
+    // styles; the real assertion is the computed background read in a
+    // browser, per the two documented ways a control silently loses it.
     expect(link.className).toContain("btn-grad-primary");
   });
 

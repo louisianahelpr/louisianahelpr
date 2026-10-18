@@ -25,12 +25,12 @@ describe("BarkPillButton", () => {
    * The two things this wrapper exists FOR, neither of which the tests above
    * could see. Both are class-name assertions and jsdom resolves no Tailwind
    * and computes no layout, so what is proven here is the STRING the merge
-   * produced — not a rendered gradient and not a wrapped line. The gradient
-   * itself is asserted as a computed `background-image` in the Playwright
-   * gloss checks (CLAUDE.md, "Gloss tests"); this is the unit-level half:
+   * produced — not a rendered fill and not a wrapped line. The fill itself
+   * (flat brand green since 2026-10-17) is asserted as a computed background
+   * in the Playwright primary-fill checks (CLAUDE.md); this is the unit-level half:
    * that the delegation and the override are still in the output at all.
    */
-  it("delegates to the primary Button variant, so it wears the bark gloss", () => {
+  it("delegates to the primary Button variant, so it wears the brand primary fill", () => {
     // `variant="primary"` is the whole reason this component is a wrapper
     // rather than a div. Drop it and the CTA silently renders as a plain
     // (or outline) button everywhere: empty states, ErrorState retry, the
@@ -66,7 +66,7 @@ describe("BarkPillButton", () => {
   });
 });
 
-// The bark gloss is the component's reason to exist; without the primary
+// The brand primary fill is the component's reason to exist; without the primary
 // variant every empty-state CTA renders as a flat outline button.
 // @mutate src/components/ui/BarkPillButton.tsx | variant="primary"\n      {...props} | variant="outline"\n      {...props}
 // The 320w wrap override: drop it and the Button base's `whitespace-nowrap`

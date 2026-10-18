@@ -258,7 +258,7 @@ it, fix, next) is banned — it is slow, misses cross-page inconsistency, and ke
 re-litigating the same defect classes. Instead, every audit runs in three phases:
 1. **Sweep (parallel):** fan out read-only agents to read the SOURCE of every
    route + admin view at once and catalogue each against the canonical patterns
-   (chrome present? width DERIVED from siblings? header pattern? glossy controls?
+   (chrome present? width DERIVED from siblings? header pattern? flat brand-green primaries?
    token colors? copy casing?). Output ONE deviation worklist, severity-ranked.
 2. **Batch-fix:** apply the whole worklist highest-severity first, grouping by
    defect class (all missing-chrome, then all width one-offs, then all flat
@@ -280,7 +280,7 @@ Don't eyeball for "looks fine." For each element with a role that exists
 elsewhere — the header, the body container width, primary buttons, links, cards
 — open the source-of-truth sibling and confirm this page uses the SAME token /
 class / structure. Any element that drifts (a rolled-own oversized `<h1>`, a
-one-off `max-w-*`, a flat button next to glossy peers, a link with a different
+one-off `max-w-*`, a primary that is not the flat brand green its peers wear, a link with a different
 hover) is a defect to fix now, not later. This parity pass is what catches the
 "nothing feels cohesive" class of problem before the user sees it.
 
@@ -570,22 +570,15 @@ the Parity Principle (§2).
 **Color & effects**
 - Colors ONLY via inline `style={{ color: "hsl(var(--token))" }}` — never
   Tailwind color utilities. Token is the correct one; contrast meets AA.
-- Primary/selected controls are glossy (`btn-grad-primary`/`variant="bark"`),
-  never flat. Gradients, shadows, glass/blur, hover/active/focus transitions,
-  and `observe-fade-up` reveals all present and smooth.
-- **Gloss is SCOPED — it marks what you press, it never decorates.** This rule
-  and `AGENTS.md`'s "no gloss/glow" are the same rule seen from two sides, and
-  they must be read together:
-  - **Glossy (required):** green/bark **primary** buttons and **selected**
-    controls — `btn-grad-primary`, `<Button variant="bark">`, the active state
-    of segmented/toggle/filter controls. Flat here is a defect.
-  - **Matte (required):** every decorative surface — cards, panels, page and
-    section backgrounds, empty-state art, badges/chips that aren't a selected
-    state, dividers, glyph tiles. Gloss/glow here is a defect. Editorial
-    restraint is the brand: one restrained effect at a time, warm charcoal not
-    black.
-  A flat primary button and a glowing decorative card are *both* violations;
-  neither rule licenses the other.
+- Primary/selected controls wear `btn-grad-primary`, the FLAT brand green
+  (`--brand` #0E7A4A; owner 2026-10-17, design C "Warm Modern",
+  docs/DESIGN_SYSTEM.md). Hover/active/focus transitions and
+  `observe-fade-up` reveals present and smooth.
+- **No gloss anywhere (owner, 2026-10-17: flat buttons, green only, the gloss
+  rule retired).** Primary buttons and selected controls are the flat brand
+  green; every decorative surface (cards, panels, backgrounds, badges, glyph
+  tiles) stays matte. A gradient, inner highlight or glow on a button, or a
+  glowing decorative card, is a defect.
 
 **Global interaction consistency**
 - The SAME interaction language everywhere — hover/focus/active/pressed effects
@@ -850,8 +843,8 @@ on the way to their first success.
   State the current step-count and the leaner one when you flag it.
 - **Visual hierarchy & one primary action.** Every screen must have exactly ONE
   unambiguous primary action, and the eye must land on it first — correct size,
-  weight, glossy `btn-grad-primary` treatment, and position relative to secondary
-  actions. Two competing glossy CTAs, a primary action that looks like a link, or
+  weight, flat brand-green `btn-grad-primary` fill, and position relative to secondary
+  actions. Two competing green CTAs, a primary action that looks like a link, or
   a destructive action with equal visual weight to the safe one is a hierarchy
   defect. The user should never have to hunt for "what do I do here."
 - **Information density & clutter.** Judge whether the screen is doing too much:
@@ -888,7 +881,7 @@ on the way to their first success.
   **counter** branches) → helper **"on my way"** → **"arrived"** → **in
   progress** → helper **marks complete** → poster **confirms completion** →
   escrow **release** → **review** (both directions) → **tip**. For each step
-  confirm: the action button is present, glossy where primary, and correctly
+  confirm: the action button is present, flat brand green where primary, and correctly
   gated by role/state; the confirm/action-sheet copy is human; the status label
   updates consistently across dashboard ↔ activity ↔ detail ↔ messages; badge
   counts (`useActivityBadgeCounts`) and any realtime/notification reflect it; and

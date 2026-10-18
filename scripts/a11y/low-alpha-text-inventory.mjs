@@ -41,7 +41,9 @@ function parseTokens(block) {
   }
   return t;
 }
-const darkStart = css.search(/--parchment:\s*220 14% 9%/);
+// The first `[data-theme="dark"] {` block is the dark token block (anchored on
+// the selector, not on a --parchment value, so a palette change cannot blind it).
+const darkStart = css.indexOf('[data-theme="dark"] {');
 if (darkStart < 0) throw new Error("could not find the dark-theme token block in src/index.css");
 const LIGHT = parseTokens(css.slice(0, darkStart));
 const DARK = { ...LIGHT, ...parseTokens(css.slice(darkStart)) };

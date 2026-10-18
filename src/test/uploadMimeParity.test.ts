@@ -29,7 +29,7 @@
 // @mutate src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx | accept="image/*,application/pdf" | accept="image/*,.pdf,.doc,.docx"
 // @mutate src/lib/messageAttachments.ts | ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"] | ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg", "audio/wav"]
 // @mutate src/lib/declutter/handover.ts | if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); | if (!cleaned) throw new Error("photo_not_uploaded");
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | accept="image/*" capture="environment" | accept="image/*,.pdf" capture="environment"
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | accept="image/*" capture="environment" disabled={photo.isPending} | accept="image/*,.pdf" capture="environment" disabled={photo.isPending}
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";

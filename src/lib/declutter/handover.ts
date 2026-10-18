@@ -86,6 +86,7 @@ type HandoverResult =
 
 /** The buyer's "I got it" ('buyer'): the only way a person confirms a Declutter handover (owner 2026-10-18). */
 export async function confirmHandover(orderId: string): Promise<HandoverResult> {
+  // nullable-arg: p_code is always NULL now that handovers have no code (20261018183715 ignores it).
   return rpcData(
     await supabase.rpc("declutter_confirm_handover", { p_order_id: orderId, p_method: "buyer", p_code: null as unknown as string }),
     (e) => rpcErrorMessage("declutter_confirm_handover", e),

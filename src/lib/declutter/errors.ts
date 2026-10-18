@@ -81,6 +81,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   not_a_door_pickup: "Only a pickup at the door is marked \"Picked up\" by the seller. For porch pickups the buyer confirms.",
   invalid_porch_time: "Pick a time after the booked pickup, on the same day.",
   invalid_method: "Something went wrong with the handover. Please try again.",
+  // The handover table refuses a NEW code confirmation (20261018183715 trigger); the RPCs refuse it first.
+  code_handover_removed: "Handovers no longer use a code. Update the app, then tap \"I got it\" when you have the item.",
   wrong_side: "Only the buyer taps \"I got it\", and only the seller taps \"Picked up\".",
   location_required: "Turn on location so we can confirm you're at the pickup address.",
   not_at_pickup: "Take the photo at the pickup address.",

@@ -4456,3 +4456,64 @@ html.senior-mode *::after {
   height: auto;
   object-fit: contain;
 }
+
+/* ── MOCK-UP ONLY (wip/design-small-mocks, 2026-10-18): two gloss levels ──
+   html.mock-gloss-a = SUBTLE (a hint of gloss), html.mock-gloss-b = NEARLY
+   FLAT (solid olive, soft shadow). Same olive/rust tokens, same shapes. */
+
+/* A: primary buttons keep a gentle top-lit gradient, no deep far stop. */
+html.mock-gloss-a .btn-grad-primary {
+  background-image: linear-gradient(180deg, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 70%) !important;
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.14), 0 1px 2px hsl(var(--olivewood) / 0.14) !important;
+}
+/* B: solid olive. */
+html.mock-gloss-b .btn-grad-primary {
+  background-image: none !important;
+  background-color: hsl(var(--bark)) !important;
+  box-shadow: 0 1px 2px hsl(var(--olivewood) / 0.12) !important;
+}
+
+/* The + Post button in the dock: no pulsing halo, far less glow. */
+html.mock-gloss-a nav[aria-label="Bottom navigation"] span[aria-hidden].motion-safe\:animate-pulse,
+html.mock-gloss-b nav[aria-label="Bottom navigation"] span[aria-hidden].motion-safe\:animate-pulse {
+  display: none !important;
+}
+html.mock-gloss-a nav[aria-label="Bottom navigation"] button[aria-label^="Post a new job"] {
+  background: linear-gradient(180deg, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 70%) !important;
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.16), 0 4px 10px -4px hsl(var(--olivewood) / 0.35) !important;
+}
+html.mock-gloss-b nav[aria-label="Bottom navigation"] button[aria-label^="Post a new job"] {
+  background: hsl(var(--bark)) !important;
+  border-color: transparent !important;
+  box-shadow: 0 2px 6px -2px hsl(var(--olivewood) / 0.30) !important;
+}
+/* Active tab: no glowing rust underline. */
+html.mock-gloss-a nav[aria-label="Bottom navigation"] .w-6.h-\[3px\],
+html.mock-gloss-b nav[aria-label="Bottom navigation"] .w-6.h-\[3px\] {
+  box-shadow: none !important;
+}
+
+/* Cards (job cards on /posts and /home are .liquid-glass). */
+html.mock-gloss-a .liquid-glass {
+  box-shadow: inset 0 1px 0 0 hsl(0 0% 100% / 0.6), 0 1px 2px hsl(var(--olivewood) / 0.08), 0 8px 20px -10px hsl(var(--olivewood) / 0.16) !important;
+}
+html.mock-gloss-b .liquid-glass {
+  box-shadow: 0 1px 2px hsl(var(--olivewood) / 0.08), 0 4px 12px -6px hsl(var(--olivewood) / 0.12) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html.mock-gloss-a :where(.bg-card) { box-shadow: inset 0 1px 0 0 hsl(0 0% 100% / 0.4), 0 1px 2px hsl(222 24% 16% / 0.05), 0 6px 14px -8px hsl(222 24% 16% / 0.08); }
+html.mock-gloss-b :where(.bg-card) { box-shadow: 0 1px 2px hsl(222 24% 16% / 0.05), 0 4px 10px -6px hsl(222 24% 16% / 0.08); }
+
+/* Dark mode: the olive-tinted rim and the heavy black bloom go. */
+html.mock-gloss-a[data-theme="dark"] .liquid-glass {
+  border-color: hsl(0 0% 100% / 0.08) !important;
+  box-shadow: inset 0 1px 0 0 hsl(0 0% 100% / 0.04), 0 1px 2px hsl(0 0% 0% / 0.3), 0 8px 18px -10px hsl(0 0% 0% / 0.4) !important;
+}
+html.mock-gloss-b[data-theme="dark"] .liquid-glass {
+  background-color: hsl(0 0% 10%) !important;
+  border-color: hsl(0 0% 100% / 0.07) !important;
+  box-shadow: 0 1px 2px hsl(0 0% 0% / 0.3) !important;
+}
+html.mock-gloss-a[data-theme="dark"] :where(.bg-card) { box-shadow: inset 0 1px 0 0 hsl(0 0% 100% / 0.03), 0 1px 2px hsl(0 0% 0% / 0.25), 0 8px 16px -10px hsl(0 0% 0% / 0.3); }
+html.mock-gloss-b[data-theme="dark"] :where(.bg-card) { box-shadow: 0 1px 2px hsl(0 0% 0% / 0.25); }

@@ -1,3 +1,5 @@
+import { MOCK } from "@/lib/mockFlags";
+import { House } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -103,10 +105,13 @@ const DesktopSidebarNav = () => {
   // Shops (docs/specs/local-shops-prep.md L1-L2: its own destination) joins
   // after Declutter the same way, only while the hidden 'shops' switch is on.
   const shopsOn = useFeature("shops");
+  const rentalsOn = useFeature("rentals");
   const navItems = [
     ...NAV_ITEMS.slice(0, 4),
     ...(declutterOn ? [{ path: "/declutter", icon: Sofa, label: "Declutter" }] : []),
     ...(shopsOn ? [{ path: "/shops", icon: Store, label: "Shops" }] : []),
+    // MOCK-UP ONLY: Homes (the 'rentals' switch) joins the rail beside the other two.
+    ...(MOCK.bar && rentalsOn ? [{ path: "/rentals", icon: House, label: "Homes" }] : []),
     ...NAV_ITEMS.slice(4),
   ];
   // Admin's own sections, collapsed by default so an admin's panel is the same

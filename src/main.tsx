@@ -1,3 +1,4 @@
+import "@/lib/mockFlags";
 // FIRST import, on purpose: arms the splash safety net before any module with a
 // top-level await evaluates (NB-009).
 import "./lib/splashSafetyNet";

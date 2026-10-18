@@ -3,8 +3,17 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useReducedMotion } from "@/lib/accessibility";
 import {
   Plus,
+  Briefcase,
+  Sofa,
+  Store,
+  House,
+  LayoutGrid,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { MOCK } from "@/lib/mockFlags";
+import { useFeature } from "@/hooks/useFeature";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
@@ -74,6 +83,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // badges (new applicants on your posts; pending direct offers to you).
   // Count-only queries — deliberately not the heavy useActivityData hook.
   const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
+  // MOCK-UP ONLY: the three sections, each only while its switch is on.
+  const mockDeclutterOn = useFeature("declutter");
+  const mockShopsOn = useFeature("shops");
+  const mockRentalsOn = useFeature("rentals");
+  const mockSections: { path: string; icon: LucideIcon; label: string }[] = [
+    ...(mockDeclutterOn ? [{ path: "/declutter", icon: Sofa, label: "Declutter" }] : []),
+    ...(mockShopsOn ? [{ path: "/shops", icon: Store, label: "Shops" }] : []),
+    ...(mockRentalsOn ? [{ path: "/rentals", icon: House, label: "Homes" }] : []),
+  ];
+  const [mockMoreOpen, setMockMoreOpen] = useState(!!MOCK.more);
   // Signed-out visitors get no bottom dock (below), so nothing should reserve
   // space for one. This class zeroes `--bottom-nav-h`, which feeds Tailwind's
   // `safe-nav` token — collapsing the ~112px strip on all 22 `pb-safe-nav`
@@ -430,6 +449,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     const showBadge = badgeCount > 0;
 
     const handleClick = () => {
+      if (path === "#more") {
+        hapticLight();
+        setMockMoreOpen((o) => !o);
+        return;
+      }
+      setMockMoreOpen(false);
       // Swallow the trailing click a completed long-press's touchend
       // produces — see the comment on `justLongPressedRef` above.
       if ((path === "/posts" || path === "/messages") && justLongPressedRef.current) {
@@ -466,7 +491,15 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       }
     };
 
-    const isActive = active || inStack;
+    const mockSectionPaths = ["/declutter", "/shops", "/rentals"];
+    const isActive =
+      path === "#more"
+        ? mockMoreOpen || [...mockSectionPaths, "/profile"].some((p) => location.pathname.startsWith(p))
+        : mockSectionPaths.includes(path)
+          ? location.pathname.startsWith(path)
+          : MOCK.bar === "A" && path === "/jobs" && location.pathname === "/posts"
+            ? true
+            : active || inStack;
     // Long-press quick menus only wire up for Posts and Messages, and only
     // for a real signed-in account — guests never navigate has-status
     // filters or conversations. handleClick above already double-checks
@@ -645,6 +678,17 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     );
   };
 
+  const mockNavItems: { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "posts" | "jobs" }[] =
+    MOCK.bar === "A" && mockSections.length > 0
+      ? [
+          leftItems[0],
+          { path: "/jobs", icon: Briefcase, label: "Jobs and Posts", badgeKey: "jobs" },
+          ...mockSections,
+        ]
+      : MOCK.bar === "B" && mockSections.length > 0
+        ? [...leftItems, ...rightItems.slice(0, 2), { path: "#more", icon: LayoutGrid, label: "More" }]
+        : [...leftItems, ...rightItems];
+
   const handlePostClick = () => {
     if (isGuest) {
       triggerGate();
@@ -730,7 +774,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 container padding the Home chip sat 10px in from the dock's inner
                 edge; at 6px it sits 8px in. Height is untouched (h-14). */}
             <div className="flex items-stretch h-14 px-1.5">
-              {[...leftItems, ...rightItems].map((item) => (
+              {mockNavItems.map((item) => (
                 <div key={item.path} className="flex flex-1 items-stretch relative">
                   {renderItem(item)}
                 </div>
@@ -781,6 +825,112 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         </div>
       </nav>
 
+      {MOCK.bar === "A" && mockSections.length > 0 && !dockHidden && typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed z-[60] flex items-center gap-1.5 lg:hidden"
+            style={{ top: "calc(env(safe-area-inset-top, 0px) + 10px)", right: 12 }}
+          >
+            {[
+              { path: "/messages", label: "Messages" },
+              { path: "/profile", label: "Profile" },
+            ].map((t) => {
+              const on = location.pathname.startsWith(t.path);
+              return (
+                <button
+                  key={t.path}
+                  type="button"
+                  aria-label={t.label}
+                  aria-current={on ? "page" : undefined}
+                  onClick={() => navigate(t.path)}
+                  className="mock-topright relative w-11 h-11 rounded-full flex items-center justify-center"
+                  style={{
+                    backgroundColor: "var(--nav-pill-bg)",
+                    backdropFilter: "blur(40px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(40px) saturate(180%)",
+                    border: "1px solid var(--nav-rim-soft)",
+                    boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.08), 0 6px 14px -6px hsl(var(--olivewood) / 0.18)",
+                    color: on ? "hsl(var(--bark))" : "hsl(48 9% 47%)",
+                  }}
+                >
+                  {t.path === "/profile" ? (
+                    <UserAvatar
+                      userId={user?.id}
+                      src={profile?.avatar_url}
+                      name={profile?.full_name}
+                      pixelSize={48}
+                      alt=""
+                      className="w-[26px] h-[26px]"
+                      style={{ boxShadow: on ? "0 0 0 2px hsl(var(--bark))" : "0 0 0 1.5px hsl(var(--olivewood) / 0.18)" }}
+                    />
+                  ) : (
+                    <MessageSquare className="w-[20px] h-[20px]" strokeWidth={on ? 2 : 1.7} fill={on ? "currentColor" : "none"} />
+                  )}
+                  {t.path === "/messages" && unreadCount > 0 && (
+                    <span
+                      className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full text-ds-10 flex items-center justify-center font-bold px-1"
+                      style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
+                    >
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
+      {MOCK.bar === "B" && mockSections.length > 0 && mockMoreOpen && !dockHidden && typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed z-[60] left-3 right-3 mx-auto max-w-lg rounded-3xl p-2 lg:hidden"
+            style={{
+              bottom: "calc(var(--safe-area-bottom, 0px) + 78px)",
+              backgroundColor: "var(--nav-menu-bg, var(--nav-pill-bg))",
+              backdropFilter: "blur(40px) saturate(180%)",
+              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              border: "1px solid var(--nav-rim-soft)",
+              boxShadow: "0 2px 4px hsl(var(--olivewood) / 0.08), 0 22px 44px -10px hsl(var(--olivewood) / 0.22)",
+            }}
+          >
+            <div className="grid grid-cols-4 gap-1">
+              {[...mockSections, { path: "/profile", icon: Plus, label: "Profile" }].map((t) => {
+                const on = location.pathname.startsWith(t.path);
+                const I = t.icon;
+                return (
+                  <button
+                    key={t.path}
+                    type="button"
+                    onClick={() => {
+                      setMockMoreOpen(false);
+                      navigate(t.path);
+                    }}
+                    className="flex flex-col items-center justify-center gap-1 rounded-2xl min-h-[64px] text-ds-12 font-medium"
+                    style={{
+                      color: on ? "hsl(var(--bark))" : "hsl(var(--olivewood))",
+                      background: on ? "hsl(var(--bark) / 0.08)" : "transparent",
+                    }}
+                  >
+                    {t.path === "/profile" ? (
+                      <UserAvatar
+                        userId={user?.id}
+                        src={profile?.avatar_url}
+                        name={profile?.full_name}
+                        pixelSize={48}
+                        alt=""
+                        className="w-[24px] h-[24px]"
+                      />
+                    ) : (
+                      <I className="w-[22px] h-[22px]" strokeWidth={1.7} />
+                    )}
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>,
+          document.body,
+        )}
       <GateSheet open={gateOpen} onOpenChange={setGateOpen} />
     </>
   );

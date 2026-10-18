@@ -1,3 +1,4 @@
+import { MOCK } from "@/lib/mockFlags";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Sparkles, ArrowRight, Search, ChevronDown } from "lucide-react";
@@ -140,7 +141,7 @@ const HeroSection = () => {
               letterSpacing: "-0.03em",
             }}
           >
-            Louisiana&rsquo;s Local Job{" "}
+            {MOCK.words ? <>Louisiana&rsquo;s Local{" "}</> : <>Louisiana&rsquo;s Local Job{" "}</>}
             <em
               className="relative inline-block"
               style={{
@@ -163,7 +164,9 @@ const HeroSection = () => {
             color: "hsl(var(--stormy-sky))",
           }}
         >
-          Hire a Helpr or find local work. For everyday jobs, big and small.
+          {MOCK.words
+            ? "Jobs, Declutter, Shops and Homes: everything local, in one place."
+            : "Hire a Helpr or find local work. For everyday jobs, big and small."}
         </p>
 
         {/* Primary CTA sits horizontally next to a demoted Browse Jobs

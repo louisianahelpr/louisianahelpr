@@ -428,7 +428,7 @@ describe("payment_made counts only the job's poster (Q1385/Q1386b)", () => {
 });
 
 /**
- * Q?payment-made-bare-visit and Q?first-payment-zero-paid (measured on prod
+ * Q?payment-made-bare-visit and Q2095 (measured on prod
  * 2026-10-15: payment_made rows with no job_id outnumber the ones with one
  * 2378 to 109, and first_payment_collected fired 57 times for the test helper,
  * which has never paid for a job). Every real checkout return carries

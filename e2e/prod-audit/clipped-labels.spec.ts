@@ -26,14 +26,30 @@
  * held screen for the poster's newest funded job: a control whose
  * scrollWidth > clientWidth + 1 is a defect. Shown able to fail: the mutation
  * puts the forced two columns back (measured on the lead's look).
+
+ *
+ * HEADER CONTROLS OUT OF THEIR CARD (design slice 2, 2026-10-18): at 320 the
+ * Jobs & Posts title row (emblem, search, filters, bell, Messages, you) was
+ * wider than its title card, so the card's `overflow-hidden` cut the avatar
+ * off at the right edge. Nothing overflowed the PAGE, so every fit check
+ * passed. The same first sweep now also measures every visible control inside
+ * a header region (header, nav, role banner/navigation, PageScaffold's
+ * `data-title-card`) against the viewport and against every ancestor that
+ * clips it (overflow hidden/clip). A control inside a scroller is reachable by
+ * scrolling and is not measured on that axis. The sweep runs behind the write
+ * firewall and asserts the firewall saw the backend. Shown able to fail: the
+ * mutation takes the wrap off DashboardTitleBar's row (the pre-fix 95417816d
+ * row), and the avatar is clipped at 320.
  */
 import { test, expect, type Browser } from "../prodTest";
-import { getSession, selectAs, writeFirewall, POSTER_ID, type Session } from "./harness";
+import { getSession, selectAs, writeFirewall, POSTER_ID, SUPABASE_URL, isConsentAcceptance, type Session } from "./harness";
+import { isReadRpcPath, isStorageSignPath } from "../readRpc";
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
 import { spacingScreens, type SpacingScreen } from "./shellSpacing";
 
 // @mutate src/components/messages/ConversationRow.tsx | title={c.jobTitle} | data-q119-mutant={c.jobTitle}
 // @mutate src/pages/post-job/PaymentSuccess.tsx | grid gap-2.5 grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] | grid grid-cols-2 gap-2.5
+// @mutate src/components/dashboard/DashboardTitleBar.tsx | "flex flex-wrap items-center justify-end gap-x-1.5 gap-y-1 sm:gap-x-2" | "flex items-center justify-end gap-x-1.5 gap-y-1 sm:gap-x-2"
 
 const WIDTHS = [320, 375, 1440] as const;
 const SCREENS = spacingScreens();
@@ -83,6 +99,51 @@ function readClippedLabels(): ClipRow[] {
   return out;
 }
 
+/**
+ * Self-contained (page.evaluate serialises it): every visible control in a
+ * header region that is cut by the viewport or by an ancestor that clips it.
+ */
+function readHeaderControlsOutOfBounds(): string[] {
+  const REGION = 'header,nav,[role="banner"],[role="navigation"],[data-title-card]';
+  const CONTROL = 'a,button,[role="button"],[role="link"],[role="tab"],[role="menuitem"]';
+  const vw = document.documentElement.clientWidth;
+  const out: string[] = [];
+  const seen = new Set<Element>();
+  for (const region of Array.from(document.querySelectorAll<HTMLElement>(REGION))) {
+    for (const el of Array.from(region.querySelectorAll<HTMLElement>(CONTROL))) {
+      if (seen.has(el)) continue;
+      seen.add(el);
+      const r = el.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) continue;
+      let hidden = false;
+      let scrollX = false;
+      let scrollY = false;
+      for (let n: HTMLElement | null = el; n && n !== document.body; n = n.parentElement) {
+        const c = getComputedStyle(n);
+        if (c.display === "none" || c.visibility === "hidden" || c.opacity === "0" || c.clip === "rect(0px, 0px, 0px, 0px)" || /inset\(50%\)/.test(c.clipPath)) hidden = true;
+        if (n !== el && /(auto|scroll)/.test(c.overflowX) && n.scrollWidth > n.clientWidth + 1) scrollX = true;
+        if (n !== el && /(auto|scroll)/.test(c.overflowY) && n.scrollHeight > n.clientHeight + 1) scrollY = true;
+      }
+      if (hidden) continue;
+      const name = `${el.tagName.toLowerCase()}[${(el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 40)}]`;
+      const box = `x${Math.round(r.left)}-${Math.round(r.right)} y${Math.round(r.top)}-${Math.round(r.bottom)}`;
+      if (!scrollX && (r.left < -1 || r.right > vw + 1)) out.push(`${name} ${box} outside the ${vw}px viewport`);
+      for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) {
+        const c = getComputedStyle(n);
+        const a = n.getBoundingClientRect();
+        const cutX = !scrollX && /(hidden|clip)/.test(c.overflowX) && (r.left < a.left - 1 || r.right > a.right + 1);
+        const cutY = !scrollY && /(hidden|clip)/.test(c.overflowY) && (r.top < a.top - 1 || r.bottom > a.bottom + 1);
+        if (cutX || cutY) {
+          const cls = String(n.getAttribute("class") ?? "").split(/\s+/).slice(0, 4).join(".");
+          out.push(`${name} ${box} clipped by ${n.tagName.toLowerCase()}.${cls} x${Math.round(a.left)}-${Math.round(a.right)} y${Math.round(a.top)}-${Math.round(a.bottom)}`);
+          break;
+        }
+      }
+    }
+  }
+  return out;
+}
+
 async function ctxFor(browser: Browser, auth: SpacingScreen["auth"], vw: number, baseURL?: string) {
   const desktop = vw >= 900;
   const ctx = await browser.newContext({
@@ -112,10 +173,28 @@ test("clipped labels: every route's clipped control label keeps its full text at
   test.setTimeout(60 * 60_000);
   expect(SCREENS.length, "spacingScreens() came back short").toBeGreaterThan(40);
   const wrong: string[] = [];
+  const header: string[] = [];
+  let headerControls = 0;
+  // Measuring only: every write is refused at the wire (writeFirewall), and
+  // this listener proves it: it sees the backend at all (else the firewall's
+  // pattern matched nothing), and no non-read request to it ever completes.
+  let backendSeen = 0;
+  const writesThrough: string[] = [];
   let routes = 0;
   for (const auth of ["guest", "poster"] as const) {
     for (const vw of WIDTHS) {
       const ctx = await ctxFor(browser, auth, vw, info.project.use.baseURL);
+      const blocked = await writeFirewall(ctx);
+      ctx.on("request", (req) => {
+        if (req.url().startsWith(SUPABASE_URL)) backendSeen++;
+      });
+      ctx.on("requestfinished", (req) => {
+        if (!req.url().startsWith(SUPABASE_URL) || ["GET", "HEAD", "OPTIONS"].includes(req.method())) return;
+        const { pathname } = new URL(req.url());
+        if (/\/auth\/v1\/(token|user|logout)/.test(pathname) || isReadRpcPath(pathname) || isStorageSignPath(pathname)) return;
+        if (isConsentAcceptance(req.method(), pathname, req.postData())) return;
+        writesThrough.push(`${req.method()} ${pathname}`);
+      });
       const page = await ctx.newPage();
       for (const s of SCREENS.filter((x) => x.auth === auth)) {
         await page.goto(s.url, { waitUntil: "domcontentloaded" });
@@ -129,12 +208,42 @@ test("clipped labels: every route's clipped control label keeps its full text at
           console.log(`CLIP ${line}`);
           if (!c.full) wrong.push(line);
         }
+        headerControls += await page.evaluate(() => document.querySelectorAll('header a,header button,nav a,nav button,[data-title-card] a,[data-title-card] button').length);
+        for (const h of await page.evaluate(readHeaderControlsOutOfBounds)) {
+          console.log(`HEADER ${s.name}@${vw} ${h}`);
+          header.push(`${s.name}@${vw} ${h}`);
+        }
       }
+      if (blocked.length) console.log(`FIREWALL ${auth}@${vw} refused ${blocked.length}: ${blocked.map((b) => b.split(" ").slice(0, 2).join(" ")).join(", ")}`);
       await ctx.close();
     }
   }
   expect(routes).toBe(SCREENS.length * WIDTHS.length);
+  expect(backendSeen, "the write firewall never saw the backend: its URL pattern matches nothing").toBeGreaterThan(0);
+  expect(writesThrough, "a write reached prod through the firewall").toEqual([]);
+  expect(headerControls, "header regions came back near empty: the region selector matches nothing").toBeGreaterThan(200);
+  expect.soft(header, `header controls cut by the viewport or their card:\n${header.join("\n")}`).toEqual([]);
   expect(wrong, `clipped control labels with no full text:\n${wrong.join("\n")}`).toEqual([]);
+});
+
+/* THE HEADER DETECTOR ITSELF, on a page of known answers (no prod traffic):
+   a control past its overflow-hidden card or past the viewport fails; one
+   inside a scroller, or fully inside its card, passes. */
+test("header-fit detector: a control cut by its card or the viewport fails, a scroller's does not", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 320, height: 600 } });
+  const page = await ctx.newPage();
+  await page.setContent(`<style>body{margin:0}button{width:44px;height:44px;flex:none;padding:0;border:0}</style>
+  <div data-title-card style="width:300px;overflow:hidden;display:flex;gap:8px">
+    <button aria-label="fits"></button><span style="width:200px;flex:none"></span><button aria-label="cut by card"></button>
+  </div>
+  <header style="display:flex"><span style="width:300px;flex:none"></span><button aria-label="past viewport"></button></header>
+  <nav style="width:200px;overflow-x:auto;display:flex"><span style="width:300px;flex:none"></span><button aria-label="scrolls"></button></nav>`);
+  const rows = (await page.evaluate(readHeaderControlsOutOfBounds)).join(" | ");
+  await ctx.close();
+  expect(rows).toContain("cut by card");
+  expect(rows).toContain("past viewport");
+  expect(rows).not.toContain("[fits]");
+  expect(rows, "a control inside a horizontal scroller is reachable by scrolling").not.toContain("scrolls");
 });
 
 /** Self-contained (page.evaluate serialises it): visible controls whose content runs past their own box. */

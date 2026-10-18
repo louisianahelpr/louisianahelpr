@@ -147,7 +147,9 @@ export function PageScaffold({
   const enterClass = "";
 
   const titleEl = !titleCard ? null : (
-    <div className={titleCardClass + enterClass} style={TITLE_CARD_STYLE}>
+    // `data-title-card`: the prod header-fit sweep (e2e/prod-audit/clipped-labels.spec.ts)
+    // measures every control in this card against its overflow-hidden edge.
+    <div className={titleCardClass + enterClass} style={TITLE_CARD_STYLE} data-title-card="">
       {titleCard}
     </div>
   );

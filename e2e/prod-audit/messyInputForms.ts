@@ -834,6 +834,11 @@ export const GAPS: Record<string, string> = {
   "src/components/rentals/MaintenanceRequestForm.tsx": "behind the OFF 'rentals' switch (404 on prod); description/access lengths and the contact-leak scan in rentals_file_request (20261017205605), contact refusal pinned by rentalsMaintenance.pglite.mjs; FORMS sweep owed at testers",
   "src/components/rentals/MaintenanceRequestView.tsx": "behind the OFF 'rentals' switch (404 on prod); decline reason and fixed-note rules in 20261017205605, reason_required pinned by rentalsMaintenance.pglite.mjs; FORMS sweep owed at testers",
   "src/components/rentals/RentalVisitHelpr.tsx": "behind the OFF 'rentals' switch (404 on prod); the one datetime-local field is bounded server-side in rentals_propose_visit (20261017221621: NULL, past or > 90 days out RAISEs visit_time_invalid), the past case pinned by rentalsMaintenance.pglite.mjs; FORMS sweep owed at testers",
+  // Homes listings (2026-10-18, 20261018185426): behind the same switch; every field is bounded server-side
+  // (CHECKs + rentals_save_listing refuses unknown keys and maps bad values to bad_listing), pinned by
+  // src/test/pglite/rentalsListings.pglite.mjs. A FORMS sweep is owed with the Rentals one once testers can reach it.
+  "src/components/rentals/listings/ListingEditor.tsx": "behind the 'rentals' switch (testers only); headline 5-80, description <= 4000, rent $50-$50,000, beds/baths in halves, lease 1-36 months min<=max, fixed lists, all CHECKs in 20261018185426 mapped to bad_listing, pinned by rentalsListings.pglite.mjs; FORMS sweep owed at testers",
+  "src/components/rentals/listings/RentBrowse.tsx": "behind the 'rentals' switch (testers only); the search box, bedrooms and max rent only filter a read (rentals_browse_listings, 20261018185426), nothing is written; FORMS sweep owed at testers",
   "src/components/admin/settings/RentalsOwnershipCard.tsx": "admin-only and behind the OFF 'rentals' switch; a rejection needs a >= 5-char note (rentals_admin_review_property), pinned by rentalsMaintenance.pglite.mjs; FORMS sweep owed at testers",
   // Q1254 (2026-10-07): the ask dialog opens only on a BOOKED, funded job's card; the test accounts have none
   // (LIVE Stripe forbids funding a fixture), and its four fields are length-capped on the client and validated

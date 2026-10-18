@@ -58,6 +58,7 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "shop_item_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "src/lib/shops/items.ts addShopItemPhoto -> shops_add_item_photo RPC (path <uid>/shop-items/<item id>/<file>)" },
   { table: "maintenance_request_photos", column: "storage_path", array: false, bucket: "user-documents", writer: "rentals_file_request RPC (path <uid>/rentals/requests/<batch>/<file>; src/lib/rentals/api.ts uploads it)" },
   { table: "rental_properties", column: "ownership_proof_path", array: false, bucket: "user-documents", writer: "rentals_submit_ownership_proof RPC (path <uid>/rentals/<property>/<file>; src/lib/rentals/api.ts uploads it)" },
+  { table: "rental_listing_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "rentals_add_listing_photo RPC (path <uid>/rental-listings/<listing>/<file>; src/lib/rentals/listings.ts uploads it)" },
 ];
 
 /**

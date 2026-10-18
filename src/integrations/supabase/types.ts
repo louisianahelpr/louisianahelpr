@@ -7206,6 +7206,149 @@ export type Database = {
           },
         ]
       }
+      rental_listing_photos: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          owner_id: string
+          position: number
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          owner_id: string
+          position: number
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          owner_id?: string
+          position?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_listing_photos_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "rental_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_listings: {
+        Row: {
+          accepts_vouchers: string
+          accessibility: string[]
+          available_on: string
+          baths: number
+          beds: number
+          created_at: string
+          deposit_cents: number | null
+          description: string
+          expires_at: string | null
+          headline: string
+          id: string
+          lease_months_max: number | null
+          lease_months_min: number | null
+          owner_id: string
+          parking: string
+          pet_rules: string
+          pets: string
+          property_id: string
+          published_at: string | null
+          rent_cents: number
+          rent_frequency: string
+          slug: string
+          sq_ft: number | null
+          status: string
+          unit_id: string
+          updated_at: string
+          utilities_included: string[]
+          wording_flags: string[]
+        }
+        Insert: {
+          accepts_vouchers?: string
+          accessibility?: string[]
+          available_on: string
+          baths: number
+          beds: number
+          created_at?: string
+          deposit_cents?: number | null
+          description?: string
+          expires_at?: string | null
+          headline: string
+          id?: string
+          lease_months_max?: number | null
+          lease_months_min?: number | null
+          owner_id: string
+          parking?: string
+          pet_rules?: string
+          pets?: string
+          property_id: string
+          published_at?: string | null
+          rent_cents: number
+          rent_frequency?: string
+          slug?: string
+          sq_ft?: number | null
+          status?: string
+          unit_id: string
+          updated_at?: string
+          utilities_included?: string[]
+          wording_flags?: string[]
+        }
+        Update: {
+          accepts_vouchers?: string
+          accessibility?: string[]
+          available_on?: string
+          baths?: number
+          beds?: number
+          created_at?: string
+          deposit_cents?: number | null
+          description?: string
+          expires_at?: string | null
+          headline?: string
+          id?: string
+          lease_months_max?: number | null
+          lease_months_min?: number | null
+          owner_id?: string
+          parking?: string
+          pet_rules?: string
+          pets?: string
+          property_id?: string
+          published_at?: string | null
+          rent_cents?: number
+          rent_frequency?: string
+          slug?: string
+          sq_ft?: number | null
+          status?: string
+          unit_id?: string
+          updated_at?: string
+          utilities_included?: string[]
+          wording_flags?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_listings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "rental_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_listings_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "rental_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rental_properties: {
         Row: {
           auto_approve_limit_cents: number | null
@@ -12286,6 +12429,10 @@ export type Database = {
         Args: { p_token: string }
         Returns: string
       }
+      rentals_add_listing_photo: {
+        Args: { p_listing_id: string; p_storage_path: string }
+        Returns: string
+      }
       rentals_add_unit: {
         Args: { p_label: string; p_property_id: string }
         Returns: string
@@ -12302,6 +12449,31 @@ export type Database = {
       rentals_caller_is_active_tenant_of: {
         Args: { p_property_id: string }
         Returns: boolean
+      }
+      rentals_browse_listings: {
+        Args: {
+          p_city?: string
+          p_limit?: number
+          p_max_rent_cents?: number
+          p_min_beds?: number
+          p_offset?: number
+        }
+        Returns: {
+          available_on: string
+          baths: number
+          beds: number
+          city: string
+          headline: string
+          id: string
+          is_mine: boolean
+          pets: string
+          photo_paths: string[]
+          published_at: string
+          rent_cents: number
+          rent_frequency: string
+          sq_ft: number
+          zip_code: string
+        }[]
       }
       rentals_create_property: {
         Args: {
@@ -12342,6 +12514,83 @@ export type Database = {
         Args: { p_unit_id: string }
         Returns: string
       }
+      rentals_listing: {
+        Args: { p_listing_id: string }
+        Returns: {
+          accepts_vouchers: string
+          accessibility: string[]
+          available_on: string
+          baths: number
+          beds: number
+          city: string
+          deposit_cents: number
+          description: string
+          expires_at: string
+          headline: string
+          id: string
+          is_mine: boolean
+          lease_months_max: number
+          lease_months_min: number
+          parking: string
+          pet_rules: string
+          pets: string
+          photo_paths: string[]
+          published_at: string
+          rent_cents: number
+          rent_frequency: string
+          sq_ft: number
+          status: string
+          utilities_included: string[]
+          zip_code: string
+        }[]
+      }
+      rentals_listing_visible: {
+        Args: { p_listing_id: string }
+        Returns: boolean
+      }
+      rentals_listing_wording_flags: {
+        Args: { p_text: string }
+        Returns: string[]
+      }
+      rentals_lock_own_listing: {
+        Args: { p_listing_id: string; p_uid: string }
+        Returns: {
+          accepts_vouchers: string
+          accessibility: string[]
+          available_on: string
+          baths: number
+          beds: number
+          created_at: string
+          deposit_cents: number | null
+          description: string
+          expires_at: string | null
+          headline: string
+          id: string
+          lease_months_max: number | null
+          lease_months_min: number | null
+          owner_id: string
+          parking: string
+          pet_rules: string
+          pets: string
+          property_id: string
+          published_at: string | null
+          rent_cents: number
+          rent_frequency: string
+          slug: string
+          sq_ft: number | null
+          status: string
+          unit_id: string
+          updated_at: string
+          utilities_included: string[]
+          wording_flags: string[]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rental_listings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       rentals_my_homes: {
         Args: never
         Returns: {
@@ -12366,6 +12615,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      rentals_remove_listing_photo: {
+        Args: { p_photo_id: string }
+        Returns: string
+      }
       rentals_request_job_state: {
         Args: { p_request_id: string }
         Returns: {
@@ -12374,8 +12627,16 @@ export type Database = {
           job_status: string
         }[]
       }
+      rentals_save_listing: {
+        Args: { p_fields: Json; p_listing_id: string; p_unit_id: string }
+        Returns: string
+      }
       rentals_set_auto_approve: {
         Args: { p_limit_cents: number; p_property_id: string }
+        Returns: undefined
+      }
+      rentals_set_listing_status: {
+        Args: { p_listing_id: string; p_status: string }
         Returns: undefined
       }
       rentals_submit_ownership_proof: {

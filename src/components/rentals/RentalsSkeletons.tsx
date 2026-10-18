@@ -21,15 +21,17 @@
  * title (the ProfileTabFallback rule: the header is real, so nothing moves when
  * the page replaces it).
  */
+import type { ReactNode } from "react";
 import AppPage from "@/components/AppPage";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RentalsCard } from "./rentalsUi";
 
-/** /rentals while its data loads (switch on): the two cards with their real titles; one bone where each card's first line lands. */
-export function RentalsHomeSkeleton() {
+/** /rentals while its data loads (switch on): the Rent | Buy tabs (live, so a tap on Buy works at once), then the two cards with their real titles; one bone where each card's first line lands. */
+export function RentalsHomeSkeleton({ tabs }: { tabs: ReactNode }) {
   return (
-    <AppPage title="Rentals">
-      <div className="space-y-4" role="status" aria-label="Loading your rentals">
+    <AppPage title="Homes">
+      <div className="mb-4">{tabs}</div>
+      <div className="space-y-4" role="status" aria-label="Loading Homes">
         <RentalsCard title="Homes you rent">
           <Skeleton className="h-10 w-full rounded-xl" aria-hidden />
         </RentalsCard>

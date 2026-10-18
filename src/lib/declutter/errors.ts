@@ -46,7 +46,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   seller_not_eligible: "This seller can't sell right now (account restricted, strikes, age or payouts). Reject it instead.",
   ai_check_stale: "The listing changed while it was being checked. Try again.",
   // Slice 3: offers, Buy, checkout, strikes (20261014210518).
-  card_required: "Save a card first. It is never charged until you check out.",
+  card_required: "Save a card first. It is charged only when you buy, or automatically where you turned on automatic charges.",
   item_not_available: "Someone else got this item first.",
   invalid_offer_amount: "Offer less than the price. To pay the price, tap Buy.",
   offer_too_low: "Offers must be at least half the current price.",

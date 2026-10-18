@@ -85,7 +85,7 @@ function SaveCardPrompt({ onBack }: { onBack: () => void }) {
   const [opening, setOpening] = useState(false);
   return (
     <DeclutterNotice title="Save a card to buy or make offers.">
-      <p>Your card is never charged until you check out and pay.</p>
+      <p>Your card is charged only when you buy, or automatically where you turned on automatic charges (like auto-tip).</p>
       <button
         type="button"
         className="btn-grad-primary mt-3 rounded-full px-5 py-2.5 text-sm font-semibold"

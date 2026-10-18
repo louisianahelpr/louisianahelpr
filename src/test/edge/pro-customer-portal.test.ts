@@ -112,23 +112,49 @@ describe("pro-customer-portal — picking the customer that holds the subscripti
     );
   });
 
-  it("does not spend a subscriptions lookup when there is only one customer", async () => {
+  it("one record that carries the subscription: the portal opens on it", async () => {
     stripeMock.customers.list.mockResolvedValue({ data: [{ id: SUBSCRIBED_CUSTOMER }] });
+    stripeMock.subscriptions.list.mockResolvedValue({ data: [{ id: "sub_1", status: "active" }] });
     const fn = await load();
-    await fn.fetch(call(fn));
+    const res = await fn.fetch(call(fn));
 
-    expect(stripeMock.subscriptions.list).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
     expect(stripeMock.billingPortal.sessions.create).toHaveBeenCalledWith(
       expect.objectContaining({ customer: SUBSCRIBED_CUSTOMER }),
     );
   });
 
-  it("still fails when the email has no Stripe customer at all", async () => {
+  // Q2141 (one wallet): the only record can be the member's wallet customer
+  // (same email). Opening the portal on it lets a card added there become its
+  // default card, which auto-tip charges off-session.
+  it("Q2141: one record with NO subscription (the wallet customer) is never opened: 404, no portal", async () => {
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_wallet" }] });
+    stripeMock.subscriptions.list.mockResolvedValue({ data: [] });
+    const fn = await load();
+    const res = await fn.fetch(call(fn));
+
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "No membership billing found for this account." });
+    expect(stripeMock.subscriptions.list).toHaveBeenCalledWith(expect.objectContaining({ customer: "cus_wallet" }));
+    expect(stripeMock.billingPortal.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("Q2141: several records and none carries a subscription: 404, never the first one", async () => {
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_wallet" }, { id: EMPTY_CUSTOMER }] });
+    stripeMock.subscriptions.list.mockResolvedValue({ data: [] });
+    const fn = await load();
+    const res = await fn.fetch(call(fn));
+
+    expect(res.status).toBe(404);
+    expect(stripeMock.billingPortal.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("the email has no Stripe customer at all: 404, no portal", async () => {
     stripeMock.customers.list.mockResolvedValue({ data: [] });
     const fn = await load();
     const res = await fn.fetch(call(fn));
 
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(404);
     expect(stripeMock.billingPortal.sessions.create).not.toHaveBeenCalled();
   });
 });
@@ -137,3 +163,6 @@ describe("pro-customer-portal — picking the customer that holds the subscripti
 // portal reopens on an arbitrary duplicate record — a paying member staring at
 // an empty portal with no way to stop the charge.
 // @mutate supabase/functions/pro-customer-portal/index.ts | email: user.email, limit: 100 | email: user.email, limit: 1
+// Q2141: fall back to the first record (the old code) and a member with no
+// subscription gets a portal on what can be their wallet customer.
+// @mutate supabase/functions/pro-customer-portal/index.ts |     let customerId: string \| null = null; |     let customerId: string \| null = customers.data[0]?.id ?? null;

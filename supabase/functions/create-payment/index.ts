@@ -411,8 +411,9 @@ serve(async (req) => {
       // ─── Fee model of THIS checkout (owner 2026-10-18, behind the switch) ───
       // The poster-fee model (poster pays 5% + 70c, or 9% + 70c for Pay in 4;
       // the Helpr keeps 100%) applies when the jobs_poster_fee switch is on for
-      // this poster, and not yet on a gift-funded or recurring checkout (their
-      // fee handling is a later slice: _shared/jobCheckout.ts jobFeeModelFor).
+      // this poster, a gift-funded checkout included (the gift pays the job
+      // price + fee first, redeem_gift_card 20261018031451), and not yet on a
+      // recurring checkout (a later slice: _shared/jobCheckout.ts jobFeeModelFor).
       // A switch read error is OFF (featureEnabledForUser fails closed), so the
       // checkout stays on the flat model it charges today.
       //
@@ -427,7 +428,6 @@ serve(async (req) => {
       const posterFeeSwitchOn = await featureEnabledForUser(supabaseAdmin, JOBS_POSTER_FEE_SWITCH, user);
       const feeModel = jobFeeModelFor({
         switchOn: posterFeeSwitchOn,
-        giftFunded: !!giftCardId,
         // The same test charge-recurring-visits uses to find a series parent.
         recurring: job.recurrence_days != null,
       });
@@ -435,6 +435,9 @@ serve(async (req) => {
       const payInFour = body?.payInFour === true ||
         (typeof body?.feeQuote === "object" && body?.feeQuote !== null && body.feeQuote.payInFour === true);
       if (payInFour && !isPosterFee) throw new PublicError(STALE_FEE_QUOTE_MESSAGE);
+      // A gift pays first and any rest is one card/bank checkout: Pay in 4
+      // (9% + 70c) never prices a gift-funded job.
+      if (payInFour && giftCardId) throw new PublicError("Pay in 4 can't be combined with a gift card. Choose card or bank instead.");
       const jobPriceCents = Math.round(Number(job.budget) * 100) + urgentFeeCents;
       const quoteRefusal = feeQuoteRefusal(body?.feeQuote, { model: feeModel, payInFour, jobPriceCents });
       if (quoteRefusal) {
@@ -801,8 +804,10 @@ serve(async (req) => {
       // the budget — and only the shortfall via Stripe when it doesn't.
       // The atomic RPC validates ownership + funding + expiry and moves
       // the money server-side; the client is never trusted with any of it.
-      // A gift-card job carries NO recipient service fee, so this short-circuits
-      // before the tier/fee/tax pricing below.
+      // On the flat model a gift-card job carries NO poster service fee; on the
+      // poster-fee model the fee stamped above is part of what the gift pays
+      // first (redeem_gift_card reads it from customer_fee_amount) and of the
+      // shortfall. Either way this short-circuits before the pricing below.
       if (giftCardId) {
         const { data: redeem, error: redeemErr } = await supabaseAdmin.rpc("redeem_gift_card", {
           p_credit_id: giftCardId,
@@ -831,7 +836,8 @@ serve(async (req) => {
         }
 
         // Partial: the gift is reserved against the job; collect only the
-        // shortfall. No service fee on a gift-card job. The difference session's
+        // shortfall (on the poster-fee model it includes the part of the fee
+        // the gift did not cover; flat model: no service fee). The difference session's
         // webhook (metadata.gift_card_id) consumes the reservation + funds
         // the job. Retry is safe: the RPC re-entry returns the same
         // difference and Stripe dedupes on the per-job idempotency key.
@@ -849,7 +855,9 @@ serve(async (req) => {
             tax_behavior: TAX_BEHAVIOR,
             product_data: {
               name: `Helpr Job: ${job.title}`,
-              description: "Remaining balance after applying your gift card. Funds release once both parties confirm completion.",
+              description: isPosterFee
+                ? `Remaining balance after applying your gift card, including the service fee (${POSTER_JOB_FEE_DESCRIPTION}). Funds release once both parties confirm completion.`
+                : "Remaining balance after applying your gift card. Funds release once both parties confirm completion.",
               tax_code: NONTAXABLE_TAX_CODE,
             },
             unit_amount: differenceCents,
@@ -905,7 +913,9 @@ serve(async (req) => {
         // Always stamped, zero included: a fee an earlier card checkout of this
         // job stamped must not survive into this gift job's cancellation
         // withholding (Q362 re-review LOW 1).
-        const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: 0 });
+        // The poster-fee model keeps its fee stamp (the gift + this shortfall
+        // pay it); the flat model stamps 0.
+        const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: isPosterFee ? posterFeeCents / 100 : 0 });
         if (!diffStamp.ok) {
           console.error(`[create-payment] gift card difference session ${diffSession.id} created for job ${jobId} but jobs.update failed:`, diffStamp.reason);
           // Safe to fail loudly: the credit is still 'reserved' against THIS

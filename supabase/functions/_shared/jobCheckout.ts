@@ -17,10 +17,12 @@
 //   sessions). It adds a 2-4% conversion fee to what the CUSTOMER pays, so a
 //   job checkout turns it off: the poster pays the dollar total the app showed.
 // - The poster-fee model (5% + 70c, Helpr keeps 100%) is behind ONE server
-//   switch, `jobs_poster_fee`, created OFF. Until the gift-first and
-//   recurring-visit slices land, a gift-funded or recurring checkout stays on
-//   the flat model even with the switch on (jobFeeModelFor), so no job is ever
-//   stamped poster-fee on a path that does not charge the fee.
+//   switch, `jobs_poster_fee`, created OFF. A gift-funded checkout is on it
+//   too: the gift pays the job price + fee first, any rest by card
+//   (redeem_gift_card, 20261018031451). Until the recurring-visit slice
+//   lands, a recurring checkout stays on the flat model even with the switch
+//   on (jobFeeModelFor), so no job is ever stamped poster-fee on a path that
+//   does not charge the fee.
 // - Stale-client protection: a poster-fee checkout is refused unless the
 //   request carries the fee model and the exact amounts the app showed
 //   (feeQuoteRefusal). An installed app built before the change sends nothing,
@@ -66,15 +68,13 @@ export type JobFeeModel = "poster" | "flat";
 export interface JobFeeModelInputs {
   /** feature_enabled_for_user('jobs_poster_fee', poster) answered exactly true. */
   switchOn: boolean;
-  /** The checkout redeems a gift card (gift-first pricing is a later slice). */
-  giftFunded: boolean;
   /** The job is a recurring series (recurrence_days set; per-visit fee is a later slice). */
   recurring: boolean;
 }
 
 /** Which model a NEW checkout is on. Already-funded jobs keep their stamped model. */
 export function jobFeeModelFor(i: JobFeeModelInputs): JobFeeModel {
-  return i.switchOn && !i.giftFunded && !i.recurring ? "poster" : "flat";
+  return i.switchOn && !i.recurring ? "poster" : "flat";
 }
 
 /** The poster's service fee percent on a poster-fee checkout. */

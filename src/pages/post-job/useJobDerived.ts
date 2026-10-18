@@ -53,8 +53,6 @@ export interface UseJobDerivedParams {
   giftCardAmount?: number | null;
   /** A recurring series (the per-visit poster fee is a later slice: flat for now). */
   isRecurring?: boolean;
-  /** The gift card id riding on this post (create-payment decides the model by it). */
-  giftCardId?: string | null;
   /** jobs_poster_fee is on for this poster (usePostJobForm reads it once); absent = off. */
   posterFeeOn?: boolean;
 }
@@ -151,9 +149,22 @@ export function useJobDerived(params: UseJobDerivedParams) {
      zero, and nothing else. `jobs.urgent_fee` is written as
      `isUrgent ? parseFloat(urgentFee) || 0 : 0` (jobSubmitHelpers), which is
      `urgentFeeNum` — the same number, so the two sides cannot disagree. */
+  // Jobs poster fee (owner 2026-10-18, behind the jobs_poster_fee switch): the
+  // poster pays 5% of budget + bonus + $0.70, shown as the "Service Fee" line.
+  // The SAME decision create-payment makes (src/lib/jobCheckout.ts), and the
+  // same quote useJobSubmit sends, so a stale screen is refused, never charged.
+  // Off (or still loading) = the flat model: no fee. Gift first: on the
+  // poster-fee model the gift pays the fee too (redeem_gift_card
+  // 20261018031451 adds the stamped fee to its cost), so it joins the cost.
+  const posterFeeOn = params.posterFeeOn === true;
+  const customerFeeAmount = (buildFeeQuote({
+    switchOn: posterFeeOn,
+    recurring: !!params.isRecurring,
+    jobPriceCents: Math.round((budgetNum + urgentFeeNum) * 100),
+  }).serviceFeeCents ?? 0) / 100;
   const giftCreditCents = Math.max(0, Math.round((giftCardAmount ?? 0) * 100));
   const hasGift = giftCreditCents > 0;
-  const giftCostCents = Math.round((budgetNum + urgentFeeNum) * 100);
+  const giftCostCents = Math.round((budgetNum + urgentFeeNum) * 100) + Math.round(customerFeeAmount * 100);
   const giftAppliedCents = Math.min(giftCostCents, giftCreditCents);
   const giftDueCents = giftCostCents - giftAppliedCents;
   /** Dollars the gift actually covers — the "Gift applied −$X" line. */
@@ -172,25 +183,13 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // comes out of the Helpr's flat 5% + $0.70 (src/lib/helprFlatFee.ts). Same
   // as create-payment, so the shown total equals the Stripe charge.
   const urgentCardFeeAmount = 0;
-  // Jobs poster fee (owner 2026-10-18, behind the jobs_poster_fee switch): the
-  // poster pays 5% of budget + bonus + $0.70, shown as the "Service Fee" line.
-  // The SAME decision create-payment makes (src/lib/jobCheckout.ts), and the
-  // same quote useJobSubmit sends, so a stale screen is refused, never charged.
-  // Off (or still loading) = the flat model above: no fee.
-  const posterFeeOn = params.posterFeeOn === true;
-  const customerFeeAmount = (buildFeeQuote({
-    switchOn: posterFeeOn,
-    giftFunded: !!params.giftCardId || hasGift,
-    recurring: !!params.isRecurring,
-    jobPriceCents: Math.round((budgetNum + urgentFeeNum) * 100),
-  }).serviceFeeCents ?? 0) / 100;
   // Every charged line EXCEPT sales tax. Tax is added by CheckoutStep, which
   // is where the parish rate resolves — and for the great majority of
   // categories it is $0, because create-payment marks every line but assembly
   // labor `txcd_00000000`. See `src/lib/salesTax.ts`.
   //
-  // On the gift path this IS the final number (the shortfall, F3: no card fee
-  // on it): no other fee and no tax follow it,
+  // On the gift path this IS the final number (the shortfall, which includes
+  // any poster fee the gift did not cover): no other fee and no tax follow it,
   // so CheckoutStep must not add tax on top (see `hasGift` there).
   const totalCharge = hasGift
     ? giftDueCents / 100

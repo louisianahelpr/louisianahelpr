@@ -517,18 +517,14 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           two stacked liquid-glass boxes with a gap between them saying one
           thing between them. On desktop it is now the panel's first child,
           under a hairline, so the count + controls sit directly on top of the
-          cards they describe.
-
-          Phone and native keep the two-card stack: there the header carries
+          cards they describe. Phone and native keep the two-card stack: there the header carries
           the VISIBLE page name (no app bar exists to carry it), and that name
           reads as chrome rather than as a row of the list. */}
       <PageScaffold
         animate={!skeletonShownRef.current}
         titleCard={isWebDesktop ? undefined : headerEl}
         titleCardClassName={headerPadding}
-        // Jobs & Posts' section strip (owner 2026-10-18): My posts and My jobs
-        // are views of one section now, not bottom-bar tabs.
-        beforePanel={<JobsPostsBar />}
+        beforePanel={<JobsPostsBar /> /* Jobs & Posts' strip, owner 2026-10-18 */}
       >
           {isWebDesktop && headerEl && (
             <div

@@ -61,5 +61,3 @@ export function JobsPostsBar() {
     </div>
   );
 }
-
-export default JobsPostsBar;

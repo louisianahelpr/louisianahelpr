@@ -108,5 +108,3 @@ export function SectionHeaderActions({
     </div>
   );
 }
-
-export default SectionHeaderActions;

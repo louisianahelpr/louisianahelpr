@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/NotificationPanel";
+import { SectionHeaderActions } from "@/components/mobileNav/SectionHeaderActions";
 
 interface DashboardTitleBarProps {
   /** Where the emblem links. Home points at itself; the signed-out guest
@@ -19,10 +20,6 @@ interface DashboardTitleBarProps {
    * rule below still keys off "is the LAST control a bare icon button?" — the
    * pill is neither last nor an icon button.
    */
-  /** After the bell: Messages (this section's inbox) and you (Profile), the
-   *  same spot as every section header (owner 2026-10-18: no Messages or
-   *  Profile tab). Signed-in feed only. */
-  personal?: ReactNode;
   status?: ReactNode;
   /**
    * Controls pinned to the trailing end of the row. Defaults to the
@@ -120,7 +117,6 @@ export function DashboardTitleBar({
   trailing,
   actions,
   searchBar,
-  personal,
 }: DashboardTitleBarProps) {
   /* ONE PRESS OUT, AND THE FOCUS COMES BACK.
      This row is the only expanding search in the app whose TRIGGER unmounts
@@ -203,7 +199,10 @@ export function DashboardTitleBar({
             <NotificationPanel triggerClassName="h-11 w-11" />
           </span>
         )}
-        {personal}
+        {/* After the bell: Messages (this section's inbox) and you, the same
+            spot as every section header (owner 2026-10-18: no Messages or
+            Profile tab). The signed-in feed only, never the guest pair. */}
+        {!trailing && <SectionHeaderActions section="jobs" post={null} />}
       </div>
     </div>
   );

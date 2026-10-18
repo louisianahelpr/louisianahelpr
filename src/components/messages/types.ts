@@ -1,3 +1,4 @@
+import type { TeamThreadSide } from "@/lib/teamThread";
 /**
  * Shared types for the Messages page and its extracted sub-components.
  * Lives in a leaf module so both the page and the component depend on it
@@ -147,5 +148,5 @@ export type Conversation = {
       `team:<user>` sentinel). Job-scoped features (status, lockout, mute, pin,
       archive, reactions, attachments, report/block) are off there.
       See src/lib/teamThread.ts. */
-  teamThread?: import("@/lib/teamThread").TeamThreadSide;
+  teamThread?: TeamThreadSide;
 };

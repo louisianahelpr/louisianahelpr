@@ -8,6 +8,7 @@ import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { useAdminBadges } from "@/components/admin/adminBadgeStore";
 import { useSidePanel } from "@/components/sidePanelOpen";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
+import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { useAgeGate } from "@/hooks/useAgeGate";
@@ -87,6 +88,11 @@ const DesktopSidebarNav = () => {
     if (adminActive) setAdminOpen(true);
   }, [adminActive]);
   const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
+  // The SAME shared store MobileNav reads (Q103): one unread query and one
+  // realtime channel per user, however many navs are mounted. No Messages row
+  // any more, but the rail keeps the store (and the bell's feed, Q756) bound
+  // on the desktop website, before any early return.
+  useNavUnreadCount(user);
   // AM-011: /admin's queue counts (published by Admin.tsx from getBadge).
   const adminBadges = useAdminBadges();
   const adminTotal = Object.values(adminBadges).reduce((a, n) => a + n, 0);

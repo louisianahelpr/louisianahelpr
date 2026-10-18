@@ -35,22 +35,6 @@ export const teamThreadLink = (teamUserId: string): string =>
   `/messages?teamThread=${encodeURIComponent(teamUserId)}`;
 
 /**
- * The deep link that opens a conversation. Team thread: `?teamThread=`. Q262:
- * a deleted-account thread has no userId to link, and a jobId-only link opens
- * it when it is the job's only thread. Otherwise both params.
- */
-export function conversationLink(c: {
-  jobId: string;
-  otherUserId: string | null;
-  teamThread?: TeamThreadSide;
-}): string {
-  if (c.teamThread) return teamThreadLink(c.teamThread.userId);
-  return c.otherUserId === null
-    ? `/messages?jobId=${c.jobId}`
-    : `/messages?jobId=${c.jobId}&userId=${c.otherUserId}`;
-}
-
-/**
  * A `messages` row as the database returns it -> the client's Message shape,
  * whose `job_id` is always a string. A team row's NULL job becomes its
  * sentinel key; a job row is returned unchanged.

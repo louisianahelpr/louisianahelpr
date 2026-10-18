@@ -9,7 +9,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useBoostReturn } from "./useBoostReturn";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { JobsPostsBar } from "@/components/mobileNav/JobsPostsBar";
-import { SectionHeaderActions } from "@/components/mobileNav/SectionHeaderActions";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { LoadingHeading } from "@/components/ui/LoadingHeading";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
@@ -385,11 +384,9 @@ const Dashboard = () => {
         titleCard={isWebDesktop ? undefined : <DashboardTitleBar
             actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
-            personal={<SectionHeaderActions section="jobs" post={null} />}
           />}
         titleCardClassName={TITLE_BAR_PADDING}
-        // Jobs & Posts' section strip, in the loading frame too so nothing moves (Q169).
-        beforePanel={<JobsPostsBar />}
+        beforePanel={<JobsPostsBar /> /* the loaded page's strip, so nothing moves (Q169) */}
       >
         {/* The loaded screen's only <h1> lives in BrowseTasksToolbar, which
             doesn't exist yet here — so the pending screen had no heading at
@@ -479,24 +476,15 @@ const Dashboard = () => {
               />
             }
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
-            personal={<SectionHeaderActions section="jobs" post={null} />}
           />
         )
       }
       titleCardClassName={TITLE_BAR_PADDING}
       beforePanel={
         <>
-          {/* Jobs & Posts' section strip: Browse | My posts | My jobs and
-              '+ Post' (owner 2026-10-18; no '+' in the bottom bar). */}
           <JobsPostsBar />
-          {/* The "Your Helprs" quick-rebook strip used to render here,
-              wrapped in a SectionBoundary. Removed 2026-08-19 at the owner's
-              request — it pushed the job feed down on the home tab for a
-              shortcut that only pays off for repeat customers. Rebooking a
-              saved helper still lives on Profile -> Saved Helprs, which is
-              where the full list is. The component was kept unrendered for a
-              while in case it returned; it was deleted on 2026-08-25 in the
-              dead-code sweep and is recoverable from git history. */}
+          {/* Jobs & Posts' strip (Browse | My posts | My jobs, '+ Post'; owner
+              2026-10-18). The "Your Helprs" strip that sat here left 2026-08-19. */}
           {/* The "Finish your profile" completion nudge used to render
               here. It moved off the home feed onto the Profile landing
               screen (ProfileLanding's completion meter) so the job feed

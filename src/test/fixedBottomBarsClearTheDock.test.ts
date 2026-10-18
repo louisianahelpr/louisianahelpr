@@ -201,8 +201,9 @@ describe("no fixed bottom bar can render under the dock (Q1646)", () => {
     const hits = DOCK_FILES.flatMap((f) =>
       transitionsCoveringVisibility(readFileSync(resolve(ROOT, f), "utf8")).map((h) => `${f}: ${h}`),
     );
-    // The Icon and the UserAvatar glyphs carry `transition-all` today.
-    expect(hits.length, "inventory found no dock transition covering visibility: re-check the scanner").toBeGreaterThan(1);
+    // The tab Icon glyph carries `transition-all` today (the Profile tab's
+    // UserAvatar glyph left the bar on 2026-10-18).
+    expect(hits.length, "inventory found no dock transition covering visibility: re-check the scanner").toBeGreaterThan(0);
     expect(
       cssStopsTransitionsOnYield(CSS),
       `src/index.css must set \`transition: none\` on \`html.${DOCK_YIELD_CLASS} .mobile-nav-frame\` and its \`*\` descendants; these dock elements would otherwise stay painted while it yields:\n${hits.join("\n")}`,

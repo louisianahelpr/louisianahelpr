@@ -121,12 +121,13 @@ describe("every way of opening a message thread goes through openConvo", () => {
     .sort();
 
   it("found every kind of entry point (a checker that sees nothing proves nothing)", () => {
-    // Job cards on both sides, the nav (whose link is built by
-    // lib/teamThread.ts conversationLink since 2026-10-09), the job dialog.
-    for (const where of ["appliedJobCard/", "postedJobCard/", "lib/teamThread.ts", "JobDetailDialog.tsx"]) {
+    // Job cards on both sides and the job dialog. (The bottom bar's Messages
+    // quick menu, which built links with lib/teamThread.ts conversationLink,
+    // left with the Messages tab on 2026-10-18: each section header opens the
+    // inbox instead.)
+    for (const where of ["appliedJobCard/", "postedJobCard/", "JobDetailDialog.tsx"]) {
       expect(linkSites.some((s) => s.includes(where)), `no /messages?jobId= link found in ${where}\n${linkSites.join("\n")}`).toBe(true);
     }
-    expect(fs.readFileSync(path.join(SRC, "components/MobileNav.tsx"), "utf8")).toMatch(/navigate\(conversationLink\(c\)\)/);
     // Inbox tap.
     expect(inboxTapSites.some((s) => s.endsWith("ConversationRow.tsx")), inboxTapSites.join("\n")).toBe(true);
     // Push / notification tap: server builds the link, app navigates to it.

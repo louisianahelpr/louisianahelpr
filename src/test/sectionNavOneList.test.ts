@@ -16,7 +16,7 @@
 // @mutate src/components/DesktopSidebarNav.tsx | const navItems = useVisibleSections(); | const navItems = [...useVisibleSections(), { key: "x", path: "/shops", icon: ShieldAlert, label: "Shops", featureKey: null, stack: [], post: null }];
 // @mutate src/components/MobileNav.tsx | ariaLabel={locked ? `${label} — locked until your account is approved` : label} | ariaLabel={undefined}
 // @mutate src/pages/hub/HomeHubPage.tsx | const sections = useVisibleSections(); | const sections = [...SECTION_NAV];
-// @mutate src/components/mobileNav/sectionNav.ts | if (section === "declutter" \|\| section === "shops" \|\| section === "homes") return []; |
+// @mutate src/components/mobileNav/sectionNav.ts | if (section === "declutter" \|\| section === "shops" \|\| section === "homes") return []; | if (section === "nothing") return [];
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -61,7 +61,7 @@ describe("the sections come from ONE list (sectionNav.ts)", () => {
       expect(code, `${f} reads a section switch itself`).not.toMatch(/useFeature(?:Status)?\(\s*"(declutter|shops|rentals)"\s*\)/);
       // It lists the sections it was given, never the whole unfiltered list.
       expect(code, `${f} maps SECTION_NAV directly`).not.toMatch(/SECTION_NAV\s*\.\s*map\(/);
-      expect(code, `${f} spreads SECTION_NAV`).not.toMatch(/\.\.\.\s*SECTION_NAV\b/);
+      expect(code, `${f} spreads the whole SECTION_NAV`).not.toMatch(/\.\.\.\s*SECTION_NAV\s*[\],)]/);
     }
   });
 

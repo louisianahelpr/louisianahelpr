@@ -335,7 +335,7 @@ const AuthShell = ({
                   Now 4.97:1 light / 6.16:1 dark. */}
               <p
                 className="mt-2 text-ds-11 tracking-[0.18em] uppercase font-sans"
-                style={{ color: "hsl(var(--accent-ink))" }}
+                style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
               >
                 {eyebrow}
               </p>

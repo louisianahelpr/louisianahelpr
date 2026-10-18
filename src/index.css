@@ -11,7 +11,7 @@
    same subsets (latin + latin-ext only — cyrillic/greek/math/symbols/
    vietnamese are dropped, nothing in this product renders them), same
    unicode-range, same discrete font-weight descriptors. The discrete weights
-   MATTER: Bodoni Moda (and Montserrat, until 2026-10-17) is served as ONE wght-variable file
+   MATTER: Bodoni Moda and Montserrat are served as ONE wght-variable file
    each, and it is the per-weight @font-face declaration that pins the
    instance. Declaring `font-weight: 100 900` here instead would let a
    `font-semibold` (600) Bodoni element render at a true 600 rather than
@@ -105,86 +105,69 @@
   src: url("/fonts/bodoni-moda-normal-latin.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-/* Plus Jakarta Sans — the ONE sans (owner, 2026-10-17, Warm Modern / C2
-   mocks). Replaced Montserrat. Google's css2 output for wght 400..800, latin
-   + latin-ext only, self-hosted for the same WKWebView reason as above. It is
-   ONE variable file per subset, so a RANGE descriptor is correct here (the
-   discrete-weight note above is about Bodoni's static instances). OFL. */
 @font-face {
-  font-family: "Plus Jakarta Sans";
-  font-style: normal;
-  font-weight: 400 800;
-  font-display: swap;
-  src: url("/fonts/plus-jakarta-sans-latin-ext.woff2") format("woff2");
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-@font-face {
-  font-family: "Plus Jakarta Sans";
-  font-style: normal;
-  font-weight: 400 800;
-  font-display: swap;
-  src: url("/fonts/plus-jakarta-sans-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-/* Metric-matched Arial fallback so the swap does not shift text. Measured
-   2026-10-17 with fontTools: mean advance width of a fixed latin sample
-   string, Plus Jakarta Sans (instanced at each weight) over Arial / Arial Bold
-   from /System/Library/Fonts/Supplemental; ascent/descent are the hhea values
-   divided by size-adjust. */
-@font-face {
-  font-family: "Plus Jakarta Sans Fallback";
+  font-family: "Montserrat";
   font-style: normal;
   font-weight: 400;
-  src: local("Arial"), local("ArialMT");
-  size-adjust: 102.87%;
-  ascent-override: 100.90%;
-  descent-override: 21.58%;
-  line-gap-override: 0%;
-  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
-  font-family: "Plus Jakarta Sans Fallback";
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Montserrat";
   font-style: normal;
   font-weight: 500;
-  src: local("Arial"), local("ArialMT");
-  size-adjust: 103.81%;
-  ascent-override: 99.99%;
-  descent-override: 21.39%;
-  line-gap-override: 0%;
-  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
-  font-family: "Plus Jakarta Sans Fallback";
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Montserrat";
   font-style: normal;
   font-weight: 600;
-  src: local("Arial Bold"), local("Arial-BoldMT");
-  size-adjust: 100.31%;
-  ascent-override: 103.48%;
-  descent-override: 22.13%;
-  line-gap-override: 0%;
-  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
-  font-family: "Plus Jakarta Sans Fallback";
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Montserrat";
   font-style: normal;
   font-weight: 700;
-  src: local("Arial Bold"), local("Arial-BoldMT");
-  size-adjust: 101.17%;
-  ascent-override: 102.60%;
-  descent-override: 21.94%;
-  line-gap-override: 0%;
-  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
-  font-family: "Plus Jakarta Sans Fallback";
+  font-family: "Montserrat";
   font-style: normal;
-  font-weight: 800;
-  src: local("Arial Bold"), local("Arial-BoldMT");
-  size-adjust: 102.02%;
-  ascent-override: 101.75%;
-  descent-override: 21.76%;
-  line-gap-override: 0%;
-  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: "Beth Ellen";
@@ -351,6 +334,50 @@
   size-adjust: 111.03%;
   ascent-override: 101.33%;
   descent-override: 36.03%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Montserrat Fallback";
+  font-style: normal;
+  font-weight: 400;
+  src: local("Arial"), local("ArialMT");
+  size-adjust: 112.47%;
+  ascent-override: 86.06%;
+  descent-override: 22.32%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Montserrat Fallback";
+  font-style: normal;
+  font-weight: 500;
+  src: local("Arial"), local("ArialMT");
+  size-adjust: 114.31%;
+  ascent-override: 84.68%;
+  descent-override: 21.96%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Montserrat Fallback";
+  font-style: normal;
+  font-weight: 600;
+  src: local("Arial Bold"), local("Arial-BoldMT");
+  size-adjust: 108.21%;
+  ascent-override: 89.46%;
+  descent-override: 23.2%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Montserrat Fallback";
+  font-style: normal;
+  font-weight: 700;
+  src: local("Arial Bold"), local("Arial-BoldMT");
+  size-adjust: 110.22%;
+  ascent-override: 87.82%;
+  descent-override: 22.77%;
   line-gap-override: 0%;
   unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
 }
@@ -544,8 +571,8 @@
      gradient on top of it: a light band beside the desktop rail, and a white
      flash on every navigation. Measured by external QA 2026-09-07. One token,
      one dark override, and no rule can drift. */
-  --page-gradient: linear-gradient(135deg, #F7F3EC 0%, #F7F3EC 100%);
-  --parchment:    38.2 40.7% 94.7%;  /* #F7F3EC page canvas — Warm Modern warm neutral (owner, 2026-10-17, C2). Was cool-neutral
+  --page-gradient: linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
+  --parchment:    220 14% 95%;  /* page canvas — cool near-white. Refined cool-neutral
                                     grey (hue 220, low sat) — the Linear/Stripe/Vercel
                                     premium register, never tacky cream. Held a touch
                                     below the 100%-white cards (~5% L gap) so every
@@ -555,10 +582,10 @@
   --ivory-sand:   0 0% 100%;    /* surface (cards) — pure crisp white. Sits brighter
                                     than the cool-grey canvas so it reads as a clean,
                                     elevated paper tile. */
-  --sand:         37.5 33.3% 90.6%;  /* #EFE9DF warm quiet surface (search filter disc, kicker chip) */
-  --olive:        141.4 33.3% 91.8%;   /* #E3F1E8 green tint (selected nav disc) */
-  --sage:         153.3 79.4% 26.7%;    /* #0E7A4A — green only: the one accent */
-  --bark:         153.3 79.4% 26.7%;   /* #0E7A4A — brand green (text/icon/fill on light) */
+  --sand:         220 14% 90%;  /* cool light grey — soft border / quiet surface (was warm tan #D6C7AD) */
+  --olive:        78 23% 70%;   /* #B7C3A1 — secondary green */
+  --sage:         78 9% 53%;    /* #8C947D — primary accent */
+  --bark:         70 20% 33%;   /* #5E6544 — deep olive */
   /* The CTA gradient's NEAR stop, and the light-mode mirror of --bark-deep's
      problem. At 44% the highlight rendered rgb(123,135,90), and the near-white
      --primary-foreground label on it measured 3.45:1 — under AA, at the END of
@@ -567,34 +594,15 @@
      36% takes it to 4.82:1. The highlight is still visibly lighter than the
      52%→19% falloff around it, so the button still reads as lit from the
      top-left; it is simply no longer lit past the point the label survives. */
-  --bark-light:   153.3 79.4% 26.7%;   /* == --bark: buttons are FLAT now, no highlight stop */
-  --bark-border:  153.3 79.4% 26.7%;   /* == fill, so a CTA border disappears into the flat button */
+  --bark-light:   76 20% 36%;   /* bark CTA / FAB gradient highlight stop */
+  --bark-border:  66 25% 19%;   /* bark CTA button border */
   /* The primary CTA gradient's FAR stop, split out from --bark-border because
      the two want opposite things on dark. The border wants to stay dark (it is
      the edge against the page); the gradient's corner has to carry the LABEL,
      and on dark that label is near-black --parchment. See the dark value. */
-  --bark-deep:    153.3 79.4% 20%;   /* darker green edge (selected-chip borders) */
-  /* ── WARM MODERN BRAND (owner, 2026-10-17; docs/DESIGN_SYSTEM.md) ──────
-     --brand is THE filled green: every primary button, selected control and
-     completed step. It is #0E7A4A in BOTH themes (white on it = 5.38:1).
-     --brand-ink is green used as TEXT or an icon: #0E7A4A on light, #4CC38A on
-     dark (#0E7A4A as text on the dark canvas is only 3.46:1).
-     --brand-tint is the soft green wash behind a selected nav icon. */
-  --brand:            153.3 79.4% 26.7%;
-  --brand-foreground: 0 0% 100%;
-  --brand-ink:        var(--bark);
-  --brand-tint:       var(--olive);
-  /* Type scale — ONE sans (Plus Jakarta Sans), five roles (C2 mocks). */
-  --type-title:   25px;  /* screen title, 700, -0.025em */
-  --type-heading: 18px;  /* section heading, 700, -0.01em */
-  --type-body:    15px;  /* body, 500 */
-  --type-label:   14px;  /* chips, links, buttons in rows, 600-700 */
-  --type-meta:    13px;  /* meta lines, captions, 500 */
-  /* Radius — two values: cards and sheets, and fully round controls. */
-  --radius-card:    24px;
-  --radius-control: 9999px;
-  --olivewood:    145.7 10.8% 12.7%;   /* #1D2420 — primary text (green-charcoal) */
-  --burnt-sienna: 153.3 79.4% 26.7%;   /* accent role, now GREEN (owner: green only); name kept so 429 call sites follow */
+  --bark-deep:    66 25% 19%;   /* bark CTA gradient far stop */
+  --olivewood:    64 16% 16%;   /* #2E2F22 — primary text + dark ground */
+  --burnt-sienna: 19 75% 35%;   /* #984216 — warm accent / emphasis */
   /* Accent used as TEXT on a raised surface. Identical to --burnt-sienna in
      light mode; the dark value is lifted because the accent sits on
      --surface-premium there, where plain --burnt-sienna measures only ~3.3:1
@@ -602,9 +610,8 @@
      the full 4.5:1, not the 3:1 large-text allowance). Kept separate from
      --burnt-sienna so raising it for legibility does not shift the brand
      accent everywhere it is used as a fill, border, or icon. */
-  --accent-ink:   153.3 79.4% 26.7%;
-  --stormy-sky:   92.7 4.5% 39.4%;  /* #646960 muted text. The C2 mock's #6B706A measured 4.19:1 on --sand, so it is
-                                   one step darker: 4.66:1 on --sand, 5.09:1 on --parchment. Old note: 38% measured 4.48:1 for 11px muted text on a
+  --accent-ink:   19 75% 35%;
+  --stormy-sky:   198 12% 36%;  /* WCAG AA. 38% measured 4.48:1 for 11px muted text on a
                                    #dedfdf card — a 0.02 fail, and this repo has shipped
                                    4.46/4.49 "basically fine" before. 36% = 4.88:1 there,
                                    6.51:1 on white. */
@@ -657,11 +664,11 @@
   --muted-foreground:     var(--stormy-sky);
   --secondary:            var(--sand);
   --secondary-foreground: var(--olivewood);
-  --border:               37.9 25.3% 85.3%; /* #E3DCD0 warm hairline. Was a cool hairline, firmed
+  --border:               220 14% 82%; /* cool hairline — premium neutral edge, firmed
                                             so the 1px card outline is actually perceptible
                                             against both the near-white canvas and white
                                             cards (was 87%, too faint; orig warm tan 38 24% 56%) */
-  --input:                37.9 25.3% 85.3%;  /* field BORDER token — warm hairline on the white card */
+  --input:                220 13% 90%;  /* field BORDER token — cool quiet well, visible on white card (was warm 38 24% 72%) */
   --accent:               var(--burnt-sienna);
   --accent-foreground:    0 0% 100%;
   /* App primary = Bark (the bolder olive-green from the landing CTAs). The
@@ -669,7 +676,7 @@
      glass surfaces. Bark gives every button, ring, and active-state badge
      across the in-app surfaces the same authority as the marketing CTAs. */
   --primary:              var(--bark);
-  --primary-foreground:   0 0% 100%;
+  --primary-foreground:   var(--parchment);
   --ring:                 var(--bark);
   --success: 110 12% 35%;  /* was 110 5% 65% — measured 2.38:1 as text, barely half of
                               WCAG AA. 35% = 4.78:1 on a #dedfdf card, 6.38:1 on white.
@@ -683,7 +690,7 @@
      aligned with the vetted `--cancel` pair (hue ~6). White foreground keeps
      AA on the solid fill. Applies to every destructive/error button, badge,
      and text token app-wide. */
-  --info: 153.3 79.4% 26.7%;
+  --info: 78 9% 53%;
   --info-foreground: 0 0% 100%;
   /* --error / --error-foreground were BYTE-IDENTICAL to --destructive
      (6 64% 46%) and had zero consumers in src/. --cancel-tint / --cancel-ink
@@ -697,7 +704,7 @@
      sienna reads as SERIOUS in the app's own voice, which is what a confirm
      needs. Destructive dialogs differ from every other confirm in COLOUR ONLY
      — same layout, same spacing, same buttons. */
-  --destructive: 6.7 70.2% 44.7%;
+  --destructive: 19 74% 40%;
   /* --destructive AS TEXT. The same split as --accent-ink, --sage-ink and
      --gold-ink, and minted for the same measured reason: --destructive is a
      FILL (JobTracking.tsx:1475 paints a solid button with it), so it cannot be
@@ -708,7 +715,7 @@
      over parchment (effective #f2e3dc) the 40% ink measured 4.32:1 — just under
      AA — so the a11y-prod sweep of /jobs flagged it. 38% is 4.69:1 there and
      stays ≥4.5 on every lighter surface it inks. */
-  --destructive-ink: 6.7 70.2% 40%;
+  --destructive-ink: 19 74% 38%;
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:         var(--parchment);
   --sidebar-foreground:         var(--olivewood);
@@ -716,7 +723,7 @@
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent:             var(--sand);
   --sidebar-accent-foreground:  var(--olivewood);
-  --sidebar-border:             37.9 25.3% 85.3%;
+  --sidebar-border:             220 13% 90%;
   --sidebar-ring:               var(--sage);
   --radius: 0.5rem;
 
@@ -738,7 +745,7 @@
 
   /* Legacy token names kept as aliases so existing components don't need
      a sweeping rewrite. They now resolve to the new brand palette. */
-  --ink-deep:       145.7 10.8% 10%;        /* deep Olivewood for headlines */
+  --ink-deep:       64 16% 12%;        /* deep Olivewood for headlines */
   --oak-deep:       var(--olivewood);  /* dark ground (footer, scrims) */
   --oak-foreground: var(--parchment);
   --heritage-gold:  var(--burnt-sienna); /* warm accent role */
@@ -769,10 +776,10 @@
      They were also flat rgba(0,0,0,…) black while every token in this file is
      olivewood-tinted — so a card using one of these read as a different
      MATERIAL from the card beside it. That is the visible half of D1. */
-  --elev-rest:   0 1px 2px rgba(60, 40, 20, 0.05), 0 6px 20px rgba(60, 40, 20, 0.06);
-  --elev-raised: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 30px rgba(40, 30, 20, 0.12);
-  --elev-sheet:  var(--elev-raised);
-  --elev-modal:  var(--elev-raised);
+  --elev-rest:   0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12);
+  --elev-raised: 0 1px 2px hsl(var(--olivewood) / 0.06), 0 12px 24px -6px hsl(var(--olivewood) / 0.14);
+  --elev-sheet:  0 1px 2px hsl(var(--olivewood) / 0.05), 0 20px 40px -10px hsl(var(--olivewood) / 0.16);
+  --elev-modal:  0 1px 2px hsl(var(--olivewood) / 0.05), 0 32px 64px -16px hsl(var(--olivewood) / 0.20);
 
   /* Legacy names → rungs. */
   --shadow-card-soft:     var(--elev-rest);
@@ -906,7 +913,7 @@
      its own tint: the "In progress" status chip measured 3.83:1 on dark and
      "Disputed" 3.52:1, both under AA. Light value is byte-identical to
      --burnt-sienna, so light mode does not move at all. */
-  --sienna-ink: 153.3 79.4% 26.7%;   /* == --burnt-sienna in light (GREEN since 2026-10-17: green only) */
+  --sienna-ink: 19 75% 35%;   /* == --burnt-sienna in light */
 
   /* Cancel red — destructive "Cancel job" action button. Warmer & more
      saturated than the muted system --destructive, kept as its own pair.
@@ -920,8 +927,8 @@
      sheets and sticky list-section headers. The literals were hardcoded cream
      with no dark sibling, so they stayed bright in dark mode. --surface-premium
      is the gradient panel fill; --surface-band is the flat sticky-header band. */
-  --surface-premium: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 100%));
-  --surface-band: 38.2 40.7% 97%;
+  --surface-premium: linear-gradient(180deg, hsl(220 30% 99% / 0.92), hsl(220 18% 96% / 0.74));
+  --surface-band: 220 16% 98%;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -934,25 +941,25 @@
 [data-theme="dark"] {
   color-scheme: dark;
   /* Core brand palette — dark equivalents */
-  --page-gradient: linear-gradient(160deg, #0F1412 0%, #0F1412 100%);
-  --parchment:    156 14.3% 6.9%;   /* #0F1412 page canvas — GREEN-CHARCOAL (owner, C2). Was cool near-black; hue 220 matched
+  --page-gradient: linear-gradient(160deg, hsl(220 15% 8%) 0%, hsl(220 12% 11%) 40%, hsl(200 15% 10%) 100%);
+  --parchment:    220 14% 9%;   /* page canvas — COOL near-black. Hue 220 matches
                                    light mode's canvas family (A1): the theme toggle
                                    should change brightness, not brand temperature.
                                    Was `20 15% 9%` (warm), which made light and dark
                                    two different brands. */
-  --ivory-sand:   145.7 12.3% 11.2%;  /* #19201C card surface, lighter than page */
-  --sand:         146.7 11.4% 15.5%;  /* #232C27 quiet surface */
-  --olive:        153 29.4% 13.3%;   /* #182C23 green tint (mint 14% over the canvas) */
-  --sage:         151.3 49.8% 53.1%;   /* #4CC38A — green as text on dark */
-  --bark:         151.3 49.8% 53.1%;   /* #4CC38A — owner: green TEXT on dark is #4CC38A (8.4:1 on canvas). The filled CTA stays #0E7A4A via --brand */
+  --ivory-sand:   220 12% 13%;  /* card surface, lighter than page (was warm hue 20) */
+  --sand:         220 10% 24%;  /* muted border / quiet surface (was warm hue 30) */
+  --olive:        78 15% 42%;   /* secondary green — lightened for dark bg */
+  --sage:         78 12% 60%;   /* primary accent — noticeably lighter */
+  --bark:         72 22% 52%;   /* deep olive lightened for legibility */
   /* DELIBERATELY NOT the light value any more. The two themes put opposite
      labels on this gradient — near-white --primary-foreground on light,
      near-black on dark — so the stop that is too light for one is correct for
      the other. Light darkens this to 36% to carry a white label; dark keeps 44%,
      where the near-black label measures 4.71:1. See --bark-deep for the other
      end of the same ramp, which needed the mirror treatment. */
-  --bark-light:   151.3 49.8% 53.1%;
-  --bark-border:  153.3 79.4% 26.7%;   /* == --brand: the CTA border disappears into the flat fill */
+  --bark-light:   76 20% 44%;
+  --bark-border:  66 25% 19%;   /* same as light mode — button border, not theme-adaptive */
   /* LIGHTER ON DARK, and this is the one bark token that has to be.
      The ending shape is 125% of the box, so the button's bottom-right corner
      sits at 0.828 of the ramp — an interpolation between the 46% stop and this
@@ -972,13 +979,13 @@
      still, while keeping a real falloff from the 52% centre so the button
      still reads as lit from the top-left rather than flat. If you change this,
      MEASURE it — that is the whole lesson of the previous paragraph. */
-  --bark-deep:    153.3 79.4% 26.7%;
-  --olivewood:    96 15.2% 93.5%;   /* #EEF1EC primary text */
-  --burnt-sienna: 151.3 49.8% 53.1%;   /* accent role, GREEN on dark too */
-  --accent-ink:   151.3 49.8% 53.1%;   /* accent-as-text on a raised dark surface —
+  --bark-deep:    66 25% 44%;
+  --olivewood:    36 15% 80%;   /* primary text — near-white warm */
+  --burnt-sienna: 19 65% 52%;   /* warm accent — slightly brighter on dark */
+  --accent-ink:   19 70% 66%;   /* accent-as-text on a raised dark surface —
                                     lifted from 52% so 9.6px labels clear
                                     4.5:1 (52% measured ~3.3:1) */
-  --stormy-sky:   141.8 5.8% 62.5%;  /* muted-foreground — lightened for dark bg; 60% gave 4.07:1
+  --stormy-sky:   198 14% 65%;  /* muted-foreground — lightened for dark bg; 60% gave 4.07:1
                                     against --sand (220 10% 24%), axe WCAG2aa 4.5:1 min at
                                     10-11px (admin badge/code text); 65% → ~4.70:1 */
   --gold-warm:    38 55% 56%;   /* antique gold — slightly brighter */
@@ -990,13 +997,13 @@
   --foreground:           var(--olivewood);
   --card:                 var(--ivory-sand);
   --card-foreground:      var(--olivewood);
-  --popover:              150 12.9% 12.2%;   /* #1B231F raised menu surface */
+  --popover:              220 12% 15%;   /* cooled with the canvas (was hue 20) */
   --popover-foreground:   var(--olivewood);
   --muted:                var(--sand);
   --muted-foreground:     var(--stormy-sky);
   --secondary:            var(--sand);
   --secondary-foreground: var(--olivewood);
-  --border:               144 10.6% 18.4%;   /* #2A342E hairline */
+  --border:               220 10% 28%;   /* cooled with the canvas (was hue 30) */
   --input:                var(--ivory-sand);
   --accent:               var(--burnt-sienna);
   --accent-foreground:    0 0% 100%;
@@ -1010,7 +1017,7 @@
   /* Real red for dark mode (was the muted mauve `0 18% 55%`). Slightly
      lighter/brighter than the light-mode red so it reads on the dark canvas
      while keeping white-foreground contrast. See the light-mode note. */
-  --info:                 151.3 49.8% 53.1%;
+  --info:                 78 12% 55%;
   --info-foreground:      0 0% 100%;
   /* 51%, not 52%. At 52% (#ce4a3b) white-on-fill measures 4.49:1 — axe-core
      reports it as a serious wcag2aa color-contrast failure on every dark
@@ -1026,7 +1033,7 @@
      job is being noticed. The lightness had to come DOWN, not up: 44% measures
      4.62:1, the highest value that still clears the 4.5:1 floor. Computed
      against white foreground before the change, not after. */
-  --destructive:          6.7 70.2% 44.7%;
+  --destructive:          19 74% 44%;
   /* 44% -> 52% -> 56%. The fill stays at 44%; only text moves. 52% was measured
      against the PLAIN card and page (5.14:1 / 4.63:1) and missed the surface
      this token is actually used against most: a tinted destructive background
@@ -1036,7 +1043,7 @@
      /0.10 — the actual worst-case surface this token ships on, not the
      easiest one. Every consumer is confirmed text-only (`text-[hsl(var(...))]`),
      so raising dark lightness cannot regress a border or fill anywhere. */
-  --destructive-ink:      5.4 72% 67%;
+  --destructive-ink:      19 74% 56%;
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:   var(--parchment);
   --sidebar-foreground:   var(--olivewood);
@@ -1044,11 +1051,11 @@
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent:       var(--sand);
   --sidebar-accent-foreground: var(--olivewood);
-  --sidebar-border:       144 10.6% 18.4%;
+  --sidebar-border:       30 10% 28%;
   --sidebar-ring:         var(--sage);
 
   /* Legacy alias tokens */
-  --ink-deep:       96 15.2% 93.5%;          /* headline text */
+  --ink-deep:       36 15% 85%;          /* headline text — near-white warm */
   --oak-deep:       var(--olivewood);
   --oak-foreground: var(--parchment);
   --heritage-gold:  var(--burnt-sienna);
@@ -1070,25 +1077,25 @@
   --glass-bg:        hsla(0, 0%, 8%, 0.65);
   --glass-bg-soft:   hsla(0, 0%, 7%, 0.55);
   --glass-bg-strong: hsla(0, 0%, 12%, 0.80);
-  --glass-bg-crisp:  hsl(145.7 12.3% 11.2% / 0.97);
-  --glass-bg-title:  hsl(145.7 12.3% 11.2% / 0.85);
+  --glass-bg-crisp:  hsl(20 12% 13% / 0.97);
+  --glass-bg-title:  hsl(20 12% 13% / 0.85);
   --glass-border:    hsl(var(--bark) / 0.25);
 
   /* Bottom-nav dock glass — dark surface so the floating pill reads as
      dark frosted glass over the dark page instead of a bright-white slab.
      Rims drop to faint light hairlines; the curtain fades a near-black
      warm tint instead of warm-white. */
-  --nav-pill-bg:       hsl(150 12.9% 12.2% / 0.72);
+  --nav-pill-bg:       hsl(220 14% 12% / 0.72);
   /* Opaque quick-menu panel, dark. Same hue as the pill at alpha 1 — a rung
      darker than the dark canvas, so it still reads as a raised object. See
      the light-mode note for why this surface cannot rely on its own blur. */
-  --nav-menu-bg:       hsl(150 12.9% 12.2%);
+  --nav-menu-bg:       hsl(220 14% 12%);
   --nav-rim-strong:    hsla(0, 0%, 100%, 0.14);
   --nav-rim-soft:      hsla(0, 0%, 100%, 0.08);
   --nav-rim-bottom:    hsla(0, 0%, 100%, 0.05);
   --nav-inset-hi:      rgba(255, 255, 255, 0.10);
-  --nav-curtain-top:   hsl(156 14.3% 6.9% / 0.6);
-  --nav-curtain-fade:  hsl(156 14.3% 6.9% / 0);
+  --nav-curtain-top:   hsl(220 15% 8% / 0.6);
+  --nav-curtain-fade:  hsl(220 15% 8% / 0);
 
   /* Gift card — dark-mode mint palette: lightened greens for legible
      foreground, dark green-tinted surfaces instead of light fills. */
@@ -1129,7 +1136,7 @@
 
   --boost-tint: 25 65% 56%;   /* lighter base so low-alpha fill reads on dark */
   --boost-ink:  25 80% 70%;   /* legible orange label on dark */
-  --sienna-ink: 151 45% 66%;  /* legible accent label on dark (GREEN since 2026-10-17, was 19 72% 68%). Sits in the same
+  --sienna-ink: 19 72% 68%;   /* legible sienna label on dark. Sits in the same
                                  68-70% lightness band as --sage-ink and
                                  --danger-ink so a row of status chips stays
                                  even. Measures 6.06:1 on the 0.12 tint and
@@ -1148,8 +1155,8 @@
 
   /* Premium cream surfaces — deep warm-charcoal so the upgrade/payout panels
      and sticky bands sit slightly above the dark canvas instead of glowing. */
-  --surface-premium: linear-gradient(180deg, hsl(145.7 12.3% 11.2%), hsl(145.7 12.3% 11.2%));
-  --surface-band: 145.7 12.3% 11.2%;
+  --surface-premium: linear-gradient(180deg, hsl(20 12% 15% / 0.92), hsl(20 12% 13% / 0.74));
+  --surface-band: 20 12% 13%;
 }
 
 /* ── Dark-mode text-destructive brightness lift ──────────────────────
@@ -2650,42 +2657,31 @@ button,
 
 
 /*
- * THE PRIMARY SURFACE — flat brand green (owner, 2026-10-17: "flat buttons",
- * Warm Modern green only; this retired the 2026-09 gloss rule).
+ * Primary-CTA gradient — the `default`/`hero` button fill.
  *
- * The class keeps its old name ON PURPOSE: 100+ call sites (every <Button>
- * primary/default, the segmented control's selected option, the nav CTAs and
- * the one-off primaries) already wear it, so restyling it here flips the whole
- * app at once and there is still exactly ONE definition of "the primary".
- *
- * FLAT means: one solid `background-color`, `background-image: none`, no
- * highlight stop. `background-image: none` is declared, not omitted, so a
- * leftover gradient utility on a call site cannot paint over the fill.
- *
- * `--parchment` is re-pointed at the brand foreground INSIDE the CTA. Every
- * call site writes its label as `text-[hsl(var(--parchment))]` (the old cream
- * label), and on dark mode --parchment is the near-black canvas, which on the
- * #0E7A4A fill would measure 2.9:1. Scoping the variable here turns every one
- * of those labels, and anything nested inside the button, white (5.38:1) in
- * both themes without touching a call site.
- *
- * Guarded by src/test/glossyPrimaryInvariant.test.ts (flat, solid, the brand
- * token) and e2e/happy-path/apply-single-sheet.spec.ts (computed style).
+ * This MUST live as a hand-written CSS class, NOT a Tailwind arbitrary value.
+ * The equivalent `bg-[linear-gradient(180deg,hsl(var(--primary))_0%,hsl(var(--primary)/0.92)_100%)]`
+ * class silently fails to generate in the production Vite/Tailwind build when
+ * the second color stop carries a slash-alpha on a CSS var — the rule is
+ * dropped, leaving the button transparent with invisible cream text (the
+ * "near-white pill" bug). Authoring it directly sidesteps the JIT entirely.
  */
 .btn-grad-primary {
-  --parchment: var(--brand-foreground);
-  background-color: hsl(var(--brand));
-  background-image: none;
-}
-
-/* HEADINGS ARE UPRIGHT (2026-10-17, Warm Modern). `font-display` was Bodoni,
-   and ~109 headings paired it with `italic`. It resolves to Plus Jakarta Sans
-   now, which ships NO italic face, so the browser would synthesize an oblique
-   sans. The C2 mocks set every heading upright; two classes outrank the bare
-   `.italic` utility whatever the order. The landing H1 is `font-hero` (Bodoni)
-   and keeps its italic "Partner.". */
-.font-display.italic {
-  font-style: normal;
+  /* Single source of truth for the primary-CTA surface — the same radial
+     "Post a task" treatment used by the nav CTAs (MobileNav / DesktopSidebarNav
+     / Community). Every primary green button (default / hero / bark variants)
+     references this so the look can't drift across the app. */
+  /* TOKENS, not literals. These two stops were hardcoded here AND declared as
+     --bark-light / --bark-border, so the "single source of truth" had a second
+     copy that merely happened to agree — which is exactly why the dark-mode
+     contrast fix first landed here and changed nothing: the nav CTAs build the
+     same gradient inline from the tokens. One set of values now. */
+  background-image: radial-gradient(
+    125% 125% at 32% 22%,
+    hsl(var(--bark-light)) 0%,
+    hsl(var(--bark)) 46%,
+    hsl(var(--bark-deep)) 100%
+  );
 }
 
 /* UNDER 18: GREYED OUT, NOT GONE (owner, 2026-10-12, Q1586(c)). An Apply or
@@ -2693,7 +2689,7 @@ button,
    `data-age-gated` + aria-disabled (useAgeGate().gatedProps): the same 50%
    the shared <Button>'s `disabled:opacity-50` gives a disabled primary, so it
    reads as the app's own disabled state, and the surface underneath (the
-   btn-grad-primary fill included) is untouched. Not a real `disabled`: the
+   btn-grad-primary radial included) is untouched. Not a real `disabled`: the
    tap still lands and shows the one plain line saying why. */
 [data-age-gated] {
   opacity: 0.5;
@@ -2726,9 +2722,9 @@ button,
         markup could carry every correct class name and still be flat. With
         the paint here there is no inline shorthand for it to be lost to.
 
-   `.segmented-option-selected` deliberately does NOT redeclare the fill.
+   `.segmented-option-selected` deliberately does NOT redeclare the gradient.
    `.btn-grad-primary` is the single source of truth for the primary surface
-   and both classes go on together; a copy of the brand fill here would be a
+   and both classes go on together; a copy of the radial stops here would be a
    second definition that merely happens to agree — the exact drift that
    comment above `.btn-grad-primary` exists to stop. */
 .segmented-track {
@@ -2744,12 +2740,13 @@ button,
    source order is the only thing that decides which colour wins. */
 .segmented-option-selected {
   color: hsl(var(--parchment));
-  /* Flat (owner, 2026-10-17): no inset highlight, no green glow. */
-  box-shadow: none;
+  box-shadow:
+    inset 0 1px 0 hsl(var(--parchment) / 0.22),
+    0 2px 8px -3px hsl(var(--bark) / 0.55);
 }
 
 /* The count pill some segments carry (NotificationPanel's Unread/All). On the
-   selected segment it has to sit on the brand green, so it borrows the
+   selected segment it has to sit on the olive gloss, so it borrows the
    parchment it is printed on rather than the burnt-sienna it wears at rest. */
 /* NEUTRAL by default. These are usually populations — "Active 27", "All 28" —
    and they shipped in the alarm colour once, so a healthy user base rendered as

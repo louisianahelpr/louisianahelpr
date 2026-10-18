@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
-import { blankComments, blankCssComments } from "./helpers/blankNonCode";
+import { blankComments } from "./helpers/blankNonCode";
 
 // PROVEN ABLE TO FAIL 2026-09-20 — after a real vacuity was fixed. The count
 // below used to run over RAW button.tsx, where a comment mentioning the class
@@ -11,21 +11,13 @@ import { blankComments, blankCssComments } from "./helpers/blankNonCode";
 // and the same mutation kills it.
 // @mutate src/components/ui/button.tsx | primary:\n          "btn-grad-primary | primary:\n          "bg-primary
 
-// FLAT since 2026-10-17 (owner: design C "Warm Modern", green only, flat
-// buttons, the gloss retired). PROVEN RED 2026-10-18 by restoring the old
-// radial-gradient .btn-grad-primary rule: the "flat brand green" test fails.
-// @mutate src/index.css | background-image: none;\n} | background-image: radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-deep)) 100%);\n}
-
 /**
- * ONE PRIMARY, AND IT IS THE SHARED FLAT BRAND GREEN.
+ * ONE PRIMARY, AND IT IS GLOSSY.
  *
  * Project rule: a primary action and a SELECTED control wear the shared
- * `btn-grad-primary` fill (flat `--brand` #0E7A4A since 2026-10-17; it was a
- * gloss gradient before). The owner found two olive full-width primaries in
- * the same app, one hand-painted and one shared, and had no way to tell from a
- * screenshot which one was "the" primary. A hand-painted fill also drifts
- * (dark mode, hover, the next palette change), so the shared class stays the
- * only way to paint one.
+ * `btn-grad-primary` gradient — never a flat brand fill. The owner found two
+ * olive full-width primaries in the same app, one flat and one glossy, and had
+ * no way to tell from a screenshot which one was "the" primary.
  *
  * `src/components/ui/button.tsx` already makes this true for anything that goes
  * through `<Button>`: `primary` and `default` both resolve to
@@ -144,31 +136,8 @@ const POPUP_FILES = new Set(
 
 // ---------------------------------------------------------------------------
 
-/** The body of the LAST `.btn-grad-primary {` rule in index.css (comments blanked). */
-function btnGradPrimaryRule(): string {
-  const css = blankCssComments(repoFile("src/index.css"));
-  const at = css.lastIndexOf(".btn-grad-primary {");
-  if (at < 0) return "";
-  return css.slice(at, css.indexOf("}", at) + 1);
-}
-
-describe("the shared primary is the only primary fill", () => {
-  it("the .btn-grad-primary rule is the FLAT brand green: no gradient, no gloss (owner, 2026-10-17)", () => {
-    const rule = btnGradPrimaryRule();
-    expect(rule, "no .btn-grad-primary rule in src/index.css").not.toBe("");
-    expect(rule).toMatch(/background-color:\s*hsl\(var\(--brand\)\)/);
-    expect(rule).toMatch(/background-image:\s*none/);
-    expect(rule, "the gloss is retired: no gradient on the primary").not.toMatch(/gradient\(/);
-    // label stays white on the green in both themes
-    expect(rule).toMatch(/--parchment:\s*var\(--brand-foreground\)/);
-    // and --brand itself is the approved #0E7A4A, declared once for BOTH
-    // themes (a dark-mode redefinition would split the button colour)
-    const css = blankCssComments(repoFile("src/index.css"));
-    const brands = [...css.matchAll(/--brand:\s*([^;]+);/g)].map((m) => m[1].trim());
-    expect(brands).toEqual(["153.3 79.4% 26.7%"]);
-  });
-
-  it("the Button primitive still applies btn-grad-primary (guards this file going blind)", () => {
+describe("the shared primary is the only glossy primary", () => {
+  it("the Button primitive still applies the gloss (guards this file going blind)", () => {
     // Every assertion below is stated as "…and it is not btn-grad-primary".
     // If the primitive stops emitting that class, the whole rule evaporates
     // silently and every offender below becomes indistinguishable from a CTA.

@@ -171,7 +171,7 @@ export function destinationMarkerElement(label?: string | null): HTMLElement {
       `color:${ink}`,
       `border:0.5px solid ${sienna}`,
       "box-shadow:0 2px 6px -2px rgba(46,46,40,0.35)",
-      "font-family:'Plus Jakarta Sans','Plus Jakarta Sans Fallback',system-ui,sans-serif",
+      "font-family:Montserrat,'Montserrat Fallback',system-ui,sans-serif",
       "font-size:10px",
       "font-weight:600",
       "line-height:1.45",

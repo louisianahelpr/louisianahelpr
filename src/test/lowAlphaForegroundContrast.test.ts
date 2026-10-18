@@ -74,12 +74,14 @@ const ACCEPTED = new Map<string, number>([
   ["src/components/postjob/detailsSection/VideoScope.tsx --bark/0.5", 1], // 2.08:1 — Video glyph above its label
   ["src/components/reviewPanel/ReviewForm.tsx --burnt-sienna/0.7", 1], //  2.87:1 — ImagePlus inside a labelled button
   ["src/pages/auth/CompleteProfile.tsx --burnt-sienna/0.7", 1], //             2.87:1 — Circle bullet, aria-hidden, decorative
+  ["src/components/messages/ChatHeader.tsx --olivewood/0.65", 1], //      4.24:1 — ChevronRight affordance
   ["src/components/dashboard/jobDetailDialog/JobStatTiles.tsx --burnt-sienna/0.7", 1], // 2.87:1 — tile icon
   // Reclassified 2026-09-20 — each was on the "21 failing text declarations"
   // list, and each turned out to be a glyph, not a word.
   ["src/pages/profile/HelprWrapped.tsx --burnt-sienna/0.75", 1], //               3.11:1 — <Gift className="w-10 h-10">, ornament above its own <h2>
   ["src/components/landing/HeroSection.tsx --olivewood/0.55", 1], //      3.23:1 — <ChevronDown>, aria-hidden scroll hint that fades out by 160px
   ["src/pages/profile/giftCards/RecipientPicker.tsx --olivewood/0.6", 1], //      3.70:1 — <Search> inside the field, pointer-events-none; the placeholder says it
+  ["src/components/ui/sonner.tsx --olivewood/0.65", 1], //                4.24:1 — sonner's close is an <svg aria-hidden stroke="currentColor">, button labelled "Close toast"
   // Found 2026-09-27 when the scanner learned Tailwind slash opacity (Q765).
   // The text declarations on that list were fixed; these are the glyphs.
   ["src/components/CompletionPrompts.tsx --muted-foreground/0.3", 1], //  1.53:1 — unfilled <Star> in a button labelled "Rate N stars"
@@ -124,12 +126,11 @@ describe("low-alpha foreground contrast", () => {
   const { rows, failing } = collectLowAlphaForegrounds() as { rows: Row[]; failing: Row[] };
 
   // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | "text-muted-foreground/90" | "text-muted-foreground/60"
-  it("sees Tailwind slash opacity — a known `text-muted-foreground/40` is found", () => {
+  it("sees Tailwind slash opacity — the job dialog's pitch hint is found", () => {
     // The blind spot (archive L2242): "Save as my default pitch" was
     // `text-muted-foreground/70`, 3.07:1, and the scanner used to miss it.
-    // That site lost its alpha entirely on 2026-10-17 (Warm Modern palette),
-    // so the floor now pins another slash-opacity class the scanner must see.
-    expect(rows.some((r) => r.file.endsWith("components/CancellationDialog.tsx") && r.token === "muted-foreground" && r.alpha === 0.4)).toBe(true);
+    // Q765 took it to /90 (4.64:1); the scanner must still see the class.
+    expect(rows.some((r) => r.file.endsWith("applyConfirmDialog/ApplyBody.tsx") && r.token === "muted-foreground" && r.alpha === 0.9)).toBe(true);
   });
 
   it("scanned a real tree — the guard cannot pass vacuously", () => {

@@ -39,7 +39,7 @@ import { blankComments } from "./helpers/blankNonCode";
  *     (`data-[state=checked]:btn-grad-primary`) compiles to no CSS at all.
  *     Both are how a control can carry every correct class and render flat. So
  *     the class-name checks below are paired with a check that the class
- *     RESOLVES to the flat brand fill in `index.css`, and that the component
+ *     RESOLVES to a real gradient in `index.css`, and that the component
  *     toggles it as a plain class rather than through a variant.
  *
  * The final proof — computed `background-image` on a real selected segment in
@@ -189,17 +189,16 @@ describe("one segmented control, and it is glossy", () => {
     expect(exempt).toEqual(["src/components/profile/SubscriptionTab.tsx"]);
   });
 
-  it("the canonical selected paint resolves to the flat brand green", () => {
+  it("the canonical selected paint resolves to a real gradient", () => {
     // The class name is not the evidence. `.btn-grad-primary` has to actually
-    // declare the fill, or every assertion about "the selected one" above is
-    // true of an unpainted control. FLAT since 2026-10-17 (owner: design C
-    // "Warm Modern", flat buttons): a solid --brand fill, no gradient.
+    // declare a gradient, or every assertion about "the glossy one" above is
+    // true of a flat control.
     const css = read("src/index.css");
     const rule = css.slice(css.indexOf(".btn-grad-primary {"));
     const body = rule.slice(0, rule.indexOf("}"));
-    expect(body).toMatch(/background-color:\s*hsl\(var\(--brand\)\)/);
-    expect(body).toMatch(/background-image:\s*none/);
-    expect(body).not.toMatch(/gradient\(/);
+    expect(body).toMatch(/background-image:\s*radial-gradient\(/);
+    expect(body).toMatch(/--bark-light/);
+    expect(body).toMatch(/--bark-deep/);
 
     // And the shared paint classes have to exist, or the selected segment is
     // an unstyled button wearing a name.
@@ -226,7 +225,7 @@ describe("one segmented control, and it is glossy", () => {
       expect(
         Boolean(paint) && at > glossAt,
         `${cls} paints "${paint?.[0].trim()}" and is declared after .btn-grad-primary — ` +
-          "equal specificity, so it overrides the brand fill and the selected segment loses its green",
+          "equal specificity, so it overrides the gloss and the selected segment renders flat",
       ).toBe(false);
     }
   });

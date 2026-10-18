@@ -561,7 +561,7 @@ const JobDetailDialog = ({
                     // (19 75% 35%) and the legible lift in dark (19 70% 66%),
                     // so light mode moves only by the 0.85 → 0.9 alpha step.
                     // 4.86:1 both themes.
-                    style={{ color: "hsl(var(--accent-ink))" }}
+                    style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
                   >
                     {descExpanded ? "Show Less" : "Read More"}
                   </button>

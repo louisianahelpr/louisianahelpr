@@ -455,13 +455,6 @@ this list tight; project-specific trivia belongs in code comments, not here.
   **Therefore: when asserting gloss in a test, read the computed
   `background-image` and check it is a real gradient.** Asserting the class
   name passes on a flat control, which is why this kept coming back.
-- **2026-10-17: the gloss itself is retired** (owner: design C "Warm Modern",
-  green only, FLAT buttons). `.btn-grad-primary` is now a flat
-  `background-color: hsl(var(--brand))` with `background-image: none`. Both
-  traps above still apply (a variant over it compiles to nothing; an inline
-  `background` shorthand over it wins), so the rule keeps its shape: assert the
-  COMPUTED fill (`background-image: none` and `background-color`
-  rgb(14, 122, 74)), never the class name.
 
 <a id="credentials"></a>
 ## Never rotate a shared credential silently

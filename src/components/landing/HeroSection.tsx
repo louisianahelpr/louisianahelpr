@@ -103,6 +103,8 @@ const HeroSection = () => {
       {/* Editorial poster: ONE centered column. No boxes. The parchment
           is the paper; the type is the show. Confidence over complexity. */}
       <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16">
+        {/* Warm ambient halo behind the title — subtle gold light source
+            on the parchment. No box, no border. */}
         {/* Wordmark above the headline (owner). The top nav now carries the
             crest alone, so this is where the brand actually says its name on
             the landing page. It sits ABOVE the h1 and does not touch it — the
@@ -113,6 +115,15 @@ const HeroSection = () => {
         </div>
 
         <div className="relative flex items-center justify-center w-full">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -inset-16 sm:-inset-24 lg:-inset-32 -z-0"
+            style={{
+              background:
+                "radial-gradient(50% 50% at 50% 50%, hsl(var(--gold-warm) / 0.24) 0%, hsl(var(--burnt-sienna) / 0.10) 40%, transparent 75%)",
+              filter: "blur(32px)",
+            }}
+          />
           <h1
             ref={headlineRef}
             // Strictly increasing: 56 → 72 → 88 → 96 → 116px. It used to run
@@ -123,21 +134,18 @@ const HeroSection = () => {
             // landscape) the headline swelled ~30% out of proportion and then
             // visibly SHRANK as you widened past 1024. Only `sm` and `md` moved;
             // `lg`/`xl` — the sizes on a normal desktop — are untouched.
-            className="relative z-10 font-hero font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[6rem] xl:text-[7.25rem]"
+            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[6rem] xl:text-[7.25rem]"
             style={{
               color: "hsl(var(--olivewood))",
               letterSpacing: "-0.03em",
             }}
           >
-            {/* Owner, 2026-10-17: "Louisiana's Local Partner." with
-                "Partner." in the brand green (italic, Bodoni), per the
-                approved C2 landing mock. */}
-            Louisiana&rsquo;s Local{" "}
+            Louisiana&rsquo;s Local Job{" "}
             <em
               className="relative inline-block"
               style={{
                 fontStyle: "italic",
-                color: "hsl(var(--brand-ink))",
+                color: "hsl(var(--burnt-sienna))",
               }}
             >
               Partner.
@@ -149,13 +157,13 @@ const HeroSection = () => {
         <p
           className="max-w-xl lg:max-w-3xl text-ds-15 sm:text-ds-17 lg:text-ds-24 leading-relaxed text-balance"
           style={{
-            fontFamily: "'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif",
+            fontFamily: "Montserrat, system-ui, sans-serif",
             fontWeight: 400,
             letterSpacing: "-0.005em",
             color: "hsl(var(--stormy-sky))",
           }}
         >
-          Jobs, Declutter, Shops and Homes: everything local, in one place.
+          Hire a Helpr or find local work. For everyday jobs, big and small.
         </p>
 
         {/* Primary CTA sits horizontally next to a demoted Browse Jobs
@@ -167,11 +175,14 @@ const HeroSection = () => {
             size="xl"
             className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] text-ds-17"
             style={{
-              fontFamily: "'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif",
+              fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,
               lineHeight: 1,
               letterSpacing: "-0.005em",
               color: "hsl(var(--parchment))",
+              border: "1px solid hsl(var(--bark-border))",
+              boxShadow:
+                "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
             }}
           >
             <Link to="/signup" onClick={goToPostJob}>
@@ -186,7 +197,7 @@ const HeroSection = () => {
             variant="outline"
             className="group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-all duration-200 text-ds-17"
             style={{
-              fontFamily: "'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif",
+              fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,
               lineHeight: 1,
               letterSpacing: "-0.005em",

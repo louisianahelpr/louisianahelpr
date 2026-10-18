@@ -57,7 +57,7 @@ Rules inventoried: 135. Mapped: 135. Dropped: 0.
 | 45 | A defect at 375 in a browser is a defect in the app | Working rules :175-176 | 52 |
 | 46 | Never role-based: every account posts and does jobs, all features shown to everyone; never role-gate | Working rules :178-180 | 53 |
 | 47 | Copy addressing only Helprs or only posters is a defect | Working rules :180-181 | 53 |
-| 48 | Landing hero H1 and subhead are locked (font, colour, copy) without explicit instruction (words updated 2026-10-17/18: "Louisiana's Local Partner.") | Working rules :183-186 | 54 |
+| 48 | Landing hero H1 and subhead are locked (font, colour, copy) without explicit instruction | Working rules :183-186 | 54 |
 | 49 | Verify every visual change by an actual screenshot, and look at it before saying fixed | Working rules :188-192 | 24 |
 | 50 | Look first, then measure; neither substitutes for the other | Working rules :205-208 | 25 |
 | 51 | Eyeball applies to layout, spacing, colour, type, empty states, dark mode, every breakpoint; 375 above all | Working rules :210-212 | 24 |
@@ -98,10 +98,10 @@ Rules inventoried: 135. Mapped: 135. Dropped: 0.
 | 86 | Portal overlays to document.body | Gotchas :415-416 | 55 |
 | 87 | Portaled sibling of an open Radix modal needs pointer-events: auto | Gotchas :417-420 | 56 |
 | 88 | Guard your overlay against Radix hideOthers() aria-hidden | Gotchas :420-422 | 56 |
-| 89 | Primary and selected controls wear btn-grad-primary (flat brand green since 2026-10-17) | Gotchas :423-424 | 57 |
+| 89 | Primary and selected controls wear btn-grad-primary | Gotchas :423-424 | 57 |
 | 90 | Never use a Tailwind variant over btn-grad-primary; toggle in JS | Gotchas :427-430 | 57 |
 | 91 | Never inline background shorthand over btn-grad-primary; use backgroundImage or don't | Gotchas :431-436 | 57 |
-| 92 | Primary-fill tests assert the computed flat brand green (gradient assertion retired 2026-10-17), not the class | Gotchas :437-439 | 58 |
+| 92 | Gloss tests assert computed background-image is a gradient, not the class | Gotchas :437-439 | 58 |
 | 93 | Never rotate a shared credential silently | Gotchas :440 | 95 |
 | 94 | Announce credential changes in transcript and docs/audit/launch-2026-09/inbox/ first | Gotchas :443-445 | 95 |
 | 95 | Never change a credential another agent is mid-run on | Gotchas :445-446 | 95 |

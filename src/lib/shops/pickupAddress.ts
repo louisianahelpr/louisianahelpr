@@ -1,6 +1,6 @@
 /**
  * The shop's private pickup address (Shops M1b part 2, migration
- * 20261018033224_shops_pickup_address; lead decision 2026-10-18; tax memo Q3:
+ * 20261018180859_shops_pickup_address; lead decision 2026-10-18; tax memo Q3:
  * a pickup sale is taxed where the buyer takes it).
  *
  * Never public: the shop's owner reads their own, and an order's buyer reads it

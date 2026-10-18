@@ -100,7 +100,7 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   invalid_reason: "Keep the reason under 200 characters.",
   shop_has_open_orders: "Finish or decline your open orders before closing your shop.",
   too_many_order_requests: "You've started a lot of orders in the last hour. Wait a while and try again.",
-  // M1b part 2 (20261018033224): the private pickup address.
+  // M1b part 2 (20261018180859): the private pickup address.
   invalid_pickup_address: "Enter the street and city where buyers pick up.",
   pickup_address_not_in_louisiana: "Enter a Louisiana ZIP code. Shops are for Louisiana pickups only.",
   pickup_address_missing: "This shop isn't taking orders yet. It still needs to add its pickup address.",

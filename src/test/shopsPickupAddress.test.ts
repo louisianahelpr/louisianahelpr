@@ -1,5 +1,5 @@
 /**
- * Shops M1b part 2 (20261018033224_shops_pickup_address; lead decision
+ * Shops M1b part 2 (20261018180859_shops_pickup_address; lead decision
  * 2026-10-18; tax memo Q3). The fast half of the proof, read from the NEWEST
  * definitions the migrations leave (effectiveDefs), so a later restatement
  * that widens who sees the address fails here:
@@ -17,10 +17,10 @@
  * (34 PASS; NEW_MIGRATION=skip 26 FAIL; a buyer branch without the status test
  * 3 FAIL; the location reset removed 2 FAIL; measured 2026-10-18).
  */
-// @mutate supabase/migrations/20261018033224_shops_pickup_address.sql | REVOKE ALL ON TABLE public.shop_pickup_addresses FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.shop_pickup_addresses TO authenticated;
-// @mutate supabase/migrations/20261018033224_shops_pickup_address.sql |          OR (o.buyer_id = auth.uid() AND o.status IN ('accepted', 'handed_over'))); |          OR o.buyer_id = auth.uid());
-// @mutate supabase/migrations/20261018033224_shops_pickup_address.sql |   PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN | IF public.is_caller_banned() THEN
-// @mutate supabase/migrations/20261018033224_shops_pickup_address.sql |   BEFORE INSERT ON public.shop_orders\n | BEFORE INSERT ON public.shop_order_lines\n
+// @mutate supabase/migrations/20261018180859_shops_pickup_address.sql | REVOKE ALL ON TABLE public.shop_pickup_addresses FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.shop_pickup_addresses TO authenticated;
+// @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |          OR (o.buyer_id = auth.uid() AND o.status IN ('accepted', 'handed_over'))); |          OR o.buyer_id = auth.uid());
+// @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |   PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN | IF public.is_caller_banned() THEN
+// @mutate supabase/migrations/20261018180859_shops_pickup_address.sql |   BEFORE INSERT ON public.shop_orders\n | BEFORE INSERT ON public.shop_order_lines\n
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -28,12 +28,12 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 const MIG_DIR = join(process.cwd(), "supabase/migrations");
-const FILE = "20261018033224_shops_pickup_address.sql";
+const FILE = "20261018180859_shops_pickup_address.sql";
 const MIG = blankSqlComments(readFileSync(join(MIG_DIR, FILE), "utf8"));
 const DEFS = effectiveDefs(MIG_DIR);
 const body = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "");
 
-describe("Shops pickup address stays private (20261018033224)", () => {
+describe("Shops pickup address stays private (20261018180859)", () => {
   it("reads a real inventory (floors)", () => {
     for (const fn of ["shops_save_my_pickup_address", "shops_my_pickup_address", "shops_order_pickup_address", "shop_orders_need_pickup_address", "shops_get_shop", "shops_browse"]) {
       expect(DEFS.has(fn), fn).toBe(true);

@@ -1,6 +1,6 @@
 /**
  * The shop's private pickup address (Shops M1b part 2, migration
- * 20261018033224_shops_pickup_address). Orders are pickup only, so a shop
+ * 20261018180859_shops_pickup_address). Orders are pickup only, so a shop
  * needs one before it can take an order (the server refuses an order without
  * it: pickup_address_missing). It is never on the shop page: only the owner
  * reads it here, and a buyer sees it once the shop accepts their order. Sales

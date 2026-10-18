@@ -1,9 +1,9 @@
 -- export_my_data: Download My Data gains the Shops M1b part 2 section
 -- shop_pickup_addresses (the member's own shop's private pickup address, from
--- 20261018033224_shops_pickup_address), without the internal Stripe Tax
+-- 20261018180859_shops_pickup_address), without the internal Stripe Tax
 -- location id and mode.
 --
--- The body is the NEWEST export_my_data (20261017235038_export_my_data_shop_orders:
+-- The body is the NEWEST export_my_data (20261018164443_export_my_data_shop_orders:
 -- main's 20261017205607 Rentals reconcile plus the three Shops M1 sections)
 -- VERBATIM with the one section (plus comments) added after shop_strikes, and
 -- nothing else. A branch that restates it after this one must start from THIS
@@ -12,7 +12,7 @@
 -- Replay-safe: CREATE OR REPLACE of the one (uuid) overload; the no-argument
 -- door stays dropped (Q408); plpgsql does not resolve table names at CREATE
 -- time, and shop_pickup_addresses is created by an earlier migration. Grants
--- restated exactly as 20261017235038 sets them: EXECUTE for service_role only,
+-- restated exactly as 20261018164443 sets them: EXECUTE for service_role only,
 -- revoked from PUBLIC, anon and authenticated.
 
 DROP FUNCTION IF EXISTS public.export_my_data();
@@ -361,7 +361,7 @@ BEGIN
   v_out := v_out || jsonb_build_object('maintenance_request_photos', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.maintenance_request_photos t
       WHERE t.tenant_id = v_uid));
 
-  -- Shops M1 (20261017225605): the member's orders as buyer or as the shop
+  -- Shops M1 (20261018164442): the member's orders as buyer or as the shop
   -- (both sides were shown the whole order: lines, date, note, money), and
   -- the lines of those orders. The Stripe ids and the capture / hold-release
   -- error text are internal, dropped.
@@ -369,7 +369,7 @@ BEGIN
       WHERE t.buyer_id = v_uid OR t.seller_id = v_uid));
   v_out := v_out || jsonb_build_object('shop_order_lines', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.shop_order_lines t
       WHERE t.order_id IN (SELECT o.id FROM public.shop_orders o WHERE o.buyer_id = v_uid OR o.seller_id = v_uid)));
-  -- The member's Shops strikes (20261018003046; the staff member who removed
+  -- The member's Shops strikes (20261018164444; the staff member who removed
   -- one is dropped, as for declutter_strikes). That migration sorts AFTER this
   -- one, so the section is skipped until the table exists: Download My Data
   -- never fails with 42P01 in between (both reviews of the strikes change).
@@ -377,7 +377,7 @@ BEGIN
     v_out := v_out || jsonb_build_object('shop_strikes', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'removed_by'), '[]'::jsonb) FROM public.shop_strikes t
       WHERE t.user_id = v_uid));
   END IF;
-  -- Shops M1b part 2 (20261018033224): the member's own shop's private pickup
+  -- Shops M1b part 2 (20261018180859): the member's own shop's private pickup
   -- address. The Stripe Tax location id and its mode are internal, dropped.
   -- Only the owner's own row: a buyer was shown the address on an accepted
   -- order, but it is the shop owner's personal data, not the buyer's.

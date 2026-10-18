@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261018033224_shops_pickup_address (Shops M1b part 2: the
+ * PGlite proof for 20261018180859_shops_pickup_address (Shops M1b part 2: the
  * maker's exact pickup address, private; lead decision 2026-10-18; tax memo
  * Q3). Setup copied from shopsOrders.pglite.mjs (Shops slices 1-2, categories
  * v2, M1 and its per-section strikes, once, as prod will have them), then this
@@ -18,7 +18,7 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const SLICE2 = readFileSync(`${MIG_DIR}20261017061157_shops_items.sql`, "utf8");
 const CATEGORIES = readFileSync(`${MIG_DIR}20261017224153_shop_categories_v2.sql`, "utf8");
-const MIGRATION = readFileSync(`${MIG_DIR}20261017225605_shops_orders_checkout.sql`, "utf8");
+const MIGRATION = readFileSync(`${MIG_DIR}20261018164442_shops_orders_checkout.sql`, "utf8");
 const SLICE1 = readFileSync(`${MIG_DIR}20261017061155_shops_profiles.sql`, "utf8");
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
 const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sql`, "utf8");
@@ -26,7 +26,7 @@ const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sq
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */
 function newestDefinition(name) {
   let found = null;
-  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && !x.startsWith("20261017061155") && !x.startsWith("20261017061157") && !x.startsWith("20261017225605")).sort()) {
+  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && !x.startsWith("20261017061155") && !x.startsWith("20261017061157") && !x.startsWith("20261018164442")).sort()) {
     const sql = readFileSync(`${MIG_DIR}${f}`, "utf8");
     const re = new RegExp(String.raw`CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.${name}\s*\(`, "gi");
     let m;
@@ -160,14 +160,14 @@ const skip = process.env.NEW_MIGRATION === "skip";
 {
   for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
 }
-// M1's per-section strikes (20261018003046), as prod will have them.
-const STRIKES_SQL = readFileSync(process.env.STRIKES_PATH ?? `${MIG_DIR}20261018003046_shops_own_strike_count.sql`, "utf8");
+// M1's per-section strikes (20261018164444), as prod will have them.
+const STRIKES_SQL = readFileSync(process.env.STRIKES_PATH ?? `${MIG_DIR}20261018164444_shops_own_strike_count.sql`, "utf8");
 {
   for (let i = 0; i < 3; i++) await db.exec(STRIKES_SQL);
 }
 
 // THIS migration, 3x (replay-safe); NEW_MIGRATION=skip leaves it out (RED).
-const PICKUP = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261018033224_shops_pickup_address.sql`, "utf8");
+const PICKUP = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261018180859_shops_pickup_address.sql`, "utf8");
 if (!skip) {
   for (let i = 0; i < 3; i++) await db.exec(PICKUP);
 }
@@ -288,9 +288,9 @@ ok(moved?.stripe_tax_location_id === null && moved?.stripe_tax_location_mode ===
 ok(!Array.isArray(await svc(`UPDATE public.shop_pickup_addresses SET stripe_tax_location_id = 'taxloc_x' WHERE shop_id = '${shopA}'`)),
   "a location id without its mode is refused (pair CHECK)");
 
-// --- 4b. Download My Data (20261018035642): the owner's own address, without the Stripe Tax location
+// --- 4b. Download My Data (20261018180900): the owner's own address, without the Stripe Tax location
 {
-  const EXPORT_FILE = process.env.EXPORT_PATH ?? `${MIG_DIR}20261018035642_export_my_data_shop_pickup_address.sql`;
+  const EXPORT_FILE = process.env.EXPORT_PATH ?? `${MIG_DIR}20261018180900_export_my_data_shop_pickup_address.sql`;
   const EXPORT_SQL = readFileSync(EXPORT_FILE, "utf8");
   // The function reads ~120 tables this proof does not build: the migration is
   // applied 3x (plpgsql resolves tables at run time) and the section's SELECT

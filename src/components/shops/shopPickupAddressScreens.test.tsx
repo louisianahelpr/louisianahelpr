@@ -1,6 +1,6 @@
 /**
  * Shops M1b part 2, the private pickup address on screen (migration
- * 20261018033224_shops_pickup_address; the access rules themselves are proven
+ * 20261018180859_shops_pickup_address; the access rules themselves are proven
  * in SQL by src/test/pglite/shopsPickupAddress.pglite.mjs):
  *
  *  1. The buyer's order card shows where to pick up ONLY once the shop accepted

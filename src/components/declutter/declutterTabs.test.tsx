@@ -222,7 +222,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     everything();
     at("/declutter");
     await screen.findByRole("tablist", { name: "Declutter view" });
-    // Buying: 1 to check out + 1 counter to answer + 1 purchase to pick up. Selling: 1 offer + 1 sale to hand over.
+    // Buying: a cart line to check out, a counter to answer and a purchase to pick up. Selling: an offer and a sale to hand over.
     expect(tab(/^Buying/)).toHaveAccessibleName(/3 need you/);
     expect(tab(/^Selling/)).toHaveAccessibleName(/2 need you/);
   });

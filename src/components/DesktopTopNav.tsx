@@ -6,6 +6,8 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { useSidePanel } from "@/components/sidePanelOpen";
 import { Menu } from "lucide-react";
+import { SectionHeaderActions } from "@/components/mobileNav/SectionHeaderActions";
+import { sectionForPath } from "@/components/mobileNav/sectionNav";
 
 /**
  * The signed-in app bar for the DESKTOP WEBSITE — emblem left, notification
@@ -66,6 +68,10 @@ const DesktopTopNav = () => {
             through NotificationPanel to its trigger. */}
         <div className="flex items-center gap-1.5 -mr-1 [&_button]:h-11 [&_button]:w-11">
           <NotificationPanel />
+          {/* Messages (this section's inbox) and you (Profile), the desktop
+              twin of each phone section header's right end (owner 2026-10-18:
+              no Messages or Profile tab; Profile = the top-right avatar). */}
+          <SectionHeaderActions section={sectionForPath(location.pathname)?.key ?? "home"} post={null} placement="topbar" />
           {/* The hamburger OPENS AND CLOSES the side panel — it does not open a
               menu sheet. It sits on the RIGHT (owner) because that is the edge
               the panel itself is on, so the control and the thing it controls

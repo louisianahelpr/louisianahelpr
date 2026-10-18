@@ -10,6 +10,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Store } from "lucide-react";
 import AppPage from "@/components/AppPage";
+import { SectionHeaderActions } from "@/components/mobileNav/SectionHeaderActions";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -71,16 +72,18 @@ export default function ShopsHomeView() {
   return (
     <AppPage
       title="Shops"
+      hideBack
+      // The section header (owner 2026-10-18): '+ Add item' (or 'Open a shop'
+      // with none yet; both open the shop editor), Messages, and you.
       titleActions={
-        <Button
-          type="button"
-          size="sm"
-          className="whitespace-nowrap"
-          disabled={mine.isLoading}
-          onClick={() => navigate(mine.data ? `/shops/${mine.data}` : "/shops/mine")}
-        >
-          {mine.data ? "My shop" : "Open a shop"}
-        </Button>
+        <SectionHeaderActions
+          section="shops"
+          post={{
+            label: mine.data ? "Add item" : "Open a shop",
+            onClick: () => navigate("/shops/mine"),
+            disabled: mine.isLoading,
+          }}
+        />
       }
     >
       <p className="text-sm text-muted-foreground">Local makers, bakers, trades and businesses near you. Every shop is free.</p>

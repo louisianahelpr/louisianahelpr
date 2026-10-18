@@ -5,6 +5,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageScaffold } from "@/components/ui/PageScaffold";
+import { JobsPostsBar } from "@/components/mobileNav/JobsPostsBar";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 import { ActivityPageSkeleton } from "@/components/ActivityPageSkeleton";
@@ -525,6 +526,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         animate={!skeletonShownRef.current}
         titleCard={isWebDesktop ? undefined : headerEl}
         titleCardClassName={headerPadding}
+        // Jobs & Posts' section strip (owner 2026-10-18): My posts and My jobs
+        // are views of one section now, not bottom-bar tabs.
+        beforePanel={<JobsPostsBar />}
       >
           {isWebDesktop && headerEl && (
             <div

@@ -1,6 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { PageScaffold } from "@/components/ui/PageScaffold";
+import { JobsPostsBar } from "@/components/mobileNav/JobsPostsBar";
 import { TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
 import HelprMark from "@/components/HelprMark";
 
@@ -50,6 +51,7 @@ const DashboardRouteSkeleton = () => (
     <PageScaffold
       animate
       panelElevation="raised"
+      beforePanel={<JobsPostsBar />}
       titleCard={
         <div className="flex items-center justify-between gap-1 sm:gap-2" aria-hidden>
           {/* MIRRORS DashboardTitleBar's emblem PROP FOR PROP, because three

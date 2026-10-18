@@ -4,6 +4,7 @@ import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCa
 import { LoadingHeading } from "@/components/ui/LoadingHeading";
 import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
 import { PageScaffold } from "@/components/ui/PageScaffold";
+import { JobsPostsBar } from "@/components/mobileNav/JobsPostsBar";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { POSTS_HEADER_PADDING } from "@/pages/posts/PostsHeader";
 import { JOBS_HEADER_PADDING } from "@/pages/jobs/JobsHeader";
@@ -116,7 +117,7 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
     </div>
   );
   return (
-    <PageScaffold titleCard={isWebDesktop ? undefined : headerRow} titleCardClassName={tab === "posted" ? POSTS_HEADER_PADDING : JOBS_HEADER_PADDING}>
+    <PageScaffold titleCard={isWebDesktop ? undefined : headerRow} titleCardClassName={tab === "posted" ? POSTS_HEADER_PADDING : JOBS_HEADER_PADDING} beforePanel={<JobsPostsBar />}>
       <LoadingHeading
         title={tab === "posted" ? "My Posts" : "My Jobs"}
         message={tab === "posted" ? "Loading your posts…" : "Loading your jobs…"}

@@ -1,25 +1,12 @@
 import { useEffect, useState } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  Home,
-  Send,
-  ClipboardList,
-  MessageSquare,
-  User,
-  Plus,
-  ShieldAlert,
-  ChevronDown,
-  Sofa,
-  Store,
-  type LucideIcon,
-} from "lucide-react";
-import { useFeature } from "@/hooks/useFeature";
+import { Plus, ShieldAlert, ChevronDown } from "lucide-react";
+import { useVisibleSections, sectionForPath } from "@/components/mobileNav/sectionNav";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { useAdminBadges } from "@/components/admin/adminBadgeStore";
 import { useSidePanel } from "@/components/sidePanelOpen";
-import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
@@ -46,18 +33,6 @@ import { AgeGateNote } from "@/components/AgeGateNote";
  * unread/activity counts stay consistent across the two navs.
  */
 
-const NAV_ITEMS: Array<{
-  path: string;
-  icon: LucideIcon;
-  label: string;
-  badgeKey?: "messages" | "posts" | "jobs";
-}> = [
-  { path: "/home", icon: Home, label: "Home" },
-  { path: "/posts", icon: Send, label: "Posts", badgeKey: "posts" },
-  { path: "/jobs", icon: ClipboardList, label: "Jobs", badgeKey: "jobs" },
-  { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" },
-  { path: "/profile", icon: User, label: "Profile" },
-];
 
 /**
  * Admin — the SAME five destinations for everyone, plus one expandable group
@@ -96,19 +71,12 @@ const DesktopSidebarNav = () => {
   const { user, isAdmin } = useCurrentUser();
   // Q1586(c): a saved birthday under 18 greys Post a Job out, with the line under it.
   const { underAge, gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
-  // Declutter (docs/specs/declutter-auctions.md row 1: its own tab) joins the
-  // destinations after Messages only while the hidden switch is on for this
-  // member; for everyone else the panel is unchanged.
-  const declutterOn = useFeature("declutter");
-  // Shops (docs/specs/local-shops-prep.md L1-L2: its own destination) joins
-  // after Declutter the same way, only while the hidden 'shops' switch is on.
-  const shopsOn = useFeature("shops");
-  const navItems = [
-    ...NAV_ITEMS.slice(0, 4),
-    ...(declutterOn ? [{ path: "/declutter", icon: Sofa, label: "Declutter" }] : []),
-    ...(shopsOn ? [{ path: "/shops", icon: Store, label: "Shops" }] : []),
-    ...NAV_ITEMS.slice(4),
-  ];
+  // The SAME sections as the bottom bar and the Home hub (sectionNav.ts, owner
+  // 2026-10-18): Home, Jobs & Posts, then Declutter / Shops / Homes only while
+  // each one's hidden switch is on for this member. Messages and Profile are
+  // in the top bar (DesktopTopNav), as on a phone they are in each section's
+  // header.
+  const navItems = useVisibleSections();
   // Admin's own sections, collapsed by default so an admin's panel is the same
   // shape as everyone else's until they open it. Auto-opens while you are
   // actually in the console, so the section you are looking at is never hidden.
@@ -119,9 +87,6 @@ const DesktopSidebarNav = () => {
     if (adminActive) setAdminOpen(true);
   }, [adminActive]);
   const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
-  // The SAME shared store MobileNav reads (Q103): one unread query and one
-  // realtime channel per user, however many navs are mounted.
-  const { unreadCount } = useNavUnreadCount(user);
   // AM-011: /admin's queue counts (published by Admin.tsx from getBadge).
   const adminBadges = useAdminBadges();
   const adminTotal = Object.values(adminBadges).reduce((a, n) => a + n, 0);
@@ -155,14 +120,11 @@ const DesktopSidebarNav = () => {
   // stays at 60fps and nothing reflows while it moves — which is the other half
   // of "smoother". `aria-hidden` and `inert` keep it out of reach mid-flight.
 
-  const badgeFor = (key?: "messages" | "posts" | "jobs") => {
-    if (key === "messages") return unreadCount;
-    if (key === "posts") return postsCount;
-    if (key === "jobs") return jobsCount;
-    return 0;
-  };
+  const badgeFor = (key?: "posts+jobs") => (key === "posts+jobs" ? postsCount + jobsCount : 0);
 
-  const isActive = (path: string) => location.pathname === path;
+  // Lit on the section's own sub-routes too (My posts / My jobs under Jobs &
+  // Posts), from the same list the bottom bar reads.
+  const isActive = (path: string) => sectionForPath(location.pathname)?.path === path;
 
   return (
     <nav

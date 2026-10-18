@@ -5,10 +5,11 @@
  * auto-approve, incoming requests). Hidden unless the 'rentals' switch is on.
  */
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
+import { SectionHeaderActions } from "@/components/mobileNav/SectionHeaderActions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -261,7 +262,9 @@ export default function RentalsHomeView() {
   const { user } = useCurrentUser();
   const uid = user?.id ?? "";
   const qc = useQueryClient();
-  const [adding, setAdding] = useState(false);
+  // '+ List' in the Home hub's chooser lands here with ?add=1.
+  const [searchParams] = useSearchParams();
+  const [adding, setAdding] = useState(() => searchParams.get("add") === "1");
   // Q59: under 18 can't add a property, accept an invite or request a repair
   // (greyed out here; the server refuses too: rentals_assert_member).
   const { underAge } = useAgeGate();
@@ -284,7 +287,15 @@ export default function RentalsHomeView() {
   // The page's own loading state is the gate's frame (RentalsSkeletons.tsx), so nothing moves between them.
   if (!data.isError && !data.data) return <RentalsHomeSkeleton />;
   return (
-    <AppPage title="Rentals">
+    <AppPage
+      title="Rentals"
+      hideBack
+      // The section header (owner 2026-10-18): '+ List' (add a property),
+      // this section's Messages, and you.
+      titleActions={
+        <SectionHeaderActions section="homes" post={{ label: "List", onClick: () => setAdding(true), disabled: underAge }} />
+      }
+    >
       {data.isError || !data.data ? (
         <ErrorState onRetry={() => data.refetch()} />
       ) : (

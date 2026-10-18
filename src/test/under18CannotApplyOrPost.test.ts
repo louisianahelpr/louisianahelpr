@@ -32,7 +32,7 @@
  *   NEW_MIGRATION=skip node src/test/pglite/under18CannotApplyOrPost.pglite.mjs  (17 FAIL)
  *
  * @mutate src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx |   const { gate, gatedProps } = useAgeGate(); |   const gate = (_k: string, go: () => void) => go; const gatedProps = (_k: string) => ({});
- * @mutate src/components/MobileNav.tsx |   const { underAge, explain: explainAgeGate, gatedProps: ageGatedProps } = useAgeGate(); |   const underAge = false; const explainAgeGate = (_k: string) => {}; const ageGatedProps = (_k: string) => ({});
+ * @mutate src/components/mobileNav/JobsPostsBar.tsx |   const { gate, gatedProps } = useAgeGate(); |   const gate = (_k: string, go: () => void) => go; const gatedProps = (_k: string) => ({});
  * @mutate src/pages/post-job/useJobSubmit.ts |           : isUnder18Refusal(error) |           : false
  * @mutate src/lib/seriesDates.ts | ?? (isUnder18Refusal(error) ? UNDER_18_APPLY_COPY : null) | ?? null
  * @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql |   IF public.member_under_18(auth.uid()) THEN\n    RAISE EXCEPTION 'under_18' |   IF false THEN\n    RAISE EXCEPTION 'under_18'
@@ -71,6 +71,8 @@ const WORK_RPC = /\.rpc\(\s*["'](apply_to_job|respond_to_direct_offer|claim_seri
 
 /** Files that name /post-job but are not an entry a member taps, with why. EXACT: each must still name the route. */
 const NOT_AN_ENTRY: Record<string, string> = {
+  "src/components/MobileNav.tsx": "warms the /post-job chunk only; the bar has no Post button since 2026-10-18 (JobsPostsBar is the gated entry)",
+  "src/components/mobileNav/sectionNav.ts": "the section list's data; every '+' that reads it gates under 18 (SectionHeaderActions, HomeHubPage)",
   "src/App.tsx": "the route table; the page's own form is gated (FormStep)",
   "src/boot/routePreload.ts": "chunk preloading, not a control",
   "src/lib/routePrefetch.ts": "chunk prefetching, not a control",

@@ -16,6 +16,9 @@ interface ProfileTabHeaderProps {
    * over an `onBack` handler on a real route: an onClick short-circuits
    * BackButton's history pop and turns "back" into a forward push.
    */
+  /** A bottom-bar section root (Home hub, Declutter, Shops, Homes) is a tab,
+   *  not a step: no back chevron. */
+  hideBack?: boolean;
   backTo?: string;
   rightSlot?: ReactNode;
 }
@@ -63,7 +66,7 @@ interface ProfileTabHeaderProps {
  * itself, because the alternative is loosening the shell test's exact-match
  * guard for every tab.
  */
-export function ProfileTabHeader({ title, onBack, backTo, rightSlot }: ProfileTabHeaderProps) {
+export function ProfileTabHeader({ title, onBack, backTo, rightSlot, hideBack }: ProfileTabHeaderProps) {
   return (
     <div className="-mb-[var(--section-gap)]">
       <PageHeader
@@ -71,6 +74,7 @@ export function ProfileTabHeader({ title, onBack, backTo, rightSlot }: ProfileTa
         onBack={onBack}
         backTo={backTo}
         titleActions={rightSlot}
+        hideBack={hideBack}
         width="none"
         topInsetHandled
       />

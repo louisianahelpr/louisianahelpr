@@ -19,6 +19,10 @@ interface DashboardTitleBarProps {
    * rule below still keys off "is the LAST control a bare icon button?" — the
    * pill is neither last nor an icon button.
    */
+  /** After the bell: Messages (this section's inbox) and you (Profile), the
+   *  same spot as every section header (owner 2026-10-18: no Messages or
+   *  Profile tab). Signed-in feed only. */
+  personal?: ReactNode;
   status?: ReactNode;
   /**
    * Controls pinned to the trailing end of the row. Defaults to the
@@ -116,6 +120,7 @@ export function DashboardTitleBar({
   trailing,
   actions,
   searchBar,
+  personal,
 }: DashboardTitleBarProps) {
   /* ONE PRESS OUT, AND THE FOCUS COMES BACK.
      This row is the only expanding search in the app whose TRIGGER unmounts
@@ -198,6 +203,7 @@ export function DashboardTitleBar({
             <NotificationPanel triggerClassName="h-11 w-11" />
           </span>
         )}
+        {personal}
       </div>
     </div>
   );

@@ -2,7 +2,6 @@ import {
   Home,
   Briefcase,
   MessageSquare,
-  UserRound,
   ClipboardList,
 } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
@@ -48,23 +47,22 @@ export function writeCachedUnread(userId: string, n: number) {
   }
 }
 
-export const leftItems = [
-  { path: "/home", icon: Home, label: "Home" },
-  { path: "/posts", icon: ClipboardList, label: "Posts", badgeKey: "posts" as const },
-];
-
-export const rightItems = [
-  { path: "/jobs", icon: Briefcase, label: "Jobs", badgeKey: "jobs" as const },
-  { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" as const },
-  { path: "/profile", icon: UserRound, label: "Profile" },
-];
+// The icon each place in the app wears (an empty page wears its place's icon,
+// Q1558). The bottom bar itself reads sectionNav.ts since 2026-10-18; My posts,
+// My jobs and Messages are no longer tabs but keep their icons.
+const NAV_ICONS = {
+  "/home": Home,
+  "/posts": ClipboardList,
+  "/jobs": Briefcase,
+  "/messages": MessageSquare,
+} as const;
 
 /** The nav's own icon for a page: an empty page wears it (owner, 2026-10-08, Q1558). */
 export function navIconFor(path: "/home" | "/posts" | "/jobs" | "/messages") {
-  return [...leftItems, ...rightItems].find((i) => i.path === path)!.icon;
+  return NAV_ICONS[path];
 }
 
-export const authPages = ["/home", "/posts", "/jobs", "/post-job", "/profile", "/messages", "/support", "/user", "/jobs/", "/browse",
+export const authPages = ["/hub", "/home", "/posts", "/jobs", "/post-job", "/profile", "/messages", "/support", "/user", "/jobs/", "/browse",
   // Declutter (hidden switch): the dock stays on its screens.
   "/declutter",
   // Quotes on jobs (hidden switch 'quotes'): the same.
@@ -116,17 +114,3 @@ export const authPages = ["/home", "/posts", "/jobs", "/post-job", "/profile", "
 // doesn't belong there, so it's a no-nav page, not an auth tab route.
 export const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/admin"];
 
-// Map each tab root to sub-routes that belong to its stack.
-// Tapping the tab while inside one of these returns the user to the tab root.
-export const tabStacks: Record<string, string[]> = {
-  "/home": ["/jobs/"],
-  // NOTE: /post-job is deliberately NOT in this stack. Posting is reached from
-  // the floating "+" FAB, not from the Posts tab, so lighting Posts up while
-  // the user is mid-post claimed they were somewhere they hadn't navigated to —
-  // and it competed with the FAB, which is the control they actually pressed.
-  // The tab highlights for the Posts LIST only.
-  "/posts": [],
-  "/jobs": [],
-  "/messages": [],
-  "/profile": ["/support", "/user", "/admin", "/declutter", "/shops", "/rentals"],
-};

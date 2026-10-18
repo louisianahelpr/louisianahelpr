@@ -119,7 +119,7 @@ const widthMap = {
 
 const AuthShell = ({
   children,
-  eyebrow = "Louisiana's Local Job Partner",
+  eyebrow = "Louisiana's Local Partner",
   hideBack = false,
   backTo,
   hideHeader = false,

@@ -12,6 +12,8 @@ const AUTH_PREFIXES = [
   // named here or the nav still never renders. Both halves are required; this
   // is the pair that actually turns it on.
   "/admin",
+  // /hub: the Home hub (owner 2026-10-18), the first bottom-bar tab.
+  "/hub",
   "/home", "/posts", "/jobs", "/post-job", "/profile",
   "/messages", "/user",
   // Declutter (hidden switch; each page is the 404 while it is off).

@@ -1,10 +1,6 @@
 import { useEffect, useState, useRef, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useReducedMotion } from "@/lib/accessibility";
-import {
-  Plus,
-  type LucideIcon,
-} from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
@@ -12,28 +8,21 @@ import { prefetchRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { prefetchRoute, prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { TabButton } from "@/components/mobileNav/TabButton";
-import { UserAvatar } from "@/components/UserAvatar";
 import { GateSheet } from "@/components/mobileNav/GateSheet";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useLongPress } from "@/hooks/useLongPress";
 import { NavQuickMenuItem } from "@/components/mobileNav/NavQuickMenuItem";
 import { useDockMotionLoader } from "@/components/mobileNav/useDockMotion";
-import { useRecentConversationsPreview } from "@/components/mobileNav/useRecentConversationsPreview";
 import { POSTED_STATUS_FILTERS } from "@/components/job-card/activityFilters";
 import { useStoredSessionHint } from "@/hooks/useStoredSessionHint";
 import { transformedImageUrl } from "@/lib/imageUrl";
 import {
-  leftItems,
-  rightItems,
   authPages,
   noNavPages,
-  tabStacks,
 } from "@/components/mobileNav/mobileNavHelpers";
+import { useVisibleSections, SECTION_NAV, type SectionNavItem } from "@/components/mobileNav/sectionNav";
 import { DockPill } from "@/components/mobileNav/DockPill";
-import { conversationLink } from "@/lib/teamThread";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
-import { useAgeGate } from "@/hooks/useAgeGate";
-import { POST_FAB_STYLE } from "@/components/mobileNav/postFabStyle";
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
@@ -64,12 +53,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // token" for a signed-in person and the dock jumped in late (Q1463).
   const maybeSignedIn = useStoredSessionHint();
   const isGuest = isLoading ? !maybeSignedIn : !user;
-  // Q1586(c): a saved birthday under 18 greys the Post button out; a tap says why.
-  const { underAge, explain: explainAgeGate, gatedProps: ageGatedProps } = useAgeGate();
+  // The sections this viewer sees (sectionNav.ts, the ONE list the rail and
+  // the Home hub read too): a section whose switch is off is not in the bar.
+  const sections = useVisibleSections();
   // Messages badge unread count (durable-cache seeded), its live query +
   // realtime channel + archive listener, the native app-icon badge mirror,
   // and the best-effort mark-all-read action — all owned by this hook.
-  const { unreadCount } = useNavUnreadCount(user);
+  // No Messages tab any more (each section header has its own Messages
+  // button), but the hook still owns the realtime channel and the native
+  // app-icon badge mirror, so the dock keeps it mounted.
+  useNavUnreadCount(user);
   // Lightweight "actionable activity" counts for the Posts / Jobs tab
   // badges (new applicants on your posts; pending direct offers to you).
   // Count-only queries — deliberately not the heavy useActivityData hook.
@@ -118,8 +111,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   useEffect(() => {
     if (dockHidden) return;
     return prefetchRoutesWhenIdle([
-      ...[...leftItems, ...rightItems].map((i) => i.path),
+      ...SECTION_NAV.filter((s) => s.featureKey === null).map((i) => i.path),
       "/post-job",
+      "/messages",
+      "/profile",
     ]);
   }, [dockHidden]);
 
@@ -177,7 +172,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // Messages (last-3-conversations preview). At most one open at a time;
   // the string identifies which tab's menu is showing so renderItem can
   // decide whether to render its NavQuickMenu.
-  const [quickMenuTab, setQuickMenuTab] = useState<"posts" | "messages" | null>(null);
+  const [quickMenuTab, setQuickMenuTab] = useState<"posts" | null>(null);
   const closeQuickMenu = () => setQuickMenuTab(null);
   const dockMotion = useDockMotionLoader(dockHidden, quickMenuTab !== null);
   // A completed long-press still ends in a `touchend`, which browsers follow
@@ -194,19 +189,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       setQuickMenuTab("posts");
     },
   });
-  const messagesLongPress = useLongPress({
-    onLongPress: () => {
-      if (isGuest) return;
-      justLongPressedRef.current = true;
-      hapticMedium();
-      setQuickMenuTab("messages");
-    },
-  });
-  // Fetched lazily — only once the Messages quick menu is actually open —
-  // see useRecentConversationsPreview for why this is safe to call
-  // unconditionally every render.
-  const { recent: recentConversations, isLoading: recentConversationsLoading } =
-    useRecentConversationsPreview(user, quickMenuTab === "messages");
   // Scroll-aware shadow lift — when content is actually scrolled under the
   // nav, deepen the drop shadow so the bar reads as floating above the
   // page rather than glued to the bottom edge.
@@ -386,53 +368,45 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const params = new URLSearchParams(location.search);
   if (location.pathname === "/messages" && params.has("chat")) return null;
 
-  const isInStack = (tabPath: string) => {
-    if (location.pathname === tabPath) return true;
-    const stack = tabStacks[tabPath] || [];
-    return stack.some((p) => location.pathname.startsWith(p));
+  // A section's tab lights on its root, on its own sub-routes, and on the
+  // inbox when that section's header opened it (/messages?section=<key>).
+  const inboxSection = location.pathname === "/messages" ? params.get("section") : null;
+  const isInStack = (item: SectionNavItem) => {
+    if (location.pathname === item.path) return true;
+    if (inboxSection && inboxSection === item.key) return true;
+    return item.stack.some((p) =>
+      p.endsWith("/") ? location.pathname.startsWith(p) : location.pathname === p || location.pathname.startsWith(p + "/"),
+    );
   };
 
   const triggerGate = () => {
     setGateOpen(true);
   };
 
-  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "posts" | "jobs" }) => {
-    // Guest-mode tab remap: Home -> /browse (the read-only home dashboard
-    // that mirrors the real /home), Profile -> /login. Other tabs stay
-    // visually present but show a lock + open the signup sheet.
-    const guestLocked = isGuest && !["/home", "/profile"].includes(path);
+  const renderItem = (item: SectionNavItem) => {
+    const { path, icon: Icon, label, badgeKey } = item;
+    // Guest-mode remap: Home -> /browse (the read-only job feed). Every other
+    // section is dimmed and a tap opens the signup sheet. Guests see only the
+    // sections with no switch (a switch reads as off when signed out).
+    const guestLocked = isGuest && path !== "/hub";
     const locked = guestLocked;
-    const effectivePath = isGuest
-      ? path === "/home"
-        ? "/browse"
-        : path === "/profile"
-          ? "/login"
-          : path
-      : path;
+    const effectivePath = isGuest && path === "/hub" ? "/browse" : path;
 
-    // /browse is Home for everyone (signed-in users redirect to /home; guest-only lit it late: media 2→4).
+    // /browse is Home for a guest (signed-in users redirect to /home).
     const active =
-      location.pathname === effectivePath || (path === "/home" && location.pathname === "/browse");
+      location.pathname === effectivePath || (path === "/hub" && location.pathname === "/browse");
 
-    const inStack = !isGuest && isInStack(path);
+    const inStack = !isGuest && isInStack(item);
     // Guests never carry a badge (nothing to count). Each badged tab pulls
     // from its own count source: Messages → unread DMs, Posts → new
     // applicants on your jobs, Jobs → pending direct offers to you.
-    const badgeCount = isGuest
-      ? 0
-      : badgeKey === "messages"
-        ? unreadCount
-        : badgeKey === "posts"
-          ? postsCount
-          : badgeKey === "jobs"
-            ? jobsCount
-            : 0;
+    const badgeCount = isGuest || badgeKey !== "posts+jobs" ? 0 : postsCount + jobsCount;
     const showBadge = badgeCount > 0;
 
     const handleClick = () => {
       // Swallow the trailing click a completed long-press's touchend
       // produces — see the comment on `justLongPressedRef` above.
-      if ((path === "/posts" || path === "/messages") && justLongPressedRef.current) {
+      if (path === "/home" && justLongPressedRef.current) {
         justLongPressedRef.current = false;
         return;
       }
@@ -450,11 +424,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         navigate(path);
         return;
       }
-      if (!isGuest && path === "/profile" && location.pathname === "/profile" && location.search) {
-        hapticLight();
-        navigate("/profile");
-        return;
-      }
       if (location.pathname !== effectivePath) {
         hapticLight();
         navigate(effectivePath);
@@ -467,16 +436,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
 
     const isActive = active || inStack;
-    // Long-press quick menus only wire up for Posts and Messages, and only
-    // for a real signed-in account — guests never navigate has-status
-    // filters or conversations. handleClick above already double-checks
+    // Long-press on Jobs & Posts opens the My posts quick filter, only for a
+    // real signed-in account. handleClick above already double-checks
     // `isGuest`, so this is belt-and-braces, not the only guard.
-    const longPress =
-      !locked && path === "/posts"
-        ? postsLongPress
-        : !locked && path === "/messages"
-          ? messagesLongPress
-          : undefined;
+    const longPress = !locked && path === "/home" ? postsLongPress : undefined;
     return (
       <>
       <TabButton
@@ -541,27 +504,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               icon-fill treatment the other tabs use. Guests have no user, so
               they keep the plain person icon (their Profile tab routes to
               /login). */}
-          {path === "/profile" && !isGuest ? (
-            <UserAvatar
-              userId={user?.id}
-              src={profile?.avatar_url}
-              name={profile?.full_name}
-              pixelSize={48}
-              alt=""
-              className="w-[24px] h-[24px] transition-all duration-200"
-              style={{
-                boxShadow: isActive
-                  ? "0 0 0 2px hsl(var(--bark)), 0 0 0 3.5px hsl(var(--bark) / 0.18)"
-                  : "0 0 0 1.5px hsl(var(--olivewood) / 0.18)",
-              }}
-            />
-          ) : (
-            <Icon
-              className="w-[22px] h-[22px] transition-all duration-200"
-              strokeWidth={isActive ? 2 : 1.6}
-              fill={isActive ? "currentColor" : "none"}
-            />
-          )}
+          <Icon
+            aria-hidden
+            className="w-[22px] h-[22px] transition-all duration-200"
+            strokeWidth={isActive ? 2 : 1.6}
+            fill={isActive ? "currentColor" : "none"}
+          />
           {/* No per-tab padlock for guests — three padlocks in a row read
               as a barrier wall on a first-time guest's home screen. The tab
               is gently dimmed (opacity-50) and a tap routes to sign-up, so
@@ -599,7 +547,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           />
         )}
       </TabButton>
-      {path === "/posts" && dockMotion && (
+      {path === "/home" && dockMotion && (
         <dockMotion.NavQuickMenu open={quickMenuTab === "posts"} onClose={closeQuickMenu} title="Quick filter">
           {POSTED_STATUS_FILTERS.map((f) => (
             <NavQuickMenuItem
@@ -614,48 +562,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           ))}
         </dockMotion.NavQuickMenu>
       )}
-      {path === "/messages" && dockMotion && (
-        <dockMotion.NavQuickMenu open={quickMenuTab === "messages"} onClose={closeQuickMenu} title="Recent chats">
-          {recentConversationsLoading && recentConversations.length === 0 ? (
-            <p className="px-3.5 py-2 text-ds-12" style={{ color: "hsl(48 9% 47%)" }}>
-              Loading…
-            </p>
-          ) : recentConversations.length === 0 ? (
-            <p className="px-3.5 py-2 text-ds-12" style={{ color: "hsl(48 9% 47%)" }}>
-              No conversations yet
-            </p>
-          ) : (
-            recentConversations.map((c) => (
-              <NavQuickMenuItem
-                key={`${c.jobId}_${c.otherUserId}`}
-                label={c.otherUserName}
-                sub={c.lastMessage || c.jobTitle}
-                onSelect={() => {
-                  closeQuickMenu();
-                  hapticLight();
-                  // Q262 and team threads: see conversationLink.
-                  navigate(conversationLink(c));
-                }}
-              />
-            ))
-          )}
-        </dockMotion.NavQuickMenu>
-      )}
       </>
     );
   };
 
-  const handlePostClick = () => {
-    if (isGuest) {
-      triggerGate();
-      return;
-    }
-    if (underAge) {
-      explainAgeGate("post");
-      return;
-    }
-    navigate("/post-job");
-  };
 
   return (
     <>
@@ -730,7 +640,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 container padding the Home chip sat 10px in from the dock's inner
                 edge; at 6px it sits 8px in. Height is untouched (h-14). */}
             <div className="flex items-stretch h-14 px-1.5">
-              {[...leftItems, ...rightItems].map((item) => (
+              {sections.map((item) => (
                 <div key={item.path} className="flex flex-1 items-stretch relative">
                   {renderItem(item)}
                 </div>
@@ -738,46 +648,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </div>
           </div>
 
-          {/* Post FAB — flat deep-olive (bark) puck with a soft static
-              green halo plus a slow pulsing ring behind it to draw the
-              eye to the primary action. Guest gating is handled by the
-              gate sheet on tap, so no lock badge needed on the surface. */}
-          <div className="relative shrink-0 w-14 h-14">
-            {/* Slow pulsing halo — sits behind the button so it draws the
-                eye without competing with the icon. motion-safe gates it
-                for users with reduced-motion preferences. */}
-            <span
-              aria-hidden
-              className="absolute inset-0 rounded-full motion-safe:animate-pulse pointer-events-none"
-              style={{
-                background:
-                  "radial-gradient(circle, hsl(var(--bark) / 0.38) 0%, hsl(var(--bark) / 0) 72%)",
-                filter: "blur(8px)",
-                transform: "scale(1.28)",
-              }}
-            />
-            <button
-              onClick={handlePostClick}
-              {...ageGatedProps("post")}
-              onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
-              onFocus={() => !isGuest && prefetchRoute("/post-job")}
-              aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
-              /* The five tabs say where you are with `aria-current`; the FAB
-                 never did, so on /post-job it announced as an ordinary
-                 action that leads somewhere — and pressing it navigates to
-                 the page it is already on, which is no navigation at all.
-                 Same signal the tabs give, for the same reason. */
-              aria-current={!isGuest && location.pathname === "/post-job" ? "page" : undefined}
-              className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-transform duration-200"
-              style={POST_FAB_STYLE}
-            >
-              <Plus
-                className="w-7 h-7 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:rotate-90 motion-safe:group-active:rotate-180"
-                strokeWidth={2.75}
-                style={{ color: "hsl(var(--brand-foreground))" }}
-              />
-            </button>
-          </div>
         </div>
       </nav>
 

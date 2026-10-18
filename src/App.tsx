@@ -125,6 +125,7 @@ const ShopEditPage = lazyWithPreload(() => import("./pages/shops/ShopEditPage"))
 // Rentals S1 (docs/specs/landlord-hub-prep.md): the 404 unless the hidden
 // 'rentals' switch is on for the member (RentalsGate).
 const RentalsPage = lazyWithPreload(() => import("./pages/rentals/RentalsPage"));
+const HomeHubPage = lazyWithPreload(() => import("./pages/hub/HomeHubPage"));
 const RentalsInvitePage = lazyWithPreload(() => import("./pages/rentals/RentalsInvitePage"));
 const MaintenanceRequestPage = lazyWithPreload(() => import("./pages/rentals/MaintenanceRequestPage"));
 
@@ -230,6 +231,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           the moments that require it (accept, payout) inside the components.
           Banned users are redirected, and an unverified EMAIL is redirected to
           /signup-pending on every protected route (Q180, Q193) — see ProtectedRoute. */}
+      <Route path="/hub" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HomeHubPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/home" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<DashboardRouteSkeleton />}><Dashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />

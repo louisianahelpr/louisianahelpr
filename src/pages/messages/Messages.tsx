@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { inboxForSection } from "@/components/mobileNav/sectionNav";
 import { supabase } from "@/integrations/supabase/client";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -36,6 +37,9 @@ const Messages = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  // A section header's Messages button opens this inbox filtered to its
+  // section (sectionNav.ts inboxForSection).
+  const inboxSection = searchParams.get("section");
   const deepLinkJobId = searchParams.get("jobId");
   const deepLinkUserId = searchParams.get("userId");
   // `?teamThread=<user>` — a "Louisiana Helpr Team" thread (src/lib/teamThread.ts).
@@ -408,8 +412,8 @@ const Messages = () => {
   // full-viewport shell, because only one of them is ever on screen now.
   const listEl = (
     <ConversationList
-      conversations={conversations}
-      allConversations={allConversations}
+      conversations={inboxForSection(inboxSection, conversations)}
+      allConversations={inboxForSection(inboxSection, allConversations)}
       loading={loading}
       loadError={loadError}
       retryInbox={retryInbox}

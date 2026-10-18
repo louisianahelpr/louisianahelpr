@@ -10,6 +10,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
+import { SectionHeaderActions } from "@/components/mobileNav/SectionHeaderActions";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -353,7 +354,6 @@ function MovingOutEntry({ on }: { on: boolean }) {
 
 export default function DeclutterHome() {
   const { user } = useCurrentUser();
-  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   // W14: "Wanted" exists only while its own switch is on for this member.
   // The tab row waits for that answer (Q?declutter-settle): painted before it,
@@ -374,11 +374,10 @@ export default function DeclutterHome() {
   return (
     <AppPage
       title="Declutter"
-      titleActions={
-        <Button type="button" size="sm" className="whitespace-nowrap" onClick={() => navigate("/declutter/sell")}>
-          Sell an item
-        </Button>
-      }
+      hideBack
+      // The section header (owner 2026-10-18): '+ Sell', this section's
+      // Messages, and you. sectionNav.ts holds the pill's words and route.
+      titleActions={<SectionHeaderActions section="declutter" />}
     >
       <p className="text-sm text-muted-foreground">Buy and sell used household items near you. Pick up, or have a Helpr deliver it.</p>
       <SegmentedControl

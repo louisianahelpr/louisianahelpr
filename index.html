@@ -706,8 +706,11 @@
       }
       [data-theme="dark"] #root,
       [data-theme="dark"] #boot-loader {
-        background: linear-gradient(160deg, hsl(220 15% 8%) 0%, hsl(220 12% 11%) 40%, hsl(200 15% 10%) 100%) !important;
-        background-color: hsl(220 15% 8%) !important;
+        /* Green-charcoal #0F1412, the dark --parchment (Warm Modern, owner
+           2026-10-17). The old cool blue-charcoal gradient here painted every
+           dark marketing band below the hero (How it works, footer) blue. */
+        background: #0F1412 !important;
+        background-color: #0F1412 !important;
       }
       /* Q651 (owner decisions 2026-10-04: "a CSS-only, filter-free loading
          hint", then "ship it but add the h on top"). For slow cold loads, where

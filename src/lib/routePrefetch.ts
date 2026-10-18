@@ -8,6 +8,7 @@ import { beginSpeculativePrefetch } from "@/lib/chunkReload";
  * are silent no-ops.
  */
 const prefetchers: Record<string, () => Promise<unknown>> = {
+  "/hub": () => import("@/pages/hub/HomeHubPage"),
   "/home": () => import("@/pages/home/Dashboard"),
   "/profile": () => import("@/pages/profile/Profile"),
   "/post-job": () => import("@/pages/post-job/PostJob"),

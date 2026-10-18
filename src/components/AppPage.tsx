@@ -61,11 +61,13 @@ interface AppPageProps {
   onBack?: () => void;
   /** Trailing actions on the title row (icon buttons, overflow menus). */
   titleActions?: ReactNode;
+  /** A bottom-bar section root is a tab, not a step: no back chevron. */
+  hideBack?: boolean;
   /** Page content. */
   children: ReactNode;
 }
 
-function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps) {
+function AppPage({ title, backTo, onBack, titleActions, hideBack, children }: AppPageProps) {
   return (
     <AppShell
       scrollable={false}
@@ -103,7 +105,7 @@ function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps
                 on 2026-09-19. ProfileTabHeader's `-mb-4` is keyed to
                 PROFILE_TAB_BODY_CLASS's 16px. */}
             <ProfileTabBody>
-              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} />
+              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} hideBack={hideBack} />
               {children}
             </ProfileTabBody>
           </div>

@@ -114,9 +114,9 @@ const Footer = () => {
               into two short lines instead of one long one that pushes the
               link columns around. */}
           <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-xs leading-relaxed">
-            Hire a Helpr or find local work.
+            Jobs, Declutter, Shops and Homes:
             <br />
-            For everyday jobs, big and small.
+            everything local, in one place.
           </p>
         </div>
 

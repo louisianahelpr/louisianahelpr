@@ -45,11 +45,10 @@
 // @mutate src/components/GuestBrowseSkeleton.tsx | 0.25rem) + var(--public-nav-h))" }} /> | 1.5rem) + 3rem)" }} />
 // @mutate src/components/dashboard/VirtualizedJobList.tsx | initialRect: { width: 0, height: typeof window === "undefined" ? 800 : window.innerHeight }, |
 // @mutate src/lib/simpleMode.ts | let profileSeniorMode = cachedProfileFlag(); | let profileSeniorMode = false;
-// @mutate src/pages/profile/Profile.tsx | useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled) | useArrivalGate(!loading, membershipsSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled)
+// @mutate src/pages/profile/Profile.tsx | useArrivalGate(!loading, membershipsSwitch.settled) | useArrivalGate(!loading, true)
 // @mutate src/pages/profile/Profile.tsx | const showSkeleton = tab === "landing" ? !landingReady : loading; | const showSkeleton = loading;
 // @mutate src/pages/profile/Profile.tsx |   if (showSkeleton) { |   if (loading) {
 // @mutate src/pages/profile/Profile.tsx | <div aria-busy="true" className="container mx-auto | <div className="container mx-auto
-// @mutate src/components/profile/profileLanding/DeclutterEntryRow.tsx | useFeatureStatus("declutter") | useFeatureStatus("quotes")
 // @mutate src/components/declutter/DeclutterHomeView.tsx | useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled) | useArrivalGate(true, true)
 // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (!tabsReady) return <DeclutterHomeSkeleton />;\n |
 // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (listLoading) return <DeclutterBrowseBones />;\n |
@@ -202,8 +201,9 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     for (const f of landingFiles) {
       for (const m of read(f).matchAll(/\buseFeature(?:Status)?\s*\(\s*"([a-z0-9_]+)"\s*\)/g)) keys.add(m[1]);
     }
-    // declutter (DeclutterEntryRow) and memberships (useProfileLandingDerived).
-    expect(keys.size).toBeGreaterThan(1);
+    // memberships (useProfileLandingDerived); the section rows left Profile
+    // for the bottom bar and the Home hub (2026-10-18).
+    expect(keys.size).toBeGreaterThan(0);
 
     const profile = read("pages/profile/Profile.tsx");
     const gate = /const landingReady = useArrivalGate\(!loading, ([^;]+)\);/.exec(profile);

@@ -118,6 +118,7 @@ const RULES: Rule[] = [
     removal: /removeJobMedia|removeJobPhotos|removeMediaOfDeletedJobs/,
     exempt: {
       "src/lib/declutter/haulAway.ts": "deleteNeverPaidHaulJob deletes the row FIRST and only a confirmed delete counts (re-review 2026-10-17 finding 2: removing photos first lost them on every refused delete); once the row is gone the job-photos DELETE policy refuses the client, so the weekly storage-orphan-sweep (\"job gone\") is the net",
+      "src/lib/quotes/api.ts": "cancelQuoteRequest -> cancel_quote_request (20261018042506) deletes only a job quote_insert_job made (no photo column), still open, never hired, never funded, with no Checkout Session or PaymentIntent; the job id is not on the client, removing photos first would lose them on every refused cancel (checkout_open, request_booked), and once the row is gone the job-photos DELETE policy refuses the client, so the weekly storage-orphan-sweep (\"job gone\") is the net, as for haulAway.ts",
       "scripts/probes/admin-dispute-race.prod.mjs": "creates a bare job with no uploads; the weekly storage-orphan-sweep is the net",
       "scripts/probes/release-race.prod.mjs": "creates a bare job with no uploads; the weekly storage-orphan-sweep is the net",
       "scripts/probes/mint-funded-seed-jobs.prod.mjs": "deletes a job it just inserted, before any upload; the weekly sweep is the net",

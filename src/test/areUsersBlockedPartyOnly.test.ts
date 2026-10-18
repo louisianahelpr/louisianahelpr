@@ -103,6 +103,12 @@ const EXPECTED_CALLERS = [
   "insert_job_status_system_message",
   "list_open_quote_requests",
   "offer_series_dates",
+  // Quote hire on pay (20261018042506): the AFTER UPDATE OF payment_status
+  // trigger asks (the quoter, the job's poster) before it sends the quoter an
+  // "Accept to start" notice. Neither is auth.uid() (the webhook writes the
+  // payment as service_role); it gets the real answer through the
+  // pg_trigger_depth() > 0 arm, and a NULL would only hold the notice back.
+  "quote_job_funded_hires_quoter",
   "respond_to_direct_offer",
   "respond_to_job_quote",
   "submit_job_quote",

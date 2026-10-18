@@ -63,6 +63,7 @@ const PROVEN: Record<string, string> = {
   sweep_old_notifications: "sweepClockBoundaries.pglite.mjs",
   sweep_open_ban_settlement_reviews: "sweepClockBoundaries.pglite.mjs",
   sweep_payout_schedule_freezes: "sweepClockBoundaries.pglite.mjs",
+  sweep_quote_alerts: "quoteHireOnPay.pglite.mjs",
   sweep_release_last_chance: "sweepCentralStartClock.pglite.mjs",
   sweep_saved_search_alert_queue: "sweepNotifyQueueClock.pglite.mjs",
   sweep_signup_leads: "sweepClockBoundaries.pglite.mjs",

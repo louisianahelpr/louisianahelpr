@@ -31,6 +31,7 @@
  * @mutate supabase/functions/release-payout/index.ts | logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "payment_intent", id: paymentIntentId }); | void 0;
  * @mutate supabase/functions/charge-recurring-visits/index.ts | if (card.kind === "test_object") { | if (card.kind === "test_object") { void 0;
  * @mutate supabase/functions/create-payment/index.ts | import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false;
+ * @mutate supabase/functions/create-payment/index.ts | if (!isTestObjectUnderLiveKey(rowPiErr)) throw rowPiErr; | throw rowPiErr;
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -48,8 +49,20 @@ function walk(dir: string): string[] {
   });
 }
 
-/** The brace-balanced body of the first `catch` at or after `from`, or null. */
+/**
+ * The brace-balanced body of the first `catch` at or after `from`, or null.
+ * Null too when `from` sits directly in a catch body: the next catch then
+ * belongs to a later try, not to this call (create-payment's priorPi.id
+ * re-read inside its cancel's catch read as classified by the row-PI check's
+ * handler below it, 2026-10-18).
+ */
 function catchBodyAfter(s: string, from: number): string | null {
+  let open = -1;
+  for (let k = from - 1, depth = 0; k >= 0; k--) {
+    if (s[k] === "}") depth++;
+    else if (s[k] === "{" && --depth < 0) { open = k; break; }
+  }
+  if (open >= 0 && /\bcatch\s*(\([^)]*\))?\s*$/.test(s.slice(Math.max(0, open - 80), open))) return null;
   const re = /\bcatch\s*(\([^)]*\))?\s*\{/g;
   re.lastIndex = from;
   const m = re.exec(s);
@@ -118,6 +131,8 @@ const CLASSIFIED = [
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(pi)",
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(previousSessionId)",
   "create-payment/index.ts::stripe.paymentIntents.retrieve(cancelPaymentIntentId)",
+  // Q2074: the PaymentIntent a bounced bank payment left on the row; a test-mode one is dead and cleared.
+  "create-payment/index.ts::stripe.paymentIntents.retrieve(rowPaymentIntentId)",
   // Q1732: the admin button's Stripe check; a test-mode id is the ONLY answer that lets the clear run.
   "execute-dispute-split/clearTestModeRecords.ts::stripe.checkout.sessions.retrieve(escrowId)",
   "execute-dispute-split/clearTestModeRecords.ts::stripe.paymentIntents.retrieve(escrowId)",

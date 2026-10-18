@@ -60,6 +60,8 @@ export const NOT_MATCHED = {
   "declutter_orders.stripe_checkout_session_id": "a Checkout Session; its PaymentIntent is declutter_orders.stripe_payment_intent_id",
   "declutter_orders.stripe_paid_at": "a timestamp (the charge's own time, B41), not a Stripe id",
   "declutter_orders.stripe_payment_intent_id": "Declutter (slices 3/3b, switch OFF, no money taken yet): the restore check does not read Declutter orders; add the order PaymentIntent and refund ids to DB_ID_COLUMNS before the switch goes past testers (spec, open after slice 3b)",
+  "shop_orders.stripe_checkout_session_id": "a Checkout Session; its PaymentIntent is shop_orders.stripe_payment_intent_id",
+  "shop_orders.stripe_payment_intent_id": "Shops M1 (switch OFF, testers only): the restore check does not read Shops orders yet; add the order PaymentIntent to DB_ID_COLUMNS before the switch goes past testers, as for Declutter",
   "declutter_refunds.stripe_payment_intent_id": "Declutter (slices 3/3b, switch OFF, no money taken yet): the restore check does not read Declutter orders; add the order PaymentIntent and refund ids to DB_ID_COLUMNS before the switch goes past testers (spec, open after slice 3b)",
   "declutter_refunds.stripe_refund_ref": "Declutter (slices 3/3b, switch OFF, no money taken yet): the restore check does not read Declutter orders; add the order PaymentIntent and refund ids to DB_ID_COLUMNS before the switch goes past testers (spec, open after slice 3b)",
   "declutter_refunds.refund_cents": "an amount, not a Stripe id",

@@ -8,6 +8,7 @@
  * owner), never the Stripe ids (column grants). Every refusal comes back as
  * its code; shopsErrorMessage turns it into plain words.
  */
+import { assertNever } from "@/lib/assertNever";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -192,7 +193,10 @@ export function orderStatusLabel(o: Pick<ShopOrder, "status" | "close_reason" | 
     case "cancelled": return o.close_reason === "buyer_cancelled" ? "Withdrawn (nothing charged)" : "Cancelled (nothing charged)";
     case "handed_over": return "Picked up";
     case "refunded": return "Refunded";
-    default: return "Closed";
+    // Never listed (fetchMyOrders / fetchShopOrders leave them out); worded for completeness.
+    case "awaiting_hold": return "Not sent (the payment page was not finished)";
+    case "superseded": return "Replaced by a newer order";
+    default: return assertNever(o.status, "shop order status");
   }
 }
 

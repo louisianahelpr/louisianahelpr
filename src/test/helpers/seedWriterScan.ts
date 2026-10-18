@@ -48,7 +48,7 @@ export type SeedSite = {
 // owner's profiles.is_seed at insert; no fixture writes it yet. shop_items and
 // shop_cottage_sales (Shops slice 2, 20261017061157): trigger
 // shop_rows_seed_from_owner copies the owner's flag at insert.
-export const SEED_TABLES = ["declutter_bookings", "declutter_cart_items", "declutter_delivery_dropoffs", "declutter_delivery_refunds", "declutter_items", "declutter_offers", "declutter_order_deliveries", "declutter_orders", "declutter_payouts", "declutter_problems", "declutter_refunds", "declutter_reviews", "declutter_seller_fee_debts", "declutter_wanted", "deleted_jobs_log", "helpr_task_payouts", "helpr_tasks", "helpr_vehicles", "job_quote_requests", "jobs", "profiles", "shop_cottage_sales", "shop_items", "shops"] as const;
+export const SEED_TABLES = ["declutter_bookings", "declutter_cart_items", "declutter_delivery_dropoffs", "declutter_delivery_refunds", "declutter_items", "declutter_offers", "declutter_order_deliveries", "declutter_orders", "declutter_payouts", "declutter_problems", "declutter_refunds", "declutter_reviews", "declutter_seller_fee_debts", "declutter_wanted", "deleted_jobs_log", "helpr_task_payouts", "helpr_tasks", "helpr_vehicles", "job_quote_requests", "jobs", "profiles", "shop_cottage_sales", "shop_items", "shop_order_lines", "shop_orders", "shop_strikes", "shops"] as const;
 const TABLES = SEED_TABLES.join("|");
 
 /** Index of the `(` that encloses `pos` (innermost unclosed), or -1. */

@@ -102,6 +102,10 @@ export const JOB_READABLE_COLUMN_LIST = [
   "poster_confirmed_arrival_at",
   "poster_confirmed_at",
   "poster_confirmed_working_at",
+  // The jobs poster-fee stamp (owner 2026-10-18, 20261017230824; measured
+  // live on prod 2026-10-18: column present, authenticated SELECT granted).
+  // Beside helper_fee_flat_cents so a whole-row read carries both stamps.
+  "poster_fee_flat_cents",
   "pricing_mode",
   "proof_after_urls",
   "proof_before_urls",
@@ -167,10 +171,9 @@ export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on", "series_split_ok", "
 // onboarding_fee_amount: the setup fee a first job kept (Q1346, 20261012171259).
 // helper_fee_flat_cents moved into JOB_READABLE_COLUMN_LIST once it was live
 // (Q1839, measured on prod 2026-10-17).
-// poster_fee_flat_cents: the jobs poster-fee stamp (owner 2026-10-18,
-// 20261017230824). Ahead of the DB until db-deploy lands it; move it into
-// JOB_READABLE_COLUMN_LIST once it is measured live, as helper_fee_flat_cents was.
-export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount", "poster_fee_flat_cents"] as const;
+// poster_fee_flat_cents moved into JOB_READABLE_COLUMN_LIST once it was live
+// (owner 2026-10-18; measured on prod 2026-10-18).
+export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount"] as const;
 
 /** `select` with every JOB_COLUMNS_AHEAD_OF_DB column taken out. */
 function withoutJobColumnsAheadOfDb(select: string): string {

@@ -33,6 +33,12 @@ import {
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
 const NOTE_MAX = 500;
+const DAY_MS = 86_400_000;
+
+/** Today in Louisiana (ready dates are local dates; the server uses shop_local_today()). */
+function louisianaToday(now: number = Date.now()): string {
+  return new Date(now).toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+}
 
 export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder; side: "buyer" | "shop"; userId: string }) {
   const qc = useQueryClient();
@@ -94,14 +100,52 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
 
-  if (side === "shop" && order.status === "handed_over") {
-    const p = (payouts.data ?? []).find((x) => x.order_id === order.id);
-    return p ? <p className="text-xs font-semibold" data-testid="shop-payout-line">{payoutText(p)}</p> : null;
-  }
-  if (!open) return null;
+  const reportDialog = (
+    <BrandConfirmDialog
+      open={reporting}
+      onOpenChange={(o) => { if (!o) setReporting(false); }}
+      title="Didn't get your order?"
+      description="Nobody is paid until Louisiana Helpr looks at it."
+      primaryLabel={report.isPending ? "Sending…" : "Report it"}
+      primaryDisabled={report.isPending || !note.trim()}
+      onPrimary={(e) => {
+        e.preventDefault();
+        report.mutate();
+      }}
+      secondaryLabel="Cancel"
+    >
+      <div className="space-y-1">
+        <Label htmlFor={`${fileId}-note`}>What happened?</Label>
+        <Textarea id={`${fileId}-note`} value={note} maxLength={NOTE_MAX} onChange={(e) => setNote(e.target.value)} placeholder="Nobody was there at pickup" />
+      </div>
+    </BrandConfirmDialog>
+  );
   const h = handover.data ?? null;
   const busy = ready.isPending || finish.isPending || report.isPending;
   const porch = order.handover_mode === "porch";
+  const today = louisianaToday();
+  const due = today >= order.ready_date;
+  // After the SHOP's own "Picked up" tap the buyer has 24 hours to say otherwise (the payout waits).
+  const shopTapWindow = order.status === "handed_over" && h?.confirmed_how === "shop" && !h?.problem_at
+    && !!order.handed_over_at && Date.now() - new Date(order.handed_over_at).getTime() < DAY_MS;
+
+  if (side === "shop" && order.status === "handed_over") {
+    const p = (payouts.data ?? []).find((x) => x.order_id === order.id);
+    if (h?.problem_at) return <p className="text-xs font-semibold" data-testid="shop-handover-problem">The buyer reported a problem. Louisiana Helpr looks at it before anyone is paid.</p>;
+    return p ? <p className="text-xs font-semibold" data-testid="shop-payout-line">{payoutText(p)}</p> : null;
+  }
+  if (side === "buyer" && shopTapWindow) {
+    return (
+      <div className="space-y-2" data-testid="shop-handover-actions">
+        <p className="text-xs text-muted-foreground">The shop marked this picked up. Didn't get it? Tell us within 24 hours.</p>
+        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setNote(""); setReporting(true); }}>
+          I didn't get it
+        </Button>
+        {reportDialog}
+      </div>
+    );
+  }
+  if (!open) return null;
 
   if (h?.problem_at) {
     return (
@@ -143,7 +187,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           {!porch && !h?.ready_at && (
             <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => ready.mutate(null)}>Mark ready</Button>
           )}
-          {!porch && (
+          {!porch && due && (
             <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming("picked_up")}>
               Picked up
             </Button>
@@ -159,9 +203,11 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming("got_it")}>
             I got it
           </Button>
-          <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setNote(""); setReporting(true); }}>
-            I didn't get it
-          </Button>
+          {(due || !!h?.ready_at) && (
+            <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setNote(""); setReporting(true); }}>
+              I didn't get it
+            </Button>
+          )}
         </div>
       )}
       <BrandConfirmDialog
@@ -179,24 +225,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
         }}
         secondaryLabel="Not yet"
       />
-      <BrandConfirmDialog
-        open={reporting}
-        onOpenChange={(o) => { if (!o) setReporting(false); }}
-        title="Didn't get your order?"
-        description="Nobody is paid until Louisiana Helpr looks at it."
-        primaryLabel={report.isPending ? "Sending…" : "Report it"}
-        primaryDisabled={report.isPending || !note.trim()}
-        onPrimary={(e) => {
-          e.preventDefault();
-          report.mutate();
-        }}
-        secondaryLabel="Cancel"
-      >
-        <div className="space-y-1">
-          <Label htmlFor={`${fileId}-note`}>What happened?</Label>
-          <Textarea id={`${fileId}-note`} value={note} maxLength={NOTE_MAX} onChange={(e) => setNote(e.target.value)} placeholder="Nobody was there at pickup" />
-        </div>
-      </BrandConfirmDialog>
+      {reportDialog}
     </div>
   );
 }

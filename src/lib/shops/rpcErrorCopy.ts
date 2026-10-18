@@ -291,6 +291,7 @@ export const SHOPS_RPC_ERROR_COPY = {
     order_not_charged_yet: SC.order_not_charged_yet,
     order_not_found: SC.order_not_found,
     photo_not_uploaded: SC.photo_not_uploaded,
+    problem_open: SC.problem_open,
   },
   shops_confirm_pickup: {
     account_restricted: SC.account_restricted,
@@ -301,6 +302,7 @@ export const SHOPS_RPC_ERROR_COPY = {
   },
   shops_mark_picked_up: {
     account_restricted: SC.account_restricted,
+    before_ready_date: SC.before_ready_date,
     not_authenticated: SC.not_authenticated,
     not_in_person: SC.not_in_person,
     order_not_charged_yet: SC.order_not_charged_yet,

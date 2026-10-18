@@ -103,6 +103,12 @@ const orders = vi.hoisted(() => ({
   cancelOrderRequest: vi.fn(), acceptOrder: vi.fn(), declineOrder: vi.fn(), fetchCancelPolicy: vi.fn(), setCancelPolicy: vi.fn(),
 }));
 vi.mock("@/lib/shops/orders", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/orders")>()), ...orders }));
+// Shops M2: the handover parts load on their own; answered here so the order screens stay offline.
+const handover = vi.hoisted(() => ({
+  fetchHandoverMode: vi.fn(async () => "in_person"), setHandoverMode: vi.fn(), fetchHandovers: vi.fn(async () => new Map()),
+  fetchMyShopPayouts: vi.fn(async () => []), markReady: vi.fn(), confirmPickup: vi.fn(), markPickedUp: vi.fn(), reportNotReceived: vi.fn(),
+}));
+vi.mock("@/lib/shops/handover", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/handover")>()), ...handover }));
 vi.mock("@/components/declutter/useDeclutterOrigin", () => ({ useDeclutterOrigin: () => ({ origin: { status: "none" } }) }));
 
 import ShopPage from "@/pages/shops/ShopPage";
@@ -131,7 +137,7 @@ const order = (over: Partial<ShopOrder>): ShopOrder => ({
   id: "o1", buyer_id: "u1", seller_id: "u2", shop_id: "s1", status: "held", close_reason: null, ready_date: "2026-10-23",
   cancel_policy: "until_accept", note: "", decline_reason: null, items_cents: 2000, premium_cents: 170, tax_cents: 0,
   total_cents: 2170, created_at: "2026-10-19T10:00:00Z", held_at: "2026-10-19T10:00:00Z",
-  accept_by: new Date(Date.now() + 5 * 3_600_000 + 90_000).toISOString(), accepted_at: null, captured_at: null, closed_at: null,
+  accept_by: new Date(Date.now() + 5 * 3_600_000 + 90_000).toISOString(), accepted_at: null, captured_at: null, closed_at: null, handover_mode: "in_person", handed_over_at: null,
   shop_order_lines: [{ id: "l1", item_id: "i1", title: "Candle", kind: "made", unit_cents: 1000, quantity: 2, line_cents: 2000 }],
   shops: { name: "Bayou Bakes" }, ...over,
 });

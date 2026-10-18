@@ -25,6 +25,7 @@ import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
 import { effectiveSalesTaxRate, jobEscrowTaxableBaseCents, taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
 import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
+import { recordWalletDefaultCard } from "./_walletDefaultCard.ts";
 import { isDeclutterSession, settleDeclutterSession } from "./declutterCheckout.ts";
 
 export async function handleCheckoutSessionCompleted(
@@ -35,6 +36,9 @@ export async function handleCheckoutSessionCompleted(
   // Q1324: the card that paid is checked against banned people's cards, AFTER
   // the payment is recorded (it never throws; a check that cannot run pages).
   await checkCheckoutCardFingerprint(event, ctx);
+  // Q2139: "Save card for next time" on a job makes that card the wallet's
+  // default card (the off-session consent auto-tip reads). Never throws.
+  await recordWalletDefaultCard(event, ctx);
 }
 
 async function settleCheckoutSession(

@@ -32,6 +32,8 @@ export interface StripeMock {
     list: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     retrieve: ReturnType<typeof vi.fn>;
+    search: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
   };
   checkout: {
     sessions: {
@@ -169,6 +171,8 @@ export const stripeMock: StripeMock = {
     list: vi.fn(),
     create: vi.fn(),
     retrieve: vi.fn(),
+    search: vi.fn(),
+    update: vi.fn(),
   },
   checkout: {
     sessions: {
@@ -319,6 +323,11 @@ export function resetStripeMock() {
   stripeMock.checkout.sessions.retrieve.mockResolvedValue({ status: "open" });
   // Q1104: no prior visit charge for this customer unless a test seeds one.
   stripeMock.paymentIntents.list.mockResolvedValue({ data: [], has_more: false });
+  // One wallet (Q2139): create-payment resolves the payer's wallet customer
+  // (_shared/stripeCustomer.ts). Neutral answers: no tagged customer to adopt,
+  // a new customer is made, and the claim (supabase mock) keeps it.
+  stripeMock.customers.search.mockResolvedValue({ data: [] });
+  stripeMock.customers.create.mockResolvedValue({ id: "cus_walletnew" });
 }
 
 /**

@@ -245,6 +245,8 @@ const EXEMPT: Record<string, string> = {
   "_shared/heldTipRepay.ts::stripe.transfers.retrieve(transferId)": EVENT,
   // Q1324: the card that paid this event's own session.
   "stripe-webhook/handlers/_checkoutCardFingerprint.ts::stripe.paymentIntents.retrieve(session.payment_intent)": EVENT,
+  "stripe-webhook/handlers/_walletDefaultCard.ts::stripe.paymentIntents.retrieve(session.payment_intent)": EVENT,
+  "stripe-webhook/handlers/_walletDefaultCard.ts::stripe.customers.retrieve(stored)": "the member's stored wallet customer, keyed by the event's mode and read on that mode's client; minted after the live switch",
   "stripe-webhook/handlers/_checkoutCardFingerprint.ts::stripe.subscriptions.retrieve(session.subscription)": EVENT,
   "stripe-webhook/handlers/chargeDisputeClosed.ts::stripe.charges.retrieve(chargeId)": EVENT,
   "stripe-webhook/handlers/chargeRefundUpdated.ts::stripe.charges.retrieve(chargeId)": EVENT,

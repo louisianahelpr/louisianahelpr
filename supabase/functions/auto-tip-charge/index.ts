@@ -550,12 +550,14 @@ serve(async (req) => {
         // customer, all charged off-session.
         //
         // Only the wallet's DEFAULT card, never "any card on it" (lh-money-escrow
-        // review of ad052465c #1): a Declutter card sits on the same customer and
-        // was saved to buy with, not as the wallet's default. Setting the default
-        // is the off-session consent step (one wallet card everywhere, owner
-        // 2026-10-18); until Jobs' "save card for next time" sets it (Q2139)
-        // auto-tip charges nobody: the poster is asked to tip by hand and the run
-        // reports it.
+        // review of ad052465c #1): a card saved before the wallet existed may
+        // sit on the customer without the member's consent to off-session use.
+        // Setting the default is the consent step (one wallet card everywhere,
+        // owner 2026-10-18): the card saved most recently in ANY section (Jobs'
+        // "save card for next time", Declutter's card page) becomes it
+        // (stripe-webhook handlers/_walletDefaultCard.ts, Q2139). No default
+        // card -> nothing is charged: the poster is asked to tip by hand and
+        // the run reports it.
         let customerId: string | null;
         try {
           customerId = await storedStripeCustomer(supabase, c.customer_id as string, mode);

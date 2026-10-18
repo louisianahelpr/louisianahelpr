@@ -128,35 +128,118 @@ describe("create-payment edge function", () => {
     });
   });
 
-  describe("Stripe customer get-or-create", () => {
-    it("reuses an existing Stripe customer by email", async () => {
-      scenario.authUser = POSTER;
-      stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_old" }] });
-      // jobId missing → escrow throws after customer lookup, which is fine:
-      // the assertion below is that customers.create was NOT called.
+  // One wallet (Q2139): the payer's ONE stored Stripe customer, never one found by email.
+  // @mutate supabase/functions/create-payment/index.ts | resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true }) | resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode)
+  // @mutate supabase/functions/_shared/stripeCustomer.ts | !c.deleted && c.metadata?.supabase_user_id === userId && CUSTOMER_ID_RE.test(c.id) | !c.deleted && CUSTOMER_ID_RE.test(c.id)
+  // @mutate supabase/functions/_shared/stripeCustomer.ts |       .sort((a, b) => (b.created ?? 0) - (a.created ?? 0)); |       ;
+  // @mutate supabase/functions/_shared/stripeCustomer.ts |         && !c.invoice_settings?.default_payment_method) |         )
+  // @mutate supabase/functions/create-payment/index.ts | wallet_save: paymentIntentExtras.setup_future_usage === "off_session" ? "1" : "" }, | wallet_save: "" },
+  describe("one wallet: the payer's Stripe customer (Q2139)", () => {
+    const WALLET_POSTER = { id: "0000000c-0000-4000-8000-000000000001", email: "wallet-poster@test.com" };
+    function seedEscrow() {
+      seedAuth(scenario, WALLET_POSTER);
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: WALLET_POSTER.id, budget: 100, category: "cleaning", title: "Clean my house", payment_status: "unpaid", stripe_session_id: null }],
+      };
+      scenario.reads.platform_settings = { rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 200 }] };
+      scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true, subscription_tier: "pro" }] };
+      stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_fresh", url: "https://checkout.stripe.test/cs_fresh" });
+    }
+    const escrow = async () => {
       const fn = await load();
-      await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow" } }));
-      expect(stripeMock.customers.list).toHaveBeenCalledWith({
-        email: POSTER.email,
-        limit: 1,
-      });
+      return fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1", saveCardForFuture: true } }));
+    };
+    const rpcs = (name: string) => (scenario.rpcCalls ?? []).filter((c) => c.name === name);
+    const sessionCustomer = () => stripeMock.checkout.sessions.create.mock.calls[0]?.[0]?.customer;
+
+    it("uses the payer's stored wallet customer and never looks one up by email", async () => {
+      seedEscrow();
+      scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_saved" }] };
+      const res = await escrow();
+      expect(res.status).toBe(200);
+      expect(sessionCustomer()).toBe("cus_saved");
+      expect(stripeMock.customers.list).not.toHaveBeenCalled();
+      expect(stripeMock.customers.search).not.toHaveBeenCalled();
       expect(stripeMock.customers.create).not.toHaveBeenCalled();
     });
 
-    it("creates a Stripe customer when none exists, tagged with the supabase user id", async () => {
-      scenario.authUser = POSTER;
-      scenario.reads.profiles = { rows: [{ full_name: "Pat Poster" }] };
-      stripeMock.customers.list.mockResolvedValue({ data: [] });
-      stripeMock.customers.create.mockResolvedValue({ id: "cus_new" });
+    it("adopts the payer's old Jobs customer ONLY by its exact supabase_user_id tag, and claims it", async () => {
+      seedEscrow();
+      scenario.reads.stripe_customers = { rows: [] };
+      stripeMock.customers.search.mockResolvedValue({ data: [
+        { id: "cus_notmine", created: 9, metadata: { supabase_user_id: "someone-else" } },
+        { id: "cus_old", created: 5, metadata: { supabase_user_id: WALLET_POSTER.id } },
+      ] });
+      const res = await escrow();
+      expect(res.status).toBe(200);
+      expect(sessionCustomer()).toBe("cus_old");
+      const [{ query }] = stripeMock.customers.search.mock.calls[0];
+      expect(query).toBe(`metadata['supabase_user_id']:'${WALLET_POSTER.id}'`);
+      expect(query).not.toMatch(/email/);
+      expect(rpcs("claim_stripe_customer")[0]?.args).toMatchObject({ p_user: WALLET_POSTER.id, p_customer: "cus_old" });
+      expect(stripeMock.customers.create).not.toHaveBeenCalled();
+      expect(stripeMock.customers.list).not.toHaveBeenCalled();
+    });
+
+    it("several tagged customers: the NEWEST is adopted", async () => {
+      seedEscrow();
+      scenario.reads.stripe_customers = { rows: [] };
+      stripeMock.customers.search.mockResolvedValue({ data: [
+        { id: "cus_older", created: 5, metadata: { supabase_user_id: WALLET_POSTER.id } },
+        { id: "cus_newer", created: 8, metadata: { supabase_user_id: WALLET_POSTER.id } },
+      ] });
+      await escrow();
+      expect(sessionCustomer()).toBe("cus_newer");
+    });
+
+    it("a tagged customer that already HAS a default card (set outside a save) is never adopted: a new wallet is made", async () => {
+      seedEscrow();
+      scenario.reads.stripe_customers = { rows: [] };
+      stripeMock.customers.search.mockResolvedValue({ data: [
+        { id: "cus_portaldefault", created: 9, metadata: { supabase_user_id: WALLET_POSTER.id }, invoice_settings: { default_payment_method: "pm_portal" } },
+      ] });
+      await escrow();
+      expect(sessionCustomer()).toBe("cus_walletnew");
+    });
+
+    it("the tag search fails: a new wallet customer is made (no card is charged wrongly)", async () => {
+      seedEscrow();
+      scenario.reads.stripe_customers = { rows: [] };
+      stripeMock.customers.search.mockRejectedValue(new Error("search down"));
+      const res = await escrow();
+      expect(res.status).toBe(200);
+      expect(sessionCustomer()).toBe("cus_walletnew");
+    });
+
+    it("a checkout that saves the card is marked wallet_save (the webhook reads only those); one that does not is not", async () => {
+      seedEscrow();
+      scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_saved" }] };
+      await escrow();
+      expect(stripeMock.checkout.sessions.create.mock.calls[0][0].metadata.wallet_save).toBe("1");
+      stripeMock.checkout.sessions.create.mockClear();
       const fn = await load();
-      await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow" } }));
-      expect(stripeMock.customers.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: POSTER.email,
-          name: "Pat Poster",
-          metadata: { supabase_user_id: POSTER.id },
-        }),
-      );
+      await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1", saveCardForFuture: false } }));
+      expect(stripeMock.checkout.sessions.create.mock.calls[0]?.[0]?.metadata?.wallet_save).not.toBe("1");
+    });
+
+    it("no tagged customer: a new wallet customer is made (idempotent per member and mode) and claimed", async () => {
+      seedEscrow();
+      scenario.reads.stripe_customers = { rows: [] };
+      const res = await escrow();
+      expect(res.status).toBe(200);
+      expect(sessionCustomer()).toBe("cus_walletnew");
+      const [params, opts] = stripeMock.customers.create.mock.calls[0];
+      expect(params).toMatchObject({ email: WALLET_POSTER.email, metadata: { supabase_user_id: WALLET_POSTER.id } });
+      expect(opts.idempotencyKey).toMatch(new RegExp(`^lh-wallet-customer-${WALLET_POSTER.id}-(live|test)$`));
+    });
+
+    it("the wallet read fails: 503, no checkout opens, no customer made", async () => {
+      seedEscrow();
+      scenario.reads.stripe_customers = { error: { message: "boom" } };
+      const res = await escrow();
+      expect(res.status).toBe(503);
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+      expect(stripeMock.customers.create).not.toHaveBeenCalled();
     });
   });
 
@@ -658,8 +741,10 @@ describe("create-payment edge function", () => {
       });
 
       // @mutate supabase/functions/create-payment/index.ts | ...(saveCardForFuture === true ? { setup_future_usage: "off_session" as const } : {}), |
+      // @mutate supabase/functions/create-payment/index.ts | wallet_save: saveCardForFuture === true ? "1" : "" }, | wallet_save: "" },
       it("sets setup_future_usage off_session on the shortfall intent when saveCardForFuture is true", async () => {
         seedGiftShortfall();
+        scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_existing" }] };
         const fn = await load();
         const res = await fn.fetch(fn.request({
           headers: AUTH,
@@ -673,6 +758,8 @@ describe("create-payment edge function", () => {
         expect(params.customer).toBe("cus_existing");
         expect(params.payment_intent_data.setup_future_usage).toBe("off_session");
         expect(params.payment_intent_data.metadata.gift_card_id).toBe("gift-1");
+        // Marked so stripe-webhook makes the saved card the wallet's default (Q2139).
+        expect(params.metadata.wallet_save).toBe("1");
       });
 
       // Roadmap F3b (owner 2026-10-15): the urgent bonus is part of the job
@@ -770,7 +857,7 @@ describe("create-payment edge function", () => {
       expect(args.metadata.onboarding_fee_cents).toBe(String(setupItem.price_data.unit_amount));
       expect(args.metadata.job_id).toBe("job-1");
     });
-    // @mutate supabase/functions/create-payment/index.ts | onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents) }, | onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents + 1) },
+    // @mutate supabase/functions/create-payment/index.ts | onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents), | onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents + 1),
 
     it("flags an assembly job as LA-taxable labor (tax_code txcd_20080005, Repair of Tangible Personal Property)", async () => {
       seedAuth(scenario, POSTER);

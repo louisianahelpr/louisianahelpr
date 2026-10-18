@@ -6,8 +6,10 @@
  * Opens Stripe's own card-saving page (Checkout, mode=setup) for the signed-in
  * member and returns its URL. Nothing is charged. When the member finishes,
  * stripe-webhook (handlers/declutterCheckout.ts) reads the card off the
- * SetupIntent and stores it with declutter_save_card (service role only); the
- * app never sends card details or Stripe ids anywhere.
+ * SetupIntent and stores it with declutter_save_card (service role only), then
+ * makes it the wallet's default card (the most recently saved card in any
+ * section is the one wallet card, owner 2026-10-18; _walletDefaultCard.ts,
+ * Q2139). The app never sends card details or Stripe ids anywhere.
  *
  * Stripe mode (owner 2026-10-12): a test account saves its card on the TEST
  * key, everyone else on the live key (stripeModeForParties, decided from the
@@ -65,8 +67,11 @@ serve(async (req) => {
     const stripe = new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" });
 
     // One wallet: the member's ONE Stripe customer in this mode (stored, else
-    // made and claimed once). Never found by email.
-    const customerId = await resolveStripeCustomer(admin, stripe, user, mode);
+    // their old Jobs customer adopted by its exact supabase_user_id tag, else
+    // made; claimed once). Never found by email. Adopting here too means the
+    // section a member opens first never strands the cards on their old Jobs
+    // customer (lh-money-escrow review of 05df69882 #2).
+    const customerId = await resolveStripeCustomer(admin, stripe, user, mode, { adoptTagged: true });
 
     const session = await stripe.checkout.sessions.create({
       mode: "setup",

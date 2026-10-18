@@ -55,6 +55,7 @@ import { jobLocalMidnightMs } from "../_shared/cancellationFee.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { checkPayoutHold, checkJobPayoutHold, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import { paymentMethodFromCharge, refundNoticeProblem, sendRefundNotice, type RefundNoticeInput } from "../_shared/refundNotice.ts";
@@ -338,25 +339,18 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Get or create Stripe customer
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId: string;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-    } else {
-      // Fetch user's profile name for the Stripe customer record
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("full_name")
-        .eq("user_id", user.id)
-        .single();
-      const newCustomer = await stripe.customers.create({
-        email: user.email,
-        name: profile?.full_name || user.email,
-        metadata: { supabase_user_id: user.id },
-      });
-      customerId = newCustomer.id;
-    }
+    // One wallet (Q2139): the payer's ONE stored Stripe customer in this mode
+    // (_shared/stripeCustomer.ts), resolved only by the actions that open a
+    // Checkout page for the caller (escrow, its shortfall, tip, recurring
+    // visit). It used to be `customers.list({ email, limit: 1 })`: an
+    // arbitrary customer on that address, which can belong to a deleted member
+    // whose email was reused. A member who paid before the wallet existed has
+    // their old customer adopted by its exact metadata.supabase_user_id tag
+    // (create-payment always set it), never by email, so a card they saved
+    // stays theirs.
+    let walletCustomerId: string | null = null;
+    const payerWalletCustomer = async (): Promise<string> =>
+      walletCustomerId ??= await resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true });
 
     // ─── ESCROW: Create checkout with manual capture ───
     if (action === "escrow") {
@@ -998,7 +992,7 @@ serve(async (req) => {
           quantity: 1,
         }];
         const diffSession = await stripe.checkout.sessions.create({
-          customer: customerId,
+          customer: await payerWalletCustomer(),
           customer_update: { address: "auto" },
           line_items: diffLineItems,
           mode: "payment",
@@ -1028,7 +1022,10 @@ serve(async (req) => {
           // one, unusable on anything else until the session expired.
           cancel_url: buildRedirectUrl(`/post-job?gift_card=${encodeURIComponent(giftCardId)}`, isNative),
           expires_at: checkoutExpiresAt,
-          metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId },
+          metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId,
+            // wallet_save "1": stripe-webhook makes the saved card the wallet's
+            // default card (Q2139) only on a session marked so ("" = unset).
+            wallet_save: saveCardForFuture === true ? "1" : "" },
         }, {
           idempotencyKey: `gift-card-diff-${jobId}${priceKey}${checkoutKeySuffix}`,
         });
@@ -1271,7 +1268,7 @@ serve(async (req) => {
         paymentIntentExtras.setup_future_usage = "off_session";
       }
       const session = await stripe.checkout.sessions.create({
-        customer: customerId,
+        customer: await payerWalletCustomer(),
         customer_update: { address: 'auto' },
         line_items: lineItems,
         mode: "payment",
@@ -1300,7 +1297,10 @@ serve(async (req) => {
           ? buildRedirectUrl(`/post-job`, isNative)
           : buildRedirectUrl(`/quotes/request/${cancelQuoteRequestId}`, isNative),
         expires_at: checkoutExpiresAt,
-        metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents) },
+        metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents),
+          // wallet_save "1": stripe-webhook makes the saved card the wallet's
+          // default card (Q2139) only on a session marked so ("" = unset).
+          wallet_save: paymentIntentExtras.setup_future_usage === "off_session" ? "1" : "" },
       }, {
         // Idempotency: a double-submit (double-tap, retried request) for the same
         // job reuses the existing Checkout Session instead of creating a second
@@ -1896,7 +1896,7 @@ serve(async (req) => {
       const tipQuote = tipChargeBreakdown(tipCents);
 
       const session = await stripe.checkout.sessions.create({
-        customer: customerId,
+        customer: await payerWalletCustomer(),
         line_items: [
           {
             price_data: {
@@ -2109,7 +2109,7 @@ serve(async (req) => {
       }
 
       const session = await stripe.checkout.sessions.create({
-        customer: customerId,
+        customer: await payerWalletCustomer(),
         line_items: lineItems,
         mode: "payment",
         payment_method_types: ["card"],
@@ -4365,6 +4365,16 @@ serve(async (req) => {
     // real one, a missing test key, an unreadable test-account list): nothing
     // was sent to Stripe, and the answer says so.
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);
+    // The payer's wallet could not be read or claimed (Q2139): no Checkout
+    // page was opened. Earlier steps of the action (an expired older page, a
+    // reserved gift) are the same ones a retry repeats, so retrying is safe.
+    if (error instanceof StripeCustomerUnavailable) {
+      console.error(`[create-payment] 503 — wallet unavailable: ${error.message}`);
+      return new Response(JSON.stringify({ error: "We couldn't open the payment page just now. Please try again." }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 503,
+      });
+    }
     // A stored id from the Stripe sandbox read under the live key (a job paid
     // before prod went live): retrying never changes Stripe's answer and no
     // real money sits behind it, so it is a 409 with a plain sentence, not a

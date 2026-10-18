@@ -896,9 +896,9 @@ const NotificationPreferences = () => {
           disabled={!loaded || sendingTest}
           className="shrink-0 ml-2 inline-flex items-center gap-1 rounded-ds-sm px-2 py-1 text-ds-10 font-sans font-semibold active:scale-[0.96] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            background: "hsl(var(--bark))",
-            color: "hsl(var(--parchment))",
-            border: "1px solid hsl(var(--bark))",
+            background: "hsl(var(--brand))",
+            color: "hsl(var(--brand-foreground))",
+            border: "1px solid hsl(var(--brand))",
           }}
           aria-label="Send test notification"
         >

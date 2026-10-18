@@ -58,9 +58,9 @@ export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdB
             onClick={onOpenExport}
             className="inline-flex items-center gap-1.5 rounded-ds-sm px-3 py-1.5 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all"
             style={{
-              background: "hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-              border: "1px solid hsl(var(--bark))",
+              background: "hsl(var(--brand))",
+              color: "hsl(var(--brand-foreground))",
+              border: "1px solid hsl(var(--brand))",
             }}
           >
             <FileText className="w-3.5 h-3.5" />

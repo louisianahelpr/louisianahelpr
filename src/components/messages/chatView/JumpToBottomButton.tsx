@@ -31,13 +31,11 @@ export function JumpToBottomButton({
     <div className="flex justify-center -mt-1 mb-1 pointer-events-none">
       <button
         type="button"
-        className="pointer-events-auto flex items-center gap-1 px-3 py-1 rounded-full text-ds-11 font-medium shadow-md transition-all active:scale-95"
+        className="pointer-events-auto flex items-center gap-1 px-3 py-1 rounded-full text-ds-11 font-medium transition-all active:scale-95"
         style={{
-          background: "hsl(var(--bark))",
-          color: "hsl(var(--parchment))",
-          boxShadow:
-            "0 2px 8px hsl(var(--bark) / 0.28), " +
-            "inset 0 1px 0 0 rgba(255,255,255,0.12)",
+          background: "hsl(var(--brand))",
+          color: "hsl(var(--brand-foreground))",
+          boxShadow: "0 2px 8px hsl(var(--ink-deep) / 0.18)",
         }}
         aria-label={
           firstUnreadOffscreen

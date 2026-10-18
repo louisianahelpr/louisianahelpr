@@ -76,8 +76,7 @@ const chipRow = "flex flex-wrap gap-2";
 // otherwise it keeps its per-category tint and disappears into the gradient.
 const chipActive =
   "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] " +
-  "border-[hsl(var(--bark-deep)/0.55)] " +
-  "shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_2px_8px_-3px_hsl(var(--bark)/0.55)]";
+  "border-[hsl(var(--brand))]";
 const chipIdle =
   "bg-white/70 dark:bg-card/60 backdrop-blur text-foreground border-[hsl(var(--bark)/0.22)] hover:border-[hsl(var(--bark)/0.45)] hover:bg-white/90 dark:hover:bg-card/90";
 

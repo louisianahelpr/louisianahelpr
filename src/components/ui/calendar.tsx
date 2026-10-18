@@ -78,7 +78,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         // `[&>button]` rule hands the button the same off-white every other
         // selected control wears.
         selected:
-          "!bg-[hsl(var(--bark))] !text-[hsl(var(--parchment))] [&>button]:!text-[hsl(var(--parchment))] hover:!bg-[hsl(var(--bark))] focus:!bg-[hsl(var(--bark))] shadow-[0_1px_2px_hsl(var(--bark)/0.18)] font-sans font-bold",
+          "!bg-[hsl(var(--brand))] !text-[hsl(var(--brand-foreground))] [&>button]:!text-[hsl(var(--brand-foreground))] hover:!bg-[hsl(var(--brand))] focus:!bg-[hsl(var(--brand))] font-sans font-bold",
         today:
           "!bg-[hsl(var(--burnt-sienna)/0.10)] !text-[hsl(var(--burnt-sienna))] !font-sans !font-bold ring-1 ring-[hsl(var(--burnt-sienna)/0.28)]",
         outside: "day-outside text-[hsl(var(--olivewood)/0.8)] opacity-60 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",

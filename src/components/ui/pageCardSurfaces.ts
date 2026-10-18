@@ -30,30 +30,21 @@ export const TITLE_CARD_STYLE: CSSProperties = {
   // steps — so they stay obviously the same material. Very faint copper /
   // verdigris corner glows keep the card from reading as a flat block.
   backgroundColor: "var(--glass-bg-title)",
-  backgroundImage:
-    "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.05) 0%, transparent 55%), " +
-    "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 80% / 0.12) 0%, transparent 60%)",
-  boxShadow:
-    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-    "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), " +
-    "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-    "0 8px 18px -6px hsl(var(--olivewood) / 0.1), " +
-    "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
+  // FLAT (Warm Modern, owner 2026-10-17, C2 mock-ups): no tinted gradients,
+  // no inset top highlight, one soft warm shadow in light and none in dark
+  // (dark --olivewood is near-white, so the old olivewood shadows painted a
+  // pale GLOW around every card on the dark page). --card-flat-shadow is set
+  // per theme in index.css.
+  boxShadow: "var(--card-flat-shadow)",
 };
 
 export type PanelElevation = "raised" | "flat";
 
+// Flat like the title card: the raised panel takes the one warm shadow, the
+// flat panel none (its hairline border is the edge).
 const PANEL_SHADOW: Record<PanelElevation, string> = {
-  raised:
-    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-    "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-    "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
-    "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
-  flat:
-    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-    "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
-    "1px 0 2px hsl(var(--olivewood) / 0.06), " +
-    "0 -1px 2px hsl(var(--olivewood) / 0.06)",
+  raised: "var(--card-flat-shadow)",
+  flat: "none",
 };
 
 /**

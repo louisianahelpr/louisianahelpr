@@ -31,8 +31,7 @@ const LIMITS = { percent: { min: 1, max: 50 }, fixed: { min: 3, max: 500 }, cap:
  *  inline `style` fill is invisible to it. Declared once so the two rows can
  *  never drift from each other again. */
 const TILE_ACTIVE =
-  "btn-grad-primary !text-[hsl(var(--parchment))] " +
-  "shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_2px_8px_-3px_hsl(var(--bark)/0.55)]";
+  "btn-grad-primary !text-[hsl(var(--parchment))]";
 /** `min-h-[44px]` is load-bearing, not decoration. The app-wide
  *  `button { min-height: 44px }` in index.css explicitly EXCLUDES
  *  `[role="radio"]`, so the moment these tiles gained real radio semantics

@@ -427,7 +427,7 @@ export const RichMessageInput = ({
               onClick={() => void handleVoiceNoteRecord()}
               disabled={uploading}
               className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
-              style={{ background: "hsl(var(--bark))", color: "hsl(var(--parchment))" }}
+              style={{ background: "hsl(var(--brand))", color: "hsl(var(--brand-foreground))" }}
             >
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             </button>

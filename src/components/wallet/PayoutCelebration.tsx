@@ -285,9 +285,9 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
                 }}
                 className="shrink-0 px-3 h-8 rounded-full active:scale-[0.97] transition-transform"
                 style={{
-                  background: "hsl(var(--bark))",
-                  color: "hsl(var(--parchment))",
-                  border: "1px solid hsl(var(--bark-border))",
+                  background: "hsl(var(--brand))",
+                  color: "hsl(var(--brand-foreground))",
+                  border: "1px solid hsl(var(--brand))",
                   fontFamily: "'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif",
                   fontWeight: 600,
                   fontSize: "0.72rem",

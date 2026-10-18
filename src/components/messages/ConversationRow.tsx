@@ -278,12 +278,12 @@ const ConversationRowBase = ({
             className="w-6 h-6 rounded-full flex items-center justify-center transition-colors"
             style={
               selected
-                ? { background: "hsl(var(--bark))", border: "1px solid hsl(var(--bark))" }
+                ? { background: "hsl(var(--brand))", border: "1px solid hsl(var(--brand))" }
                 : { background: "transparent", border: "1.5px solid hsl(var(--olivewood) / 0.45)" }
             }
           >
             {selected && (
-              <Check className="w-3.5 h-3.5" style={{ color: "hsl(var(--parchment))" }} strokeWidth={3} />
+              <Check className="w-3.5 h-3.5" style={{ color: "hsl(var(--brand-foreground))" }} strokeWidth={3} />
             )}
           </span>
         </button>

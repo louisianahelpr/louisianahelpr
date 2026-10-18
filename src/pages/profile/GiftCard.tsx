@@ -531,7 +531,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                         // "Just because" fit alone, giving five rows.
                         className={`min-h-11 px-3 rounded-ds-pill text-ds-12 font-sans font-semibold transition-all duration-150 ease-ds-spring active:scale-[0.97] ${
                           active
-                            ? "btn-grad-primary border border-[hsl(var(--bark))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12)]"
+                            ? "btn-grad-primary border border-[hsl(var(--brand))]"
                             : ""
                         }`}
                         style={
@@ -614,7 +614,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                         // shorthand would wipe btn-grad-primary's image.
                         className={`min-h-11 px-2 rounded-ds-sm text-ds-13 font-sans font-semibold transition-all duration-150 ease-ds-spring active:scale-[0.97] ${
                           active
-                            ? "btn-grad-primary border border-[hsl(var(--bark))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12)]"
+                            ? "btn-grad-primary border border-[hsl(var(--brand))]"
                             : ""
                         }`}
                         style={

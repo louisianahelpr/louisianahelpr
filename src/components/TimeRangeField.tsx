@@ -115,9 +115,9 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
           onClick={() => setOpen(false)}
           className="w-full h-11 rounded-ds-md text-ds-15"
           style={{
-            background: "hsl(var(--bark))",
-            color: "hsl(var(--parchment))",
-            border: "1px solid hsl(var(--bark))",
+            background: "hsl(var(--brand))",
+            color: "hsl(var(--brand-foreground))",
+            border: "1px solid hsl(var(--brand))",
             fontFamily: "'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, sans-serif",
             fontWeight: 600,
             letterSpacing: "0.01em",

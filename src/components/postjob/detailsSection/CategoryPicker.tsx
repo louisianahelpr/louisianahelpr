@@ -134,14 +134,14 @@ export function CategoryPicker({
                   <span
                     className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
                     style={{
-                      background: "hsl(var(--bark))",
+                      background: "hsl(var(--brand))",
                       boxShadow: "0 0 0 1.5px hsl(var(--card))",
                     }}
                     aria-hidden
                   >
                     <Check
                       className="w-2.5 h-2.5"
-                      style={{ color: "hsl(var(--parchment))" }}
+                      style={{ color: "hsl(var(--brand-foreground))" }}
                       strokeWidth={3.5}
                     />
                   </span>

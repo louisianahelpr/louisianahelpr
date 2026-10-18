@@ -796,6 +796,8 @@
                                                through and flattened the title card to
                                                canvas tone. Opaque white now lifts it. */
   --glass-border:    hsl(var(--bark) / 0.18);
+  /* The ONE card shadow (Warm Modern, flat): warm and soft in light. */
+  --card-flat-shadow: 0 1px 2px hsl(30 50% 16% / 0.05), 0 4px 12px hsl(30 50% 16% / 0.06);
 
   /* Bottom-nav dock glass — the floating pill + its frosted curtain are
      drawn with inline styles in MobileNav.tsx, so they must reference
@@ -1075,6 +1077,8 @@
   --glass-bg-crisp:  hsl(145.7 12.3% 11.2% / 0.97);
   --glass-bg-title:  hsl(145.7 12.3% 11.2% / 0.85);
   --glass-border:    hsl(var(--bark) / 0.25);
+  /* Dark cards cast no shadow: the lighter card surface is the lift. */
+  --card-flat-shadow: none;
 
   /* Bottom-nav dock glass — dark surface so the floating pill reads as
      dark frosted glass over the dark page instead of a bright-white slab.
@@ -1220,9 +1224,12 @@ html[data-theme="dark"].web-desktop:not(.app-shell) body:has(.app-shell-frame),
 }
 
 
+/* Dark cards are FLAT (C2 dark mock-up): the opaque #19201C card surface on
+   the #0F1412 page with a #2A342E hairline. The old translucent fill + mint
+   --glass-border (bark 0.25) read as a green-rimmed glowing card. */
 [data-theme="dark"] .liquid-glass {
-  background-color: var(--glass-bg-soft);
-  border-color: var(--glass-border);
+  background-color: hsl(var(--ivory-sand));
+  border-color: hsl(var(--border));
 }
 
 [data-theme="dark"] .skeleton-glass {
@@ -2835,17 +2842,9 @@ button,
      strength is the single most reliable separator in light mode. */
   border: 1px solid hsl(var(--border));
   border-radius: 1.5rem;
-  box-shadow:
-    /* Brighter top inner highlight so the card catches light off its top
-       edge over the warm champagne canvas, reading as glass rather than
-       flat fill. */
-    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.9),
-    /* Deepened drop shadow — roughly doubled from before so the card
-       casts a real, perceptible shadow onto the page. This is what makes
-       the separation read as physical depth rather than a faint tint. */
-    0 1px 3px hsl(var(--olivewood) / 0.1),
-    0 14px 28px -8px hsl(var(--olivewood) / 0.16),
-    0 32px 64px -16px hsl(var(--olivewood) / 0.2);
+  /* FLAT (Warm Modern, owner 2026-10-17): no top inner highlight, one soft
+     warm shadow (none in dark), the hairline border is the edge. */
+  box-shadow: var(--card-flat-shadow);
 }
 
 /* Subtle paper-like depth for empty-state surfaces — barely-there

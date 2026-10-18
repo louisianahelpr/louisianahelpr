@@ -49,7 +49,7 @@ const Switch = React.forwardRef<
         // and ON was hard to tell from OFF at a glance (Availability day rows,
         // 2026-09-07). --bark in dark is the mid olive the FAB wears — a white
         // thumb on it has the same figure/ground relationship light mode has.
-        "dark:data-[state=checked]:bg-[hsl(var(--bark))]",
+        "dark:data-[state=checked]:bg-[hsl(var(--brand))]",
         "data-[state=unchecked]:bg-[hsl(var(--ink-deep)/0.18)]",
         // Inner shadow gives the sunken-track feel iOS uses.
         "shadow-inner",

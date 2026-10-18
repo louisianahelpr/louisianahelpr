@@ -170,11 +170,11 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
                 value={key}
                 className="relative h-11 inline-flex flex-1 min-w-0 items-center justify-center gap-1 sm:gap-1.5 rounded-ds-md text-ds-11 sm:text-ds-13 font-sans font-semibold leading-none transition-colors duration-200 px-1"
                 style={{
-                  color: isActive ? "hsl(var(--parchment))" : "hsl(var(--olivewood))",
+                  color: isActive ? "hsl(var(--brand-foreground))" : "hsl(var(--olivewood))",
                   // data-[state=active]:bg-background (parchment) causes the axe walk
                   // algorithm to see 1:1 contrast; override it so both walk and pixel
                   // methods see a dark background behind the parchment label.
-                  ...(isActive ? { backgroundColor: "hsl(var(--bark))" } : {}),
+                  ...(isActive ? { backgroundColor: "hsl(var(--brand))" } : {}),
                 }}
               >
                 {/* A single lifted pill that slides between tabs via framer's

@@ -71,10 +71,9 @@ function SuccessCheck({ size = 88, reducedMotion }: SuccessCheckProps) {
         style={{
           width: ring,
           height: ring,
-          background: "hsl(var(--bark))",
-          boxShadow:
-            "inset 0 1px 1px 0 rgba(255,255,255,0.22), " +
-            "0 10px 28px -8px hsl(var(--bark) / 0.55)",
+          // Flat brand disc (Warm Modern, owner 10-17): the same #0E7A4A as every
+          // CTA in both themes; dark --bark is the mint TEXT green.
+          background: "hsl(var(--brand))",
         }}
         initial={reducedMotion ? { scale: 1 } : { scale: 0.4 }}
         animate={reducedMotion ? { scale: 1 } : { scale: 1 }}
@@ -93,7 +92,7 @@ function SuccessCheck({ size = 88, reducedMotion }: SuccessCheckProps) {
         >
           <motion.path
             d="M4 12.5L9.5 18L20 6.5"
-            stroke="hsl(var(--parchment))"
+            stroke="hsl(var(--brand-foreground))"
             strokeWidth={2.6}
             strokeLinecap="round"
             strokeLinejoin="round"

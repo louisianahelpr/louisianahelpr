@@ -191,11 +191,11 @@ export function IdentityHeader({
                 aria-hidden
                 className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center pointer-events-none"
                 style={{
-                  background: "hsl(var(--bark))",
+                  background: "hsl(var(--brand))",
                   border: "2px solid hsl(var(--parchment))",
                 }}
               >
-                <Camera className="w-3.5 h-3.5" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.25} />
+                <Camera className="w-3.5 h-3.5" style={{ color: "hsl(var(--brand-foreground))" }} strokeWidth={2.25} />
               </div>
             )}
           </div>

@@ -105,17 +105,14 @@ export function PhotoNameSection({
           <label
             className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
             style={{
-              background: "hsl(var(--bark))",
+              background: "hsl(var(--brand))",
               border: "2px solid hsl(var(--parchment))",
-              boxShadow:
-                "0 1px 2px hsl(70 20% 18% / 0.22), " +
-                "0 4px 10px -2px hsl(var(--bark) / 0.4)",
             }}
           >
             {avatarUploading ? (
-              <Loader2 className="w-4 h-4 animate-spin" style={{ color: "hsl(var(--parchment))" }} />
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: "hsl(var(--brand-foreground))" }} />
             ) : (
-              <Camera className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} />
+              <Camera className="w-4 h-4" style={{ color: "hsl(var(--brand-foreground))" }} />
             )}
             {/* The accessible name lives on the INPUT, not the <label>.
                 axe flags `aria-label` on a bare <label> as aria-prohibited-attr

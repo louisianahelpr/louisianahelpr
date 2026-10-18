@@ -133,16 +133,16 @@ const Toaster = ({ ...props }: ToasterProps) => {
           title: "!font-display !italic !font-bold !text-ds-15 !leading-tight !whitespace-normal !break-words !min-w-0 !text-[hsl(var(--ink-deep))]",
           description: "!font-sans !text-ds-12 !text-[hsl(var(--olivewood)/0.8)] !whitespace-normal !break-words !min-w-0",
           // Action ("View", "Retry", …) — the toast's one real control, so it
-          // gets the app's primary-CTA surface in miniature: the same bark
-          // gradient, top-edge highlight and lift as <Button variant="primary">
-          // rather than a flat pill, plus a press collapse. Sized to the
+          // gets the app's primary-CTA surface in miniature: FLAT brand green
+          // with a white label, like every CTA since Warm Modern (owner
+          // 2026-10-17: flat buttons, no gloss), plus a press collapse. Sized to the
           // message (h-8, text-ds-12) so it reads as a control inside a toast,
           // not a button that happens to be in one.
           actionButton:
-            "!bg-[image:linear-gradient(180deg,hsl(var(--bark))_0%,hsl(var(--bark)/0.88)_100%)] " +
-            "!text-[hsl(var(--parchment))] !font-sans !font-semibold !not-italic !text-ds-12 !tracking-[0.01em] " +
-            "!rounded-full !px-3.5 !h-8 !min-h-0 !shrink-0 !border !border-[hsl(var(--bark))] " +
-            "!shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_2px_hsl(var(--olivewood)/0.18),0_6px_14px_-6px_hsl(var(--bark)/0.5)] " +
+            "!bg-[hsl(var(--brand))] !bg-none " +
+            "!text-[hsl(var(--brand-foreground))] !font-sans !font-semibold !not-italic !text-ds-12 !tracking-[0.01em] " +
+            "!rounded-full !px-3.5 !h-8 !min-h-0 !shrink-0 !border !border-[hsl(var(--brand))] " +
+            "!shadow-none " +
             "hover:!brightness-110 active:!scale-[0.97] !transition-[transform,filter,box-shadow] !duration-150",
           // Sonner's default puts this half-outside the top-LEFT corner
           // (translate(-35%,-35%)) — floating off the card rather than

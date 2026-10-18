@@ -169,6 +169,14 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   rental_tenancies: { by: ["landlord_id", "tenant_id"] },
   maintenance_requests: { by: ["tenant_id", "landlord_id"] },
   maintenance_request_photos: { by: ["tenant_id"] },
+  // Shops M1 orders (20261017225605), exported by 20261017235038: as buyer or
+  // as the shop; the lines go with their order (no person column of their own).
+  shop_orders: { by: ["buyer_id", "seller_id"] },
+  // No person column: the lines of the member's own orders, through the order
+  // (the exact sub-select the scope test spells out, like job_pets through the job).
+  shop_order_lines: { by: [] },
+  // Shops' own strikes (20261018003046, per section), exported by 20261017235038.
+  shop_strikes: { by: ["user_id"] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },
@@ -442,6 +450,8 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "job_quote_requests.poster_id": { reason: "quotes slice 1: export pending (OPEN Q?quotes-export); switch 'quotes' is off, so no rows exist" },
   "job_quotes.quoter_id": { reason: "quotes slice 1: export pending (OPEN Q?quotes-export); switch 'quotes' is off, so no rows exist" },
   "shops.sos_verified_by": { reason: "the staff member who checked a shop's Secretary of State number; the shop is the member's (exported by shops.owner_id, 20261017061157, with this staff id dropped)", stripped: true },
+  "shop_strikes.removed_by": { reason: "the staff member who removed a Shops strike; the strike is the member's (exported by shop_strikes.user_id, 20261017235038, with this staff id dropped)", stripped: true },
+  "shop_orders.accept_by": { reason: "a deadline timestamp (when the shop must answer the order), not a person; the order is exported by shop_orders.buyer_id/seller_id (20261017235038)" },
   "shops.hidden_by": { reason: "the staff member who hid a shop; the shop is the member's (exported by shops.owner_id, 20261017061157, with this staff id dropped; the hide reason stays)", stripped: true },
   "declutter_strikes.removed_by": { reason: "the staff member who removed a Declutter strike; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_strikes.appeal_decided_by": { reason: "the staff member who decided a Declutter strike appeal; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },

@@ -2,7 +2,7 @@ import { serve } from "../_shared/buildStamp.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { describeDeleteError, findActiveWork, purgeAccount, SERIES_BLOCKS_DELETION_MESSAGE } from "../_shared/accountPurge.ts";
+import { closeUnpaidShopPages, describeDeleteError, findActiveWork, purgeAccount, SERIES_BLOCKS_DELETION_MESSAGE, SHOPS_BLOCKS_DELETION_MESSAGE } from "../_shared/accountPurge.ts";
 import { publicErrorMessage } from "../_shared/publicError.ts";
 
 serve(async (req) => {
@@ -66,6 +66,17 @@ serve(async (req) => {
     // and the drift (a dead `arrived`/`awaiting` enum list left in the admin
     // twin) broke admin deletion completely for a day. It also missed group
     // jobs entirely — see findActiveWork for that half.
+    // An unpaid Shops payment page holds no money: close it first, as the
+    // 2-hour sweep would, so it cannot block the deletion (closeUnpaidShopPages).
+    // Intended even when another check below then refuses the deletion: a page
+    // paid afterwards is a closed order whose hold is released, no money lost.
+    const pages = await closeUnpaidShopPages(supabaseAdmin, user.id);
+    if (!pages.ok) {
+      return new Response(
+        JSON.stringify({ error: "Couldn't verify account state. Please try again." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     const active = await findActiveWork(supabaseAdmin, user.id);
 
     if (!active.ok) {
@@ -80,6 +91,8 @@ serve(async (req) => {
         JSON.stringify({
           error: active.reason === "series"
             ? SERIES_BLOCKS_DELETION_MESSAGE
+            : active.reason === "shops"
+            ? SHOPS_BLOCKS_DELETION_MESSAGE
             : "You have an active job or funds held in escrow. Finish or cancel your open jobs and let any payments settle before deleting your account.",
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },

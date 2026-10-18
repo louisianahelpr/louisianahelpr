@@ -81,6 +81,7 @@ const NOT_A_JOB_CHECKOUT: Record<string, { sites: number; why: string }> = {
   "create-boost-payment/index.ts": { sites: 1, why: "a Job Boost purchase at a fixed price" },
   "declutter-card/index.ts": { sites: 1, why: "Declutter: a SETUP page that saves a card and charges nothing (row 36)" },
   "declutter-checkout/index.ts": { sites: 1, why: "Declutter: an item sale (items + the 5% + 70c buyer's fee, F1), not a job; the card fee comes out of the fee" },
+  "shop-checkout/index.ts": { sites: 1, why: "Shops M1: a card HOLD for a shop order (items + the same F1 5% + 70c buyer's fee + Stripe Tax), not a job; the card fee comes out of the fee" },
   "create-pro-checkout/index.ts": { sites: 1, why: "a membership purchase (Stripe Price ids)" },
   "pay-onboarding-fee/index.ts": { sites: 1, why: "the one-time account setup fee, on its own" },
   "create-gift-card-checkout/index.ts": { sites: 1, why: "a gift card purchase: face value + the same card-cost fee (posterCardCostFeeCents), no percentage" },

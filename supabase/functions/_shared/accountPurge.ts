@@ -150,7 +150,7 @@ export interface ActiveWorkResult {
    * held on one). Its own copy, because what unblocks it is ending the series
    * (or leaving it), not finishing a job (owner decision Q407 (7)).
    */
-  reason?: "job" | "series" | "declutter";
+  reason?: "job" | "series" | "declutter" | "shops";
 }
 
 /** What the person is told when a running series blocks deleting their account. */
@@ -315,6 +315,13 @@ export async function findActiveWork(
   const declutter = await findDeclutterInFlight(admin, userId);
   if (!declutter.ok || declutter.active) return declutter;
 
+  // 1d. A Shops order in progress (Shops M1, 20261017225605), as the buyer or
+  //     the shop: a Stripe page open, a card held, or an accepted order not
+  //     yet handed over. The database refuses the deletion too
+  //     (shop_orders_open_has_parties); this says why in plain words.
+  const shopOrder = await findShopOrderInFlight(admin, userId);
+  if (!shopOrder.ok || shopOrder.active) return shopOrder;
+
   // 2. Group-job rosters. Read the memberships, then test THOSE jobs.
   // 201, not 200: a page that comes back FULL is indistinguishable from a page
   // that was truncated, and silently truncating this read would hand back
@@ -366,6 +373,62 @@ export async function findActiveWork(
     return { ok: true, active: true, detail: `group job ${grouped.data[0].id}`, reason: "job" };
   }
 
+  return { ok: true, active: false };
+}
+
+/** The order statuses shop_orders_open_has_parties keeps a buyer, seller and shop on (20261017225605). */
+export const SHOP_ORDER_OPEN_STATUSES = ["awaiting_hold", "held", "accepted"];
+
+/** What the member is told when a Shops order in progress blocks deleting their account. */
+export const SHOPS_BLOCKS_DELETION_MESSAGE =
+  "You have a Shops order in progress: a card hold waiting for the shop's answer, or an accepted order. Withdraw an order you're waiting on (or, for your own shop, accept or decline it), and let accepted orders finish, before deleting your account.";
+
+/**
+ * Close the member's own unpaid Shops payment pages ('awaiting_hold': no card
+ * held, nothing charged) before the deletion check, exactly as the 2-hour
+ * sweep does (shop_order_sweep: status 'expired', close_reason 'page_unpaid').
+ * Without it a page neither side can see or close blocked the deletion, and
+ * any member could keep a shop owner's account undeletable by asking for a
+ * new page every two hours (lh-authz-rls review of 6720f02e6, finding 1).
+ * A page paid after this is a closed order with a hold, which
+ * shop_holds_to_release already drops. Zero rows is the normal case (no
+ * page open), so no row count is asserted. Fails closed on a read error.
+ */
+export async function closeUnpaidShopPages(admin: PurgeCapableClient, userId: string): Promise<{ ok: boolean; detail?: string }> {
+  if (!UUID_RE.test(userId)) return { ok: false, detail: "userId is not a UUID" };
+  const res: PostgrestLike<{ id: string }[]> = await admin
+    .from("shop_orders")
+    .update({ status: "expired", close_reason: "page_unpaid", closed_at: new Date().toISOString() })
+    .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+    .eq("status", "awaiting_hold")
+    .select("id");
+  if (res.error) {
+    if (/does not exist|42P01|PGRST205/i.test(`${res.error.code ?? ""} ${res.error.message}`)) return { ok: true, detail: "shop_orders absent" };
+    console.error(`[accountPurge] closing unpaid Shops pages failed for ${userId}:`, res.error.message);
+    return { ok: false, detail: res.error.message };
+  }
+  return { ok: true };
+}
+
+/** A Shops order this member is a party to that is still in progress (fail closed on a read error). */
+async function findShopOrderInFlight(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {
+  const rows: PostgrestLike<{ id: string }[]> = await admin
+    .from("shop_orders")
+    .select("id")
+    .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+    .in("status", SHOP_ORDER_OPEN_STATUSES)
+    .limit(1);
+  if (rows.error) {
+    // Before the Shops orders migration is live the table does not exist: no order can be in progress.
+    if (/does not exist|42P01|PGRST205/i.test(`${rows.error.code ?? ""} ${rows.error.message}`)) {
+      return { ok: true, active: false, detail: "shop_orders absent" };
+    }
+    console.error(`[accountPurge] Shops order check failed for ${userId}:`, rows.error.message);
+    return { ok: false, active: false, detail: rows.error.message };
+  }
+  if (rows.data && rows.data.length > 0) {
+    return { ok: true, active: true, detail: `shop order ${rows.data[0].id}`, reason: "shops" };
+  }
   return { ok: true, active: false };
 }
 

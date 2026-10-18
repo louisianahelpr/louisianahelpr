@@ -37,6 +37,12 @@
  *      "declutter_refund" so the webhook's charge.refunded path leaves it to
  *      this function.
  *
+ *   5. SHOPS (M1, migration 20261017225605) the order clock (shop_order_sweep),
+ *      then every card hold to cancel (shop_holds_to_release) and every
+ *      accepted order whose capture did not land (shop_captures_due), through
+ *      _shared/shopHolds.ts with one idempotency key per capture attempt. Isolated: a
+ *      Shops failure is a defect, never a stop for the steps above.
+ *
  *   A charge is "whole" for a payout when it is paid, not disputed, and has
  *   given back no more than the refunds the order RECORDED
  *   (refunds_recorded_cents): a delivery fee refunded on its own is known, an
@@ -64,6 +70,7 @@ import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { queueEmail } from "../_shared/resend.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { createStripeModeResolver, sessionIdMode, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { captureShopHold, releaseShopHold, shopOrderMode, type ShopHoldRow } from "../_shared/shopHolds.ts";
 
 const FN = "declutter-money";
 const BATCH = 25;
@@ -220,7 +227,54 @@ serve(async (req) => {
     helpr_payouts_sent: 0, helpr_payouts_reconciled: 0, helpr_payouts_failed: 0,
     delivery_refunds_sent: 0, delivery_refunds_reconciled: 0, delivery_refunds_failed: 0,
     held: 0, ban_review: 0, no_payout_account: 0, mixed_parties: 0,
+    shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
   };
+
+  // 5. SHOPS M1 (migration 20261017225605): the order clock, then every hold to
+  //    cancel (an order that ended unpaid: nothing is kept, cancelling costs
+  //    nothing) and every accepted order's capture that did not land on the tap
+  //    (_shared/shopHolds.ts, one key per capture attempt). Its own try: a Shops failure
+  //    is a defect of this run and never stops Declutter's refunds or payouts.
+  try {
+    const swept = await admin.rpc("shop_order_sweep", {});
+    if (swept.error) defects.record(`shop_order_sweep failed: ${swept.error.message}`);
+    else {
+      const sw = (swept.data ?? {}) as { no_answer?: number; page_unpaid?: number };
+      out.shop_expired = Number(sw.no_answer ?? 0) + Number(sw.page_unpaid ?? 0);
+    }
+    const shopClient = async (r: ShopHoldRow) => {
+      const mode = shopOrderMode(r);
+      return mode ? modes.clientFor(mode) : (await modes.clientForParties([r.buyer_id, r.seller_id])).stripe;
+    };
+    const [releaseRes, captureRes] = await Promise.all([
+      admin.rpc("shop_holds_to_release", { p_limit: BATCH }),
+      admin.rpc("shop_captures_due", { p_limit: BATCH }),
+    ]);
+    if (releaseRes.error) defects.record(`shop_holds_to_release failed: ${releaseRes.error.message}`);
+    for (const r of (releaseRes.data ?? []) as ShopHoldRow[]) {
+      try {
+        const done = await releaseShopHold(await shopClient(r), admin, r);
+        if (done === "captured_needs_refund") defects.record(`shop order ${r.order_id}: closed but its payment was captured; refund it by hand`);
+        else out.shop_holds_released++;
+      } catch (e) {
+        defects.record(`shop hold ${r.order_id}: ${caughtMessage(e, "release failed")}`.slice(0, 200));
+      }
+    }
+    if (captureRes.error) defects.record(`shop_captures_due failed: ${captureRes.error.message}`);
+    for (const c of (captureRes.data ?? []) as Array<ShopHoldRow & { attempts: number }>) {
+      if (!c.payment_intent_id) continue;
+      try {
+        const done = await captureShopHold(await shopClient(c), admin, c.order_id, c.payment_intent_id, Number(c.attempts ?? 0));
+        if (done === "captured") out.shop_captures++;
+        else if (done === "hold_lost") out.shop_holds_lost++;
+        else out.shop_capture_retries++;
+      } catch (e) {
+        defects.record(`shop capture ${c.order_id}: ${caughtMessage(e, "capture failed")}`.slice(0, 200));
+      }
+    }
+  } catch (e) {
+    defects.record(`shops step: ${caughtMessage(e, "failed")}`.slice(0, 200));
+  }
 
   const [refundsRes, payoutsRes, helprRes, deliveryRes] = await Promise.all([
     admin.rpc("declutter_refunds_due", { p_limit: BATCH }),

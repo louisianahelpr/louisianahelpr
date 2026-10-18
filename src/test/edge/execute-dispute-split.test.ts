@@ -323,6 +323,29 @@ describe("execute-dispute-split edge function", () => {
       expect(String((note?.payload as Record<string, unknown>)?.message)).toContain("account setup fee, which is paid once and never refunded");
     });
 
+    // Q1714 (second review, N1): the poster's refund notice says what the CARD
+    // charge kept — captured minus refunded, so refunded + kept is the
+    // receipt's total — never only the Helpr's transfer plus commission, which
+    // leaves out the card processing fee the poster also did not get back.
+    // Moved here from src/test/edge/refundNotice.test.ts, which never runs this
+    // function, so the registration could not fail there (vacuity run 39112066893).
+    // @mutate supabase/functions/execute-dispute-split/index.ts |         keptCents: Math.max(0, capturedCents - refundCents), |         keptCents: movedHelperCents + movedPlatformFeeCents,
+    it("the poster's refund notice keeps captured minus refunded ($67.40), not the Helpr's share plus commission ($59.20)", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      const fn = await load();
+      const body = await json(await invoke(fn));
+      expect(body.refund_cents).toBe(4260);
+      expect(body.helper_cents + body.platform_fee_cents).toBe(5920);
+      // The two figures this case exists to tell apart must differ here.
+      expect(CAPTURED_CENTS - body.refund_cents).toBe(6740);
+      const note = scenario.writes.find(
+        (w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "poster-1",
+      );
+      const msg = String((note?.payload as Record<string, unknown>)?.message);
+      expect(msg).toContain("We kept $67.40: the Helpr's share under the dispute decision and the card processing fee");
+      expect(msg).not.toContain("$59.20");
+    });
+
     it("sends the Stripe transfer with the escrow charge and a dispute-keyed idempotency key", async () => {
       seedExecutable(scenario, { helperShare: 0.6 });
       const fn = await load();

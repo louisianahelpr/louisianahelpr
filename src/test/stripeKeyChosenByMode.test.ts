@@ -58,6 +58,7 @@ const ROUTED = [
   "create-payment/index.ts",
   "declutter-card/index.ts",
   "declutter-checkout/index.ts",
+  "shop-checkout/index.ts",
   "declutter-money/index.ts",
   "execute-dispute-split/index.ts",
   "instant-payout/index.ts",

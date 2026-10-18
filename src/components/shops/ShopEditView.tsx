@@ -9,7 +9,8 @@
  * into the text.
  *
  * Who may save is decided on the server (18+, not banned, fewer than 3
- * marketplace strikes, payout setup finished: L3, L45, L82); this screen
+ * Shops strikes (per section, owner 2026-10-18), payout setup finished: L3,
+ * L82); this screen
  * shows the server's words when it refuses.
  */
 import { useEffect, useMemo, useState, type FormEvent } from "react";

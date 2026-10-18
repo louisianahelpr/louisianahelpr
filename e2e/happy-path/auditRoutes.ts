@@ -379,6 +379,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // it is off for the sweep account, the real screens once testers include it.
   { name: "shops", url: "/shops" },
   { name: "shops-mine", url: "/shops/mine" },
+  { name: "shops-orders", url: "/shops/orders" },
+  { name: "shops-dashboard", url: "/shops/dashboard" },
   { name: "shop-missing", url: "/shops/10000000-0000-4000-8000-00000000dead" },
 ];
 

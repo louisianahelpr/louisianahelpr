@@ -381,12 +381,12 @@ export async function testEventScope(
 }
 
 /** The metadata.kind of every checkout a mode-routed function creates. */
-const ROUTED_TEST_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "recurring_visit", "declutter_order", "gift_card_purchase"]);
+const ROUTED_TEST_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "recurring_visit", "declutter_order", "gift_card_purchase", "shop_order"]);
 
 /**
  * True when a Checkout Session came from a function that decides its Stripe
  * mode (create-payment escrow / tip / recurring visit, create-boost-payment,
- * pay-onboarding-fee, create-bgc-payment, declutter-checkout, declutter-card,
+ * pay-onboarding-fee, create-bgc-payment, declutter-checkout, declutter-card, shop-checkout,
  * create-gift-card-checkout), so a TEST-mode event about it may run. Anything
  * else is refused: a subscription or Pro pass (metadata.tier, billing_cycle),
  * or a kind nobody routes. A gift card must ALSO pass testGiftIsTestToTest.

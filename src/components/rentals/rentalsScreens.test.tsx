@@ -22,6 +22,12 @@
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |   const cancelJob = useMutation({ mutationFn: () => cancelRequestJob(id), | const cancelJob = useMutation({ mutationFn: async () => undefined,
  * @mutate src/components/rentals/MaintenanceRequestView.tsx | r.visit_job_id != null && r.visit_job_id === r.job_id ? r.visit_proposed_for : null; | r.visit_job_id != null ? r.visit_proposed_for : null;
  * @mutate src/components/rentals/MaintenanceRequestView.tsx | onClick={() => okVisit.mutate(visitAt)}> | onClick={() => okVisit.mutate(new Date().toISOString())}>
+ * @mutate src/components/rentals/HomesBrowse.tsx |   const kind: HomesKind = params.get("kind") === "buy" ? "buy" : "rent"; |   const kind: HomesKind = "rent";
+ * @mutate src/components/rentals/HomesBrowse.tsx |         <HomesBuyComingSoon /> |         {null}
+ * @mutate src/components/rentals/HomesBrowse.tsx | No commission. A title company | Price negotiable with the owner. A title company
+ * @mutate src/components/rentals/HomesBrowse.tsx |           <RentBrowse />\n |           {null}\n
+ * @mutate src/components/rentals/RentalsHomeView.tsx |           <HomesBrowse />\n |           {null}\n
+ * @mutate src/components/rentals/listings/RentBrowse.tsx |       to={`/rentals/listings/${l.id}`} |       to="/rentals"
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -34,6 +40,8 @@ const state = {
   switchSettled: true,
   requestReads: 0,
   homeLoads: true,
+  homeReads: 0,
+  browse: [] as unknown[],
   underAge: false,
   tenancies: [] as unknown[],
   properties: [] as unknown[],
@@ -71,7 +79,10 @@ vi.mock("@/lib/rentals/api", () => ({
   fetchUnits: async () => state.units,
   fetchLiveTenancies: async () => state.live,
   endTenancy: vi.fn(async () => undefined),
-  fetchMyHomes: () => (state.homeLoads ? Promise.resolve(state.tenancies) : new Promise(() => {})),
+  fetchMyHomes: () => {
+    state.homeReads++;
+    return state.homeLoads ? Promise.resolve(state.tenancies) : new Promise(() => {});
+  },
   fetchMyRequests: async () => [],
   fetchRequest: async () => {
     state.requestReads++;
@@ -92,6 +103,12 @@ vi.mock("@/lib/rentals/api", () => ({
   addUnit: vi.fn(),
   setAutoApprove: vi.fn(),
   inviteTenant: vi.fn(),
+}));
+
+vi.mock("@/lib/rentals/listings", () => ({
+  fetchBrowseListings: async () => state.browse,
+  fetchMyListings: async () => [],
+  listingPhotoUrl: (p: string) => `https://cdn.test/${p}`,
 }));
 
 import { cancelRequestJob, confirmVisit, endTenancy } from "@/lib/rentals/api";
@@ -129,6 +146,8 @@ beforeEach(() => {
   state.switchSettled = true;
   state.requestReads = 0;
   state.homeLoads = true;
+  state.homeReads = 0;
+  state.browse = [];
   state.underAge = false;
   state.tenancies = [];
   state.properties = [];
@@ -150,15 +169,15 @@ describe("Rentals screens", () => {
       state.feature = false;
       state.switchSettled = false;
       renderAt("/rentals");
-      expect(screen.getByRole("heading", { name: "Rentals" })).toBeTruthy();
-      expect(screen.getByRole("status").textContent).toBe("Loading your rentals");
+      expect(screen.getByRole("heading", { name: "Homes" })).toBeTruthy();
+      expect(screen.getByRole("status").textContent).toBe("Loading Homes");
       expect(screen.queryByText("Homes you rent")).toBeNull();
       expect(screen.queryByText("Page not found")).toBeNull();
     });
     it("/rentals while its data loads: both cards with bones", async () => {
       state.homeLoads = false;
       renderAt("/rentals");
-      expect(await screen.findByRole("status", { name: "Loading your rentals" })).toBeTruthy();
+      expect(await screen.findByRole("status", { name: "Loading Homes" })).toBeTruthy();
       expect(screen.getByText("Homes you rent")).toBeTruthy();
       expect(screen.getByText("Properties you own")).toBeTruthy();
       expect(screen.queryByRole("button", { name: "Add a property" })).toBeNull();
@@ -181,6 +200,51 @@ describe("Rentals screens", () => {
       renderAt("/rentals/requests/test");
       expect(await screen.findByText("This request isn't available.")).toBeTruthy();
       expect(state.requestReads).toBe(0);
+    });
+  });
+
+  describe("HOMES: Browse with a Rent | Buy switch (owner 2026-10-18/19)", () => {
+    it("Rent: homes for rent show rent, beds/baths and city + ZIP, never the street, and link to the listing", async () => {
+      state.browse = [{ id: "11111111-1111-4111-8111-111111111111", headline: "Bright 2 bed", rent_cents: 120000, rent_frequency: "monthly",
+        beds: 2, baths: 1.5, sq_ft: 900, available_on: "2020-01-01", pets: "cats", city: "Lafayette", zip_code: "70501",
+        photo_paths: ["a/rental-listings/b/c.jpg"], is_mine: false, published_at: "2026-10-18T00:00:00Z" }];
+      renderAt("/rentals");
+      const link = await screen.findByRole("link", { name: /Bright 2 bed/ });
+      expect(link.getAttribute("href")).toBe("/rentals/listings/11111111-1111-4111-8111-111111111111");
+      expect(link.textContent).toContain("$1,200 / month");
+      expect(link.textContent).toContain("2 beds · 1.5 baths · Lafayette 70501");
+      expect(link.textContent).toContain("Available now");
+    });
+    it("Rent: no listings says so", async () => {
+      renderAt("/rentals");
+      expect(await screen.findByText(/No homes for rent match yet/)).toBeTruthy();
+    });
+    it("opens on Rent: the Homes title, the Rent | Buy switch with Rent selected, the rentals cards", async () => {
+      renderAt("/rentals");
+      expect((await screen.findByRole("tab", { name: "Rent" })).getAttribute("aria-selected")).toBe("true");
+      expect(screen.getByText("Homes you rent")).toBeTruthy();
+      expect(screen.getByRole("heading", { name: "Homes" })).toBeTruthy();
+      expect(screen.getByRole("tab", { name: "Buy" }).getAttribute("aria-selected")).toBe("false");
+    });
+    it("?kind=buy: for sale by verified owners, coming soon; no commission or negotiating copy; no listing read", async () => {
+      renderAt("/rentals?kind=buy");
+      const panel = await screen.findByRole("tabpanel", { name: "Buy" });
+      expect(panel.textContent).toContain("Homes for sale: coming soon");
+      expect(panel.textContent).toContain("verified owners");
+      expect(panel.textContent).toMatch(/title company or attorney/);
+      expect(panel.textContent).not.toMatch(/\b(negotia|haggl|offer|realtor|agent)/i);
+      expect(screen.getByRole("tab", { name: "Buy" }).getAttribute("aria-selected")).toBe("true");
+      expect(screen.queryByText(/No homes for rent match yet/)).toBeNull();
+    });
+    it("tapping Buy then Rent swaps the panel and keeps the rest of the page", async () => {
+      renderAt("/rentals");
+      await screen.findByText(/No homes for rent match yet/);
+      fireEvent.click(screen.getByRole("tab", { name: "Buy" }));
+      expect(await screen.findByText("Homes for sale: coming soon")).toBeTruthy();
+      expect(screen.getByText("Homes you rent")).toBeTruthy();
+      fireEvent.click(screen.getByRole("tab", { name: "Rent" }));
+      expect(await screen.findByText(/No homes for rent match yet/)).toBeTruthy();
+      expect(screen.queryByText("Homes for sale: coming soon")).toBeNull();
     });
   });
 

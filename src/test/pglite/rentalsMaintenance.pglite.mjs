@@ -40,7 +40,9 @@ const RENTAL_PROPERTY_COLUMNS = readFileSync(new URL("../../lib/rentals/api.ts",
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
 // Rentals slice 3 restatements, applied (3x) after S1 in version order. S3=skip leaves S1's bodies (the RED run).
 const S3_FILES = ["20261017220911_rentals_link_one_live_job.sql", "20261017221621_rentals_visit_time.sql",
-  "20261017223352_rentals_ownership_review_alert.sql"];
+  "20261017223352_rentals_ownership_review_alert.sql",
+  // HOMES rename: the same function restated with the alert naming the "Homes: ownership proof" card.
+  "20261019044500_rentals_ownership_alert_homes_words.sql"];
 const S3 = process.env.S3 === "skip" ? "SELECT 1" : S3_FILES.map((f) => readFileSync(`${MIG_DIR}${f}`, "utf8")).join("\n");
 
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */
@@ -219,6 +221,9 @@ ok(one(await svc(`SELECT ownership_status FROM public.rental_properties WHERE id
 // Slice 3 ("no alert when ownership proof waits for review"): the admin-queue alert, once, closing itself.
 const proofAlerts = () => svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${ADMIN}' AND title = 'Ownership proof waits for review' AND type = 'admin_alert'`);
 ok(one(await proofAlerts()) === 1, "alert: every admin is told the proof waits (admin_alert)");
+ok(one(await svc(`SELECT message FROM public.notifications WHERE user_id = '${ADMIN}' AND title = 'Ownership proof waits for review'`))
+  === "A landlord sent ownership proof for a property. Check it in Admin -> Settings -> Homes: ownership proof.",
+  "alert: it names the card by its Homes name (HOMES rename)");
 ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${LANDLORD}' AND title = 'Ownership proof waits for review'`)) === 0,
   "alert: the landlord is not");
 ok(Array.isArray(await as("authenticated", LANDLORD,

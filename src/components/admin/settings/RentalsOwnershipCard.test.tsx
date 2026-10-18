@@ -66,7 +66,7 @@ describe("RentalsOwnershipCard", () => {
   });
 
   it("says when nothing is waiting", async () => {
-    expect(renderCard().getByText("Rentals: ownership proof")).toBeTruthy();
+    expect(renderCard().getByText("Homes: ownership proof")).toBeTruthy();
     expect(await screen.findByText("Nothing waiting.")).toBeTruthy();
   });
 

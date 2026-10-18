@@ -74,6 +74,10 @@ export const IDENTITY_SUBFOLDERS = [
   // NOT here on purpose: Shops ready photos (20261018211820, the PRIVATE shop-handover
   // bucket, <uid>/shops/handover/<order>/) are the handover evidence of an order that
   // survives the account (parties SET NULL), as the helpr-tasks task photos are.
+  // Homes -> Rent listing photos (20261019043000,
+  // <uid>/rental-listings/<listing>/): the listings CASCADE away with the
+  // account, so nothing survives that would need them.
+  { bucket: "job-photos", folder: "rental-listings" },
 ] as const;
 
 /**

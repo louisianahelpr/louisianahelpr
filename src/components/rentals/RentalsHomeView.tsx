@@ -1,8 +1,10 @@
 /**
- * /rentals (Rentals S1, docs/specs/landlord-hub-prep.md). One account, never
- * role-based: everyone sees "Homes you rent" (tenancies they accepted) and
- * "Properties you own" (add a property, ownership proof, units, invite links,
- * auto-approve, incoming requests). Hidden unless the 'rentals' switch is on.
+ * /rentals, shown as HOMES (owner 2026-10-18; Rentals S1,
+ * docs/specs/landlord-hub-prep.md). Browse first (HomesBrowse.tsx: the Rent |
+ * Buy listings), then, one account, never role-based: "Homes you rent"
+ * (tenancies they accepted) and "Properties you own" (add a property,
+ * ownership proof, units, invite links, auto-approve, listings, incoming
+ * requests). Hidden unless the 'rentals' switch is on.
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -35,6 +37,9 @@ import { RentalsCard, fmtDate } from "./rentalsUi";
 import { MaintenanceRequestForm } from "./MaintenanceRequestForm";
 import { RentalsHomeSkeleton } from "./RentalsSkeletons";
 import { EndTenancyButton } from "./EndTenancyButton";
+import { HomesBrowse } from "./HomesBrowse";
+import { fetchMyListings, type RentalListing } from "@/lib/rentals/listings";
+import { listingStatusLabel } from "@/lib/rentals/listingCopy";
 
 function RequestRow({ r }: { r: MaintenanceRequest }) {
   return (
@@ -92,16 +97,33 @@ function AddPropertyForm({ onDone }: { onDone: () => void }) {
   );
 }
 
+/** Homes -> Rent (RL1a): list a unit for rent, or open its listing. Only once ownership is approved. */
+function UnitListingLink({ unitId, approved, listing }: { unitId: string; approved: boolean; listing: RentalListing | undefined }) {
+  if (!approved) return null;
+  return listing ? (
+    <Link to={`/rentals/listings/${listing.id}/edit`} className="flex justify-between gap-2 pl-3 text-xs">
+      <span className="text-muted-foreground">Listing: {listingStatusLabel(listing.status, listing.expires_at)}</span>
+      <span className="font-semibold">Edit listing</span>
+    </Link>
+  ) : (
+    <Link to={`/rentals/listings/new?unit=${unitId}`} className="block pl-3 text-xs font-semibold">
+      List this unit for rent
+    </Link>
+  );
+}
+
 function PropertyCard({
   p,
   units,
   tenancies,
+  listings,
   uid,
   onChange,
 }: {
   p: RentalProperty;
   units: RentalUnit[];
   tenancies: UnitTenancy[];
+  listings: RentalListing[];
   uid: string;
   onChange: () => void;
 }) {
@@ -175,6 +197,7 @@ function PropertyCard({
                 Invite tenant
               </Button>
             </div>
+            <UnitListingLink unitId={u.id} approved={approved} listing={listings.find((l) => l.unit_id === u.id && l.status !== "leased")} />
             {tenancies.filter((t) => t.unit_id === u.id).map((t) => (
               <div key={t.id} className="flex items-center justify-between gap-2 pl-3 text-xs">
                 <span className="text-muted-foreground">
@@ -269,14 +292,15 @@ export default function RentalsHomeView() {
     queryKey: ["rentals-home", uid],
     enabled: !!uid,
     queryFn: async () => {
-      const [properties, homes, requests, tenancies] = await Promise.all([
+      const [properties, homes, requests, tenancies, listings] = await Promise.all([
         fetchMyProperties(uid),
         fetchMyHomes(),
         fetchMyRequests(),
         fetchLiveTenancies(uid),
+        fetchMyListings(uid),
       ]);
       const units = await fetchUnits(properties.map((p) => p.id));
-      return { properties, units, homes, requests, tenancies };
+      return { properties, units, homes, requests, tenancies, listings };
     },
   });
   const refresh = () => qc.invalidateQueries({ queryKey: ["rentals-home", uid] });
@@ -284,7 +308,7 @@ export default function RentalsHomeView() {
   // The page's own loading state is the gate's frame (RentalsSkeletons.tsx), so nothing moves between them.
   if (!data.isError && !data.data) return <RentalsHomeSkeleton />;
   return (
-    <AppPage title="Rentals">
+    <AppPage title="Homes">
       {data.isError || !data.data ? (
         <ErrorState onRetry={() => data.refetch()} />
       ) : (
@@ -294,6 +318,7 @@ export default function RentalsHomeView() {
               You must be 18 or older to send repair requests or add a property. You can still see your requests here.
             </p>
           )}
+          <HomesBrowse />
           <RentalsCard title="Homes you rent">
             {data.data.homes.length === 0 ? (
               <p className="text-sm text-muted-foreground">When your landlord sends you an invite link, open it to connect your home here.</p>
@@ -342,6 +367,7 @@ export default function RentalsHomeView() {
                 uid={uid}
                 units={data.data.units.filter((u) => u.property_id === p.id)}
                 tenancies={data.data.tenancies}
+                listings={data.data.listings}
                 onChange={refresh}
               />
             ))}

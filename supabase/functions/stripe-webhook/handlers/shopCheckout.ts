@@ -2,7 +2,7 @@
 // captured payment no order recorded, which is money that moved whoever owns it. Every
 // other failure THROWS so Stripe redelivers, for seed and real orders alike.
 //
-// SHOPS M1 (migration 20261017225605_shops_orders_checkout; docs/specs/
+// SHOPS M1 (migration 20261018154737_shops_orders_checkout; docs/specs/
 // local-shops-prep.md L17/L18): the Checkout Session shop-checkout opens with
 // capture_method=manual (metadata.kind = "shop_order"). When the buyer
 // finishes it the card is HELD (PaymentIntent requires_capture), not charged.

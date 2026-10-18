@@ -11,10 +11,10 @@
  * section 16) runs it: 3 Declutter strikes do not stop a Shops order or hide a
  * shop, 3 Shops strikes do and count nothing in Declutter.
  *
- * @mutate supabase/migrations/20261018003046_shops_own_strike_count.sql |     WHEN public.shop_active_strike_count(p_owner_id) >= 3 THEN 'shop_strikes_blocked' |     WHEN public.declutter_active_strike_count(p_owner_id) >= 3 THEN 'shop_strikes_blocked'
- * @mutate supabase/migrations/20261018003046_shops_own_strike_count.sql |      AND public.shop_active_strike_count(p_owner_id) < 3; |      AND public.declutter_active_strike_count(p_owner_id) < 3;
- * @mutate supabase/migrations/20261018003046_shops_own_strike_count.sql |   IF public.shop_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked' USING | IF public.declutter_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked' USING
- * @mutate supabase/migrations/20261018003046_shops_own_strike_count.sql |     FROM public.shop_strikes s\n | FROM public.declutter_strikes s\n
+ * @mutate supabase/migrations/20261018154740_shops_own_strike_count.sql |     WHEN public.shop_active_strike_count(p_owner_id) >= 3 THEN 'shop_strikes_blocked' |     WHEN public.declutter_active_strike_count(p_owner_id) >= 3 THEN 'shop_strikes_blocked'
+ * @mutate supabase/migrations/20261018154740_shops_own_strike_count.sql |      AND public.shop_active_strike_count(p_owner_id) < 3; |      AND public.declutter_active_strike_count(p_owner_id) < 3;
+ * @mutate supabase/migrations/20261018154740_shops_own_strike_count.sql |   IF public.shop_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked' USING | IF public.declutter_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked' USING
+ * @mutate supabase/migrations/20261018154740_shops_own_strike_count.sql |     FROM public.shop_strikes s\n | FROM public.declutter_strikes s\n
  */
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";

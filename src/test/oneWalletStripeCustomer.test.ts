@@ -17,6 +17,7 @@
  *
  * @mutate supabase/functions/declutter-card/index.ts | const customerId = await resolveStripeCustomer(admin, stripe, user, mode); | const customerId = (await stripe.customers.create({ email: user.email ?? undefined })).id;
  * @mutate supabase/functions/declutter-checkout/index.ts | customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; | customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id;
+ * @mutate supabase/functions/shop-checkout/index.ts | customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; | customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id;
  * @mutate supabase/functions/_shared/stripeCustomer.ts | .eq("wallet_mode", mode) | .eq("user_id", userId)
  * @mutate supabase/migrations/20261018090700_one_wallet_stripe_customers.sql | LANGUAGE plpgsql\nSECURITY INVOKER | LANGUAGE plpgsql\nSECURITY DEFINER
  * @mutate supabase/migrations/20261018090700_one_wallet_stripe_customers.sql | GRANT SELECT, INSERT, DELETE ON TABLE public.stripe_customers TO service_role; | GRANT ALL ON TABLE public.stripe_customers TO service_role;
@@ -118,6 +119,12 @@ describe("one wallet: a member's Stripe customer comes from ONE place", () => {
     const checkout = code("supabase/functions/declutter-checkout/index.ts");
     expect(checkout).toMatch(/storedStripeCustomer\(admin, user\.id, mode\)/);
     expect(checkout).not.toMatch(/from\("declutter_buyer_cards"\)/);
+  });
+
+  it("Shops checkout uses the wallet, not Declutter's card table (owner 2026-10-18: one card everywhere)", () => {
+    const shop = code("supabase/functions/shop-checkout/index.ts");
+    expect(shop).toMatch(/storedStripeCustomer\(admin, user\.id, mode\)/);
+    expect(shop).not.toMatch(/declutter_buyer_cards/);
   });
 
   it("stripe_customers is service-role only and claim_stripe_customer is an invoker, revoked from clients", () => {

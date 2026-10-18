@@ -22,10 +22,10 @@
  * 2026-10-15).
  */
 // @mutate supabase/migrations/20261017061155_shops_profiles.sql | BEGIN\n  PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n\n  IF p_name | BEGIN\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n\n  IF p_name
-// @mutate supabase/migrations/20261018003046_shops_own_strike_count.sql |   IF public.member_under_18(v_uid) THEN\n    RAISE EXCEPTION 'under_18' USING ERRCODE = '42501', HINT = 'You must be 18 or older to have a shop.'; |   IF false THEN\n    RAISE EXCEPTION 'under_18' USING ERRCODE = '42501', HINT = 'You must be 18 or older to have a shop.';
-// @mutate supabase/migrations/20261018003046_shops_own_strike_count.sql |   IF public.shop_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING | IF public.shop_active_strike_count(v_uid) >= 4 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING
-// @mutate supabase/migrations/20261018003046_shops_own_strike_count.sql |   IF public.shop_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING | IF public.declutter_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING
-// @mutate supabase/migrations/20261018003046_shops_own_strike_count.sql |   IF public.helper_award_block_reason(v_uid) IS NOT NULL THEN | IF false THEN
+// @mutate supabase/migrations/20261018154740_shops_own_strike_count.sql |   IF public.member_under_18(v_uid) THEN\n    RAISE EXCEPTION 'under_18' USING ERRCODE = '42501', HINT = 'You must be 18 or older to have a shop.'; |   IF false THEN\n    RAISE EXCEPTION 'under_18' USING ERRCODE = '42501', HINT = 'You must be 18 or older to have a shop.';
+// @mutate supabase/migrations/20261018154740_shops_own_strike_count.sql |   IF public.shop_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING | IF public.shop_active_strike_count(v_uid) >= 4 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING
+// @mutate supabase/migrations/20261018154740_shops_own_strike_count.sql |   IF public.shop_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING | IF public.declutter_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING
+// @mutate supabase/migrations/20261018154740_shops_own_strike_count.sql |   IF public.helper_award_block_reason(v_uid) IS NOT NULL THEN | IF false THEN
 // @mutate supabase/migrations/20261017061155_shops_profiles.sql | VALUES ('shops', 'off', | VALUES ('shops', 'testers',
 // @mutate supabase/migrations/20261017061157_shops_items.sql |   IF EXISTS (SELECT 1 FROM public.shops WHERE owner_id = v_uid AND hidden_at IS NOT NULL) THEN | IF false THEN
 // @mutate supabase/migrations/20261017061155_shops_profiles.sql | REVOKE ALL ON FUNCTION public.shops_assert_owner_eligible() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_assert_owner_eligible() FROM PUBLIC, anon;
@@ -130,7 +130,7 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
 
   it("6. SHOPS_ERROR_COPY is exact against the codes the shops migrations raise (slice 1 + slice 2 items + M1 orders)", () => {
     const ITEMS = blankSqlComments(readFileSync(join(MIG_DIR, "20261017061157_shops_items.sql"), "utf8"));
-    const ORDERS = blankSqlComments(readFileSync(join(MIG_DIR, "20261017225605_shops_orders_checkout.sql"), "utf8"));
+    const ORDERS = blankSqlComments(readFileSync(join(MIG_DIR, "20261018154737_shops_orders_checkout.sql"), "utf8"));
     const raised = new Set([...(MIG + ITEMS + ORDERS).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
     raised.add("feature_disabled"); // require_feature's code
     expect(raised.size).toBeGreaterThan(20);

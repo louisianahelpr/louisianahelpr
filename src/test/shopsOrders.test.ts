@@ -1,5 +1,5 @@
 /**
- * Shops M1 (20261017225605_shops_orders_checkout; docs/specs/local-shops-prep.md
+ * Shops M1 (20261018154737_shops_orders_checkout; docs/specs/local-shops-prep.md
  * L17-L22, F1, L82, L91). The fast half of the proof: the shape every later
  * slice must keep, read from the NEWEST definitions the migrations leave
  * (effectiveDefs), so a later restatement that drops a gate fails here.
@@ -20,12 +20,12 @@
  * (97 PASS; 10 planted defects each caught, measured 2026-10-18; the review
  * fixes' 11 cases red on the pre-review migration).
  */
-// @mutate supabase/migrations/20261017225605_shops_orders_checkout.sql | BEGIN\n  PERFORM public.require_feature('shops');\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;\n  IF NOT FOUND OR o.seller_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'accepted' THEN | BEGIN\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;\n  IF NOT FOUND OR o.seller_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'accepted' THEN
-// @mutate supabase/migrations/20261017225605_shops_orders_checkout.sql | REVOKE ALL ON FUNCTION public.shop_hold_released(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shop_hold_released(uuid) FROM PUBLIC, anon;
-// @mutate supabase/migrations/20261017225605_shops_orders_checkout.sql |   SELECT daily_order_cap INTO v_cap FROM public.shops WHERE id = o.shop_id FOR UPDATE; |   SELECT daily_order_cap INTO v_cap FROM public.shops WHERE id = o.shop_id FOR SHARE;
-// @mutate supabase/migrations/20261017225605_shops_orders_checkout.sql |     PERFORM 1 FROM public.shops WHERE id = v_shop FOR UPDATE; |     PERFORM 1;
-// @mutate supabase/migrations/20261017225605_shops_orders_checkout.sql | hold_released_at = CASE WHEN COALESCE(p_final, false) THEN now() ELSE NULL END, | hold_released_at = now(),
-// @mutate supabase/migrations/20261017225605_shops_orders_checkout.sql |   CONSTRAINT shop_orders_premium_rule CHECK (premium_cents = round(items_cents * 0.05)::integer + 70), |   CONSTRAINT shop_orders_premium_rule CHECK (premium_cents = round(items_cents * 0.06)::integer + 70),
+// @mutate supabase/migrations/20261018154737_shops_orders_checkout.sql | BEGIN\n  PERFORM public.require_feature('shops');\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;\n  IF NOT FOUND OR o.seller_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'accepted' THEN | BEGIN\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;\n  IF NOT FOUND OR o.seller_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'accepted' THEN
+// @mutate supabase/migrations/20261018154737_shops_orders_checkout.sql | REVOKE ALL ON FUNCTION public.shop_hold_released(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shop_hold_released(uuid) FROM PUBLIC, anon;
+// @mutate supabase/migrations/20261018154737_shops_orders_checkout.sql |   SELECT daily_order_cap INTO v_cap FROM public.shops WHERE id = o.shop_id FOR UPDATE; |   SELECT daily_order_cap INTO v_cap FROM public.shops WHERE id = o.shop_id FOR SHARE;
+// @mutate supabase/migrations/20261018154737_shops_orders_checkout.sql |     PERFORM 1 FROM public.shops WHERE id = v_shop FOR UPDATE; |     PERFORM 1;
+// @mutate supabase/migrations/20261018154737_shops_orders_checkout.sql | hold_released_at = CASE WHEN COALESCE(p_final, false) THEN now() ELSE NULL END, | hold_released_at = now(),
+// @mutate supabase/migrations/20261018154737_shops_orders_checkout.sql |   CONSTRAINT shop_orders_premium_rule CHECK (premium_cents = round(items_cents * 0.05)::integer + 70), |   CONSTRAINT shop_orders_premium_rule CHECK (premium_cents = round(items_cents * 0.06)::integer + 70),
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -35,7 +35,7 @@ import { checkoutAmounts } from "@/lib/declutter/money";
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");
-const FILE = "20261017225605_shops_orders_checkout.sql";
+const FILE = "20261018154737_shops_orders_checkout.sql";
 const MIG = blankSqlComments(readFileSync(join(MIG_DIR, FILE), "utf8"));
 const DEFS = effectiveDefs(MIG_DIR);
 const body = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "");
@@ -62,7 +62,7 @@ function grantedToAuthenticated(): Set<string> {
   return out;
 }
 
-describe("Shops M1: orders and the card hold keep their gates (20261017225605)", () => {
+describe("Shops M1: orders and the card hold keep their gates (20261018154737)", () => {
   const granted = grantedToAuthenticated();
 
   it("reads a real inventory (floors)", () => {

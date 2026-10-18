@@ -1,5 +1,5 @@
 /**
- * Shops M1, the Stripe side (migration 20261017225605_shops_orders_checkout;
+ * Shops M1, the Stripe side (migration 20261018154737_shops_orders_checkout;
  * docs/specs/local-shops-prep.md L17/L18, F1, O1): shop-checkout (order /
  * accept / decline / cancel), the stripe-webhook hold handler, and
  * declutter-money's shop step, all through _shared/shopHolds.ts.
@@ -15,6 +15,8 @@
  * @mutate supabase/functions/shop-checkout/index.ts |     { idempotencyKey: `shop-order-${o.id}` }, |     {},
  * @mutate supabase/functions/shop-checkout/index.ts |   if (session.amount_subtotal !== o.items_cents + o.premium_cents) { |   if (false) {
  * @mutate supabase/functions/shop-checkout/index.ts |   if (frozen.superseded_session_id) await expirePage(frozen.superseded_session_id); |
+ * @mutate supabase/functions/shop-checkout/index.ts |     customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; |     customerId = undefined;
+ * @mutate supabase/functions/shop-checkout/index.ts |     return json({ error: TRY_AGAIN }, 503);\n  }\n\n  const meta | }\n\n  const meta
  * @mutate supabase/functions/_shared/shopHolds.ts |     const pi = await stripe.paymentIntents.capture(paymentIntentId, {}, { idempotencyKey: shopCaptureKey(orderId, attempt) }); |     const pi = await stripe.paymentIntents.capture(paymentIntentId);
  * @mutate supabase/functions/_shared/shopHolds.ts |   return `shop-capture-${orderId}-${Number.isInteger(attempt) && attempt >= 0 ? attempt : 0}`; |   return `shop-capture-${orderId}`;
  * @mutate supabase/functions/_shared/shopHolds.ts |       await recordReleaseFailure(admin, row.order_id, "payment captured on a closed order"); |
@@ -90,7 +92,7 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
       { title: "Kolache dozen", kind: "home_food", unit_cents: 1800, quantity: 2, line_cents: 3600 },
       { title: "Fig candle", kind: "made", unit_cents: 2500, quantity: 1, line_cents: 2500 },
     ] };
-    scenario.reads.declutter_buyer_cards = { rows: [] };
+    scenario.reads.stripe_customers = { rows: [] };
     scenario.rpc.shop_attach_checkout_session = null;
   }
 
@@ -118,6 +120,44 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     const attach = rpcs("shop_attach_checkout_session")[0];
     expect(attach?.args).toEqual({ p_order_id: ORDER, p_session_id: "cs_live_shop" });
     expect(clientOf(attach)?.key).toBe("service-key");
+  });
+
+  it("one wallet: the buyer's ONE stored customer in this mode pre-fills the page; none stored -> the email, never a new or email-found customer", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_wallet" }] };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6475 });
+    expect((await fn.fetch(ask(fn))).status).toBe(200);
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.customer).toBe("cus_wallet");
+    expect(params.customer_update).toEqual({ address: "auto" });
+    expect(params.customer_email).toBeUndefined();
+    const q = (scenario.readQueries ?? []).find((r) => r.table === "stripe_customers");
+    expect(q?.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "eq", column: "user_id", value: BUYER }),
+      expect.objectContaining({ op: "eq", column: "wallet_mode", value: "live" }),
+    ]));
+    expect((scenario.readQueries ?? []).some((r) => r.table === "declutter_buyer_cards")).toBe(false);
+
+    const fn2 = await load();
+    frozen();
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6475 });
+    await fn2.fetch(ask(fn2));
+    const calls = stripeMock.checkout.sessions.create.mock.calls;
+    const p2 = calls[calls.length - 1][0];
+    expect(p2.customer).toBeUndefined();
+    expect(p2.customer_email).toBe("buyer@test.dev");
+    expect(stripeMock.customers.create).not.toHaveBeenCalled();
+    expect(stripeMock.customers.list).not.toHaveBeenCalled();
+  });
+
+  it("one wallet: a failed wallet read opens no page (never a guessed customer)", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.stripe_customers = { error: { message: "boom" } };
+    const res = await fn.fetch(ask(fn));
+    expect(res.status).toBe(503);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
   it("expires the page a superseded order had open", async () => {

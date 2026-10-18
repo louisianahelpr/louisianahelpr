@@ -62,27 +62,35 @@ serve(async (req) => {
     // A paying member with no way to stop paying is the worst shape a billing
     // bug can take, so pick the record that actually carries the subscription.
     const customers = await stripe.customers.list({ email: user.email, limit: 100 });
-    if (customers.data.length === 0) {
-      throw new Error("No billing account found for this email");
-    }
 
     // Prefer a record with a subscription in ANY state — `all` deliberately,
     // not `active`: a member whose subscription is past_due, unpaid, paused or
     // already cancelled-at-period-end is exactly who needs the portal most, and
     // filtering to `active` would send them back to the empty record.
-    let customerId = customers.data[0].id;
-    if (customers.data.length > 1) {
-      for (const customer of customers.data) {
-        const subs = await stripe.subscriptions.list({
-          customer: customer.id,
-          status: "all",
-          limit: 1,
-        });
-        if (subs.data.length > 0) {
-          customerId = customer.id;
-          break;
-        }
+    //
+    // Q2141 (one wallet): the portal opens ONLY on a record that carries a
+    // subscription, even when there is just one record. It used to fall back
+    // to the first record found, and that can be the member's one-wallet
+    // customer (created with the same email): a card added in the portal
+    // becomes that customer's default card, the card auto-tip charges
+    // off-session. A member with no subscription has nothing to manage here.
+    let customerId: string | null = null;
+    for (const customer of customers.data) {
+      const subs = await stripe.subscriptions.list({
+        customer: customer.id,
+        status: "all",
+        limit: 1,
+      });
+      if (subs.data.length > 0) {
+        customerId = customer.id;
+        break;
       }
+    }
+    if (!customerId) {
+      return new Response(JSON.stringify({ error: "No membership billing found for this account." }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404,
+      });
     }
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,

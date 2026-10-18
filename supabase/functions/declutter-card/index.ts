@@ -1,6 +1,7 @@
 /**
- * declutter-card — Declutter row 36 (a saved card to offer or Buy; never
- * charged automatically), docs/specs/declutter-auctions.md B31/B39.
+ * declutter-card — Declutter row 36 (a saved card to offer or Buy; charged
+ * only when the member buys, or automatically where they turned on automatic
+ * charges: one wallet card everywhere, owner 2026-10-18), docs/specs/declutter-auctions.md B31/B39.
  *
  * Opens Stripe's own card-saving page (Checkout, mode=setup) for the signed-in
  * member and returns its URL. Nothing is charged. When the member finishes,

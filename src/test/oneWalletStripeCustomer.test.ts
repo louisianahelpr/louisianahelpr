@@ -20,12 +20,16 @@
  * @mutate supabase/functions/_shared/stripeCustomer.ts | .eq("wallet_mode", mode) | .eq("user_id", userId)
  * @mutate supabase/migrations/20261018090700_one_wallet_stripe_customers.sql | LANGUAGE plpgsql\nSECURITY INVOKER | LANGUAGE plpgsql\nSECURITY DEFINER
  * @mutate supabase/migrations/20261018090700_one_wallet_stripe_customers.sql | GRANT SELECT, INSERT, DELETE ON TABLE public.stripe_customers TO service_role; | GRANT ALL ON TABLE public.stripe_customers TO service_role;
+ * @mutate supabase/functions/pro-customer-portal/index.ts |     let customerId: string \| null = null; |     let customerId: string \| null = customers.data[0]?.id ?? null;
+ * @mutate supabase/functions/pro-customer-portal/index.ts |     const portalSession = await stripe.billingPortal.sessions.create({ |     await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: "pm_x" } });\n    const portalSession = await stripe.billingPortal.sessions.create({
+ * @mutate supabase/migrations/20261018160108_declutter_card_notice_one_wallet.sql | 'Your card is saved. It is charged only when you buy, or automatically where you turned on automatic charges.' | 'Your card is saved for Declutter. It is never charged until you check out and pay.'
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | <p>Your card is charged only when you buy, or automatically where you turned on automatic charges (like auto-tip).</p> | <p>Your card is never charged until you check out and pay.</p>
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
-import { readdirSync } from "./helpers/trackedFiles";
+import { readdirSync, trackedFiles } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "../..");
 const RESOLVER = "supabase/functions/_shared/stripeCustomer.ts";
@@ -33,6 +37,16 @@ const RESOLVER = "supabase/functions/_shared/stripeCustomer.ts";
 /** Functions that still mint a Stripe customer themselves (plan slice 3 moves create-payment). */
 // @two-way src/test/oneWalletStripeCustomer.test.ts:stale baseline entry ${f} — remove it (lower the baseline)
 const LEGACY_CUSTOMER_CREATE = ["supabase/functions/create-payment/index.ts"];
+
+/**
+ * Edge functions that set a Stripe customer's DEFAULT card (invoice_settings.default_payment_method).
+ * That default is the off-session consent auto-tip charges (Q2138), so only the wallet save-card
+ * path may set it in our code (Q2139 adds it here). Exact, both directions. Outside our code, the
+ * Stripe Billing Portal can set it too when a member's Pro subscription sits on their wallet
+ * customer: the member choosing their own wallet card (one wallet card everywhere, owner 2026-10-18).
+ */
+// @two-way src/test/oneWalletStripeCustomer.test.ts:stale default-card setter ${f} — remove it (lower the baseline)
+const DEFAULT_CARD_SETTERS: string[] = [];
 
 /** Functions that still find a customer BY EMAIL (plan slice 3; auto-tip left in slice 0, Q2138). */
 // @two-way src/test/oneWalletStripeCustomer.test.ts:stale baseline entry ${f} — remove it (lower the baseline)
@@ -120,5 +134,54 @@ describe("one wallet: a member's Stripe customer comes from ONE place", () => {
     expect(newest).toMatch(/GRANT SELECT, INSERT, DELETE ON TABLE public\.stripe_customers TO service_role;/);
     expect(newest).not.toMatch(/GRANT[^;]*\b(ALL|UPDATE)\b[^;]*ON TABLE public\.stripe_customers/i);
     expect(newest).not.toMatch(/GRANT[^;]*ON TABLE public\.stripe_customers TO[^;]*\b(anon|authenticated)\b/i);
+  });
+
+  it("only the wallet save-card path sets a customer's default card (Q2141)", () => {
+    // An object literal, a form-encoded key, or any customers.update that carries invoice_settings
+    // (an object built beforehand) all count (lh-money-escrow review of 2340db8b7 #3).
+    const setsDefault = (src: string) => /invoice_settings\s*:\s*\{[^}]*\bdefault_payment_method\b/.test(src)
+      || /invoice_settings\[default_payment_method\]/.test(src)
+      || /customers\s*\.\s*update\s*\([^;]*\binvoice_settings\b/.test(src);
+    const setters = edgeFiles.filter((f) => setsDefault(code(f)));
+    expect(setters.filter((f) => !DEFAULT_CARD_SETTERS.includes(f))).toEqual([]);
+    const stale = DEFAULT_CARD_SETTERS.filter((f) => !setters.includes(f))
+      .map((f) => `stale default-card setter ${f} — remove it (lower the baseline)`);
+    expect(stale).toEqual([]);
+  });
+
+  it("the Pro billing portal opens only on a customer that carries a subscription, never the first one found (Q2141)", () => {
+    const portalOpeners = edgeFiles.filter((f) => /billingPortal\s*\.\s*sessions\s*\.\s*create\s*\(/.test(code(f)));
+    expect(portalOpeners).toEqual(["supabase/functions/pro-customer-portal/index.ts"]);
+    const portal = code(portalOpeners[0]);
+    expect(portal).not.toMatch(/customers\.data\[0\]/);
+    expect(portal).toMatch(/let customerId: string \| null = null;/);
+    expect(portal).toMatch(/if \(!customerId\) \{[\s\S]{0,200}?status: 404/);
+  });
+});
+
+describe("one wallet: no screen promises a saved card is never charged automatically (owner 2026-10-18)", () => {
+  // ONE WALLET CARD EVERYWHERE: a member's default saved card may be charged automatically wherever they
+  // turned on automatic charges (auto-tip, recurring). "Never charged until you check out" is no longer true.
+  const appFiles = trackedFiles("src")
+    .filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\.(ts|tsx)$/.test(f) && !f.startsWith("src/test/"));
+
+  it("inventory is real", () => {
+    expect(appFiles.length).toBeGreaterThan(500);
+    expect(appFiles).toContain("src/components/declutter/DeclutterTradeViews.tsx");
+  });
+
+  it("no app copy says a card is never charged until checkout, or never charged automatically", () => {
+    const promise = /never (be )?charged (until you (check ?out|pay)|automatically)/i;
+    expect(appFiles.filter((f) => promise.test(blankComments(readFileSync(join(REPO, f), "utf8"))))).toEqual([]);
+  });
+
+  it("the newest declutter_save_card sends the one-wallet notice, not \"never charged\"", () => {
+    const dir = join(REPO, "supabase/migrations");
+    const defining = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()
+      .filter((f) => /FUNCTION public\.declutter_save_card\s*\(/i.test(blankSqlComments(readFileSync(join(dir, f), "utf8"))));
+    expect(defining.length).toBeGreaterThan(1);
+    const newest = blankSqlComments(readFileSync(join(dir, defining[defining.length - 1]), "utf8"));
+    expect(newest).not.toMatch(/never charged/i);
+    expect(newest).toMatch(/charged only when you buy, or automatically where you turned on automatic charges/);
   });
 });

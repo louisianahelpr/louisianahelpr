@@ -551,10 +551,11 @@ serve(async (req) => {
         //
         // Only the wallet's DEFAULT card, never "any card on it" (lh-money-escrow
         // review of ad052465c #1): a Declutter card sits on the same customer and
-        // was saved with "never charged until you check out and pay". Setting the
-        // default is the off-session consent step; nothing sets it yet, so until
-        // Jobs' "save card for next time" does (Q2139) auto-tip charges nobody:
-        // the poster is asked to tip by hand and the run reports it.
+        // was saved to buy with, not as the wallet's default. Setting the default
+        // is the off-session consent step (one wallet card everywhere, owner
+        // 2026-10-18); until Jobs' "save card for next time" sets it (Q2139)
+        // auto-tip charges nobody: the poster is asked to tip by hand and the run
+        // reports it.
         let customerId: string | null;
         try {
           customerId = await storedStripeCustomer(supabase, c.customer_id as string, mode);

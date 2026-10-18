@@ -573,7 +573,7 @@ describe("create-payment edge function", () => {
       // price, with no card-fee line of its own. It replaced Q362's "Urgent
       // bonus card fee" on the shortfall: the card is charged the shortfall
       // only, and the fee stamped is 0 (a refund keeps Stripe's real fee).
-      // @mutate supabase/functions/create-payment/index.ts |         const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: 0 }); |         const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: 0.45 });
+      // @mutate supabase/functions/create-payment/index.ts | { customer_fee_amount: redeemFeeCents / 100 }); | { customer_fee_amount: redeemFeeCents / 100 + 0.45 });
       it("F3b: an urgent gift shortfall charges the shortfall only, no card-fee line", async () => {
         for (const [urgent, diff] of [[30, 4000], [250, 4000]] as const) {
           resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
@@ -593,7 +593,7 @@ describe("create-payment edge function", () => {
         }
       });
 
-      // @mutate supabase/functions/create-payment/index.ts |         const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: 0 }); |         const diffStamp = await stampSession(diffSession.id, {});
+      // @mutate supabase/functions/create-payment/index.ts | const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: redeemFeeCents / 100 }); | const diffStamp = await stampSession(diffSession.id, {});
       it("Q362: a non-urgent gift shortfall has no card fee line and stamps a zero fee (clearing any stale one)", async () => {
         seedGiftShortfall();
         const fn = await load();

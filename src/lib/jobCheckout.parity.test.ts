@@ -3,7 +3,7 @@
  * methods): the app's mirror equals the edge module, and the rule says what
  * the owner decided (2026-10-18).
  *
- * @mutate src/lib/jobCheckout.ts |   return i.switchOn && !i.giftFunded && !i.recurring ? "poster" : "flat"; |   return i.switchOn && !i.recurring ? "poster" : "flat";
+ * @mutate src/lib/jobCheckout.ts |   return i.switchOn && !i.recurring ? "poster" : "flat"; |   return i.switchOn ? "poster" : "flat";
  * @mutate supabase/functions/_shared/jobCheckout.ts |   if (q.totalShown === false) return null; |   if (q.totalShown !== true) return null;
  * @mutate supabase/functions/_shared/jobCheckout.ts |     return expected.model === "flat" && !expected.payInFour ? null : STALE_FEE_QUOTE_MESSAGE; |     return null;
  * @mutate supabase/functions/_shared/jobCheckout.ts | export const PAY_IN_FOUR_FEE_PERCENT = 9; | export const PAY_IN_FOUR_FEE_PERCENT = 8;
@@ -16,11 +16,11 @@ import * as edge from "../../supabase/functions/_shared/jobCheckout";
 import { posterJobFeeCents } from "../../supabase/functions/_shared/posterJobFee";
 
 const SWITCH_CASES = [true, false].flatMap((switchOn) =>
-  [true, false].flatMap((giftFunded) => [true, false].map((recurring) => ({ switchOn, giftFunded, recurring }))));
+  [true, false].map((recurring) => ({ switchOn, recurring })));
 
 describe("job checkout rule (owner 2026-10-18)", () => {
   it("client mirror == edge module, for every input", () => {
-    expect(SWITCH_CASES.length).toBe(8);
+    expect(SWITCH_CASES.length).toBe(4);
     for (const i of SWITCH_CASES) expect(client.jobFeeModelFor(i)).toBe(edge.jobFeeModelFor(i));
     for (let c = 0; c <= 160_000; c += 13) {
       for (const p4 of [false, true]) {
@@ -59,7 +59,7 @@ describe("job checkout rule (owner 2026-10-18)", () => {
 
   it("the poster-fee model needs the switch, and gift / recurring checkouts stay flat until their slices land", () => {
     for (const i of SWITCH_CASES) {
-      expect(edge.jobFeeModelFor(i)).toBe(i.switchOn && !i.giftFunded && !i.recurring ? "poster" : "flat");
+      expect(edge.jobFeeModelFor(i)).toBe(i.switchOn && !i.recurring ? "poster" : "flat");
     }
   });
 
@@ -74,7 +74,7 @@ describe("job checkout rule (owner 2026-10-18)", () => {
 
   it("a quote is accepted only when it matches exactly; a missing quote only on the flat model", () => {
     const P = { model: "poster" as const, payInFour: false, jobPriceCents: 10_000 };
-    const ok = edge.buildFeeQuote({ switchOn: true, giftFunded: false, recurring: false, jobPriceCents: 10_000 });
+    const ok = edge.buildFeeQuote({ switchOn: true, recurring: false, jobPriceCents: 10_000 });
     expect(ok).toEqual({ model: "poster", payInFour: false, totalShown: true, jobPriceCents: 10_000, serviceFeeCents: 570 });
     expect(edge.feeQuoteRefusal(ok, P)).toBeNull();
     expect(edge.feeQuoteRefusal(undefined, P)).toBe(edge.STALE_FEE_QUOTE_MESSAGE);
@@ -89,7 +89,7 @@ describe("job checkout rule (owner 2026-10-18)", () => {
       expect(edge.feeQuoteRefusal(bad, P), JSON.stringify(bad)).toBe(edge.STALE_FEE_QUOTE_MESSAGE);
     }
     // A screen with no total: model + Pay-in-4 choice only.
-    const modelOnly = edge.buildFeeQuote({ switchOn: true, giftFunded: false, recurring: false });
+    const modelOnly = edge.buildFeeQuote({ switchOn: true, recurring: false });
     expect(modelOnly).toEqual({ model: "poster", payInFour: false, totalShown: false });
     expect(edge.feeQuoteRefusal(modelOnly, P)).toBeNull();
     expect(edge.feeQuoteRefusal({ ...modelOnly, model: "flat" }, P)).toBe(edge.STALE_FEE_QUOTE_MESSAGE);

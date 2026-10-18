@@ -52,7 +52,7 @@ import { buildFeeQuote, type JobFeeQuote } from "@/lib/jobCheckout";
  */
 function useQuoteFeeQuote(): JobFeeQuote {
   const posterFeeOn = useFeature("jobs_poster_fee");
-  return buildFeeQuote({ switchOn: posterFeeOn, giftFunded: false, recurring: false });
+  return buildFeeQuote({ switchOn: posterFeeOn, recurring: false });
 }
 import { QUOTE_STATUS_LABEL, QuotesGate, QuotesNotice, REQUEST_STATUS_LABEL, dayLabel, timeLeft } from "@/components/quotes/quotesUi";
 import { OfferThread, QuoteAnswerControls, parseWholeDollars } from "@/components/quotes/QuoteAnswerControls";

@@ -30,7 +30,7 @@
 //       receives at least" figure uses 5% + 70c on a flat job (Q1839).
 //
 // @mutate supabase/functions/release-payout/index.ts | helper_fee_percent, helper_fee_flat_cents, is_seed | helper_fee_percent, is_seed
-// @mutate supabase/functions/void-cancelled-payments/index.ts | customer_id, helper_fee_percent, helper_fee_flat_cents, is_group_job, | customer_id, helper_fee_percent, is_group_job,
+// @mutate supabase/functions/void-cancelled-payments/index.ts | customer_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, | customer_id, helper_fee_percent, poster_fee_flat_cents, is_group_job,
 // @mutate supabase/functions/auto-release-payment/index.ts | const helperCommission = jobHelprCommissionDollars(job, perHelperBudget, helperFeePercent, netUrgentFeeDollars(job.urgent_fee) / helpersCount); | const helperCommission = helperCommissionDollars(perHelperBudget, helperFeePercent);
 // @mutate supabase/functions/void-cancelled-payments/index.ts | helper_fee_percent: job.helper_fee_percent, helper_fee_flat_cents: job.helper_fee_flat_cents }, | helper_fee_percent: job.helper_fee_percent },
 // @mutate supabase/functions/create-payment/index.ts |             platform_fee_amount: escrowFlatFeeCents / 100, |             platform_fee_amount: 0,

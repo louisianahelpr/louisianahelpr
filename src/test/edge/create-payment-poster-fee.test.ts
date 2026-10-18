@@ -240,6 +240,35 @@ describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-1
     expect(stampFilters()[0]).not.toContainEqual(expect.objectContaining({ column: "recurrence_days" }));
   });
 
+  // Slice 4 refunds (owner-approved wording 2026-10-18: "the poster gets back
+  // what they paid (tax included) less the card-processing cost"): a poster's
+  // cancel of a paid poster-fee job keeps Stripe's card cost only, never the
+  // whole 5% + 70c (posterCancelKeptFeeCents).
+  // @mutate supabase/functions/create-payment/index.ts |           const serviceFeeCents = posterCancelKeptFeeCents(job); |           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
+  // @mutate supabase/functions/create-payment/index.ts | ${isPosterFeeJob(job) ? "the card processing fee" : "non-refundable service fee"} | non-refundable service fee
+  it("cancel_escrow on a paid poster-fee job returns $105.70 less Stripe's card cost ($3.37), not less the $5.70 fee", async () => {
+    resetSupabaseMock();
+    scenario.authUser = POSTER;
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_existing" }] });
+    scenario.reads.jobs = {
+      rows: [{
+        id: "job-pf", customer_id: POSTER.id, status: "open", payment_status: "escrow", stripe_payment_intent_id: "pi_pf",
+        budget: 100, customer_fee_amount: 5.7, poster_fee_flat_cents: 70, platform_fee_percent: 5, helper_fee_flat_cents: 0, helper_fee_percent: 0,
+      }],
+    };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_pf", status: "succeeded", amount: 10_570, amount_received: 10_570 });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_pf" });
+    scenario.writeSelectRows.jobs = [{ id: "job-pf" }];
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-pf" } }));
+    expect(res.status).toBe(200);
+    // 2.9% of $105.70 + $0.30 = $3.37 kept; $102.33 back.
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_pf", amount: 10_233 }, { idempotencyKey: "cancel-escrow-job-pf" });
+    // The ledger names what was kept: the card processing fee, not a service fee.
+    const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
+    expect((ledger?.payload as { reason?: string } | undefined)?.reason).toBe("escrow cancellation refund (minus the card processing fee)");
+  });
+
   // Gift first (owner 2026-10-18; redeem_gift_card 20261018031451 prices the
   // stamped fee): a gift-funded checkout is on the poster-fee model too.
   it("switch ON: a fully gift-funded job is stamped on the poster-fee model before the gift pays (fee included)", async () => {

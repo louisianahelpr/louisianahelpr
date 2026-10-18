@@ -4768,7 +4768,7 @@
     },
     {
       "file": "src/components/job-card/JobListPage.tsx",
-      "line": 335,
+      "line": 336,
       "kind": "toast.info",
       "title": {
         "form": "template",

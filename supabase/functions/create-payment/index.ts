@@ -550,6 +550,39 @@ serve(async (req) => {
         }
       }
 
+      // ─── A PaymentIntent the row still carries from an earlier checkout ───
+      //
+      // lh-money-escrow review of a2f1618d0, #1. A bounced bank payment
+      // (payment_intent.payment_failed on a completed ACH checkout) writes
+      // 'failed' and nulls stripe_session_id but KEEPS stripe_payment_intent_id,
+      // so the retire step above has no session to inspect. The stamp below
+      // then wrote 'unpaid' + a new card session with the bank's PI still on
+      // the row: the shape My Posts reads as "waiting for your bank"
+      // (src/lib/pendingBankPayment.ts) while the poster is on a card checkout,
+      // and the PI every refund and payment_intent.succeeded keys on is the
+      // dead one. Stripe decides whether it is dead: one that can still move
+      // money (anything past requires_payment_method, not canceled) refuses
+      // the re-mint exactly like a live prior session; a dead one is cleared
+      // by the fee-model stamp below, pinned to the id read here. A PI minted
+      // under the TEST key is unreadable under the live key and holds no real
+      // money, so it is dead too. Any other read error refuses (fail closed).
+      const rowPaymentIntentId: string | null = job.stripe_payment_intent_id ?? null;
+      if (rowPaymentIntentId) {
+        let rowPi: Stripe.PaymentIntent | null = null;
+        try {
+          rowPi = await stripe.paymentIntents.retrieve(rowPaymentIntentId);
+        } catch (rowPiErr) {
+          if (!isTestObjectUnderLiveKey(rowPiErr)) throw rowPiErr;
+          console.warn(`[create-payment] job ${jobId} carries test-mode PI ${rowPaymentIntentId} under the live key; clearing it on re-mint`);
+        }
+        if (rowPi && !["requires_payment_method", "canceled"].includes(rowPi.status)) {
+          console.error(
+            `[create-payment] refusing re-mint for job ${jobId}: the row's PaymentIntent ${rowPaymentIntentId} is ${rowPi.status} while jobs.payment_status='${currentPaymentStatus}'`,
+          );
+          throw new PublicError("A payment for this job is still being processed. Give it a moment and refresh before trying again.");
+        }
+      }
+
       /**
        * Idempotency key suffix — why the key cannot be `escrow-${jobId}` alone.
        *
@@ -715,9 +748,10 @@ serve(async (req) => {
       // checkout is refused here, before any funding branch (gift redeem,
       // Stripe session).
       {
-        const { data: modelRows, error: modelErr } = await pinnedToReadPrice(supabaseAdmin
+        const modelStamp = pinnedToReadPrice(supabaseAdmin
           .from("jobs")
-          .update(isPosterFee
+          .update({
+            ...(isPosterFee
             ? {
                 // Poster-fee model: the poster's fee is stamped, the Helpr side
                 // is 0/0 so every payout path takes nothing from the Helpr
@@ -748,7 +782,11 @@ serve(async (req) => {
                 // and the gift-shortfall stamp never write platform_fee_amount, so
                 // money-reconciliation graded a gift-funded flat job against NULL.
                 platform_fee_amount: escrowFlatFeeCents / 100,
-              })
+              }),
+            // The dead PaymentIntent proved above leaves with the stamp, on
+            // every funding branch and both fee models (review of a2f1618d0, #1).
+            ...(rowPaymentIntentId ? { stripe_payment_intent_id: null } : {}),
+          })
           .eq("id", jobId))
           .eq("status", job.status)
           .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")
@@ -759,8 +797,19 @@ serve(async (req) => {
           // (review of slice 3a, #1).
           .or(previousSessionId
             ? `stripe_session_id.is.null,stripe_session_id.eq.${previousSessionId}`
-            : "stripe_session_id.is.null")
-          .select("id");
+            : "stripe_session_id.is.null");
+        // Pinned to the PI read (and proved dead) above, or to the null a
+        // concurrent tap's stamp already cleared it to (delta review #1: a
+        // double-tap after a bounced bank payment read the same PI, and an
+        // .eq() pin refused the second tap that used to share the first one's
+        // session through the idempotency key). A PI written since is neither,
+        // is not ours to clear, and zero rows refuses the checkout below.
+        // Every .or() filter is ANDed by PostgREST (measured 2026-10-18 03:31Z,
+        // or=(id.is.null)&or=(id.not.is.null) on open_jobs_browse: []).
+        const { data: modelRows, error: modelErr } = await (rowPaymentIntentId
+          ? modelStamp.or(`stripe_payment_intent_id.eq.${rowPaymentIntentId},stripe_payment_intent_id.is.null`)
+          : modelStamp.is("stripe_payment_intent_id", null)
+        ).select("id");
         if (modelErr) {
           console.error(`[create-payment] fee-model stamp failed for job ${jobId}; refusing escrow:`, modelErr);
           throw new PublicError("Pricing configuration is temporarily unavailable — please try again in a moment");

@@ -155,7 +155,9 @@ describe("function-body drift — in-place rewrites are replayed", () => {
   const rewritten = [...effective.entries()].filter(([, d]) => d.rewrites.length > 0);
 
   it("inventories the rewritten functions (a parser that finds none must not pass)", () => {
-    // EXACT (2026-10-03): 5 of 20260925143327's 11. 20261003214350 (Q1185)
+    // EXACT (2026-10-17): 4. 20261018024631 re-created
+    // notify_helper_on_direct_offer with the rewritten copy ('Someone') in it.
+    // (2026-10-03: 5 of 20260925143327's 11.) 20261003214350 (Q1185)
     // re-created respond_to_direct_offer and expire_pending_direct_offers with
     // the new copy written in.
     // (2026-09-27: 7.) 20260925154606 re-created
@@ -164,13 +166,12 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // re-created sweep_no_show_alerts, both with the new copy written in; the
     // older link rewrites (20260831232514, 20260901021929) were all superseded
     // by later CREATEs.
-    expect(rewritten.length).toBe(5);
+    expect(rewritten.length).toBe(4);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "check_referral_bonus",
       "helper_abort_job",
       "notify_helper_application_viewed",
-      "notify_helper_on_direct_offer",
       "track_revision_scope_creep",
     ]);
   });

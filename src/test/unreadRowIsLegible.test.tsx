@@ -268,9 +268,13 @@ describe("the inbox row's unread signal", () => {
   it("resolves the palette out of index.css, not out of token names", () => {
     expect(LIGHT.size).toBeGreaterThan(50);
     expect(DARK.size).toBeGreaterThan(20);
-    // The two the shipped bug conflated: identical in light, which is exactly
-    // why a name-comparison could never have caught it.
-    expect(resolveColour("hsl(var(--burnt-sienna))", false)).toEqual(
+    // Values, not names: in light --sienna-ink resolves to --accent-ink's
+    // text green (#0B6440 since 2026-10-18) and no longer to the accent fill
+    // --burnt-sienna (#0E7A4A); only the parsed index.css can tell.
+    expect(resolveColour("hsl(var(--sienna-ink))", false)).toEqual(
+      resolveColour("hsl(var(--accent-ink))", false),
+    );
+    expect(resolveColour("hsl(var(--burnt-sienna))", false)).not.toEqual(
       resolveColour("hsl(var(--sienna-ink))", false),
     );
   });

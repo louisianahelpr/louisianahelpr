@@ -534,6 +534,44 @@ describe("declutter-checkout: pay", () => {
     expect(clientOf(attach)?.key).toBe("service-key");
   });
 
+  it("one wallet: the buyer's stored customer (this mode) pre-fills the page; none stored -> email only, no customer made", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.rpc.declutter_attach_checkout_session = null;
+    scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_wallet" }] };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_new", url: "https://x/new", amount_total: 4600 });
+    await fn.fetch(payReq(fn));
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.customer).toBe("cus_wallet");
+    expect(params.customer_email).toBeUndefined();
+    const q = (scenario.readQueries ?? []).find((r) => r.table === "stripe_customers");
+    expect(q?.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "eq", column: "user_id", value: BUYER }),
+      expect.objectContaining({ op: "eq", column: "wallet_mode", value: "live" }),
+    ]));
+
+    const fn2 = await load();
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.rpc.declutter_attach_checkout_session = null;
+    scenario.reads.stripe_customers = { rows: [] };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_new", url: "https://x/new", amount_total: 4600 });
+    await fn2.fetch(payReq(fn2));
+    const [p2] = stripeMock.checkout.sessions.create.mock.calls[stripeMock.checkout.sessions.create.mock.calls.length - 1];
+    expect(p2.customer).toBeUndefined();
+    expect(p2.customer_email).toBe("buyer@test.dev");
+    expect(stripeMock.customers.create).not.toHaveBeenCalled();
+    expect(stripeMock.customers.list).not.toHaveBeenCalled();
+  });
+
+  it("one wallet: a failed wallet read opens no page (never a guessed customer)", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.reads.stripe_customers = { error: { message: "boom" } };
+    const res = await fn.fetch(payReq(fn));
+    expect(res.status).toBe(503);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
   it("expires the superseded order's page before opening the new one", async () => {
     const fn = await load();
     scenario.rpc.declutter_start_checkout = order({ superseded_session_id: "cs_live_old" });
@@ -794,11 +832,12 @@ describe("declutter-card", () => {
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
-  it("opens Stripe's card-saving page (setup mode: nothing is charged) for the caller", async () => {
+  it("opens Stripe's card-saving page (setup mode: nothing is charged) on the member's ONE wallet customer, made and claimed once", async () => {
     const fn = await load();
     scenario.rpc.feature_enabled_for_user = true;
-    scenario.reads.declutter_buyer_cards = { rows: [] };
+    scenario.reads.stripe_customers = { rows: [] };
     stripeMock.customers.create.mockResolvedValue({ id: "cus_new" });
+    scenario.rpc.claim_stripe_customer = "cus_new";
     stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_setup", url: "https://x/setup" });
     const res = await fn.fetch(req(fn));
     expect(res.status).toBe(200);
@@ -807,16 +846,49 @@ describe("declutter-card", () => {
     expect(params).toMatchObject({ mode: "setup", customer: "cus_new", client_reference_id: BUYER,
       metadata: { kind: "declutter_card", user_id: BUYER } });
     expect(params.line_items).toBeUndefined();
-    expect(stripeMock.customers.create.mock.calls[0][1]).toEqual({ idempotencyKey: `declutter-customer-${BUYER}-live` });
+    const [created, opts] = stripeMock.customers.create.mock.calls[0];
+    expect(opts).toEqual({ idempotencyKey: `lh-wallet-customer-${BUYER}-live` });
+    expect(created.metadata).toEqual({ supabase_user_id: BUYER, wallet_mode: "live" });
+    expect(rpcs("claim_stripe_customer")[0]?.args).toEqual({ p_user: BUYER, p_mode: "live", p_customer: "cus_new" });
+    // Never looked up by email (a reused address would inherit someone's cards).
+    expect(stripeMock.customers.list).not.toHaveBeenCalled();
+    // The stored row was read for THIS member in THIS mode.
+    const q = (scenario.readQueries ?? []).find((r) => r.table === "stripe_customers");
+    expect(q?.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "eq", column: "user_id", value: BUYER }),
+      expect.objectContaining({ op: "eq", column: "wallet_mode", value: "live" }),
+    ]));
   });
 
-  it("reuses the saved card's customer in the same mode", async () => {
+  it("uses the customer another tap claimed first (first writer wins)", async () => {
     const fn = await load();
     scenario.rpc.feature_enabled_for_user = true;
-    scenario.reads.declutter_buyer_cards = { rows: [{ stripe_customer_id: "cus_saved", card_mode: "live" }] };
+    scenario.reads.stripe_customers = { rows: [] };
+    stripeMock.customers.create.mockResolvedValue({ id: "cus_mine" });
+    scenario.rpc.claim_stripe_customer = "cus_winner";
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_setup", url: "https://x/setup" });
+    await fn.fetch(req(fn));
+    expect(stripeMock.checkout.sessions.create.mock.calls[0][0].customer).toBe("cus_winner");
+  });
+
+  it("reuses the member's stored wallet customer (a card saved for Jobs or Declutter, one customer)", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = true;
+    scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_saved" }] };
     stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_setup", url: "https://x/setup" });
     await fn.fetch(req(fn));
     expect(stripeMock.customers.create).not.toHaveBeenCalled();
+    expect(rpcs("claim_stripe_customer")).toHaveLength(0);
     expect(stripeMock.checkout.sessions.create.mock.calls[0][0].customer).toBe("cus_saved");
+  });
+
+  it("fails closed when the wallet read fails: no customer is made, no page opens", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = true;
+    scenario.reads.stripe_customers = { error: { message: "boom" } };
+    const res = await fn.fetch(req(fn));
+    expect(res.status).toBe(503);
+    expect(stripeMock.customers.create).not.toHaveBeenCalled();
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 });

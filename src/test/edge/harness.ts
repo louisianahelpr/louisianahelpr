@@ -190,6 +190,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/geocodeDropoff.ts";`,
   );
 
+  // One wallet: `_shared/stripeCustomer.ts` has ZERO imports (it takes the
+  // service-role client and the Stripe client as arguments), so the REAL
+  // resolver runs against the supabase and Stripe doubles.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeCustomer\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stripeCustomer.ts";`,
+  );
+
   // Function-to-function fetch: `_shared/functionFetch.ts` has ZERO imports and
   // calls the global `fetch` at call time, so the real module still hits each
   // test's stubbed fetch while its trace-limit retry stays exercised.

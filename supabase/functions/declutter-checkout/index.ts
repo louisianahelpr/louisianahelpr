@@ -52,6 +52,8 @@ import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { requireFeature } from "../_shared/featureSwitch.ts";
 import { geocodeDropoff, plausibleAddress } from "../_shared/geocodeDropoff.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { storedStripeCustomer } from "../_shared/stripeCustomer.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 import {
   sessionIdMode,
   stripeModeForParties,
@@ -217,12 +219,17 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     return json({ error: TRY_AGAIN }, 500);
   }
 
-  // The buyer's saved card's customer pre-fills the page, in the same mode only.
-  const { data: card } = await admin.from("declutter_buyer_cards").select("stripe_customer_id, card_mode")
-    .eq("user_id", user.id).maybeSingle();
-  const customerId = card && (card as { card_mode?: string }).card_mode === mode
-    ? (card as { stripe_customer_id?: string }).stripe_customer_id ?? undefined
-    : undefined;
+  // One wallet: the buyer's ONE stored customer (in this mode) pre-fills the
+  // page. Today it holds the cards saved through Declutter's card page; Jobs'
+  // saved cards join it when Jobs moves onto the wallet (Q2139). A failed read
+  // stops here rather than opening a page on a guessed customer.
+  let customerId: string | undefined;
+  try {
+    customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined;
+  } catch (e) {
+    console.error(`[declutter-checkout] ${caughtMessage(e)}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
 
   const meta = {
     kind: "declutter_order",

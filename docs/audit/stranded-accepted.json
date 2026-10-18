@@ -2190,6 +2190,966 @@
       "sha": "17507e70c5087257b4ae615566c50e3454fdd6a6",
       "reason": "Detached lander worktree HEAD: every added line is on main (current tree or landed history); content-checked, nothing unlanded.",
       "checked": "2026-10-18 (stranded-triage, content-checked against origin/main 4c657a922)"
+    },
+    {
+      "id": "branch:ready/declutter-add-a-helpr",
+      "sha": "1707ae54627066dc70093f0081dc7d50d8b2900e",
+      "reason": "SUPERSEDED: Add a Helpr v1, superseded by v2 which landed as 2c4601676 (20261017073146_declutter_add_a_helpr.sql); no code identifier from v1 is absent from main.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:ready/sec-c-train",
+      "sha": "bacde4bc7ab154f749482eaa55671560bb6016d7",
+      "reason": "LANDED: sec-c train landed commit by commit (7addf3695, 9bd52b7b6, 85c80e2bc, 3a407f9ee, 8c6d2646f, 5643dedfa, 591e31115, 568991270); analytics_tag_automated re-timed as 20261018035943. Leftover lines are generated-refresh variants.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:ready/shops",
+      "sha": "fb94abb9930ce8d9ab99bf5c7c7bbe04df4c29d2",
+      "reason": "LANDED: Shops re-cut on the Declutter stack landed: shops_items/profiles re-dated in f02d8cfd6 with export_my_data restated; only leftover token is a commit hash in a test comment.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:rentals-s1-f8",
+      "sha": "599321e8c5d164c551933ec56f9f32c3b497951b",
+      "reason": "LANDED: Rentals S1 landed as a2439daf3; its last commit (rentals words off the signed-in-shared chunk) landed as 8adebd4b1 (Post a Job loads the maintenance prefill on demand).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:sec-a-1017-q1806",
+      "sha": "5f739db0a508787d4f9580a75158ceb9972c28ad",
+      "reason": "LANDED: Rebased copy of the Q1806 WIP; Q1806 landed as ce5351af9 (void-cancelled-payments gift+card fee with Option A cap, test void-cancelled-payments-gift-card-fee.test.ts on main). Leftover lines are pre-review drafts.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:sec-a-1017-q1971",
+      "sha": "084efed36e94bc5d5e1b7eb68227ffcde2c3ca76",
+      "reason": "LANDED: Q1971 landed as e246d8137 (migration 20261017205845_failed_bank_payment_cancels_hired_job.sql and fundedJobPaymentFailed.test.ts on main); leftover lines are earlier notice wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:sec-a-1017-q1972-unsquashed",
+      "sha": "50631dd30981aba997bc513bd26268c899c0360f",
+      "reason": "LANDED: Q1971 review rounds; Q1971 landed as e246d8137 with Q1981-Q1984 filed from its review (on main's OPEN/archive). Leftover lines are earlier notice wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:sec-a-giftcopy",
+      "sha": "39279d3e52a6ba9203f9bd3ea00490076a26b471",
+      "reason": "LANDED: Gift cancel copy landed rewritten as ee435b05f (cancel toast says gift balance / card / neutral; cancelRefundCopy.ts on main), siblings 523c89d49, 1f5520249, a89445c35, 7d91f4f68, 9820c377e on main by subject. Leftover lines are the first wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:sec-a-q1827",
+      "sha": "52ba8082968f62a9f775fa623edce36f5f009378",
+      "reason": "LANDED: Q1827 landed rewritten as 7268bb829 (a crew refund re-run owes what the first run priced at Stripe's actual fee). Leftover lines are the first draft's stamp/test wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:sec-a-q1971-onC",
+      "sha": "2c6ce2b7ce103992b17d3a98158d50c461008524",
+      "reason": "LANDED: sec-a train merge-notes branch; the train landed (4339180b3 'the sec-a train passes the repo-wide guards', Q1971 e246d8137, gift copy ee435b05f, Q1839 9820c377e). Leftover lines are one-line wording/allowlist variants from the pre-rebase train.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:sec-a10-q1806",
+      "sha": "6ceb423f27a062d0414516668f04f7711712e7c9",
+      "reason": "LANDED: Q1806 gift+card late-cancel fee landed as ce5351af9 (void-cancelled-payments gift+card fee, Option A cap; src/test/edge/void-cancelled-payments-gift-card-fee.test.ts on main), plus 1d21ea470. Leftover lines are a pre-review WIP draft.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:sec-b-1017-14",
+      "sha": "2c898bb129f2b27747b155eb7a6870b7a6214cf7",
+      "reason": "LANDED: ReportDialog reason tables moved to src/components/reportDialog/reportReasons.ts landed as becbdb1a7 (Q806). Leftover lines are the save's header comment and import order.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:sec-b-1017-14r",
+      "sha": "18c6d9a6b326a52e9a4dd60fec27c2916150d836",
+      "reason": "LANDED: Q806 reportReasons move landed as becbdb1a7; Q1119/Q1120 tick landed as 2f0cacc78. Leftover lines are the save's comments.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:sec-b-1017-8",
+      "sha": "d5dd152b64860939d681f7a16aa637dea158d607",
+      "reason": "LANDED: Q201 skeleton-vs-page check landed as 8060a22e8 and cea2f3353 (scripts/audit/skeleton-shape.mjs, e2e/prod-audit/skeleton-shape.spec.ts, src/test/routeSkeletonShape.test.ts on main; Q201 archived done). Leftover lines are the NOT-READY heuristic.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:sec-c-authgate",
+      "sha": "57c7dccd052a74bf4ad3a53256254489a0696905",
+      "reason": "LANDED: Press network gate landed as 5bc1aaed4 and 66128314f; main's ADMIN_WRITE_RX already has 'set to' (plus 'end series') and src/test/pressNetworkGateAbortsUngatedAuthWrites.test.ts is on main. Leftover lines are regex variants.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:shops-m1b-addr-1018",
+      "sha": "5f8eb9c02e2599d648ad9e13b9ba671a0401c66a",
+      "reason": "LANDED: Shops M1b landed: tax part 1 cbd89cbeb, pickup address part 2 c7c41dd53 (20261018210400_shops_pickup_address.sql, 20261018210401_export_my_data_shop_pickup_address.sql, ShopPickupAddressSection + shopPickupAddressScreens.test.tsx).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:shops-s3-1017",
+      "sha": "4b4dce903d6e1cd2f7b1d99d9d0dc502b0c6c1d3",
+      "reason": "LANDED: Shops slice 3 / M1 landed as bfad43266 + 41bf4420e; Q2101-Q2110 renumbering in ec1d19890; leftover shop-checkout card read rewritten by one-wallet c71ca23d6.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:wip/declutter-proof-1018",
+      "sha": "13874b5733c3de97a5f062684d1811daee3f0ea7",
+      "reason": "SUPERSEDED: Superseded by owner decision 10-18 'NO CODES/QR anywhere': this branch kept a 4-digit code (migration declutter_no_qr_handover); main carries 6813a29f0 (no QR and no code: porch photo + 'I got it', door 'Picked up'; migration 20261018183715_declutter_handover_no_qr_no_code).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:wip/hub-handoff-1017",
+      "sha": "891c801d346f6df167f1b2ff48de6ebc282584bf",
+      "reason": "SUPERSEDED: Session handoff notes for the 10-17 hub lanes (docs/handoffs/hub-1017-*). Every lane they hand over landed (quotes-2 3f0530305, Add a Helpr v2 2c4601676, haul-away v2 0c45145a1, shops f02d8cfd6/bfad43266, rentals a2439daf3, restate guard scripts/check-out-of-order-restatements.mjs) and every Q they list (Q1317-Q1874) is in docs/OPEN.md or docs/archive on main; copies stay in ~/.lh-wt.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:wip/lander-a-1017-admincopy",
+      "sha": "a365231ae014d011654072ee56763e84763fde49",
+      "reason": "LANDED: Landed as 73647b440 (perf(posts): admin-only RPC refusal copy leaves the shared RPC_ERROR_COPY map); main has src/components/admin/adminRpcErrorCopy.ts with ADMIN_RPC_ERROR_COPY read by the admin screens.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:wip/quotes-2",
+      "sha": "294956046504729bce617946e40b44b53ccc83c4",
+      "reason": "LANDED: Landed via 3f0530305 (quotes-2 salvage rebase) + 5b4c4e55a/8f6100109/f21da4b51: main has quote_hire_on_pay_alerts (20261018155222), WantsQuotesSlot + wantsQuotesFilter.test.tsx; its Q1883-Q1888 were renumbered Q2116-Q2125.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:wip/sec-a-1017-q1876",
+      "sha": "6b06413c7264217951ad07bd8ad46b0927dfc596",
+      "reason": "LANDED: Q1876 landed rewritten as 3ab3148ab (a bounced bank debit gives back the gift card; main's paymentIntentPaymentFailed.ts returnBouncedGift + return_bounced_gift_card), follow-ups 62f72f6fd/39f6e6de5; the Apple notice commit landed as 38e9b0634 (membershipsSwitchFor in verify-apple-iap). Leftover lines are the pre-review wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:wip/sec-a-1017-q1879",
+      "sha": "8062d81f436ade103b8286e84452cd13637167c1",
+      "reason": "LANDED: Q1879 landed as 426d7a997 in its reviewed form (abandoned job promoted to escrow, cancelled promoted on purpose for the cancelled-escrow sweep, completed paged; stripe-webhook.test.ts 'promotes an abandoned job ... (Q1879)'); Q1846 landed as 87e597ffc. Leftover lines are the pre-review design.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:wip/sec-c-1017-17",
+      "sha": "8b8f32ef9462c50cd75af7231d2e882d3f1fea41",
+      "reason": "LANDED: assertFreshCheckout landed and wired as 644cf7c47 (scripts/lib/freshCheckout.mjs, called from playwright.config.ts and prod-writing scripts; Q2048 done); the two parent commits landed as 4ff210cd4 and 0a9b29559. Leftover lines are the unwired draft's comments.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:wip/shops-1",
+      "sha": "6379781d6a5a9bbf0228e1cb62f9e3518ec6f19a",
+      "reason": "LANDED: Shops slice 1 landed: main has supabase/migrations/20261017061155_shops_profiles.sql (re-dated f02d8cfd6) and the ShopView/ShopEditView/ShopsEntryRow screens; no code identifier from this branch is absent from main.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "worktree:/Users/lexilombas/.lh-wt/declutter-add-a-helpr@HEAD",
+      "sha": "3f86308975d57250223553c85fe714117951db09",
+      "reason": "SUPERSEDED: Lead's connection-loss save of the Add a Helpr v1 worktree; superseded by v2, landed as 2c4601676 (20261017073146_declutter_add_a_helpr.sql); no code identifier absent from main.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/cloud-train-handoff-1017",
+      "sha": "e2e7b5e96231597f26d6e5184804ad537e54e9cb",
+      "reason": "SUPERSEDED: Cloud-train handoff note (docs/handoffs/cloud-train-1017.md). The trains it describes landed; its haul-away re-review finding A (gift-paid retry wiping photos) was fixed in main's 0c45145a1 ('a gift-paid retry is a success, never a photo wipe'), finding B (refund puts items back on sale) too.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-5",
+      "sha": "8efa358278a9014cf232a3e50ed028570029bd5c",
+      "reason": "LANDED: Declutter lane J landed via the train (117ace287 re-dated 20261017055500_declutter_refund_hand_settle, 055501 export problems, 055502 private bucket); main records the hand refund as hand_outcome instead of settle_result.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-add-a-helpr",
+      "sha": "1707ae54627066dc70093f0081dc7d50d8b2900e",
+      "reason": "SUPERSEDED: Add a Helpr v1, superseded by v2 which landed as 2c4601676 (20261017073146_declutter_add_a_helpr.sql); no code identifier from v1 is absent from main.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-delivery",
+      "sha": "bc836af16cfd64625e365a82b583e0535ada3d30",
+      "reason": "LANDED: Declutter Helpr delivery (slice 5) landed via the train (117ace287: 20261017055505_declutter_helpr_delivery.sql); the drop-off code was later removed by owner decision 10-18 (20261018184535_declutter_delivery_no_dropoff_code.sql).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-haul-away",
+      "sha": "1fcb30b00cc3bb913b5ab6ecb9dfa828be97fcfc",
+      "reason": "SUPERSEDED: Haul-away v1, superseded by v2 landed as 0c45145a1 (20261017070827_declutter_haul_away.sql); v1's 'Book it again' became v2's 'Finish booking / Put back on sale' (DeclutterHaulAway.tsx) with deleteNeverPaidHaulJob.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-moving-out",
+      "sha": "ebdcf288def1508c6ef467017bb1ddb44de6a44c",
+      "reason": "SUPERSEDED: Moving-out mode landed (20261016053625_declutter_moving_out.sql, MovingSaleBanner); this branch's month-only public label (move_month) was replaced by the owner 2026-10-17 decision recorded in that migration: other members get the date from declutter_seller_moving_sale(), exact date kept in declutter_item_private.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-porch-default",
+      "sha": "cf0ac4ee4fefcaef9b7d0b38c1e0a6f2a91bc193",
+      "reason": "LANDED: Porch pickup default landed via the train (117ace287: 20261017055504_declutter_porch_default.sql), later reworked by the 10-18 no-code handover 6813a29f0; no code identifier absent from main.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/hub-handoff-1017",
+      "sha": "891c801d346f6df167f1b2ff48de6ebc282584bf",
+      "reason": "SUPERSEDED: Session handoff notes for the 10-17 hub lanes (docs/handoffs/hub-1017-*). Every lane they hand over landed (quotes-2 3f0530305, Add a Helpr v2 2c4601676, haul-away v2 0c45145a1, shops f02d8cfd6/bfad43266, rentals a2439daf3, restate guard scripts/check-out-of-order-restatements.mjs) and every Q they list (Q1317-Q1874) is in docs/OPEN.md or docs/archive on main; copies stay in ~/.lh-wt.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/jobs-fee-1017-5-save",
+      "sha": "b1d8993ecba29b6aa42b91475589ffb78dc40995",
+      "reason": "LANDED: Gift-first poster fee landed as 4d42165d7 (main has src/test/pglite/posterFeeGiftFirst.pglite.mjs, giftRedeemPricesPosterFee.test.ts).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/jobs-fee-1017-7-save",
+      "sha": "b3cd477d65c0f71cefebcaa65180167caebfee77",
+      "reason": "LANDED: Jobs-fee slice 4 landed: 42aa23c2e (poster fee refunds keep the card cost only), 49f71ee98 (Q2082 f fallback notice), fca26e201 (Q2082 b-d,f done).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/jobs-fee-1017-save",
+      "sha": "5ca6d8a36bf80eb3267bf1dbc0b211c9240b7878",
+      "reason": "LANDED: Landed as d49ac8578 (Q2082 before-the-flip: one-off/series shape fixed at checkout, stored tax rate divides by the taxed service fee).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/lead-declutter5-checkpoint",
+      "sha": "16e48474425d8107dbea9e6673e4c137e73021c4",
+      "reason": "LANDED: Earlier checkpoint of wip/declutter-5 (lane J); landed via the train (117ace287: 20261017055500-055502).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/lead-porch-default-0ce750b42",
+      "sha": "0ce750b42f2688898c728f200cbae72de94fad06",
+      "reason": "LANDED: Lead checkpoint of porch-default; landed via the train (117ace287: 20261017055504_declutter_porch_default.sql), later reworked by 6813a29f0.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/lead-shops1-checkpoint",
+      "sha": "09530478117ee3066e8c98c60758dd7c901b3fa5",
+      "reason": "LANDED: Same Shops slice 1 checkpoint as wip/shops-1; landed with shops_profiles (f02d8cfd6); no code identifier from this branch is absent from main.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/park-land-3150",
+      "sha": "442fa1f6cc3477ff1386089784855cdd90b2b664",
+      "reason": "LANDED: Landed as ba567a98f (perf(db): index category_suggestions.reviewed_by, re-created from #3150 with a generated timestamp).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/q1806-design-80d2480f2",
+      "sha": "80d2480f218330c2b85440bd1f4789b97cbd72c8",
+      "reason": "LANDED: Landed as 1d21ea470 (Q1806 gift-funded late-cancel fee paid from the gift), 112b5edeb (Q1759 visit refunds run where the money sits) and ce5351af9; Q1913/Q1914 review follow-ups are in docs/OPEN.md.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rentals-s1",
+      "sha": "b345b7bd07f379398974e8255c01d3fef722b611",
+      "reason": "LANDED: Rentals S1 landed as a2439daf3 (20261017205605_rentals_maintenance_requests.sql, 20261017205607_export_my_data_rentals_reconcile.sql); leftovers are commit hashes in comments and a temp helper name.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rentals-s1-1017",
+      "sha": "599321e8c5d164c551933ec56f9f32c3b497951b",
+      "reason": "LANDED: Rentals S1 landed as a2439daf3; its last commit (rentals words off the signed-in-shared chunk) landed as 8adebd4b1 (Post a Job loads the maintenance prefill on demand).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-agent-a6e0133c720633776",
+      "sha": "20ed08b2bd28b7f902e731e4222d75a43b87b8a0",
+      "reason": "LANDED: Money test-mode routing (test accounts on the Stripe TEST key, mixes refused) is on main in rewritten form: feePayeesShareMode in void-cancelled-payments, ROUTED_TEST_CHECKOUT_KINDS and clientForJob in _shared/stripeMode.ts, realPayoutTransfers in AdminAnalytics, seed-aware AdminPayoutBatches; gift-card test mode later landed differently (d569a300a, Q1750).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-claim--todo-b2",
+      "sha": "cb0d2a67dc7f0b82bbf4a9d1ef1ad0ae6f5eed10",
+      "reason": "LANDED: Both commits are on main rewritten: Q1648 (securityAuthUser.ts + securityTabOneAuthRead.test.tsx on main, Q1648 ticked in docs/archive/OPEN-done-2026-10.md) and the refresh-pr --slurp/--jq fix (action.yml pipes slurped pages through jq; guard src/test/ghSlurpNeverWithJq.test.ts replaces ghApiFlagCombos; Q1743/#2912 closed).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-claim--todo-b2-collapsed",
+      "sha": "5aac96e5b3c20dc47e86cb17d1cde7c40f3962c0",
+      "reason": "LANDED: Every commit's behaviour is on main in later form: Q1648 Security tab single auth read (securityTabOneAuthRead.test.tsx), refresh-pr slurp/jq (ghSlurpNeverWithJq.test.ts), Helpr collapsed line from the tracking row (b541b93fe), pinned Deno for typecheck:edge (resolveDeno.mjs + typecheckEdgeFindsDeno.test.ts), fill-rate unreadable state (adminHealth/FillRateReadState.tsx, AdminHealth.fillRateUnreadable.test.tsx).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-crew-batch-old",
+      "sha": "e8f5ca963540c298eb1c1be91467e1ea763ea630",
+      "reason": "LANDED: Old crew/access-notes batch whose features are on main: crew_confirm_pending, start_underfilled_crews (Q1460), can_read_job_access_notes (Q1461/Q1438), minted password grant (Q1420), launch push (Q1313). Leftovers are SUPERSEDED: the browse-card MaterialsChip was removed by the owner (guard src/test/browseCardKeepsPlaceAndTime.test.ts 'no materials on the browse card') and the old keychain top-level-await lines predate main's rewrite.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-fix--q1416-webhook-never-double-funds",
+      "sha": "847ce0df36433473ca458290d7439d39b01eea5e",
+      "reason": "LANDED: Q1416 duplicate-funding refund is on main (d30292b11 Money-B batch 3): handlers/refundDuplicateFunding.ts with idempotency key duplicate-funding-refund:<pi>, tested in src/test/edge/stripe-webhook.test.ts 'a checkout completing on a job already funded another way' (renumbered Q1419, extended by Q1819/Q1829).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-lane--low-batch1",
+      "sha": "890cbe77e436d175de83e5f31d07a7bdba953469",
+      "reason": "LANDED: LOW batch 1 (28 Qs) was re-done by later lanes; every Q is ticked on main with its own guard, e.g. Q1418 edgeRpcArgsMatchLive.test.ts + giftFundsEveryRemintableJob.test.ts, Q1351 errorLogClientIdentityAndThrottle.test.ts (migration 20261012145240), Q1352 opsDigestCountsCsp.test.ts, Q1306 auditBinariesFrozen.test.ts, Q1404 offerDeadlineBeforeStart.pglite.mjs s8, Q1465 restoreChipInRowFlow.test.tsx, Q1329 (#2751, 7bdd39249). This copy's file names differ from what landed.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-lane--low-batch2",
+      "sha": "8dbaa5f0c1577fb064f1a390595be6b526c4c03e",
+      "reason": "LANDED: LOW batch 2 re-done on main 2026-10-12: Q1281 offers free to refuse (2d83d9a10, guard offerFreeToRefuse.test.ts), Q1380 slotless crew block fee by hire order (migration 20261012124103, live v_hire_ix, guard crewShareNeverPricedOnANullSlot.test.ts), Q1071 stalled-jobs rail badge (adminRailBadges.ts). This copy's names (fee_slot_no, offersFreeToRefuse.pglite) were not the ones that landed.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-lane--low-taxfee",
+      "sha": "94d444f24a16c267985e3d49ff0d1b884af3ef6a",
+      "reason": "LANDED: LOW batch 1 (re-done by later lanes, every Q ticked on main with its own guard) plus two money fixes that landed in later form: Q1347 stale card fee on a gift-settled job (9f219cec4) and Q1492 'tax follows the kept fee' (now _shared/refundAmount.ts taxKeptCents, owner 2026-10-18 Q2082 (a), guard src/test/refundKeepsTaxOnKeptAmounts.test.ts).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-lane--q1254-detail-change",
+      "sha": "8975a05a1a25ca4a9d897caf7af83464f199901b",
+      "reason": "LANDED: Q1254 detail change landed as 02ae8fa84 (server: request_job_detail_change, jobDetailChange.test.ts + pglite proof on main; Q1254/Q1494/Q1499 ticked); its card control DetailChangeControl was then deliberately removed by 5622138cb ('Ask to change the details' removed), so the leftover client lines are superseded. The money-b test retargets landed with 6f35087a0/18fc1f8a1.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-lane--q1313-notify-me",
+      "sha": "782aa09e77ee1ddca66ff468b0eb2f7e31591f83",
+      "reason": "SUPERSEDED: Q1313 email launch-notify list (join_launch_notify RPC, NotifyWhenWorkLandsDialog) was a WIP stopped at the owner's usage stop (commit says NOT landable); Q1313 was built push-only instead (src/hooks/useNotifyWhenWorkLands.ts, guard src/test/notifyButtonsArePushOnly.test.ts) and ticked after the owner's device check 2026-10-07. The Q1312 browse commits under it are on main (Q1312 ticked).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-lane-ci-q1270-wip",
+      "sha": "5b3f981851abeae4b5a6a2ac1443b9ab29782232",
+      "reason": "SUPERSEDED: Marked 'WIP Q1270 vacuity legs (not for landing as-is)'. Q1270 and Q889 landed another way (vacuity.yml and prod-audit.yml run four locked legs, guard src/test/vacuityE2eLegs.test.ts; archived done 2026-10-07). Its landing prerender commits (Q652) are deliberately unlanded: Q652 was merged into open item Q748 (post-launch, owner decision; the hero is LOCKED). The other commits under it (Q1028, Q936, Q413, Q1072, land.sh fixes) are on main.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-q1460-crew-underfill",
+      "sha": "b6ccd68283b9597617af3344191ccaa21f2d6b0e",
+      "reason": "LANDED: Q1460 (under-filled crew starts with its confirmed Helprs) landed in 6cc7dc770 (squash of #2523): main has start_underfilled_crews in auto-expire-jobs and src/test/crewUnderfilledStarts.test.ts + pglite twin. Leftover lines are the old top-level-await Keychain hydrate, deliberately replaced on main by ff136c1a8 (no top-level await; src/test/noTopLevelAwait.test.ts).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-q1461-land",
+      "sha": "0d6c9a77ef5bb2a25f24ea8cda91044f0a5bcabb",
+      "reason": "LANDED: Q1461 job materials/access notes landed in 6cc7dc770 (squash of #2523): main has supabase/migrations/20261006204113_job_materials_and_access_notes.sql, src/hooks/useJobAccessNote.ts, src/components/job-card/JobNotes.tsx and the guards jobNotesRenderOnTheRightSurfaces / jobAccessNotesNeverBrowse / pglite jobAccessNotes. Leftover lines are pre-squash wording of the same code.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-ready--items-a-series-admin-full-refund",
+      "sha": "be8e22aab4e870fd213cf451015693256b3c5fda",
+      "reason": "LANDED: Platform series end (Q1733/Q1735) landed in 531fbf34b: main has seriesEndByPlatform.test.ts, pglite platformSeriesEndRefundsInFull, migration 20261012233226_platform_series_end_refunds_in_full.sql and series_platform_ends. The refund-in-full lines were then superseded by the owner rule in a173ae28e (every refund keeps the card fee, Q1735; migration 20261014084428_platform_series_end_keeps_card_fee).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-ready--items-a-series-refund-r",
+      "sha": "ce9929a77538023562b47149d6386fa985d4ab30",
+      "reason": "LANDED: Q1733/Q1735 platform series end and Q1732 admin button that un-sticks a test-mode dispute landed in 531fbf34b: main has seriesEndByPlatform.test.ts, execute-dispute-split/clearTestModeRecords.ts, src/test/edge/clearTestModeDisputeRecords.test.ts and the clear_test_mode_dispute_* migrations. Refund-in-full wording superseded by a173ae28e (every refund keeps the card fee).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-ready--items-b-money-small",
+      "sha": "3189100f618d149ab08c236bb37e72c2eb58baa1",
+      "reason": "LANDED: Q1489/Q1493 landed in other form: d1e98b100 (paid visits re-check for refunds) and 199a61061 (no visit booked on a charged-back payment; Stripe's second live-account wording never reads as unusable), ticked in 79c6ae96e; main has supabase/functions/_shared/stripeAccountUsable.ts and src/test/edge/stripeUnusableConnectAccount.test.ts.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-ready--money-items-1",
+      "sha": "179af31d1ab184151141fa730c5a5803976d9a37",
+      "reason": "LANDED: Money lane items landed under rewritten form: test-mode dispute refund stamp hand path is f188407d3 (20261012194318_clear_test_mode_dispute_refund_stamp.sql, testModeDisputeStampHasAWayOut.test.ts, pglite testModeDisputeRefundStampClears); saved-only error state is src/components/dashboard/SavedOnlyState.tsx + savedOnlyFailedReadIsAnError.test.tsx; csp-report drops Vercel Toolbar noise (report.ts); functions-deploy deploy-all fallback is on main.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-ready--owner1012-setup-fee-kept",
+      "sha": "30106d7be98c257e8cb65fda72cc3f39b891d565",
+      "reason": "LANDED: First-job $2 setup fee kept on every refund landed under the same subjects: a26df85df, 6bcc1185c, 287078475, da0c7fa6d (Q1674); main's create-payment uses setupFeeKeptCents and CancellationDialog/disputeSplitPreview carry setupFeeKept/onboarding_fee_amount. Leftover lines are pre-rebase wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-ready--owner1012-setup-fee-kept-r",
+      "sha": "79633deee042b25cbb5389b57daa681514f0d450",
+      "reason": "LANDED: Rebased copy of the setup-fee stack; landed as a26df85df, 6bcc1185c, 287078475, da0c7fa6d (Q1674): main's create-payment uses setupFeeKeptCents and CancellationDialog carries setupFeeKept. Leftover lines are pre-rebase wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-ready--todo-b-1",
+      "sha": "39e0b953333937805386d3791b97d4627deef656",
+      "reason": "LANDED: The four isolation-only mount tests landed separately under new paths: 8d7eddf1c (jobDetailDialog/JobDetailDialogMountsPosterCard.test.tsx), 8275363e0 (completeProfile/CompleteProfileMountsIntro.test.tsx), 849557737 (postedJobs/PostedJobsTabMountsApplicantsPanel.test.tsx), 94c60b611 (strSettings/StrSettingsMountsReadyTurnovers.test.tsx). Leftovers are two inventory-floor lines in other tests.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-rel-real-backend",
+      "sha": "d617df604aafc016437e6f5136d6abc0323b0e50",
+      "reason": "LANDED: Rescue snapshot of rel-real-backend's uncommitted e2e Stripe-checkout edits; main's e2e/stripeCheckoutCard.ts already exports stripeLayoutReport, waitForStripePaymentMethods, openCardFields and pressStripePay, and prod-lifecycle.spec.ts on main is ahead of this snapshot (answerStripeReturn, Take-photo shape, accept_job_offer step).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-sec-b-6",
+      "sha": "46a6e806d96b08754b13327a2b03182ecd963b2e",
+      "reason": "LANDED: Rescue copy of sec-b-6 (same files minus prod-freshness/probe). Landed rewritten: Q1655 (145c7ca99, src/pages/auth/Unsubscribe.tsx), Q1737 (ae7130d61), Q1733 (3b9550121), Q1787 (8acab861c), Q1668 (2743d094b). Only remainder: resubscribe-restores-only-what-it-turned-off, open as Q2092.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-session-cad56bc2",
+      "sha": "dbf0f864f81d88112ba2c2d3910ea4f15d1cd7bb",
+      "reason": "SUPERSEDED: Rescue snapshot of a session's uncommitted comment-only edits (doc comments naming guards in VirtualList, jobCardPerson, ScreenHeaderRow, offerDeadline, proTiers, auto-tip-charge). No behaviour; the guards they name (virtualListScrollSource, jobCardPersonTileAboveRow, offerCardHierarchy, tips_one_auto_per_job_member) are on main and main's comments were rewritten since.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-sr2",
+      "sha": "5152e5f3f4195b3e56c2e34224ca44f143d04227",
+      "reason": "LANDED: Rebuild of Q1735/Q1732 money items; landed in 531fbf34b (series_platform_ends, clearTestModeRecords.ts, clearTestModeDisputeRecords.test.ts, seriesEndByPlatform.test.ts on main). Its refund-in-full card-fee lines were superseded by a173ae28e (owner: every refund keeps the card fee; only our own mistakes refund in full).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-train--2026-10-12-money-i",
+      "sha": "537629df5c9f7878513a12913111a2de8d475685",
+      "reason": "LANDED: 2026-10-12 money train: every commit is on main under the same subject (e.g. eead0c14d money train CI reds, 21f3133cc earnings export, 866690c06/a4a668f46 setup-fee alerts, 6bcc1185c/287078475/da0c7fa6d setup fee, 8feeeb629 Stripe TEST key for test accounts). Leftover lines are pre-rebase wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-train--2026-10-12-money-j",
+      "sha": "71b523f90b8b0f379e7f5b8bb94c88935b3d004a",
+      "reason": "LANDED: 2026-10-12 money train: setup-fee commits landed as 6bcc1185c/287078475/da0c7fa6d, test accounts on the Stripe TEST key as 8feeeb629, test-mode refund stamp hand path as f188407d3. Leftover lines are pre-rebase wording of the same code.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-worktree-agent-a2a442b1bf1cc0542",
+      "sha": "fb9002b422556dd2393ccfe0d1836c439ce94feb",
+      "reason": "MISSING: Held on purpose: the only unlanded part is the Q1680 'Require a W-9 From the Helpr' switch on Post a Job (W9Toggle.tsx, requiresW9 in useJobSubmit, postJobW9OptIn.test.tsx), which the owner wants opt-in only after a real W-9 exists (10-14); Q1680 is open on main and decides it. Its other commits landed (8acab861c Q1787, e0c139e17, 5d6e91d80, 48fb8e459).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-worktree-agent-a5e80ef4be7e87d48",
+      "sha": "1817512247d945b131cead3002dd82b0dff81119",
+      "reason": "LANDED: Money-B batch 3 WIP (Q1390 crew block fee, Q1416, Q1413, Q455, Q448, Q913) landed squashed as d30292b11: main has supabase/functions/_shared/crewBlockFees.ts, crew_block_fee_ledger migration (20261007073145), crewBlockFeeLedger test + pglite, banEvasionCardBankName, banReviewFreezesMoney, searchFieldsAllChecked, poster_cannot_rewrite_checkout_session. Leftovers are WIP wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-worktree-agent-abef526a096a6cd95",
+      "sha": "284f06e2d68362aee741d2d46fe1b1a4936b0956",
+      "reason": "LANDED: All four commits landed under the same subjects: d072a31bf (Q1631 + retrySignupCompletion.ts), 4a1e2d3de (Q1739 savedCountIsWhatTheFeedShows), 9ccb93444 (Q1821 MapKit hillshade in csp-report), and the trackedFiles rule (noSrcDirectoryWalksInTests) is on main. Leftovers are pre-rebase wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-a-1017-giftcopy",
+      "sha": "39279d3e52a6ba9203f9bd3ea00490076a26b471",
+      "reason": "LANDED: Gift cancel copy landed rewritten as ee435b05f (cancel toast says gift balance / card / neutral; cancelRefundCopy.ts on main), siblings 523c89d49, 1f5520249, a89445c35, 7d91f4f68, 9820c377e on main by subject. Leftover lines are the first wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-a-1017-q1806-mixed",
+      "sha": "6ceb423f27a062d0414516668f04f7711712e7c9",
+      "reason": "LANDED: Q1806 gift+card late-cancel fee landed as ce5351af9 (void-cancelled-payments gift+card fee, Option A cap; src/test/edge/void-cancelled-payments-gift-card-fee.test.ts on main), plus 1d21ea470. Leftover lines are a pre-review WIP draft.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-a-1017-q1806-mixed-rebased",
+      "sha": "5f739db0a508787d4f9580a75158ceb9972c28ad",
+      "reason": "LANDED: Rebased copy of the Q1806 WIP; Q1806 landed as ce5351af9 (void-cancelled-payments gift+card fee with Option A cap, test void-cancelled-payments-gift-card-fee.test.ts on main). Leftover lines are pre-review drafts.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-a-1017-q1806-mixed-save",
+      "sha": "6ceb423f27a062d0414516668f04f7711712e7c9",
+      "reason": "LANDED: Q1806 gift+card late-cancel fee landed as ce5351af9 (void-cancelled-payments gift+card fee, Option A cap; src/test/edge/void-cancelled-payments-gift-card-fee.test.ts on main), plus 1d21ea470. Leftover lines are a pre-review WIP draft.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-a-1017-q1806-r13-save",
+      "sha": "57e0b233a12736cc25eb9b0c6ccac7369cf36567",
+      "reason": "LANDED: Q1806 review run 13 save; Q1806 landed as ce5351af9 and main carries the capped-fee reconciliation test ('a fee capped at the card because the gift can never pay (Q2000 option A)' in money-reconciliation.test.ts). Leftover lines are draft mutations/wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-a-1017-q1806-r16-save",
+      "sha": "5258a69b17df5e8f981f14a4c372f81dde868168",
+      "reason": "SUPERSEDED: Q1806 run-16 save: Q1806 landed as ce5351af9 (main void-cancelled-payments cites 'Review of Q1806 (8354ebb0e) #1'), gift-first poster fee as 4d42165d7, Q2082 items as d49ac8578. Its remaining 'recurring stays flat' jobFeeModelFor was superseded by c48877156 (recurring per-visit poster fee, owner 2026-10-18).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-a-1017-q1827",
+      "sha": "52ba8082968f62a9f775fa623edce36f5f009378",
+      "reason": "LANDED: Q1827 landed rewritten as 7268bb829 (a crew refund re-run owes what the first run priced at Stripe's actual fee). Leftover lines are the first draft's stamp/test wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-a-1017-q1876",
+      "sha": "6b06413c7264217951ad07bd8ad46b0927dfc596",
+      "reason": "LANDED: Q1876 landed rewritten as 3ab3148ab (a bounced bank debit gives back the gift card; main's paymentIntentPaymentFailed.ts returnBouncedGift + return_bounced_gift_card), follow-ups 62f72f6fd/39f6e6de5; the Apple notice commit landed as 38e9b0634 (membershipsSwitchFor in verify-apple-iap). Leftover lines are the pre-review wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-a-1017-q1879",
+      "sha": "8062d81f436ade103b8286e84452cd13637167c1",
+      "reason": "LANDED: Q1879 landed as 426d7a997 in its reviewed form (abandoned job promoted to escrow, cancelled promoted on purpose for the cancelled-escrow sweep, completed paged; stripe-webhook.test.ts 'promotes an abandoned job ... (Q1879)'); Q1846 landed as 87e597ffc. Leftover lines are the pre-review design.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-a-1017-q1971-final",
+      "sha": "dcfde9884c7e0f19c220c6f3c454ef46abf97dd8",
+      "reason": "LANDED: Q1971 landed as e246d8137 (migration 20261017205845_failed_bank_payment_cancels_hired_job.sql and returnBouncedGift in paymentIntentPaymentFailed.ts on main), later revised; leftover lines are notice wording superseded by main's text.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-a-1017-q1971-main",
+      "sha": "084efed36e94bc5d5e1b7eb68227ffcde2c3ca76",
+      "reason": "LANDED: Q1971 landed as e246d8137 (migration 20261017205845_failed_bank_payment_cancels_hired_job.sql and fundedJobPaymentFailed.test.ts on main); leftover lines are earlier notice wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-a-1017-q1971-onC",
+      "sha": "2c6ce2b7ce103992b17d3a98158d50c461008524",
+      "reason": "LANDED: sec-a train merge-notes branch; the train landed (4339180b3 'the sec-a train passes the repo-wide guards', Q1971 e246d8137, gift copy ee435b05f, Q1839 9820c377e). Leftover lines are one-line wording/allowlist variants from the pre-rebase train.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-a-1017-q1972",
+      "sha": "50631dd30981aba997bc513bd26268c899c0360f",
+      "reason": "LANDED: Q1971 review rounds; Q1971 landed as e246d8137 with Q1981-Q1984 filed from its review (on main's OPEN/archive). Leftover lines are earlier notice wording.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-b-1017-14-save",
+      "sha": "2c898bb129f2b27747b155eb7a6870b7a6214cf7",
+      "reason": "LANDED: ReportDialog reason tables moved to src/components/reportDialog/reportReasons.ts landed as becbdb1a7 (Q806). Leftover lines are the save's header comment and import order.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-b-1017-15-save",
+      "sha": "18c6d9a6b326a52e9a4dd60fec27c2916150d836",
+      "reason": "LANDED: Q806 reportReasons move landed as becbdb1a7; Q1119/Q1120 tick landed as 2f0cacc78. Leftover lines are the save's comments.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-b-1017-4",
+      "sha": "819fcd67075354c21c44f0443cae2382159fee09",
+      "reason": "LANDED: complete-signup birthday/phone only from a signed-in member landed as be7e117b5 (Q1804) and c26cd789b, then 8f26acbed made the no-session path default-deny (Q1885); tests complete-signup-no-session-{birthday,phone,fields}.test.ts on main.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-b-6",
+      "sha": "dc6443303dbeb7c7d98b146cd4068219039d8c55",
+      "reason": "LANDED: sec-b-6 lane. Landed rewritten: Q1655 unsubscribe GET writes nothing + /unsubscribe page (145c7ca99, src/pages/auth/Unsubscribe.tsx, unsubscribeGetWritesNothing.test.ts), Q1737 missing /assets 404 no-store (ae7130d61), Q1733 AM/PM (3b9550121), Q1787 turnover title (8acab861c), Q1668 first bucket (2743d094b). Only remainder: resubscribe restores only what the link turned off, which is open as Q2092 (names this salvage gap).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-b-q1680-w9-held",
+      "sha": "b383d86756571beb3bb474c819d013d129bceb8a",
+      "reason": "MISSING: Held on purpose: the only unlanded part is the Q1680 'Require a W-9 From the Helpr' switch on Post a Job (W9Toggle.tsx, requiresW9 in useJobSubmit, postJobW9OptIn.test.tsx), which the owner wants opt-in only after a real W-9 exists (10-14); Q1680 is open on main and decides it. Its other commits landed (8acab861c Q1787, e0c139e17, 5d6e91d80, 48fb8e459).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-b-q201",
+      "sha": "d5dd152b64860939d681f7a16aa637dea158d607",
+      "reason": "LANDED: Q201 skeleton-vs-page check landed as 8060a22e8 and cea2f3353 (scripts/audit/skeleton-shape.mjs, e2e/prod-audit/skeleton-shape.spec.ts, src/test/routeSkeletonShape.test.ts on main; Q201 archived done). Leftover lines are the NOT-READY heuristic.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-c-1017-17",
+      "sha": "8b8f32ef9462c50cd75af7231d2e882d3f1fea41",
+      "reason": "LANDED: assertFreshCheckout landed and wired as 644cf7c47 (scripts/lib/freshCheckout.mjs, called from playwright.config.ts and prod-writing scripts; Q2048 done); the two parent commits landed as 4ff210cd4 and 0a9b29559. Leftover lines are the unwired draft's comments.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-c-1017-authgate-save",
+      "sha": "57c7dccd052a74bf4ad3a53256254489a0696905",
+      "reason": "LANDED: Press network gate landed as 5bc1aaed4 and 66128314f; main's ADMIN_WRITE_RX already has 'set to' (plus 'end series') and src/test/pressNetworkGateAbortsUngatedAuthWrites.test.ts is on main. Leftover lines are regex variants.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/sec-c-train",
+      "sha": "bacde4bc7ab154f749482eaa55671560bb6016d7",
+      "reason": "LANDED: sec-c train landed commit by commit (7addf3695, 9bd52b7b6, 85c80e2bc, 3a407f9ee, 8c6d2646f, 5643dedfa, 591e31115, 568991270); analytics_tag_automated re-timed as 20261018035943. Leftover lines are generated-refresh variants.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/shops-1",
+      "sha": "d3acb9c728b0e5321dd2f0b969c9607c9dc29d3b",
+      "reason": "LANDED: Shops slice 1 + review follow-ups (shared star rating, authz fixes) landed with shops_profiles (f02d8cfd6) and later M1 bfad43266; no code identifier from this branch is absent from main.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/shops-1-train-check",
+      "sha": "5c082309438ad8af05c07ea6a1e399123de03441",
+      "reason": "LANDED: Shops slice 1 train check; content on main with shops_profiles (f02d8cfd6) and the null-arg twin (nullArgNeverAllows); no code identifier absent from main.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/shops-2",
+      "sha": "603408318ec421619604f73d9328d9e301b5b41a",
+      "reason": "LANDED: Shops slice 2 (items) landed: main has 20261017061157_shops_items.sql (f02d8cfd6) and ShopItemsReviewCard; no code identifier from this branch is absent from main.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/shops-local",
+      "sha": "fb94abb9930ce8d9ab99bf5c7c7bbe04df4c29d2",
+      "reason": "LANDED: Shops re-cut on the Declutter stack landed: shops_items/profiles re-dated in f02d8cfd6 with export_my_data restated; only leftover token is a commit hash in a test comment.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/shops-m1-fix-1018",
+      "sha": "b6fb46b4cc465bbc7a4d860e466c01adb52b72c8",
+      "reason": "LANDED: Shops M1 landed as bfad43266 + 41bf4420e/25d85729f (migrations 20261018164442-164444). Leftover shop-checkout card read (shop_checkout_card_read_failed) was rewritten by one-wallet c71ca23d6/4dd605c93.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/shops-m1-l15-save",
+      "sha": "931a9685de3afc8cce6e57162c2635120b67a064",
+      "reason": "LANDED: Shops M1 re-timed save; landed as bfad43266 + 25d85729f (migrations 20261018164442-164444). Leftover shop-checkout card read was rewritten by one-wallet c71ca23d6.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/shops-m1b-tax-1017",
+      "sha": "5f8eb9c02e2599d648ad9e13b9ba671a0401c66a",
+      "reason": "LANDED: Shops M1b landed: tax part 1 cbd89cbeb, pickup address part 2 c7c41dd53 (20261018210400_shops_pickup_address.sql, 20261018210401_export_my_data_shop_pickup_address.sql, ShopPickupAddressSection + shopPickupAddressScreens.test.tsx).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/shops-s3-1017",
+      "sha": "4b4dce903d6e1cd2f7b1d99d9d0dc502b0c6c1d3",
+      "reason": "LANDED: Shops slice 3 / M1 landed as bfad43266 + 41bf4420e; Q2101-Q2110 renumbering in ec1d19890; leftover shop-checkout card read rewritten by one-wallet c71ca23d6.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-lane--low-batch3",
+      "sha": "47ce31d8e8fe438c10090762d2e4b3d4e4776fa9",
+      "reason": "MISSING: LOW batch 3. Landed in later form: Q1328 policyHelpersScopedToCaller, Q1354 actionPinsMatchTags, Q1383 testModeDisputeStampHasAWayOut, Q1346 setupFeeCountsInSpent, Q1415 (a)(b). Only unlanded part: the Q1424 client fix (JobCountdown flexible-time countdown ends at the next Central midnight via jobDayEndMs, guard clientCountdownsMoveTheClock.test.tsx); Q1424 is open on main and decides it.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-lane-product--q1171-learned-boot-reads",
+      "sha": "9602b2f7ab382e55ef7ae71824194f71945cfa64",
+      "reason": "SUPERSEDED: Q1171 learned boot reads (signedInBootReads.ts, bootReads.ts) were measured and deliberately not landed: Q1171's archived note on main says it makes the common return load slower (/home 2468 -> 2640 ms) and would wait on Q1170; same verdict as the accepted branch lane-product/q1171-learned-boot-reads. The commits under it (Q995, Q778, Q1102) are on main and ticked.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-lq-ready-owner1012-setup-fee-kept",
+      "sha": "bb506b4da88ef14aa2aadaecb5b7f8975bb72a73",
+      "reason": "LANDED: The $2 setup fee kept on refunds and shown in Spent/receipts is on main: 6bcc1185c ('a first job's $2 setup fee is kept on every refund, and the notice and receipt say so'), 287078475 (admin full refund), with setupFeeKeptCents (15 files), setupFeeReceiptNote and keptSetupFeeCents on main; owner later confirmed the fee is kept even on a Helpr-fault refund (10-18).",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-q1313-launch-push",
+      "sha": "fd844e5e388d806d6b613b19a2a6835f31046197",
+      "reason": "LANDED: Q1313 launch push is on main (3dc3e3182 lineage): src/test/launchPushSendsOnce.test.ts and scripts/launch-go.mjs carry the same job_matches/push_enabled rule; the 2 leftover lines are an older escaping of the same @mutate and an eslint comment.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "remote:origin/wip/rescue-1017-q1420-typed-logins",
+      "sha": "f40b7c783b64a8aa00aa202ff1b207eb64c73988",
+      "reason": "LANDED: Q1420 minted password grant is on main: e2e/helpers/mintedPasswordGrant.ts exists and routes the password grant (now matched by URL parts via isPasswordGrant and using prodTest's test, per the later batch fix); the 2 leftover lines are the original import and route glob.",
+      "checked": "2026-10-18 (stranded-review: behaviour checked on origin/main by identifier/test/migration grep and merged-commit match; wip/* class-D items of the 10-18 triage)"
+    },
+    {
+      "id": "branch:hub-stack",
+      "sha": "9b9fb20e4ae13c4057837ec1134292d43c258e81",
+      "reason": "Declutter hub stack (Add a Helpr v2 + haul-away v2 under it). Landed: 19 of 19 code commits are on main under the same subjects (e.g. eae702597, ccf3b6524, 73dbd6ef6, 8b159ba74); main carries 20261017073146_declutter_add_a_helpr.sql and 20261017070827_declutter_haul_away.sql. Its one unmatched commit is docs(open) filing Q1891 (ticked on main) and Q1892 (open on main). The leftover lines are older wording main has since rewritten.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:rehearse-a",
+      "sha": "0863de91f2f5a80d59c1dba1c692957e94e8d510",
+      "reason": "Ancestor of branch:hub-stack (same 18 code commits, all on main: ccf3b6524, 73dbd6ef6, 8b159ba74, 66166b387); only extra commit is docs(open) Q1891 (ticked) / Q1892 (open on main).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:hub-v2-addhelpr",
+      "sha": "a269923d5aa8f0c3689a635b3fb70423cb943219",
+      "reason": "Same sha as remote:origin/ready/declutter-add-a-helpr-v2, accepted in this file: its content is on main as that entry says.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:hub-v2-haul",
+      "sha": "e435032b3b339c32171a89c23ea8aa5c42fe6919",
+      "reason": "Same sha as remote:origin/ready/declutter-haul-away-v2, accepted in this file: its content is on main as that entry says.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:jobs-fee-1017-12",
+      "sha": "29c5febedd25b2f47c4e487ddb59c396d73b6ba7",
+      "reason": "Landed: 9 of 9 code commits are on main under the same subjects (d845daa8c, 49f71ee98, 5a5ac84eb, e1c86eace, ...), and every added line of its tip 29c5febed (crew cancel_escrow refuses while a block fee is owed) is in main's copy of the same files. Leftover lines are older wording.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:lander/a-1017",
+      "sha": "1473bece866b734ab7f9d30e0d69918546ffad7b",
+      "reason": "Train A. Landed: 29 of 29 code commits are on main under the same subjects (e.g. 29ee1c794, 7c7259efd, 9ea7690a5, e09157195). Leftover lines are older wording and counts later main commits rewrote.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:quotes-2-final",
+      "sha": "06c467a0dec65c9274eea5f10adf145936032f73",
+      "reason": "Same sha as remote:origin/ready/quotes-2, accepted in this file: its content is on main as that entry says.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:quotes-2-keep",
+      "sha": "d0d534d1673f4dd02d336565e79abf7c00dc8baa",
+      "reason": "Quotes session 6 work-in-progress. Landed through ready/quotes-2's salvage (3f0530305): c680d0dd3 carries Q1864 (a block closes the pair's pending quotes), Q1867 (create-payment charges a quote job only at the agreed price), Q1868 (jobs INSERT pin beside quote_insert_job: src/test/quoteInsertJobMirrorsJobsInsertPolicy.test.ts), Q1873/Q1874; Wants Quotes feed e56159743/634266c9f/13d509f5d; all five Q items are in docs/archive/OPEN-done-2026-10.md.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:quotes-2-save",
+      "sha": "c245ebdef21f998fa074c3c7cfb7556e8a4541a6",
+      "reason": "Quotes owner-answers work-in-progress (paying hires the quoter, cancel deletes the unpaid job, Wants Quotes filter, rail link, race-class/authz review fixes). Landed through ready/quotes-2's salvage: 750bdc4ba and fbaeaeec1 (hire on pay, one notice), e56159743/634266c9f/13d509f5d (Wants Quotes), c680d0dd3 (Q1864-Q1874, archived done); src/test/pglite/quoteHireOnPay.pglite.mjs and src/test/quoteHireOnPay.test.ts are on main.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:lander14/shops-s3",
+      "sha": "a6429010d94bebac62132aad648194b2df091170",
+      "reason": "Shops M1 (orders + card-hold checkout). Landed as bfad43266 'feat(shops): M1 orders + card-hold checkout, order screens, export, deletion gate, per-section Shops strikes' with 6da3c98c3/6e7fd2db8/3cb3f768e; main carries supabase/migrations/20261018164442_shops_orders_checkout.sql (shop_orders, shop_strikes). Its one unmatched commit is a generated-docs refresh.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/land/lander14-shops-s3-5282681e",
+      "sha": "248059d5731e5563ad05599e441f5045c04d4f4b",
+      "reason": "Ancestor of branch:lander14/shops-s3 (Shops M1); landed as bfad43266 with 6e7fd2db8 and 3cb3f768e, migration 20261018164442_shops_orders_checkout.sql on main. Leftover: a generated-docs refresh.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "pr:3330",
+      "sha": "248059d5731e5563ad05599e441f5045c04d4f4b",
+      "reason": "Shops M1 landing PR, closed unmerged; its head 248059d57 is remote:origin/land/lander14-shops-s3-5282681e, whose content landed as bfad43266 (migration 20261018164442_shops_orders_checkout.sql).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:shops-s3-1017-presquash",
+      "sha": "9a171abdd383a6338145d078f254831a37792964",
+      "reason": "Shops M1 before its squash (orders, card-hold checkout, M1 screens, export, deletion gate, per-section strikes). Landed squashed as bfad43266 and 6da3c98c3: main's 20261018164442_shops_orders_checkout.sql defines shop_orders and shop_strikes/shop_active_strike_count.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:ready/shops-s3-1017-1",
+      "sha": "51c7f4de7616fc2e5dae506ce117be261974a4c3",
+      "reason": "Shops M1 + M1b part 2 (private pickup address). M1 landed as bfad43266/3cb3f768e/cbd89cbeb; the pickup address landed later on main as supabase/migrations/20261018210400_shops_pickup_address.sql and 20261018210401_export_my_data_shop_pickup_address.sql (rebuilt by the shops-m1b-addr lane).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:lander9/seca-pre-rebase",
+      "sha": "1228e94853e473f74acfe86eefd81abf502d25ba",
+      "reason": "sec-a train before its rebase. 23 of 24 code commits are on main under the same subjects (e.g. ee435b05f, 80c77f03c, 7268bb829, 523c89d49); the 24th (Q1828 tax share on a partial refund) was closed on main's Q1782 by e2b8f7d53 (Q1828 ticked in docs/archive/OPEN-done-2026-10.md).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:sec-a-q1828",
+      "sha": "4e0ca9266f2c6c37e12280c492d5e39f6eddba4e",
+      "reason": "Same sha as remote:origin/ready/sec-a-1017-13, accepted in this file: its content is on main as that entry says.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:rb-11",
+      "sha": "9ec55507a1a6a3587b60a45d87443925a22b6f75",
+      "reason": "Same sha as remote:origin/ready/sec-b-1017-11, accepted in this file: its content is on main as that entry says.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:sec-b-11",
+      "sha": "fefa1308e1bd5e9c3e1b1f10fba4445b9b2467d7",
+      "reason": "Landed: 8 of 8 code commits are on main under the same subjects (a3b2125aa, 752550a7a, 1f561d3ac, f7a703b95, ...), 0 added lines missing; the 11 deleted lines still on main are kept by main's own version of the AdminSettings card move.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:sec-b-stack",
+      "sha": "d4eda1d6c7743a2283bbc24ba9b494ac6a7d501d",
+      "reason": "Same 8 code commits as branch:sec-b-11, all on main (a3b2125aa, 752550a7a, 1f561d3ac, f7a703b95); 0 added lines missing.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:ready/declutter-no-qr-1018",
+      "sha": "4da9d2f8641034a55e73770dacd46ee008c60aac",
+      "reason": "Landed as 6813a29f0 under the same subject (no QR and no 4-digit code anywhere, owner 2026-10-17/18); 0 added lines missing, the 7 deleted lines still on main are kept by the landed version.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:ready/rentals-s1",
+      "sha": "68aa24a79de3d3fc5fbec15211292eeba34482f8",
+      "reason": "Local copy of Rentals S1 (remote:origin/ready/rentals-s1 is accepted). 3 of 3 code commits on main: ea012d838, 43ed1ee5b, a2439daf3 ('feat(rentals): S1 maintenance requests -> Helpr jobs').",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:ready/sec-a-14",
+      "sha": "fec13dec7fd522856c5a1594884dcde710915585",
+      "reason": "Same sha as remote:origin/ready/sec-a-14, accepted in this file: its content is on main as that entry says.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:ready/sec-b-1017-15",
+      "sha": "b07bd549523dfca51461717fe4a534e5633a2dcf",
+      "reason": "Same sha as remote:origin/ready/sec-b-1017-15, accepted in this file: its content is on main as that entry says.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:ready/sec-b-1017-5",
+      "sha": "8533128e8524e9f71299f0dece6aa3626b945bfd",
+      "reason": "Same sha as remote:origin/ready/sec-b-1017-5, accepted in this file: its content is on main as that entry says.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:sec-b-1017-6",
+      "sha": "0864ba2df8e2a13f0a2b1ca82c0408971f3be03b",
+      "reason": "Same sha as remote:origin/ready/sec-b-1017-6, accepted in this file: its content is on main as that entry says.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:ready/sec-c-1017-16",
+      "sha": "80d3afb4ddacfe8df57df767b80db3eec49b0585",
+      "reason": "Same sha as remote:origin/ready/sec-c-1017-16, accepted in this file: its content is on main as that entry says.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:ready/sec-c-1017-4",
+      "sha": "1ff10a5e162efad5c33d6fc20d7668e3547afddd",
+      "reason": "Same sha as remote:origin/ready/sec-c-1017-4, accepted in this file: its content is on main as that entry says.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:ready/sec-c-9",
+      "sha": "dadc84a06587177e355c051be28957c7d25e2c5a",
+      "reason": "Landed: 5 of 5 code commits are on main under the same subjects (7addf3695, 9bd52b7b6, 85c80e2bc, 3a407f9ee, ...). Its one unmatched commit is a generated refresh (vacuity report, burn-down, scoreboard).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-9",
+      "sha": "dadc84a06587177e355c051be28957c7d25e2c5a",
+      "reason": "Landed: 5 of 5 code commits are on main under the same subjects (7addf3695, 9bd52b7b6, 85c80e2bc, 3a407f9ee, ...). Its one unmatched commit is a generated refresh (vacuity report, burn-down, scoreboard).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-7",
+      "sha": "d257b7ff5ef52aba3210a66ba25a28b8cc152cea",
+      "reason": "Landed: its code commit is on main as 5643dedfa; the other commit is a generated refresh (burn-down, scoreboard, vacuity report).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-train",
+      "sha": "c7e0356339f66d4c6bf98e482bf6e173dbc2c825",
+      "reason": "sec-c train. Landed: 9 of 9 code commits on main (7addf3695, 9bd52b7b6, 85c80e2bc, 3a407f9ee, ...). Unmatched commits are generated refreshes and OPEN.md notes; its Q?first-payment-webhook-race is main's Q2115.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-10",
+      "sha": "7c3521cf5f9bd4a5dfa6c4c26038ccb891306532",
+      "reason": "Landed: Q1424 clock proofs are on main rewritten (0ceca89ea run_missed_cron_catch_up edges, ec818beda three more ops monitors; src/test/clockFunctionsProven.test.ts) and 8370b981f; the rest is Q1816 status notes and a generated refresh.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:ready/stranded-1015-2",
+      "sha": "7133adc735287a5f3b0518737e9d91c0ae7f2a43",
+      "reason": "Q1491 rebuild (job payout hold for an underfunded gift job). Landed as e4bc3cb45 with e09157195/8b8fe2d1b; Q1491 ticked on main, its loose ends filed as Q1902.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:sec-a-1017-q1972",
+      "sha": "f64bbe2ec3694ff15bd852fe1d35e021e90ccaea",
+      "reason": "Squash of the Q1971 failed-bank-payment work. Landed as e246d8137: main carries supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql and the src/test/edge/fundedJobPaymentFailed.test.ts cases; Q1971 ticked. Q1972 (crew notice) stays open on main as its own item.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:sec-a9-q1806",
+      "sha": "8b3f7fcc681cdc3c004c29200b4470d22fff4096",
+      "reason": "Work-in-progress red test for Q1806's gift-plus-card late fee. The fix landed as ce5351af9 (late cancel on a gift + card job pays the fee from both, Option A per owner 2026-10-18) with src/test/edge/void-cancelled-payments-gift-card-fee.test.ts; Q1806 ticked.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-1",
+      "sha": "c34beb8534786852dee6fe924f285372da25aff9",
+      "reason": "Landed: code commits on main (48fb8e459, 5d6e91d80, 0cdd79757); its Q1787 turnover title fix landed rewritten as 8acab861c (src/pages/post-job/turnoverPrefill.ts). The rest is OPEN.md notes (Q1788, Q1680 held W-9).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-2",
+      "sha": "90d1b38b9af02ba3905d72cefe75353cafdeacf5",
+      "reason": "Landed: code commits on main (48fb8e459, 5d6e91d80, 0cdd79757); Q1668 landed as 2743d094b (ticked), Q1787 as 8acab861c. The rest is OPEN.md notes and generated refreshes.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-5",
+      "sha": "bb23eba91d4372c51367987ea2f1c2316ee37152",
+      "reason": "Pre-rebase copy of sec-b batches 1-5. Landed or replaced on main: Q1668 2743d094b, Q1787 8acab861c, Q1733 3b9550121, the Q1660 pending-pick assertions are in src/test/timeWheelNeverPicksOnItsOwn.test.tsx, Q1691/Q1760 e12ea05a0/4f5233cdf; its /unsubscribe page was replaced by main's src/pages/auth/Unsubscribe.tsx (Q1655, 145c7ca99); the useActivityTabRefresh split was not needed (JobListPage back at its 750-line baseline by 8bb615d99).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-3",
+      "sha": "f55f296673b7df43489b58d7b9a4eed4187c44c3",
+      "reason": "Ancestor of remote:origin/ready/sec-b-10, which stays listed for the parts not on main (Q959 shared blur, primary-gradient ink guard, Q2092). Everything else in it landed through the 2026-10-18 sec-b salvage (a32086826, 17b20ce01, 4a1e2d3de, e12ea05a0, 4f5233cdf, 48fb8e459) or was replaced on main (Q1655 145c7ca99, Q1733 3b9550121, Q1737 ae7130d61, Q1668 2743d094b, Q1787 8acab861c).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-4",
+      "sha": "f6085480625142fffef971bc65e4b243b5ac308a",
+      "reason": "Ancestor of remote:origin/ready/sec-b-10, which stays listed for the parts not on main (Q959 shared blur, primary-gradient ink guard, Q2092). Everything else in it landed through the 2026-10-18 sec-b salvage (a32086826, 17b20ce01, 4a1e2d3de, e12ea05a0, 4f5233cdf, 48fb8e459) or was replaced on main (Q1655 145c7ca99, Q1733 3b9550121, Q1737 ae7130d61, Q1668 2743d094b, Q1787 8acab861c).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-5b",
+      "sha": "053ca16150056200a7180d30c68516eef2e895e3",
+      "reason": "Ancestor of remote:origin/ready/sec-b-10, which stays listed for the parts not on main (Q959 shared blur, primary-gradient ink guard, Q2092). Everything else in it landed through the 2026-10-18 sec-b salvage (a32086826, 17b20ce01, 4a1e2d3de, e12ea05a0, 4f5233cdf, 48fb8e459) or was replaced on main (Q1655 145c7ca99, Q1733 3b9550121, Q1737 ae7130d61, Q1668 2743d094b, Q1787 8acab861c).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-9",
+      "sha": "fe35999c812b0974bbe500fa331ccb24592bddde",
+      "reason": "Ancestor of remote:origin/ready/sec-b-10, which stays listed for the parts not on main (Q959 shared blur, primary-gradient ink guard, Q2092). Everything else in it landed through the 2026-10-18 sec-b salvage (a32086826, 17b20ce01, 4a1e2d3de, e12ea05a0, 4f5233cdf, 48fb8e459) or was replaced on main (Q1655 145c7ca99, Q1733 3b9550121, Q1737 ae7130d61, Q1668 2743d094b, Q1787 8acab861c).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-train",
+      "sha": "ac133d3fef782fbbeca38c6f6829a7f4d3365121",
+      "reason": "Ancestor of remote:origin/ready/sec-b-10, which stays listed for the parts not on main (Q959 shared blur, primary-gradient ink guard, Q2092). Everything else in it landed through the 2026-10-18 sec-b salvage (a32086826, 17b20ce01, 4a1e2d3de, e12ea05a0, 4f5233cdf, 48fb8e459) or was replaced on main (Q1655 145c7ca99, Q1733 3b9550121, Q1737 ae7130d61, Q1668 2743d094b, Q1787 8acab861c).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/train-sec-b-10-1016",
+      "sha": "2b95ddbad096daf46bb57a25c859320f5e37fb31",
+      "reason": "The same 44 commits as remote:origin/ready/sec-b-10 on an older base (same subjects, same 30 not on main by subject). sec-b-10 stays listed for its unlanded parts (Q959 shared blur, primary-gradient ink guard, Q2092); nothing here is not also there.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:worktree-agent-a4115bbc06f831429",
+      "sha": "7dce5c03946dfd4c1cffb408535e0643313929d9",
+      "reason": "Apple IAP review fixes + WIP Q1876. Landed: 38e9b0634 (Apple notices graded from latest state); supabase/functions/verify-apple-iap/index.ts is identical to main; both new tests are on main ('a customer with several subscriptions...' in apple-app-store-notifications.test.ts, 'a Restore of a LAPSED subscription...' in verify-apple-iap.test.ts); the Q1876 bounced-ACH gift return landed inside the cancel RPC via the Q1971 merge (paymentIntentPaymentFailed.ts gift outcome, src/test/edge/fundedJobPaymentFailed.test.ts).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:ready/phone-save-after-review",
+      "sha": "cf023f8ba60dc28a9ea9097a9d59b128b9ef6efa",
+      "reason": "HELD, not landed on purpose: Q1805 (open on main, HIGH) names ready/phone-save-after-review as the phone half of Q1586(a) waiting for Apple's decision on 1.0.4 (migration 20261013012700_phone_save_rpc_rate_limited.sql; save_my_phone not on main). The rest of a2-1u is on main (f42c95709, 3b1763aec, b4e92563c, 3d1407a66).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/phone-save-after-review",
+      "sha": "cf023f8ba60dc28a9ea9097a9d59b128b9ef6efa",
+      "reason": "HELD, not landed on purpose: Q1805 (open on main, HIGH) names ready/phone-save-after-review as the phone half of Q1586(a) waiting for Apple's decision on 1.0.4 (migration 20261013012700_phone_save_rpc_rate_limited.sql; save_my_phone not on main). The rest of a2-1u is on main (f42c95709, 3b1763aec, b4e92563c, 3d1407a66).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/land/ready-todo-a2-1u-f27d29b2",
+      "sha": "4fc559a67ec462a1d32c9000f41bc5d9735e6d31",
+      "reason": "Ancestor of ready/phone-save-after-review without its held phone commit: 8 of 8 code commits on main (f42c95709, 3b1763aec, b4e92563c, 3d1407a66). The held phone half is tracked by Q1805 on that branch.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "pr:2982",
+      "sha": "4fc559a67ec462a1d32c9000f41bc5d9735e6d31",
+      "reason": "a2-1u landing PR, closed unmerged; head 4fc559a67 = remote:origin/land/ready-todo-a2-1u-f27d29b2, whose 8 code commits are on main (f42c95709, 3b1763aec, b4e92563c, 3d1407a66); the held phone half is Q1805 on ready/phone-save-after-review.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "branch:ready/sec-c-11",
+      "sha": "a9825b37212eb6a3083baf9286f2dc728daab8a5",
+      "reason": "SUPERSEDED: holds Playwright at 1.63.0 for Linux WebKit painting. The 2026-10-18 salvage chose not to carry the pin (254e43d7d 'the pin was not carried'); main runs @playwright/test ^1.64.0 and the WebKit reds are tracked under Q1816. Its other code commit is on main (c9ef9b781).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-11",
+      "sha": "a9825b37212eb6a3083baf9286f2dc728daab8a5",
+      "reason": "SUPERSEDED: holds Playwright at 1.63.0 for Linux WebKit painting. The 2026-10-18 salvage chose not to carry the pin (254e43d7d 'the pin was not carried'); main runs @playwright/test ^1.64.0 and the WebKit reds are tracked under Q1816. Its other code commit is on main (c9ef9b781).",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "remote:origin/ops/operating-rules",
+      "sha": "f695d8fbd70e0749ffc1adee7cd9cd01214e32a4",
+      "reason": "SUPERSEDED: its CLAUDE.md/AGENT-BRIEF lines point at .claude/OPERATING.md, which was never committed anywhere (git log --all is empty); the 'nothing stranded, land only with land.sh' rules on main cover it. Its OPEN.md lines: the 10-17 landing queue is stale; Post a Job's stale-cleanup photo order is fixed on main (useJobSubmit cleanupOrphanJob checks the job is deletable before removeJobPhotos); the /messages contrast UNRESOLVED node is a red robot check under Q1816. Its sensitive-review row is replaced by main's lh-money-escrow row for 971207fb9.",
+      "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
     }
   ]
 }

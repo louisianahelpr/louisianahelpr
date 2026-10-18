@@ -75,7 +75,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_in_agreed_sale',      'allow',    'TRUE = this member is a side of an agreed sale (in a cart or paid) on this item: may read its pickup details (20261015042253)'),
   ('declutter_slot_in_windows',     'allow',    'TRUE = a 30-minute pickup slot at this time fits one of this seller''s windows: the booking is valid (20261015042253)'),
   ('declutter_handover_photo_access', 'allow',  'TRUE = the caller may write (own folder, paid order) or read (a party or an admin) this declutter-handover object (20261017055502)'),
-  ('shop_handover_photo_access',    'allow',    'TRUE = the caller may write (the shop, own folder, charged accepted order) or read (a party or an admin) this shop-handover object (20261018184113)'),
+  ('shop_handover_photo_access',    'allow',    'TRUE = the caller may write (the shop, own folder, charged accepted order) or read (a party or an admin) this shop-handover object (20261018211820)'),
   ('declutter_refund_set_mode',     'action',   'VOLATILE: records a Declutter refund''s Stripe mode once and returns it (service only; 20261015042253)'),
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
   ('declutter_set_porch_ok',        'action',   'VOLATILE: the seller sets porch pickup on their own draft and gets the stored value back; a NULL choice raises invalid_porch_choice (row 101; 20261017055504)'),

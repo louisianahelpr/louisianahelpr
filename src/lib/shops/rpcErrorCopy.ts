@@ -274,7 +274,7 @@ export const SHOPS_RPC_ERROR_COPY = {
     shop_strikes_blocked: SC.shop_strikes_blocked,
     under_18: SC.under_18,
   },
-  // M2 (20261018184113): the handover and the shop's handover choice.
+  // M2 (20261018211820): the handover and the shop's handover choice.
   shops_set_handover_mode: {
     account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,

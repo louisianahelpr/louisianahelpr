@@ -1,5 +1,5 @@
 /**
- * Shops handover and payout (Shops M2, migration 20261018184113_shops_handover_payout;
+ * Shops handover and payout (Shops M2, migration 20261018211820_shops_handover_payout;
  * docs/specs/local-shops-prep.md L23, L40; owner pop-up 2026-10-18: each shop
  * picks "left out" or "in person", NO codes anywhere).
  *

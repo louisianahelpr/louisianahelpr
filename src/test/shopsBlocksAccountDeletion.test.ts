@@ -20,7 +20,7 @@
  * @mutate supabase/functions/_shared/accountPurge.ts |     .eq("status", "awaiting_hold")\n    .select("id"); |     .select("id");
  * @mutate supabase/functions/_shared/accountPurge.ts |     console.error(`[accountPurge] closing unpaid Shops pages failed for ${userId}:`, res.error.message);\n    return { ok: false, | console.error("x");\n    return { ok: true,
  * @mutate supabase/functions/delete-own-account/index.ts |     const pages = await closeUnpaidShopPages(supabaseAdmin, user.id);\n    if (!pages.ok) { |     const pages = { ok: true };\n    if (!pages.ok) {
- * Shops M2 (20261018184113): a shop still owed a payout is blocked too (lh-money-escrow review of 819e55ce3 #3).
+ * Shops M2 (20261018211820): a shop still owed a payout is blocked too (lh-money-escrow review of 819e55ce3 #3).
  * @mutate supabase/functions/_shared/accountPurge.ts |     return { ok: true, active: true, detail: `shop payout ${owed.data[0].id}`, reason: "shops" }; |     return { ok: true, active: false };
  * @mutate supabase/functions/admin-delete-user/index.ts |     const pages = await closeUnpaidShopPages(supabaseAdmin, userId);\n    if (!pages.ok) { |     const pages = { ok: true };\n    if (!pages.ok) {
  */

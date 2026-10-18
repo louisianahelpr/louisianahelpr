@@ -79,7 +79,7 @@ const NOT_A_JOB_PAYOUT: Record<string, string> = {
 const EXPECTED_TRANSFER_CALLS: Record<string, number> = {
   "supabase/functions/cash-out-credits/index.ts": 1,
   "supabase/functions/create-payment/index.ts": 1,
-  "supabase/functions/declutter-money/index.ts": 3, // + Shops M2 shop payouts (20261018184113)
+  "supabase/functions/declutter-money/index.ts": 3, // + Shops M2 shop payouts (20261018211820)
   "supabase/functions/execute-dispute-split/index.ts": 1,
   "supabase/functions/instant-payout/index.ts": 1,
   "supabase/functions/process-scheduled-payouts/index.ts": 1,

@@ -24,7 +24,7 @@
 --   on its own: the photo is the evidence.
 --   shops_report_not_received (AS THE BUYER) stops the automatic finish and
 --   the payout until Louisiana Helpr decides (the decision and its refund are
---   M3/M4, Q2148); every admin is told. It is open from the ready date (or
+--   M3/M4, Q2153); every admin is told. It is open from the ready date (or
 --   the shop's ready tap) until the handover.
 --
 -- PAYOUT (L40, owner F1: the shop keeps 100% of its prices; the buyer's fee
@@ -550,7 +550,7 @@ GRANT EXECUTE ON FUNCTION public.shop_handover_sweep() TO service_role;
 -- ---------------------------------------------------------------------------
 -- 6. The payout queue (service only). The shop's payout account is read off
 --    the order's seller; a problem reported before the handover (only an admin
---    can then hand it over, Q2148) holds the money.
+--    can then hand it over, Q2153) holds the money.
 CREATE OR REPLACE FUNCTION public.shop_payouts_due(p_limit integer)
 RETURNS TABLE (payout_id uuid, order_id uuid, buyer_id uuid, seller_id uuid, amount_cents integer,
                stripe_account_id text, payment_intent_id text, livemode boolean, checkout_session_id text, attempts integer)

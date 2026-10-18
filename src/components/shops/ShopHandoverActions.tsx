@@ -1,6 +1,6 @@
 /**
  * The handover part of one Shops order card (Shops M2, migration
- * 20261018184113; owner pop-up 2026-10-18: the shop picks "left out" or "in
+ * 20261018211820; owner pop-up 2026-10-18: the shop picks "left out" or "in
  * person", NO codes anywhere).
  *
  *   Shop: "Mark ready" (left out: a photo is required; in person: optional),

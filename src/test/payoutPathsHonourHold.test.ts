@@ -89,7 +89,7 @@ const PAYOUT_PATHS: Record<string, number> = {
   // Q1390: a crew member's cancellation fee for a poster's block
   "supabase/functions/_shared/crewBlockFees.ts": 1,
   // Declutter slice 4 (B53): a seller's payout for a handed-over order; slice 5: a Helpr's delivery pay
-  "supabase/functions/declutter-money/index.ts": 3, // + Shops M2 shop payouts (20261018184113)
+  "supabase/functions/declutter-money/index.ts": 3, // + Shops M2 shop payouts (20261018211820)
 };
 
 /**

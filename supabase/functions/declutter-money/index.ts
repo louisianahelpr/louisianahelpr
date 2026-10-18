@@ -43,7 +43,7 @@
  *      _shared/shopHolds.ts with one idempotency key per capture attempt. Isolated: a
  *      Shops failure is a defect, never a stop for the steps above.
  *
- *   6. SHOP PAYOUTS (M2, migration 20261018184113) shop_handover_sweep() first
+ *   6. SHOP PAYOUTS (M2, migration 20261018211820) shop_handover_sweep() first
  *      (the automatic finish), then shop_payouts_due(): a shop's item price
  *      minus its card-fee debt (taken in SQL at the handover). Same shape as a
  *      Declutter payout: reconciled in the order's transfer group
@@ -299,7 +299,7 @@ serve(async (req) => {
     defects.record(`shops step: ${caughtMessage(e, "failed")}`.slice(0, 200));
   }
 
-  // 6. SHOP PAYOUTS (M2, migration 20261018184113): the automatic finish, then every
+  // 6. SHOP PAYOUTS (M2, migration 20261018211820): the automatic finish, then every
   //    shop owed for a handed-over order. Its own try, like step 5.
   try {
     const finished = await admin.rpc("shop_handover_sweep", {});

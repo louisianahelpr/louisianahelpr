@@ -94,7 +94,7 @@ const SITES: Site[] = [
   { file: "src/lib/shops/api.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["LISTING_PHOTO_UPLOAD_TYPES"] },
   // Shop item photos (slice 2): the same cleaning.
   { file: "src/lib/shops/items.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
-  // Shops M2 ready photos (20261018184113): the same JPEG clean, into the PRIVATE shop-handover bucket.
+  // Shops M2 ready photos (20261018211820): the same JPEG clean, into the PRIVATE shop-handover bucket.
   { file: "src/lib/shops/handover.ts", bucket: "shop-handover", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
   { file: "src/pages/post-job/useJobMediaUpload.ts", bucket: "job-photos", gate: ["src/lib/scopeVideo.ts", "SCOPE_VIDEO_TYPES"], via: ["scopeVideoFileProblem", "SCOPE_VIDEO_BUCKET"], bucketSrc: "src/lib/scopeVideo.ts" },
 ];

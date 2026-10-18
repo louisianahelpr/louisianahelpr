@@ -4,7 +4,7 @@
  * after 24 hours), Accept (the buyer's card is charged) and Decline with a
  * reason (the hold drops, nothing is charged), the rest of the shop's orders,
  * and the cancel rule buyers read before paying (O2 presets). Later slices
- * add items and stats. M2 (20261018184113) adds the handover on each accepted
+ * add items and stats. M2 (20261018211820) adds the handover on each accepted
  * order (ShopHandoverActions), the payout line on handed-over ones and the
  * handover choice (ShopHandoverModePicker). No visual pass yet.
  */

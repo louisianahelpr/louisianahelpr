@@ -1,5 +1,5 @@
 /**
- * Shops M2 (migration 20261018184113_shops_handover_payout): the shop payout
+ * Shops M2 (migration 20261018211820_shops_handover_payout): the shop payout
  * step of supabase/functions/declutter-money. The amounts and the queue live in
  * SQL (src/test/pglite/shopsHandoverPayout.pglite.mjs); this file proves the
  * edge side runs the automatic finish, then moves exactly what the queue says,

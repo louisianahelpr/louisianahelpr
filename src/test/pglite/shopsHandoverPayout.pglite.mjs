@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261018184113_shops_handover_payout (Shops M2: the handover
+ * PGlite proof for 20261018211820_shops_handover_payout (Shops M2: the handover
  * and the shop's payout; docs/specs/local-shops-prep.md L23, L40; owner pop-up
  * 2026-10-18: the shop picks "left out" (required photo) or "in person", no codes).
  *
@@ -23,7 +23,7 @@ const SLICE2 = readFileSync(`${MIG_DIR}20261017061157_shops_items.sql`, "utf8");
 const CATEGORIES = readFileSync(`${MIG_DIR}20261017224153_shop_categories_v2.sql`, "utf8");
 const M1 = readFileSync(`${MIG_DIR}20261018164442_shops_orders_checkout.sql`, "utf8");
 const M1_STRIKES = readFileSync(`${MIG_DIR}20261018164444_shops_own_strike_count.sql`, "utf8");
-const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261018184113_shops_handover_payout.sql`, "utf8");
+const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261018211820_shops_handover_payout.sql`, "utf8");
 const SLICE1 = readFileSync(`${MIG_DIR}20261017061155_shops_profiles.sql`, "utf8");
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
 const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sql`, "utf8");
@@ -31,7 +31,7 @@ const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sq
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */
 function newestDefinition(name) {
   let found = null;
-  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && !x.startsWith("20261017061155") && !x.startsWith("20261017061157") && !x.startsWith("20261018164442") && !x.startsWith("20261018184113")).sort()) {
+  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && !x.startsWith("20261017061155") && !x.startsWith("20261017061157") && !x.startsWith("20261018164442") && !x.startsWith("20261018211820")).sort()) {
     const sql = readFileSync(`${MIG_DIR}${f}`, "utf8");
     const re = new RegExp(String.raw`CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.${name}\s*\(`, "gi");
     let m;

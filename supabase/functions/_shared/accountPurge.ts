@@ -429,7 +429,7 @@ async function findShopOrderInFlight(admin: PurgeCapableClient, userId: string):
   if (rows.data && rows.data.length > 0) {
     return { ok: true, active: true, detail: `shop order ${rows.data[0].id}`, reason: "shops" };
   }
-  // Shops M2 (20261018184113; lh-money-escrow review of 819e55ce3 #3): a shop still
+  // Shops M2 (20261018211820; lh-money-escrow review of 819e55ce3 #3): a shop still
   // owed a payout ('pending', or 'failed' and retried) can only be paid to its own
   // account, and the order's seller_id is SET NULL with the account: blocked, as
   // helpr_task_payouts are.

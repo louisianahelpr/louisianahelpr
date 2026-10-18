@@ -67,7 +67,7 @@ export interface ShopOrder {
   accepted_at: string | null;
   captured_at: string | null;
   closed_at: string | null;
-  /** Shops M2 (20261018184113): how this order is handed over, frozen when it was asked for. */
+  /** Shops M2 (20261018211820): how this order is handed over, frozen when it was asked for. */
   handover_mode: "porch" | "in_person";
   handed_over_at: string | null;
   shop_order_lines: OrderLine[];

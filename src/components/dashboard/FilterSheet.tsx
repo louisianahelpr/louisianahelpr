@@ -25,6 +25,7 @@ import {
   useScreenPanelBand,
 } from "@/components/ui/anchoredPanel";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { hapticLight } from "@/lib/haptics";
 import {
   SortContent,
@@ -276,6 +277,7 @@ export function FilterSheet({
   // scrolls the focused field into view; this is what gives it somewhere to
   // scroll to. 0 whenever no keyboard is up (and always on web).
   const keyboardInset = useKeyboardInset();
+  const webDesktop = useIsWebDesktop();
   /* The panel is placed against a measured SCREEN BAND — a zero-height rect
      spanning the viewport at the bottom of the header the Filters button sits
      in — not against the button itself. `anchorRef` is still what identifies
@@ -318,7 +320,11 @@ export function FilterSheet({
   // dismiss layer, same surface) — the two anchored panels in the header must
   // not be two different objects. Owner, asked whether they should match:
   // "Yes — both the same".
-  if (anchorRef) {
+  //
+  // Phone + native app (owner 2026-10-18, tweak 6 "slide-up filter sheet"):
+  // the anchored band gave way to the bottom sheet below (grab handle, glued
+  // to the bottom edge). Desktop web keeps the dropdown off the button.
+  if (anchorRef && webDesktop) {
     return (
       <Popover open={open} onOpenChange={onOpenChange} modal>
         <PopoverAnchor virtualRef={screenAnchorRef} />
@@ -486,6 +492,7 @@ export function FilterSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
+        floor
         // A max height so a tall section list scrolls
         // inside the sheet rather than pushing the dock off-screen.
         className="max-h-[85dvh] overflow-y-auto overscroll-contain p-0 gap-0 bg-premium-page"

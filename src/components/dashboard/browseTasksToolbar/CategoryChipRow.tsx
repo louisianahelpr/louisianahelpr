@@ -52,7 +52,7 @@ export function CategoryChipRow({
   return (
     <div
       ref={rowRef}
-      className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 overflow-x-auto scrollbar-hide border-b border-border/30"
+      className="category-chip-row shrink-0 flex items-center gap-1.5 px-4 py-2.5 overflow-x-auto scrollbar-hide border-b border-border/30"
       role="group"
       aria-label="Filter by category"
     >

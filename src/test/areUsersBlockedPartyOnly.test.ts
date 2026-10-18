@@ -103,7 +103,7 @@ const EXPECTED_CALLERS = [
   "insert_job_status_system_message",
   "list_open_quote_requests",
   "offer_series_dates",
-  // Quote hire on pay (20261018042506): the AFTER UPDATE OF payment_status
+  // Quote hire on pay (20261018155222): the AFTER UPDATE OF payment_status
   // trigger asks (the quoter, the job's poster) before it sends the quoter an
   // "Accept to start" notice. Neither is auth.uid() (the webhook writes the
   // payment as service_role); it gets the real answer through the

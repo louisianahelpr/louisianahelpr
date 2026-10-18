@@ -22,6 +22,7 @@ vi.mock("posthog-js", () => ({
   },
 }));
 
+// @mutate src/lib/posthog.ts |   if (automationReason() \|\| isLocalDevOrigin()) return; |   if (automationReason()) return;
 // Q2112: initPostHog skips a robot or an http://localhost page, and jsdom IS
 // http://localhost. The wrapper tests below run as a real visitor's page;
 // the skip itself is asserted at the end of this file.

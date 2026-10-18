@@ -214,7 +214,7 @@ const EXEMPT: Record<string, string> = {
   // user_id + wallet_mode) and read on the client of that same mode, so a test customer never meets the
   // live key; a missing one (resource_missing) is handled as deleted (Q2140), anything else retries.
   "auto-tip-charge/index.ts::stripe.customers.retrieve(customerId)": "the poster's stored wallet customer, keyed by the job's mode and read on that mode's client; minted after the live switch",
-  // Shops M1 (20261017225605): a Shops order's own hold, read on the client of the mode the order recorded
+  // Shops M1 (20261018154737): a Shops order's own hold, read on the client of the mode the order recorded
   // (shopOrderMode: payment_livemode / the page's cs_test_ prefix, else its parties). No Shops order predates the
   // 2026-09-27 live switch (prod had no shop_orders table, 2026-10-18); a failed read is a capture or release attempt
   // that the money cron retries.

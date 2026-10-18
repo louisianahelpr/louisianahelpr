@@ -320,7 +320,7 @@ const SQL_POLICIES = {
       declutter_setup_job_fee_debt: "20261017073146_declutter_add_a_helpr.sql 4d24b4a83bd33864",
       // Shops M1: records the card fee Stripe kept when a held order is captured (or the 2.9% + 30c estimate),
       // for a later refund to keep; it records no refund and decides no refund amount.
-      shop_order_captured: "20261017225605_shops_orders_checkout.sql 3fe4dbb559a29a1f",
+      shop_order_captured: "20261018154737_shops_orders_checkout.sql 3fe4dbb559a29a1f",
     } as Record<string, string>,
     /**
      * Every top-level statement (outside a function body) that names declutter_refunds (table, ALTER, policy,

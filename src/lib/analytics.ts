@@ -201,7 +201,7 @@ export function track(event: EventName, props: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
   // Caller-supplied props win: an explicit value beats one scraped from the URL.
   const campaign = campaignProps();
-  // Q2093: a robot's event is TAGGED, not dropped (journeys
+  // Q2112: a robot's event is TAGGED, not dropped (journeys
   // assert events fire), and never reaches PostHog. Set last so a caller's
   // props cannot clear it. The database tags seed users and local origins too.
   const automation = automationReason();

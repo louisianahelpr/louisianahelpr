@@ -23,7 +23,7 @@ export function isAutomatedBrowser(): boolean {
 }
 
 /**
- * Q2093: why this session is NOT a person, or null.
+ * Q2112: why this session is NOT a person, or null.
  *
  * MEASURED 2026-10-15 on prod analytics_events (30 days): signup_started 4573
  * rows (4556 anonymous) and payment_made 2284 against ~35 real members; the

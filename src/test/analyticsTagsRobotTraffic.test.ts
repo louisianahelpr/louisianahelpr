@@ -6,7 +6,7 @@ import { triggerInventory, triggersOn } from "./helpers/migrationTriggers";
 import { blankSqlComments } from "./helpers/blankNonCode";
 
 /**
- * Q2093: a test robot's analytics event is TAGGED, and never
+ * Q2112: a test robot's analytics event is TAGGED, and never
  * reaches PostHog, so the owner's sign-up funnel counts people.
  *
  * MEASURED 2026-10-15 on prod analytics_events (30 days): signup_started 4573

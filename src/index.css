@@ -4484,6 +4484,7 @@ html.senior-mode *::after {
   background-color: hsl(0 0% 11%) !important;
   box-shadow: none !important;
 }
+:root[data-theme="dark"] .page-panel { background-color: transparent !important; }
 
 /* T3 — simpler job cards: price is plain bold ink, the category an icon + label. */
 .money-chip {
@@ -4600,7 +4601,8 @@ html.page-scrolled .page-title-card h1 { font-size: 1.0625rem !important; margin
 }
 .category-chip-row > button[aria-pressed="true"],
 .chip-row > button[aria-selected="true"],
-.chip-row > button[aria-checked="true"] {
+.chip-row > button[aria-checked="true"],
+.chip-row > button[aria-pressed="true"] {
   background: hsl(var(--bark)) !important; border-color: hsl(var(--bark)) !important;
   color: hsl(var(--parchment)) !important;
 }

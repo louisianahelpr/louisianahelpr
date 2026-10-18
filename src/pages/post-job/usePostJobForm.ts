@@ -486,7 +486,6 @@ export function usePostJobForm() {
     // Only a credit the server would actually accept feeds the money math.
     // An unusable one must quote FULL price, not $0 — being under-quoted and
     // then charged is the failure this whole lane exists to prevent.
-    isRecurring,
     posterFeeOn,
     giftCardAmount: giftCard.usable ? giftCard.creditAmount : null,
   });

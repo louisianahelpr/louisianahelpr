@@ -24,7 +24,7 @@ import { flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "../_shared/he
 import { checkJobPayoutHold, checkPayoutHold, type JobPayoutHoldCheck } from "../_shared/payoutHold.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
-import { feeTransferIdempotencyKey, formatPayoutDollars, isDefiniteStripeRefusal, roundPayoutDownCents } from "../_shared/money.ts";
+import { feeTransferIdempotencyKey, formatPayoutDollars, isDefiniteStripeRefusal, roundPayoutDownCents, sourceChargeFor } from "../_shared/money.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 // The read-only half (row shape, read, cents, the admin refund refusal) lives
 // in crewBlockFeeRead.ts, so a reader that never pays does not import this
@@ -43,7 +43,15 @@ type Db = any;
  */
 export async function payCrewBlockFees(
   /** `settled`: the job's refund has already gone (the void-cancelled sweep). */
-  deps: { stripe: Stripe; admin: Db; fn: string; settled?: boolean },
+  deps: {
+    stripe: Stripe; admin: Db; fn: string; settled?: boolean;
+    /**
+     * Q1806: the job's PaymentIntent. When given, `chargeId` is linked only
+     * while the transfers on it still fit in the charge (sourceChargeFor);
+     * one that does not goes from the platform balance.
+     */
+    linkPi?: Parameters<typeof sourceChargeFor>[0];
+  },
   job: { id: string; title?: string | null; helper_fee_percent?: number | string | null; helper_fee_flat_cents?: number | string | null },
   rows: CrewBlockFeeRow[],
   chargeId: string | null,
@@ -55,8 +63,11 @@ export async function payCrewBlockFees(
 
   const feeGroup = `job_${job.id}`;
   let prior: Map<string, string>;
+  let groupTransfers: Stripe.Transfer[] = [];
+  let linkedThisRun = 0;
   try {
     const listed = await stripe.transfers.list({ transfer_group: feeGroup, limit: 100 });
+    groupTransfers = listed.data ?? [];
     prior = new Map(
       listed.data
         .filter((t) => t.metadata?.type === CREW_BLOCK_FEE_TRANSFER_TYPE && !t.reversed && t.metadata?.block_fee_id)
@@ -189,7 +200,14 @@ export async function payCrewBlockFees(
         transfer_group: feeGroup,
         metadata: { job_id: job.id, helper_id: row.helper_id, block_fee_id: row.id, type: CREW_BLOCK_FEE_TRANSFER_TYPE, platform_cut: platformCut },
       };
-      if (chargeId) params.source_transaction = chargeId;
+      const link = chargeId && (deps.linkPi === undefined || sourceChargeFor(deps.linkPi, payoutCents, groupTransfers, linkedThisRun) === chargeId)
+        ? chargeId
+        : null;
+      // Counted before the call: a transfer whose outcome is unknown may exist.
+      if (link) {
+        params.source_transaction = link;
+        linkedThisRun += payoutCents;
+      }
       const transfer = await stripe.transfers.create(params as unknown as Stripe.TransferCreateParams, {
         // Q1381: a retry of a failed row is a new attempt, not Stripe's replay of the failure.
         idempotencyKey: feeTransferIdempotencyKey(`crew-block-fee-${row.id}`, row.status === "failed"),

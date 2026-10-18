@@ -297,7 +297,7 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
       expect(body.defects).toBe(0);
       expect(body.defectReasons).toBeUndefined();
       expect(body.fee_transfers_retried).toBe(0);
-      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1");
+      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1", { expand: ["latest_charge"] });
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       expect(feeWrites()).toHaveLength(0);

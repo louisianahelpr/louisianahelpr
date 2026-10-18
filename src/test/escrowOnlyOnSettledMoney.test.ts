@@ -265,6 +265,6 @@ describe("a hired job whose bank payment failed is cancelled, not left hired (D,
   it("the money reconciler expects no fee from a job whose money never arrived", () => {
     const rec = code(join(FUNCTIONS, "money-reconciliation/index.ts"));
     expect(rec).toMatch(/const noMoneyArrived = job\.payment_status === "failed";/);
-    expect(rec).toMatch(/const expectedFee = noMoneyArrived \? 0 : expectedCancellationFee\(job\);/);
+    expect(rec).toMatch(/const expectedFee = noMoneyArrived \? 0 : (?:cappedFeeJobs\.has\(job\.id as string\) \? storedFee : )?expectedCancellationFee\(job\);/);
   });
 });

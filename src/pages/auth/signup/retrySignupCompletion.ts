@@ -51,17 +51,18 @@ export function waitForAWorkingPage(
   return new Promise((resolve) => {
     setTimeout(() => {
       if (!doc || doc.visibilityState !== "hidden") return resolve();
-      let cap: ReturnType<typeof setTimeout> | undefined;
       const finish = () => {
         doc.removeEventListener("visibilitychange", onChange);
-        if (cap !== undefined) clearTimeout(cap);
+        clearTimeout(cap);
         resolve();
       };
       const onChange = () => {
         if (doc.visibilityState !== "hidden") finish();
       };
       doc.addEventListener("visibilitychange", onChange);
-      cap = setTimeout(finish, maxHiddenMs);
+      // Declared after the listener: finish only runs on a later event or this
+      // timer, by which time cap is set.
+      const cap = setTimeout(finish, maxHiddenMs);
     }, minMs);
   });
 }

@@ -35,7 +35,7 @@ export function isUnsentRequest(error: unknown): boolean {
 }
 
 /** How long a hidden page is waited on before the second send goes anyway. */
-export const MAX_HIDDEN_WAIT_MS = 20_000;
+const MAX_HIDDEN_WAIT_MS = 20_000;
 
 /**
  * Wait before the second send: at least `minMs`, and if the page is hidden

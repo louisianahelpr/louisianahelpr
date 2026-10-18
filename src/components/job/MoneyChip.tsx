@@ -62,7 +62,7 @@ export function MoneyChip({
 }) {
   return (
     <span
-      className={`inline-flex flex-col items-center justify-center rounded-ds-md text-center ${size === "lg" ? "px-3.5 py-2" : "px-2.5 py-1"}${className ? ` ${className}` : ""}`}
+      className={`money-chip inline-flex flex-col items-center justify-center rounded-ds-md text-center ${size === "lg" ? "px-3.5 py-2" : "px-2.5 py-1"}${className ? ` ${className}` : ""}`}
       title={title}
       style={size === "lg" ? MONEY_CHIP_SURFACE_LG : MONEY_CHIP_SURFACE}
     >

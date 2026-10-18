@@ -4,6 +4,7 @@ import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/Filt
 import { SavedSearches } from "@/components/SavedSearches";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { hapticLight } from "@/lib/haptics";
+import { tweak } from "@/lib/mockFlags";
 import type { BrowseTasksToolbarProps } from "./browseTasksToolbar/types";
 import { CategoryChipRow } from "./browseTasksToolbar/CategoryChipRow";
 import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
@@ -151,7 +152,7 @@ export function BrowseTasksToolbar({
       {renderHeading && <h1 className="sr-only">{headingTitle}</h1>}
 
       {/* One-tap category picker row. */}
-      {filters.selectedCategory && (
+      {(filters.selectedCategory || tweak(7)) && (
         <CategoryChipRow
           selectedCategory={filters.selectedCategory}
           setSelectedCategory={filters.setSelectedCategory}

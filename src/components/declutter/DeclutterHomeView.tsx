@@ -10,6 +10,32 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
+import { tweak } from "@/lib/mockFlags";
+import { Skeleton } from "@/components/ui/skeleton";
+
+/** MOCK T5 (never lands): grey shimmer rows shaped like the listing cards. */
+function MockListingsSkeleton() {
+  return (
+    <ul className="space-y-3" role="status" aria-label="Loading your listings">
+      {[0, 1, 2].map((i) => (
+        <li key={i} className="rounded-2xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/5" />
+              <Skeleton className="h-3.5 w-1/4" />
+            </div>
+            <Skeleton className="h-6 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-3 w-4/5" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-24 rounded-full" />
+            <Skeleton className="h-8 w-20 rounded-full" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -267,6 +293,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   if (mine.isError) {
     return <ErrorState variant="inline" title="We couldn't load your listings." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   }
+  if (mine.isLoading && tweak(5)) return <MockListingsSkeleton />;
   if (mine.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading your listings…</p>;
   const list = (mine.data ?? []).filter((i) => i.status !== "withdrawn");
   if (list.length === 0) {
@@ -385,7 +412,8 @@ export default function DeclutterHome() {
         ariaLabel="Declutter view"
         semantics="tab"
         value={view}
-        layout="wrap"
+        layout={tweak(7) ? "row" : "wrap"}
+        className={tweak(7) ? "mock-chip-row" : undefined}
         onChange={(v) => setParams(v === "browse" ? {} : { view: v }, { replace: true })}
         options={[
           { value: "browse", label: "Browse" },

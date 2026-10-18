@@ -2,6 +2,7 @@ import { categoryColors, categoryLabels } from "@/components/job-card/activityCo
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { formatCategory } from "@/lib/format";
 import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
+import { tweak } from "@/lib/mockFlags";
 
 /**
  * JobCategoryTab — the corner tab that names a job's category.
@@ -47,6 +48,15 @@ export function JobCategoryTab({
   className?: string;
 }) {
   const catStyle = categoryColors[category] ?? categoryColors.other;
+  // MOCK T3: a small icon + label instead of the coloured tab (never lands).
+  if (tweak(3)) {
+    return (
+      <span className={`mock-cat-label inline-flex items-center gap-1.5 min-w-0 text-ds-11 font-semibold text-muted-foreground${className ? ` ${className}` : ""}`}>
+        <CategoryIcon category={category} aria-hidden className={`w-3.5 h-3.5 shrink-0 ${catStyle.title}`} strokeWidth={2.25} />
+        <span className="font-sans truncate">{categoryLabels[category] || formatCategory(category)}</span>
+      </span>
+    );
+  }
   return (
     <span
       className={`${JOB_CATEGORY_TAB_FRAME}${flexible ? " min-w-0 max-w-[52%]" : ""} ${catStyle.badge}${className ? ` ${className}` : ""}`}

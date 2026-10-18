@@ -75,7 +75,7 @@ export function JobCardShell({
           Purely decorative, hence aria-hidden — the category is announced by
           the text chip in JobCardTitleBar, not by this. The card body is
           padded px-4 (16px) against this 6px rail, so nothing shifts. */}
-      <span aria-hidden className={`${JOB_CARD_SHELL_RAIL} ${railClass}`} />
+      <span aria-hidden className={`job-card-rail ${JOB_CARD_SHELL_RAIL} ${railClass}`} />
       {/* Category tab — top-left, exactly as Browse / Home render it (owner:
           "for post and jobs the category should be in the top left just like
           home dashboard is"). Squared on the left so it continues the rail with

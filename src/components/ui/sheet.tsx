@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { tweak } from "@/lib/mockFlags";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   POPUP_FOOTER_ROW,
@@ -126,10 +127,11 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
             comes after, so a caller supplying its own still wins. */}
         <SheetPrimitive.Content
           ref={ref}
-          className={cn(sheetVariants({ side }), className)}
+          className={cn(sheetVariants({ side }), className, tweak(6) && side === "bottom" && "mock-bottom-sheet")}
           aria-describedby={undefined}
           {...props}
         >
+          {tweak(6) && side === "bottom" && <div aria-hidden className="mock-grab-handle" />}
           <PopupDismissCtx.Provider value={setHasDismiss}>{children}</PopupDismissCtx.Provider>
           {!hasDismiss && <SheetCloseButton top={closeTop} right={closeRight} />}
         </SheetPrimitive.Content>

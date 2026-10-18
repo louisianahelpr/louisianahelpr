@@ -330,7 +330,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             flat left side flows straight into the rail with no gap. */}
         <span
           aria-hidden
-          className={`${JOB_CARD_RAIL} ${catStyle.dot}`}
+          className={`job-card-rail ${JOB_CARD_RAIL} ${catStyle.dot}`}
         />
         {/* ── BADGE RAIL ───────────────────────────────────────────────
             ONE row holding EVERY badge this card can render, sharing one

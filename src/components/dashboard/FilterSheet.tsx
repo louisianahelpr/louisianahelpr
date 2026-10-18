@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/anchoredPanel";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { hapticLight } from "@/lib/haptics";
+import { tweak } from "@/lib/mockFlags";
 import {
   SortContent,
   CategoryContent,
@@ -318,7 +319,7 @@ export function FilterSheet({
   // dismiss layer, same surface) — the two anchored panels in the header must
   // not be two different objects. Owner, asked whether they should match:
   // "Yes — both the same".
-  if (anchorRef) {
+  if (anchorRef && !tweak(6)) {
     return (
       <Popover open={open} onOpenChange={onOpenChange} modal>
         <PopoverAnchor virtualRef={screenAnchorRef} />

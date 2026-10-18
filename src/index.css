@@ -4517,3 +4517,163 @@ html.mock-gloss-b[data-theme="dark"] .liquid-glass {
 }
 html.mock-gloss-a[data-theme="dark"] :where(.bg-card) { box-shadow: inset 0 1px 0 0 hsl(0 0% 100% / 0.03), 0 1px 2px hsl(0 0% 0% / 0.25), 0 8px 16px -10px hsl(0 0% 0% / 0.3); }
 html.mock-gloss-b[data-theme="dark"] :where(.bg-card) { box-shadow: 0 1px 2px hsl(0 0% 0% / 0.25); }
+
+/* ── MOCK-UP ONLY (wip/design-tweaks-mock, 2026-10-18): eight small modern
+   tweaks, each behind html.mock-tN (localStorage lh-mock {"t":[...]}). Never
+   lands. Same olive/rust tokens; Bodoni stays on the landing H1 only. ── */
+
+/* T1 — plain upright titles: Montserrat semibold instead of Bodoni italic. */
+html.mock-t1 .font-display:not(h1.font-black),
+html.mock-t1 .text-page-title {
+  font-family: Montserrat, "Montserrat Fallback", system-ui, -apple-system, sans-serif !important;
+  font-style: normal !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* T2 — cleaner cards: no outline, no inner rim; a faint soft shadow lifts them. */
+html.mock-t2 .liquid-glass,
+html.mock-t2 :where(.bg-card),
+html.mock-t2 [data-feed-card],
+html.mock-t2 [data-activity-card] {
+  border-color: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 1px 2px hsl(220 14% 20% / 0.06), 0 4px 14px -6px hsl(220 14% 20% / 0.10) !important;
+}
+html.mock-t2 .page-panel { box-shadow: none !important; background-color: transparent !important; }
+html.mock-t2 .page-title-card { background-image: none !important; }
+html.mock-t2 [data-feed-card] > div, html.mock-t2 [data-activity-card] { border-radius: 1rem; }
+html.mock-t2[data-theme="dark"] .liquid-glass,
+html.mock-t2[data-theme="dark"] :where(.bg-card),
+html.mock-t2[data-theme="dark"] [data-feed-card],
+html.mock-t2[data-theme="dark"] [data-activity-card] {
+  background-color: hsl(0 0% 11%) !important;
+  box-shadow: none !important;
+}
+html.mock-t2[data-theme="dark"] .page-panel { background-color: transparent !important; }
+
+/* T3 — simpler job cards: no coloured side stripe; price is plain bold ink. */
+html.mock-t3 .job-card-rail { display: none !important; }
+html.mock-t3 .money-chip {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+html.mock-t3 .money-chip, html.mock-t3 .money-chip * { color: hsl(var(--foreground)) !important; }
+html.mock-t3 .money-chip > :first-child { font-size: 1.25rem !important; font-weight: 800 !important; }
+html.mock-t3 .job-card-title { font-size: 1.0625rem !important; }
+html.mock-t3 .mock-cat-label { padding-left: 1rem; padding-top: 0.75rem; }
+html.mock-t3 [data-activity-card] div.pt-6 { padding-top: 2.25rem !important; }
+html.mock-t3 [data-feed-card] .mock-cat-label { padding-left: 0.875rem; }
+
+/* T4 — iOS large titles that shrink into the bar on scroll. */
+html.mock-t4 .page-title-card {
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;
+}
+html.mock-t4 .page-title-card h1,
+html.mock-t4 [data-app-page-scroll] h1.text-page-title { font-size: 2.125rem !important; line-height: 1.1 !important; }
+html.mock-t4.mock-scrolled .page-title-card {
+  padding-top: 0.15rem !important;
+  padding-bottom: 0.15rem !important;
+  background-color: hsl(var(--background) / 0.88) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  border-radius: 0 !important;
+  border-bottom: 0.5px solid hsl(var(--border)) !important;
+}
+html.mock-t4.mock-scrolled .page-title-card h1 { font-size: 1.0625rem !important; }
+@media (prefers-reduced-motion: no-preference) {
+  html.mock-t4 .page-title-card, html.mock-t4 .page-title-card h1 { transition: font-size 0.22s ease, padding 0.22s ease, background-color 0.22s ease; }
+}
+.mock-compact-bar {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 60;
+  padding-top: var(--safe-area-top, 0px);
+  height: calc(44px + var(--safe-area-top, 0px));
+  display: flex; align-items: center; justify-content: center;
+  font: 600 17px/1 Montserrat, system-ui, sans-serif; letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background) / 0.88);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 0.5px solid hsl(var(--border));
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.mock-compact-bar.on { opacity: 1; }
+
+/* T5 — loading placeholders: a clearer grey shimmer on every skeleton bone. */
+html.mock-t5 [data-skeleton] { background-color: hsl(220 12% 91%) !important; }
+html.mock-t5 [data-skeleton]::after {
+  background-image: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.65), transparent) !important;
+  animation-duration: 1.3s !important;
+}
+html.mock-t5[data-theme="dark"] [data-skeleton] { background-color: hsl(0 0% 17%) !important; }
+html.mock-t5[data-theme="dark"] [data-skeleton]::after {
+  background-image: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.07), transparent) !important;
+}
+
+/* T6 — slide-up panels: bottom sheets glued to the bottom edge, grab handle. */
+.mock-bottom-sheet {
+  top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
+  margin: 0 auto !important; height: auto !important;
+  width: 100% !important; max-width: 40rem !important;
+  border-radius: 1.5rem 1.5rem 0 0 !important;
+  border-bottom-width: 0 !important;
+  padding-bottom: var(--safe-area-bottom, 0px) !important;
+  --tw-enter-scale: 1 !important; --tw-exit-scale: 1 !important;
+  --tw-enter-translate-y: 100% !important; --tw-exit-translate-y: 100% !important;
+  box-shadow: 0 -8px 30px -12px hsl(220 14% 20% / 0.25) !important;
+}
+.mock-grab-handle {
+  width: 36px; height: 5px; border-radius: 3px; flex-shrink: 0;
+  margin: 8px auto 2px;
+  background: hsl(var(--muted-foreground) / 0.35);
+}
+
+/* T7 — pill filter chips: one sideways-scrolling row, edge fade shows there is more. */
+html.mock-t7 [aria-label="Filter by category"],
+html.mock-t7 .mock-chip-row {
+  display: flex !important; flex-wrap: nowrap !important; gap: 0.5rem !important;
+  overflow-x: auto !important; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
+  mask-image: linear-gradient(to right, #000 88%, transparent);
+}
+html.mock-t7 [aria-label="Filter by category"] { border-bottom: 0 !important; padding-top: 0.25rem !important; padding-bottom: 0.5rem !important; }
+html.mock-t7 .mock-chip-row { background: transparent !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; }
+html.mock-t7 [aria-label="Filter by category"]::-webkit-scrollbar,
+html.mock-t7 .mock-chip-row::-webkit-scrollbar { display: none; }
+html.mock-t7 [aria-label="Filter by category"] > button,
+html.mock-t7 .mock-chip-row > button {
+  flex: 0 0 auto !important; border-radius: 9999px !important;
+  min-height: 36px; padding: 0 0.95rem !important; font-size: 0.875rem !important; font-weight: 600 !important;
+  border: 1px solid hsl(var(--border)) !important;
+  background: hsl(var(--card)) !important; background-image: none !important;
+  color: hsl(var(--foreground)) !important; box-shadow: none !important;
+}
+html.mock-t7 [aria-label="Filter by category"] > button[aria-pressed="true"],
+html.mock-t7 .mock-chip-row > button[aria-selected="true"] {
+  background: hsl(var(--bark)) !important; border-color: hsl(var(--bark)) !important;
+  color: hsl(var(--parchment)) !important;
+}
+
+/* T8 — press: cards and buttons dip to 97% under the finger (Reduce Motion: no movement). */
+@media (prefers-reduced-motion: no-preference) {
+  html.mock-t8 [data-feed-card], html.mock-t8 [data-activity-card], html.mock-t8 button {
+    transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1) !important;
+  }
+  html.mock-t8 [data-feed-card]:active, html.mock-t8 [data-activity-card]:active, html.mock-t8 button:active {
+    transform: scale(0.97) !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.mock-t8 button:active, html.mock-t8 [data-feed-card]:active, html.mock-t8 [data-activity-card]:active { transform: none !important; }
+}

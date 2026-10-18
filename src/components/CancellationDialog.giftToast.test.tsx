@@ -11,10 +11,17 @@
 // lh-money-escrow review of 39279d3e5, #2: the job's cost (budget + urgent
 // fee, redeem_gift_card's v_cost_cents) tells a gift that paid it all from one
 // a card topped up.
-// @mutate src/components/CancellationDialog.tsx | Math.round((jobBudget + (jobUrgentFee ?? 0)) * 100) | Math.round(jobBudget * 100)
+// @mutate src/lib/cancelRefundCopy.ts |   return Math.round((budget + (urgentFee ?? 0)) * 100) + | return Math.round(budget * 100) +
+// Q2082 (d): on a poster-fee job the gift pays the 5% + 70c first too, so the
+// fee is part of the cost (redeem_gift_card 20261018031451 v_cost_cents).
+// @mutate src/lib/cancelRefundCopy.ts |   const feeCents = stamped ? Math.round(Number(job?.customer_fee_amount ?? 0) * 100) : 0; |   const feeCents = 0;
+// @mutate src/components/CancellationDialog.tsx |       const costCents = giftCostCents(jobBudget, jobUrgentFee, posterFee); |       const costCents = giftCostCents(jobBudget, jobUrgentFee);
+// @mutate src/components/job-card/ActivityDialogs.tsx |           posterFee={props.cancelDialogJob}\n |
 // @mutate src/components/CancellationDialog.tsx | gift = giftOnJobFromRead(giftRows, giftErr, costCents); | gift = giftOnJobFromRead(giftRows, giftErr);
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const toastSuccess = vi.fn();
 let giftRead: { data: Array<{ status: string; amount?: number; payment_status?: string }> | null; error: unknown } = { data: [], error: null };
@@ -85,6 +92,24 @@ describe("CancellationDialog — a gift paid toward the job", () => {
     const t = await cancelAndReadToast({ jobUrgentFee: 20 });
     expect(t).toMatch(/^Job cancelled. Your card payment returns to your card, less .*, and your gift goes back to your gift balance within the hour\.$/);
     expect(t).not.toMatch(/No card was charged/);
+  });
+
+  it("a poster-fee job: a $100 gift on a $100 job + $5.70 fee did NOT pay it all, a card paid the fee (Q2082 d)", async () => {
+    giftRead = { data: [{ status: "redeemed", amount: 100, payment_status: "paid" }], error: null };
+    const posterFee = { poster_fee_flat_cents: 70, customer_fee_amount: 5.7 };
+    const t = await cancelAndReadToast({ posterFee } as Partial<typeof props>);
+    expect(t).toMatch(/^Job cancelled. Your card payment returns to your card, less .*, and your gift goes back to your gift balance within the hour\.$/);
+    expect(t).not.toMatch(/No card was charged/);
+    toastSuccess.mockClear();
+    // A gift worth the job AND its fee paid it all.
+    giftRead = { data: [{ status: "redeemed", amount: 105.7, payment_status: "paid" }], error: null };
+    const t2 = await cancelAndReadToast({ posterFee } as Partial<typeof props>);
+    expect(t2).toBe("Job cancelled. Your gift goes back to your gift balance within the hour. No card was charged.");
+  });
+
+  it("the activity screen passes the job's poster-fee stamp and fee to the dialog (Q2082 d)", () => {
+    const src = readFileSync(resolve(process.cwd(), "src/components/job-card/ActivityDialogs.tsx"), "utf8");
+    expect(src).toContain("          posterFee={props.cancelDialogJob}\n");
   });
 
   it("the cost not passed: a spent gift claims neither 'no card' nor a card split", async () => {

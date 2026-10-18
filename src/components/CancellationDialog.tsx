@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { cancellationHelperShare } from "@/lib/cancellationHelperShare";
 import { isFlatFeeJob, type FlatFeeStamp } from "@/lib/helprFlatFee";
-import { cancelRefundToast, cardShareCentsFromRead, giftOnJobFromRead } from "@/lib/cancelRefundCopy";
+import { cancelRefundToast, cardShareCentsFromRead, giftCostCents, giftOnJobFromRead } from "@/lib/cancelRefundCopy";
 // The ladder this dialog quotes IS the ladder Community Rules publishes —
 // read the same two constants CommunitySection does rather than restating
 // "25"/"50" as prose.
@@ -75,12 +75,16 @@ type CancellationDialogProps = {
   /** The job's fee-model stamp (jobs.helper_fee_flat_cents / helper_fee_percent).
    *  A flat-model job's Helpr pays 5% + 70c on the fee, not a tier percent (Q1839). */
   feeStamp?: FlatFeeStamp | null;
+  /** The poster-fee stamp and the fee it charged (jobs.poster_fee_flat_cents,
+   *  customer_fee_amount). On a poster-fee job a gift pays the 5% + 70c first
+   *  too, so it is part of the cost the toast compares the gift with (Q2082 (d)). */
+  posterFee?: { poster_fee_flat_cents?: number | string | null; customer_fee_amount?: number | string | null } | null;
   open: boolean;
   onClose: () => void;
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, jobUrgentFee, hasHelper, wasFunded, helperId: _helperId, helperName, crew, setupFeeKept, feeStamp, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, jobUrgentFee, hasHelper, wasFunded, helperId: _helperId, helperName, crew, setupFeeKept, feeStamp, posterFee, open, onClose, onCancelled }: CancellationDialogProps) => {
   // Q1674: the sentence both the policy text and the toast add for a first job.
   const keptFee = wasFunded && typeof setupFeeKept === "number" && setupFeeKept > 0 ? setupFeeKept : 0;
   const keptFeeSentence = keptFee > 0
@@ -276,7 +280,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
       // A failed read says "unknown" and the toast stays neutral.
       let gift: ReturnType<typeof giftOnJobFromRead> = "unknown";
       let cardShareCents: number | null = null;
-      const costCents = jobUrgentFee === undefined ? null : Math.round((jobBudget + (jobUrgentFee ?? 0)) * 100);
+      const costCents = giftCostCents(jobBudget, jobUrgentFee, posterFee);
       try {
         const { data: giftRows, error: giftErr } = await supabase
           .from("gift_cards")

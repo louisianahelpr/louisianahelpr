@@ -93,7 +93,7 @@ const ExceptionQueueInner = () => {
       // leaves behind reads "No open exceptions — Nothing is waiting on a
       // decision right now" forever, which is the opposite of the truth on a
       // COMPLIANCE queue. Throwing flips isError so the surface says so.
-      // No "not deployed yet" branch (Q?admin-badge-not-deployed): the table
+      // No "not deployed yet" branch (Q2086): the table
       // has been on prod for months, so a missing table or column is a real
       // failure; the old message test also swallowed a dropped column.
       const baseRows = unwrap(result) ?? [];

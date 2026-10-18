@@ -55,7 +55,7 @@ export interface StalledQueueRow {
  * because "no stuck jobs" and "I could not ask" are opposite answers on a
  * screen about held escrow.
  *
- * Q?admin-badge-not-deployed: ONLY PostgREST's PGRST202 with no hint. It used
+ * Q2086: ONLY PostgREST's PGRST202 with no hint. It used
  * to accept 42883, PGRST203 and any message saying "does not exist" or "schema
  * cache", so an error raised INSIDE the RPC (a dropped column, 42703; a dropped
  * table, 42P01; a missing helper function, 42883) read as "not deployed yet".

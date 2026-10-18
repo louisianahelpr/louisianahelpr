@@ -124,7 +124,7 @@ const BanReviewInner = () => {
       // "No accounts awaiting review", which is the same screen as a genuinely
       // empty queue — an outage read as an all-clear on the surface that
       // decides whether someone stays banned. No "not deployed yet" branch
-      // either (Q?admin-badge-not-deployed): user_violations has been on prod
+      // either (Q2086): user_violations has been on prod
       // for months, so a missing table or column here is a real failure, and
       // the old message test ("does not exist") also swallowed a dropped column.
       const pending = (unwrap(result) ?? []) as ViolationRow[];

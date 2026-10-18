@@ -81,8 +81,9 @@ describe("prod-seed repairs existing seed jobs past the 5-open-job cap (Q1816 va
     const src = blankComments(readFileSync(join(__dirname, "..", "..", "scripts/audit/prod-seed.mjs"), "utf8"));
     expect(src).toMatch(/import \{ upsertJobsPastOpenJobCap \} from "\.\/openJobCapFallback\.mjs";/);
     expect(src).toMatch(/table === "jobs" && onConflict === "id" \? await upsertJobsPastOpenJobCap\(chunk,/);
-    // Every jobs write in the script is an upsert("jobs", ...) call, so it is covered. Floor: the two known callers.
+    // Every jobs write in the script is an upsert("jobs", ...) call, so it is covered. Floor: the one known
+    // caller on main as of 2026-10-18 (it had two when this guard was written).
     const callers = src.match(/\bupsert\("jobs",/g) ?? [];
-    expect(callers.length).toBeGreaterThan(1);
+    expect(callers.length).toBeGreaterThan(0);
   });
 });

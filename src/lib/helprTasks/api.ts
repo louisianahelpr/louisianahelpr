@@ -157,6 +157,8 @@ export async function markDelivered(
   photoPath: string | null,
   where: { lat: number; lng: number } | null,
 ): Promise<DeliveredResult> {
+  // nullable-arg: p_code is always NULL now that drop-offs have no code (20261018184535 ignores it);
+  // p_photo_path, p_lat and p_lng take NULL when there is no photo or no location.
   return data<DeliveredResult>(await supabase.rpc("helpr_task_delivered", {
     p_task_id: taskId,
     p_photo_path: photoPath as string,

@@ -84,7 +84,7 @@ For glyph badges (used in editorial empty states + dialog headers):
 
 Reference implementations: `ReportDialog.tsx`, `SavedSearches.tsx`,
 `PermissionRationaleDialog.tsx`, the empty states in
-`Activity.tsx` / `SavedHelpersTab.tsx` / `EarningsTab.tsx`.
+`JobsPage.tsx` / `PostsPage.tsx` / `SavedHelpersTab.tsx` / `EarningsTab.tsx`.
 
 ## Dialog rules
 
@@ -237,13 +237,13 @@ Cross-session protocol when authorizing prod-touching work:
 
 ## Reading the codebase
 
-- `src/pages/` — top-level routes (Dashboard, Activity, Profile,
+- `src/pages/` — top-level routes (Dashboard, Jobs, Posts, Profile,
   Messages, Post, Login, Signup, etc.)
 - `src/components/` — shared UI; many are domain-named
   (`JobCard`, `MobileNav`, `AppShell`)
 - `src/components/ui/` — shadcn primitives (Dialog, Button,
   Input). **Edit with care** — every dialog inherits from
-  `Dialog.tsx`.
+  `dialog.tsx`.
 - `src/components/dashboard/` — Dashboard-only chrome
   (`JobFilters`, `JobDetailDialog`, `JobCard`)
 - `src/components/profile/` — Profile tab components

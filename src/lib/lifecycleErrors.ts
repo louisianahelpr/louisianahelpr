@@ -1139,8 +1139,6 @@ export const RPC_ERROR_COPY = {
     tenancy_not_found: RC.tenancy_not_found,
   },
   rentals_correct_rent_payment: {
-  // Homes deposit tracker, track only (20261019082216).
-  rentals_set_deposit: {
     account_restricted: RC.account_restricted,
     feature_disabled: RC.feature_disabled,
     not_authenticated: RC.not_authenticated,
@@ -1151,11 +1149,6 @@ export const RPC_ERROR_COPY = {
     reason_required: "Write why (3 to 300 characters). Your tenant will see it.",
   },
   rentals_dispute_rent_payment: {
-    tenancy_not_found: RC.tenancy_not_found,
-    bad_deposit: RC.bad_deposit,
-    deposit_settled: RC.deposit_settled,
-  },
-  rentals_set_forwarding_address: {
     account_restricted: RC.account_restricted,
     feature_disabled: RC.feature_disabled,
     not_authenticated: RC.not_authenticated,
@@ -1163,9 +1156,26 @@ export const RPC_ERROR_COPY = {
     payment_not_found: RC.payment_not_found,
     payment_not_disputable: RC.payment_not_disputable,
     reason_required: "Write why (3 to 300 characters). Your landlord will see it.",
+  },
+  // Homes deposit tracker, track only (20261019082216).
+  rentals_set_deposit: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    under_18: RC.under_18,
+    tenancy_not_found: RC.tenancy_not_found,
+    bad_deposit: RC.bad_deposit,
+    deposit_settled: RC.deposit_settled,
+    deposit_already_recorded: RC.deposit_already_recorded,
+  },
+  rentals_set_forwarding_address: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    under_18: RC.under_18,
     tenancy_not_found: RC.tenancy_not_found,
     bad_address: RC.bad_address,
-    deposit_not_found: "Your landlord hasn't recorded a deposit yet, or it was already settled.",
+    deposit_settled: "This deposit was already settled, so the address can't change.",
   },
   rentals_settle_deposit: {
     account_restricted: RC.account_restricted,

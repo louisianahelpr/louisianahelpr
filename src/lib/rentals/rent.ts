@@ -261,11 +261,17 @@ export interface DepositDeduction {
 export interface DepositRecord {
   side: "tenant" | "landlord";
   tenancy_status: "active" | "ended";
+  ended_by: "tenant" | "landlord" | null;
+  lease_ends_on: string | null;
+  /** The landlord may still record it (live, or ended within 30 days with none recorded). */
+  can_record: boolean;
+  /** The tenant's own always; the landlord's only once the tenant ended it or the lease end date passed. */
+  forwarding_address: string | null;
+  has_forwarding_address: boolean;
+  address_visible_to_landlord: boolean;
   deposit: {
     amount_cents: number;
     received_on: string;
-    forwarding_address: string | null;
-    has_forwarding_address: boolean;
     return_by: string | null;
     returned_cents: number | null;
     deductions: DepositDeduction[];
@@ -278,7 +284,25 @@ export async function fetchDeposit(tenancyId: string): Promise<DepositRecord> {
   const { data, error } = await supabase.rpc("rentals_deposit", { p_tenancy_id: tenancyId });
   if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_deposit", error), error);
   const d = (data ?? {}) as unknown as Partial<DepositRecord>;
-  return { side: d.side === "landlord" ? "landlord" : "tenant", tenancy_status: d.tenancy_status === "ended" ? "ended" : "active", deposit: d.deposit ?? null };
+  return {
+    side: d.side === "landlord" ? "landlord" : "tenant",
+    tenancy_status: d.tenancy_status === "ended" ? "ended" : "active",
+    ended_by: d.ended_by ?? null,
+    lease_ends_on: d.lease_ends_on ?? null,
+    can_record: d.can_record ?? false,
+    forwarding_address: d.forwarding_address ?? null,
+    has_forwarding_address: d.has_forwarding_address ?? false,
+    address_visible_to_landlord: d.address_visible_to_landlord ?? false,
+    deposit: d.deposit ?? null,
+  };
+}
+
+/** What the tenant is told about who sees their forwarding address (lead review #4). */
+export function addressShareLine(r: DepositRecord): string {
+  if (r.address_visible_to_landlord) return "Your landlord can see this address.";
+  if (r.tenancy_status === "ended" && r.lease_ends_on) return `Your landlord sees it on ${dayLabel(r.lease_ends_on)}, when the lease ends.`;
+  if (r.lease_ends_on) return `Your landlord sees it once you end the tenancy here, or after the lease ends ${dayLabel(r.lease_ends_on)}.`;
+  return "Your landlord sees it once you end the tenancy here.";
 }
 
 export async function setDeposit(tenancyId: string, amountCents: number, receivedOn: string): Promise<void> {

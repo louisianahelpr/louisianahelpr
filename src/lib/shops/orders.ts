@@ -12,6 +12,7 @@ import { assertNever } from "@/lib/assertNever";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 
 export type CancelPolicy = "until_24h_before_ready" | "until_accept" | "until_handover";
@@ -253,7 +254,7 @@ export interface CancelQuote {
 export async function fetchCancelQuote(orderId: string): Promise<CancelQuote> {
   const { data, error } = await supabase.rpc("shops_order_cancel_quote", { p_order_id: orderId });
   // A brand-new RPC the database has not deployed yet (/code-review of shops-m3-v1 #8): say so, offer nothing.
-  if (error && (error as { code?: string }).code === "PGRST202") return { can_cancel: false, unavailable: true };
+  if (error && isMissingRpcNamed(error, "shops_order_cancel_quote")) return { can_cancel: false, unavailable: true };
   if (error) rpcFail(error, rpcErrorMessage("shops_order_cancel_quote", error));
   return (data ?? { can_cancel: false }) as unknown as CancelQuote;
 }
@@ -292,6 +293,16 @@ export async function adminRefundOrder(orderId: string, reason: AdminRefundReaso
  */
 export async function adminRecordHandRefund(orderId: string, refundId: string, amountCents: number, note: string): Promise<string> {
   const data = await invokeShopCheckout({ action: "admin_record_hand_refund", order_id: orderId, refund_id: refundId, amount_cents: amountCents, note });
+  return typeof data.result === "string" ? data.result : "";
+}
+
+/**
+ * Settle a HELD Shops refund with a refund made in Stripe (admin, Payouts held for review;
+ * /code-review of shops-m3 run 3). shop-checkout reads the refund from Stripe and settles the
+ * row only when it is live, on the row's payment, and covers the whole refund it owes.
+ */
+export async function adminSettleHeldShopRefund(refundRowId: string, refundId: string, note: string): Promise<string> {
+  const data = await invokeShopCheckout({ action: "admin_settle_held_refund", refund_row_id: refundRowId, refund_id: refundId, note });
   return typeof data.result === "string" ? data.result : "";
 }
 

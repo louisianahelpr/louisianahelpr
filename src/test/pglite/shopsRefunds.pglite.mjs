@@ -27,6 +27,8 @@ const M1 = readFileSync(`${MIG_DIR}20261018164442_shops_orders_checkout.sql`, "u
 const M1_STRIKES = readFileSync(`${MIG_DIR}20261018164444_shops_own_strike_count.sql`, "utf8");
 const M2 = readFileSync(`${MIG_DIR}20261018211820_shops_handover_payout.sql`, "utf8");
 const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261019071055_shops_refunds_cancels_strikes.sql`, "utf8");
+// The readiness held-for-review admin tools taught the Shops refund (run 3), applied after it.
+const HELD_TOOLS = readFileSync(process.env.HELD_TOOLS_PATH ?? `${MIG_DIR}20261019112103_shops_held_for_review_admin_tools.sql`, "utf8");
 const FREE_CANCEL = readFileSync(`${MIG_DIR}20261019013802_shop_free_cancel_ready_tap_day_before.sql`, "utf8");
 const READY_TAP = readFileSync(`${MIG_DIR}20261019015018_shop_ready_tap_cancel_choice.sql`, "utf8");
 const SLICE1 = readFileSync(`${MIG_DIR}20261017061155_shops_profiles.sql`, "utf8");
@@ -233,6 +235,7 @@ CREATE TABLE public.error_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), s
 const skip = process.env.NEW_MIGRATION === "skip";
 if (!skip) {
   for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
+  for (let i = 0; i < 3; i++) await db.exec(HELD_TOOLS);
 }
 
 async function as(role, uid, sql) {
@@ -674,12 +677,15 @@ ok(one(await svc(`SELECT public.shop_hand_refund_failed('re_hand4')`)) === "mark
   && one(await svc(`SELECT public.shop_hand_refund_failed('re_unknown')`)) === "not_shops", "a hand refund Stripe failed later stops counting, once");
 
 // --- 11d. the readiness held-for-review admin tools know a held Shops refund (kind 'shop_refund'),
-//      and never release a Shops row the queues would not send (section 14).
+//      never release a Shops row the queues would not send, and settle it by Stripe id only
+//      through the Stripe-checked service path (20261019112103 + section 13; /code-review of run 3).
 const heldList = async () => one(await member(ADMIN, `SELECT public.admin_payouts_held_for_review()`)) ?? [];
 const release = (uid, kind, id, confirm = true) =>
   member(uid, `SELECT public.admin_payout_release('${kind}', '${id}', 'checked Stripe', ${confirm})`);
 const settle = (uid, kind, id, ref, cents, note = "settled after checking Stripe") =>
   member(uid, `SELECT public.admin_payout_settle_by_hand('${kind}', '${id}', '${ref}', ${cents}, '${note}')`);
+const settleStripe = (uid, id, re, cents, note = "the Dashboard refund covers it") =>
+  svc(`SELECT public.shops_admin_settle_held_refund(${uid ? `'${uid}'` : "NULL"}, '${id}', '${re}', ${cents}, '${note}') AS r`);
 // A buyer's free cancel writes the refund row (no strike for anyone, so the shop stays open for the rest).
 const cancelledFree = async (day) => {
   const id = await chargedTax(BUYER, lines([itemA, 1]), day, 0, 50);
@@ -697,46 +703,64 @@ ok(refused(await member(OWNER, `SELECT public.admin_payouts_held_for_review()`),
 ok(refused(await release(ADMIN, "shop_refund", s1.id, false), /confirm_no_transfer_required/, "22023"), "release always needs the confirmation");
 ok(refused(await release(ADMIN, "shop_refund", s1.id), /refunded_in_stripe/, "55000") && (await refund(oS1)).status === "held_for_review",
   "a held Shops refund is never released while a refund made in Stripe stands on its order");
-// b) settle by hand: whole amount only, the global Stripe-id check, the ledger's refund adopted
-ok(refused(await settle(ADMIN, "shop_refund", s1.id, "re_s1", s1.refund_cents - 1), /settle_amount_differs/, "22023")
-  && refused(await settle(ADMIN, "shop_refund", s1.id, "re_s1", s1.refund_cents + 1), /settle_amount_differs/, "22023"),
+// b) the client RPC settles a Shops refund only by "other: ..." for its whole amount; a Stripe id goes through the checked path
+ok(refused(await settle(ADMIN, "shop_refund", s1.id, "re_s1", s1.refund_cents), /stripe_check_required/, "22023"),
+  "the client RPC never takes a Stripe id for a Shops refund (it must be checked with Stripe first)");
+ok(refused(await settle(ADMIN, "shop_refund", s1.id, "other: paid back in cash", s1.refund_cents - 1), /settle_amount_differs/, "22023")
+  && refused(await settle(ADMIN, "shop_refund", s1.id, "other: paid back in cash", s1.refund_cents + 1), /settle_amount_differs/, "22023"),
   "a Shops refund settles only for its whole amount");
-ok(refused(await settle(ADMIN, "shop_refund", s1.id, "tr_s1", s1.refund_cents), /invalid_stripe_ref/, "22023"), "a refund settles with a refund id, never a transfer");
-ok(refused(await settle(ADMIN, "shop_refund", s1.id, "re_app3c", s1.refund_cents), /ref_already_used/, "23505")
-  && refused(await settle(ADMIN, "shop_refund", s1.id, "re_hand2", s1.refund_cents), /ref_already_used/, "23505"),
-  "a refund id any other money row holds (another order's app refund, another order's hand refund) is refused");
-ok(refused(await settle(OWNER, "shop_refund", s1.id, "re_s1", s1.refund_cents), /admin_only/, "42501"), "only an admin settles");
-const s1Done = one(await settle(ADMIN, "shop_refund", s1.id, "re_s1", s1.refund_cents));
+ok(refused(await settleStripe(OWNER, s1.id, "re_s1", s1.refund_cents), /admin_only/, "42501") && refused(await settleStripe(null, s1.id, "re_s1", s1.refund_cents), /admin_only/, "42501"),
+  "only an admin's id settles through the checked path");
+ok(refused(await settleStripe(ADMIN, s1.id, "re_app3c", s1.refund_cents), /ref_already_used/, "23505")
+  && refused(await settleStripe(ADMIN, s1.id, "re_hand2", s1.refund_cents), /ref_already_used/, "23505")
+  && refused(await settleStripe(ADMIN, s1.id, "tr_s1", s1.refund_cents), /invalid_stripe_ref/, "22023"),
+  "the global Stripe-id check: another order's app refund or hand refund is refused; a transfer id is not a refund");
+ok(refused(await settleStripe(ADMIN, s1.id, "re_s1", s1.refund_cents - 1), /hand_refund_short/, "22023"), "a Stripe refund short of what the row owes never settles it");
+const s1Done = one(await settleStripe(ADMIN, s1.id, "re_s1", s1.refund_cents));
 const s1After = await refund(oS1);
 ok(!skip && s1Done?.result === "settled" && s1Done.adopted_hand_refund === true && s1After.status === "succeeded" && s1After.stripe_refund_id === "re_s1"
   && s1After.settled_by_hand_cents === s1.refund_cents
   && one(await svc(`SELECT outcome FROM public.shop_hand_refunds WHERE stripe_refund_id = 're_s1' AND shop_refund_id = '${s1.id}'`)) === "settled"
   && Number(one(await svc(`SELECT count(*) FROM public.payout_settlements WHERE row_kind = 'shop_refund' AND row_id = '${s1.id}' AND stripe_ref = 're_s1'`))) === 1
-  && Number(one(await svc(`SELECT count(*) FROM public.admin_audit_log WHERE action = 'admin_payout_settle_by_hand' AND target_id = '${s1.id}'`))) === 1,
+  && Number(one(await svc(`SELECT count(*) FROM public.admin_audit_log WHERE action = 'shops_admin_settle_held_refund' AND target_id = '${s1.id}'`))) === 1,
   "settled with the refund made in Stripe on its own payment: adopted, succeeded with that id, in the settle ledger, audited");
-ok(refused(await settle(ADMIN, "shop_refund", s1.id, "re_s1", s1.refund_cents), /not_held_for_review/, "55000"), "settled once");
-// c) a refund made in Stripe that is SHORT of what the row owes is not adopted; "other:" records the rest
+ok(refused(await settleStripe(ADMIN, s1.id, "re_s1", s1.refund_cents), /not_held_for_review/, "55000"), "settled once");
+ok(!skip && one(await svc(`SELECT public.shop_order_unaccounted_hand_refund('${oS1}')`)) === false,
+  "a hand refund settled as the order's own refund is accounted for (it no longer blocks the order)");
+// c) "other: ..." settles it by hand; the table refuses part of it
 const oS2 = await cancelledFree(D5);
 const s2 = await refund(oS2);
 await hand(await pi(oS2), "re_s2", s2.refund_cents - 100);
-ok(refused(await settle(ADMIN, "shop_refund", s2.id, "re_s2", s2.refund_cents), /hand_refund_short/, "22023") && (await refund(oS2)).status === "held_for_review",
-  "a short refund made in Stripe never settles the whole refund");
 const s2Done = one(await settle(ADMIN, "shop_refund", s2.id, "other: re_s2 plus re_s2b for the rest", s2.refund_cents));
 ok(!skip && s2Done?.status === "settled_by_hand" && (await refund(oS2)).status === "settled_by_hand" && !(await refund(oS2)).stripe_refund_id
   && Number(one(await svc(`SELECT count(*) FROM public.payout_settlements WHERE row_id = '${s2.id}' AND off_stripe_note LIKE 're_s2 plus%'`))) === 1,
   "\"other: ...\" settles it by hand, recorded by its note");
 ok(refused(await svc(`UPDATE public.shop_refunds SET settled_by_hand_cents = refund_cents - 1 WHERE id = '${s2.id}'`), /shop_refunds_settled_in_full/),
   "the table refuses a settle for part of the refund (CHECK)");
-// d) a refund id the ledger did not know is recorded in it, so its later failure is routed like any other
-const oS3 = await cancelledFree(D5);
+// d) a refund id the ledger did not know is recorded in it (and the order held); its later FAILURE reopens the settled row
+const oS3 = await chargedTax(BUYER, lines([itemA, 1]), D2, 0, 50);
+await member(BUYER, `SELECT public.shops_confirm_pickup('${oS3}')`);
+await svc(`INSERT INTO public.shop_refunds (order_id, stripe_payment_intent_id, reason, fee_policy, paid_cents, tax_cents, card_fee_cents,
+  kept_cents, tax_kept_cents, refund_cents, status, review_reason)
+  SELECT o.id, o.stripe_payment_intent_id, 'problem_our_mistake', 'full_platform_absorbs', o.total_cents, o.tax_cents, 50, 0, 0, o.total_cents,
+         'held_for_review', 'setup' FROM public.shop_orders o WHERE o.id = '${oS3}'`);
 const s3 = await refund(oS3);
-await hand(await pi(oS3), "re_s3", s3.refund_cents);
-const s3Done = one(await settle(ADMIN, "shop_refund", s3.id, "re_s3new", s3.refund_cents));
+ok(!skip && s3 && (await payout(oS3))?.status === "pending", "setup: a held app refund on an order whose shop payout is still pending");
+const s3Done = one(await settleStripe(ADMIN, s3.id, "re_s3new", s3.refund_cents + 5));
 ok(!skip && s3Done?.adopted_hand_refund === false && (await refund(oS3)).stripe_refund_id === "re_s3new"
-  && one(await svc(`SELECT recorded_how || ':' || shop_refund_id FROM public.shop_hand_refunds WHERE stripe_refund_id = 're_s3new'`)) === `admin:${s3.id}`
-  && one(await svc(`SELECT public.shop_hand_refund_failed('re_s3new')`)) === "marked_failed",
-  "a new refund id goes into the hand-refund ledger (linked to the row), so a later failure reaches shop_hand_refund_failed");
-// e) once the refund made in Stripe FAILED, the held app refund may go back to the queue (with the confirmation); ops paged daily, buyer not told
+  && one(await svc(`SELECT recorded_how || ':' || shop_refund_id || ':' || outcome FROM public.shop_hand_refunds WHERE stripe_refund_id = 're_s3new'`)) === `admin:${s3.id}:settled`
+  && (await payout(oS3))?.status === "held_for_review",
+  "a new refund id goes into the hand-refund ledger (settled, linked) and the order's pending payout is held, never silently skipped");
+const p3 = await payout(oS3);
+ok(!skip && one(await release(ADMIN, "shop", p3.id))?.result === "released" && (await payout(oS3)).status === "pending",
+  "a settled (accounted) hand refund does not block releasing the shop payout");
+await svc(`UPDATE public.shop_payouts SET status = 'held_for_review' WHERE id = '${p3.id}'`);
+ok(!skip && one(await svc(`SELECT public.shop_hand_refund_failed('re_s3new')`)) === "reopened_held"
+  && (await refund(oS3)).status === "held_for_review" && !(await refund(oS3)).stripe_refund_id && (await refund(oS3)).settled_by_hand_cents === null
+  && /FAILED/.test((await refund(oS3)).review_reason ?? ""),
+  "when Stripe fails the refund that settled the row, the row is REOPENED to held for review (the buyer is owed it again)");
+ok(!skip && one(await svc(`SELECT public.shop_hand_refund_failed('re_s3new')`)) === "already", "and only once");
+// e) once the refund made in Stripe FAILED, the held app refund may go back to the queue with a fresh run of tries; ops paged daily, buyer not told
 const oS4 = await cancelledFree(D5);
 const s4 = await refund(oS4);
 await hand(await pi(oS4), "re_s4", 300);
@@ -746,11 +770,12 @@ ok(!skip && Number(one(await svc(`SELECT count(*) FROM public.error_logs WHERE t
   && await notes(BUYER, "Your refund needs a quick review") === buyerNotes && (await refund(oS4)).held_notified_at !== null,
   "a held Shops refund is paged to ops daily; the buyer (already refunded in Stripe) is not told it needs review");
 await svc(`SELECT public.shop_hand_refund_failed('re_s4')`);
-ok(refused(await settle(ADMIN, "shop_refund", s4.id, "re_s4", s4.refund_cents), /ref_already_used/, "23505"),
+ok(refused(await settleStripe(ADMIN, s4.id, "re_s4", s4.refund_cents), /ref_already_used/, "23505"),
   "a refund made in Stripe that FAILED is never adopted to settle a row");
-ok(!skip && one(await release(ADMIN, "shop_refund", s4.id))?.result === "released" && (await refund(oS4)).status === "pending"
+await svc(`UPDATE public.shop_refunds SET attempts = 12 WHERE id = '${s4.id}'`);
+ok(!skip && one(await release(ADMIN, "shop_refund", s4.id))?.result === "released" && (await refund(oS4)).status === "pending" && (await refund(oS4)).attempts === 0
   && Number(one(await svc(`SELECT count(*) FROM public.admin_audit_log WHERE action = 'admin_payout_release' AND target_id = '${s4.id}'`))) === 1,
-  "with the Stripe refund failed, an admin releases the held app refund");
+  "with the Stripe refund failed, an admin releases the held app refund, with a fresh run of tries (attempts 0)");
 await svc(`UPDATE public.shop_refunds SET created_at = now() - interval '5 minutes' WHERE id = '${s4.id}'`);
 ok(!skip && (await svc(`SELECT refund_id FROM public.shop_refunds_due(50)`)).some((r) => r.refund_id === s4.id), "and the queue sends it");
 // f) a held SHOP PAYOUT on a hand-refunded order stays held: release refused; the admin settles it by hand
@@ -763,17 +788,33 @@ ok(refused(await release(ADMIN, "shop", p2.id), /refunded_in_stripe/, "55000") &
   "nor once that refund failed: the order was closed by it (refunded_by_hand), so no queue would ever send it");
 ok(!skip && one(await settle(ADMIN, "shop", p2.id, "tr_soh2", p2.amount_cents))?.status === "succeeded" && (await payout(oH2)).stripe_transfer_id === "tr_soh2",
   "the admin decides it by hand (settled with the transfer they made)");
-// g) a held shop payout on an order with an open problem is not payable automatically; released once it is
+// g) a held shop payout the queue would skip (open problem) is not released; released once payable, with a fresh run of tries
 const oS5 = await chargedTax(BUYER, lines([itemA, 1]), D2, 0, 50);
 await member(BUYER, `SELECT public.shops_confirm_pickup('${oS5}')`);
 const p5 = await payout(oS5);
-await svc(`UPDATE public.shop_payouts SET status = 'held_for_review', review_reason = 'payee_deleted' WHERE id = '${p5.id}'`);
+await svc(`UPDATE public.shop_payouts SET status = 'held_for_review', review_reason = 'payee_deleted', attempts = 12 WHERE id = '${p5.id}'`);
 await svc(`UPDATE public.shop_handovers SET problem_at = now(), problem_note = 'The jar was cracked' WHERE order_id = '${oS5}'`);
-ok(!skip && p5 && refused(await release(ADMIN, "shop", p5.id), /order_not_payable/, "55000"), "a held shop payout the queue would skip (open problem) is not released");
+ok(!skip && p5 && refused(await release(ADMIN, "shop", p5.id), /shop_payout_not_due/, "55000"), "a held shop payout the queue would skip (open problem) is not released");
 await svc(`UPDATE public.shop_handovers SET problem_at = NULL, problem_note = NULL WHERE order_id = '${oS5}'`);
-ok(!skip && one(await release(ADMIN, "shop", p5.id))?.result === "released" && (await payout(oS5)).status === "pending"
+ok(!skip && one(await release(ADMIN, "shop", p5.id))?.result === "released" && (await payout(oS5)).status === "pending" && (await payout(oS5)).attempts === 0
   && (await svc(`SELECT order_id FROM public.shop_payouts_due(50)`)).some((r) => r.order_id === oS5),
-  "a payable held shop payout is released and due again");
+  "a payable held shop payout is released (attempts 0) and due again");
+// h) the newest readiness rule survives the restatement (lead, train12): a Declutter refund settled short is refused
+await svc(`INSERT INTO public.declutter_refunds (id, order_id, stripe_payment_intent_id, refund_cents, status)
+  VALUES ('0000000d-0000-4000-8000-000000000001', gen_random_uuid(), 'pi_dshort', 1000, 'held_for_review')`);
+ok(refused(await settle(ADMIN, "declutter_refund", "0000000d-0000-4000-8000-000000000001", "re_dshort", 900), /settle_amount_short/, "22023"),
+  "a Declutter refund is still never settled 'succeeded' for less than it owes (settle_amount_short kept)");
+// i) one lock order (run-3 review #7): the order row before the refund / payout / hand-refund rows, in every Shops body
+const lockOrder = async (sig, first, then) => {
+  const b = await bodyOf(sig);
+  const i = b.indexOf(first), k = b.indexOf(then);
+  return i > 0 && k > i;
+};
+ok(!skip && await lockOrder("shop_hand_refund_failed(text)", "FROM public.shop_orders WHERE id = v_order FOR UPDATE", "FROM public.shop_hand_refunds WHERE stripe_refund_id = p_stripe_refund_id FOR UPDATE")
+  && await lockOrder("shops_admin_settle_held_refund(uuid, uuid, text, integer, text)", "FROM public.shop_orders WHERE id = v_order FOR UPDATE", "FROM public.shop_refunds WHERE id = p_refund_id FOR UPDATE")
+  && await lockOrder("admin_payout_release(text, uuid, text, boolean)", "FROM public.shop_orders WHERE id = v_order FOR UPDATE", "FROM public.shop_payouts WHERE id = p_id FOR UPDATE")
+  && await lockOrder("admin_payout_settle_by_hand(text, uuid, text, integer, text)", "FROM public.shop_orders WHERE id = v_order FOR UPDATE", "FROM public.shop_refunds WHERE id = p_id FOR UPDATE"),
+  "every Shops path locks the order row before the refund / payout / hand-refund rows");
 
 // --- 12. grants: service steps closed to members, member RPCs closed to anon
 const can = async (role, fn) => one(await svc(`SELECT has_function_privilege('${role}', 'public.${fn}', 'EXECUTE')`));
@@ -783,7 +824,8 @@ for (const fn of ["shop_write_refund(uuid, text, text)", "shop_owe_shop(uuid)", 
   "shop_refund_sweep()", "shop_payouts_due(integer)", "shop_refund_reversed(uuid, text)",
   "shop_refund_amounts(uuid, text)", "shop_refund_fee_policy(text)", "shop_refund_tax_kept(integer, integer, integer)",
   "shop_record_hand_refund(text, text, integer, boolean, text, uuid, text)", "shop_hand_refund_failed(text)",
-  "shop_hold_order_for_hand_refund(uuid, text)", "shops_admin_record_hand_refund(uuid, uuid, text, integer, text)"]) {
+  "shop_hold_order_for_hand_refund(uuid, text)", "shops_admin_record_hand_refund(uuid, uuid, text, integer, text)",
+  "shop_order_unaccounted_hand_refund(uuid)", "shops_admin_settle_held_refund(uuid, uuid, text, integer, text)"]) {
   if (await can("authenticated", fn) || await can("anon", fn)) { closed = false; console.log(`  open to members: ${fn}`); }
 }
 ok(!skip && closed, "every service step is closed to members and anon");

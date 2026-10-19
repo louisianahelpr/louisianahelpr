@@ -244,6 +244,23 @@ DROP TRIGGER IF EXISTS trg_shop_hand_refunds_seed ON public.shop_hand_refunds;
 CREATE TRIGGER trg_shop_hand_refunds_seed BEFORE INSERT ON public.shop_hand_refunds
   FOR EACH ROW EXECUTE FUNCTION public.shop_money_rows_seed();
 
+-- THE one test "does a refund made in Stripe stand on this order that the app has not accounted
+-- for?" (/code-review of run 3 #6): a live one (Stripe has not failed it) that is not the order's
+-- own app refund settled by an admin (outcome 'settled'). Every queue, the order lock, the refund
+-- write and the admin release read it, so a settled hand refund no longer blocks the shop payout.
+CREATE OR REPLACE FUNCTION public.shop_order_unaccounted_hand_refund(p_order_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT EXISTS (SELECT 1 FROM public.shop_hand_refunds hr
+                  WHERE hr.order_id = p_order_id AND hr.failed_at IS NULL AND hr.outcome <> 'settled');
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_order_unaccounted_hand_refund(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shop_order_unaccounted_hand_refund(uuid) TO service_role;
+
 -- ---------------------------------------------------------------------------
 -- 3. Strikes: once per order, person and reason; each expires after a year (L45).
 CREATE UNIQUE INDEX IF NOT EXISTS shop_strikes_once ON public.shop_strikes (order_id, user_id, reason) WHERE order_id IS NOT NULL;
@@ -337,7 +354,7 @@ BEGIN
     RAISE EXCEPTION 'order_not_charged_yet' USING ERRCODE = '55000';
   END IF;
   -- Never an app refund on top of a refund made by hand in Stripe (section 13).
-  IF EXISTS (SELECT 1 FROM public.shop_hand_refunds hr WHERE hr.order_id = o.id AND hr.failed_at IS NULL) THEN
+  IF public.shop_order_unaccounted_hand_refund(o.id) THEN
     RAISE EXCEPTION 'refunded_in_stripe' USING ERRCODE = '55000';
   END IF;
   SELECT * INTO a FROM public.shop_refund_amounts(o.id, p_reason);
@@ -428,7 +445,7 @@ BEGIN
   END IF;
   -- A refund made by hand in Stripe stands on this order (section 13): nobody refunds or
   -- pays from it automatically; an admin decides through the held-for-review tools.
-  IF EXISTS (SELECT 1 FROM public.shop_hand_refunds hr WHERE hr.order_id = o.id AND hr.failed_at IS NULL) THEN
+  IF public.shop_order_unaccounted_hand_refund(o.id) THEN
     RAISE EXCEPTION 'refunded_in_stripe' USING ERRCODE = '55000',
       HINT = 'This order was refunded in Stripe. Louisiana Helpr decides it.';
   END IF;
@@ -742,7 +759,7 @@ AS $fn$
     FROM public.shop_refunds r
     JOIN public.shop_orders o ON o.id = r.order_id
    WHERE r.status IN ('pending', 'failed') AND r.next_attempt_at <= now() AND r.attempts < 12
-     AND NOT EXISTS (SELECT 1 FROM public.shop_hand_refunds hr WHERE hr.order_id = r.order_id AND hr.failed_at IS NULL)
+     AND NOT public.shop_order_unaccounted_hand_refund(r.order_id)
      -- The tap sends its own refund; the sweep only picks up one it did not finish.
      AND r.created_at <= now() - interval '2 minutes'
    ORDER BY r.next_attempt_at
@@ -765,7 +782,7 @@ AS $fn$
     FROM public.shop_refunds r
     JOIN public.shop_orders o ON o.id = r.order_id
    WHERE r.id = p_refund_id AND r.status IN ('pending', 'failed')
-     AND NOT EXISTS (SELECT 1 FROM public.shop_hand_refunds hr WHERE hr.order_id = r.order_id AND hr.failed_at IS NULL);
+     AND NOT public.shop_order_unaccounted_hand_refund(r.order_id);
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_refund_to_send(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_refund_to_send(uuid) TO service_role;
@@ -854,7 +871,7 @@ AS $fn$
      AND NOT EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = p.order_id AND h.problem_at IS NOT NULL
                        AND h.confirmed_how IS DISTINCT FROM 'admin')
      -- A charge refunded by hand in Stripe never pays the shop from here (section 13).
-     AND NOT EXISTS (SELECT 1 FROM public.shop_hand_refunds hr WHERE hr.order_id = p.order_id AND hr.failed_at IS NULL)
+     AND NOT public.shop_order_unaccounted_hand_refund(p.order_id)
    ORDER BY p.next_attempt_at
    LIMIT least(greatest(COALESCE(p_limit, 20), 1), 100);
 $fn$;
@@ -1361,10 +1378,13 @@ REVOKE ALL ON FUNCTION public.shops_admin_record_hand_refund(uuid, uuid, text, i
 GRANT EXECUTE ON FUNCTION public.shops_admin_record_hand_refund(uuid, uuid, text, integer, text) TO service_role;
 
 -- charge.refund.updated: a hand refund Stripe later failed / canceled moved no
--- money. It is marked failed, the order STAYS held (nothing reopens or sends on its
--- own: rule A of the v2 review), and the caller pages ops: the buyer is NOT repaid
--- and a person decides. 'not_shops' when no hand refund has this id; 'already'
--- when it was marked before.
+-- money. It is marked failed, the order STAYS held (nothing sends on its own: rule
+-- A of the v2 review), and the caller pages ops: the buyer is NOT repaid and a
+-- person decides. If an admin had SETTLED the order's app refund with it (run-3
+-- review #2b), that refund row is REOPENED to held_for_review (the buyer is owed it
+-- again) and the answer says so ('reopened_held'). 'not_shops' when no hand refund
+-- has this id; 'already' when it was marked before. Lock order (run-3 review #7):
+-- the order row, then its refund row, then the hand-refund row.
 CREATE OR REPLACE FUNCTION public.shop_hand_refund_failed(p_stripe_refund_id text)
 RETURNS text
 LANGUAGE plpgsql
@@ -1372,447 +1392,122 @@ SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
 DECLARE
+  v_order uuid;
   h public.shop_hand_refunds;
+  r public.shop_refunds;
+  v_why text := left('refund made in Stripe ' || p_stripe_refund_id || ' FAILED; the buyer is not repaid: decide by hand', 300);
 BEGIN
-  SELECT * INTO h FROM public.shop_hand_refunds WHERE stripe_refund_id = p_stripe_refund_id FOR UPDATE;
+  SELECT order_id INTO v_order FROM public.shop_hand_refunds WHERE stripe_refund_id = p_stripe_refund_id;
   IF NOT FOUND THEN
     RETURN 'not_shops';
   END IF;
+  PERFORM 1 FROM public.shop_orders WHERE id = v_order FOR UPDATE;
+  SELECT * INTO r FROM public.shop_refunds WHERE order_id = v_order FOR UPDATE;
+  SELECT * INTO h FROM public.shop_hand_refunds WHERE stripe_refund_id = p_stripe_refund_id FOR UPDATE;
   IF h.failed_at IS NOT NULL THEN
     RETURN 'already';
   END IF;
   UPDATE public.shop_hand_refunds SET failed_at = now() WHERE stripe_refund_id = p_stripe_refund_id;
-  -- Never reopened automatically (rule A): the order stays held; a person decides.
-  PERFORM public.shop_hold_order_for_hand_refund(h.order_id,
-    left('refund made in Stripe ' || p_stripe_refund_id || ' FAILED; the buyer is not repaid: decide by hand', 300));
+  -- Never reopened to a queue automatically (rule A): the order stays held; a person decides.
+  PERFORM public.shop_hold_order_for_hand_refund(v_order, v_why);
+  IF h.outcome = 'settled' AND r.id IS NOT NULL AND h.shop_refund_id = r.id AND r.status = 'succeeded'
+     AND r.stripe_refund_id = p_stripe_refund_id THEN
+    UPDATE public.shop_refunds
+       SET status = 'held_for_review', stripe_refund_id = NULL, review_held_at = now(), review_reason = v_why,
+           settled_by_hand_ref = NULL, settled_by_hand_cents = NULL, settled_by_hand_note = NULL, held_notified_at = NULL
+     WHERE id = r.id;
+    RETURN 'reopened_held';
+  END IF;
   RETURN 'marked_failed';
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_hand_refund_failed(text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_hand_refund_failed(text) TO service_role;
 
--- ---------------------------------------------------------------------------
--- 14. The payout-readiness held-for-review admin tools (20261019070737) know a held
---     Shops refund (kind 'shop_refund'): restated from there (newest bodies) with that
---     one kind added, and two Shops rules:
---       - list: admin_payouts_held_for_review shows it (the buyer, the refund owed, the
---         PaymentIntent); payout_held_check pages ops daily (the buyer is not told: a refund
---         was already made to them in Stripe).
---       - release (always with the confirmation): refused for a shop payout or Shops refund
---         while a refund made in Stripe stands on the order (refunded_in_stripe), or for a
---         shop payout on an order the shop is not paid for automatically (order_not_payable):
---         the queues would never send it, so it would sit 'pending' forever. It stays held
---         and the admin settles it by hand.
---       - settle by hand: the global Stripe-id check (money_ref_in_use) as for every kind; a
---         re_ the Shops hand-refund ledger recorded on THIS row's payment is adopted (it must
---         cover the whole refund: hand_refund_short), any other re_ goes into that ledger;
---         only for the WHOLE refund the row owes (settle_amount_differs; CHECK
---         shop_refunds_settled_in_full), like the table's own amounts.
---     Every Shops path takes the order row lock before the payout / refund row.
-DO $do$
-BEGIN
-  ALTER TABLE public.payout_settlements DROP CONSTRAINT IF EXISTS payout_settlements_row_kind_check;
-  ALTER TABLE public.payout_settlements ADD CONSTRAINT payout_settlements_row_kind_check
-    CHECK (row_kind IN ('declutter', 'helpr_task', 'shop', 'declutter_refund', 'delivery_refund', 'shop_refund'));
-END
-$do$;
-
-CREATE OR REPLACE FUNCTION public.admin_payouts_held_for_review()
-RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-SECURITY DEFINER
-SET search_path TO 'public', 'pg_temp'
-AS $fn$
-BEGIN
-  IF NOT public.has_role((SELECT auth.uid()), 'admin') THEN
-    RAISE EXCEPTION 'admin_only' USING ERRCODE = '42501';
-  END IF;
-  RETURN (SELECT COALESCE(jsonb_agg(held.h || jsonb_build_object(
-      'payee_account', (SELECT pr.stripe_account_id FROM public.profiles pr WHERE pr.user_id = (held.h ->> 'payee_id')::uuid),
-      'sibling_refs', (SELECT COALESCE(jsonb_agg(to_jsonb(sb) ORDER BY sb.ref), '[]'::jsonb) FROM (
-          SELECT 'declutter' AS kind, x.id, x.stripe_transfer_id AS ref, x.amount_cents FROM public.declutter_payouts x
-           WHERE x.seller_id = (held.h ->> 'payee_id')::uuid AND x.stripe_transfer_id IS NOT NULL
-          UNION ALL
-          SELECT 'helpr_task', x.id, x.stripe_transfer_id, x.amount_cents FROM public.helpr_task_payouts x
-           WHERE x.helpr_id = (held.h ->> 'payee_id')::uuid AND x.stripe_transfer_id IS NOT NULL
-          UNION ALL
-          SELECT 'shop', x.id, x.stripe_transfer_id, x.amount_cents FROM public.shop_payouts x JOIN public.shop_orders so ON so.id = x.order_id
-           WHERE so.seller_id = (held.h ->> 'payee_id')::uuid AND x.stripe_transfer_id IS NOT NULL
-          LIMIT 20) sb))
-    ORDER BY held.h ->> 'held_at'), '[]'::jsonb) FROM (
-    SELECT to_jsonb(x) AS h FROM (
-      SELECT 'declutter' AS kind, p.id, p.seller_id AS payee_id, p.amount_cents, p.review_reason AS reason, p.review_held_at AS held_at,
-             'declutter_order_' || p.order_id::text AS stripe_group
-        FROM public.declutter_payouts p WHERE p.status = 'held_for_review'
-      UNION ALL
-      -- The REAL transfer group a Helpr's delivery payout is sent in: its Declutter order's.
-      SELECT 'helpr_task', p.id, p.helpr_id, p.amount_cents, p.review_reason, p.review_held_at,
-             CASE WHEN t.source_kind = 'declutter_delivery' THEN 'declutter_order_' || t.source_id::text END
-        FROM public.helpr_task_payouts p LEFT JOIN public.helpr_tasks t ON t.id = p.task_id WHERE p.status = 'held_for_review'
-      UNION ALL
-      SELECT 'shop', p.id, o.seller_id, p.amount_cents, p.review_reason, p.review_held_at, 'shop_order_' || p.order_id::text
-        FROM public.shop_payouts p JOIN public.shop_orders o ON o.id = p.order_id WHERE p.status = 'held_for_review'
-      UNION ALL
-      SELECT 'declutter_refund', r.id, o.buyer_id, r.refund_cents, r.review_reason, r.review_held_at, r.stripe_payment_intent_id
-        FROM public.declutter_refunds r LEFT JOIN public.declutter_orders o ON o.id = r.order_id WHERE r.status = 'held_for_review'
-      UNION ALL
-      SELECT 'delivery_refund', d.id, o.buyer_id, d.refund_cents, d.review_reason, d.review_held_at, d.stripe_payment_intent_id
-        FROM public.declutter_delivery_refunds d LEFT JOIN public.declutter_orders o ON o.id = d.order_id WHERE d.status = 'held_for_review'
-      UNION ALL
-      -- Shops (this migration): an app refund held because a refund made in Stripe stands on its order.
-      SELECT 'shop_refund', r.id, o.buyer_id, r.refund_cents, r.review_reason, r.review_held_at, r.stripe_payment_intent_id
-        FROM public.shop_refunds r JOIN public.shop_orders o ON o.id = r.order_id WHERE r.status = 'held_for_review'
-    ) x) held);
-END;
-$fn$;
-REVOKE ALL ON FUNCTION public.admin_payouts_held_for_review() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.admin_payouts_held_for_review() TO authenticated, service_role;
-
-CREATE OR REPLACE FUNCTION public.admin_payout_release(p_kind text, p_id uuid, p_note text, p_confirm_no_transfer boolean)
+-- Settle a HELD Shops refund with a refund made in Stripe (run-3 review #2/#3). SERVICE
+-- ONLY: shop-checkout's admin_settle_held_refund checks the caller is an admin,
+-- RETRIEVES the re_ from Stripe and checks it is live, on this row's PaymentIntent, and
+-- for at least the whole refund the row owes, then calls this with the admin's id and
+-- Stripe's amount. The client RPC admin_payout_settle_by_hand takes only "other: ..."
+-- for a Shops refund. Lock order: the order row, the refund row, the hand-refund row.
+-- The re_ is ADOPTED when the hand-refund ledger holds it on this payment (live), else
+-- refused when ANY money row already holds it (money_ref_in_use), else recorded in the
+-- ledger (and the order held, like every new hand refund: #5). Outcome 'settled': it is
+-- the order's own refund now, so it no longer blocks the shop payout (#6).
+CREATE OR REPLACE FUNCTION public.shops_admin_settle_held_refund(p_admin uuid, p_refund_id uuid, p_stripe_refund_id text,
+  p_amount_cents integer, p_note text)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
 DECLARE
-  v_uid uuid := (SELECT auth.uid());
   v_note text := btrim(COALESCE(p_note, ''));
-  v_status text;
+  v_ref text := btrim(COALESCE(p_stripe_refund_id, ''));
   v_order uuid;
   o public.shop_orders;
-BEGIN
-  IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin') THEN
-    RAISE EXCEPTION 'admin_only' USING ERRCODE = '42501';
-  END IF;
-  IF char_length(v_note) NOT BETWEEN 1 AND 500 THEN
-    RAISE EXCEPTION 'invalid_note' USING ERRCODE = '22023', HINT = 'Say why, in under 500 characters.';
-  END IF;
-  IF p_confirm_no_transfer IS NOT TRUE THEN
-    RAISE EXCEPTION 'confirm_no_transfer_required' USING ERRCODE = '22023',
-      HINT = 'Confirm you checked Stripe and no transfer or refund was made for this row outside the app.';
-  END IF;
-  -- Shops: the order row lock first (every Shops money path takes it, shop_record_hand_refund too).
-  IF p_kind = 'shop' THEN
-    SELECT order_id INTO v_order FROM public.shop_payouts WHERE id = p_id;
-  ELSIF p_kind = 'shop_refund' THEN
-    SELECT order_id INTO v_order FROM public.shop_refunds WHERE id = p_id;
-  END IF;
-  IF v_order IS NOT NULL THEN
-    SELECT * INTO o FROM public.shop_orders WHERE id = v_order FOR UPDATE;
-  END IF;
-  IF p_kind = 'declutter' THEN
-    SELECT status INTO v_status FROM public.declutter_payouts WHERE id = p_id FOR UPDATE;
-  ELSIF p_kind = 'helpr_task' THEN
-    SELECT status INTO v_status FROM public.helpr_task_payouts WHERE id = p_id FOR UPDATE;
-  ELSIF p_kind = 'shop' THEN
-    SELECT status INTO v_status FROM public.shop_payouts WHERE id = p_id FOR UPDATE;
-  ELSIF p_kind = 'declutter_refund' THEN
-    SELECT status INTO v_status FROM public.declutter_refunds WHERE id = p_id FOR UPDATE;
-  ELSIF p_kind = 'delivery_refund' THEN
-    SELECT status INTO v_status FROM public.declutter_delivery_refunds WHERE id = p_id FOR UPDATE;
-  ELSIF p_kind = 'shop_refund' THEN
-    SELECT status INTO v_status FROM public.shop_refunds WHERE id = p_id FOR UPDATE;
-  ELSE
-    RAISE EXCEPTION 'invalid_kind' USING ERRCODE = '22023';
-  END IF;
-  IF v_status IS DISTINCT FROM 'held_for_review' THEN
-    RAISE EXCEPTION 'not_held_for_review' USING ERRCODE = '55000';
-  END IF;
-  -- Shops: a release the queue would never send is refused, so nothing sits 'pending' forever.
-  -- While a refund made in Stripe stands on the order (shop_refunds_due / shop_refund_to_send /
-  -- shop_payouts_due all skip it), or the order was closed by one, the row STAYS held: the admin
-  -- decides it by hand (settle). Once that Stripe refund failed, the held app refund may go back.
-  IF p_kind IN ('shop', 'shop_refund') THEN
-    IF EXISTS (SELECT 1 FROM public.shop_hand_refunds hr WHERE hr.order_id = v_order AND hr.failed_at IS NULL)
-       OR (p_kind = 'shop' AND o.close_reason = 'refunded_by_hand') THEN
-      RAISE EXCEPTION 'refunded_in_stripe' USING ERRCODE = '55000',
-        HINT = 'A refund made in Stripe stands on this order, so this stays held. Settle it by hand once you have decided.';
-    END IF;
-    IF p_kind = 'shop' AND NOT (
-         (o.status = 'handed_over' OR (o.status = 'cancelled' AND o.close_reason IN ('buyer_cancelled_late', 'buyer_no_show')))
-         AND NOT EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = v_order AND h.problem_at IS NOT NULL
-                           AND h.confirmed_how IS DISTINCT FROM 'admin')) THEN
-      RAISE EXCEPTION 'order_not_payable' USING ERRCODE = '55000',
-        HINT = 'This order is not one the shop is paid for automatically (open problem, or not handed over). Settle it by hand.';
-    END IF;
-  END IF;
-  IF p_kind = 'declutter' THEN
-    UPDATE public.declutter_payouts SET status = 'pending', next_attempt_at = now(), review_reason = NULL, review_held_at = NULL
-     WHERE id = p_id AND status = 'held_for_review';
-  ELSIF p_kind = 'helpr_task' THEN
-    UPDATE public.helpr_task_payouts SET status = 'pending', next_attempt_at = now(), review_reason = NULL, review_held_at = NULL
-     WHERE id = p_id AND status = 'held_for_review';
-  ELSIF p_kind = 'shop' THEN
-    UPDATE public.shop_payouts SET status = 'pending', next_attempt_at = now(), review_reason = NULL, review_held_at = NULL
-     WHERE id = p_id AND status = 'held_for_review';
-  ELSIF p_kind = 'declutter_refund' THEN
-    UPDATE public.declutter_refunds SET status = 'pending', next_attempt_at = now(), review_reason = NULL, review_held_at = NULL
-     WHERE id = p_id AND status = 'held_for_review';
-  ELSIF p_kind = 'delivery_refund' THEN
-    UPDATE public.declutter_delivery_refunds SET status = 'pending', next_attempt_at = now(), review_reason = NULL, review_held_at = NULL
-     WHERE id = p_id AND status = 'held_for_review';
-  ELSIF p_kind = 'shop_refund' THEN
-    UPDATE public.shop_refunds SET status = 'pending', next_attempt_at = now(), review_reason = NULL, review_held_at = NULL
-     WHERE id = p_id AND status = 'held_for_review';
-  ELSE
-    RAISE EXCEPTION 'invalid_kind' USING ERRCODE = '22023';
-  END IF;
-  DELETE FROM public.payout_payee_waits WHERE payout_kind = p_kind AND payout_id = p_id;
-  INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
-  VALUES (v_uid, 'admin_payout_release', p_kind, p_id::text, jsonb_build_object('note', v_note, 'confirmed_no_transfer', true));
-  RETURN jsonb_build_object('result', 'released', 'kind', p_kind, 'id', p_id);
-END;
-$fn$;
-REVOKE ALL ON FUNCTION public.admin_payout_release(text, uuid, text, boolean) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.admin_payout_release(text, uuid, text, boolean) TO authenticated, service_role;
-
-CREATE OR REPLACE FUNCTION public.admin_payout_settle_by_hand(p_kind text, p_id uuid, p_ref text, p_amount_cents integer, p_note text)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public', 'pg_temp'
-AS $fn$
-DECLARE
-  v_uid uuid := (SELECT auth.uid());
-  v_note text := btrim(COALESCE(p_note, ''));
-  v_ref text := btrim(COALESCE(p_ref, ''));
-  v_stripe text;
-  v_other text;
-  v_status text;
-  v_pi text;
+  r public.shop_refunds;
+  h public.shop_hand_refunds;
   v_adopted boolean := false;
-  v_payout boolean := p_kind IN ('declutter', 'helpr_task', 'shop');
-  v_succeeded boolean;
-  v_order uuid;
-  o public.shop_orders;
-  sr public.shop_refunds;
-  v_hand public.shop_hand_refunds;
 BEGIN
-  IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin') THEN
+  IF p_admin IS NULL OR NOT public.has_role(p_admin, 'admin') THEN
     RAISE EXCEPTION 'admin_only' USING ERRCODE = '42501';
   END IF;
   IF char_length(v_note) NOT BETWEEN 1 AND 500 THEN
     RAISE EXCEPTION 'invalid_note' USING ERRCODE = '22023', HINT = 'Say how it was settled, in under 500 characters.';
   END IF;
-  IF p_amount_cents IS NULL OR p_amount_cents <= 0 THEN
-    RAISE EXCEPTION 'invalid_amount' USING ERRCODE = '22023', HINT = 'Enter the amount it was settled for.';
+  IF v_ref !~ '^(re|pyr)_[A-Za-z0-9]+$' THEN
+    RAISE EXCEPTION 'invalid_stripe_ref' USING ERRCODE = '22023', HINT = 'Paste the Stripe refund id (re_...).';
   END IF;
-  IF v_ref ~* '^other:' THEN
-    v_other := left(btrim(regexp_replace(v_ref, '^other:', '', 'i')), 300);
-    IF char_length(v_other) < 3 THEN
-      RAISE EXCEPTION 'invalid_stripe_ref' USING ERRCODE = '22023', HINT = 'Say how it was paid outside Stripe, after "other:".';
-    END IF;
-  ELSIF (v_payout AND v_ref ~ '^(tr|po)_[A-Za-z0-9]+$') OR (NOT v_payout AND v_ref ~ '^(re|pyr)_[A-Za-z0-9]+$') THEN
-    v_stripe := v_ref;
-  ELSE
-    RAISE EXCEPTION 'invalid_stripe_ref' USING ERRCODE = '22023',
-      HINT = 'A Stripe transfer / payout id (tr_..., po_...) for a payout, a refund id (re_...) for a refund, or "other: how it was paid".';
+  SELECT order_id INTO v_order FROM public.shop_refunds WHERE id = p_refund_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'refund_not_found' USING ERRCODE = 'P0002';
   END IF;
-  -- Shops: the order row lock first (every Shops money path takes it, shop_record_hand_refund too).
-  IF p_kind = 'shop' THEN
-    SELECT order_id INTO v_order FROM public.shop_payouts WHERE id = p_id;
-  ELSIF p_kind = 'shop_refund' THEN
-    SELECT order_id INTO v_order FROM public.shop_refunds WHERE id = p_id;
-  END IF;
-  IF v_order IS NOT NULL THEN
-    SELECT * INTO o FROM public.shop_orders WHERE id = v_order FOR UPDATE;
-  END IF;
-  IF p_kind = 'declutter' THEN
-    SELECT status INTO v_status FROM public.declutter_payouts WHERE id = p_id FOR UPDATE;
-  ELSIF p_kind = 'helpr_task' THEN
-    SELECT status INTO v_status FROM public.helpr_task_payouts WHERE id = p_id FOR UPDATE;
-  ELSIF p_kind = 'shop' THEN
-    SELECT status INTO v_status FROM public.shop_payouts WHERE id = p_id FOR UPDATE;
-  ELSIF p_kind = 'declutter_refund' THEN
-    SELECT status INTO v_status FROM public.declutter_refunds WHERE id = p_id FOR UPDATE;
-  ELSIF p_kind = 'delivery_refund' THEN
-    SELECT status INTO v_status FROM public.declutter_delivery_refunds WHERE id = p_id FOR UPDATE;
-  ELSIF p_kind = 'shop_refund' THEN
-    SELECT * INTO sr FROM public.shop_refunds WHERE id = p_id FOR UPDATE;
-    v_status := sr.status;
-  ELSE
-    RAISE EXCEPTION 'invalid_kind' USING ERRCODE = '22023';
-  END IF;
-  IF v_status IS DISTINCT FROM 'held_for_review' THEN
+  SELECT * INTO o FROM public.shop_orders WHERE id = v_order FOR UPDATE;
+  SELECT * INTO r FROM public.shop_refunds WHERE id = p_refund_id FOR UPDATE;
+  IF r.status IS DISTINCT FROM 'held_for_review' THEN
     RAISE EXCEPTION 'not_held_for_review' USING ERRCODE = '55000';
   END IF;
-  -- A Shops refund is settled only for the WHOLE refund it owes (never part of it: the rest would
-  -- be lost track of); the table CHECK shop_refunds_settled_in_full says the same.
-  IF p_kind = 'shop_refund' AND p_amount_cents <> sr.refund_cents THEN
-    RAISE EXCEPTION 'settle_amount_differs' USING ERRCODE = '22023',
-      HINT = format('A Shops refund is settled only for its whole amount, $%s.', to_char(sr.refund_cents / 100.0, 'FM999999990.00'));
+  IF p_amount_cents IS NULL OR p_amount_cents < r.refund_cents THEN
+    RAISE EXCEPTION 'hand_refund_short' USING ERRCODE = '22023',
+      HINT = 'That Stripe refund is less than this refund owes. Once the buyer has the rest, settle it with "other: <the refund ids>".';
   END IF;
-  IF v_stripe IS NOT NULL THEN
-    -- A Dashboard refund the hand-refund ledger recorded with no row, on THIS row's payment, is
-    -- the refund that settled it: adopted (linked), not refused.
-    IF p_kind = 'declutter_refund' THEN
-      SELECT r.stripe_payment_intent_id INTO v_pi FROM public.declutter_refunds r WHERE r.id = p_id;
-      UPDATE public.declutter_hand_refunds SET refund_row_id = p_id, hand_outcome = 'settled'
-       WHERE stripe_refund_id = v_stripe AND stripe_payment_intent_id = v_pi AND refund_row_id IS NULL AND failed_at IS NULL;
-      v_adopted := FOUND;
-    END IF;
-    -- Shops: a live refund made in Stripe that the hand-refund ledger recorded on THIS row's payment
-    -- is adopted, if it covers the whole refund this row owes (a payment has at most one Shops
-    -- refund row: shop_refunds.stripe_payment_intent_id is UNIQUE, so it is this row's or no row's).
-    IF p_kind = 'shop_refund' THEN
-      SELECT * INTO v_hand FROM public.shop_hand_refunds h
-       WHERE h.stripe_refund_id = v_stripe AND h.stripe_payment_intent_id = sr.stripe_payment_intent_id AND h.failed_at IS NULL
-       FOR UPDATE;
-      IF FOUND THEN
-        IF v_hand.amount_cents < sr.refund_cents THEN
-          RAISE EXCEPTION 'hand_refund_short' USING ERRCODE = '22023',
-            HINT = 'That Stripe refund is less than this refund owes. Once the buyer has the rest, settle it with "other: <the refund ids>".';
-        END IF;
-        UPDATE public.shop_hand_refunds SET shop_refund_id = p_id, outcome = 'settled' WHERE stripe_refund_id = v_stripe;
-        v_adopted := true;
-      END IF;
-    END IF;
-    IF NOT v_adopted AND public.money_ref_in_use(v_stripe) THEN
+  SELECT * INTO h FROM public.shop_hand_refunds WHERE stripe_refund_id = v_ref FOR UPDATE;
+  IF FOUND THEN
+    IF h.stripe_payment_intent_id <> r.stripe_payment_intent_id OR h.failed_at IS NOT NULL
+       OR (h.shop_refund_id IS NOT NULL AND h.shop_refund_id <> r.id) THEN
       RAISE EXCEPTION 'ref_already_used' USING ERRCODE = '23505',
         HINT = 'That Stripe id is already recorded on another payout or refund. Check you have the right one.';
     END IF;
-  END IF;
-  INSERT INTO public.payout_settlements (stripe_ref, off_stripe_note, row_kind, row_id, amount_cents)
-  VALUES (v_stripe, v_other, p_kind, p_id, p_amount_cents);
-  -- A transfer on a payout / a refund on a refund: 'succeeded' with that id (the ledgers and the
-  -- webhooks know it). A Stripe payout id or money paid outside Stripe: 'settled_by_hand'.
-  v_succeeded := v_stripe IS NOT NULL AND (NOT v_payout OR v_stripe ~ '^tr_');
-  IF p_kind = 'declutter_refund' AND v_stripe IS NOT NULL AND NOT v_adopted THEN
-    INSERT INTO public.declutter_hand_refunds (stripe_refund_id, stripe_payment_intent_id, order_id, refund_row_id, amount_cents,
-                                               livemode, hand_outcome)
-    SELECT v_stripe, r.stripe_payment_intent_id, r.order_id, r.id, p_amount_cents, COALESCE(r.payment_livemode, true), 'settled'
-      FROM public.declutter_refunds r WHERE r.id = p_id;
-  END IF;
-  -- Shops: a refund id the ledger did not know goes into it, so the order's payout stays blocked
-  -- and a later failure of that refund is routed (shop_hand_refund_failed) like any other.
-  IF p_kind = 'shop_refund' AND v_stripe IS NOT NULL AND NOT v_adopted THEN
+    UPDATE public.shop_hand_refunds SET shop_refund_id = r.id, outcome = 'settled' WHERE stripe_refund_id = v_ref;
+    v_adopted := true;
+  ELSIF public.money_ref_in_use(v_ref) THEN
+    RAISE EXCEPTION 'ref_already_used' USING ERRCODE = '23505',
+      HINT = 'That Stripe id is already recorded on another payout or refund. Check you have the right one.';
+  ELSE
     INSERT INTO public.shop_hand_refunds (stripe_refund_id, stripe_payment_intent_id, order_id, shop_refund_id, amount_cents,
                                           livemode, recorded_how, recorded_by, outcome, note)
-    VALUES (v_stripe, sr.stripe_payment_intent_id, sr.order_id, sr.id, p_amount_cents, o.payment_livemode, 'admin', v_uid, 'settled',
-            left(v_note, 500));
+    VALUES (v_ref, r.stripe_payment_intent_id, o.id, r.id, p_amount_cents, o.payment_livemode, 'admin', p_admin, 'settled', v_note);
+    -- Every new hand refund holds the order's unsent rows (run-3 review #5); this row is settled just below.
+    PERFORM public.shop_hold_order_for_hand_refund(o.id,
+      format('refunded_by_hand: %s ($%s) settled the app refund; decide this row by hand', v_ref,
+             to_char(p_amount_cents / 100.0, 'FM999999990.00')));
   END IF;
-  IF p_kind = 'declutter' THEN
-    UPDATE public.declutter_payouts SET status = CASE WHEN v_succeeded THEN 'succeeded' ELSE 'settled_by_hand' END,
-           stripe_transfer_id = CASE WHEN v_succeeded THEN v_stripe ELSE stripe_transfer_id END,
-           settled_by_hand_ref = v_ref, settled_by_hand_cents = p_amount_cents, settled_by_hand_note = v_note, executed_at = now()
-     WHERE id = p_id;
-  ELSIF p_kind = 'helpr_task' THEN
-    UPDATE public.helpr_task_payouts SET status = CASE WHEN v_succeeded THEN 'succeeded' ELSE 'settled_by_hand' END,
-           stripe_transfer_id = CASE WHEN v_succeeded THEN v_stripe ELSE stripe_transfer_id END,
-           settled_by_hand_ref = v_ref, settled_by_hand_cents = p_amount_cents, settled_by_hand_note = v_note, executed_at = now()
-     WHERE id = p_id;
-  ELSIF p_kind = 'shop' THEN
-    UPDATE public.shop_payouts SET status = CASE WHEN v_succeeded THEN 'succeeded' ELSE 'settled_by_hand' END,
-           stripe_transfer_id = CASE WHEN v_succeeded THEN v_stripe ELSE stripe_transfer_id END,
-           settled_by_hand_ref = v_ref, settled_by_hand_cents = p_amount_cents, settled_by_hand_note = v_note, executed_at = now()
-     WHERE id = p_id;
-  ELSIF p_kind = 'declutter_refund' THEN
-    UPDATE public.declutter_refunds SET status = CASE WHEN v_succeeded THEN 'succeeded' ELSE 'settled_by_hand' END,
-           stripe_refund_ref = CASE WHEN v_succeeded THEN v_stripe ELSE stripe_refund_ref END,
-           settled_by_hand_ref = v_ref, settled_by_hand_cents = p_amount_cents, settled_by_hand_note = v_note, executed_at = now()
-     WHERE id = p_id;
-  ELSIF p_kind = 'delivery_refund' THEN
-    UPDATE public.declutter_delivery_refunds SET status = CASE WHEN v_succeeded THEN 'succeeded' ELSE 'settled_by_hand' END,
-           stripe_refund_ref = CASE WHEN v_succeeded THEN v_stripe ELSE stripe_refund_ref END,
-           settled_by_hand_ref = v_ref, settled_by_hand_cents = p_amount_cents, settled_by_hand_note = v_note, executed_at = now()
-     WHERE id = p_id;
-  ELSIF p_kind = 'shop_refund' THEN
-    UPDATE public.shop_refunds SET status = CASE WHEN v_succeeded THEN 'succeeded' ELSE 'settled_by_hand' END,
-           stripe_refund_id = CASE WHEN v_succeeded THEN v_stripe ELSE stripe_refund_id END,
-           settled_by_hand_ref = v_ref, settled_by_hand_cents = p_amount_cents, settled_by_hand_note = v_note, executed_at = now()
-     WHERE id = p_id;
-  ELSE
-    RAISE EXCEPTION 'invalid_kind' USING ERRCODE = '22023';
-  END IF;
-  DELETE FROM public.payout_payee_waits WHERE payout_kind = p_kind AND payout_id = p_id;
+  INSERT INTO public.payout_settlements (stripe_ref, off_stripe_note, row_kind, row_id, amount_cents)
+  VALUES (v_ref, NULL, 'shop_refund', r.id, r.refund_cents);
+  UPDATE public.shop_refunds
+     SET status = 'succeeded', stripe_refund_id = v_ref, settled_by_hand_ref = v_ref, settled_by_hand_cents = r.refund_cents,
+         settled_by_hand_note = v_note, executed_at = now()
+   WHERE id = r.id;
+  DELETE FROM public.payout_payee_waits WHERE payout_kind = 'shop_refund' AND payout_id = r.id;
   INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
-  VALUES (v_uid, 'admin_payout_settle_by_hand', p_kind, p_id::text,
-          jsonb_build_object('note', v_note, 'ref', v_ref, 'amount_cents', p_amount_cents, 'adopted_hand_refund', v_adopted));
-  RETURN jsonb_build_object('result', 'settled', 'kind', p_kind, 'id', p_id, 'adopted_hand_refund', v_adopted,
-    'status', CASE WHEN v_succeeded THEN 'succeeded' ELSE 'settled_by_hand' END);
+  VALUES (p_admin, 'shops_admin_settle_held_refund', 'shop_refund', r.id::text,
+          jsonb_build_object('stripe_refund_id', v_ref, 'stripe_amount_cents', p_amount_cents, 'note', v_note, 'adopted_hand_refund', v_adopted));
+  RETURN jsonb_build_object('result', 'settled', 'refund_id', r.id, 'adopted_hand_refund', v_adopted);
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.admin_payout_settle_by_hand(text, uuid, text, integer, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.admin_payout_settle_by_hand(text, uuid, text, integer, text) TO authenticated, service_role;
-
-CREATE OR REPLACE FUNCTION public.payout_held_check()
-RETURNS integer
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public', 'pg_temp'
-AS $fn$
-DECLARE
-  r record;
-  v_n integer := 0;
-BEGIN
-  FOR r IN
-    SELECT x.* FROM (
-      SELECT 'declutter'::text AS kind, p.id, p.seller_id AS payee, p.amount_cents, p.review_reason, p.held_notified_at,
-             COALESCE(o.is_seed, false) AS is_seed
-        FROM public.declutter_payouts p LEFT JOIN public.declutter_orders o ON o.id = p.order_id WHERE p.status = 'held_for_review'
-      UNION ALL
-      SELECT 'helpr_task', p.id, p.helpr_id, p.amount_cents, p.review_reason, p.held_notified_at, false
-        FROM public.helpr_task_payouts p WHERE p.status = 'held_for_review'
-      UNION ALL
-      SELECT 'shop', p.id, o.seller_id, p.amount_cents, p.review_reason, p.held_notified_at, COALESCE(o.is_seed, false)
-        FROM public.shop_payouts p JOIN public.shop_orders o ON o.id = p.order_id WHERE p.status = 'held_for_review'
-      UNION ALL
-      SELECT 'declutter_refund', d.id, o.buyer_id, d.refund_cents, d.review_reason, d.held_notified_at, COALESCE(d.is_seed, false)
-        FROM public.declutter_refunds d LEFT JOIN public.declutter_orders o ON o.id = d.order_id WHERE d.status = 'held_for_review'
-      UNION ALL
-      SELECT 'delivery_refund', d.id, o.buyer_id, d.refund_cents, d.review_reason, d.held_notified_at, COALESCE(d.is_seed, false)
-        FROM public.declutter_delivery_refunds d LEFT JOIN public.declutter_orders o ON o.id = d.order_id WHERE d.status = 'held_for_review'
-      UNION ALL
-      -- Shops: the buyer is NOT sent "needs a quick review ... before it can be sent" (payee NULL):
-      -- this row is held because a refund was already made to them in Stripe. Ops still see it daily.
-      SELECT 'shop_refund', sr.id, NULL::uuid, sr.refund_cents, sr.review_reason, sr.held_notified_at, sr.is_seed
-        FROM public.shop_refunds sr WHERE sr.status = 'held_for_review'
-    ) x LIMIT 500
-  LOOP
-    v_n := v_n + 1;
-    -- Nested (not AND): plpgsql plans the inner statements only when the table exists.
-    IF to_regclass('public.error_logs') IS NOT NULL THEN
-     IF NOT EXISTS (
-      SELECT 1 FROM public.error_logs e
-       WHERE jsonb_typeof(e.tags) = 'object'
-         AND coalesce(e.tags ->> 'origin', '') <> 'client'
-         AND e.tags ->> 'source' = 'payout-held-for-review'
-         AND e.tags ->> 'row_id' = r.id::text
-         AND e.created_at > date_trunc('day', now())
-     ) THEN
-      INSERT INTO public.error_logs (severity, message, tags, context)
-      VALUES ('error',
-              format('Payout or refund held for review: decide it on the admin money page — %s %s ($%s). %s',
-                     r.kind, r.id, to_char(r.amount_cents / 100.0, 'FM999990.00'), coalesce(left(r.review_reason, 200), '')),
-              jsonb_strip_nulls(jsonb_build_object('source', 'payout-held-for-review', 'area', 'payouts',
-                                                   'row_kind', r.kind, 'row_id', r.id::text,
-                                                   'seed', CASE WHEN r.is_seed THEN 'true' END)),
-              jsonb_build_object('row_kind', r.kind, 'row_id', r.id, 'amount_cents', r.amount_cents));
-     END IF;
-    END IF;
-    IF r.held_notified_at IS NULL AND r.payee IS NOT NULL THEN
-      PERFORM public.declutter_notify(r.payee, 'payment',
-        CASE WHEN r.kind LIKE '%refund' THEN 'Your refund needs a quick review' ELSE 'Your payout needs a quick review' END,
-        format('Your $%s %s needs a quick review by our team before it can be sent. You do not need to do anything; we will tell you when it is on its way.',
-               to_char(r.amount_cents / 100.0, 'FM999990.00'), CASE WHEN r.kind LIKE '%refund' THEN 'refund' ELSE 'payout' END),
-        '/profile?tab=earnings');
-    END IF;
-    IF r.held_notified_at IS NULL THEN
-      IF r.kind = 'declutter' THEN UPDATE public.declutter_payouts SET held_notified_at = now() WHERE id = r.id;
-      ELSIF r.kind = 'helpr_task' THEN UPDATE public.helpr_task_payouts SET held_notified_at = now() WHERE id = r.id;
-      ELSIF r.kind = 'shop' THEN UPDATE public.shop_payouts SET held_notified_at = now() WHERE id = r.id;
-      ELSIF r.kind = 'declutter_refund' THEN UPDATE public.declutter_refunds SET held_notified_at = now() WHERE id = r.id;
-      ELSIF r.kind = 'delivery_refund' THEN UPDATE public.declutter_delivery_refunds SET held_notified_at = now() WHERE id = r.id;
-      ELSE UPDATE public.shop_refunds SET held_notified_at = now() WHERE id = r.id;
-      END IF;
-    END IF;
-  END LOOP;
-  RETURN v_n;
-END;
-$fn$;
-REVOKE ALL ON FUNCTION public.payout_held_check() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.payout_held_check() TO service_role;
+REVOKE ALL ON FUNCTION public.shops_admin_settle_held_refund(uuid, uuid, text, integer, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shops_admin_settle_held_refund(uuid, uuid, text, integer, text) TO service_role;
 
 -- Q807: every public table carries the unconfirmed-email statement gate (shop_refunds, shop_hand_refunds and facilitator_threshold_alerts are new).
 DO $do$

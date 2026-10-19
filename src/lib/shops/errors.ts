@@ -144,6 +144,9 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   invalid_amount: "Enter the amount refunded, at most what the buyer paid.",
   invalid_hand_refund: "Check the refund id and the amount, then try again.",
   ref_already_used: "That Stripe id is already recorded on another payout or refund. Check you have the right one.",
+  // Settle a held Shops refund with a refund made in Stripe (admin, Payouts held for review; run-3 review).
+  not_held_for_review: "This refund isn't held for review any more. Another admin may have handled it. Refresh the list.",
+  hand_refund_short: "That Stripe refund is less than this refund owes. Once the buyer has the rest, use \"other:\" with the refund ids.",
 };
 
 /** shop-checkout's own answers (not RPC codes). */

@@ -533,6 +533,42 @@ async function adminRecordHandRefund(body: Record<string, unknown>, userId: stri
   return json({ recorded: true, result: (data as { result?: string } | null)?.result ?? null });
 }
 
+/**
+ * Settle a HELD Shops refund with a refund made in Stripe (Payouts held for review;
+ * /code-review of shops-m3 run 3 #2/#3). AN ADMIN only (user_roles read with the
+ * service key). The refund is RETRIEVED from Stripe (read only, no Stripe write) and
+ * must be live, on THIS refund row's PaymentIntent, and for at least the whole refund
+ * the row owes; then the service-only shops_admin_settle_held_refund records it (with
+ * the admin's id and Stripe's amount: has_role checked again there, audited). The
+ * client RPC admin_payout_settle_by_hand takes only "other: ..." for a Shops refund.
+ */
+async function adminSettleHeldRefund(body: Record<string, unknown>, userId: string, admin: Db) {
+  const rowId = typeof body.refund_row_id === "string" ? body.refund_row_id : "";
+  if (!UUID_RE.test(rowId)) return json({ error: "refund_not_found" }, 404);
+  const refundId = typeof body.refund_id === "string" ? body.refund_id.trim() : "";
+  if (!/^(re|pyr)_[A-Za-z0-9]+$/.test(refundId)) return json({ error: "invalid_stripe_ref" }, 400);
+  const note = typeof body.note === "string" ? body.note : "";
+  const { data: role, error: roleErr } = await admin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+  if (roleErr) throw new Error(`admin role read failed: ${roleErr.message}`);
+  if (!role) return json({ error: "admin_only" }, 403);
+  const { data: row, error: rowErr } = await admin.from("shop_refunds")
+    .select("id, order_id, stripe_payment_intent_id, refund_cents, status").eq("id", rowId).maybeSingle();
+  if (rowErr) throw new Error(`shop refund read failed: ${rowErr.message}`);
+  if (!row) return json({ error: "refund_not_found" }, 404);
+  const o = await readOrder(admin, row.order_id as string);
+  if (!o?.stripe_payment_intent_id) return json({ error: "refund_not_found" }, 404);
+  const refund = await (await stripeForOrder(admin, o)).refunds.retrieve(refundId);
+  const refundPi = typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null;
+  if (refundPi !== row.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409);
+  if (refund.status === "failed" || refund.status === "canceled") return json({ error: "refund_not_live" }, 409);
+  if (Number(refund.amount ?? 0) < Number(row.refund_cents)) return json({ error: "hand_refund_short", amount_cents: refund.amount }, 409);
+  const { data, error } = await admin.rpc("shops_admin_settle_held_refund", {
+    p_admin: userId, p_refund_id: rowId, p_stripe_refund_id: refundId, p_amount_cents: Number(refund.amount), p_note: note,
+  });
+  if (error) return rpcRefusal(error);
+  return json({ settled: true, result: (data as { result?: string } | null)?.result ?? null });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -566,6 +602,7 @@ serve(async (req) => {
     if (body.action === "no_show") return await noShow(body, asMember);
     if (body.action === "admin_refund") return await adminRefund(body, asMember, admin);
     if (body.action === "admin_record_hand_refund") return await adminRecordHandRefund(body, user.id, admin);
+    if (body.action === "admin_settle_held_refund") return await adminSettleHeldRefund(body, user.id, admin);
     return json({ error: "invalid_action" }, 400);
   } catch (error) {
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);

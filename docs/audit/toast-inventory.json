@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 846,
-    "files": 213,
-    "rendering": 736,
-    "suppressedByPolicy": 110,
+    "calls": 856,
+    "files": 215,
+    "rendering": 741,
+    "suppressedByPolicy": 115,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 48,
-      "toast.error": 620,
+      "toast.error": 625,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 114,
+      "toast.success": 119,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 405,
+      "literal": 407,
       "template": 96,
-      "dynamic": 392,
+      "dynamic": 400,
       "jsx": 0
     }
   },
@@ -2684,6 +2684,46 @@
       "renders": true
     },
     {
+      "file": "src/components/admin/AdminShopsOrders.tsx",
+      "line": 153,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "HAND_OUTCOME[outcome] ?? \"Recorded.\""
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminShopsOrders.tsx",
+      "line": 157,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminShopsOrders.tsx",
+      "line": 212,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Done."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminShopsOrders.tsx",
+      "line": 215,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/admin/AdminStalledJobs.tsx",
       "line": 154,
       "kind": "toast.error",
@@ -3279,7 +3319,27 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 77,
+      "line": 85,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(e)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
+      "line": 88,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Marked settled by hand."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
+      "line": 99,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3289,7 +3349,7 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 83,
+      "line": 105,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -7004,7 +7064,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 87,
+      "line": 88,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -7024,7 +7084,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 92,
+      "line": 93,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7034,7 +7094,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 100,
+      "line": 101,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -7044,7 +7104,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 106,
+      "line": 107,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7364,7 +7424,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 54,
+      "line": 55,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -7374,7 +7434,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 64,
+      "line": 65,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -7384,7 +7444,67 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 69,
+      "line": 70,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopOrderCancel.tsx",
+      "line": 87,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "refundCents > 0 ? `Order cancelled. ${formatCents(refundCents)} is on its way back to your card.` : \"Order cancelled. Nothing is refunded; the shop is paid.\"",
+        "branches": [
+          {
+            "form": "template",
+            "text": "Order cancelled. ${formatCents(refundCents)} is on its way back to your card."
+          },
+          {
+            "form": "literal",
+            "text": "Order cancelled. Nothing is refunded; the shop is paid."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopOrderCancel.tsx",
+      "line": 99,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopOrderCancel.tsx",
+      "line": 148,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "what === \"cancel\" ? \"Order cancelled. The buyer is refunded in full.\" : \"No-show recorded. You are paid for the order.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Order cancelled. The buyer is refunded in full."
+          },
+          {
+            "form": "literal",
+            "text": "No-show recorded. You are paid for the order."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopOrderCancel.tsx",
+      "line": 152,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7394,7 +7514,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 134,
+      "line": 137,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

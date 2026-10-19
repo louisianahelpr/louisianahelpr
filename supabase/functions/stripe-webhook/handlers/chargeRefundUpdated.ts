@@ -119,15 +119,18 @@ export async function handleChargeRefundUpdated(
     if (shErr && (shErr as { code?: string }).code !== "PGRST202") {
       throw new Error(`shop_hand_refund_failed failed for ${refund.id}: ${shErr.message}`);
     }
-    if (!shErr && (shopHand === "marked_failed" || shopHand === "already")) {
-      if (shopHand === "marked_failed") {
+    if (!shErr && (shopHand === "marked_failed" || shopHand === "reopened_held" || shopHand === "already")) {
+      if (shopHand === "marked_failed" || shopHand === "reopened_held") {
         await postSlackOpsAlert({
           kind: "money_at_risk", severity: "critical", oncePerDayKey: `shop-hand-refund-failed-${refund.id}`,
           title: "Shops refund made by hand FAILED",
-          // Rule A of the v2 review: nothing reopens or sends on its own; the order stays held.
+          // Rule A of the v2 review: nothing sends on its own; the order stays held. A refund row an admin had
+          // settled with this refund is held for review again (/code-review of shops-m3 run 3 #2b).
           message: `Stripe moved hand refund ${refund.id} to ${refund.status} (${refund.failure_reason ?? "no reason given"}). The buyer has NOT been repaid. `
-            + "The order stays held (no refund or payout goes out on its own): refund it again by hand and record it in admin > Shops orders, or release the held refund in admin > Payouts held for review.",
-          fields: { Refund: refund.id },
+            + (shopHand === "reopened_held"
+              ? "The app refund an admin had settled with it is held for review again (nothing goes out on its own): decide it in admin > Payouts held for review."
+              : "The order stays held (no refund or payout goes out on its own): refund it again by hand and record it in admin > Shops orders, or release the held refund in admin > Payouts held for review."),
+          fields: { Refund: refund.id, Outcome: String(shopHand) },
         });
       }
       return;

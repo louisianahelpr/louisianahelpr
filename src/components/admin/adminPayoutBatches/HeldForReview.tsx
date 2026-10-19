@@ -24,6 +24,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { AdminCard } from "@/components/admin/AdminViewShell";
 import { formatPriceExact } from "@/lib/format";
 import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
+import { adminSettleHeldShopRefund } from "@/lib/shops/orders";
+import { shopsErrorMessage } from "@/lib/shops/errors";
 
 export type HeldRow = {
   kind: "declutter" | "helpr_task" | "shop" | "declutter_refund" | "delivery_refund" | "shop_refund";
@@ -75,6 +77,19 @@ export function HeldForReview() {
     if (!draft) return;
     setBusy(true);
     try {
+      // A Shops refund settled with a Stripe refund id is checked WITH Stripe first (shop-checkout); the RPC takes only "other: ...".
+      if (draft.action === "settle" && draft.row.kind === "shop_refund" && !/^\s*other:/i.test(draft.ref)) {
+        try {
+          await adminSettleHeldShopRefund(draft.row.id, draft.ref.trim(), draft.note);
+        } catch (e) {
+          toast.error(shopsErrorMessage(e));
+          return;
+        }
+        toast.success("Marked settled by hand.");
+        setDraft(null);
+        await qc.invalidateQueries({ queryKey: ["admin", "payouts-held-for-review"] });
+        return;
+      }
       const { error: err } = draft.action === "release"
         ? await supabase.rpc("admin_payout_release",
           { p_kind: draft.row.kind, p_id: draft.row.id, p_note: draft.note, p_confirm_no_transfer: draft.confirmed })

@@ -42,6 +42,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { AdminCard, AdminViewShell } from "./AdminViewShell";
 import { TestTag } from "./TestTag";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcErrorMessage } from "./adminRpcErrorCopy";
 import { usePayoutHolds } from "./adminPayoutBatches/usePayoutHolds";
 import { adminRecordHandRefund, adminRefundOrder, formatCents, type AdminRefundReason } from "@/lib/shops/orders";
@@ -66,7 +67,6 @@ interface StrikeRow {
 interface Queue { problems: Problem[]; refunds: RefundRow[]; payouts: PayoutRow[]; strikes: StrikeRow[]; notDeployed?: boolean }
 
 const NOT_DEPLOYED = "This isn't on the server yet (it is still deploying). Try again in a few minutes.";
-const isNotDeployed = (error: unknown) => (error as { code?: string } | null)?.code === "PGRST202";
 
 export const REFUND_REASONS: { value: AdminRefundReason; label: string; detail: string }[] = [
   { value: "problem_shop_fault", label: "The shop's fault", detail: "Full refund. The shop pays the card fee and gets a Shops strike." },
@@ -83,14 +83,14 @@ type Action =
   | { kind: "hold"; sellerId: string };
 
 /** An admin RPC's refusal, carrying its words (read at each call site with rpcErrorMessage). */
-function adminFail(error: { message: string }, userMessage: string | null): never {
-  throw Object.assign(new Error(error.message), error, { userMessage: (isNotDeployed(error) ? NOT_DEPLOYED : userMessage) ?? undefined });
+function adminFail(error: { message: string }, notDeployed: boolean, userMessage: string | null): never {
+  throw Object.assign(new Error(error.message), error, { userMessage: (notDeployed ? NOT_DEPLOYED : userMessage) ?? undefined });
 }
 
 async function fetchQueue(): Promise<Queue> {
   const { data, error } = await supabase.rpc("shops_admin_queue");
-  if (error && isNotDeployed(error)) return { problems: [], refunds: [], payouts: [], strikes: [], notDeployed: true };
-  if (error) adminFail(error, rpcErrorMessage("shops_admin_queue", error));
+  if (error && isMissingRpcNamed(error, "shops_admin_queue")) return { problems: [], refunds: [], payouts: [], strikes: [], notDeployed: true };
+  if (error) adminFail(error, isMissingRpcNamed(error, "shops_admin_queue"), rpcErrorMessage("shops_admin_queue", error));
   const q = (data ?? {}) as Partial<Queue>;
   return { problems: q.problems ?? [], refunds: q.refunds ?? [], payouts: q.payouts ?? [], strikes: q.strikes ?? [] };
 }
@@ -98,16 +98,16 @@ async function fetchQueue(): Promise<Queue> {
 async function runAction(a: Action, note: string, reason: AdminRefundReason | null): Promise<void> {
   if (a.kind === "pay") {
     const { error } = await supabase.rpc("shops_admin_pay_shop", { p_order_id: a.orderId, p_note: note });
-    if (error) adminFail(error, rpcErrorMessage("shops_admin_pay_shop", error));
+    if (error) adminFail(error, isMissingRpcNamed(error, "shops_admin_pay_shop"), rpcErrorMessage("shops_admin_pay_shop", error));
   } else if (a.kind === "refund") {
     if (!reason) throw new Error("invalid_reason");
     await adminRefundOrder(a.orderId, reason, note);
   } else if (a.kind === "remove_strike") {
     const { error } = await supabase.rpc("shops_admin_remove_strike", { p_strike_id: a.strikeId, p_note: note });
-    if (error) adminFail(error, rpcErrorMessage("shops_admin_remove_strike", error));
+    if (error) adminFail(error, isMissingRpcNamed(error, "shops_admin_remove_strike"), rpcErrorMessage("shops_admin_remove_strike", error));
   } else if (a.kind === "give_strike") {
     const { error } = await supabase.rpc("shops_admin_give_strike", { p_order_id: a.orderId, p_side: a.side, p_note: note });
-    if (error) adminFail(error, rpcErrorMessage("shops_admin_give_strike", error));
+    if (error) adminFail(error, isMissingRpcNamed(error, "shops_admin_give_strike"), rpcErrorMessage("shops_admin_give_strike", error));
   }
 }
 

@@ -26,7 +26,11 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     await recordShopHandRefunds(event, charge, refundPiId, allRefunds, chargeMeta.order_id ?? null, supabase, logStep); |
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |       if ((error as { code?: string }).code !== "PGRST202") throw | if (false) throw
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |         message: `Refund ${r.id} (${formatExactDollars(Number(r.amount ?? 0))}) on ${paymentIntentId} was made in Stripe, not by the app. ${why} Refunds on this charge: ${history}.`, |         message: `Refund ${r.id} on ${paymentIntentId}. ${why}`,
- * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |     if (!shErr && (shopHand === "marked_failed" \|\| shopHand === "already")) { |     if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |     if (!shErr && (shopHand === "marked_failed" \|\| shopHand === "reopened_held" \|\| shopHand === "already")) { |     if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |       if (shopHand === "marked_failed" \|\| shopHand === "reopened_held") { |       if (shopHand === "marked_failed") {
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (refundPi !== row.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409); |
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (Number(refund.amount ?? 0) < Number(row.refund_cents)) return json({ error: "hand_refund_short", amount_cents: refund.amount }, 409); |
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (body.action === "admin_settle_held_refund") return await adminSettleHeldRefund(body, user.id, admin);\n |
  * @mutate supabase/functions/shop-checkout/index.ts |   if (refundPi !== o.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |   if (refund.amount !== cents) return json({ error: "refund_amount_differs", amount_cents: refund.amount }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |   if (!role) return json({ error: "admin_only" }, 403); |
@@ -448,6 +452,70 @@ describe("stripe-webhook: a Shops refund made by hand in Stripe", () => {
     expect(page?.message).toMatch(/HELD/);
     expect(page?.message).toMatch(/re_hand \$10\.00 succeeded \(by hand\); re_app \$20\.00 succeeded \(app\)/);
     expect(page?.oncePerDayKey).toBe(`shop-hand-refund-${ORDER}`);
+  });
+});
+
+// Run-3 review #2b: a Dashboard refund that had SETTLED a held app refund fails later: the row is held again, and ops are paged.
+describe("charge.refund.updated: a failed hand refund that settled a row", () => {
+  it("pages that the settled refund row is held for review again", async () => {
+    scenario.rpc.shop_hand_refund_failed = "reopened_held";
+    scenario.rpc.declutter_hand_refund_failed = "not_declutter";
+    const res = await deliver("charge.refund.updated", { id: "re_set", object: "refund", status: "failed", failure_reason: "lost_or_stolen_card",
+      amount: 2056, payment_intent: "pi_shop", charge: "ch_shop", metadata: {} });
+    expect(res.status).toBe(200);
+    expect(scenario.writes.some((w) => w.table === "payment_refunds")).toBe(false);
+    const page = slackAlerts.find((a: any) => /Shops refund made by hand FAILED/.test(String(a.title))) as any;
+    expect(page?.message).toMatch(/held for review again/);
+    expect(page?.fields?.Outcome).toBe("reopened_held");
+  });
+});
+
+// Run-3 review #2/#3: a held Shops refund is settled by Stripe id only after Stripe confirms the refund.
+describe("shop-checkout admin_settle_held_refund: only a live refund on THIS row's payment, for at least the whole refund", () => {
+  const ROW = "0000000e-0000-4000-8000-0000000000aa";
+  const ask = (fn: Awaited<ReturnType<typeof as>>, over: Record<string, unknown> = {}) => tap(fn, {
+    action: "admin_settle_held_refund", refund_row_id: ROW, refund_id: "re_dash", note: "Refunded by phone", ...over,
+  });
+  async function setup(isAdmin = true) {
+    const fn = await as(ADMIN);
+    scenario.reads.user_roles = { rows: isAdmin ? [{ role: "admin" }] : [] };
+    scenario.reads.shop_refunds = { rows: [{ id: ROW, order_id: ORDER, stripe_payment_intent_id: "pi_shop", refund_cents: 1906, status: "held_for_review" }] };
+    scenario.reads.shop_orders = { rows: [{ ...charged, status: "refunded" }] };
+    scenario.rpc.shops_admin_settle_held_refund = { result: "settled", refund_id: ROW, adopted_hand_refund: true };
+    return fn;
+  }
+
+  it("a live refund covering the row is settled with the admin's id and Stripe's amount, through the service key; no Stripe write", async () => {
+    const fn = await setup();
+    stripeMock.refunds.retrieve.mockResolvedValue({ id: "re_dash", amount: 2056, status: "succeeded", payment_intent: "pi_shop" });
+    const res = await ask(fn);
+    expect(res.status).toBe(200);
+    expect((await json(res)).result).toBe("settled");
+    const call = rpcs("shops_admin_settle_held_refund")[0];
+    expect(call?.args).toEqual({ p_admin: ADMIN, p_refund_id: ROW, p_stripe_refund_id: "re_dash", p_amount_cents: 2056, p_note: "Refunded by phone" });
+    expect(clientOf(call)?.key).toBe("service-key");
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ payment_intent: "pi_other", amount: 2056, status: "succeeded" }, "refund_not_on_this_order"],
+    [{ payment_intent: "pi_shop", amount: 1905, status: "succeeded" }, "hand_refund_short"],
+    [{ payment_intent: "pi_shop", amount: 2056, status: "canceled" }, "refund_not_live"],
+  ])("a refund Stripe describes differently (%o) is refused (%s) and nothing is settled", async (rf, err) => {
+    const fn = await setup();
+    stripeMock.refunds.retrieve.mockResolvedValue({ id: "re_dash", ...rf });
+    const res = await ask(fn);
+    expect(res.status).toBe(409);
+    expect((await json(res)).error).toBe(err);
+    expect(rpcs("shops_admin_settle_held_refund")).toHaveLength(0);
+  });
+
+  it("a non-admin never reaches Stripe", async () => {
+    const fn = await setup(false);
+    const res = await ask(fn);
+    expect(res.status).toBe(403);
+    expect(stripeMock.refunds.retrieve).not.toHaveBeenCalled();
+    expect(rpcs("shops_admin_settle_held_refund")).toHaveLength(0);
   });
 });
 

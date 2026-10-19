@@ -91,7 +91,7 @@ export function TwoStepCategoryPicker({ id, value, onChange, groups, placeholder
                   aria-expanded={isOpen}
                   aria-controls={regionId}
                   onClick={() => setExpanded(isOpen ? null : g.slug)}
-                  className="flex min-h-11 w-full items-center justify-between gap-2 rounded px-3 text-left text-base font-semibold sm:text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex min-h-11 w-full items-center justify-between gap-2 rounded px-3 text-left text-base font-semibold sm:text-sm ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className="flex items-center gap-2">
                     {groupIcon?.(g.slug)}
@@ -113,7 +113,7 @@ export function TwoStepCategoryPicker({ id, value, onChange, groups, placeholder
                               setOpen(false);
                               triggerRef.current?.focus();
                             }}
-                            className="flex min-h-11 w-full items-center justify-between gap-2 rounded px-3 text-left text-base sm:text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="flex min-h-11 w-full items-center justify-between gap-2 rounded px-3 text-left text-base sm:text-sm ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             {c.label}
                             {on && <Check className="h-4 w-4 shrink-0" aria-hidden />}

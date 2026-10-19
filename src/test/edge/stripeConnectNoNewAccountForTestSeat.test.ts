@@ -39,8 +39,10 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { ACCOUNTS } from "../../../scripts/test-signin-link.mjs";
 
-const SEAT = { id: "5af6ce6d-68a8-4f98-b9d4-4fab20f1a607", email: "seat@example.test" };
+// The seat from the 2026-10-18 incident (eli.test.helper), read from ACCOUNTS (Q1650: ids live in one place).
+const SEAT = { id: ACCOUNTS.helper.userId, email: "seat@example.test" };
 const APP_REVIEWER = { id: "f2098932-5563-47c3-9589-1d22cca72003", email: "apple-reviewer@example.test" };
 const REAL = { id: "44444444-4444-4444-8444-444444444444", email: "real@example.test" };
 const NEW_ACCT = "acct_new_from_create";

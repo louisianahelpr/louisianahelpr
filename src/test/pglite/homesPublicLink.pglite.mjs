@@ -268,50 +268,87 @@ const draftSlug = one(await svc(`SELECT slug FROM public.rental_listings WHERE i
 ok(refused(await pub("anon", null, draftSlug), /listing_not_found/, "P0002"), "a draft's link says not found");
 ok(rows(await pub("anon", null)).length === 1, "and the live one still opens");
 
-// --- Q2187: the admin take-down
+// --- Q2187: the admin take-down, on the PROPERTY (lead review of slices 2+3, must-fix 1-7)
 const remove = (uid, id, reason = "Photos do not show this home.") =>
   as("authenticated", uid, `SELECT public.rentals_admin_remove_listing('${id}', '${reason}')`);
-ok(refused(await remove(LANDLORD, rentId), /not_authorized/, "42501"), "a member (even the owner) cannot use the take-down");
-ok(refused(await as("anon", null, `SELECT public.rentals_admin_remove_listing('${rentId}', 'xxxxx')`), /permission denied/), "anon cannot execute it");
-ok(refused(await remove(ADMIN, rentId, "no"), /reason_required/, "22023"), "a take-down needs a reason");
-await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'rentals'`);
-ok(Array.isArray(await remove(ADMIN, rentId)), "an admin removes the listing, even with the Homes switch off (moderation is never gated)");
-await svc(`UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'rentals'`);
-const after = rows(await svc(`SELECT status, removed_by_admin, removed_reason FROM public.rental_listings WHERE id = '${rentId}'`))[0];
-ok(after?.status === "removed" && after.removed_by_admin === true && after.removed_reason === "Photos do not show this home.", "removed, by an admin, with the reason");
-ok(empty(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_listings()`)), "it leaves the Rent browse");
-ok(refused(await pub("anon", null), /listing_not_found/, "P0002"), "and its public link");
-ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${rentId}', 'live')`), /listing_not_editable/), "the owner cannot put it back up");
-ok(one(await svc(`SELECT count(*)::int FROM public.admin_audit_log WHERE action = 'rentals_listing_removed' AND target_id = '${rentId}'`)) === 1, "the take-down is in the admin audit log");
-ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${LANDLORD}' AND title = 'Listing removed'`)) >= 1, "the owner is told why");
-ok(refused(await remove(ADMIN, rentId), /listing_not_found/, "P0002"), "a taken-down listing cannot be taken down twice");
-// review #4: the same unit cannot simply be listed again
-const again = one(await as("authenticated", LANDLORD, `SELECT public.rentals_save_listing(NULL, '${unit}', '${JSON.stringify({
-  headline: "Bright 2 bed near downtown", rent_cents: 120000, beds: 2, baths: 1, available_on: "2026-11-01" })}'::jsonb) AS id`));
-ok(refused(await live(LANDLORD, again, "a"), /listing_taken_down/, "42501"), "the taken-down unit cannot go live again under a new listing");
-// review #7: an owner-removed listing can still be taken down (who, why, audit)
-await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${draftId}', 'removed')`);
-ok(Array.isArray(await remove(ADMIN, draftId)), "an admin can take down a listing the owner already removed");
-ok(rows(await svc(`SELECT removed_by_admin FROM public.rental_listings WHERE id = '${draftId}'`))[0]?.removed_by_admin === true, "and it is recorded as taken down");
-// a sale listing too
+const lift = (uid, p, note = "Removed by mistake.") => as("authenticated", uid, `SELECT public.rentals_admin_lift_takedown('${p}', '${note}')`);
+// a live sale listing on the same property, and a draft on another unit, before the take-down
 const saleId = one(await as("authenticated", LANDLORD, `SELECT public.rentals_save_sale_listing(NULL, '${prop}', '${JSON.stringify({
-  headline: "Three bedroom brick home", sale_price_cents: 24500000, beds: 3, baths: 2, sq_ft: 1650, lot_sq_ft: 8700, year_built: 1998 })}'::jsonb) AS id`));
+  headline: "Three bedroom brick home, built 1998, 8700 sq ft lot, 123 Oak St", description: "Call about 123 Oak St.",
+  sale_price_cents: 24500000, beds: 3, baths: 2.5, sq_ft: 1650, lot_sq_ft: 8700, year_built: 1998 })}'::jsonb) AS id`));
 await live(LANDLORD, saleId, "s");
-ok(rows(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_sale_listings()`)).length === 1, "setup: a live sale listing");
+ok(rows(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_sale_listings()`)).length === 1, "setup: a live sale listing on the same property");
 const saleSlug = one(await svc(`SELECT slug FROM public.rental_listings WHERE id = '${saleId}'`));
 const saleRow = rows(await pub("anon", null, saleSlug))[0];
 ok(saleRow?.kind === "sale", "a sale listing's link works too, saying sale");
 ok(saleRow && saleRow.sq_ft === null && saleRow.lot_sq_ft === null && saleRow.year_built === null,
   "review #5: a stranger gets no home size, lot size or year built for a home for sale (with the ZIP they name the parcel)");
-ok(Array.isArray(await remove(ADMIN, saleId)), "an admin removes a sale listing too");
-ok(empty(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_sale_listings()`)), "it leaves the Buy browse");
+ok(saleRow && saleRow.headline === "3 bed, 2.5 bath home for sale" && saleRow.description === null && !JSON.stringify(saleRow).includes("Oak"),
+  "must-fix 4: a stranger gets a plain headline and no description for a home for sale (the owner's words can name the street, year or lot)");
+ok(rows(await as("authenticated", TENANT, `SELECT headline FROM public.rentals_listing('${saleId}')`))[0]?.headline.includes("brick"), "a signed-in member still reads the owner's headline");
+
+ok(refused(await remove(LANDLORD, rentId), /not_authorized/, "42501"), "a member (even the owner) cannot use the take-down");
+ok(refused(await as("anon", null, `SELECT public.rentals_admin_remove_listing('${rentId}', 'xxxxx')`), /permission denied/), "anon cannot execute it");
+ok(refused(await remove(ADMIN, rentId, "no"), /reason_required/, "22023"), "a take-down needs a reason");
+ok(refused(await remove(ADMIN, draftId), /listing_not_live/, "22023"), "must-fix 6: a draft (not live or paused) is not taken down");
+await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'rentals'`);
+ok(Array.isArray(await remove(ADMIN, rentId)), "an admin removes a live listing, even with the Homes switch off (moderation is never gated)");
+await svc(`UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'rentals'`);
+const after = rows(await svc(`SELECT status, removed_by_admin, removed_reason, removed_from_status FROM public.rental_listings WHERE id = '${rentId}'`))[0];
+ok(after?.status === "removed" && after.removed_by_admin === true && after.removed_reason === "Photos do not show this home." && after.removed_from_status === "live",
+  "removed, by an admin, with the reason and what it was");
+const all = rows(await svc(`SELECT id, status, removed_by_admin FROM public.rental_listings WHERE property_id = '${prop}' ORDER BY id`));
+ok([saleId, draftId].every((x) => all.find((r) => r.id === x)?.status === "removed" && all.find((r) => r.id === x)?.removed_by_admin === true),
+  "must-fix 2: every OPEN listing on the property goes (the sale listing and the draft on another unit too)");
+ok(one(await as("authenticated", LANDLORD, `SELECT listings_taken_down_reason FROM public.rental_properties WHERE id = '${prop}'`)) === "Photos do not show this home.",
+  "the property carries the take-down and its reason, and the owner can read it (column grant)");
+ok(empty(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_listings()`)), "it leaves the Rent browse");
+ok(empty(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_sale_listings()`)), "and the Buy browse");
+ok(refused(await pub("anon", null), /listing_not_found/, "P0002"), "and its public link");
+ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${rentId}', 'live')`), /listing_not_editable/), "the owner cannot put it back up");
+const audit = rows(await svc(`SELECT details FROM public.admin_audit_log WHERE action = 'rentals_listing_removed' AND target_id = '${rentId}'`));
+ok(audit.length === 1 && audit[0].details.listings_removed.length === 3, "the take-down is in the admin audit log, naming every listing it removed");
+ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${LANDLORD}' AND title = 'Listing removed'`)) >= 1, "the owner is told why");
+ok(refused(await remove(ADMIN, rentId), /listing_not_live/, "22023"), "a taken-down listing cannot be taken down twice");
+// must-fix 1 + 7: nothing on the property is saved, given photos or published again: a new unit, either kind
+const unit3 = one(await as("authenticated", LANDLORD, `SELECT public.rentals_add_unit('${prop}', 'Unit C') AS id`));
+ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_save_listing(NULL, '${unit3}', '${JSON.stringify({
+  headline: "Bright 2 bed near downtown", rent_cents: 120000, beds: 2, baths: 1, available_on: "2026-11-01" })}'::jsonb)`), /listing_taken_down/, "42501"),
+  "must-fix 1/7: a NEW unit on the property cannot even start a draft");
+ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_save_sale_listing(NULL, '${prop}', '${JSON.stringify({
+  headline: "Three bedroom brick home", sale_price_cents: 24500000, beds: 3, baths: 2 })}'::jsonb)`), /listing_taken_down/, "42501"),
+  "nor a listing of the other kind (sale)");
+const strayPath = `${LANDLORD}/rental-listings/${rentId}/late.jpg`;
+await svc(`INSERT INTO storage.objects (bucket_id, name, owner, owner_id, metadata) VALUES ('job-photos', '${strayPath}', '${LANDLORD}', '${LANDLORD}', '{"mimetype":"image/jpeg","size":1000}')`);
+ok(refused(await svc(`INSERT INTO public.rental_listing_photos (listing_id, owner_id, storage_path, position) VALUES ('${rentId}', '${LANDLORD}', '${strayPath}', 20)`), /listing_taken_down/),
+  "must-fix 7: no photo is attached to a listing on a taken-down property (trigger, whatever the writer)");
+// must-fix 6: lifting a mistaken take-down (admin only, audited): drafts back to draft, live/paused back to paused
+ok(refused(await lift(LANDLORD, prop), /not_authorized/, "42501"), "a member cannot lift a take-down");
+ok(refused(await lift(ADMIN, prop, "no"), /reason_required/, "22023"), "lifting needs a note");
+ok(Array.isArray(await lift(ADMIN, prop)), "an admin lifts it");
+const back = rows(await svc(`SELECT id, status, removed_by_admin FROM public.rental_listings WHERE id IN ('${rentId}', '${saleId}', '${draftId}') ORDER BY id`));
+const st = (x) => back.find((r) => r.id === x);
+ok(st(rentId)?.status === "paused" && st(saleId)?.status === "paused" && st(draftId)?.status === "draft" && back.every((r) => r.removed_by_admin === false),
+  "each listing goes back to paused (was live) or draft (was a draft), never straight to live");
+ok(one(await svc(`SELECT count(*)::int FROM public.admin_audit_log WHERE action = 'rentals_takedown_lifted' AND target_id = '${prop}'`)) === 1, "the lift is in the audit log");
+ok(Array.isArray(await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${rentId}', 'live')`)), "the owner publishes again through every check");
+ok(refused(await lift(ADMIN, prop), /listing_not_found/, "P0002"), "nothing to lift twice");
+// must-fix 5: sold and leased are final
+await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${rentId}', 'leased')`);
+ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${rentId}', 'removed')`), /bad_status/), "must-fix 5: a leased listing cannot be removed by its owner (final)");
+ok(Array.isArray(await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${saleId}', 'live')`)), "setup: the sale listing live again");
+await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${saleId}', 'sold')`);
+ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${saleId}', 'removed')`), /bad_status/), "nor a sold one");
+ok(refused(await remove(ADMIN, saleId), /listing_not_live/, "22023"), "and a sold listing (history) is not taken down");
 
 // --- grants
 const acl = async (sig) => one(await svc(`SELECT coalesce(proacl::text, '') FROM pg_proc WHERE oid = '${sig}'::regprocedure`)) ?? "";
 const pa = await acl("public.rentals_public_listing(text)");
 ok(/anon=X/.test(pa) && /authenticated=X/.test(pa) && !/(^|[{,])=X/.test(pa), `rentals_public_listing: anon + authenticated by name, not PUBLIC (${pa})`);
-const ra = await acl("public.rentals_admin_remove_listing(uuid,text)");
-ok(/authenticated=X/.test(ra) && !/(^|[{,])(anon)?=X/.test(ra), `rentals_admin_remove_listing: authenticated (admin checked inside), anon/PUBLIC no (${ra})`);
+for (const sig of ["public.rentals_admin_remove_listing(uuid,text)", "public.rentals_admin_lift_takedown(uuid,text)"]) {
+  const ra = await acl(sig);
+  ok(/authenticated=X/.test(ra) && !/(^|[{,])(anon)?=X/.test(ra), `${sig}: authenticated (admin checked inside), anon/PUBLIC no (${ra})`);
+}
 for (const sig of ["public.rentals_public_listing_photo_path(uuid)", "public.rentals_public_listing_visible(uuid)"]) {
   const a = await acl(sig);
   ok(/service_role=X/.test(a) && !/(^|[{,])(anon|authenticated)?=X/.test(a), `${sig}: server-only (${a})`);

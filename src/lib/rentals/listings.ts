@@ -100,8 +100,9 @@ export async function fetchListing(id: string): Promise<ListingDetail | null> {
 }
 
 export async function fetchMyListings(uid: string): Promise<RentalListing[]> {
-  // A listing an admin took down stays in the owner's list with the reason (Q2187 review #8); one the owner removed does not.
-  const res = await supabase.from("rental_listings").select("*").eq("owner_id", uid).or("status.neq.removed,removed_by_admin.eq.true").order("created_at");
+  // The CURRENT listings only, newest first, so an old removed row never hides the live one (lead review must-fix 3).
+  // A take-down is shown from the property (listings_taken_down_reason), not from a removed row.
+  const res = await supabase.from("rental_listings").select("*").eq("owner_id", uid).neq("status", "removed").order("created_at", { ascending: false });
   if (res.error && listingsNotDeployed(res.error)) return [];
   return (unwrap(res) ?? []) as RentalListing[];
 }

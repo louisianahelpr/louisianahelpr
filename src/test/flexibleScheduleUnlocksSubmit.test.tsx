@@ -9,7 +9,10 @@ import { render, renderHook, screen, cleanup } from "@testing-library/react";
 // The category picker's "Suggest a category" link reads the hidden switch
 // through React Query; this render has no QueryClientProvider, and the switch
 // is not what this test is about.
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
+vi.mock("@/hooks/useFeature", () => ({
+  useFeature: () => false,
+  useFeatureStatus: () => ({ on: false, settled: true, lastAnswer: false }),
+}));
 vi.mock("@/hooks/useHelprActivity", () => ({
   useHelprActivity: () => ({ activity: null, loading: false }),
 }));

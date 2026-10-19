@@ -2,13 +2,13 @@
  * Owner answer 12 (2026-10-17): quote requests are found through a Quotes link
  * in the menu (and the "Wants quotes" browse filter, docs/OPEN.md), only while
  * the hidden 'quotes' switch is on for the member. The phone menu entry is the
- * Profile landing row (as Declutter's); the desktop rail lists it as a
- * destination (DesktopSidebarNav, asserted on its source below because the
- * rail renders only on the wide desktop website).
+ * Profile landing row (as Declutter's), which the design build removes. Since
+ * the /quotes hub retired (owner 2026-10-19) the desktop rail has no Quotes
+ * destination (asserted on DesktopSidebarNav's source: the rail renders only
+ * on the wide desktop website); src/test/quotesHubRetired.test.ts guards links.
  *
  * @mutate src/components/profile/profileLanding/QuotesEntryRow.tsx |   if (!on) return null; |   if (false) return null;
  * @mutate src/components/profile/ProfileLanding.tsx |       <QuotesEntryRow />\n | \n
- * @mutate src/components/DesktopSidebarNav.tsx |     ...(quotesOn ? [{ path: "/quotes", icon: FileText, label: "Quotes" }] : []), |     ...[],
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -38,11 +38,9 @@ describe("the Quotes menu link (owner answer 12)", () => {
     expect(screen.getByRole("link", { name: /Quotes/ }).getAttribute("href")).toBe("/quotes");
   });
 
-  it("is on the Profile landing (phone menu) and the desktop rail, behind the switch", () => {
+  it("is on the Profile landing (phone menu), behind the switch; the desktop rail has no Quotes (hub retired 2026-10-19)", () => {
     expect(src("src/components/profile/ProfileLanding.tsx")).toMatch(/<QuotesEntryRow \/>/);
-    const rail = src("src/components/DesktopSidebarNav.tsx");
-    expect(rail).toContain('const quotesOn = useFeature("quotes");');
-    expect(rail).toContain('...(quotesOn ? [{ path: "/quotes", icon: FileText, label: "Quotes" }] : []),');
+    expect(src("src/components/DesktopSidebarNav.tsx")).not.toMatch(/label: "Quotes"/);
     // /quotes keeps the signed-in app chrome on both surfaces (dualSurfaceRoutesGetAppChrome).
     expect(src("src/lib/desktopNavRoutes.ts")).toContain('"/quotes"');
     expect(src("src/components/mobileNav/mobileNavHelpers.ts")).toContain('"/quotes"');

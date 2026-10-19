@@ -1,5 +1,6 @@
 /**
- * Post a Job, "Set my price" or "Get quotes" (owner Q1, Q4). The three form
+ * Post a Job, "Set a price" or "Get quotes" (owner Q1, Q4; owner 2026-10-19:
+ * the form's FIRST choice, as pills, with one line on what happens next). The three form
  * sections are stubbed (their own tests cover them); this pins the choice:
  * shown only with the 'quotes' switch on and only for a one-time job with no
  * direct offer, "Get quotes" swaps the budget for the 24 h / 48 h / 3 days
@@ -8,6 +9,8 @@
  *
  * @mutate src/pages/post-job/FormStep.tsx |   const quotesEligible = quotesOn && !form.offerToHelperId && !form.isRecurring && !form.isGroupJob; |   const quotesEligible = quotesOn && !form.offerToHelperId;
  * @mutate src/pages/post-job/FormStep.tsx |           if (!askingQuotes) return form.handleReview(e); |           return form.handleReview(e);
+ * @mutate src/components/quotes/PostJobQuoteChoice.tsx |           { value: "price", label: "Set a price" }, |           { value: "price", label: "Set my price" },
+ * @mutate src/components/quotes/PostJobQuoteChoice.tsx |         {PRICE_MODE_NEXT[value]}\n |         \n
  * @mutate src/lib/quotes/api.ts | export const DEFAULT_QUOTE_WINDOW: QuoteWindowHours = 48; | export const DEFAULT_QUOTE_WINDOW: QuoteWindowHours = 24;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -67,7 +70,18 @@ beforeEach(() => {
   handleReview.mockClear();
 });
 
-describe("Post a Job: Set my price or Get quotes", () => {
+describe("Post a Job: Set a price or Get quotes", () => {
+  it("is the form's first choice, as pills, saying what happens next", () => {
+    show(form());
+    const group = screen.getByRole("radiogroup", { name: "How to price this job" });
+    // Above the details section: the first thing the poster decides.
+    expect(group.compareDocumentPosition(screen.getByText("details")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Set a price" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByText(/You set the budget, then review and pay/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: "Get quotes" }));
+    expect(screen.getByText(/Members near you send theirs; you pick one and pay only when you book/)).toBeInTheDocument();
+  });
+
   it("switch off: no choice, the budget and Review & Pay as today", () => {
     state.feature = false;
     show(form());

@@ -46,6 +46,7 @@ import { JobsHeader, JOBS_HEADER_PADDING } from "@/pages/jobs/JobsHeader";
 import { ActivityEmptyState } from "@/components/job-card/ActivityEmptyState";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";
+import { JobListQuotesSlot } from "@/components/quotes/JobListQuotesSlot";
 import { toast } from "sonner";
 import { recheckUnverifiedArrival } from "@/components/job-card/recheckUnverifiedArrival";
 import SectionBoundary from "@/components/SectionBoundary";
@@ -558,6 +559,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             {tab === "posted" && user && <RecurringVisitPayments userId={user.id} className="mx-4 mt-3" />}
             {/* A job whose bank payment is on its way is not a post (no bucket, no count); with nothing else posted its poster lands here (owner, 2026-10-17). */}
             {tab === "posted" && <PendingBankPayments jobs={postedJobs} className="mx-4 mt-3" />}
+            <JobListQuotesSlot tab={tab} className="mx-4 mt-3" />
             {/* Empty state — a liquid-glass card that fills the panel and bleeds beneath the
                 dock (flat bottom, no hard edge), matching the Dashboard / Messages pattern. */}
             <ActivityEmptyState
@@ -589,6 +591,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               className="min-h-full flex flex-col"
               style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))" }}
             >
+          <JobListQuotesSlot tab={tab} />{/* the member's quotes, behind the 'quotes' switch (owner 2026-10-19) */}
           {/* Jobs waiting for the poster's bank payment: shown, never bucketed. */}
           {tab === "posted" && <PendingBankPayments jobs={postedJobs} className="mb-3" />}
           {tab === "posted" && (
@@ -662,10 +665,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           )}
 
           {tab === "applied" && (
-            /* `space-y-list` (12px, Q213a), matching AppliedJobsTab and the grouped view —
-               the same 2px-per-row drift fixed on the posted branch above and
-               on ActivityPageSkeleton 2026-09-21; a gap is part of the
-               reservation. */
+            /* `space-y-list` (12px, Q213a), as AppliedJobsTab and the grouped view (the 2px drift fixed above). */
             <Suspense fallback={
               <div className="px-0 space-y-list">
                 {[1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)}

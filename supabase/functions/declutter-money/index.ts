@@ -252,7 +252,7 @@ serve(async (req) => {
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
     shop_handed_over: 0, shop_payouts_sent: 0, shop_payouts_reconciled: 0, shop_payouts_failed: 0,
     rent_transfers_sent: 0, rent_transfers_reconciled: 0, rent_transfers_reversed: 0, rent_transfers_failed: 0,
-    rent_autopay_started: 0, rent_autopay_failed: 0,
+    rent_autopay_started: 0, rent_autopay_failed: 0, rent_autopay_retry: 0,
   };
 
   // 5. SHOPS M1 (migration 20261018164442): the order clock, then every hold to
@@ -521,9 +521,18 @@ serve(async (req) => {
       } catch (e) {
         const msg = caughtMessage(e, "autopay charge failed");
         defects.record(`rent autopay ${a.bank_payment_id}: ${msg}`.slice(0, 200));
-        const { error } = await admin.rpc("rentals_bank_rent_failed", { p_id: a.bank_payment_id, p_expired: false });
-        if (error) defects.record(`rent autopay ${a.bank_payment_id}: failure not recorded: ${error.message}`);
-        out.rent_autopay_failed++;
+        // Only a definite refusal (the bank or Stripe said no) is recorded failed, which tells the tenant.
+        // Anything else (a timeout, a lost reply, a 5xx) may still have made the charge: the row stays open and
+        // rentals_autopay_due offers it again under the same id, so the same idempotency key returns the same
+        // charge instead of a second one (lead review #2).
+        const type = (e as { type?: string } | null)?.type;
+        if (type === "StripeCardError" || type === "StripeInvalidRequestError") {
+          const { error } = await admin.rpc("rentals_bank_rent_failed", { p_id: a.bank_payment_id, p_expired: false });
+          if (error) defects.record(`rent autopay ${a.bank_payment_id}: failure not recorded: ${error.message}`);
+          out.rent_autopay_failed++;
+        } else {
+          out.rent_autopay_retry++;
+        }
       }
     }
   } catch (e) {

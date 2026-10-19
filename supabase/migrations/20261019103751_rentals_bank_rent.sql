@@ -30,6 +30,8 @@
 -- 1. The plan's bank options, and the 'bank' way to pay on the record.
 ALTER TABLE public.rental_rent_plans ADD COLUMN IF NOT EXISTS bank_pay boolean NOT NULL DEFAULT false;
 ALTER TABLE public.rental_rent_plans ADD COLUMN IF NOT EXISTS bank_fee_payer text NOT NULL DEFAULT 'tenant';
+-- When the tenant was told autopay could not charge this row (the landlord's payouts off), once.
+ALTER TABLE public.rental_rent_charges ADD COLUMN IF NOT EXISTS autopay_skip_noticed_at timestamptz;
 DO $do$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'rental_rent_plans_bank_fee_payer_check') THEN
@@ -221,9 +223,19 @@ BEGIN
                   AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now())) THEN
     RAISE EXCEPTION 'payouts_not_ready' USING ERRCODE = '22023';
   END IF;
-  -- One bank payment in flight per tenancy (a debit takes days; a second one would double-pay).
-  IF EXISTS (SELECT 1 FROM public.rental_rent_bank_payments WHERE tenancy_id = p_tenancy_id AND status IN ('open', 'processing')
-               AND (status = 'processing' OR created_at > now() - interval '35 minutes')) THEN
+  -- Lead review #3: a row whose checkout (or autopay charge) never started is closed, so it never blocks.
+  UPDATE public.rental_rent_bank_payments
+     SET status = 'expired', updated_at = now()
+   WHERE tenancy_id = p_tenancy_id AND status = 'open' AND stripe_checkout_session_id IS NULL AND stripe_payment_intent_id IS NULL
+     AND created_at <= now() - CASE WHEN autopay THEN interval '23 hours' ELSE interval '35 minutes' END;
+  -- One bank payment in flight per tenancy (a debit takes days; a second one would double-pay). In flight:
+  -- the bank is confirming it, or a checkout or charge was started and Stripe has not answered yet, at any
+  -- age (lead review #5), or it was opened in the last 35 minutes (an autopay row: 23 hours, while its
+  -- charge may still be retried under the same key).
+  IF EXISTS (SELECT 1 FROM public.rental_rent_bank_payments b WHERE b.tenancy_id = p_tenancy_id
+               AND (b.status = 'processing'
+                    OR (b.status = 'open' AND (b.stripe_checkout_session_id IS NOT NULL OR b.stripe_payment_intent_id IS NOT NULL
+                                               OR b.created_at > now() - CASE WHEN b.autopay THEN interval '23 hours' ELSE interval '35 minutes' END)))) THEN
     RAISE EXCEPTION 'bank_payment_in_flight' USING ERRCODE = '22023';
   END IF;
   v_open := GREATEST(0, (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_charges
@@ -283,7 +295,9 @@ BEGIN
   END IF;
   UPDATE public.rental_rent_bank_payments
      SET status = 'processing', stripe_payment_intent_id = COALESCE(stripe_payment_intent_id, p_payment_intent_id), updated_at = now()
-   WHERE id = p_id AND status = 'open';
+   -- Also a row recorded failed or closed before Stripe's answer was known (a lost reply): the charge is
+   -- real, so it is recorded, never lost (lead review #2).
+   WHERE id = p_id AND (status = 'open' OR (status IN ('failed', 'expired') AND stripe_payment_intent_id IS NULL));
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_bank_rent_processing(uuid, text) FROM PUBLIC, anon, authenticated;
@@ -546,9 +560,17 @@ $fn$;
 REVOKE ALL ON FUNCTION public.rentals_set_autopay(uuid, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rentals_set_autopay(uuid, boolean) TO authenticated, service_role;
 
--- The rent rows due today (Louisiana date) that autopay should charge: live tenancy, bank pay on, autopay
--- on, both sides not banned and Homes on for both, the landlord's payouts on, the row still open (what is
--- open up to and including it, oldest first), no bank payment in flight. One bank payment row each.
+-- The rent rows autopay should charge (Louisiana dates): live tenancy, bank pay on, autopay on, both sides
+-- not banned and Homes on for both, the landlord's payouts on, the row still open (what is open up to and
+-- including it, oldest first, less what the tenant reported paying directly), nothing in flight.
+--   * Due today, or in the 6 days before when a run was missed (lead review #9), oldest first. One try per
+--     rent row: a debit the bank refused is not retried (the tenant is told and pays by hand).
+--   * An autopay row whose charge never reached Stripe's answer (a crash or a lost reply) is offered again,
+--     for up to 23 hours, under the SAME id, so the edge function's idempotency key returns the same charge
+--     instead of making a second one (lead review #2).
+--   * Each new row takes the tenancy lock first, the same lock a manual bank payment takes (lead review #5).
+--   * At most 50 per run, each row written as it goes, so one bad row never strands the rest.
+--   * A row due today that cannot run because the landlord's payouts are off: the tenant is told once.
 CREATE OR REPLACE FUNCTION public.rentals_autopay_due()
 RETURNS TABLE (bank_payment_id uuid, tenancy_id uuid, tenant_id uuid, landlord_id uuid, charge_cents integer,
                stripe_customer_id text, stripe_payment_method_id text, livemode boolean)
@@ -562,24 +584,76 @@ DECLARE
   v_open bigint;
   v_fee integer;
   v_row public.rental_rent_bank_payments%ROWTYPE;
+  v_n integer := 0;
+  v_today date := public.shop_local_today();
 BEGIN
+  -- Charges offered again (same id, same key).
+  FOR v IN
+    SELECT b.id, b.tenancy_id, b.charge_cents, t.tenant_id, t.landlord_id, a.stripe_customer_id, a.stripe_payment_method_id, a.livemode
+      FROM public.rental_rent_bank_payments b
+      JOIN public.rental_tenancies t ON t.id = b.tenancy_id AND t.status = 'active'
+      JOIN public.rental_rent_autopay a ON a.tenancy_id = b.tenancy_id AND a.enabled
+     WHERE b.autopay AND b.status = 'open' AND b.stripe_payment_intent_id IS NULL
+       AND b.created_at < now() - interval '10 minutes' AND b.created_at > now() - interval '23 hours'
+       AND public.feature_enabled_for_user('rentals', t.tenant_id) AND public.feature_enabled_for_user('rentals', t.landlord_id)
+       AND NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id IN (t.tenant_id, t.landlord_id)
+                         AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
+                         AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now()))
+     ORDER BY b.created_at
+     LIMIT 50
+  LOOP
+    v_n := v_n + 1;
+    bank_payment_id := v.id; tenancy_id := v.tenancy_id; tenant_id := v.tenant_id; landlord_id := v.landlord_id;
+    charge_cents := v.charge_cents; stripe_customer_id := v.stripe_customer_id; stripe_payment_method_id := v.stripe_payment_method_id;
+    livemode := v.livemode;
+    RETURN NEXT;
+  END LOOP;
+
+  -- Told once: a row due today that autopay cannot charge because the landlord's payouts are off.
+  FOR v IN
+    SELECT c.id AS charge_id, c.due_on, t.tenant_id
+      FROM public.rental_rent_charges c
+      JOIN public.rental_tenancies t ON t.id = c.tenancy_id AND t.status = 'active'
+      JOIN public.rental_rent_plans p ON p.tenancy_id = c.tenancy_id AND p.bank_pay
+      JOIN public.rental_rent_autopay a ON a.tenancy_id = c.tenancy_id AND a.enabled
+     WHERE c.kind = 'rent' AND c.waived_at IS NULL AND c.due_on = v_today AND c.autopay_skip_noticed_at IS NULL
+       AND public.feature_enabled_for_user('rentals', t.tenant_id) AND public.feature_enabled_for_user('rentals', t.landlord_id)
+       AND NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id IN (t.tenant_id, t.landlord_id)
+                         AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
+                         AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now()))
+       AND NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id = t.landlord_id AND pr.stripe_account_id IS NOT NULL AND pr.stripe_payouts_enabled)
+  LOOP
+    UPDATE public.rental_rent_charges SET autopay_skip_noticed_at = now() WHERE id = v.charge_id;
+    PERFORM public.rentals_notify(v.tenant_id, 'Autopay did not run',
+      'Autopay could not pay your rent due today because your landlord''s payouts are not set up. Pay it another way under Homes.', '/rentals', true);
+  END LOOP;
+
   FOR v IN
     SELECT c.id AS charge_id, c.tenancy_id, c.due_on, t.tenant_id, t.landlord_id, p.bank_fee_payer, a.stripe_customer_id, a.stripe_payment_method_id, a.livemode
       FROM public.rental_rent_charges c
       JOIN public.rental_tenancies t ON t.id = c.tenancy_id AND t.status = 'active'
       JOIN public.rental_rent_plans p ON p.tenancy_id = c.tenancy_id AND p.bank_pay
       JOIN public.rental_rent_autopay a ON a.tenancy_id = c.tenancy_id AND a.enabled
-     WHERE c.kind = 'rent' AND c.waived_at IS NULL AND c.due_on = public.shop_local_today()
+     WHERE c.kind = 'rent' AND c.waived_at IS NULL AND c.due_on BETWEEN v_today - 6 AND v_today
        AND public.feature_enabled_for_user('rentals', t.tenant_id) AND public.feature_enabled_for_user('rentals', t.landlord_id)
-       AND EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id = t.landlord_id AND pr.stripe_account_id IS NOT NULL AND pr.stripe_payouts_enabled)
        AND NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id IN (t.tenant_id, t.landlord_id)
                          AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
                          AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now()))
-       AND NOT EXISTS (SELECT 1 FROM public.rental_rent_bank_payments b WHERE b.tenancy_id = c.tenancy_id AND b.status IN ('open', 'processing'))
-       -- One try per rent row: a failed autopay debit is not retried (the tenant is told and pays by hand).
-       AND NOT EXISTS (SELECT 1 FROM public.rental_rent_bank_payments b WHERE b.rent_charge_id = c.id AND b.autopay)
-     FOR UPDATE OF c SKIP LOCKED
+       AND EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id = t.landlord_id AND pr.stripe_account_id IS NOT NULL AND pr.stripe_payouts_enabled)
+       AND NOT EXISTS (SELECT 1 FROM public.rental_rent_bank_payments b WHERE b.rent_charge_id = c.id AND b.autopay AND b.status <> 'expired')
+     ORDER BY c.due_on, c.id
   LOOP
+    EXIT WHEN v_n >= 50;
+    -- The tenancy lock a manual bank payment takes, then the in-flight check again under it.
+    PERFORM 1 FROM public.rental_tenancies WHERE id = v.tenancy_id FOR UPDATE;
+    UPDATE public.rental_rent_bank_payments
+     SET status = 'expired', updated_at = now()
+   WHERE tenancy_id = v.tenancy_id AND status = 'open' AND stripe_checkout_session_id IS NULL AND stripe_payment_intent_id IS NULL
+     AND created_at <= now() - CASE WHEN autopay THEN interval '23 hours' ELSE interval '35 minutes' END;
+    CONTINUE WHEN EXISTS (SELECT 1 FROM public.rental_rent_bank_payments b WHERE b.tenancy_id = v.tenancy_id
+                            AND (b.status = 'processing'
+                    OR (b.status = 'open' AND (b.stripe_checkout_session_id IS NOT NULL OR b.stripe_payment_intent_id IS NOT NULL
+                                               OR b.created_at > now() - CASE WHEN b.autopay THEN interval '23 hours' ELSE interval '35 minutes' END))));
     -- What is open up to and including this row (rent rows oldest first; payments already confirmed).
     v_open := (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_charges
                 WHERE tenancy_id = v.tenancy_id AND kind = 'rent' AND waived_at IS NULL AND due_on <= v.due_on)
@@ -594,6 +668,7 @@ BEGIN
             v_open + CASE WHEN v.bank_fee_payer = 'tenant' THEN v_fee ELSE 0 END,
             v_open - CASE WHEN v.bank_fee_payer = 'landlord' THEN v_fee ELSE 0 END, true, v.charge_id, v.livemode)
     RETURNING * INTO v_row;
+    v_n := v_n + 1;
     bank_payment_id := v_row.id; tenancy_id := v.tenancy_id; tenant_id := v.tenant_id; landlord_id := v.landlord_id;
     charge_cents := v_row.charge_cents; stripe_customer_id := v.stripe_customer_id; stripe_payment_method_id := v.stripe_payment_method_id;
     livemode := v.livemode;

@@ -342,6 +342,44 @@ await svc(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${T
 ok(Array.isArray(await bankPay(LANDLORD, tA, false, "landlord")) && one(await svc(`SELECT enabled FROM public.rental_rent_autopay WHERE tenancy_id = '${tA}'`)) === false,
   "the landlord turning bank pay off turns autopay off");
 
+// --- lead review #2 #3 #5 #9: stale rows, the in-flight gate, missed days, lost replies
+{
+  const unitY = one(await as("authenticated", LANDLORD, `SELECT public.rentals_add_unit('${prop}', 'Unit Y') AS id`));
+  const tY = await tenancy(unitY, TENANT);
+  ok(Array.isArray(await plan(LANDLORD, tY, P({ amount_cents: 50000 }))), "setup: a monthly plan");
+  await svc(`UPDATE public.rental_rent_plans SET first_due_on = public.shop_local_today() - 3 WHERE tenancy_id = '${tY}'`);
+  await svc(`DELETE FROM public.rental_rent_charges WHERE tenancy_id = '${tY}'`);
+  await svc(`SELECT public.rentals_rent_sweep()`);
+  ok(Array.isArray(await bankPay(LANDLORD, tY, true, "tenant")), "setup: bank pay on");
+  const m1 = rows(await start(TENANT, tY, 50000))[0]?.r;
+  await svc(`UPDATE public.rental_rent_bank_payments SET created_at = now() - interval '40 minutes' WHERE id = '${m1.id}'`);
+  const m2 = rows(await start(TENANT, tY, 50000))[0]?.r;
+  ok(typeof m2?.id === "string" && one(await svc(`SELECT status FROM public.rental_rent_bank_payments WHERE id = '${m1.id}'`)) === "expired",
+    "lead #3: a payment whose checkout never started is closed after 35 minutes and never blocks the next");
+  await svc(`SELECT public.rentals_bank_rent_attach('${m2.id}', 'cs_test_y', false)`);
+  await svc(`UPDATE public.rental_rent_bank_payments SET created_at = now() - interval '2 hours' WHERE id = '${m2.id}'`);
+  ok(refused(await start(TENANT, tY, 50000), /bank_payment_in_flight/), "lead #5: a started checkout Stripe has not answered still blocks a second payment, at any age");
+  await svc(`SELECT public.rentals_bank_rent_failed('${m2.id}', true)`);
+  await svc(`SELECT public.rentals_autopay_saved('${tY}', '${TENANT}', 'cus_y', 'pm_y', 'Test Bank 1111', false)`);
+  ok(Array.isArray(await as("authenticated", TENANT, `SELECT public.rentals_set_autopay('${tY}', true)`)), "setup: autopay on");
+  const ay = rows(await svc(`SELECT * FROM public.rentals_autopay_due()`)).filter((r) => r.tenancy_id === tY);
+  ok(ay.length === 1 && ay[0].charge_cents === 50000 + 404, "lead #9: a rent row due 3 days ago (a missed run) is caught up");
+  ok(rows(await svc(`SELECT * FROM public.rentals_autopay_due()`)).filter((r) => r.tenancy_id === tY).length === 0, "and only once");
+  await svc(`UPDATE public.rental_rent_bank_payments SET created_at = now() - interval '15 minutes' WHERE id = '${ay[0].bank_payment_id}'`);
+  const again = rows(await svc(`SELECT * FROM public.rentals_autopay_due()`)).filter((r) => r.tenancy_id === tY);
+  ok(again.length === 1 && again[0].bank_payment_id === ay[0].bank_payment_id,
+    "lead #2: a charge whose answer was lost is offered again under the SAME id (same idempotency key: Stripe returns the same charge)");
+  await svc(`SELECT public.rentals_bank_rent_failed('${ay[0].bank_payment_id}', false)`);
+  await svc(`SELECT public.rentals_bank_rent_processing('${ay[0].bank_payment_id}', 'pi_test_y')`);
+  ok(one(await svc(`SELECT status FROM public.rental_rent_bank_payments WHERE id = '${ay[0].bank_payment_id}'`)) === "processing",
+    "lead #2: a charge recorded failed before Stripe's answer arrived is recorded when the bank's word comes (never lost)");
+  await svc(`UPDATE public.rental_rent_charges SET due_on = public.shop_local_today() WHERE tenancy_id = '${tY}' AND kind = 'rent'`);
+  await svc(`UPDATE public.profiles SET stripe_payouts_enabled = false WHERE user_id = '${LANDLORD}'`);
+  await svc(`SELECT * FROM public.rentals_autopay_due()`); await svc(`SELECT * FROM public.rentals_autopay_due()`);
+  await svc(`UPDATE public.profiles SET stripe_payouts_enabled = true WHERE user_id = '${LANDLORD}'`);
+  ok((await notes(TENANT, "Autopay did not run")) === 1, "lead #9: autopay that cannot run on the due day (landlord payouts off) tells the tenant, once");
+}
+
 // --- Download My Data (20261019105226): the two bank sections, their real text, run for each person
 {
   const EXP = readFileSync(`${MIG_DIR}20261019105226_export_my_data_bank_rent.sql`, "utf8");

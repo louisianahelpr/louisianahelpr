@@ -5,7 +5,8 @@ import { SectionInboxEmpty, type SectionEmpty } from "./SectionInboxEmpty";
 import { useNavigate } from "react-router-dom";
 import { coerceInboxView, defaultInboxTab, INBOX_TAB_LABEL, INBOX_TAB_ORDER, UNFILTERED_INBOX_TAB } from "@/lib/inboxDefault";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { CheckSquare, ChevronDown, Menu, MessageSquare, Pin, Search, Trash2, X } from "lucide-react";
+import { Check, CheckSquare, ChevronDown, Menu, MessageSquare, MoreHorizontal, Pin, Search, Trash2, X } from "lucide-react";
+import { AppTopBar } from "@/components/sections/AppTopBar";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -15,6 +16,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -1119,7 +1121,96 @@ export function ConversationList({
 
   /* THE TITLE CARD on phone and native (owner, 2026-08-27): Messages wears the same floating title card,
      gap, then panel as its siblings; on the desktop website it stays the panel's first child (`embedded`). */
-  const headerEl = (
+  /* Q2231 (owner, 2026-10-19): on the PHONE the Messages top bar follows the
+     global rule, title · notifications · profile at the far right: it IS the
+     shared AppTopBar every section wears (no "+" here). Search, the options
+     menu and the Active/All filter fold into ONE slim search row under the
+     section tabs, its "more" menu inside the row's right edge, like Browse's
+     filter icon. Select mode still takes the row over. The desktop website
+     keeps its in-panel row. Guard: src/test/messagesTopBarGlobalRule.test.tsx. */
+  const phoneTopBar = !isWebDesktop && !embedded;
+  const moreMenu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="More conversation options"
+          data-testid="messages-more"
+          className={`btn-press relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${isDefaultInboxFilter ? "text-muted-foreground" : "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]"}`}
+        >
+          <MoreHorizontal className="h-[18px] w-[18px]" aria-hidden />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {INBOX_TAB_ORDER.map((key) => (
+          <DropdownMenuItem key={key} onClick={() => setInboxFilter(key)}>
+            <Check className={`w-4 h-4 mr-2 ${inboxTab === key ? "" : "invisible"}`} aria-hidden />
+            {INBOX_TAB_LABEL[key]}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        {hasThreads && (
+          <DropdownMenuItem onClick={enterSelectMode}>
+            <CheckSquare className="w-4 h-4 mr-2" />
+            Select messages
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={() => setInboxFilter("pinned")}>
+          <Pin className="w-4 h-4 mr-2" />
+          Pinned
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => {
+            setInboxFilter("recentlyDeleted");
+            if (userId) void loadConversations(userId);
+          }}
+        >
+          <Trash2 className="w-4 h-4 mr-2" />
+          Recently Deleted
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+  const phoneSearchRow = (
+    <div data-testid="messages-search-row" className="shrink-0 pb-1.5">
+      <div role="search" className="flex h-11 items-center gap-1 rounded-full border border-border bg-card pl-3.5 pr-1">
+        <Search className="h-[18px] w-[18px] shrink-0 text-muted-foreground" aria-hidden />
+        <input
+          type="search"
+          aria-label="Search conversations"
+          placeholder="Search conversations"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          enterKeyHint="search"
+          spellCheck={false}
+          className="min-w-0 flex-1 bg-transparent pl-1.5 text-ds-15 outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={() => setSearchQuery("")}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        )}
+        {moreMenu}
+      </div>
+    </div>
+  );
+
+  const headerEl = phoneTopBar && !selectMode ? (
+    <>
+      <div className="shrink-0 -mt-1"><AppTopBar title="Messages" /></div>
+      {sectionTabs && (
+        <div className="shrink-0 pt-1 pb-1.5" data-testid="messages-section-tabs">
+          {sectionTabs}
+        </div>
+      )}
+      {phoneSearchRow}
+    </>
+  ) : (
     <>
           <ScreenHeaderRow
             /* THE SHARED ROW — literally the component My Posts / My Jobs

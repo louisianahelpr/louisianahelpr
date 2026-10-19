@@ -1,0 +1,32 @@
+/**
+ * Q2231 (owner, 2026-10-19): the Messages top bar follows the global rule on
+ * the phone, title · notifications · profile at the far right, by wearing the
+ * SAME AppTopBar every section does (no "+"). Search, the options menu and the
+ * Active/All filter live in ONE slim search row under the section tabs, with
+ * a single "more" menu, never as icons in the top bar.
+ *
+ * @mutate src/components/messages/ConversationList.tsx | <div className="shrink-0 -mt-1"><AppTopBar title="Messages" /></div> | <div className="shrink-0 -mt-1"><AppTopBar title="Messages" add={{ label: "New message", path: "/messages" }} /></div>
+ * @mutate src/components/messages/ConversationList.tsx |   const headerEl = phoneTopBar && !selectMode ? ( |   const headerEl = false ? (
+ */
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
+
+const list = blankComments(readFileSync(resolve(__dirname, "../components/messages/ConversationList.tsx"), "utf8"));
+
+describe("Messages top bar = the global top bar (Q2231)", () => {
+  it("on the phone the header is the shared AppTopBar titled Messages, with no +", () => {
+    expect(list).toMatch(/const phoneTopBar = !isWebDesktop && !embedded;/);
+    expect(list).toMatch(/const headerEl = phoneTopBar && !selectMode \? \(/);
+    const bars = list.match(/<AppTopBar[^>]*\/>/g) ?? [];
+    expect(bars).toEqual(['<AppTopBar title="Messages" />']);
+  });
+  it("search, Active/All and the options live in the slim search row's one more menu", () => {
+    const row = list.slice(list.indexOf("const phoneSearchRow"), list.indexOf("const headerEl ="));
+    expect(row).toContain('aria-label="Search conversations"');
+    expect(row).toContain("{moreMenu}");
+    const menu = list.slice(list.indexOf("const moreMenu"), list.indexOf("const phoneSearchRow"));
+    for (const item of ["INBOX_TAB_ORDER.map", "Select messages", "Pinned", "Recently Deleted"]) expect(menu).toContain(item);
+  });
+});

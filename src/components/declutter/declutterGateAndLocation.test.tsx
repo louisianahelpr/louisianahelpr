@@ -41,6 +41,7 @@ const state = { feature: true, featureSettled: true };
 // each answers at once, like useFeature, so only the gate's own read is ever pending.
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature, useFeatureStatus: () => ({ on: state.feature, settled: true }) }));
 // What Browse lists; empty unless a test puts an item up.
+const watchCalls: unknown[][] = [];
 const live: { items: unknown[] } = { items: [] };
 // Sellers' shared star ratings (the Browse cards read them in one call).
 const sellerStats: Record<string, { avg: number; count: number }> = {};
@@ -96,7 +97,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyPickupWindows: async () => [],
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
   withdrawItem: async () => undefined,
-  setWatch: async () => "watching",
+  setWatch: async (...a: unknown[]) => { watchCalls.push(a); return "watching"; },
   askQuestion: async () => "q",
   answerQuestion: async () => "a",
 }));
@@ -331,6 +332,23 @@ describe("Declutter location ask", () => {
     expect(toys).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("Oak rocking chair")).toBeInTheDocument();
     expect(screen.getByText("Stand mixer")).toBeInTheDocument();
+    live.items = [];
+  });
+
+  it("a heart on each Browse card (slice 4): over the photo, beside the card link (never inside it), and a tap watches the item", async () => {
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |                   toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }), |                   toggle: () => undefined,
+    // @mutate src/components/declutter/DeclutterItemCard.tsx |   if (!save) return card; |   return card;
+    live.items = [{
+      id: "i1", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
+      price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
+    }];
+    watchCalls.length = 0;
+    at("/declutter", <DeclutterPage />);
+    const heart = await screen.findByRole("button", { name: "Watch Oak rocking chair" });
+    expect(heart).toHaveAttribute("aria-pressed", "false");
+    expect(heart.closest("a")).toBeNull();
+    fireEvent.click(heart);
+    await vi.waitFor(() => expect(watchCalls).toEqual([["i1", true]]));
     live.items = [];
   });
 

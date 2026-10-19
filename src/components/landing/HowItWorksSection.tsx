@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   SegmentedControl,
   type SegmentedOption,
@@ -7,8 +7,8 @@ import {
 /**
  * How It Works — editorial magazine layout. Title lives in the left
  * column as a masthead; the three numbered steps flow across the right.
- * Steps fade-in sequentially (100→200→300ms stagger) as the section
- * enters the viewport. No cards, no glass panel, no icons — giant
+ * Steps are visible by default and fade in (120ms stagger) only when the
+ * section starts below the fold. No cards, no glass panel, no icons — giant
  * Bodoni numerals anchor each step. Sits directly on parchment to match
  * the hero's editorial poster feel. Honors prefers-reduced-motion.
  *
@@ -65,34 +65,42 @@ const STEPS: Record<Side, { title: string; desc: string }[]> = {
   ],
 };
 
+/**
+ * Visible by default; the fade is only an enhancement (lead, 2026-10-19: a
+ * full-page capture showed this section blank because the reveal never
+ * fired). "shown" is what renders first, so no JS, no IntersectionObserver,
+ * reduced motion, or a section already on screen all keep the steps visible.
+ * Only a section that starts BELOW the fold is hidden (before first paint, in
+ * a layout effect) and revealed when any part of it scrolls in.
+ */
+type Reveal = "shown" | "waiting" | "revealed";
+
 const HowItWorksSection = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
+  const [reveal, setReveal] = useState<Reveal>("shown");
   const [side, setSide] = useState<Side>("hire");
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    if (reduceMotion) {
-      setInView(true);
-      return;
-    }
+  useLayoutEffect(() => {
+    if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const el = sectionRef.current;
-    if (!el) return;
+    if (!el || el.getBoundingClientRect().top < window.innerHeight) return;
+    setReveal("waiting");
     const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setInView(true);
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setReveal("revealed");
           io.disconnect();
         }
       },
-      { threshold: 0.2, rootMargin: "0px 0px -10% 0px" },
+      // Any pixel counts: a ratio threshold never fires on a section taller
+      // than a few viewports (large text, a landscape phone).
+      { threshold: 0 },
     );
     io.observe(el);
     return () => io.disconnect();
   }, []);
+  const hidden = reveal === "waiting";
 
   return (
     <section
@@ -225,10 +233,10 @@ const HowItWorksSection = () => {
                 // blank below three lines of copy.
                 className="h-full flex flex-col text-center rounded-2xl p-5 sm:p-7 lg:p-8"
                 style={{
-                  opacity: inView ? 1 : 0,
-                  transform: inView ? "translateY(0)" : "translateY(24px)",
-                  transition: `opacity 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms, transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms`,
-                  willChange: "opacity, transform",
+                  opacity: hidden ? 0 : 1,
+                  transform: hidden ? "translateY(24px)" : "translateY(0)",
+                  // Short and lightly staggered, so a fast scroll never lands on blank cards.
+                  transition: reveal === "revealed" ? `opacity 600ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 120}ms, transform 600ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 120}ms` : undefined,
                   background: "hsl(var(--burnt-sienna) / 0.04)",
                   border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
                   boxShadow: "var(--elev-inset-hairline)",

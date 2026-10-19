@@ -251,3 +251,67 @@ export function rentReceiptText(l: RentLedger, p: RentPayment): string {
 export function rentReceiptFileName(p: RentPayment): string {
   return `rent-receipt-${p.paid_on}-${p.id.slice(0, 8)}.txt`;
 }
+
+// --- the security deposit, track only (D6; 20261019082216) -------------------
+
+export interface DepositDeduction {
+  reason: string;
+  amount_cents: number;
+}
+export interface DepositRecord {
+  side: "tenant" | "landlord";
+  tenancy_status: "active" | "ended";
+  deposit: {
+    amount_cents: number;
+    received_on: string;
+    forwarding_address: string | null;
+    has_forwarding_address: boolean;
+    return_by: string | null;
+    returned_cents: number | null;
+    deductions: DepositDeduction[];
+    returned_on: string | null;
+    settled_at: string | null;
+  } | null;
+}
+
+export async function fetchDeposit(tenancyId: string): Promise<DepositRecord> {
+  const { data, error } = await supabase.rpc("rentals_deposit", { p_tenancy_id: tenancyId });
+  if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_deposit", error), error);
+  const d = (data ?? {}) as unknown as Partial<DepositRecord>;
+  return { side: d.side === "landlord" ? "landlord" : "tenant", tenancy_status: d.tenancy_status === "ended" ? "ended" : "active", deposit: d.deposit ?? null };
+}
+
+export async function setDeposit(tenancyId: string, amountCents: number, receivedOn: string): Promise<void> {
+  const { error } = await supabase.rpc("rentals_set_deposit", { p_tenancy_id: tenancyId, p_amount_cents: amountCents, p_received_on: receivedOn });
+  if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_set_deposit", error), error);
+}
+
+export async function setForwardingAddress(tenancyId: string, address: string): Promise<void> {
+  const { error } = await supabase.rpc("rentals_set_forwarding_address", { p_tenancy_id: tenancyId, p_address: address });
+  if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_set_forwarding_address", error), error);
+}
+
+/** Final: what was returned, and each amount kept with its reason (the itemized statement the tenant gets). */
+export async function settleDeposit(tenancyId: string, returnedCents: number, deductions: DepositDeduction[], returnedOn: string): Promise<void> {
+  const { error } = await supabase.rpc("rentals_settle_deposit", {
+    p_tenancy_id: tenancyId,
+    p_returned_cents: returnedCents,
+    p_deductions: deductions as unknown as Json,
+    p_returned_on: returnedOn,
+  });
+  if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_settle_deposit", error), error);
+}
+
+/** Deposits of tenancies that ENDED (either side), still to settle or settled lately: shown after move-out. */
+export interface EndedDeposit {
+  tenancy_id: string;
+  side: "tenant" | "landlord";
+  label: string;
+  unit_label: string;
+  settled: boolean;
+}
+export async function fetchMyEndedDeposits(): Promise<EndedDeposit[]> {
+  const { data, error } = await supabase.rpc("rentals_my_ended_deposits");
+  if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_my_ended_deposits", error), error);
+  return (data ?? []) as EndedDeposit[];
+}

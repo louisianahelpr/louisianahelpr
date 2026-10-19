@@ -44,7 +44,7 @@
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                        AND (cur.stripe_session_id IS NULL OR cur.payment_status = 'abandoned'))) |                        )) 
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                    OR (cur.status = 'cancelled' |                    OR (true
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |     AND COALESCE(j.payment_status, 'unpaid') IN ('unpaid', 'failed', 'abandoned')\n     AND (j.stripe_session_id IS NULL OR j.payment_status = 'abandoned')\n   FOR UPDATE; |     FOR UPDATE;
-// @mutate supabase/migrations/20261019061241_rentals_sale_listings.sql |     IF v_photos < 5 THEN |     IF v_photos < 0 THEN
+// @mutate supabase/migrations/20261019062540_rentals_public_link_takedown.sql |     IF v_photos < 5 THEN |     IF v_photos < 0 THEN
 // @mutate supabase/migrations/20261019061241_rentals_sale_listings.sql | REVOKE ALL ON FUNCTION public.rentals_listing_visible(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.rentals_listing_visible(uuid) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261019061241_rentals_sale_listings.sql | l.available_on, l.pets,\n         rp.city, rp.zip_code,\n         ARRAY(SELECT ph.storage_path FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5), | l.available_on, l.pets,\n         rp.street_address, rp.zip_code,\n         ARRAY(SELECT ph.storage_path FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5),
 import { describe, expect, it } from "vitest";

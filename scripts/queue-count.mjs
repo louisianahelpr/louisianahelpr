@@ -12,10 +12,12 @@
  *
  *   node scripts/queue-count.mjs          # print the line
  *   node scripts/queue-count.mjs --write  # rewrite it in docs/OPEN.md
+ *   node scripts/queue-count.mjs --reserve <lane> <n>  # claim n numbers for a lane (shared ledger,
+ *       ~/.lh-tools/q-reservations.json; above main, this tree and every live reservation)
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { foreignLines, queueText } from "./lib/openQueue.mjs";
-import { nextFreeAcross, treeCollisions } from "./lib/queueAllocator.mjs";
+import { nextFreeAcross, reserveNumbers, treeCollisions } from "./lib/queueAllocator.mjs";
 import { sameItemHead } from "./open-renumber.mjs";
 
 // The numbering lives in ONE allocator (scripts/lib/queueAllocator.mjs); these
@@ -68,6 +70,14 @@ export function storedLine(md) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
+  const ri = process.argv.indexOf("--reserve");
+  if (ri >= 0) {
+    // Before filing, so a lane on a stale base cannot take what another lane holds.
+    try {
+      console.log(reserveNumbers(".", process.argv[ri + 1], Number(process.argv[ri + 2] ?? 1)).join(" "));
+    } catch (e) { console.error(e.message); process.exit(2); }
+    process.exit(0);
+  }
   const path = "docs/OPEN.md";
   const md = readFileSync(path, "utf8");
   // Counts, duplicates and the next number read OPEN.md + its done archives (Q16).
@@ -85,7 +95,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   console.log(line);
   const dupes = duplicateIds(all);
-  if (dupes.length) { console.error(`DUPLICATE queue numbers: ${dupes.join(", ")} — run node scripts/open-renumber.mjs`); process.exitCode = 1; }
+  if (dupes.length) { console.error(`DUPLICATE queue numbers: ${dupes.join(", ")} — run node scripts/open-renumber.mjs; next time reserve numbers first: node scripts/queue-count.mjs --reserve <lane> <n>`); process.exitCode = 1; }
   console.log(`next free: ${nextFreeAcross(".")} (the higher of this tree and origin/main; git fetch first)`);
   // A number this branch added that main also added since, for another item
   // (bot PR #2372's Q1378-Q1380 vs main's crew Q1378-Q1380, 2026-10-05).

@@ -22,6 +22,9 @@
  * on it.
  */
 import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import { gitRefReader, queueText } from "./openQueue.mjs";
 
 const ANY_Q = /\*\*Q(\d+)\b/g;
@@ -116,4 +119,81 @@ export function treeCollisions(root, ref = "origin/main", sameItem) {
   const mainText = refQueueText(root, ref);
   if (forkText === null || mainText === null) return null;
   return branchCollisions({ forkText, mainText, treeText: queueText(root) }, sameItem);
+}
+
+// ---- Cross-worktree reservations (q-reserve) ------------------------------
+// Lanes on one Mac each read "next free" from their own, often stale, base and
+// filed the same numbers (Q2154-Q2161 by three lanes at once, 2026-10-18). A
+// reservation ledger OUTSIDE every worktree makes the numbers a lane claims
+// visible to the others: `node scripts/queue-count.mjs --reserve <lane> <n>`.
+
+export const RESERVATION_TTL_DAYS = 3;
+
+/** Where reservations live: shared by every worktree on this Mac. */
+export function ledgerPath() {
+  return process.env.LH_Q_LEDGER || join(homedir(), ".lh-tools", "q-reservations.json");
+}
+
+/** Numbers (as integers) that appear as a head or reference on `text`. */
+export function qNumbersIn(text) {
+  const out = new Set();
+  for (const m of (text ?? "").matchAll(ANY_Q)) out.add(Number(m[1]));
+  return out;
+}
+
+/**
+ * Pure core. Drops reservations that are expired or whose number now appears
+ * on main (`mainNumbers`), then hands `count` numbers above max(`floor`, every
+ * live reservation). Returns { entries, numbers } with the new ones appended.
+ */
+export function planReservation(entries, { lane, count, floor, mainNumbers = new Set(), now = Date.now(), ttlDays = RESERVATION_TTL_DAYS }) {
+  if (!lane || !/^[\w.-]+$/.test(lane)) throw new Error(`reserve: lane must be a short name (letters, digits, - _ .), got ${JSON.stringify(lane)}`);
+  if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error(`reserve: count must be 1..100, got ${count}`);
+  const ttl = ttlDays * 86400000;
+  const live = (entries ?? []).filter((e) => Number.isInteger(e.number) && now - Date.parse(e.time) < ttl && !mainNumbers.has(e.number));
+  const take = qCounter(Math.max(floor, ...live.map((e) => e.number)) + 1);
+  const numbers = Array.from({ length: count }, () => Number(take().slice(1)));
+  const time = new Date(now).toISOString();
+  return { entries: [...live, ...numbers.map((number) => ({ number, lane, time }))], numbers };
+}
+
+/** mkdir is atomic on every filesystem: the lock is a directory next to the ledger. */
+function withLedgerLock(path, fn) {
+  const lock = `${path}.lock`;
+  mkdirSync(dirname(path), { recursive: true });
+  const deadline = Date.now() + 15000;
+  for (;;) {
+    try { mkdirSync(lock); break; } catch (e) {
+      if (e.code !== "EEXIST") throw e;
+      try { if (Date.now() - statSync(lock).mtimeMs > 30000) rmSync(lock, { recursive: true, force: true }); } catch { /* released between stat and rm */ }
+      if (Date.now() > deadline) throw new Error(`reserve: ${lock} held for 15s; remove it if no queue-count is running`);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
+    }
+  }
+  try { return fn(); } finally { rmSync(lock, { recursive: true, force: true }); }
+}
+
+export function readLedger(path = ledgerPath()) {
+  if (!existsSync(path)) return [];
+  try {
+    const j = JSON.parse(readFileSync(path, "utf8"));
+    return Array.isArray(j) ? j : [];
+  } catch { return []; /* torn or hand-edited ledger: start empty rather than block filing */ }
+}
+
+/**
+ * Atomically reserve `count` numbers for `lane`, above everything on this tree,
+ * origin/main and every live reservation. Returns ["Q2162", ...].
+ */
+export function reserveNumbers(root, lane, count, { ledger = ledgerPath(), ref = "origin/main", now = Date.now(), ttlDays } = {}) {
+  const base = refQueueText(root, ref);
+  const mainNumbers = qNumbersIn(base);
+  const floor = nextFreeNumber(root, ref) - 1;
+  return withLedgerLock(ledger, () => {
+    const plan = planReservation(readLedger(ledger), { lane, count, floor, mainNumbers, now, ttlDays });
+    const tmp = `${ledger}.${process.pid}.tmp`;
+    writeFileSync(tmp, JSON.stringify(plan.entries, null, 2) + "\n");
+    renameSync(tmp, ledger);
+    return plan.numbers.map((n) => `Q${n}`);
+  });
 }

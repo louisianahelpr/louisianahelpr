@@ -7780,8 +7780,10 @@ export type Database = {
           amount_cents: number
           created_at: string
           due_on: string
+          grace_days: number
           id: string
           kind: string
+          late_fee_cents: number
           rent_charge_id: string | null
           tenancy_id: string
           waived_at: string | null
@@ -7790,8 +7792,10 @@ export type Database = {
           amount_cents: number
           created_at?: string
           due_on: string
+          grace_days?: number
           id?: string
           kind: string
+          late_fee_cents?: number
           rent_charge_id?: string | null
           tenancy_id: string
           waived_at?: string | null
@@ -7800,8 +7804,10 @@ export type Database = {
           amount_cents?: number
           created_at?: string
           due_on?: string
+          grace_days?: number
           id?: string
           kind?: string
+          late_fee_cents?: number
           rent_charge_id?: string | null
           tenancy_id?: string
           waived_at?: string | null
@@ -7826,36 +7832,45 @@ export type Database = {
       rental_rent_payments: {
         Row: {
           amount_cents: number
+          corrections: Json
           created_at: string
           decided_at: string | null
           decline_reason: string | null
+          dispute_reason: string | null
+          disputed_at: string | null
           id: string
-          pay_method: string
           paid_on: string
+          pay_method: string
           reported_by: string
           status: string
           tenancy_id: string
         }
         Insert: {
           amount_cents: number
+          corrections?: Json
           created_at?: string
           decided_at?: string | null
           decline_reason?: string | null
+          dispute_reason?: string | null
+          disputed_at?: string | null
           id?: string
-          pay_method: string
           paid_on: string
+          pay_method: string
           reported_by: string
           status?: string
           tenancy_id: string
         }
         Update: {
           amount_cents?: number
+          corrections?: Json
           created_at?: string
           decided_at?: string | null
           decline_reason?: string | null
+          dispute_reason?: string | null
+          disputed_at?: string | null
           id?: string
-          pay_method?: string
           paid_on?: string
+          pay_method?: string
           reported_by?: string
           status?: string
           tenancy_id?: string
@@ -7922,10 +7937,12 @@ export type Database = {
           accepted_at: string | null
           created_at: string
           ended_at: string | null
+          ended_by: string | null
           id: string
           invite_expires_at: string
           invite_token_sha256: string
           landlord_id: string
+          lease_ends_on: string | null
           property_id: string
           status: string
           tenant_id: string | null
@@ -7935,10 +7952,12 @@ export type Database = {
           accepted_at?: string | null
           created_at?: string
           ended_at?: string | null
+          ended_by?: string | null
           id?: string
           invite_expires_at: string
           invite_token_sha256: string
           landlord_id: string
+          lease_ends_on?: string | null
           property_id: string
           status?: string
           tenant_id?: string | null
@@ -7948,10 +7967,12 @@ export type Database = {
           accepted_at?: string | null
           created_at?: string
           ended_at?: string | null
+          ended_by?: string | null
           id?: string
           invite_expires_at?: string
           invite_token_sha256?: string
           landlord_id?: string
+          lease_ends_on?: string | null
           property_id?: string
           status?: string
           tenant_id?: string | null
@@ -13374,6 +13395,16 @@ export type Database = {
           zip_code: string
         }[]
       }
+      rentals_correct_rent_payment: {
+        Args: {
+          p_action: string
+          p_amount_cents: number | null
+          p_paid_on: string | null
+          p_payment_id: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
       rentals_create_property: {
         Args: {
           p_city: string
@@ -13393,6 +13424,10 @@ export type Database = {
           p_reason_text: string
           p_request_id: string
         }
+        Returns: undefined
+      }
+      rentals_dispute_rent_payment: {
+        Args: { p_payment_id: string; p_reason: string }
         Returns: undefined
       }
       rentals_end_tenancy: {

@@ -84,4 +84,6 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   payment_not_found: "That payment isn't available.",
   payment_already_decided: "That payment was already confirmed or declined.",
   charge_not_found: "That charge isn't available.",
+  payment_not_correctable: "Only a received payment can be changed, within 30 days of confirming it.",
+  payment_not_disputable: "Only a payment that was turned down, taken back or changed can be disputed, once, within 30 days.",
 };

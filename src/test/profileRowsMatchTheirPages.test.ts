@@ -23,6 +23,8 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 const ROWS_SRC = [
   "src/components/profile/profileLanding/useProfileLandingDerived.tsx",
   "src/components/profile/profileLanding/workMenuGroup.tsx",
+  // The Jobs rows moved to /jobs/settings (2026-10-19) but still open Profile tab screens.
+  "src/components/profile/profileLanding/jobsSettingsGroups.tsx",
 ].map(read).join("\n");
 
 /** Every row object: its key, its label expression, and its href when it has one. */

@@ -1,5 +1,5 @@
 import {
-  LogOut, Trash2, AlertTriangle,
+  LogOut, AlertTriangle,
   ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import type { MenuItem } from "./types";
@@ -42,10 +42,8 @@ export function SettingsSection({
           />
         ))}
 
-        {/* Account actions — two stacked pills of the same shape so the
-            footer reads as a finished pair. Sign out is a soft muted
-            fill in brand bark; Delete account is the same pill outlined
-            in burnt-sienna — the brand's destructive tone. */}
+        {/* Account actions: Log Out is the clear pill; Delete Account sits under
+            it as a quiet text button (owner, 2026-10-19). */}
         <div className="pt-1 space-y-2.5">
           <button
             type="button"
@@ -61,19 +59,16 @@ export function SettingsSection({
           >
             <LogOut className="w-4 h-4" /> Log Out
           </button>
+          {/* DELETE ACCOUNT IS QUIET (owner, 2026-10-19: "Log Out clear and Delete
+              Account quiet"): a small muted text button under Log Out, never a
+              second pill of the same weight. Its confirm dialog does the warning. */}
           <button
             type="button"
             onClick={onRequestDelete}
-            className="w-full rounded-ds-lg py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
-            style={{
-              background: "transparent",
-              border: "1px solid hsl(var(--burnt-sienna) / 0.32)",
-              color: "hsl(var(--burnt-sienna))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-            }}
+            data-testid="profile-delete-account"
+            className="w-full min-h-11 inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground hover:text-[hsl(var(--burnt-sienna))] transition-colors"
           >
-            <Trash2 className="w-4 h-4" /> Delete Account
+            Delete Account
           </button>
         </div>
       </div>

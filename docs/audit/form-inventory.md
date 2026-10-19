@@ -44,11 +44,11 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/admin/marketing/marketingTypes.ts` | input×2, date/calendar×2 | datetime-local |  |  |
 | `src/components/admin/RestrictApplicationsDialog.tsx` | textarea×1 |  |  | Restriction duration · Restriction reason |
 | `src/components/admin/settings/AbuseLimitsCard.tsx` | input×1 | number |  | No limit |
-| `src/components/admin/settings/AdminUserSearchField.tsx` | input×1 | search |  | Search users by name or email · Search by name or email… · Clear search |
+| `src/components/admin/settings/AdminUserSearchField.tsx` | input×1 | search |  | Clear search |
 | `src/components/admin/settings/CategorySuggestionsCard.tsx` | input×1 | text | 300 |  |
 | `src/components/admin/settings/DeclutterProblemsCard.tsx` | input×2, select×1 | checkbox, text | 1000 |  |
 | `src/components/admin/settings/DeclutterReviewCard.tsx` | input×1 | text | 500 |  |
-| `src/components/admin/settings/HomesListingsCard.tsx` | input×3 | text | 100 | homes-open-listing · Reason (the owner sees it) · homes-taken-down · Why it is lifted (kept in the audit log) · Search Homes listings · Link code, headline or ZIP |
+| `src/components/admin/settings/HomesListingsCard.tsx` | input×2 | text | 100 | homes-open-listing · Reason (the owner sees it) · homes-taken-down · Why it is lifted (kept in the audit log) · Link code, headline or ZIP |
 | `src/components/admin/settings/MinSupportedBuildCard.tsx` | input×1 | number |  | minBuild |
 | `src/components/admin/settings/RentalsOwnershipCard.tsx` | input×2 | text |  | ID note (required to reject) · takedown-address-match · Note (required to reject) · landlord-review-group |
 | `src/components/admin/settings/ShopItemsReviewCard.tsx` | input×1 | text | 500 |  |

@@ -242,6 +242,7 @@ await svc(`SELECT public.rentals_bank_rent_attach('${b1.id}', 'cs_test_1', false
 await svc(`SELECT public.rentals_bank_rent_processing('${b1.id}', 'pi_test_1')`);
 const bal = async () => one(await as("authenticated", TENANT, `SELECT (public.rentals_rent_ledger('${tA}') ->> 'balance_cents')::int`));
 ok((await bal()) === 120000, "while the debit is processing nothing counts yet");
+ok(rows(await svc(`SELECT * FROM public.rentals_bank_transfers_due(10)`)).length === 0, "D9: and nothing is sent to the landlord before the bank confirms");
 ok(one(await svc(`SELECT public.rentals_bank_rent_succeeded('pi_test_1')`)) === "succeeded" && (await bal()) === 0, "the bank confirms: the payment counts");
 ok(one(await svc(`SELECT public.rentals_bank_rent_succeeded('pi_test_1')`)) === "succeeded"
   && one(await svc(`SELECT count(*)::int FROM public.rental_rent_payments WHERE tenancy_id = '${tA}' AND pay_method = 'bank'`)) === 1, "a repeated webhook writes nothing more");

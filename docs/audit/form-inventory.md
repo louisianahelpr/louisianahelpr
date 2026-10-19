@@ -99,7 +99,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/declutter/DeclutterItemView.tsx` | input×2 | text | 1000, 500 | Write an answer · Photos · declutter-porch-line · declutter-question · Ask the seller a question |
+| `src/components/declutter/DeclutterItemView.tsx` | input×2 | text | 1000, 500 | Write an answer · Share this item · Price and condition · declutter-details · declutter-pickup · declutter-porch-line · declutter-question · Ask the seller a question |
 | `src/components/declutter/DeclutterOfferPanel.tsx` | input×1 | text |  | Add a card · Buy or make an offer · declutter-offer · declutter-offer-help |
 
 ## /declutter/move

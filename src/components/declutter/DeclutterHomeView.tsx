@@ -30,7 +30,6 @@ import {
   fetchPhotos,
   fetchSellerRatings,
   withdrawItem,
-  type DeclutterItem,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, formatPrice, nearestFirst } from "@/lib/declutter/distance";

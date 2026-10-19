@@ -1,0 +1,94 @@
+/**
+ * iOS-style large titles (src/lib/largeTitles.ts, owner 2026-10-18 tweak 4):
+ * the page-scrolled flag, the compact bar on AppPage screens, and teardown.
+ *
+ * Added for nightly-red #3415 (main: Vitest, "Coverage floor"): train11 added
+ * largeTitles.ts with no test (src/lib/ 81.2% -> 80.18%, floor 81.17%).
+ *
+ * @mutate src/lib/largeTitles.ts |     if (t.scrollHeight <= t.clientHeight + 1) return; |     void 0;
+ * @mutate src/lib/largeTitles.ts |     doc.documentElement.classList.toggle("page-scrolled", t.scrollTop > 24); |     doc.documentElement.classList.toggle("page-scrolled", t.scrollTop > 0);
+ * @mutate src/lib/largeTitles.ts |       b.classList.toggle("on", t.scrollTop > 56); |       b.classList.toggle("on", t.scrollTop > 24);
+ * @mutate src/lib/largeTitles.ts |     bar?.remove(); |     void bar;
+ */
+import { afterEach, describe, expect, it } from "vitest";
+import { installLargeTitles } from "./largeTitles";
+
+function scroller(opts: { appPage?: boolean; title?: string; scrollHeight?: number; clientHeight?: number }) {
+  const el = document.createElement("div");
+  if (opts.appPage) el.setAttribute("data-app-page-scroll", "");
+  if (opts.title) {
+    const h1 = document.createElement("h1");
+    h1.className = "text-page-title";
+    h1.textContent = opts.title;
+    el.appendChild(h1);
+  }
+  Object.defineProperty(el, "scrollHeight", { value: opts.scrollHeight ?? 2000, configurable: true });
+  Object.defineProperty(el, "clientHeight", { value: opts.clientHeight ?? 800, configurable: true });
+  document.body.appendChild(el);
+  return el;
+}
+function scrollTo(el: HTMLElement, top: number) {
+  el.scrollTop = top;
+  el.dispatchEvent(new Event("scroll"));
+}
+const html = () => document.documentElement.classList;
+const bar = () => document.querySelector<HTMLDivElement>(".compact-title-bar");
+
+let uninstall: (() => void) | null = null;
+afterEach(() => {
+  uninstall?.();
+  uninstall = null;
+  document.body.innerHTML = "";
+});
+
+describe("installLargeTitles", () => {
+  it("flags the page scrolled past 24px on any vertical scroller, and clears it back at the top", () => {
+    uninstall = installLargeTitles();
+    const el = scroller({});
+    scrollTo(el, 24);
+    expect(html().contains("page-scrolled")).toBe(false);
+    scrollTo(el, 25);
+    expect(html().contains("page-scrolled")).toBe(true);
+    scrollTo(el, 0);
+    expect(html().contains("page-scrolled")).toBe(false);
+    // Not an AppPage screen: no compact bar.
+    expect(bar()).toBeNull();
+  });
+
+  it("a sideways scroller (no vertical travel) never resets the page's state", () => {
+    uninstall = installLargeTitles();
+    const page = scroller({});
+    scrollTo(page, 100);
+    const chips = scroller({ scrollHeight: 40, clientHeight: 40 });
+    scrollTo(chips, 0);
+    expect(html().contains("page-scrolled")).toBe(true);
+  });
+
+  it("an AppPage screen shows its h1 in an aria-hidden compact bar past 56px", () => {
+    uninstall = installLargeTitles();
+    const el = scroller({ appPage: true, title: "Earnings" });
+    scrollTo(el, 40);
+    expect(bar()?.textContent).toBe("Earnings");
+    expect(bar()?.getAttribute("aria-hidden")).toBe("true");
+    expect(bar()?.classList.contains("on")).toBe(false);
+    scrollTo(el, 57);
+    expect(bar()?.classList.contains("on")).toBe(true);
+    // One bar, reused.
+    scrollTo(el, 80);
+    expect(document.querySelectorAll(".compact-title-bar")).toHaveLength(1);
+  });
+
+  it("uninstall removes the bar, the flag and the listener", () => {
+    uninstall = installLargeTitles();
+    const el = scroller({ appPage: true, title: "Profile" });
+    scrollTo(el, 100);
+    expect(bar()).not.toBeNull();
+    uninstall();
+    uninstall = null;
+    expect(bar()).toBeNull();
+    expect(html().contains("page-scrolled")).toBe(false);
+    scrollTo(el, 200);
+    expect(html().contains("page-scrolled")).toBe(false);
+    expect(bar()).toBeNull();
+  });
+});

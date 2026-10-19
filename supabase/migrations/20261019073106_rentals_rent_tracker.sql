@@ -35,7 +35,6 @@
 -- 1. Tables.
 CREATE TABLE IF NOT EXISTS public.rental_rent_plans (
   tenancy_id uuid PRIMARY KEY REFERENCES public.rental_tenancies(id) ON DELETE CASCADE,
-  landlord_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   amount_cents integer NOT NULL CHECK (amount_cents BETWEEN 100 AND 10000000),
   frequency text NOT NULL CHECK (frequency IN ('weekly', 'biweekly', 'monthly')),
   first_due_on date NOT NULL,
@@ -48,7 +47,6 @@ CREATE TABLE IF NOT EXISTS public.rental_rent_plans (
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT rental_rent_plans_monthly_day CHECK (frequency <> 'monthly' OR extract(day FROM first_due_on) <= 28)
 );
-CREATE INDEX IF NOT EXISTS rental_rent_plans_landlord_idx ON public.rental_rent_plans (landlord_id);
 
 CREATE TABLE IF NOT EXISTS public.rental_rent_charges (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -84,9 +82,15 @@ CREATE INDEX IF NOT EXISTS rental_rent_charges_tenancy_idx ON public.rental_rent
 ALTER TABLE public.rental_rent_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rental_rent_charges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rental_rent_payments ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.rental_rent_plans, public.rental_rent_charges, public.rental_rent_payments FROM PUBLIC, anon, authenticated;
-GRANT SELECT ON TABLE public.rental_rent_plans, public.rental_rent_charges, public.rental_rent_payments TO authenticated;
-GRANT ALL ON TABLE public.rental_rent_plans, public.rental_rent_charges, public.rental_rent_payments TO service_role;
+REVOKE ALL ON TABLE public.rental_rent_plans FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.rental_rent_plans TO authenticated;
+GRANT ALL ON TABLE public.rental_rent_plans TO service_role;
+REVOKE ALL ON TABLE public.rental_rent_charges FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.rental_rent_charges TO authenticated;
+GRANT ALL ON TABLE public.rental_rent_charges TO service_role;
+REVOKE ALL ON TABLE public.rental_rent_payments FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.rental_rent_payments TO authenticated;
+GRANT ALL ON TABLE public.rental_rent_payments TO service_role;
 
 -- The two sides of the tenancy read its rows (switch on). No client writes.
 CREATE OR REPLACE FUNCTION public.rentals_tenancy_party(p_tenancy_id uuid)
@@ -149,7 +153,11 @@ DECLARE
   v_methods text[];
 BEGIN
   PERFORM public.require_feature('rentals');
-  v_uid := public.rentals_assert_member();
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.rentals_assert_member();
+  v_uid := (SELECT auth.uid());
   SELECT * INTO v_t FROM public.rental_tenancies WHERE id = p_tenancy_id FOR UPDATE;
   IF NOT FOUND OR v_t.landlord_id IS DISTINCT FROM v_uid OR v_t.status <> 'active' THEN
     RAISE EXCEPTION 'tenancy_not_found' USING ERRCODE = 'P0002';
@@ -181,8 +189,8 @@ BEGIN
      OR cardinality(v_methods) = 0 THEN
     RAISE EXCEPTION 'bad_rent_plan' USING ERRCODE = '22023';
   END IF;
-  INSERT INTO public.rental_rent_plans (tenancy_id, landlord_id, amount_cents, frequency, first_due_on, grace_days, late_fee_cents, pay_methods)
-  VALUES (p_tenancy_id, v_uid, v_amount, v_freq, v_first, v_grace, v_fee, v_methods)
+  INSERT INTO public.rental_rent_plans (tenancy_id, amount_cents, frequency, first_due_on, grace_days, late_fee_cents, pay_methods)
+  VALUES (p_tenancy_id, v_amount, v_freq, v_first, v_grace, v_fee, v_methods)
   ON CONFLICT (tenancy_id) DO UPDATE SET
     amount_cents = EXCLUDED.amount_cents, frequency = EXCLUDED.frequency, first_due_on = EXCLUDED.first_due_on,
     grace_days = EXCLUDED.grace_days, late_fee_cents = EXCLUDED.late_fee_cents, pay_methods = EXCLUDED.pay_methods,
@@ -209,7 +217,11 @@ DECLARE
   v_id uuid;
 BEGIN
   PERFORM public.require_feature('rentals');
-  v_uid := public.rentals_assert_member();
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.rentals_assert_member();
+  v_uid := (SELECT auth.uid());
   v_side := public.rentals_rent_side(p_tenancy_id, v_uid);
   IF v_side IS NULL THEN
     RAISE EXCEPTION 'tenancy_not_found' USING ERRCODE = 'P0002';
@@ -252,7 +264,11 @@ DECLARE
   v_reason text := btrim(coalesce(p_reason, ''));
 BEGIN
   PERFORM public.require_feature('rentals');
-  v_uid := public.rentals_assert_member();
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.rentals_assert_member();
+  v_uid := (SELECT auth.uid());
   SELECT * INTO v_p FROM public.rental_rent_payments WHERE id = p_payment_id FOR UPDATE;
   IF NOT FOUND OR public.rentals_rent_side(v_p.tenancy_id, v_uid) IS DISTINCT FROM 'landlord' THEN
     RAISE EXCEPTION 'payment_not_found' USING ERRCODE = 'P0002';
@@ -291,7 +307,11 @@ DECLARE
   v_c public.rental_rent_charges%ROWTYPE;
 BEGIN
   PERFORM public.require_feature('rentals');
-  v_uid := public.rentals_assert_member();
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.rentals_assert_member();
+  v_uid := (SELECT auth.uid());
   SELECT * INTO v_c FROM public.rental_rent_charges WHERE id = p_charge_id FOR UPDATE;
   IF NOT FOUND OR public.rentals_rent_side(v_c.tenancy_id, v_uid) IS DISTINCT FROM 'landlord' THEN
     RAISE EXCEPTION 'charge_not_found' USING ERRCODE = 'P0002';
@@ -321,8 +341,8 @@ AS $fn$
                    * ceil((p_on_or_after - p_first)::numeric / (CASE p_frequency WHEN 'weekly' THEN 7 ELSE 14 END))::integer
   END;
 $fn$;
-REVOKE ALL ON FUNCTION public.rentals_rent_next_due(date, text, date) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rentals_rent_next_due(date, text, date) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.rentals_rent_next_due(date, text, date) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rentals_rent_next_due(date, text, date) TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- 6. The record both sides see.
@@ -400,7 +420,7 @@ DECLARE
   v_through bigint;
 BEGIN
   FOR v_plan IN
-    SELECT p.*, t.tenant_id, t.landlord_id AS t_landlord
+    SELECT p.*, t.tenant_id, t.landlord_id
       FROM public.rental_rent_plans p
       JOIN public.rental_tenancies t ON t.id = p.tenancy_id
      WHERE t.status = 'active'

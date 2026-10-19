@@ -14,7 +14,9 @@
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "payout_transfers", column: "stripe_transfer_id" },\n |
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "declutter_orders", column: "stripe_payment_intent_id" },\n |
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "declutter_refunds", column: "stripe_refund_ref" },\n |
- * @mutate scripts/lib/stripeRestoreReconcile.mjs |       if (ID_PREFIX[kind].test(String(v))) ids.add(String(v)); |       if (true) ids.add(String(v));
+ * @mutate scripts/lib/stripeRestoreReconcile.mjs |       if (ID_PREFIX[kind].test(s)) ids.add(s); |       if (true) ids.add(s);
+ * @mutate scripts/lib/stripeRestoreReconcile.mjs |       else if (!ANY_STRIPE_ID.test(s)) rejected.push( |       else if (true) rejected.push(
+ * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "payout_settlements", column: "stripe_ref" },\n  ],\n}; |   ],\n};
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     if (dbIds.has(o.id)) { |     if (true) {
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     if (!/^(sk\|rk)_test_/.test(key)) throw | if (false) throw
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |   if (md.kind === "platform_topup" \|\| | if (false &&
@@ -153,6 +155,19 @@ describe("Declutter and Shops money is in the restore check (Q2230, before the D
     const wrongKind = collectDbIds("payment_intent", { "declutter_orders.stripe_payment_intent_id": ["re_x"] });
     expect(wrongKind.ids.size).toBe(0);
     expect(wrongKind.rejected).toEqual([]);
+  });
+
+  it("a hand settlement's Stripe ref (payout_settlements.stripe_ref) counts under transfer AND refund, each kind only its own", () => {
+    const kinds = Object.entries(DB_ID_COLUMNS).filter(([, cols]) => cols.some((c) => c.table === "payout_settlements" && c.column === "stripe_ref")).map(([k]) => k);
+    expect(kinds.sort()).toEqual(["refund", "transfer"]);
+    expect("payout_settlements.stripe_ref" in NOT_MATCHED).toBe(false);
+    const held = { "payout_settlements.stripe_ref": ["tr_HandTr", "po_HandPo", "re_HandRe", "pyr_HandPyr", "not-a-stripe-id"] };
+    const tr = collectDbIds("transfer", held);
+    expect([...tr.ids]).toEqual(["tr_HandTr"]);
+    expect(tr.rejected).toEqual(["payout_settlements.stripe_ref = not-a-stripe-id"]);
+    const re = collectDbIds("refund", held);
+    expect([...re.ids].sort()).toEqual(["pyr_HandPyr", "re_HandRe"]);
+    expect(re.rejected).toEqual(["payout_settlements.stripe_ref = not-a-stripe-id"]);
   });
 
   it("the script reads the columns through collectDbIds and pages by orderBy", () => {

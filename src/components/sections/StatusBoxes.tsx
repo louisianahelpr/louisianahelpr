@@ -74,9 +74,10 @@ export function StatusBoxes<K extends string>({
       </div>
       {active && (
         <p className="text-ds-13 text-muted-foreground px-1" aria-live="polite">
-          {active.count === 0 ? "Nothing in " : "Showing only "}
+          {/* One line at 320 (the old "Showing only … · tap it again to show all" wrapped, leaving "all" alone). */}
+          {active.count === 0 ? "Nothing in " : "Only "}
           <b className="text-foreground">{active.label}</b>
-          {active.count === 0 ? " right now" : ""} · tap it again to show all
+          {active.count === 0 ? " right now" : ""} · tap again for all
         </p>
       )}
     </div>

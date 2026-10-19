@@ -150,9 +150,10 @@ export function CategoryPicker({
               {/* NEVER BREAKS INSIDE A WORD (owner, 2026-10-19: "Handyma/n" at 320). It wraps only
                   between words (break-normal); below 360px the chip gives the label room instead
                   (24px icon, 8px gap, 6px side padding: 73px, measured 63px before, and "Handyman"
-                  is 68.6px). Guard: src/test/categoryChipsNeverBreakAWord.test.ts. */}
+                  is 68.6px), and the label may take a third line there ("Auto & Small Engine" was
+                  cut to "Auto & Small…"). Guard: src/test/categoryChipsNeverBreakAWord.test.ts. */}
               <span
-                className="font-sans font-semibold leading-tight line-clamp-2 break-normal hyphens-none text-ds-12 text-left"
+                className="font-sans font-semibold leading-tight line-clamp-2 max-[359px]:line-clamp-3 break-normal hyphens-none text-ds-12 text-left"
                 style={{
                   color: active ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.85)",
                 }}

@@ -12,7 +12,7 @@
 --    'rentals' switch, a member who is not banned, and a listing the member
 --    can see in Browse (rentals_listing_visible); it is never their own
 --    listing; at most 100 per member (the Saved list shows 100, so nothing is
---    ever silently hidden: too_many_saved_homes). Unsaving always works.
+--    ever silently hidden: too_many_saved_homes). Unsaving always works for a confirmed member.
 -- 3. rentals_saved_listings(): the Saved list, both kinds, newest saved first,
 --    with exactly the public facts Browse shows (city and ZIP, never the
 --    street; photo refs, never storage paths: Q2213).
@@ -27,6 +27,14 @@ CREATE TABLE IF NOT EXISTS public.saved_homes (
   PRIMARY KEY (user_id, listing_id)
 );
 CREATE INDEX IF NOT EXISTS saved_homes_listing_idx ON public.saved_homes (listing_id);
+-- The unconfirmed-email write gate every member table carries (20260927234313; DB Smoke checks it).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;
 ALTER TABLE public.saved_homes ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.saved_homes FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.saved_homes TO authenticated;

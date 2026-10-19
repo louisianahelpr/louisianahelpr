@@ -127,7 +127,10 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   },
   "sql:mark_helper_arrival": { uncovered: GAP("the 02-marketplace day-of ladder and settleForward (mark_helper_arrival)") },
   "sql:notify_helper_application_viewed": { uncovered: GAP("02-marketplace J3 (the poster opens the applicant)") },
-  "sql:notify_helper_on_direct_offer": { driven: { spec: NOTIF, evidence: "type=eq.new_offers" } },
+  "sql:notify_helper_on_direct_offer": {
+    uncovered:
+      "fires only on the job's FIRST funding (Q2093, owner 2026-10-17: no offer before the money is paid) and a nightly never pays in LIVE mode (owner 2026-09-27); notifications.spec.ts asserts the unfunded half on prod (an unpaid offer writes NO type=eq.new_offers row), and the funded half is proven in src/test/pglite/directOfferWaitsForFunding.pglite.mjs",
+  },
   "sql:notify_helpr_of_booking_clash": {
     uncovered: "Q1326: fires when the test Helpr is hired for two funded journey jobs at overlapping times; no journey books two at once (asserted in src/test/pglite/helprDoubleBookingNotice.pglite.mjs). Not sent when a CREW job is moved (crew jobs leave jobs.helper_id NULL; the card notice still shows it) — GAP",
   },

@@ -212,12 +212,19 @@ test.describe("notifications & email", () => {
     await request.delete(`${SUPABASE_URL}/rest/v1/messages?id=eq.${msg.id}`, { headers: posterHeaders });
   });
 
-  test("a direct offer notifies the helper, and the helper's decline notifies the poster", async ({ request, journey }) => {
+  test("an unfunded direct offer tells the helper nothing, and the helper's decline notifies the poster", async ({ request, journey }) => {
     // The same INSERT PostJob makes when the poster offers the job to one Helpr
     // (jobSubmitHelpers.ts: offered_to_helper_id + direct_offer_status
-    // 'pending' + a response window). Unfunded on purpose: the offer trigger
-    // (notify_helper_on_direct_offer) fires on the INSERT, and an unfunded job
-    // with no hired Helpr is cancelled afterwards with no strike on anyone.
+    // 'pending' + a response window). Unfunded on purpose, and that is now the
+    // point of step 1: since Q2093 (owner, 2026-10-17: "The job shouldn't post
+    // until the money is paid") notify_helper_on_direct_offer tells the Helpr
+    // only when the job's money FIRST arrives, never at the INSERT. A nightly
+    // never pays in LIVE mode, so the funded half is proven in real Postgres
+    // instead (src/test/pglite/directOfferWaitsForFunding.pglite.mjs); this leg
+    // asserts the unfunded half on prod. e2e-journeys 39200818768 (2026-10-19)
+    // still waited for the old INSERT-time row and failed "the helper never
+    // received the direct-offer notification". An unfunded job with no hired
+    // Helpr is cancelled afterwards with no strike on anyone.
     // parish NULL, so nothing fans out even if it were funded.
     // UNFUNDED-DRAFT-OK: this job is never looked for on /posts or /jobs. The
     // two "/jobs?job=" and "/posts?job=" strings below are the notification
@@ -260,16 +267,14 @@ test.describe("notifications & email", () => {
       }
     };
 
-    // 1. The helper's offer row: type new_offers, deep link to the job.
-    let offer: Row[] = [];
-    await expect
-      .poll(async () => (offer = await rowsFor(rest(helper), helperId, `type=eq.new_offers&job_id=eq.${job.id}`)).length, {
-        timeout: 30_000,
-        message: "the helper never received the direct-offer notification",
-      })
-      .toBe(1);
-    expect(offer[0].link, "the direct-offer notification does not open the job").toBe(`/jobs?job=${job.id}`);
-    journey.cleanup("drop the helper's offer notification", () => drop(rest(helper), offer));
+    // 1. No offer row for the helper while the job is unpaid: the trigger is
+    //    an AFTER INSERT/UPDATE row trigger, so its row (if it wrote one) is in
+    //    the same transaction as the INSERT above; a few seconds also covers
+    //    any fan-out written later.
+    await new Promise((r) => setTimeout(r, 5_000));
+    const offer = await rowsFor(rest(helper), helperId, `type=eq.new_offers&job_id=eq.${job.id}`);
+    journey.cleanup("drop any offer notification an unpaid offer wrongly sent", () => drop(rest(helper), offer));
+    expect(offer, "an UNFUNDED direct offer told the helper (Q2093: only the job's first funding may)").toEqual([]);
 
     // 2. The helper declines through the app's own RPC (no strike on this
     //    path: respond_to_direct_offer's decline branch only reopens the job).

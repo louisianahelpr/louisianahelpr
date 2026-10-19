@@ -12,6 +12,7 @@ import { shopPhotoUrl, type ShopBadges, type ShopHour, type ShopPhotoKind } from
 import { formatItemPrice, HOME_KITCHEN_CARD_LINE, HOME_KITCHEN_NOTICE, itemPhotoUrl, readinessLabel, SHOP_ITEM_TYPE_LABEL, type ShopItem } from "@/lib/shops/items";
 import { publicPhotoUrl } from "@/lib/shops/publicShop";
 import { ShopBadgeList, ShopRating, WEEKDAYS } from "./shopsUi";
+import { fmtTime, louisianaNow, openStatus } from "@/lib/shops/hours";
 
 /** A member's read carries storage paths; the public read carries ids only (publicPhotoUrl). */
 type Photo = { id: string; kind: ShopPhotoKind; storage_path?: string };
@@ -24,48 +25,8 @@ function itemSrc(p: ItemPhoto): string {
   return p.storage_path ? itemPhotoUrl(p.storage_path) : publicPhotoUrl(p.id, "item", 320);
 }
 
-function fmtTime(t: string): string {
-  const [hh, mm] = t.split(":").map(Number);
-  const ampm = hh >= 12 ? "PM" : "AM";
-  const h12 = hh % 12 === 0 ? 12 : hh % 12;
-  return mm ? `${h12}:${String(mm).padStart(2, "0")} ${ampm}` : `${h12} ${ampm}`;
-}
-
 function hoursText(h: { opens: string; closes: string }): string {
   return `${fmtTime(h.opens)} to ${fmtTime(h.closes)}`;
-}
-
-/** Weekday (0 = Sunday) and HH:MM in Louisiana, whatever the device's zone. */
-function louisianaNow(now: Date): { weekday: number; hhmm: string } {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Chicago",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(now);
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(get("weekday"));
-  return { weekday, hhmm: `${get("hour")}:${get("minute")}` };
-}
-
-/** "Open now · until 5 PM", "Closed · opens Tuesday 9 AM", or null when the shop set no hours. */
-function openStatus(hours: ShopHour[], now: Date = new Date()): { open: boolean; label: string } | null {
-  if (hours.length === 0) return null;
-  const { weekday, hhmm } = louisianaNow(now);
-  const current = hours.find((h) => h.weekday === weekday && h.opens <= hhmm && hhmm < h.closes);
-  if (current) return { open: true, label: `Open now · until ${fmtTime(current.closes)}` };
-  for (let d = 0; d < 7; d++) {
-    const day = (weekday + d) % 7;
-    const next = hours
-      .filter((h) => h.weekday === day && (d > 0 || h.opens > hhmm))
-      .sort((a, b) => a.opens.localeCompare(b.opens))[0];
-    if (next) {
-      const when = d === 0 ? "today" : d === 1 ? "tomorrow" : WEEKDAYS[day];
-      return { open: false, label: `Closed · opens ${when} ${fmtTime(next.opens)}` };
-    }
-  }
-  return { open: false, label: "Closed" };
 }
 
 function OpenNowPill({ hours }: { hours: ShopHour[] }) {

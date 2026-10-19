@@ -8294,6 +8294,7 @@ export type Database = {
           payment_livemode: boolean | null
           premium_cents: number
           ready_date: string
+          ready_tap_cancel: string
           seller_id: string | null
           shop_id: string | null
           status: string
@@ -8329,6 +8330,7 @@ export type Database = {
           payment_livemode?: boolean | null
           premium_cents: number
           ready_date: string
+          ready_tap_cancel?: string
           seller_id?: string | null
           shop_id?: string | null
           status?: string
@@ -8364,6 +8366,7 @@ export type Database = {
           payment_livemode?: boolean | null
           premium_cents?: number
           ready_date?: string
+          ready_tap_cancel?: string
           seller_id?: string | null
           shop_id?: string | null
           status?: string
@@ -8598,6 +8601,7 @@ export type Database = {
           paused: boolean
           pin_lat: number
           pin_lng: number
+          ready_tap_cancel: string
           sos_number: string | null
           sos_verified_at: string | null
           sos_verified_by: string | null
@@ -8625,6 +8629,7 @@ export type Database = {
           paused?: boolean
           pin_lat: number
           pin_lng: number
+          ready_tap_cancel?: string
           sos_number?: string | null
           sos_verified_at?: string | null
           sos_verified_by?: string | null
@@ -8652,6 +8657,7 @@ export type Database = {
           paused?: boolean
           pin_lat?: number
           pin_lng?: number
+          ready_tap_cancel?: string
           sos_number?: string | null
           sos_verified_at?: string | null
           sos_verified_by?: string | null
@@ -13040,6 +13046,7 @@ export type Database = {
         Returns: Json
       }
       shops_set_handover_mode: { Args: { p_mode: string }; Returns: string }
+      shops_set_ready_tap_cancel: { Args: { p_choice: string }; Returns: string }
       shops_add_item_photo: {
         Args: { p_item_id: string; p_storage_path: string }
         Returns: string

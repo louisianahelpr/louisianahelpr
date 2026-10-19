@@ -26,15 +26,49 @@ export const CANCEL_POLICY_TEXT: Record<CancelPolicy, { label: string; detail: s
     label: "Free to cancel until the shop accepts",
     detail: "Once the shop accepts, the order is final.",
   },
-  // Owner 2026-10-18 ~22:30Z + 2026-10-19 ~01:30Z (Q2155): free cancel closes when the ready date begins, or
-  // when the shop marks the order ready on the day before it; an earlier ready tap counts only from the day
-  // before; never at pickup (shop_order_free_cancel_until, 20261019013802).
+  // Owner 2026-10-18 ~22:30Z (Q2155): free cancel closes when the ready date begins, or earlier when the shop
+  // marks the order ready, never at pickup. What an early ready tap does is the SHOP's choice (owner 2026-10-19:
+  // "LET THE SHOPS DECIDE THIS."): READY_TAP_CANCEL_TEXT, and cancelPolicyText for the buyer's exact words.
   until_handover: {
     label: "Free to cancel until your order is ready",
-    detail: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready, free cancel ends then, but never before the day before your ready date. The card fee is not refunded.",
+    detail: "After the shop accepts, you can cancel for a refund of the price until your ready date begins, or until the shop marks your order ready if its rule says so. The card fee is not refunded.",
   },
 };
 export const CANCEL_POLICIES = Object.keys(CANCEL_POLICY_TEXT) as CancelPolicy[];
+
+/** What a shop's early "ready" tap does to the buyer's free cancel under 'until_handover' (shops.ready_tap_cancel,
+ * frozen on each order; shop_order_free_cancel_until, 20261019015018). The shop picks; the default is
+ * 'from_day_before'. `label`/`hint` are the shop's settings words, `buyer` what the buyer reads before paying. */
+export type ReadyTapCancel = "ends_at_tap" | "from_day_before" | "never_shortens";
+export const READY_TAP_CANCEL_TEXT: Record<ReadyTapCancel, { label: string; hint: string; buyer: string }> = {
+  ends_at_tap: {
+    label: "Marking it ready ends free cancel",
+    hint: "Buyers can cancel for free until you mark the order ready, or until the ready date begins if that comes first.",
+    buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready sooner, free cancel ends then. The card fee is not refunded.",
+  },
+  from_day_before: {
+    label: "Marking it ready counts from the day before (default)",
+    hint: "If you mark an order ready early, buyers can still cancel for free until the day before the ready date begins.",
+    buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready, free cancel ends then, but never before the day before your ready date. The card fee is not refunded.",
+  },
+  never_shortens: {
+    label: "Marking it ready never ends free cancel early",
+    hint: "Buyers can cancel for free until the ready date begins, however early you mark the order ready.",
+    buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins, even if the shop marks your order ready sooner. The card fee is not refunded.",
+  },
+};
+export const READY_TAP_CANCELS = Object.keys(READY_TAP_CANCEL_TEXT) as ReadyTapCancel[];
+
+/** The buyer's words for a shop's cancel rule: the preset, and under 'until_handover' the shop's ready-tap choice. */
+export function cancelPolicyText(policy: CancelPolicy, readyTap: ReadyTapCancel | null | undefined): { label: string; detail: string } {
+  if (policy !== "until_handover") return CANCEL_POLICY_TEXT[policy];
+  const tap = readyTap ?? "from_day_before";
+  return {
+    label: tap === "never_shortens" ? "Free to cancel until your ready date"
+      : tap === "ends_at_tap" ? "Free to cancel until the shop marks it ready" : CANCEL_POLICY_TEXT.until_handover.label,
+    detail: READY_TAP_CANCEL_TEXT[tap].buyer,
+  };
+}
 
 type OrderStatus =
   | "awaiting_hold" | "held" | "accepted" | "declined" | "expired" | "cancelled" | "superseded" | "handed_over" | "refunded";
@@ -58,6 +92,8 @@ export interface ShopOrder {
   close_reason: string | null;
   ready_date: string;
   cancel_policy: CancelPolicy;
+  /** 20261019015018: what an early ready tap does to free cancel, frozen when the order was asked for. */
+  ready_tap_cancel: ReadyTapCancel;
   note: string;
   decline_reason: string | null;
   items_cents: number;
@@ -80,6 +116,8 @@ export interface ShopOrder {
 
 export interface OrderTerms {
   cancel_policy: CancelPolicy;
+  /** The shop's ready-tap choice (absent from a server older than 20261019015018: the default). */
+  ready_tap_cancel?: ReadyTapCancel;
   paused: boolean;
   open_weekdays: number[];
   daily_order_cap: number | null;
@@ -89,7 +127,7 @@ export interface OrderTerms {
 }
 
 const ORDER_COLUMNS =
-  "id, buyer_id, seller_id, shop_id, status, close_reason, ready_date, cancel_policy, note, decline_reason, items_cents, " +
+  "id, buyer_id, seller_id, shop_id, status, close_reason, ready_date, cancel_policy, ready_tap_cancel, note, decline_reason, items_cents, " +
   "premium_cents, tax_cents, total_cents, created_at, held_at, accept_by, accepted_at, captured_at, closed_at, handover_mode, handed_over_at, " +
   "shop_order_lines (id, item_id, title, kind, unit_cents, quantity, line_cents)";
 
@@ -132,6 +170,19 @@ export async function setCancelPolicy(policy: CancelPolicy): Promise<CancelPolic
   const { data, error } = await supabase.rpc("shops_set_cancel_policy", { p_policy: policy });
   if (error) rpcFail(error, rpcErrorMessage("shops_set_cancel_policy", error));
   return data as CancelPolicy;
+}
+
+/** The member's own shop's ready-tap choice (shops.ready_tap_cancel, readable by column grant). */
+export async function fetchReadyTapCancel(shopId: string): Promise<ReadyTapCancel> {
+  const row = unwrap(await supabase.from("shops").select("ready_tap_cancel").eq("id", shopId).maybeSingle());
+  return ((row as { ready_tap_cancel?: ReadyTapCancel } | null)?.ready_tap_cancel ?? "from_day_before");
+}
+
+/** Sets it for the caller's OWN shop only (shops_set_ready_tap_cancel: WHERE owner_id = the caller). */
+export async function setReadyTapCancel(choice: ReadyTapCancel): Promise<ReadyTapCancel> {
+  const { data, error } = await supabase.rpc("shops_set_ready_tap_cancel", { p_choice: choice });
+  if (error) rpcFail(error, rpcErrorMessage("shops_set_ready_tap_cancel", error));
+  return data as ReadyTapCancel;
 }
 
 /**

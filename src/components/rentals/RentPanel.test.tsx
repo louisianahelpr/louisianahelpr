@@ -209,7 +209,7 @@ describe("RentPanel (D2 pay direct)", () => {
     });
     renderPanel();
     fireEvent.click(await screen.findByText("History and receipts"));
-    expect(screen.getByText("Taken back by the landlord: Transfer returned.")).toBeTruthy();
+    expect(screen.getByText("Zelle · Taken back by the landlord: Transfer returned.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Fix" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Dispute" }));
     fireEvent.change(screen.getByLabelText("Why you dispute it"), { target: { value: "My bank shows it went through." } });

@@ -48,6 +48,7 @@ import { RentalsHomeSkeleton } from "./RentalsSkeletons";
 import { EndTenancyButton } from "./EndTenancyButton";
 import { RentPanel } from "./RentPanel";
 import { DepositPanel } from "./DepositPanel";
+import { LeasePanel, SignedLeases } from "./LeasePanel";
 import { fetchMyEndedDeposits, type EndedDeposit } from "@/lib/rentals/rent";
 import { HomesBrowse } from "./HomesBrowse";
 import { fetchMyListings, type RentalListing } from "@/lib/rentals/listings";
@@ -168,6 +169,7 @@ function MovedOut({ items }: { items: EndedDeposit[] }) {
           </p>
           <RentPanel tenancyId={d.tenancy_id} />
           <DepositPanel tenancyId={d.tenancy_id} />
+          <LeasePanel tenancyId={d.tenancy_id} homeLabel={d.label} />
         </div>
       ))}
     </>
@@ -276,6 +278,11 @@ function PropertyCard({
               <div key={`rent-${t.id}`} className="pl-3">
                 <RentPanel tenancyId={t.id} />
                 <DepositPanel tenancyId={t.id} />
+                <LeasePanel
+                  tenancyId={t.id}
+                  homeLabel={p.label}
+                  prefill={{ home_address: `${p.street_address}, ${p.city}, LA ${p.zip_code}` }}
+                />
               </div>
             ))}
             {links[u.id] && (
@@ -466,6 +473,7 @@ export default function RentalsHomeView() {
                   </p>
                   <RentPanel tenancyId={h.tenancy_id} />
                   <DepositPanel tenancyId={h.tenancy_id} />
+                  <LeasePanel tenancyId={h.tenancy_id} homeLabel={h.label} />
                   {!underAge && <MaintenanceRequestForm tenancyId={h.tenancy_id} uid={uid} onFiled={refresh} />}
                   <EndTenancyButton tenancyId={h.tenancy_id} kind="leave" onDone={refresh} />
                 </div>
@@ -558,6 +566,21 @@ export default function RentalsHomeView() {
           </RentalsCard>
           )}
           </>
+          )}
+
+          {/* Signed leases whose tenancy is no longer on this screen (ended, or deleted): both people keep them,
+              each on their own tab (Renting: as the tenant; Owning: as the landlord). */}
+          {(tab === "rent" || tab === "own") && (
+            <SignedLeases
+              side={tab === "rent" ? "tenant" : "landlord"}
+              shownTenancyIds={
+                new Set([
+                  ...data.data.homes.map((h) => h.tenancy_id),
+                  ...data.data.tenancies.filter((t) => t.status === "active").map((t) => t.id),
+                  ...data.data.endedDeposits.map((d) => d.tenancy_id),
+                ])
+              }
+            />
           )}
         </div>
       )}

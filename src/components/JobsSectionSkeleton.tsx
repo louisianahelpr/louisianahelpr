@@ -46,7 +46,7 @@ function JobsHeaderBones() {
 }
 
 /** The four status boxes (StatusBoxes: border + py-2.5 + 24px count + 2px + 16px label = 64px). */
-export function StatusBoxBones() {
+function StatusBoxBones() {
   return (
     <div className="grid gap-2 grid-cols-4" aria-hidden>
       {[0, 1, 2, 3].map((i) => (

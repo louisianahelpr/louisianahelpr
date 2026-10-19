@@ -81,7 +81,7 @@ export interface ScreenSpec {
    * renders NotFound and reports clean — the number flatters, silently.
    *
    * Since Q194 (2026-09-23) every one of those redirect routes is DELETED; the
-   * only alias today is the owner-asked /quotes redirect (2026-10-19).
+   * aliases today are the owner-asked /quotes redirect and /posts -> Jobs > Posted (2026-10-19).
    *
    * `auditCatalogRoutes.test.ts` derives the truth from App.tsx rather than from
    * this field, so a row that redirects and does NOT declare it fails, and a
@@ -252,6 +252,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
     },
   },
   { name: "posts", url: "/jobs?tab=posted" },
+  // /posts (every old My Posts link) forwards to Jobs > Posted (PostsPage, Q2205): an alias of "posts".
+  { name: "posts-redirect", url: "/posts", redirectsTo: "/jobs?tab=posted" },
   { name: "jobs", url: "/jobs?tab=working" },
   { name: "messages", url: "/messages" },
   { name: "post-job", url: "/post-job" },
@@ -274,7 +276,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // Quotes on jobs (hidden switch 'quotes', created OFF). The /quotes hub is
   // retired (owner 2026-10-19): the route is QuotesHubRedirect, which sends a
   // bare /quotes to Posts (/posts?quotes=1), so the row is an alias of "posts".
-  { name: "quotes", url: "/quotes", redirectsTo: "/posts" },
+  // /posts itself forwards to Jobs > Posted since 2026-10-19 (Q2205), so the destination is that row.
+  { name: "quotes", url: "/quotes", redirectsTo: "/jobs?tab=posted" },
   { name: "quotes-request-missing", url: "/quotes/request/10000000-0000-4000-8000-00000000dead" },
   { name: "quotes-send-missing", url: "/quotes/send/10000000-0000-4000-8000-00000000dead" },
   // Rentals S1 (hidden switch 'rentals', created OFF): RentalsGate renders the

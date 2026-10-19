@@ -4,7 +4,8 @@
  * say /home: notification rows and pushes (`?quickApply=<id>`, the most common
  * link in the product), JobDetail's signed-in hand-off, the post-signup job
  * intent, Stripe's boost return (`?boosted=` / `?boost_cancelled=`), a feed
- * job sheet (`?job=`), a category link (`?cat=`). The feed is Jobs > Browse
+ * job sheet (`?job=`), a category link (`?cat=`), the Quotes "open requests"
+ * lens (`?wantsQuotes=1`, src/lib/quotes/homes.ts). The feed is Jobs > Browse
  * now, and Home is the dashboard, which reads none of them — so a link that
  * landed there would open Home and silently drop the job it named.
  *
@@ -14,7 +15,7 @@
  * My Jobs link (JobsSection.resolveJobsTab).
  * Guard: src/test/homeForwardsFeedLinks.test.ts.
  */
-export const FEED_LINK_PARAMS = ["quickApply", "boosted", "boost_cancelled", "job", "cat"] as const;
+export const FEED_LINK_PARAMS = ["quickApply", "boosted", "boost_cancelled", "job", "cat", "wantsQuotes"] as const;
 
 /** The /jobs URL a /home search string should be forwarded to, or null to stay on Home. */
 export function feedLinkTarget(search: string, hash = ""): string | null {

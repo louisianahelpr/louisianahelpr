@@ -42,7 +42,8 @@ describe("the saved count (Q1739)", () => {
   );
 
   it("finds the Browse controls that print it", () => {
-    expect(props.length).toBeGreaterThan(2);
+    // 2 since 2026-10-19 (Q2205): a Browse control left with the old screens; the two left are the feed's own (Dashboard.tsx).
+    expect(props.length).toBeGreaterThan(1);
   });
 
   it("is the server's count of saved jobs still shown, never the raw saved-id set", () => {

@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { CANCEL_POLICY_TEXT, formatCents, orderStatusLabel, type ShopOrder } from "@/lib/shops/orders";
+import { cancelPolicyText, formatCents, orderStatusLabel, type ShopOrder } from "@/lib/shops/orders";
 import { fetchOrderPickupAddress } from "@/lib/shops/pickupAddress";
 
 /** The order statuses in which the buyer may read the shop's pickup address (shops_order_pickup_address). */
@@ -84,7 +84,7 @@ export function ShopOrderCard({
       {side === "buyer" ? (
         <p className="text-xs text-muted-foreground">
           Items {formatCents(order.items_cents)} + service fee {formatCents(order.premium_cents)}
-          {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}. {CANCEL_POLICY_TEXT[order.cancel_policy].label}.
+          {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}. {cancelPolicyText(order.cancel_policy, order.ready_tap_cancel).label}.
         </p>
       ) : (
         <p className="text-xs text-muted-foreground">You get the item price in full: {formatCents(shopGets)}.</p>

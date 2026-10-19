@@ -7,15 +7,19 @@
  *   node src/test/pglite/shopsHandoverPayout.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/shopsHandoverPayout.pglite.mjs   # RED: the checks fail
  *   MIGRATION_PATH=<planted copy> node src/test/pglite/shopsHandoverPayout.pglite.mjs
- *   FREE_CANCEL=skip node src/test/pglite/shopsHandoverPayout.pglite.mjs   # RED: section 8 on M2's own window (an early ready tap)
+ *   FREE_CANCEL=skip READY_TAP=skip node src/test/pglite/shopsHandoverPayout.pglite.mjs   # RED: section 8 on M2's own window (an early ready tap)
  *   FREE_CANCEL_PATH=<planted copy> node src/test/pglite/shopsHandoverPayout.pglite.mjs
+ *   READY_TAP=skip node src/test/pglite/shopsHandoverPayout.pglite.mjs   # RED: section 9 without the shop's ready-tap choice
+ *   READY_TAP_PATH=<planted copy> node src/test/pglite/shopsHandoverPayout.pglite.mjs
  *
  * Setup copied from shopsOrders.pglite.mjs (prod-shaped stubs, prod's default
  * function ACL, shops slices 1-2, categories v2, M1 + its strike count ONCE as
  * prod has them), plus Declutter's fee-debt ledger and declutter_consume_fee_debt
  * from its newest definition, then this migration 3x, then
  * 20261019013802_shop_free_cancel_ready_tap_day_before 3x (owner 2026-10-19: a ready
- * tap ends free cancel only from the day before the ready date).
+ * tap ends free cancel only from the day before the ready date), then
+ * 20261019015018_shop_ready_tap_cancel_choice 3x (owner 2026-10-19: "LET THE SHOPS
+ * DECIDE THIS": each shop picks what an early ready tap does; section 9).
  */
 import { readFileSync, readdirSync } from "node:fs";
 import os from "node:os";
@@ -29,6 +33,7 @@ const M1 = readFileSync(`${MIG_DIR}20261018164442_shops_orders_checkout.sql`, "u
 const M1_STRIKES = readFileSync(`${MIG_DIR}20261018164444_shops_own_strike_count.sql`, "utf8");
 const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261018211820_shops_handover_payout.sql`, "utf8");
 const FREE_CANCEL = readFileSync(process.env.FREE_CANCEL_PATH ?? `${MIG_DIR}20261019013802_shop_free_cancel_ready_tap_day_before.sql`, "utf8");
+const READY_TAP = readFileSync(process.env.READY_TAP_PATH ?? `${MIG_DIR}20261019015018_shop_ready_tap_cancel_choice.sql`, "utf8");
 const SLICE1 = readFileSync(`${MIG_DIR}20261017061155_shops_profiles.sql`, "utf8");
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
 const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sql`, "utf8");
@@ -185,6 +190,7 @@ const skip = process.env.NEW_MIGRATION === "skip";
 if (!skip) {
   for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
   if (process.env.FREE_CANCEL !== "skip") for (let i = 0; i < 3; i++) await db.exec(FREE_CANCEL);
+  if (process.env.READY_TAP !== "skip") for (let i = 0; i < 3; i++) await db.exec(READY_TAP);
 }
 
 async function as(role, uid, sql) {
@@ -490,6 +496,85 @@ ok(!skip && typeof oC6 === "string" && await freeUntil(oC6) === "-infinity", "an
 const aclFree = one(await svc(`SELECT array_to_string(proacl, ',') FROM pg_proc WHERE proname = 'shop_order_free_cancel_until'`)) ?? "";
 ok(!skip && !/(^|,)(anon|authenticated)=/.test(aclFree) && !/(^|,)=X/.test(aclFree) && /service_role=X/.test(aclFree),
   `shop_order_free_cancel_until: service_role only (${aclFree})`);
+
+// --- 9. THE SHOP DECIDES what an early ready tap does to free cancel (owner pop-up 2026-10-19: "LET THE SHOPS
+// DECIDE THIS."; Q2155). shops.ready_tap_cancel, the shop's own choice, frozen on each order at insert.
+const tapChoice = async (shop) => one(await svc(`SELECT ready_tap_cancel FROM public.shops WHERE id = '${shop}'`));
+const orderChoice = async (id) => one(await svc(`SELECT ready_tap_cancel FROM public.shop_orders WHERE id = '${id}'`));
+const readyIn = async (id, days) => svc(`UPDATE public.shop_orders SET ready_date = ((now() AT TIME ZONE 'America/Chicago')::date + ${days}) WHERE id = '${id}'`);
+const readyAt = async (id) => one(await svc(`SELECT ready_at::text FROM public.shop_handovers WHERE order_id = '${id}'`));
+const dayBefore = async (id) => one(await svc(`SELECT (((ready_date - 1)::timestamp AT TIME ZONE 'America/Chicago'))::text FROM public.shop_orders WHERE id = '${id}'`));
+await member(OWNER, `SELECT public.shops_set_cancel_policy('until_handover')`);
+ok(!skip && await tapChoice(shopA) === "from_day_before" && await tapChoice(shopB) === "from_day_before",
+  "a shop's default is 'from the day before' (the behaviour built before the choice)");
+const termsT = one(await member(BUYER, `SELECT public.shops_order_terms('${shopA}')`));
+ok(!skip && termsT?.ready_tap_cancel === "from_day_before" && termsT?.cancel_policy === "until_handover",
+  "the buyer reads the shop's choice before paying (shops_order_terms)");
+ok(refused(await member(OWNER, `SELECT public.shops_set_ready_tap_cancel('whenever')`), /invalid_ready_tap_cancel/, "22023")
+  && refused(await member(OWNER, `SELECT public.shops_set_ready_tap_cancel(NULL)`), /invalid_ready_tap_cancel/, "22023"),
+  "only the three choices");
+ok(refused(await svc(`UPDATE public.shops SET ready_tap_cancel = 'whenever' WHERE id = '${shopA}'`), /shops_ready_tap_cancel_check/),
+  "the table refuses anything else (CHECK)");
+ok(one(await svc(`SELECT bool_and(convalidated) FROM pg_constraint WHERE conname IN ('shops_ready_tap_cancel_check', 'shop_orders_ready_tap_cancel_check')`)) === true
+  && Number(one(await svc(`SELECT count(*) FROM pg_constraint WHERE conname IN ('shops_ready_tap_cancel_check', 'shop_orders_ready_tap_cancel_check')`))) === 2,
+  "both CHECKs exist and are validated (never NOT VALID)");
+// Authz: only the shop's OWNER sets it, for its OWN shop.
+// The buyer (in the 'shops' cohort, no shop of their own) is refused by the RPC's own-shop write, not the switch.
+const ordinaryT = await member(BUYER, `SELECT public.shops_set_ready_tap_cancel('ends_at_tap')`);
+ok(!skip && refused(ordinaryT, /^shop_not_found$/, "P0002") && await tapChoice(shopA) === "from_day_before",
+  "a member without a shop cannot set it (refused; the shop is unchanged)");
+ok(!skip && one(await member(ADMIN, `SELECT public.shops_set_ready_tap_cancel('ends_at_tap')`)) === "ends_at_tap"
+  && await tapChoice(shopB) === "ends_at_tap" && await tapChoice(shopA) === "from_day_before",
+  "another shop's owner sets only their own shop, never this one");
+await member(ADMIN, `SELECT public.shops_set_ready_tap_cancel('from_day_before')`);
+ok(refused(await member(OWNER, `UPDATE public.shops SET ready_tap_cancel = 'ends_at_tap' WHERE id = '${shopA}'`), /permission denied/),
+  "not even the owner writes the column directly (only through the RPC)");
+const aclT = one(await svc(`SELECT array_to_string(proacl, ',') FROM pg_proc WHERE proname = 'shops_set_ready_tap_cancel'`)) ?? "";
+ok(!skip && !/(^|,)anon=/.test(aclT) && !/(^|,)=X/.test(aclT) && /authenticated=X/.test(aclT), `shops_set_ready_tap_cancel: members, never anon (${aclT})`);
+
+// (a) 'ends_at_tap': an early tap (3 days before the ready date) ends free cancel at the tap.
+ok(!skip && one(await member(OWNER, `SELECT public.shops_set_ready_tap_cancel('ends_at_tap')`)) === "ends_at_tap", "the owner picks 'ends at the tap'");
+const oTa = await charged(BUYER, 1, D3);
+await readyIn(oTa, 3);
+await member(OWNER, `SELECT public.shops_mark_ready('${oTa}', NULL)`);
+ok(!skip && await orderChoice(oTa) === "ends_at_tap" && typeof (await readyAt(oTa)) === "string" && await freeUntil(oTa) === await readyAt(oTa) && await closed(oTa),
+  "(a) ends at the tap: an early ready tap ends free cancel at once (the default kept it open until the day before)");
+const oTa2 = await charged(BUYER, 1, D3);
+ok(!skip && await freeUntil(oTa2) === await dayStart(oTa2) && !(await closed(oTa2)), "(a) with no tap: until the ready date begins");
+// (c) 'never_shortens': a tap on the day before (or earlier) never shortens it; the ready date's start ends it.
+await member(OWNER, `SELECT public.shops_set_ready_tap_cancel('never_shortens')`);
+const oTc = await charged(BUYER, 1, D4);
+await readyIn(oTc, 1);
+await member(OWNER, `SELECT public.shops_mark_ready('${oTc}', NULL)`);
+ok(!skip && await orderChoice(oTc) === "never_shortens" && typeof (await readyAt(oTc)) === "string" && await freeUntil(oTc) === await dayStart(oTc) && !(await closed(oTc)),
+  "(c) never shortens: a ready tap on the day before leaves free cancel open until the ready date begins (the default closed it at the tap)");
+const oTc2 = await charged(BUYER, 1, D4);
+await readyIn(oTc2, -1);
+ok(!skip && await closed(oTc2), "(c) once the ready date began, free cancel is closed");
+// (b) 'from_day_before' (default): an early tap counts from the day before; a day-before tap ends it at the tap.
+await member(OWNER, `SELECT public.shops_set_ready_tap_cancel('from_day_before')`);
+const oTb = await charged(BUYER, 1, D5);
+await readyIn(oTb, 3);
+await member(OWNER, `SELECT public.shops_mark_ready('${oTb}', NULL)`);
+ok(!skip && await orderChoice(oTb) === "from_day_before" && await freeUntil(oTb) === await dayBefore(oTb) && !(await closed(oTb)),
+  "(b) from the day before: an early ready tap leaves free cancel open until the day before begins");
+const oTb2 = await charged(BUYER, 1, D5);
+await readyIn(oTb2, 1);
+await member(OWNER, `SELECT public.shops_mark_ready('${oTb2}', NULL)`);
+ok(!skip && await freeUntil(oTb2) === await readyAt(oTb2) && await closed(oTb2), "(b) a tap on the day before ends it at the tap");
+// Frozen: the shop switching later never moves an order already asked for, and nobody rewrites the order's copy.
+await member(OWNER, `SELECT public.shops_set_ready_tap_cancel('ends_at_tap')`);
+ok(!skip && await orderChoice(oTb) === "from_day_before" && await orderChoice(oTc) === "never_shortens" && await freeUntil(oTb) === await dayBefore(oTb),
+  "a later switch of the shop's choice never changes an order already placed (the buyer paid under its terms)");
+ok(!skip && refused(await svc(`UPDATE public.shop_orders SET ready_tap_cancel = 'ends_at_tap' WHERE id = '${oTb}'`), /ready_tap_cancel_frozen/, "55000"),
+  "the order's copy is frozen (even the service role cannot rewrite it)");
+await member(OWNER, `SELECT public.shops_set_ready_tap_cancel('from_day_before')`);
+await member(OWNER, `SELECT public.shops_set_cancel_policy('until_24h_before_ready')`);
+const oTx = await charged(BUYER, 1, D5);
+await readyIn(oTx, 3);
+await member(OWNER, `SELECT public.shops_mark_ready('${oTx}', NULL)`);
+ok(!skip && await freeUntil(oTx) === one(await svc(`SELECT ((ready_date::timestamp AT TIME ZONE 'America/Chicago') - interval '24 hours')::text FROM public.shop_orders WHERE id = '${oTx}'`)),
+  "the choice changes nothing under the other presets (24 hours before: a ready tap is ignored)");
 
 console.log(`\n${pass} PASS, ${fail} FAIL${skip ? " (NEW_MIGRATION=skip)" : ""}`);
 process.exit(fail === 0 ? 0 : 1);

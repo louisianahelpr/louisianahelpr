@@ -14,6 +14,10 @@
  *  4. /shops/dashboard (ShopDashboardPage -> ShopDashboardView): orders
  *     waiting for an answer with the time left, Accept charges through
  *     acceptOrder, Decline sends the reason; no shop says so.
+ *  4b. The cancel rule (owner 2026-10-19: "LET THE SHOPS DECIDE THIS."): under
+ *     "until your order is ready" the dashboard shows the shop's 3 ready-tap
+ *     choices in plain words and saves the one tapped; the order sheet words
+ *     the shop's choice before the buyer pays.
  *  5. The entries: Shops home and the Profile row link the dashboard once the
  *     member has a shop.
  *
@@ -23,6 +27,11 @@
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const leadDays = chosen.reduce((m, i) => Math.max(m, i.lead_time_days), 0); |   const leadDays = 0;
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const feeCents = itemsCents > 0 ? buyerFeeCents(itemsCents) : 0; |   const feeCents = 0;
  * @mutate src/components/shops/ShopOrderSheet.tsx |         <p className="text-sm font-semibold">{policy.label}</p> |         <p className="text-sm font-semibold"></p>
+ * @mutate src/components/shops/ShopOrderSheet.tsx |   const policy = cancelPolicyText(t.cancel_policy, t.ready_tap_cancel); |   const policy = cancelPolicyText(t.cancel_policy, undefined);
+ * @mutate src/components/shops/ShopCancelPolicyPicker.tsx |       {policy.data === "until_handover" && <ReadyTapCancelPicker shopId={shopId} />} |       {false && <ReadyTapCancelPicker shopId={shopId} />}
+ * @mutate src/components/shops/ShopCancelPolicyPicker.tsx |       {policy.data === "until_handover" && <ReadyTapCancelPicker shopId={shopId} />} |       <ReadyTapCancelPicker shopId={shopId} />
+ * @mutate src/components/shops/ShopReadyTapCancelPicker.tsx |                 onClick={() => { if (!on) save.mutate(c); }} |                 onClick={() => undefined}
+ * @mutate src/components/shops/ShopReadyTapCancelPicker.tsx |             const on = choice.data === c; |             const on = c === "from_day_before";
  * @mutate src/components/shops/ShopOrderSheet.tsx |       await openExternalUrl(url, () => { |       await (async (..._a: unknown[]) => undefined)(url, () => {
  * @mutate src/lib/shops/orders.ts |   if (!terms.open_weekdays.includes(new Date(isoToUtc(iso)).getUTCDay())) return "closed"; |   if (false) return "closed";
  * @mutate src/lib/shops/orders.ts |   if (terms.full_days.includes(iso)) return "full"; |   if (false) return "full";
@@ -40,7 +49,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -103,6 +112,7 @@ vi.mock("@/lib/shops/items", async (orig) => ({ ...(await orig<typeof import("@/
 const orders = vi.hoisted(() => ({
   fetchOrderTerms: vi.fn(), requestOrder: vi.fn(), fetchMyOrders: vi.fn(), fetchShopOrders: vi.fn(),
   cancelOrderRequest: vi.fn(), acceptOrder: vi.fn(), declineOrder: vi.fn(), fetchCancelPolicy: vi.fn(), setCancelPolicy: vi.fn(),
+  fetchReadyTapCancel: vi.fn(), setReadyTapCancel: vi.fn(),
 }));
 vi.mock("@/lib/shops/orders", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/orders")>()), ...orders }));
 // Shops M2: the handover parts load on their own; answered here so the order screens stay offline.
@@ -137,7 +147,7 @@ const TERMS: OrderTerms = {
 };
 const order = (over: Partial<ShopOrder>): ShopOrder => ({
   id: "o1", buyer_id: "u1", seller_id: "u2", shop_id: "s1", status: "held", close_reason: null, ready_date: "2026-10-23",
-  cancel_policy: "until_accept", note: "", decline_reason: null, items_cents: 2000, premium_cents: 170, tax_cents: 0,
+  cancel_policy: "until_accept", ready_tap_cancel: "from_day_before", note: "", decline_reason: null, items_cents: 2000, premium_cents: 170, tax_cents: 0,
   total_cents: 2170, created_at: "2026-10-19T10:00:00Z", held_at: "2026-10-19T10:00:00Z",
   accept_by: new Date(Date.now() + 5 * 3_600_000 + 90_000).toISOString(), accepted_at: null, captured_at: null, closed_at: null, handover_mode: "in_person", handed_over_at: null,
   shop_order_lines: [{ id: "l1", item_id: "i1", title: "Candle", kind: "made", unit_cents: 1000, quantity: 2, line_cents: 2000 }],
@@ -225,6 +235,19 @@ describe("the order sheet", () => {
     expect(ext.openExternalUrl.mock.calls[0][0]).toBe("https://checkout.stripe.com/c/pay/test");
   });
 
+  it("words the shop's ready-tap choice before the buyer pays (owner 2026-10-19)", async () => {
+    orders.fetchOrderTerms.mockResolvedValue({ ...TERMS, cancel_policy: "until_handover", ready_tap_cancel: "ends_at_tap" });
+    const { unmount } = renderAt("/shops/s1", "/shops/:id", <ShopPage />);
+    expect(await screen.findByText("Free to cancel until the shop marks it ready")).toBeTruthy();
+    expect(screen.getByText(/If the shop marks your order ready sooner, free cancel ends then\./)).toBeTruthy();
+    unmount();
+    orders.fetchOrderTerms.mockResolvedValue({ ...TERMS, cancel_policy: "until_handover", ready_tap_cancel: "never_shortens" });
+    renderAt("/shops/s1", "/shops/:id", <ShopPage />);
+    expect(await screen.findByText("Free to cancel until your ready date")).toBeTruthy();
+    expect(screen.getByText(/until your ready date begins, even if the shop marks your order ready sooner\./)).toBeTruthy();
+    expect(screen.queryByText(/never before the day before/)).toBeNull();
+  });
+
   it("readyDateProblem names the server's reasons in its order", () => {
     expect(readyDateProblem("2026-10-20", TERMS, 2)).toBe("too_soon");
     expect(readyDateProblem("2027-01-19", TERMS, 0)).toBe("too_far");
@@ -269,6 +292,37 @@ describe("/shops/dashboard", () => {
     fireEvent.click(screen.getByRole("button", { name: "confirm Decline order" }));
     await waitFor(() => expect(orders.declineOrder).toHaveBeenCalledWith("o2", "Booked up"));
     expect(await screen.findByRole("button", { name: /Free to cancel until the shop accepts/ })).toBeTruthy();
+  });
+
+  it("under 'until your order is ready' the shop picks what an early ready tap does, in plain words (owner 2026-10-19)", async () => {
+    api.fetchMyShopId.mockResolvedValue("s1");
+    orders.fetchCancelPolicy.mockResolvedValue("until_handover");
+    orders.fetchReadyTapCancel.mockResolvedValue("never_shortens");
+    orders.setReadyTapCancel.mockResolvedValue("ends_at_tap");
+    orders.fetchShopOrders.mockResolvedValue([]);
+    renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
+    const group = await screen.findByRole("group", { name: "If you mark an order ready early" });
+    const choices = within(group).getAllByRole("button");
+    expect(choices.map((b) => b.textContent?.split("Buyers")[0].split("If you")[0])).toEqual([
+      "Marking it ready ends free cancel",
+      "Marking it ready counts from the day before (default)",
+      "Marking it ready never ends free cancel early",
+    ]);
+    expect(choices.map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "false", "true"]);
+    expect(group.textContent).toContain("Buyers can cancel for free until the ready date begins, however early you mark the order ready.");
+    fireEvent.click(choices[0]);
+    await waitFor(() => expect(orders.setReadyTapCancel).toHaveBeenCalledWith("ends_at_tap"));
+    expect(orders.setReadyTapCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("under any other cancel rule the ready-tap choice is not shown (a ready tap changes nothing there)", async () => {
+    api.fetchMyShopId.mockResolvedValue("s1");
+    orders.fetchCancelPolicy.mockResolvedValue("until_accept");
+    orders.fetchShopOrders.mockResolvedValue([]);
+    renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
+    expect(await screen.findByRole("button", { name: /Free to cancel until the shop accepts/ })).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "If you mark an order ready early" })).toBeNull();
+    expect(orders.fetchReadyTapCancel).not.toHaveBeenCalled();
   });
 
   it("a member with no shop is told so", async () => {

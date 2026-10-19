@@ -1,5 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { Info } from "lucide-react";
+import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { useFeature } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
@@ -53,3 +55,42 @@ export function fmtDate(iso: string | null | undefined): string {
 /** Class for a native select element, matching the Input field (same height, radius, border, glass fill and focus ring). */
 export const fieldSelectClass =
   "h-12 w-full rounded-2xl border border-[hsl(var(--ink-deep)/0.15)] glass-field px-4 text-ds-15 focus-visible:outline-none focus-visible:border-[hsl(var(--olivewood)/0.6)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood)/0.25)] disabled:cursor-not-allowed disabled:opacity-50";
+
+/**
+ * A small "i" beside a one-line summary on a Homes card: the full explanation (the exact legal wording)
+ * opens in a sheet, so the card shows the money and the next action (owner, 2026-10-19: shorter cards).
+ * The tap target is 44px; the icon stays small.
+ */
+export function InfoButton({ title, children }: { title: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={`About ${title.toLowerCase()}`}
+        className="-my-3 -mr-3 inline-flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground"
+        onClick={() => setOpen(true)}
+      >
+        <Info className="h-4 w-4" aria-hidden />
+      </button>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="bottom">
+          <SheetHero title={title} />
+          <div className="space-y-2 text-sm" data-testid="info-sheet">
+            {children}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}
+
+/** A one-line summary with its "i". */
+export function InfoLine({ title, info, children, testId }: { title: string; info: ReactNode; children: ReactNode; testId?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground" data-testid={testId}>
+      <span className="min-w-0">{children}</span>
+      <InfoButton title={title}>{info}</InfoButton>
+    </div>
+  );
+}

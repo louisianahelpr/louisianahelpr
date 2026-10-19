@@ -18,10 +18,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { dollarsToCents, rentalsErrorMessage } from "@/lib/rentals/copy";
+import { InfoLine } from "./rentalsUi";
 import {
   addressShareLine,
   centralToday,
   dayLabel,
+  shortDayLabel,
   fetchDeposit,
   money,
   setDeposit,
@@ -204,9 +206,9 @@ function AddressBlock({ r, tenancyId, onDone }: { r: DepositRecord; tenancyId: s
         ) : (
           <AddressForm tenancyId={tenancyId} current={r.forwarding_address} onDone={finish} />
         )}
-        <p className="text-xs text-muted-foreground" data-testid="address-share-line">
-          {addressShareLine(r)}
-        </p>
+        <InfoLine title="Who sees your address" info={<p data-testid="address-share-line">{addressShareLine(r)}</p>}>
+          {r.address_visible_to_landlord ? "Your landlord can see it" : "Not shared with your landlord yet"}
+        </InfoLine>
       </div>
     );
   }
@@ -237,11 +239,18 @@ export function DepositPanel({ tenancyId }: { tenancyId: string }) {
         <>
           {r.can_record ? (
             <>
-              <p className="text-xs text-muted-foreground">
-                {status === "ended"
-                  ? "Not recorded yet. You can still record it for 30 days after the tenancy ended."
-                  : "Paid to you directly. Record it so you both have the same record."}
-              </p>
+              <InfoLine
+                title="Recording the deposit"
+                info={
+                  <p>
+                    {status === "ended"
+                      ? "Not recorded yet. You can still record it for 30 days after the tenancy ended."
+                      : "Paid to you directly. Record it so you both have the same record."}
+                  </p>
+                }
+              >
+                {status === "ended" ? "Not recorded yet" : "Paid to you directly"}
+              </InfoLine>
               <RecordForm tenancyId={tenancyId} onDone={done} />
             </>
           ) : (
@@ -251,9 +260,17 @@ export function DepositPanel({ tenancyId }: { tenancyId: string }) {
         </>
       ) : (
         <>
-          <p className="text-xs text-muted-foreground">
-            {money(d.amount_cents)}, received {dayLabel(d.received_on)}. Louisiana law: returned within one month after the tenancy ends, with an itemized list of anything kept.
-          </p>
+          <InfoLine
+            title="Security deposit"
+            testId="deposit-summary"
+            info={
+              <p>
+                {money(d.amount_cents)}, received {dayLabel(d.received_on)}. Louisiana law: returned within one month after the tenancy ends, with an itemized list of anything kept.
+              </p>
+            }
+          >
+            {money(d.amount_cents)} received {shortDayLabel(d.received_on)}
+          </InfoLine>
           {d.settled_at ? (
             <Statement d={d} />
           ) : side === "tenant" ? (

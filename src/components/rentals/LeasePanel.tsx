@@ -51,6 +51,7 @@ import {
   type SignedLease,
 } from "@/lib/rentals/lease";
 import { LeaseText, MY_LEASES_KEY, ReadSigned, SignedRow, dayOf } from "./LeaseSigned";
+import { InfoLine } from "./rentalsUi";
 
 export { SignedLeases, downloadLease } from "./LeaseSigned";
 
@@ -409,7 +410,11 @@ export function LeasePanel({ tenancyId, homeLabel, prefill }: { tenancyId: strin
         (landlord ? (
           !isOpenLease(open) ? (
             <div className="space-y-1">
-              {r.signed.length === 0 && <p className="text-xs text-muted-foreground">Use our Louisiana lease: fill it in and sign here, then your tenant signs in the app. You both get the PDF.</p>}
+              {r.signed.length === 0 && (
+                <InfoLine title="The lease" info={<p>Use our Louisiana lease: fill it in and sign here, then your tenant signs in the app. You both get the PDF.</p>}>
+                  Our Louisiana lease, signed in the app
+                </InfoLine>
+              )}
               <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => setSheet("edit")}>
                 {r.signed.length === 0 ? "Write the lease" : "Write a new lease"}
               </Button>

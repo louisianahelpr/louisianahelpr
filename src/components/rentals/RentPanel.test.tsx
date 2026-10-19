@@ -85,7 +85,11 @@ describe("RentPanel (D2 pay direct)", () => {
     renderPanel();
     expect((await screen.findByTestId("rent-balance")).textContent).toBe("You owe$1,200.00");
     expect(screen.getByText(/\$1,200\.00 every month · next due Nov 1, 2026/)).toBeTruthy();
-    expect(screen.getByText(/Late fee \$50\.00 if rent is still open more than 3 days after the due date\. Paid directly to the landlord by Zelle, Check\./)).toBeTruthy();
+    // Owner 2026-10-19: one short line on the card, the full sentence behind the "i".
+    expect(screen.getByTestId("rent-terms").textContent).toBe("Late fee $50.00 after 3 days · Zelle, Check");
+    fireEvent.click(screen.getByRole("button", { name: "About rent and late fees" }));
+    expect((await screen.findByTestId("info-sheet")).textContent).toBe("Late fee $50.00 if rent is still open more than 3 days after the due date. Paid directly to the landlord by Zelle, Check.");
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     fireEvent.click(screen.getByRole("button", { name: "I paid" }));
     const form = screen.getByRole("form", { name: "I paid" });
     fireEvent.change(within(form).getByLabelText("Amount paid in dollars"), { target: { value: "500" } });
@@ -220,12 +224,15 @@ describe("RentPanel (D2 pay direct)", () => {
   it("lead review #3: an ended tenancy stays open until a date, then is read-only (no I paid, no schedule)", async () => {
     state.ledger = L({ tenancy_status: "ended", open: true, open_until: "2027-01-10" });
     const { unmount } = renderPanel();
-    expect(await screen.findByText(/You can both still record, confirm and dispute payments until Jan 10, 2027/)).toBeTruthy();
+    expect((await screen.findByTestId("rent-ended")).textContent).toMatch(/^Ended · open until Jan 10(, 2027)?$/);
+    fireEvent.click(screen.getByRole("button", { name: "About after the tenancy ends" }));
+    expect((await screen.findByTestId("info-sheet")).textContent).toMatch(/You can both still record, confirm and dispute payments until Jan 10, 2027/);
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     expect(screen.getByRole("button", { name: "I paid" })).toBeTruthy();
     unmount();
     state.ledger = L({ side: "landlord", tenancy_status: "ended", open: false });
     renderPanel();
-    expect(await screen.findByText("This tenancy ended. The rent record is kept, read-only.")).toBeTruthy();
+    expect((await screen.findByTestId("rent-ended")).textContent).toBe("Ended · read-only");
     expect(screen.queryByRole("button", { name: "Record a payment" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Change schedule" })).toBeNull();
   });

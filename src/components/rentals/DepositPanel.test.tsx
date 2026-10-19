@@ -75,7 +75,10 @@ describe("DepositPanel (D6 track only)", () => {
     expect(await screen.findByText("Your landlord hasn't recorded a deposit yet.")).toBeTruthy();
     expect(screen.queryByRole("form", { name: "Record the deposit" })).toBeNull();
     const form = screen.getByRole("form", { name: "Forwarding address" });
-    expect(screen.getByTestId("address-share-line").textContent).toBe("Your landlord sees it once you end the tenancy here.");
+    expect(screen.getByText("Not shared with your landlord yet")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "About who sees your address" }));
+    expect((await screen.findByTestId("address-share-line")).textContent).toBe("Your landlord sees it once you end the tenancy here.");
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     fireEvent.change(within(form).getByLabelText("Forwarding address"), { target: { value: "500 New Home Rd, Baton Rouge LA 70801" } });
     fireEvent.click(within(form).getByRole("button", { name: "Save address" }));
     await waitFor(() => expect(setForwardingAddress).toHaveBeenCalledWith("t1", "500 New Home Rd, Baton Rouge LA 70801"));
@@ -94,19 +97,27 @@ describe("DepositPanel (D6 track only)", () => {
   it("an ended tenancy with no deposit: the landlord can still record it (30 days) (lead review #10)", async () => {
     state.rec = R({ side: "landlord", tenancy_status: "ended", ended_by: "tenant", can_record: true });
     renderPanel();
-    expect(await screen.findByText("Not recorded yet. You can still record it for 30 days after the tenancy ended.")).toBeTruthy();
+    expect(await screen.findByText("Not recorded yet")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "About recording the deposit" }));
+    expect((await screen.findByTestId("info-sheet")).textContent).toBe("Not recorded yet. You can still record it for 30 days after the tenancy ended.");
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     expect(screen.getByRole("form", { name: "Record the deposit" })).toBeTruthy();
   });
 
   it("tenant gives a forwarding address; the landlord of a live tenancy sees only that one was given", async () => {
     state.rec = R({ deposit: D(), lease_ends_on: "2027-06-30" });
     renderPanel();
-    expect(await screen.findByText(/\$1,200\.00, received Oct 1, 2026\. Louisiana law: returned within one month/)).toBeTruthy();
+    expect((await screen.findByTestId("deposit-summary")).textContent).toMatch(/^\$1,200\.00 received Oct 1(, 2026)?$/);
+    fireEvent.click(screen.getByRole("button", { name: "About security deposit" }));
+    expect((await screen.findByTestId("info-sheet")).textContent).toMatch(/\$1,200\.00, received Oct 1, 2026\. Louisiana law: returned within one month/);
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     const form = screen.getByRole("form", { name: "Forwarding address" });
     fireEvent.change(within(form).getByLabelText("Forwarding address"), { target: { value: "500 New Home Rd, Baton Rouge LA 70801" } });
     fireEvent.click(within(form).getByRole("button", { name: "Save address" }));
     await waitFor(() => expect(setForwardingAddress).toHaveBeenCalledWith("t1", "500 New Home Rd, Baton Rouge LA 70801"));
-    expect(screen.getByTestId("address-share-line").textContent).toBe("Your landlord sees it once you end the tenancy here, or after the lease ends Jun 30, 2027.");
+    fireEvent.click(screen.getByRole("button", { name: "About who sees your address" }));
+    expect((await screen.findByTestId("address-share-line")).textContent).toBe("Your landlord sees it once you end the tenancy here, or after the lease ends Jun 30, 2027.");
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
   });
 
   it("landlord, live tenancy: no settle form yet, the address is not shown", async () => {

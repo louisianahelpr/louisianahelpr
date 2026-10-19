@@ -214,6 +214,12 @@ export function planLine(plan: RentPlan): string {
   return `${money(plan.amount_cents)} ${how}`;
 }
 
+/** The card's one-line version: "Late fee $50.00 after 3 days" (the full sentence is lateFeeLine). */
+export function lateFeeShort(plan: RentPlan): string {
+  if (plan.late_fee_cents === 0) return "No late fee";
+  return `Late fee ${money(plan.late_fee_cents)} ${plan.grace_days === 0 ? "the day after" : `after ${plan.grace_days} day${plan.grace_days === 1 ? "" : "s"}`}`;
+}
+
 export function lateFeeLine(plan: RentPlan): string {
   if (plan.late_fee_cents === 0) return "No late fee.";
   const grace = plan.grace_days === 0 ? "the day after it's due" : `more than ${plan.grace_days} day${plan.grace_days === 1 ? "" : "s"} after the due date`;

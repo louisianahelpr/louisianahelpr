@@ -32,6 +32,7 @@ import {
   correctRentPayment,
   correctionLine,
   dayLabel,
+  lateFeeShort,
   shortDayLabel,
   decideRentPayment,
   disputeRentPayment,
@@ -52,7 +53,7 @@ import {
   type RentPlan,
 } from "@/lib/rentals/rent";
 import { saveRentReceipt } from "@/lib/rentals/rentReceipt";
-import { fieldSelectClass } from "./rentalsUi";
+import { InfoLine, fieldSelectClass } from "./rentalsUi";
 
 const rentKey = (tenancyId: string) => ["rent-ledger", tenancyId];
 
@@ -455,16 +456,32 @@ export function RentPanel({ tenancyId }: { tenancyId: string }) {
         {l.plan && <BalanceLine cents={l.balance_cents} side={l.side} />}
       </div>
       {l.plan && (
-        <p className="text-xs text-muted-foreground">
-          {lateFeeLine(l.plan)} Paid directly to the landlord by {l.plan.pay_methods.map((m) => PAY_METHOD_LABEL[m]).join(", ")}.
-        </p>
+        <InfoLine
+          title="Rent and late fees"
+          testId="rent-terms"
+          info={
+            <p>
+              {lateFeeLine(l.plan)} Paid directly to the landlord by {l.plan.pay_methods.map((m) => PAY_METHOD_LABEL[m]).join(", ")}.
+            </p>
+          }
+        >
+          {lateFeeShort(l.plan)} · {l.plan.pay_methods.map((m) => PAY_METHOD_LABEL[m]).join(", ")}
+        </InfoLine>
       )}
       {l.tenancy_status === "ended" && (
-        <p className="rounded-xl bg-muted px-3 py-2 text-xs">
-          {l.open && l.open_until
-            ? `This tenancy ended. You can both still record, confirm and dispute payments until ${dayLabel(l.open_until)}.`
-            : "This tenancy ended. The rent record is kept, read-only."}
-        </p>
+        <InfoLine
+          title="After the tenancy ends"
+          testId="rent-ended"
+          info={
+            <p>
+              {l.open && l.open_until
+                ? `This tenancy ended. You can both still record, confirm and dispute payments until ${dayLabel(l.open_until)}.`
+                : "This tenancy ended. The rent record is kept, read-only."}
+            </p>
+          }
+        >
+          {l.open && l.open_until ? `Ended · open until ${shortDayLabel(l.open_until)}` : "Ended · read-only"}
+        </InfoLine>
       )}
       {l.side === "landlord" && l.open && toConfirm.map((p) => <DecideRow key={p.id} p={p} tenancyId={tenancyId} onDone={done} />)}
       {l.side === "tenant" && toConfirm.length > 0 && (

@@ -175,7 +175,8 @@ export async function setListingStatus(listingId: string, status: "live" | "paus
   const { error } = await supabase.rpc("rentals_set_listing_status", { p_listing_id: listingId, p_status: status });
   if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_set_listing_status", error), error);
   if (status !== "live") return "done";
-  const row = unwrap(await supabase.from("rental_listings").select("status, first_review").eq("id", listingId).maybeSingle());
+  // select("*"), not named columns: read before 20261019185022 deploys, a missing first_review is undefined, not an error.
+  const row = unwrap(await supabase.from("rental_listings").select("*").eq("id", listingId).maybeSingle());
   return row && row.status !== "live" && row.first_review === "pending_review" ? "review" : "done";
 }
 

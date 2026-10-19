@@ -68,6 +68,7 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 2026-10-18 (salvage of ready/sec-b-10): Q1661 (senior-scale job-card titles, built) and Q1803 (owner closed it) join; each waits on a look or a release no marker reads.
 // 2026-10-18 (salvage of ready/train-big-1016): Q2112 (robot analytics tagging, built) waits on its deploy.
 const MARKERLESS_PARTLY_DONE: Record<string, string> = {
+  Q959: "re-measure the blurring-element count on a built main in a browser (salvage-1018 built the one shared blur, 2026-10-18); no marker kind reads a browser measurement",
   Q1661: "one look on the iOS simulator at accessibility-XXXL, the item's own surface (the fix was measured in Chromium with the senior-mode class); no marker kind reads a simulator screenshot",
   Q1803: "owner 2026-10-14: closed, no birthday asked on main; ticked once the next App Store build (without PhotoPrompt's wheels) is live, which no marker kind reads",
   Q2112: "after deploy: the live tag_automated_analytics_event, its trigger and analytics_events_real read back (pg_get_functiondef, pg_class ACL) and a day of robot events tagged; no marker kind reads a deployed migration's effect on new rows",

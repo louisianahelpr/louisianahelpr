@@ -88,7 +88,7 @@ describe("Playwright stays off a version whose Linux WebKit stops painting (nigh
 
   it("Dependabot skips every known-bad release line", () => {
     for (const bad of Object.keys(KNOWN_BAD)) {
-      const line = minorLine(bad).replace(/\./g, "\\.");
+      const line = minorLine(bad).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const block = new RegExp(`dependency-name:\\s*"@playwright/test"\\s*\\n\\s*versions:\\s*\\[[^\\]]*"${line}"`);
       expect(dependabot, `.github/dependabot.yml must ignore @playwright/test ${minorLine(bad)}`).toMatch(block);
     }

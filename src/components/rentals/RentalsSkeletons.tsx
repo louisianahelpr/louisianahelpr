@@ -29,8 +29,9 @@ import { RentalsCard } from "./rentalsUi";
 import { LISTING_GRID, ListingCardBone } from "./listings/listingBones";
 
 /**
- * /rentals while its data loads (switch on): Browse's frame (the Rent | Buy
- * switch, the search row, the listing grid's bones) then the two groups with
+ * /rentals while its data loads (switch on): the section toggle, Browse's frame
+ * (the shared 40px search row, the listing grid's bones; Rent or Buy is in the
+ * filter sheet since 2026-10-19, so no switch row) then the two groups with
  * their real titles, each with one card bone where its first card lands.
  */
 export function RentalsHomeSkeleton() {
@@ -38,9 +39,8 @@ export function RentalsHomeSkeleton() {
     <SectionScreen title="Homes" add={sectionByKey("homes").add}>
       <Skeleton className="h-11 w-full rounded-full" aria-hidden />
       <div className="space-y-4" role="status" aria-label="Loading Homes">
-        <Skeleton className="h-11 w-full rounded-full" aria-hidden />
         <div className="space-y-4">
-          <Skeleton className="h-11 w-full rounded-full" aria-hidden />
+          <Skeleton className="h-10 w-full rounded-full" aria-hidden />
           <div className={LISTING_GRID}>
             <ListingCardBone />
             <ListingCardBone />

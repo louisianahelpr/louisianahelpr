@@ -244,8 +244,9 @@ describe("Declutter controls are the shared ones", () => {
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     await screen.findByRole("button", { name: "Answer" });
     check();
-    // Inventory floor: Sell an item x2, Finish listing, Save details, List this item, Ask, Answer.
-    expect(seen).toBeGreaterThan(5);
+    // Inventory floor: Finish listing, Save details, List this item, Ask, Answer. (The top bar's
+    // "Sell an item" + is a plain icon button since 2026-10-19, the same as the bell: not glossy.)
+    expect(seen).toBeGreaterThan(4);
   });
 
   it("the four tax confirmations and the porch switch are the shared Checkbox, not native inputs", async () => {

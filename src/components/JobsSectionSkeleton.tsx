@@ -25,7 +25,7 @@ import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
 /** Top bar (title, "+", bell, profile) + the Browse | Posted | Working toggle, as bones. */
 function JobsHeaderBones() {
   return (
-    <div className="flex flex-col gap-3 px-1" aria-hidden>
+    <div className="flex flex-col gap-1" aria-hidden>
       {/* AppTopBar's own box: `app-top-bar h-16`, the title in its one size rule. */}
       <div className="app-top-bar flex items-center justify-between gap-2 h-16">
         <Skeleton className="h-8 w-[4.5rem] rounded-ds-md" />
@@ -77,7 +77,7 @@ function JobsListBodyBones({ tab }: { tab: "posted" | "applied" }) {
     );
   }
   return (
-    <div className="flex-1 min-h-0 px-1 lg:px-4 pt-3 pb-0 space-y-list" aria-hidden>
+    <div className="flex-1 min-h-0 px-0 lg:px-4 pt-1 lg:pt-3 pb-0 space-y-list" aria-hidden>
       {tab === "applied"
         ? [1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)
         : [1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
@@ -93,7 +93,7 @@ function JobsListBodyBones({ tab }: { tab: "posted" | "applied" }) {
 export function JobsListLoadingFrame({ header, tab }: { header: ReactNode; tab: "posted" | "applied" }) {
   const isWebDesktop = useIsWebDesktop();
   const head = (
-    <div className="flex flex-col gap-3 pb-1">
+    <div className="flex flex-col gap-4">
       {header}
       <StatusBoxBones />
     </div>
@@ -120,7 +120,7 @@ function BrowseFrame({ header }: { header: ReactNode }) {
       animate
       panelElevation="raised"
       titleCard={
-        <div className="flex flex-col gap-3 pb-1">
+        <div className="flex flex-col gap-4">
           {header}
           {/* BrowseCompactSearchRow: one `h-10` pill. */}
           {!isWebDesktop && <Skeleton className="h-10 w-full rounded-full" aria-hidden />}

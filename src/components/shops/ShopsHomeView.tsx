@@ -18,7 +18,11 @@ import { ChevronRight, ExternalLink, Share2, ShieldCheck, Store } from "lucide-r
 import { toast } from "sonner";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { SectionScreen } from "@/components/sections/SectionScreen";
-import { ChoiceFilterRow } from "@/components/sections/ChoiceFilterRow";
+import { ChoiceSheet } from "@/components/sections/ChoiceFilterRow";
+import { SectionSearchRow } from "@/components/sections/SectionSearchRow";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import ShopMyOrdersView from "./ShopMyOrdersView";
@@ -28,7 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { browseShops, shopPhotoUrl, type ShopCard } from "@/lib/shops/api";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { useDeclutterOrigin } from "@/components/declutter/useDeclutterOrigin";
-import { categoryGroups, categoryLabel, ShopBadgeList, ShopRating, ShopsNotice, useShopCategories } from "./shopsUi";
+import { categoryGroups, categoryLabel, ShopBadgeList, ShopRating, useShopCategories } from "./shopsUi";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 
 function milesText(miles: number | null): string | null {
@@ -161,11 +165,30 @@ function ShopsBrowse() {
     enabled: origin.status !== "pending",
   });
   const loading = origin.status === "pending" || shops.isLoading || categories.isLoading;
+  // Search filters the shops already loaded, by name, category and area (the list is one page).
+  const [query, setQuery] = useState("");
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const words = query.trim().toLowerCase();
+  // Offline with nothing loaded is never "No shops here yet" (Q571).
+  const phase = useFeedPhase(shops);
+  const shown = (shops.data ?? []).filter(
+    (s) => !words || [s.name, categoryLabel(categories.data, s.category), s.area_label].some((t) => (t ?? "").toLowerCase().includes(words)),
+  );
 
   return (
     <>
-      {/* Categories live in a slide-up sheet, not a pill row (owner, 2026-10-19). */}
-      <ChoiceFilterRow
+      {/* The shared Browse search row; categories live in its slide-up filter sheet, not a pill row (owner, 2026-10-19). */}
+      <SectionSearchRow
+        value={query}
+        onChange={setQuery}
+        placeholder="Search shops"
+        filterCount={group ? 1 : 0}
+        filtersOpen={sheetOpen}
+        onFilters={() => setSheetOpen(true)}
+      />
+      <ChoiceSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
         title="Category"
         allLabel="All shops"
         value={group}
@@ -182,13 +205,19 @@ function ShopsBrowse() {
             </li>
           ))}
         </ul>
-      ) : (shops.data ?? []).length === 0 ? (
-        <ShopsNotice title="No shops here yet.">
-          <p>Be the first: open a free shop for your business or the things you make.</p>
-        </ShopsNotice>
+      ) : phase === "offline-empty" ? (
+        <OfflineEmptyState body="Shops will show here once you're back online." onRetry={() => void shops.refetch()} />
+      ) : shown.length === 0 ? (
+        // The shared empty state every Browse wears (owner, 2026-10-19: Homes' style, same place).
+        <EmptyState
+          variant="bare"
+          icon={Store}
+          title={words && (shops.data ?? []).length > 0 ? "No shops match that search." : "No shops here yet."}
+          body={words && (shops.data ?? []).length > 0 ? "Try another word." : "Be the first: open a free shop for your business or the things you make."}
+        />
       ) : (
         <ul className="space-y-3">
-          {(shops.data ?? []).map((s) => (
+          {shown.map((s) => (
             <li key={s.id} className="min-w-0">
               <ShopRow shop={s} category={categoryLabel(categories.data, s.category)} />
             </li>
@@ -196,7 +225,7 @@ function ShopsBrowse() {
         </ul>
       )}
       {/* No distance filter in Shops and no shop alerts yet: just the friendly end. */}
-      {!shops.isError && !loading && (shops.data ?? []).length > 0 && <BrowseEndCard />}
+      {!shops.isError && !loading && shown.length > 0 && <BrowseEndCard />}
       {!from && origin.status !== "pending" && (
         <p className="text-xs text-muted-foreground">Add your ZIP code in your profile to see the nearest shops first.</p>
       )}

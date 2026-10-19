@@ -87,11 +87,12 @@ describe("design tweaks (owner 2026-10-18)", () => {
     const toolbar = code("src/components/dashboard/BrowseTasksToolbar.tsx");
     expect(toolbar).not.toMatch(/<CategoryChipRow\b/);
     expect(code("src/components/dashboard/FilterSheet.tsx")).toMatch(/key: "category",/);
-    expect(code("src/components/shops/ShopsHomeView.tsx")).toMatch(/<ChoiceFilterRow\b/);
+    // Shops: the shared search row, its category choices in the filter sheet behind it (owner 2026-10-19).
+    expect(code("src/components/shops/ShopsHomeView.tsx")).toMatch(/<SectionSearchRow\b[\s\S]*<ChoiceSheet\b/);
     expect(code("src/components/shops/ShopsHomeView.tsx")).not.toMatch(/chip-row/);
     expect(rule(".category-chip-row,\n.chip-row")).toMatch(/mask-image:\s*linear-gradient/);
     // Declutter's distance chips moved into the slide-up filter sheet behind ONE compact search row (owner 2026-10-19).
-    expect(code("src/components/declutter/DeclutterBrowseBar.tsx")).toMatch(/aria-label="Search items"[\s\S]*<SlidersHorizontal/);
+    expect(code("src/components/declutter/DeclutterBrowseBar.tsx")).toMatch(/<SectionSearchRow[\s\S]*placeholder="Search items"/);
   });
 
   it("T8: cards and buttons dip under the finger, never under Reduce Motion", () => {

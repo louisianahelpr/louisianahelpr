@@ -446,7 +446,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
             canTrigger={canTrigger}
             // Side padding for the list only: the EMPTY state's own `dock` card inset 16px drew TWO
             // nested rounded frames a few px apart (on device, My Jobs / My Posts).
-            className={showEmptyState ? "flex-1 min-h-0 pb-0" : "flex-1 min-h-0 px-1 lg:px-4 pt-3 pb-0"}
+            className={showEmptyState ? "flex-1 min-h-0 pb-0" : "flex-1 min-h-0 px-0 lg:px-4 pt-1 lg:pt-3 pb-0"}
           >
           {showEmptyState ? (
             <>

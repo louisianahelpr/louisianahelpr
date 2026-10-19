@@ -569,8 +569,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               see the `is_group_job` chip, which drops its separator and rides
               tighter than the rest of the row. */}
           <div className="job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden">
-            {/* Place, date, time never hidden (owner, 2026-10-08); floor = pin + ~5 letters. */}
-            <span className="flex items-center gap-1 min-w-[5.25rem] overflow-hidden">
+            {/* Place, date, time never hidden (owner, 2026-10-08); floor = pin + ~5 letters. The
+                floor is NOT wider than a typical city (it was 72px of text, ~10 letters): a city
+                shorter than the floor left its slack before the "·", so "New Iberia  ·" sat wider
+                than "Wed, Oct 21 ·" (owner, 2026-10-19: "make the separator spacing even"). */}
+            <span className="flex items-center gap-1 min-w-[3.625rem] overflow-hidden">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
               {/* `min-w-0` + `overflow-hidden` + `truncate`, and NOTHING that
                   sets a width. Two wrong answers were tried here first, and the
@@ -601,7 +604,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   `gap-x-2` away from the end of the city name on every card,
                   whatever its length. The "when" group beside it stays
                   `shrink-0`, so it is still the city that gives. */}
-              <span className="truncate font-sans min-w-[4.5rem]">{cityState}</span>
+              <span className="truncate font-sans min-w-[2.75rem]">{cityState}</span>
             </span>
             {distanceLabel && (
               <span role="img"

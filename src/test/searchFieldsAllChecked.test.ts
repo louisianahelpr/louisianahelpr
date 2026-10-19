@@ -62,11 +62,9 @@ const NO_X: Record<string, string> = {
 /** ✕ files that render ONLY below the desktop breakpoint, so the press spec
  * can drive them at 375 alone. Exact: a stale entry fails, and each one's
  * surface must say `maxWidth: 899`. */
-const PHONE_ONLY: Record<string, string> = {
-  // Jobs > Browse (owner, 2026-10-19): Dashboard renders the compact row only
-  // when !isWebDesktop; at 1440 the feed strip's BrowseSearchBar is the field.
-  "src/components/dashboard/browseTasksToolbar/BrowseCompactSearchRow.tsx": "phone-only row; desktop uses the feed strip",
-};
+// Empty since 2026-10-19: Jobs > Browse's phone-only compact row became the shared SectionSearchRow,
+// whose ✕ is also pressed at 1440 (Declutter, Shops, Homes show it at every width).
+const PHONE_ONLY: Record<string, string> = {};
 
 /** ✕ files that render ONLY at the desktop breakpoint, so the press spec
  * drives them at 1440 alone. Exact: a stale entry fails, and each one's
@@ -176,7 +174,9 @@ describe("every search field is driven in a real browser (inventory minus checke
     // +1 2026-10-19: Homes Browse's slim City or ZIP row (RentBrowse.tsx), a permanent field with a "Clear search" ✕.
     // 2026-10-19: +2, the section dashboards' permanent Browse rows (Jobs, Declutter).
     // 2026-10-19 (Q2205): -2, PostsHeader / JobsHeader left with the old My Posts / My Jobs pages.
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(13);
+    // 2026-10-19 (shared section shell): -2, the Jobs, Declutter and Homes Browse rows became ONE
+    // shared SectionSearchRow (Shops' new search uses it too): 3 files out, 1 in.
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(11);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",
@@ -184,12 +184,10 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/components/admin/AdminSubscriptions.tsx",
       "src/components/admin/AdminUsers.tsx",
       "src/components/admin/settings/AdminUserSearchField.tsx",
-      "src/components/dashboard/browseTasksToolbar/BrowseCompactSearchRow.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
-      "src/components/declutter/DeclutterBrowseBar.tsx",
       "src/components/messages/ConversationList.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
-      "src/components/rentals/listings/RentBrowse.tsx",
+      "src/components/sections/SectionSearchRow.tsx",
       "src/pages/info/Legal.tsx",
     ]);
     expect(EXPANDING_CALLERS).toEqual([

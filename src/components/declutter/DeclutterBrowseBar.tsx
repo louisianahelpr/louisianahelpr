@@ -1,15 +1,15 @@
 /**
  * Browse's ONE compact row (owner, 2026-10-19): a slim search field with the
- * filter button inside its right edge (the same row as Jobs' BrowseCompactSearchRow). The distance choices and where the miles are
+ * filter button inside its right edge (the shared SectionSearchRow every Browse wears). The distance choices and where the miles are
  * counted from moved into the slide-up filter sheet, so Browse opens straight
  * onto the items. Any distance is the default (owner, 2026-10-19).
  */
 import { useState } from "react";
-import { Search, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { DISTANCE_CHOICES } from "@/lib/declutter/distance";
+import { SectionSearchRow } from "@/components/sections/SectionSearchRow";
 import type { DeclutterOrigin } from "./useDeclutterOrigin";
 
 export interface OriginAsk {
@@ -49,32 +49,17 @@ export function DeclutterBrowseBar({
   const located = ask.origin.status === "ready";
   const filtered = located && maxMiles !== null;
   return (
-    <div className="flex items-center gap-2 h-10 pl-3.5 pr-1 rounded-full border border-border bg-card focus-within:ring-2 focus-within:ring-ring" data-testid="declutter-browse-bar">
-      <Search className="w-[18px] h-[18px] text-muted-foreground shrink-0" aria-hidden />
-      <input
-        type="search"
+    <>
+      <SectionSearchRow
+        testId="declutter-browse-bar"
         value={query}
-        onChange={(e) => onQuery(e.target.value)}
+        onChange={onQuery}
         placeholder="Search items"
-        aria-label="Search items"
-        enterKeyHint="search"
-        className="flex-1 min-w-0 bg-transparent text-ds-15 text-foreground placeholder:text-muted-foreground outline-none [&::-webkit-search-cancel-button]:hidden"
+        filterCount={filtered ? 1 : 0}
+        filtersOpen={open}
+        onFilters={() => setOpen(true)}
+        filtersLabel={filtered ? `Filters, within ${maxMiles} miles` : "Filters"}
       />
-      {query && (
-        <button type="button" aria-label="Clear search" onClick={() => onQuery("")} className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground">
-          <X className="w-4 h-4" aria-hidden />
-        </button>
-      )}
-      <button
-        type="button"
-        aria-label={filtered ? `Filters, within ${maxMiles} miles` : "Filters"}
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-        className={`btn-press relative shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${filtered || open ? "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]" : "text-muted-foreground"}`}
-      >
-        <SlidersHorizontal className="w-[18px] h-[18px]" aria-hidden />
-        {filtered && <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-primary" aria-hidden />}
-      </button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" floor className="max-h-[85dvh] overflow-y-auto overscroll-contain bg-premium-page">
           <SheetHero title="How far away" />
@@ -102,6 +87,6 @@ export function DeclutterBrowseBar({
           </SheetFooter>
         </SheetContent>
       </Sheet>
-    </div>
+    </>
   );
 }

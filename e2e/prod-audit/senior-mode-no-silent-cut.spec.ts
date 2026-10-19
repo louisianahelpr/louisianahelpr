@@ -17,7 +17,7 @@
  * overflows a hidden/clipped box must be ellipsized (text-overflow: ellipsis
  * or a line clamp). sr-only text is skipped: it is clipped by design.
  */
-// @mutate src/components/dashboard/JobCard.tsx | <span className="truncate font-sans min-w-[4.5rem]">{cityState}</span> | <span className="font-sans min-w-[4.5rem] whitespace-nowrap">{cityState}</span>
+// @mutate src/components/dashboard/JobCard.tsx | <span className="truncate font-sans min-w-[2.75rem]">{cityState}</span> | <span className="font-sans min-w-[2.75rem] whitespace-nowrap">{cityState}</span>
 
 import { test, expect } from "../prodTest";
 import { getSession, type Session } from "./harness";

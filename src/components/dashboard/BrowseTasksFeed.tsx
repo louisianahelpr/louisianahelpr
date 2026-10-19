@@ -423,8 +423,10 @@ export function BrowseTasksFeed({
         // cleaner in a sentence than the previous value × 2 ("13 mi").
         const nextMiles = currentMiles < 5 ? 10 : currentMiles < 10 ? 25 : currentMiles < 25 ? 50 : 100;
         return (
-      <div className="px-3 pt-4 flex-1 min-h-0 flex">
+      // The shared Browse empty state (owner, 2026-10-19: Homes' style, in the same place as every section's).
+      <div className="px-0 lg:px-4 pt-1 lg:pt-3 flex-1 min-h-0 flex">
         <EmptyState
+          variant="bare"
           icon={Search}
           title={
             filters.hasFilters
@@ -503,7 +505,7 @@ export function BrowseTasksFeed({
             {showFullSkeleton && density === "comfortable" && (
               <div
                 // The list's own inset (MainFeedSection), so bones -> cards do not shift (Q2222).
-                className="px-1 lg:px-4 pt-3 pb-1 space-y-list"
+                className="px-0 lg:px-4 pt-1 lg:pt-3 pb-1 space-y-list"
                 aria-hidden
               >
                 {/* Recommended-section variant — matches the real recommended
@@ -556,7 +558,7 @@ export function BrowseTasksFeed({
               // The next round rung, then "any distance" (clears the radius).
               const next = miles < 5 ? 10 : miles < 10 ? 25 : miles < 25 ? 50 : null;
               return (
-                <div className="px-1 lg:px-4">
+                <div className="px-0 lg:px-4">
                   <BrowseEndCard
                     onWiden={nearby ? () => filters.setLocationFilter(next ? `nearby:${next}` : "") : undefined}
                     widenLabel={next ? `Widen to ${next} mi` : "Any distance"}

@@ -106,6 +106,21 @@ interface ConversationListProps {
   sectionEmpty?: { icon: LucideIcon; title: string; body: string; action?: { label: string; to: string } } | null;
 }
 
+type SectionEmpty = NonNullable<ConversationListProps["sectionEmpty"]>;
+
+/** A Declutter / Shops / Homes tab with no threads yet: the same EmptyState
+ *  box as the Jobs inbox's, with the section's own icon and words. */
+function SectionInboxEmpty({ empty, onGo }: { empty: SectionEmpty; onGo: (to: string) => void }) {
+  return (
+    <EmptyState
+      icon={empty.icon}
+      title={empty.title}
+      bodyLines={MAIN_TAB_EMPTY_BODY_LINES} body={empty.body}
+      action={empty.action ? <BarkPillButton onClick={() => onGo(empty.action!.to)}>{empty.action.label}</BarkPillButton> : undefined}
+    />
+  );
+}
+
 // Sort comparator (descending by lastAt) — pulled out so the pinned /
 // unpinned partitions both use the exact same ordering rule.
 function byLastAtDesc(a: Conversation, b: Conversation): number {
@@ -1309,19 +1324,7 @@ export function ConversationList({
               className="flex-1 min-h-0 flex flex-col"
             >
               {sectionEmpty ? (
-                <EmptyState
-                  icon={sectionEmpty.icon}
-                  title={sectionEmpty.title}
-                  body={sectionEmpty.body}
-                  bodyLines={MAIN_TAB_EMPTY_BODY_LINES}
-                  action={
-                    sectionEmpty.action ? (
-                      <BarkPillButton onClick={() => navigate(sectionEmpty.action!.to)}>
-                        {sectionEmpty.action.label}
-                      </BarkPillButton>
-                    ) : undefined
-                  }
-                />
+                <SectionInboxEmpty empty={sectionEmpty} onGo={(to) => navigate(to)} />
               ) : (
               <EmptyState
                 // The same circle-and-icon as My Posts / My Jobs (owner, 2026-10-08,

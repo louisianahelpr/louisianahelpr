@@ -55,7 +55,7 @@
  * See src/test/filterDisclosureParity.test.ts for the cross-screen guard.
  *
  * @mutate src/components/messages/ConversationList.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(false); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
- * @mutate src/components/messages/ConversationList.tsx | const headerMeta = isWebDesktop ? <div id={INBOX_TABS_ID}>{inboxTabs}</div> : undefined; | const headerMeta = undefined;
+ * @mutate src/components/messages/ConversationList.tsx | const headerMeta = isWebDesktop && !sectionEmpty ? <div id={INBOX_TABS_ID}>{inboxTabs}</div> : undefined; | const headerMeta = undefined;
  * @mutate src/lib/inboxDefault.ts | active: "Active", | active: "Unread",
  */
 import { describe, expect, it, afterEach, vi } from "vitest";

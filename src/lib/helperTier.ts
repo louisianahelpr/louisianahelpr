@@ -22,6 +22,8 @@
  * flow.
  */
 
+import { isIdentityVerified } from "./awardGate";
+
 export type HelperTier = 0 | 1 | 2 | 3;
 
 /**
@@ -38,8 +40,15 @@ export interface HelperTierProfile {
    * supabase/functions/_shared/stripeIdentity.ts.
    */
   stripe_identity_verified?: boolean | null;
+  /** `profiles.idv_status` (Stripe Identity, or an admin-approved ID). The rung
+   *  reads BOTH through the one rule, isIdentityVerified (owner 2026-10-19:
+   *  verified once, by any route, counts everywhere). */
+  idv_status?: string | null;
   stripe_account_id?: string | null;
 }
+
+const tierIdentityVerified = (profile: HelperTierProfile | null | undefined): boolean =>
+  isIdentityVerified({ connectIdentityVerified: profile?.stripe_identity_verified, idvStatus: profile?.idv_status });
 
 export interface HelperTierStats {
   /** Distinct jobs where this user was the `helper_id` and status='completed'. */
@@ -67,7 +76,7 @@ const isTier1Verified = (profile: HelperTierProfile): boolean => {
   // (Q205b): the approval step is gone, and every profile this ladder is
   // shown for already passed the entry gate server-side (get_safe_profiles /
   // get_public_profile_stats gate on a confirmed email).
-  if (profile.stripe_identity_verified !== true) return false;
+  if (!tierIdentityVerified(profile)) return false;
   // Stripe Connect onboarding: presence of an account id is the project's
   // existing signal (see EarningsTab + ProfileLanding). Live payouts
   // status is fetched per-render from /stripe APIs and isn't needed for
@@ -134,7 +143,7 @@ export function describeTierProgress(
   if (current === 0) {
     // Climbing onto the ladder — list the missing onboarding signals.
     const missing: string[] = [];
-    if (profile?.stripe_identity_verified !== true) missing.push("Finish Stripe identity verification");
+    if (!tierIdentityVerified(profile)) missing.push("Finish Stripe identity verification");
     if (!profile?.stripe_account_id) missing.push("Connect Stripe for payouts");
     return { nextTier: 1, missing };
   }

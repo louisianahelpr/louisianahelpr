@@ -145,6 +145,8 @@
     "public.shop_payouts.shop_payouts_due_idx",
     "public.job_helpr_fault_fee_deductions.job_helpr_fault_fee_deductions_ruling_idx",
     "public.job_helpr_fault_rulings.job_helpr_fault_rulings_helper_idx",
+    "public.landlord_id_reviews.landlord_id_reviews_pending_idx",
+    "public.landlord_id_reviews.landlord_id_reviews_reviewer_idx",
     "public.rental_listing_photos.rental_listing_photos_owner_idx",
     "public.rental_listings.rental_listings_live_idx",
     "public.rental_listings.rental_listings_owner_idx",

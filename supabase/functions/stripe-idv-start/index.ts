@@ -92,8 +92,19 @@ serve(async (req) => {
       throw new Error("Could not load your account right now. Please try again.");
     }
 
-    // Already verified — short-circuit
-    if (profile?.idv_status === "verified") {
+    // Already verified, by ANY route (Stripe Identity, Stripe Connect's identity
+    // check, or an admin-approved ID): THE one rule, public.is_identity_verified
+    // (owner 2026-10-19: verified once is never asked again). An unreadable
+    // answer is not permission to start a check: it throws, like profileErr.
+    // PGRST202 (the function's migration not deployed yet) falls back to the
+    // old answer below plus claim_idv_attempt's own already_verified, so a
+    // deploy-order gap degrades to the previous behaviour, never to an outage.
+    const { data: verifiedAnyRoute, error: verifiedErr } = await supabaseAdmin.rpc("is_identity_verified", { p_user_id: user.id });
+    if (verifiedErr && verifiedErr.code !== "PGRST202") {
+      throw new Error(`is_identity_verified failed: ${verifiedErr.message}`);
+    }
+    if (verifiedErr) console.warn("[stripe-idv-start] is_identity_verified not deployed yet (PGRST202): falling back to idv_status");
+    if (verifiedAnyRoute === true || (verifiedErr && profile?.idv_status === "verified")) {
       return new Response(JSON.stringify({ alreadyVerified: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,

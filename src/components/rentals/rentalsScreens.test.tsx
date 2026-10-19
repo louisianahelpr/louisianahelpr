@@ -269,13 +269,13 @@ describe("Rentals screens", () => {
       expect(screen.queryByRole("combobox")).toBeNull();
       expect(screen.queryByLabelText(/Most rent per month/)).toBeNull();
       fireEvent.change(screen.getByLabelText("City or ZIP"), { target: { value: "Lafayette" } });
-      await vi.waitFor(() => expect(state.browseFilters.at(-1)).toMatchObject({ city: "Lafayette" }));
+      await vi.waitFor(() => expect(state.browseFilters[state.browseFilters.length - 1]).toMatchObject({ city: "Lafayette" }));
     });
     it("bedrooms and rent live in the filter sheet; a pick filters and the button counts it", async () => {
       renderAt("/rentals");
       fireEvent.click(await screen.findByRole("button", { name: "Filters" }));
       fireEvent.click(await screen.findByRole("button", { name: "2+" }));
-      await vi.waitFor(() => expect(state.browseFilters.at(-1)).toMatchObject({ minBeds: 2 }));
+      await vi.waitFor(() => expect(state.browseFilters[state.browseFilters.length - 1]).toMatchObject({ minBeds: 2 }));
       expect(screen.getByLabelText("Filters (1 active)").tagName).toBe("BUTTON");
     });
     it("nothing to show: a friendly empty state for renters with one action to browse, and Add a property once (in the owner empty state)", async () => {

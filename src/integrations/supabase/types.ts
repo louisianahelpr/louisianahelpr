@@ -7739,6 +7739,10 @@ export type Database = {
           deposit_cents: number | null
           description: string
           expires_at: string | null
+          first_review: string | null
+          first_review_decided_at: string | null
+          first_review_note: string | null
+          first_review_submitted_at: string | null
           headline: string
           id: string
           kind: string
@@ -7776,6 +7780,10 @@ export type Database = {
           deposit_cents?: number | null
           description?: string
           expires_at?: string | null
+          first_review?: string | null
+          first_review_decided_at?: string | null
+          first_review_note?: string | null
+          first_review_submitted_at?: string | null
           headline: string
           id?: string
           kind?: string
@@ -7813,6 +7821,10 @@ export type Database = {
           deposit_cents?: number | null
           description?: string
           expires_at?: string | null
+          first_review?: string | null
+          first_review_decided_at?: string | null
+          first_review_note?: string | null
+          first_review_submitted_at?: string | null
           headline?: string
           id?: string
           kind?: string
@@ -13655,6 +13667,15 @@ export type Database = {
         Returns: string
       }
       rentals_address_key: { Args: { p_street: string; p_zip: string }; Returns: string }
+      rentals_admin_review_first_listing: {
+        Args: {
+          p_approve: boolean
+          p_listing_id: string
+          p_note: string
+          p_submitted_at: string
+        }
+        Returns: undefined
+      }
       rentals_admin_review_landlord_id: {
         Args: {
           p_approve: boolean
@@ -13672,6 +13693,7 @@ export type Database = {
         Args: { p_note: string; p_property_id: string }
         Returns: undefined
       }
+      rentals_admin_first_listings: { Args: never; Returns: Json }
       rentals_admin_listings: {
         Args: { p_open_offset?: number; p_query?: string; p_taken_offset?: number }
         Returns: Json

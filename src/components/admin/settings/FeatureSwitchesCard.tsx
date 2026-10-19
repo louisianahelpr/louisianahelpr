@@ -22,6 +22,7 @@ import { CategorySuggestionsCard } from "./CategorySuggestionsCard";
 import { DeclutterProblemsCard } from "./DeclutterProblemsCard";
 import { RentalsOwnershipCard } from "./RentalsOwnershipCard";
 import { HomesListingsCard } from "./HomesListingsCard";
+import { HomesFirstListingsCard } from "./HomesFirstListingsCard";
 import { FEATURE_SWITCH_PREFIX } from "@/lib/featureSwitchQuery";
 
 type SwitchRow = { key: string; audience: string; description: string; updated_at: string };
@@ -168,6 +169,7 @@ export function FeatureSwitchesCard() {
     <CategorySuggestionsCard />
     <DeclutterProblemsCard />
     <RentalsOwnershipCard />
+    <HomesFirstListingsCard />
     <HomesListingsCard />
     </>
   );

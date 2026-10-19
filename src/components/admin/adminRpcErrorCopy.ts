@@ -229,6 +229,29 @@ export const ADMIN_RPC_ERROR_COPY = {
     reason_required: "Add a reason. The landlord will see it.",
     review_changed: "The landlord sent a new photo since you opened this. Refresh and look again.",
   },
+  // A lister's first Homes listing (20261019185022).
+  rentals_admin_first_listings: {
+    feature_disabled: RC.feature_disabled,
+    not_authorized: "Only an admin can see listings waiting for review.",
+  },
+  rentals_admin_review_first_listing: {
+    account_restricted: "This lister's account is restricted, so the listing can't go live.",
+    bad_status: "This listing was rented, sold or removed. Refresh the list.",
+    decision_required: RC.decision_required,
+    feature_disabled: RC.feature_disabled,
+    identity_not_verified: "The lister's ID isn't verified any more, so the listing can't go live.",
+    listing_fee_not_ready: "A for-sale listing fee is set but there is no way to pay it yet, so it can't go live.",
+    listing_taken_down: "This home's listings were taken down. Lift that first.",
+    not_authorized: "Only an admin can do that, and never for their own listing.",
+    not_pending_review: "This listing isn't waiting for a review any more. Refresh the list.",
+    ownership_not_approved: "The ownership proof for this home isn't approved any more, so the listing can't go live.",
+    reason_required: "Add a reason. The lister will see it.",
+    reason_too_long: "Keep the reason to 500 characters or fewer.",
+    review_changed: "The lister changed the listing since you opened it. Refresh and look again.",
+    sale_wording_flagged: "The listing has words a for-sale listing can't show. Reject it with that reason.",
+    too_few_photos: "The listing has fewer than 5 photos now. Reject it with that reason.",
+    wording_flagged: "The listing has words fair housing law doesn't allow. Reject it with that reason.",
+  },
   // Held-for-review payouts and refunds (admin money page, 20261019070737).
   admin_payouts_held_for_review: {
     admin_only: "Only admins can see payouts held for review.",

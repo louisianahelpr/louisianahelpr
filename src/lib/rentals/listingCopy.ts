@@ -68,6 +68,16 @@ export function listingStatusLabel(status: string, expiresAt: string | null, now
   return LISTING_STATUS_LABEL[status] ?? status;
 }
 
+/**
+ * The owner's label: a FIRST listing waits for an admin before it shows (owner
+ * 2026-10-19; 20261019185022), or was sent back with a reason.
+ */
+export function ownerListingLabel(l: { status: string; expires_at: string | null; first_review?: string | null }, now = Date.now()): string {
+  if (l.status !== "live" && l.first_review === "pending_review") return "Waiting for review";
+  if (l.status !== "live" && l.first_review === "rejected") return "Needs a change";
+  return listingStatusLabel(l.status, l.expires_at, now);
+}
+
 export function rentLine(cents: number, frequency: string): string {
   const dollars = (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: cents % 100 === 0 ? 0 : 2 });
   return `${dollars} / ${RENT_FREQUENCY_LABEL[frequency] ?? frequency}`;

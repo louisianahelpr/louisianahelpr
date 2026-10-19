@@ -76,6 +76,10 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   property_taken_down: "Louisiana Helpr removed the listings for this address, so it can't be added again. Contact support if you think that was a mistake.",
   bad_query: "Search with 100 characters or fewer.",
   too_many: "Too many at once. Try again with fewer.",
+  // A lister's first listing waits for an admin (20261019185022).
+  listing_in_review: "Louisiana Helpr is checking this listing. We'll let you know when it's live.",
+  listing_needs_review: "Louisiana Helpr checks your first listing before it shows. Press Show my listing to send it.",
+  reason_too_long: "Keep the reason to 500 characters or fewer.",
   // The lift while the photo purge runs (20261019071203).
   photos_purging: "This home's photos are being deleted right now. Try again in 15 minutes.",
   // The rent tracker, pay direct (20261019073106).

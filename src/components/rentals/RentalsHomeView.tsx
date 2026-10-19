@@ -52,7 +52,7 @@ import { LeasePanel, SignedLeases } from "./LeasePanel";
 import { fetchMyEndedDeposits, type EndedDeposit } from "@/lib/rentals/rent";
 import { HomesBrowse } from "./HomesBrowse";
 import { fetchMyListings, type RentalListing } from "@/lib/rentals/listings";
-import { listingStatusLabel } from "@/lib/rentals/listingCopy";
+import { ownerListingLabel } from "@/lib/rentals/listingCopy";
 import { IdStatusNotice, SendForReview, idPhotoNeeded } from "./LandlordIdReview";
 
 function RequestRow({ r }: { r: MaintenanceRequest }) {
@@ -129,7 +129,7 @@ function UnitListingLink({ unitId, approved, listing }: { unitId: string; approv
   if (!approved) return null;
   return listing ? (
     <Link to={`/rentals/listings/${listing.id}/edit`} className="flex justify-between gap-2 pl-3 text-xs">
-      <span className="text-muted-foreground">Listing: {listingStatusLabel(listing.status, listing.expires_at)}</span>
+      <span className="text-muted-foreground">Listing: {ownerListingLabel(listing)}</span>
       <span className="font-semibold">Edit listing</span>
     </Link>
   ) : (
@@ -147,7 +147,7 @@ function SaleListingLink({ propertyId, approved, listing }: { propertyId: string
   if (!approved) return null;
   return listing ? (
     <Link to={`/rentals/listings/${listing.id}/edit`} className="flex justify-between gap-2 text-sm">
-      <span className="text-muted-foreground">For sale: {listingStatusLabel(listing.status, listing.expires_at)}</span>
+      <span className="text-muted-foreground">For sale: {ownerListingLabel(listing)}</span>
       <span className="font-semibold">Edit</span>
     </Link>
   ) : (

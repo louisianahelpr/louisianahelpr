@@ -15,7 +15,7 @@ import {
   VOUCHERS_LABEL,
   availableLine,
   bedsBathsLine,
-  listingStatusLabel,
+  ownerListingLabel,
   priceLine,
   rentLine,
   SALE_HOW_IT_WORKS,
@@ -137,7 +137,7 @@ export default function ListingView() {
         <Gallery refs={l.photo_refs} listingId={l.id} />
         {l.is_mine && (
           <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted px-4 py-3 text-ds-14">
-            <span>Your listing: {listingStatusLabel(l.status, l.expires_at)}</span>
+            <span>Your listing: {ownerListingLabel(l)}</span>
             <Link className="font-semibold underline underline-offset-2" to={`/rentals/listings/${l.id}/edit`}>
               Edit
             </Link>

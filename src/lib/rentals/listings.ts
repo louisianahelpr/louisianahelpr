@@ -7,6 +7,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { unwrap } from "@/lib/supabaseResult";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
@@ -165,9 +166,17 @@ export async function saveSaleListing(listingId: string | null, propertyId: stri
   return data;
 }
 
-export async function setListingStatus(listingId: string, status: "live" | "paused" | "leased" | "sold" | "removed"): Promise<void> {
+/**
+ * "review": the call went through but a lister's FIRST listing waits for an
+ * admin instead of going live (owner 2026-10-19; 20261019185022). Read back
+ * from the row the owner can see, so the toast never says "live" when it isn't.
+ */
+export async function setListingStatus(listingId: string, status: "live" | "paused" | "leased" | "sold" | "removed"): Promise<"done" | "review"> {
   const { error } = await supabase.rpc("rentals_set_listing_status", { p_listing_id: listingId, p_status: status });
   if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_set_listing_status", error), error);
+  if (status !== "live") return "done";
+  const row = unwrap(await supabase.from("rental_listings").select("status, first_review").eq("id", listingId).maybeSingle());
+  return row && row.status !== "live" && row.first_review === "pending_review" ? "review" : "done";
 }
 
 /** Never throws; a miss is reported to Sentry with its count (the shared Shops cleanup). */
@@ -251,4 +260,50 @@ export async function adminLiftTakedown(propertyId: string, note: string): Promi
 /** The caller's own listing (owner-only RLS); null when it is not theirs or not there. */
 export async function fetchMyListing(id: string): Promise<RentalListing | null> {
   return (unwrap(await supabase.from("rental_listings").select("*").eq("id", id).maybeSingle()) ?? null) as RentalListing | null;
+}
+
+/**
+ * Admin -> Settings, Homes: a lister's FIRST listing waits for an admin before it goes live (owner 2026-10-19,
+ * 20261019185022). The row is the listing plus what the admin checks it against; photo refs are owner-scope
+ * and short-lived. first_review_submitted_at is passed back with the decision: an edit since then is refused.
+ */
+export interface FirstListingReview {
+  id: string;
+  kind: "rent" | "sale";
+  status: string;
+  headline: string;
+  description: string;
+  rent_cents: number | null;
+  rent_frequency: string | null;
+  sale_price_cents: number | null;
+  beds: number;
+  baths: number;
+  owner_name: string | null;
+  owner_id_verified: boolean;
+  ownership_status: string;
+  street_address: string;
+  city: string;
+  zip_code: string;
+  photo_refs: string[];
+  first_review_submitted_at: string;
+}
+
+export async function fetchFirstListingsQueue(): Promise<FirstListingReview[]> {
+  const res = await supabase.rpc("rentals_admin_first_listings");
+  // Before the migration deploys the queue simply isn't there yet: nothing waits.
+  if (res.error && isMissingRpcNamed(res.error, "rentals_admin_first_listings")) return [];
+  const data = unwrap(res) as unknown as FirstListingReview[] | null;
+  return Array.isArray(data) ? data : [];
+}
+
+export async function reviewFirstListing(listingId: string, approve: boolean, note: string, submittedAt: string): Promise<void> {
+  const { error } = await supabase.rpc("rentals_admin_review_first_listing", {
+    p_listing_id: listingId,
+    p_approve: approve,
+    p_note: note,
+    p_submitted_at: submittedAt,
+  });
+  if (!error) return;
+  const admin = await loadAdminRpcErrorCopy();
+  throw new RentalsCopyError(admin?.rpcErrorMessage("rentals_admin_review_first_listing", error) ?? null, error);
 }

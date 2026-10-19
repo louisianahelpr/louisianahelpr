@@ -14,7 +14,7 @@ import {
   type RentalListing,
 } from "@/lib/rentals/listings";
 import { useRefreshOnExpiredRef } from "./useRefreshOnExpiredRef";
-import { listingShowing, listingStatusLabel } from "@/lib/rentals/listingCopy";
+import { listingShowing, ownerListingLabel } from "@/lib/rentals/listingCopy";
 import { rentalsErrorMessage } from "@/lib/rentals/copy";
 import { RentalsCard } from "../rentalsUi";
 
@@ -121,26 +121,41 @@ export function StatusActions({ listing }: { listing: RentalListing }) {
   const navigate = useNavigate();
   const m = useMutation({
     mutationFn: (s: "live" | "paused" | "leased" | "sold" | "removed") => setListingStatus(listing.id, s),
-    onSuccess: (_d, s) => {
+    onSuccess: (outcome, s) => {
       qc.invalidateQueries({ queryKey: ["rentals-my-listing", listing.id] });
       qc.invalidateQueries({ queryKey: ["rentals-home"] });
       qc.invalidateQueries({ queryKey: ["rentals-browse"] });
       qc.invalidateQueries({ queryKey: ["rentals-browse-sale"] });
       toast.success(
-        s === "live" ? "Your listing is showing for 30 days." : s === "paused" ? "Paused." : s === "leased" ? "Marked as rented." : s === "sold" ? "Marked as sold." : "Listing removed.",
+        outcome === "review"
+          ? "Sent for review. We'll let you know when it's live."
+          : s === "live" ? "Your listing is showing for 30 days." : s === "paused" ? "Paused." : s === "leased" ? "Marked as rented." : s === "sold" ? "Marked as sold." : "Listing removed.",
       );
       if (s === "removed") navigate("/rentals");
     },
     onError: (e) => toast.error(rentalsErrorMessage(e)),
   });
   const showing = listingShowing(listing.status, listing.expires_at);
+  // A lister's FIRST listing waits for Louisiana Helpr before it shows (owner 2026-10-19).
+  const waiting = listing.status !== "live" && listing.first_review === "pending_review";
+  const sentBack = listing.status !== "live" && listing.first_review === "rejected";
   return (
     <RentalsCard title="Show it">
-      <p className="text-sm">Status: {listingStatusLabel(listing.status, listing.expires_at)}</p>
+      <p className="text-sm">Status: {ownerListingLabel(listing)}</p>
+      {waiting && (
+        <p role="status" className="rounded-xl bg-muted px-3 py-2 text-xs" data-testid="first-listing-waiting">
+          Louisiana Helpr checks everyone's first listing before it shows. We'll let you know here when it's live. Your next listings show right away.
+        </p>
+      )}
+      {sentBack && (
+        <p role="status" className="rounded-xl bg-muted px-3 py-2 text-xs" data-testid="first-listing-sent-back">
+          <span className="font-semibold">Louisiana Helpr asked for a change:</span> {listing.first_review_note} Fix it, then send it again.
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
-        {!showing && listing.status !== "removed" && listing.status !== "leased" && listing.status !== "sold" && (
+        {!waiting && !showing && listing.status !== "removed" && listing.status !== "leased" && listing.status !== "sold" && (
           <Button type="button" size="sm" disabled={m.isPending} onClick={() => m.mutate("live")}>
-            {listing.status === "live" ? "Renew for 30 days" : "Show my listing"}
+            {listing.status === "live" ? "Renew for 30 days" : sentBack ? "Send it again" : "Show my listing"}
           </Button>
         )}
         {showing && (

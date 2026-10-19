@@ -153,7 +153,8 @@ describe("every search field is driven in a real browser (inventory minus checke
     // Measured 2026-10-01: 12 search fields in 12 files; 6 render a ✕; 3
     // expanding header searches. Q913 (2026-10-07): all 12 render a ✕, 6 of
     // them (the admin boxes) a "Clear search" one on a permanent field.
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(12);
+    // +1 2026-10-19: Homes Browse's slim City or ZIP row (RentBrowse.tsx), a permanent field with a "Clear search" ✕.
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(13);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",
@@ -164,6 +165,7 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/messages/ConversationList.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
+      "src/components/rentals/listings/RentBrowse.tsx",
       "src/pages/info/Legal.tsx",
       "src/pages/jobs/JobsHeader.tsx",
       "src/pages/posts/PostsHeader.tsx",

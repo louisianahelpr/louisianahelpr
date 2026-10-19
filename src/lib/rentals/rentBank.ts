@@ -46,9 +46,8 @@ export function bankFeeCents(cents: number): number {
   return cents <= 0 ? 0 : Math.min(Math.ceil(cents * 0.008), 500);
 }
 
-/** Opens Stripe's bank page for the amount; the server freezes the amounts and refuses anything not allowed. */
-export async function payRentByBank(tenancyId: string, amountCents: number): Promise<void> {
-  const { data, error } = await supabase.functions.invoke("rent-bank-checkout", { body: { action: "pay", tenancy_id: tenancyId, amount_cents: amountCents } });
+async function invokeBank(fn: "rent-bank-checkout" | "rent-bank-autopay", body: Record<string, unknown>): Promise<string> {
+  const { data, error } = await supabase.functions.invoke(fn, { body });
   if (error) {
     const ctx = (error as { context?: Response }).context;
     const parsed: { error?: unknown } | null = ctx && typeof ctx.json === "function"
@@ -62,5 +61,15 @@ export async function payRentByBank(tenancyId: string, amountCents: number): Pro
   }
   const url = (data as { url?: unknown } | null)?.url;
   if (typeof url !== "string" || !url.startsWith("https://")) throw new Error("bank_unavailable");
-  await openExternalUrl(url);
+  return url;
+}
+
+/** Opens Stripe's page to save the bank autopay debits (nothing is charged); autopay is then turned on here. */
+export async function saveAutopayBank(tenancyId: string): Promise<void> {
+  await openExternalUrl(await invokeBank("rent-bank-autopay", { action: "save", tenancy_id: tenancyId }));
+}
+
+/** Opens Stripe's bank page for the amount; the server freezes the amounts and refuses anything not allowed. */
+export async function payRentByBank(tenancyId: string, amountCents: number): Promise<void> {
+  await openExternalUrl(await invokeBank("rent-bank-checkout", { action: "pay", tenancy_id: tenancyId, amount_cents: amountCents }));
 }

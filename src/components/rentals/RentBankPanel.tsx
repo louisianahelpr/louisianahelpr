@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { dollarsToCents, rentalsErrorMessage } from "@/lib/rentals/copy";
 import { money } from "@/lib/rentals/rent";
-import { bankFeeCents, fetchBankState, payRentByBank, setAutopay, setBankPay, type FeePayer } from "@/lib/rentals/rentBank";
+import { bankFeeCents, fetchBankState, payRentByBank, saveAutopayBank, setAutopay, setBankPay, type FeePayer } from "@/lib/rentals/rentBank";
 
 const bankKey = (tenancyId: string) => ["rent-bank", tenancyId];
 
@@ -37,6 +37,10 @@ export function RentBankPanel({ tenancyId, side, balanceCents }: { tenancyId: st
     },
     onSuccess: done,
     onError: (e) => toast.error(e instanceof Error && e.message === "bad_amount" ? "Enter an amount like 1200." : rentalsErrorMessage(e)),
+  });
+  const saveBank = useMutation({
+    mutationFn: () => saveAutopayBank(tenancyId),
+    onError: (e) => toast.error(rentalsErrorMessage(e)),
   });
   const auto = useMutation({
     mutationFn: (on: boolean) => setAutopay(tenancyId, on),
@@ -98,6 +102,11 @@ export function RentBankPanel({ tenancyId, side, balanceCents }: { tenancyId: st
               : "Your landlord pays the bank cost."}
           </p>
         </>
+      )}
+      {!s.autopay.bank_label && (
+        <Button type="button" size="sm" variant="ghost" disabled={saveBank.isPending} onClick={() => saveBank.mutate()}>
+          Set up autopay
+        </Button>
       )}
       {s.autopay.bank_label && (
         <div className="flex items-center justify-between gap-2">

@@ -2,7 +2,7 @@
 
 > **Not legal advice; based on the primary sources cited; review before use.**
 
-Researched 2026-10-14. Every law marked **VERIFIED** below was read in full on the official source (legis.la.gov, eCFR, or govinfo.gov U.S. Code) on that date. Anything not read is marked **NOT VERIFIED**. No personal details from the leases appear here. The leases are called:
+Researched as of 2026-10-14. Every law marked **VERIFIED** below was read in full on the official source (legis.la.gov, eCFR, or govinfo.gov U.S. Code) on that date. Anything not read is marked **NOT VERIFIED**. No personal details from the leases appear here. The leases are called:
 
 - **Lease A**: the McClellan file (9 pages, plus a flood/environmental addendum and a payment schedule)
 - **Lease B**: the Maude file (7 pages, plus a lead-paint page)

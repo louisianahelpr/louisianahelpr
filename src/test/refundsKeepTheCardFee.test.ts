@@ -1243,7 +1243,7 @@ describe("every refund keeps the card fee, except our own mistakes (owner, 2026-
     expect(Object.keys(SQL_POLICIES.declutter_record_refund.reasons).length).toBeGreaterThan(10);
     const problems = (Object.keys(SQL_POLICIES) as Array<keyof typeof SQL_POLICIES>).flatMap((n) => checkSqlPolicy(n));
     expect(problems).toEqual([]);
-  });
+  }, 60_000); // it replays every SQL refund policy from the newest migrations: ~10s alone locally, 31s on a loaded CI shard after Shops M3 added its refund sites (PR #3425 shard 4)
 
   it("app and edge code touch the Declutter money tables and the card fee only where pinned", () => {
     const got = tsMoneyTouches();

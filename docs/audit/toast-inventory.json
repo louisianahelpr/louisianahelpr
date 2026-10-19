@@ -3683,7 +3683,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 76,
+      "line": 77,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -3693,7 +3693,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 79,
+      "line": 80,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

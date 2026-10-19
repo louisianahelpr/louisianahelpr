@@ -71,6 +71,11 @@ const UNREACHABLE: Allowlist = {
       reason: "Expected refusal rendered by DisputedSection/PostedJobActions via isExpectedLifecycleRefusal + their dispute-copy files, not central RPC_ERROR_COPY.",
     },
   },
+  feature_switches_for_me: {
+    too_many_keys: {
+      reason: "nightly-red #2601: useFeature (its only caller) always sends FEATURE_SWITCH_KEYS, the registry of 14 keys, under the 64-key cap; and a failed read is not shown to the member, it reads every switch as off (fail closed).",
+    },
+  },
   rpc_admin_end_recurring_series: {
     end_series_unknown_kind: {
       reason: "Q417 (c): rpc_admin_end_recurring_series always passes the kind 'admin' to end_recurring_series_by_platform, so its unknown-kind refusal cannot be reached from this call site.",

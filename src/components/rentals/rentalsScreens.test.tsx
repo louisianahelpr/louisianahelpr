@@ -144,11 +144,12 @@ import { cancelRequestJob, confirmVisit, createProperty, endTenancy, inviteTenan
 import { RentalsCopyError } from "@/lib/rentals/copy";
 import RentalsPage from "@/pages/rentals/RentalsPage";
 import MaintenanceRequestPage from "@/pages/rentals/MaintenanceRequestPage";
+import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
 function renderAt(path: string) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   // RentalsGate waits for the switch query to settle before showing the 404.
-  if (state.switchSettled) qc.setQueryData(["feature-enabled", "rentals", "u1"], state.feature);
+  if (state.switchSettled) qc.setQueryData(featureSwitchBatchKey("u1"), { rentals: state.feature });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[path]}>

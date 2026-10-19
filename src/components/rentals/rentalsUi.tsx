@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useFeature } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
 import NotFound from "@/pages/info/NotFound";
 
 /**
@@ -18,8 +19,7 @@ export function RentalsGate({ children, skeleton }: { children: ReactNode; skele
   const { user, isReady } = useAuthReady();
   const qc = useQueryClient();
   if (enabled) return <>{children}</>;
-  const state = qc.getQueryState(["feature-enabled", "rentals", user?.id ?? null]);
-  const settled = isReady && (!user || state?.status === "success" || state?.status === "error");
+  const settled = isReady && (!user || featureSwitchSettled(qc, "rentals", user.id));
   return settled ? <NotFound /> : <>{skeleton}</>;
 }
 

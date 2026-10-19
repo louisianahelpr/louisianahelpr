@@ -42,16 +42,21 @@ const PROFILE = {
   date_of_birth: "1980-01-01",
 };
 
-// Each switch read is a promise the test settles by key.
+// The switch read is a promise the test settles. useFeature reads every switch
+// in ONE batched call (feature_switches_for_me, nightly-red #2601), held under
+// the key "(batch)" with the keys it asked for.
 const switches = vi.hoisted(() => ({
-  pending: new Map<string, { resolve: (v: unknown) => void }>(),
+  pending: new Map<string, { resolve: (v: unknown) => void; keys?: string[] }>(),
   mode: "hold" as "hold" | "error",
 }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    rpc: (fn: string, args: { p_key?: string }) => {
-      if (fn !== "feature_enabled_for") return Promise.resolve({ data: null, error: null });
+    rpc: (fn: string, args: { p_key?: string; p_keys?: string[] }) => {
+      if (fn !== "feature_enabled_for" && fn !== "feature_switches_for_me") return Promise.resolve({ data: null, error: null });
       if (switches.mode === "error") return Promise.resolve({ data: null, error: { message: "boom", code: "XX000" } });
+      if (fn === "feature_switches_for_me") {
+        return new Promise((ok) => switches.pending.set("(batch)", { resolve: ok, keys: args.p_keys ?? [] }));
+      }
       return new Promise((ok) => switches.pending.set(String(args.p_key), { resolve: ok }));
     },
     from: vi.fn(),
@@ -108,7 +113,9 @@ const renderLanding = () =>
 
 const answer = async (key: string, on: boolean) => {
   await act(async () => {
-    switches.pending.get(key)?.resolve({ data: on, error: null });
+    const batched = switches.pending.get("(batch)");
+    if (batched) batched.resolve({ data: { [key]: on }, error: null });
+    else switches.pending.get(key)?.resolve({ data: on, error: null });
     // React Query publishes the result on a later tick: let it land, so a
     // "not yet" assertion right after this is about the page, not the queue.
     await vi.advanceTimersByTimeAsync(50);
@@ -140,7 +147,9 @@ describe("the Profile landing waits for its switches (Q1894)", () => {
     // Every read starts with the page, not with the landing.
     // 2026-10-19: Declutter, Shops and Homes left the landing for the dock (design-small) and
     // Quotes moved into Post a Job, so Membership is the one switch-gated row left.
-    expect([...switches.pending.keys()].sort()).toEqual(["memberships"]);
+    // ONE batched read for every switch (nightly-red #2601), and it covers memberships.
+    expect([...switches.pending.keys()]).toEqual(["(batch)"]);
+    expect(switches.pending.get("(batch)")?.keys).toContain("memberships");
     await act(async () => { await vi.advanceTimersByTimeAsync(200); });
     expect(screen.queryByTestId("landing"), "painted before 'memberships' answered").toBeNull();
     await answer("memberships", false);

@@ -11544,6 +11544,7 @@ export type Database = {
         Args: { p_key: string; p_user_id: string }
         Returns: boolean
       }
+      feature_switches_for_me: { Args: { p_keys: string[] }; Returns: Json }
       features_open_to_everyone: { Args: never; Returns: string[] }
       flag_possible_ban_evasion_by_identity: {
         Args: { p_nodoc_sha256: string; p_user_id: string }

@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-19T08:28:53.516Z",
-  "guards": 2053,
-  "registered": 2053,
+  "generated": "2026-10-19T10:21:43.012Z",
+  "guards": 2061,
+  "registered": 2061,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -119,26 +119,6 @@
       ]
     },
     {
-      "module": "src/components/dashboard/BrowseTasksFeed.tsx",
-      "tests": [
-        "src/test/browseFeedRendersEveryJob.test.tsx",
-        "src/test/failedListLoadShowsError.test.tsx",
-        "src/test/savedOnlyFailedReadIsAnError.test.tsx"
-      ],
-      "parents": [
-        "src/pages/home/Dashboard.tsx"
-      ]
-    },
-    {
-      "module": "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
-      "tests": [
-        "src/test/recentSearchesFloatOverPage.test.tsx"
-      ],
-      "parents": [
-        "src/pages/home/Dashboard.tsx"
-      ]
-    },
-    {
       "module": "src/components/ErrorBoundary.tsx",
       "tests": [
         "src/test/errorBoundariesQuietDuringChunkRecovery.test.tsx",
@@ -177,19 +157,6 @@
       ]
     },
     {
-      "module": "src/components/job-card/JobListPage.tsx",
-      "tests": [
-        "src/test/activityLinkedJobNotOnList.test.tsx",
-        "src/test/desktopScreenNameIsSrOnly.test.tsx",
-        "src/components/job-card/JobListPage.pendingBankPayment.test.tsx",
-        "src/components/job-card/JobListPage.visitPaymentCard.test.tsx"
-      ],
-      "parents": [
-        "src/pages/posts/PostsPage.tsx",
-        "src/pages/jobs/JobsPage.tsx"
-      ]
-    },
-    {
       "module": "src/components/landing/HeroSection.tsx",
       "tests": [
         "src/test/twoFontTypeSystem.test.tsx"
@@ -225,15 +192,6 @@
       ],
       "parents": [
         "src/pages/messages/Messages.tsx"
-      ]
-    },
-    {
-      "module": "src/components/mobileNav/DockPill.tsx",
-      "tests": [
-        "src/components/mobileNav/DockPill.test.tsx"
-      ],
-      "parents": [
-        "src/components/MobileNav.tsx"
       ]
     },
     {
@@ -290,15 +248,6 @@
       ],
       "parents": [
         "src/App.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/home/QuickApplyHandler.tsx",
-      "tests": [
-        "src/pages/home/QuickApplyHandler.test.tsx"
-      ],
-      "parents": [
-        "src/pages/home/Dashboard.tsx"
       ]
     },
     {

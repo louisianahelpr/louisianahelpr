@@ -285,6 +285,17 @@ export const SHOPS_RPC_ERROR_COPY = {
     shop_strikes_blocked: SC.shop_strikes_blocked,
     under_18: SC.under_18,
   },
+  // 20261019015018: what an early ready tap does to free cancel (the shop's choice).
+  shops_set_ready_tap_cancel: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_ready_tap_cancel: SC.invalid_ready_tap_cancel,
+    not_authenticated: SC.not_authenticated,
+    payout_setup_incomplete: SC.payout_setup_incomplete,
+    shop_not_found: SC.shop_not_found,
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    under_18: SC.under_18,
+  },
   // M2 (20261018211820): the handover and the shop's handover choice.
   shops_set_handover_mode: {
     account_restricted: SC.account_restricted,

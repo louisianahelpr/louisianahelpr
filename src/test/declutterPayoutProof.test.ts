@@ -77,7 +77,8 @@ describe("declutter payout proof: writes only what this run created", () => {
     expect(profileRefusal(null, state, "seller")).not.toBeNull();
   });
   it("touches only the Stripe test account this run made", () => {
-    const acct = { id: "acct_run", livemode: false, metadata: { lh_proof: PROOF_TAG, lh_proof_run: runId } };
+    // As Stripe returns it: an Account object has no `livemode` field (run 39340554353).
+    const acct = { id: "acct_run", metadata: { lh_proof: PROOF_TAG, lh_proof_run: runId } };
     expect(accountRefusal(acct, state)).toBeNull();
     expect(accountRefusal({ ...acct, id: "acct_1UQigP3qNyg1xGcp" }, state)).not.toBeNull();
     expect(accountRefusal({ ...acct, livemode: true }, state)).not.toBeNull();
@@ -189,7 +190,7 @@ function fakeClient(gets: Record<string, unknown[]>, { stripeFails = false } = {
     },
     stripe: async (_m: string, path: string) => {
       if (stripeFails) throw new Error("Stripe unreachable");
-      if (path.startsWith("/v1/accounts/")) return { id: "acct_run", livemode: false, metadata: { lh_proof: PROOF_TAG, lh_proof_run: runId } };
+      if (path.startsWith("/v1/accounts/")) return { id: "acct_run", metadata: { lh_proof: PROOF_TAG, lh_proof_run: runId } };
       return { data: [] };
     },
   };

@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 813,
-    "files": 199,
-    "rendering": 714,
-    "suppressedByPolicy": 99,
+    "calls": 815,
+    "files": 200,
+    "rendering": 715,
+    "suppressedByPolicy": 100,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 46,
-      "toast.error": 602,
+      "toast.error": 603,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 103,
+      "toast.success": 104,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 393,
+      "literal": 394,
       "template": 93,
-      "dynamic": 373,
+      "dynamic": 374,
       "jsx": 0
     }
   },
@@ -6539,7 +6539,7 @@
     },
     {
       "file": "src/components/shops/ShopCancelPolicyPicker.tsx",
-      "line": 20,
+      "line": 21,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6549,7 +6549,7 @@
     },
     {
       "file": "src/components/shops/ShopCancelPolicyPicker.tsx",
-      "line": 23,
+      "line": 24,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6970,6 +6970,26 @@
     {
       "file": "src/components/shops/ShopPickupAddressSection.tsx",
       "line": 52,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopReadyTapCancelPicker.tsx",
+      "line": 21,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved. New orders use it."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopReadyTapCancelPicker.tsx",
+      "line": 24,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -150,7 +150,21 @@ export interface ActiveWorkResult {
    * held on one). Its own copy, because what unblocks it is ending the series
    * (or leaving it), not finishing a job (owner decision Q407 (7)).
    */
-  reason?: "job" | "series" | "declutter" | "shops";
+  reason?: "job" | "series" | "declutter" | "shops" | "fee_debt";
+  /** reason "fee_debt": the card fees still owed, in cents (0 when only an unpriced ruling is pending). */
+  owedCents?: number;
+}
+
+/**
+ * What the member is told when a fee they owe blocks deleting their account
+ * (owner rule: a fee is never absorbed). The debt is taken from their next
+ * payout; deleting the account first would drop it.
+ */
+export function feeDebtBlocksDeletionMessage(owedCents: number): string {
+  const owed = owedCents > 0
+    ? `You still owe $${(owedCents / 100).toFixed(2)} in card fees from a refunded job or sale.`
+    : "A card fee from a refunded job is still being worked out for your account.";
+  return `${owed} It comes out of your next payout. Your account can't be deleted until it's settled: contact support and we'll help you settle it.`;
 }
 
 /** What the person is told when a running series blocks deleting their account. */
@@ -322,6 +336,14 @@ export async function findActiveWork(
   const shopOrder = await findShopOrderInFlight(admin, userId);
   if (!shopOrder.ok || shopOrder.active) return shopOrder;
 
+  // 1e. A fee this member still owes (owner rule: never absorb a fee). A
+  //     Helpr-at-fault card fee (job_helpr_fault_rulings, helper_id SET NULL
+  //     with the account) or a Declutter / Shops seller's card-fee debt
+  //     (declutter_seller_fee_debts, CASCADE with the account) is taken from
+  //     the next payout; deleting the account first would erase it.
+  const feeDebt = await findOwedFees(admin, userId);
+  if (!feeDebt.ok || feeDebt.active) return feeDebt;
+
   // 2. Group-job rosters. Read the memberships, then test THOSE jobs.
   // 201, not 200: a page that comes back FULL is indistinguishable from a page
   // that was truncated, and silently truncating this read would hand back
@@ -374,6 +396,60 @@ export async function findActiveWork(
   }
 
   return { ok: true, active: false };
+}
+
+/** An absent table (migration not live yet) owes nothing; any other read error fails closed. */
+function isMissingTable(e: { code?: string | null; message?: string | null }): boolean {
+  return /does not exist|42P01|PGRST205/i.test(`${e.code ?? ""} ${e.message ?? ""}`);
+}
+
+/**
+ * Card fees the member still owes: a Helpr-at-fault ruling with
+ * card_fee_remaining_cents > 0, or one not yet priced (card_fee_cents NULL:
+ * the refund that bills it has not settled, and a gone Helpr would settle 0),
+ * plus every Declutter / Shops seller fee debt with remaining_cents > 0.
+ * The rows are re-checked here too, so a read that ignored a filter can only
+ * over-block, never let a debt through.
+ */
+async function findOwedFees(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {
+  const FEE_ROW_CAP = 200;
+  const rulings: PostgrestLike<{ job_id: string; card_fee_cents: number | null; card_fee_remaining_cents: number | null }[]> = await admin
+    .from("job_helpr_fault_rulings")
+    .select("job_id, card_fee_cents, card_fee_remaining_cents")
+    .eq("helper_id", userId)
+    .or("card_fee_cents.is.null,card_fee_remaining_cents.gt.0")
+    .limit(FEE_ROW_CAP + 1);
+  if (rulings.error && !isMissingTable(rulings.error)) {
+    console.error(`[accountPurge] Helpr-fault fee check failed for ${userId}:`, rulings.error.message);
+    return { ok: false, active: false, detail: rulings.error.message };
+  }
+  const declutter: PostgrestLike<{ id: string; remaining_cents: number }[]> = await admin
+    .from("declutter_seller_fee_debts")
+    .select("id, remaining_cents")
+    .eq("seller_id", userId)
+    // remaining_cents is CHECK >= 0 (declutter_fee_debt_remaining), so <> 0 is "still owed".
+    .neq("remaining_cents", 0)
+    .limit(FEE_ROW_CAP + 1);
+  if (declutter.error && !isMissingTable(declutter.error)) {
+    console.error(`[accountPurge] Declutter fee-debt check failed for ${userId}:`, declutter.error.message);
+    return { ok: false, active: false, detail: declutter.error.message };
+  }
+  const rulingRows = rulings.error ? [] : rulings.data ?? [];
+  const debtRows = declutter.error ? [] : declutter.data ?? [];
+  // A full page cannot prove the sum: the account is blocked either way, but
+  // the amount told to the member would be short.
+  if (rulingRows.length > FEE_ROW_CAP || debtRows.length > FEE_ROW_CAP) {
+    return { ok: false, active: false, detail: `fee debt read exceeded ${FEE_ROW_CAP} rows` };
+  }
+  const owedRulings = rulingRows.filter((r) => r.card_fee_cents === null || (r.card_fee_remaining_cents ?? 0) > 0);
+  const owedDebts = debtRows.filter((d) => (d.remaining_cents ?? 0) > 0);
+  if (owedRulings.length === 0 && owedDebts.length === 0) return { ok: true, active: false };
+  const owedCents = owedRulings.reduce((n, r) => n + Math.max(0, r.card_fee_remaining_cents ?? 0), 0)
+    + owedDebts.reduce((n, d) => n + d.remaining_cents, 0);
+  const detail = owedRulings.length > 0
+    ? `helpr fault fee on job ${owedRulings[0].job_id}`
+    : `declutter fee debt ${owedDebts[0].id}`;
+  return { ok: true, active: true, reason: "fee_debt", owedCents, detail };
 }
 
 /** The order statuses shop_orders_open_has_parties keeps a buyer, seller and shop on (20261018164442). */

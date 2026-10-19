@@ -70,6 +70,9 @@ export const DB_ID_COLUMNS = {
     { table: "declutter_payouts", column: "stripe_transfer_id" },
     { table: "helpr_task_payouts", column: "stripe_transfer_id" },
     { table: "shop_payouts", column: "stripe_transfer_id" },
+    // An admin's hand settlement of a held payout or refund (20261019070737, CHECK '^(tr|re|pyr|po)_'):
+    // listed under each kind it can hold; collectDbIds skips the other kinds quietly.
+    { table: "payout_settlements", column: "stripe_ref" },
   ],
   refund: [
     { table: "payment_refunds", column: "stripe_refund_id" },
@@ -77,6 +80,7 @@ export const DB_ID_COLUMNS = {
     { table: "declutter_refunds", column: "stripe_refund_ref" },
     { table: "declutter_hand_refunds", column: "stripe_refund_id", orderBy: "stripe_refund_id" },
     { table: "declutter_delivery_refunds", column: "stripe_refund_ref" },
+    { table: "payout_settlements", column: "stripe_ref" },
   ],
 };
 

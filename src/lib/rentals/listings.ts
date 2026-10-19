@@ -7,7 +7,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { unwrap } from "@/lib/supabaseResult";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { removeShopObjects } from "@/lib/shops/storageCleanup";
@@ -184,6 +184,36 @@ export async function removeListingPhoto(photoId: string): Promise<void> {
   const { data, error } = await supabase.rpc("rentals_remove_listing_photo", { p_photo_id: photoId });
   if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_remove_listing_photo", error), error);
   if (data) await removeObject(data);
+}
+
+/** Admin -> Settings, Homes listings (Q2187): live/paused listings to take down, and properties under a take-down. */
+export interface AdminListings {
+  open: { id: string; kind: "rent" | "sale"; status: string; headline: string; slug: string; published_at: string | null; property_label: string; city: string; zip_code: string }[];
+  taken_down: { property_id: string; property_label: string; city: string; zip_code: string; reason: string | null; taken_down_at: string }[];
+}
+
+export async function fetchAdminListings(): Promise<AdminListings> {
+  const data = unwrap(await supabase.rpc("rentals_admin_listings")) as unknown as AdminListings | null;
+  return { open: data?.open ?? [], taken_down: data?.taken_down ?? [] };
+}
+
+/**
+ * Takes down a live or paused listing's whole property (every open listing on it), with a reason the owner
+ * sees. Admin-only: its copy lives in ADMIN_RPC_ERROR_COPY and is fetched only on a refusal.
+ */
+export async function adminRemoveListing(listingId: string, reason: string): Promise<void> {
+  const { error } = await supabase.rpc("rentals_admin_remove_listing", { p_listing_id: listingId, p_reason: reason });
+  if (!error) return;
+  const admin = await loadAdminRpcErrorCopy();
+  throw new RentalsCopyError(admin?.rpcErrorMessage("rentals_admin_remove_listing", error) ?? null, error);
+}
+
+/** Lifts a mistaken take-down: the listings go back to draft or paused for the owner to publish again. Admin-only copy, as above. */
+export async function adminLiftTakedown(propertyId: string, note: string): Promise<void> {
+  const { error } = await supabase.rpc("rentals_admin_lift_takedown", { p_property_id: propertyId, p_note: note });
+  if (!error) return;
+  const admin = await loadAdminRpcErrorCopy();
+  throw new RentalsCopyError(admin?.rpcErrorMessage("rentals_admin_lift_takedown", error) ?? null, error);
 }
 
 /** The caller's own listing (owner-only RLS); null when it is not theirs or not there. */

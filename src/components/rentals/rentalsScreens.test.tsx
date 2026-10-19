@@ -4,6 +4,7 @@
  * what each STATE renders; the backend proof is
  * src/test/pglite/rentalsMaintenance.pglite.mjs.
  *
+ * @mutate src/components/rentals/RentalsHomeView.tsx |             <MovedOut items={data.data.endedDeposits.filter((d) => d.side === "landlord")} /> |             <MovedOut items={[]} />
  * @mutate src/components/rentals/RentalsHomeView.tsx | t.unit_id === u.id && t.status === "active").map | t.unit_id === u.id).map
  * @mutate src/components/rentals/rentalsUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/components/rentals/MaintenanceRequestForm.tsx |   const showEmergencySteps = urgency === "emergency" && !emergencyAcknowledged; |   const showEmergencySteps = false;
@@ -67,6 +68,7 @@ const state = {
   properties: [] as unknown[],
   units: [] as unknown[],
   live: [] as unknown[],
+  ended: [] as unknown[],
   request: null as unknown,
   job: { jobId: null as string | null, booking: "none", jobStatus: null as string | null },
   identity: { verified: true, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null } as {
@@ -107,6 +109,8 @@ vi.mock("@/components/sections/SectionScreen", () => ({
 vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }));
 // The rent record has its own screen tests (RentPanel.test.tsx); here it is a marker per tenancy.
 vi.mock("./RentPanel", () => ({ RentPanel: ({ tenancyId }: { tenancyId: string }) => <p data-testid="rent-panel">rent {tenancyId}</p> }));
+vi.mock("./DepositPanel", () => ({ DepositPanel: ({ tenancyId }: { tenancyId: string }) => <p data-testid="deposit-panel">deposit {tenancyId}</p> }));
+vi.mock("@/lib/rentals/rent", () => ({ fetchMyEndedDeposits: async () => state.ended }));
 vi.mock("@/lib/rentals/api", () => ({
   fetchMyProperties: async () => state.properties,
   fetchUnits: async () => state.units,
@@ -200,6 +204,7 @@ beforeEach(() => {
   state.properties = [];
   state.units = [];
   state.live = [];
+  state.ended = [];
   state.request = null;
   state.job = { jobId: null, booking: "none", jobStatus: null };
   state.identity = { verified: true, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
@@ -686,6 +691,24 @@ describe("Rentals screens", () => {
       renderAt("/rentals");
       await screen.findByText(/Tenant connected/);
       expect(screen.getAllByTestId("rent-panel").map((e) => e.textContent).sort()).toEqual(["rent t1", "rent ta"]);
+    });
+
+    it("D6: the deposit shows beside the rent record, and a moved-out tenancy's deposit stays on the right side until settled", async () => {
+      state.tenancies = [TENANCY];
+      state.properties = [{ id: "p1", owner_id: "u1", label: "Oak", street_address: "1 Oak", city: "Lafayette", zip_code: "70501", ownership_status: "approved", auto_approve_limit_cents: null }];
+      state.units = [{ id: "u9", property_id: "p1", label: "A" }];
+      state.live = [{ id: "ta", unit_id: "u9", status: "active", accepted_at: "2026-10-16T12:00:00Z", invite_expires_at: "2026-10-30T12:00:00Z", created_at: "2026-10-16T11:00:00Z" }];
+      state.ended = [
+        { tenancy_id: "old-l", side: "landlord", label: "Elm", unit_label: "B", settled: false },
+        { tenancy_id: "old-t", side: "tenant", label: "Pine", unit_label: "", settled: true },
+      ];
+      renderAt("/rentals");
+      await screen.findByText(/Tenant connected/);
+      expect(screen.getAllByTestId("deposit-panel").map((e) => e.textContent).sort()).toEqual(["deposit old-l", "deposit old-t", "deposit t1", "deposit ta"]);
+      const rent = screen.getByRole("region", { name: "Homes you rent" });
+      const own = screen.getByRole("region", { name: "Properties you own" });
+      expect(within(rent).getByText(/Pine/).closest("[data-testid=moved-out-deposit]")).toBeTruthy();
+      expect(within(own).getByText(/Elm, B/).closest("[data-testid=moved-out-deposit]")).toBeTruthy();
     });
 
     it("closing the confirm ends nothing", async () => {

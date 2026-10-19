@@ -2,7 +2,8 @@
 /**
  * PGlite proof for 20261019043000_rentals_listings (Homes -> Rent listings,
  * RL1a; spec ~/.lh-wt/handoffs-1017/rentals-full-spec.md 1a, 6a) and the
- * export restatement 20261019043100_export_my_data_rental_listings.
+ * export restatement 20261019043100_export_my_data_rental_listings, and the identity-rule
+ * restatement 20261019061019 (IDENTITY_MIGRATION=skip: RED, a Connect-verified landlord is refused).
  *
  *   node src/test/pglite/rentalsListings.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/rentalsListings.pglite.mjs   # RED: the listings checks fail
@@ -317,6 +318,40 @@ for (const sig of ["public.rentals_save_listing(uuid,uuid,jsonb)", "public.renta
 for (const sig of ["public.rentals_listing_wording_flags(text)", "public.rentals_lock_own_listing(uuid,uuid)", "public.rentals_listing_visible(uuid)"]) {
   const a = await acl(sig);
   ok(/service_role=X/.test(a) && !/(^|[{,])(anon|authenticated)?=X/.test(a), `${sig}: server-only (${a})`);
+}
+
+// --- one identity rule (20261019061019): the listing gates call public.is_identity_verified, so the
+// Stripe Connect verdict alone is enough and neither verdict is refused. Helpers read by name from their
+// newest definitions (identity_is_verified <= 20260923123701, is_identity_verified 20261019051407).
+const IDENTITY_FILE = "20261019061019_rentals_listing_identity_helper.sql";
+const IDENTITY = readFileSync(`${MIG_DIR}${IDENTITY_FILE}`, "utf8");
+function definitionIn(file, name) {
+  const sql = readFileSync(`${MIG_DIR}${file}`, "utf8");
+  const m = new RegExp(String.raw`CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.${name}\s*\(`, "i").exec(sql);
+  const t = /\bAS\s+(\$\w*\$)/g;
+  t.lastIndex = m.index;
+  const a = t.exec(sql);
+  return `${sql.slice(m.index, sql.indexOf(a[1], a.index + a[0].length) + a[1].length)};`;
+}
+await svc(`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS stripe_identity_verified boolean`);
+await db.exec(newestDefinition("identity_is_verified").stmt);
+await db.exec(definitionIn("20261019051407_rentals_landlord_id_review.sql", "is_identity_verified"));
+if (process.env.IDENTITY_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(IDENTITY);
+const unitZ = one(await as("authenticated", LANDLORD, `SELECT public.rentals_add_unit('${prop}', 'Unit Z') AS id`));
+const draftZ = one(await save(LANDLORD, null, unitZ, { description: "Two bedrooms near the park." }));
+ok(typeof draftZ === "string", "identity setup: a fresh draft on a new unit");
+await svc(`UPDATE public.profiles SET idv_status = NULL, stripe_identity_verified = true WHERE user_id = '${LANDLORD}'`);
+const connectOnly = await save(LANDLORD, null, null, {});
+ok(!refused(connectOnly, /identity_not_verified/), `listing: the Stripe Connect verdict alone passes the identity gate (${JSON.stringify(connectOnly).slice(0, 80)})`);
+const connectStatus = await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${draftZ}', 'live')`);
+ok(refused(connectStatus, /too_few_photos/), `listing status: the Stripe Connect verdict alone passes the identity gate (stops later, at photos: ${JSON.stringify(connectStatus).slice(0, 60)})`);
+await svc(`UPDATE public.profiles SET stripe_identity_verified = false WHERE user_id = '${LANDLORD}'`);
+ok(refused(await save(LANDLORD, null, null, {}), /identity_not_verified/, "42501"), "listing: neither verdict is still refused");
+await svc(`UPDATE public.profiles SET idv_status = 'verified', stripe_identity_verified = NULL WHERE user_id = '${LANDLORD}'`);
+ok(!refused(await save(LANDLORD, null, null, {}), /identity_not_verified/), "listing: Stripe Identity alone still passes");
+for (const sig of ["public.rentals_save_listing(uuid,uuid,jsonb)", "public.rentals_set_listing_status(uuid,text)"]) {
+  const a = one(await svc(`SELECT coalesce(proacl::text, '') FROM pg_proc WHERE oid = '${sig}'::regprocedure`)) ?? "";
+  ok(/authenticated=X/.test(a) && !/(^|[{,])(anon)?=X/.test(a), `${sig} after ${IDENTITY_FILE}: authenticated yes, anon/PUBLIC no (${a})`);
 }
 
 // --- export

@@ -4237,7 +4237,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 235,
+      "line": 263,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4257,7 +4257,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 238,
+      "line": 266,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4267,7 +4267,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 243,
+      "line": 271,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4277,7 +4277,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 248,
+      "line": 276,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4287,7 +4287,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 251,
+      "line": 279,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8172,7 +8172,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 116,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8182,7 +8182,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 126,
+      "line": 120,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8192,7 +8192,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 129,
+      "line": 123,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8202,7 +8202,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 156,
+      "line": 150,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8212,7 +8212,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 168,
+      "line": 162,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8229,7 +8229,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 169,
+      "line": 163,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8239,7 +8239,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 177,
+      "line": 171,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8249,7 +8249,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 190,
+      "line": 184,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8259,7 +8259,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 210,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8269,7 +8269,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 219,
+      "line": 213,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -8279,7 +8279,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 231,
+      "line": 225,
       "kind": "toast.error",
       "title": {
         "form": "literal",

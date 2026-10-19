@@ -11,7 +11,7 @@
  *
  * @mutate supabase/functions/create-payment/index.ts | const alreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund", "admin_refund"); | const alreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund");
  * @mutate supabase/functions/create-payment/index.ts | const partialAlreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund", "admin_refund"); | const partialAlreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund");
- * @mutate src/components/admin/adminJobs/RefundJobDialog.tsx | disabled={refunding \|\| needsAmount} | disabled={refunding}
+ * @mutate src/components/admin/adminJobs/RefundJobDialog.tsx | disabled={refunding \|\| needsAmount \|\| faultIncomplete} | disabled={refunding \|\| faultIncomplete}
  * @mutate src/components/admin/adminJobs/RefundJobDialog.tsx | const paidOut = payoutMoved ?? detailJob?.payment_status === "released"; | const paidOut = detailJob?.payment_status === "released";
  * @mutate src/components/admin/AdminJobs.tsx | .eq("job_id", refundJobId).in("status", ["pending", "paid"]).limit(1), | .eq("job_id", refundJobId).limit(1),
  *

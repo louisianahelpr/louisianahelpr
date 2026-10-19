@@ -49,6 +49,12 @@ export function formatPayoutCents(cents: number): string {
  * $41.87 owed → 4100 cents transferred; the 87 cents stay in the platform
  * balance.
  *
+ * One exception (owner, 2026-10-19, Q2165): a Helpr-at-fault card-fee debt
+ * comes off AFTER this rounding, in exact cents
+ * (`roundPayoutDownCents(x) - helprFaultFeeCents`), so such a transfer may
+ * carry cents. Never show a ledger or transfer amount through the payout
+ * floor formatter (`formatPayoutDollars`): it would floor those cents away.
+ *
  * This is the ONE place that rule lives. Every `stripe.transfers.create` that
  * pays a Helpr for a job (release-payout, process-scheduled-payouts, the
  * dispute split, the admin Quick Release, cancellation-fee payouts) sets its
@@ -124,11 +130,16 @@ export function payoutWithheldMetadata(
   unroundedPayoutCents: number,
   onboardingFeeCents: number,
   paidCents: number,
-): { onboarding_fee_cents: number; rounding_remainder_cents: number } {
+  helprFaultFeeCents = 0,
+): { onboarding_fee_cents: number; rounding_remainder_cents: number; helpr_fault_fee_cents?: number } {
   const onboarding = Math.max(0, Math.round(onboardingFeeCents));
+  // Q2082 (b): the Helpr-fault card fee taken from this payout is its own
+  // line, never counted as rounding (written only when one was taken).
+  const fault = Math.max(0, Math.round(helprFaultFeeCents));
   return {
     onboarding_fee_cents: onboarding,
-    rounding_remainder_cents: Math.max(0, Math.round(unroundedPayoutCents) - onboarding - Math.round(paidCents)),
+    rounding_remainder_cents: Math.max(0, Math.round(unroundedPayoutCents) - onboarding - fault - Math.round(paidCents)),
+    ...(fault > 0 ? { helpr_fault_fee_cents: fault } : {}),
   };
 }
 

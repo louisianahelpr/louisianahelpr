@@ -4022,6 +4022,70 @@ export type Database = {
           },
         ]
       }
+      job_helpr_fault_rulings: {
+        Row: {
+          admin_id: string | null
+          card_fee_cents: number | null
+          card_fee_remaining_cents: number | null
+          created_at: string
+          helper_id: string | null
+          id: string
+          is_seed: boolean
+          job_id: string
+          kind: string
+          note: string
+          refund_ref: string | null
+        }
+        Insert: {
+          admin_id?: string | null
+          card_fee_cents?: number | null
+          card_fee_remaining_cents?: number | null
+          created_at?: string
+          helper_id?: string | null
+          id?: string
+          is_seed?: boolean
+          job_id: string
+          kind: string
+          note: string
+          refund_ref?: string | null
+        }
+        Update: {
+          admin_id?: string | null
+          card_fee_cents?: number | null
+          card_fee_remaining_cents?: number | null
+          created_at?: string
+          helper_id?: string | null
+          id?: string
+          is_seed?: boolean
+          job_id?: string
+          kind?: string
+          note?: string
+          refund_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_helpr_fault_rulings_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_helpr_fault_rulings_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_helpr_fault_rulings_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_match_queue: {
         Row: {
           attempts: number
@@ -10063,6 +10127,15 @@ export type Database = {
         Args: { p_approve: boolean; p_id: string; p_note?: string }
         Returns: number
       }
+      admin_rule_helpr_fault: {
+        Args: {
+          p_helper_id: string
+          p_job_id: string
+          p_kind: string
+          p_note: string
+        }
+        Returns: Json
+      }
       admin_send_team_message: {
         Args: { p_client_id?: string; p_content: string; p_user_id: string }
         Returns: {
@@ -10242,6 +10315,14 @@ export type Database = {
           p_work_started: boolean
         }
         Returns: string
+      }
+      bill_helpr_fault_card_fee: {
+        Args: {
+          p_card_fee_cents: number
+          p_job_id: string
+          p_refund_ref: string
+        }
+        Returns: number
       }
       block_user_and_settle: {
         Args: { p_blocked: string; p_reason?: string }

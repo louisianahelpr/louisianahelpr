@@ -24,7 +24,7 @@
  */
 import { apiBase } from "./lib/apiBase.mjs";
 import { writeFileSync } from "node:fs";
-import { DB_ID_COLUMNS, STRIPE_LISTS, gradeKind, isStripeList, keyForMode, parseSince } from "./lib/stripeRestoreReconcile.mjs";
+import { DB_ID_COLUMNS, STRIPE_LISTS, collectDbIds, gradeKind, isStripeList, keyForMode, parseSince } from "./lib/stripeRestoreReconcile.mjs";
 import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
 
 // Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
@@ -98,19 +98,22 @@ for (const [kind, path] of Object.entries(STRIPE_LISTS)) {
 const H = { apikey: DB_KEY, Authorization: `Bearer ${DB_KEY}` };
 const dbIds = {};
 const dbCounts = {};
+const dbRejected = [];
 for (const [kind, cols] of Object.entries(DB_ID_COLUMNS)) {
-  const ids = new Set();
-  for (const { table, column } of cols) {
+  const values = {};
+  for (const { table, column, orderBy } of cols) {
     let n = 0;
+    const got = (values[`${table}.${column}`] = []);
     for (let offset = 0; ; offset += 1000) {
       let page;
       try {
-        page = await getJson(`${DB_BASE}/rest/v1/${table}?select=${column}&${column}=not.is.null&order=id.asc&limit=1000&offset=${offset}`, H);
+        // orderBy: a table with no id column (declutter_hand_refunds) pages by its own key.
+        page = await getJson(`${DB_BASE}/rest/v1/${table}?select=${column}&${column}=not.is.null&order=${orderBy ?? "id"}.asc&limit=1000&offset=${offset}`, H);
       } catch (e) {
         unmeasured(`database ${table}.${column}: ${e.message}`);
       }
       if (!Array.isArray(page)) unmeasured(`database ${table}.${column} did not return rows`);
-      for (const r of page) if (r[column]) ids.add(r[column]);
+      for (const r of page) got.push(r[column]);
       n += page.length;
       // Stop on an EMPTY page, not a short one: a short page only means the
       // end while db-max-rows is exactly 1000.
@@ -118,7 +121,13 @@ for (const [kind, cols] of Object.entries(DB_ID_COLUMNS)) {
     }
     dbCounts[`${table}.${column}`] = n;
   }
+  const { ids, rejected } = collectDbIds(kind, values);
   dbIds[kind] = ids;
+  dbRejected.push(...rejected);
+}
+if (dbRejected.length > 0) {
+  console.log(`Not Stripe ids, left out of the match (${dbRejected.length}):`);
+  for (const r of dbRejected.slice(0, 50)) console.log(`  ${r}`);
 }
 if (Object.values(dbCounts).every((n) => n === 0)) {
   unmeasured(`read ${Object.keys(dbCounts).length} Stripe-id columns and every one was empty — refusing to report clean (the restored database should hold paid jobs)`);

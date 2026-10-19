@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 831,
-    "files": 205,
-    "rendering": 727,
-    "suppressedByPolicy": 104,
+    "calls": 833,
+    "files": 206,
+    "rendering": 728,
+    "suppressedByPolicy": 105,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 46,
-      "toast.error": 613,
+      "toast.error": 614,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 108,
+      "toast.success": 109,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
       "literal": 399,
       "template": 95,
-      "dynamic": 383,
+      "dynamic": 385,
       "jsx": 0
     }
   },
@@ -2405,7 +2405,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 155,
+      "line": 156,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2415,7 +2415,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 189,
+      "line": 190,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2425,7 +2425,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 264,
+      "line": 265,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3276,6 +3276,36 @@
         "text": "Couldn't load applicant counts — refresh to retry."
       },
       "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
+      "line": 77,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "(draft.action === \"release\" ? rpcErrorMessage(\"admin_payout_release\", err) : rpcErrorMessage(\"admin_payout_settle_by_hand\", err)) ?? \"That didn't go through. Try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
+      "line": 83,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "draft.action === \"release\" ? \"Released to the automatic queue.\" : \"Marked settled by hand.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Released to the automatic queue."
+          },
+          {
+            "form": "literal",
+            "text": "Marked settled by hand."
+          }
+        ]
+      },
+      "renders": false
     },
     {
       "file": "src/components/admin/adminPayoutBatches/usePayoutHolds.ts",

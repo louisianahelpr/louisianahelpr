@@ -200,6 +200,26 @@ export const ADMIN_RPC_ERROR_COPY = {
     reason_required: "Add a reason. The landlord will see it.",
     review_changed: "The landlord sent a new photo since you opened this. Refresh and look again.",
   },
+  // Held-for-review payouts and refunds (admin money page, 20261019070737).
+  admin_payouts_held_for_review: {
+    admin_only: "Only admins can see payouts held for review.",
+  },
+  admin_payout_release: {
+    admin_only: "Only admins can release a held payout.",
+    invalid_kind: "That isn't a payout or refund this page knows. Refresh and try again.",
+    invalid_note: "Add a short note saying why it can go back to automatic.",
+    not_held_for_review: "This row isn't held for review any more. Another admin may have handled it. Refresh the list.",
+    confirm_no_transfer_required: "Tick the box once you have checked Stripe and found no transfer or refund for this row made outside the app.",
+  },
+  admin_payout_settle_by_hand: {
+    admin_only: "Only admins can mark a payout settled by hand.",
+    invalid_kind: "That isn't a payout or refund this page knows. Refresh and try again.",
+    invalid_note: "Add a short note saying how it was settled.",
+    invalid_amount: "Enter the amount it was settled for.",
+    invalid_stripe_ref: "Give the Stripe id it was settled with (tr_... or po_... for a payout, re_... for a refund), or \"other: how it was paid\".",
+    not_held_for_review: "This row isn't held for review any more. Another admin may have handled it. Refresh the list.",
+    ref_already_used: "That Stripe id is already recorded on another payout or refund. Check you have the right one.",
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type AdminMappedRpc = keyof typeof ADMIN_RPC_ERROR_COPY;

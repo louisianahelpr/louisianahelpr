@@ -10387,6 +10387,15 @@ export type Database = {
         Args: { p_audience: string; p_key: string }
         Returns: string
       }
+      admin_payout_release: {
+        Args: { p_confirm_no_transfer: boolean; p_id: string; p_kind: string; p_note: string }
+        Returns: Json
+      }
+      admin_payout_settle_by_hand: {
+        Args: { p_amount_cents: number; p_id: string; p_kind: string; p_note: string; p_ref: string }
+        Returns: Json
+      }
+      admin_payouts_held_for_review: { Args: never; Returns: Json }
       admin_set_payout_hold: {
         Args: { p_helper_id: string; p_reason: string }
         Returns: {

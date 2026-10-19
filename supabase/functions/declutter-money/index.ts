@@ -74,6 +74,8 @@ import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
+import { isTransientStripeError, peekConnectReadiness, readConnectReadiness, transferReady, type ConnectReadiness, type ReadinessCache } from "../_shared/connectReadiness.ts";
+import { syncConnectGate } from "../_shared/connectGateSync.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { queueEmail } from "../_shared/resend.ts";
@@ -248,9 +250,306 @@ serve(async (req) => {
     payouts_sent: 0, payouts_reconciled: 0, payouts_failed: 0,
     helpr_payouts_sent: 0, helpr_payouts_reconciled: 0, helpr_payouts_failed: 0,
     delivery_refunds_sent: 0, delivery_refunds_reconciled: 0, delivery_refunds_failed: 0,
-    held: 0, ban_review: 0, no_payout_account: 0, mixed_parties: 0,
+    held: 0, ban_review: 0, no_payout_account: 0, payout_account_not_ready: 0, payout_account_unreadable: 0,
+    payee_setup_paged: 0, payee_banned: 0, payout_retry_later: 0, mixed_parties: 0,
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
     shop_handed_over: 0, shop_payouts_sent: 0, shop_payouts_reconciled: 0, shop_payouts_failed: 0,
+  };
+
+  // Payouts a payee cannot receive yet (/code-review of f6551863a, 20261019070737). Every row a
+  // loop below SKIPS is deferred (payout_defer: next_attempt_at moves forward, no try used), so a
+  // skipped row never stays at the front of its 25-row queue and starves the ready ones. Before
+  // ANY Stripe call, a payee with no payout account, or one already found not payable this run,
+  // is deferred (a row that has used a try is reconciled first: a transfer may exist). Otherwise
+  // the readiness read (_shared/connectReadiness.ts transferReady, one read per mode + account per
+  // run) runs only AFTER the reconcile (a sent-but-unrecorded transfer is recorded, never paged or
+  // paid twice) and after wholeCharge (a refunded or disputed order still fails loudly). A passing
+  // Stripe or lookup failure before the transfer is deferred too, never a failed try.
+  const readiness: ReadinessCache = new Map();
+  /** The Stripe transfer group (or refund payment) of each row this run touches, for the page text. */
+  const groupOf = new Map<string, string | null>();
+  /** Rows a transfer / refund may already exist for (a try used or a send started). */
+  const maybeSentRows = new Set<string>();
+  /** Accounts Stripe refused our read of this run, per mode (3+ = our key, not the payees). */
+  const refusedAccounts = new Map<string, Set<string>>();
+  /** Modes whose platform-key probe already ran this run. */
+  const probedModes = new Set<string>();
+  const gateSynced = new Set<string>();
+  type PayoutKind = "declutter" | "helpr_task" | "shop";
+  type SkipKind = PayoutKind | "declutter_refund" | "delivery_refund";
+  let waitRpcMissing = false;
+  /** A 20261019070737 RPC; PGRST202 (edge deployed before the migration) is one defect a run, not one per row. */
+  const waitRpc = async (name: string, args: Record<string, unknown>): Promise<unknown> => {
+    const { data, error } = await admin.rpc(name, args);
+    if (!error) return data;
+    if ((error as { code?: string }).code === "PGRST202") {
+      if (!waitRpcMissing) defects.record(`${name}: not deployed yet (PGRST202); skipped rows are not deferred this run`);
+      waitRpcMissing = true;
+      return null;
+    }
+    defects.record(`${name} failed: ${error.message}`.slice(0, 200));
+    return null;
+  };
+  const deferRow = (kind: SkipKind, rowId: string, minutes: number) =>
+    waitRpc("payout_defer", { p_kind: kind, p_payout_id: rowId, p_minutes: minutes });
+  /** Any end for a payout (paid, settled by hand, gave up): its wait goes, so a later wait starts fresh. */
+  const clearWait = (kind: PayoutKind, payoutId: string) =>
+    waitRpc("payout_payee_wait_cleared", { p_kind: kind, p_payout_id: payoutId });
+  // Waits of payouts that ended any other way (cancelled, nothing due, gave up elsewhere).
+  await waitRpc("payout_payee_waits_prune", {});
+  // Held rows never go quiet: re-raised into the ops ledger daily, the person owed told once.
+  await waitRpc("payout_held_check", {});
+  type WaitCategory = "no_account" | "setup_unfinished" | "under_review" | "rejected" | "unusable"
+    | "payee_deleted" | "mixed_parties" | "banned" | "data_defect" | "transient" | "record_failed" | "unreadable" | "held" | "ban_review"
+    | "suspended" | "needs_reconcile";
+  type WaitKind = PayoutKind | "declutter_refund" | "delivery_refund";
+  /**
+   * Reasons that will not fix themselves: once the page goes out the row is HELD FOR REVIEW
+   * (payout_hold_for_review: out of every queue until an admin releases it or marks it settled).
+   */
+  const STUCK: ReadonlySet<WaitCategory> = new Set(["rejected", "unusable", "payee_deleted", "mixed_parties", "banned", "data_defect", "needs_reconcile"]);
+  const WAIT_WORDS: Record<WaitCategory, string> = {
+    no_account: "the payee has not set up payouts",
+    setup_unfinished: "the payee has not finished Stripe payout setup",
+    under_review: "Stripe is still reviewing the payee's payout account",
+    rejected: "Stripe rejected the payee's payout account",
+    unusable: "the payee's payout account is gone or unusable",
+    payee_deleted: "the payee deleted their Louisiana Helpr account",
+    mixed_parties: "the order mixes a test account and a real one",
+    banned: "the payee is banned",
+    suspended: "the payee's account is suspended for now",
+    needs_reconcile: "a transfer may already exist and could not be checked automatically (check Stripe by hand)",
+    data_defect: "the row cannot be paid as recorded (a data defect)",
+    transient: "Stripe or our test-account lookup kept failing",
+    record_failed: "a transfer Stripe holds could not be recorded",
+    unreadable: "Stripe refuses our read of this payee's payout account",
+    held: "an admin payout hold",
+    ban_review: "a ban review",
+  };
+  /**
+   * EVERY deferred payout is recorded (no defer is unbounded): payout_payee_wait_seen reminds the
+   * payee when they can act, and answers page_due once per payout when the reason's bound is reached
+   * (at once / 24 h / 7 days), again only when it turns into a reason that will not fix itself.
+   */
+  const noteWaiting = async (kind: WaitKind, payoutId: string, payeeId: string | null, amountCents: number,
+    category: WaitCategory, reason: string) => {
+    const group = groupOf.get(payoutId) ?? null;
+    const w = await waitRpc("payout_payee_wait_seen", {
+      p_kind: kind, p_payout_id: payoutId, p_payee: payeeId, p_amount_cents: amountCents, p_category: category, p_reason: reason,
+    }) as { page_due?: boolean; waiting_since?: string; payee_seed?: boolean } | null;
+    if (w?.page_due !== true) return;
+    // Marked only after the post went through (a failed post is tried next run). A warning kind;
+    // a test account's routes as seed (the digest, not the channel).
+    const stuck = STUCK.has(category);
+    const delivered = await postSlackOpsAlert({
+      kind: "payout_wait", severity: "warning", seed: w.payee_seed === true, oncePerDayKey: `payout-wait-${kind}-${payoutId}-${category}`,
+      title: stuck ? "A payout won't pay itself: held for review" : "A payout has been waiting too long",
+      message: `${dollars(amountCents)} (${kind} ${payoutId}${group ? `, Stripe group/payment ${group}` : ""}) is held on the platform because ${WAIT_WORDS[category]}, since ${w.waiting_since ?? "?"}. `
+        + (category === "needs_reconcile"
+          ? "It is now HELD FOR REVIEW. A transfer for THIS row may already exist: search Stripe for it by its payout metadata (payout_id) and its transfer group above, never another payout of the same payee; if you find it, \"Mark settled by hand\" with that tr_ (or re_); if not, \"Release to automatic\" and confirm no transfer was made."
+          : stuck
+          ? "It won't pay itself and is now HELD FOR REVIEW (no automatic retry). On the admin money page: \"Release to automatic\" once the cause is fixed (after confirming in Stripe nothing was sent), or contact the payee, pay by hand after checking Stripe for a transfer to their account, and \"Mark settled by hand\" with the Stripe id (or \"other: how it was paid\")."
+          : "It is retried and pays itself once that clears; look into why it has not.")
+        + ` ${reason.slice(0, 160)}`,
+      fields: { Payee: payeeId ?? "deleted", Reason: category, Group: group ?? "?" },
+    });
+    if (delivered === false) return;
+    if (stuck) await waitRpc("payout_hold_for_review", { p_kind: kind, p_id: payoutId, p_category: category, p_reason: reason });
+    else await waitRpc("payout_payee_paged", { p_kind: kind, p_payout_id: payoutId, p_category: category });
+    out.payee_setup_paged++;
+  };
+  /** Defer a payout row (no try used) AND record why, so its wait is bounded. */
+  const skipRow = async (kind: WaitKind, payoutId: string, payeeId: string | null, amountCents: number,
+    minutes: number, category: WaitCategory, reason: string) => {
+    // A row a transfer / refund may already exist for, on a reason that could not look at Stripe
+    // first, is held as needs_reconcile: the page says to search Stripe before anything else.
+    if ((category === "mixed_parties" || category === "data_defect") && maybeSentRows.has(payoutId)) {
+      category = "needs_reconcile";
+    }
+    await deferRow(kind, payoutId, minutes);
+    await noteWaiting(kind, payoutId, payeeId, amountCents, category, reason);
+  };
+  /** A problem worth an ops line once a day per key, not a defect on every run. */
+  const onceADay = (key: string, title: string, message: string) =>
+    postSlackOpsAlert({ kind: "custom", severity: "warning", oncePerDayKey: key, title, message });
+  /** A stale "payouts enabled" cache is corrected once per payee per run (the gate's one writer). */
+  const resyncGate = async (stripe: Stripe, payeeId: string | null, account: Stripe.Account): Promise<"banned" | null> => {
+    if (!payeeId || gateSynced.has(payeeId)) return null;
+    gateSynced.add(payeeId);
+    const { data: prof, error } = await admin.from("profiles")
+      .select("stripe_account_id, stripe_identity_verified, stripe_charges_enabled, stripe_payouts_enabled")
+      .eq("user_id", payeeId).maybeSingle();
+    if (error) {
+      defects.record(`payee ${payeeId}: profile read for the gate failed: ${error.message}`.slice(0, 200));
+      return null;
+    }
+    const profile = prof as { stripe_account_id: string | null; stripe_identity_verified: boolean | null;
+      stripe_charges_enabled: boolean | null; stripe_payouts_enabled: boolean | null } | null;
+    if (!profile?.stripe_account_id || profile.stripe_account_id !== account.id) return null;
+    // Only ever to CLOSE a stale open gate: never open it (or send "Payout account verified")
+    // from here while Stripe will not take a transfer; stripe-connect's own sync opens it.
+    if (transferReady(account) || !(profile.stripe_payouts_enabled === true && profile.stripe_charges_enabled === true)) return null;
+    const synced = await syncConnectGate(stripe, admin, payeeId, { ...profile, stripe_account_id: profile.stripe_account_id }, account);
+    if (synced.kind === "banned") {
+      out.payee_banned++;
+      return "banned";
+    }
+    if (synced.writeError) defects.record(`payee ${payeeId}: gate re-sync failed: ${synced.writeError}`.slice(0, 200));
+    return null;
+  };
+  /** What a readiness answer means for this row. true = send the transfer; false = deferred (no try). */
+  const actOnReadiness = async (
+    r: ConnectReadiness, stripe: Stripe | null, kind: PayoutKind, payoutId: string, payeeId: string | null,
+    mode: string, accountId: string, amountCents: number,
+  ): Promise<boolean> => {
+    if (r.kind === "ready") return true;
+    if (r.kind === "error" && r.transient) {
+      // A real Stripe connection error / 429 / 5xx: later, without using a try; one line a day per
+      // account, and the 24-hour bound pages if it never clears.
+      out.payout_account_unreadable++;
+      await onceADay(`connect-read-transient-${mode}-${accountId}`, "Stripe account reads keep failing",
+        `Reading payout account ${accountId} (${mode}) failed: ${r.message.slice(0, 200)}. Its payouts are retried without using tries.`);
+      await skipRow(kind, payoutId, payeeId, amountCents, 15, "transient", r.message);
+      return false;
+    }
+    if (r.kind === "error") {
+      out.payout_account_unreadable++;
+      if (!r.accountSpecific) {
+        // Not about this account at all (401 invalid / expired key, a code bug): our key. One
+        // critical line per mode per day; the row waits (no try is used).
+        await postSlackOpsAlert({
+          kind: "custom", severity: "critical", oncePerDayKey: `connect-read-refused-${mode}`,
+          title: "Our Stripe key can't read Connect accounts",
+          message: `Reading payout account ${accountId} on the ${mode} key failed with an error that names no account: ${r.message.slice(0, 200)}. Payouts wait until this is fixed.`,
+          fields: { Mode: mode },
+        });
+        await skipRow(kind, payoutId, payeeId, amountCents, 60, "unreadable", r.message);
+        return false;
+      }
+      // Stripe refused our read of THIS account: that payee's problem first (per-account line, a
+      // bounded payee wait, no try). Our key only if 3+ accounts fail so in one run AND a read of
+      // the platform's own balance fails too.
+      const refused = refusedAccounts.get(mode) ?? new Set<string>();
+      refused.add(accountId);
+      refusedAccounts.set(mode, refused);
+      await onceADay(`connect-read-refused-${mode}-${accountId}`, "A payout account could not be read",
+        `Stripe refused reading payout account ${accountId} (${mode}): ${r.message.slice(0, 200)}. Its payouts wait (no try is used).`);
+      if (refused.size >= 3 && stripe && !probedModes.has(mode)) {
+        probedModes.add(mode);
+        let keyBroken = false;
+        try {
+          await stripe.balance.retrieve();
+        } catch {
+          // The platform's own balance cannot be read either: the key, not the payees.
+          keyBroken = true;
+        }
+        if (keyBroken) {
+          await postSlackOpsAlert({
+            kind: "custom", severity: "critical", oncePerDayKey: `connect-read-refused-${mode}`,
+            title: "Our Stripe key can't read Connect accounts",
+            message: `${refused.size} payout accounts on the ${mode} key could not be read this run and the platform balance read failed too (last: ${r.message.slice(0, 160)}). Payouts wait until this is fixed.`,
+            fields: { Mode: mode },
+          });
+        }
+      }
+      await skipRow(kind, payoutId, payeeId, amountCents, 60, "unreadable", r.message);
+      return false;
+    }
+    out.payout_account_not_ready++;
+    if (r.kind === "not_ready" && stripe && (await resyncGate(stripe, payeeId, r.account)) === "banned") {
+      // The re-sync matched a banned person's bank (ban evasion): held for review at once.
+      await skipRow(kind, payoutId, payeeId, amountCents, 1440, "banned", "ban-evasion match on the payout account");
+      return false;
+    }
+    await skipRow(kind, payoutId, payeeId, amountCents, 60, r.kind === "unusable" ? "unusable" : r.category, r.reason);
+    return false;
+  };
+  /**
+   * Before any (more) Stripe call: no payout account, or this account already found not payable
+   * this run. true = handled (deferred, wait recorded); false = go on.
+   */
+  const unpayableNow = async (kind: PayoutKind, payoutId: string, payeeId: string | null, accountId: string | null,
+    amountCents: number, mode: string | null): Promise<boolean> => {
+    if (!accountId) {
+      // Not a failed try (lh-money-escrow review 2.1): paid once the payee sets up payouts. A payee
+      // who deleted their account never will: paged at once, retried only daily.
+      out.no_payout_account++;
+      if (payeeId) await skipRow(kind, payoutId, payeeId, amountCents, 60, "no_account", "no payout account");
+      else await skipRow(kind, payoutId, null, amountCents, 1440, "payee_deleted", "payee account deleted: money held, decide by hand");
+      return true;
+    }
+    const hit = mode ? peekConnectReadiness(readiness, mode, accountId) : undefined;
+    if (!hit) return false;
+    return !(await actOnReadiness(await hit, null, kind, payoutId, payeeId, mode as string, accountId, amountCents));
+  };
+  /** The live backstop before a transfer. true = send it; false = not this run (deferred, no try used). */
+  const payeeReadyNow = async (stripe: Stripe, mode: string, kind: PayoutKind, payoutId: string, payeeId: string | null,
+    accountId: string, amountCents: number) =>
+    actOnReadiness(await readConnectReadiness(stripe, mode, accountId, readiness), stripe, kind, payoutId, payeeId, mode, accountId, amountCents);
+  /** A passing failure BEFORE the transfer (Stripe connection / 429 / 5xx, or the test-account lookup): defer, no try. */
+  const transientBeforeSend = (e: unknown) =>
+    isTransientStripeError(e) || (e as { reason?: unknown } | null)?.reason === "lookup_failed";
+  /** The payouts of this batch a send was already started for (a transfer may exist). */
+  const sendMarks = async (kind: PayoutKind, ids: string[]): Promise<Set<string>> => {
+    if (ids.length === 0) return new Set();
+    const data = await waitRpc("payout_send_marks_for", { p_kind: kind, p_ids: ids });
+    return new Set(((data ?? []) as Array<string | { payout_send_marks_for?: string }>)
+      .map((x) => (typeof x === "string" ? x : x?.payout_send_marks_for ?? "")).filter(Boolean));
+  };
+  /**
+   * Marked BEFORE the transfer call. false = do not send this run (the mark could not be
+   * written); a missing migration (PGRST202) sends as before rather than stopping every payout.
+   */
+  /**
+   * Right before the transfer: a payout hold or a ban placed since the queue was read stops it
+   * (the row is deferred or held for review, never sent).
+   */
+  const stillPayableNow = async (kind: PayoutKind, payoutId: string, payeeId: string | null, amountCents: number): Promise<boolean> => {
+    const hold = await checkPayoutHold(admin, payeeId);
+    if (hold.kind === "error") {
+      await skipRow(kind, payoutId, payeeId, amountCents, 15, "transient", `payout hold re-check failed: ${hold.message}`);
+      return false;
+    }
+    if (hold.kind === "held") {
+      out.held++;
+      await skipRow(kind, payoutId, payeeId, amountCents, 60, "held", "an admin payout hold placed during the run");
+      return false;
+    }
+    const { data: prof, error } = await admin.from("profiles").select("ban_status, auto_suspended_until").eq("user_id", payeeId).maybeSingle();
+    if (error) {
+      await skipRow(kind, payoutId, payeeId, amountCents, 15, "transient", `ban re-check failed: ${error.message}`);
+      return false;
+    }
+    const p = prof as { ban_status?: string | null; auto_suspended_until?: string | null } | null;
+    // A permanent ban holds the payout for review; a temporary suspension (a strike) is a bounded
+    // wait that resumes on its own when it ends (an open-ended temp ban is treated as permanent).
+    const suspendedUntil = p?.ban_status === "temp_banned" && p.auto_suspended_until ? new Date(p.auto_suspended_until).getTime() : null;
+    if (suspendedUntil !== null && suspendedUntil > Date.now()) {
+      out.held++;
+      const minutes = Math.min(1440, Math.max(15, Math.ceil((suspendedUntil - Date.now()) / 60000)));
+      await skipRow(kind, payoutId, payeeId, amountCents, minutes, "suspended", `suspended until ${p?.auto_suspended_until}`);
+      return false;
+    }
+    const banned = p?.ban_status === "banned" || p?.ban_status === "permanently_banned"
+      || (p?.ban_status === "temp_banned" && !p.auto_suspended_until);
+    if (banned) {
+      out.payee_banned++;
+      await skipRow(kind, payoutId, payeeId, amountCents, 1440, "banned", `payee ${p?.ban_status}`);
+      return false;
+    }
+    return true;
+  };
+  const markSending = async (kind: PayoutKind, payoutId: string, payeeId: string | null, amountCents: number): Promise<boolean> => {
+    const { error } = await admin.rpc("payout_mark_sending", { p_kind: kind, p_payout_id: payoutId });
+    if (!error) return true;
+    if ((error as { code?: string }).code === "PGRST202") {
+      if (!waitRpcMissing) defects.record("payout_mark_sending: not deployed yet (PGRST202); sending without the mark");
+      waitRpcMissing = true;
+      return true;
+    }
+    defects.record(`${kind} payout ${payoutId}: send mark failed, not sent this run: ${error.message}`.slice(0, 200));
+    await skipRow(kind, payoutId, payeeId, amountCents, 15, "transient", `send mark failed: ${error.message}`);
+    return false;
   };
 
   // 5. SHOPS M1 (migration 20261018164442): the order clock, then every hold to
@@ -314,26 +613,35 @@ serve(async (req) => {
     // Fail closed: a ban-review read that failed moves no shop money this run.
     if (!shopReview.ok) defects.record(`shop payouts: ban review read failed: ${shopReview.message}`);
     const underReview: Set<string> = shopReview.ok ? shopReview.users : new Set();
+    const shopMarked = await sendMarks("shop", shopPayouts.map((x) => x.payout_id));
+    // A transfer may exist when a try was used or a send was started (marked before the call).
+    const maybeSent_shop = (x: ShopPayoutDue) => Number(x.attempts ?? 0) > 0 || shopMarked.has(x.payout_id);
     for (const p of shopReview.ok ? shopPayouts : []) {
+      groupOf.set(p.payout_id, `shop_order_${p.order_id}`);
+      if (maybeSent_shop(p)) maybeSentRows.add(p.payout_id);
       if ((p.seller_id && underReview.has(p.seller_id)) || (p.buyer_id && underReview.has(p.buyer_id))) {
         out.ban_review++;
+        await skipRow("shop", p.payout_id, p.seller_id, p.amount_cents, 60, "ban_review", "a party is under ban review");
         continue;
       }
       const shopHold = await checkPayoutHold(admin, p.seller_id);
       if (shopHold.kind === "error") {
         defects.record(`shop payout ${p.payout_id}: hold read failed: ${shopHold.message}`);
+        await skipRow("shop", p.payout_id, p.seller_id, p.amount_cents, 15, "transient", "payout hold read failed");
         continue;
       }
       if (shopHold.kind === "held") {
         out.held++;
-        continue;
-      }
-      if (!p.stripe_account_id) {
-        // Not a failed try: paid the run after the shop sets up payouts (the handover notice told them).
-        out.no_payout_account++;
+        await skipRow("shop", p.payout_id, p.seller_id, p.amount_cents, 60, "held", "the payee is on an admin payout hold");
         continue;
       }
       const group = `shop_order_${p.order_id}`;
+      // No payout account and no try used yet: no transfer can exist, so no Stripe call at all.
+      if (!p.stripe_account_id && !maybeSent_shop(p)) {
+        await unpayableNow("shop", p.payout_id, p.seller_id, null, p.amount_cents, null);
+        continue;
+      }
+      let beforeSend = true;
       try {
         const mode = shopOrderMode({ livemode: p.livemode, checkout_session_id: p.checkout_session_id });
         if (mode) {
@@ -341,7 +649,10 @@ serve(async (req) => {
           const byParties = await modes.modeForParties([p.buyer_id, p.seller_id]);
           if (byParties !== mode) throw new Error(`shop order says ${mode} but its parties are ${byParties}`);
         }
-        const stripe = mode ? modes.clientFor(mode) : (await modes.clientForParties([p.buyer_id, p.seller_id])).stripe;
+        const resolved = mode ? { mode, stripe: modes.clientFor(mode) } : await modes.clientForParties([p.buyer_id, p.seller_id]);
+        const stripe = resolved.stripe;
+        // Already found not payable this run, and no try used (no transfer can exist): defer now.
+        if (!maybeSent_shop(p) && (await unpayableNow("shop", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, resolved.mode))) continue;
         const listed = await stripe.transfers.list({ transfer_group: group, limit: 100 });
         const existing = listed.data.find((t) => {
           const meta = (t.metadata ?? {}) as Record<string, string>;
@@ -349,13 +660,19 @@ serve(async (req) => {
         });
         let shopTransfer = existing;
         if (!shopTransfer) {
+          if (await unpayableNow("shop", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, resolved.mode)) continue;
           // From the order's OWN charge, only while it is whole (paid, nothing refunded, not disputed).
           const charge = await wholeCharge(stripe, p.payment_intent_id, 0);
+          // Readiness only after the reconcile and the charge check.
+          if (!(await payeeReadyNow(stripe, resolved.mode, "shop", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue;
+          if (!(await stillPayableNow("shop", p.payout_id, p.seller_id, p.amount_cents))) continue;
+          if (!(await markSending("shop", p.payout_id, p.seller_id, p.amount_cents))) continue;
+          beforeSend = false;
           shopTransfer = await stripe.transfers.create(
             {
               amount: p.amount_cents,
               currency: "usd",
-              destination: p.stripe_account_id,
+              destination: p.stripe_account_id as string,
               transfer_group: group,
               source_transaction: charge,
               metadata: { kind: "shop_payout", payout_id: p.payout_id, order_id: p.order_id },
@@ -367,15 +684,31 @@ serve(async (req) => {
           p_payout_id: p.payout_id, p_transfer_id: shopTransfer.id, p_succeeded: true, p_error: null,
         });
         if (error) {
-          defects.record(`shop payout ${p.payout_id}: transfer ${shopTransfer.id} not recorded: ${error.message}`);
+          // The transfer exists; recording it failed. Not at the front of the queue, bounded, and
+          // reconciled (never re-sent) next time.
+          await onceADay(`payout-unrecorded-shop-${p.payout_id}`, "A sent payout could not be recorded",
+            `shop payout ${p.payout_id}: transfer ${shopTransfer.id} not recorded: ${error.message}`.slice(0, 300));
+          await skipRow("shop", p.payout_id, p.seller_id, p.amount_cents, 15, "record_failed", `transfer ${shopTransfer.id} not recorded`);
           continue;
         }
         if (existing) out.shop_payouts_reconciled++;
         else out.shop_payouts_sent++;
+        await clearWait("shop", p.payout_id);
       } catch (e) {
         if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
           out.mixed_parties++;
           defects.record(`shop payout ${p.payout_id}: the order mixes a test account and a real one; settle it by hand`);
+          // Settled by hand: out of the queue for a day, not at its front, and no payee wait.
+          await skipRow("shop", p.payout_id, p.seller_id, p.amount_cents, 1440, "mixed_parties", "the order mixes a test account and a real one");
+          continue;
+        }
+        if (beforeSend && transientBeforeSend(e)) {
+          // Nothing was sent: later, without using a try.
+          out.payout_retry_later++;
+          console.log(JSON.stringify({ event: "payout_deferred_transient", kind: "shop", payout: p.payout_id, detail: caughtMessage(e, "failed") }));
+          await onceADay(`payout-transient-shop-${p.stripe_account_id ?? p.payout_id}`, "Payout steps keep failing",
+            `shop payout ${p.payout_id}: ${caughtMessage(e, "failed")}`.slice(0, 300));
+          await skipRow("shop", p.payout_id, p.seller_id, p.amount_cents, 15, "transient", caughtMessage(e, "failed"));
           continue;
         }
         const msg = caughtMessage(e, "transfer failed");
@@ -386,6 +719,7 @@ serve(async (req) => {
         if (error) defects.record(`shop payout ${p.payout_id}: failure not recorded: ${error.message}`);
         out.shop_payouts_failed++;
         if (p.attempts + 1 >= 12) {
+          await clearWait("shop", p.payout_id);
           await postSlackOpsAlert({
             kind: "payout_failed", severity: "critical",
             title: "Shops payout gave up",
@@ -435,14 +769,20 @@ serve(async (req) => {
 
   // 1. Refunds.
   for (const r of refunds) {
+    groupOf.set(r.refund_id, r.payment_intent_id);
+    if (Number(r.attempts ?? 0) > 0) maybeSentRows.add(r.refund_id);
     if ((r.buyer_id && review.users.has(r.buyer_id)) || (r.seller_id && review.users.has(r.seller_id))) {
       out.ban_review++;
+      // Deferred like a skipped payout (never the front of its queue) and bounded.
+      await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 60, "ban_review", "a party is under ban review");
       continue;
     }
     try {
       const client = await refundClient(r);
       if (!client) {
         defects.record(`refund ${r.refund_id}: no order and no recorded Stripe mode; refund it by hand`);
+        // Cannot be refunded automatically: held for review once the page goes out.
+        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "data_defect", "no order and no recorded Stripe mode");
         continue;
       }
       const { stripe } = client;
@@ -471,6 +811,7 @@ serve(async (req) => {
       });
       if (error) {
         defects.record(`refund ${r.refund_id}: Stripe ${refund.id} not recorded: ${error.message}`);
+        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 15, "record_failed", `refund ${refund.id} not recorded`);
         continue;
       }
       if (!ok) {
@@ -492,6 +833,7 @@ serve(async (req) => {
       if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
         out.mixed_parties++;
         defects.record(`refund ${r.refund_id}: the order mixes a test account and a real one; settle it by hand`);
+        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "mixed_parties", "the order mixes a test account and a real one");
         continue;
       }
       const msg = caughtMessage(e, "refund failed");
@@ -503,29 +845,39 @@ serve(async (req) => {
   }
 
   // 2. Payouts.
+  const sellerMarked = await sendMarks("declutter", payouts.map((x) => x.payout_id));
+  // A transfer may exist when a try was used or a send was started (marked before the call).
+  const maybeSent_declutter = (x: PayoutDue) => Number(x.attempts ?? 0) > 0 || sellerMarked.has(x.payout_id);
   for (const p of payouts) {
+    groupOf.set(p.payout_id, `declutter_order_${p.order_id}`);
+    if (maybeSent_declutter(p)) maybeSentRows.add(p.payout_id);
     if ((p.seller_id && review.users.has(p.seller_id)) || (p.buyer_id && review.users.has(p.buyer_id))) {
       out.ban_review++;
+      await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 60, "ban_review", "a party is under ban review");
       continue;
     }
     const hold = await checkPayoutHold(admin, p.seller_id);
     if (hold.kind === "error") {
       defects.record(`payout ${p.payout_id}: hold read failed: ${hold.message}`);
+      await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 15, "transient", "payout hold read failed");
       continue;
     }
     if (hold.kind === "held") {
       out.held++;
-      continue;
-    }
-    if (!p.stripe_account_id) {
-      // Not a failed try (lh-money-escrow review 2.1): the row stays due, and is paid the run after the
-      // seller sets up payouts, however late. The handover notice told them to.
-      out.no_payout_account++;
+      await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 60, "held", "the payee is on an admin payout hold");
       continue;
     }
     const group = `declutter_order_${p.order_id}`;
+    // No payout account and no try used yet: no transfer can exist, so no Stripe call at all.
+    if (!p.stripe_account_id && !maybeSent_declutter(p)) {
+      await unpayableNow("declutter", p.payout_id, p.seller_id, null, p.amount_cents, null);
+      continue;
+    }
+    let beforeSend = true;
     try {
-      const { stripe } = await modes.clientForParties([p.buyer_id, p.seller_id]);
+      const { stripe, mode } = await modes.clientForParties([p.buyer_id, p.seller_id]);
+      // Already found not payable this run, and no try used (no transfer can exist): defer now.
+      if (!maybeSent_declutter(p) && (await unpayableNow("declutter", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, mode))) continue;
       // Reconcile: one payout per order, so any transfer in the group to this account is the one.
       const listed = await stripe.transfers.list({ transfer_group: group, limit: 100 });
       // Only a Declutter payout transfer that was not reversed (review 3.5).
@@ -538,13 +890,18 @@ serve(async (req) => {
       if (!transfer) {
         // Funded by the order's OWN charge (never the platform balance), and only while that charge is
         // whole: paid, no refund beyond what the order recorded, no dispute (lh-money-escrow review 3.4).
-        // Otherwise nothing moves.
+        // Otherwise nothing moves. Then, and only then, the payee's readiness.
+        if (await unpayableNow("declutter", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, mode)) continue;
         const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
+        if (!(await payeeReadyNow(stripe, mode, "declutter", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue;
+        if (!(await stillPayableNow("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue;
+        if (!(await markSending("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue;
+        beforeSend = false;
         transfer = await stripe.transfers.create(
           {
             amount: p.amount_cents,
             currency: "usd",
-            destination: p.stripe_account_id,
+            destination: p.stripe_account_id as string,
             transfer_group: group,
             source_transaction: charge,
             metadata: { kind: "declutter_payout", payout_id: p.payout_id, order_id: p.order_id },
@@ -556,15 +913,31 @@ serve(async (req) => {
         p_payout_id: p.payout_id, p_transfer_id: transfer.id, p_succeeded: true, p_error: null,
       });
       if (error) {
-        defects.record(`payout ${p.payout_id}: transfer ${transfer.id} not recorded: ${error.message}`);
+        // The transfer exists; recording it failed. Not at the front of the queue, bounded, and
+        // reconciled (never re-sent) next time.
+        await onceADay(`payout-unrecorded-declutter-${p.payout_id}`, "A sent payout could not be recorded",
+          `payout ${p.payout_id}: transfer ${transfer.id} not recorded: ${error.message}`.slice(0, 300));
+        await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 15, "record_failed", `transfer ${transfer.id} not recorded`);
         continue;
       }
       if (existing) out.payouts_reconciled++;
       else out.payouts_sent++;
+      await clearWait("declutter", p.payout_id);
     } catch (e) {
       if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
         out.mixed_parties++;
         defects.record(`payout ${p.payout_id}: the order mixes a test account and a real one; settle it by hand`);
+        // Settled by hand: out of the queue for a day, not at its front, and no payee wait.
+        await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 1440, "mixed_parties", "the order mixes a test account and a real one");
+        continue;
+      }
+      if (beforeSend && transientBeforeSend(e)) {
+        // Nothing was sent: later, without using a try.
+        out.payout_retry_later++;
+        console.log(JSON.stringify({ event: "payout_deferred_transient", kind: "declutter", payout: p.payout_id, detail: caughtMessage(e, "failed") }));
+        await onceADay(`payout-transient-declutter-${p.stripe_account_id ?? p.payout_id}`, "Payout steps keep failing",
+          `declutter payout ${p.payout_id}: ${caughtMessage(e, "failed")}`.slice(0, 300));
+        await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 15, "transient", caughtMessage(e, "failed"));
         continue;
       }
       const msg = caughtMessage(e, "transfer failed");
@@ -576,36 +949,50 @@ serve(async (req) => {
       out.payouts_failed++;
       // A failed transfer backs off in SQL and is retried; after the last try it pages.
       await pageIfLastTry(p, msg);
+      if (p.attempts + 1 >= 12) await clearWait("declutter", p.payout_id);
     }
   }
 
   // 3. Helpr payouts (slice 5): the Helpr's pay for a confirmed delivery, from the order's own charge.
+  const helprMarked = await sendMarks("helpr_task", helprPayouts.map((x) => x.payout_id));
+  const maybeSent_helpr_task = (x: HelprPayoutDue) => Number(x.attempts ?? 0) > 0 || helprMarked.has(x.payout_id);
   for (const h of helprPayouts) {
+    groupOf.set(h.payout_id, h.transfer_group ?? null);
+    if (maybeSent_helpr_task(h)) maybeSentRows.add(h.payout_id);
     if ([h.helpr_id, h.customer_id, h.pickup_contact_id].some((u) => !!u && review.users.has(u))) {
       out.ban_review++;
+      await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 60, "ban_review", "a party is under ban review");
       continue;
     }
     const hold = await checkPayoutHold(admin, h.helpr_id);
     if (hold.kind === "error") {
       defects.record(`helpr payout ${h.payout_id}: hold read failed: ${hold.message}`);
+      await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 15, "transient", "payout hold read failed");
       continue;
     }
     const onHold = hold.kind === "held";
     if (onHold) {
       out.held++;
+      await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 60, "held", "the payee is on an admin payout hold");
       continue;
     }
-    if (!h.stripe_account_id) {
-      // Not a failed try: paid the run after the Helpr sets up payouts (the confirm notice told them).
-      out.no_payout_account++;
+    if (h.source_kind !== "declutter_delivery" || !h.transfer_group || !h.payment_intent_id) {
+      // A source this money step cannot pay from (not a Declutter delivery, or no charge / group):
+      // a data defect, held for review at once; it never "pays itself".
+      defects.record(`helpr payout ${h.payout_id}: source ${h.source_kind} names no payable charge or transfer group`);
+      await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 1440, "data_defect", `source ${h.source_kind} has no payable charge / transfer group`);
       continue;
     }
-    if (!h.transfer_group) {
-      defects.record(`helpr payout ${h.payout_id}: source ${h.source_kind} names no transfer group`);
+    // No payout account and no try used yet: no transfer can exist, so no Stripe call at all.
+    if (!h.stripe_account_id && !maybeSent_helpr_task(h)) {
+      await unpayableNow("helpr_task", h.payout_id, h.helpr_id, null, h.amount_cents, null);
       continue;
     }
+    let beforeSend = true;
     try {
-      const { stripe } = await modes.clientForParties([h.customer_id, h.pickup_contact_id, h.helpr_id]);
+      const { stripe, mode } = await modes.clientForParties([h.customer_id, h.pickup_contact_id, h.helpr_id]);
+      // Already found not payable this run, and no try used (no transfer can exist): defer now.
+      if (!maybeSent_helpr_task(h) && (await unpayableNow("helpr_task", h.payout_id, h.helpr_id, h.stripe_account_id, h.amount_cents, mode))) continue;
       // Reconcile: the one Helpr payout transfer for this row, never sent twice.
       const listed = await stripe.transfers.list({ transfer_group: h.transfer_group, limit: 100 });
       const existing = listed.data.find((t) => {
@@ -614,12 +1001,18 @@ serve(async (req) => {
       });
       let hTransfer = existing;
       if (!hTransfer) {
+        // The charge first (a refunded or disputed order fails loudly), then the payee's readiness.
+        if (await unpayableNow("helpr_task", h.payout_id, h.helpr_id, h.stripe_account_id, h.amount_cents, mode)) continue;
         const charge = await wholeCharge(stripe, h.payment_intent_id, h.refunds_recorded_cents);
+        if (!(await payeeReadyNow(stripe, mode, "helpr_task", h.payout_id, h.helpr_id, h.stripe_account_id as string, h.amount_cents))) continue;
+        if (!(await stillPayableNow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents))) continue;
+        if (!(await markSending("helpr_task", h.payout_id, h.helpr_id, h.amount_cents))) continue;
+        beforeSend = false;
         hTransfer = await stripe.transfers.create(
           {
             amount: h.amount_cents,
             currency: "usd",
-            destination: h.stripe_account_id,
+            destination: h.stripe_account_id as string,
             transfer_group: h.transfer_group,
             source_transaction: charge,
             metadata: { kind: "helpr_task_payout", payout_id: h.payout_id, task_id: h.task_id, source_id: h.source_id },
@@ -631,15 +1024,29 @@ serve(async (req) => {
         p_payout_id: h.payout_id, p_transfer_id: hTransfer.id, p_succeeded: true, p_error: null,
       });
       if (error) {
-        defects.record(`helpr payout ${h.payout_id}: transfer ${hTransfer.id} not recorded: ${error.message}`);
+        await onceADay(`payout-unrecorded-helpr_task-${h.payout_id}`, "A sent payout could not be recorded",
+          `helpr payout ${h.payout_id}: transfer ${hTransfer.id} not recorded: ${error.message}`.slice(0, 300));
+        await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 15, "record_failed", `transfer ${hTransfer.id} not recorded`);
         continue;
       }
       if (existing) out.helpr_payouts_reconciled++;
       else out.helpr_payouts_sent++;
+      await clearWait("helpr_task", h.payout_id);
     } catch (e) {
       if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
         out.mixed_parties++;
         defects.record(`helpr payout ${h.payout_id}: the delivery mixes a test account and a real one; settle it by hand`);
+        // Settled by hand: out of the queue for a day, not at its front, and no payee wait.
+        await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 1440, "mixed_parties", "the order mixes a test account and a real one");
+        continue;
+      }
+      if (beforeSend && transientBeforeSend(e)) {
+        // Nothing was sent: later, without using a try.
+        out.payout_retry_later++;
+        console.log(JSON.stringify({ event: "payout_deferred_transient", kind: "helpr_task", payout: h.payout_id, detail: caughtMessage(e, "failed") }));
+        await onceADay(`payout-transient-helpr_task-${h.stripe_account_id ?? h.payout_id}`, "Payout steps keep failing",
+          `helpr_task payout ${h.payout_id}: ${caughtMessage(e, "failed")}`.slice(0, 300));
+        await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 15, "transient", caughtMessage(e, "failed"));
         continue;
       }
       const msg = caughtMessage(e, "transfer failed");
@@ -650,6 +1057,7 @@ serve(async (req) => {
       if (error) defects.record(`helpr payout ${h.payout_id}: failure not recorded: ${error.message}`);
       out.helpr_payouts_failed++;
       if (h.attempts + 1 >= 12) {
+        await clearWait("helpr_task", h.payout_id);
         await postSlackOpsAlert({
           kind: "payout_failed", severity: "critical",
           title: "Helpr delivery payout gave up",
@@ -664,8 +1072,11 @@ serve(async (req) => {
 
   // 4. Delivery-fee refunds (row 40): the delivery fee alone, back to the buyer.
   for (const d of deliveryRefunds) {
+    groupOf.set(d.delivery_refund_id, d.payment_intent_id);
+    if (Number(d.attempts ?? 0) > 0) maybeSentRows.add(d.delivery_refund_id);
     if ((d.buyer_id && review.users.has(d.buyer_id)) || (d.seller_id && review.users.has(d.seller_id))) {
       out.ban_review++;
+      await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 60, "ban_review", "a party is under ban review");
       continue;
     }
     try {
@@ -676,6 +1087,7 @@ serve(async (req) => {
       });
       if (!client) {
         defects.record(`delivery refund ${d.delivery_refund_id}: no Stripe mode; refund it by hand`);
+        await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, "data_defect", "no Stripe mode");
         continue;
       }
       const { stripe } = client;
@@ -698,6 +1110,7 @@ serve(async (req) => {
       });
       if (error) {
         defects.record(`delivery refund ${d.delivery_refund_id}: Stripe ${dRefund.id} not recorded: ${error.message}`);
+        await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 15, "record_failed", `refund ${dRefund.id} not recorded`);
         continue;
       }
       if (!ok) {
@@ -717,6 +1130,7 @@ serve(async (req) => {
       if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
         out.mixed_parties++;
         defects.record(`delivery refund ${d.delivery_refund_id}: the order mixes a test account and a real one; settle it by hand`);
+        await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, "mixed_parties", "the order mixes a test account and a real one");
         continue;
       }
       const msg = caughtMessage(e, "refund failed");

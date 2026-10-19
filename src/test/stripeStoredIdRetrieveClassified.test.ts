@@ -183,6 +183,7 @@ const PLATFORM = "reads the platform's own account/balance, not a stored id";
  * (and the split marked the dispute failed) and instant-payout 500'd.
  */
 const CONNECT_CLASSIFIED = [
+  "_shared/connectReadiness.ts::stripe.accounts.retrieve(accountId)",
   "execute-dispute-split/index.ts::stripe.accounts.retrieve(helper.stripe_account_id)",
   "instant-payout/index.ts::stripe.balance.retrieve({ stripeAccount: profile.stripe_account_id })",
   "release-payout/index.ts::stripe.accounts.retrieve(helper.stripe_account_id)",
@@ -213,6 +214,7 @@ const EXEMPT: Record<string, string> = {
   // Declutter (slice 4): a Declutter order's PaymentIntent, read on the client its parties pick (the mode it was paid
   // in). No Declutter order predates the 2026-09-27 live switch (prod had no declutter_orders table, 2026-10-15); a
   // failed read is a failed payout attempt that backs off (declutter_payout_executed).
+  "declutter-money/index.ts::stripe.balance.retrieve()": "the platform's own balance (a probe that our key still works); no stored id",
   "declutter-money/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)": "a Declutter order's own payment (wholeCharge, before a seller or Helpr payout), on its parties' mode; minted after the live switch",
   // Q2138 (one wallet): the poster's wallet customer is stored PER MODE (stripe_customers keyed
   // user_id + wallet_mode) and read on the client of that same mode, so a test customer never meets the

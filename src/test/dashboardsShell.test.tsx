@@ -131,6 +131,18 @@ describe("the bottom nav", () => {
     expect(dockLabels()).toEqual(["Home", "Jobs", "Homes", "Messages"]);
   });
 
+  it("Customize's switch refuses to hide the LAST section (setHidden answers false, nothing saved)", async () => {
+    const { renderHook } = await import("@testing-library/react");
+    const { useSectionPrefs } = await import("@/components/sections/useSectionPrefs");
+    const keys = SECTIONS.map((s) => s.key);
+    localStorage.setItem(PREFS, JSON.stringify({ hidden: keys.slice(0, -1) }));
+    const { result } = renderHook(() => useSectionPrefs());
+    let ok = true;
+    act(() => { ok = result.current.setHidden(keys[keys.length - 1], true); });
+    expect(ok).toBe(false);
+    expect(result.current.prefs.hidden).toEqual(keys.slice(0, -1));
+  });
+
   it("the last section can never be hidden", () => {
     localStorage.setItem(PREFS, JSON.stringify({ hidden: SECTIONS.map((s) => s.key) }));
     wrap(<MobileNav />);

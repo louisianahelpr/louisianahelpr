@@ -8,7 +8,7 @@
  * the watch heart (row 46) sit on the title row. Two columns from lg.
  */
 import { useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Share2 } from "lucide-react";
 import { toast } from "sonner";

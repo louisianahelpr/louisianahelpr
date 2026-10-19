@@ -292,11 +292,12 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
         createPortal(
           // Portaled to <body>: a fixed bar inside the page would be placed by its transformed ancestor, not the screen.
           // Flush on the bottom edge while the dock yields (useDockYield), as on Marketplace's item page.
-          <div data-declutter-buybar="" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-4 pt-2 pb-[calc(var(--safe-area-bottom,0px)+0.5rem)] shadow-[0_-4px_16px_rgb(0_0_0/0.06)] sm:hidden">
+          <div data-declutter-buybar="" data-rail-inset="" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-4 pt-2 pb-[calc(var(--safe-area-bottom,0px)+0.5rem)] shadow-[0_-4px_16px_rgb(0_0_0/0.06)] sm:hidden">
             <div role="group" aria-label="Buy or make an offer" className="mx-auto flex max-w-xl gap-2">
               <Button
                 type="button"
-                className="h-11 flex-1 min-w-0 whitespace-nowrap rounded-full px-3 text-sm"
+                size="sm"
+                className="flex-1 min-w-0 rounded-full px-3"
                 disabled={buy.isPending || card.isLoading}
                 onClick={() => {
                   tap("buy");
@@ -308,7 +309,8 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 flex-1 min-w-0 whitespace-nowrap rounded-full px-3 text-sm"
+                size="sm"
+                className="flex-1 min-w-0 rounded-full px-3"
                 disabled={card.isLoading}
                 onClick={() => {
                   tap("offer");

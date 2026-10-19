@@ -1,6 +1,6 @@
 # Declutter terms of use: DRAFT for the owner to read and approve
 
-Status: DRAFT, not legal advice, not published anywhere. Written 2026-10-14 from the decision record
+Status: DRAFT, not legal advice, not published anywhere. Written as of 2026-10-14 from the decision record
 `docs/specs/declutter-auctions.md` on `origin/ready/declutter-3` @ 9d90c9977 (owner rows 1-62 and build
 decisions B1-B38). Every rule below comes from that record. Where the record leaves something to a
 lawyer, a CPA, the owner, or a slice that is not built yet, the text says so in a

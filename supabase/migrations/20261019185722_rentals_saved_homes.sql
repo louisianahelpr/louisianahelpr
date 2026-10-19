@@ -86,7 +86,7 @@ REVOKE ALL ON FUNCTION public.rentals_set_saved_home(uuid, boolean) FROM PUBLIC,
 GRANT EXECUTE ON FUNCTION public.rentals_set_saved_home(uuid, boolean) TO authenticated, service_role;
 
 DROP FUNCTION IF EXISTS public.rentals_saved_listings();
-CREATE FUNCTION public.rentals_saved_listings()
+CREATE OR REPLACE FUNCTION public.rentals_saved_listings()
 RETURNS TABLE (
   id uuid,
   kind text,

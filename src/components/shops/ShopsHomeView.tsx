@@ -97,6 +97,7 @@ function ShopBrowseCard({ shop, category, group, extras }: { shop: ShopCard; cat
         {status && (
           <span
             data-card-hours
+            title={status.label}
             className={`block truncate text-ds-13 ${status.open ? "font-semibold text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}
           >
             {status.label}

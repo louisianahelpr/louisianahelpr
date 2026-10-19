@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 848,
-    "files": 210,
-    "rendering": 741,
+    "calls": 854,
+    "files": 211,
+    "rendering": 747,
     "suppressedByPolicy": 107,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 51,
-      "toast.error": 622,
+      "toast": 54,
+      "toast.error": 625,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,9 +18,9 @@
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 406,
+      "literal": 409,
       "template": 96,
-      "dynamic": 392,
+      "dynamic": 395,
       "jsx": 0
     }
   },
@@ -6192,6 +6192,109 @@
       "renders": true
     },
     {
+      "file": "src/components/rentals/DepositPanel.tsx",
+      "line": 40,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Deposit recorded. Your tenant was told."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/DepositPanel.tsx",
+      "line": 43,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "e instanceof Error && e.message === \"bad_amount\" ? \"Enter an amount like 1200.\" : rentalsErrorMessage(e)",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Enter an amount like 1200."
+          },
+          {
+            "form": "dynamic",
+            "text": "rentalsErrorMessage(e)",
+            "from": "src/lib/rentals/copy.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "err.words"
+              },
+              {
+                "form": "dynamic",
+                "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/DepositPanel.tsx",
+      "line": 68,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Forwarding address saved. Your landlord sees it once you've moved out."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/DepositPanel.tsx",
+      "line": 71,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/DepositPanel.tsx",
+      "line": 106,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Settled. Your tenant got the itemized statement."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/DepositPanel.tsx",
+      "line": 109,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/rentals/EndTenancyButton.tsx",
       "line": 48,
       "kind": "toast.success",
@@ -6521,7 +6624,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 78,
+      "line": 80,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6531,7 +6634,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 81,
+      "line": 83,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6552,7 +6655,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 177,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6573,7 +6676,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 182,
+      "line": 201,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6593,7 +6696,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 185,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6614,7 +6717,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 191,
+      "line": 210,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6635,7 +6738,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 263,
+      "line": 283,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6645,7 +6748,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 263,
+      "line": 283,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6655,7 +6758,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 299,
+      "line": 319,
       "kind": "toast.error",
       "title": {
         "form": "literal",

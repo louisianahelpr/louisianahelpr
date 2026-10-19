@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-19T03:13Z",
+  "measured_at": "2026-10-19T07:06Z",
   "issues": {
     "readable": true,
     "open": [
@@ -43,7 +43,7 @@
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39167770990",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39200818768",
         "runTruncated": false
       },
       {
@@ -57,7 +57,7 @@
         "number": 2894,
         "title": "nightly-red: vacuity",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39186732009",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39193592436",
         "runTruncated": false
       },
       {
@@ -68,17 +68,10 @@
         "runTruncated": false
       },
       {
-        "number": 2962,
-        "title": "nightly-red: nightly-webkit",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39131032798",
-        "runTruncated": false
-      },
-      {
         "number": 3307,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39136859301",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39210281188",
         "runTruncated": false
       },
       {
@@ -86,13 +79,6 @@
         "title": "nightly-red: e2e-real-backend",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39178783199",
-        "runTruncated": false
-      },
-      {
-        "number": 3395,
-        "title": "nightly-red: main: Vitest",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39186731978",
         "runTruncated": false
       }
     ]
@@ -418,10 +404,8 @@
     "issue #2601": "Q1816",
     "issue #2894": "Q1816",
     "issue #2937": "Q1816",
-    "issue #2962": "Q1816",
     "issue #3307": "Q1816",
     "issue #3311": "Q1816",
-    "issue #3395": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",

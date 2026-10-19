@@ -28,14 +28,18 @@ export const windowStart = (since) => (since.includes("T") ? since : `${since}T0
 export const REVIEWERS = ["lh-authz-rls", "lh-money-escrow", "lh-silent-failure", "code-review", "security-review", "owner"];
 
 const SRC_SENSITIVE =
-  /(escrow|payment|payout|refund|dispute|stripe|money|charge|wallet|credit|gift-?card|subscription|checkout|tip(s|ping)?\b|auto-?tip|fees?\b|Fees?[A-Z.]|cancellationFee|auth|rls|admin|ban(ned)?\b|Ban|credential|verification|identity|supabaseResult|mutationResult)/i;
+  /(escrow|payment|payout|refund|dispute|stripe|money|charge|wallet|credit|gift-?card|subscription|checkout|tip(s|ping)?\b|auto-?tip|fees?\b|cancellationFee|auth|rls|admin|banned|credential|verification|identity|supabaseResult|mutationResult)/i;
+// camelCase word starts, matched WITH case: under the /i flag above, `Fees?[A-Z.]` matched
+// "Feed" (BrowseTasksFeed.tsx, 2026-10-18 stranded review) and `Ban` matched "Banner" and
+// "useJobAnalytics", so plain feed and banner files were asked for a money review.
+const SRC_SENSITIVE_CASED = /(Fees?[A-Z.]|(?<![a-z])ban(?=[A-Z.])|Ban(?![a-z]))/;
 
 /** Is this changed path a money / authz / data-model surface? */
 export function isSensitive(path) {
   if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(path) || /\/__tests__\//.test(path)) return false;
   if (/^supabase\/migrations\/.+\.sql$/.test(path)) return true;
   if (/^supabase\/functions\//.test(path)) return true;
-  if (/^src\/.+\.(ts|tsx)$/.test(path) && !/^src\/test\//.test(path)) return SRC_SENSITIVE.test(path);
+  if (/^src\/.+\.(ts|tsx)$/.test(path) && !/^src\/test\//.test(path)) return SRC_SENSITIVE.test(path) || SRC_SENSITIVE_CASED.test(path);
   return false;
 }
 

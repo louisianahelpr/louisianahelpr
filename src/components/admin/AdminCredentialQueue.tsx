@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { jobCategoryLabel } from "@/lib/jobCategories";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -44,6 +45,10 @@ interface PendingRow {
   /** Claimed company name — check it against the name printed on the doc. */
   business_name: string | null;
   submitted_at: string;
+  /** License-required job categories the Helpr says this license covers
+   *  (2026-10-19); approving the license approves them. Absent before the
+   *  migration deploys. */
+  license_categories?: string[] | null;
   /** Q233: resolved client-side; get_pending_credentials does not return it. */
   is_seed?: boolean;
 }
@@ -314,6 +319,14 @@ const AdminCredentialQueue = () => {
                       <SignedOpenLink path={r.license_url} />
                     </div>
                     <DocPreview path={r.license_url} />
+                    {/* Approving the license approves these too: check the
+                        document covers each one (owner 2026-10-19). */}
+                    {(r.license_categories?.length ?? 0) > 0 && (
+                      <p className="text-ds-12" data-testid="claimed-license-categories">
+                        <span className="font-semibold">Covers: </span>
+                        {(r.license_categories ?? []).map((c) => jobCategoryLabel(c)).join(", ")}
+                      </p>
+                    )}
                     <ExpiryField
                       id={`${r.user_id}:license`}
                       label="License expires"

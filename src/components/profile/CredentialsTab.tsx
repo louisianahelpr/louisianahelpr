@@ -16,6 +16,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { queryKeys } from "@/lib/queryKeys";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { LicensedCategoriesCard } from "@/components/profile/LicensedCategoriesCard";
 import { userFacingError } from "@/lib/userFacingError";
 
 interface CredentialFields {
@@ -746,6 +747,8 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       </div>
 
       {renderCredentialCard("license")}
+      {/* The license-required job categories this license covers (2026-10-19). */}
+      {licensedOn && <LicensedCategoriesCard userId={userId} licenseVerified={licVerified} />}
       {renderCredentialCard("insurance")}
 
       {/* Business name — offered ONLY once a credential is claimed. The name

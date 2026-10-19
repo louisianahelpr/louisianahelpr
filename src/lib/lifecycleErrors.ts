@@ -251,6 +251,8 @@ export const RPC_ERROR_COPY = {
     offer_not_active: "This offer is no longer available — it may have expired or gone to someone else.",
     helper_unknown: "We couldn't read your account right now. Try again in a moment.",
     credential_tier_required: "You don't have the credentials this job requires. Add your license or insurance in your profile to accept it.",
+    // License-required categories: the jobs trigger (20261019184311).
+    category_license_required: "This job is for licensed pros. Add the license that covers it in Jobs settings, under Licensed & Insured, then try again.",
     // Q1401: the listing closes at the job's start (job_offer_cutoff), not its day.
     job_date_has_passed: "This job has already started, so the offer can't be accepted.",
     job_expired: "This posting has expired.",
@@ -267,6 +269,7 @@ export const RPC_ERROR_COPY = {
     account_restricted: "Your account is restricted right now, so you can't accept jobs.",
     helper_unknown: "We couldn't read your account right now. Try again in a moment.",
     job_not_funded: "This job's payment isn't secured right now, so the offer can't be accepted yet.",
+    category_license_required: "This job is for licensed pros. Add the license that covers it in Jobs settings, under Licensed & Insured, then try again.",
   },
   // useOfferHandlers — declining an accepted offer.
   decline_job_offer: {

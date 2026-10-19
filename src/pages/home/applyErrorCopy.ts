@@ -43,6 +43,9 @@ const EXACT: Record<string, string> = {
   // line has to cover both tiers.
   credential_tier_required:
     "You don't have the credentials this job requires. Add your license or insurance in your profile to apply.",
+  // License-required categories (20261019184311, owner 2026-10-19).
+  category_license_required:
+    "This job is for licensed pros. Add the license that covers it in Jobs settings, under Licensed & Insured, then try again.",
 
   /*
    * THE REST OF THE TRIGGER VOCABULARY, added 2026-09-21.

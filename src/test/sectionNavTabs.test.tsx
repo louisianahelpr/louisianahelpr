@@ -23,7 +23,7 @@
  * @mutate src/components/MobileNav.tsx |       if (soon) {\n        sayComingSoon(label);\n        return;\n      } |
  * @mutate src/components/MobileNav.tsx |         ariaDisabled={soon} |
  * @mutate src/components/MobileNav.tsx |   const sectionDock = !isGuest; |   const sectionDock = false;
- * @mutate src/components/DesktopSidebarNav.tsx |   { path: "/posts", icon: ClipboardList, label: "Posts", badgeKey: "posts" }, |   { path: "/posts", icon: Send, label: "Posts", badgeKey: "posts" },
+ * @mutate src/components/DesktopSidebarNav.tsx |     ...dockItems(sectionTabs, visibleSections), |     ...dockItems(sectionTabs, visibleSections), { path: "/posts", icon: User, label: "Posts" },
  * @mutate src/components/DesktopSidebarNav.tsx |                 onClick={() => (soon ? sayComingSoon(label) : navigate(path))} |                 onClick={() => navigate(path)}
  * @mutate src/components/sections/AppTopBar.tsx |         <span data-testid="top-bar-bell"> |         <span data-testid="top-bar-bell-x">
  * @mutate src/components/profile/ProfileLanding.tsx |       <SettingsSection\n |       <Link to="/declutter">Declutter</Link>\n      <SettingsSection\n
@@ -62,7 +62,7 @@ vi.mock("@/hooks/useAgeGate", () => ({
 }));
 
 import MobileNav from "@/components/MobileNav";
-import { sectionItems, leftItems, rightItems } from "@/components/mobileNav/mobileNavHelpers";
+import { sectionItems } from "@/components/mobileNav/mobileNavHelpers";
 
 const ROOT = resolve(__dirname, "../..");
 const code = (rel: string) => blankComments(readFileSync(resolve(ROOT, rel), "utf8"));
@@ -151,24 +151,15 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(avatar).toBeGreaterThan(bell);
   });
 
-  it("the rail lists the same sections after Messages (Homes under Shops), greys the off ones, and wears the dock's Posts/Jobs icons", () => {
+  it("the rail IS the dock's list plus Profile: no separate Posts row, no Post a Job button, off sections greyed (Q2220)", () => {
     const rail = code("src/components/DesktopSidebarNav.tsx");
     expect(rail).toContain("const sectionTabs = useSectionTabs();");
-    // Hidden sections (Customize, 2026-10-19) are filtered out before the map.
-    // The filter (Customize's hidden sections, 2026-10-19) holds parens of its own: match to the line's .map(.
-    expect(rail).toMatch(/\.\.\.NAV_ITEMS\.slice\(0, 4\),[\s\S]{0,200}?\.\.\.sectionTabs(?:\.filter\([^\n]*?\))?\.map\(/);
+    // One list for the dock and the rail (dockItems), so Posts lives inside Jobs on both.
+    expect(rail).toMatch(/\.\.\.dockItems\(sectionTabs, visibleSections\),\s*PROFILE_ITEM,/);
+    expect(rail).not.toMatch(/path: "\/posts"/);
+    expect(rail).not.toMatch(/Post a Job/);
     expect(rail).toContain("onClick={() => (soon ? sayComingSoon(label) : navigate(path))}");
     expect(rail).toContain("aria-disabled={soon ? true : undefined}");
-    const iconOf = (path: string) => new RegExp(`\\{ path: "${path}", icon: (\\w+),`).exec(rail)?.[1];
-    const dock = [...leftItems, ...rightItems];
-    const dockIcon = (path: string) => {
-      const i = dock.find((d) => d.path === path)!.icon as { displayName?: string; name?: string };
-      return i.displayName ?? i.name;
-    };
-    for (const path of ["/posts", "/jobs"]) {
-      expect(iconOf(path), `rail ${path} icon`).toBeTruthy();
-      expect(dockIcon(path), `dock ${path} icon`).toBe(iconOf(path));
-    }
   });
 
   it("the Profile landing has no Declutter, Shops or Homes row", () => {

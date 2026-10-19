@@ -296,6 +296,10 @@ function freshScenario(): SupabaseScenario {
       // One wallet (Q2139): the claim keeps the customer it was offered (first
       // writer). A scenario about a lost race returns another id.
       claim_stripe_customer: (a?: unknown) => (a as { p_customer?: string } | undefined)?.p_customer ?? null,
+      // auto-tip-charge re-reads the job's state right before each charge
+      // (20261019043709). "chargeable" (payment held, no live dispute, no
+      // refund) is the neutral answer.
+      auto_tip_job_state: "chargeable",
     },
     rpcErrors: {},
     rpcCalls: [],

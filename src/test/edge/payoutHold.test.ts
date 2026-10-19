@@ -518,7 +518,7 @@ describe("tips honour the payout hold", () => {
     });
     const fn = await loadEdgeFunction("auto-tip-charge");
     scenario.rpc.auto_tip_candidates = [
-      { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10 },
+      { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10, tip_state: "chargeable" },
     ];
     scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
     scenario.reads.payout_holds = { rows: [HELD] };
@@ -542,7 +542,7 @@ describe("tips honour the payout hold", () => {
       });
       const fn = await loadEdgeFunction("auto-tip-charge");
       scenario.rpc.auto_tip_candidates = [
-        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10 },
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10, tip_state: "chargeable" },
       ];
       scenario.reads.jobs = { rows: [{ id: "job-1", completed_at: new Date(Date.now() - completedDaysAgo * 86_400_000).toISOString() }] };
       scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
@@ -571,8 +571,8 @@ describe("tips honour the payout hold", () => {
       });
       const fn = await loadEdgeFunction("auto-tip-charge");
       scenario.rpc.auto_tip_candidates = [
-        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 5 },
-        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-2", budget: 100, tip_amount: 5 },
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 5, tip_state: "chargeable" },
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-2", budget: 100, tip_amount: 5, tip_state: "chargeable" },
       ];
       scenario.reads.jobs = { rows: [{ id: "job-1", completed_at: new Date(Date.now() - 13.5 * 86_400_000).toISOString() }] };
       scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };

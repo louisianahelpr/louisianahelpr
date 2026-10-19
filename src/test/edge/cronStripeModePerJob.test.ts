@@ -251,7 +251,7 @@ describe("money crons choose each job's Stripe client by its mode (owner 2026-10
 
   describe("auto-tip-charge", () => {
     function candidate(customerId: string, helperId: string) {
-      scenario.rpc.auto_tip_candidates = [{ job_id: JOB, customer_id: customerId, helper_id: helperId, budget: 100, tip_amount: 10 }];
+      scenario.rpc.auto_tip_candidates = [{ job_id: JOB, customer_id: customerId, helper_id: helperId, budget: 100, tip_amount: 10, tip_state: "chargeable" }];
       scenario.reads.jobs = { rows: [{ customer_id: customerId, helper_id: helperId, stripe_session_id: "cs_live_1" }] };
       scenario.reads.group_job_helpers = { rows: [] };
     }

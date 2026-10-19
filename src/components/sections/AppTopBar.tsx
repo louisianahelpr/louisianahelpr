@@ -5,12 +5,18 @@ import NotificationPanel from "@/components/NotificationPanel";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
 /**
  * The phone top bar (owner final decisions, 2026-10-19). Right side, in this
  * order: the section's own "+" (sections only), the NOTIFICATIONS bell, the
  * PROFILE avatar at the far right. Left: the logo on Home, the section title
  * elsewhere. Home has no "+". Messages lives in the bottom nav, not here.
+ *
+ * ON THE DESKTOP WEBSITE the app's own header already carries the logo and the
+ * bell, and the rail carries Profile, so the bar keeps only the section title
+ * and its "+"; on Home (no title, no "+") it draws nothing (Q2221: two logos and
+ * two bells at 1440). Guard: src/test/desktopTopBarNoDuplicates.test.tsx.
  */
 export function AppTopBar({
   title,
@@ -23,8 +29,10 @@ export function AppTopBar({
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const gate = useAgeGate();
+  const isWebDesktop = useIsWebDesktop();
   const isPost = add?.path === "/post-job";
   const go = () => add && navigate(add.path);
+  if (isWebDesktop && !title && !add) return null;
   return (
     <header className="app-top-bar flex items-center justify-between gap-2 h-16" data-testid="app-top-bar">
       {title ? (
@@ -45,10 +53,12 @@ export function AppTopBar({
             <Plus className="w-[22px] h-[22px]" strokeWidth={2.4} aria-hidden />
           </button>
         )}
+        {!isWebDesktop && (
         <span data-testid="top-bar-bell">
           <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
         </span>
-        {user && (
+        )}
+        {user && !isWebDesktop && (
           <button
             type="button"
             aria-label="Profile"

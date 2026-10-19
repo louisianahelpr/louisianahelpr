@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFeature } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
 import NotFound from "@/pages/info/NotFound";
 import AppPage from "@/components/AppPage";
 
@@ -57,8 +58,7 @@ export function QuotesGate({ title, backTo, label, children }: { title: string; 
   const { user, isReady } = useAuthReady();
   const qc = useQueryClient();
   if (enabled) return <>{children}</>;
-  const state = qc.getQueryState(["feature-enabled", "quotes", user?.id ?? null]);
-  const settled = isReady && (!user || state?.status === "success" || state?.status === "error");
+  const settled = isReady && (!user || featureSwitchSettled(qc, "quotes", user.id));
   return settled ? <NotFound /> : <QuotesGateFrame title={title} backTo={backTo} label={label} />;
 }
 

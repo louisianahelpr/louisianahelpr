@@ -104,6 +104,7 @@ vi.mock("@/lib/declutter/api", () => ({
 }));
 
 import DeclutterPage from "@/pages/declutter/DeclutterPage";
+import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
 let where = "";
 function Where() {
@@ -114,7 +115,7 @@ function Where() {
 
 function at(path: string) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  qc.setQueryData(["feature-enabled", "declutter", "u1"], true);
+  qc.setQueryData(featureSwitchBatchKey("u1"), { declutter: true });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[path]}>

@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import AppPage from "@/components/AppPage";
 import { useFeature } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
 import NotFound from "@/pages/info/NotFound";
 import { fetchShopCategories, type ShopBadges, type ShopCategory } from "@/lib/shops/api";
 
@@ -106,8 +107,7 @@ export function ShopsGate({ children, title, backTo }: { children: ReactNode; ti
   const { user, isReady } = useAuthReady();
   const qc = useQueryClient();
   if (enabled) return <>{children}</>;
-  const state = qc.getQueryState(["feature-enabled", "shops", user?.id ?? null]);
-  const settled = isReady && (!user || state?.status === "success" || state?.status === "error");
+  const settled = isReady && (!user || featureSwitchSettled(qc, "shops", user.id));
   if (settled) return <NotFound />;
   return (
     <AppPage title={title} backTo={backTo}>

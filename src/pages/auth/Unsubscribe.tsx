@@ -41,8 +41,11 @@ const COPY = {
     done: "You're unsubscribed",
     doneBody: (who: string) => `We won't send promotional email to ${who} any more.`,
     undo: "Resubscribe",
-    back: "You're subscribed again",
-    backBody: (who: string) => `${who} will get Louisiana Helpr news and offers again.`,
+    // Resubscribe undoes only what the unsubscribe turned off (owner, 2026-10-15,
+    // Q2092): an address that never agreed to news and offers still does not get
+    // them, so this never promises they will start again.
+    back: "Unsubscribe undone",
+    backBody: (who: string) => `${who} is back to the email settings it had before you unsubscribed.`,
   },
 } as const;
 

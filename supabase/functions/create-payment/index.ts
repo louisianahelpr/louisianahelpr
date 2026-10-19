@@ -52,7 +52,7 @@ import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
-import { jobLocalMidnightMs } from "../_shared/cancellationFee.ts";
+import { jobLocalMidnightMs, jobLocalStartMs } from "../_shared/cancellationFee.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { checkPayoutHold, checkJobPayoutHold, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
@@ -248,6 +248,73 @@ async function refuseQuoteJobPriceMismatch(
     console.error(`[create-payment] job ${jobId} budget ${budgetCents} != accepted quote price; refusing escrow`);
     throw new PublicError("This job's price doesn't match the quote you agreed, so it can't be paid for. Contact support.");
   }
+}
+
+/**
+ * Q2116: the moment `job_offer_cutoff(date_needed, start_time)` names (SQL,
+ * 20261005184940): the start, or the end of the day when no start time is
+ * set, in Louisiana time. Null for a job with no date.
+ */
+function jobOfferCutoffMs(dateNeeded: unknown, startTime: unknown): number | null {
+  if (typeof dateNeeded !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dateNeeded)) return null;
+  if (typeof startTime === "string" && startTime !== "") return jobLocalStartMs(dateNeeded, startTime);
+  const [y, m, d] = dateNeeded.split("-").map(Number);
+  const next = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+  return jobLocalMidnightMs(next);
+}
+
+const QUOTE_BOOKING_LAPSED =
+  "This quote booking is no longer open, so it can't be paid for. Open your quote request to see what to do next.";
+const QUOTE_START_PASSED =
+  "This job's start time has passed, so it can't be paid for. Cancel the quote request and ask for quotes again with a new date.";
+const QUOTE_REQUEST_CANCELLED = "This quote request was cancelled, so its job can't be paid for.";
+
+/**
+ * Q2116: a job booked from an agreed quote is paid only while paying can still
+ * hire the quoter: the job open with nobody hired, its direct offer pending to
+ * the quoter whose quote was accepted, and its start still ahead. Paying any
+ * other way left the money in a job that hired nobody (quote_job_funded_hires_quoter
+ * then only logs and tells the poster). A job whose quote request was
+ * cancelled is not paid at all. A job a request was switched to (Set my price,
+ * request 'closed') is an ordinary job and is charged as before. FAIL CLOSED
+ * on an unreadable quote table.
+ */
+async function refuseQuoteJobNotBookable(
+  // deno-lint-ignore no-explicit-any
+  db: any,
+  // deno-lint-ignore no-explicit-any
+  job: any,
+  nowMs: number,
+): Promise<void> {
+  const { data: links, error: linkErr } = await db
+    .from("job_quote_requests").select("id, status").eq("job_id", job.id).limit(5);
+  if (linkErr) {
+    console.error(`[create-payment] quote request status read failed for job ${job.id}; refusing escrow:`, linkErr);
+    throw new PublicError("Could not check this job's agreed quote. Please try again in a moment.");
+  }
+  const rows = (links ?? []) as Array<{ id: string; status: string }>;
+  const agreed = rows.filter((r) => r.status === "agreed").map((r) => r.id);
+  if (agreed.length === 0) {
+    if (rows.some((r) => r.status === "cancelled")) throw new PublicError(QUOTE_REQUEST_CANCELLED);
+    return;
+  }
+  const quoter = typeof job.offered_to_helper_id === "string" ? job.offered_to_helper_id : null;
+  if (String(job.status) !== "open" || job.helper_id != null || job.direct_offer_status !== "pending" || !quoter) {
+    console.warn(`[create-payment] quote job ${job.id} offer is ${job.direct_offer_status}/${job.status}; refusing escrow`);
+    throw new PublicError(QUOTE_BOOKING_LAPSED);
+  }
+  const { data: won, error: wonErr } = await db
+    .from("job_quotes").select("id").in("request_id", agreed).eq("status", "accepted").eq("quoter_id", quoter).limit(1);
+  if (wonErr) {
+    console.error(`[create-payment] accepted quoter read failed for job ${job.id}; refusing escrow:`, wonErr);
+    throw new PublicError("Could not check this job's agreed quote. Please try again in a moment.");
+  }
+  if (((won ?? []) as unknown[]).length === 0) {
+    console.warn(`[create-payment] quote job ${job.id} is offered to someone other than its accepted quoter; refusing escrow`);
+    throw new PublicError(QUOTE_BOOKING_LAPSED);
+  }
+  const cutoff = jobOfferCutoffMs(job.date_needed, job.start_time);
+  if (cutoff !== null && cutoff <= nowMs) throw new PublicError(QUOTE_START_PASSED);
 }
 
 /**
@@ -511,6 +578,8 @@ serve(async (req) => {
       // linked to this job, round(budget * 100) must equal its price_cents.
       // FAIL CLOSED on an unreadable quote table, as the dispute read above.
       await refuseQuoteJobPriceMismatch(supabaseAdmin, jobId, job.budget);
+      // ─── …and only while paying can still hire the quoter (Q2116) ───
+      await refuseQuoteJobNotBookable(supabaseAdmin, job, Date.now());
 
       // ─── Where a cancelled checkout lands (Q1862) ───
       // Post a Job by default; the quote screens send their own request page.

@@ -51,6 +51,16 @@
  *       one: exactly the link checks FAIL and every other check holds. A
  *       planted QUOTES2_MIGRATION run leaves LINKS out too (it would overwrite
  *       the planted bodies) unless QUOTE_LINKS_MIGRATION is given.
+ *   Q2116 (20261019184844_quote_paid_job_hires_or_tells_poster.sql, applied
+ *       after LINKS, interleaved 3x with --replay): the quoter cannot decline
+ *       the unfunded offer (job_not_funded) while a funded plain offer still
+ *       can be declined; money landing after the start cutoff is logged
+ *       job_date_has_passed and the poster is told (emailed, to the request);
+ *       a quoter blocked since booking: the poster is told, the quoter is not;
+ *       an unready quoter: the poster hears "Payment received". --q2116-before
+ *       applies everything but that migration: exactly the Q2116 checks FAIL.
+ *       It is left out whenever LINKS is (it restates LINKS' hire trigger), and
+ *       a planted copy can be given as Q2116_MIGRATION.
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -75,6 +85,11 @@ const LINKS_SQL = readFileSync(process.env.QUOTE_LINKS_MIGRATION ?? DIR + LINKS,
 // leaves LINKS out unless a planted LINKS copy (QUOTE_LINKS_MIGRATION) is given.
 const LINKS_BEFORE = process.argv.includes("--links-before") ||
   (!!process.env.QUOTES2_MIGRATION && !process.env.QUOTE_LINKS_MIGRATION);
+
+// Q2116: the poster is told whenever a payment does not hire (applied after LINKS).
+const Q2116 = "20261019184844_quote_paid_job_hires_or_tells_poster.sql";
+const Q2116_SQL = readFileSync(process.env.Q2116_MIGRATION ?? DIR + Q2116, "utf8");
+const Q2116_BEFORE = process.argv.includes("--q2116-before") || LINKS_BEFORE;
 
 const DEFS = effectiveDefs(DIR, { before: BASE });
 // Main's newest bodies BEFORE this migration (train J's direct-offer funding
@@ -182,7 +197,7 @@ for (const fn of ["feature_enabled_for", "require_feature", "contact_leak_reason
 await db.exec(`CREATE TRIGGER trg_jobs_insert_column_lock BEFORE INSERT ON public.jobs
   FOR EACH ROW EXECUTE FUNCTION public.enforce_jobs_insert_column_lock();`);
 await db.exec(readFileSync(DIR + BASE, "utf8"));
-for (const fn of ["notify_helper_on_direct_offer", "restart_direct_offer_clock_on_funding"]) await db.exec(fnStmt(fn, DEFS_MAIN));
+for (const fn of ["notify_helper_on_direct_offer", "restart_direct_offer_clock_on_funding", "respond_to_direct_offer"]) await db.exec(fnStmt(fn, DEFS_MAIN));
 await db.exec(`CREATE TRIGGER trg_notify_helper_on_direct_offer AFTER INSERT OR UPDATE OF offered_to_helper_id, payment_status ON public.jobs
   FOR EACH ROW EXECUTE FUNCTION public.notify_helper_on_direct_offer();
 CREATE TRIGGER trg_restart_direct_offer_clock_on_funding BEFORE UPDATE OF payment_status ON public.jobs
@@ -191,6 +206,7 @@ if (!BEFORE) {
   for (let i = 0; i < (REPLAY ? 3 : 1); i++) {
     await db.exec(MIGRATION);
     if (!LINKS_BEFORE) await db.exec(LINKS_SQL);
+    if (!Q2116_BEFORE) await db.exec(Q2116_SQL);
   }
 }
 await db.exec("UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'quotes'");
@@ -198,8 +214,8 @@ await db.exec("UPDATE public.feature_switches SET audience = 'everyone' WHERE ke
 const results = [];
 // control: holds on main too (no FAIL-before); it pins what the change must NOT do.
 // links: a check of the quoter's own link (LINKS); --links-before must fail exactly these.
-const check = (name, ok, detail = "", control = false, links = false) => {
-  results.push({ name, ok, control, links });
+const check = (name, ok, detail = "", control = false, links = false, q2116 = false) => {
+  results.push({ name, ok, control, links, q2116 });
   console.log(`${ok ? "PASS" : "FAIL"} ${name}${detail ? `  (${detail})` : ""}`);
 };
 const as = async (uid, sql) => {
@@ -705,6 +721,65 @@ await step("links: every quote notice carries a reference its reader's side is r
   );
 });
 
+// ---- Q2116: a paid quote job hires its quoter, or the poster is told
+const posterNotices = async (req) => (await svc(`SELECT title, link, message FROM public.notifications
+  WHERE user_id = '${POSTER}' AND link LIKE '/quotes?request=${req}&user=%' AND title IN ('Quote not booked', 'Payment received')`));
+await step("Q2116 the quoter cannot decline an unfunded quote offer", async () => {
+  const { job } = await agreedJob(QA);
+  const e = await err(QA, `SELECT public.respond_to_direct_offer('${job}', false)`);
+  const j = (await svc(`SELECT direct_offer_status, payment_status FROM public.jobs WHERE id = '${job}'`))[0];
+  const told = (await svc(`SELECT count(*)::int AS n FROM public.notifications WHERE user_id = '${POSTER}' AND title = 'Offer declined' AND job_id = '${job}'`))[0].n;
+  check("Q2116 the quoter cannot decline an unfunded quote offer",
+    /job_not_funded/.test(e ?? "") && j.direct_offer_status === "pending" && told === 0,
+    `err=${e} ${j.direct_offer_status} told=${told}`, false, false, true);
+});
+await step("Q2116 [control] a funded plain direct offer can still be declined", async () => {
+  const id = (await svc(`INSERT INTO public.jobs (customer_id, title, description, date_needed, budget, payment_status, offered_to_helper_id, direct_offer_status, direct_offer_expires_at)
+    VALUES ('${POSTER}', 'Rake', 'Rake the leaves please', (now() + interval '5 days')::date, 50, 'escrow', '${QB}', 'pending', now() + interval '1 day') RETURNING id`))[0].id;
+  const e = await err(QB, `SELECT public.respond_to_direct_offer('${id}', false)`);
+  const j = (await svc(`SELECT direct_offer_status FROM public.jobs WHERE id = '${id}'`))[0];
+  check("Q2116 [control] a funded plain direct offer can still be declined", e === null && j.direct_offer_status === "declined", `err=${e} ${j.direct_offer_status}`, true);
+});
+await step("Q2116 money after the start cutoff is named job_date_has_passed and the poster is told", async () => {
+  const { req, job } = await agreedJob(QB);
+  await svc(`UPDATE public.jobs SET date_needed = (now() - interval '2 days')::date WHERE id = '${job}'`);
+  const before = (await emails()).length;
+  await svc(`UPDATE public.jobs SET payment_status = 'escrow', stripe_payment_intent_id = 'pi_q2116a' WHERE id = '${job}'`);
+  const j = (await svc(`SELECT status::text, helper_id, payment_status FROM public.jobs WHERE id = '${job}'`))[0];
+  const logged = (await svc(`SELECT context->>'block_reason' AS r FROM public.error_logs WHERE tags->>'job_id' = '${job}'`));
+  const told = await posterNotices(req);
+  const mails = (await emails()).slice(before).filter((b) => b.user_id === POSTER && b.title === "Quote not booked");
+  const toldQuoter = (await svc(`SELECT count(*)::int AS n FROM public.notifications WHERE user_id = '${QB}' AND job_id = '${job}'`))[0].n;
+  check("Q2116 money after the start cutoff is named job_date_has_passed and the poster is told",
+    j.payment_status === "escrow" && j.helper_id === null && logged.length === 1 && logged[0].r === "job_date_has_passed" &&
+      told.length === 1 && told[0].title === "Quote not booked" && /start time/.test(told[0].message) && /refund notice/.test(told[0].message) &&
+      mails.length === 1 && toldQuoter === 0,
+    `${j.payment_status} logged=${JSON.stringify(logged)} told=${JSON.stringify(told)} mails=${mails.length} quoter=${toldQuoter}`, false, false, true);
+});
+await step("Q2116 a quoter blocked since booking: the poster is told, the quoter is not", async () => {
+  const { req, job } = await agreedJob(QC);
+  await db.exec(`INSERT INTO public.stub_blocks VALUES ('${QC}', '${POSTER}')`);
+  await svc(`UPDATE public.jobs SET payment_status = 'escrow', stripe_payment_intent_id = 'pi_q2116b' WHERE id = '${job}'`);
+  await db.exec(`DELETE FROM public.stub_blocks`);
+  const told = await posterNotices(req);
+  const toldQuoter = (await svc(`SELECT count(*)::int AS n FROM public.notifications WHERE user_id = '${QC}' AND job_id = '${job}'`))[0].n;
+  check("Q2116 a quoter blocked since booking: the poster is told, the quoter is not",
+    told.length === 1 && told[0].title === "Quote not booked" && /cancel the job for a refund/.test(told[0].message) &&
+      /Quoter C/.test(told[0].message) && toldQuoter === 0,
+    `told=${JSON.stringify(told)} quoter=${toldQuoter}`, false, false, true);
+});
+await step("Q2116 an unready quoter: the poster hears the payment arrived and the quoter is finishing setup", async () => {
+  await db.exec(`INSERT INTO public.stub_unready VALUES ('${QA}')`);
+  const { req, job } = await agreedJob(QA);
+  await svc(`UPDATE public.jobs SET payment_status = 'escrow', stripe_payment_intent_id = 'pi_q2116c' WHERE id = '${job}'`);
+  await db.exec(`DELETE FROM public.stub_unready`);
+  const told = await posterNotices(req);
+  const pend = (await svc(`SELECT count(*)::int AS n FROM public.job_accept_pending WHERE job_id = '${job}'`))[0].n;
+  check("Q2116 an unready quoter: the poster hears the payment arrived and the quoter is finishing setup",
+    told.length === 1 && told[0].title === "Payment received" && /finishing payout setup/.test(told[0].message) && pend === 1,
+    `told=${JSON.stringify(told)} pending=${pend}`, false, false, true);
+});
+
 await step("grants: the new helpers and the sweep are not client-callable", async () => {
   const rows = await svc(`SELECT p.proname, has_function_privilege('anon', p.oid, 'EXECUTE') AS a,
       has_function_privilege('authenticated', p.oid, 'EXECUTE') AS u
@@ -717,9 +792,11 @@ await step("grants: the new helpers and the sweep are not client-callable", asyn
 });
 
 const failed = results.filter((r) => !r.ok).length;
-console.log(`\n${BEFORE ? "BEFORE (main only)" : LINKS_BEFORE ? "LINKS BEFORE (without " + LINKS + ")" : REPLAY ? "AFTER (migrations x3)" : "AFTER (migrations x1)"}: ${results.length - failed}/${results.length} pass`);
-// Links before: exactly the link checks fail; everything else holds.
-if (LINKS_BEFORE && !BEFORE) process.exit(results.every((r) => r.ok === !r.links) ? 0 : 1);
+console.log(`\n${BEFORE ? "BEFORE (main only)" : LINKS_BEFORE ? "LINKS BEFORE (without " + LINKS + ")" : Q2116_BEFORE ? "Q2116 BEFORE (without " + Q2116 + ")" : REPLAY ? "AFTER (migrations x3)" : "AFTER (migrations x1)"}: ${results.length - failed}/${results.length} pass`);
+// Links before: exactly the link checks (and Q2116's, applied after LINKS) fail; everything else holds.
+if (LINKS_BEFORE && !BEFORE) process.exit(results.every((r) => r.ok === !(r.links || r.q2116)) ? 0 : 1);
+// Q2116 before: exactly the Q2116 checks fail.
+if (Q2116_BEFORE && !BEFORE) process.exit(results.every((r) => r.ok === !r.q2116) ? 0 : 1);
 // Before: every behaviour check fails; the controls hold on main too.
 if (BEFORE) process.exit(results.filter((r) => !r.control).every((r) => !r.ok) && results.filter((r) => r.control).every((r) => r.ok) ? 0 : 1);
 process.exit(failed === 0 ? 0 : 1);

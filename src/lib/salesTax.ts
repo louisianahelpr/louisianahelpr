@@ -38,6 +38,10 @@ export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set([
   "concrete_masonry",
   "fencing",
   "pressure_washing",
+  // Vehicle repairs, taxed like auto_repair (2026-10-19). The other mobile
+  // categories stay untaxed until the owner rules (docs/OPEN.md).
+  "tire_service",
+  "dent_windshield",
 ]);
 
 /** Whether the job's LABOR line is subject to LA sales tax. */

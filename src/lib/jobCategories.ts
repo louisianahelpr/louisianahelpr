@@ -46,6 +46,25 @@ export const JOB_CATEGORY_LABELS: Record<JobCategory, string> = {
   concrete_masonry: "Concrete & Masonry",
   fencing: "Fencing",
   pressure_washing: "Pressure Washing",
+  // Mobile, "we come to you" services (owner decision 2026-10-19). IV hydration
+  // and other medical services are deliberately left out (owner: not for now).
+  tire_service: "Tire Service",
+  dent_windshield: "Dent & Windshield",
+  car_detailing: "Car Detailing",
+  locksmith: "Locksmith & Car Keys",
+  pet_grooming: "Pet Grooming",
+  pet_waste_removal: "Pet Waste Removal",
+  mobile_vet: "Mobile Vet",
+  gutter_cleaning: "Gutter Cleaning",
+  window_washing: "Window Washing",
+  tv_mounting: "Smart Home & TV",
+  hair_stylist: "Hair Stylist",
+  makeup_spray_tan: "Makeup & Spray Tan",
+  massage: "Massage",
+  mobile_bartending: "Mobile Bartending",
+  drink_carts: "Coffee & Drink Carts",
+  food_truck: "Food Truck Catering",
+  photo_booth: "Photo Booth & Rentals",
   other: "Other",
 };
 
@@ -70,4 +89,70 @@ export function skillChipLabel(value: JobCategory): string {
 /** Label for a category value, falling back to the raw value. */
 export function jobCategoryLabel(value: string): string {
   return JOB_CATEGORY_LABELS[value as JobCategory] ?? formatCategory(value);
+}
+
+/**
+ * The main categories for the two-step picker (main category first, then its
+ * subs; owner 2026-10-19). Every category sits in exactly one group, and the
+ * groups list them in the canonical order above; jobCategoryGroups.test.ts
+ * holds both. "Other" is its own last group so the escape hatch stays one tap
+ * from the top.
+ */
+export interface JobCategoryGroup {
+  slug: string;
+  label: string;
+  items: ReadonlyArray<JobCategory>;
+}
+
+export const JOB_CATEGORY_GROUPS: ReadonlyArray<JobCategoryGroup> = [
+  {
+    slug: "home",
+    label: "Home",
+    items: ["cleaning", "yard_work", "handyman", "assembly", "painting", "storm_prep", "pressure_washing", "gutter_cleaning", "window_washing", "tv_mounting", "appliance_repair"],
+  },
+  { slug: "moving_errands", label: "Moving & Errands", items: ["moving", "errands", "delivery"] },
+  {
+    slug: "trades",
+    label: "Trades",
+    items: ["electrical", "plumbing", "hvac", "roofing", "welding", "carpentry", "flooring", "concrete_masonry", "fencing"],
+  },
+  { slug: "automotive", label: "Automotive", items: ["auto_repair", "tire_service", "dent_windshield", "car_detailing", "locksmith"] },
+  { slug: "pets", label: "Pets", items: ["pet_care", "pet_grooming", "pet_waste_removal", "mobile_vet"] },
+  { slug: "beauty", label: "Beauty & Self-Care", items: ["hair_stylist", "makeup_spray_tan", "massage"] },
+  { slug: "events", label: "Events", items: ["events", "mobile_bartending", "drink_carts", "food_truck", "photo_booth"] },
+  { slug: "other", label: "Other", items: ["other"] },
+];
+
+/** `{ slug, label, items: { slug, label }[] }` groups for TwoStepCategoryPicker. */
+export const JOB_CATEGORY_PICKER_GROUPS = JOB_CATEGORY_GROUPS.map((g) => ({
+  slug: g.slug,
+  label: g.label,
+  items: g.items.map((value) => ({ slug: value, label: JOB_CATEGORY_LABELS[value] })),
+}));
+
+/** The main group a category belongs to (undefined for an unknown value). */
+export function jobCategoryGroupOf(value: string): JobCategoryGroup | undefined {
+  return JOB_CATEGORY_GROUPS.find((g) => (g.items as ReadonlyArray<string>).includes(value));
+}
+
+/**
+ * Categories where a Helpr must hold a VERIFIED license that covers the
+ * category before they can apply to, quote on or accept a job in it (owner
+ * 2026-10-19: "license required"). A poster can always post in any of them;
+ * the job card says "Licensed pros only". The server is the authority: the
+ * same set is `public.category_requires_license()` (migration
+ * 20261019184158_category_license_required.sql), enforced on applications,
+ * quotes and awards; categoryLicenseParity.test.ts keeps the two equal.
+ * The license each one means (shown to the Helpr when they upload it):
+ */
+export const LICENSE_REQUIRED_CATEGORIES: Readonly<Partial<Record<JobCategory, string>>> = {
+  locksmith: "a Louisiana locksmith license",
+  mobile_vet: "a Louisiana veterinary license",
+  hair_stylist: "a Louisiana Board of Cosmetology license",
+  massage: "a Louisiana massage therapy license",
+  mobile_bartending: "a Louisiana ATC server permit (bar card)",
+};
+
+export function categoryRequiresLicense(value: string | null | undefined): boolean {
+  return !!value && Object.prototype.hasOwnProperty.call(LICENSE_REQUIRED_CATEGORIES, value);
 }

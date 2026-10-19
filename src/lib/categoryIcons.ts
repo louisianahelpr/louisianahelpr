@@ -55,6 +55,23 @@ import {
   BrickWall,
   Fence,
   Droplets,
+  AppWindow,
+  Brush,
+  Camera,
+  CarFront,
+  CircleDot,
+  Coffee,
+  Dog,
+  Droplet,
+  HandHeart,
+  KeyRound,
+  Martini,
+  Scissors,
+  Shovel,
+  SprayCan,
+  Stethoscope,
+  Tv,
+  Utensils,
   type LucideIcon,
 } from "lucide-react";
 
@@ -87,6 +104,23 @@ import {
  *   concrete_masonry → BrickWall
  *   fencing     → Fence
  *   pressure_washing → Droplets   (spray)
+ *   tire_service → CircleDot
+ *   dent_windshield → CarFront
+ *   car_detailing → SprayCan
+ *   locksmith → KeyRound
+ *   pet_grooming → Dog
+ *   pet_waste_removal → Shovel
+ *   mobile_vet → Stethoscope
+ *   gutter_cleaning → Droplet
+ *   window_washing → AppWindow
+ *   tv_mounting → Tv
+ *   hair_stylist → Scissors
+ *   makeup_spray_tan → Brush
+ *   massage → HandHeart
+ *   mobile_bartending → Martini
+ *   drink_carts → Coffee
+ *   food_truck → Utensils
+ *   photo_booth → Camera
  *   other       → MoreHorizontal  (catch-all neutral glyph)
  */
 export const CATEGORY_ICONS: Record<string, LucideIcon> = {
@@ -113,6 +147,23 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   concrete_masonry: BrickWall,
   fencing: Fence,
   pressure_washing: Droplets,
+  tire_service: CircleDot,
+  dent_windshield: CarFront,
+  car_detailing: SprayCan,
+  locksmith: KeyRound,
+  pet_grooming: Dog,
+  pet_waste_removal: Shovel,
+  mobile_vet: Stethoscope,
+  gutter_cleaning: Droplet,
+  window_washing: AppWindow,
+  tv_mounting: Tv,
+  hair_stylist: Scissors,
+  makeup_spray_tan: Brush,
+  massage: HandHeart,
+  mobile_bartending: Martini,
+  drink_carts: Coffee,
+  food_truck: Utensils,
+  photo_booth: Camera,
   other: MoreHorizontal,
 };
 

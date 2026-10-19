@@ -24,6 +24,11 @@ export const categoryPricing: Record<string, { min: number; max: number; label: 
 export const UNPRICED_CATEGORIES: ReadonlySet<string> = new Set([
   "electrical", "plumbing", "hvac", "roofing", "welding", "carpentry", "auto_repair",
   "appliance_repair", "flooring", "concrete_masonry", "fencing", "pressure_washing",
+  // The mobile categories (2026-10-19): no researched range either.
+  "tire_service", "dent_windshield", "car_detailing", "locksmith", "pet_grooming",
+  "pet_waste_removal", "mobile_vet", "gutter_cleaning", "window_washing", "tv_mounting",
+  "hair_stylist", "makeup_spray_tan", "massage", "mobile_bartending", "drink_carts",
+  "food_truck", "photo_booth",
 ]);
 
 /**

@@ -174,7 +174,11 @@ const CATEGORIES = [
   "cleaning", "yard_work", "moving", "errands", "handyman", "painting",
   "delivery", "pet_care", "assembly", "storm_prep", "events",
   "electrical", "plumbing", "hvac", "roofing", "welding", "carpentry", "auto_repair",
-  "appliance_repair", "flooring", "concrete_masonry", "fencing", "pressure_washing", "other",
+  "appliance_repair", "flooring", "concrete_masonry", "fencing", "pressure_washing",
+  "tire_service", "dent_windshield", "car_detailing", "locksmith", "pet_grooming", "pet_waste_removal",
+  "mobile_vet", "gutter_cleaning", "window_washing", "tv_mounting", "hair_stylist", "makeup_spray_tan",
+  "massage", "mobile_bartending", "drink_carts", "food_truck", "photo_booth",
+  "other",
 ];
 
 /** A spread of jobs covering every bucket, for the "rich" activity-shell cells. */

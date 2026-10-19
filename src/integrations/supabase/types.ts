@@ -15138,6 +15138,23 @@ export type Database = {
         | "concrete_masonry"
         | "fencing"
         | "pressure_washing"
+        | "tire_service"
+        | "dent_windshield"
+        | "car_detailing"
+        | "locksmith"
+        | "pet_grooming"
+        | "pet_waste_removal"
+        | "mobile_vet"
+        | "gutter_cleaning"
+        | "window_washing"
+        | "tv_mounting"
+        | "hair_stylist"
+        | "makeup_spray_tan"
+        | "massage"
+        | "mobile_bartending"
+        | "drink_carts"
+        | "food_truck"
+        | "photo_booth"
       job_status:
         | "open"
         | "accepted"
@@ -15310,6 +15327,23 @@ export const Constants = {
         "concrete_masonry",
         "fencing",
         "pressure_washing",
+        "tire_service",
+        "dent_windshield",
+        "car_detailing",
+        "locksmith",
+        "pet_grooming",
+        "pet_waste_removal",
+        "mobile_vet",
+        "gutter_cleaning",
+        "window_washing",
+        "tv_mounting",
+        "hair_stylist",
+        "makeup_spray_tan",
+        "massage",
+        "mobile_bartending",
+        "drink_carts",
+        "food_truck",
+        "photo_booth",
       ],
       job_status: [
         "open",

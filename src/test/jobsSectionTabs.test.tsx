@@ -12,9 +12,10 @@
  * @mutate src/pages/jobs/JobsSection.tsx |   return MY_JOBS_LINK_PARAMS.some((k) => params.has(k)) ? "working" : "browse"; |   return "browse";
  * @mutate src/components/job-card/embeddedActivity.tsx |   return current === tapped ? "all" : tapped; |   return tapped;
  * @mutate src/components/sections/StatusBoxes.tsx |               aria-pressed={on} |               aria-pressed={false}
+ * @mutate src/pages/home/useDetailJob.ts |         if (!next.has("tab")) next.set("tab", "browse"); |
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
+import { render, renderHook, act, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { useState, type ReactNode } from "react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 
@@ -40,6 +41,8 @@ vi.mock("@/hooks/useAgeGate", () => ({
 vi.mock("@/lib/haptics", () => ({ hapticLight: () => {}, hapticMedium: () => {} }));
 
 import JobsSection from "@/pages/jobs/JobsSection";
+import { useDetailJob } from "@/pages/home/useDetailJob";
+import type { EnrichedJob } from "@/components/dashboard/types";
 import { nextBoxFilter, BOX_BUCKETS } from "@/components/job-card/embeddedActivity";
 import { StatusBoxes } from "@/components/sections/StatusBoxes";
 
@@ -89,6 +92,20 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     open(url);
     expect(screen.getByTestId("list-applied")).toBeTruthy();
     expect(screen.getByTestId("where").textContent).toContain("tab=working");
+  });
+
+  it("tapping a Browse card keeps Browse: the open job's URL names tab=browse, and that URL stays on the feed (run 4: it jumped to Working)", () => {
+    const setSearchParams = vi.fn();
+    const { result } = renderHook(() =>
+      useDetailJob({ containerRef: { current: null }, searchParams: new URLSearchParams(), setSearchParams, allJobs: [] }),
+    );
+    act(() => result.current.openDetailJob({ id: "j-1" } as EnrichedJob));
+    const update = setSearchParams.mock.calls[0][0] as (p: URLSearchParams) => URLSearchParams;
+    const url = `/jobs?${update(new URLSearchParams()).toString()}`;
+    expect(url).toBe("/jobs?job=j-1&tab=browse");
+    open(url);
+    expect(screen.getByTestId("feed")).toBeTruthy();
+    expect(screen.queryByTestId("list-applied")).toBeNull();
   });
 
   it("/jobs?tab=posted (where /posts redirects) lands on Posted", () => {

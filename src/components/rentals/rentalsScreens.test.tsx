@@ -244,7 +244,7 @@ describe("Rentals screens", () => {
     it("Rent: homes for rent show rent, beds/baths and city + ZIP, never the street, and link to the listing", async () => {
       state.browse = [{ id: "11111111-1111-4111-8111-111111111111", headline: "Bright 2 bed", rent_cents: 120000, rent_frequency: "monthly",
         beds: 2, baths: 1.5, sq_ft: 900, available_on: "2020-01-01", pets: "cats", city: "Lafayette", zip_code: "70501",
-        photo_paths: ["a/rental-listings/b/c.jpg"], is_mine: false, published_at: "2026-10-18T00:00:00Z" }];
+        photo_refs: ["11111111-2222-4333-8444-555555555555.m.1792396800.0123456789abcdef0123456789abcdef"], is_mine: false, published_at: "2026-10-18T00:00:00Z" }];
       renderAt("/rentals");
       const link = await screen.findByRole("link", { name: /Bright 2 bed/ });
       expect(link.getAttribute("href")).toBe("/rentals/listings/11111111-1111-4111-8111-111111111111");
@@ -275,7 +275,7 @@ describe("Rentals screens", () => {
     });
     it("Buy: a home for sale shows its price, beds/baths and city + ZIP, no move-in date, and links to its page; filters reach the sale read", async () => {
       state.sale = [{ id: "22222222-2222-4222-8222-222222222222", headline: "Brick 3 bed with a yard", sale_price_cents: 24500000, beds: 3, baths: 2,
-        sq_ft: 1650, city: "Broussard", zip_code: "70518", photo_paths: [], is_mine: false, published_at: "2026-10-19T00:00:00Z" }];
+        sq_ft: 1650, city: "Broussard", zip_code: "70518", photo_refs: [], is_mine: false, published_at: "2026-10-19T00:00:00Z" }];
       renderAt("/rentals?kind=buy");
       const link = await screen.findByRole("link", { name: /Brick 3 bed/ });
       expect(link.getAttribute("href")).toBe("/rentals/listings/22222222-2222-4222-8222-222222222222");

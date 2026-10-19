@@ -500,6 +500,21 @@ export function BrowseTasksFeed({
         // recommendations are known removes the reorder entirely — the list paints once, already in its final order.
         const showFullSkeleton =
           recommendedLoading && !filters.hasFilters && !savedOnly && recommendedVisible.length === 0;
+        // The end of the list, short lists included (owner, 2026-10-19). It rides INSIDE the list, above the
+        // list's dock clearance (6rem), so it sits right under the last job instead of ~200px below it.
+        const endCard = !showFullSkeleton && !hasNextPage && combinedVisible.length > 0 ? (() => {
+          const nearby = filters.nearbyMiles !== null && filters.locationFilter.startsWith("nearby:");
+          const miles = filters.nearbyMiles ?? 0;
+          // The next round rung, then "any distance" (clears the radius).
+          const next = miles < 5 ? 10 : miles < 10 ? 25 : miles < 25 ? 50 : null;
+          return (
+            <BrowseEndCard
+              onWiden={nearby ? () => filters.setLocationFilter(next ? `nearby:${next}` : "") : undefined}
+              widenLabel={next ? `Widen to ${next} mi` : "Any distance"}
+              onAlerts={() => void notifyWhenWorkLands()}
+            />
+          );
+        })() : null;
         return (
           <>
             {showFullSkeleton && density === "comfortable" && (
@@ -541,6 +556,7 @@ export function BrowseTasksFeed({
                 {combinedVisible.map((job) => (
                   <CompactFeedCard key={job.id} job={job} recommended={job.id === recommendedBadgeId} common={compactCardCommon} />
                 ))}
+                {endCard && <li className="px-0 lg:px-4">{endCard}</li>}
               </ul>
             ) : (
               <MainFeedSection
@@ -549,24 +565,9 @@ export function BrowseTasksFeed({
                 common={cardCommon}
                 containerRef={containerRef}
                 setHoveredJobId={setHoveredJobId}
+                footer={endCard}
               />
             )}
-            {/* The end of the list, short lists included (owner, 2026-10-19). */}
-            {!showFullSkeleton && !hasNextPage && combinedVisible.length > 0 && (() => {
-              const nearby = filters.nearbyMiles !== null && filters.locationFilter.startsWith("nearby:");
-              const miles = filters.nearbyMiles ?? 0;
-              // The next round rung, then "any distance" (clears the radius).
-              const next = miles < 5 ? 10 : miles < 10 ? 25 : miles < 25 ? 50 : null;
-              return (
-                <div className="px-0 lg:px-4">
-                  <BrowseEndCard
-                    onWiden={nearby ? () => filters.setLocationFilter(next ? `nearby:${next}` : "") : undefined}
-                    widenLabel={next ? `Widen to ${next} mi` : "Any distance"}
-                    onAlerts={() => void notifyWhenWorkLands()}
-                  />
-                </div>
-              );
-            })()}
             {/* Infinite scroll sentinel + manual fallback */}
             {hasNextPage && (
               <div ref={loadMoreRef} className="px-4 py-4 flex justify-center">

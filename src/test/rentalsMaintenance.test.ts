@@ -93,6 +93,8 @@ const MEMBER_RPCS = [
   "rentals_add_rent_payment",
   "rentals_decide_rent_payment",
   "rentals_waive_rent_charge",
+  "rentals_correct_rent_payment",
+  "rentals_dispute_rent_payment",
 ];
 /** RPCs that only take access away or link a job (banned / under-18 may still leave). */
 const OTHER_RPCS = ["rentals_end_tenancy", "rentals_withdraw_request", "link_maintenance_request_job", "rentals_admin_review_property",

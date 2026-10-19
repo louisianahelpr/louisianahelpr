@@ -410,7 +410,7 @@ describe("Rentals screens", () => {
     it("an approved owner can sell the home: one Sell this home link per property, to the for-sale editor", async () => {
       state.identity = { verified: true, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
       state.properties = [{ ...NEEDS_PROOF, ownership_status: "approved" }];
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       const sell = await screen.findByRole("link", { name: "Sell this home" });
       expect(sell.getAttribute("href")).toBe("/rentals/listings/new?sell=p1");
     });
@@ -420,7 +420,7 @@ describe("Rentals screens", () => {
       state.properties = [{ ...NEEDS_PROOF, ownership_status: "approved", listings_taken_down_at: "2026-10-19T07:00:00Z",
         listings_taken_down_reason: "Photos do not show this home." }];
       state.myListings = [];
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       expect(await screen.findByText("Listings removed by Louisiana Helpr.")).toBeTruthy();
       expect(screen.getByText(/Photos do not show this home\./)).toBeTruthy();
       expect(screen.queryByRole("link", { name: "Sell this home" })).toBeNull();
@@ -431,7 +431,7 @@ describe("Rentals screens", () => {
       state.properties = [{ ...NEEDS_PROOF, ownership_status: "approved", listings_taken_down_at: null, listings_taken_down_reason: null }];
       state.myListings = [{ id: "l10", kind: "sale", property_id: "p1", unit_id: null, status: "live", removed_by_admin: false,
         removed_reason: null, expires_at: "2026-11-18T00:00:00Z" }];
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       expect(await screen.findByText(/For sale:/)).toBeTruthy();
       expect(screen.queryByText("Listings removed by Louisiana Helpr.")).toBeNull();
       const lib = (await import("node:fs")).readFileSync("src/lib/rentals/listings.ts", "utf8");

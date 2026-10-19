@@ -88,6 +88,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
   ('declutter_set_porch_ok',        'action',   'VOLATILE: the seller sets porch pickup on their own draft and gets the stored value back; a NULL choice raises invalid_porch_choice (row 101; 20261017055504)'),
   ('landlord_id_images_deleted',    'action',   'VOLATILE: the retention sweep stamps a landlord ID review whose photos it removed and reports whether it did (service only; a NULL argument matches no row and answers FALSE; 20261019051407)'),
+  ('money_ref_in_use',              'deny',     'TRUE = this Stripe id is already on a money row, so settle-by-hand refuses it (ref_already_used); its only caller tests it inside IF v_stripe IS NOT NULL, and a NULL ref matches no row (FALSE) (20261019070737)'),
+  ('payout_hold_for_review',        'action',   'VOLATILE: the payout run holds one pending/failed payout or refund for admin review and reports whether it did (service only; a NULL id matches no row and answers FALSE, a NULL kind raises invalid_kind; 20261019070737)'),
   ('declutter_retire_order',        'action',   'VOLATILE: retires an unpaid order whose Stripe page timed out and reports whether it did (service only; a NULL argument matches no order and answers FALSE; 20261014224914)'),
   ('declutter_delivery_slot_ok',    'allow',    'TRUE = a Helpr may pick this delivery order up at this time (seller''s window, before the 7-day deadline; 20261017055505)'),
   ('helpr_task_photo_access',       'allow',    'TRUE = the caller may write (the assigned Helpr, own folder, active task) or read (a party or an admin) this helpr-tasks object (20261017055505)'),

@@ -19,7 +19,7 @@
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     if (why) { |     if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (await handleDeclutterHandRefundFailed(refund, { supabase })) return; |
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     if ((error as { code?: string }).code === "PGRST202") return false; |
- * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (refund.refund_status === "succeeded") return "already"; |
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (refund.refund_status === "succeeded" \|\| refund.refund_status === "held_for_review" \|\| refund.refund_status === "settled_by_hand") return "already"; |
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   const paidAt = new Date((facts.chargedAt ?? event.created) * 1000).toISOString(); |   const paidAt = new Date().toISOString();
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |   if (isDeclutterSession(session)) { |   if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id); |

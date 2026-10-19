@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 836,
-    "files": 208,
-    "rendering": 731,
-    "suppressedByPolicy": 105,
+    "calls": 846,
+    "files": 213,
+    "rendering": 736,
+    "suppressedByPolicy": 110,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 48,
-      "toast.error": 615,
+      "toast.error": 620,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 109,
+      "toast.success": 114,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 402,
+      "literal": 405,
       "template": 96,
-      "dynamic": 385,
+      "dynamic": 392,
       "jsx": 0
     }
   },
@@ -2405,7 +2405,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 155,
+      "line": 156,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2415,7 +2415,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 189,
+      "line": 190,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2425,7 +2425,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 264,
+      "line": 265,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3278,6 +3278,36 @@
       "renders": true
     },
     {
+      "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
+      "line": 77,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "(draft.action === \"release\" ? rpcErrorMessage(\"admin_payout_release\", err) : rpcErrorMessage(\"admin_payout_settle_by_hand\", err)) ?? \"That didn't go through. Try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
+      "line": 83,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "draft.action === \"release\" ? \"Released to the automatic queue.\" : \"Marked settled by hand.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Released to the automatic queue."
+          },
+          {
+            "form": "literal",
+            "text": "Marked settled by hand."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
       "file": "src/components/admin/adminPayoutBatches/usePayoutHolds.ts",
       "line": 62,
       "kind": "toast.error",
@@ -3683,7 +3713,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 76,
+      "line": 77,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -3693,7 +3723,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 79,
+      "line": 80,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3702,18 +3732,49 @@
       "renders": true
     },
     {
-      "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
-      "line": 44,
+      "file": "src/components/admin/settings/HomesListingsCard.tsx",
+      "line": 30,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Taken down. The owner was told why."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/settings/HomesListingsCard.tsx",
+      "line": 33,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "msg"
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
       },
       "renders": true
     },
     {
-      "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
-      "line": 64,
+      "file": "src/components/admin/settings/HomesListingsCard.tsx",
+      "line": 60,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Lifted. The owner can publish again."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/settings/HomesListingsCard.tsx",
+      "line": 63,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3734,7 +3795,38 @@
     },
     {
       "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
-      "line": 125,
+      "line": 47,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
+      "line": 67,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
+      "line": 141,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6336,7 +6428,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 151,
+      "line": 182,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6357,7 +6449,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 156,
+      "line": 187,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6377,7 +6469,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 159,
+      "line": 190,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6398,7 +6490,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 165,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6419,7 +6511,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 224,
+      "line": 263,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6429,7 +6521,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 224,
+      "line": 263,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6439,7 +6531,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 260,
+      "line": 299,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6480,7 +6572,17 @@
     },
     {
       "file": "src/components/rentals/listings/ListingEditor.tsx",
-      "line": 155,
+      "line": 121,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/rentals/listings/ListingEditor.tsx",
+      "line": 124,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6500,8 +6602,18 @@
       "renders": true
     },
     {
-      "file": "src/components/rentals/listings/ListingEditor.tsx",
-      "line": 157,
+      "file": "src/components/rentals/listings/SaleListingEditor.tsx",
+      "line": 89,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/rentals/listings/SaleListingEditor.tsx",
+      "line": 92,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6521,12 +6633,54 @@
       "renders": true
     },
     {
-      "file": "src/components/rentals/listings/ListingEditor.tsx",
-      "line": 218,
+      "file": "src/components/rentals/listings/editorParts.tsx",
+      "line": 65,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/listings/editorParts.tsx",
+      "line": 67,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/listings/editorParts.tsx",
+      "line": 129,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
-        "text": "s === \"live\" ? \"Your listing is showing for 30 days.\" : s === \"paused\" ? \"Paused.\" : s === \"leased\" ? \"Marked as rented.\" : \"Listing removed.\"",
+        "text": "s === \"live\" ? \"Your listing is showing for 30 days.\" : s === \"paused\" ? \"Paused.\" : s === \"leased\" ? \"Marked as rented.\" : s === \"sold\" ? \"Marked as sold.\" : \"Listing removed.\"",
         "branches": [
           {
             "form": "literal",
@@ -6534,7 +6688,7 @@
           },
           {
             "form": "dynamic",
-            "text": "s === \"paused\" ? \"Paused.\" : s === \"leased\" ? \"Marked as rented.\" : \"Listing removed.\"",
+            "text": "s === \"paused\" ? \"Paused.\" : s === \"leased\" ? \"Marked as rented.\" : s === \"sold\" ? \"Marked as sold.\" : \"Listing removed.\"",
             "branches": [
               {
                 "form": "literal",
@@ -6542,15 +6696,25 @@
               },
               {
                 "form": "dynamic",
-                "text": "s === \"leased\" ? \"Marked as rented.\" : \"Listing removed.\"",
+                "text": "s === \"leased\" ? \"Marked as rented.\" : s === \"sold\" ? \"Marked as sold.\" : \"Listing removed.\"",
                 "branches": [
                   {
                     "form": "literal",
                     "text": "Marked as rented."
                   },
                   {
-                    "form": "literal",
-                    "text": "Listing removed."
+                    "form": "dynamic",
+                    "text": "s === \"sold\" ? \"Marked as sold.\" : \"Listing removed.\"",
+                    "branches": [
+                      {
+                        "form": "literal",
+                        "text": "Marked as sold."
+                      },
+                      {
+                        "form": "literal",
+                        "text": "Listing removed."
+                      }
+                    ]
                   }
                 ]
               }
@@ -6561,39 +6725,8 @@
       "renders": false
     },
     {
-      "file": "src/components/rentals/listings/ListingEditor.tsx",
-      "line": 221,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "rentalsErrorMessage(e)",
-        "from": "src/lib/rentals/copy.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "err.words"
-          },
-          {
-            "form": "dynamic",
-            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/rentals/listings/ListingEditor.tsx",
-      "line": 265,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Saved."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/rentals/listings/ListingEditor.tsx",
-      "line": 268,
+      "file": "src/components/rentals/listings/editorParts.tsx",
+      "line": 134,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6871,7 +7004,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 86,
+      "line": 87,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6891,7 +7024,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 91,
+      "line": 92,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6901,7 +7034,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 99,
+      "line": 100,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6911,7 +7044,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 105,
+      "line": 106,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6921,7 +7054,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 177,
+      "line": 178,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6941,7 +7074,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 181,
+      "line": 182,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6951,7 +7084,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 187,
+      "line": 188,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6961,7 +7094,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 192,
+      "line": 193,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6971,7 +7104,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 198,
+      "line": 199,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6981,7 +7114,37 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 202,
+      "line": 203,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopFaqsEditor.tsx",
+      "line": 34,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "n === 0 ? \"Questions removed.\" : \"Questions saved.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Questions removed."
+          },
+          {
+            "form": "literal",
+            "text": "Questions saved."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopFaqsEditor.tsx",
+      "line": 37,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7231,7 +7394,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 133,
+      "line": 134,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7281,7 +7444,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 52,
+      "line": 54,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7291,7 +7454,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 57,
+      "line": 59,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -7311,7 +7474,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 60,
+      "line": 62,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7321,7 +7484,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 138,
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

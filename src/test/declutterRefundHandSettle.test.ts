@@ -9,7 +9,7 @@
  * src/test/pglite/declutterRefundHandSettle.pglite.mjs. Edge side:
  * src/test/edge/declutter-payments.test.ts and src/test/edge/declutter-money.test.ts.
  *
- * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |   ELSIF v_status = 'failed' THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id); |   ELSIF false THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id);
+ * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql |   ELSIF v_status = 'failed' THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id); |   ELSIF false THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id);
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |   IF v_attempts >= 12 THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id); |   IF false THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id);
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |      WHERE d.status = 'failed' AND d.attempts >= 12 |      WHERE d.status = 'failed' AND d.attempts >= 13
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql | v_row.status <> 'succeeded' AND v_covered >= v_row.refund_cents; | v_row.status <> 'succeeded';

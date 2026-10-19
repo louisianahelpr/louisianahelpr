@@ -8,8 +8,8 @@
  * @mutate supabase/functions/_shared/accountPurge.ts |   if (!declutter.ok \|\| declutter.active) return declutter; |   void declutter;
  * @mutate supabase/functions/_shared/accountPurge.ts |     .in("status", ["in_cart", "paid"]) |     .in("status", ["in_cart"])
  * @mutate supabase/functions/_shared/accountPurge.ts |   if (!tasks.ok \|\| tasks.active) return tasks.active ? { ...tasks, detail: `helpr delivery ${tasks.detail}` } : tasks; |   void tasks;
- * @mutate supabase/functions/_shared/accountPurge.ts | userId, ["pending", "failed"]); | userId, ["pending"]);
- * @mutate supabase/functions/_shared/accountPurge.ts |   const pay = await activeHelprRows(admin, "helpr_task_payouts", userId, ["pending", "failed"]); |   const pay = { ok: true, active: false } as ActiveWorkResult;
+ * @mutate supabase/functions/_shared/accountPurge.ts | userId, ["pending", "failed", "held_for_review"]); | userId, ["pending", "held_for_review"]);
+ * @mutate supabase/functions/_shared/accountPurge.ts |   const pay = await activeHelprRows(admin, "helpr_task_payouts", userId, ["pending", "failed", "held_for_review"]); |   const pay = { ok: true, active: false } as ActiveWorkResult;
  *
  * Slice 5 (Helpr delivery): a Helpr mid-delivery (holding someone's item) or
  * with delivery pay still pending cannot delete their account either.

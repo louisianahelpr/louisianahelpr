@@ -40,7 +40,7 @@ export function AppTopBar({
             data-testid="section-add"
             onClick={isPost ? gate.gate("post", go) : go}
             {...(isPost ? gate.gatedProps("post") : {})}
-            className="btn-press w-10 h-10 rounded-full btn-grad-primary flex items-center justify-center"
+            className="btn-press w-10 h-10 rounded-full btn-grad-primary !text-[hsl(var(--parchment))] flex items-center justify-center"
           >
             <Plus className="w-[22px] h-[22px]" strokeWidth={2.4} aria-hidden />
           </button>

@@ -88,7 +88,8 @@ describe("design tweaks (owner 2026-10-18)", () => {
     expect(toolbar).toMatch(/\n\s*<CategoryChipRow\n/);
     expect(toolbar).not.toMatch(/selectedCategory\s*&&\s*\(?\s*<CategoryChipRow/);
     expect(rule(".category-chip-row,\n.chip-row")).toMatch(/mask-image:\s*linear-gradient/);
-    expect((code("src/components/declutter/DeclutterHomeView.tsx").match(/className="chip-row"/g) ?? []).length).toBeGreaterThan(1);
+    // Declutter's distance chips moved into the slide-up filter sheet behind ONE compact search row (owner 2026-10-19).
+    expect(code("src/components/declutter/DeclutterBrowseBar.tsx")).toMatch(/aria-label="Search items"[\s\S]*<SlidersHorizontal/);
   });
 
   it("T8: cards and buttons dip under the finger, never under Reduce Motion", () => {
@@ -109,7 +110,8 @@ describe("design tweaks (owner 2026-10-18)", () => {
     expect(nav).not.toMatch(/<Plus\b/);
     expect(nav).not.toMatch(/Post a new job/);
     const pills: Array<[string, RegExp]> = [
-      ["src/components/declutter/DeclutterHomeView.tsx", /<SectionActionPill[\s\S]{0,120}?Sell an item/],
+      // Declutter's add action is the top bar's "+" (owner final decisions 2026-10-19).
+      ["src/components/declutter/DeclutterHomeView.tsx", /<SectionScreen title="Declutter" add=\{sectionByKey\("declutter"\)\.add\}/],
       ["src/components/shops/ShopDashboardView.tsx", /<SectionActionPill[\s\S]{0,200}Open a shop/],
       ["src/components/rentals/RentalsHomeView.tsx", /<SectionActionPill[\s\S]{0,120}?Add a property/],
       ["src/pages/posts/PostedJobsTab.tsx", /<SectionActionPill[\s\S]{0,160}?Post a job/],

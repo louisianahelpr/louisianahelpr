@@ -58,6 +58,14 @@ vi.mock("@/components/AppPage", () => ({
     </main>
   ),
 }));
+vi.mock("@/components/sections/SectionScreen", () => ({
+  SectionScreen: ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <main>
+      <h1>{title}</h1>
+      {children}
+    </main>
+  ),
+}));
 vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchHasAgreedSales: async () => false,
@@ -93,6 +101,11 @@ import { useUserLocation } from "@/hooks/useUserLocation";
 import { __resolveRationale } from "@/hooks/usePermissionRationale";
 
 const getCurrentPosition = vi.fn();
+
+/** Where the miles come from and "Use my location" live in Browse's slide-up filter sheet (owner 2026-10-19). */
+async function openFilters() {
+  fireEvent.click(await screen.findByRole("button", { name: /^Filters/ }));
+}
 
 function at(path: string, el: React.ReactNode, route = path.split("?")[0]) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -167,6 +180,7 @@ describe("Declutter location ask", () => {
 
   it("landing on Browse asks for nothing; 'Use my location' asks with Declutter's own words", async () => {
     at("/declutter", <DeclutterPage />);
+    await openFilters();
     const use = await screen.findByRole("button", { name: "Use my location" });
     expect(screen.queryByRole("alertdialog")).toBeNull();
     expect(getCurrentPosition).not.toHaveBeenCalled();
@@ -183,6 +197,7 @@ describe("Declutter location ask", () => {
 
   it("a refused ask says so, and the screen gives the reason", async () => {
     at("/declutter", <DeclutterPage />);
+    await openFilters();
     fireEvent.click(await screen.findByRole("button", { name: "Use my location" }));
     await screen.findByRole("alertdialog");
     act(() => __resolveRationale(false));
@@ -194,6 +209,7 @@ describe("Declutter location ask", () => {
 
   it("'Not now' is not the end: the member can ask again, and the dialog opens again only on that tap (findings 2, 7)", async () => {
     const view = at("/declutter", <DeclutterPage />);
+    await openFilters();
     fireEvent.click(await screen.findByRole("button", { name: "Use my location" }));
     await screen.findByRole("alertdialog");
     act(() => __resolveRationale(false));
@@ -217,6 +233,7 @@ describe("Declutter location ask", () => {
   it("a ZIP on file that could not be placed is never told to 'add your ZIP code' (finding 6)", async () => {
     account.profile = { zip_code: "70808" };
     at("/declutter", <DeclutterPage />);
+    await openFilters();
     expect(await screen.findByText(/couldn't find the area for the ZIP code on your profile/)).toBeInTheDocument();
     expect(screen.queryByText(/add your ZIP code/i)).toBeNull();
   });

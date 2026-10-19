@@ -61,6 +61,12 @@ vi.mock("@/components/sections/useSectionPrefs", async () => {
 import { coerceMessageSection, messageSectionTabs, threadsForSection } from "@/components/messages/messageSections";
 import { useMessageSections } from "@/pages/messages/useMessageSections";
 import { ConversationList } from "@/components/messages/ConversationList";
+// The phone header is the shared AppTopBar since Q2231; its bell and avatar
+// need the app's providers, and this file tests the list, not the bar.
+vi.mock("@/components/sections/AppTopBar", () => ({
+  AppTopBar: ({ title }: { title?: string }) => <header data-testid="app-top-bar"><h1>{title}</h1></header>,
+}));
+
 
 afterEach(() => {
   cleanup();
@@ -161,14 +167,15 @@ describe("the screen", () => {
     expect(screen.getByText("No Declutter messages yet")).toBeInTheDocument();
     expect(screen.queryByText("No messages yet")).toBeNull();
     expect(screen.queryByRole("button", { name: /conversation filters|filter conversations/i })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: /^(Active|All)/ })).toBeNull();
     expect(document.getElementById("inbox-filter-tabs")).toBeNull();
   });
 
   it("the Jobs tab keeps the Jobs empty state, whose action goes to Jobs > Browse", () => {
     renderList(null);
     expect(screen.getByText("No messages yet")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Filter conversations" }));
-    expect(document.getElementById("inbox-filter-tabs")).not.toBeNull();
+    // Phone (Q2231): Active / All are reachable from the search row's more menu.
+    expect(screen.getByRole("button", { name: "More conversation options" })).toBeTruthy();
   });
 
   it("Messages.tsx hands the list the tab's threads, never the raw inbox", () => {

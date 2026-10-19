@@ -1142,13 +1142,14 @@ export function ConversationList({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {INBOX_TAB_ORDER.map((key) => (
+        {/* No Active / All on a section with no threads (as before Q2231). */}
+        {!sectionEmpty && INBOX_TAB_ORDER.map((key) => (
           <DropdownMenuItem key={key} onClick={() => setInboxFilter(key)}>
             <Check className={`w-4 h-4 mr-2 ${inboxTab === key ? "" : "invisible"}`} aria-hidden />
             {INBOX_TAB_LABEL[key]}
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator />
+        {!sectionEmpty && <DropdownMenuSeparator />}
         {hasThreads && (
           <DropdownMenuItem onClick={enterSelectMode}>
             <CheckSquare className="w-4 h-4 mr-2" />

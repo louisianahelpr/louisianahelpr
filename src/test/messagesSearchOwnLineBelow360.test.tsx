@@ -1,32 +1,16 @@
 /**
- * MESSAGES SEARCH BELOW 360px OPENS ON ITS OWN LINE (Q143).
+ * MESSAGES SEARCH ON A PHONE: ITS OWN SLIM ROW, AT EVERY PHONE WIDTH.
  *
- * Owner decision 2026-09-23 (docs/OPEN.md MORNING QUESTIONS, Q48 option D):
- * below 360px the Messages search opens on its own line, where the Active/All
- * tab strip sits, full width; 375 and up unchanged.
- *
- * Why: at 320 the header row cannot hold a typable field beside the cluster.
- * With the magnifier's slot held open the field measured 90px against the
- * 120px floor (MIN_TYPABLE_FIELD_PX); without the slot the ✕ sat 28px over the
- * returning magnifier (e2e/prod-audit/expanding-search-geometry.spec.ts, the
- * failing messages@320 case).
- *
- * jsdom has no layout, so this pins the ARRANGEMENT the geometry depends on —
- * which parent the field is in at each width — and the browser spec measures
- * the pixels (field width, ✕ vs magnifier, overflow) at 320 / 375 / 1440:
- *   320 (max-width: 359px matches): the field is in [data-search-own-line],
- *       NOT in the header row; the header row keeps its visible name, holds the
- *       magnifier's slot, and keeps the hamburger;
- *   375 (no match): the field is in the header row (ScreenHeaderRow's
- *       expandingSearch), and there is no own line.
+ * Q143 (owner, 2026-09-23) put the search field on its own line below 360px,
+ * because the header row had no room for it at 320. Q2231 (owner, 2026-10-19)
+ * finished that thought for every phone width: the top bar is the shared
+ * AppTopBar (title · bell · profile), and the search field is ALWAYS on its
+ * own slim row under the section tabs, with the one "more" menu inside it. So
+ * at 320 and at 375 alike: the field is in the search row, nothing searchable
+ * is in the top bar, and there is no magnifier to press.
  */
-// PROOF THIS GUARD CAN FAIL (npm run vacuity):
-// the own-line arrangement never switches on (the 320 case fails);
-// @mutate src/components/messages/useSearchOnOwnLine.ts | const SEARCH_OWN_LINE_QUERY = "(max-width: 359px)"; | const SEARCH_OWN_LINE_QUERY = "(max-width: 1px)";
-// the field is left in the row as well as on the line (the 320 case fails);
-// @mutate src/components/messages/ConversationList.tsx | open: searchOpen && !selectMode && !searchOnOwnLine, | open: searchOpen && !selectMode,
-// the own line also opens at 375 (the 375 case fails).
-// @mutate src/components/messages/ConversationList.tsx | const searchOnOwnLine = useSearchOnOwnLine() && !isWebDesktop; | const searchOnOwnLine = !isWebDesktop;
+// @mutate src/components/messages/ConversationList.tsx |   const headerEl = phoneTopBar && !selectMode ? ( |   const headerEl = false ? (
+// @mutate src/components/messages/ConversationList.tsx |       {phoneSearchRow}\n | \n
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -43,6 +27,12 @@ vi.mock("@/lib/haptics", () => ({
 
 import { ConversationList } from "@/components/messages/ConversationList";
 import type { Conversation } from "@/components/messages/types";
+// The phone header is the shared AppTopBar since Q2231; its bell and avatar
+// need the app's providers, and this file tests the list, not the bar.
+vi.mock("@/components/sections/AppTopBar", () => ({
+  AppTopBar: ({ title }: { title?: string }) => <header data-testid="app-top-bar"><h1>{title}</h1></header>,
+}));
+
 
 /** A phone viewport `width` px wide: answers max-/min-width queries honestly. */
 function setViewport(width: number) {
@@ -75,7 +65,7 @@ const THREADS: Conversation[] = [
   },
 ];
 
-function openSearch() {
+function renderInbox() {
   render(
     <MemoryRouter>
       <ConversationList
@@ -91,18 +81,6 @@ function openSearch() {
       />
     </MemoryRouter>,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Search conversations" }));
-  return screen.getByRole("searchbox", { name: "Search conversations" });
-}
-
-/** The header row: the nearest ancestor of the h1 that also holds the hamburger. */
-function headerRow(): HTMLElement {
-  const h1 = screen.getByRole("heading", { level: 1, name: "Messages" });
-  const menu = screen.getByRole("button", { name: "Conversation list options" });
-  let n: HTMLElement | null = h1.parentElement;
-  while (n && !n.contains(menu)) n = n.parentElement;
-  if (!n) throw new Error("no header row holds both the h1 and the hamburger");
-  return n;
 }
 
 afterEach(() => {
@@ -110,38 +88,20 @@ afterEach(() => {
   setViewport(1024);
 });
 
-describe("Messages search below 360px opens on its own line (Q143)", () => {
-  it("320: the field is on its own line, and the header row stays at rest", () => {
-    setViewport(320);
-    const field = openSearch();
-    const line = document.querySelector<HTMLElement>("[data-search-own-line]");
-    expect(line, "no own search line at 320").not.toBeNull();
-    expect(line!.contains(field)).toBe(true);
-    const row = headerRow();
-    expect(row.contains(field), "the field is still in the header row at 320").toBe(false);
-    // The row at rest: the visible h1 (not the sr-only open-row twin), the
-    // held magnifier slot, and the hamburger all still there.
-    expect(within(row).getByRole("heading", { level: 1 }).className).not.toContain("sr-only");
-    expect(row.querySelectorAll("[data-search-trigger-slot]")).toHaveLength(1);
-    expect(within(row).getByRole("button", { name: "Conversation list options" })).toBeTruthy();
-    // And the ✕ is on the line, not the row.
-    expect(within(line!).getByRole("button", { name: "Close search" })).toBeTruthy();
-  });
-
-  it("375: unchanged — the field opens in the header row, no own line", () => {
-    setViewport(375);
-    const field = openSearch();
-    expect(document.querySelector("[data-search-own-line]")).toBeNull();
-    const h1 = screen.getByRole("heading", { level: 1, name: "Messages" });
-    expect(h1.className).toContain("sr-only");
-    expect(h1.parentElement!.contains(field)).toBe(true);
-  });
-
-  it("closing from the own line puts the magnifier back and removes the line", () => {
-    setViewport(320);
-    openSearch();
-    fireEvent.click(screen.getByRole("button", { name: "Close search" }));
-    expect(document.querySelector("[data-search-own-line]")).toBeNull();
-    expect(screen.getByRole("button", { name: "Search conversations" })).toBeTruthy();
-  });
+describe("Messages search on a phone: its own slim row (Q143 -> Q2231)", () => {
+  for (const width of [320, 375]) {
+    it(`${width}: the field is in the search row, never in the top bar, with no magnifier to press`, () => {
+      setViewport(width);
+      renderInbox();
+      const row = screen.getByTestId("messages-search-row");
+      const field = within(row).getByRole("searchbox", { name: "Search conversations" });
+      expect(field).toBeTruthy();
+      expect(within(row).getByRole("button", { name: "More conversation options" })).toBeTruthy();
+      expect(screen.getByTestId("app-top-bar").contains(field)).toBe(false);
+      expect(screen.queryByRole("button", { name: "Search conversations" })).toBeNull();
+      fireEvent.change(field, { target: { value: "faucet" } });
+      expect((field as HTMLInputElement).value).toBe("faucet");
+      expect(within(row).getByRole("button", { name: "Clear search" })).toBeTruthy();
+    });
+  }
 });

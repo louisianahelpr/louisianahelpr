@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 829,
-    "files": 204,
-    "rendering": 725,
+    "calls": 831,
+    "files": 205,
+    "rendering": 727,
     "suppressedByPolicy": 104,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 46,
-      "toast.error": 611,
+      "toast.error": 613,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -19,8 +19,8 @@
     },
     "copyPiecesByForm": {
       "literal": 399,
-      "template": 94,
-      "dynamic": 382,
+      "template": 95,
+      "dynamic": 383,
       "jsx": 0
     }
   },
@@ -3703,7 +3703,17 @@
     },
     {
       "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
-      "line": 24,
+      "line": 44,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
+      "line": 64,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3724,11 +3734,22 @@
     },
     {
       "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
-      "line": 41,
+      "line": 125,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "msg"
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
       },
       "renders": true
     },
@@ -6140,6 +6161,36 @@
       "renders": true
     },
     {
+      "file": "src/components/rentals/LandlordIdReview.tsx",
+      "line": 100,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Sent. Our team will check it."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/rentals/LandlordIdReview.tsx",
+      "line": 106,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${words} Your ID was sent for review; only the ownership proof didn't go through."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LandlordIdReview.tsx",
+      "line": 108,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "words"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/rentals/MaintenanceRequestForm.tsx",
       "line": 48,
       "kind": "toast.success",
@@ -6244,17 +6295,17 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 73,
+      "line": 75,
       "kind": "toast.success",
       "title": {
         "form": "literal",
-        "text": "Property added. Next: add your ownership proof."
+        "text": "Property added. Next: send your ownership proof for review."
       },
       "renders": false
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 76,
+      "line": 78,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6275,17 +6326,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 136,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Proof sent. An admin will check it."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 139,
+      "line": 143,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6306,28 +6347,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 147,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "rentalsErrorMessage(e)",
-        "from": "src/lib/rentals/copy.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "err.words"
-          },
-          {
-            "form": "dynamic",
-            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 152,
+      "line": 148,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6347,7 +6367,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 155,
+      "line": 151,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6368,7 +6388,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 160,
+      "line": 157,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6389,7 +6409,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 222,
+      "line": 210,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6399,7 +6419,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 222,
+      "line": 210,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6409,7 +6429,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 257,
+      "line": 246,
       "kind": "toast.error",
       "title": {
         "form": "literal",

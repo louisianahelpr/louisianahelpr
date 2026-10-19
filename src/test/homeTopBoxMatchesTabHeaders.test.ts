@@ -49,10 +49,12 @@ describe("Home's top box is the same height as Posts/Jobs/Messages (Q1540)", () 
     expect(src("src/components/dashboard/DashboardTitleBar.tsx")).toMatch(/<NotificationPanel triggerClassName="h-11 w-11" \/>/);
   });
 
-  it("the guest Home and the /home route skeleton pass the shared padding to their title card", () => {
+  it("the guest Home passes the shared padding to its title card", () => {
     // The guest Home only since 2026-10-19 (Q2205): the signed-in feed is Jobs > Browse now, under the section's
-    // own top bar (Dashboard.tsx passes titleCardClassName=""), and its standalone title bar was deleted.
-    for (const f of ["src/pages/home/DashboardGuest.tsx", "src/components/DashboardRouteSkeleton.tsx"]) {
+    // own top bar (Dashboard.tsx passes titleCardClassName=""), and its standalone title bar was deleted. The
+    // /home route skeleton left this list with Q2214: it mirrors the Home dashboard's AppTopBar now
+    // (src/test/routeSkeletonMirrorsItsTitleBar.test.ts), not a title card.
+    for (const f of ["src/pages/home/DashboardGuest.tsx"]) {
       expect(src(f), f).toMatch(/titleCardClassName=\{TITLE_BAR_PADDING\}/);
     }
   });

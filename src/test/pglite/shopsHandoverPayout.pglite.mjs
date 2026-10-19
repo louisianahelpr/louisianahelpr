@@ -7,11 +7,15 @@
  *   node src/test/pglite/shopsHandoverPayout.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/shopsHandoverPayout.pglite.mjs   # RED: the checks fail
  *   MIGRATION_PATH=<planted copy> node src/test/pglite/shopsHandoverPayout.pglite.mjs
+ *   FREE_CANCEL=skip node src/test/pglite/shopsHandoverPayout.pglite.mjs   # RED: section 8 on M2's own window (an early ready tap)
+ *   FREE_CANCEL_PATH=<planted copy> node src/test/pglite/shopsHandoverPayout.pglite.mjs
  *
  * Setup copied from shopsOrders.pglite.mjs (prod-shaped stubs, prod's default
  * function ACL, shops slices 1-2, categories v2, M1 + its strike count ONCE as
  * prod has them), plus Declutter's fee-debt ledger and declutter_consume_fee_debt
- * from its newest definition, then this migration 3x.
+ * from its newest definition, then this migration 3x, then
+ * 20261019013802_shop_free_cancel_ready_tap_day_before 3x (owner 2026-10-19: a ready
+ * tap ends free cancel only from the day before the ready date).
  */
 import { readFileSync, readdirSync } from "node:fs";
 import os from "node:os";
@@ -24,6 +28,7 @@ const CATEGORIES = readFileSync(`${MIG_DIR}20261017224153_shop_categories_v2.sql
 const M1 = readFileSync(`${MIG_DIR}20261018164442_shops_orders_checkout.sql`, "utf8");
 const M1_STRIKES = readFileSync(`${MIG_DIR}20261018164444_shops_own_strike_count.sql`, "utf8");
 const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261018211820_shops_handover_payout.sql`, "utf8");
+const FREE_CANCEL = readFileSync(process.env.FREE_CANCEL_PATH ?? `${MIG_DIR}20261019013802_shop_free_cancel_ready_tap_day_before.sql`, "utf8");
 const SLICE1 = readFileSync(`${MIG_DIR}20261017061155_shops_profiles.sql`, "utf8");
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
 const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sql`, "utf8");
@@ -179,6 +184,7 @@ await db.exec(newestDefinition("declutter_consume_fee_debt").stmt);
 const skip = process.env.NEW_MIGRATION === "skip";
 if (!skip) {
   for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
+  if (process.env.FREE_CANCEL !== "skip") for (let i = 0; i < 3; i++) await db.exec(FREE_CANCEL);
 }
 
 async function as(role, uid, sql) {
@@ -445,10 +451,20 @@ const oC1 = await charged(BUYER, 1, D2);
 ok(oC1 && one(await svc(`SELECT cancel_policy FROM public.shop_orders WHERE id = '${oC1}'`)) === "until_handover", "setup: an accepted, charged order under 'until_handover'");
 ok(!skip && await freeUntil(oC1) === await dayStart(oC1) && !(await closed(oC1)),
   "until_handover: an accepted order cancels free until its ready date begins (not later)");
+// The day before the ready date (Louisiana time): the ready date is tomorrow.
+await svc(`UPDATE public.shop_orders SET ready_date = ((now() AT TIME ZONE 'America/Chicago')::date + 1) WHERE id = '${oC1}'`);
 await member(OWNER, `SELECT public.shops_mark_ready('${oC1}', NULL)`);
 const readyAt1 = one(await svc(`SELECT ready_at::text FROM public.shop_handovers WHERE order_id = '${oC1}'`));
 ok(!skip && typeof readyAt1 === "string" && await freeUntil(oC1) === readyAt1 && await closed(oC1),
-  "until_handover: the shop's ready tap (in person, no photo) closes free cancel at once, before the ready date");
+  "until_handover: the shop's ready tap on the day before the ready date (in person, no photo) closes free cancel at once");
+// Owner 2026-10-19 ~01:30Z (Q2155): a ready tap counts only from the day before the ready date.
+const oE = await charged(BUYER, 1, D2);
+await svc(`UPDATE public.shop_orders SET ready_date = ((now() AT TIME ZONE 'America/Chicago')::date + 3) WHERE id = '${oE}'`);
+await member(OWNER, `SELECT public.shops_mark_ready('${oE}', NULL)`);
+const tappedE = one(await svc(`SELECT ready_at IS NOT NULL FROM public.shop_handovers WHERE order_id = '${oE}'`)) === true;
+const dayBeforeE = one(await svc(`SELECT (((ready_date - 1)::timestamp AT TIME ZONE 'America/Chicago'))::text FROM public.shop_orders WHERE id = '${oE}'`));
+ok(!skip && tappedE && !(await closed(oE)) && await freeUntil(oE) === dayBeforeE,
+  "until_handover: an early ready tap (3 days before the ready date) leaves free cancel open until the day before begins (M2's window closed it at the tap)");
 const oC2 = await charged(BUYER, 1, D2);
 await svc(`UPDATE public.shop_orders SET ready_date = ((now() AT TIME ZONE 'America/Chicago')::date - 1) WHERE id = '${oC2}'`);
 ok(!skip && await closed(oC2) && one(await svc(`SELECT status FROM public.shop_orders WHERE id = '${oC2}'`)) === "accepted",

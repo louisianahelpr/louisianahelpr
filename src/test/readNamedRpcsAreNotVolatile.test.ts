@@ -33,11 +33,12 @@
 // Shown able to fail: strip the STABLE promise off the LATEST declaration of a
 // read-named function and this guard must name it. (It has also failed for
 // real twice — see the header and the commit that added it.)
+// @mutate supabase/migrations/20261019043416_feature_switches_for_me.sql | STABLE\nSECURITY INVOKER | VOLATILE\nSECURITY INVOKER
 // @mutate supabase/migrations/20261015034233_payout_batches_flat_fee.sql | STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT\n    j.helper_id, | VOLATILE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT\n    j.helper_id,
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { READ_NAMED_BUT_VOLATILE } from "../../e2e/readRpc";
+import { READ_NAMED_BUT_VOLATILE, READ_RPCS_BY_NAME } from "../../e2e/readRpc";
 
 const MIGRATIONS = join(process.cwd(), "supabase/migrations");
 
@@ -124,6 +125,19 @@ describe("read-named RPCs are declared read-only", () => {
     ).toEqual([]);
   });
 
+  it("every read listed BY NAME (READ_RPCS_BY_NAME) exists and its newest declaration is STABLE or IMMUTABLE", () => {
+    expect(READ_RPCS_BY_NAME.size).toBeGreaterThan(5);
+    const latest = new Map<string, { migration: string; header: string }>();
+    for (const d of all.filter((x) => READ_RPCS_BY_NAME.has(x.name))) {
+      const prev = latest.get(d.name);
+      if (!prev || d.migration > prev.migration) latest.set(d.name, d);
+    }
+    const missing = [...READ_RPCS_BY_NAME].filter((n) => !latest.has(n) || ((dropped.get(n) ?? "") > latest.get(n)!.migration));
+    expect(missing, "listed as reads but not defined by any migration (or dropped since)").toEqual([]);
+    const notStable = [...latest].filter(([, d]) => !/\b(STABLE|IMMUTABLE)\b/i.test(d.header)).map(([n, d]) => `${n} (${d.migration})`);
+    expect(notStable, "listed as reads in e2e/readRpc.ts READ_RPCS_BY_NAME but not declared STABLE/IMMUTABLE").toEqual([]);
+  });
+
   it("every REFUSED_ANYWAY name is also refused by the harness firewall", async () => {
     const { isReadRpcPath } = await import("../../e2e/readRpc");
     for (const name of REFUSED_ANYWAY) {
@@ -134,5 +148,8 @@ describe("read-named RPCs are declared read-only", () => {
     expect(isReadRpcPath("/rest/v1/rpc/get_payout_batches")).toBe(true);
     expect(isReadRpcPath("/rest/v1/rpc/accept_application")).toBe(false);
     expect(isReadRpcPath("/rest/v1/rpc/mark_applications_viewed")).toBe(false);
+    // A by-name read passes; a name that only CONTAINS one does not.
+    expect(isReadRpcPath("/rest/v1/rpc/feature_enabled_for")).toBe(true);
+    expect(isReadRpcPath("/rest/v1/rpc/feature_enabled_for_user")).toBe(false);
   });
 });

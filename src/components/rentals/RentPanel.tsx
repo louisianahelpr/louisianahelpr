@@ -50,6 +50,7 @@ import {
   type RentPlan,
 } from "@/lib/rentals/rent";
 import { saveRentReceipt } from "@/lib/rentals/rentReceipt";
+import { RentBankPanel } from "./RentBankPanel";
 import { fieldSelectClass } from "./rentalsUi";
 
 const rentKey = (tenancyId: string) => ["rent-ledger", tenancyId];
@@ -451,6 +452,7 @@ export function RentPanel({ tenancyId }: { tenancyId: string }) {
       {l.side === "landlord" && l.tenancy_status === "active" && (editing || !l.plan) && (
         <PlanForm tenancyId={tenancyId} plan={l.plan} leaseEndsOn={l.lease_ends_on} onDone={done} />
       )}
+      {l.plan && l.tenancy_status === "active" && <RentBankPanel tenancyId={tenancyId} side={l.side} balanceCents={l.balance_cents} />}
       {paying && l.plan && l.open && <PaymentForm tenancyId={tenancyId} side={l.side} methods={l.plan.pay_methods} onDone={done} />}
       <div className="flex flex-wrap gap-2">
         {l.plan && l.open && !paying && (

@@ -566,3 +566,49 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_autopay_due() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rentals_autopay_due() TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- 9. What the rent card shows about bank pay (either side of the tenancy): on or off, who pays the bank
+--    cost, whether the landlord's payouts are on (landlord only), the tenant's autopay (tenant only: the
+--    bank's label, never an id), and a bank payment in flight.
+CREATE OR REPLACE FUNCTION public.rentals_bank_state(p_tenancy_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid;
+  v_t public.rental_tenancies%ROWTYPE;
+  v_side text;
+  v_plan public.rental_rent_plans%ROWTYPE;
+  v_a public.rental_rent_autopay%ROWTYPE;
+BEGIN
+  PERFORM public.require_feature('rentals');
+  v_uid := (SELECT auth.uid());
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO v_t FROM public.rental_tenancies WHERE id = p_tenancy_id;
+  v_side := CASE WHEN v_t.landlord_id = v_uid THEN 'landlord' WHEN v_t.tenant_id = v_uid THEN 'tenant' END;
+  IF v_side IS NULL THEN
+    RAISE EXCEPTION 'tenancy_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  SELECT * INTO v_plan FROM public.rental_rent_plans WHERE tenancy_id = p_tenancy_id;
+  SELECT * INTO v_a FROM public.rental_rent_autopay WHERE tenancy_id = p_tenancy_id;
+  RETURN jsonb_build_object(
+    'bank_pay', COALESCE(v_plan.bank_pay, false),
+    'fee_payer', COALESCE(v_plan.bank_fee_payer, 'tenant'),
+    'payouts_ready', CASE WHEN v_side = 'landlord' THEN EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id = v_uid
+                            AND pr.stripe_account_id IS NOT NULL AND pr.stripe_payouts_enabled) END,
+    'autopay', CASE WHEN v_side = 'tenant' THEN jsonb_build_object('enabled', COALESCE(v_a.enabled, false), 'bank_label', v_a.bank_label)
+                    ELSE jsonb_build_object('enabled', COALESCE(v_a.enabled, false)) END,
+    'in_flight', (SELECT jsonb_build_object('status', b.status, 'rent_cents', b.rent_cents, 'charge_cents', b.charge_cents, 'started_at', b.created_at)
+                    FROM public.rental_rent_bank_payments b
+                   WHERE b.tenancy_id = p_tenancy_id AND (b.status = 'processing' OR (b.status = 'open' AND b.created_at > now() - interval '35 minutes'))
+                   ORDER BY b.created_at DESC LIMIT 1));
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_bank_state(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.rentals_bank_state(uuid) TO authenticated, service_role;

@@ -234,6 +234,11 @@ ok(refused(await start(TENANT, tA, 120000 * 2 + 1), /bad_rent_payment/), "at mos
 const b1 = rows(await start(TENANT, tA, 120000))[0]?.r;
 ok(b1?.rent_cents === 120000 && b1.fee_cents === 500 && b1.charge_cents === 120500 && b1.transfer_cents === 120000, "tenant pays the cost: the bank is debited $1,205, the landlord gets $1,200");
 ok(refused(await start(TENANT, tA, 1000), /bank_payment_in_flight/), "one bank payment in flight at a time");
+const stT = one(await as("authenticated", TENANT, `SELECT public.rentals_bank_state('${tA}')`));
+const stL = one(await as("authenticated", LANDLORD, `SELECT public.rentals_bank_state('${tA}')`));
+ok(stT?.bank_pay === true && stT.fee_payer === "tenant" && stT.in_flight?.charge_cents === 120500 && stT.payouts_ready === null
+  && stL?.payouts_ready === true && !("bank_label" in (stL.autopay ?? {})), "the card's bank state: on, who pays, the payment in flight; payouts only to the landlord");
+ok(refused(await as("authenticated", STRANGER, `SELECT public.rentals_bank_state('${tA}')`), /tenancy_not_found/), "a stranger sees none of it");
 ok(refused(await as("authenticated", TENANT, `SELECT * FROM public.rental_rent_bank_payments`), /permission denied/), "no client reads the bank table");
 ok(refused(await as("authenticated", TENANT, `SELECT public.rentals_bank_rent_succeeded('pi_x')`), /permission denied/), "no member can mark a payment paid");
 

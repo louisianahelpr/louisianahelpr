@@ -1133,11 +1133,6 @@ export const RPC_ERROR_COPY = {
     under_18: RC.under_18,
     charge_not_found: RC.charge_not_found,
   },
-  rentals_rent_ledger: {
-    feature_disabled: RC.feature_disabled,
-    not_authenticated: RC.not_authenticated,
-    tenancy_not_found: RC.tenancy_not_found,
-  },
   rentals_correct_rent_payment: {
     account_restricted: RC.account_restricted,
     feature_disabled: RC.feature_disabled,
@@ -1187,15 +1182,6 @@ export const RPC_ERROR_COPY = {
     deposit_settled: RC.deposit_settled,
     tenancy_not_ended: RC.tenancy_not_ended,
     bad_settlement: RC.bad_settlement,
-  },
-  rentals_deposit: {
-    feature_disabled: RC.feature_disabled,
-    not_authenticated: RC.not_authenticated,
-    tenancy_not_found: RC.tenancy_not_found,
-  },
-  rentals_my_ended_deposits: {
-    feature_disabled: RC.feature_disabled,
-    not_authenticated: RC.not_authenticated,
   },
   rentals_submit_ownership_proof: {
     account_restricted: RC.account_restricted,

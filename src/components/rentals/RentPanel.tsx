@@ -121,7 +121,7 @@ function PlanForm({ tenancyId, plan, leaseEndsOn, onDone }: { tenancyId: string;
       <label className="block text-xs text-muted-foreground" htmlFor={`first-${tenancyId}`}>
         First due date{frequency === "monthly" ? " (day 1 to 28, so every month has it)" : ""}
       </label>
-      <Input id={`first-${tenancyId}`} type="date" min={centralToday()} value={first} onChange={(e) => setFirst(e.target.value)} required />
+      <Input className="min-w-0" id={`first-${tenancyId}`} type="date" min={centralToday()} value={first} onChange={(e) => setFirst(e.target.value)} required />
       <div className="flex gap-2">
         <Input aria-label="Grace days" inputMode="numeric" placeholder="Grace days" value={grace} onChange={(e) => setGrace(e.target.value)} />
         <Input aria-label="Late fee in dollars" inputMode="decimal" placeholder="Late fee ($)" value={fee} onChange={(e) => setFee(e.target.value)} />
@@ -130,6 +130,7 @@ function PlanForm({ tenancyId, plan, leaseEndsOn, onDone }: { tenancyId: string;
         Lease ends (optional, at least 30 days from today)
       </label>
       <Input
+        className="min-w-0"
         id={`lease-${tenancyId}`}
         type="date"
         min={lease !== "" && lease === leaseEndsOn ? undefined : leaseMin}
@@ -188,7 +189,7 @@ function PaymentForm({ tenancyId, side, methods, onDone }: { tenancyId: string; 
     >
       <div className="flex gap-2">
         <Input aria-label="Amount paid in dollars" inputMode="decimal" placeholder="Amount ($)" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-        <Input aria-label="Date paid" type="date" max={centralToday()} value={paidOn} onChange={(e) => setPaidOn(e.target.value)} required />
+        <Input className="min-w-0 flex-1" aria-label="Date paid" type="date" max={centralToday()} value={paidOn} onChange={(e) => setPaidOn(e.target.value)} required />
       </div>
       <select aria-label="How it was paid" className={fieldSelectClass} value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
         {options.map((o) => (
@@ -265,10 +266,10 @@ function CorrectForm({ p, onDone }: { p: RentPayment; onDone: () => void }) {
   });
   const ready = reason.trim().length >= 3 && !m.isPending;
   return (
-    <div className="mt-2 space-y-2 rounded-xl bg-muted px-3 py-2" aria-label="Fix this payment">
+    <div role="group" className="mt-2 space-y-2 rounded-xl bg-muted px-3 py-2" aria-label="Fix this payment">
       <div className="flex gap-2">
         <Input aria-label="Correct amount in dollars" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
-        <Input aria-label="Correct date paid" type="date" max={centralToday()} value={paidOn} onChange={(e) => setPaidOn(e.target.value)} />
+        <Input className="min-w-0 flex-1" aria-label="Correct date paid" type="date" max={centralToday()} value={paidOn} onChange={(e) => setPaidOn(e.target.value)} />
       </div>
       <Input aria-label="Why it changes" placeholder="Why (your tenant sees it)" value={reason} onChange={(e) => setReason(e.target.value)} />
       <div className="flex flex-wrap gap-2">
@@ -294,7 +295,7 @@ function DisputeForm({ p, onDone }: { p: RentPayment; onDone: () => void }) {
     onError: (e) => toast.error(rentalsErrorMessage(e)),
   });
   return (
-    <div className="mt-2 space-y-2 rounded-xl bg-muted px-3 py-2" aria-label="Dispute this payment">
+    <div role="group" className="mt-2 space-y-2 rounded-xl bg-muted px-3 py-2" aria-label="Dispute this payment">
       <Input aria-label="Why you dispute it" placeholder="What happened (your landlord sees it)" value={reason} onChange={(e) => setReason(e.target.value)} />
       <Button type="button" size="sm" disabled={reason.trim().length < 3 || m.isPending} onClick={() => m.mutate()}>
         Send dispute
@@ -406,7 +407,7 @@ export function RentPanel({ tenancyId }: { tenancyId: string }) {
     void qc.invalidateQueries({ queryKey: rentKey(tenancyId) });
   };
   if (q.isError) return <p className="text-xs text-muted-foreground">Couldn't load the rent record.</p>;
-  if (!q.data) return <div className="h-10 animate-pulse rounded-xl bg-muted" aria-label="Loading rent" />;
+  if (!q.data) return <div role="status" className="h-10 animate-pulse rounded-xl bg-muted" aria-label="Loading rent" />;
   const l = q.data;
   // An ended tenancy that never had rent tracked has no rent card.
   if (l.tenancy_status === "ended" && !l.plan && l.charges.length === 0 && l.payments.length === 0) return null;

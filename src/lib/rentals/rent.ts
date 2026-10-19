@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { RentalsCopyError } from "./copy";
+import { unwrap } from "@/lib/supabaseResult";
 
 export type RentFrequency = "weekly" | "biweekly" | "monthly";
 export type PayMethod = "zelle" | "venmo" | "cashapp" | "cash" | "check" | "money_order";
@@ -40,7 +41,7 @@ export interface RentPlan {
   pay_methods: PayMethod[];
   next_due_on: string | null;
 }
-export interface RentCharge {
+interface RentCharge {
   id: string;
   kind: "rent" | "late_fee";
   due_on: string;
@@ -85,8 +86,8 @@ export interface RentLedger {
 }
 
 export async function fetchRentLedger(tenancyId: string): Promise<RentLedger> {
-  const { data, error } = await supabase.rpc("rentals_rent_ledger", { p_tenancy_id: tenancyId });
-  if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_rent_ledger", error), error);
+  // A read: a failure shows the panel's own load-error line, so it throws through unwrap() (status kept, Q1182).
+  const data = unwrap(await supabase.rpc("rentals_rent_ledger", { p_tenancy_id: tenancyId }));
   const l = (data ?? {}) as unknown as Partial<RentLedger>;
   return {
     side: l.side === "landlord" ? "landlord" : "tenant",
@@ -115,7 +116,8 @@ export interface RentPlanInput {
 }
 
 export async function setRentPlan(tenancyId: string, plan: RentPlanInput): Promise<void> {
-  const { error } = await supabase.rpc("rentals_set_rent_plan", { p_tenancy_id: tenancyId, p_fields: plan as unknown as Json });
+  const fields = plan as unknown as Json;
+  const { error } = await supabase.rpc("rentals_set_rent_plan", { p_tenancy_id: tenancyId, p_fields: fields });
   if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_set_rent_plan", error), error);
 }
 
@@ -281,8 +283,8 @@ export interface DepositRecord {
 }
 
 export async function fetchDeposit(tenancyId: string): Promise<DepositRecord> {
-  const { data, error } = await supabase.rpc("rentals_deposit", { p_tenancy_id: tenancyId });
-  if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_deposit", error), error);
+  // A read: a failure shows the panel's own load-error line, so it throws through unwrap() (status kept, Q1182).
+  const data = unwrap(await supabase.rpc("rentals_deposit", { p_tenancy_id: tenancyId }));
   const d = (data ?? {}) as unknown as Partial<DepositRecord>;
   return {
     side: d.side === "landlord" ? "landlord" : "tenant",
@@ -317,10 +319,11 @@ export async function setForwardingAddress(tenancyId: string, address: string): 
 
 /** Final: what was returned, and each amount kept with its reason (the itemized statement the tenant gets). */
 export async function settleDeposit(tenancyId: string, returnedCents: number, deductions: DepositDeduction[], returnedOn: string): Promise<void> {
+  const items = deductions as unknown as Json;
   const { error } = await supabase.rpc("rentals_settle_deposit", {
     p_tenancy_id: tenancyId,
     p_returned_cents: returnedCents,
-    p_deductions: deductions as unknown as Json,
+    p_deductions: items,
     p_returned_on: returnedOn,
   });
   if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_settle_deposit", error), error);
@@ -335,7 +338,7 @@ export interface EndedDeposit {
   settled: boolean;
 }
 export async function fetchMyEndedDeposits(): Promise<EndedDeposit[]> {
-  const { data, error } = await supabase.rpc("rentals_my_ended_deposits");
-  if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_my_ended_deposits", error), error);
+  // A read: a failure shows the panel's own load-error line, so it throws through unwrap() (status kept, Q1182).
+  const data = unwrap(await supabase.rpc("rentals_my_ended_deposits"));
   return (data ?? []) as EndedDeposit[];
 }

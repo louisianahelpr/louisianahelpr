@@ -44,6 +44,14 @@ interface PageHeaderProps {
    * which is what makes the title block absorb `var(--safe-area-top)` below.
    */
   titleActions?: ReactNode;
+  /**
+   * Phone only: the h1 is read by screen readers but not painted, so the title
+   * row is just back + titleActions and the content below is the hero (the
+   * Declutter item page, owner 2026-10-19, as on Marketplace / Mercari). From
+   * sm it shows as usual. The large-titles compact bar still shows it after
+   * scrolling, since it reads the h1's text.
+   */
+  phoneHidesTitle?: boolean;
   hideBack?: boolean;
   /**
    * Keep the back button's BOX when `hideBack` is set, empty and inert.
@@ -192,7 +200,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
 // `meta` stays destructured-but-unpainted per the 2026-08-13 owner decision
 // recorded in the retirement note below (title only; ~15 call sites still pass it).
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hideBack = false, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
+const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phoneHidesTitle = false, hideBack = false, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
   // `eyebrow` is accepted by PageHeaderProps for call-site compatibility but
   // intentionally not destructured/rendered — see the removal note below.
   const { outer, inner } = WIDTH_CLASS[width];
@@ -324,7 +332,7 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hide
                   Prop kept for the same reason as `eyebrow`: ~15 call sites
                   pass it, and neither churning them nor breaking their types
                   buys anything. One line restores it. */}
-              <h1 className="text-page-title leading-tight truncate">
+              <h1 className={`text-page-title leading-tight truncate${phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
                 {title}
               </h1>
             </div>

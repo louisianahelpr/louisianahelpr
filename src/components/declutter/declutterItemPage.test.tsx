@@ -15,6 +15,10 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const barShown = useOffScreen(buttons); |   const barShown = false;
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   useDockYield(barShown && !underAge && item.status === "live"); |   void underAge;
  * @mutate src/lib/declutter/api.ts |   const row = pickRequestedProfile(rows, sellerId) | const row = rows[0]
+ * @mutate src/components/declutter/DeclutterItemView.tsx |       phoneHidesTitle\n |
+ * @mutate src/components/PageHeader.tsx | ${phoneHidesTitle ? " max-sm:sr-only" : ""} | ${phoneHidesTitle ? "" : ""}
+ * @mutate src/components/AppPage.tsx | rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} /> | rightSlot={titleActions} />
+ * @mutate src/components/profile/ProfileTabHeader.tsx |         phoneHidesTitle={phoneHidesTitle}\n |
  * @mutate src/lib/declutter/api.ts |       .eq("seller_id", sellerId) |       .neq("seller_id", "")
  * @mutate src/lib/declutter/api.ts |       .neq("seller_id", sellerId) |       .neq("seller_id", "")
  * @mutate src/components/declutter/DeclutterItemRows.tsx | (rows ?? []).filter((r) => r.seller_id !== viewerId) | (rows ?? [])
@@ -56,9 +60,9 @@ vi.mock("@/hooks/useUserLocation", () => ({
   deriveFallbackLocation: async () => null,
 }));
 vi.mock("@/components/AppPage", () => ({
-  default: ({ title, children, titleActions }: { title: string; children: React.ReactNode; titleActions?: React.ReactNode }) => (
+  default: ({ title, children, titleActions, phoneHidesTitle }: { title: string; children: React.ReactNode; titleActions?: React.ReactNode; phoneHidesTitle?: boolean }) => (
     <main>
-      <h1>{title}</h1>
+      <h1 data-phone-hides-title={phoneHidesTitle ? "" : undefined}>{title}</h1>
       {titleActions}
       {children}
     </main>
@@ -104,6 +108,8 @@ vi.mock("@/lib/declutter/api", async () => {
 vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 
 import DeclutterItemPage from "@/pages/declutter/DeclutterItemPage";
+import PageHeader from "@/components/PageHeader";
+import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 import * as api from "@/lib/declutter/api";
 
@@ -257,5 +263,24 @@ describe("the photo-first Declutter item page", () => {
     calls.length = 0;
     await r.fetchSimilarItemsReal("furniture", ID, "u2");
     expect(calls).toEqual(expect.arrayContaining([["eq", ["category", "furniture"]], ["in", ["status", ["live", "reserved"]]], ["neq", ["id", ID]], ["neq", ["seller_id", "u2"]]]));
+  });
+  it("phone header: back + share + heart only (the h1 stays for screen readers), the full title under the price", async () => {
+    open();
+    expect(await screen.findByRole("heading", { name: "Oak rocking chair", level: 1 })).toHaveAttribute("data-phone-hides-title");
+    expect(screen.getByRole("heading", { name: "Oak rocking chair", level: 2 })).toBeInTheDocument();
+  });
+
+  it("PageHeader / ProfileTabHeader: phoneHidesTitle hides the h1 below sm only; without it nothing changes", () => {
+    const { unmount } = render(<MemoryRouter><ProfileTabHeader title="A long item title" backTo="/declutter" phoneHidesTitle /></MemoryRouter>);
+    expect(screen.getByRole("heading", { name: "A long item title" }).className).toMatch(/(^|\s)max-sm:sr-only(\s|$)/);
+    unmount();
+    render(<MemoryRouter><PageHeader title="Plain title" /></MemoryRouter>);
+    expect(screen.getByRole("heading", { name: "Plain title" }).className).not.toMatch(/sr-only/);
+  });
+
+  it("the real AppPage passes phoneHidesTitle down to the header", async () => {
+    const { default: RealAppPage } = await vi.importActual<typeof import("@/components/AppPage")>("@/components/AppPage");
+    render(<MemoryRouter><RealAppPage title="Real page title" phoneHidesTitle><p>body</p></RealAppPage></MemoryRouter>);
+    expect(screen.getByRole("heading", { name: "Real page title" }).className).toMatch(/(^|\s)max-sm:sr-only(\s|$)/);
   });
 });

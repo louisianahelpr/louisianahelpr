@@ -7775,6 +7775,148 @@ export type Database = {
         }
         Relationships: []
       }
+      rental_rent_charges: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          due_on: string
+          id: string
+          kind: string
+          rent_charge_id: string | null
+          tenancy_id: string
+          waived_at: string | null
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          due_on: string
+          id?: string
+          kind: string
+          rent_charge_id?: string | null
+          tenancy_id: string
+          waived_at?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          due_on?: string
+          id?: string
+          kind?: string
+          rent_charge_id?: string | null
+          tenancy_id?: string
+          waived_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_rent_charges_rent_charge_id_fkey"
+            columns: ["rent_charge_id"]
+            isOneToOne: false
+            referencedRelation: "rental_rent_charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_rent_charges_tenancy_id_fkey"
+            columns: ["tenancy_id"]
+            isOneToOne: false
+            referencedRelation: "rental_tenancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_rent_payments: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          decided_at: string | null
+          decline_reason: string | null
+          id: string
+          method: string
+          paid_on: string
+          reported_by: string
+          status: string
+          tenancy_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          decided_at?: string | null
+          decline_reason?: string | null
+          id?: string
+          method: string
+          paid_on: string
+          reported_by: string
+          status?: string
+          tenancy_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          decided_at?: string | null
+          decline_reason?: string | null
+          id?: string
+          method?: string
+          paid_on?: string
+          reported_by?: string
+          status?: string
+          tenancy_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_rent_payments_tenancy_id_fkey"
+            columns: ["tenancy_id"]
+            isOneToOne: false
+            referencedRelation: "rental_tenancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_rent_plans: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          first_due_on: string
+          frequency: string
+          grace_days: number
+          late_fee_cents: number
+          pay_methods: string[]
+          reminded_for: string | null
+          tenancy_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          first_due_on: string
+          frequency: string
+          grace_days?: number
+          late_fee_cents?: number
+          pay_methods?: string[]
+          reminded_for?: string | null
+          tenancy_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          first_due_on?: string
+          frequency?: string
+          grace_days?: number
+          late_fee_cents?: number
+          pay_methods?: string[]
+          reminded_for?: string | null
+          tenancy_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_rent_plans_tenancy_id_fkey"
+            columns: ["tenancy_id"]
+            isOneToOne: true
+            referencedRelation: "rental_tenancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rental_tenancies: {
         Row: {
           accepted_at: string | null
@@ -13133,6 +13275,15 @@ export type Database = {
         Args: { p_listing_id: string; p_storage_path: string }
         Returns: string
       }
+      rentals_add_rent_payment: {
+        Args: {
+          p_amount_cents: number
+          p_method: string
+          p_paid_on: string
+          p_tenancy_id: string
+        }
+        Returns: string
+      }
       rentals_add_unit: {
         Args: { p_label: string; p_property_id: string }
         Returns: string
@@ -13231,6 +13382,10 @@ export type Database = {
           p_zip_code: string
         }
         Returns: string
+      }
+      rentals_decide_rent_payment: {
+        Args: { p_payment_id: string; p_reason?: string; p_received: boolean }
+        Returns: undefined
       }
       rentals_decline_request: {
         Args: {
@@ -13441,6 +13596,10 @@ export type Database = {
         Args: { p_photo_id: string }
         Returns: string
       }
+      rentals_rent_ledger: {
+        Args: { p_tenancy_id: string }
+        Returns: Json
+      }
       rentals_request_job_state: {
         Args: { p_request_id: string }
         Returns: {
@@ -13463,6 +13622,10 @@ export type Database = {
       }
       rentals_set_listing_status: {
         Args: { p_listing_id: string; p_status: string }
+        Returns: undefined
+      }
+      rentals_set_rent_plan: {
+        Args: { p_fields: Json; p_tenancy_id: string }
         Returns: undefined
       }
       rentals_submit_landlord_id: {
@@ -13496,6 +13659,10 @@ export type Database = {
           proposed_for: string
           request_id: string
         }[]
+      }
+      rentals_waive_rent_charge: {
+        Args: { p_charge_id: string }
+        Returns: undefined
       }
       rentals_withdraw_request: {
         Args: { p_request_id: string }

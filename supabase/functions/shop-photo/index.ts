@@ -63,17 +63,18 @@ function notFound(): Response {
 
 // Storage answered neither the resized nor a servable original: the photo
 // exists (the lookup found its path), so every visitor sees a broken image.
-// One Slack alert a day, not one per image. Deduped HERE, per isolate, before
+// One Slack alert a day, not one per image. Deduped HERE, per isolate (24 h), before
 // postSlackOpsAlert writes its ledger row (it writes one per call even when
 // oncePerDayKey then suppresses the post), and fired without awaiting so a
 // failing page never waits on Slack.
 type EdgeRuntimeLike = { waitUntil?: (p: Promise<unknown>) => void };
-let lastAlertDay = "";
+let lastAlertAt = 0;
+const ALERT_EVERY_MS = 24 * 60 * 60 * 1000;
 
 function alertStorage(status: number, why: string): void {
-  const day = new Date().toISOString().slice(0, 10);
-  if (lastAlertDay === day) return;
-  lastAlertDay = day;
+  const now = Date.now();
+  if (now - lastAlertAt < ALERT_EVERY_MS) return;
+  lastAlertAt = now;
   const run = postSlackOpsAlert({
     kind: "custom",
     severity: "warning",

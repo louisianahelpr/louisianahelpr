@@ -25,7 +25,7 @@
 // @mutate supabase/functions/shop-photo/index.ts | &quality=80&format=origin` | &quality=80`
 // @mutate supabase/functions/shop-photo/index.ts |     if (og && !type.startsWith("image/jpeg")) { |     if (false) {
 // @mutate supabase/functions/shop-photo/index.ts | maxRequests: 1200, ipMaxRequests: 6000, | maxRequests: 300, ipMaxRequests: 300,
-// @mutate supabase/functions/shop-photo/index.ts |   if (lastAlertDay === day) return;\n |
+// @mutate supabase/functions/shop-photo/index.ts |   if (now - lastAlertAt < ALERT_EVERY_MS) return;\n |
 // @mutate supabase/functions/shop-photo/index.ts |         alertStorage(upstream.status, "render refused a link-card image"); |         await alertStorage(upstream.status, "render refused a link-card image");
 // @mutate supabase/functions/shop-photo/index.ts |   const width = og ? (asked === OG_HEIGHT ? OG_HEIGHT : 1200) : | const width =
 // @mutate src/lib/shops/publicShop.ts |   if (!isShopId(shopId)) return null;\n |
@@ -120,8 +120,8 @@ describe("SH2b: shops_public_shop is the anon read, and only the page's fields",
     // #6 the alert is fired, not awaited, and deduped before postSlackOpsAlert writes its row.
     expect(edge).not.toMatch(/await alertStorage\(/);
     const fn = edge.slice(edge.indexOf("function alertStorage("), edge.indexOf("function unavailable("));
-    expect(fn.indexOf("if (lastAlertDay === day) return;")).toBeGreaterThan(0);
-    expect(fn.indexOf("if (lastAlertDay === day) return;")).toBeLessThan(fn.indexOf("postSlackOpsAlert("));
+    expect(fn.indexOf("if (now - lastAlertAt < ALERT_EVERY_MS) return;")).toBeGreaterThan(0);
+    expect(fn.indexOf("if (now - lastAlertAt < ALERT_EVERY_MS) return;")).toBeLessThan(fn.indexOf("postSlackOpsAlert("));
     expect(fn).not.toMatch(/\bawait\b/);
   });
 

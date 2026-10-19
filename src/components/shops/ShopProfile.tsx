@@ -191,7 +191,7 @@ export function ShopItemsGrid({ items }: { items: (Omit<ShopItem, "photos"> & { 
                 {cover ? (
                   <img src={itemSrc(cover)} alt="" loading="lazy" className="h-full w-full object-cover" />
                 ) : (
-                  <ShoppingBag className="h-8 w-8 text-muted-foreground/60" aria-hidden />
+                  <ShoppingBag className="h-8 w-8 text-muted-foreground" aria-hidden />
                 )}
               </div>
               <div className="space-y-0.5 p-2.5">

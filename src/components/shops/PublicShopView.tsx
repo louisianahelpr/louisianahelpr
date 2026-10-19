@@ -48,7 +48,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
           // A plain 44px round button (the tap-target minimum), not <Button size="icon"> (56px swamps a 160px cover).
           <button
             type="button"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-background/90 text-foreground shadow-md backdrop-blur transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-background/90 text-foreground shadow-md backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Share this shop"
             onClick={() => void shareShop(shop)}
           >

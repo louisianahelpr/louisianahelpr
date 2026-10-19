@@ -57,6 +57,7 @@ export const NOT_MATCHED = {
   "stuck_payment_stripe_checks.stripe_session_id": "a cache of Stripe's answer about jobs.stripe_session_id, rewritten every 15 minutes by stuck-payment-check; the job row is the record",
   "stuck_payment_stripe_checks.payment_intent_id": "the session's PaymentIntent as stuck-payment-check last read it, for the alert text only; jobs.stripe_payment_intent_id is the matched record",
   "jobs.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through jobs.stripe_payment_intent_id",
+  "rental_rent_charges.rent_charge_id": "not a Stripe id: a late-fee row's link to the rent row it is for (Homes rent tracker, 20261019073106, pay direct; no money moves through the app)",
   "declutter_buyer_cards.stripe_customer_id": "a saved card's Stripe customer (row 36); no money moves on it, nothing to restore",
   "stripe_customers.stripe_customer_id": "one wallet (20261018090700): the member's Stripe customer per mode; customer linkage, not a money movement, nothing to restore",
   "declutter_orders.stripe_checkout_session_id": "a Checkout Session; its PaymentIntent is declutter_orders.stripe_payment_intent_id",

@@ -102,6 +102,9 @@ const VISIT_RPCS = ["rentals_propose_visit", "rentals_confirm_visit", "rentals_c
 /** Shared helpers this migration restates with their live grants (authenticated keeps EXECUTE). */
 const SHARED_RESTATED = ["is_submitted_credential_object"];
 const POLICY_HELPERS = ["rentals_caller_is_active_tenant_of"];
+/** Never switch-gated by design (20261019062540): the public link (anyone with it, signed out too; it checks the
+ *  switch audience itself) and the admin take-down (moderation works whatever the audience). */
+const UNGATED = ["rentals_public_listing", "rentals_admin_remove_listing"];
 const INTERNAL = ["rentals_assert_member", "rentals_notify", "rentals_end_tenancy_on_tenant_delete"];
 const TABLES = ["rental_properties", "rental_units", "rental_tenancies", "maintenance_requests", "maintenance_request_photos"];
 
@@ -123,7 +126,7 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
     expect(DEFS.has("rentals_file_request")).toBe(true);
     expect(callable.size).toBeGreaterThan(10);
     expect(LATER.length).toBeGreaterThan(1);
-    expect([...callable].sort()).toEqual([...MEMBER_RPCS, ...OTHER_RPCS, ...READ_RPCS, ...VISIT_RPCS, ...POLICY_HELPERS, ...SHARED_RESTATED].sort());
+    expect([...callable].sort()).toEqual([...MEMBER_RPCS, ...OTHER_RPCS, ...READ_RPCS, ...VISIT_RPCS, ...POLICY_HELPERS, ...SHARED_RESTATED, ...UNGATED].sort());
   });
 
   it("1. every client-callable Rentals RPC starts with require_feature('rentals')", () => {

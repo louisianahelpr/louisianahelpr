@@ -112,6 +112,8 @@ export const SHOPS_RPC_ERROR_COPY = {
     shop_strikes_blocked: SC.shop_strikes_blocked,
     under_18: SC.under_18,
   },
+  // Raises nothing: every refusal is the same NULL (20261019042744).
+  shops_public_shop: {},
   shops_remove_item_photo: {
     account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,

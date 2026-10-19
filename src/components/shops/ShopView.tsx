@@ -15,45 +15,18 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { MapPin, Store } from "lucide-react";
+import { Printer, Share2 } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchShop, setShopFollow, setShopPaused, shopPhotoUrl, type ShopPage } from "@/lib/shops/api";
+import { fetchShop, setShopFollow, setShopPaused, shopPhotoUrl } from "@/lib/shops/api";
+import { shareShop } from "@/lib/shops/publicShop";
+import { saveShopFlyer } from "@/lib/shops/shopFlyer";
 import { shopsErrorMessage } from "@/lib/shops/errors";
-import { categoryLabel, ShopBadgeList, ShopRating, ShopsNotice, useShopCategories, WEEKDAYS } from "./shopsUi";
+import { categoryLabel, ShopsNotice, useShopCategories } from "./shopsUi";
+import { ShopCard, ShopGallery, ShopHero, ShopHoursCard } from "./ShopProfile";
 import ShopItemsList from "./ShopItemsList";
 import ShopOrderSheet from "./ShopOrderSheet";
-
-function hoursText(h: { opens: string; closes: string }): string {
-  const fmt = (t: string) => {
-    const [hh, mm] = t.split(":").map(Number);
-    const ampm = hh >= 12 ? "PM" : "AM";
-    const h12 = hh % 12 === 0 ? 12 : hh % 12;
-    return mm ? `${h12}:${String(mm).padStart(2, "0")} ${ampm}` : `${h12} ${ampm}`;
-  };
-  return `${fmt(h.opens)} to ${fmt(h.closes)}`;
-}
-
-function OpeningHours({ shop }: { shop: ShopPage }) {
-  if (shop.hours.length === 0) return null;
-  return (
-    <section className="space-y-2" aria-labelledby="shop-hours">
-      <h2 id="shop-hours" className="text-sm font-semibold">Open days and hours</h2>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-        {WEEKDAYS.map((day, i) => {
-          const today = shop.hours.filter((h) => h.weekday === i);
-          return (
-            <div key={day} className="contents">
-              <dt className="text-muted-foreground">{day}</dt>
-              <dd>{today.length ? today.map(hoursText).join(", ") : "Closed"}</dd>
-            </div>
-          );
-        })}
-      </dl>
-    </section>
-  );
-}
 
 function ShopSkeleton() {
   return (
@@ -98,9 +71,9 @@ export default function ShopView() {
     );
   }
   const s = shop.data;
-  const cover = s.photos.find((p) => p.kind === "cover");
   const logo = s.photos.find((p) => p.kind === "logo");
-  const gallery = s.photos.filter((p) => p.kind === "gallery");
+  const catLabel = categoryLabel(categories.data, s.category);
+  const shareable = { id: s.id, name: s.name, category_label: catLabel, area_label: s.area_label };
   return (
     <AppPage
       title={s.name}
@@ -130,7 +103,7 @@ export default function ShopView() {
         )
       }
     >
-      <div className="space-y-5 pb-6">
+      <div className="space-y-4 pb-6">
         {s.mine && s.hidden && (
           <ShopsNotice title="Louisiana Helpr has hidden your shop." tone="warn">
             <p>{s.hidden_reason}</p>
@@ -138,69 +111,66 @@ export default function ShopView() {
         )}
         {s.paused && (
           <ShopsNotice title={s.mine ? "Your shop is paused." : "This shop is paused for now."}>
-            {s.mine && <p>Members can still see it. Open it again when you're back.</p>}
+            {s.mine && <p>Members can still see it, but your shared link says it isn't available until you open it again.</p>}
           </ShopsNotice>
         )}
-        <div className="relative">
-          <div className="h-36 w-full overflow-hidden rounded-2xl bg-muted">
-            {cover ? <img src={shopPhotoUrl(cover.storage_path)} alt="" className="h-full w-full object-cover" /> : null}
-          </div>
-          <div className="absolute -bottom-6 left-4 h-16 w-16 overflow-hidden rounded-2xl border-4 border-background bg-card flex items-center justify-center">
-            {logo ? (
-              <img src={shopPhotoUrl(logo.storage_path)} alt={`${s.name} logo`} className="h-full w-full object-cover" />
-            ) : (
-              <Store className="h-7 w-7 text-muted-foreground" aria-hidden />
-            )}
-          </div>
-        </div>
-        <div className="pt-4 space-y-2">
-          <p className="text-sm text-muted-foreground">{categoryLabel(categories.data, s.category)}</p>
-          <p className="flex items-center gap-1 text-sm">
-            <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-            <span className="min-w-0 break-words">{s.area_label}{s.storefront ? " (storefront)" : ""}</span>
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <ShopRating rating={s.rating} count={s.review_count} />
-            <span className="text-xs text-muted-foreground">
-              {s.follower_count === 1 ? "1 follower" : `${s.follower_count} followers`}
-            </span>
-          </div>
-          <ShopBadgeList badges={s.badges} />
-        </div>
+        <ShopHero
+          name={s.name}
+          categoryLabel={catLabel}
+          areaLabel={s.area_label}
+          storefront={s.storefront}
+          photos={s.photos}
+          rating={s.rating}
+          reviewCount={s.review_count}
+          badges={s.badges}
+          hours={s.hours}
+          actions={
+            <>
+              <Button type="button" variant="outline" className="rounded-full" onClick={() => void shareShop(shareable)}>
+                <Share2 className="mr-1.5 h-4 w-4" aria-hidden />
+                {s.mine ? "Share my shop" : "Share"}
+              </Button>
+              {s.mine && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-full"
+                  onClick={() => void saveShopFlyer({ ...shareable, logoUrl: logo ? shopPhotoUrl(logo.storage_path) : null }).catch((e) => toast.error(shopsErrorMessage(e)))}
+                >
+                  <Printer className="mr-1.5 h-4 w-4" aria-hidden />
+                  Print a sign
+                </Button>
+              )}
+            </>
+          }
+        />
+        <p className="px-1 text-xs text-muted-foreground">
+          {s.follower_count === 1 ? "1 follower" : `${s.follower_count} followers`}
+        </p>
         {s.about && (
-          <section className="space-y-1" aria-labelledby="shop-about">
-            <h2 id="shop-about" className="text-sm font-semibold">About</h2>
+          <ShopCard id="shop-about" title="About">
             <p className="text-sm whitespace-pre-line break-words">{s.about}</p>
-          </section>
-        )}
-        {s.parishes_served.length > 0 && (
-          <section className="space-y-1" aria-labelledby="shop-parishes">
-            <h2 id="shop-parishes" className="text-sm font-semibold">Parishes served</h2>
-            <p className="text-sm break-words">{s.parishes_served.join(", ")}</p>
-          </section>
-        )}
-        <OpeningHours shop={s} />
-        {gallery.length > 0 && (
-          <section className="space-y-2" aria-labelledby="shop-photos">
-            <h2 id="shop-photos" className="text-sm font-semibold">Photos</h2>
-            <ul className="grid grid-cols-3 gap-2">
-              {gallery.map((p) => (
-                <li key={p.id} className="aspect-square overflow-hidden rounded-xl bg-muted">
-                  <img src={shopPhotoUrl(p.storage_path)} alt="" loading="lazy" className="h-full w-full object-cover" />
-                </li>
-              ))}
-            </ul>
-          </section>
+          </ShopCard>
         )}
         {s.offers_selling && <ShopItemsList shopId={s.id} />}
         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />}
-        <section className="space-y-1" aria-labelledby="shop-offers">
-          <h2 id="shop-offers" className="text-sm font-semibold">What this shop offers</h2>
+        <ShopHoursCard hours={s.hours} />
+        {s.parishes_served.length > 0 && (
+          <ShopCard id="shop-parishes" title="Parishes served">
+            <ul className="flex flex-wrap gap-1.5">
+              {s.parishes_served.map((p) => (
+                <li key={p} className="rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs">{p}</li>
+              ))}
+            </ul>
+          </ShopCard>
+        )}
+        <ShopGallery photos={s.photos} />
+        <ShopCard id="shop-offers" title="What this shop offers">
           <p className="text-sm text-muted-foreground">
             {s.offers_selling && s.offers_quotes ? "Sells items and gives quotes." : s.offers_selling ? "Sells items." : "Gives quotes."}
             {s.offers_quotes ? " Quotes open here soon." : ""}
           </p>
-        </section>
+        </ShopCard>
         {s.mine && (
           <Button type="button" variant="outline" disabled={pause.isPending} onClick={() => pause.mutate(!s.paused)}>
             {s.paused ? "Open my shop again" : "Pause my shop (vacation)"}

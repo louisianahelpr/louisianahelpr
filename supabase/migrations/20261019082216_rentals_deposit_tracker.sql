@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS public.rental_deposits (
   CONSTRAINT rental_deposits_settled CHECK ((settled_at IS NULL) = (returned_cents IS NULL) AND (settled_at IS NULL) = (returned_on IS NULL))
 );
 ALTER TABLE public.rental_deposits ENABLE ROW LEVEL SECURITY;
+-- Q807: the table refuses a write from a session whose email is not confirmed.
+SELECT public.attach_unconfirmed_email_gate();
 REVOKE ALL ON TABLE public.rental_deposits FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.rental_deposits TO service_role;
 -- No client SELECT: the forwarding address is shown to the landlord only once the tenancy ended, so every

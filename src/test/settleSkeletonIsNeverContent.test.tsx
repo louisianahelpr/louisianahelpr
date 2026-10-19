@@ -5,7 +5,7 @@
  *
  * scripts/audit/measure-page-settle.mjs counts a page's repeated items to find
  * how many waves it arrived in. ProfilePageSkeleton is DATA-AWARE: it draws the
- * real Work group (WORK_MENU_GROUP through SettingsGroup) with real text and no
+ * real Account group (was Work until 2026-10-19) (ACCOUNT_MENU_GROUP through SettingsGroup) with real text and no
  * bone inside any row, so the sampler counted those rows as the page arriving.
  * /profile then read as two waves (skeleton rows, then the page) whenever the
  * page landed more than WAVE_MERGE_MS after its skeleton: seen 1 run in 4 on
@@ -31,7 +31,7 @@ import { SETTLE_INIT, SKELETON_SCOPE_SEL } from "../../scripts/audit/measure-pag
 import { PLACEHOLDER_SEL } from "../../scripts/audit/measure-loading-states.mjs";
 import { ProfilePageSkeleton } from "@/components/profile/ProfilePageSkeleton";
 import { SettingsGroup } from "@/components/profile/profileLanding/SettingsSection";
-import { WORK_MENU_GROUP } from "@/components/profile/profileLanding/workMenuGroup";
+import { ACCOUNT_MENU_GROUP } from "@/components/profile/profileLanding/workMenuGroup";
 
 type Settle = { counts: { n: number; added?: string[] }[] };
 const settle = () => (window as unknown as { __settle: Settle }).__settle;
@@ -89,15 +89,15 @@ describe("page-settle: a skeleton is never content", () => {
     expect(SETTLE_INIT.toString()).toContain(SKELETON_SCOPE_SEL);
   });
 
-  it("does NOT count ProfilePageSkeleton's real-text Work rows (the /profile two-waves finding)", () => {
+  it("does NOT count ProfilePageSkeleton's real-text Account rows (the /profile two-waves finding)", () => {
     const r = itemsIn(<ProfilePageSkeleton />);
-    // Non-vacuous: the skeleton really does draw the Work group's text.
-    expect(r.text).toContain(WORK_MENU_GROUP.items[0].label);
+    // Non-vacuous: the skeleton really does draw the Account group's text.
+    expect(r.text).toContain(ACCOUNT_MENU_GROUP.items[0].label);
     expect(r, `counted skeleton rows: ${r.added.join(" | ")}`).toMatchObject({ n: 0 });
   });
 
-  it("DOES count the same Work rows when they are the page (the sampler is live)", () => {
-    const r = itemsIn(<div className="space-y-4"><SettingsGroup group={WORK_MENU_GROUP} /></div>);
+  it("DOES count the same Account rows when they are the page (the sampler is live)", () => {
+    const r = itemsIn(<div className="space-y-4"><SettingsGroup group={ACCOUNT_MENU_GROUP} /></div>);
     expect(r.n).toBeGreaterThan(1);
   });
 

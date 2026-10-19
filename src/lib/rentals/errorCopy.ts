@@ -68,7 +68,6 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   bad_status: "That change isn't possible for this listing now. Refresh and try again.",
   // Homes -> Buy (20261019061241).
   property_already_listed: "This home already has a for-sale listing. Open that one instead.",
-  property_not_found: "We couldn't find that property on your account.",
   listing_fee_not_ready: "Listing a home for sale isn't open yet. We'll let you know here when it is.",
   sale_wording_flagged: "Some words can't be shown on a for-sale listing. Give one price and describe the home, not who may live there.",
 };

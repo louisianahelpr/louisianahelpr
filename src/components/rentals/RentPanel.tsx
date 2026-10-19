@@ -327,7 +327,11 @@ function PaymentRow({ l, p, onDone }: { l: RentLedger; p: RentPayment; onDone: (
               {correctionLine(c)}
             </span>
           ))}
-          {p.dispute_reason && <span className="block text-xs">Disputed by the tenant: {p.dispute_reason}</span>}
+          {p.disputes.map((d) => (
+            <span key={d.at} className="block text-xs">
+              Disputed by the tenant: {d.reason}
+            </span>
+          ))}
         </span>
         <span className="flex shrink-0 gap-1">
           {p.status === "confirmed" && (

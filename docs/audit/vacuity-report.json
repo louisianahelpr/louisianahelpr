@@ -1,10 +1,11 @@
 {
-  "generated": "2026-10-19T18:26:53.261Z",
-  "guards": 2094,
-  "registered": 2094,
+  "generated": "2026-10-19T19:46:09.243Z",
+  "guards": 2101,
+  "registered": 2101,
   "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/test/browseEndCard.test.tsx"
   ],
   "classD_selfReferential": [
     {

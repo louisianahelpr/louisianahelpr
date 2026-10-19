@@ -22,7 +22,7 @@
  * measured 2026-10-15).
  */
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql | VALUES ('rentals', 'off', | VALUES ('rentals', 'testers',
-// @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql |   IF v_status <> 'approved' THEN\n    RAISE EXCEPTION 'ownership_not_approved' |   IF false THEN\n    RAISE EXCEPTION 'ownership_not_approved'
+// @mutate supabase/migrations/20261019021418_rentals_identity_either_verdict_paid_idv.sql |   IF v_status <> 'approved' THEN\n    RAISE EXCEPTION 'ownership_not_approved' |   IF false THEN\n    RAISE EXCEPTION 'ownership_not_approved'
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql |   v_auto := p_urgency <> 'emergency' AND v_p.auto_approve_limit_cents IS NOT NULL; |   v_auto := v_p.auto_approve_limit_cents IS NOT NULL;
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql |   IF public.member_under_18(v_uid) THEN |   IF false THEN
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) FROM PUBLIC, anon;

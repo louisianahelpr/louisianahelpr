@@ -22,7 +22,7 @@
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |   const cancelJob = useMutation({ mutationFn: () => cancelRequestJob(id), | const cancelJob = useMutation({ mutationFn: async () => undefined,
  * @mutate src/components/rentals/MaintenanceRequestView.tsx | r.visit_job_id != null && r.visit_job_id === r.job_id ? r.visit_proposed_for : null; | r.visit_job_id != null ? r.visit_proposed_for : null;
  * @mutate src/components/rentals/MaintenanceRequestView.tsx | onClick={() => okVisit.mutate(visitAt)}> | onClick={() => okVisit.mutate(new Date().toISOString())}>
- * @mutate src/components/rentals/RentalsHomeView.tsx |       if (isIdentityNotVerified(e)) onNeedsId(); |       void onNeedsId;
+ * @mutate src/components/rentals/RentalsHomeView.tsx | onDone();\n    },\n    onError: (e) => {\n      toast.error(rentalsErrorMessage(e));\n      if (isIdentityNotVerified(e)) onNeedsId(); | onDone();\n    },\n    onError: (e) => {\n      toast.error(rentalsErrorMessage(e));\n      void onNeedsId;
  * @mutate src/components/rentals/VerifyIdNotice.tsx |           onClick={() => void run(paid ? "start" : "checkout")} |           onClick={() => void run("start")}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";

@@ -34,7 +34,7 @@ function cardFeeCents(cents: number): number {
 }
 
 /** The smallest whole-cent charge whose net after the card fee covers `netCents`. */
-export function grossUpForCardFeeCents(netCents: number): number {
+function grossUpForCardFeeCents(netCents: number): number {
   if (!(netCents > 0)) return 0;
   let gross = Math.ceil((netCents + CARD_FLAT_CENTS) / (1 - CARD_PCT));
   while (gross - 1 - cardFeeCents(gross - 1) >= netCents) gross--;

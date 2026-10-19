@@ -258,7 +258,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/shops/mine" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopEditPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/shops/orders" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopOrdersPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/shops/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopDashboardPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/shops/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* SH2b (owner 2026-10-19): a shop page is open to anyone with the link;
+          ShopPage picks the full or the public view. noindex via api/share.ts. */}
+      <Route path="/shops/:id" element={<RouteErrorBoundary>{routeEl(<ShopPage />)}</RouteErrorBoundary>} />
       <Route path="/rentals" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/rentals/invite/:token" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsInvitePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/rentals/requests/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><MaintenanceRequestPage /></ProtectedRoute>)}</RouteErrorBoundary>} />

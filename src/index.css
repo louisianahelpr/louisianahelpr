@@ -4704,3 +4704,8 @@ html body .app-top-bar h1.text-page-title {
 @media (max-width: 359px) {
   html body .app-top-bar h1.text-page-title { font-size: 1.375rem !important; }
 }
+/* Jobs' section header rides in a PageScaffold title card (Posted / Working / Browse). Zero that card's frame
+   and the scaffold's top gap so the top bar lands at the same y as every other section's (SectionScreen),
+   measured 28px lower before (dashboards build run 4 shots). */
+.page-title-card:has(.app-top-bar) { padding: 0 !important; }
+.container:has(> div > .page-title-card .app-top-bar) { padding-top: 0 !important; }

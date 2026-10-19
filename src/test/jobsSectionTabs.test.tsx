@@ -133,7 +133,7 @@ describe("status boxes filter: tap one = only that group, tap again = all", () =
     expect(box().getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(box());
     expect(box().getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByText(/tap it again to show all/)).toBeTruthy();
+    expect(screen.getByText(/tap again for all/)).toBeTruthy();
     fireEvent.click(box());
     expect(box().getAttribute("aria-pressed")).toBe("false");
   });

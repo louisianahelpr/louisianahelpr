@@ -8424,6 +8424,32 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_homes: {
+        Row: {
+          created_at: string
+          listing_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          listing_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          listing_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_homes_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "rental_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_jobs: {
         Row: {
           created_at: string
@@ -14102,6 +14128,25 @@ export type Database = {
         Args: { p_fields: Json; p_listing_id: string; p_property_id: string }
         Returns: string
       }
+      rentals_saved_listings: {
+        Args: never
+        Returns: {
+          available_on: string
+          baths: number
+          beds: number
+          city: string
+          headline: string
+          id: string
+          kind: string
+          photo_refs: string[]
+          rent_cents: number
+          rent_frequency: string
+          sale_price_cents: number
+          saved_at: string
+          sq_ft: number
+          zip_code: string
+        }[]
+      }
       rentals_set_auto_approve: {
         Args: { p_limit_cents: number; p_property_id: string }
         Returns: undefined
@@ -14117,6 +14162,10 @@ export type Database = {
       rentals_set_listing_status: {
         Args: { p_listing_id: string; p_status: string }
         Returns: undefined
+      }
+      rentals_set_saved_home: {
+        Args: { p_listing_id: string; p_saved: boolean }
+        Returns: boolean
       }
       rentals_set_rent_plan: {
         Args: { p_fields: Json; p_tenancy_id: string }

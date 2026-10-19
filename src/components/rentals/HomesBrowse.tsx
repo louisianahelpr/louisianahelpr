@@ -1,6 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 import { HomesListings, type HomesKind } from "./listings/RentBrowse";
+import { SavedHomes } from "./listings/SavedHomes";
 
 /**
  * HOMES -> Browse (owner 2026-10-18/19: the section once called Rentals is
@@ -41,5 +42,8 @@ function BuyIntro() {
 
 export function HomesBrowse() {
   const [kind, setKind] = useHomesKind();
+  const [params] = useSearchParams();
+  // Saved homes (the hearts) open under Browse at ?view=saved.
+  if (params.get("view") === "saved") return <SavedHomes />;
   return <HomesListings homes={kind} onKind={setKind} intro={kind === "buy" ? <BuyIntro /> : undefined} />;
 }

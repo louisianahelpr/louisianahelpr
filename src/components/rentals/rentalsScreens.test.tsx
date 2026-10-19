@@ -66,6 +66,8 @@ const state = {
   browse: [] as unknown[],
   browseFilters: [] as unknown[],
   sale: [] as unknown[],
+  savedIds: [] as string[],
+  savedList: [] as unknown[],
   myListings: [] as unknown[],
   saleFilters: [] as unknown[],
   underAge: false,
@@ -150,6 +152,12 @@ vi.mock("@/lib/rentals/api", () => ({
   inviteTenant: vi.fn(),
 }));
 
+vi.mock("@/lib/rentals/savedHomes", () => ({
+  fetchSavedHomeIds: async () => new Set(state.savedIds),
+  setSavedHome: vi.fn(async (_id: string, saved: boolean) => saved),
+  fetchSavedListings: async () => state.savedList,
+}));
+
 vi.mock("@/lib/rentals/listings", () => ({
   fetchBrowseListings: async (f: unknown) => {
     state.browseFilters.push(f);
@@ -204,6 +212,8 @@ beforeEach(() => {
   state.browse = [];
   state.browseFilters = [];
   state.sale = [];
+  state.savedIds = [];
+  state.savedList = [];
   state.myListings = [];
   state.saleFilters = [];
   state.underAge = false;
@@ -272,8 +282,41 @@ describe("Rentals screens", () => {
       const link = await screen.findByRole("link", { name: /Bright 2 bed/ });
       expect(link.getAttribute("href")).toBe("/rentals/listings/11111111-1111-4111-8111-111111111111");
       expect(link.textContent).toContain("$1,200 / month");
-      expect(link.textContent).toContain("2 beds · 1.5 baths · Lafayette 70501");
+      expect(link.textContent).toContain("2 beds · 1.5 baths · 900 sq ft");
+      expect(link.textContent).toContain("Lafayette 70501");
       expect(link.textContent).toContain("Available now");
+    });
+    // Owner-approved card design (2026-10-19 14:55Z): a heart saves a home; never on your own listing;
+    // "Saved homes N" opens the Saved list (lead, 19:08Z), where the same card unsaves it.
+    // @mutate src/components/rentals/listings/RentBrowse.tsx | {onSave && !l.is_mine && <SaveHomeButton | {onSave && <SaveHomeButton
+    // @mutate src/components/rentals/listings/RentBrowse.tsx | mutationFn: ({ id, saved }: { id: string; saved: boolean }) => setSavedHome(id, saved), | mutationFn: ({ id }: { id: string; saved: boolean }) => setSavedHome(id, true),
+    // @mutate src/components/rentals/listings/RentBrowse.tsx | {(saved.ids.data?.size ?? 0) > 0 && ( | {false && (
+    it("a heart saves a home (never your own), and Saved homes lists the saved ones", async () => {
+      const row = (id: string, headline: string, mine = false) => ({ id, headline, rent_cents: 120000, rent_frequency: "monthly", beds: 2, baths: 1,
+        sq_ft: null, available_on: "2020-01-01", pets: "cats", city: "Lafayette", zip_code: "70501", photo_refs: [], is_mine: mine, published_at: "2026-10-18T00:00:00Z" });
+      state.browse = [row("33333333-3333-4333-8333-333333333333", "Garden flat"), row("44444444-4444-4444-8444-444444444444", "My own place", true)];
+      state.savedIds = ["55555555-5555-4555-8555-555555555555"];
+      renderAt("/rentals");
+      await screen.findByRole("link", { name: /Garden flat/ });
+      const hearts = screen.getAllByRole("button", { name: "Save this home" });
+      expect(hearts).toHaveLength(1);
+      // No photo: the house icon on a tint (PhotoPlaceholder), never a blank box.
+      expect(screen.getByRole("link", { name: /Garden flat/ }).querySelector("[data-photo-placeholder]")).not.toBeNull();
+      fireEvent.click(hearts[0]);
+      const { setSavedHome } = await import("@/lib/rentals/savedHomes");
+      await vi.waitFor(() => expect(setSavedHome).toHaveBeenCalledWith("33333333-3333-4333-8333-333333333333", true));
+      const link = screen.getByTestId("saved-homes-link");
+      expect(link.getAttribute("href")).toBe("/rentals?view=saved");
+      cleanup();
+      state.savedIds = ["33333333-3333-4333-8333-333333333333"];
+      state.savedList = [{ ...row("33333333-3333-4333-8333-333333333333", "Garden flat"), kind: "rent", sale_price_cents: null, saved_at: "2026-10-19T00:00:00Z" }];
+      renderAt("/rentals?view=saved");
+      expect(await screen.findByRole("region", { name: "Saved homes" })).toBeTruthy();
+      expect((await screen.findByRole("link", { name: /Garden flat/ })).textContent).toContain("$1,200 / month");
+      const savedHeart = screen.getByRole("button", { name: /^Saved\. Tap to remove/ });
+      expect(savedHeart.getAttribute("aria-pressed")).toBe("true");
+      fireEvent.click(savedHeart);
+      await vi.waitFor(() => expect(setSavedHome).toHaveBeenCalledWith("33333333-3333-4333-8333-333333333333", false));
     });
     it("Rent: no listings says so", async () => {
       renderAt("/rentals");
@@ -315,7 +358,8 @@ describe("Rentals screens", () => {
       const link = await screen.findByRole("link", { name: /Brick 3 bed/ });
       expect(link.getAttribute("href")).toBe("/rentals/listings/22222222-2222-4222-8222-222222222222");
       expect(link.textContent).toContain("$245,000");
-      expect(link.textContent).toContain("3 beds · 2 baths · Broussard 70518");
+      expect(link.textContent).toContain("3 beds · 2 baths · 1,650 sq ft");
+      expect(link.textContent).toContain("Broussard 70518");
       expect(link.textContent).not.toMatch(/Available/);
       fireEvent.change(screen.getByLabelText("Homes for sale: City or ZIP"), { target: { value: "70518" } });
       await vi.waitFor(() => expect(state.saleFilters[state.saleFilters.length - 1]).toMatchObject({ city: "70518" }));

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Home } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Heart, Home } from "lucide-react";
+import { toast } from "sonner";
+import { userFacingError } from "@/lib/userFacingError";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LISTING_GRID, ListingCardBone } from "./listingBones";
@@ -12,7 +14,9 @@ import { chipStyles } from "@/components/dashboard/JobFilters";
 import { hapticLight } from "@/lib/haptics";
 import { fetchBrowseListings, fetchBrowseSaleListings, listingPhotoUrl } from "@/lib/rentals/listings";
 import { useRefreshOnExpiredRef } from "./useRefreshOnExpiredRef";
-import { availableLine, bedsBathsLine, priceLine, rentLine } from "@/lib/rentals/listingCopy";
+import { availableLine, factsLine, priceLine, rentLine } from "@/lib/rentals/listingCopy";
+import { fetchSavedHomeIds, setSavedHome } from "@/lib/rentals/savedHomes";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { dollarsToCents } from "@/lib/rentals/copy";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { SectionSearchRow } from "@/components/sections/SectionSearchRow";
@@ -31,11 +35,12 @@ import { SectionSearchRow } from "@/components/sections/SectionSearchRow";
  * Homes -> Buy (20261019061241) is the same screen over homes for sale: the
  * price instead of rent, no move-in date, a most-price filter.
  */
-interface CardRow {
+export interface CardRow {
   id: string;
   headline: string;
   beds: number;
   baths: number;
+  sq_ft: number | null;
   city: string;
   zip_code: string;
   photo_refs: string[];
@@ -46,38 +51,108 @@ interface CardRow {
   when: string | null;
 }
 
-function ListingCard({ l }: { l: CardRow }) {
+/**
+ * A Homes card (owner-approved design, 2026-10-19 14:55Z: Zillow / Airbnb): a
+ * big photo (or the house icon on a soft tint: PhotoPlaceholder), the price
+ * per month or the sale price, beds · baths · square feet, the place (city and
+ * ZIP, never the street: Q12), and a heart to save it (not on your own
+ * listing). The heart sits beside the link, never inside it.
+ */
+export function ListingCard({ l, kind, saved, onSave }: { l: CardRow; kind: "rent" | "sale"; saved?: boolean; onSave?: (saved: boolean) => void }) {
   const cover = l.photo_refs?.[0];
-  const refresh = useRefreshOnExpiredRef([["rentals-browse"], ["rentals-browse-sale"]]);
+  const refresh = useRefreshOnExpiredRef([["rentals-browse"], ["rentals-browse-sale"], ["rentals-saved"]]);
   return (
-    <Link
-      to={`/rentals/listings/${l.id}`}
-      className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <span className="relative block overflow-hidden rounded-2xl bg-muted">
-        {cover ? (
-          <img src={listingPhotoUrl(cover)} alt="" onError={() => refresh(cover)} className="aspect-[16/10] w-full object-cover ctl-tint" loading="lazy" />
-        ) : (
-          <span className="flex aspect-[16/10] w-full items-center justify-center text-muted-foreground" aria-hidden>
-            <Home className="h-8 w-8" />
+    <div className="relative min-w-0" data-home-card="">
+      <Link
+        to={`/rentals/listings/${l.id}`}
+        // The headline is not on the card (owner design: price, facts, place); it still names the link.
+        aria-label={`${l.headline}: ${l.price}, ${factsLine(l.beds, l.baths, l.sq_ft)}, ${l.city} ${l.zip_code}${l.when ? `, ${l.when}` : ""}`}
+        className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="relative block aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
+          {cover ? (
+            <img src={listingPhotoUrl(cover)} alt="" onError={() => refresh(cover)} className="h-full w-full object-cover ctl-tint" loading="lazy" />
+          ) : (
+            <PhotoPlaceholder icon={Home} seed={kind} className="h-full w-full" />
+          )}
+          {l.is_mine && (
+            <span className="absolute left-2 top-2 rounded-full bg-card px-2.5 py-1 text-ds-12 font-semibold shadow-sm">Your listing</span>
+          )}
+        </span>
+        <span className="block min-w-0 space-y-0.5 px-0.5 pt-2.5">
+          <span data-card-price className="block text-ds-17 font-bold tabular-nums">{l.price}</span>
+          <span data-card-facts className="block truncate text-ds-14" title={factsLine(l.beds, l.baths, l.sq_ft)}>
+            {factsLine(l.beds, l.baths, l.sq_ft)}
           </span>
-        )}
-        {l.is_mine && (
-          <span className="absolute left-2 top-2 rounded-full bg-card px-2.5 py-1 text-ds-12 font-semibold shadow-sm">Your listing</span>
-        )}
-      </span>
-      <span className="block space-y-0.5 px-1 pt-2.5">
-        <span className="block text-ds-17 font-bold">{l.price}</span>
-        <span className="block line-clamp-2 text-ds-15" title={l.headline}>
-          {l.headline}
+          <span data-card-place className="block truncate text-ds-14 text-muted-foreground" title={`${l.city} ${l.zip_code}`}>
+            {l.city} {l.zip_code}
+          </span>
+          {/* Its own line: beside the place it was cut at 320 ("Available Nov 1, ..."). */}
+          {l.when && <span className="block truncate text-ds-14 text-muted-foreground">{l.when}</span>}
         </span>
-        <span className="block text-ds-14 text-muted-foreground">
-          {bedsBathsLine(l.beds, l.baths)} · {l.city} {l.zip_code}
-        </span>
-        {l.when && <span className="block text-ds-14 text-muted-foreground">{l.when}</span>}
-      </span>
-    </Link>
+      </Link>
+      {onSave && !l.is_mine && <SaveHomeButton saved={!!saved} onSave={onSave} />}
+    </div>
   );
+}
+
+/** The heart over a card's photo: 44px to tap, a 36px circle to see. */
+function SaveHomeButton({ saved, onSave }: { saved: boolean; onSave: (saved: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      data-save-home=""
+      aria-pressed={saved}
+      aria-label={saved ? "Saved. Tap to remove from Saved homes" : "Save this home"}
+      onClick={() => {
+        hapticLight();
+        onSave(!saved);
+      }}
+      className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-card/90 shadow-sm">
+        <Heart
+          className={`h-[18px] w-[18px] ${saved ? "text-[hsl(var(--accent-ink))]" : "text-foreground"}`}
+          fill={saved ? "currentColor" : "none"}
+          aria-hidden
+        />
+      </span>
+    </button>
+  );
+}
+
+/**
+ * The member's saved homes and the save / unsave write, shared by Browse and
+ * the Saved list. The heart flips at once and goes back (with the reason) if
+ * the server refuses.
+ */
+export function useSavedHomes() {
+  const qc = useQueryClient();
+  const ids = useQuery({ queryKey: ["rentals-saved-ids"], queryFn: fetchSavedHomeIds });
+  const save = useMutation({
+    mutationFn: ({ id, saved }: { id: string; saved: boolean }) => setSavedHome(id, saved),
+    onMutate: ({ id, saved }) => {
+      const before = qc.getQueryData<Set<string>>(["rentals-saved-ids"]);
+      const next = new Set(before ?? []);
+      if (saved) next.add(id);
+      else next.delete(id);
+      qc.setQueryData(["rentals-saved-ids"], next);
+      return { before };
+    },
+    onError: (e, _v, ctx) => {
+      qc.setQueryData(["rentals-saved-ids"], ctx?.before);
+      toast.error(userFacingError(e, "Couldn't save that home. Try again."));
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["rentals-saved-ids"] });
+      void qc.invalidateQueries({ queryKey: ["rentals-saved"] });
+    },
+  });
+  return {
+    ids,
+    isSaved: (id: string) => ids.data?.has(id) ?? false,
+    setSaved: (id: string, saved: boolean) => save.mutate({ id, saved }),
+  };
 }
 
 const BEDS = [
@@ -163,6 +238,9 @@ function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k:
     queryKey: [kind.key === "rent" ? "rentals-browse" : "rentals-browse-sale", applied],
     queryFn: () => kind.fetch(applied),
   });
+  // The hearts load with the list (one paint); a failed read shows empty hearts, never blocks Browse.
+  const saved = useSavedHomes();
+  const listReady = !!q.data && !saved.ids.isLoading;
   // The filters that NARROW the list (bedrooms, price): what the empty state's words and its
   // Clear filters button are about. Buy is a choice of list, not a narrowing.
   const narrowing = (minBeds != null ? 1 : 0) + (maxCents != null ? 1 : 0);
@@ -187,6 +265,17 @@ function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k:
         filtersButtonRef={filtersButtonRef}
       />
       {intro}
+      {(saved.ids.data?.size ?? 0) > 0 && (
+        <Link
+          to="/rentals?view=saved"
+          data-testid="saved-homes-link"
+          className="inline-flex min-h-11 items-center gap-2 self-start px-1 text-ds-14 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full"
+        >
+          <Heart className="h-4 w-4 text-[hsl(var(--accent-ink))]" fill="currentColor" aria-hidden />
+          Saved homes
+          <span className="text-muted-foreground">{saved.ids.data?.size}</span>
+        </Link>
+      )}
       <FilterSheet
         open={filtersOpen}
         onOpenChange={setFiltersOpen}
@@ -255,7 +344,7 @@ function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k:
       />
       {q.isError ? (
         <ErrorState onRetry={() => q.refetch()} />
-      ) : !q.data ? (
+      ) : !listReady || !q.data ? (
         <div role="status" aria-label={`Loading ${kind.noun}`} className={LISTING_GRID}>
           <ListingCardBone />
           <ListingCardBone />
@@ -281,7 +370,7 @@ function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k:
       ) : (
         <div className={LISTING_GRID}>
           {q.data.map((l) => (
-            <ListingCard key={l.id} l={l} />
+            <ListingCard key={l.id} l={l} kind={kind.key} saved={saved.isSaved(l.id)} onSave={(v) => saved.setSaved(l.id, v)} />
           ))}
         </div>
       )}

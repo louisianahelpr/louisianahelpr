@@ -1,7 +1,7 @@
 import PageHeader from "@/components/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SettingsGroup } from "@/components/profile/profileLanding/SettingsSection";
-import { WORK_MENU_GROUP } from "@/components/profile/profileLanding/workMenuGroup";
+import { ACCOUNT_MENU_GROUP } from "@/components/profile/profileLanding/workMenuGroup";
 import { PayoutStatusRow } from "@/components/profile/profileLanding/PayoutStatusRow";
 
 const RESERVE = { kind: "reserve" } as const;
@@ -49,7 +49,7 @@ const IdentityCardSkeleton = () => (
  * DATA-AWARE (Q1173, the owner's Q722 rule): what is known before any data is
  * drawn for real. The title is the landing's own PageHeader ("Profile")
  * with ProfileLanding's exact props, and the first settings group is the real
- * Work group (WORK_MENU_GROUP, which no profile field changes) through the
+ * Account group (ACCOUNT_MENU_GROUP, which no profile field changes) through the
  * same SettingsGroup markup, its rows inert until the page arrives. Only the
  * identity card, which is all profile data, stays as bones. Measured
  * 2026-10-03 (Q1158 lab, 375 Slow 4G + 4x CPU): the bones-only first frame was
@@ -87,7 +87,7 @@ export const ProfilePageSkeleton = () => {
     {/* SettingsSection's own `space-y-4` list wrapper, holding its first
         group. aria-hidden: the loaded list is what a screen reader reads. */}
     <div className="space-y-4" aria-hidden>
-      <SettingsGroup group={WORK_MENU_GROUP} />
+      <SettingsGroup group={ACCOUNT_MENU_GROUP} />
     </div>
   </div>
   );

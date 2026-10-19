@@ -1,4 +1,4 @@
-import { CalendarDays, Clock, Heart, LayoutGrid, Home, Gift } from "lucide-react";
+import { Bell, LayoutGrid, Shield, Type } from "lucide-react";
 import type { MenuItem } from "./types";
 
 /**
@@ -19,7 +19,7 @@ import type { MenuItem } from "./types";
 export const SECTION_TINT = {
   /** Account + household. Cool blue-grey — the "about you" group. */
   account: "var(--stormy-sky)",
-  /** Work + credentials. Warm sienna. */
+  /** Jobs settings (the old Work group + credentials). Warm sienna. */
   work: "var(--burnt-sienna)",
   /** Money. Green, the colour money already reads as. */
   money: "var(--sage)",
@@ -33,60 +33,30 @@ export const SECTION_TINT = {
 } as const;
 
 /**
- * The landing's first settings group, "Work". Every row is fixed: no profile
- * field, role or tier changes a label, description or target. That is why it
- * lives here, outside useProfileLandingDerived: the landing's loading
- * skeleton (ProfilePageSkeleton) draws these exact rows as its first frame,
- * so a cold /profile paints real words before the profile row arrives
- * (Q1173, the owner's data-aware skeleton rule, Q722). A row that ever comes
- * to depend on data must move back into the hook, or the skeleton would show
- * a guess.
+ * The landing's first settings group, "Account" (owner, 2026-10-19: Profile =
+ * account, money, settings, help; the old "Work" rows moved to the Jobs
+ * section's own settings, jobsSettingsGroups.tsx). Every row is fixed: no
+ * profile field, role or tier changes a label, description or target. That is
+ * why it lives here, outside useProfileLandingDerived: the landing's loading
+ * skeleton (ProfilePageSkeleton) draws these exact rows as its first frame, so
+ * a cold /profile paints real words before the profile row arrives (Q1173,
+ * Q722). The one data-dependent mark, Account Security's "Verify phone" chip,
+ * is added by the hook once the profile is in (a chip beside a label the
+ * skeleton already drew, never a different row).
  */
-export const WORK_MENU_GROUP: { title: string; items: MenuItem[] } = {
-  title: "Work",
+export const ACCOUNT_MENU_GROUP: { title: string; items: MenuItem[] } = {
+  title: "Account",
   items: [
-    // Two rows, not one. These used to be a single "Schedule" row opening
-    // a screen with a Calendar|Hours segmented control — a second choice
-    // after the one you just made. Split on owner request 2026-08-19.
-    { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Your calendar & upcoming jobs", tint: SECTION_TINT.work },
-    { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Weekly hours & the available-now signal", tint: SECTION_TINT.work },
-    { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: SECTION_TINT.work },
-    // "Licensed & Insured" left this list (owner, 2026-10-19): it lives in
-    // Shops > Shop settings and Jobs > Working now; /profile?tab=credentials
-    // still opens it. Its slot is the Customize entry (the other way in is
-    // Home's "Your sections" header).
+    { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login", tint: SECTION_TINT.account },
+    { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get", tint: SECTION_TINT.account },
+    { key: "accessibility", label: "Accessibility", icon: <Type className="w-5 h-5" />, desc: "Color mode & Senior mode", tint: SECTION_TINT.account },
     {
       key: "sections",
       label: "Your sections",
       icon: <LayoutGrid className="w-5 h-5" />,
       desc: "Show or hide Jobs, Declutter, Shops and Homes",
-      tint: SECTION_TINT.work,
+      tint: SECTION_TINT.account,
       href: "/home?customize=1",
     },
-    {
-      key: "str-settings",
-      label: "Host Automation",
-      icon: <Home className="w-5 h-5" />,
-      desc: "Auto-post cleanings on Airbnb / VRBO checkout",
-      tint: SECTION_TINT.work,
-      href: "/profile?tab=str_settings",
-    },
-    {
-      key: "gift-card",
-      label: "Gift Card",
-      icon: <Gift className="w-5 h-5" />,
-      // Not "job credits" (owner, 2026-08-30) — there is no credit balance
-      // in this product. It sends a real Helpr gift card by email that the
-      // recipient claims and puts toward any job.
-      desc: "Send a Helpr gift card by email",
-      tint: SECTION_TINT.work,
-      // A TAB, like every sibling in this list (2026-09-11).
-      href: "/profile?tab=gift_card",
-    },
-    // "Benefits & Perks" (/benefits) removed 2026-08-31 (owner): the page
-    // it opened had no partner agreements behind it, so the row promised
-    // "health coverage, financial tools & supply discounts" that Helpr
-    // never actually offered. Page and route deleted; the row goes with
-    // them rather than becoming a dead entry point.
   ],
 };

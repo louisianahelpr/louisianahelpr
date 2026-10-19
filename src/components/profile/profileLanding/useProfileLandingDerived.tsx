@@ -1,13 +1,12 @@
 import { ID_VERIFIED_LABEL } from "@/components/profile/IdVerifiedPill";
 import {
-  Shield, ShieldAlert, Bell, PawPrint, ClipboardList,
-  Coins, UserPlus, TrendingUp, Crown, FileText, Gavel, HelpCircle,
-  AlertTriangle, Type, Bug,
+  ShieldAlert, UserPlus, TrendingUp, Crown, Gavel, HelpCircle,
+  AlertTriangle, Bug, Gift,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeature } from "@/hooks/useFeature";
 import type { MenuItem, Profile } from "./types";
-import { SECTION_TINT, WORK_MENU_GROUP } from "./workMenuGroup";
+import { ACCOUNT_MENU_GROUP, SECTION_TINT } from "./workMenuGroup";
 import { REPORT_BUG_TITLE, TAB_TITLES } from "@/pages/profile/types";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { isIdentityVerified } from "@/lib/awardGate";
@@ -118,40 +117,18 @@ export function useProfileLandingDerived({
   // (family/pets/home record → Account; insights/host/community
   // → Work; credits/referrals/earnings docs → Money; warnings/support →
   // Legal).
+  // Profile = Account / Money / Help (owner, 2026-10-19). Jobs rows live in the
+  // Jobs section's settings (jobsSettingsGroups.tsx), not here.
   const menuGroups: { title: string; items: MenuItem[] }[] = [
-    // The ADMIN row is BACK (owner, 2026-08-24) — but only for admin
-    // accounts, in the Legal/consequences group at the bottom. It left in
-    // an earlier pass ("move to side panel"), which was right for the
-    // desktop website but silently made /admin unreachable from the
-    // phone/app surface, where there is no side panel. The row and the
-    // sidebar can coexist: one is the desktop shortcut, this is the way in
-    // everywhere else. SECTION_TINT.danger was even kept around for it.
-    // Static (no profile or role input), so the landing's loading skeleton
-    // draws these same rows as its first frame (Q1173): see workMenuGroup.tsx.
-    WORK_MENU_GROUP,
+    {
+      ...ACCOUNT_MENU_GROUP,
+      items: ACCOUNT_MENU_GROUP.items.map((item) =>
+        item.key === "security" && !phoneVerified ? { ...item, incompleteLabel: "Verify phone" } : item,
+      ),
+    },
     {
       title: "Money",
       items: [
-        {
-          key: "auto-tip",
-          // Matches the screen's own title verbatim (owner, 2026-08-31). The
-          // row used to read "Auto-Tip & Instant Release" onto a page titled
-          // "Auto-Tip", so the entry point named one more setting than the
-          // screen it opened admitted to holding. Both are now "After a Job",
-          // and the description carries the two things that happen there.
-          label: "After a Job",
-          icon: <Coins className="w-5 h-5" />,
-          desc: "Automatic tips & instant payment release",
-          tint: SECTION_TINT.money,
-          href: "/profile?tab=auto_tip",
-        },
-        // ONE row, not three. "Earnings", "Analytics" (→ /analytics) and
-        // "Payout & Payments" were three entry points onto three screens
-        // about the same subject: what you earned, what it says about your
-        // work, and where the money lands. Merged 2026-08-19 on owner
-        // request — the earnings tab now carries the analytics dashboard and
-        // the payout setup as sections. The payout warning state moves onto
-        // this row with them, because it is still the row you tap to fix it.
         {
           key: "earnings",
           label: "Money",
@@ -159,108 +136,27 @@ export function useProfileLandingDerived({
           desc: "Wallet, analytics, payout setup & tax exports",
           tint: SECTION_TINT.money,
         },
-        // No `href`. This row used to jump out to /subscription — the public
-        // MARKETING pricing page, with its own hand-rolled header whose back
-        // button goes to "/" rather than to Profile. Tapping "Membership" in
-        // your own settings and landing on the sales page (in a different
-        // header, column and card treatment from every neighbouring row) is
-        // exactly the "not the correct look" the owner flagged. The in-profile
-        // `subscription` tab (SubscriptionTab) is the settings-native screen —
-        // ProfileTabHeader, canonical cards, plan management, cancel/pause —
-        // so the row opens that. /subscription stays reachable from the public
-        // nav and footer, which is the audience it was written for.
         ...((membershipsOn || tier !== "free")
           ? [{ key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: SECTION_TINT.money }]
           : []),
         { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: SECTION_TINT.money },
         {
-          key: "work-record",
-          label: "Work Record",
-          icon: <FileText className="w-5 h-5" />,
-          desc: "Shareable verified earnings document",
+          key: "gift-card",
+          label: "Gift Card",
+          icon: <Gift className="w-5 h-5" />,
+          desc: "Send a Helpr gift card by email",
           tint: SECTION_TINT.money,
-          href: "/profile?tab=work_record",
+          href: "/profile?tab=gift_card",
         },
       ],
     },
     {
-      title: "Account",
+      title: "Help",
       items: [
-        {
-          key: "security",
-          label: "Account Security",
-          icon: <Shield className="w-5 h-5" />,
-          desc: "Email, password & login",
-          tint: SECTION_TINT.account,
-          incompleteLabel: !phoneVerified ? "Verify phone" : undefined,
-        },
-        { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get", tint: SECTION_TINT.account },
-        {
-          key: "accessibility",
-          label: "Accessibility",
-          icon: <Type className="w-5 h-5" />,
-          // Names exactly what the Accessibility panel renders and nothing
-          // more. It used to promise "…& display options" as if there were a
-          // third section behind the row; AccessibilityTab has two controls —
-          // the Light/Auto/Dark colour-mode group and the Senior mode switch —
-          // so the trailing clause sent people looking for a screen that does
-          // not exist.
-          desc: "Color mode & Senior mode",
-          tint: SECTION_TINT.account,
-        },
-        {
-          key: "pets",
-          label: "My Pets",
-          icon: <PawPrint className="w-5 h-5" />,
-          desc: "Pet profiles & vet notes",
-          tint: SECTION_TINT.account,
-          href: "/profile?tab=pets",
-        },
-        {
-          key: "home-history",
-          label: "Home History",
-          icon: <ClipboardList className="w-5 h-5" />,
-          desc: "Your home's permanent maintenance record",
-          tint: SECTION_TINT.account,
-          href: "/profile?tab=home_history",
-        },
-        // "Posted Jobs" (→ /posts) and "Completed Jobs"
-        // (→ /posts?filter=done) were the last two rows here until
-        // 2026-08-31, when the owner removed them: "Remove posted and
-        // completed jobs from here."
-        //
-        // They were already only doorways. The standalone Posted/Completed
-        // Profile *tabs* were deleted earlier (they duplicated My Posts,
-        // which has richer status filtering), and these rows were rewired to
-        // deep-link into My Posts — so Account offered two extra spellings of
-        // the Posts tab that the bottom nav and the desktop rail both already
-        // carry, one of them a pre-applied filter chip. Nothing is lost:
-        // posting history lives in My Posts (`/posts`, Activity's "posted"
-        // tab) and completion history in its "Done" bucket (`?filter=done` —
-        // POSTED_STATUS_FILTERS / postedActivityBucket in activityFilters.ts).
-        //
-        // No route was orphaned by this: `/posts` is a primary nav
-        // destination (MobileNav, DesktopSidebarNav) and the target of a dozen
-        // notification deep links. `/profile?tab=posted_jobs` /
-        // `?tab=completed_jobs` still resolve — `resolveTab` in
-        // src/pages/profile/types.ts maps any unknown tab to `landing`, which
-        // is the standing guard for stale bookmarks and must stay.
-      ],
-    },
-    {
-      title: "Legal",
-      items: [
-        // "Data & privacy → /data-rights" was a second row here until
-        // 2026-08-18. That page is now merged into this very tab, so the row
-        // would have pointed at a redirect back to its neighbour — two menu
-        // entries, one destination. The export it led to is called out in the
-        // description below so the scent survives the merge.
+        { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: SECTION_TINT.legal },
+        { key: "report_bug", label: REPORT_BUG_TITLE, icon: <Bug className="w-5 h-5" />, desc: "Something not working? We attach the details", tint: SECTION_TINT.legal, href: "/profile?tab=support&topic=report" },
         { key: "legal", label: TAB_TITLES.legal, icon: <Gavel className="w-5 h-5" />, desc: "Terms, rules & privacy", tint: SECTION_TINT.legal },
         { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: SECTION_TINT.danger },
-        { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: SECTION_TINT.legal },
-        // Owner, 2026-10-07 (Q1028): opens the support form on "Something's not
-        // working", which attaches the screen, route, device, build and recent errors.
-        { key: "report_bug", label: REPORT_BUG_TITLE, icon: <Bug className="w-5 h-5" />, desc: "Something not working? We attach the details", tint: SECTION_TINT.legal, href: "/profile?tab=support&topic=report" },
         ...(isAdmin
           ? [
               {

@@ -55,6 +55,27 @@ export async function fetchTakenDownProperties(ownerIds: string[]): Promise<Rent
     await supabase.from("rental_properties").select(RENTAL_PROPERTY_COLUMNS).in("owner_id", ownerIds).not("listings_taken_down_at", "is", null),
   ) ?? []) as RentalProperty[];
 }
+/** Admin: a taken-down property (any owner's) at the same normalised address as a property under review (round 4 #2). */
+export interface TakedownMatch {
+  property_id: string;
+  matched_property_id: string;
+  matched_label: string;
+  matched_street: string;
+  matched_city: string;
+  matched_zip: string;
+  reason: string | null;
+  taken_down_at: string;
+  same_owner: boolean;
+}
+/** Admin: which of these properties sit at a taken-down address (asked in chunks of 200, the server's cap). */
+export async function fetchTakedownMatches(propertyIds: string[]): Promise<TakedownMatch[]> {
+  const out: TakedownMatch[] = [];
+  for (let i = 0; i < propertyIds.length; i += 200) {
+    const data = unwrap(await supabase.rpc("rentals_admin_takedown_matches", { p_property_ids: propertyIds.slice(i, i + 200) }));
+    out.push(...((data ?? []) as unknown as TakedownMatch[]));
+  }
+  return out;
+}
 export async function fetchUnits(propertyIds: string[]): Promise<RentalUnit[]> {
   if (propertyIds.length === 0) return [];
   return (unwrap(await supabase.from("rental_units").select("*").in("property_id", propertyIds).order("label")) ?? []) as RentalUnit[];

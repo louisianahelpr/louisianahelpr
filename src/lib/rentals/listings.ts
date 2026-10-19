@@ -189,12 +189,24 @@ export async function removeListingPhoto(photoId: string): Promise<void> {
 /** Admin -> Settings, Homes listings (Q2187): live/paused listings to take down, and properties under a take-down. */
 export interface AdminListings {
   open: { id: string; kind: "rent" | "sale"; status: string; headline: string; slug: string; published_at: string | null; property_label: string; city: string; zip_code: string }[];
+  open_total: number;
   taken_down: { property_id: string; property_label: string; city: string; zip_code: string; reason: string | null; taken_down_at: string }[];
+  taken_down_total: number;
+  page_size: number;
 }
 
-export async function fetchAdminListings(): Promise<AdminListings> {
-  const data = unwrap(await supabase.rpc("rentals_admin_listings")) as unknown as AdminListings | null;
-  return { open: data?.open ?? [], taken_down: data?.taken_down ?? [] };
+/** One page of each list (the server's page size, 25), filtered by a link code, headline/label words or a ZIP (round 4 #5). */
+export async function fetchAdminListings(query = "", openOffset = 0, takenOffset = 0): Promise<AdminListings> {
+  const data = unwrap(
+    await supabase.rpc("rentals_admin_listings", { p_query: query.trim() || undefined, p_open_offset: openOffset, p_taken_offset: takenOffset }),
+  ) as unknown as Partial<AdminListings> | null;
+  return {
+    open: data?.open ?? [],
+    open_total: data?.open_total ?? 0,
+    taken_down: data?.taken_down ?? [],
+    taken_down_total: data?.taken_down_total ?? 0,
+    page_size: data?.page_size ?? 25,
+  };
 }
 
 /**

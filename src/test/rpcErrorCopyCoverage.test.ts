@@ -156,6 +156,13 @@ const UNREACHABLE: Allowlist = {
   // the admin route gate keeps from non-admins; a failed load shows the card's own error state.
   rentals_admin_listings: {
     not_authorized: { reason: "no code's words at this site: the card lives on the admin-only Settings page; any failed load shows its fixed \"Couldn't load the listings.\" state." },
+    bad_query: { reason: "no code's words at this site: the card's search box caps its input at 100 characters (maxLength), and any failed load shows the fixed \"Couldn't load the listings.\" state." },
+  },
+  // The ownership reviewer's take-down address flag (20261019062540, round 4 #2): read by RentalsOwnershipCard on the
+  // admin-only Settings page, for at most the queue's properties; a failed read fails the queue's own load state.
+  rentals_admin_takedown_matches: {
+    not_authorized: { reason: "no code's words at this site: admin-only Settings page; a failed read shows the ownership queue's fixed load-error state." },
+    too_many: { reason: "no code's words at this site: the client asks in chunks of at most 200 properties (fetchTakedownMatches), so the server cap is never reached." },
   },
   rentals_request_job_state: {
     feature_disabled: { reason: RENTALS_READ },

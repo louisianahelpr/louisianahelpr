@@ -114,7 +114,11 @@ export function profileRefusal(row, state, role, { enrolledIds = null } = {}) {
 export function accountRefusal(acct, state) {
   if (!acct || typeof acct.id !== "string") return "no account";
   if (!state?.accountId || acct.id !== state.accountId) return `${acct.id} is not the account this run created`;
-  if (acct.livemode !== false) return `${acct.id} is not a test-mode account`;
+  // A Stripe Account object carries no `livemode` field (run 39340554353 refused its own
+  // freshly made test account on `livemode !== false`). The mode is the key's: a test key
+  // can neither create nor read a live account, and testKeyRefusal + the livemode=false
+  // balance read prove the key. An account that DOES say livemode=true is still refused.
+  if (acct.livemode === true) return `${acct.id} is a live-mode account`;
   const m = acct.metadata ?? {};
   if (m.lh_proof !== PROOF_TAG || m.lh_proof_run !== state.runId) return `${acct.id} does not carry this run's tag`;
   return null;

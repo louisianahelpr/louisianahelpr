@@ -34,6 +34,7 @@
  * @mutate src/components/messages/ConversationList.tsx | cachedHiddenUnread > dismissedHiddenUnread && ( | cachedHiddenUnread > 0 && (
  * @mutate src/components/messages/HiddenUnreadBar.tsx | if (loading \|\| !userId \|\| count >= dismissedHiddenUnread) return; | return;
  * @mutate src/components/messages/ConversationList.tsx | setInboxFilter(UNFILTERED_INBOX_TAB); }}>\n                  Show All | setInboxFilter(DEFAULT_INBOX_TAB); }}>\n                  Show All
+ * @mutate src/components/messages/ConversationList.tsx | aria-checked={inboxTab === key} | aria-checked={key === "active"}
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
@@ -138,13 +139,29 @@ function renderInbox(conversations: Conversation[], loading = false, userId: str
 
 function selectedTabLabel(): string | null {
   const group = screen.queryByRole("group", { name: "Filter conversations" });
-  if (!group) return null;
+  // PHONE since Q2231: Active / All are a radio pair in the search row's one
+  // "more" menu, so read the CHECKED item there (and close the menu again).
+  if (!group) return checkedInMoreMenu();
   // UnderlineTabs marks the current slice with aria-pressed, not
   // aria-selected — read the control's own contract, not a guessed one.
   const on = within(group)
     .getAllByRole("button")
     .find((b) => b.getAttribute("aria-pressed") === "true");
   return on ? (on.textContent ?? "").replace(/\d+/g, "").trim() : null;
+}
+
+/** Radix's DropdownMenu opens on a keyboard Enter in jsdom (no pointer events). */
+function checkedInMoreMenu(): string | null {
+  const trigger = screen.queryByRole("button", { name: "More conversation options" });
+  if (!trigger) return null;
+  trigger.focus();
+  fireEvent.keyDown(trigger, { key: "Enter" });
+  const on = screen
+    .queryAllByRole("menuitemradio")
+    .filter((el) => el.getAttribute("aria-checked") === "true");
+  const label = on.length === 1 ? (on[0].textContent ?? "").trim() : null;
+  fireEvent.keyDown(document.activeElement ?? trigger, { key: "Escape" });
+  return label;
 }
 
 /** Each tab's label -> its count badge, read from the control's own group. */

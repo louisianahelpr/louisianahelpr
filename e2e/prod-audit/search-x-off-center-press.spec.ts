@@ -129,6 +129,14 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="Search users by name or email"]',
     close: CLEAR,
   },
+  // Homes Browse (2026-10-19): the slim City or ZIP row is a permanent field; its ✕ clears.
+  {
+    name: "homes-rent", file: "src/components/rentals/listings/RentBrowse.tsx",
+    url: "/rentals",
+    trigger: 'input[aria-label="City or ZIP"]',
+    field: 'input[aria-label="City or ZIP"]',
+    close: CLEAR,
+  },
   {
     name: "admin-command-palette", file: "src/components/admin/AdminCommandPalette.tsx", as: "admin",
     url: "/admin",

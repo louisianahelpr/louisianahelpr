@@ -11,7 +11,6 @@
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { KeyRound } from "lucide-react";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes";
@@ -293,19 +292,6 @@ const HOMES_TAB_VALUES = HOMES_TABS.map((t) => t.value);
 const RENT_GROUPS = ["waiting", "approved", "closed"] as const;
 const OWN_GROUPS = ["needs", "repairs", "properties"] as const;
 const requestGroup = (r: MaintenanceRequest) => (r.status === "submitted" ? "waiting" : r.status === "approved" ? "approved" : "closed");
-
-/** Browse: no homes are listed for browsing yet, so a clean empty state. */
-function HomesBrowse() {
-  return (
-    <div className="liquid-glass flex flex-col items-center gap-2 px-6 py-10 text-center" data-testid="homes-browse-empty">
-      <span className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-        <KeyRound className="w-6 h-6" aria-hidden />
-      </span>
-      <p className="text-ds-15 font-semibold">No homes listed near you yet</p>
-      <p className="text-sm text-muted-foreground">Rent from a landlord on Helpr? Open their invite link and your home shows under Renting.</p>
-    </div>
-  );
-}
 
 export default function RentalsHomeView() {
   const [tab, setTab] = useSectionTab(HOMES_TAB_VALUES);

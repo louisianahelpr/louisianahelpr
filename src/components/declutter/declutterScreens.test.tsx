@@ -7,14 +7,14 @@
  * @mutate src/components/declutter/DeclutterSellView.tsx |   if (underAge) { |   if (false) {
  * @mutate src/components/declutter/declutterUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/components/declutter/declutterUi.tsx |   pending_review: "Waiting for a review", |   pending_review: "pending_review",
- * @mutate src/components/declutter/DeclutterItemView.tsx |             <Button type="submit" size="sm" disabled={ask.isPending \|\| question.trim().length < 2}> |             <Button type="submit" size="sm" className="btn-grad-primary" variant="ghost" disabled={ask.isPending \|\| question.trim().length < 2}>
+ * @mutate src/components/declutter/DeclutterItemView.tsx |                 <Button type="submit" size="sm" disabled={ask.isPending \|\| question.trim().length < 2}> |                 <Button type="submit" size="sm" className="btn-grad-primary" variant="ghost" disabled={ask.isPending \|\| question.trim().length < 2}>
  * @mutate src/components/declutter/DeclutterItemView.tsx | <p className="text-sm font-medium [overflow-wrap:anywhere]">Q: | <p className="text-sm font-medium">Q:
  * @mutate src/components/declutter/DeclutterSellView.tsx |                 <Checkbox id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]} |                 <input type="checkbox" id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]}
  * @mutate src/components/declutter/declutterUi.tsx |     if (agreed.data === true) return <>{agreedSales}</>; |
  * Owner 2026-10-19: back from Stripe's card page, the member returns to the item and carries on.
  * @mutate src/pages/declutter/DeclutterPage.tsx |     const state: AfterCardState \| null = cardReturn === "saved" ? { afterCard: next.action } : null; |     const state: AfterCardState \| null = null;
  * @mutate src/pages/declutter/DeclutterPage.tsx |     navigate(afterCardPath(next.itemId), { replace: true, state }); |     void state;
- * @mutate src/components/declutter/DeclutterItemView.tsx |       {canAct && user && <OfferPanel item={it} userId={user.id} />}\n\n      <PriceHint |       <PriceHint
+ * @mutate src/components/declutter/DeclutterItemView.tsx |           {canAct && user && <OfferPanel item={it} userId={user.id} />}\n\n          <PriceHint |           <PriceHint
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -76,6 +76,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchSellerRatings: async () => new Map(),
   fetchQuestions: async () => state.questions,
   fetchSellerRating: async () => ({ avg: 4.8, count: 12 }),
+  fetchSellerCard: async () => ({ name: "Dana Robichaux", avatarUrl: null, joinedAt: "2025-03-10T12:00:00Z" }),
   fetchWatching: async () => new Set(),
   fetchItem: async () => state.item,
   fetchMyItemReview: async () => ({ review_note: "Used car seats cannot be sold.", ai_flagged: true }),
@@ -210,7 +211,9 @@ describe("Declutter screens", () => {
     expect(screen.getByRole("button", { name: "Add a card" })).toBeInTheDocument();
     // Near the price: the actions come before the description, not at the bottom of the page.
     expect(buyNow.compareDocumentPosition(screen.getByText("Solid oak.")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(await screen.findByText(/4\.8 stars from 12 reviews/)).toBeInTheDocument();
+    // The seller card (owner 2026-10-19): name, stars only with reviews, joined date.
+    expect(await screen.findByText("Dana R.")).toBeInTheDocument();
+    expect(document.querySelector("[data-seller-rating]")?.textContent).toMatch(/4\.8 stars from .*12 reviews/);
   });
 
   describe("back from Stripe's card page (declutter-card returns to /declutter?card=saved or =cancelled)", () => {
@@ -235,7 +238,7 @@ describe("Declutter screens", () => {
       state.card = { brand: "visa", last4: "4242" };
       rememberAfterCard(ID, "offer");
       returnTo("/declutter?card=saved");
-      expect(await screen.findByRole("heading", { name: "Oak rocking chair" })).toBeInTheDocument();
+      expect(await screen.findByRole("heading", { name: "Oak rocking chair", level: 1 })).toBeInTheDocument();
       expect(await screen.findByLabelText("Your offer")).toBeInTheDocument();
     });
 

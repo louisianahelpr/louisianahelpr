@@ -81,7 +81,7 @@ const convo = (over: Partial<Conversation>): Conversation =>
     ...over,
   }) as Conversation;
 const JOB = convo({ jobId: "job-1", unread: 2 });
-const TEAM = convo({ jobId: "team:me", otherUserName: "Louisiana Helpr Team", teamThread: "member" as Conversation["teamThread"] });
+const TEAM = convo({ jobId: "team:me", otherUserName: "Louisiana Helpr Team", teamThread: { userId: "me", viewerIsStaff: false } });
 const KEYS = SECTIONS.map((s) => s.key);
 
 describe("the rule: never mixed", () => {

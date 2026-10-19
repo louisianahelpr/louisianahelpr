@@ -16,6 +16,9 @@
  * Take-down history (lead review round 3, must-fix 3):
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |               {g.takenDown.length > 0 && ( |               {false && (
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |         {r.back_path && <OpenFile path={r.back_path} label="Open ID (back)" />} |         {null}
+ * Take-down address match, any owner (lead review round 4 #2):
+ * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |       {matches.length > 0 && ( |       {false && (
+ * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |     for (const p of g.properties) g.matches.set(p.id, matches.filter((m) => m.property_id === p.id)); |     for (const p of g.properties) g.matches.set(p.id, []);
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -27,6 +30,7 @@ const state = {
   pendingIds: [] as unknown[],
   ownerIds: [] as unknown[],
   takenDown: [] as unknown[],
+  matches: [] as unknown[],
 };
 const reviewOwnership = vi.fn(async () => undefined);
 const reviewLandlordId = vi.fn(async () => undefined);
@@ -43,6 +47,7 @@ vi.mock("@/lib/rentals/api", () => ({
   fetchLandlordIds: async (ids: string[]) => (state.ownerIds as { user_id: string }[]).filter((r) => ids.includes(r.user_id)),
   reviewLandlordId: (...args: unknown[]) => reviewLandlordId(...(args as [])),
   signedFileUrl: async () => "https://signed/x",
+  fetchTakedownMatches: async (ids: string[]) => (state.matches as { property_id: string }[]).filter((m) => ids.includes(m.property_id)),
   fetchTakenDownProperties: async (ids: string[]) => (state.takenDown as { owner_id: string }[]).filter((p) => ids.includes(p.owner_id)),
 }));
 
@@ -74,6 +79,7 @@ describe("RentalsOwnershipCard", () => {
     state.pendingIds = [];
     state.ownerIds = [];
     state.takenDown = [];
+    state.matches = [];
     reviewOwnership.mockClear();
     reviewLandlordId.mockClear();
   });
@@ -84,6 +90,15 @@ describe("RentalsOwnershipCard", () => {
     renderCard();
     expect(await screen.findByText("Earlier take-down:")).toBeTruthy();
     expect(screen.getByText(/Elm house \(Fake photos\.\)/)).toBeTruthy();
+  });
+
+  it("round 4 #2: flags a proof at the same address as ANOTHER owner's taken-down home, naming that address", async () => {
+    state.pending = [PROPERTY, { ...PROPERTY, id: "p2", label: "Pine", street_address: "5 Pine St" }];
+    state.matches = [{ property_id: "p1", matched_property_id: "p0", matched_label: "Oak", matched_street: "12 Oak Street", matched_city: "Lafayette", matched_zip: "70501", reason: "Fake photos.", taken_down_at: "2026-10-19T07:00:00Z", same_owner: false }];
+    renderCard();
+    const flags = await screen.findAllByTestId("takedown-address-match");
+    expect(flags).toHaveLength(1);
+    expect(flags[0].textContent).toContain("12 Oak Street, Lafayette 70501 (another owner): Fake photos.");
   });
 
   it("renders nothing while the 'rentals' switch is off", () => {

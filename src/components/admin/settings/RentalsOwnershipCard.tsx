@@ -20,12 +20,14 @@ import {
   fetchLandlordIds,
   fetchPendingLandlordIds,
   fetchPendingOwnership,
+  fetchTakedownMatches,
   fetchTakenDownProperties,
   reviewLandlordId,
   reviewOwnership,
   signedFileUrl,
   type LandlordIdReview,
   type RentalProperty,
+  type TakedownMatch,
 } from "@/lib/rentals/api";
 import { rentalsErrorMessage } from "@/lib/rentals/copy";
 import { openSignedDocument } from "@/lib/openSignedDocument";
@@ -102,6 +104,8 @@ interface LandlordGroup {
   properties: RentalProperty[];
   /** The owner's properties under a Homes take-down: shown so a reviewer sees the history (Q2187). */
   takenDown: RentalProperty[];
+  /** Per pending property: taken-down properties (ANY owner's) at the same normalised address (round 4 #2). */
+  matches: Map<string, TakedownMatch[]>;
 }
 
 /** Pending proofs and pending IDs, one group per landlord (oldest first). */
@@ -110,20 +114,26 @@ async function fetchQueue(): Promise<LandlordGroup[]> {
   const owners = [...new Set(properties.map((p) => p.owner_id))].filter((u) => !pendingIds.some((r) => r.user_id === u));
   const ownerIds = await fetchLandlordIds(owners);
   const groups = new Map<string, LandlordGroup>();
-  for (const r of [...pendingIds, ...ownerIds]) groups.set(r.user_id, { userId: r.user_id, id: r, properties: [], takenDown: [] });
+  for (const r of [...pendingIds, ...ownerIds]) groups.set(r.user_id, { userId: r.user_id, id: r, properties: [], takenDown: [], matches: new Map() });
   for (const p of properties) {
-    const g = groups.get(p.owner_id) ?? { userId: p.owner_id, id: undefined, properties: [], takenDown: [] };
+    const g = groups.get(p.owner_id) ?? { userId: p.owner_id, id: undefined, properties: [], takenDown: [], matches: new Map() };
     g.properties.push(p);
     groups.set(p.owner_id, g);
   }
   // Only landlords with something to decide: a pending ID or a pending proof.
   const open = [...groups.values()].filter((g) => g.id?.status === "pending_review" || g.properties.length > 0);
-  const history = await fetchTakenDownProperties(open.map((g) => g.userId));
-  for (const g of open) g.takenDown = history.filter((p) => p.owner_id === g.userId);
+  const [history, matches] = await Promise.all([
+    fetchTakenDownProperties(open.map((g) => g.userId)),
+    fetchTakedownMatches(properties.map((p) => p.id)),
+  ]);
+  for (const g of open) {
+    g.takenDown = history.filter((p) => p.owner_id === g.userId);
+    for (const p of g.properties) g.matches.set(p.id, matches.filter((m) => m.property_id === p.id));
+  }
   return open;
 }
 
-function Row({ p, onDone }: { p: RentalProperty; onDone: () => void }) {
+function Row({ p, matches, onDone }: { p: RentalProperty; matches: TakedownMatch[]; onDone: () => void }) {
   const [note, setNote] = useState("");
   const m = useMutation({
     mutationFn: (approve: boolean) => reviewOwnership(p.id, approve, note),
@@ -136,6 +146,16 @@ function Row({ p, onDone }: { p: RentalProperty; onDone: () => void }) {
       <p className="text-muted-foreground">
         {p.street_address}, {p.city} {p.zip_code}
       </p>
+      {matches.length > 0 && (
+        <div role="alert" className="space-y-1 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2" data-testid="takedown-address-match">
+          <p className="font-semibold">Same address as a taken-down home</p>
+          {matches.map((m) => (
+            <p key={m.matched_property_id}>
+              {m.matched_street}, {m.matched_city} {m.matched_zip} ({m.same_owner ? "this owner" : "another owner"}): {m.reason ?? "no reason"}
+            </p>
+          ))}
+        </div>
+      )}
       {p.ownership_proof_path && <OpenFile path={p.ownership_proof_path} label="Open ownership proof" />}
       <input
         className="w-full rounded-lg border border-border bg-background px-3 py-2"
@@ -195,7 +215,7 @@ export function RentalsOwnershipCard() {
                 {g.properties.length === 0 ? (
                   <p className="text-muted-foreground">No proof waiting.</p>
                 ) : (
-                  g.properties.map((p) => <Row key={p.id} p={p} onDone={done} />)
+                  g.properties.map((p) => <Row key={p.id} p={p} matches={g.matches.get(p.id) ?? []} onDone={done} />)
                 )}
               </div>
             </div>

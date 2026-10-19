@@ -12836,10 +12836,17 @@ export type Database = {
         Args: { p_note: string; p_property_id: string }
         Returns: undefined
       }
-      rentals_admin_listings: { Args: never; Returns: Json }
+      rentals_admin_listings: {
+        Args: { p_open_offset?: number; p_query?: string; p_taken_offset?: number }
+        Returns: Json
+      }
       rentals_admin_remove_listing: {
         Args: { p_listing_id: string; p_reason: string }
         Returns: undefined
+      }
+      rentals_admin_takedown_matches: {
+        Args: { p_property_ids: string[] }
+        Returns: Json
       }
       rentals_approve_request: {
         Args: { p_request_id: string }

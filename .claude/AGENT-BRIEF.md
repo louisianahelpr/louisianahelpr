@@ -203,6 +203,8 @@ Guard: src/test/agentBriefHowWorkLands.test.ts.
   Never put a new item's number in a commit subject: numbers move at landing.
   Run `node scripts/open-assign-numbers.mjs --dry-run` to preview; the queue
   guards read a placeholder line as unnumbered until it is assigned.
+- Reserve numbers with `node scripts/queue-count.mjs --reserve <lane> <n>` before filing
+  (shared ledger across worktrees; prints the n numbers to use; expires on landing or after 3 days).
 - Otherwise, a new queue item takes the number `node scripts/queue-count.mjs` prints as
   "next free", read right before you write it (and again after a rebase):
   parallel lanes guessed the same number three times on 2026-09-23.

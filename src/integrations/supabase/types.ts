@@ -13327,6 +13327,12 @@ export type Database = {
         Args: { p_tenancy_id: string }
         Returns: Json
       }
+      rentals_rent_next_due: {
+        Args: { p_first: string; p_frequency: string; p_on_or_after: string }
+        Returns: string
+      }
+      rentals_rent_side: { Args: { p_tenancy_id: string; p_uid: string }; Returns: string }
+      rentals_rent_sweep: { Args: never; Returns: Json }
       rentals_request_job_state: {
         Args: { p_request_id: string }
         Returns: {
@@ -13375,6 +13381,7 @@ export type Database = {
         Args: { p_at: string; p_job_id: string }
         Returns: undefined
       }
+      rentals_tenancy_party: { Args: { p_tenancy_id: string }; Returns: boolean }
       rentals_tenant_answer_fixed: {
         Args: { p_fixed: boolean; p_note: string; p_request_id: string }
         Returns: undefined

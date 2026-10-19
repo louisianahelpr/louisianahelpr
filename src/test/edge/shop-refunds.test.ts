@@ -25,11 +25,12 @@
  * @mutate supabase/functions/declutter-money/index.ts |       if (delivered === true) { |       if (true) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     await recordShopHandRefunds(event, charge, refundPiId, allRefunds, chargeMeta.order_id ?? null, supabase, logStep); |
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |       if ((error as { code?: string }).code !== "PGRST202") throw | if (false) throw
- * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |         message: `Refund ${r.id} (${formatExactDollars(Number(r.amount ?? 0))}) on ${paymentIntentId} was made in Stripe, not by the app. ${why} Refunds on this charge: ${history}.`, |         message: `Refund ${r.id} on ${paymentIntentId}. ${why}`,
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |         message: `Refund ${r.id} ($${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${paymentIntentId} was made in Stripe, not by the app. ${why} Refunds on this charge: ${history}.`, |         message: `Refund ${r.id} on ${paymentIntentId}. ${why}`,
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |     if (!shErr && (shopHand === "marked_failed" \|\| shopHand === "reopened_held" \|\| shopHand === "already")) { |     if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |       if (shopHand === "marked_failed" \|\| shopHand === "reopened_held") { |       if (shopHand === "marked_failed") {
  * @mutate supabase/functions/shop-checkout/index.ts |   if (refundPi !== row.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |   if (Number(refund.amount ?? 0) < Number(row.refund_cents)) return json({ error: "hand_refund_short", amount_cents: refund.amount }, 409); |
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (role == null) return json({ error: "admin_only" }, 403); |
  * @mutate supabase/functions/shop-checkout/index.ts |     if (body.action === "admin_settle_held_refund") return await adminSettleHeldRefund(body, user.id, admin);\n |
  * @mutate supabase/functions/shop-checkout/index.ts |   if (refundPi !== o.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |   if (refund.amount !== cents) return json({ error: "refund_amount_differs", amount_cents: refund.amount }, 409); |
@@ -441,22 +442,6 @@ describe("stripe-webhook: a Shops refund made by hand in Stripe", () => {
     expect((slackAlerts.find((a: any) => /Shops refund made by hand FAILED/.test(String(a.title))) as any)?.message).toMatch(/NOT been repaid/);
   });
 
-  it("a hand refund on an order whose own refund was unsent says it is held, with the charge's refund history, once per order", async () => {
-    scenario.rpc.shop_record_hand_refund = "recorded_refund_held";
-    const res = await deliver("charge.refunded", shopCharge([
-      { id: "re_hand", amount: 1000, status: "succeeded", metadata: {} },
-      { id: "re_app", amount: 2000, status: "succeeded", metadata: { kind: "shop_refund", shop_refund_id: REFUND } },
-    ]));
-    expect(res.status).toBe(200);
-    const page = slackAlerts.find((a: any) => /refunded outside the app/.test(String(a.title))) as any;
-    expect(page?.message).toMatch(/HELD/);
-    expect(page?.message).toMatch(/re_hand \$10\.00 succeeded \(by hand\); re_app \$20\.00 succeeded \(app\)/);
-    expect(page?.oncePerDayKey).toBe(`shop-hand-refund-${ORDER}`);
-  });
-});
-
-// Run-3 review #2b: a Dashboard refund that had SETTLED a held app refund fails later: the row is held again, and ops are paged.
-describe("charge.refund.updated: a failed hand refund that settled a row", () => {
   it("pages that the settled refund row is held for review again", async () => {
     scenario.rpc.shop_hand_refund_failed = "reopened_held";
     scenario.rpc.declutter_hand_refund_failed = "not_declutter";
@@ -467,6 +452,20 @@ describe("charge.refund.updated: a failed hand refund that settled a row", () =>
     const page = slackAlerts.find((a: any) => /Shops refund made by hand FAILED/.test(String(a.title))) as any;
     expect(page?.message).toMatch(/held for review again/);
     expect(page?.fields?.Outcome).toBe("reopened_held");
+  });
+
+  it("a hand refund on an order whose own refund was unsent says it is held, with the charge's refund history, once per order", async () => {
+    scenario.rpc.shop_record_hand_refund = "recorded_refund_held";
+    const res = await deliver("charge.refunded", shopCharge([
+      { id: "re_hand", amount: 1000, status: "succeeded", metadata: {} },
+      { id: "re_app", amount: 2000, status: "succeeded", metadata: { kind: "shop_refund", shop_refund_id: REFUND } },
+    ]));
+    expect(res.status).toBe(200);
+    const page = slackAlerts.find((a: any) => /refunded outside the app/.test(String(a.title))) as any;
+    expect(page?.message).toMatch(/HELD/);
+    expect(page?.message).toMatch(/re_hand \$10 succeeded \(by hand\); re_app \$20 succeeded \(app\)/);
+    expect(page?.message).toMatch(/Refund re_hand \(\$10\) on pi_shop/);
+    expect(page?.oncePerDayKey).toBe(`shop-hand-refund-${ORDER}`);
   });
 });
 

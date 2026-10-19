@@ -20,8 +20,8 @@
  *     error or an empty queue; an action says so in its toast.
  *
  * @mutate src/components/admin/AdminShopsOrders.tsx |     mutationFn: () => adminRecordHandRefund(orderId.trim(), refundId.trim(), cents ?? 0, note.trim()), |     mutationFn: () => adminRecordHandRefund(orderId.trim(), refundId.trim(), 0, note.trim()),
- * @mutate src/components/admin/AdminShopsOrders.tsx |   if (error && isNotDeployed(error)) return { problems: [], refunds: [], payouts: [], strikes: [], notDeployed: true }; |
- * @mutate src/components/admin/AdminShopsOrders.tsx |   throw Object.assign(new Error(error.message), error, { userMessage: (isNotDeployed(error) ? NOT_DEPLOYED : userMessage) ?? undefined }); |   throw Object.assign(new Error(error.message), error, { userMessage: userMessage ?? undefined });
+ * @mutate src/components/admin/AdminShopsOrders.tsx |   if (error && isMissingRpcNamed(error, "shops_admin_queue")) return { problems: [], refunds: [], payouts: [], strikes: [], notDeployed: true }; |
+ * @mutate src/components/admin/AdminShopsOrders.tsx |   throw Object.assign(new Error(error.message), error, { userMessage: (notDeployed ? NOT_DEPLOYED : userMessage) ?? undefined }); |   throw Object.assign(new Error(error.message), error, { userMessage: userMessage ?? undefined });
  * @mutate src/components/admin/AdminShopsOrders.tsx |   const cents = Number(m[1]) * 100 + Number((m[2] ?? "0").padEnd(2, "0")); |   const cents = Number(m[1]) * 100 + Number(m[2] ?? "0");
  *
  * @mutate src/components/admin/AdminShopsOrders.tsx |     const { error } = await supabase.rpc("shops_admin_pay_shop", { p_order_id: a.orderId, p_note: note }); |     const { error } = await supabase.rpc("shops_admin_pay_shop", { p_order_id: a.orderId, p_note: "" });
@@ -184,7 +184,7 @@ describe("Admin > Shops Orders (M4)", () => {
     await waitFor(() => expect(invoke).toHaveBeenCalled());
     expect((invoke.mock.calls[0] as unknown as [string, { body: Record<string, unknown> }])[1].body).toEqual({
       action: "admin_record_hand_refund", order_id: "0000000c-0000-4000-8000-0000000000aa", refund_id: "re_3Abc", amount_cents: 2050,
-      note: "Refunded in the Dashboard by phone",
+      note: "Refunded in the Dashboard by phone", native: false,
     });
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/shop is not paid/)));
     expect(rpcCall("shops_admin_record_hand_refund")).toBeUndefined();

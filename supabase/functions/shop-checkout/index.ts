@@ -550,7 +550,7 @@ async function adminSettleHeldRefund(body: Record<string, unknown>, userId: stri
   const note = typeof body.note === "string" ? body.note : "";
   const { data: role, error: roleErr } = await admin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
   if (roleErr) throw new Error(`admin role read failed: ${roleErr.message}`);
-  if (!role) return json({ error: "admin_only" }, 403);
+  if (role == null) return json({ error: "admin_only" }, 403);
   const { data: row, error: rowErr } = await admin.from("shop_refunds")
     .select("id, order_id, stripe_payment_intent_id, refund_cents, status").eq("id", rowId).maybeSingle();
   if (rowErr) throw new Error(`shop refund read failed: ${rowErr.message}`);

@@ -62,7 +62,7 @@ async function recordShopHandRefunds(
   supabase: WebhookContext["supabase"],
   logStep: WebhookContext["logStep"],
 ): Promise<void> {
-  const hand = refunds.filter((r) => !!r?.id && r.status !== "failed" && r.status !== "canceled"
+  const hand = refunds.filter((r) => Boolean(r?.id) && r.status !== "failed" && r.status !== "canceled"
     && (r.metadata as Record<string, string> | null)?.kind !== "shop_refund");
   if (hand.length === 0) {
     logStep("Shops refund: recorded and announced by its own path", { chargeId: charge.id });
@@ -70,7 +70,7 @@ async function recordShopHandRefunds(
   }
   if (!paymentIntentId) throw new Error(`Shops charge ${charge.id} was refunded but names no PaymentIntent`);
   // The whole refund history of the charge goes on the page, so the person deciding sees every refund at once.
-  const history = refunds.filter((x) => !!x?.id).map((x) => `${x.id} ${formatExactDollars(Number(x.amount ?? 0))} ${x.status}`
+  const history = refunds.filter((x) => !!x?.id).map((x) => `${x.id} $${formatExactDollars(Number(x.amount ?? 0) / 100)} ${x.status}`
     + ((x.metadata as Record<string, string> | null)?.kind === "shop_refund" ? " (app)" : " (by hand)")).join("; ");
   for (const r of hand) {
     const { data, error } = await supabase.rpc("shop_record_hand_refund", {
@@ -90,7 +90,7 @@ async function recordShopHandRefunds(
         // Once per order (rule A of the v2 review): the order is held as a whole; one page carries its history.
         kind: "money_at_risk", severity: "critical", oncePerDayKey: `shop-hand-refund-${orderId ?? paymentIntentId}`,
         title: "Shops: a charge was refunded outside the app",
-        message: `Refund ${r.id} (${formatExactDollars(Number(r.amount ?? 0))}) on ${paymentIntentId} was made in Stripe, not by the app. ${why} Refunds on this charge: ${history}.`,
+        message: `Refund ${r.id} ($${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${paymentIntentId} was made in Stripe, not by the app. ${why} Refunds on this charge: ${history}.`,
         fields: { Charge: charge.id, Order: orderId ?? "?", Outcome: error ? "not recorded" : String(data) },
       });
     }

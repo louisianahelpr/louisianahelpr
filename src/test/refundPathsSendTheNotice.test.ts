@@ -83,6 +83,8 @@ const RELEASE_EXEMPT: Record<string, string> = {
  */
 // @two-way src/test/refundPathsSendTheNotice.test.ts:stale REFUND_OWN_NOTICE entry
 const REFUND_OWN_NOTICE: Record<string, string> = {
+  "supabase/functions/_shared/shopRefunds.ts":
+    "Shops M3 (20261019071055): sends a shop_refunds row (metadata.kind shop_refund) for shop-checkout's tap and declutter-money's retry; the buyer was told in the SQL that wrote the row (declutter_notify 'Order refunded' in the shop cancel, the sweep and the admin refund; the buyer's own cancel is their tap), and charge.refunded leaves kind shop_refund alone",
   "supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts":
     "a duplicate onboarding-fee correction (metadata.reason duplicate_onboarding_fee) is announced as \"Duplicate fee refunded\"; handleChargeRefunded skips it as a correction",
   "supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts":
@@ -131,7 +133,8 @@ describe("Q1714: every refund path tells the person their money is back", () => 
     // 14 since Declutter slice 5: declutter-money's delivery-fee refund (the buyer is told in SQL and by email).
     // 16 since J4 Helpr at fault (2026-10-19): create-payment's two Helpr-fault full refunds are the other arm of
     // the dispute and general refund ternaries, so each reaches the same announceRefund as its partial twin.
-    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(16);
+    // 17 since Shops M3 (2026-10-19): _shared/shopRefunds.ts sends a shop_refunds row (REFUND_OWN_NOTICE).
+    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(17);
     expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(4); // 4 since Shops M1: _shared/shopHolds.ts releases an ended order's hold (RELEASE_EXEMPT)
     // Floors, so a parser that silently reads nothing cannot pass.
     expect(refundSites.length).toBeGreaterThan(8);

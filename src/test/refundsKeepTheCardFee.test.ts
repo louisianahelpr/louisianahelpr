@@ -155,6 +155,13 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
   { file: "supabase/functions/void-cancelled-payments/index.ts", key: "cancel-refund-", kind: "both", why: "cancelled job settlement; full for a seller-fault Declutter setup job (A10)" },
   { file: "supabase/functions/process-scheduled-payouts/index.ts", key: "crew-dispute-refund-", kind: "keeps-fee", why: "crew unfilled spots / crew dispute" },
   { file: "supabase/functions/charge-recurring-visits/index.ts", key: "refunds.create(params, opts)", kind: "pass-through", why: "createRefundOnce: callers checked below" },
+  // Shops M3 (20261019071055): sends exactly a shop_refunds row's refund_cents. The amount is decided in SQL by
+  // shop_refund_amounts and HELD by the table CHECKs (shop_refunds_policy: reason -> fee policy, keep_card_fee for
+  // buyer_cancelled / problem_no_fault, the shop pays the fee as debt for its own faults, full only for
+  // problem_our_mistake; shop_refunds_kept / _tax_kept / _amount), proven per reason by
+  // src/test/pglite/shopsRefunds.pglite.mjs and pinned below (shop_refund_amounts). Not a sql-policy chain yet:
+  // that reader is built for declutter_refunds.
+  { file: "supabase/functions/_shared/shopRefunds.ts", key: "payment_intent: row.payment_intent_id", kind: "pass-through", why: "Shops refund row: amount held by shop_refunds CHECKs (see above)" },
   { file: "supabase/functions/charge-recurring-visits/index.ts", key: "visitRefundKey(stripe, intent.id)", kind: "own-mistake", why: "a second charge for one visit (our double charge; owner pop-up 2026-10-14 ~3 PM CT)" },
   { file: "supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts", key: "ONBOARDING_FEE_CENTS", kind: "own-mistake", why: "the $2 setup fee charged twice" },
   { file: "supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts", key: "duplicate-funding-refund:", kind: "own-mistake", why: "a second payment for an already-funded job" },
@@ -240,6 +247,8 @@ const MIGRATIONS = join(ROOT, "supabase/migrations");
  * still green (lh-money-escrow re-review of a701ff757, item 3). Today they are reads and the one pinned fee.
  */
 const TS_MONEY_TOUCHES: string[] = [
+  // Shops M4: the admin Shops orders screen's row TYPE names the order's recorded card fee (shown, never written).
+  "src/components/admin/AdminShopsOrders.tsx: card_fee_cents: number | null; handover_mode: string; problem_at: string; problem_note: string; ready_at: string | null; is_seed: boolean;",
   // Q2170: the admin "Bill the Helpr" button READS whether the ruling is billed yet (no write; the bill is server-side).
   'src/components/admin/helprFault/BillHelprFaultButton.tsx: .select("card_fee_cents")',
   "src/components/admin/helprFault/BillHelprFaultButton.tsx: if (live) setUnbilled({ jobId, value: !error && !!data && data.card_fee_cents == null });",
@@ -375,19 +384,29 @@ const SQL_POLICIES = {
       // Payout readiness (20261019070737, lander33 pin for the lead's review). None of these decides or changes a refund
       // amount; each touches declutter_refunds only by status / time / review columns:
       // the admin page's list of held rows (a read; shows refund_cents as recorded).
-      admin_payouts_held_for_review: "20261019070737_payout_waits_for_payee_setup.sql 6fa6a56325019e33",
+      // Restated in 20261019112103 (shops-m3 run 3) with kind 'shop_refund' added: lists a held Shops refund too.
+      admin_payouts_held_for_review: "20261019112103_shops_held_for_review_admin_tools.sql c1e1ff95266b714b",
       // puts a held refund back to 'pending' with its recorded refund_cents (the fee kept at record time is kept).
-      admin_payout_release: "20261019070737_payout_waits_for_payee_setup.sql 47a7da98fedbb02e",
+      // 20261019112103: + a held Shops refund / payout, refused while a refund made in Stripe stands (refunded_in_stripe)
+      // or when the queue would not send it; a released Shops row starts its tries at 0. No amount changes.
+      admin_payout_release: "20261019112103_shops_held_for_review_admin_tools.sql c6232ad30260cfd2",
       // records how a held refund was settled outside the app (Stripe re_/pyr_ id or "other:") and the amount the admin
       // says moved (settled_by_hand_cents, payout_settlements, the hand-refund ledger); it sends no money and never
       // changes refund_cents, so no new fee is returned by the app (owner: hand-settled = no new money movement).
       // A Stripe id (re_ or pyr_) makes the refund 'succeeded' only for at least refund_cents (settle_amount_short:
       // a short refund never closes the row); only "other:" ends 'settled_by_hand'.
-      admin_payout_settle_by_hand: "20261019070737_payout_waits_for_payee_setup.sql 12a49c0991260de6",
+      // 20261019112103: + a held Shops refund, by "other:" only (a Stripe id goes through shop-checkout, checked with
+      // Stripe: stripe_check_required) and only for its whole refund_cents (settle_amount_differs); settle_amount_short kept.
+      admin_payout_settle_by_hand: "20261019112103_shops_held_for_review_admin_tools.sql f65d8088fd3c48d3",
       // pushes next_attempt_at of a pending / failed row; no try used, no amount.
       payout_defer: "20261019070737_payout_waits_for_payee_setup.sql 64f967d0b2d0c9f4",
       // pages ops and tells the payee once per held row; writes only held_notified_at.
-      payout_held_check: "20261019070737_payout_waits_for_payee_setup.sql 8c5847e745f8e5bb",
+      // 20261019112103: + held Shops refunds on the ops ledger (the buyer is not told: refunded in Stripe already).
+      payout_held_check: "20261019112103_shops_held_for_review_admin_tools.sql b489b512cdf15ef7",
+      // Shops M3: the ONE refund formula for a Shops order (quote, write and CHECKs read it): keep_card_fee keeps the
+      // card fee and its tax for buyer_cancelled / problem_no_fault; full otherwise (the shop is billed the fee as debt
+      // for its own faults; the platform carries it only for problem_our_mistake).
+      shop_refund_amounts: "20261019071055_shops_refunds_cancels_strikes.sql e33a946acc47db26",
       // the payout run holds a pending / failed row for review (status + reason); no amount.
       payout_hold_for_review: "20261019070737_payout_waits_for_payee_setup.sql 744e5a8f330d8f6f",
       // deletes wait / send-mark bookkeeping rows of ended payouts; reads declutter_refunds status only.

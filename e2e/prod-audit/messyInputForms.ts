@@ -787,6 +787,9 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Shops M3/M4 (2026-10-19, shops-m3): cancels, no-shows and the admin Shops orders screen.
+  "src/components/admin/AdminShopsOrders.tsx": "admin-only, needs a charged Shops order (journeys never pay on live Stripe); the note (1-500), refund reason (four values), re_ id and amount are refused by shops_admin_* / shop-checkout admin_record_hand_refund as pinned by src/test/pglite/shopsRefunds.pglite.mjs and src/test/edge/shop-refunds.test.ts",
+  "src/components/shops/ShopOrderCancel.tsx": "behind the 'shops' switch (testers only) and needs an accepted, charged order; the shop's cancel reason is contact-leak filtered and capped by shops_shop_cancel_order, the buyer's cancel takes no text, as pinned by src/test/pglite/shopsRefunds.pglite.mjs",
   // Train12 (2026-10-19, lander33): forms new in payout-readiness, Homes Buy/link/photos and Shops SH12.
   "src/components/admin/adminPayoutBatches/HeldForReview.tsx": "admin-only, needs a payout or refund HELD FOR REVIEW (none exist without a real stuck payout; journeys never pay on live Stripe); the note, amount and Stripe id are refused by admin_payout_release / admin_payout_settle_by_hand (invalid_note, invalid_amount, invalid_stripe_ref, ref_already_used, 20261019070737) as pinned by src/test/pglite/payoutWaitsForPayee.pglite.mjs",
   "src/components/admin/settings/HomesListingsCard.tsx": "admin-only; the listings search (bad_query, too_many) and the take-down / lift reason (5-500 characters, reason_required) are refused by rentals_admin_listings / rentals_admin_remove_listing / rentals_admin_lift_takedown as pinned by src/test/pglite/homesPublicLink.pglite.mjs; FORMS sweep owed once a live listing exists",

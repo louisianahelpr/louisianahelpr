@@ -54,7 +54,9 @@ describe("tips are final", () => {
     // order's own PaymentIntent (metadata.kind declutter_order); a tip is never a Declutter order.
     // 10 (2026-10-15): declutter-money retries refunds from declutter_refunds rows only (a Declutter
     // order's own PaymentIntent, recorded by the webhook or the slice 4 SQL); it never reads tips.
-    expect(refunders.length, "a new refund path: check it cannot reach a tip, then raise this").toBe(10);
+    // 11 (2026-10-19): _shared/shopRefunds.ts refunds only a Shops order's own PaymentIntent from a
+    // shop_refunds row (Shops M3, 20261019071055); a tip is never a Shops order.
+    expect(refunders.length, "a new refund path: check it cannot reach a tip, then raise this").toBe(11);
   });
 
   it("no refund path reads the tips table", () => {

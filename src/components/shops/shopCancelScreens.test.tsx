@@ -22,10 +22,10 @@
  * @mutate src/components/shops/ShopOrderCancel.tsx |         setChanged(true);\n        void quote.refetch();\n        return; |         setChanged(true);
  * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && markedReady && louisianaToday() > order.ready_date; |   const noShowOpen = true;
  * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && markedReady && louisianaToday() > order.ready_date; |   const noShowOpen = order.handover_mode === "in_person" && louisianaToday() > order.ready_date;
- * @mutate src/lib/shops/orders.ts |   if (error && (error as { code?: string }).code === "PGRST202") return { can_cancel: false, unavailable: true }; |
+ * @mutate src/lib/shops/orders.ts |   if (error && isMissingRpcNamed(error, "shops_order_cancel_quote")) return { can_cancel: false, unavailable: true }; |
  * @mutate src/lib/shops/orders.ts |   if (closed && o.status === "partially_refunded") { |   if (false) {
  * @mutate src/components/shops/ShopOrderCancel.tsx |     mutationFn: (what: "cancel" \| "no_show") => (what === "cancel" ? shopCancelOrder(order.id, reason) : reportNoShow(order.id)), |     mutationFn: (what: "cancel" \| "no_show") => (what === "cancel" ? shopCancelOrder(order.id, "") : reportNoShow(order.id)),
- * @mutate src/components/shops/ShopMyOrdersView.tsx |               {o.status === "accepted" && <BuyerCancelOrder order={o} />} | {null}
+ * @mutate src/components/shops/ShopMyOrdersView.tsx |       {o.status === "accepted" && <BuyerCancelOrder order={o} />} | {null}
  * @mutate src/components/shops/ShopDashboardView.tsx |                       <ShopCancelOrder order={o} />\n | \n
  * @mutate src/lib/shops/orders.ts |   if (closed && (o.status === "refunded" \|\| o.status === "cancelled")) return closed[side]; |   if (false) return closed[side];
  * @mutate src/lib/shops/orders.ts |   const data = await invokeShopCheckout({ action: "buyer_cancel", order_id: orderId, expect }); |   const data = await invokeShopCheckout({ action: "buyer_cancel", order_id: orderId });
@@ -98,7 +98,8 @@ function renderAt(path: string, el: ReactNode) {
     </QueryClientProvider>,
   );
 }
-const bodies = () => invoke.mock.calls.map((c) => c[1].body);
+// shop-checkout only: the shop dashboard also asks stripe-connect for the payout-setup row (SH12).
+const bodies = () => invoke.mock.calls.filter((c) => c[0] === "shop-checkout").map((c) => c[1].body);
 const quoteCalls = () => rpc.mock.calls.filter((c) => c[0] === "shops_order_cancel_quote");
 
 beforeEach(() => {

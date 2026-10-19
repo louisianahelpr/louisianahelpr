@@ -7,7 +7,7 @@
  * never drift apart.
  */
 import type { ReactNode } from "react";
-import { Clock, MapPin, Store } from "lucide-react";
+import { Clock, House, MapPin, ShoppingBag, Store } from "lucide-react";
 import { shopPhotoUrl, type ShopBadges, type ShopHour, type ShopPhotoKind } from "@/lib/shops/api";
 import { formatItemPrice, HOME_KITCHEN_NOTICE, itemPhotoUrl, readinessLabel, SHOP_ITEM_TYPE_LABEL, type ShopItem } from "@/lib/shops/items";
 import { publicPhotoUrl } from "@/lib/shops/publicShop";
@@ -109,6 +109,8 @@ export function ShopHero(props: {
   badges: ShopBadges | null | undefined;
   hours: ShopHour[];
   actions?: ReactNode;
+  /** A small round control over the cover's top-right corner (the public page's Share, Airbnb-style). */
+  coverAction?: ReactNode;
 }) {
   const cover = props.photos.find((p) => p.kind === "cover");
   const logo = props.photos.find((p) => p.kind === "logo");
@@ -116,6 +118,7 @@ export function ShopHero(props: {
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       <div className="relative h-40 w-full bg-gradient-to-br from-primary/25 via-muted to-accent/25">
         {cover ? <img src={shopSrc(cover, 1200)} alt="" className="h-full w-full object-cover" /> : null}
+        {props.coverAction ? <div className="absolute right-3 top-3">{props.coverAction}</div> : null}
       </div>
       <div className="relative px-4 pb-4">
         <div className="-mt-10 mb-2 flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border-4 border-card bg-muted shadow-md">
@@ -175,15 +178,23 @@ export function ShopItemsGrid({ items }: { items: (Omit<ShopItem, "photos"> & { 
         const cover = item.photos[0];
         return (
           <li key={item.id} className="overflow-hidden rounded-xl border border-border bg-background">
-            <div className="aspect-square w-full bg-muted">
-              {cover ? <img src={itemSrc(cover)} alt="" loading="lazy" className="h-full w-full object-cover" /> : null}
+            <div className="flex aspect-square w-full items-center justify-center bg-muted">
+              {cover ? (
+                <img src={itemSrc(cover)} alt="" loading="lazy" className="h-full w-full object-cover" />
+              ) : (
+                <ShoppingBag className="h-8 w-8 text-muted-foreground/60" aria-hidden />
+              )}
             </div>
             <div className="space-y-0.5 p-2.5">
               <p className="line-clamp-2 text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{item.title}</p>
               <p className="text-sm font-bold text-foreground">{formatItemPrice(item.price_cents)}</p>
               <p className="text-ds-11 text-muted-foreground">{SHOP_ITEM_TYPE_LABEL[item.subtype] ?? "Item"} · {readinessLabel(item)}</p>
               {item.home_kitchen && (
-                <p className="mt-1 rounded-md bg-muted/70 px-1.5 py-1 text-ds-11 text-foreground" data-testid="home-kitchen-notice">{HOME_KITCHEN_NOTICE}</p>
+                // The R.S. 40:4.9 D(1) statement on every home-food item (L7), as a quiet footnote, not a box.
+                <p className="mt-1.5 flex gap-1 border-t border-border pt-1.5 text-ds-11 leading-snug text-muted-foreground" data-testid="home-kitchen-notice">
+                  <House className="mt-px h-3 w-3 shrink-0" aria-hidden />
+                  <span>{HOME_KITCHEN_NOTICE}</span>
+                </p>
               )}
             </div>
           </li>

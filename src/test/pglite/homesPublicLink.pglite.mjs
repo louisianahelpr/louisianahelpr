@@ -208,6 +208,15 @@ ok(Array.isArray(await live(LANDLORD, rentId, "r")), "setup: a live rent listing
 const slug = one(await svc(`SELECT slug FROM public.rental_listings WHERE id = '${rentId}'`));
 const pub = (role, uid, s = slug) => as(role, uid, `SELECT * FROM public.rentals_public_listing('${s}')`);
 
+// --- review #6: public ONLY once Homes is open to everyone, and never a test or seed account's listing
+ok(refused(await pub("anon", null), /listing_not_found/, "P0002"), "while Homes is testers-only, no public link works");
+await svc(`UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'rentals'`);
+ok(refused(await pub("anon", null), /listing_not_found/, "P0002"), "a test account's listing is never public (LANDLORD is a test account)");
+await svc(`DELETE FROM public.test_accounts WHERE user_id = '${LANDLORD}'`);
+await svc(`UPDATE public.profiles SET is_seed = true WHERE user_id = '${LANDLORD}'`);
+ok(refused(await pub("anon", null), /listing_not_found/, "P0002"), "nor a seed account's");
+await svc(`UPDATE public.profiles SET is_seed = false WHERE user_id = '${LANDLORD}'`);
+
 // --- D12: anyone with the link
 const anonRow = rows(await pub("anon", null))[0];
 ok(anonRow?.headline === "Bright 2 bed near downtown" && anonRow.city === "Lafayette" && anonRow.zip_code === "70501",
@@ -238,7 +247,26 @@ await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('$
 await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'rentals'`);
 ok(refused(await pub("anon", null), /listing_not_found/, "P0002"), "with the Homes switch off, no link works");
 await svc(`UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'rentals'`);
-ok(rows(await pub("anon", null)).length === 1, "switch back on: the link works again");
+ok(refused(await pub("anon", null), /listing_not_found/, "P0002"), "back to testers-only: no public link");
+await svc(`UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'rentals'`);
+ok(rows(await pub("anon", null)).length === 1, "open to everyone again: the link works again");
+
+// --- review #9: every hidden state is hidden from a stranger too
+await svc(`UPDATE public.rental_listings SET expires_at = now() - interval '1 minute' WHERE id = '${rentId}'`);
+ok(refused(await pub("anon", null), /listing_not_found/, "P0002"), "an expired listing's link says not found");
+await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${rentId}', 'live')`);
+await svc(`UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = '${LANDLORD}'`);
+ok(refused(await pub("anon", null), /listing_not_found/, "P0002"), "a banned owner's listing link says not found");
+await svc(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${LANDLORD}'`);
+await svc(`UPDATE public.rental_properties SET ownership_status = 'rejected' WHERE id = '${prop}'`);
+ok(refused(await pub("anon", null), /listing_not_found/, "P0002"), "ownership revoked: the link says not found");
+await svc(`UPDATE public.rental_properties SET ownership_status = 'approved' WHERE id = '${prop}'`);
+const unit2 = one(await as("authenticated", LANDLORD, `SELECT public.rentals_add_unit('${prop}', 'Unit B') AS id`));
+const draftId = one(await as("authenticated", LANDLORD, `SELECT public.rentals_save_listing(NULL, '${unit2}', '${JSON.stringify({
+  headline: "Upstairs one bedroom", rent_cents: 90000, beds: 1, baths: 1, available_on: "2026-12-01" })}'::jsonb) AS id`));
+const draftSlug = one(await svc(`SELECT slug FROM public.rental_listings WHERE id = '${draftId}'`));
+ok(refused(await pub("anon", null, draftSlug), /listing_not_found/, "P0002"), "a draft's link says not found");
+ok(rows(await pub("anon", null)).length === 1, "and the live one still opens");
 
 // --- Q2187: the admin take-down
 const remove = (uid, id, reason = "Photos do not show this home.") =>
@@ -246,7 +274,9 @@ const remove = (uid, id, reason = "Photos do not show this home.") =>
 ok(refused(await remove(LANDLORD, rentId), /not_authorized/, "42501"), "a member (even the owner) cannot use the take-down");
 ok(refused(await as("anon", null, `SELECT public.rentals_admin_remove_listing('${rentId}', 'xxxxx')`), /permission denied/), "anon cannot execute it");
 ok(refused(await remove(ADMIN, rentId, "no"), /reason_required/, "22023"), "a take-down needs a reason");
-ok(Array.isArray(await remove(ADMIN, rentId)), "an admin removes the listing");
+await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'rentals'`);
+ok(Array.isArray(await remove(ADMIN, rentId)), "an admin removes the listing, even with the Homes switch off (moderation is never gated)");
+await svc(`UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'rentals'`);
 const after = rows(await svc(`SELECT status, removed_by_admin, removed_reason FROM public.rental_listings WHERE id = '${rentId}'`))[0];
 ok(after?.status === "removed" && after.removed_by_admin === true && after.removed_reason === "Photos do not show this home.", "removed, by an admin, with the reason");
 ok(empty(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_listings()`)), "it leaves the Rent browse");
@@ -254,14 +284,25 @@ ok(refused(await pub("anon", null), /listing_not_found/, "P0002"), "and its publ
 ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${rentId}', 'live')`), /listing_not_editable/), "the owner cannot put it back up");
 ok(one(await svc(`SELECT count(*)::int FROM public.admin_audit_log WHERE action = 'rentals_listing_removed' AND target_id = '${rentId}'`)) === 1, "the take-down is in the admin audit log");
 ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${LANDLORD}' AND title = 'Listing removed'`)) >= 1, "the owner is told why");
-ok(refused(await remove(ADMIN, rentId), /listing_not_found/, "P0002"), "a removed listing cannot be removed twice");
+ok(refused(await remove(ADMIN, rentId), /listing_not_found/, "P0002"), "a taken-down listing cannot be taken down twice");
+// review #4: the same unit cannot simply be listed again
+const again = one(await as("authenticated", LANDLORD, `SELECT public.rentals_save_listing(NULL, '${unit}', '${JSON.stringify({
+  headline: "Bright 2 bed near downtown", rent_cents: 120000, beds: 2, baths: 1, available_on: "2026-11-01" })}'::jsonb) AS id`));
+ok(refused(await live(LANDLORD, again, "a"), /listing_taken_down/, "42501"), "the taken-down unit cannot go live again under a new listing");
+// review #7: an owner-removed listing can still be taken down (who, why, audit)
+await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${draftId}', 'removed')`);
+ok(Array.isArray(await remove(ADMIN, draftId)), "an admin can take down a listing the owner already removed");
+ok(rows(await svc(`SELECT removed_by_admin FROM public.rental_listings WHERE id = '${draftId}'`))[0]?.removed_by_admin === true, "and it is recorded as taken down");
 // a sale listing too
 const saleId = one(await as("authenticated", LANDLORD, `SELECT public.rentals_save_sale_listing(NULL, '${prop}', '${JSON.stringify({
-  headline: "Three bedroom brick home", sale_price_cents: 24500000, beds: 3, baths: 2 })}'::jsonb) AS id`));
+  headline: "Three bedroom brick home", sale_price_cents: 24500000, beds: 3, baths: 2, sq_ft: 1650, lot_sq_ft: 8700, year_built: 1998 })}'::jsonb) AS id`));
 await live(LANDLORD, saleId, "s");
 ok(rows(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_sale_listings()`)).length === 1, "setup: a live sale listing");
 const saleSlug = one(await svc(`SELECT slug FROM public.rental_listings WHERE id = '${saleId}'`));
-ok(rows(await pub("anon", null, saleSlug))[0]?.kind === "sale", "a sale listing's link works too, saying sale");
+const saleRow = rows(await pub("anon", null, saleSlug))[0];
+ok(saleRow?.kind === "sale", "a sale listing's link works too, saying sale");
+ok(saleRow && saleRow.sq_ft === null && saleRow.lot_sq_ft === null && saleRow.year_built === null,
+  "review #5: a stranger gets no home size, lot size or year built for a home for sale (with the ZIP they name the parcel)");
 ok(Array.isArray(await remove(ADMIN, saleId)), "an admin removes a sale listing too");
 ok(empty(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_sale_listings()`)), "it leaves the Buy browse");
 

@@ -1,6 +1,7 @@
 /**
- * Post a Job, section 3 (owner Q1, Q4): "Set my price" (today's flow: a
- * budget, then Review & Pay) or "Get quotes" (no price; members near you send
+ * Post a Job, chosen at the top of the form (owner Q1, Q4; moved to the top
+ * as pills 2026-10-19): "Set a price" (today's flow: a budget, then Review &
+ * Pay) or "Get quotes" (no price; members near you send
  * theirs for 24 hours, 48 hours or 3 days, 48 hours by default). Shown only
  * while the hidden 'quotes' switch is on for the member, and only for a
  * one-time job with no direct offer (a series, a crew job or an offer to one
@@ -30,17 +31,36 @@ import { quoteErrorMessage } from "@/lib/quotes/errors";
 
 export type PriceMode = "price" | "quotes";
 
+/** What happens next, one line per choice (owner 2026-10-19: say it under the pills). */
+const PRICE_MODE_NEXT: Record<PriceMode, string> = {
+  price: "You set the budget, then review and pay. Helprs apply at your price.",
+  quotes: "No price yet. Members near you send theirs; you pick one and pay only when you book.",
+};
+
+/**
+ * The top of Post a Job (owner 2026-10-19: quotes live inside Post a Job):
+ * "Set a price" or "Get quotes", as the app's pill choice (SegmentedControl:
+ * olive gloss on the picked pill), with one line on what happens next.
+ */
 export function PriceModeChoice({ value, onChange }: { value: PriceMode; onChange: (v: PriceMode) => void }) {
   return (
-    <SegmentedControl
-      ariaLabel="How to price this job"
-      value={value}
-      onChange={(v) => onChange(v as PriceMode)}
-      options={[
-        { value: "price", label: "Set my price" },
-        { value: "quotes", label: "Get quotes" },
-      ]}
-    />
+    <div data-price-mode-choice>
+      <p className="mb-2 text-sm font-semibold text-foreground">
+        How do you want to price it?
+      </p>
+      <SegmentedControl
+        ariaLabel="How to price this job"
+        value={value}
+        onChange={(v) => onChange(v as PriceMode)}
+        options={[
+          { value: "price", label: "Set a price" },
+          { value: "quotes", label: "Get quotes" },
+        ]}
+      />
+      <p className="mt-2 text-sm text-muted-foreground" aria-live="polite">
+        {PRICE_MODE_NEXT[value]}
+      </p>
+    </div>
   );
 }
 

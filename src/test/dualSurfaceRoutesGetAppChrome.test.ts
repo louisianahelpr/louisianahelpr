@@ -126,7 +126,7 @@ describe("signed-in-only routes carry the app navigation (quotes, 2026-10-15)", 
 
   it("derives the protected routes from App.tsx", () => {
     expect(routes.length).toBeGreaterThan(10);
-    expect(routes).toEqual(expect.arrayContaining(["/quotes", "/quotes/request/:id", "/quotes/send/:id", "/rentals", "/rentals/requests/:id"]));
+    expect(routes).toEqual(expect.arrayContaining(["/quotes/request/:id", "/quotes/send/:id", "/rentals", "/rentals/requests/:id"]));
   });
 
   it("every one is a desktop-rail route, apart from the exact exceptions", () => {

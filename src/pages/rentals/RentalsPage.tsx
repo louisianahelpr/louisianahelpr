@@ -6,7 +6,7 @@ import RentalsHomeView from "@/components/rentals/RentalsHomeView";
  * while the switch loads, its real header (RentalsGateFrame). */
 export default function RentalsPage() {
   return (
-    <RentalsGate skeleton={<RentalsGateFrame title="Rentals" label="Loading your rentals" />}>
+    <RentalsGate skeleton={<RentalsGateFrame title="Homes" label="Loading your rentals" />}>
       <RentalsHomeView />
     </RentalsGate>
   );

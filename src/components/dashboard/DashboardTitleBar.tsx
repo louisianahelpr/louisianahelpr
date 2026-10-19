@@ -184,7 +184,7 @@ export function DashboardTitleBar({
           reclaims 8px — small, but this row is decided by single-digit
           margins: at 375 the actions overran the card by 16px and the bell,
           being last, was the part that fell off the edge. */}
-      <div ref={actionsRef} className={`flex items-center gap-1.5 sm:gap-2 shrink-0${trailing ? "" : " -mr-2"}`}>
+      <div ref={actionsRef} className={`flex items-center gap-1.5 max-[359px]:gap-0 sm:gap-2 shrink-0${trailing ? "" : " -mr-2"}`}>
         {status}
         {actions}
         {/* Only the DEFAULT bell (no custom `trailing` passed) is hidden on

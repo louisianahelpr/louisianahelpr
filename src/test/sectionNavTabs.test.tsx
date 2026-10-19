@@ -99,12 +99,13 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(sectionItems.some((s) => /rental/i.test(s.label))).toBe(false);
   });
 
-  it("the dock is Home, Jobs & Posts, Declutter, Shops, Homes and the +; no Messages or Profile tab", () => {
+  it("the dock is Home, Jobs & Posts, Declutter, Shops, Homes; no +, no Messages or Profile tab", () => {
     switches.on = new Set(["declutter", "shops", "rentals"]);
     renderDock();
     const labels = dockLabels();
     expect(labels.slice(0, 5)).toEqual(["Home", "Jobs & Posts", "Declutter", "Shops", "Homes"]);
-    expect(labels).toContain("Post a new job");
+    // The "+" left the dock (owner, 2026-10-19): each section has its own add pill.
+    expect(labels).not.toContain("Post a new job");
     expect(labels).not.toContain("Messages");
     expect(labels).not.toContain("Profile");
   });

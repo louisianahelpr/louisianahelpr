@@ -21,6 +21,8 @@ export function installLargeTitles(doc: Document = document): () => void {
   const onScroll = (e: Event) => {
     const t = e.target;
     if (!(t instanceof HTMLElement)) return;
+    // A sideways scroller (chip rows) has no vertical travel; it must not reset the page's state.
+    if (t.scrollHeight <= t.clientHeight + 1) return;
     doc.documentElement.classList.toggle("page-scrolled", t.scrollTop > 24);
     if (t.matches("[data-app-page-scroll]")) {
       const h1 = t.querySelector("h1.text-page-title");

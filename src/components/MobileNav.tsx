@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useReducedMotion } from "@/lib/accessibility";
 import {
-  Plus,
   type LucideIcon,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,8 +33,6 @@ import { useSectionTabs, comingSoonLabel, sayComingSoon } from "@/components/mob
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
-import { useAgeGate } from "@/hooks/useAgeGate";
-import { POST_FAB_STYLE } from "@/components/mobileNav/postFabStyle";
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
@@ -67,7 +64,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const maybeSignedIn = useStoredSessionHint();
   const isGuest = isLoading ? !maybeSignedIn : !user;
   // Q1586(c): a saved birthday under 18 greys the Post button out; a tap says why.
-  const { underAge, explain: explainAgeGate, gatedProps: ageGatedProps } = useAgeGate();
   // Messages badge unread count (durable-cache seeded), its live query +
   // realtime channel + archive listener, the native app-icon badge mirror,
   // and the best-effort mark-all-read action — all owned by this hook.
@@ -668,17 +664,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     );
   };
 
-  const handlePostClick = () => {
-    if (isGuest) {
-      triggerGate();
-      return;
-    }
-    if (underAge) {
-      explainAgeGate("post");
-      return;
-    }
-    navigate("/post-job");
-  };
 
   return (
     <>
@@ -763,33 +748,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </div>
           </div>
 
-          {/* Post FAB — a flat solid-olive (bark) puck with one small soft
-              shadow (owner, 2026-10-18, option 3B "nearly flat": no shine, no
-              halo, no pulse). Guest gating is handled by the gate sheet on
-              tap, so no lock badge needed on the surface. */}
-          <div className="relative shrink-0 w-14 h-14">
-            <button
-              onClick={handlePostClick}
-              {...ageGatedProps("post")}
-              onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
-              onFocus={() => !isGuest && prefetchRoute("/post-job")}
-              aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
-              /* The five tabs say where you are with `aria-current`; the FAB
-                 never did, so on /post-job it announced as an ordinary
-                 action that leads somewhere — and pressing it navigates to
-                 the page it is already on, which is no navigation at all.
-                 Same signal the tabs give, for the same reason. */
-              aria-current={!isGuest && location.pathname === "/post-job" ? "page" : undefined}
-              className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-transform duration-200"
-              style={POST_FAB_STYLE}
-            >
-              <Plus
-                className="w-7 h-7 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:rotate-90 motion-safe:group-active:rotate-180"
-                strokeWidth={2.75}
-                style={{ color: "hsl(var(--parchment))" }}
-              />
-            </button>
-          </div>
+          {/* No Post "+" here any more (owner, 2026-10-19): each section
+              carries its own add action as a pill (SectionActionPill), so
+              the dock is only the tabs. */}
         </div>
       </nav>
 

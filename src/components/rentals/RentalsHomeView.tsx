@@ -4,6 +4,7 @@
  * "Properties you own" (add a property, ownership proof, units, invite links,
  * auto-approve, incoming requests). Hidden unless the 'rentals' switch is on.
  */
+import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -318,9 +319,9 @@ export default function RentalsHomeView() {
             title="Properties you own"
             action={
               !adding && !underAge && (
-                <Button type="button" size="sm" onClick={() => setAdding(true)}>
+                <SectionActionPill onClick={() => setAdding(true)}>
                   Add a property
-                </Button>
+                </SectionActionPill>
               )
             }
           >

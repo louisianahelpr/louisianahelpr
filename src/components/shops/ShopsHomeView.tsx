@@ -6,6 +6,7 @@
  * 'shops' switch is on for the member (ShopsGate). No boosts and no "Ad"
  * cards yet (L57-L68, a later slice).
  */
+import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -75,19 +76,16 @@ export default function ShopsHomeView() {
       titleActions={
         <div className="flex gap-2">
           {mine.data && (
-            <Button type="button" size="sm" variant="outline" className="whitespace-nowrap" onClick={() => navigate("/shops/dashboard")}>
+            <SectionActionPill variant="outline" onClick={() => navigate("/shops/dashboard")}>
               Shop dashboard
-            </Button>
+            </SectionActionPill>
           )}
-          <Button
-            type="button"
-            size="sm"
-            className="whitespace-nowrap"
+          <SectionActionPill
             disabled={mine.isLoading}
             onClick={() => navigate(mine.data ? `/shops/${mine.data}` : "/shops/mine")}
           >
             {mine.data ? "My shop" : "Open a shop"}
-          </Button>
+          </SectionActionPill>
         </div>
       }
     >

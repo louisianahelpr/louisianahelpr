@@ -291,6 +291,9 @@ ok(refused(await remove(LANDLORD, rentId), /not_authorized/, "42501"), "a member
 ok(refused(await as("anon", null, `SELECT public.rentals_admin_remove_listing('${rentId}', 'xxxxx')`), /permission denied/), "anon cannot execute it");
 ok(refused(await remove(ADMIN, rentId, "no"), /reason_required/, "22023"), "a take-down needs a reason");
 ok(refused(await remove(ADMIN, draftId), /listing_not_live/, "22023"), "must-fix 6: a draft (not live or paused) is not taken down");
+const admOpen = rows(await as("authenticated", ADMIN, `SELECT public.rentals_admin_listings() AS a`))[0]?.a;
+ok(admOpen?.open?.some((x) => x.id === rentId) && admOpen.open.some((x) => x.id === saleId) && !admOpen.open.some((x) => x.id === draftId),
+  "the admin card lists live and paused listings to take down (not drafts)");
 await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'rentals'`);
 ok(Array.isArray(await remove(ADMIN, rentId)), "an admin removes a live listing, even with the Homes switch off (moderation is never gated)");
 await svc(`UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'rentals'`);
@@ -322,9 +325,19 @@ const strayPath = `${LANDLORD}/rental-listings/${rentId}/late.jpg`;
 await svc(`INSERT INTO storage.objects (bucket_id, name, owner, owner_id, metadata) VALUES ('job-photos', '${strayPath}', '${LANDLORD}', '${LANDLORD}', '{"mimetype":"image/jpeg","size":1000}')`);
 ok(refused(await svc(`INSERT INTO public.rental_listing_photos (listing_id, owner_id, storage_path, position) VALUES ('${rentId}', '${LANDLORD}', '${strayPath}', 20)`), /listing_taken_down/),
   "must-fix 7: no photo is attached to a listing on a taken-down property (trigger, whatever the writer)");
+// round 3 must-fix 3: the same home cannot simply be added again (normalised address, same owner)
+ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_create_property('Oak again', '123  OAK st.', 'Lafayette', '70501')`), /property_taken_down/, "42501"),
+  "the owner cannot add the taken-down address again (case, spacing and punctuation ignored)");
+ok(typeof one(await as("authenticated", LANDLORD, `SELECT public.rentals_create_property('Other', '77 Pine St', 'Lafayette', '70501') AS id`)) === "string",
+  "a different address is fine");
 // must-fix 6: lifting a mistaken take-down (admin only, audited): drafts back to draft, live/paused back to paused
 ok(refused(await lift(LANDLORD, prop), /not_authorized/, "42501"), "a member cannot lift a take-down");
 ok(refused(await lift(ADMIN, prop, "no"), /reason_required/, "22023"), "lifting needs a note");
+const adm = rows(await as("authenticated", ADMIN, `SELECT public.rentals_admin_listings() AS a`))[0]?.a;
+ok(adm?.taken_down?.length === 1 && adm.taken_down[0].property_id === prop && adm.taken_down[0].reason === "Photos do not show this home." && !JSON.stringify(adm).includes("Oak St"),
+  "the admin card lists the taken-down property with its reason (no street)");
+ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_admin_listings()`), /not_authorized/, "42501"), "a member cannot read the admin list");
+ok(refused(await as("anon", null, `SELECT public.rentals_admin_listings()`), /permission denied/), "nor anon");
 ok(Array.isArray(await lift(ADMIN, prop)), "an admin lifts it");
 const back = rows(await svc(`SELECT id, status, removed_by_admin FROM public.rental_listings WHERE id IN ('${rentId}', '${saleId}', '${draftId}') ORDER BY id`));
 const st = (x) => back.find((r) => r.id === x);

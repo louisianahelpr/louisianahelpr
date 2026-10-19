@@ -12832,6 +12832,15 @@ export type Database = {
         Args: { p_approve: boolean; p_note: string; p_property_id: string }
         Returns: undefined
       }
+      rentals_admin_lift_takedown: {
+        Args: { p_note: string; p_property_id: string }
+        Returns: undefined
+      }
+      rentals_admin_listings: { Args: never; Returns: Json }
+      rentals_admin_remove_listing: {
+        Args: { p_listing_id: string; p_reason: string }
+        Returns: undefined
+      }
       rentals_approve_request: {
         Args: { p_request_id: string }
         Returns: undefined

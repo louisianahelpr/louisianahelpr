@@ -152,6 +152,78 @@ $fn$;
 REVOKE ALL ON FUNCTION public.rentals_admin_lift_takedown(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rentals_admin_lift_takedown(uuid, text) TO authenticated, service_role;
 
+-- 2e. The take-down cannot be dodged by adding the same home again (lead review round 3, must-fix 3): the
+--     owner cannot add (or edit a property into) an address, normalised, that matches one of their
+--     properties under a take-down. The ownership review shows the owner's take-down history too.
+CREATE OR REPLACE FUNCTION public.rentals_address_key(p_street text, p_zip text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT btrim(regexp_replace(lower(coalesce(p_street, '')), '[^a-z0-9]+', ' ', 'g')) || '|' || btrim(coalesce(p_zip, ''));
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_address_key(text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rentals_address_key(text, text) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.rentals_property_takedown_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.rental_properties rp
+              WHERE rp.owner_id = NEW.owner_id
+                AND rp.id <> NEW.id
+                AND rp.listings_taken_down_at IS NOT NULL
+                AND public.rentals_address_key(rp.street_address, rp.zip_code) = public.rentals_address_key(NEW.street_address, NEW.zip_code)) THEN
+    RAISE EXCEPTION 'property_taken_down' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_property_takedown_guard() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS rentals_property_takedown_guard ON public.rental_properties;
+CREATE TRIGGER rentals_property_takedown_guard BEFORE INSERT OR UPDATE OF street_address, zip_code ON public.rental_properties
+  FOR EACH ROW EXECUTE FUNCTION public.rentals_property_takedown_guard();
+
+-- 2d. What the admin card lists (admin only, never switch-gated): live and paused listings to take down,
+--     and properties under a take-down to lift. City + ZIP and the property label, never the street.
+CREATE OR REPLACE FUNCTION public.rentals_admin_listings()
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+BEGIN
+  IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin'::public.app_role) THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  RETURN jsonb_build_object(
+    'open', COALESCE((SELECT jsonb_agg(to_jsonb(x) ORDER BY x.published_at DESC NULLS LAST, x.id)
+                        FROM (SELECT l.id, l.kind, l.status, l.headline, l.slug, l.published_at, rp.label AS property_label,
+                                     rp.city, rp.zip_code
+                                FROM public.rental_listings l
+                                JOIN public.rental_properties rp ON rp.id = l.property_id
+                               WHERE l.status IN ('live', 'paused')
+                               ORDER BY l.published_at DESC NULLS LAST, l.id
+                               LIMIT 200) x), '[]'::jsonb),
+    'taken_down', COALESCE((SELECT jsonb_agg(to_jsonb(y) ORDER BY y.taken_down_at DESC, y.property_id)
+                              FROM (SELECT rp.id AS property_id, rp.label AS property_label, rp.city, rp.zip_code,
+                                           rp.listings_taken_down_reason AS reason, rp.listings_taken_down_at AS taken_down_at
+                                      FROM public.rental_properties rp
+                                     WHERE rp.listings_taken_down_at IS NOT NULL
+                                     ORDER BY rp.listings_taken_down_at DESC
+                                     LIMIT 200) y), '[]'::jsonb));
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_admin_listings() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.rentals_admin_listings() TO authenticated, service_role;
+
 -- 2c. Nothing on a taken-down property is saved, given photos or published (must-fix 1, 7): one trigger
 --     per table, so every writer (draft save, sale save, status, photo attach) is refused up front.
 CREATE OR REPLACE FUNCTION public.rentals_listing_takedown_guard()

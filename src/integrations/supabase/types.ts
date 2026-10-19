@@ -6573,6 +6573,7 @@ export type Database = {
           daily_application_cap: number | null
           feature_flags: Json
           helper_fee_percent: number
+          homes_sale_listing_fee_cents: number
           hybrid_idv_enabled: boolean
           id: string
           idv_auto_approve_threshold: number
@@ -6591,6 +6592,7 @@ export type Database = {
           daily_application_cap?: number | null
           feature_flags?: Json
           helper_fee_percent?: number
+          homes_sale_listing_fee_cents?: number
           hybrid_idv_enabled?: boolean
           id?: string
           idv_auto_approve_threshold?: number
@@ -6609,6 +6611,7 @@ export type Database = {
           daily_application_cap?: number | null
           feature_flags?: Json
           helper_fee_percent?: number
+          homes_sale_listing_fee_cents?: number
           hybrid_idv_enabled?: boolean
           id?: string
           idv_auto_approve_threshold?: number
@@ -7386,7 +7389,7 @@ export type Database = {
         Row: {
           accepts_vouchers: string
           accessibility: string[]
-          available_on: string
+          available_on: string | null
           baths: number
           beds: number
           created_at: string
@@ -7395,28 +7398,32 @@ export type Database = {
           expires_at: string | null
           headline: string
           id: string
+          kind: string
           lease_months_max: number | null
           lease_months_min: number | null
+          lot_sq_ft: number | null
           owner_id: string
           parking: string
           pet_rules: string
           pets: string
           property_id: string
           published_at: string | null
-          rent_cents: number
+          rent_cents: number | null
           rent_frequency: string
+          sale_price_cents: number | null
           slug: string
           sq_ft: number | null
           status: string
-          unit_id: string
+          unit_id: string | null
           updated_at: string
           utilities_included: string[]
           wording_flags: string[]
+          year_built: number | null
         }
         Insert: {
           accepts_vouchers?: string
           accessibility?: string[]
-          available_on: string
+          available_on?: string | null
           baths: number
           beds: number
           created_at?: string
@@ -7425,28 +7432,32 @@ export type Database = {
           expires_at?: string | null
           headline: string
           id?: string
+          kind?: string
           lease_months_max?: number | null
           lease_months_min?: number | null
+          lot_sq_ft?: number | null
           owner_id: string
           parking?: string
           pet_rules?: string
           pets?: string
           property_id: string
           published_at?: string | null
-          rent_cents: number
+          rent_cents?: number | null
           rent_frequency?: string
+          sale_price_cents?: number | null
           slug?: string
           sq_ft?: number | null
           status?: string
-          unit_id: string
+          unit_id?: string | null
           updated_at?: string
           utilities_included?: string[]
           wording_flags?: string[]
+          year_built?: number | null
         }
         Update: {
           accepts_vouchers?: string
           accessibility?: string[]
-          available_on?: string
+          available_on?: string | null
           baths?: number
           beds?: number
           created_at?: string
@@ -7455,23 +7466,27 @@ export type Database = {
           expires_at?: string | null
           headline?: string
           id?: string
+          kind?: string
           lease_months_max?: number | null
           lease_months_min?: number | null
+          lot_sq_ft?: number | null
           owner_id?: string
           parking?: string
           pet_rules?: string
           pets?: string
           property_id?: string
           published_at?: string | null
-          rent_cents?: number
+          rent_cents?: number | null
           rent_frequency?: string
+          sale_price_cents?: number | null
           slug?: string
           sq_ft?: number | null
           status?: string
-          unit_id?: string
+          unit_id?: string | null
           updated_at?: string
           utilities_included?: string[]
           wording_flags?: string[]
+          year_built?: number | null
         }
         Relationships: [
           {
@@ -11312,6 +11327,10 @@ export type Database = {
           status: string
         }[]
       }
+      homes_sale_wording_flags: {
+        Args: { p_text: string }
+        Returns: string[]
+      }
       job_offer_cutoff: {
         Args: { p_date_needed: string; p_start_time: string }
         Returns: string
@@ -12803,6 +12822,28 @@ export type Database = {
         Returns: undefined
       }
       rentals_assert_member: { Args: never; Returns: string }
+      rentals_browse_sale_listings: {
+        Args: {
+          p_city?: string
+          p_limit?: number
+          p_max_price_cents?: number
+          p_min_beds?: number
+          p_offset?: number
+        }
+        Returns: {
+          baths: number
+          beds: number
+          city: string
+          headline: string
+          id: string
+          is_mine: boolean
+          photo_paths: string[]
+          published_at: string
+          sale_price_cents: number
+          sq_ft: number
+          zip_code: string
+        }[]
+      }
       rentals_caller_is_active_tenant_of: {
         Args: { p_property_id: string }
         Returns: boolean
@@ -12886,8 +12927,10 @@ export type Database = {
           headline: string
           id: string
           is_mine: boolean
+          kind: string
           lease_months_max: number
           lease_months_min: number
+          lot_sq_ft: number
           parking: string
           pet_rules: string
           pets: string
@@ -12895,9 +12938,11 @@ export type Database = {
           published_at: string
           rent_cents: number
           rent_frequency: string
+          sale_price_cents: number
           sq_ft: number
           status: string
           utilities_included: string[]
+          year_built: number
           zip_code: string
         }[]
       }
@@ -12914,7 +12959,7 @@ export type Database = {
         Returns: {
           accepts_vouchers: string
           accessibility: string[]
-          available_on: string
+          available_on: string | null
           baths: number
           beds: number
           created_at: string
@@ -12923,23 +12968,27 @@ export type Database = {
           expires_at: string | null
           headline: string
           id: string
+          kind: string
           lease_months_max: number | null
           lease_months_min: number | null
+          lot_sq_ft: number | null
           owner_id: string
           parking: string
           pet_rules: string
           pets: string
           property_id: string
           published_at: string | null
-          rent_cents: number
+          rent_cents: number | null
           rent_frequency: string
+          sale_price_cents: number | null
           slug: string
           sq_ft: number | null
           status: string
-          unit_id: string
+          unit_id: string | null
           updated_at: string
           utilities_included: string[]
           wording_flags: string[]
+          year_built: number | null
         }
         SetofOptions: {
           from: "*"
@@ -12996,6 +13045,10 @@ export type Database = {
       }
       rentals_save_listing: {
         Args: { p_fields: Json; p_listing_id: string; p_unit_id: string }
+        Returns: string
+      }
+      rentals_save_sale_listing: {
+        Args: { p_fields: Json; p_listing_id: string; p_property_id: string }
         Returns: string
       }
       rentals_set_auto_approve: {

@@ -10,10 +10,14 @@ import { useFeatureStatus } from "@/hooks/useFeature";
  * (shops_public_shop), which asks them to sign in to order or message.
  * Nothing paints until the switch answer is in (settled is immediate when
  * signed out), so a member never sees the public page flash first.
+ * The member view follows the LAST SUCCESSFUL answer: a background refetch
+ * that errors does not swap a member's page for the public one mid-visit;
+ * only a successful "off" does (lead re-review #3). Every read behind
+ * ShopView is gated on the server, so a stale "on" shows nothing it shouldn't.
  */
 export default function ShopPage() {
-  const { on, settled } = useFeatureStatus("shops");
-  if (on) return <ShopView />;
+  const { settled, lastAnswer } = useFeatureStatus("shops");
+  if (lastAnswer === true) return <ShopView />;
   if (settled) return <PublicShopView />;
   return (
     <AppPage title="Shop" backTo="/">

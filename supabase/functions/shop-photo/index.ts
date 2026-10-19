@@ -23,17 +23,32 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 //
 // verify_jwt is false in config.toml BY NECESSITY: an <img> sends no
 // Authorization header, and the page is for signed-out visitors. So it is
-// rate limited per server-derived address (_shared/rate-limit.ts): a full
-// shop page is up to ~40 images, so 300 a minute never bites a real visitor
-// but stops a loop from turning it into a storage-egress pump.
+// rate limited per server-derived address (_shared/rate-limit.ts). A full
+// shop page can ask for over a hundred images in one burst (cover, logo,
+// gallery, every live item's photo; lead review counted ~114), and an <img>
+// carries no token,
+// so the narrow window IS the address: 1200 a minute lets a visitor scroll
+// several shops back to back, and the wide window (6000, every subject one
+// address presents) still stops a loop from turning it into an egress pump.
+const RATE = { windowMs: 60_000, maxRequests: 1200, ipMaxRequests: 6000, keyPrefix: "shop-photo" } as const;
+
+// The un-resized fallback (render refused) is capped: never for a link card
+// (og=1 declares 1200x630 image/jpeg, which an original is not), and never a
+// body over 2 MB, so an outage of the transform add-on cannot turn this into
+// an egress pump or hand out a full-size original.
+const FALLBACK_MAX_BYTES = 2 * 1024 * 1024;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const WIDTHS = [160, 320, 640, 1200];
 // The link-preview card (api/share.ts shopImage) asks og=1 and declares the
 // size it gets: 1200x630 for a cover, 630x630 for a logo (w=630). Exactly
 // those, never the nearest WIDTHS step, so og:image:width/height are true.
-// Its type is image/jpeg because every shop photo is: cleanListingPhoto
-// refuses anything it cannot re-encode to a metadata-free JPEG.
+// Its type is image/jpeg: every shop photo is a JPEG (cleanListingPhoto
+// re-encodes to a metadata-free JPEG), the render URL asks format=origin so
+// storage keeps that JPEG instead of answering WebP to a browser that accepts
+// it (measured 2026-10-19: no format -> image/webp, format=origin -> image/jpeg;
+// format=jpeg is refused 400), and an og=1 answer that is not image/jpeg is
+// refused rather than served under a card that says it is.
 const OG_HEIGHT = 630;
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -46,21 +61,35 @@ function notFound(): Response {
   return new Response("Not found", { status: 404, headers: { "Cache-Control": "public, max-age=60" } });
 }
 
-// Storage answered neither the resized nor the original image: the photo
+// Storage answered neither the resized nor a servable original: the photo
 // exists (the lookup found its path), so every visitor sees a broken image.
-// One Slack alert a day, not one per image.
-async function alertStorage(status: number): Promise<void> {
-  try {
-    await postSlackOpsAlert({
-      kind: "custom",
-      severity: "warning",
-      title: "Public shop photos are failing",
-      message: `shop-photo: storage answered ${status} for a link-visible shop photo (render and object both refused).`,
-      oncePerDayKey: "shop-photo-storage",
-    });
-  } catch (err) {
+// One Slack alert a day, not one per image. Deduped HERE, per isolate, before
+// postSlackOpsAlert writes its ledger row (it writes one per call even when
+// oncePerDayKey then suppresses the post), and fired without awaiting so a
+// failing page never waits on Slack.
+type EdgeRuntimeLike = { waitUntil?: (p: Promise<unknown>) => void };
+let lastAlertDay = "";
+
+function alertStorage(status: number, why: string): void {
+  const day = new Date().toISOString().slice(0, 10);
+  if (lastAlertDay === day) return;
+  lastAlertDay = day;
+  const run = postSlackOpsAlert({
+    kind: "custom",
+    severity: "warning",
+    title: "Public shop photos are failing",
+    message: `shop-photo: ${why} (storage answered ${status}) for a link-visible shop photo.`,
+    oncePerDayKey: "shop-photo-storage",
+  }).catch((err) => {
+    // Logged, not thrown: the visitor already has their 502.
     console.error("shop-photo: alert failed", caughtMessage(err));
-  }
+  });
+  const rt = (globalThis as { EdgeRuntime?: EdgeRuntimeLike }).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(run);
+}
+
+function unavailable(): Response {
+  return new Response("Unavailable", { status: 502 });
 }
 
 serve(async (req: Request) => {
@@ -73,7 +102,7 @@ serve(async (req: Request) => {
   const width = og ? (asked === OG_HEIGHT ? OG_HEIGHT : 1200) : (WIDTHS.find((w) => w >= asked) ?? 1200);
   if (!UUID_RE.test(id)) return notFound();
 
-  const rl = await checkRateLimit(req, { windowMs: 60_000, maxRequests: 300, ipMaxRequests: 300, keyPrefix: "shop-photo" });
+  const rl = await checkRateLimit(req, RATE);
   if (!rl.allowed) {
     return new Response("Too many requests", { status: 429, headers: { "Retry-After": String(rl.retryAfter ?? 60) } });
   }
@@ -89,27 +118,47 @@ serve(async (req: Request) => {
     const encoded = path.split("/").map(encodeURIComponent).join("/");
     const size = og ? `width=${width}&height=${OG_HEIGHT}&resize=cover` : `width=${width}&resize=contain`;
     // Resized through the image-transform endpoint (enabled on prod: measured
-    // 200 image/jpeg 2026-10-19). If it refuses (the add-on off, a format it
-    // cannot read), fall back to the original object rather than a broken image.
-    let upstream = await fetch(`${SUPABASE_URL}/storage/v1/render/image/public/job-photos/${encoded}?${size}&quality=80`, {
-      signal: AbortSignal.timeout(8000),
-    });
+    // 200 2026-10-19), format=origin so the JPEG stays a JPEG.
+    let upstream = await fetch(
+      `${SUPABASE_URL}/storage/v1/render/image/public/job-photos/${encoded}?${size}&quality=80&format=origin`,
+      { signal: AbortSignal.timeout(8000) },
+    );
     if (!upstream.ok || !upstream.body) {
-      console.error("shop-photo: render answered", upstream.status, "- serving the original");
+      console.error("shop-photo: render answered", upstream.status);
       await upstream.body?.cancel();
+      // A link card never gets the original (wrong size, possibly not a
+      // JPEG): refuse, and the preview shows no image rather than a lie.
+      if (og) {
+        alertStorage(upstream.status, "render refused a link-card image");
+        return unavailable();
+      }
       upstream = await fetch(`${SUPABASE_URL}/storage/v1/object/public/job-photos/${encoded}`, {
         signal: AbortSignal.timeout(8000),
       });
+      const length = Number(upstream.headers.get("Content-Length") ?? NaN);
+      if (upstream.ok && upstream.body && !(length > 0 && length <= FALLBACK_MAX_BYTES)) {
+        console.error("shop-photo: original is", upstream.headers.get("Content-Length") ?? "of unknown size", "- not served un-resized");
+        await upstream.body.cancel();
+        alertStorage(upstream.status, "render refused and the original is over 2 MB or unsized");
+        return unavailable();
+      }
     }
     if (!upstream.ok || !upstream.body) {
       console.error("shop-photo: storage answered", upstream.status);
-      await alertStorage(upstream.status);
-      return new Response("Unavailable", { status: 502 });
+      await upstream.body?.cancel();
+      alertStorage(upstream.status, "render and object both refused");
+      return unavailable();
+    }
+    const type = upstream.headers.get("Content-Type") ?? "image/jpeg";
+    if (og && !type.startsWith("image/jpeg")) {
+      console.error("shop-photo: link-card image came back", type);
+      await upstream.body.cancel();
+      return unavailable();
     }
     return new Response(upstream.body, {
       status: 200,
       headers: {
-        "Content-Type": upstream.headers.get("Content-Type") ?? "image/jpeg",
+        "Content-Type": type,
         // Short: a photo removed, or a shop hidden or paused, stops showing
         // within minutes, not days.
         "Cache-Control": "public, max-age=300",

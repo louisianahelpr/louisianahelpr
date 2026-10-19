@@ -35,12 +35,16 @@
  * @mutate src/components/shops/ShopItemEditor.tsx |       if (s.kind !== d.kind \|\| s.subtype !== d.subtype) setTicked([]); |       if (false) setTicked([]);
  * @mutate src/components/shops/ShopDailyCap.tsx |   const clearing = shown.trim() === "" && cap.data != null; |   const clearing = false;
  * @mutate src/components/shops/ShopDailyCap.tsx |       return setDailyOrderCap(shown.trim() === "" ? null : Number(shown)); |       return setDailyOrderCap(Number(shown));
+ * @mutate src/components/shops/ShopProfile.tsx |                 {item.home_kitchen && ( |                 {false && (
+ * @mutate src/components/shops/ShopProfile.tsx |       {anyHomeKitchen && ( |       {false && (
+ * @mutate src/components/shops/ShopProfile.tsx |                     <span className="sr-only">{HOME_KITCHEN_NOTICE}</span>\n |
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import type { CottageStatus, PendingShopItem, ShopItem } from "@/lib/shops/items";
+import { HOME_KITCHEN_CARD_LINE, HOME_KITCHEN_NOTICE } from "@/lib/shops/items";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
@@ -187,6 +191,36 @@ describe("ShopItemsList (/shops/:id)", () => {
     renderWith(<ShopItemsList shopId="s1" />);
     fireEvent.click(within(await screen.findByRole("alert")).getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("Fig candle")).toBeTruthy();
+  });
+
+  it("L7: every home-food card carries one compact notice line, and the full statement shows once above the grid", async () => {
+    api.fetchShopItems.mockResolvedValue([
+      item({ id: "a", title: "Pralines", kind: "home_food", subtype: "candy", home_kitchen: true }),
+      item({ id: "b", title: "Fig jam", kind: "home_food", subtype: "jams_jellies", home_kitchen: true }),
+      item({ id: "c", title: "Fig candle" }),
+    ]);
+    renderWith(<ShopItemsList shopId="s1" />);
+    await screen.findByText("Pralines");
+    const lines = screen.getAllByTestId("home-kitchen-notice");
+    expect(lines).toHaveLength(2);
+    for (const l of lines) {
+      expect(l.textContent).toContain(HOME_KITCHEN_CARD_LINE);
+      // Screen readers hear the whole statement on each card.
+      expect(within(l).getByText(HOME_KITCHEN_NOTICE).className).toContain("sr-only");
+      // One line: never a wrapped paragraph.
+      expect(within(l).getByText(HOME_KITCHEN_CARD_LINE).className).toContain("truncate");
+    }
+    const statements = screen.getAllByTestId("home-kitchen-statement");
+    expect(statements).toHaveLength(1);
+    expect(statements[0].textContent).toContain("not licensed or inspected by the Louisiana Department of Health");
+  });
+
+  it("no home-food item, no statement", async () => {
+    api.fetchShopItems.mockResolvedValue([item()]);
+    renderWith(<ShopItemsList shopId="s1" />);
+    await screen.findByText("Fig candle");
+    expect(screen.queryByTestId("home-kitchen-statement")).toBeNull();
+    expect(screen.queryByTestId("home-kitchen-notice")).toBeNull();
   });
 });
 

@@ -254,6 +254,38 @@ $fn$;
 REVOKE ALL ON FUNCTION public.rentals_deposit(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rentals_deposit(uuid) TO authenticated, service_role;
 
+-- 5b. Deposits of ENDED tenancies the caller is a side of, still to settle or settled in the last 90 days:
+--     the Homes screen lists them after move-out (the live-tenancy cards are gone by then).
+CREATE OR REPLACE FUNCTION public.rentals_my_ended_deposits()
+RETURNS TABLE (tenancy_id uuid, side text, label text, unit_label text, settled boolean)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid;
+BEGIN
+  PERFORM public.require_feature('rentals');
+  v_uid := (SELECT auth.uid());
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  RETURN QUERY
+  SELECT t.id, CASE WHEN t.landlord_id = v_uid THEN 'landlord' ELSE 'tenant' END, rp.label, u.label, d.settled_at IS NOT NULL
+    FROM public.rental_deposits d
+    JOIN public.rental_tenancies t ON t.id = d.tenancy_id
+    JOIN public.rental_properties rp ON rp.id = t.property_id
+    JOIN public.rental_units u ON u.id = t.unit_id
+   WHERE t.status = 'ended'
+     AND (t.landlord_id = v_uid OR t.tenant_id = v_uid)
+     AND (d.settled_at IS NULL OR d.settled_at > now() - interval '90 days')
+   ORDER BY t.ended_at DESC;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_my_ended_deposits() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.rentals_my_ended_deposits() TO authenticated, service_role;
+
 -- ---------------------------------------------------------------------------
 -- 6. The reminders (server only, daily): to the landlord of an ENDED tenancy whose deposit is not settled,
 --    on the day it ended (stage 1), 7 days before the return-by date (stage 2) and on the day after it

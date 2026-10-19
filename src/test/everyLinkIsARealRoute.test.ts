@@ -12,7 +12,8 @@
  *   - the universal-link claims (AASA) and the sitemap,
  *   - every SQL function as the migrations leave it (the notification links
  *     the database writes), via the same replay notificationRestatements uses.
- * And App.tsx serves no redirect-only route: a link goes to the page itself.
+ * And App.tsx serves no redirect-only route: a link goes to the page itself
+ * (except the exact owner-named OWNER_REDIRECT_ROUTES list).
  *
  * Things that look like a path but are not an app address (a REST path, a
  * file in public/, a vendor API path) are listed in NOT_APP_ADDRESSES, exactly
@@ -48,6 +49,17 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
   "/preview": "auth-email-hook's own admin preview endpoint",
   "/storage": "Supabase Storage path",
   "/ti": "Apple MapKit CDN path (cdn.apple-mapkit.com/ti/csr/) that csp-report classifies as vendor noise",
+};
+
+/**
+ * Redirect-only routes the OWNER asked for, by name, exactly and two-way (an
+ * entry whose route is no longer a redirect fails too). Q194's "no legacy
+ * redirects" still holds for every other address.
+ */
+// @two-way src/test/everyLinkIsARealRoute.test.ts:stale OWNER_REDIRECT_ROUTES entry
+const OWNER_REDIRECT_ROUTES: Record<string, string> = {
+  "/quotes":
+    "owner 2026-10-19: the quotes hub is retired into Post a Job / Jobs / My Jobs / Posts and old hub links (stored quote notices, Q2177) send the person to the new home (QuotesHubRedirect)",
 };
 
 /** App.tsx routes: path pattern → element source. */
@@ -166,7 +178,9 @@ describe("every in-app address opens a real page", () => {
   });
 
   it("App.tsx serves no redirect-only route", () => {
-    expect(routes().filter((r) => isRedirectOnly(r.element)).map((r) => r.path)).toEqual([]);
+    const redirects = routes().filter((r) => isRedirectOnly(r.element)).map((r) => r.path);
+    expect(redirects.filter((p) => !(p in OWNER_REDIRECT_ROUTES)), "a redirect-only route the owner did not ask for").toEqual([]);
+    expect(Object.keys(OWNER_REDIRECT_ROUTES).filter((p) => !redirects.includes(p)), "stale OWNER_REDIRECT_ROUTES entry").toEqual([]);
   });
 
   it("NOT_APP_ADDRESSES is exact: every entry is still emitted somewhere", () => {

@@ -20,7 +20,8 @@
 --   landlord-only early end (lead review #4). The tenant is told when it becomes
 --   visible (the sweep, once).
 --
---   rentals_set_deposit(tenancy, amount_cents, received_on)   landlord, live tenancy or ended in the last 30 days
+--   rentals_set_deposit(tenancy, amount_cents, received_on)   landlord, live tenancy, or ended in the last 30
+--                                                             days when none was recorded yet
 --   rentals_set_forwarding_address(tenancy, address)          tenant, live or ended
 --   rentals_settle_deposit(tenancy, returned_cents, deductions, returned_on)
 --                                                             landlord, ended tenancy
@@ -93,6 +94,11 @@ BEGIN
   -- A settled deposit is final.
   IF EXISTS (SELECT 1 FROM public.rental_deposits d WHERE d.tenancy_id = p_tenancy_id AND d.settled_at IS NOT NULL) THEN
     RAISE EXCEPTION 'deposit_settled' USING ERRCODE = '22023';
+  END IF;
+  -- After the end the landlord may only fill in a deposit never recorded; a recorded amount and date stay
+  -- as they were (lead review round 2 #2).
+  IF v_t.status = 'ended' AND EXISTS (SELECT 1 FROM public.rental_deposits d WHERE d.tenancy_id = p_tenancy_id AND d.amount_cents IS NOT NULL) THEN
+    RAISE EXCEPTION 'deposit_already_recorded' USING ERRCODE = '22023';
   END IF;
   INSERT INTO public.rental_deposits (tenancy_id, amount_cents, received_on)
   VALUES (p_tenancy_id, p_amount_cents, p_received_on)
@@ -279,10 +285,10 @@ $fn$;
 REVOKE ALL ON FUNCTION public.rentals_deposit(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rentals_deposit(uuid) TO authenticated, service_role;
 
--- 5b. ENDED tenancies the caller is a side of whose deposit is still open: recorded and not settled,
---     settled in the last 90 days, or not recorded yet within 30 days of the end (the landlord can still
---     record it, the tenant can still give the address). The Homes screen lists them after move-out
---     (the live-tenancy cards are gone by then).
+-- 5b. ENDED tenancies the caller is a side of: a recorded deposit not settled or settled in the last 90
+--     days, or any tenancy that ended in the last 90 days (its rent record is still open to both sides,
+--     the landlord may record a deposit for 30 days, the tenant may give the address). The Homes screen
+--     lists them after move-out (the live-tenancy cards are gone by then), with the rent and deposit cards.
 CREATE OR REPLACE FUNCTION public.rentals_my_ended_deposits()
 RETURNS TABLE (tenancy_id uuid, side text, label text, unit_label text, settled boolean)
 LANGUAGE plpgsql
@@ -307,20 +313,51 @@ BEGIN
    WHERE t.status = 'ended'
      AND (t.landlord_id = v_uid OR t.tenant_id = v_uid)
      AND ((d.amount_cents IS NOT NULL AND (d.settled_at IS NULL OR d.settled_at > now() - interval '90 days'))
-          OR (d.amount_cents IS NULL AND t.ended_at > now() - interval '30 days'))
+          OR t.ended_at > now() - interval '90 days')
    ORDER BY t.ended_at DESC;
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_my_ended_deposits() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rentals_my_ended_deposits() TO authenticated, service_role;
 
+-- 5c. The moment the tenant ends the tenancy, the landlord can see the forwarding address they gave:
+--     tell the tenant right then, once (lead review round 2 #6). The lease-end case is time-based and
+--     goes out with the daily sweep. Runs after rentals_tenancy_ended_by has set ended_by.
+CREATE OR REPLACE FUNCTION public.rentals_deposit_address_shared_notice()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  IF NEW.status = 'ended' AND OLD.status IS DISTINCT FROM 'ended' AND NEW.ended_by = 'tenant' AND NEW.tenant_id IS NOT NULL THEN
+    UPDATE public.rental_deposits SET address_shared_noticed_at = now(), updated_at = now()
+     WHERE tenancy_id = NEW.id AND forwarding_address IS NOT NULL AND address_shared_noticed_at IS NULL;
+    IF FOUND THEN
+      PERFORM public.rentals_notify(NEW.tenant_id, 'Forwarding address shared',
+        'You ended the tenancy, so your landlord can now see the forwarding address you gave, to send your deposit and any itemized statement. You can change it under Homes.',
+        '/rentals', false);
+    END IF;
+  END IF;
+  RETURN NULL;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_deposit_address_shared_notice() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS rental_tenancies_deposit_address_notice ON public.rental_tenancies;
+CREATE TRIGGER rental_tenancies_deposit_address_notice
+  AFTER UPDATE OF status ON public.rental_tenancies
+  FOR EACH ROW EXECUTE FUNCTION public.rentals_deposit_address_shared_notice();
+
 -- ---------------------------------------------------------------------------
 -- 6. The reminders (server only, daily, Louisiana dates):
 --    * to the landlord of an ENDED tenancy whose recorded deposit is not settled, on the day it ended
 --      (stage 1), 7 days before the return-by date (stage 2) and on the day after it passed (stage 3),
 --      once each. Friendly words; the app never sends a legal notice;
---    * to the tenant, once, when the landlord can now see their forwarding address (lead review #4).
---    Skipped while the recipient is banned or Homes is off for them (lead review #8).
+--    * to the tenant, once, when the landlord can now see their forwarding address because the lease end
+--      date passed (lead review #4). A tenant who ends the tenancy is told at that moment (the trigger
+--      below). This notice is about the tenant's own privacy, so it goes even when the deposit is settled,
+--      Homes is off for them or they are banned (lead review round 2 #6).
+--    The landlord's reminders are skipped while the landlord is banned or Homes is off for them (#8).
 CREATE OR REPLACE FUNCTION public.rentals_deposit_sweep()
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -367,14 +404,9 @@ BEGIN
     SELECT d.tenancy_id, t.tenant_id
       FROM public.rental_deposits d
       JOIN public.rental_tenancies t ON t.id = d.tenancy_id
-     WHERE d.forwarding_address IS NOT NULL AND d.address_shared_noticed_at IS NULL AND d.settled_at IS NULL
+     WHERE d.forwarding_address IS NOT NULL AND d.address_shared_noticed_at IS NULL
        AND t.status = 'ended' AND t.tenant_id IS NOT NULL
        AND (t.ended_by = 'tenant' OR (t.lease_ends_on IS NOT NULL AND t.lease_ends_on <= v_today))
-       AND public.feature_enabled_for_user('rentals', t.tenant_id)
-       AND NOT EXISTS (SELECT 1 FROM public.profiles pr
-                        WHERE pr.user_id = t.tenant_id
-                          AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
-                          AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now()))
      FOR UPDATE OF d
   LOOP
     UPDATE public.rental_deposits SET address_shared_noticed_at = now(), updated_at = now() WHERE tenancy_id = v.tenancy_id;

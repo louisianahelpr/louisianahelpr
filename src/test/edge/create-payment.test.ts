@@ -3195,6 +3195,15 @@ describe("create-payment edge function", () => {
         expect(res.status).toBe(200);
         expect(billCall()?.args).toMatchObject({ p_card_fee_cents: 0 });
       });
+      // @mutate supabase/functions/create-payment/index.ts |         if (isTestObjectUnderLiveKey(stripeErr)) throw stripeErr; |         void 0;
+      it("Q891: a pre-live job's TEST-mode PaymentIntent under the live key answers the 409 test-mode reply, not a 503 'try again'; nothing billed", async () => {
+        seedBill({ helper_id: HELPR, card_fee_cents: null }, [faultRefund]);
+        stripeMock.refunds.list.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_r"));
+        const res = await runBill();
+        expect(res.status).toBe(409);
+        expect((await res.json()).testModePayment).toBe(true);
+        expect(billCall()).toBeUndefined();
+      });
       it("already billed: answers so and does not bill again", async () => {
         seedBill({ helper_id: HELPR, card_fee_cents: 326 }, [faultRefund]);
         const res = await runBill();

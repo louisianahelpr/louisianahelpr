@@ -3818,6 +3818,10 @@ serve(async (req) => {
           cardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents);
         }
       } catch (stripeErr) {
+        // Q891: a pre-live job's stored session / PaymentIntent is a TEST-mode id the
+        // live key cannot read. That is not "try again": the outer catch answers its
+        // 409 (test-mode payment, no money moved). Nothing was billed either way.
+        if (isTestObjectUnderLiveKey(stripeErr)) throw stripeErr;
         console.error(`[create-payment] admin_bill_helpr_fault: Stripe read failed for job ${jobId}:`, stripeErr);
         return reply({ error: "Couldn't read the charge from Stripe. Nothing was billed: try again." }, 503);
       }

@@ -15,7 +15,7 @@ import { fetchSellerCard, fetchSellerRating } from "@/lib/declutter/api";
 import { formatName } from "@/lib/utils";
 
 /** "Joined March 2025" from an ISO date; null when there is no usable date. */
-export function joinedLabel(iso: string | null | undefined): string | null {
+function joinedLabel(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;

@@ -9,7 +9,7 @@
  *
  * @mutate src/lib/declutter/api.ts |       p_not_a_frequent_seller: true, |       p_not_a_frequent_seller: false,
  * @mutate src/lib/declutter/api.ts |       .limit(500), |       .limit(5000),
- * @mutate src/lib/declutter/api.ts |       .in("status", ["live", "reserved"]) |       .in("status", ["live"])
+ * @mutate src/lib/declutter/api.ts |       .in("status", ["live", "reserved"])\n      .order( |       .in("status", ["live"])\n      .order(
  * @mutate src/lib/declutter/api.ts |     cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL, |     cacheControl: "3600",
  * @mutate src/lib/declutter/api.ts |     const { error: rmErr } = await bucket.remove([path]); |     const rmErr = null as { message: string } \| null;
  * @mutate src/lib/declutter/api.ts |   if (itemIds.length === 0) return []; |   if (false) return [];

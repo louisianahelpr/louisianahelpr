@@ -73,6 +73,7 @@ const PageTransition = ({ children }: { children: ReactNode }) => {
 };
 const ScrollToTop = lazy(() => import("@/components/ScrollToTop"));
 const MobileNav = lazy(() => import("./components/MobileNav"));
+const DevDashMock = lazy(() => import("./pages/devmock/page"));
 const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
 const DesktopTopNav = lazy(() => import("./components/DesktopTopNav"));
 import { SidePanelProvider } from "./components/sidePanelOpen";
@@ -425,6 +426,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Pet care — manage pet profiles and vet notes */}
       {/* /evacuation was removed; its redirect to /pets went with it in
           2352466e. The path now 404s. */}
+      {import.meta.env.DEV && <Route path="/dev/dash" element={<DevDashMock />} />}
       <Route path="*" element={<RouteErrorBoundary>{routeEl(<NotFound />)}</RouteErrorBoundary>} />
     </Routes>
   );

@@ -43,7 +43,7 @@ import type { ReactNode } from "react";
 import type { CottageStatus, PendingShopItem, ShopItem } from "@/lib/shops/items";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
 vi.mock("../admin/AdminViewShell", () => ({

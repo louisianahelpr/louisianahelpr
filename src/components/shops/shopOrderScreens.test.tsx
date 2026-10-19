@@ -58,7 +58,7 @@ import type { ShopItem } from "@/lib/shops/items";
 import type { OrderTerms, ShopOrder } from "@/lib/shops/orders";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));

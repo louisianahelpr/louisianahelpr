@@ -18,7 +18,7 @@ import type { ShopBadges, ShopHour, ShopPhotoKind } from "./api";
 import type { ShopItem } from "./items";
 
 /** Built from this constant, never window.location: a native build's origin is capacitor://localhost. */
-export const SHOP_LINK_ORIGIN = "https://www.louisianahelpr.com";
+const SHOP_LINK_ORIGIN = "https://www.louisianahelpr.com";
 
 export interface PublicShop {
   id: string;
@@ -39,7 +39,7 @@ export interface PublicShop {
   items: PublicShopItem[];
 }
 
-export type PublicShopItem = Omit<ShopItem, "photos"> & { photos: { id: string; position: number }[] };
+type PublicShopItem = Omit<ShopItem, "photos"> & { photos: { id: string; position: number }[] };
 
 /**
  * A public page photo, by id, through the shop-photo edge function: it serves
@@ -80,7 +80,7 @@ export function shopLink(shopId: string): string {
 }
 
 /** What a share says: the shop's name and what it is, then the link. */
-export function shopShareText(shop: { name: string; category_label?: string | null; area_label?: string | null }): string {
+function shopShareText(shop: { name: string; category_label?: string | null; area_label?: string | null }): string {
   const what = [shop.category_label, shop.area_label].filter(Boolean).join(" in ");
   return what ? `${shop.name}: ${what}. See the shop on Louisiana Helpr.` : `${shop.name} on Louisiana Helpr.`;
 }

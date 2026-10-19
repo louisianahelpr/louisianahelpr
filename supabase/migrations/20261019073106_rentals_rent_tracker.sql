@@ -78,6 +78,8 @@ CREATE TABLE IF NOT EXISTS public.rental_rent_payments (
 );
 CREATE INDEX IF NOT EXISTS rental_rent_payments_tenancy_idx ON public.rental_rent_payments (tenancy_id, paid_on);
 CREATE INDEX IF NOT EXISTS rental_rent_charges_tenancy_idx ON public.rental_rent_charges (tenancy_id, due_on);
+-- Q807: every table refuses a write from a session whose email is not confirmed (the RPCs write as definers).
+SELECT public.attach_unconfirmed_email_gate();
 
 ALTER TABLE public.rental_rent_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rental_rent_charges ENABLE ROW LEVEL SECURITY;

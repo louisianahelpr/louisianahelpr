@@ -45,7 +45,7 @@ vi.mock("@/lib/rentals/rentReceipt", () => ({ saveRentReceipt: (...a: unknown[])
 import { RentPanel } from "./RentPanel";
 
 const PLAN = { amount_cents: 120000, frequency: "monthly" as const, first_due_on: "2026-10-01", grace_days: 3, late_fee_cents: 5000, pay_methods: ["zelle" as const, "check" as const], next_due_on: "2026-11-01" };
-const PAY = { corrections: [], correctable_until: null, disputed_at: null, dispute_reason: null };
+const PAY = { corrections: [], correctable_until: null, disputes: [] };
 const L = (o: Partial<RentLedger> = {}): RentLedger => ({
   side: "tenant",
   tenancy_status: "active",

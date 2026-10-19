@@ -1,5 +1,7 @@
 import { useSearchParams } from "react-router-dom";
+import { KeyRound } from "lucide-react";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { RentBrowse } from "./listings/RentBrowse";
 
 /**
@@ -50,16 +52,13 @@ function HomesKindSwitch({ value, onChange }: { value: HomesKind; onChange: (k: 
  *  negotiating on our side; a title company or attorney closes the sale. */
 function HomesBuyComingSoon() {
   return (
-    <section
-      id="homes-panel-buy"
-      role="tabpanel"
-      aria-labelledby="homes-tab-buy"
-      className="rounded-2xl border border-border bg-card p-4 space-y-2"
-    >
-      <h2 className="font-semibold text-base">Homes for sale: coming soon</h2>
-      <p className="text-sm text-muted-foreground">
-        Homes listed by their verified owners. No commission. A title company or attorney handles the closing.
-      </p>
+    <section id="homes-panel-buy" role="tabpanel" aria-labelledby="homes-tab-buy">
+      <EmptyState
+        variant="bare"
+        icon={KeyRound}
+        title="Homes for sale: coming soon"
+        body="Homes listed by their verified owners. No commission. A title company or attorney handles the closing."
+      />
     </section>
   );
 }

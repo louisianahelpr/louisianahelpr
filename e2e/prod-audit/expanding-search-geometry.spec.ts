@@ -624,6 +624,9 @@ const SURFACES: {
   {
     name: "messages",
     url: "/messages",
+    // Desktop website only since Q2231 (owner 2026-10-19): on a phone the
+    // field is always open in its own slim row, so nothing expands there.
+    minWidth: 900,
     ready: "[data-search-trigger]",
     triggerSel: "[data-search-trigger]",
     fieldSel: 'input[aria-label="Search conversations"]',

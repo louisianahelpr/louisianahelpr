@@ -189,11 +189,16 @@ test(authedTitle, async ({ browser, request, journey }) => {
     // listed under All: switch to All before looking for the row. On a phone
     // the strip is folded behind the "Filter conversations" chevron.
     if (defaultInboxTab(0) !== "all") {
+      // Phone: Active/All live in the search row's "more" menu (Q2231);
+      // desktop website: the strip is inline.
       const allTab = page.getByRole("tab", { name: /^All/ }).or(page.getByRole("button", { name: /^All/ })).first();
-      const chevron = page.locator('button[aria-expanded="false"][aria-label="Filter conversations"]');
-      await expect(allTab.or(chevron).first(), "the inbox never rendered its tab strip").toBeVisible({ timeout: 60_000 });
-      if (!(await allTab.isVisible()) && (await chevron.count())) await chevron.first().click();
-      await allTab.click();
+      const more = page.getByRole("button", { name: "More conversation options" }).first();
+      await expect(allTab.or(more).first(), "the inbox never rendered its filter").toBeVisible({ timeout: 60_000 });
+      if (await allTab.isVisible()) await allTab.click();
+      else {
+        await more.click();
+        await page.getByRole("menuitem", { name: /^All/ }).first().click();
+      }
     }
     const row = page.locator("button.flex-1.min-w-0.text-left").filter({ hasText: title }).first();
     await expect(row, "the seeded thread never reached the helper inbox").toBeVisible({ timeout: 60_000 });

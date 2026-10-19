@@ -77,7 +77,7 @@ function JobsListBodyBones({ tab }: { tab: "posted" | "applied" }) {
     );
   }
   return (
-    <div className="flex-1 min-h-0 px-4 pt-3 pb-0 space-y-list" aria-hidden>
+    <div className="flex-1 min-h-0 px-1 lg:px-4 pt-3 pb-0 space-y-list" aria-hidden>
       {tab === "applied"
         ? [1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)
         : [1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}

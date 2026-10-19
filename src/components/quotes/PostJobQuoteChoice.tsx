@@ -38,7 +38,7 @@ const PRICE_MODE_NEXT: Record<PriceMode, string> = {
 };
 
 /** What a member without the 'quotes' switch is told on tapping Get quotes (owner 2026-10-19). */
-export const QUOTES_COMING_SOON = "Getting quotes from local pros is coming soon. For now, set your price.";
+const QUOTES_COMING_SOON = "Getting quotes from local pros is coming soon. For now, set your price.";
 
 /**
  * The top of Post a Job (owner 2026-10-19: quotes live inside Post a Job):

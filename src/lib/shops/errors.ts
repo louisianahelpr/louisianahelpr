@@ -131,7 +131,7 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   too_early_for_no_show: "You can report a no-show once the ready date is over.",
   refunded_in_stripe: "This order was refunded by Louisiana Helpr, so it can't be changed here. Louisiana Helpr will tell you what happens next.",
   not_ready: "Mark the order ready first. A no-show can only be reported for an order you had ready.",
-  refund_not_found: "This refund isn't available.",
+  refund_not_found: "We couldn't find that refund in Stripe for this order. Check the refund id (it starts with re_) and try again.",
   invalid_refund: "We couldn't send this refund just now. We'll try again.",
   // M4 admin tools (20261019071055).
   admin_only: "Only admins can do that.",
@@ -157,6 +157,7 @@ const SHOP_CHECKOUT_COPY: Record<string, string> = {
   refund_not_on_this_order: "That Stripe refund is not on this order's payment. Check the refund id and the order.",
   refund_amount_differs: "That Stripe refund is for a different amount. Enter the amount Stripe shows.",
   refund_not_live: "Stripe says that refund failed or was canceled, so no money went back.",
+  refund_pending: "Stripe hasn't finished this refund yet. Wait until it shows Succeeded in Stripe, then settle it.",
   invalid_terms: "Something changed. Reload the shop and try again.",
   hold_lost: "The buyer's card could not be charged, so this order is cancelled. Don't make it; nothing was charged.",
   payment_unavailable: "Payments aren't available right now. Nothing was charged. Please try again in a few minutes.",

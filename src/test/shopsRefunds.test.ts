@@ -15,6 +15,8 @@
  * Behaviour (red/green, 3x replay): src/test/pglite/shopsRefunds.pglite.mjs.
  * Stripe call order and keys, executed: src/test/edge/shop-refunds.test.ts.
  *
+ * @mutate supabase/migrations/20261019112103_shops_held_for_review_admin_tools.sql | attempts = 0, reversals = least(reversals + 1, 100), | attempts = 0,
+ * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     UPDATE public.payout_settlements SET voided_at = now(), voided_reason = v_why | PERFORM 1; UPDATE public.payout_settlements SET voided_reason = voided_reason
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |   SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;\n  IF NOT FOUND OR o.buyer_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  o := public.shop_lock_open_charged_order(o.id, false);\n  -- 2. |
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee'\n | \n
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |              ELSE ceil(p_kept::numeric * p_tax / (p_paid - p_tax))::integer END; |              ELSE 0 END;
@@ -43,6 +45,16 @@ const REFUND_PATHS = ["shops_buyer_cancel_order", "shops_shop_cancel_order", "sh
   "shops_admin_refund_order", "shops_admin_pay_shop"];
 
 describe("Shops M3: refunds and cancels decide under the row lock, Stripe after commit", () => {
+  it("a released held Shops refund starts a NEW run of idempotency keys; a reopen voids its settle entry (run-3 review M1, L4)", () => {
+    const rel = body("admin_payout_release");
+    const branch = rel.slice(rel.indexOf("UPDATE public.shop_refunds SET status = 'pending'"));
+    // shopRefundKey(id, attempts, reversals): attempts back to 0 alone rebuilds a key Stripe already answered.
+    expect(branch).toMatch(/^UPDATE public\.shop_refunds SET status = 'pending', next_attempt_at = now\(\), attempts = 0, reversals = least\(reversals \+ 1, 100\),/);
+    const failed = body("shop_hand_refund_failed");
+    expect(failed).toMatch(/UPDATE public\.payout_settlements SET voided_at = now\(\)/);
+    expect(failed).toMatch(/executed_at = NULL/);
+  });
+
   it("reads a real inventory (floors)", () => {
     for (const fn of [...REFUND_PATHS, "shop_write_refund", "shop_lock_open_charged_order", "shop_order_free_cancel_until"]) {
       expect(DEFS.has(fn), fn).toBe(true);

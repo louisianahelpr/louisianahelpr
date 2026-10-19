@@ -633,7 +633,7 @@ export async function handleChargeRefunded(
           kind: "custom",
           severity: "warning",
           title: "Refund made, but the card holder was not fully told",
-          message: `Refund ${r.id} (${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${refundPiId ?? charge.id} went back: ${problem}. Tell them by hand.`,
+          message: `Refund ${r.id} ($${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${refundPiId ?? charge.id} went back: ${problem}. Tell them by hand.`,
           fields: { "Refund": r.id, "Payment Intent": refundPiId ?? "—", "Status": result.status },
           oncePerDayKey: `refund-notice:${r.id}`,
         });

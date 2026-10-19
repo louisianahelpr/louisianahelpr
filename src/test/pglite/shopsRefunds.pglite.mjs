@@ -464,11 +464,19 @@ const debtsBefore = (await debts(OWNER)).length;
 await member(ADMIN, `SELECT public.shops_admin_refund_order('${oP2}', 'problem_our_mistake', 'Our app showed the wrong day')`);
 ok((await refund(oP2))?.fee_policy === "full_platform_absorbs" && (await refund(oP2))?.refund_cents === (await order(oP2)).total_cents
   && (await debts(OWNER)).length === debtsBefore, "our mistake: full refund, the shop is not billed (owner 10-14)");
+// shop_removed (L75): the shop was taken down; the buyer gets everything back and the shop is billed the card fee
+// (never the platform: owner 10-14), with no strike (the removal itself is the consequence).
+const oP2b = await chargedTax(BUYER, lines([itemA, 1]), D2, 150, 60);
+const sBeforeRemoved = await strikes(OWNER);
+await member(ADMIN, `SELECT public.shops_admin_refund_order('${oP2b}', 'shop_removed', 'Shop taken down for policy')`);
+ok((await refund(oP2b))?.reason === "shop_removed" && (await refund(oP2b))?.fee_policy === "full_shop_pays_fee"
+  && (await refund(oP2b))?.refund_cents === (await order(oP2b)).total_cents && (await debts(OWNER)).length === debtsBefore + 1
+  && await strikes(OWNER) === sBeforeRemoved, "shop removed: full refund, the card fee billed to the shop, no strike");
 const oP3 = await chargedTax(BUYER, lines([itemA, 1]), D3, 150, 60);
 await problem(oP3);
 const sBefore = await strikes(OWNER);
 await member(ADMIN, `SELECT public.shops_admin_refund_order('${oP3}', 'problem_shop_fault', 'Shop was closed')`);
-ok((await refund(oP3))?.fee_policy === "full_shop_pays_fee" && (await debts(OWNER)).length === debtsBefore + 1 && await strikes(OWNER) === sBefore + 1,
+ok((await refund(oP3))?.fee_policy === "full_shop_pays_fee" && (await debts(OWNER)).length === debtsBefore + 2 && await strikes(OWNER) === sBefore + 1,
   "the shop's fault: full refund, card fee billed, shop strike");
 ok(await strikes(OWNER) === 3 && refused(await request(BUYER, lines([itemA, 1]), D4), /shop_not_found/, "P0002"),
   "3 Shops strikes take the shop out of ordering");
@@ -751,14 +759,18 @@ ok(!skip && s3Done?.adopted_hand_refund === false && (await refund(oS3)).stripe_
   && one(await svc(`SELECT recorded_how || ':' || shop_refund_id || ':' || outcome FROM public.shop_hand_refunds WHERE stripe_refund_id = 're_s3new'`)) === `admin:${s3.id}:settled`
   && (await payout(oS3))?.status === "held_for_review",
   "a new refund id goes into the hand-refund ledger (settled, linked) and the order's pending payout is held, never silently skipped");
+ok(!skip && s3Done?.owed_cents === s3.refund_cents && s3Done?.over_refunded_cents === 5
+  && Number(one(await svc(`SELECT (details ->> 'over_refunded_cents')::int FROM public.admin_audit_log WHERE action = 'shops_admin_settle_held_refund' AND target_id = '${s3.id}'`))) === 5,
+  "a Stripe refund LARGER than owed settles, and the difference is answered (for the ops page) and audited");
 const p3 = await payout(oS3);
 ok(!skip && one(await release(ADMIN, "shop", p3.id))?.result === "released" && (await payout(oS3)).status === "pending",
   "a settled (accounted) hand refund does not block releasing the shop payout");
 await svc(`UPDATE public.shop_payouts SET status = 'held_for_review' WHERE id = '${p3.id}'`);
 ok(!skip && one(await svc(`SELECT public.shop_hand_refund_failed('re_s3new')`)) === "reopened_held"
   && (await refund(oS3)).status === "held_for_review" && !(await refund(oS3)).stripe_refund_id && (await refund(oS3)).settled_by_hand_cents === null
-  && /FAILED/.test((await refund(oS3)).review_reason ?? ""),
-  "when Stripe fails the refund that settled the row, the row is REOPENED to held for review (the buyer is owed it again)");
+  && /FAILED/.test((await refund(oS3)).review_reason ?? "") && (await refund(oS3)).executed_at === null
+  && one(await svc(`SELECT voided_at IS NOT NULL FROM public.payout_settlements WHERE row_kind = 'shop_refund' AND row_id = '${s3.id}' AND stripe_ref = 're_s3new'`)) === true,
+  "when Stripe fails the refund that settled the row, the row is REOPENED to held for review, executed_at cleared and its settle entry voided");
 ok(!skip && one(await svc(`SELECT public.shop_hand_refund_failed('re_s3new')`)) === "already", "and only once");
 // e) once the refund made in Stripe FAILED, the held app refund may go back to the queue with a fresh run of tries; ops paged daily, buyer not told
 const oS4 = await cancelledFree(D5);
@@ -773,9 +785,11 @@ await svc(`SELECT public.shop_hand_refund_failed('re_s4')`);
 ok(refused(await settleStripe(ADMIN, s4.id, "re_s4", s4.refund_cents), /ref_already_used/, "23505"),
   "a refund made in Stripe that FAILED is never adopted to settle a row");
 await svc(`UPDATE public.shop_refunds SET attempts = 12 WHERE id = '${s4.id}'`);
+const s4Reversals = (await refund(oS4)).reversals;
 ok(!skip && one(await release(ADMIN, "shop_refund", s4.id))?.result === "released" && (await refund(oS4)).status === "pending" && (await refund(oS4)).attempts === 0
+  && (await refund(oS4)).reversals === s4Reversals + 1
   && Number(one(await svc(`SELECT count(*) FROM public.admin_audit_log WHERE action = 'admin_payout_release' AND target_id = '${s4.id}'`))) === 1,
-  "with the Stripe refund failed, an admin releases the held app refund, with a fresh run of tries (attempts 0)");
+  "with the Stripe refund failed, an admin releases the held app refund, with a fresh run of tries (attempts 0) under NEW keys (reversals + 1)");
 await svc(`UPDATE public.shop_refunds SET created_at = now() - interval '5 minutes' WHERE id = '${s4.id}'`);
 ok(!skip && (await svc(`SELECT refund_id FROM public.shop_refunds_due(50)`)).some((r) => r.refund_id === s4.id), "and the queue sends it");
 // f) a held SHOP PAYOUT on a hand-refunded order stays held: release refused; the admin settles it by hand

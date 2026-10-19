@@ -6597,6 +6597,8 @@ export type Database = {
           row_id: string
           row_kind: string
           stripe_ref: string | null
+          voided_at: string | null
+          voided_reason: string | null
         }
         Insert: {
           amount_cents: number
@@ -6606,6 +6608,8 @@ export type Database = {
           row_id: string
           row_kind: string
           stripe_ref?: string | null
+          voided_at?: string | null
+          voided_reason?: string | null
         }
         Update: {
           amount_cents?: number
@@ -6615,6 +6619,8 @@ export type Database = {
           row_id?: string
           row_kind?: string
           stripe_ref?: string | null
+          voided_at?: string | null
+          voided_reason?: string | null
         }
         Relationships: []
       }

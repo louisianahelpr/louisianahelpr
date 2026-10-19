@@ -31,6 +31,9 @@
  * @mutate supabase/functions/shop-checkout/index.ts |   if (refundPi !== row.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |   if (Number(refund.amount ?? 0) < Number(row.refund_cents)) return json({ error: "hand_refund_short", amount_cents: refund.amount }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |   if (role == null) return json({ error: "admin_only" }, 403); |
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (refund.status !== "succeeded") return json({ error: "refund_pending" }, 409); |
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (Number(settled.over_refunded_cents ?? 0) > 0) { |   if (false) {
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (err?.code === "resource_missing" \|\| err?.statusCode === 404) return null; |
  * @mutate supabase/functions/shop-checkout/index.ts |     if (body.action === "admin_settle_held_refund") return await adminSettleHeldRefund(body, user.id, admin);\n |
  * @mutate supabase/functions/shop-checkout/index.ts |   if (refundPi !== o.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |   if (refund.amount !== cents) return json({ error: "refund_amount_differs", amount_cents: refund.amount }, 409); |
@@ -484,16 +487,47 @@ describe("shop-checkout admin_settle_held_refund: only a live refund on THIS row
     return fn;
   }
 
-  it("a live refund covering the row is settled with the admin's id and Stripe's amount, through the service key; no Stripe write", async () => {
+  it("a finished refund for exactly what the row owes is settled with the admin's id and Stripe's amount, through the service key; no Stripe write, no page", async () => {
     const fn = await setup();
-    stripeMock.refunds.retrieve.mockResolvedValue({ id: "re_dash", amount: 2056, status: "succeeded", payment_intent: "pi_shop" });
+    stripeMock.refunds.retrieve.mockResolvedValue({ id: "re_dash", amount: 1906, status: "succeeded", payment_intent: "pi_shop" });
     const res = await ask(fn);
     expect(res.status).toBe(200);
     expect((await json(res)).result).toBe("settled");
     const call = rpcs("shops_admin_settle_held_refund")[0];
-    expect(call?.args).toEqual({ p_admin: ADMIN, p_refund_id: ROW, p_stripe_refund_id: "re_dash", p_amount_cents: 2056, p_note: "Refunded by phone" });
+    expect(call?.args).toEqual({ p_admin: ADMIN, p_refund_id: ROW, p_stripe_refund_id: "re_dash", p_amount_cents: 1906, p_note: "Refunded by phone" });
     expect(clientOf(call)?.key).toBe("service-key");
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(slackAlerts.some((a: any) => /LARGER Stripe refund/.test(String(a.title)))).toBe(false);
+  });
+
+  it("a LARGER refund settles (the money moved) but pages ops, critical, with owed vs refunded (run-3 review L2)", async () => {
+    const fn = await setup();
+    scenario.rpc.shops_admin_settle_held_refund = { result: "settled", refund_id: ROW, adopted_hand_refund: true, owed_cents: 1906, over_refunded_cents: 150 };
+    stripeMock.refunds.retrieve.mockResolvedValue({ id: "re_dash", amount: 2056, status: "succeeded", payment_intent: "pi_shop" });
+    const res = await ask(fn);
+    expect(res.status).toBe(200);
+    expect((await json(res)).over_refunded_cents).toBe(150);
+    const page = slackAlerts.find((a: any) => /LARGER Stripe refund/.test(String(a.title))) as any;
+    expect(page?.severity).toBe("critical");
+    expect(page?.message).toMatch(/gave the buyer \$20\.56; this order's refund owed \$19\.06\. The \$1\.50 difference/);
+  });
+
+  it("a refund Stripe has not finished is refused until it has (run-3 review L3)", async () => {
+    const fn = await setup();
+    stripeMock.refunds.retrieve.mockResolvedValue({ id: "re_dash", amount: 1906, status: "pending", payment_intent: "pi_shop" });
+    const res = await ask(fn);
+    expect(res.status).toBe(409);
+    expect((await json(res)).error).toBe("refund_pending");
+    expect(rpcs("shops_admin_settle_held_refund")).toHaveLength(0);
+  });
+
+  it("a refund id Stripe does not know here (bad, other mode, other account) is refund_not_found, not try-again (run-3 review L5)", async () => {
+    const fn = await setup();
+    stripeMock.refunds.retrieve.mockRejectedValue(Object.assign(new Error("No such refund: 're_dash'"), { code: "resource_missing", statusCode: 404 }));
+    const res = await ask(fn);
+    expect(res.status).toBe(404);
+    expect((await json(res)).error).toBe("refund_not_found");
+    expect(rpcs("shops_admin_settle_held_refund")).toHaveLength(0);
   });
 
   it.each([
@@ -561,6 +595,15 @@ describe("shop-checkout admin_record_hand_refund: only a live refund on THIS ord
     const res = await ask(fn);
     expect(res.status).toBe(403);
     expect(stripeMock.refunds.retrieve).not.toHaveBeenCalled();
+    expect(rpcs("shops_admin_record_hand_refund")).toHaveLength(0);
+  });
+
+  it("a refund id Stripe does not know here is refund_not_found, not try-again (run-3 review L5)", async () => {
+    const fn = await setup();
+    stripeMock.refunds.retrieve.mockRejectedValue(Object.assign(new Error("No such refund: 're_dash'"), { code: "resource_missing", statusCode: 404 }));
+    const res = await ask(fn);
+    expect(res.status).toBe(404);
+    expect((await json(res)).error).toBe("refund_not_found");
     expect(rpcs("shops_admin_record_hand_refund")).toHaveLength(0);
   });
 });

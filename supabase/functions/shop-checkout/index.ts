@@ -64,6 +64,7 @@ import { storedStripeCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { captureShopHold, releaseShopHold, shopOrderMode } from "../_shared/shopHolds.ts";
 import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import {
   sessionIdMode,
   stripeModeForParties,
@@ -501,6 +502,21 @@ async function adminRefund(body: Record<string, unknown>, asAdmin: Db, admin: Db
 }
 
 /**
+ * Read one refund from Stripe. A bad id, one from the other mode or another account is
+ * Stripe's resource_missing: null (the caller answers refund_not_found, 404, in plain
+ * words), never "try again" (run-3 review L5). Any other Stripe error throws.
+ */
+async function retrieveRefund(stripe: Stripe, refundId: string): Promise<Stripe.Refund | null> {
+  try {
+    return await stripe.refunds.retrieve(refundId);
+  } catch (e) {
+    const err = e as { code?: string; statusCode?: number };
+    if (err?.code === "resource_missing" || err?.statusCode === 404) return null;
+    throw e;
+  }
+}
+
+/**
  * "Record a refund made in Stripe" (admin Shops orders; rule B of the v2 review).
  * AN ADMIN only (user_roles read with the service key; nobody else reaches
  * Stripe here). The refund is RETRIEVED from Stripe (read only, no Stripe write)
@@ -521,7 +537,8 @@ async function adminRecordHandRefund(body: Record<string, unknown>, userId: stri
   if (!role) return json({ error: "admin_only" }, 403);
   const o = await readOrder(admin, orderId);
   if (!o?.stripe_payment_intent_id) return json({ error: "order_not_found" }, 404);
-  const refund = await (await stripeForOrder(admin, o)).refunds.retrieve(refundId);
+  const refund = await retrieveRefund(await stripeForOrder(admin, o), refundId);
+  if (!refund) return json({ error: "refund_not_found" }, 404);
   const refundPi = typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null;
   if (refundPi !== o.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409);
   if (refund.amount !== cents) return json({ error: "refund_amount_differs", amount_cents: refund.amount }, 409);
@@ -557,16 +574,31 @@ async function adminSettleHeldRefund(body: Record<string, unknown>, userId: stri
   if (!row) return json({ error: "refund_not_found" }, 404);
   const o = await readOrder(admin, row.order_id as string);
   if (!o?.stripe_payment_intent_id) return json({ error: "refund_not_found" }, 404);
-  const refund = await (await stripeForOrder(admin, o)).refunds.retrieve(refundId);
+  const refund = await retrieveRefund(await stripeForOrder(admin, o), refundId);
+  if (!refund) return json({ error: "refund_not_found" }, 404);
   const refundPi = typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null;
   if (refundPi !== row.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409);
   if (refund.status === "failed" || refund.status === "canceled") return json({ error: "refund_not_live" }, 409);
+  // Only a refund Stripe has FINISHED settles a row (run-3 review L3): a pending one can still fail.
+  if (refund.status !== "succeeded") return json({ error: "refund_pending" }, 409);
   if (Number(refund.amount ?? 0) < Number(row.refund_cents)) return json({ error: "hand_refund_short", amount_cents: refund.amount }, 409);
   const { data, error } = await admin.rpc("shops_admin_settle_held_refund", {
     p_admin: userId, p_refund_id: rowId, p_stripe_refund_id: refundId, p_amount_cents: Number(refund.amount), p_note: note,
   });
   if (error) return rpcRefusal(error);
-  return json({ settled: true, result: (data as { result?: string } | null)?.result ?? null });
+  const settled = (data ?? {}) as { result?: string; owed_cents?: number; over_refunded_cents?: number };
+  // A Stripe refund LARGER than the row owes settled it (the money already moved): the card fee and tax the
+  // app keeps went back too, so ops are told, never quiet (run-3 review L2; audited in the SQL).
+  if (Number(settled.over_refunded_cents ?? 0) > 0) {
+    await postSlackOpsAlert({
+      kind: "money_at_risk", severity: "critical", oncePerDayKey: `shop-refund-over-${rowId}`,
+      title: "Shops: a held refund was settled with a LARGER Stripe refund",
+      message: `Refund ${refundId} gave the buyer $${(Number(refund.amount) / 100).toFixed(2)}; this order's refund owed $${(Number(settled.owed_cents ?? 0) / 100).toFixed(2)}. `
+        + `The $${(Number(settled.over_refunded_cents) / 100).toFixed(2)} difference (the card fee and its tax the app keeps) went back too: recover it or record why.`,
+      fields: { ShopRefund: rowId, Order: String(row.order_id), Refund: refundId, Admin: userId },
+    });
+  }
+  return json({ settled: true, result: settled.result ?? null, over_refunded_cents: Number(settled.over_refunded_cents ?? 0) });
 }
 
 serve(async (req) => {

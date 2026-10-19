@@ -10,7 +10,7 @@
 --            (refunded_in_stripe), or for a shop payout on an order closed by one
 --            (refunded_in_stripe) or that the shop is not paid for automatically
 --            (shop_payout_not_due): the queues would never send it. A released Shops row
---            starts a fresh run of tries (attempts 0).
+--            starts a fresh run of tries (attempts 0; a refund also a new key run: reversals + 1).
 --   settle   a Shops refund: here only "other: ..." for the WHOLE refund it owes
 --            (settle_amount_differs; CHECK shop_refunds_settled_in_full); a Stripe refund id
 --            goes through shop-checkout (checked with Stripe), never this client RPC
@@ -164,7 +164,11 @@ BEGIN
     UPDATE public.declutter_delivery_refunds SET status = 'pending', next_attempt_at = now(), review_reason = NULL, review_held_at = NULL
      WHERE id = p_id AND status = 'held_for_review';
   ELSIF p_kind = 'shop_refund' THEN
-    UPDATE public.shop_refunds SET status = 'pending', next_attempt_at = now(), attempts = 0, review_reason = NULL, review_held_at = NULL
+    -- Fresh tries AND a fresh run of idempotency keys (shop-refund-<id>-v<reversals>[-r<n>], as
+    -- shop_refund_reversed does): resetting attempts alone would rebuild a key already used, and Stripe
+    -- would replay its stored answer (run-3 review M1).
+    UPDATE public.shop_refunds SET status = 'pending', next_attempt_at = now(), attempts = 0, reversals = least(reversals + 1, 100),
+           review_reason = NULL, review_held_at = NULL
      WHERE id = p_id AND status = 'held_for_review';
   ELSE
     RAISE EXCEPTION 'invalid_kind' USING ERRCODE = '22023';

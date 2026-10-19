@@ -129,10 +129,11 @@ CREATE TABLE IF NOT EXISTS public.shop_refunds (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id uuid NOT NULL UNIQUE REFERENCES public.shop_orders(id) ON DELETE RESTRICT,
   stripe_payment_intent_id text NOT NULL UNIQUE CHECK (stripe_payment_intent_id ~ '^pi_'),
-  reason text NOT NULL CHECK (reason IN (
+  -- Named, so src/test/refundsKeepTheCardFee.test.ts reads the newest list of reasons.
+  reason text NOT NULL CONSTRAINT shop_refunds_reason_check CHECK (reason IN (
     'buyer_cancelled', 'shop_cancelled', 'no_ready_photo', 'shop_removed',
     'problem_shop_fault', 'problem_no_fault', 'problem_our_mistake')),
-  fee_policy text NOT NULL CHECK (fee_policy IN ('keep_card_fee', 'full_shop_pays_fee', 'full_platform_absorbs')),
+  fee_policy text NOT NULL CONSTRAINT shop_refunds_fee_policy_check CHECK (fee_policy IN ('keep_card_fee', 'full_shop_pays_fee', 'full_platform_absorbs')),
   paid_cents integer NOT NULL CHECK (paid_cents > 0),
   tax_cents integer NOT NULL CHECK (tax_cents >= 0),
   card_fee_cents integer NOT NULL CHECK (card_fee_cents >= 0),
@@ -140,8 +141,9 @@ CREATE TABLE IF NOT EXISTS public.shop_refunds (
   tax_kept_cents integer NOT NULL,
   refund_cents integer NOT NULL,
   -- held_for_review: a refund made by hand in Stripe stands on this order (section 13): no
-  -- cron sends this row; only an admin settles or releases it (section 14, the readiness
-  -- admin tools). settled_by_hand: an admin settled it with money moved outside the app.
+  -- cron sends this row; only an admin settles or releases it (the readiness admin tools,
+  -- taught this table in 20261019112103; a Stripe refund id settles it only through
+  -- shops_admin_settle_held_refund, section 13). settled_by_hand: "other: ..." outside Stripe.
   status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'succeeded', 'failed', 'held_for_review', 'settled_by_hand')),
   review_reason text CHECK (review_reason IS NULL OR char_length(review_reason) <= 300),
   review_held_at timestamptz,
@@ -168,7 +170,7 @@ CREATE TABLE IF NOT EXISTS public.shop_refunds (
   CONSTRAINT shop_refunds_tax_kept CHECK (tax_kept_cents = public.shop_refund_tax_kept(kept_cents, tax_cents, paid_cents)),
   CONSTRAINT shop_refunds_amount CHECK (refund_cents = paid_cents - kept_cents - tax_kept_cents AND refund_cents > 0),
   CONSTRAINT shop_refunds_succeeded CHECK (status <> 'succeeded' OR stripe_refund_id IS NOT NULL),
-  -- Settled by an admin (section 14): only ever for the WHOLE refund the row owes, with what it was settled by.
+  -- Settled by an admin (20261019112103 / shops_admin_settle_held_refund): only ever for the WHOLE refund the row owes.
   CONSTRAINT shop_refunds_settled_in_full CHECK (settled_by_hand_cents IS NULL OR settled_by_hand_cents = refund_cents),
   CONSTRAINT shop_refunds_settled_says_how CHECK (status <> 'settled_by_hand' OR (settled_by_hand_ref IS NOT NULL AND settled_by_hand_cents IS NOT NULL))
 );
@@ -1194,24 +1196,36 @@ GRANT EXECUTE ON FUNCTION public.shops_admin_queue() TO authenticated, service_r
 
 -- ---------------------------------------------------------------------------
 -- 13. Refunds made BY HAND in the Stripe Dashboard on a Shops charge
---     (/code-review of shops-m3-v1 #1). The app made no refund, so nothing in
---     shop_refunds knows it, yet the buyer has the money back: the shop must never
---     be paid for that order by a clock. Each such Stripe refund is recorded once
---     (shop_hand_refunds, keyed on its re_ id) by the webhook (charge.refunded,
---     automatically) or by an admin ("Record a refund made in Stripe", admin Shops
---     orders, checked against Stripe by shop-checkout first; no new Stripe refund is
---     made). Only against THIS order's PaymentIntent. Recording it (rule A of the v2
---     review: ANY live hand refund holds the WHOLE order):
+--     (/code-review of shops-m3-v1 #1, v2 rules A/B, run 3). The app made no
+--     refund, so nothing in shop_refunds knows it, yet the buyer has the money
+--     back: the shop must never be paid for that order by a clock. Each such Stripe
+--     refund is recorded once (shop_hand_refunds, keyed on its re_ id) by the webhook
+--     (charge.refunded) or an admin ("Record a refund made in Stripe", checked against
+--     Stripe by shop-checkout first; no new Stripe refund is made). Only against THIS
+--     order's PaymentIntent. Recording it holds the WHOLE order:
 --       - every unsent app refund row and shop payout of the order -> held_for_review
---         (never sent on top; an admin settles or releases it), and every refund path
---         (the lock, shop_write_refund) refuses the order: refunded_in_stripe;
---       - an order with no app refund closes: 'refunded' (the whole payment back) or
---         'partially_refunded', close_reason 'refunded_by_hand'; an accepted order's
---         stock comes back; the handover clock only reads 'accepted';
---       - a hand refund Stripe fails later reopens NOTHING: the order stays held;
---       - every new one is answered so the caller pages ops (a payout already sent,
---         an app refund already sent, a refund id recorded on another payment).
+--         (never sent on top), and every refund path refuses the order
+--         (refunded_in_stripe) while a hand refund the app has not accounted for
+--         stands (shop_order_unaccounted_hand_refund: live and not 'settled');
+--       - an order with no app refund closes: 'refunded' / 'partially_refunded',
+--         close_reason 'refunded_by_hand'; an accepted order's stock comes back;
+--       - an admin decides each held row in Payouts held for review (20261019112103):
+--         release (refused while an unaccounted hand refund stands, or for a payout the
+--         queue would not send), "other: ..." for the whole amount, or a Stripe refund
+--         id through shop-checkout -> shops_admin_settle_held_refund (succeeded only,
+--         at least what the row owes; more pages ops). A hand refund settled as the
+--         order's own refund is accounted for: it no longer blocks the payout;
+--       - a hand refund Stripe fails later reopens NOTHING to a queue: the order stays
+--         held, and an app refund it had settled goes back to held_for_review (its
+--         settle ledger entry voided);
+--       - every new one is answered so the caller pages ops.
+--     Lock order everywhere: the order row, then refund / payout rows, then hand refunds.
 -- (The table shop_hand_refunds is created in section 2b: shop_payouts_due reads it.)
+
+-- A settle that a later Stripe failure undid is VOIDED, never deleted (the ledger keeps the
+-- history; a voided entry settles nothing, so nothing is counted twice: run-3 review L4).
+ALTER TABLE public.payout_settlements ADD COLUMN IF NOT EXISTS voided_at timestamptz,
+  ADD COLUMN IF NOT EXISTS voided_reason text CHECK (voided_reason IS NULL OR char_length(voided_reason) <= 300);
 
 -- Holds the WHOLE order (/code-review of shops-m3 v2, rule A): every unsent app refund
 -- row and every unsent shop payout of the order goes to held_for_review, so no cron sends
@@ -1414,8 +1428,11 @@ BEGIN
      AND r.stripe_refund_id = p_stripe_refund_id THEN
     UPDATE public.shop_refunds
        SET status = 'held_for_review', stripe_refund_id = NULL, review_held_at = now(), review_reason = v_why,
-           settled_by_hand_ref = NULL, settled_by_hand_cents = NULL, settled_by_hand_note = NULL, held_notified_at = NULL
+           settled_by_hand_ref = NULL, settled_by_hand_cents = NULL, settled_by_hand_note = NULL, held_notified_at = NULL,
+           executed_at = NULL
      WHERE id = r.id;
+    UPDATE public.payout_settlements SET voided_at = now(), voided_reason = v_why
+     WHERE row_kind = 'shop_refund' AND row_id = r.id AND stripe_ref = p_stripe_refund_id AND voided_at IS NULL;
     RETURN 'reopened_held';
   END IF;
   RETURN 'marked_failed';
@@ -1500,10 +1517,15 @@ BEGIN
          settled_by_hand_note = v_note, executed_at = now()
    WHERE id = r.id;
   DELETE FROM public.payout_payee_waits WHERE payout_kind = 'shop_refund' AND payout_id = r.id;
+  -- A Stripe refund LARGER than the row owes is allowed (the money already moved) but never quiet
+  -- (run-3 review L2): the difference is the card fee and tax the app would have kept; it is audited
+  -- here and shop-checkout pages ops (critical) with owed vs refunded.
   INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
   VALUES (p_admin, 'shops_admin_settle_held_refund', 'shop_refund', r.id::text,
-          jsonb_build_object('stripe_refund_id', v_ref, 'stripe_amount_cents', p_amount_cents, 'note', v_note, 'adopted_hand_refund', v_adopted));
-  RETURN jsonb_build_object('result', 'settled', 'refund_id', r.id, 'adopted_hand_refund', v_adopted);
+          jsonb_build_object('stripe_refund_id', v_ref, 'stripe_amount_cents', p_amount_cents, 'owed_cents', r.refund_cents,
+                             'over_refunded_cents', p_amount_cents - r.refund_cents, 'note', v_note, 'adopted_hand_refund', v_adopted));
+  RETURN jsonb_build_object('result', 'settled', 'refund_id', r.id, 'adopted_hand_refund', v_adopted,
+                            'owed_cents', r.refund_cents, 'over_refunded_cents', p_amount_cents - r.refund_cents);
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shops_admin_settle_held_refund(uuid, uuid, text, integer, text) FROM PUBLIC, anon, authenticated;

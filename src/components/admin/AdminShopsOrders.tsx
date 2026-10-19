@@ -90,7 +90,7 @@ function adminFail(error: { message: string }, notDeployed: boolean, userMessage
 async function fetchQueue(): Promise<Queue> {
   const { data, error } = await supabase.rpc("shops_admin_queue");
   if (error && isMissingRpcNamed(error, "shops_admin_queue")) return { problems: [], refunds: [], payouts: [], strikes: [], notDeployed: true };
-  if (error) adminFail(error, isMissingRpcNamed(error, "shops_admin_queue"), rpcErrorMessage("shops_admin_queue", error));
+  if (error) adminFail(error, false, rpcErrorMessage("shops_admin_queue", error));
   const q = (data ?? {}) as Partial<Queue>;
   return { problems: q.problems ?? [], refunds: q.refunds ?? [], payouts: q.payouts ?? [], strikes: q.strikes ?? [] };
 }

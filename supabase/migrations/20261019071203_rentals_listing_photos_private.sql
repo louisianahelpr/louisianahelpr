@@ -24,9 +24,10 @@
 --    rentals_listing_photo_access(name, action):
 --      INSERT  the owner, into their OWN folder, for their own listing while it
 --              is a draft, live or paused and was not taken down;
---      SELECT  the owner's own folder, and admins (storage needs SELECT to
---              delete);
---      DELETE  the owner or an admin, an UNATTACHED object only.
+--      SELECT  the owner's own folder (not a taken-down listing's), and admins
+--              (storage needs SELECT to delete);
+--      DELETE  the owner, their own UNATTACHED object only (the purge cron
+--              deletes the rest, as the server).
 -- 3. Every read returns PHOTO REFS, never paths: "<photo id>.<scope>.<exp>.<sig>",
 --    signed in the database with a secret no client can read
 --    (rentals_photo_serve_keys: RLS on, no policy, no grant). The scope says
@@ -44,29 +45,27 @@
 --    comments) from the bytes it serves, the rendered ones and the capped
 --    fallback alike (_shared/jpegStripMetadata.ts): server-side, whatever the
 --    upload carried (Q2212).
--- 5. The admin take-down (now on the property, 20261019062540) also DETACHES
---    the photos of every listing it removes (the rows go, so their refs stop
---    resolving at once) and deletes their Storage objects server-side, naming
---    the paths in the audit log (lead review of Q2211 #3): nothing is left that
---    the landlord could still sign or serve.
+-- 5. The admin take-down (on the property, 20261019062540) HIDES the photos of
+--    every listing it removes and keeps them, so a mistaken take-down is fully
+--    reversible (lead review round 3 #1): no ref resolves for a removed
+--    listing, and the owner can no longer read (sign) or delete the objects of
+--    a taken-down listing's folder. Each photo is queued in
+--    rental_photo_purge_queue for 30 days later; the listing-photo-purge cron
+--    (service role) deletes it then through the Storage API, unless the
+--    take-down was lifted (round 3 #2: never a storage.objects row deleted in
+--    SQL, which would orphan bytes the account purge cannot find).
 -- 6. rentals_public_listing_photo_path (20261019062540, the id-only lookup) is
 --    dropped: the public link now returns refs like every other read.
 --
 -- EXISTING PHOTOS: measured read-only on prod 2026-10-19 07:10Z:
 -- rental_listings 0 rows, rental_listing_photos 0 rows, job-photos objects
 -- under */rental-listings/* 0. A database migration cannot move Storage bytes,
--- so any listing photo still in the PUBLIC job-photos bucket is taken OUT of
--- it (lead review of Q2211 #5): its storage.objects row is deleted (Storage's
--- protect_delete trigger allows it under storage.allow_delete_query, set for
--- this transaction only), so its public URL answers 404, and its photo row is
--- detached; a live listing left short of photos is paused for its owner to add
--- them again. With 0 rows that is a no-op on prod; it keeps a late upload safe.
---
--- DELETED OBJECT ROWS: deleting a storage.objects row (here and in the
--- take-down) makes the object unreachable through every Storage API (public
--- URL, signed URL, render, download all look the row up first); its bytes stay
--- in the backing store as an unreferenced blob. The paths are recorded (the
--- take-down's admin_audit_log row; this migration's NOTICE).
+-- so any listing photo still in the PUBLIC job-photos bucket is detached here
+-- (no read serves it) and queued for the purge cron, which removes the object
+-- through the Storage API; until then its old public URL may still answer (and
+-- a CDN may keep a copy for a while after): no 404 is promised by this file. A
+-- live listing left short of photos is paused for its owner to add them again.
+-- With 0 rows that is a no-op on prod.
 --
 -- Replay-safe: ON CONFLICT on the bucket and the key, DROP POLICY IF EXISTS,
 -- DROP FUNCTION IF EXISTS before each changed return shape, CREATE OR REPLACE,
@@ -107,8 +106,12 @@ BEGIN
                       AND l.owner_id = v_uid
                       AND l.status IN ('draft', 'live', 'paused')
                       AND NOT l.removed_by_admin);
-  ELSIF p_action IN ('select', 'delete') THEN
-    RETURN split_part(p_name, '/', 1) = v_uid::text OR public.has_role(v_uid, 'admin'::public.app_role);
+  ELSIF p_action = 'select' THEN
+    -- The owner reads (signs) their own folder, except a taken-down listing's photos (round 3 #1); admins read all.
+    RETURN public.has_role(v_uid, 'admin'::public.app_role)
+        OR (split_part(p_name, '/', 1) = v_uid::text
+            AND NOT EXISTS (SELECT 1 FROM public.rental_listings l
+                             WHERE l.id = split_part(p_name, '/', 3)::uuid AND l.removed_by_admin));
   END IF;
   RETURN false;
 END;
@@ -126,28 +129,47 @@ CREATE POLICY "listing-photos: the owner and admins read" ON storage.objects
   FOR SELECT TO authenticated
   USING (bucket_id = 'listing-photos' AND public.rentals_listing_photo_access(name, 'select'));
 
--- Is this object attached to a listing? Answered as the definer, never through the caller's switch-gated RLS
--- (lead review of Q2211 #4): an attached photo can never be deleted, whatever the caller's switch says.
-CREATE OR REPLACE FUNCTION public.rentals_listing_photo_attached(p_name text)
+-- May the CALLER delete this object? Only from their own folder, only when it is attached to nothing, and
+-- never a taken-down listing's (kept for a lift). Answered as the definer, never through the caller's
+-- switch-gated RLS (review #4), and scoped to the caller's own folder so it tells nobody anything about
+-- another member's listings (round 3 #4). Admins delete nothing here: the purge cron does, as the server.
+CREATE OR REPLACE FUNCTION public.rentals_listing_photo_deletable(p_name text)
 RETURNS boolean
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
-  SELECT EXISTS (SELECT 1 FROM public.rental_listing_photos p WHERE p.storage_path = p_name);
+  SELECT (SELECT auth.uid()) IS NOT NULL
+     AND public.rentals_listing_photo_access(p_name, 'select')
+     AND split_part(p_name, '/', 1) = (SELECT auth.uid())::text
+     AND NOT EXISTS (SELECT 1 FROM public.rental_listing_photos p WHERE p.storage_path = p_name);
 $fn$;
-REVOKE ALL ON FUNCTION public.rentals_listing_photo_attached(text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rentals_listing_photo_attached(text) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.rentals_listing_photo_deletable(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.rentals_listing_photo_deletable(text) TO authenticated, service_role;
 
 DROP POLICY IF EXISTS "listing-photos: the owner or an admin deletes an unattached photo" ON storage.objects;
-CREATE POLICY "listing-photos: the owner or an admin deletes an unattached photo" ON storage.objects
+DROP POLICY IF EXISTS "listing-photos: the owner deletes an unattached photo" ON storage.objects;
+CREATE POLICY "listing-photos: the owner deletes an unattached photo" ON storage.objects
   FOR DELETE TO authenticated
-  USING (
-    bucket_id = 'listing-photos'
-    AND public.rentals_listing_photo_access(name, 'delete')
-    AND NOT public.rentals_listing_photo_attached(name)
-  );
+  USING (bucket_id = 'listing-photos' AND public.rentals_listing_photo_deletable(name));
+
+-- ---------------------------------------------------------------------------
+-- 2b. The purge queue: objects the listing-photo-purge cron deletes through the
+--     Storage API once due (a take-down's photos 30 days on, legacy ones at once).
+CREATE TABLE IF NOT EXISTS public.rental_photo_purge_queue (
+  bucket_id text NOT NULL CHECK (bucket_id IN ('listing-photos', 'job-photos')),
+  storage_path text NOT NULL,
+  due_at timestamptz NOT NULL,
+  reason text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (bucket_id, storage_path)
+);
+ALTER TABLE public.rental_photo_purge_queue ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.rental_photo_purge_queue FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.rental_photo_purge_queue TO service_role;
+COMMENT ON TABLE public.rental_photo_purge_queue IS
+  'Listing photo objects the listing-photo-purge cron deletes through the Storage API (20261019071203). Server-only.';
 
 -- ---------------------------------------------------------------------------
 -- 3. Listing photos still in the PUBLIC job-photos bucket: out of it (see header).
@@ -171,9 +193,11 @@ BEGIN
   )
   SELECT array_agg(storage_path ORDER BY storage_path) INTO v_paths FROM legacy;
   IF v_paths IS NOT NULL THEN
-    PERFORM set_config('storage.allow_delete_query', 'true', true);
-    DELETE FROM storage.objects WHERE bucket_id = 'job-photos' AND name = ANY (v_paths);
-    RAISE NOTICE 'rentals_listing_photos_private: % listing photo(s) taken out of job-photos: %', cardinality(v_paths), v_paths;
+    -- Removed through the Storage API by the purge cron (never a storage.objects row deleted in SQL).
+    INSERT INTO public.rental_photo_purge_queue (bucket_id, storage_path, due_at, reason)
+    SELECT 'job-photos', x, now(), 'legacy public listing photo' FROM unnest(v_paths) x
+    ON CONFLICT (bucket_id, storage_path) DO NOTHING;
+    RAISE NOTICE 'rentals_listing_photos_private: % listing photo(s) detached from job-photos and queued for the purge: %', cardinality(v_paths), v_paths;
   END IF;
 END
 $mig$;
@@ -631,10 +655,9 @@ REVOKE ALL ON FUNCTION public.rentals_public_listing(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.rentals_public_listing(text) TO anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
--- 9. The admin take-down: the newest body (20261019062540, on the property), and
---    it DETACHES the photos of every listing it removes (their refs stop
---    resolving at once) and deletes their objects server-side, paths in the
---    audit log (Q2211, lead review #3).
+-- 9. The admin take-down: the newest body (20261019062540, on the property),
+--    and it queues the photos of every listing it removes for the purge cron
+--    30 days on (held, not deleted: a lift restores them), paths in the audit log.
 CREATE OR REPLACE FUNCTION public.rentals_admin_remove_listing(p_listing_id uuid, p_reason text)
 RETURNS void
 LANGUAGE plpgsql
@@ -681,25 +704,103 @@ BEGIN
     RETURNING id
   )
   SELECT array_agg(id ORDER BY id) INTO v_ids FROM gone;
-  -- Q2211: their photos are detached and their objects deleted here, server-side (no orphan the landlord
-  -- could still sign); the paths go in the audit log.
-  WITH detached AS (
-    DELETE FROM public.rental_listing_photos WHERE listing_id = ANY (v_ids) RETURNING storage_path
-  )
-  SELECT array_agg(storage_path ORDER BY storage_path) INTO v_paths FROM detached;
+  -- Q2211 (round 3 #1, #2): the photos stay attached but unreachable (no ref resolves for a removed
+  -- listing; the owner can no longer sign them), so a lift restores them. They are queued for the purge
+  -- cron 30 days on; the cron skips (and drops) any whose listing was restored by a lift.
+  SELECT array_agg(ph.storage_path ORDER BY ph.storage_path) INTO v_paths
+    FROM public.rental_listing_photos ph WHERE ph.listing_id = ANY (v_ids);
   IF v_paths IS NOT NULL THEN
-    PERFORM set_config('storage.allow_delete_query', 'true', true);
-    DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = ANY (v_paths);
-    PERFORM set_config('storage.allow_delete_query', 'false', true);
+    INSERT INTO public.rental_photo_purge_queue (bucket_id, storage_path, due_at, reason)
+    SELECT 'listing-photos', x, now() + interval '30 days', 'take-down of listing ' || p_listing_id::text FROM unnest(v_paths) x
+    ON CONFLICT (bucket_id, storage_path) DO UPDATE SET due_at = EXCLUDED.due_at, reason = EXCLUDED.reason;
   END IF;
   INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
   VALUES (v_uid, 'rentals_listing_removed', 'rental_listing', p_listing_id::text,
           jsonb_build_object('reason', v_reason, 'kind', v_l.kind, 'status_before', v_l.status,
                              'property_id', v_l.property_id, 'listings_removed', to_jsonb(v_ids),
-                             'photos_deleted', to_jsonb(coalesce(v_paths, ARRAY[]::text[]))));
+                             'photos_held', to_jsonb(coalesce(v_paths, ARRAY[]::text[])),
+                             'photos_purge_after', now() + interval '30 days'));
   PERFORM public.rentals_notify(v_l.owner_id, 'Listing removed',
     'Louisiana Helpr removed your listing "' || v_l.headline || '": ' || v_reason, '/rentals', true, true);
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_admin_remove_listing(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rentals_admin_remove_listing(uuid, text) TO authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 10. The purge (server only; the listing-photo-purge edge function, daily).
+--     Due entries, oldest first. A take-down entry whose listing was restored by
+--     a lift is dropped here and never returned (its photo stays).
+CREATE OR REPLACE FUNCTION public.rentals_photo_purge_due(p_limit integer DEFAULT 200)
+RETURNS TABLE (bucket_id text, storage_path text)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  DELETE FROM public.rental_photo_purge_queue q
+   WHERE q.bucket_id = 'listing-photos'
+     AND EXISTS (SELECT 1 FROM public.rental_listing_photos ph
+                   JOIN public.rental_listings l ON l.id = ph.listing_id
+                  WHERE ph.storage_path = q.storage_path AND NOT l.removed_by_admin);
+  RETURN QUERY
+  SELECT q.bucket_id, q.storage_path
+    FROM public.rental_photo_purge_queue q
+   WHERE q.due_at <= now()
+   ORDER BY q.due_at, q.storage_path
+   LIMIT LEAST(GREATEST(COALESCE(p_limit, 200), 1), 1000);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_photo_purge_due(integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rentals_photo_purge_due(integer) TO service_role;
+
+-- After Storage removed them: the photo rows of a still-taken-down listing go, and the queue entries.
+CREATE OR REPLACE FUNCTION public.rentals_photo_purge_done(p_bucket text, p_paths text[])
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_n integer;
+BEGIN
+  IF p_bucket = 'listing-photos' THEN
+    DELETE FROM public.rental_listing_photos ph
+     USING public.rental_listings l
+     WHERE l.id = ph.listing_id AND l.removed_by_admin AND ph.storage_path = ANY (p_paths);
+  END IF;
+  DELETE FROM public.rental_photo_purge_queue q WHERE q.bucket_id = p_bucket AND q.storage_path = ANY (p_paths);
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  RETURN v_n;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_photo_purge_done(text, text[]) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rentals_photo_purge_done(text, text[]) TO service_role;
+
+DO $do$
+BEGIN
+  IF to_regclass('public.cron_work_expectations') IS NOT NULL THEN
+    INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note, work_visibility, work_exempt_reason)
+    VALUES ('listing-photo-purge', interval '26 hours',
+            'Homes (Q2211): daily, deletes through the Storage API the listing photos of a take-down not lifted within 30 days, and any listing photo left in the public job-photos bucket.',
+            'exempt',
+            'With no take-down older than 30 days and no legacy photo, a run that deletes nothing is the healthy state.')
+    ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap, note = EXCLUDED.note,
+      work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
+    PERFORM cron.schedule('listing-photo-purge', '41 9 * * *', $c$SELECT public.cron_http_tag(q.request_id, 'listing-photo-purge')
+  FROM (
+      SELECT net.http_post(timeout_milliseconds := 90000,
+        url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_url' LIMIT 1)
+               || '/functions/v1/listing-photo-purge',
+        headers := jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'service_role_key' LIMIT 1)
+        ),
+        body := '{}'::jsonb
+      )
+) AS q(request_id);$c$);
+  END IF;
+END
+$do$;

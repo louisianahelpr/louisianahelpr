@@ -13,6 +13,7 @@
  * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {joined && <span className="block text-xs text-muted-foreground">{joined}</span>} |
  * @mutate src/components/declutter/DeclutterItemView.tsx |     url: `${getPublicOrigin()}/declutter/item/${it.id}`, |     url: getPublicOrigin(),
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const barShown = useOffScreen(buttons); |   const barShown = false;
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   useDockYield(barShown && !underAge && item.status === "live"); |   void underAge;
  * @mutate src/lib/declutter/api.ts |   const row = pickRequestedProfile(rows, sellerId) | const row = rows[0]
  * @mutate src/lib/declutter/api.ts |       .eq("seller_id", sellerId) |       .neq("seller_id", "")
  * @mutate src/lib/declutter/api.ts |       .neq("seller_id", sellerId) |       .neq("seller_id", "")
@@ -21,7 +22,7 @@
  * @mutate src/components/declutter/DeclutterItemView.tsx |       {!isSeller && (\n        <div className="mt-8"> |       {(\n        <div className="mt-8">
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -199,7 +200,7 @@ describe("the photo-first Declutter item page", () => {
     expect((shared[0] as { text: string }).text).toContain("$40");
   });
 
-  it("phone: while the in-page Buy now / Make an offer are off screen, the same two ride in a bar above the dock", async () => {
+  it("phone: while the in-page Buy now / Make an offer are off screen, the same two ride in a bar on the bottom edge and the dock steps aside", async () => {
     vi.stubGlobal(
       "IntersectionObserver",
       class {
@@ -212,7 +213,9 @@ describe("the photo-first Declutter item page", () => {
     await screen.findAllByRole("button", { name: "Buy now · $40" });
     const bar = document.body.querySelector("[data-declutter-buybar]") as HTMLElement;
     expect(bar).not.toBeNull();
-    expect(bar.className).toContain("bottom-safe-nav");
+    expect(bar.className).toContain("bottom-0");
+    // The dock yields the strip to the bar (fixedBottomBarsClearTheDock, Q1646).
+    expect(document.documentElement.classList.contains("dock-yield")).toBe(true);
     expect(within(bar).getByRole("button", { name: "Buy now · $40" })).toBeInTheDocument();
     expect(within(bar).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
   });
@@ -240,6 +243,9 @@ describe("the photo-first Declutter item page", () => {
     state.similar = [{ ...ITEM, id: "y", seller_id: "u9", title: "Similar thing" }];
     open();
     await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+    // Give the row reads time to land (they would within a tick) before saying they are absent.
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(screen.queryByRole("status", { name: "Loading more items" })).toBeNull();
     expect(screen.queryByText("Other thing")).toBeNull();
     expect(screen.queryByText("Similar thing")).toBeNull();
   });

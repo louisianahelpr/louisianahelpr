@@ -80,6 +80,10 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchPhotos: async () => [],
   fetchQuestions: async () => [],
   fetchSellerRating: async () => ({ avg: 0, count: 0 }),
+  fetchSellerCard: async () => null,
+  fetchSellerItems: async () => [],
+  fetchSimilarItems: async () => [],
+  fetchMyCard: async () => null,
   fetchSellerRatings: async (ids: string[]) => new Map(ids.filter((id) => sellerStats[id]).map((id) => [id, sellerStats[id]])),
   fetchWatching: async () => new Set(),
   fetchItem: async () => ({
@@ -276,12 +280,12 @@ describe("Declutter location ask", () => {
     live.items = [card("i1", "reviewed", "Oak rocking chair"), card("i2", "fresh", "Brass floor lamp"), card("i3", "unknown", "Cast iron skillet")];
     const browse = at("/declutter", <DeclutterPage />);
     const reviewed = (await screen.findByText("Oak rocking chair")).closest("a")!;
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | mt-0.5 block truncate text-sm | mt-0.5 block line-clamp-2 text-sm
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | mt-0.5 block truncate text-sm | mt-0.5 block line-clamp-2 text-sm
     expect(reviewed.querySelector("[data-card-title]")!.className).toMatch(/\btruncate\b/);
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | min-w-0 text-base font-bold leading-tight | min-w-0 text-base font-medium leading-tight
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | min-w-0 text-base font-bold leading-tight | min-w-0 text-base font-medium leading-tight
     expect(reviewed.querySelector("[data-card-price]")!.className).toMatch(/\bfont-bold\b/);
     // No photo: the category's icon on a tint, never an empty grey box (PhotoPlaceholder).
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-full w-full" /> | null
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-full w-full" /> | null
     expect(reviewed.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
     // A price is never cut: it wraps the old price under it before it would clip.
     expect(reviewed.querySelector("[data-card-price]")!.className).not.toMatch(/\btruncate\b/);
@@ -302,7 +306,7 @@ describe("Declutter location ask", () => {
 
   it("an item page never asks for location", async () => {
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
-    expect(await screen.findByRole("heading", { name: "Oak rocking chair" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Oak rocking chair", level: 1 })).toBeInTheDocument();
     expect(screen.queryByRole("alertdialog")).toBeNull();
     expect(getCurrentPosition).not.toHaveBeenCalled();
   });

@@ -17,6 +17,7 @@ type Fns = Database["public"]["Functions"];
 export type RentalListing = Database["public"]["Tables"]["rental_listings"]["Row"];
 export type RentalListingPhoto = Database["public"]["Tables"]["rental_listing_photos"]["Row"];
 export type BrowseListing = Fns["rentals_browse_listings"]["Returns"][number];
+export type BrowseSaleListing = Fns["rentals_browse_sale_listings"]["Returns"][number];
 export type ListingDetail = Fns["rentals_listing"]["Returns"][number];
 
 /** Listing photos live in job-photos under <owner uid>/rental-listings/<listing id>/ (purged with the account). */
@@ -44,6 +45,23 @@ export interface ListingFields {
 }
 
 /**
+ * Homes -> Buy (20261019061241): what an owner types for a home for sale. No
+ * rent, lease or deposit; the server refuses any other key.
+ */
+export interface SaleListingFields {
+  headline: string;
+  description: string;
+  sale_price_cents: number;
+  beds: number;
+  baths: number;
+  sq_ft: number | null;
+  lot_sq_ft: number | null;
+  year_built: number | null;
+  parking: "none" | "street" | "driveway" | "garage" | "lot";
+  accessibility: string[];
+}
+
+/**
  * Not deployed yet (the migration ships with this code; db-deploy runs on
  * merge): PostgREST answers PGRST202 for a missing function and PGRST205 for a
  * missing table. Until then there are simply no listings, never an error
@@ -62,6 +80,17 @@ export async function fetchBrowseListings(filters: { city?: string; minBeds?: nu
   });
   if (res.error && listingsNotDeployed(res.error)) return [];
   return (unwrap(res) ?? []) as BrowseListing[];
+}
+
+/** Homes for sale (Buy). Same not-deployed fallback as Rent. */
+export async function fetchBrowseSaleListings(filters: { city?: string; minBeds?: number | null; maxPriceCents?: number | null } = {}): Promise<BrowseSaleListing[]> {
+  const res = await supabase.rpc("rentals_browse_sale_listings", {
+    p_city: filters.city?.trim() || undefined,
+    p_min_beds: filters.minBeds ?? undefined,
+    p_max_price_cents: filters.maxPriceCents ?? undefined,
+  });
+  if (res.error && listingsNotDeployed(res.error)) return [];
+  return (unwrap(res) ?? []) as BrowseSaleListing[];
 }
 
 /** One listing for its page; null when it is not there for this caller (paused, expired, removed, or someone else's draft). */
@@ -100,7 +129,21 @@ export async function saveListing(listingId: string | null, unitId: string | nul
   return data;
 }
 
-export async function setListingStatus(listingId: string, status: "live" | "paused" | "leased" | "removed"): Promise<void> {
+/** Create a sale draft for a property (listingId null, propertyId set) or save an edit. Returns the listing id. */
+export async function saveSaleListing(listingId: string | null, propertyId: string | null, fields: SaleListingFields): Promise<string> {
+  const { data, error } = await supabase.rpc("rentals_save_sale_listing", {
+    // nullable-arg: NULL creates a new draft (rentals_save_sale_listing's p_listing_id IS NULL branch).
+    p_listing_id: listingId as string,
+    // nullable-arg: NULL when editing an existing listing (the property comes from the listing row).
+    p_property_id: propertyId as string,
+    p_fields: fields as unknown as Json,
+  });
+  if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_save_sale_listing", error), error);
+  if (data == null) throw new Error("empty_response");
+  return data;
+}
+
+export async function setListingStatus(listingId: string, status: "live" | "paused" | "leased" | "sold" | "removed"): Promise<void> {
   const { error } = await supabase.rpc("rentals_set_listing_status", { p_listing_id: listingId, p_status: status });
   if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_set_listing_status", error), error);
 }

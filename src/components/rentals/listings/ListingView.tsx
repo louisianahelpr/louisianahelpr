@@ -15,7 +15,9 @@ import {
   availableLine,
   bedsBathsLine,
   listingStatusLabel,
+  priceLine,
   rentLine,
+  SALE_HOW_IT_WORKS,
 } from "@/lib/rentals/listingCopy";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { RentalsCard } from "../rentalsUi";
@@ -127,8 +129,9 @@ export default function ListingView() {
         : l.lease_months_max
           ? `Up to ${l.lease_months_max} months`
           : "Ask the owner";
+  const sale = l.kind === "sale";
   return (
-    <AppPage title="Home for rent" backTo="/rentals">
+    <AppPage title={sale ? "Home for sale" : "Home for rent"} backTo={sale ? "/rentals?kind=buy" : "/rentals"}>
       <div className="max-w-3xl space-y-6">
         <Gallery paths={l.photo_paths} />
         {l.is_mine && (
@@ -140,19 +143,34 @@ export default function ListingView() {
           </div>
         )}
         <section className="space-y-1 px-1">
-          <h2 className="text-ds-24 font-bold">{rentLine(l.rent_cents, l.rent_frequency)}</h2>
+          <h2 className="text-ds-24 font-bold">{sale ? priceLine(l.sale_price_cents) : rentLine(l.rent_cents, l.rent_frequency)}</h2>
           <p className="text-ds-17 font-medium">{l.headline}</p>
           <p className="text-ds-15 text-muted-foreground">
             {bedsBathsLine(l.beds, l.baths)}
             {l.sq_ft ? ` · ${l.sq_ft.toLocaleString("en-US")} sq ft` : ""} · {l.city} {l.zip_code}
           </p>
-          <p className="text-ds-15">{availableLine(l.available_on)}</p>
+          {!sale && <p className="text-ds-15">{availableLine(l.available_on)}</p>}
         </section>
         {l.description && (
           <RentalsCard title="About this home">
             <p className="text-ds-15 whitespace-pre-line break-words">{l.description}</p>
           </RentalsCard>
         )}
+        {sale ? (
+          <RentalsCard title="Details">
+            <dl className="divide-y divide-border">
+              {l.year_built ? <Fact label="Year built" value={String(l.year_built)} /> : null}
+              {l.lot_sq_ft ? <Fact label="Lot size" value={`${l.lot_sq_ft.toLocaleString("en-US")} sq ft`} /> : null}
+              <Fact label="Parking" value={PARKING_LABEL[l.parking] ?? l.parking} />
+            </dl>
+            {l.accessibility.length > 0 && (
+              <p className="text-ds-14">
+                <span className="text-muted-foreground">Access: </span>
+                {l.accessibility.map((a) => ACCESSIBILITY_LABEL[a] ?? a).join(", ")}
+              </p>
+            )}
+          </RentalsCard>
+        ) : (
         <RentalsCard title="Details">
           <dl className="divide-y divide-border">
             <Fact label="Deposit" value={l.deposit_cents == null ? "Ask the owner" : dollars(l.deposit_cents)} />
@@ -171,6 +189,8 @@ export default function ListingView() {
             </p>
           )}
         </RentalsCard>
+        )}
+        {sale && <p className="px-1 text-ds-14">{SALE_HOW_IT_WORKS}</p>}
         <p className="flex items-start gap-2 px-1 text-ds-13 text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>Louisiana Helpr checked that the person listing this home owns it. The street address is not shown here.</span>

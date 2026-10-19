@@ -22,7 +22,9 @@
  * @mutate src/components/rentals/MaintenanceRequestView.tsx | r.visit_job_id != null && r.visit_job_id === r.job_id ? r.visit_proposed_for : null; | r.visit_job_id != null ? r.visit_proposed_for : null;
  * @mutate src/components/rentals/MaintenanceRequestView.tsx | onClick={() => okVisit.mutate(visitAt)}> | onClick={() => okVisit.mutate(new Date().toISOString())}>
  * @mutate src/components/rentals/HomesBrowse.tsx |   const kind: HomesKind = params.get("kind") === "buy" ? "buy" : "rent"; |   const kind: HomesKind = "rent";
- * @mutate src/components/rentals/HomesBrowse.tsx |         <HomesBuyComingSoon /> |         {null}
+ * @mutate src/components/rentals/HomesBrowse.tsx |         <HomesBuy /> |         {null}
+ * @mutate src/components/rentals/RentalsHomeView.tsx | function SaleListingLink({ propertyId, approved, listing }: { propertyId: string; approved: boolean; listing: RentalListing \| undefined }) {\n  if (!approved) return null; | function SaleListingLink({ propertyId, approved, listing }: { propertyId: string; approved: boolean; listing: RentalListing \| undefined }) {\n  if (approved \|\| !approved) return null;
+ * @mutate src/components/rentals/listings/RentBrowse.tsx |       price: priceLine(l.sale_price_cents), |       price: "",
  * @mutate src/components/rentals/HomesBrowse.tsx | No commission. A title company | Price negotiable with the owner. A title company
  * @mutate src/components/rentals/HomesBrowse.tsx |           <RentBrowse />\n |           {null}\n
  * @mutate src/components/rentals/RentalsHomeView.tsx |           <HomesBrowse />\n |           {null}\n
@@ -55,6 +57,8 @@ const state = {
   homeReads: 0,
   browse: [] as unknown[],
   browseFilters: [] as unknown[],
+  sale: [] as unknown[],
+  saleFilters: [] as unknown[],
   underAge: false,
   tenancies: [] as unknown[],
   properties: [] as unknown[],
@@ -128,6 +132,10 @@ vi.mock("@/lib/rentals/listings", () => ({
     state.browseFilters.push(f);
     return state.browse;
   },
+  fetchBrowseSaleListings: async (f: unknown) => {
+    state.saleFilters.push(f);
+    return state.sale;
+  },
   fetchMyListings: async () => [],
   listingPhotoUrl: (p: string) => `https://cdn.test/${p}`,
 }));
@@ -171,6 +179,8 @@ beforeEach(() => {
   state.homeReads = 0;
   state.browse = [];
   state.browseFilters = [];
+  state.sale = [];
+  state.saleFilters = [];
   state.underAge = false;
   state.tenancies = [];
   state.properties = [];
@@ -250,15 +260,28 @@ describe("Rentals screens", () => {
       expect(screen.getByRole("heading", { name: "Homes" })).toBeTruthy();
       expect(screen.getByRole("tab", { name: "Buy" }).getAttribute("aria-selected")).toBe("false");
     });
-    it("?kind=buy: for sale by verified owners, coming soon; no commission or negotiating copy; no listing read", async () => {
+    it("?kind=buy: homes for sale by verified owners; no commission or negotiating copy; the sale list, not the rent one", async () => {
       renderAt("/rentals?kind=buy");
       const panel = await screen.findByRole("tabpanel", { name: "Buy" });
-      expect(panel.textContent).toContain("Homes for sale: coming soon");
+      expect(await screen.findByText(/No homes for sale match yet/)).toBeTruthy();
       expect(panel.textContent).toContain("verified owners");
       expect(panel.textContent).toMatch(/title company or attorney/);
       expect(panel.textContent).not.toMatch(/\b(negotia|haggl|offer|realtor|agent)/i);
       expect(screen.getByRole("tab", { name: "Buy" }).getAttribute("aria-selected")).toBe("true");
       expect(screen.queryByText(/No homes for rent match yet/)).toBeNull();
+    });
+    it("Buy: a home for sale shows its price, beds/baths and city + ZIP, no move-in date, and links to its page; filters reach the sale read", async () => {
+      state.sale = [{ id: "22222222-2222-4222-8222-222222222222", headline: "Brick 3 bed with a yard", sale_price_cents: 24500000, beds: 3, baths: 2,
+        sq_ft: 1650, city: "Broussard", zip_code: "70518", photo_paths: [], is_mine: false, published_at: "2026-10-19T00:00:00Z" }];
+      renderAt("/rentals?kind=buy");
+      const link = await screen.findByRole("link", { name: /Brick 3 bed/ });
+      expect(link.getAttribute("href")).toBe("/rentals/listings/22222222-2222-4222-8222-222222222222");
+      expect(link.textContent).toContain("$245,000");
+      expect(link.textContent).toContain("3 beds · 2 baths · Broussard 70518");
+      expect(link.textContent).not.toMatch(/Available/);
+      fireEvent.change(screen.getByLabelText("City or ZIP"), { target: { value: "70518" } });
+      await vi.waitFor(() => expect(state.saleFilters.at(-1)).toMatchObject({ city: "70518" }));
+      expect(state.browseFilters).toHaveLength(0);
     });
     it("ONE slim search row (owner bar 2026-10-19): City or ZIP with the filter button inside, no Search button, no bedroom/rent fields on the page; typing searches by itself", async () => {
       renderAt("/rentals");
@@ -288,11 +311,11 @@ describe("Rentals screens", () => {
       renderAt("/rentals");
       await screen.findByText(/No homes for rent match yet/);
       fireEvent.click(screen.getByRole("tab", { name: "Buy" }));
-      expect(await screen.findByText("Homes for sale: coming soon")).toBeTruthy();
+      expect(await screen.findByText(/No homes for sale match yet/)).toBeTruthy();
       expect(screen.getByText("Homes you rent")).toBeTruthy();
       fireEvent.click(screen.getByRole("tab", { name: "Rent" }));
       expect(await screen.findByText(/No homes for rent match yet/)).toBeTruthy();
-      expect(screen.queryByText("Homes for sale: coming soon")).toBeNull();
+      expect(screen.queryByText(/No homes for sale match yet/)).toBeNull();
     });
   });
 
@@ -362,6 +385,14 @@ describe("Rentals screens", () => {
       fireEvent.change(screen.getByLabelText(/Photo of your ID, front/), { target: { files: [file("front.jpg")] } });
       expect(screen.getByLabelText(/Photo of your ID, front/).closest("label")?.textContent).toContain("front.jpg");
       expect(screen.getAllByText("Tap to choose a file")).toHaveLength(2);
+    });
+
+    it("an approved owner can sell the home: one Sell this home link per property, to the for-sale editor", async () => {
+      state.identity = { verified: true, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
+      state.properties = [{ ...NEEDS_PROOF, ownership_status: "approved" }];
+      renderAt("/rentals");
+      const sell = await screen.findByRole("link", { name: "Sell this home" });
+      expect(sell.getAttribute("href")).toBe("/rentals/listings/new?sell=p1");
     });
 
     it("the back is optional: front + proof is enough", async () => {

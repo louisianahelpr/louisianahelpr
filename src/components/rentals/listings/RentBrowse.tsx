@@ -10,8 +10,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { FilterSheet } from "@/components/dashboard/FilterSheet";
 import { chipStyles } from "@/components/dashboard/JobFilters";
 import { hapticLight } from "@/lib/haptics";
-import { fetchBrowseListings, listingPhotoUrl, type BrowseListing } from "@/lib/rentals/listings";
-import { availableLine, bedsBathsLine, rentLine } from "@/lib/rentals/listingCopy";
+import { fetchBrowseListings, fetchBrowseSaleListings, listingPhotoUrl } from "@/lib/rentals/listings";
+import { availableLine, bedsBathsLine, priceLine, rentLine } from "@/lib/rentals/listingCopy";
 import { dollarsToCents } from "@/lib/rentals/copy";
 
 /**
@@ -24,8 +24,26 @@ import { dollarsToCents } from "@/lib/rentals/copy";
  * ZIP, the filter button inside it) with bedrooms and rent in the shared
  * filter sheet, then photo-first cards with no outline. No card around the
  * list: a box inside a box is the look the lead sent back.
+ *
+ * Homes -> Buy (20261019061241) is the same screen over homes for sale: the
+ * price instead of rent, no move-in date, a most-price filter.
  */
-function ListingCard({ l }: { l: BrowseListing }) {
+interface CardRow {
+  id: string;
+  headline: string;
+  beds: number;
+  baths: number;
+  city: string;
+  zip_code: string;
+  photo_paths: string[];
+  is_mine: boolean;
+  /** The big line: rent per period, or the sale price. */
+  price: string;
+  /** The last line: the move-in date (rent), nothing (sale). */
+  when: string | null;
+}
+
+function ListingCard({ l }: { l: CardRow }) {
   const cover = l.photo_paths?.[0];
   return (
     <Link
@@ -45,14 +63,14 @@ function ListingCard({ l }: { l: BrowseListing }) {
         )}
       </span>
       <span className="block space-y-0.5 px-1 pt-2.5">
-        <span className="block text-ds-17 font-bold">{rentLine(l.rent_cents, l.rent_frequency)}</span>
+        <span className="block text-ds-17 font-bold">{l.price}</span>
         <span className="block line-clamp-2 text-ds-15" title={l.headline}>
           {l.headline}
         </span>
         <span className="block text-ds-14 text-muted-foreground">
           {bedsBathsLine(l.beds, l.baths)} · {l.city} {l.zip_code}
         </span>
-        <span className="block text-ds-14 text-muted-foreground">{availableLine(l.available_on)}</span>
+        {l.when && <span className="block text-ds-14 text-muted-foreground">{l.when}</span>}
       </span>
     </Link>
   );
@@ -69,7 +87,45 @@ const BEDS = [
 /** Typing settles for this long before the search runs (no Search button). */
 const SEARCH_SETTLE_MS = 350;
 
-export function RentBrowse() {
+/** What differs between Rent and Buy; everything else is one screen. */
+interface BrowseKind {
+  key: "rent" | "sale";
+  noun: string;
+  priceFilterTitle: string;
+  priceFilterLabel: string;
+  fetch: (f: { city: string; minBeds: number | null; maxCents: number | null }) => Promise<CardRow[]>;
+}
+
+const RENT: BrowseKind = {
+  key: "rent",
+  noun: "homes for rent",
+  priceFilterTitle: "Most rent per month",
+  priceFilterLabel: "Most rent per month, in dollars",
+  fetch: async ({ city, minBeds, maxCents }) =>
+    (await fetchBrowseListings({ city, minBeds, maxRentCents: maxCents })).map((l) => ({
+      ...l,
+      price: rentLine(l.rent_cents, l.rent_frequency),
+      when: availableLine(l.available_on),
+    })),
+};
+
+const SALE: BrowseKind = {
+  key: "sale",
+  noun: "homes for sale",
+  priceFilterTitle: "Most price",
+  priceFilterLabel: "Most price, in dollars",
+  fetch: async ({ city, minBeds, maxCents }) =>
+    (await fetchBrowseSaleListings({ city, minBeds, maxPriceCents: maxCents })).map((l) => ({
+      ...l,
+      price: priceLine(l.sale_price_cents),
+      when: null,
+    })),
+};
+
+export const RentBrowse = () => <ListingsBrowse kind={RENT} />;
+export const SaleBrowse = () => <ListingsBrowse kind={SALE} />;
+
+function ListingsBrowse({ kind }: { kind: BrowseKind }) {
   const [place, setPlace] = useState("");
   const [city, setCity] = useState("");
   const [minBeds, setMinBeds] = useState<number | null>(null);
@@ -80,22 +136,22 @@ export function RentBrowse() {
     const t = setTimeout(() => setCity(place.trim()), SEARCH_SETTLE_MS);
     return () => clearTimeout(t);
   }, [place]);
-  const maxRentCents = maxRent.trim() ? dollarsToCents(maxRent) : null;
-  const applied = { city, minBeds, maxRentCents };
+  const maxCents = maxRent.trim() ? dollarsToCents(maxRent) : null;
+  const applied = { city, minBeds, maxCents };
   const q = useQuery({
-    queryKey: ["rentals-browse", applied],
-    queryFn: () => fetchBrowseListings(applied),
+    queryKey: [kind.key === "rent" ? "rentals-browse" : "rentals-browse-sale", applied],
+    queryFn: () => kind.fetch(applied),
   });
-  const activeFilters = (minBeds != null ? 1 : 0) + (maxRentCents != null ? 1 : 0);
+  const activeFilters = (minBeds != null ? 1 : 0) + (maxCents != null ? 1 : 0);
   const clearFilters = () => {
     setMinBeds(null);
     setMaxRent("");
   };
   return (
-    <section aria-label="Homes for rent" className="space-y-4">
+    <section aria-label={kind.key === "rent" ? "Homes for rent" : "Homes for sale"} className="space-y-4">
       <form
         role="search"
-        aria-label="Search homes for rent"
+        aria-label={`Search ${kind.noun}`}
         className="flex h-11 items-center gap-2 rounded-full border border-border bg-card pl-3.5 pr-1"
         onSubmit={(e) => {
           e.preventDefault();
@@ -169,10 +225,10 @@ export function RentBrowse() {
           },
           {
             key: "rent",
-            title: "Most rent per month",
+            title: kind.priceFilterTitle,
             content: (
               <Input
-                aria-label="Most rent per month, in dollars"
+                aria-label={kind.priceFilterLabel}
                 placeholder="Any amount"
                 inputMode="decimal"
                 value={maxRent}
@@ -185,7 +241,7 @@ export function RentBrowse() {
       {q.isError ? (
         <ErrorState onRetry={() => q.refetch()} />
       ) : !q.data ? (
-        <div role="status" aria-label="Loading homes for rent" className={LISTING_GRID}>
+        <div role="status" aria-label={`Loading ${kind.noun}`} className={LISTING_GRID}>
           <ListingCardBone />
           <ListingCardBone />
         </div>
@@ -193,11 +249,11 @@ export function RentBrowse() {
         <EmptyState
           variant="bare"
           icon={Home}
-          title="No homes for rent here yet"
+          title={`No ${kind.noun} here yet`}
           body={
             city || activeFilters
-              ? "No homes for rent match yet. Try another city or fewer filters."
-              : "No homes for rent match yet. New homes show up here as owners list them."
+              ? `No ${kind.noun} match yet. Try another city or fewer filters.`
+              : `No ${kind.noun} match yet. New homes show up here as owners list them.`
           }
           action={
             activeFilters > 0 ? (

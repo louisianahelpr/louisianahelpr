@@ -152,6 +152,11 @@ const UNREACHABLE: Allowlist = {
     listing_not_found: { reason: "no code's words at this site: ListingPage shows its own fixed 'This listing isn't available.' state for any failed read (a paused, expired or removed listing, or one the caller may not see)." },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
   },
+  // Homes admin card list (20261019062540): HomesListingsCard renders inside Admin -> Settings only, which
+  // the admin route gate keeps from non-admins; a failed load shows the card's own error state.
+  rentals_admin_listings: {
+    not_authorized: { reason: "no code's words at this site: the card lives on the admin-only Settings page; any failed load shows its fixed \"Couldn't load the listings.\" state." },
+  },
   rentals_request_job_state: {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },

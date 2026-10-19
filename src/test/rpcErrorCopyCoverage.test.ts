@@ -142,6 +142,11 @@ const UNREACHABLE: Allowlist = {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
   },
+  // Homes -> Buy (20261019061241): the same read shape as the Rent browse.
+  rentals_browse_sale_listings: {
+    feature_disabled: { reason: RENTALS_READ },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+  },
   rentals_listing: {
     feature_disabled: { reason: RENTALS_READ },
     listing_not_found: { reason: "no code's words at this site: ListingPage shows its own fixed 'This listing isn't available.' state for any failed read (a paused, expired or removed listing, or one the caller may not see)." },

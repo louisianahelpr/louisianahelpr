@@ -25,7 +25,7 @@
 // @mutate supabase/functions/release-payout/index.ts | let payoutCents = roundPayoutDownCents(unroundedPayoutCents); | let payoutCents = unroundedPayoutCents;
 // @mutate supabase/functions/release-payout/index.ts |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeCents); |       payoutCents = unroundedPayoutCents - onboardingFeeCents;
 // @mutate supabase/functions/void-cancelled-payments/index.ts | amount: roundPayoutDownCents(Math.round(memberPayout * 100)), | amount: Math.round(memberPayout * 100),
-// @mutate supabase/functions/create-payment/index.ts | const amountCents = roundPayoutDownCents(Math.round(amount * 100)); | const amountCents = Math.round(amount * 100);
+// @mutate supabase/functions/create-payment/index.ts | const amountCents = roundPayoutDownCents(unroundedCents) - helprFaultFeeCents; | const amountCents = unroundedCents - helprFaultFeeCents;
 // @mutate supabase/functions/_shared/crewBlockFees.ts | const payoutCents = roundPayoutDownCents(Math.round((feeDollars - platformCut) * 100)); | const payoutCents = Math.round((feeDollars - platformCut) * 100);
 // @mutate supabase/functions/_shared/money.ts | return Math.floor(whole / 100) * 100; | return whole;
 // @mutate supabase/functions/execute-dispute-split/index.ts | : `$${formatExactDollars(refundDollars)} has been refunded | : `$${formatPayoutDollars(refundDollars)} has been refunded
@@ -54,7 +54,8 @@ type PayoutSite =
 const HELPR_PAYOUT_SITES: Record<string, PayoutSite> = {
   "supabase/functions/release-payout/index.ts": { kind: "var", name: "payoutCents" },
   "supabase/functions/process-scheduled-payouts/index.ts": { kind: "var", name: "payoutCents" },
-  "supabase/functions/execute-dispute-split/index.ts": { kind: "var", name: "helperCents" },
+  // The decided split's Helpr leg: helperCents less the exact Helpr-fault debt (Q2165).
+  "supabase/functions/execute-dispute-split/index.ts": { kind: "var", name: "helperTransferCents" },
   "supabase/functions/create-payment/index.ts": { kind: "var", name: "amountCents" },
   "supabase/functions/void-cancelled-payments/index.ts": { kind: "inline", count: 2 },
   // Q1390: a crew member's cancellation fee for a block, paid from the job's escrow.
@@ -95,7 +96,8 @@ const EXPECTED_TRANSFER_CALLS: Record<string, number> = {
  *  refund, gift or credit figure appearing here is the bug. */
 const PAYOUT_FORMAT_ARGS: Record<string, string[]> = {
   "supabase/functions/auto-release-payment/index.ts": ["helperPayout", "helperPayout"],
-  "supabase/functions/create-payment/index.ts": ["helperPayout", "helperPayout"],
+  // The Quick Release notice quotes the ledger's exact amount (Q2165).
+  "supabase/functions/create-payment/index.ts": ["helperPayout"],
   "supabase/functions/_shared/crewBlockFees.ts": ["payoutCents / 100"],
   "supabase/functions/execute-dispute-split/index.ts": ["helperDollars"],
   "supabase/functions/instant-payout/index.ts": ["netCents"],
@@ -151,6 +153,48 @@ describe("Helpr payouts are whole dollars, rounded down (Q236)", () => {
       }
     });
   }
+
+  // Q2165 (owner, 2026-10-19): a Helpr-fault card-fee debt comes off a payout
+  // in EXACT CENTS, after the whole-dollar rounding, so what the transfer
+  // withholds is exactly what the deduction rows book as collected. The old
+  // roundPayoutDownCents(x - debt) withheld up to 99c more or less
+  // (x=1580, debt=175: 100 withheld, 175 booked).
+  // @mutate supabase/functions/release-payout/index.ts |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents) - helprFaultFeeCents; |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents - helprFaultFeeCents);
+  // @mutate supabase/functions/execute-dispute-split/index.ts |     const helperTransferCents = roundPayoutDownCents(unroundedHelperCents) - helprFaultFeeCents; |     const helperTransferCents = roundPayoutDownCents(unroundedHelperCents - helprFaultFeeCents);
+  it("Q2165: the Helpr-fault debt comes off after the whole-dollar rounding, in exact cents", () => {
+    const FAULT_SITES = [
+      "supabase/functions/release-payout/index.ts",
+      "supabase/functions/process-scheduled-payouts/index.ts",
+      "supabase/functions/create-payment/index.ts",
+      "supabase/functions/execute-dispute-split/index.ts",
+    ];
+    /** Each roundPayoutDownCents( call's argument text (balanced parens). */
+    const roundingArgs = (src: string): string[] => {
+      const out: string[] = [];
+      for (const m of src.matchAll(/\broundPayoutDownCents\(/g)) {
+        let depth = 1;
+        let i = m.index! + m[0].length;
+        const start = i;
+        while (i < src.length && depth > 0) {
+          if (src[i] === "(") depth++;
+          else if (src[i] === ")") depth--;
+          i++;
+        }
+        out.push(src.slice(start, i - 1));
+      }
+      return out;
+    };
+    let exactSubtractions = 0;
+    for (const f of FAULT_SITES) {
+      const src = code(f);
+      expect(src, `${f} takes the debt`).toMatch(/\btakeHelprFaultFee\(/);
+      expect(roundingArgs(src).filter((a) => /helprFaultFee/.test(a)), `${f}: the debt is inside the rounding`).toEqual([]);
+      const n = count(src, /=\s*roundPayoutDownCents\([^;]*\)\s*-\s*helprFaultFeeCents\s*[;)]/g);
+      expect(n, `${f}: no "roundPayoutDownCents(...) - helprFaultFeeCents"`).toBeGreaterThan(0);
+      exactSubtractions += n;
+    }
+    expect(exactSubtractions).toBeGreaterThan(3);
+  });
 
   it("the rule is defined once, in _shared/money.ts", () => {
     const defs = edgeFiles().filter((f) => /function\s+roundPayoutDownCents\b/.test(code(f)));

@@ -221,6 +221,8 @@ CREATE TABLE IF NOT EXISTS public.shop_faqs (
 ALTER TABLE public.shop_faqs ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.shop_faqs FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.shop_faqs TO service_role;
+-- Q807: the new table refuses a write from a session whose email is not confirmed (writes come only through shops_set_my_faqs).
+SELECT public.attach_unconfirmed_email_gate();
 
 -- Each row: invisible characters stripped from what is STORED, then checked.
 CREATE OR REPLACE FUNCTION public.shop_faq_clean_and_check()

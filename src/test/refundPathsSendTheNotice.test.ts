@@ -129,7 +129,9 @@ describe("Q1714: every refund path tells the person their money is back", () => 
   it("the inventory is read from source and its counts are exact", () => {
     // EXACT, both directions: a new site moves the number (2026-10-12).
     // 14 since Declutter slice 5: declutter-money's delivery-fee refund (the buyer is told in SQL and by email).
-    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(14);
+    // 16 since J4 Helpr at fault (2026-10-19): create-payment's two Helpr-fault full refunds are the other arm of
+    // the dispute and general refund ternaries, so each reaches the same announceRefund as its partial twin.
+    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(16);
     expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(4); // 4 since Shops M1: _shared/shopHolds.ts releases an ended order's hold (RELEASE_EXEMPT)
     // Floors, so a parser that silently reads nothing cannot pass.
     expect(refundSites.length).toBeGreaterThan(8);

@@ -234,6 +234,7 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   "ts:supabase/functions/weekly-helper-report/index.ts#1": "own weekly stats",
   "ts:src/components/admin/adminusers/useAdminUserActions.ts#1": "own ban lifted (admin actor, never seed)",
   "sql:review_credential#1": "own credential reviewed",
+  "sql:bill_helpr_fault_card_fee#1": "own card fee billed after a Helpr-at-fault refund (the recipient's own debt; the poster is never named, and the ruling copies the job's is_seed)",
   "sql:sweep_expired_auto_bans#1": "own restriction lifted",
   "sql:apply_consequence_ladder#1": "own warning",
   "sql:auto_restrict_repeat_violators#2": "own account suspended (30 days)",

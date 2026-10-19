@@ -192,6 +192,7 @@ rpc_exempt(fn, why) AS (
   ('rpc_settle_dispute_without_payment', 'admin-only (body checks has_role admin)'),
   ('rpc_close_test_mode_dispute', 'admin-only (body checks has_role admin; Q1769)'),
   ('rpc_supersede_dispute_decision', 'admin-only (body checks has_role admin)'),
+  ('admin_rule_helpr_fault', 'admin-only (body checks has_role admin; J4 Helpr at fault)'),
   -- No user-visible write.
   ('get_helper_earnings_export', 'read-only; VOLATILE only by default'),
   ('search_profiles_by_name', 'a read; its only write is its own rate-limit log'),

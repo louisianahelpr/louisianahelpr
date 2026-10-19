@@ -3187,14 +3187,16 @@ serve(async (req) => {
 
       // Notify both parties
       if (job.helper_id) {
+        // The ledger's amount (lookupSettledTransfer, never the request body): a
+        // Helpr-fault debt can take exact cents off it (Q2165), which the payout
+        // floor formatter would hide. No ledger row read: no figure (a
+        // recomputed one would be before the debt).
+        const ledgerTransferredCents = settledTransfer.amountCents;
         await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           job_id: job.id,
           title: "Dispute resolved — payment released!",
-          // The ledger's amount: a Helpr-fault debt can take exact cents off it
-          // (Q2165), which the payout floor formatter would hide. No ledger
-          // row read: no figure (a recomputed one would be before the debt).
-          message: `The dispute on "${job.title}" has been resolved in your favor. ${settledTransfer.amountCents != null ? `$${formatExactDollars(settledTransfer.amountCents / 100)} has been transferred` : "Your payment has been transferred"}.`,
+          message: `The dispute on "${job.title}" has been resolved in your favor. ${ledgerTransferredCents != null ? `$${formatExactDollars(ledgerTransferredCents / 100)} has been transferred` : "Your payment has been transferred"}.`,
           type: "payment", link: "/profile?tab=earnings",
         });
       }

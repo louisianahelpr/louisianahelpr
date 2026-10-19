@@ -10,6 +10,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CANCEL_POLICIES, CANCEL_POLICY_TEXT, fetchCancelPolicy, setCancelPolicy, type CancelPolicy } from "@/lib/shops/orders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
+import ReadyTapCancelPicker from "./ShopReadyTapCancelPicker";
 
 export default function CancelPolicyPicker({ shopId }: { shopId: string }) {
   const qc = useQueryClient();
@@ -53,6 +54,7 @@ export default function CancelPolicyPicker({ shopId }: { shopId: string }) {
           })}
         </div>
       )}
+      {policy.data === "until_handover" && <ReadyTapCancelPicker shopId={shopId} />}
     </section>
   );
 }

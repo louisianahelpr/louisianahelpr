@@ -26,7 +26,7 @@ import { openExternalUrl } from "@/lib/openExternalUrl";
 import { fetchShopItems, formatItemPrice, type ShopItem } from "@/lib/shops/items";
 import {
   buyerFeeCents,
-  CANCEL_POLICY_TEXT,
+  cancelPolicyText,
   earliestReadyDate,
   fetchOrderTerms,
   firstOpenReadyDate,
@@ -111,7 +111,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
     );
   }
 
-  const policy = CANCEL_POLICY_TEXT[t.cancel_policy];
+  const policy = cancelPolicyText(t.cancel_policy, t.ready_tap_cancel);
   const feeCents = itemsCents > 0 ? buyerFeeCents(itemsCents) : 0;
   const canSend = chosen.length > 0 && !!readyDate && dateProblem === null && note.length <= NOTE_MAX && !opening;
 

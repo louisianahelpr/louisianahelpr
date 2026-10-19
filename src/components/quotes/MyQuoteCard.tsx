@@ -1,5 +1,5 @@
 /**
- * One quote this member sent (the "Your quotes" view on /quotes): the price on
+ * One quote this member sent (the "Your quotes" section on My Jobs): the price on
  * the table, whose turn it is, the counter-offers, and the answer controls
  * when the poster has countered. A pending quote can be withdrawn.
  */

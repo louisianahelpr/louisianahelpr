@@ -56,6 +56,7 @@ function useQuoteFeeQuote(): JobFeeQuote {
   return buildFeeQuote({ switchOn: posterFeeOn });
 }
 import { QUOTE_STATUS_LABEL, QuotesGate, QuotesNotice, REQUEST_STATUS_LABEL, dayLabel, timeLeft } from "@/components/quotes/quotesUi";
+import { QUOTE_HOMES } from "@/lib/quotes/homes";
 import { OfferThread, QuoteAnswerControls, parseWholeDollars } from "@/components/quotes/QuoteAnswerControls";
 
 const TITLE = "Quotes for your job";
@@ -284,8 +285,8 @@ function RequestView({ id }: { id: string }) {
 export default function QuoteRequestPage() {
   const { id = "" } = useParams<{ id: string }>();
   return (
-    <QuotesGate title={TITLE} backTo="/quotes" label="Loading the request">
-      <AppPage title={TITLE} backTo="/quotes">
+    <QuotesGate title={TITLE} backTo={QUOTE_HOMES.myRequests} label="Loading the request">
+      <AppPage title={TITLE} backTo={QUOTE_HOMES.myRequests}>
         <RequestView id={id} />
       </AppPage>
     </QuotesGate>

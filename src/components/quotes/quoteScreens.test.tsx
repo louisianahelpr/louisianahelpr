@@ -98,7 +98,8 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-import QuotesPage from "@/pages/quotes/QuotesPage";
+import { JobListQuotes } from "./JobListQuotes";
+import { JobListQuotesSlot } from "./JobListQuotesSlot";
 import QuoteRequestPage from "@/pages/quotes/QuoteRequestPage";
 import SendQuotePage from "@/pages/quotes/SendQuotePage";
 import { QUOTE_ERROR_COPY, quoteErrorMessage } from "@/lib/quotes/errors";
@@ -112,7 +113,7 @@ function at(path: string, el: React.ReactNode, route = path.split("?")[0]) {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path={route} element={el} />
-          <Route path="/quotes" element={<p>Quotes list</p>} />
+          <Route path="/jobs" element={<p>My Jobs</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -150,18 +151,18 @@ beforeEach(() => {
 describe("the 'quotes' switch", () => {
   it("off: every quote screen is the 404 and asks the server nothing", async () => {
     state.feature = false;
-    at("/quotes", <QuotesPage />);
-    expect(await screen.findByText("Page not found")).toBeInTheDocument();
-    expect(screen.queryByText("Your requests")).toBeNull();
+    // My Jobs and Posts draw no quotes section at all (the /quotes hub retired, owner 2026-10-19).
+    const posts = at("/posts?quotes=1", <JobListQuotesSlot tab="posted" />, "/posts");
+    const jobs = at("/jobs?quotes=1", <JobListQuotesSlot tab="applied" />, "/jobs");
+    expect(posts.container.innerHTML + jobs.container.innerHTML).toBe("");
     at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
     at("/quotes/send/r9", <SendQuotePage />, "/quotes/send/:id");
-    expect(screen.getAllByText("Page not found")).toHaveLength(3);
+    expect(await screen.findAllByText("Page not found")).toHaveLength(2);
     expect(state.calls).toEqual([]);
   });
 
   // measure-loading-states, 2026-10-15: bones here swapped for the 404 with a -132px row and 2 -> 3 rows on all three routes.
   it.each([
-    ["/quotes", "/quotes", "Quotes", "Loading quotes", () => <QuotesPage />],
     ["/quotes/request/r1", "/quotes/request/:id", "Quotes for your job", "Loading the request", () => <QuoteRequestPage />],
     ["/quotes/send/r9", "/quotes/send/:id", "Send a quote", "Loading the request", () => <SendQuotePage />],
   ])("while the switch loads, %s is its real header with no bones (the answer may still be the 404)", (path, route, title, label, el) => {
@@ -175,14 +176,14 @@ describe("the 'quotes' switch", () => {
     expect(state.calls).toEqual([]);
   });
 
-  it("on: /quotes shows the three views; Open requests offers Send a quote", async () => {
+  it("on: Posts lists the poster's quote requests with the quotes that came in, each opening its request", async () => {
     state.rpc.get_my_quote_requests = [REQ];
-    state.rpc.list_open_quote_requests = [OPEN];
-    at("/quotes?view=open", <QuotesPage />);
-    expect(await screen.findByText("Mow and edge a corner lot")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Send a quote" })).toHaveAttribute("href", "/quotes/send/r9");
-    expect(screen.getByRole("tab", { name: "Your requests" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Your quotes" })).toBeInTheDocument();
+    at("/posts?quotes=1", <JobListQuotes tab="posted" focus />, "/posts");
+    const link = await screen.findByRole("link", { name: /Paint the back fence/ });
+    expect(link).toHaveAttribute("href", "/quotes/request/r1");
+    expect(link.textContent).toMatch(/Quote request/);
+    expect(link.textContent).toMatch(/Taking quotes · 2 quotes/);
+    expect(screen.getByRole("heading", { name: "Your quote requests" })).toBeInTheDocument();
   });
 });
 
@@ -359,7 +360,7 @@ describe("the quoter's send-a-quote form", () => {
   });
 });
 
-describe("Your quotes (the quoter)", () => {
+describe("Your quotes on My Jobs (the quoter)", () => {
   it("a poster's counter is the quoter's turn; the quoter's own last offer waits", async () => {
     const base = {
       request_id: "r9", title: "Mow and edge a corner lot", parish: "East Baton Rouge", date_needed: jobLocalDateISO(8),
@@ -371,7 +372,7 @@ describe("Your quotes (the quoter)", () => {
         { by: "quoter", price_cents: 12000, note: null, at: "1" }, { by: "poster", price_cents: 10000, note: null, at: "2" }] },
       { ...base, id: "b", title: "Haul a sofa", price_cents: 8000, last_offer_side: "quoter", offers: [] },
     ];
-    at("/quotes?view=mine", <QuotesPage />);
+    at("/jobs?quotes=1", <JobListQuotes tab="applied" focus />, "/jobs");
     expect(await screen.findByText(/^They sent a counter-offer/)).toBeInTheDocument();
     expect(screen.getByText(/^Waiting for their answer/)).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /^Accept / })).toHaveLength(1);

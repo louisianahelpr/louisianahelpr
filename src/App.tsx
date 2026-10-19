@@ -76,6 +76,8 @@ const MobileNav = lazy(() => import("./components/MobileNav"));
 const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
 const DesktopTopNav = lazy(() => import("./components/DesktopTopNav"));
 import { SidePanelProvider } from "./components/sidePanelOpen";
+// /quotes is retired (owner 2026-10-19): old hub links redirect to Posts, Jobs or My Jobs (src/lib/quotes/homes.ts).
+import QuotesHubRedirect from "./components/quotes/QuotesHubRedirect";
 const PermissionRationaleDialog = lazy(() =>
   import("@/components/PermissionRationaleDialog").then((m) => ({ default: m.PermissionRationaleDialog }))
 );
@@ -115,7 +117,6 @@ const DeclutterSellPage = lazyWithPreload(() => import("./pages/declutter/Declut
 const DeclutterMovePage = lazyWithPreload(() => import("./pages/declutter/DeclutterMovePage"));
 // Quotes on jobs (owner Q1-Q8): each page renders the 404 unless the hidden
 // 'quotes' switch is on for the member (QuotesGate).
-const QuotesPage = lazyWithPreload(() => import("./pages/quotes/QuotesPage"));
 const QuoteRequestPage = lazyWithPreload(() => import("./pages/quotes/QuoteRequestPage"));
 const SendQuotePage = lazyWithPreload(() => import("./pages/quotes/SendQuotePage"));
 // Shops (docs/specs/local-shops-prep.md): each page renders the 404 unless the hidden 'shops' switch is on for the member (ShopsGate).
@@ -245,7 +246,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/item/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterItemPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/quotes" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><QuotesPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/quotes" element={<QuotesHubRedirect />} />
       <Route path="/quotes/request/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><QuoteRequestPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/quotes/send/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><SendQuotePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/shops" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />

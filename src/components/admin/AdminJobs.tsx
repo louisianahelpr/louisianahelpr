@@ -18,6 +18,7 @@ import { JobListItem } from "./adminJobs/JobListItem";
 import { JobDetailDialog } from "./adminJobs/JobDetailDialog";
 import { RemoveJobDialog } from "./adminJobs/RemoveJobDialog";
 import { RefundJobDialog } from "./adminJobs/RefundJobDialog";
+import { helprFaultBody, toastHelprFaultOutcome, useHelprFaultCandidate, type HelprFaultKind } from "./helprFault/helprFault";
 import { StatusOverrideDialog } from "./adminJobs/StatusOverrideDialog";
 import { activityLinkFor, notifyJobParty } from "./adminJobs/notifyJobParty";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -67,6 +68,12 @@ const AdminJobs = () => {
     return () => { live = false; };
   }, [refundJobId]);
   const [refunding, setRefunding] = useState(false);
+  // Q2082 (b): "Helpr at fault" in the refund dialog (always a full refund).
+  const [faultOn, setFaultOn] = useState(false);
+  const [faultKind, setFaultKind] = useState<HelprFaultKind>("no_show");
+  const [faultNote, setFaultNote] = useState("");
+  const faultCandidate = useHelprFaultCandidate(refundJobId, detailJob?.helper_id, refundOpen && faultOn);
+  const resetFault = () => { setFaultOn(false); setFaultKind("no_show"); setFaultNote(""); };
   // Manual status override — admins can re-open, mark complete, or
   // cancel a job out of band. Tracked separately from the regular
   // remove flow so the audit row captures the new target status.
@@ -255,6 +262,12 @@ const AdminJobs = () => {
 
   const handleRefund = async () => {
     if (!detailJob) return;
+    // A Helpr-at-fault refund is always full: no amount is sent with it.
+    const fault = faultOn ? helprFaultBody(faultCandidate.helperId, faultKind, faultNote) : null;
+    if (faultOn && !fault) {
+      toast.error("Helpr at fault needs the Helpr and a note.");
+      return;
+    }
     // Parse the partial-amount input. Empty/0/NaN → full refund (no
     // amountCents sent). Validation against job total happens server-side.
     const parsedDollars = Number(refundAmount.trim());
@@ -266,7 +279,7 @@ const AdminJobs = () => {
       toast.error(`Partial amount $${parsedDollars.toFixed(2)} exceeds job total $${Number(detailJob.budget).toFixed(2)}.`);
       return;
     }
-    const isPartial = partialCents !== null && partialCents < totalCents;
+    const isPartial = !fault && partialCents !== null && partialCents < totalCents;
 
     // Face ID / Touch ID gate: an admin refund moves real money back out of Stripe
     // and cancels the job. No undo. Runs after the amount validation so a rejected
@@ -284,6 +297,7 @@ const AdminJobs = () => {
           jobId: detailJob.id,
           reason: refundReason.trim() || undefined,
           ...(isPartial ? { amountCents: partialCents } : {}),
+          ...(fault ? { helprFault: fault } : {}),
         },
       });
       // A non-2xx leaves `error` a FunctionsHttpError whose .message is
@@ -292,6 +306,7 @@ const AdminJobs = () => {
       if (error) throw new Error(await functionErrorMessage(error, "Couldn't issue that refund — try again"));
       if ((data as { error?: string })?.error) throw new Error((data as { error?: string }).error);
       warnIfGiftNotReturned(data);
+      if (fault) toastHelprFaultOutcome(data);
       if (!isPartial) {
         // Full refund cancels the job — reflect locally. Partial refund
         // leaves job state intact server-side, so don't mutate either.
@@ -302,10 +317,11 @@ const AdminJobs = () => {
       setRefundOpen(false);
       setRefundReason("");
       setRefundAmount("");
+      resetFault();
       setDetailJob(null);
     } catch (err) {
       const msg = userFacingError(err, "Couldn't issue that refund — try again.");
-      report(err, { tags: { source: "money.adminRefund", action: "admin_refund_general", screen: "/admin" }, context: { jobId: detailJob.id, partial: isPartial } });
+      report(err, { tags: { source: "money.adminRefund", action: "admin_refund_general", screen: "/admin" }, context: { jobId: detailJob.id, partial: isPartial, helprFault: !!fault } });
       toast.error(msg);
     } finally {
       setRefunding(false);
@@ -567,11 +583,22 @@ const AdminJobs = () => {
         refundAmount={refundAmount}
         refunding={refunding}
         payoutMoved={payoutMoved}
-        onOpenChange={(o) => { if (!o) { setRefundOpen(false); setRefundReason(""); } }}
+        onOpenChange={(o) => { if (!o) { setRefundOpen(false); setRefundReason(""); resetFault(); } }}
         onReasonChange={setRefundReason}
         onAmountChange={setRefundAmount}
-        onCancel={() => { setRefundOpen(false); setRefundReason(""); setRefundAmount(""); }}
+        onCancel={() => { setRefundOpen(false); setRefundReason(""); setRefundAmount(""); resetFault(); }}
         onConfirm={handleRefund}
+        helprFault={{
+          on: faultOn,
+          helperId: faultCandidate.helperId,
+          helperName: faultCandidate.helperId && faultCandidate.helperId === detailJob?.helper_id ? helperName : null,
+          loading: faultCandidate.loading,
+          kind: faultKind,
+          note: faultNote,
+          onToggle: setFaultOn,
+          onKindChange: setFaultKind,
+          onNoteChange: setFaultNote,
+        }}
       />
 
       {/* Manual status override — re-open / mark complete / cancel. Refund

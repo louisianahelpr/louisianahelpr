@@ -266,7 +266,7 @@ describe("process-scheduled-payouts edge function", () => {
       const transferArg = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
       expect(transferArg.amount).toBe(10700);
       // Q1520: the ledger row records the $2.30 fee and the 20c rounded off.
-      // @mutate supabase/functions/process-scheduled-payouts/index.ts |             ...payoutWithheldMetadata(unroundedPayoutCents, owesOnboardingFee ? onboardingFeeCents : 0, Math.round(helperPayout * 100)), |
+      // @mutate supabase/functions/process-scheduled-payouts/index.ts |             ...payoutWithheldMetadata(unroundedPayoutCents, owesOnboardingFee ? onboardingFeeCents : 0, Math.round(helperPayout * 100), helprFaultFeeCents), |
       const withheld = { onboarding_fee_cents: 230, rounding_remainder_cents: 20 };
       const claim = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "insert");
       const settle = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update");

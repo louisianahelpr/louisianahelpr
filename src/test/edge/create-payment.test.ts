@@ -3036,6 +3036,195 @@ describe("create-payment edge function", () => {
         expect(res.status).toBe(200);
         expect(stripeMock.refunds.create.mock.calls[0][0].amount).toBe(2500);
       });
+
+      // Q2082 (b), owner 2026-10-18 ("J4", "in the dispute tools") + answers
+      // ~22:30Z: a disputed no-show ruled "Helpr at fault" returns the card fee
+      // too (the Helpr is billed it after the flip), KEEPS a first job's $2
+      // setup fee, and when the Helpr's account is gone keeps the card fee as
+      // well (nobody to bill; we never absorb it).
+      // @mutate supabase/functions/create-payment/index.ts | setupFeeCents: setupFeeKeptCents(job), // the $2 stays on a disputed Helpr fault too | setupFeeCents: 0, // the $2 stays on a disputed Helpr fault too
+      // @mutate supabase/functions/create-payment/index.ts |       const disputeHelprFaultLive = disputeHelprFault != null && !disputeHelprFaultGone; |       const disputeHelprFaultLive = disputeHelprFault != null;
+      // @mutate supabase/functions/create-payment/index.ts |             if (disputeHelprFaultLive) disputeHelprFaultCardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents); |             if (disputeHelprFaultLive) disputeHelprFaultCardFeeCents = 0;
+      // @mutate supabase/functions/create-payment/index.ts |         if ("refusal" in ruled) return ruled.refusal;\n        disputeHelprFaultGone = ruled.gone; |         disputeHelprFaultGone = "gone" in ruled && ruled.gone;
+      const HF = { helperId: "00000000-0000-4000-8000-0000000000a1", kind: "no_show", note: "never came" };
+      const runFault = async () => {
+        const fn = await load();
+        return fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1", helprFault: HF } }));
+      };
+      const faultCharge = { amount: 10200, amount_received: 10200, latest_charge: { id: "ch_r", amount_refunded: 0, balance_transaction: { fee: 326 } } };
+      it("Helpr at fault: everything back but the $2 setup fee, under its own key, ruled first and the Helpr billed Stripe's fee after", async () => {
+        seedDispute({ budget: 100, customer_fee_amount: 0, platform_fee_percent: 0, onboarding_fee_amount: 2 }, faultCharge);
+        scenario.rpc.admin_rule_helpr_fault = { outcome: "ruled" };
+        scenario.rpc.bill_helpr_fault_card_fee = 326;
+        scenario.reads.job_helpr_fault_rulings = { rows: [{ helper_id: HF.helperId }] };
+        const res = await runFault();
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+        expect(stripeMock.refunds.create.mock.calls[0][0]).toMatchObject({ amount: 10200 - 200, metadata: { helpr_fault: "true" } });
+        expect(stripeMock.refunds.create.mock.calls[0][1]).toEqual({ idempotencyKey: "helpr-fault-dispute-refund-job-1" });
+        const names = (scenario.rpcCalls ?? []).map((c) => c.name);
+        expect(names.indexOf("admin_rule_helpr_fault")).toBeGreaterThanOrEqual(0);
+        const bill = (scenario.rpcCalls ?? []).find((c) => c.name === "bill_helpr_fault_card_fee");
+        expect(bill?.args).toMatchObject({ p_job_id: "job-1", p_card_fee_cents: 326 });
+        expect((await res.json()).helprFault).toEqual({ cardFeeBilledCents: 326, billFailed: false, helprGone: false });
+      });
+      it("Helpr at fault, the Helpr's account gone: the ordinary refund keeps the card fee and the $2, and bills 0", async () => {
+        seedDispute({ budget: 100, customer_fee_amount: 0, platform_fee_percent: 0, onboarding_fee_amount: 2 }, faultCharge);
+        scenario.rpc.admin_rule_helpr_fault = { outcome: "already_ruled" };
+        scenario.rpc.bill_helpr_fault_card_fee = 0;
+        scenario.reads.job_helpr_fault_rulings = { rows: [{ helper_id: null }] };
+        const res = await runFault();
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create.mock.calls[0][0].amount).toBe(10200 - 326 - 200);
+        expect(stripeMock.refunds.create.mock.calls[0][1]).toEqual({ idempotencyKey: "refund-dispute-job-1" });
+        const bill = (scenario.rpcCalls ?? []).find((c) => c.name === "bill_helpr_fault_card_fee");
+        expect(bill?.args).toMatchObject({ p_card_fee_cents: 0 });
+        expect((await res.json()).helprFault).toMatchObject({ helprGone: true });
+      });
+      // lh-money-escrow review of c4ec33afb #1: a plain refund of a ruled job is refused.
+      // @mutate supabase/functions/create-payment/index.ts |   if (!data) return null;\n  return new Response(JSON.stringify({\n    error: "This job has a Helpr-at-fault ruling | \n  return null;\n  return new Response(JSON.stringify({\n    error: "This job has a Helpr-at-fault ruling
+      it("a plain Quick Refund of a job that has a Helpr-at-fault ruling is refused, nothing moved", async () => {
+        seedDispute({ budget: 100, customer_fee_amount: 0, platform_fee_percent: 0 }, faultCharge);
+        scenario.reads.job_helpr_fault_rulings = { rows: [{ id: "ruling-1", helper_id: HF.helperId }] };
+        const res = await run();
+        expect(res.status).toBe(409);
+        expect((await res.json()).code).toBe("helpr_fault_ruling_exists");
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      });
+      it("Helpr at fault refused by the ruling: nothing moved", async () => {
+        seedDispute({ budget: 100, customer_fee_amount: 0, platform_fee_percent: 0 }, faultCharge);
+        scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), admin_rule_helpr_fault: { message: "helper_not_booked" } };
+        const res = await runFault();
+        expect(res.status).toBe(409);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      });
+
+      // Q2158 (lh-money-escrow review of c4ec33afb #2): the exits AFTER the
+      // fault refund went out bill the Helpr too. Here a concurrent copy closed
+      // the dispute first (the flip matched no row, the job reads resolved).
+      // @mutate supabase/functions/create-payment/index.ts |           if (disputeRefundId) await billDisputeHelprFault();\n          return settled; |           return settled;
+      // @mutate supabase/functions/create-payment/index.ts |         if (raced) {\n          if (disputeRefundId) await billDisputeHelprFault();\n          return raced; |         if (raced) {\n          return raced;
+      it("Helpr at fault, a concurrent copy closed the dispute first: this copy still bills the Helpr (Q2158)", async () => {
+        seedDispute({ budget: 100, customer_fee_amount: 0, platform_fee_percent: 0, onboarding_fee_amount: 2 }, faultCharge);
+        scenario.rpc.admin_rule_helpr_fault = { outcome: "ruled" };
+        scenario.rpc.bill_helpr_fault_card_fee = 326;
+        scenario.reads.job_helpr_fault_rulings = { rows: [{ helper_id: HF.helperId }] };
+        scenario.reads.jobs = {
+          ...scenario.reads.jobs,
+          selectOverrides: [{ includes: "payment_status", result: { rows: [{ status: "cancelled", payment_status: "refunded" }] } }],
+        };
+        scenario.writeSelectRows["jobs:update"] = [];
+        const res = await runFault();
+        expect(res.status).toBe(200);
+        expect(await res.json()).toMatchObject({ alreadyResolved: true });
+        expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+        const bill = (scenario.rpcCalls ?? []).find((c) => c.name === "bill_helpr_fault_card_fee");
+        expect(bill?.args).toMatchObject({ p_job_id: "job-1", p_card_fee_cents: 326, p_refund_ref: "re_r" });
+      });
+      it("Helpr at fault, a chargeback raced the flip: this exit still bills the Helpr (Q2158)", async () => {
+        seedDispute({ budget: 100, customer_fee_amount: 0, platform_fee_percent: 0, onboarding_fee_amount: 2 }, faultCharge);
+        scenario.rpc.admin_rule_helpr_fault = { outcome: "ruled" };
+        scenario.rpc.bill_helpr_fault_card_fee = 326;
+        scenario.reads.job_helpr_fault_rulings = { rows: [{ helper_id: HF.helperId }] };
+        scenario.reads.jobs = {
+          ...scenario.reads.jobs,
+          selectOverrides: [{ includes: "payment_status", result: { rows: [{ status: "disputed", payment_status: "chargeback" }] } }],
+        };
+        scenario.writeSelectRows["jobs:update"] = [];
+        const res = await runFault();
+        expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+        expect(res.status).not.toBe(200);
+        const bill = (scenario.rpcCalls ?? []).find((c) => c.name === "bill_helpr_fault_card_fee");
+        expect(bill?.args).toMatchObject({ p_job_id: "job-1", p_card_fee_cents: 326, p_refund_ref: "re_r" });
+      });
+    });
+
+    // Q2158 (lh-money-escrow review of c4ec33afb #2): a fault refund closes
+    // the job, so billing the Helpr after a failed bill_helpr_fault_card_fee
+    // has its own admin action. It moves no money: it finds the fault refund on
+    // the charge, prices the card fee from the charge and bills once.
+    // @mutate supabase/functions/create-payment/index.ts |       if (ruling.card_fee_cents != null) {\n        return reply( |       if (false) {\n        return reply(
+    // @mutate supabase/functions/create-payment/index.ts |         if (faultRefund.metadata?.helpr_fault === "true") { |         if (false) {
+    // @mutate supabase/functions/create-payment/index.ts |           (r.metadata?.helpr_fault === "true" \|\| r.metadata?.helpr_fault === "helpr_gone")); |           true);
+    // @mutate supabase/functions/create-payment/index.ts |       if (bill.failed) return reply( |       if (false) return reply(
+    describe("admin_bill_helpr_fault: retry billing the Helpr at fault (Q2158)", () => {
+      const HELPR = "00000000-0000-4000-8000-0000000000a1";
+      const seedBill = (ruling: Record<string, unknown> | null, refunds: Array<Record<string, unknown>>) => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.job_helpr_fault_rulings = { rows: ruling ? [ruling] : [] };
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "cancelled", payment_status: "refunded", stripe_payment_intent_id: "pi_r" }] };
+        stripeMock.refunds.list.mockResolvedValue({ data: refunds });
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_r", status: "succeeded", amount: 10200, amount_received: 10200, latest_charge: { id: "ch_r", amount_refunded: 10000, balance_transaction: { fee: 326 } } });
+      };
+      const faultRefund = { id: "re_f", status: "succeeded", amount: 10000, metadata: { source: "admin_refund_general", helpr_fault: "true", partial: "false" } };
+      const runBill = async () => {
+        const fn = await load();
+        return fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_bill_helpr_fault", jobId: "job-1" } }));
+      };
+      const billCall = () => (scenario.rpcCalls ?? []).find((c) => c.name === "bill_helpr_fault_card_fee");
+      it("an unbilled ruling with a fault refund on the charge: bills Stripe's card fee against that refund, moves no money", async () => {
+        seedBill({ helper_id: HELPR, card_fee_cents: null }, [faultRefund]);
+        scenario.rpc.bill_helpr_fault_card_fee = 326;
+        const res = await runBill();
+        expect(res.status).toBe(200);
+        expect(billCall()?.args).toEqual({ p_job_id: "job-1", p_card_fee_cents: 326, p_refund_ref: "re_f" });
+        expect((await res.json()).helprFault).toEqual({ cardFeeBilledCents: 326, billFailed: false, helprGone: false });
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      });
+      it("a dispute's fault refund counts too", async () => {
+        seedBill({ helper_id: HELPR, card_fee_cents: null }, [{ ...faultRefund, id: "re_d", metadata: { source: "admin_refund_dispute", helpr_fault: "true" } }]);
+        scenario.rpc.bill_helpr_fault_card_fee = 326;
+        const res = await runBill();
+        expect(res.status).toBe(200);
+        expect(billCall()?.args).toMatchObject({ p_card_fee_cents: 326, p_refund_ref: "re_d" });
+      });
+      it("the refund kept the card fee (Helpr gone at refund time): bills 0", async () => {
+        seedBill({ helper_id: null, card_fee_cents: null }, [{ ...faultRefund, metadata: { ...faultRefund.metadata, helpr_fault: "helpr_gone" } }]);
+        scenario.rpc.bill_helpr_fault_card_fee = 0;
+        const res = await runBill();
+        expect(res.status).toBe(200);
+        expect(billCall()?.args).toMatchObject({ p_card_fee_cents: 0 });
+      });
+      // @mutate supabase/functions/create-payment/index.ts |         if (!faultRefund && helprGone) { |         if (false) {
+      it("the Helpr is gone and the dispute's ordinary refund kept the fee (no helpr_fault metadata): settles at 0", async () => {
+        seedBill({ helper_id: null, card_fee_cents: null }, [{ ...faultRefund, metadata: { source: "admin_refund_dispute", job_id: "job-1" } }]);
+        scenario.rpc.bill_helpr_fault_card_fee = 0;
+        const res = await runBill();
+        expect(res.status).toBe(200);
+        expect(billCall()?.args).toMatchObject({ p_card_fee_cents: 0 });
+      });
+      it("already billed: answers so and does not bill again", async () => {
+        seedBill({ helper_id: HELPR, card_fee_cents: 326 }, [faultRefund]);
+        const res = await runBill();
+        expect(res.status).toBe(200);
+        expect(await res.json()).toMatchObject({ alreadyBilled: true, helprFault: { cardFeeBilledCents: 326 } });
+        expect(billCall()).toBeUndefined();
+      });
+      it("no fault refund on the charge (only a plain one): refused, nothing billed", async () => {
+        seedBill({ helper_id: HELPR, card_fee_cents: null }, [{ ...faultRefund, metadata: { source: "admin_refund_general", partial: "false" } }]);
+        const res = await runBill();
+        expect(res.status).toBe(409);
+        expect((await res.json()).code).toBe("no_helpr_fault_refund");
+        expect(billCall()).toBeUndefined();
+      });
+      it("billing fails again: a 503 that says so, never a success", async () => {
+        seedBill({ helper_id: HELPR, card_fee_cents: null }, [faultRefund]);
+        scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), bill_helpr_fault_card_fee: { message: "boom" } };
+        const res = await runBill();
+        expect(res.status).toBe(503);
+        expect((await res.json()).helprFault).toMatchObject({ billFailed: true });
+      });
+      it("a non-admin is refused before anything is read", async () => {
+        seedBill({ helper_id: HELPR, card_fee_cents: null }, [faultRefund]);
+        scenario.rpc.has_role = false;
+        const res = await runBill();
+        expect(res.status).toBeGreaterThanOrEqual(400);
+        expect((await res.json()).error).toMatch(/admin only/i);
+        expect(stripeMock.refunds.list).not.toHaveBeenCalled();
+        expect(billCall()).toBeUndefined();
+      });
     });
 
     // Q1490: the same rule on a dispute's Quick Refund of a crew job.
@@ -3387,7 +3576,7 @@ describe("create-payment edge function", () => {
 
       // Q1520 (review of the export change): the cents a Quick Release rounds
       // off are recorded on its ledger row, for the earnings export.
-      // @mutate supabase/functions/create-payment/index.ts |           rounding_remainder_cents: payoutWithheldMetadata(Math.round(amount * 100), 0, amountCents).rounding_remainder_cents, |
+      // @mutate supabase/functions/create-payment/index.ts |           rounding_remainder_cents: payoutWithheldMetadata(unroundedCents, 0, amountCents, helprFaultFeeCents).rounding_remainder_cents, |
       it("Quick Release records the cents it rounds off on the ledger row (Q1520)", async () => {
         seedReleasable();
         const job = (scenario.reads.jobs.rows ?? [])[0] as Record<string, unknown>;
@@ -3402,6 +3591,56 @@ describe("create-payment edge function", () => {
         const payload = row?.payload as { amount_cents?: number; metadata?: Record<string, unknown> } | undefined;
         expect(payload?.amount_cents).toBe(8800);
         expect(payload?.metadata).toEqual(expect.objectContaining({ source: "admin_release_dispute", onboarding_fee_cents: 0, rounding_remainder_cents: 44 }));
+      });
+
+      // Q2082 (b), owner 2026-10-18 ("J4"): a card fee the Helpr owes from a
+      // Helpr-at-fault refund comes out of a Quick Release too, under the same
+      // per-job payout_ref as release-payout (_shared/helprFaultFee.ts).
+      // @mutate supabase/functions/create-payment/index.ts |  const amountCents = roundPayoutDownCents(unroundedCents - helprFaultFeeCents); |  const amountCents = roundPayoutDownCents(unroundedCents);
+      // @mutate supabase/functions/create-payment/index.ts |    throw new PublicError("Could not read the Helpr's card-fee debt — no money was moved. Try again.");\n  }\n  const helprFaultFeeCents = helprFaultTake.cents; |  }\n  const helprFaultFeeCents = helprFaultTake.cents ?? 0;
+      // @mutate supabase/functions/create-payment/index.ts |      else await restoreHelprFault(); |      else console.error("no restore");
+      // @mutate supabase/functions/create-payment/index.ts |          helpr_fault_fee_cents: helprFaultFeeCents, |          helpr_fault_fee_cents: 0,
+      it("Quick Release withholds a Helpr-fault card fee (capped so $1 stays) and records it (Q2082 (b))", async () => {
+        seedReleasable();
+        scenario.rpc.take_helpr_fault_fee = 369;
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        const takes = (scenario.rpcCalls ?? []).filter((c) => c.name === "take_helpr_fault_fee");
+        expect(takes).toHaveLength(1);
+        expect(takes[0].args).toEqual({ p_helper_id: HELPER.id, p_payout_ref: "job_payout_job-1", p_max_cents: 8700 });
+        // 8800 - 369 = 8431, rounded down to whole dollars.
+        expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(8400);
+        const row = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "insert");
+        const payload = row?.payload as { amount_cents?: number; metadata?: Record<string, unknown> } | undefined;
+        expect(payload?.amount_cents).toBe(8400);
+        expect(payload?.metadata).toEqual(expect.objectContaining({ helpr_fault_fee_cents: 369, rounding_remainder_cents: 31 }));
+      });
+
+      it("Quick Release moves nothing when the Helpr-fault debt cannot be read (Q2082 (b))", async () => {
+        seedReleasable();
+        scenario.rpcErrors = { take_helpr_fault_fee: { message: "connection reset" } };
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(res.status).not.toBe(200);
+        expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      });
+
+      it("Quick Release gives the withheld card fee back on a definite Stripe refusal (Q2082 (b))", async () => {
+        seedReleasable();
+        scenario.rpc.take_helpr_fault_fee = 369;
+        stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("No such destination"), { type: "StripeInvalidRequestError" }));
+        const fn = await load();
+        await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        const restores = (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_helpr_fault_fee");
+        expect(restores).toHaveLength(1);
+        expect(restores[0].args).toEqual({ p_helper_id: HELPER.id, p_job_id: "job-1" });
       });
 
       it("Quick Release leaves the job REVIEWABLE", async () => {

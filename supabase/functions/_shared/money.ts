@@ -124,11 +124,16 @@ export function payoutWithheldMetadata(
   unroundedPayoutCents: number,
   onboardingFeeCents: number,
   paidCents: number,
-): { onboarding_fee_cents: number; rounding_remainder_cents: number } {
+  helprFaultFeeCents = 0,
+): { onboarding_fee_cents: number; rounding_remainder_cents: number; helpr_fault_fee_cents?: number } {
   const onboarding = Math.max(0, Math.round(onboardingFeeCents));
+  // Q2082 (b): the Helpr-fault card fee taken from this payout is its own
+  // line, never counted as rounding (written only when one was taken).
+  const fault = Math.max(0, Math.round(helprFaultFeeCents));
   return {
     onboarding_fee_cents: onboarding,
-    rounding_remainder_cents: Math.max(0, Math.round(unroundedPayoutCents) - onboarding - Math.round(paidCents)),
+    rounding_remainder_cents: Math.max(0, Math.round(unroundedPayoutCents) - onboarding - fault - Math.round(paidCents)),
+    ...(fault > 0 ? { helpr_fault_fee_cents: fault } : {}),
   };
 }
 

@@ -12,6 +12,7 @@ import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars, s
 import { crewFeeShareReturnCents } from "../_shared/refundAmount.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
+import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnrecordedTransfers, claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
@@ -1518,7 +1519,11 @@ serve(async (req) => {
       // Un-claim the one-time onboarding fee if THIS target claimed it. Every
       // post-claim exit that moves no money must call this, or the retry reads
       // the flag as already-paid and the $2 is silently lost forever.
+      // Q2082 (b): what this payout withheld for a Helpr-fault card fee (below).
+      let helprFaultFeeCents = 0;
       const rollBackOnboardingFeeClaim = async () => {
+        // The Helpr-fault card fee taken below goes back on the same exits.
+        if (helprFaultFeeCents > 0) await restoreHelprFaultFee(supabaseAdmin, helperId, job.id, "process-scheduled-payouts");
         if (!owesOnboardingFee) return;
         const { error: unclaimErr } = await supabaseAdmin
           .from("profiles")
@@ -1555,6 +1560,28 @@ serve(async (req) => {
       //
       // The gift leg counts toward the cap: it is real value leaving the
       // platform, denominated in credit rather than dollars.
+      // Q2082 (b), owner 2026-10-18 ("J4"): the card cost of a full refund this
+      // Helpr was ruled at fault for comes out of this payout (what keeps it at
+      // $1 or more; the rest waits for the next one). Taken once per job,
+      // shared with release-payout (_shared/helprFaultFee.ts). Fails closed.
+      {
+        const take = await takeHelprFaultFee(
+          supabaseAdmin, helperId, job.id,
+          helprFaultFeeCapCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)),
+        );
+        if (take.error !== undefined) {
+          console.error(`[process-scheduled-payouts] Helpr-fault card fee read failed for job ${job.id}: ${take.error}`);
+          await rollBackOnboardingFeeClaim();
+          results.push({ job_id: job.id, status: "helpr_fault_fee_error", error: take.error });
+          jobDefect(job.id, `helpr-fault fee ${job.id}: ${take.error}`);
+          continue;
+        }
+        if (take.cents > 0) {
+          helprFaultFeeCents = take.cents;
+          helperPayout = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0) - helprFaultFeeCents) / 100;
+        }
+      }
+
       const escrowValueCents = capturedCents + giftAppliedCents;
       const payoutCents = roundPayoutDownCents(Math.round(helperPayout * 100));
       if (payoutCents > escrowValueCents) {
@@ -1655,7 +1682,7 @@ serve(async (req) => {
         // Q1520: what this payout withholds (onboarding fee, round-down remainder).
         metadata: {
           source: "scheduled_payout",
-          ...payoutWithheldMetadata(unroundedPayoutCents, owesOnboardingFee ? onboardingFeeCents : 0, claimAmountCents),
+          ...payoutWithheldMetadata(unroundedPayoutCents, owesOnboardingFee ? onboardingFeeCents : 0, claimAmountCents, helprFaultFeeCents),
         },
         // NO ledgerRows: it must READ FRESH (lh-money-escrow review, HIGH-1).
         // The `ledgerRows` above were read at the top of this iteration, before
@@ -1726,6 +1753,8 @@ serve(async (req) => {
             // the gross was already captured at job funding and we're transferring the net.
             onboarding_fee_cents: owesOnboardingFee ? String(onboardingFeeCents) : "0",
             onboarding_fee_first_payout: owesOnboardingFee ? "true" : "false",
+            // Q2082 (b): always written ("0" when none), never spread (Q343).
+            helpr_fault_fee_cents: String(helprFaultFeeCents),
           },
         };
 
@@ -1802,7 +1831,7 @@ serve(async (req) => {
           stripeAccountId: helperProfile.stripe_account_id,
           metadata: {
             source: "scheduled_payout",
-            ...payoutWithheldMetadata(unroundedPayoutCents, owesOnboardingFee ? onboardingFeeCents : 0, Math.round(helperPayout * 100)),
+            ...payoutWithheldMetadata(unroundedPayoutCents, owesOnboardingFee ? onboardingFeeCents : 0, Math.round(helperPayout * 100), helprFaultFeeCents),
           },
         });
         if (!settled.ok) {
@@ -1963,9 +1992,11 @@ serve(async (req) => {
         // above, before the transfer ran, so no follow-up write is needed
         // here. Leaving this comment as a marker for the prior pattern.
 
-        const feeNote = owesOnboardingFee
-          ? ` (one-time $${onboardingFeeDollars.toFixed(2)} account setup fee deducted)`
-          : "";
+        const feeParts = [
+          owesOnboardingFee ? `one-time $${onboardingFeeDollars.toFixed(2)} account setup fee deducted` : "",
+          helprFaultFeeCents > 0 ? `$${formatExactDollars(helprFaultFeeCents / 100)} card fee from a job you were ruled at fault on deducted` : "",
+        ].filter(Boolean);
+        const feeNote = feeParts.length > 0 ? ` (${feeParts.join("; ")})` : "";
         await insertNotifications(supabaseAdmin, {
           user_id: helperId,
           job_id: job.id,

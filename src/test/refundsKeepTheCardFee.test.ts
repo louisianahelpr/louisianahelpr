@@ -40,6 +40,26 @@
  *                mistakes refund the fee ('full_platform_absorbs'); a seller's
  *                fault refunds in full and the fee becomes the seller's debt;
  *                every other reason keeps the card fee or the buyer's fee.
+ *   helpr-fault  Q2082 (b), owner 2026-10-18 ("J4"): an admin ruled the Helpr
+ *                at fault, so the poster gets the card fee back too and it
+ *                becomes the Helpr's debt. The amount is pinned like keeps-fee
+ *                (zero card fee through the shared helper; owner 2026-10-18
+ *                ~22:30Z: a first job's $2 setup fee is still KEPT, and when
+ *                the Helpr's account is gone the ordinary fee-keeping
+ *                generalSplit applies, since nobody can be billed),
+ *                the ruling RPC (admin_rule_helpr_fault) must run BEFORE the
+ *                call and the Helpr billing RPC (bill_helpr_fault_card_fee)
+ *                AFTER it, in the same file: a full refund with no ruling, or
+ *                one that never bills the Helpr, is the platform absorbing the
+ *                fee.
+ * @mutate supabase/functions/create-payment/index.ts |   const { data: billed, error: billErr } = await supabaseAdmin.rpc("bill_helpr_fault_card_fee", { |   const { data: billed, error: billErr } = await supabaseAdmin.rpc("noop", {
+ * @mutate supabase/functions/create-payment/index.ts |   const { error: ruleErr } = await asAdmin.rpc("admin_rule_helpr_fault", { |   const { error: ruleErr } = await asAdmin.rpc("noop", {
+ * @mutate supabase/functions/create-payment/index.ts |         disputeHelprFaultBill = await billHelprFaultCardFee( |         disputeHelprFaultBill = await Promise.resolve(
+ * @mutate supabase/functions/create-payment/index.ts |         const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, disputeHelprFault); |         const ruled = { gone: false };
+ * @mutate supabase/functions/create-payment/index.ts | setupFeeCents: setupFeeKeptCents(job), // the $2 stays on a disputed Helpr fault too | setupFeeCents: 0, // the $2 stays on a disputed Helpr fault too
+ * @mutate supabase/functions/create-payment/index.ts |             amount: split.refundCents, |             amount: helprFaultSplit.refundCents + 1,
+ * @mutate supabase/functions/create-payment/index.ts | setupFeeCents: setupFeeKeptCents(job), // the $2 stays on a Helpr fault too | setupFeeCents: 0, // the $2 stays on a Helpr fault too
+ * @mutate supabase/functions/create-payment/index.ts | const split = helprFault && !helprFaultGone ? helprFaultSplit : generalSplit; | const split = helprFault ? helprFaultSplit : generalSplit;
  *
  * @mutate supabase/functions/create-payment/index.ts |             amount: generalSplit.refundCents, |             ...(isPartial ? { amount: requestedCents } : {}),
  * @mutate supabase/functions/create-payment/index.ts |             amount: generalSplit.refundCents, |             amount: capturedCents - generalSplit.setupKeptCents,
@@ -98,7 +118,7 @@ const FN = join(ROOT, "supabase/functions");
 const HELPERS = ["refundToPayerCents(", "crewFeeShareReturnCents(", "refundLessStripeFeeCents("];
 const OWN_MISTAKE_MARK = "own-mistake full refund (owner, 2026-10-14)";
 
-type Kind = "keeps-fee" | "own-mistake" | "both" | "pass-through" | "sql-policy";
+type Kind = "keeps-fee" | "own-mistake" | "both" | "pass-through" | "sql-policy" | "helpr-fault";
 
 /**
  * Where a sql-policy site's amount comes from: the RPC it calls, the SQL function that reads refund_cents off the
@@ -127,6 +147,8 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
   { file: "supabase/functions/create-payment/index.ts", key: "cancel-escrow-", kind: "keeps-fee", why: "poster/admin cancel of a funded job" },
   { file: "supabase/functions/create-payment/index.ts", key: "refund-dispute-", kind: "keeps-fee", why: "Quick Refund of a dispute (card cost only)" },
   { file: "supabase/functions/create-payment/index.ts", key: "refund-general-", kind: "keeps-fee", why: "admin refund, full or partial" },
+  { file: "supabase/functions/create-payment/index.ts", key: "refund-helpr-fault-", kind: "helpr-fault", why: "admin ruled the Helpr at fault: the card fee back (billed to the Helpr), a first job's $2 kept (Q2082 (b))" },
+  { file: "supabase/functions/create-payment/index.ts", key: "helpr-fault-dispute-refund-", kind: "helpr-fault", why: "the same ruling from the dispute tools (Quick Refund of a disputed no-show / backout, Q2082 (b))" },
   { file: "supabase/functions/execute-dispute-split/index.ts", key: "poster_share", kind: "keeps-fee", why: "the poster's leg of a dispute split" },
   // A10 (owner, 2026-10-17): a Declutter setup job cancelled because the seller backed out comes back in full
   // (card fee included, the seller owes it); every other cancellation keeps the fee.
@@ -208,8 +230,20 @@ const MIGRATIONS = join(ROOT, "supabase/migrations");
  * still green (lh-money-escrow re-review of a701ff757, item 3). Today they are reads and the one pinned fee.
  */
 const TS_MONEY_TOUCHES: string[] = [
+  // Q2158: the admin "Bill the Helpr" button READS whether the ruling is billed yet (no write; the bill is server-side).
+  'src/components/admin/helprFault/BillHelprFaultButton.tsx: .select("card_fee_cents")',
+  "src/components/admin/helprFault/BillHelprFaultButton.tsx: if (live) setUnbilled({ jobId, value: !error && !!data && data.card_fee_cents == null });",
   // Shops M1: the card fee Stripe kept at capture, recorded on the order (no refund here).
   'supabase/functions/_shared/shopHolds.ts: const { error } = await admin.rpc("shop_order_captured", { p_order_id: orderId, p_card_fee_cents: fee });',
+  // Q2158: admin_bill_helpr_fault READS the ruling's card fee (already billed?) and audits what it billed; the
+  // only write is bill_helpr_fault_card_fee below (once per ruling), never a card_fee_cents update.
+  'supabase/functions/create-payment/index.ts: .from("job_helpr_fault_rulings").select("helper_id, card_fee_cents").eq("job_id", jobId).maybeSingle();',
+  "supabase/functions/create-payment/index.ts: if (ruling.card_fee_cents != null) {",
+  "supabase/functions/create-payment/index.ts: return reply({ success: true, alreadyBilled: true, helprFault: { cardFeeBilledCents: ruling.card_fee_cents, billFailed: false, helprGone } }, 200);",
+  "supabase/functions/create-payment/index.ts: details: { helper_id: ruling.helper_id, stripe_refund_id: faultRefund.id, card_fee_cents: cardFeeCents, card_fee_billed_cents: bill.billedCents, bill_failed: bill.failed },",
+  // Q2082 (b): the card fee a Helpr at fault is billed (bill_helpr_fault_card_fee), and its page if that fails.
+  'supabase/functions/create-payment/index.ts: p_card_fee_cents: Math.max(0, Math.round(cardFeeCents ?? 0)),',
+  'supabase/functions/create-payment/index.ts: fields: { job_id: jobId, helper_id: helperId, card_fee_cents: String(cardFeeCents ?? "") },',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id, handover").eq("id", orderId).maybeSingle()',
@@ -380,11 +414,22 @@ const AMOUNT_DEFS: Record<string, string[]> = {
   "refund-dispute-": [
     "refundAmount",
     "refundAmount = disputeSplit.refundCents",
-    "disputeSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: disputeOtherRefundedCents, taxCents: await chargeTaxCentsFor(stripe, pi), })",
+    "disputeSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: disputeOtherRefundedCents, taxCents: disputeTaxCents, })",
+  ],
+  "refund-helpr-fault-": [
+    "split.refundCents",
+    "split = helprFault && !helprFaultGone ? helprFaultSplit : generalSplit",
+    "helprFaultSplit = refundToPayerCents({ capturedCents, actualFeeCents: 0, customerFeeCents: 0, setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: generalAlreadyRefundedCents, requestedCents: null, taxCents: generalTaxCents, })",
+    "generalSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: generalAlreadyRefundedCents, requestedCents: isPartial ? requestedCents : null, taxCents: generalTaxCents, })",
+  ],
+  "helpr-fault-dispute-refund-": [
+    "helprFaultDisputeRefundCents",
+    "helprFaultDisputeRefundCents = helprFaultDisputeSplit.refundCents",
+    "helprFaultDisputeSplit = refundToPayerCents({ capturedCents, actualFeeCents: 0, customerFeeCents: 0, setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: disputeOtherRefundedCents, taxCents: disputeTaxCents, })",
   ],
   "refund-general-": [
     "generalSplit.refundCents",
-    "generalSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: generalAlreadyRefundedCents, requestedCents: isPartial ? requestedCents : null, taxCents: await chargeTaxCentsFor(stripe, pi), })",
+    "generalSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: generalAlreadyRefundedCents, requestedCents: isPartial ? requestedCents : null, taxCents: generalTaxCents, })",
   ],
   "poster_share": [
     "refundCents",
@@ -854,7 +899,25 @@ function check(file: string, at: number, call: string, kind: Exclude<Kind, "pass
   const raw = readFileSync(join(ROOT, file), "utf8");
   const code = blankComments(raw);
   const problems: string[] = [];
-  if (kind === "keeps-fee" || kind === "both") {
+  if (kind === "helpr-fault") {
+    // The ruling (ruleHelprFaultFirst, which calls admin_rule_helpr_fault as
+    // the admin) BEFORE the refund in the same action, the bill
+    // (billHelprFaultCardFee -> bill_helpr_fault_card_fee) AFTER it, before
+    // the next action starts; and the two shared helpers really call the RPCs.
+    const actionStart = code.lastIndexOf('if (action === "', at);
+    const nextAction = code.indexOf('if (action === "', at);
+    const ruled = code.lastIndexOf("await ruleHelprFaultFirst(", at);
+    const billed = code.indexOf("await billHelprFaultCardFee(", at);
+    if (ruled < 0 || ruled < actionStart) problems.push(`${file}: ${call.slice(0, 60)} refunds a Helpr fault with no admin_rule_helpr_fault ruling (ruleHelprFaultFirst) before it`);
+    if (billed < 0 || (nextAction > 0 && billed > nextAction)) problems.push(`${file}: ${call.slice(0, 60)} refunds a Helpr fault but never bills the Helpr (billHelprFaultCardFee) after it`);
+    const fnBody = (name: string) => {
+      const i = code.indexOf(`async function ${name}(`);
+      return i < 0 ? "" : code.slice(i, code.indexOf("\n}\n", i));
+    };
+    if (!/await asAdmin\.rpc\("admin_rule_helpr_fault"/.test(fnBody("ruleHelprFaultFirst"))) problems.push(`${file}: ruleHelprFaultFirst does not call admin_rule_helpr_fault as the admin`);
+    if (!/await supabaseAdmin\.rpc\("bill_helpr_fault_card_fee"/.test(fnBody("billHelprFaultCardFee"))) problems.push(`${file}: billHelprFaultCardFee does not call bill_helpr_fault_card_fee`);
+  }
+  if (kind === "keeps-fee" || kind === "both" || kind === "helpr-fault") {
     if (!argExpr) problems.push(`${file}: ${call.slice(0, 80)} sends no amount (a full refund) but must keep the card fee`);
     else {
       if (!tracesToHelper(code, argExpr, at)) {
@@ -923,7 +986,7 @@ describe("every refund keeps the card fee, except our own mistakes (owner, 2026-
 
   it("AMOUNT_DEFS pins exactly the keeps-fee sites, no more", () => {
     const keys = [
-      ...REFUND_SITES.filter((e) => e.kind === "keeps-fee" || e.kind === "both").map((e) => e.key),
+      ...REFUND_SITES.filter((e) => e.kind === "keeps-fee" || e.kind === "both" || e.kind === "helpr-fault").map((e) => e.key),
       ...WRAPPER_CALLERS.map((c, i) => (c.kind === "keeps-fee" || c.kind === "both" ? `${WRAPPER.name}#${i}` : null)).filter(Boolean),
     ];
     expect(keys.length).toBeGreaterThan(5);

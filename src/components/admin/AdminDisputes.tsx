@@ -17,6 +17,7 @@ import { logAdminAction } from "@/lib/adminAudit";
 import { categoriseReason, CATEGORY_LABELS } from "./adminDisputes/adminDisputesHelpers";
 import { FilterChipGroup } from "./adminDisputes/FilterChipGroup";
 import { DisputeCard } from "./adminDisputes/DisputeCard";
+import { HelprFaultDisputeDialog } from "./helprFault/HelprFaultDisputeDialog";
 import { groupDisputeRecords } from "./adminDisputes/groupDisputeRecords";
 import { isUnsettled } from "./adminDisputes/unsettled";
 import type {
@@ -50,6 +51,8 @@ const AdminDisputes = () => {
   // before that await.
   const resolveInFlight = useRef(false);
   const [confirm, setConfirm] = useState<{ job: DisputedJob; action: "release" | "refund" } | null>(null);
+  // Q2082 (b): the dispute whose "Helpr at fault" refund dialog is open.
+  const [faultJob, setFaultJob] = useState<DisputedJob | null>(null);
 
   // Filter tab — Open is the working queue; Decided is an audit log.
   const [filter, setFilter] = useState<FilterTab>("open");
@@ -729,6 +732,7 @@ const AdminDisputes = () => {
               retrySettlement={retrySettlement}
               {...escapes}
               retrying={retrying}
+              openHelprFault={setFaultJob}
             />
           ))
         )}
@@ -760,6 +764,13 @@ const AdminDisputes = () => {
           resolveDispute(job, action);
         }}
         secondaryLabel="Cancel"
+      />
+
+      <HelprFaultDisputeDialog
+        job={faultJob}
+        profiles={profiles}
+        onClose={() => setFaultJob(null)}
+        onDone={loadDisputes}
       />
     </AdminViewShell>
   );

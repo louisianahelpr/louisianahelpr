@@ -48,6 +48,14 @@ export const ADMIN_WRITE_PATHS: Record<string, AdminPath> = {
     success: { uncovered: DISPUTE_ONLY },
     refusal: { driven: { spec: MONEY, evidence: "for (const action of NON_ADMIN_REFUSED)" } },
   },
+  "create-payment:admin_bill_helpr_fault": {
+    success: {
+      uncovered:
+        "Q2158: it bills a Helpr at fault only after a Helpr-at-fault refund went out AND billing then failed; a journey would need a paid job, " +
+        "an admin fault refund and a forced billing failure on prod, so it is pinned by executed edge tests (src/test/edge/create-payment.test.ts)",
+    },
+    refusal: { driven: { spec: MONEY, evidence: "for (const action of NON_ADMIN_REFUSED)" } },
+  },
   "execute-dispute-split": { success: { uncovered: `${DISPUTE_ONLY}; it also needs an admin decision (rpc_decide_dispute) on it` } },
   // Driven on a per-run throwaway account through the admin Suspend / Ban dialog
   // (BanDialog's ban is one apply_account_action transaction since Q1494).

@@ -635,8 +635,8 @@ describe("release-payout edge function", () => {
       // $2.30 fee and the cents rounded off), on the claim AND on the settle,
       // so the earnings export's gross is what was earned, not only what was
       // paid: $105.20 after the fee, paid $105, so 20c is the remainder.
-      // @mutate supabase/functions/_shared/money.ts |     rounding_remainder_cents: Math.max(0, Math.round(unroundedPayoutCents) - onboarding - Math.round(paidCents)), |     rounding_remainder_cents: 0,
-      // @mutate supabase/functions/release-payout/index.ts |       ...payoutWithheldMetadata(unroundedPayoutCents, onboardingFeeDeductedCents, payoutCents),\n    }, |     },
+      // @mutate supabase/functions/_shared/money.ts |     rounding_remainder_cents: Math.max(0, Math.round(unroundedPayoutCents) - onboarding - fault - Math.round(paidCents)), |     rounding_remainder_cents: 0,
+      // @mutate supabase/functions/release-payout/index.ts |       ...payoutWithheldMetadata(unroundedPayoutCents, onboardingFeeDeductedCents, payoutCents, helprFaultFeeCents),\n    }, |     },
       const withheld = { onboarding_fee_cents: 230, rounding_remainder_cents: 20 };
       const claim = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "insert");
       const settle = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update");

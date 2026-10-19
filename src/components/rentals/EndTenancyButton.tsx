@@ -55,9 +55,16 @@ export function EndTenancyButton({ tenancyId, kind, onDone }: { tenancyId: strin
   const done = m.isPending || m.isSuccess;
   return (
     <>
-      <Button type="button" size="sm" variant="outline" disabled={done} onClick={() => setOpen(true)}>
-        {w.button}
-      </Button>
+      {kind === "leave" ? (
+        // Quiet, like Delete Account in Profile: the card's one main action stays "Request a repair".
+        <button type="button" className="min-h-[44px] text-sm text-muted-foreground underline-offset-4 hover:underline disabled:opacity-50" disabled={done} onClick={() => setOpen(true)}>
+          {w.button}
+        </button>
+      ) : (
+        <Button type="button" size="sm" variant="outline" disabled={done} onClick={() => setOpen(true)}>
+          {w.button}
+        </Button>
+      )}
       <BrandConfirmDialog
         open={open}
         onOpenChange={(next) => { if (!m.isPending) setOpen(next); }}

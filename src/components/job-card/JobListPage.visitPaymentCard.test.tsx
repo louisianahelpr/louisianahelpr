@@ -68,7 +68,7 @@ function renderPosts() {
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={["/posts"]}>
-        <Activity defaultTab="posted" />
+        <Activity defaultTab="posted" embeddedHeader={<div />} />
       </MemoryRouter>
     </QueryClientProvider>,
   );

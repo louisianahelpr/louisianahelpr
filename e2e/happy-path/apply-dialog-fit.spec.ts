@@ -211,7 +211,7 @@ for (const { name, width, job } of [
       } catch { /* no-storage guard */ }
     });
     await page.setViewportSize({ width, height: 812 });
-    await page.goto("/home");
+    await page.goto("/jobs");
 
     const card = page.getByText(openJob.title);
     await card.waitFor({ timeout: 20_000 });

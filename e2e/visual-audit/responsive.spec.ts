@@ -41,7 +41,7 @@ const SCREENS: Screen[] = [
   { name: "03-authed-dashboard", url: "/home", auth: "authed" },
   { name: "04-post-job", url: "/post-job", auth: "authed" },
   { name: "05-profile", url: "/profile", auth: "authed" },
-  { name: "06-activity", url: "/jobs", auth: "authed" },
+  { name: "06-activity", url: "/jobs?tab=working", auth: "authed" },
 ];
 
 interface ComboResult {

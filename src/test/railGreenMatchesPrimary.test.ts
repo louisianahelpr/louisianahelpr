@@ -49,7 +49,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { railStepTone } from "@/components/job-card/jobRailTone";
-import { blankComments } from "./helpers/blankNonCode";
+import { blankComments, blankCssComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
 const CSS = readFileSync(resolve(ROOT, "src/index.css"), "utf8");
@@ -114,13 +114,18 @@ function completedPipTokens(): string[] {
   return [...tones];
 }
 
-/** The token stops of `.btn-grad-primary`'s radial gradient, in order. */
+/** The token(s) `.btn-grad-primary` paints from. Since 2026-10-18 (owner,
+ *  option 3B "nearly flat") the primary is SOLID: one `background-color`
+ *  token, `--bark`, and no gradient. Read from the rule's declarations with
+ *  comments blanked, so prose about the old gradient cannot count. */
 function primaryGradientStops(): string[] {
-  const block = /\.btn-grad-primary\s*\{[\s\S]*?background-image:\s*radial-gradient\(([\s\S]*?)\);/.exec(CSS);
-  expect(block, ".btn-grad-primary no longer declares a radial-gradient background-image").not.toBeNull();
-  const stops = [...block![1].matchAll(/hsl\(var\(--([\w-]+)\)\)/g)].map((m) => m[1]);
-  expect(stops.length, "the primary gradient has no token stops to match against").toBeGreaterThanOrEqual(2);
-  return stops;
+  const css = blankCssComments(CSS);
+  const block = /\.btn-grad-primary\s*\{([^}]*)\}/.exec(css);
+  expect(block, ".btn-grad-primary rule not found").not.toBeNull();
+  const fill = /background-color:\s*hsl\(var\(--([\w-]+)\)\)\s*;/.exec(block![1]);
+  expect(fill, ".btn-grad-primary no longer declares a solid token background-color").not.toBeNull();
+  expect(block![1], ".btn-grad-primary paints a gradient again; the primary is solid olive").not.toMatch(/gradient\(/);
+  return [fill![1]];
 }
 
 describe("the rail's completed green IS the primary button's green", () => {

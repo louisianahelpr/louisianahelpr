@@ -2,7 +2,7 @@
  * AN OPEN SEARCH NEVER COVERS THE PAGE TITLE.
  *
  * Owner, 2026-10-01, from the iOS app: "Search should not cover the page
- * titles in app." On a phone, opening the header search on Jobs, My Posts and
+ * titles in app." On a phone, opening the header search on My Jobs, My Posts and
  * Messages took the title's place: ScreenHeaderRow's `narrowTitleStepsAside`
  * hid the visible title below 500px and handed its width to the field, so the
  * field sat exactly where the title had been.
@@ -15,9 +15,8 @@
  * For every expanding search, this measures the page title (the screen's
  * <h1>, or its visible twin when the <h1> is sr-only) closed, then opens the
  * field and measures again:
- *   - a title that was shown closed is still shown open (at 1440 /jobs and
- *     /posts carry no visible title by design — the tab row is the header —
- *     so there is nothing there to cover, and the check says so);
+ *   - a title that was shown closed is still shown open (a screen whose title
+ *     is sr-only by design has nothing to cover, and the check says so);
  *   - its box and the open field's box do not intersect.
  * At 375 and 1440, Chromium and WebKit (the iOS app is WKWebView).
  *
@@ -34,13 +33,11 @@ test.beforeAll(async ({ request }) => {
   poster = await getSession(request, "poster");
 });
 
-/** Every expanding header search whose row carries the page title. Home's
- * phone search replaces the emblem row, which holds no title (the <h1> lives
- * in the feed toolbar below it); it is measured too, so a title that IS
- * covered there would fail the same way. */
+/** Every OPENING search (a field that appears on a press) whose screen carries a page title. */
 const SURFACES: { name: string; file: string; url: string; trigger: string; field: string; minWidth?: number; maxWidth?: number }[] = [
-  { name: "jobs", file: "src/pages/jobs/JobsHeader.tsx", url: "/jobs", trigger: "[data-search-trigger]", field: 'input[aria-label="Search jobs"]' },
-  { name: "posts", file: "src/pages/posts/PostsHeader.tsx", url: "/posts", trigger: "[data-search-trigger]", field: 'input[aria-label="Search jobs"]' },
+  // jobs (/jobs, My Jobs), posts (/posts, My Posts) and browse-phone (/home) left 2026-10-19 (Q2205) with the old
+  // screens. Jobs > Browse's phone search is a permanent row (BrowseCompactSearchRow): nothing opens over the
+  // title, so it is not an opening search (src/test/searchFieldsAllChecked.test.ts keeps it off this list).
   { name: "messages", file: "src/components/messages/ConversationList.tsx", url: "/messages", trigger: "[data-search-trigger]", field: 'input[aria-label="Search conversations"]' },
   {
     name: "saved-helprs", file: "src/components/profile/SavedHelpersTab.tsx",
@@ -49,10 +46,9 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="Search saved Helprs"]',
   },
   { name: "legal", file: "src/pages/info/Legal.tsx", url: "/legal", trigger: 'button[aria-label="Search all policies"]', field: 'input[aria-label="Search all policies"]' },
-  { name: "browse-phone", file: "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx", url: "/home", trigger: "[data-search-trigger]", field: 'input[aria-label="Search jobs"]', maxWidth: 899 },
   {
     name: "browse-desktop-strip", file: "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
-    url: "/home",
+    url: "/jobs",
     trigger: "[data-feed-strip] [data-search-trigger]",
     field: '[data-feed-strip] input[aria-label="Search jobs"]',
     minWidth: 900,

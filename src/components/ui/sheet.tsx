@@ -88,10 +88,18 @@ const sheetVariants = cva(
 
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-    VariantProps<typeof sheetVariants> {}
+    VariantProps<typeof sheetVariants> {
+  /**
+   * Slide-up sheet glued to the bottom edge with a grab handle and a plain
+   * dim scrim (owner 2026-10-18, tweak 6). Only with side="bottom"; every
+   * other bottom sheet stays the centred modal.
+   */
+  floor?: boolean;
+}
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
-  ({ side = "right", className, children, ...props }, ref) => {
+  ({ side = "right", floor = false, className, children, ...props }, ref) => {
+    const isFloor = floor && side === "bottom";
     // THE ONE DISMISSAL RULE (popupDismiss.tsx): a sheet whose footer offers a
     // labelled dismiss does not also draw the corner ×. Dialogs have enforced
     // this since 2026-08-31; sheets rendered the × unconditionally, so the
@@ -110,13 +118,13 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
     // safe-area-right so landscape notches don't clip it either.
     const closeTop =
       side === "bottom"
-        ? "1rem"
+        ? isFloor ? "1.25rem" : "1rem"
         : "calc(var(--safe-area-top, 0px) + 1rem)";
     const closeRight = "calc(var(--safe-area-right, 0px) + 1rem)";
 
     return (
       <SheetPortal>
-        <SheetOverlay />
+        <SheetOverlay className={isFloor ? "sheet-floor-scrim" : undefined} />
         {/* aria-describedby={undefined}: Radix warns once per open when a
             Content has no `Description` and no explicit `aria-describedby`.
             Every hero subtitle was removed app-wide (2026-07-25 "one main
@@ -126,10 +134,11 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
             comes after, so a caller supplying its own still wins. */}
         <SheetPrimitive.Content
           ref={ref}
-          className={cn(sheetVariants({ side }), className)}
+          className={cn(sheetVariants({ side }), className, isFloor && "sheet-floor")}
           aria-describedby={undefined}
           {...props}
         >
+          {isFloor && <div aria-hidden className="sheet-grab-handle" />}
           <PopupDismissCtx.Provider value={setHasDismiss}>{children}</PopupDismissCtx.Provider>
           {!hasDismiss && <SheetCloseButton top={closeTop} right={closeRight} />}
         </SheetPrimitive.Content>

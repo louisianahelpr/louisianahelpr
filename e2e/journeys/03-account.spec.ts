@@ -420,7 +420,7 @@ test(j7, async ({ browser, request, journey }) => {
   });
 
   await test.step("poster saves a search from Browse, sees it, deletes it", async () => {
-    await pp.goto("/home");
+    await pp.goto("/jobs"); // the feed (Jobs > Browse) since 2026-10-19, Q2205
     await pp.getByRole("button", { name: "Filters" }).first().click();
     // A saved search is a saved FILTER SET; with none active the dialog says "set filters first".
     await clickOrSayWhatMoves(pp.getByRole("dialog").getByRole("group", { name: "Filter by category" }).getByRole("button", { name: /cleaning/i }).first());

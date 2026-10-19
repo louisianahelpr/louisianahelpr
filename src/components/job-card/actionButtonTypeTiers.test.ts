@@ -56,7 +56,7 @@ function walk(dir: string, out: string[] = []): string[] {
 
 /**
  * NOT the card's action row, and each one is a different surface with its own
- * density. Kept as three named files rather than a pattern so adding one is a
+ * density. Kept as named files rather than a pattern so adding one is a
  * decision somebody writes down.
  */
 const NOT_ACTION_ROWS = new Set([
@@ -65,9 +65,10 @@ const NOT_ACTION_ROWS = new Set([
   "src/pages/posts/postedJobs/ApplicantsPanel.tsx",
   "src/pages/posts/postedJobs/applicantsPanel/ApplicantSortControls.tsx",
   // Controls for the whole LIST, drawn above or below the cards, never in a
-  // card's row: each tab's header, the Show older pager, the bulk-dismiss bar.
-  "src/pages/posts/PostsHeader.tsx",
-  "src/pages/jobs/JobsHeader.tsx",
+  // card's row: the group headers' "See all" (Jobs > Posted / Working, which
+  // replaced each tab's own header, PostsHeader / JobsHeader, on 2026-10-19,
+  // Q2205), the Show older pager, the bulk-dismiss bar.
+  "src/components/job-card/ActivityBucketGroups.tsx",
   "src/components/job-card/PagedActivityList.tsx",
   "src/pages/posts/BulkDismissBar.tsx",
 ]);

@@ -67,6 +67,7 @@ import {
 import { centralDatePlus } from "../prod-audit/fundedOpenJob";
 import { FUNDED_FIXTURE_TITLE } from "../prod-audit/fundedOpenJobPlan";
 import { waitForStripePaymentMethods } from "../stripeCheckoutCard";
+import { searchFeed } from "../feedSearch";
 
 /** Every row this spec writes carries it; the pre-sweep finds a killed run's rows by it. Not any sweeper's marker. */
 export const MARKER = "[E2E-CANARY]";
@@ -260,9 +261,9 @@ test.describe("core-loop canary", () => {
       const hp: Page = await hctx.newPage();
 
       await step("browse", async () => {
-        await hp.goto("/home");
-        await hp.getByRole("button", { name: "Search jobs" }).first().click();
-        await hp.getByRole("combobox", { name: "Search jobs" }).fill(FUNDED_FIXTURE_TITLE);
+        // The feed is Jobs > Browse since 2026-10-19 (Q2205); /home is the dashboard.
+        await hp.goto("/jobs");
+        await searchFeed(hp, FUNDED_FIXTURE_TITLE);
         await expect(
           hp.getByRole("button", { name: new RegExp(`View .*${FUNDED_FIXTURE_TITLE}`) }).first(),
           `the helper cannot find the funded fixture ${job.id} in Browse`,

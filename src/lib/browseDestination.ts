@@ -20,6 +20,7 @@
  * the completion prompts, JobDetail) should skip it and name `/home`
  * outright — passing a user it always has is noise.
  */
-export function browseDestinationFor(user: { id: string } | null | undefined): "/browse" | "/home" {
-  return user ? "/home" : "/browse";
+export function browseDestinationFor(user: { id: string } | null | undefined): "/browse" | "/jobs" {
+  // Signed in: Jobs > Browse (the feed left /home for /jobs on 2026-10-19, Q2205; /home is the dashboard).
+  return user ? "/jobs" : "/browse";
 }

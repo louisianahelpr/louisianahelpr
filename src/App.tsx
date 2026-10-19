@@ -20,7 +20,7 @@ import RouteSuspenseFallback from "@/components/RouteSuspenseFallback";
 import { skeletonOnDemand } from "@/lib/skeletonOnDemand";
 const GuestBrowseSkeleton = skeletonOnDemand(() => import("@/components/GuestBrowseSkeleton"));
 const DashboardRouteSkeleton = skeletonOnDemand(() => import("@/components/DashboardRouteSkeleton"));
-const ActivityRouteSkeleton = skeletonOnDemand(() => import("@/components/ActivityRouteSkeleton"));
+const JobsSectionSkeleton = skeletonOnDemand(() => import("@/components/JobsSectionSkeleton"));
 const ProfileRouteSkeleton = skeletonOnDemand(() => import("@/components/ProfileRouteSkeleton"));
 const LoginRouteSkeleton = skeletonOnDemand(() => import("@/components/LoginRouteSkeleton"));
 // Static on purpose (Q1107): a lazy banner must be fetched to say the network
@@ -100,7 +100,9 @@ const AccountBanned = lazyWithPreload(() => import("./pages/auth/AccountBanned")
 const ForgotPassword = lazyWithPreload(() => import("./pages/auth/ForgotPassword"));
 const ResetPassword = lazyWithPreload(() => import("./pages/auth/ResetPassword"));
 const Unsubscribe = lazyWithPreload(() => import("./pages/auth/Unsubscribe"));
-const Dashboard = lazyWithPreload(() => import("./pages/home/Dashboard"));
+// HOME (owner final decisions, 2026-10-19): the app opens on the dashboard
+// for every section; the job feed moved to Jobs > Browse.
+const HomeDashboard = lazyWithPreload(() => import("./pages/home/HomeDashboard"));
 const Profile = lazyWithPreload(() => import("./pages/profile/Profile"));
 // Lazy: it reads useAuthReady, which pulls the Supabase client.
 const PostJob = lazyWithPreload(() => import("./pages/post-job/PostJob"));
@@ -108,7 +110,8 @@ const PaymentSuccess = lazyWithPreload(() => import("./pages/post-job/PaymentSuc
 const UserProfile = lazyWithPreload(() => import("./pages/user/UserProfile"));
 const Admin = lazyWithPreload(() => import("./pages/admin/Admin"));
 const PostsPage = lazyWithPreload(() => import("./pages/posts/PostsPage"));
-const JobsPage = lazyWithPreload(() => import("./pages/jobs/JobsPage"));
+// Jobs & Posts (owner, 2026-10-19): Browse | Posted | Working; /posts redirects to ?tab=posted.
+const JobsPage = lazyWithPreload(() => import("./pages/jobs/JobsSection"));
 const Messages = lazyWithPreload(() => import("./pages/messages/Messages"));
 // Declutter (docs/specs/declutter-*.md): each page is the 404 unless its hidden switch is on (DeclutterGate).
 const DeclutterPage = lazyWithPreload(() => import("./pages/declutter/DeclutterPage"));
@@ -235,11 +238,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           the moments that require it (accept, payout) inside the components.
           Banned users are redirected, and an unverified EMAIL is redirected to
           /signup-pending on every protected route (Q180, Q193) — see ProtectedRoute. */}
-      <Route path="/home" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<DashboardRouteSkeleton />}><Dashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
+      <Route path="/home" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<DashboardRouteSkeleton />}><HomeDashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ActivityRouteSkeleton tab="applied" />}><JobsPage /></ProtectedRoute>, <ActivityRouteSkeleton tab="applied" />)}</RouteErrorBoundary>} />
-      <Route path="/posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ActivityRouteSkeleton tab="posted" />}><PostsPage /></ProtectedRoute>, <ActivityRouteSkeleton tab="posted" />)}</RouteErrorBoundary>} />
+      <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<JobsSectionSkeleton />}><JobsPage /></ProtectedRoute>, <JobsSectionSkeleton />)}</RouteErrorBoundary>} />
+      <Route path="/posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<JobsSectionSkeleton />}><PostsPage /></ProtectedRoute>, <JobsSectionSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />

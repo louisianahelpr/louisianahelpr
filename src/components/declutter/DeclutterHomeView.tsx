@@ -1,7 +1,9 @@
 /**
- * /declutter — Declutter's own tab (spec rows 1, 2). Its tabs (owner,
- * 2026-10-18; src/lib/declutter/tabs.ts): Browse (nearest first, a distance
- * filter, area + miles only: rows 5, 27) · Buying (cart, your offers,
+ * /declutter — Declutter's own tab (spec rows 1, 2). Section dashboard
+ * (owner, 2026-10-19): the shared top bar and Browse | Buying | Selling, Browse
+ * leftmost and the default; Wanted and Deliver are sub-views at ?view=.
+ * Tabs (src/lib/declutter/tabs.ts): Browse (nearest first, a distance
+ * filter in the slide-up sheet, area + miles only: rows 5, 27) · Buying (cart, your offers,
  * purchases) · Selling (your listings with every status in plain words, incl.
  * waiting for a review: row 33; offers on your items; sales waiting to be paid;
  * paid sales and payouts) · Wanted · Deliver. Old links (?view=mine|offers|cart)
@@ -13,10 +15,9 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import AppPage from "@/components/AppPage";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { ChevronRight, Truck } from "lucide-react";
@@ -30,15 +31,20 @@ import {
   type DeclutterPhoto,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { DISTANCE_CHOICES, formatPrice, milesLabel, nearestFirst } from "@/lib/declutter/distance";
+import { formatPrice, milesLabel, nearestFirst } from "@/lib/declutter/distance";
 import { ConditionStars, DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
-import { useDeclutterOrigin, type DeclutterOrigin } from "./useDeclutterOrigin";
-import { BuyingView, OffersSection, PaidOrders, SalesWaiting, SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
+import { useDeclutterOrigin } from "./useDeclutterOrigin";
+import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
+import { BuyingDash, SellingDash } from "./DeclutterMineViews";
+import { DeclutterBrowseBar } from "./DeclutterBrowseBar";
+import { SectionScreen } from "@/components/sections/SectionScreen";
+import { sectionByKey } from "@/components/sections/sectionsConfig";
+import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import {
-  DECLUTTER_TABS,
   OLD_DECLUTTER_VIEWS,
   oldDeclutterView,
   type DeclutterTab,
+  type DeclutterTodo,
   type OldDeclutterView,
 } from "@/lib/declutter/tabs";
 import { WantedView } from "./DeclutterWantedViews";
@@ -98,40 +104,33 @@ function ItemCard({ item, photoPath, miles, approximate }: { item: DeclutterItem
   );
 }
 
-/** Where the miles are counted from, and the one place Declutter asks for the device's location. */
-function OriginLine({
-  origin,
-  asked,
-  asking,
-  canAskAgain,
-  deviceNote,
-  onUse,
-}: {
-  origin: DeclutterOrigin;
-  asked: boolean;
-  asking: boolean;
-  canAskAgain: boolean;
-  deviceNote: string | null;
-  onUse: () => void;
-}) {
-  if (origin.status !== "ready" || origin.source === "device") return null;
-  const from = origin.source === "profile" ? "your saved location" : origin.source === "zip" ? "your ZIP code's area" : "your parish's center";
+/** Grey shimmer rows shaped like the listing cards (owner 2026-10-18, tweak 5). */
+function ListingsSkeleton() {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <p className="text-xs text-muted-foreground">Miles are counted from {from}.</p>
-      {(!asked || canAskAgain) && (
-        <Button type="button" variant="outline" size="sm" onClick={onUse}>
-          {asked ? "Try my location again" : "Use my location"}
-        </Button>
-      )}
-      {asking && <p className="text-xs text-muted-foreground" role="status">Finding you…</p>}
-      {deviceNote && <p className="text-xs text-muted-foreground" role="status">{deviceNote}</p>}
-    </div>
+    <ul className="space-y-3" role="status" aria-label="Loading your listings">
+      {[0, 1, 2].map((i) => (
+        <li key={i} className="rounded-2xl bg-card p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/5" />
+              <Skeleton className="h-3.5 w-1/4" />
+            </div>
+            <Skeleton className="h-6 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-3 w-4/5" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-24 rounded-full" />
+            <Skeleton className="h-8 w-20 rounded-full" />
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 function BrowseView({ userId }: { userId: string }) {
-  const [maxMiles, setMaxMiles] = useState<number | null>(25);
+  // Any distance by default (owner, 2026-10-19); the member's own choice holds for the visit.
+  const [maxMiles, setMaxMiles] = useState<number | null>(null);
   // No location prompt on landing: miles come from what we already know, and
   // the device is asked only from the "Use my location" button below.
   const { origin, askDevice, asked, asking, canAskAgain, deviceNote } = useDeclutterOrigin();
@@ -144,7 +143,9 @@ function BrowseView({ userId }: { userId: string }) {
     enabled: others.length > 0,
   });
   const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);
-  const rows = nearestFirst(others, from, from ? maxMiles : null);
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const rows = nearestFirst(others, from, from ? maxMiles : null).filter(({ item }) => !q || item.title.toLowerCase().includes(q));
   // ONE gate for the list and its cover photos, so the cards arrive in one
   // paint instead of the list first and its photos in a second wave
   // (oneLoadingGatePerScreen.test.ts). The photos query is disabled (never
@@ -161,39 +162,16 @@ function BrowseView({ userId }: { userId: string }) {
   if (listLoading) return <DeclutterBrowseBones />;
   return (
     <div className="space-y-4">
-      {from ? (
-        <>
-          <SegmentedControl
-            ariaLabel="How far away"
-            layout="wrap"
-            value={maxMiles === null ? "any" : String(maxMiles)}
-            onChange={(v) => setMaxMiles(v === "any" ? null : Number(v))}
-            options={DISTANCE_CHOICES.map((m) => ({ value: m === null ? "any" : String(m), label: m === null ? "Any distance" : `${m} mi` }))}
-          />
-          <OriginLine origin={origin} asked={asked} asking={asking} canAskAgain={canAskAgain} deviceNote={deviceNote} onUse={askDevice} />
-        </>
-      ) : (
-        <DeclutterNotice title="Nearest items show first once we know where you are.">
-          <p>
-            {origin.status === "none" && origin.zipOnFile
-              ? // The profile HAS a ZIP; we just couldn't place it. Never tell them to add one.
-                "We couldn't find the area for the ZIP code on your profile, so items show without miles for now."
-              : asked
-                ? "Add your ZIP code in your profile to see how far each item is."
-                : "Use your location, or add your ZIP code in your profile, to see how far each item is."}
-          </p>
-          {asking && <p className="mt-1" role="status">Finding you…</p>}
-          {deviceNote && <p className="mt-1" role="status">{deviceNote}</p>}
-          {(!asked || canAskAgain) && (
-            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={askDevice}>
-              {asked ? "Try my location again" : "Use my location"}
-            </Button>
-          )}
-        </DeclutterNotice>
-      )}
+      <DeclutterBrowseBar
+        query={query}
+        onQuery={setQuery}
+        maxMiles={maxMiles}
+        onMaxMiles={setMaxMiles}
+        ask={{ origin, asked, asking, canAskAgain, deviceNote, askDevice }}
+      />
       {rows.length === 0 ? (
-        <DeclutterNotice title={others.length === 0 ? "Nothing for sale yet." : "Nothing for sale this close."}>
-          {others.length === 0 ? "Check back soon, or sell something of your own." : "Try a bigger distance."}
+        <DeclutterNotice title={others.length === 0 ? "Nothing for sale yet." : q ? "Nothing matches that search." : "Nothing for sale this close."}>
+          {others.length === 0 ? "Check back soon, or sell something of your own." : q ? "Try another word." : "Try a bigger distance."}
         </DeclutterNotice>
       ) : (
         <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -276,7 +254,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   if (mine.isError) {
     return <ErrorState variant="inline" title="We couldn't load your listings." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   }
-  if (mine.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading your listings…</p>;
+  if (mine.isLoading) return <ListingsSkeleton />;
   const list = (mine.data ?? []).filter((i) => i.status !== "withdrawn");
   if (list.length === 0) {
     return (
@@ -349,20 +327,42 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
 }
 
 /**
- * Selling (owner, 2026-10-18): your listings, the offers on your items, sales
- * waiting for the buyer to pay, and paid sales (pickup, handover, payout).
+ * Selling (owner, 2026-10-18; boxes 2026-10-19): your listings, the offers on
+ * your items, sales waiting for the buyer to pay, and paid sales (pickup,
+ * handover, payout), under SellingDash's status boxes.
  */
-function SellingView({ userId, haulOn, movingOutOn }: { userId: string; haulOn: boolean; movingOutOn: boolean }) {
+function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; haulOn: boolean; movingOutOn: boolean; todo: DeclutterTodo | null }) {
   return (
     <div className="space-y-6">
-      <div className="space-y-3">
-        <MovingOutEntry on={movingOutOn} />
-        <MyListingsView userId={userId} haulOn={haulOn} />
-      </div>
-      <OffersSection side="seller" />
-      <SalesWaiting />
-      <PaidOrders side="seller" />
+      <SellingDash
+        todo={todo}
+        userId={userId}
+        listings={
+          <div className="space-y-3">
+            <MovingOutEntry on={movingOutOn} />
+            <MyListingsView userId={userId} haulOn={haulOn} />
+          </div>
+        }
+      />
+      <DeliverEntry />
     </div>
+  );
+}
+
+/** Deliver (Helprs who carry items for pay) left the tab row; its view stays at ?view=deliver. */
+function DeliverEntry() {
+  return (
+    <Link
+      to="/declutter?view=deliver"
+      className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <Truck className="h-5 w-5 shrink-0" aria-hidden />
+      <span className="flex-1 min-w-0">
+        <span className="block font-semibold text-sm">Deliver for pay</span>
+        <span className="block text-xs text-muted-foreground">Carry Declutter items for buyers near you</span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+    </Link>
   );
 }
 
@@ -384,9 +384,10 @@ function MovingOutEntry({ on }: { on: boolean }) {
   );
 }
 
+const MINE_TABS = ["buying", "selling"] as const;
+
 export default function DeclutterHome() {
   const { user } = useCurrentUser();
-  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   // W14: "Wanted" exists only while its own switch is on for this member.
   // The tab row waits for that answer (Q?declutter-settle): painted before it,
@@ -405,68 +406,56 @@ export default function DeclutterHome() {
   const { todo, settled: todoSettled } = useDeclutterTodo();
   const tabsReady = useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled && todoSettled);
   const wantedOn = wanted.on;
+  const [sectionTab] = useSectionTab(MINE_TABS);
   const asked = params.get("view");
   const legacy = OLD_DECLUTTER_VIEWS.includes(asked as OldDeclutterView) ? (asked as OldDeclutterView) : null;
-  const view: DeclutterTab = legacy
-    ? oldDeclutterView(legacy, todo)
-    : asked && DECLUTTER_TABS.includes(asked as DeclutterTab) && (asked !== "wanted" || wantedOn)
-      ? (asked as DeclutterTab)
-      : "browse";
-  // An old link (?view=mine|offers|cart, still in sent notifications and
-  // emails) is rewritten to its new tab once the badges' reads are in (they
-  // decide which side an offers/cart link meant), keeping its other params.
+  // ?view= is the pre-2026-10-19 address (still in sent notifications and
+  // emails): mine|offers|cart open the tab that holds them, buying|selling
+  // their tab. deliver and wanted stay sub-views at ?view= (Wanted only while
+  // its switch is on; its tab is hidden for now, owner 2026-10-19).
+  const subView: "deliver" | "wanted" | null = asked === "deliver" ? "deliver" : asked === "wanted" && wantedOn ? "wanted" : null;
+  const fromView: DeclutterTab | null = legacy ? oldDeclutterView(legacy, todo) : asked === "buying" || asked === "selling" ? asked : null;
+  const view: DeclutterTab = subView ?? fromView ?? sectionTab;
+  // An old ?view= link is rewritten to ?tab= once the badges' reads are in
+  // (they decide which side an offers/cart link meant), keeping its other params.
   useEffect(() => {
-    if (!legacy || !tabsReady) return;
+    if (!fromView || !tabsReady) return;
     setParams((p) => {
       const next = new URLSearchParams(p);
-      next.set("view", view);
+      next.delete("view");
+      if (fromView === "browse") next.delete("tab");
+      else next.set("tab", fromView);
       return next;
     }, { replace: true });
-  }, [legacy, tabsReady, view, setParams]);
+  }, [fromView, tabsReady, setParams]);
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
   return (
-    <AppPage
-      title="Declutter"
-      titleActions={
-        <Button type="button" size="sm" className="whitespace-nowrap" onClick={() => navigate("/declutter/sell")}>
-          Sell an item
-        </Button>
-      }
-    >
-      <p className="text-sm text-muted-foreground">Buy and sell used household items near you. Pick up, or have a Helpr deliver it.</p>
-      <SegmentedControl
-        ariaLabel="Declutter view"
-        semantics="tab"
-        value={view}
-        layout="wrap"
-        onChange={(v) => setParams(v === "browse" ? {} : { view: v }, { replace: true })}
-        options={[
-          { value: "browse", label: "Browse" },
-          {
-            value: "buying",
-            label: "Buying",
-            count: todo?.buying,
-            countTone: "attention",
-            countLabel: todo?.buying ? `${todo.buying} need${todo.buying === 1 ? "s" : ""} you` : undefined,
-          },
-          {
-            value: "selling",
-            label: "Selling",
-            count: todo?.selling,
-            countTone: "attention",
-            countLabel: todo?.selling ? `${todo.selling} need${todo.selling === 1 ? "s" : ""} you` : undefined,
-          },
-          ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []),
-          { value: "deliver", label: "Deliver" },
+    <SectionScreen title="Declutter" add={sectionByKey("declutter").add}>
+      <SectionTabs
+        label="Declutter view"
+        value={(view === "buying" || view === "selling" || view === "browse" ? view : null) as "buying" | "selling"}
+        onChange={(v) =>
+          setParams((p) => {
+            const next = new URLSearchParams(p);
+            next.delete("view");
+            next.delete("status");
+            if (v === "browse") next.delete("tab");
+            else next.set("tab", v);
+            return next;
+          }, { replace: true })
+        }
+        tabs={[
+          { value: "buying", label: "Buying", count: todo?.buying },
+          { value: "selling", label: "Selling", count: todo?.selling },
         ]}
       />
       <StrikeCount userId={user.id} />
       {view === "browse" ? <BrowseView userId={user.id} />
-        : view === "buying" ? <BuyingView />
-          : view === "selling" ? <SellingView userId={user.id} haulOn={haulAway.on} movingOutOn={movingOut.on} />
+        : view === "buying" ? <BuyingDash todo={todo} />
+          : view === "selling" ? <SellingView userId={user.id} haulOn={haulAway.on} movingOutOn={movingOut.on} todo={todo} />
             : view === "deliver" ? <Suspense fallback={<HelprSpinner />}><DeliverView /></Suspense>
               : <WantedView />}
-    </AppPage>
+    </SectionScreen>
   );
 }

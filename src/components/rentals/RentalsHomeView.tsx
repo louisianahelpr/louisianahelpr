@@ -1,16 +1,23 @@
 /**
- * /rentals, shown as HOMES (owner 2026-10-18; Rentals S1,
- * docs/specs/landlord-hub-prep.md). Browse first (HomesBrowse.tsx: the Rent |
- * Buy listings), then, one account, never role-based: "Homes you rent"
- * (tenancies they accepted) and "Properties you own" (add a property,
- * ownership proof, units, invite links, auto-approve, listings, incoming
- * requests). Hidden unless the 'rentals' switch is on.
+ * /rentals, the HOMES section (owner, 2026-10-19): opens on Browse (leftmost);
+ * "Renting" holds the "Homes you rent" part and "Owning" the "Properties you
+ * own" part below, each under status boxes that filter its groups. ?add=1
+ * (the top bar's "+") opens Owning with the add-property form open.
+ * Originally /rentals (Rentals S1, docs/specs/landlord-hub-prep.md). One account, never
+ * role-based: everyone sees "Homes you rent" (tenancies they accepted) and
+ * "Properties you own" (add a property, ownership proof, units, invite links,
+ * auto-approve, incoming requests). Hidden unless the 'rentals' switch is on.
  */
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { SectionActionPill } from "@/components/ui/SectionActionPill";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { KeyRound } from "lucide-react";
+import { SectionScreen } from "@/components/sections/SectionScreen";
+import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
+import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes";
+import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -277,11 +284,46 @@ function PropertyCard({
   );
 }
 
+/** One word each, Browse always first (owner, 2026-10-19). */
+const HOMES_TABS = [
+  { value: "rent", label: "Renting" },
+  { value: "own", label: "Owning" },
+] as const;
+const HOMES_TAB_VALUES = HOMES_TABS.map((t) => t.value);
+const RENT_GROUPS = ["waiting", "approved", "closed"] as const;
+const OWN_GROUPS = ["needs", "repairs", "properties"] as const;
+const requestGroup = (r: MaintenanceRequest) => (r.status === "submitted" ? "waiting" : r.status === "approved" ? "approved" : "closed");
+
+/** Browse: no homes are listed for browsing yet, so a clean empty state. */
+function HomesBrowse() {
+  return (
+    <div className="liquid-glass flex flex-col items-center gap-2 px-6 py-10 text-center" data-testid="homes-browse-empty">
+      <span className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+        <KeyRound className="w-6 h-6" aria-hidden />
+      </span>
+      <p className="text-ds-15 font-semibold">No homes listed near you yet</p>
+      <p className="text-sm text-muted-foreground">Rent from a landlord on Helpr? Open their invite link and your home shows under Renting.</p>
+    </div>
+  );
+}
+
 export default function RentalsHomeView() {
+  const [tab, setTab] = useSectionTab(HOMES_TAB_VALUES);
+  const [params, setParams] = useSearchParams();
+  const [rentStatus, toggleRent] = useStatusFilter(RENT_GROUPS);
+  const [ownStatus, toggleOwn] = useStatusFilter(OWN_GROUPS);
   const { user } = useCurrentUser();
   const uid = user?.id ?? "";
   const qc = useQueryClient();
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(() => params.get("add") === "1");
+  // The top bar's "+" lands on ?tab=own&add=1: open the form, then drop the flag.
+  useEffect(() => {
+    if (params.get("add") !== "1") return;
+    setAdding(true);
+    const next = new URLSearchParams(params);
+    next.delete("add");
+    setParams(next, { replace: true });
+  }, [params, setParams]);
   // Q59: under 18 can't add a property, accept an invite or request a repair
   // (greyed out here; the server refuses too: rentals_assert_member).
   const { underAge } = useAgeGate();
@@ -304,9 +346,24 @@ export default function RentalsHomeView() {
   const refresh = () => qc.invalidateQueries({ queryKey: ["rentals-home", uid] });
 
   // The page's own loading state is the gate's frame (RentalsSkeletons.tsx), so nothing moves between them.
+  const tabs = <SectionTabs label="Homes" tabs={HOMES_TABS} value={tab} onChange={setTab} />;
+  if (tab === "browse") {
+    return (
+      <SectionScreen title="Homes" add={sectionByKey("homes").add}>
+        {tabs}
+        <HomesBrowse />
+      </SectionScreen>
+    );
+  }
   if (!data.isError && !data.data) return <RentalsHomeSkeleton />;
+  const mineAsTenant = data.data ? data.data.requests.filter((r) => r.tenant_id === uid) : [];
+  const mineAsLandlord = data.data ? data.data.requests.filter((r) => r.landlord_id === uid) : [];
+  const landlordNeeds = mineAsLandlord.filter((r) => r.status === "submitted");
+  const landlordOther = mineAsLandlord.filter((r) => r.status !== "submitted");
+  const showOwn = (g: (typeof OWN_GROUPS)[number]) => ownStatus === null || ownStatus === g;
   return (
-    <AppPage title="Homes">
+    <SectionScreen title="Homes" add={sectionByKey("homes").add}>
+      {tabs}
       {data.isError || !data.data ? (
         <ErrorState onRetry={() => data.refetch()} />
       ) : (
@@ -316,7 +373,24 @@ export default function RentalsHomeView() {
               You must be 18 or older to send repair requests or add a property. You can still see your requests here.
             </p>
           )}
-          <HomesBrowse />
+          {tab === "rent" && (
+          <>
+          <StatusBoxes
+            boxes={RENT_GROUPS.map((g) => ({
+              key: g,
+              label: g === "waiting" ? "Waiting" : g === "approved" ? "Approved" : "Closed",
+              count: mineAsTenant.filter((r) => requestGroup(r) === g).length,
+            }))}
+            value={rentStatus}
+            onToggle={toggleRent}
+          />
+          {mineAsTenant.filter((r) => rentStatus === null || requestGroup(r) === rentStatus).length > 0 && (
+            <RentalsCard title="Your repair requests">
+              {mineAsTenant.filter((r) => rentStatus === null || requestGroup(r) === rentStatus).map((r) => (
+                <RequestRow key={r.id} r={r} />
+              ))}
+            </RentalsCard>
+          )}
           <RentalsCard title="Homes you rent" bare>
             {data.data.homes.length === 0 ? (
               <EmptyState
@@ -342,19 +416,40 @@ export default function RentalsHomeView() {
                 </div>
               ))
             )}
-            {data.data.requests.filter((r) => r.tenant_id === uid).map((r) => (
-              <RequestRow key={r.id} r={r} />
-            ))}
           </RentalsCard>
+          </>
+          )}
 
+          {tab === "own" && (
+          <>
+          <StatusBoxes
+            boxes={[
+              { key: "needs", label: "Needs you", count: landlordNeeds.length, hot: true },
+              { key: "repairs", label: "Repairs", count: landlordOther.length },
+              { key: "properties", label: "Properties", count: data.data.properties.length },
+            ]}
+            value={ownStatus}
+            onToggle={toggleOwn}
+          />
+          {showOwn("needs") && landlordNeeds.length > 0 && (
+            <RentalsCard title="Requests from tenants">
+              {landlordNeeds.map((r) => <RequestRow key={r.id} r={r} />)}
+            </RentalsCard>
+          )}
+          {showOwn("repairs") && landlordOther.length > 0 && (
+            <RentalsCard title="Earlier repairs">
+              {landlordOther.map((r) => <RequestRow key={r.id} r={r} />)}
+            </RentalsCard>
+          )}
+          {showOwn("properties") && (
           <RentalsCard
             title="Properties you own"
             bare
             action={
               !adding && !underAge && data.data.properties.length > 0 && (
-                <Button type="button" size="sm" onClick={() => setAdding(true)}>
+                <SectionActionPill onClick={() => setAdding(true)}>
                   Add a property
-                </Button>
+                </SectionActionPill>
               )
             }
           >
@@ -366,7 +461,7 @@ export default function RentalsHomeView() {
                 <SendForReview uid={uid} propertyId={null} needsId needsProof={false} onSent={refresh} />
               </div>
             )}
-            {adding && (
+            {adding && !underAge && (
               <div className={RENTALS_ITEM_CARD}>
               <AddPropertyForm
                 onDone={() => {
@@ -403,13 +498,12 @@ export default function RentalsHomeView() {
                 identity={data.data.identity}
               />
             ))}
-            {data.data.requests.filter((r) => r.landlord_id === uid).length > 0 && <p className="text-sm font-medium">Requests from tenants</p>}
-            {data.data.requests.filter((r) => r.landlord_id === uid).map((r) => (
-              <RequestRow key={r.id} r={r} />
-            ))}
           </RentalsCard>
+          )}
+          </>
+          )}
         </div>
       )}
-    </AppPage>
+    </SectionScreen>
   );
 }

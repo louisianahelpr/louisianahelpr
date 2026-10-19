@@ -352,6 +352,8 @@ describe("one footer convention", () => {
    * here.
    */
   const FOOTERLESS_BY_DESIGN: Record<string, string> = {
+    "src/components/sections/CustomizeSheet.tsx": "each toggle saves on tap; the sheet's close is the exit",
+    "src/components/sections/ChoiceFilterRow.tsx": "a radio list: a tap picks and closes",
     "src/components/admin/AdminCommandPalette.tsx": "⌘K palette — Esc is the exit",
     "src/components/admin/adminJobs/JobDetailDialog.tsx": "read-only admin record",
     "src/components/admin/AdminUserDetailDialog.tsx": "read-only admin record, h-[90vh] tabs",

@@ -61,14 +61,15 @@ const ALLOWED_SHELLS = [
   "AppShell",        // the one fixed-viewport primitive
   "PageScaffold",    // AppShell + the two-card layout
   "AppPage",         // AppShell + ProfileTabHeader
+  "SectionScreen",   // AppShell + AppTopBar: the section dashboards (owner 2026-10-19)
   "PublicHeaderPage", // PublicLayout + PageHeader (legal, help, support)
   "PublicLayout",    // marketing chrome
   "AuthShell",       // the signed-out / account-state card treatment
 ] as const;
 const SHELL_SET: ReadonlySet<string> = new Set(ALLOWED_SHELLS);
 
-/** The three that own the 100dvh viewport lock — the family the DOCUMENT_SCROLL_ROUTES agreement is about. */
-const FIXED_SHELLS = ["AppShell", "PageScaffold", "AppPage"];
+/** The four that own the 100dvh viewport lock — the family the DOCUMENT_SCROLL_ROUTES agreement is about. */
+const FIXED_SHELLS = ["AppShell", "PageScaffold", "AppPage", "SectionScreen"];
 
 /**
  * Components that render no DOM at all, so a return that lands on one is not a
@@ -780,6 +781,7 @@ describe("shell consistency", () => {
         `src/components/ui/${shell}.tsx`,
         `src/components/marketing/${shell}.tsx`,
         `src/components/auth/${shell}.tsx`,
+        `src/components/sections/${shell}.tsx`,
       ];
       return !candidates.some((c) => existsSync(join(REPO, c)));
     });

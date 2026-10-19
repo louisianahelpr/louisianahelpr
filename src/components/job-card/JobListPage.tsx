@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useCallback, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, useCallback, lazy, Suspense, type ReactNode } from "react";
+import { EmbeddedActivityHeader, EmbeddedActivityLoading } from "@/components/job-card/embeddedActivity";
 import { deepLinkReady, useActivitySettled } from "./deepLinkWait";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -7,7 +8,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
-import { ActivityPageSkeleton } from "@/components/ActivityPageSkeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
@@ -41,8 +41,6 @@ import {
   appliedActivityBucket,
   jobIsUnfundedDraft,
 } from "@/components/job-card/activityFilters";
-import { PostsHeader, POSTS_HEADER_PADDING } from "@/pages/posts/PostsHeader";
-import { JobsHeader, JOBS_HEADER_PADDING } from "@/pages/jobs/JobsHeader";
 import { ActivityEmptyState } from "@/components/job-card/ActivityEmptyState";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";
@@ -50,55 +48,25 @@ import { JobListQuotesSlot } from "@/components/quotes/JobListQuotesSlot";
 import { toast } from "sonner";
 import { recheckUnverifiedArrival } from "@/components/job-card/recheckUnverifiedArrival";
 import SectionBoundary from "@/components/SectionBoundary";
-import { defaultStatusFilterFor, firstBucketWithItems } from "@/components/job-card/activityConstants";
 
-const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
-  usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
+/** Jobs > Posted / Working (owner, 2026-10-19; embeddedActivity.tsx). `embeddedHeader` is the section's top bar +
+ *  tabs; the status boxes sit under it. The old standalone My Posts / My Jobs headers (PostsHeader / JobsHeader,
+ *  with their own search field) are gone: no route rendered them once /jobs became the Jobs section (Q2205). */
+const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "posted" | "applied"; embeddedHeader: ReactNode }) => {
+  usePageTitle("Jobs — Helpr");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useCurrentUser();
-  // Full-bleed app bar — web-desktop ONLY. My Posts / My Jobs carry no app
-  // bar on phone/native (the page header's own title is the page name there),
-  // matching every other Activity/Messages screen; on web-desktop the new
-  // full-bleed DashboardHeader spans above the sidebar rail the same way it
-  // now does on Dashboard.
   const tab = defaultTab as Tab;
-  // My Posts opens on "Active" — a flat list of every non-terminal task
-  // (open / accepted / in_progress / …). Completed and Cancelled remain
-  // reachable via the status filter.
-  //
-  // My Jobs opens on "All", which renders the grouped ACTIVE / COMPLETED /
-  // CLOSED view.
-  //
-  // It used to open on "pending" — a SINGLE status, not a bucket — which made
-  // the two tabs asymmetric: My Posts got a broad default, My Jobs got a
-  // narrow one. The moment every application had been answered, the helper
-  // landed on "No jobs in this view. Try a different filter", and their whole
-  // history was invisible until they found the filter menu and changed it
-  // themselves. Observed on a real account with four applications: the filter
-  // menu read "All 4 … Applied (none) … Not Selected 4", i.e. the page had
-  // four things to show and chose the one bucket that was empty.
-  //
-  // "All" is the only broad option on this tab (there is no "active" bucket
-  // for applications), and its grouped view already puts live applications in
-  // the ACTIVE section above the settled ones — so pending work still leads.
-  const defaultFilter = defaultStatusFilterFor(defaultTab);
-  // Filter + search seed from URL params so a deep link (or browser
-  // back/forward) lands the user on the exact view they had. We keep the
-  // local-state mirror because the dropdown/search inputs need a
-  // controlled value, and writing to the URL inside an onChange handler
-  // is too coarse for typing latency.
+  // Jobs > Posted / Working open on EVERY group ("all"), under the status boxes
+  // (owner, 2026-10-19): tap a box = only that group, tap it again = all.
+  const defaultFilter = "all";
+  // Filter + search seed from URL params (deep links, back/forward); local mirror for typing latency.
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
-  const [searchOpen, setSearchOpen] = useState(() => !!searchParams.get("q"));
-  const [statusFilter, setStatusFilter] = useState<string>(() => {
-    return searchParams.get("filter") ?? defaultFilter;
-  });
+  const [statusFilter, setStatusFilter] = useState<string>(() => searchParams.get("filter") ?? defaultFilter);
 
-  // Deep-link highlight — the notification for "poster viewed your
-  // application" links to /jobs?highlight=<applicationId>. We read
-  // it once on mount, hand it to AppliedJobsTab so the matching card
-  // can scroll into view + pulse, then strip it from the URL (replace,
-  // not push) so Back doesn't re-trigger the animation.
+  // Deep-link highlight (/jobs?highlight=<applicationId>): read once, pulse the card, then strip it
+  // from the URL (replace) so Back doesn't re-trigger the animation.
   const [highlightAppId, setHighlightAppId] = useState<string | null>(() =>
     defaultTab === "applied" ? (searchParams.get("highlight") ?? null) : null,
   );
@@ -224,10 +192,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       const nextFilter = read("filter") || defaultFilter;
       if (nextFilter !== statusFilter) setStatusFilter(nextFilter);
       const nextQuery = read("q");
-      if (nextQuery !== searchQuery.trim()) {
-        setSearchQuery(nextQuery);
-        if (nextQuery) setSearchOpen(true);
-      }
+      if (nextQuery !== searchQuery.trim()) setSearchQuery(nextQuery);
     },
     "activity",
   );
@@ -334,7 +299,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // waits while a `?job=` link is unresolved, and once `job` leaves the URL
     // it chooses exactly as it does for a plain open.
     if (deepLinkJobId && !onList) {
-      toast.info(`That job is no longer on ${tab === "posted" ? "My Posts" : "My Jobs"}.`);
+      toast.info(`That job is no longer in ${tab === "posted" ? "Posted" : "Working"}.`);
     }
 
     const next = new URLSearchParams(searchParams);
@@ -402,26 +367,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const activeStatusFilters = tab === "posted" ? POSTED_STATUS_FILTERS : APPLIED_STATUS_FILTERS;
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
-  /* OPEN ON THE FIRST BUCKET THAT HAS ANYTHING (owner, 2026-10-08: "if
-     needs you is empty open the waiting, if there is nothing in waiting then
-     it goes to scheduled and so on"; same for My Posts and My Jobs). Once per
-     tab, when its data first lands, and only on a plain open: a link that
-     names a filter or a job keeps what it named, and a bucket the reader
-     picks afterwards is never moved. Supersedes the earlier no-auto-switch
-     rule; ActivityEmptyState's pointer still covers a bucket emptied later.
-     A `?job=` link is waited for, not counted as the open (Q1668): the link
-     resolves first and drops `job` from the URL, having chosen the job's
-     bucket when the job is on the list; when it is not, this rule then opens
-     the first bucket that holds anything instead of a silent empty one. */
-  const openedOnFirstBucketFor = useRef<string | null>(null);
-  useEffect(() => {
-    if (loading || openedOnFirstBucketFor.current === tab) return;
-    if (deepLinkJobId) return;
-    openedOnFirstBucketFor.current = tab;
-    if (deepLinkHadFilter || statusFilter !== defaultFilter) return;
-    const next = firstBucketWithItems(activeStatusFilters.map((f) => f.key), activeCounts, defaultFilter);
-    if (next !== statusFilter) setStatusFilter(next);
-  }, [loading, tab, activeCounts, activeStatusFilters, deepLinkHadFilter, deepLinkJobId, statusFilter, defaultFilter]);
+  /* No auto-switch on open. The old My Posts / My Jobs pages opened on the
+     first bucket that held anything (owner, 2026-10-08); the Jobs section
+     opens on EVERY group instead (owner, 2026-10-19), so there is nothing to
+     pick: a link that names a filter or a job keeps what it named. */
 
   /* "Truly empty" — the underlying list has zero items, not merely filtered
      down to none — USED TO STRIP THE HEADER'S CONTROLS. It no longer strips
@@ -437,11 +386,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // After a skeleton it replayed as a fade-to-empty + 8px rise between the
   // skeleton and the cards — one more visible jump (VN-32).
   if (loading) skeletonShownRef.current = true;
-  if (loading) {
-    // One silhouette shared with the route fallback — see ActivityPageSkeleton
-    // for why the two loading frames must match the loaded layout (VN-32).
-    return <ActivityPageSkeleton tab={tab === "posted" ? "posted" : "applied"} />;
-  }
+  if (loading) return <EmbeddedActivityLoading header={embeddedHeader} tab={tab === "posted" ? "posted" : "applied"} />;
 
   // The header renders ALWAYS — including on an empty list. It used to be
   // replaced by null, which took the page title down with the filter tabs and
@@ -460,54 +405,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     (tab === "posted" && filteredPostedJobs.length === 0) ||
     (tab === "applied" && filteredAppliedApps.length === 0);
 
-  // Each tab owns its header: My Posts renders src/pages/posts/PostsHeader,
-  // My Jobs renders src/pages/jobs/JobsHeader (owner, 2026-09-25: "They
-  // should be there own headers"). Each header carries its own title.
-  const PageHeader = tab === "posted" ? PostsHeader : JobsHeader;
-  const headerPadding = tab === "posted" ? POSTS_HEADER_PADDING : JOBS_HEADER_PADDING;
   const headerEl = (
-    <PageHeader
-      // Desktop: the app bar and the right rail already say which page you
-      // are on, so the page name is sr-only here and the row is just its
-      // count + controls. Phone and native keep the visible title; they have
-      // no bar. Same rule, same shape as Messages' `embedded || isWebDesktop`
-      // (ConversationList) and Home's unconditional `titleSrOnly`.
-      //
-      // `&& !isTrulyEmpty` USED TO HANG OFF THIS (external QA, 2026-09-07: an
-      // sr-only title left an empty list's row a 1094px bar holding nothing
-      // but a magnifier). It was never a My Jobs / My Posts difference — the
-      // two tabs run this exact line — but it read as one: an account with
-      // posts and no applications saw the title vanish on /posts and
-      // reappear in 20px Bodoni on /jobs, the only page of the four still
-      // painting one at 1440 (browser verification, 2026-09-19). Owner
-      // decision that day: hide it, matching Home, My Posts and Messages.
-      titleSrOnly={isWebDesktop}
-      // Desktop has room for the tabs beside the screen name; phone puts them
-      // on their own line under it. Same tabs either way.
-      inlineFilters={isWebDesktop}
-      // THE TABS ARE THE NAVIGATION, so they stay up on an empty list too.
-      //
-      // This used to be `isTrulyEmpty ? [] : activeStatusFilters`, on the reasoning quoted above: a filter with
-      // nothing to filter has nothing to act on. What that produced on /jobs for an account with no applications —
-      // screenshotted 2026-09-19, 1440 — was a header strip holding a single magnifier and nothing else: the title is
-      // sr-only on the desktop website and the tabs were gone, so the row was empty chrome above an empty panel and
-      // the screen read as broken rather than as empty. /posts on the same account showed all five tabs and the "No
-      // jobs in this view" card, because it HAS posts and was merely filtered to none; the difference was never a
-      // difference between the two pages, but it looked like one.
-      //
-      // A tab row is not an action on the list, it is where you are in the screen. Empty is a legitimate place to be,
-      // and seeing "Needs You" underlined over "No applications yet" says which emptiness this is — whereas a row
-      // with the tabs removed says the screen failed to load. It also keeps the header's HEIGHT identical whether the
-      // list has rows or not, which is the same stability argument that kept the title.
-      activeStatusFilters={activeStatusFilters}
-      activeCounts={activeCounts}
-      statusFilter={statusFilter}
-      setStatusFilter={setStatusFilter}
-      searchOpen={searchOpen}
-      setSearchOpen={setSearchOpen}
-      searchQuery={searchQuery}
-      setSearchQuery={setSearchQuery}
-    />
+    <EmbeddedActivityHeader header={embeddedHeader} tab={tab} statusFilter={statusFilter} counts={activeCounts} onFilter={setStatusFilter} />
   );
 
   return (
@@ -525,9 +424,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       <PageScaffold
         animate={!skeletonShownRef.current}
         titleCard={isWebDesktop ? undefined : headerEl}
-        titleCardClassName={headerPadding} oneBlur
+        titleCardClassName="" oneBlur
       >
-          {isWebDesktop && headerEl && (
+          {isWebDesktop && (
             <div
               className="shrink-0 px-5 py-1"
               style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}
@@ -575,7 +474,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onRetry={refresh}
               onNavigate={navigate}
               onSelectStatusFilter={setStatusFilter}
-              onClearSearch={() => { setSearchQuery(""); setSearchOpen(false); }}
+              onClearSearch={() => setSearchQuery("")}
             />
             </>
           ) : (
@@ -610,6 +509,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             <SectionBoundary label="your posts">
             <PostedJobsTab
               groupByStatus={statusFilter === "all"}
+              bucketGroups
               jobs={filteredPostedJobs}
               highlightJobId={highlightJobId}
               applicantCounts={applicantCounts}
@@ -674,6 +574,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             <SectionBoundary label="your jobs">
             <AppliedJobsTab
               groupByStatus={statusFilter === "all"}
+              bucketGroups
               apps={filteredAppliedApps}
               highlightAppId={highlightAppId}
               expandedJobIds={actions.expandedJobIds}

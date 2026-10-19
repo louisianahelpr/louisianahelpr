@@ -14,28 +14,19 @@
  * the page's data will land. The 404 for a member without the switch still
  * comes after the switch's answer, never a flash of it for a tester.
  */
-import { useNavigate } from "react-router-dom";
 import AppPage from "@/components/AppPage";
-import { Button } from "@/components/ui/button";
+import { SectionScreen } from "@/components/sections/SectionScreen";
+import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeclutterNotice } from "./declutterUi";
 
-/** /declutter: the title row, the intro, the tab row, the distance row and the first cards. */
+/** /declutter: the section shell (top bar), the tab row, the search row and the first cards. */
 export function DeclutterHomeSkeleton() {
-  const navigate = useNavigate();
   return (
-    <AppPage
-      title="Declutter"
-      titleActions={
-        <Button type="button" size="sm" className="whitespace-nowrap" onClick={() => navigate("/declutter/sell")}>
-          Sell an item
-        </Button>
-      }
-    >
-      <p className="text-sm text-muted-foreground">Buy and sell used household items near you. Pick up in person.</p>
-      <Skeleton className="h-12 w-full rounded-full" aria-hidden />
+    <SectionScreen title="Declutter" add={sectionByKey("declutter").add}>
+      <Skeleton className="h-11 w-full rounded-full" aria-hidden />
       <DeclutterBrowseBones />
-    </AppPage>
+    </SectionScreen>
   );
 }
 
@@ -49,9 +40,8 @@ export function DeclutterHomeSkeleton() {
 export function DeclutterBrowseBones() {
   return (
     <div className="space-y-4" role="status" aria-label="Loading items">
-      {/* The distance choices wrap to three rows on a phone (140px at 375)
-          and sit in one row from sm up. */}
-      <Skeleton className="h-[140px] sm:h-12 w-full rounded-2xl" />
+      {/* The one compact search + filter row (the distance choices live in its sheet). */}
+      <Skeleton className="h-10 w-full rounded-full" />
       <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" aria-hidden>
         {[0, 1, 2, 3].map((i) => (
           <li key={i} className="min-w-0">

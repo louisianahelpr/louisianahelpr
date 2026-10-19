@@ -111,7 +111,7 @@ test.describe("helper browse-and-apply happy path", () => {
       }
     });
 
-    await page.goto("/home");
+    await page.goto("/jobs");
 
     // The job title must surface in the feed — covers both the JobCard
     // and the section-heading code paths.
@@ -143,8 +143,8 @@ test.describe("helper browse-and-apply happy path", () => {
       disableRules: ["color-contrast", "nested-interactive"],
     });
 
-    // Confirm we didn't get bounced off /home.
-    expect(page.url()).toContain("/home");
+    // Confirm we did not get bounced off Jobs > Browse (the job feed since Q2205).
+    expect(page.url()).toContain("/jobs");
   });
 
   test("helper can open a job and reach an Apply affordance", async ({ helperPage: page }) => {
@@ -163,7 +163,7 @@ test.describe("helper browse-and-apply happy path", () => {
       ],
     });
 
-    await page.goto("/home");
+    await page.goto("/jobs");
 
     // Tap the card title to open the detail dialog.
     const card = page.getByText(OPEN_JOB.title);

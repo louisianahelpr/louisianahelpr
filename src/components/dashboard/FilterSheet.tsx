@@ -25,6 +25,7 @@ import {
   useScreenPanelBand,
 } from "@/components/ui/anchoredPanel";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { hapticLight } from "@/lib/haptics";
 import {
   SortContent,
@@ -276,6 +277,7 @@ export function FilterSheet({
   // scrolls the focused field into view; this is what gives it somewhere to
   // scroll to. 0 whenever no keyboard is up (and always on web).
   const keyboardInset = useKeyboardInset();
+  const webDesktop = useIsWebDesktop();
   /* The panel is placed against a measured SCREEN BAND — a zero-height rect
      spanning the viewport at the bottom of the header the Filters button sits
      in — not against the button itself. `anchorRef` is still what identifies
@@ -318,7 +320,11 @@ export function FilterSheet({
   // dismiss layer, same surface) — the two anchored panels in the header must
   // not be two different objects. Owner, asked whether they should match:
   // "Yes — both the same".
-  if (anchorRef) {
+  //
+  // Phone + native app (owner 2026-10-18, tweak 6 "slide-up filter sheet"):
+  // the anchored band gave way to the bottom sheet below (grab handle, glued
+  // to the bottom edge). Desktop web keeps the dropdown off the button.
+  if (anchorRef && webDesktop) {
     return (
       <Popover open={open} onOpenChange={onOpenChange} modal>
         <PopoverAnchor virtualRef={screenAnchorRef} />
@@ -336,28 +342,11 @@ export function FilterSheet({
           ref={panelRef}
           {...screenPanelContentProps(band, { roundTopCorners: true })}
           aria-labelledby={titleId}
-          // NO AUTOFOCUS ON THE SEARCH FIELD.
-          //
-          // Nothing in this tree ever asked for it: there is no `autoFocus`
-          // prop and no `.focus()` call. It was Radix's FocusScope default —
-          // on mount it focuses the first tabbable descendant, and on phone
-          // the first section is Search, so the first tabbable descendant is
-          // the "Search jobs…" input. On iOS that threw the software keyboard
-          // up the instant the sliders icon was tapped, covering the bottom
-          // half of the panel (owner: "opens in search bar which opens the
-          // keyboard. not correct") — so DISTANCE, WHEN and everything below
-          // were buried behind a keyboard nobody asked for, on a panel people
-          // open to tap a chip, not to type.
-          //
-          // Park focus on the panel container instead — the same fix
-          // `DialogContent` already carries app-wide. No field is focused so
-          // no keyboard rises, but focus is INSIDE the panel: a screen reader
-          // announces the dialog and its "Refine Your Search" heading, Tab
-          // starts at the close button (phone/native; the desktop dropdown
-          // has none since VN-7) and walks the sections in order, and
-          // Escape still closes. Dropping focus on <body> would have done
-          // none of that. Radix's FocusScope gives Content `tabIndex={-1}`,
-          // so the container accepts focus.
+          // NO AUTOFOCUS ON THE SEARCH FIELD. Radix's FocusScope focused the first tabbable
+          // descendant (the "Search jobs…" input), throwing up the iOS keyboard over the chips
+          // (owner: "opens in search bar which opens the keyboard. not correct"). Park focus on
+          // the panel instead, as DialogContent does app-wide: a screen reader still announces
+          // the dialog and its heading, Tab starts at close, Escape still closes.
           onOpenAutoFocus={(event) => {
             event.preventDefault();
             panelRef.current?.focus({ preventScroll: true });
@@ -486,6 +475,7 @@ export function FilterSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
+        floor
         // A max height so a tall section list scrolls
         // inside the sheet rather than pushing the dock off-screen.
         className="max-h-[85dvh] overflow-y-auto overscroll-contain p-0 gap-0 bg-premium-page"

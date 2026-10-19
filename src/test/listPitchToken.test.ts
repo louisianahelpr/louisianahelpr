@@ -38,7 +38,7 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 // @mutate src/components/dashboard/MainFeedSection.tsx | className="pb-list" | className="pb-2 lg:pb-2.5 xl:pb-3"
 // @mutate src/components/dashboard/BrowseTasksFeed.tsx | className="px-3 pt-3 pb-1 space-y-list" | className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-3"
 // @mutate src/components/job-card/PagedActivityList.tsx | className="space-y-list ds-activity-grid" | className="space-y-3 ds-activity-grid"
-// @mutate src/components/ActivityPageSkeleton.tsx | pb-0 space-y-list" | pb-0 space-y-2.5"
+// @mutate src/components/JobsSectionSkeleton.tsx | pb-0 space-y-list" | pb-0 space-y-2.5"
 // @mutate src/index.css | --list-gap: 0.75rem; | --list-gap: 0.5rem;
 // @mutate tailwind.config.ts | list: "var(--list-gap)", | list: "0.5rem",
 
@@ -168,6 +168,7 @@ describe("every job-card list uses the one --list-gap pitch (Q213a)", () => {
   it("finds the job-card lists from source (inventory floor)", () => {
     // 10 on 2026-09-26: GuestBrowseSkeleton x2, JobListPage x2,
     // ActivityPageSkeleton x2, BrowseTasksFeed x2, DashboardGuest x2.
+    // 2026-10-19 (Q2205): ActivityPageSkeleton x2 -> JobsSectionSkeleton x2.
     expect(hits.length).toBeGreaterThan(9);
   });
 

@@ -30,8 +30,6 @@ const HUB_PATH_ALLOWED: Record<string, string> = {
   "src/App.tsx": "the route itself: <Route path=\"/quotes\"> renders QuotesHubRedirect",
   "src/lib/desktopNavRoutes.ts": "a route list (app chrome on /quotes/*), not a link",
   "src/components/mobileNav/mobileNavHelpers.ts": "a route list (app chrome on /quotes/*), not a link",
-  "src/components/profile/profileLanding/QuotesEntryRow.tsx":
-    "the Profile landing Quotes row: the design agent's build removes it (owner 2026-10-19, not edited here); once the file is gone this entry is dead and must be deleted",
 };
 
 function walk(dir: string, out: string[] = []): string[] {

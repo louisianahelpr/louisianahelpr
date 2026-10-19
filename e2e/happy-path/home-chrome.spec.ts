@@ -16,35 +16,21 @@ import { AXE_TAGS } from "./axeTags";
 const SHOT_DIR = join(homedir(), ".lh-shots", "ui-review");
 mkdirSync(SHOT_DIR, { recursive: true });
 
-// Home's two rows of chrome, measured.
+// The job FEED's chrome, measured. RE-POINTED 2026-10-19 (Q2205): the feed
+// moved from /home (its own brand row: emblem, Filters, bell) to Jobs > Browse
+// (/jobs), under the section skeleton every section shares (owner, final
+// section decisions 2026-10-19):
 //
-// The arrangement here was swapped twice in one day, so it is pinned by
-// measurement rather than by comment:
+//   top bar      [h1 "Jobs"] ................ [+] [bell] [profile]
+//   tabs         [Browse | Posted | Working]   (Browse leftmost)
+//   phone        [🔍 Search jobs ........ ⚙ Filters]   one slim row, filter icon inside
+//   desktop      the same controls in the feed strip directly above the cards
 //
-//   row 1 (PageScaffold titleCard)  [emblem] ............ [job pill] [bell]
-//   row 2 (BrowseTasksToolbar)      [h1 "Home" (guest /browse: "Browse Jobs")] ... [search] [filters]
-//
-// The 2026-08-17 build had the icons in row 1 and the pill in row 2. The owner
-// saw it on device and asked for the swap. Both halves are asserted
-// POSITIONALLY (row 1's controls sit strictly above row 2's), because "the
-// icons are present" was true in both arrangements and would not have caught
-// the regression either way.
-//
-// Row 2 carried FOUR icons until the owner's next call — "move saved filters
-// and map view into the filter option and move the rest up into the 1 column
-// so it's the same size layout as jobs and post". So the map toggle and saved
-// searches are inside the filter sheet now and row 2 is the same two-icon
-// header My Posts renders. Both moved controls are asserted REACHABLE below
-// (`the moved controls live in the filter sheet`) rather than merely absent
-// from the row — losing them entirely would otherwise read as a pass.
-//
-// The pill is also a SHORTCUT now — one tap goes where the label says, which
-// is why both label states are clicked and the resulting URL is asserted.
-// `/jobs?filter=in_progress` and `?filter=active` are the app's own
-// existing deep links (see inProgressBadgeTarget); this spec is what proves
-// they land somewhere real rather than on /activity's redirect (which drops
-// the query string) or /jobs/:id (which bounces a signed-in user back to
-// /home).
+// Asserted POSITIONALLY (profile far right, bell just left of it, "+" left of
+// the bell; the search row below the tabs), because "the controls are present"
+// is true of every arrangement and catches none of the regressions.
+// The map toggle and saved searches stay in the filter sheet, asserted
+// REACHABLE below (`the moved controls live in the filter sheet`).
 
 /** The feed's header-row action icons, in row order. Accessible names, not
  *  classes.
@@ -127,7 +113,7 @@ async function gotoBrowseSurface(
 }
 
 const gotoHome = (page: Page, opts: { width: number; height: number; theme: "light" | "dark" }) =>
-  gotoBrowseSurface(page, "/home", opts);
+  gotoBrowseSurface(page, "/jobs", opts);
 
 for (const variant of [
   { tag: "375-light", width: 375, height: 812, theme: "light" as const },
@@ -135,7 +121,7 @@ for (const variant of [
   { tag: "1440-light", width: 1440, height: 900, theme: "light" as const },
   { tag: "1440-dark", width: 1440, height: 900, theme: "dark" as const },
 ]) {
-  test(`home chrome fits and is arranged correctly @ ${variant.tag}`, async ({
+  test(`job feed chrome (Jobs > Browse) fits and is arranged correctly @ ${variant.tag}`, async ({
     context,
     page,
     baseURL,
@@ -151,104 +137,56 @@ for (const variant of [
     expect(layout.h1Count, `h1 count (texts: ${layout.h1Texts.join(" | ")})`).toBe(1);
     expect(layout.smallTapTargets, `sub-44px controls @ ${variant.tag}`).toEqual([]);
 
-    // --- row 1: the pill sits with the bell -----------------------------
-    //
-    // PHONE ONLY. The desktop website drops the in-progress pill from this row
-    // (owner) — the job it points at is one click away in the side panel, and
-    // the row up there is the app bar rather than the screen's only chrome.
-    // Phone and native keep it: they have no app bar, so this row is the only
-    // place a live commitment can ride.
     const isDesktopWeb = variant.width >= 900;
-    const bell = page.getByRole("button", { name: "Notifications" });
-    await expect(bell).toBeVisible();
-    const bellBox = (await bell.boundingBox())!;
+
+    // --- the top bar: title, then "+" · bell · profile, profile far right ---
+    const bar = page.getByTestId("app-top-bar");
+    await expect(bar).toBeVisible();
+    await expect(bar.getByRole("heading", { level: 1, name: "Jobs" })).toBeVisible();
+    const add = (await bar.getByTestId("section-add").boundingBox())!;
+    const bellBox = (await bar.getByTestId("top-bar-bell").boundingBox())!;
+    const profile = (await bar.getByTestId("top-bar-profile").boundingBox())!;
+    expect(add.x + add.width, `"+" sits left of the bell @ ${variant.tag}`).toBeLessThanOrEqual(bellBox.x + 1);
+    expect(bellBox.x + bellBox.width, `the bell sits just left of the profile @ ${variant.tag}`).toBeLessThanOrEqual(profile.x + 1);
+    for (const [name, box] of [["+", add], ["profile", profile]] as const) {
+      expect(Math.abs(box.y + box.height / 2 - (bellBox.y + bellBox.height / 2)), `${name} shares the bar with the bell`).toBeLessThan(6);
+    }
 
     // THE PILL IS GONE, on every width (owner, pointing at it: "remove").
-    // The brand row is emblem + filter + bell and nothing else; the job the
-    // pill pointed at is still reachable from the Jobs tab, which carries its
-    // own count. Asserted as absent rather than deleted so putting it back is a
-    // deliberate act that trips this test, not a silent reappearance.
     await expect(
       page.getByRole("button", { name: /^In progress: / }),
-      "the brand row carries no in-progress pill on any width",
+      "the feed's chrome carries no in-progress pill on any width",
     ).toHaveCount(0);
 
-    // --- the two action icons now live IN row 1, left of the bell -------
-    // This spec used to assert the opposite (icons in a SECOND row below the
-    // brand row). The owner moved them up beside the bell — "should be to the
-    // left of the notification bell" — and the vacated row was removed, so the
-    // feed starts directly under the title card. The assertion is inverted to
-    // the new arrangement rather than relaxed: same-row is still proven by
-    // centre alignment, and left-of-bell by a hard edge comparison.
+    // --- the tabs: Browse leftmost and selected -------------------------
+    const tabs = page.getByRole("tablist", { name: "Jobs & Posts" });
+    await expect(tabs.getByRole("tab")).toHaveText(["Browse", "Posted", "Working"]);
+    await expect(tabs.getByRole("tab", { name: "Browse" })).toHaveAttribute("aria-selected", "true");
+    const tabsBox = (await tabs.boundingBox())!;
+    expect(tabsBox.y, "the tabs sit under the top bar").toBeGreaterThanOrEqual(bellBox.y + bellBox.height - 1);
+
+    // --- search + Filters: one slim row on phone, the feed strip on desktop ---
     for (const name of ACTION_ICON_NAMES) {
       const icon = page.getByRole("button", { name }).first();
       await expect(icon, `action icon ${name} @ ${variant.tag}`).toBeVisible();
       const box = (await icon.boundingBox())!;
-      expect(box.width, `action icon ${name} tap target`).toBeGreaterThanOrEqual(28);
-      if (isDesktopWeb) {
-        // On the desktop website these controls are not in the app bar at all —
-        // they sit directly above the JOB CARDS, because they filter the list
-        // and not the map beside it (owner). So the only geometry that holds
-        // here is that they are BELOW the bar, which is exactly the move.
-        expect(box.y, `action icon ${name} sits below the app bar`)
-          .toBeGreaterThan(bellBox.y + bellBox.height - 1);
-        continue;
-      }
-      expect(box.height, `action icon ${name} tap target`).toBeGreaterThanOrEqual(44);
-      // Same row as the bell (vertical centres agree)...
-      expect(
-        Math.abs((box.y + box.height / 2) - (bellBox.y + bellBox.height / 2)),
-        `action icon ${name} shares the brand row with the bell`,
-      ).toBeLessThan(6);
-      // ...and strictly to its LEFT, with no overlap.
-      expect(box.x + box.width, `action icon ${name} sits left of the bell`)
-        .toBeLessThanOrEqual(bellBox.x + 1);
+      expect(box.y, `action icon ${name} sits below the tabs`).toBeGreaterThan(tabsBox.y + tabsBox.height - 1);
+      if (isDesktopWeb) continue;
+      // Phone: INSIDE the search row (owner: "one slim search row with the filter icon inside").
+      const row = (await page.getByTestId("browse-compact-search").boundingBox())!;
+      expect(box.x, `${name} sits inside the search row`).toBeGreaterThanOrEqual(row.x - 1);
+      expect(box.x + box.width, `${name} sits inside the search row`).toBeLessThanOrEqual(row.x + row.width + 1);
+      expect(Math.abs(box.y + box.height / 2 - (row.y + row.height / 2)), `${name} is centred in the search row`).toBeLessThan(4);
     }
-    // SEARCH IS AN ICON ON EVERY WIDTH, PHONE INCLUDED (owner, 2026-09-07).
-    //
-    // This asserted the opposite until then: Search had folded into the filter
-    // sheet because the phone brand row could not fit it. That was true when
-    // the cluster was FIVE controls — but Saved, View and Saved-searches have
-    // all since moved into the sheet, and nobody re-measured. At 375 it left a
-    // 158px hole between the emblem and the first icon, which an external
-    // review read as a broken search box; at 320 the row now needs 156px
-    // against 201px of room.
-    //
-    // The deciding argument was consistency rather than width: PostsHeader and
-    // JobsHeader render their "Search jobs" button unconditionally, so My Posts and My Jobs
-    // have carried this icon in this slot at this width the whole time. Browse
-    // was the odd screen out.
-    //
-    // Kept as a POSITIVE assertion, not a deletion — an absent check would let
-    // the icon quietly disappear again the next time someone re-tunes this row.
-    await expect(
-      page.getByRole("button", { name: /^Search jobs$/ }),
-      `Search rides the brand row on every width @ ${variant.tag}`,
-    ).toHaveCount(1);
+    if (!isDesktopWeb) {
+      await expect(page.getByRole("searchbox", { name: "Search jobs" }).or(page.locator('input[aria-label="Search jobs"]')).first()).toBeVisible();
+    }
     for (const name of MOVED_OUT_OF_ROW) {
       await expect(
         page.getByRole("button", { name }),
         `${name} belongs in the filter sheet, not the header row`,
       ).toHaveCount(0);
     }
-
-    // The header row is the SAME height My Posts' header row is — one row of
-    // chrome, not a band. Both are the shared <ScreenHeaderRow>, floored at
-    // 44px by its own minHeight and by the HIG button rule.
-    // Was Search vs Filters; Search moved into the sheet, so the surviving
-    // icon is compared against itself for the 44px floor below.
-    const searchBox = (await page
-      .getByRole("button", { name: /^Filters/ })
-      .first()
-      .boundingBox())!;
-    const filtersBox = (await page
-      .getByRole("button", { name: /^Filters/ })
-      .first()
-      .boundingBox())!;
-    expect(
-      Math.abs((searchBox.y + searchBox.height / 2) - (filtersBox.y + filtersBox.height / 2)),
-      "search/filters share one row",
-    ).toBeLessThan(4);
 
     // --- a11y -----------------------------------------------------------
     const axe = await new AxeBuilder({ page })

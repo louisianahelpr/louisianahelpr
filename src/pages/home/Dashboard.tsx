@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense, type ReactNode } from "react";
 import { ApplicationSentDialog } from "@/components/dashboard/ApplicationSentDialog";
 import { readStoredFeedDensity, type FeedDensity } from "@/components/dashboard/feedDensity";
 
@@ -9,17 +9,13 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useBoostReturn } from "./useBoostReturn";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
-import { LoadingHeading } from "@/components/ui/LoadingHeading";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { isProfileComplete } from "@/components/ProtectedRoute";
-// TITLE_BAR_PADDING ships WITH the bar it is sized for, so Home and the
-// guest feed cannot drift apart on the one measurement that makes the row
-// read as a band of chrome rather than a card.
-import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
 import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
+import { BrowseCompactSearchRow } from "@/components/dashboard/browseTasksToolbar/BrowseCompactSearchRow";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { useWantsQuotes } from "@/pages/home/useWantsQuotes";
 import { WantsQuotesSlot, JobsHeaderCount } from "@/components/quotes/WantsQuotesSlot";
@@ -62,12 +58,13 @@ import { useLoadMoreSentinel } from "./useLoadMoreSentinel";
 import { useSavedOnlyPaging } from "./useSavedOnlyPaging";
 
 
-const Dashboard = () => {
+/** Jobs > Browse (owner, 2026-10-19): `embeddedHeader` is the section's top bar + tabs; the feed adds ONE compact
+ *  search row under it on phone. The old standalone phone title card (DashboardTitleBar + BrowseSearchBar) is gone:
+ *  no route rendered it once /home became the Home dashboard (Q2205). */
+const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
   const navigate = useNavigate();
-  // Matches the h1 this page renders ("Home" — LoadingHeading and
-  // BrowseTasksToolbar both), not the route name. "Dashboard — Helpr" named a
-  // word that appears nowhere on the screen.
-  usePageTitle("Home — Helpr");
+  // Names the section this feed is the Browse tab of (Jobs; its top bar's h1).
+  usePageTitle("Jobs — Helpr");
 
   // The Filters button lives in the title card (BrowseTasksActions) while the
   // filter panel lives in BrowseTasksToolbar below it. This page is the one
@@ -359,41 +356,29 @@ const Dashboard = () => {
   // stays — ScheduleTab imports `inProgressBadgeTarget` from it.
 
 
+  const embeddedTitle = (
+    <div className="flex flex-col gap-3 pb-1">
+      {embeddedHeader}
+      {!isWebDesktop && <BrowseCompactSearchRow filters={filters} filtersButtonRef={filtersButtonRef} />}
+    </div>
+  );
+
   if (loading) {
-    // Loading state mirrors the *exact* loaded layout: the same
-    // PageScaffold two-card shell (brand title card over a raised panel)
-    // with a skeleton body, not a bare AppShell + stack of cards.
-    // Sharing the scaffold means the title card and panel keep their
-    // size and position, so when the data resolves the feed settles in
-    // place instead of popping in and shoving everything down. The title
-    // bar is the REAL one rather than a skeleton: nothing in it depends on
-    // the pending feed query, so rendering a placeholder would only make it
-    // flicker into itself.
+    // Loading mirrors the exact loaded layout (same PageScaffold, the REAL title bar) so the feed
+    // settles in place instead of shoving everything down.
     return (
       <PageScaffold
         animate
         panelElevation="raised"
-        // Full-bleed app bar — web-desktop ONLY. Passing it unconditionally
-        // would add a second, in-flow sticky header on phone/native (where
-        // the "Full-bleed top header" CSS rule never fires), stacking on top
-        // of the title card's own emblem+bell instead of replacing them.
-        // SAME FRAME AS THE LOADED PAGE ON THE DESKTOP WEBSITE (Q169). The
-        // loaded desktop page has no title card (its controls moved into the
-        // feed column's strip) and splits into feed + map columns. This
-        // loading frame used to draw the phone title card at every width, so
-        // at 1440 the whole panel jumped 42px up when the feed landed (CLS
-        // 0.045) and four full-width bars became a narrow column beside a
-        // map. It now draws the columns the loaded page draws.
-        titleCard={isWebDesktop ? undefined : <DashboardTitleBar
-            actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
-            searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
-          />}
-        titleCardClassName={TITLE_BAR_PADDING}
+        // Full-bleed app bar: web-desktop ONLY (on phone it would stack a second sticky header).
+        // SAME FRAME AS THE LOADED DESKTOP PAGE (Q169): no title card, feed + map columns, so the
+        // panel no longer jumps 42px when the feed lands (CLS 0.045 at 1440).
+        titleCard={embeddedTitle}
+        titleCardClassName=""
       >
-        {/* The loaded screen's only <h1> lives in BrowseTasksToolbar, which
-            doesn't exist yet here — so the pending screen had no heading at
-            all. Visually hidden; the skeleton stays the visible design. */}
-        <LoadingHeading title="Home" message="Loading jobs near you…" />
+        {/* The screen's one <h1> is the section top bar's ("Jobs", in the title card above); this only
+            announces the wait. */}
+        <p className="sr-only" role="status" aria-live="polite">Loading jobs near you…</p>
         {isWebDesktop ? (
           <div className="flex flex-1 min-h-0 overflow-hidden" data-testid="dashboard-desktop-loading">
             <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
@@ -449,39 +434,11 @@ const Dashboard = () => {
     <PageScaffold
       animate
       panelElevation="raised"
-      // A slim toolbar above the feed (owner: "move to section above the job card"). On desktop it carries only the
-      // search + filter controls — the emblem and bell live in the global app bar, and the IN PROGRESS pill was
-      // removed outright (owner). Phone/native keep the full card, emblem + pill included, since they have no app bar
-      // to hold them. MERGED (owner: "merge"). On the desktop website there is no separate floating title card above
-      // the panel any more — it was a second box stating nothing the app bar doesn't already carry, and it spanned
-      // the map as well as the feed. Its one remaining job, the search + filter controls, moved INTO the panel
-      // directly above the job cards (see the feed column below), so the screen is one box.
-      //
-      // Phone and native keep the card exactly as it was: they have no app bar, so this is the only thing carrying
-      // the emblem and the live in-progress pill.
-      titleCard={
-        isWebDesktop ? undefined : (
-          <DashboardTitleBar
-            actions={
-              <BrowseTasksActions
-                filters={filters}
-                filtersButtonRef={filtersButtonRef}
-                savedOnly={savedOnly}
-                onToggleSavedOnly={toggleSavedOnly}
-                savedCount={filters.savedShownCount ?? 0}
-                // Phone + native: emblem, search, filter, bell. Search is no
-                // longer folded into the sheet — the row this cluster has to
-                // fit is nothing like the five-control row that argument was
-                // measured against, and the fold left 158px of dead band in
-                // the middle of the brand row with search unreachable except
-                // through the Filters drawer. See BrowseTasksActions.
-              />
-            }
-            searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
-          />
-        )
-      }
-      titleCardClassName={TITLE_BAR_PADDING}
+      // The section's top bar + tabs (+ the compact search row on phone). On the desktop website the search +
+      // filter controls live INSIDE the panel, directly above the job cards (the feed strip below), so the screen
+      // reads as one box.
+      titleCard={embeddedTitle}
+      titleCardClassName=""
       beforePanel={
         <>
           {/* The "Your Helprs" quick-rebook strip used to render here,
@@ -657,7 +614,10 @@ const Dashboard = () => {
                   )}
 
                   <BrowseTasksToolbar
-                    screenName="Home"
+                    screenName="Jobs"
+                    // The section's top bar carries the screen's one <h1> ("Jobs"); a second, sr-only one here
+                    // made two (Q2205, home-chrome.spec.ts h1Count).
+                    renderHeading={false}
                     filtersAnchorRef={filtersButtonRef}
                     titleSrOnly
                     filters={filters}

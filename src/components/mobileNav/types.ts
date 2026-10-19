@@ -8,6 +8,8 @@ export interface TabButtonProps {
   onPrefetch: () => void;
   ariaLabel: string;
   ariaCurrent: "page" | undefined;
+  /** A section whose switch is off for the viewer: shown greyed, never navigates. */
+  ariaDisabled?: boolean;
   className: string;
   style?: React.CSSProperties;
   children: React.ReactNode;

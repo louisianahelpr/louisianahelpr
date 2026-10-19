@@ -63,7 +63,8 @@ describe("signedInSplit: signed-in code no first screen reaches (signed-in-deep,
 
   it("starts from every page in ENTRY_ROUTE_CHUNKS, ProtectedRoute and the every-page components", () => {
     const roots = firstScreenRoots(ROOT).map((r) => r.split("\\").join("/"));
-    for (const rel of ["src/pages/posts/PostsPage.tsx", "src/pages/home/Dashboard.tsx", "src/pages/messages/Messages.tsx", "src/pages/profile/Profile.tsx", "src/components/ProtectedRoute.tsx", "src/components/MobileNav.tsx"]) {
+    // 2026-10-19: /home opens the Home dashboard and /jobs the Jobs section (which embeds Dashboard).
+    for (const rel of ["src/pages/posts/PostsPage.tsx", "src/pages/home/HomeDashboard.tsx", "src/pages/jobs/JobsSection.tsx", "src/pages/messages/Messages.tsx", "src/pages/profile/Profile.tsx", "src/components/ProtectedRoute.tsx", "src/components/MobileNav.tsx"]) {
       expect(roots, rel).toContain(abs(rel));
     }
   });

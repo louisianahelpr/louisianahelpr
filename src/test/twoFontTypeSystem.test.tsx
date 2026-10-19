@@ -148,11 +148,11 @@ describe("two-font type system", () => {
       </MemoryRouter>,
     );
     const h1 = screen.getByRole("heading", { level: 1 });
-    expect(h1.textContent).toBe("Louisiana’s Local Job Partner.");
+    expect(h1.textContent).toBe("Louisiana’s Local Partner.");
     // jsdom has no stylesheet, so the class list is the contract here: the
     // `font-display` token is the only route to Bodoni Moda in the app.
     expect(h1.className.split(/\s+/)).toContain("font-display");
-    const subhead = screen.getByText("Hire a Helpr or find local work. For everyday jobs, big and small.");
+    const subhead = screen.getByText("Jobs, Declutter, Shops and Homes: everything local, in one place.");
     expect(subhead.style.fontFamily).toMatch(/^Montserrat/);
     expect(subhead.className.split(/\s+/)).not.toContain("font-display");
   });

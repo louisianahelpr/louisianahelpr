@@ -20,7 +20,7 @@ import type { CSSProperties } from "react";
  */
 
 export const TITLE_CARD_CLASS =
-  "liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden";
+  "page-title-card liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden";
 
 export const TITLE_CARD_STYLE: CSSProperties = {
   // Intentional two-step material hierarchy: the title card sits a touch

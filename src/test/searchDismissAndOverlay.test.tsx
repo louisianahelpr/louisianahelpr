@@ -40,18 +40,12 @@
  * tree, and the reviewed set below must equal it EXACTLY — a new expanding
  * search fails here until someone reviews it, and a deleted one fails too.
  *
- * @mutate src/pages/posts/PostsHeader.tsx | if (wasOpenRef.current && !searchOpen) searchTriggerRef.current?.focus(); | if (false) searchTriggerRef.current?.focus();
- * @mutate src/pages/jobs/JobsHeader.tsx | if (wasOpenRef.current && !searchOpen) searchTriggerRef.current?.focus(); | if (false) searchTriggerRef.current?.focus();
- * @mutate src/pages/posts/PostsHeader.tsx | if (e.key === "Escape") { e.preventDefault(); closeSearch(); } | if (e.key === "EscapeNope") { e.preventDefault(); closeSearch(); }
- * @mutate src/pages/jobs/JobsHeader.tsx | if (e.key === "Escape") { e.preventDefault(); closeSearch(); } | if (e.key === "EscapeNope") { e.preventDefault(); closeSearch(); }
  * @mutate src/components/messages/ConversationList.tsx | if (wasSearchOpenRef.current && !searchOpen) searchTriggerRef.current?.focus(); | if (false) searchTriggerRef.current?.focus();
  * @mutate src/components/profile/SavedHelpersTab.tsx | searchTriggerRef.current?.focus(); | void 0;
  * @mutate src/components/dashboard/DashboardTitleBar.tsx | ?.querySelector<HTMLElement>("[data-search-trigger]") | ?.querySelector<HTMLElement>("[data-no-such-trigger]")
  * @mutate src/components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx | data-search-trigger | data-search-trigger-renamed
  * @mutate src/components/ui/ScreenHeaderRow.tsx | data-search-trigger-slot | data-search-trigger-slot-renamed
  * @mutate src/components/ui/ScreenHeaderRow.tsx | className="shrink-0 pointer-events-none" | className="shrink-0"
- * @mutate src/pages/posts/PostsHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | 
- * @mutate src/pages/jobs/JobsHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | 
  * @mutate src/components/messages/ConversationList.tsx | triggerWidth: isWebDesktop ? "28px" : "44px", | 
  * @mutate src/components/profile/SavedHelpersTab.tsx | <SearchTriggerSlot /> | <span />
  * NO @mutate FOR pages/info/Legal.tsx. There was one — deleting the page's
@@ -70,7 +64,6 @@
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { useState } from "react";
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
@@ -114,8 +107,6 @@ vi.mock("@/lib/haptics", () => ({
   hapticMedium: vi.fn(), hapticSelection: vi.fn(), hapticWarning: vi.fn(), hapticHeavy: vi.fn(),
 }));
 
-import { PostsHeader } from "@/pages/posts/PostsHeader";
-import { JobsHeader } from "@/pages/jobs/JobsHeader";
 import { ConversationList } from "@/components/messages/ConversationList";
 import type { Conversation } from "@/components/messages/types";
 import { blankComments } from "./helpers/blankNonCode";
@@ -168,11 +159,10 @@ function deriveExpandingSearchFiles(): string[] {
  *     BrowseTasksActions.tsx                          the Browse trigger
  *   components/messages/ConversationList.tsx          Messages inbox
  *   components/profile/SavedHelpersTab.tsx            Profile ▸ Saved Helprs
- *   components/job-card/JobListPage.tsx                                owns My Posts / My Jobs state
  *   pages/home/Dashboard.tsx                               desktop Browse strip — OPEN, see below
  *   pages/info/Legal.tsx                                   policy search
- *   pages/posts/PostsHeader.tsx                            My Posts field
- *   pages/jobs/JobsHeader.tsx                              My Jobs field
+ *   (PostsHeader / JobsHeader / JobListPage left 2026-10-19 with the old
+ *    My Posts / My Jobs search, Q2205.)
  *
  * The admin tables (AdminUsers, AdminSubscriptions, AdminReferrals,
  * AdminNotificationLogs, AdminSettings) are deliberately absent: their fields
@@ -187,11 +177,8 @@ const REVIEWED_EXPANDING_SEARCHES = [
   "components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx",
   "components/messages/ConversationList.tsx",
   "components/profile/SavedHelpersTab.tsx",
-  "components/job-card/JobListPage.tsx",
   "pages/home/Dashboard.tsx",
   "pages/info/Legal.tsx",
-  "pages/posts/PostsHeader.tsx",
-  "pages/jobs/JobsHeader.tsx",
 ].sort();
 
 // The exact gate useIsWebDesktop reads (min-width: 900px, non-native).
@@ -278,117 +265,11 @@ function assertFieldStaysInFlow(field: HTMLElement, stopAt: HTMLElement) {
   ).toEqual([]);
 }
 
-/* ───────────────────────── My Posts / My Jobs ───────────────────────── */
-
-/**
- * JobListPage's own wiring, minus the data: plain `useState` for the two
- * search values, exactly as the page holds them. Stubbing the setters would
- * make "one activation" untestable — the whole report is about how many
- * activations the real transitions take. Each tab owns its header, so the
- * harness renders whichever header it is handed (PostsHeader or JobsHeader).
- */
-function TabHeaderHarness({
-  Header,
-  inlineFilters,
-  seen,
-}: {
-  Header: typeof PostsHeader | typeof JobsHeader;
-  inlineFilters: boolean;
-  seen: { query: string };
-}) {
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  seen.query = searchQuery;
-  return (
-    <Header
-      titleSrOnly={inlineFilters}
-      inlineFilters={inlineFilters}
-      activeStatusFilters={[
-        { key: "needs_you", label: "Needs you" },
-        { key: "active", label: "Active" },
-      ] as never}
-      activeCounts={{ needs_you: 1, active: 2 }}
-      statusFilter="needs_you"
-      setStatusFilter={vi.fn()}
-      searchOpen={searchOpen}
-      setSearchOpen={setSearchOpen}
-      searchQuery={searchQuery}
-      setSearchQuery={setSearchQuery}
-    />
-  );
-}
-
-describe.each([
-  ["My Posts", "phone / native", PostsHeader, false],
-  ["My Posts", "desktop website (>=900px)", PostsHeader, true],
-  ["My Jobs", "phone / native", JobsHeader, false],
-  ["My Jobs", "desktop website (>=900px)", JobsHeader, true],
-] as const)("%s search — %s", (title, _label, Header, inlineFilters) => {
-  function mount() {
-    const seen = { query: "" };
-    render(
-      <MemoryRouter>
-        <TabHeaderHarness Header={Header} inlineFilters={inlineFilters} seen={seen} />
-      </MemoryRouter>,
-    );
-    return seen;
-  }
-
-  it("the inventory is real: the row offers a search trigger at this width", () => {
-    mount();
-    expect(screen.getByRole("button", { name: "Search jobs" })).toBeTruthy();
-    expect(screen.queryByRole("searchbox", { name: "Search jobs" })).toBeNull();
-  });
-
-  it("the field opens IN FLOW — nothing is positioned over a sibling", () => {
-    mount();
-    fireEvent.click(screen.getByRole("button", { name: "Search jobs" }));
-    assertFieldStaysInFlow(
-      screen.getByRole("searchbox", { name: "Search jobs" }),
-      headerRow(),
-    );
-  });
-
-  it("the screen KEEPS ITS NAME while search is open — the field takes free space, not the title's", () => {
-    mount();
-    fireEvent.click(screen.getByRole("button", { name: "Search jobs" }));
-    expect(screen.getByRole("heading", { level: 1, name: title })).toBeTruthy();
-    // The desktop row's name is already sr-only at rest, so only the phone
-    // placement has a visible one to keep.
-    if (!inlineFilters) {
-      expect(screen.getByText(title, { selector: "span" })).toBeTruthy();
-    }
-  });
-
-  it("ONE press of the ✕ returns the pre-open state: closed, cleared, focus back on the trigger", () => {
-    const seen = mount();
-    fireEvent.click(screen.getByRole("button", { name: "Search jobs" }));
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search jobs" }), {
-      target: { value: "lawn" },
-    });
-    expect(seen.query).toBe("lawn");
-
-    fireEvent.click(screen.getByRole("button", { name: "Close search" }));
-
-    expect(screen.queryByRole("searchbox", { name: "Search jobs" }), "one press must close it").toBeNull();
-    expect(seen.query, "one press must clear the query").toBe("");
-    expect(
-      document.activeElement,
-      "one press must hand focus back to the magnifier — otherwise the caret lands on <body>",
-    ).toBe(screen.getByRole("button", { name: "Search jobs" }));
-  });
-
-  it("Escape is the keyboard's ✕ — same single activation", () => {
-    const seen = mount();
-    fireEvent.click(screen.getByRole("button", { name: "Search jobs" }));
-    const field = screen.getByRole("searchbox", { name: "Search jobs" });
-    fireEvent.change(field, { target: { value: "lawn" } });
-    fireEvent.keyDown(field, { key: "Escape" });
-    expect(screen.queryByRole("searchbox", { name: "Search jobs" })).toBeNull();
-    expect(seen.query).toBe("");
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Search jobs" }));
-  });
-});
+/* ───────────────────────── My Posts / My Jobs ─────────────────────────
+   RETIRED 2026-10-19 (Q2205): PostsHeader / JobsHeader and their expanding
+   search went with the old My Posts / My Jobs pages. Jobs > Posted / Working
+   carry no search (status boxes filter them); Jobs > Browse's search is the
+   always-open compact row (src/test/searchFieldsAllChecked.test.ts). */
 
 /* ───────────────────────── Messages inbox ───────────────────────── */
 
@@ -596,18 +477,14 @@ const EXERCISED = [
   "components/dashboard/DashboardTitleBar.tsx",
   "components/messages/ConversationList.tsx",
   "components/profile/SavedHelpersTab.tsx",
-  "pages/posts/PostsHeader.tsx",
-  "pages/jobs/JobsHeader.tsx",
 ];
 const NOT_EXERCISED: Record<string, string> = {
   "components/dashboard/BrowseTasksToolbar.tsx":
     "holds no field and no trigger — it only passes the shared flag through to the sheet",
   "components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx":
-    "the field DashboardTitleBar swaps in; its dismiss is covered by the title-row hand-back above and by e2e/journeys/01-browse.spec.ts",
+    "the desktop feed strip's field (the phone title row that also swapped it in left with Q2205); its dismiss is pinned by the strip's describe block below and by e2e/prod-audit/search-x-off-center-press.spec.ts (browse-desktop-strip)",
   "components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx":
     "trigger only — asserted by source for the data-search-trigger marker above",
-  "components/job-card/JobListPage.tsx":
-    "owns the state PostsHeader / JobsHeader render; the transitions are exercised through each header",
   "pages/home/Dashboard.tsx":
     "the desktop feed strip — pinned by its own describe block below, from source, because the page is 900 lines behind a dozen data hooks and the fact under test is structural",
   "pages/info/Legal.tsx":
@@ -769,11 +646,9 @@ const NO_SLOT_NEEDED: Record<string, string> = {
   "components/dashboard/BrowseTasksToolbar.tsx":
     "renders no row and no trigger — it only passes the shared flag to the filter sheet",
   "components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx":
-    "the FIELD, not a row: it carries the magnifier inside its left edge and the ✕ inside its right. The slot belongs to whichever row renders it (BrowseTasksActions on desktop; the phone brand row unmounts its whole cluster instead, so nothing of it is near the ✕)",
+    "the FIELD, not a row: it carries the magnifier inside its left edge and the ✕ inside its right. The slot belongs to the row that renders it (BrowseTasksActions in the desktop feed strip, its only caller since Q2205)",
   "components/dashboard/DashboardTitleBar.tsx":
-    "the phone brand row gives the WHOLE bar to the field, so the entire cluster — magnifier included — is unmounted and none of it is adjacent to the ✕. Measured at 375: the magnifier returns third from the right, clear of the ✕ by 50px",
-  "components/job-card/JobListPage.tsx":
-    "owns the state PostsHeader / JobsHeader render; it holds no row of its own",
+    "the brand row gives the WHOLE bar to the field, so the entire cluster — magnifier included — is unmounted and none of it is adjacent to the ✕ (measured at 375: clear of the ✕ by 50px). Since Q2205 no screen passes it a field (the guest feed renders it without one); the hand-back stays pinned above on the component itself",
   "pages/home/Dashboard.tsx":
     "renders the strip whose slot BrowseTasksActions supplies — pinned by the describe block above",
 };
@@ -793,7 +668,8 @@ describe("every expanding search holds the magnifier's landing slot open", () =>
     expect(
       MUST_RESERVE_THE_SLOT.length,
       "every expanding search got excluded — the slot contract would be asserted about nothing",
-    ).toBeGreaterThanOrEqual(4);
+    // 3 since 2026-10-19 (Q2205): PostsHeader / JobsHeader left with the old My Posts / My Jobs pages.
+    ).toBeGreaterThanOrEqual(3);
   });
 
   it.each(MUST_RESERVE_THE_SLOT)("%s renders a SearchTriggerSlot", (file) => {
@@ -818,7 +694,8 @@ describe("every expanding search holds the magnifier's landing slot open", () =>
         expect(block, `${file}: an expandingSearch config has no triggerWidth`).toMatch(/triggerWidth:/);
       }
     }
-    expect(configs, "no expandingSearch config found — this check reads nothing").toBeGreaterThanOrEqual(3);
+    // 1 since 2026-10-19 (Q2205): ConversationList; PostsHeader / JobsHeader's two left with the old My Posts / My Jobs pages.
+    expect(configs, "no expandingSearch config found — this check reads nothing").toBeGreaterThanOrEqual(1);
   });
 
   it("the slot carries the marker the browser probe addresses it by", () => {

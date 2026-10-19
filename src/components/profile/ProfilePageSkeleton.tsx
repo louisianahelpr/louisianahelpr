@@ -1,10 +1,7 @@
-import { useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SettingsGroup } from "@/components/profile/profileLanding/SettingsSection";
 import { WORK_MENU_GROUP } from "@/components/profile/profileLanding/workMenuGroup";
-import { DeclutterEntryRowShape } from "@/components/profile/profileLanding/DeclutterRowShape";
-import { declutterRowHint } from "@/components/profile/profileLanding/declutterRowHint";
 import { PayoutStatusRow } from "@/components/profile/profileLanding/PayoutStatusRow";
 
 const RESERVE = { kind: "reserve" } as const;
@@ -65,9 +62,6 @@ const IdentityCardSkeleton = () => (
  * load.
  */
 export const ProfilePageSkeleton = () => {
-  // Read ONCE, at mount: the skeleton's shape never changes while it is up,
-  // so it cannot shift itself (Q1894). See declutterRowHint.ts.
-  const [declutterRow] = useState(declutterRowHint);
   return (
   <div className="flex flex-col gap-3 lg:gap-4" data-testid="profile-landing-skeleton">
     {/* ProfileLanding's title block, prop for prop (hideBack, width="none",
@@ -90,9 +84,6 @@ export const ProfilePageSkeleton = () => {
     <div className="space-y-2">
       <PayoutStatusRow prompt={RESERVE} onSetUp={noop} onRetry={noop} />
     </div>
-    {/* The Declutter row (hidden switch), in ProfileLanding's order: after the
-        setup row, before the settings list. */}
-    {declutterRow && <DeclutterEntryRowShape />}
     {/* SettingsSection's own `space-y-4` list wrapper, holding its first
         group. aria-hidden: the loaded list is what a screen reader reads. */}
     <div className="space-y-4" aria-hidden>

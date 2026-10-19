@@ -290,7 +290,7 @@ async function wheel(page: Page, dy: number, steps: number) {
 // Seeded jobs are open with no applicants → bucket "waiting". The default
 // Activity tab is "needs_you", so /jobs and /posts land on an empty
 // list without the filter param — nothing to scroll, nothing to hide for.
-const ROUTES = ["/home", "/messages", "/jobs?filter=waiting", "/posts?filter=waiting"] as const;
+const ROUTES = ["/home", "/messages", "/jobs?tab=working&filter=waiting", "/jobs?tab=posted&filter=waiting"] as const;
 
 for (const route of ROUTES) {
   test(`dock hides on scroll-down and returns on scroll-up @ ${route}`, async ({
@@ -401,7 +401,7 @@ test("a hidden dock is taken out of the tab order, not just out of the a11y tree
   // fallback", and the empty state now offers the jump as a button instead), so
   // this asks for the populated bucket by name — the same accommodation the
   // inbox case above already makes for the same reason.
-  await boot(page, "/posts?filter=waiting");
+  await boot(page, "/jobs?tab=posted&filter=waiting");
 
   await wheel(page, 120, 8);
   await expectDock(page, "hidden", "dock hidden");

@@ -17,6 +17,7 @@ export const TabButton = ({
   onPrefetch,
   ariaLabel,
   ariaCurrent,
+  ariaDisabled,
   className,
   style,
   children,
@@ -39,6 +40,7 @@ export const TabButton = ({
     onMouseLeave={longPress?.onMouseLeave}
     aria-label={ariaLabel}
     aria-current={ariaCurrent}
+    aria-disabled={ariaDisabled ? true : undefined}
     className={className}
     style={style}
   >

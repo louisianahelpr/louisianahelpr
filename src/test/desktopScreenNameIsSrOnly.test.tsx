@@ -28,9 +28,17 @@
  * Shown able to fail: restoring `&& !isTrulyEmpty` turns both empty cases red
  * ("expected the h1 to be sr-only") and leaves every other case green.
  *
- * Registered mutation: painting the name on desktop again (all four desktop
- * cases red, all four phone cases still green).
- * @mutate src/components/job-card/JobListPage.tsx | titleSrOnly={isWebDesktop} | titleSrOnly={false}
+ * RE-POINTED 2026-10-19 (Q2205). My Posts / My Jobs became Jobs > Posted /
+ * Working, under the section's own top bar, whose title the owner's final
+ * section decisions show at every width (title · + · bell · profile). The
+ * class this file exists for — a screen-name rule with a DATA-DEPENDENT HOLE
+ * — is what is still pinned for the list: the page renders the section header
+ * (and so its one h1) the same way empty or full, phone or desktop, and adds
+ * no heading of its own. Messages keeps its own rule below.
+ *
+ * Registered mutation: the header dropped on an empty desktop list (both
+ * desktop empty cases red, everything else green).
+ * @mutate src/components/job-card/JobListPage.tsx |           {isWebDesktop && ( |           {isWebDesktop && !showEmptyState && (
  */
 import { describe, expect, it, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
@@ -132,7 +140,7 @@ function renderActivity(tab: "posted" | "applied") {
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[tab === "posted" ? "/posts" : "/jobs"]}>
-        <Activity defaultTab={tab} />
+        <Activity defaultTab={tab} embeddedHeader={<h1 className="text-page-title">Jobs</h1>} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -175,50 +183,41 @@ afterEach(() => {
   setWebDesktop(false);
 });
 
-describe("desktop website (>=900px): the screen name is sr-only, never painted", () => {
+describe("desktop website (>=900px): the list adds no screen name and drops none", () => {
   it.each([
-    ["My Posts", "posted", "empty"],
-    ["My Posts", "posted", "with items"],
-    ["My Jobs", "applied", "empty"],
-    // THE BUG: an account with no applications. Same line as My Posts above,
-    // opposite answer, and the only one of the four screens still painting.
-    ["My Jobs", "applied", "with items"],
-  ] as const)("%s (%s list, %s)", async (title, tab, fill) => {
+    ["posted", "empty"],
+    ["posted", "with items"],
+    ["applied", "empty"],
+    ["applied", "with items"],
+  ] as const)("Jobs > %s (%s): the section header's h1 is the only one", async (tab, fill) => {
     activityData.rows = fill === "empty" ? [] : [ROW];
     setWebDesktop(true);
     renderActivity(tab);
-
-    const h1 = await heading(title);
-    // Hidden, never dropped — a screen with no h1 is an a11y defect.
-    expect(h1.className).toContain("sr-only");
-    expect(h1.className).not.toContain("text-headline-hero");
-    // And nothing else paints the name either (the search-mode <span> twin).
-    expect(screen.queryByText(title, { selector: "span" })).toBeNull();
+    await heading("Jobs");
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: /My (Posts|Jobs)/ })).toBeNull();
   });
 
-  it("Messages, the screen the other three were matched to", async () => {
+  it("Messages keeps its desktop rule: the name is sr-only", async () => {
     setWebDesktop(true);
     renderInbox();
     expect((await heading("Messages")).className).toContain("sr-only");
   });
 });
 
-describe("phone / native (<900px): the visible title is untouched", () => {
+describe("phone / native (<900px): the same, at phone width", () => {
   it.each([
-    ["My Posts", "posted", "empty"],
-    ["My Posts", "posted", "with items"],
-    ["My Jobs", "applied", "empty"],
-    ["My Jobs", "applied", "with items"],
-  ] as const)("%s (%s list, %s) still paints its name", async (title, tab, fill) => {
+    ["posted", "empty"],
+    ["posted", "with items"],
+    ["applied", "empty"],
+    ["applied", "with items"],
+  ] as const)("Jobs > %s (%s): the section header's h1 is the only one", async (tab, fill) => {
     activityData.rows = fill === "empty" ? [] : [ROW];
     setWebDesktop(false);
     renderActivity(tab);
-
-    const h1 = await heading(title);
-    // The exact classes ScreenHeaderRow paints — Bodoni at the one page-title size (Q236(e)).
+    const h1 = await heading("Jobs");
     expect(h1.className).not.toContain("sr-only");
-    expect(h1.className).toContain("font-display");
-    expect(h1.className).toContain("text-headline-hero");
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 
   it("Messages too", async () => {

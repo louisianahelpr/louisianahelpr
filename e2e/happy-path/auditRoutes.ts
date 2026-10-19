@@ -251,8 +251,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
       await toggleDashboardMap(page);
     },
   },
-  { name: "posts", url: "/posts" },
-  { name: "jobs", url: "/jobs" },
+  { name: "posts", url: "/jobs?tab=posted" },
+  { name: "jobs", url: "/jobs?tab=working" },
   { name: "messages", url: "/messages" },
   { name: "post-job", url: "/post-job" },
   { name: "payment-success", url: "/payment-success" },

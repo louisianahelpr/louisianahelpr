@@ -1,5 +1,5 @@
-// @mutate src/components/ActivityPageSkeleton.tsx | const coldEmpty = tab === "posted" ? cachedPosts === 0 : cachedApps === 0; | const coldEmpty = tab === "posted" ? false : cachedApps === 0;
-// @mutate src/components/ActivityPageSkeleton.tsx | const coldEmpty = tab === "posted" ? cachedPosts === 0 : cachedApps === 0; | const coldEmpty = tab === "posted" ? cachedPosts === 0 : false;
+// @mutate src/components/JobsSectionSkeleton.tsx | const coldEmpty = tab === "posted" ? cachedPosts === 0 : cachedApps === 0; | const coldEmpty = tab === "posted" ? false : cachedApps === 0;
+// @mutate src/components/JobsSectionSkeleton.tsx | const coldEmpty = tab === "posted" ? cachedPosts === 0 : cachedApps === 0; | const coldEmpty = tab === "posted" ? cachedPosts === 0 : false;
 // @mutate src/components/profile/ProfileTabFallback.tsx |   if (tab === "notifications") return <NotificationsReserve />; |   // removed
 // @mutate src/components/GuestBrowseSkeleton.tsx | {Array.from({ length: 6 }).map((_, i) => ( | {Array.from({ length: 0 }).map((_, i) => (
 // @mutate src/pages/home/DashboardGuest.tsx | ) : !feedReady ? ( | ) : false ? (
@@ -15,7 +15,9 @@ import { render, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { ActivityPageSkeleton } from "@/components/ActivityPageSkeleton";
+// Re-pointed 2026-10-19 (Q2205): ActivityPageSkeleton (the old My Posts / My Jobs silhouette) became the Jobs
+// section's Posted / Working loading frame, which carries the same cold-visit rule.
+import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
 import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
 import { NOTIFICATION_ROWS, ProfileTabBodyReserve, TAB_SHAPES } from "@/components/profile/ProfileTabFallback";
 import { ReviewsTab } from "@/components/profile/ReviewsTab";
@@ -46,24 +48,24 @@ const withCache = (seed: (qc: QueryClient) => void, node: ReactNode) => {
 afterEach(cleanup);
 
 describe("cold visits draw the zero state, warm visits the list", () => {
-  it("My Posts: no cached posts -> the empty-state outline; cached posts -> cards", () => {
-    const cold = withCache(() => {}, <ActivityPageSkeleton tab="posted" />);
+  it("Jobs > Posted: no cached posts -> the empty-state outline; cached posts -> cards", () => {
+    const cold = withCache(() => {}, <JobsListLoadingFrame header={<div />} tab="posted" />);
     expect(cold.queryByTestId("posts-empty-skeleton")).not.toBeNull();
     cleanup();
     const warm = withCache(
       (qc) => qc.setQueryData(["activity", "posted", "u1"], { postedJobs: [{ id: "j1" }], applicantCounts: {}, pendingApplicantCounts: {} }),
-      <ActivityPageSkeleton tab="posted" />,
+      <JobsListLoadingFrame header={<div />} tab="posted" />,
     );
     expect(warm.queryByTestId("posts-empty-skeleton")).toBeNull();
   });
 
-  it("My Jobs: no cached applications -> the empty-state outline; cached ones -> cards (owner, 2026-10-07, Q201 b)", () => {
-    const cold = withCache(() => {}, <ActivityPageSkeleton tab="applied" />);
+  it("Jobs > Working: no cached applications -> the empty-state outline; cached ones -> cards (owner, 2026-10-07, Q201 b)", () => {
+    const cold = withCache(() => {}, <JobsListLoadingFrame header={<div />} tab="applied" />);
     expect(cold.queryByTestId("jobs-empty-skeleton")).not.toBeNull();
     cleanup();
     const warm = withCache(
       (qc) => qc.setQueryData(["activity", "applied", "u1"], { appliedApps: [{ id: "a1" }] }),
-      <ActivityPageSkeleton tab="applied" />,
+      <JobsListLoadingFrame header={<div />} tab="applied" />,
     );
     expect(warm.queryByTestId("jobs-empty-skeleton")).toBeNull();
   });
@@ -75,8 +77,9 @@ describe("cold visits draw the zero state, warm visits the list", () => {
   it("guest Browse: cold or cached, the chunk skeleton draws job cards, never the empty outline (Q1368)", () => {
     const cold = withCache(() => {}, <GuestBrowseSkeleton />);
     expect(cold.container.querySelectorAll('[class*="w-[88px]"]').length).toBe(0);
-    // Six JobCardSkeletons, counted by the card's own left rail (JOB_CARD_RAIL).
-    expect(cold.container.querySelectorAll('[class*="left-0 top-0 bottom-0 w-1.5"]').length).toBe(6);
+    // Six JobCardSkeletons, counted by the card's own clip (JOB_CARD_CLIP); the
+    // left rail it used to count went with design tweak T3 (owner 2026-10-18).
+    expect(cold.container.querySelectorAll('[class*="relative h-full overflow-hidden rounded-2xl"]').length).toBe(6);
     expect(cold.container.textContent).not.toMatch(/Nothing today/);
     cleanup();
     const warm = withCache((qc) => qc.setQueryData(["guestDashboardJobs"], [{ id: "j1" }]), <GuestBrowseSkeleton />);

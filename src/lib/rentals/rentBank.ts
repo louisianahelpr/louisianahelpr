@@ -41,9 +41,14 @@ export async function setAutopay(tenancyId: string, enabled: boolean): Promise<v
   if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_set_autopay", error), error);
 }
 
-/** The bank cost: Stripe's ACH price, 0.8% rounded up, at most $5 (the server's rentals_bank_fee_cents). */
-export function bankFeeCents(cents: number): number {
-  return cents <= 0 ? 0 : Math.min(Math.ceil(cents * 0.008), 500);
+/**
+ * The bank cost: Stripe's ACH price, 0.8% of the charge rounded up, at most $5 (the server's
+ * rentals_bank_fee_cents, same integer math). Paid by the tenant, the charge is rent + fee, so the fee is
+ * grossed up: ceil(rent / 124). Paid by the landlord: ceil(rent / 125).
+ */
+export function bankFeeCents(cents: number, feePayer: FeePayer): number {
+  if (cents <= 0) return 0;
+  return Math.min(Math.ceil(cents / (feePayer === "tenant" ? 124 : 125)), 500);
 }
 
 async function invokeBank(fn: "rent-bank-checkout" | "rent-bank-autopay", body: Record<string, unknown>): Promise<string> {

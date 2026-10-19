@@ -214,8 +214,16 @@ const start = (uid, t, cents) => as("authenticated", uid, `SELECT public.rentals
 const notes = async (uid, title) => one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${uid}' AND title = '${title}'`));
 
 // --- the fee: 0.8% rounded up, at most $5
-ok(one(await svc(`SELECT public.rentals_bank_fee_cents(120000)`)) === 500 && one(await svc(`SELECT public.rentals_bank_fee_cents(30000)`)) === 240
-  && one(await svc(`SELECT public.rentals_bank_fee_cents(101)`)) === 1, "the bank cost is 0.8% rounded up, at most $5");
+const fee = async (c, who) => one(await svc(`SELECT public.rentals_bank_fee_cents(${c}, '${who}')`));
+ok((await fee(120000, "landlord")) === 500 && (await fee(30000, "landlord")) === 240 && (await fee(101, "landlord")) === 1,
+  "the bank cost the landlord pays is 0.8% of the rent rounded up, at most $5");
+// Lead review #6: the tenant's fee is grossed up, so Stripe's 0.8% of (rent + fee) never exceeds it.
+let grossOk = true;
+for (const c of [100, 101, 124, 125, 248, 12345, 30000, 61900, 62000, 62001, 1000000]) {
+  const f = await fee(c, "tenant");
+  if (f !== Math.min(Math.ceil(c / 124), 500) || Math.min(Math.ceil((c + f) * 0.008 - 1e-9), 500) > f) grossOk = false;
+}
+ok(grossOk && (await fee(30000, "tenant")) === 242 && (await fee(120000, "tenant")) === 500, "lead #6: the tenant's fee covers the fee on the fee (0.8% of rent + fee)");
 
 // --- the landlord turns it on (a rent schedule and payouts first)
 ok(refused(await bankPay(LANDLORD, tA, true, "tenant"), /no_rent_plan/), "no rent schedule, no bank pay");

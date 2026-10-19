@@ -2,7 +2,7 @@
  * Homes bank rent card (D2/D7/D9; DRAFT, TEST mode only). The server side is proven by
  * src/test/pglite/homesBankRent.pglite.mjs; this pins what each side sees and what each control sends.
  *
- * @mutate src/components/rentals/RentBankPanel.tsx |   const fee = s.fee_payer === "tenant" ? bankFeeCents(cents) : 0; |   const fee = 0;
+ * @mutate src/components/rentals/RentBankPanel.tsx |   const fee = s.fee_payer === "tenant" ? bankFeeCents(cents, "tenant") : 0; |   const fee = 0;
  * @mutate src/components/rentals/RentBankPanel.tsx |   if (!s.bank_pay) return null; |   if (false) return null;
  * @mutate src/components/rentals/RentBankPanel.tsx |                 onClick={() => toggle.mutate({ on: !s.bank_pay, payer: s.fee_payer })}> |                 onClick={() => toggle.mutate({ on: true, payer: s.fee_payer })}>
  */

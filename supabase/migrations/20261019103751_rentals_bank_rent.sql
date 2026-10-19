@@ -117,18 +117,23 @@ CREATE TRIGGER rental_rent_payments_bank_locked
   FOR EACH ROW EXECUTE FUNCTION public.rentals_bank_payment_locked();
 
 -- ---------------------------------------------------------------------------
--- 3. The bank cost: Stripe's ACH price, 0.8% rounded up, at most $5.
-CREATE OR REPLACE FUNCTION public.rentals_bank_fee_cents(p_cents integer)
+-- 3. The bank cost: Stripe's ACH price, 0.8% of the CHARGE rounded up, at most $5. When the tenant pays it the
+--    charge is rent + fee, so the fee is grossed up (fee on the fee; lead review #6): ceil(rent * 0.008 / 0.992)
+--    = ceil(rent / 124). When the landlord pays it the charge is the rent: ceil(rent / 125). Integer math only,
+--    so the card's bankFeeCents gives the same cent.
+CREATE OR REPLACE FUNCTION public.rentals_bank_fee_cents(p_cents integer, p_fee_payer text)
 RETURNS integer
 LANGUAGE sql
 IMMUTABLE
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
-  SELECT CASE WHEN p_cents IS NULL OR p_cents <= 0 THEN 0 ELSE least(ceil(p_cents * 0.008)::integer, 500) END;
+  SELECT CASE WHEN p_cents IS NULL OR p_cents <= 0 THEN 0
+              WHEN p_fee_payer = 'tenant' THEN least((p_cents + 123) / 124, 500)
+              ELSE least((p_cents + 124) / 125, 500) END;
 $fn$;
 -- Server only: the card computes the same number itself (bankFeeCents) and the server freezes the real one.
-REVOKE ALL ON FUNCTION public.rentals_bank_fee_cents(integer) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.rentals_bank_fee_cents(integer) TO service_role;
+REVOKE ALL ON FUNCTION public.rentals_bank_fee_cents(integer, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rentals_bank_fee_cents(integer, text) TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- 4. The landlord turns bank pay on or off and chooses who pays the bank cost.
@@ -228,7 +233,7 @@ BEGIN
   IF p_rent_cents IS NULL OR p_rent_cents NOT BETWEEN 100 AND 10000000 OR p_rent_cents > v_open + v_plan.amount_cents THEN
     RAISE EXCEPTION 'bad_rent_payment' USING ERRCODE = '22023';
   END IF;
-  v_fee := public.rentals_bank_fee_cents(p_rent_cents);
+  v_fee := public.rentals_bank_fee_cents(p_rent_cents, v_plan.bank_fee_payer);
   INSERT INTO public.rental_rent_bank_payments (tenancy_id, rent_cents, fee_cents, fee_payer, charge_cents, transfer_cents)
   VALUES (p_tenancy_id, p_rent_cents, v_fee, v_plan.bank_fee_payer,
           p_rent_cents + CASE WHEN v_plan.bank_fee_payer = 'tenant' THEN v_fee ELSE 0 END,
@@ -558,7 +563,7 @@ BEGIN
             - (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_payments WHERE tenancy_id = v.tenancy_id AND status = 'confirmed');
     v_open := least(v_open, (SELECT amount_cents FROM public.rental_rent_charges WHERE id = v.charge_id));
     CONTINUE WHEN v_open < 100;
-    v_fee := public.rentals_bank_fee_cents(v_open::integer);
+    v_fee := public.rentals_bank_fee_cents(v_open::integer, v.bank_fee_payer);
     INSERT INTO public.rental_rent_bank_payments (tenancy_id, rent_cents, fee_cents, fee_payer, charge_cents, transfer_cents, autopay, rent_charge_id, livemode)
     VALUES (v.tenancy_id, v_open, v_fee, v.bank_fee_payer,
             v_open + CASE WHEN v.bank_fee_payer = 'tenant' THEN v_fee ELSE 0 END,

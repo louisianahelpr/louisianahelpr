@@ -78,7 +78,7 @@ export function RentBankPanel({ tenancyId, side, balanceCents }: { tenancyId: st
   }
   if (!s.bank_pay) return null;
   const cents = dollarsToCents(amount) ?? 0;
-  const fee = s.fee_payer === "tenant" ? bankFeeCents(cents) : 0;
+  const fee = s.fee_payer === "tenant" ? bankFeeCents(cents, "tenant") : 0;
   return (
     <div className="space-y-2 rounded-xl bg-muted px-3 py-2 text-xs" aria-label="Pay by bank">
       <p className="text-sm font-medium">Pay by bank</p>

@@ -464,7 +464,7 @@ serve(async (req) => {
           tr = await stripe.transfers.create(
             { amount: r.transfer_cents, currency: "usd", destination: r.stripe_account_id, transfer_group: group, source_transaction: charge,
               metadata: { kind: "rent_bank_transfer", bank_payment_id: r.bank_payment_id } },
-            { idempotencyKey: `rent-bank-${r.bank_payment_id}` },
+            { idempotencyKey: `rent-bank-transfer-${r.bank_payment_id}` },
           );
         }
         const { error } = await admin.rpc("rentals_bank_transfer_executed", { p_id: r.bank_payment_id, p_action: "transfer", p_transfer_id: tr.id, p_succeeded: true, p_error: null });

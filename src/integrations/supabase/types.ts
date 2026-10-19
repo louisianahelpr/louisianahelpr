@@ -13300,7 +13300,10 @@ export type Database = {
         }
         Returns: undefined
       }
-      rentals_bank_fee_cents: { Args: { p_cents: number }; Returns: number }
+      rentals_bank_fee_cents: {
+        Args: { p_cents: number; p_fee_payer: string }
+        Returns: number
+      }
       rentals_bank_rent_attach: {
         Args: { p_id: string; p_livemode: boolean; p_session_id: string }
         Returns: undefined

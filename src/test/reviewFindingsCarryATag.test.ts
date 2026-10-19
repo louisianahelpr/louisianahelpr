@@ -60,7 +60,7 @@ const NOT_FROM_A_REVIEW: Record<string, string> = {
   Q2082: "the owner's jobs-fee feature item; it lists lh-money-escrow review points of slice 3a as before-the-flip conditions, not a filed finding",
   Q1901: "the loading-states budget red mirrored from a CI run; \"lead review\" notes why the budget was left, not a filed finding",
   Q2175: "owner-reported repeated back-out notices; \"lead re-reviewed\" is the status of its fix branch, not a filed finding",
-  Q2177: "found by the quotes-merge lane; the review words are the status of its fix (an lh-authz-rls pass, the lead's /code-review), not a filed finding",
+  Q2177: "found by the quotes-merge lane; the review words are the status of its fix (an lh-authz-rls pass, the lead's /code-review), not a filed finding",  Q2229: "the owner's D4 lease feature (Homes); \"the tenant reviews\" is the tenant reading the lease and \"the lead's ten must-fix points\" is the status of its build, not a filed finding",
 };
 /**
  * An item MIRRORED from a feed (nightly-red issue, ops ledger, audit bus) is

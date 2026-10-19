@@ -44,6 +44,11 @@ vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),
   hapticMedium: vi.fn(), hapticSelection: vi.fn(), hapticWarning: vi.fn(), hapticHeavy: vi.fn(),
 }));
+// The phone header is the shared AppTopBar since Q2231; its bell and avatar
+// need the app's providers, and this file tests the list's scroll padding, not the bar.
+vi.mock("@/components/sections/AppTopBar", () => ({
+  AppTopBar: ({ title }: { title?: string }) => <header data-testid="app-top-bar"><h1>{title}</h1></header>,
+}));
 
 import { ConversationList } from "@/components/messages/ConversationList";
 import type { Conversation } from "@/components/messages/types";

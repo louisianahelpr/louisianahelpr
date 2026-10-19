@@ -14,6 +14,8 @@ import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
 const list = blankComments(readFileSync(resolve(__dirname, "../components/messages/ConversationList.tsx"), "utf8"));
+// The menus themselves live in InboxMenus.tsx (out of ConversationList for its size baseline).
+const menus = blankComments(readFileSync(resolve(__dirname, "../components/messages/InboxMenus.tsx"), "utf8"));
 
 describe("Messages top bar = the global top bar (Q2231)", () => {
   it("on the phone the header is the shared AppTopBar titled Messages, with no +", () => {
@@ -27,6 +29,11 @@ describe("Messages top bar = the global top bar (Q2231)", () => {
     expect(row).toContain('aria-label="Search conversations"');
     expect(row).toContain("{moreMenu}");
     const menu = list.slice(list.indexOf("const moreMenu"), list.indexOf("const phoneSearchRow"));
-    for (const item of ["INBOX_TAB_ORDER.map", "Select messages", "Pinned", "Recently Deleted"]) expect(menu).toContain(item);
+    expect(menu).toContain("<MessagesMoreMenu");
+    const more = menus.slice(menus.indexOf("export function MessagesMoreMenu"));
+    expect(more).toContain("INBOX_TAB_ORDER.map");
+    expect(more).toContain("<InboxViewItems {...items} />");
+    const views = menus.slice(menus.indexOf("function InboxViewItems"), menus.indexOf("export function InboxOptionsMenu"));
+    for (const item of ["Select messages", "Pinned", "Recently Deleted"]) expect(views).toContain(item);
   });
 });

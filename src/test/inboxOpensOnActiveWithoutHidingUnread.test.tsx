@@ -34,7 +34,7 @@
  * @mutate src/components/messages/ConversationList.tsx | cachedHiddenUnread > dismissedHiddenUnread && ( | cachedHiddenUnread > 0 && (
  * @mutate src/components/messages/HiddenUnreadBar.tsx | if (loading \|\| !userId \|\| count >= dismissedHiddenUnread) return; | return;
  * @mutate src/components/messages/ConversationList.tsx | setInboxFilter(UNFILTERED_INBOX_TAB); }}>\n                  Show All | setInboxFilter(DEFAULT_INBOX_TAB); }}>\n                  Show All
- * @mutate src/components/messages/ConversationList.tsx | aria-checked={inboxTab === key} | aria-checked={key === "active"}
+ * @mutate src/components/messages/InboxMenus.tsx | aria-checked={inboxTab === key} | aria-checked={key === "active"}
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";

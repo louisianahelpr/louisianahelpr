@@ -569,10 +569,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               see the `is_group_job` chip, which drops its separator and rides
               tighter than the rest of the row. */}
           <div className="job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden">
-            {/* Place, date, time never hidden (owner, 2026-10-08); floor = pin + ~5 letters. The
-                floor is NOT wider than a typical city (it was 72px of text, ~10 letters): a city
-                shorter than the floor left its slack before the "·", so "New Iberia  ·" sat wider
-                than "Wed, Oct 21 ·" (owner, 2026-10-19: "make the separator spacing even"). */}
+            {/* Never hidden (owner, 2026-10-08); floor = pin + ~5 letters, not a city's width (owner, 2026-10-19: even "·" spacing). */}
             <span className="flex items-center gap-1 min-w-[3.625rem] overflow-hidden">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
               {/* `min-w-0` + `overflow-hidden` + `truncate`, and NOTHING that

@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 821,
-    "files": 201,
-    "rendering": 719,
-    "suppressedByPolicy": 102,
+    "calls": 829,
+    "files": 204,
+    "rendering": 725,
+    "suppressedByPolicy": 104,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 46,
-      "toast.error": 607,
+      "toast.error": 611,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 106,
-      "toast.warning": 23
+      "toast.success": 108,
+      "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 395,
-      "template": 93,
-      "dynamic": 379,
+      "literal": 399,
+      "template": 94,
+      "dynamic": 382,
       "jsx": 0
     }
   },
@@ -1813,7 +1813,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 102,
+      "line": 105,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1823,7 +1823,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 139,
+      "line": 142,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1833,7 +1833,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 156,
+      "line": 159,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1843,7 +1843,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 311,
+      "line": 284,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1853,7 +1853,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 334,
+      "line": 307,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1863,7 +1863,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 371,
+      "line": 344,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1873,7 +1873,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 380,
+      "line": 353,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1883,7 +1883,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 393,
+      "line": 366,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -1893,7 +1893,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 402,
+      "line": 375,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1903,7 +1903,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 412,
+      "line": 385,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1913,7 +1913,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 440,
+      "line": 413,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1923,7 +1923,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 519,
+      "line": 492,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2231,7 +2231,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 93,
+      "line": 98,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2241,7 +2241,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 250,
+      "line": 241,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2251,7 +2251,17 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 266,
+      "line": 252,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Helpr at fault needs the Helpr and a note."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminJobs.tsx",
+      "line": 263,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -3346,6 +3356,104 @@
         "text": "Refunded, but the poster's gift card was not returned. Ops has been paged to return it by hand."
       },
       "renders": true
+    },
+    {
+      "file": "src/components/admin/helprFault/BillHelprFaultButton.tsx",
+      "line": 49,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "typeof billed === \"number\" ? `The Helpr was billed the $${(billed / 100).toFixed(2)} card fee.` : \"The Helpr was billed the card fee.\"",
+        "branches": [
+          {
+            "form": "template",
+            "text": "The Helpr was billed the $${(billed / 100).toFixed(2)} card fee."
+          },
+          {
+            "form": "literal",
+            "text": "The Helpr was billed the card fee."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/helprFault/BillHelprFaultButton.tsx",
+      "line": 53,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't bill the Helpr. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/helprFault/HelprFaultDisputeDialog.tsx",
+      "line": 76,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't send that refund — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/helprFault/helprFault.ts",
+      "line": 43,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Refund sent, but the server did not confirm the Helpr-at-fault part. Check the job's audit log."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/helprFault/helprFault.ts",
+      "line": 47,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Helpr's account is gone: the card fee was kept from the refund."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/helprFault/helprFault.ts",
+      "line": 49,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Refund sent; billing the Helpr failed. Open the job in Admin > Jobs and press Bill the Helpr."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/helprFault/helprFault.ts",
+      "line": 52,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Refund sent. The Helpr was charged the${fee} card fee and given a strike.",
+        "holes": {
+          "fee": [
+            {
+              "form": "dynamic",
+              "text": "typeof outcome.cardFeeBilledCents === \"number\" ? ` $${(outcome.cardFeeBilledCents / 100).toFixed(2)}` : \"\"",
+              "branches": [
+                {
+                  "form": "template",
+                  "text": " $${(outcome.cardFeeBilledCents / 100).toFixed(2)}"
+                },
+                {
+                  "form": "literal",
+                  "text": ""
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "renders": false
     },
     {
       "file": "src/components/admin/marketing/MarketingComposerDialog.tsx",

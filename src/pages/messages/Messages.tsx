@@ -28,6 +28,7 @@ import {
 import { useMessagesData } from "./useMessagesData";
 import { useMessagesRealtime } from "./useMessagesRealtime";
 import { useThreadMuteActions } from "./useThreadMuteActions";
+import { useMessageSections } from "./useMessageSections";
 import { removeMessageAttachment } from "@/lib/storageCleanup";
 import { report } from "@/lib/errorLogger";
 
@@ -406,10 +407,15 @@ const Messages = () => {
 
   // The two panes. `embedded={false}` on both: each keeps its own
   // full-viewport shell, because only one of them is ever on screen now.
+  // Section tabs: each tab lists only its own section's threads (+ support).
+  const inbox = useMessageSections(conversations, allConversations);
+
   const listEl = (
     <ConversationList
-      conversations={conversations}
-      allConversations={allConversations}
+      conversations={inbox.conversations}
+      allConversations={inbox.allConversations}
+      sectionTabs={inbox.strip}
+      sectionEmpty={inbox.sectionEmpty}
       loading={loading}
       loadError={loadError}
       retryInbox={retryInbox}

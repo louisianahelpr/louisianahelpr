@@ -272,7 +272,10 @@ function RequestView({ id }: { id: string }) {
         </ul>
       )}
       {open && <SetMyOwnPrice request={request} />}
-      {(open || (agreed && !request.job_id)) && (
+      {/* An agreed request whose job was never paid can still be cancelled: cancel_quote_request
+          (20261018155222) allows it and deletes the unpaid job; a live checkout is refused there
+          with its own words (Q2158, sentry review on PR #3173). */}
+      {(open || (agreed && (!request.job_id || paid.data === "not_paid"))) && (
         <Button type="button" variant="ghost" className="w-full text-muted-foreground" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
           Cancel this request
         </Button>

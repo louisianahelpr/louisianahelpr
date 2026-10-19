@@ -41,7 +41,7 @@ const h = vi.hoisted(() => {
     const q: { table: string; ops: [string, unknown[]][] } = { table, ops: [] };
     queries.push(q);
     const b: Record<string, unknown> = {};
-    for (const m of ["select", "in", "order", "limit", "eq", "maybeSingle"]) {
+    for (const m of ["select", "in", "order", "limit", "eq", "neq", "maybeSingle"]) {
       b[m] = (...args: unknown[]) => {
         q.ops.push([m, args]);
         return b;
@@ -101,7 +101,10 @@ import {
   fetchPendingForAdmin,
   fetchPhotos,
   fetchQuestions,
+  fetchSellerCard,
+  fetchSellerItems,
   fetchSellerRating,
+  fetchSimilarItems,
   fetchWatching,
   photoPublicUrl,
   publishItem,
@@ -194,6 +197,66 @@ describe("reads", () => {
         ],
       },
     ]);
+  });
+
+  it("fetchSellerItems reads the seller's other live and reserved listings, newest first, capped at 12", async () => {
+    const rows = [{ id: "b" }];
+    h.queue.push(ok(rows));
+    await expect(fetchSellerItems("seller-1", "item-a")).resolves.toEqual(rows);
+    expect(h.queries).toEqual([
+      {
+        table: "declutter_items",
+        ops: [
+          ["select", [COLUMNS]],
+          ["eq", ["seller_id", "seller-1"]],
+          ["in", ["status", ["live", "reserved"]]],
+          ["neq", ["id", "item-a"]],
+          ["order", ["live_at", { ascending: false }]],
+          ["limit", [12]],
+        ],
+      },
+    ]);
+    h.queue.push(ok(null));
+    await expect(fetchSellerItems("seller-1", "item-a")).resolves.toEqual([]);
+  });
+
+  it("fetchSimilarItems reads other sellers' live listings in the same category, newest first, capped at 12", async () => {
+    const rows = [{ id: "c" }];
+    h.queue.push(ok(rows));
+    await expect(fetchSimilarItems("furniture", "item-a", "seller-1")).resolves.toEqual(rows);
+    expect(h.queries).toEqual([
+      {
+        table: "declutter_items",
+        ops: [
+          ["select", [COLUMNS]],
+          ["eq", ["category", "furniture"]],
+          ["in", ["status", ["live", "reserved"]]],
+          ["neq", ["id", "item-a"]],
+          ["neq", ["seller_id", "seller-1"]],
+          ["order", ["live_at", { ascending: false }]],
+          ["limit", [12]],
+        ],
+      },
+    ]);
+    h.queue.push(refused("permission denied", { code: "42501" }));
+    await expect(fetchSimilarItems("furniture", "item-a", "seller-1")).rejects.toBeTruthy();
+  });
+
+  it("fetchSellerCard shows only the row for the requested seller, public fields only", async () => {
+    h.queue.push(
+      ok([
+        { user_id: "someone-else", full_name: "Wrong Person", avatar_url: "x", created_at: "2020-01-01" },
+        { user_id: "seller-1", full_name: "Ada", avatar_url: "https://cdn.test/a.png", created_at: "2026-01-02T00:00:00Z" },
+      ]),
+    );
+    await expect(fetchSellerCard("seller-1")).resolves.toEqual({ name: "Ada", avatarUrl: "https://cdn.test/a.png", joinedAt: "2026-01-02T00:00:00Z" });
+    expect(h.rpcs).toEqual([["get_safe_profiles", { user_ids: ["seller-1"] }]]);
+    h.queue.push(ok([{ user_id: "seller-1" }]));
+    await expect(fetchSellerCard("seller-1")).resolves.toEqual({ name: null, avatarUrl: null, joinedAt: null });
+    h.queue.push(ok([{ user_id: "someone-else", full_name: "Wrong Person" }]));
+    await expect(fetchSellerCard("seller-1")).resolves.toBeNull();
+    h.queue.push(ok(null));
+    await expect(fetchSellerCard("seller-1")).resolves.toBeNull();
   });
 
   it("fetchMyItems filters by seller, newest first, and gives [] for a null body", async () => {

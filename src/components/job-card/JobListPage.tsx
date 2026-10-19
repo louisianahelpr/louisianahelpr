@@ -506,7 +506,6 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
             <SectionBoundary label="your posts">
             <PostedJobsTab
               groupByStatus={statusFilter === "all"}
-              bucketGroups
               jobs={filteredPostedJobs}
               highlightJobId={highlightJobId}
               applicantCounts={applicantCounts}
@@ -571,7 +570,6 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
             <SectionBoundary label="your jobs">
             <AppliedJobsTab
               groupByStatus={statusFilter === "all"}
-              bucketGroups
               apps={filteredAppliedApps}
               highlightAppId={highlightAppId}
               expandedJobIds={actions.expandedJobIds}

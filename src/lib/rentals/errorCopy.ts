@@ -70,4 +70,10 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   property_already_listed: "This home already has a for-sale listing. Open that one instead.",
   listing_fee_not_ready: "Listing a home for sale isn't open yet. We'll let you know here when it is.",
   sale_wording_flagged: "Some words can't be shown on a for-sale listing. Give one price and describe the home, not who may live there.",
+  // The admin take-down (20261019062540): admin card words live in ADMIN_RPC_ERROR_COPY; these are the plain fallbacks.
+  listing_not_live: "Only a live or paused listing can be taken down.",
+  listing_taken_down: "Louisiana Helpr removed the listings for this home, so nothing on it can be listed until that is lifted. Contact support if you think that was a mistake.",
+  property_taken_down: "Louisiana Helpr removed the listings for this address, so it can't be added again. Contact support if you think that was a mistake.",
+  bad_query: "Search with 100 characters or fewer.",
+  too_many: "Too many at once. Try again with fewer.",
 };

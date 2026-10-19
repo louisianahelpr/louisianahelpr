@@ -17,7 +17,12 @@ import { caughtMessage } from "../_shared/caughtMessage.ts";
 // rows of a still-taken-down listing and the queue entries.
 //
 // rentals_photo_purge_due drops (and never returns) an entry whose listing a
-// lift restored. A Storage refusal leaves its entries queued for the next run
+// lift restored, and CLAIMS each entry it hands out (row-locked, re-checked:
+// the listing is still taken down). A lift refuses while a claim is fresh
+// (15 minutes, far past this function's run time) and drops its own entries
+// under the same lock, so nothing removed here is a restored listing's photo
+// (lead review round 3 #1). purge_done acts only on claimed entries. A Storage
+// refusal leaves its entries queued (re-handed out once the claim is stale)
 // and is a defect (non-2xx, so the cron monitor sees it), never a silent skip.
 
 const FN = "listing-photo-purge";

@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 371** (320 to do, 51 fixed with protection pending; 1444 done). Feeds mirrored in: 13 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 13 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 374** (323 to do, 51 fixed with protection pending; 1444 done). Feeds mirrored in: 13 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 13 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 11 red, 13 stale, 0 unknown, 51 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-18T22:58Z)_
@@ -95,7 +95,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1815 items — 1444 done, 51 partly done (fixed, protection pending), 320 open.**
+**Queue: 1818 items — 1444 done, 51 partly done (fixed, protection pending), 323 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -693,14 +693,14 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - press-every-control: issue #2353, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39014836855. notes: Q1374. feed: issue #2353 · feed: ledger 7e141f206640
   - branch-prune: issue #2366, newest red run: see the issue's latest comment. notes: Q1376. feed: issue #2366 · feed: ledger 7f88b9cc45df
   - a11y-webkit-prod: issue #2375, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39167774119. notes: Q593. feed: issue #2375 · feed: ledger 6205197429d4
-  - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39167770990. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
+  - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39200818768. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
   - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39158661660. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
-  - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39186732009. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
+  - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39193592436. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #2937, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39167100554. notes: Q1775. feed: issue #2937 · feed: ledger a8ceee56bbd5
-  - nightly-webkit: issue #2962, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39131032798. notes: Q1780. feed: issue #2962 · feed: ledger 70e7b0decb9a
-  - staleness-watch: issue #3307, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39136859301. feed: issue #3307 · feed: ledger db0fb15c4ec3
+  - staleness-watch: issue #3307, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39210281188. feed: issue #3307 · feed: ledger db0fb15c4ec3
   - e2e-real-backend: issue #3311, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39178783199. feed: issue #3311 · feed: ledger 3a3460b71be7
-  - main: Vitest: issue #3395, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39186731978. feed: issue #3395 · feed: ledger f22e3275d50d
+  - main: vitest: no open issue. feed: ledger f22e3275d50d
+  - nightly-webkit: no open issue. feed: ledger 70e7b0decb9a
 - [ ] **Q2144 MEDIUM cron http failure: declutter-money returned 500 (# defect(s) reported).** Mirrored 2026-10-18 from alert-ledger row e62e32bec0c4 (error_logs: cron-http; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger e62e32bec0c4. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'e62e32bec0c415c8c17d26c4ff5e035f'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23

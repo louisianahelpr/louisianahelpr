@@ -1,11 +1,12 @@
 {
-  "generated": "2026-10-19T06:18:30.046Z",
-  "guards": 2048,
-  "registered": 2048,
+  "generated": "2026-10-19T07:06:35.116Z",
+  "guards": 2052,
+  "registered": 2052,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/components/quotes/quotesInsideJobs.test.tsx"
+    "src/components/quotes/quotesInsideJobs.test.tsx",
+    "src/test/edge/landlordIdRetention.test.ts"
   ],
   "classD_selfReferential": [
     {
@@ -405,5 +406,7 @@
       ]
     }
   ],
-  "edge_classA": []
+  "edge_classA": [
+    "src/test/edge/landlordIdRetention.test.ts"
+  ]
 }

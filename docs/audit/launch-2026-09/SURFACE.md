@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 25 |
 | Overlay surfaces | **instance** | 164 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
-| Toast messages | **call site** | 829 (across 204 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 831 (across 205 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 24 |
 | Multi-step flows — probable | flow | 17 |
 | Back/next navigation only | flow | 43 |
-| Forms (submittable) | form | 61 |
+| Forms (submittable) | form | 62 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 146 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **554** |
-| **Copy surfaces** (strings a person may read) | mixed | **867** |
-| **Total auditable surface** | mixed | **1421** |
+| **Navigable surfaces** (places a person can stand) | mixed | **555** |
+| **Copy surfaces** (strings a person may read) | mixed | **869** |
+| **Total auditable surface** | mixed | **1424** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 25 | 24 | agree |
 | Overlay surfaces | 164 | 130 | agree within method (script counts every menu instance) |
-| Forms | 61 | ~38 | agree |
+| Forms | 62 | ~38 | agree |
 | Confirmed multi-step flows | 24 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -481,6 +481,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/profile/ProfileEditForm.tsx` (form tag)
 - [ ] `src/components/profile/SupportInline.tsx` (form tag)
 - [ ] `src/components/quotes/QuoteAnswerControls.tsx` (form tag)
+- [ ] `src/components/rentals/LandlordIdReview.tsx` (form tag)
 - [ ] `src/components/rentals/listings/ListingEditor.tsx` (form tag)
 - [ ] `src/components/rentals/listings/RentBrowse.tsx` (form tag)
 - [ ] `src/components/rentals/MaintenanceRequestForm.tsx` (form tag)

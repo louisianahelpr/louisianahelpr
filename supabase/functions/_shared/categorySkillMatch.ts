@@ -40,6 +40,7 @@ export const CATEGORY_LABELS: Readonly<Record<string, string>> = {
   concrete_masonry: "Concrete & Masonry",
   fencing: "Fencing",
   pressure_washing: "Pressure Washing",
+  declutter_help: "Declutter Help",
   other: "Other",
 };
 

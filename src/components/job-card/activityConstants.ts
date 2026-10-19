@@ -111,6 +111,8 @@ export const categoryColors: Record<string, { badge: string; title: string; dot:
   fencing:          { badge: "bg-[hsl(95_28%_94%)] text-[hsl(95_26%_36%)] border-[hsl(95_20%_80%)] dark:bg-[hsl(95_26%_18%)] dark:text-[hsl(95_30%_77%)] dark:border-[hsl(95_22%_32%)]", title: "text-[hsl(95_26%_36%)] dark:text-[hsl(95_30%_77%)]", dot: "bg-[hsl(95_26%_46%)]" },
   // pressure_washing → aqua spray
   pressure_washing: { badge: "bg-[hsl(188_46%_94%)] text-[hsl(188_44%_35%)] border-[hsl(188_38%_80%)] dark:bg-[hsl(188_44%_18%)] dark:text-[hsl(188_48%_77%)] dark:border-[hsl(188_40%_32%)]", title: "text-[hsl(188_44%_35%)] dark:text-[hsl(188_48%_77%)]", dot: "bg-[hsl(188_44%_46%)]" },
+  // declutter_help → leaf green (a price tag)
+  declutter_help:   { badge: "bg-[hsl(120_24%_94%)] text-[hsl(120_22%_33%)] border-[hsl(120_16%_80%)] dark:bg-[hsl(120_22%_18%)] dark:text-[hsl(120_26%_77%)] dark:border-[hsl(120_18%_32%)]", title: "text-[hsl(120_22%_33%)] dark:text-[hsl(120_26%_77%)]", dot: "bg-[hsl(120_22%_42%)]" },
   // other light-mode text darkened 42% → 36% L: was 4.27:1 vs WCAG AA
   // 4.5 (a real fail), now 5.37:1 (Cowork 2026-07-08 followup sweep).
   other:      { badge: "bg-[hsl(40_14%_92%)] text-[hsl(40_9%_36%)] border-[hsl(40_12%_80%)] dark:bg-[hsl(40_10%_19%)] dark:text-[hsl(40_14%_75%)] dark:border-[hsl(40_10%_33%)]",      title: "text-[hsl(40_9%_36%)] dark:text-[hsl(40_14%_75%)]",   dot: "bg-[hsl(40_10%_55%)]" },

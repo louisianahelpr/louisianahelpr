@@ -1,0 +1,272 @@
+/**
+ * Declutter "Sell it for me" (owner order 2026-10-19 ~21Z): the entry, the
+ * sheet's two choices, and the switch gates.
+ *   - The entry shows only while the 'declutter' switch is on.
+ *   - A: "Hire a local Helpr" opens Post a Job at ?sellForMe=1, which
+ *     pre-fills a Declutter Help job (category, a title that fits the 32-char
+ *     cap, the template with the no-account line).
+ *   - B: nearby shops in "Declutter and estate sale services" on the Shops
+ *     card, each with a greyed "Request a quote" (Coming soon; no shop can be
+ *     asked yet: Q1869 / Q1947), and an empty state that links back to A.
+ *     Only while the 'shops' switch is on; otherwise the sheet offers A alone
+ *     and never asks for shops.
+ * The data modules are stubbed; the shop category's place in the list is
+ * src/test/shopCategories.test.ts, the enum value src/lib/jobCategories.test.ts.
+ *
+ * @mutate src/components/declutter/SellItForMe.tsx |   if (!declutterOn) return null; |
+ * @mutate src/components/declutter/SellItForMe.tsx |           {shopsOn && open && <LocalBusinesses onHireHelpr={hireHelpr} />} |           {open && <LocalBusinesses onHireHelpr={hireHelpr} />}
+ * @mutate src/components/declutter/SellItForMe.tsx |     queryFn: () => browseShops({ lat: from?.lat ?? null, lng: from?.lng ?? null, category: SELL_FOR_ME_SHOP_CATEGORY }), |     queryFn: () => browseShops({ lat: from?.lat ?? null, lng: from?.lng ?? null }),
+ * @mutate src/components/declutter/SellItForMe.tsx |                   onClick={() => setAsked(s.id)} |                   onClick={() => {}}
+ * @mutate src/components/declutter/SellItForMe.tsx |           <SectionActionPill className="mt-3" onClick={onHireHelpr}> |           <SectionActionPill className="mt-3">
+ * @mutate src/components/declutter/SellItForMe.tsx |     navigate(sellForMePostJobPath()); |     navigate("/post-job");
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SellItForMeEntry />\n | \n
+ * @mutate src/components/declutter/DeclutterSellView.tsx |       {!itemId && <SellItForMeEntry />} |
+ * @mutate src/pages/post-job/useJobFormEffects.ts |     setCategory(p.category);\n    setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]); |     setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]);
+ * @mutate src/pages/post-job/usePostJobForm.ts |   const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) \|\| | const skipEntry = !!(
+ * @mutate src/lib/declutter/sellForMe.ts | export const SELL_FOR_ME_TITLE = "Photograph and list my items"; | export const SELL_FOR_ME_TITLE = "Photograph and list my items for sale";
+ */
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { blankComments } from "@/test/helpers/blankNonCode";
+
+const state = vi.hoisted(() => ({
+  switches: { declutter: true, shops: true } as Record<string, boolean>,
+  shops: [] as unknown[],
+  browseCalls: [] as unknown[],
+  fail: false,
+}));
+
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => !!state.switches[k] }));
+vi.mock("./useDeclutterOrigin", () => ({ useDeclutterOrigin: () => ({ origin: { status: "ready", lat: 30.45, lng: -91.15 } }) }));
+vi.mock("@/lib/shops/api", () => ({
+  browseShops: async (args: unknown) => {
+    state.browseCalls.push(args);
+    if (state.fail) throw Object.assign(new Error("Failed to fetch"), { userMessage: "We couldn't reach Louisiana Helpr. Try again." });
+    return state.shops;
+  },
+  fetchShopCardExtras: async (ids: string[]) => new Map(ids.map((id) => [id, { cover_path: null, hours: [] }])),
+  fetchShopCategories: async () => [
+    { slug: "declutter_estate_sales", group_slug: "home_services", group_label: "Home services", label: "Declutter and estate sale services", position: 211 },
+  ],
+  shopPhotoUrl: (p: string) => `https://x/${p}`,
+}));
+
+import { SellItForMeEntry, QUOTE_SOON_LINE } from "./SellItForMe";
+import { buildSellForMePrefill, SELL_FOR_ME_NO_ACCOUNT_LINE, sellForMePostJobPath } from "@/lib/declutter/sellForMe";
+import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
+import { isLaborTaxable } from "@/lib/salesTax";
+
+function shop(id: string, name: string) {
+  return { id, name, category: "declutter_estate_sales", area_label: "Baton Rouge", miles: 3, rating: null, review_count: 0, logo_path: null, paused: false, badges: null };
+}
+
+function Where() {
+  const loc = useLocation();
+  return <p data-testid="where">{loc.pathname + loc.search}</p>;
+}
+
+function show() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <MemoryRouter initialEntries={["/declutter?tab=selling"]}>
+      <QueryClientProvider client={qc}>
+        <Routes>
+          <Route path="/declutter" element={<SellItForMeEntry />} />
+          <Route path="/post-job" element={<Where />} />
+        </Routes>
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+}
+
+const open = () => fireEvent.click(screen.getByTestId("sell-it-for-me-entry"));
+
+describe("Sell it for me: the entry", () => {
+  beforeEach(() => {
+    state.switches = { declutter: true, shops: true };
+    state.shops = [];
+    state.browseCalls = [];
+    state.fail = false;
+  });
+
+  it("shows the plain-words entry while Declutter is on", () => {
+    show();
+    const entry = screen.getByTestId("sell-it-for-me-entry");
+    expect(entry).toHaveTextContent("Sell it for me");
+    expect(entry).toHaveTextContent("Too busy? Get help photographing and listing your stuff");
+  });
+
+  it("is not there when the declutter switch is off for the viewer", () => {
+    state.switches.declutter = false;
+    show();
+    expect(screen.queryByTestId("sell-it-for-me-entry")).toBeNull();
+  });
+
+  it("sits on the Selling tab (with the listings, so the empty state shows it) and on Sell an item for a new listing", () => {
+    const home = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterHomeView.tsx"), "utf8"));
+    expect(home).toMatch(/<MovingOutEntry on=\{movingOutOn\} \/>\s*(?:\{\s*\}\s*)?<SellItForMeEntry \/>\s*<MyListingsView /);
+    const sell = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterSellView.tsx"), "utf8"));
+    expect(sell).toMatch(/\{!itemId && <SellItForMeEntry \/>\}/);
+  });
+});
+
+describe("Sell it for me: A, hire a Helpr", () => {
+  beforeEach(() => {
+    state.switches = { declutter: true, shops: true };
+    state.shops = [];
+    state.browseCalls = [];
+  });
+
+  it("opens Post a Job pre-filled for a Declutter Help job", async () => {
+    show();
+    open();
+    fireEvent.click(await screen.findByTestId("sell-for-me-hire-helpr"));
+    expect(await screen.findByTestId("where")).toHaveTextContent("/post-job?sellForMe=1");
+    expect(sellForMePostJobPath()).toBe("/post-job?sellForMe=1");
+  });
+
+  it("the pre-fill is a real category, a title that fits, and the no-account template", () => {
+    const p = buildSellForMePrefill();
+    expect(p.category).toBe("declutter_help");
+    expect(JOB_CATEGORY_VALUES).toContain(p.category);
+    expect(JOB_CATEGORY_LABELS.declutter_help).toBe("Declutter Help");
+    // public.jobs CHECKs (Q782): title <= 32, description <= 1000 code points.
+    expect(Array.from(p.title).length).toBeLessThanOrEqual(32);
+    expect(p.title).toBe("Photograph and list my items");
+    expect(Array.from(p.description).length).toBeLessThanOrEqual(1000);
+    for (const ask of ["How many items", "Rough size", "pickups"]) expect(p.description).toContain(ask);
+    expect(p.description).toContain(SELL_FOR_ME_NO_ACCOUNT_LINE);
+    expect(SELL_FOR_ME_NO_ACCOUNT_LINE).toBe("Your Helpr takes the photos and writes the listings with you; you post them from your account.");
+  });
+
+  it("Declutter Help is untaxed, like errands and cleaning", () => {
+    expect(isLaborTaxable("declutter_help")).toBe(false);
+    expect(isLaborTaxable("errands")).toBe(false);
+  });
+});
+
+describe("Sell it for me: B, ask a local business", () => {
+  beforeEach(() => {
+    state.switches = { declutter: true, shops: true };
+    state.shops = [];
+    state.browseCalls = [];
+    state.fail = false;
+  });
+
+  it("lists nearby shops in the declutter category on the Shops card, each with a greyed Request a quote", async () => {
+    state.shops = [shop("s1", "Bayou Consignment"), shop("s2", "Red Stick Estate Sales")];
+    show();
+    open();
+    const cards = await screen.findAllByTestId("sell-for-me-shop");
+    expect(cards).toHaveLength(2);
+    expect(state.browseCalls[0]).toMatchObject({ category: "declutter_estate_sales", lat: 30.45, lng: -91.15 });
+    const first = within(cards[0]);
+    expect(first.getByText("Bayou Consignment")).toBeInTheDocument();
+    expect(cards[0].querySelector("[data-shop-card]")?.getAttribute("href")).toBe("/shops/s1");
+    const ask = first.getByTestId("sell-for-me-request-quote");
+    expect(ask).toHaveAttribute("aria-disabled", "true");
+    expect(first.getByText("Coming soon")).toBeInTheDocument();
+    expect(screen.queryByText(QUOTE_SOON_LINE)).toBeNull();
+    fireEvent.click(ask);
+    expect(first.getByText(QUOTE_SOON_LINE)).toBeInTheDocument();
+    // Nothing navigated: no dead thread, no quote form.
+    expect(screen.queryByTestId("where")).toBeNull();
+  });
+
+  it("no businesses yet: says so and offers the Helpr instead", async () => {
+    show();
+    open();
+    const empty = await screen.findByTestId("sell-for-me-no-businesses");
+    expect(empty).toHaveTextContent("No local businesses offer this yet.");
+    fireEvent.click(within(empty).getByRole("button", { name: "Hire a Helpr instead" }));
+    expect(await screen.findByTestId("where")).toHaveTextContent("/post-job?sellForMe=1");
+  });
+
+  it("a failed read is an error with Try again, never 'none yet'", async () => {
+    state.fail = true;
+    show();
+    open();
+    expect(await screen.findByText("We couldn't load businesses.")).toBeInTheDocument();
+    expect(screen.queryByTestId("sell-for-me-no-businesses")).toBeNull();
+  });
+
+  it("with the shops switch off: only the Helpr choice, and shops are never asked for", async () => {
+    state.switches.shops = false;
+    state.shops = [shop("s1", "Bayou Consignment")];
+    show();
+    open();
+    expect(await screen.findByTestId("sell-for-me-hire-helpr")).toBeInTheDocument();
+    expect(screen.queryByTestId("sell-for-me-businesses")).toBeNull();
+    await waitFor(() => expect(state.browseCalls).toHaveLength(0));
+  });
+});
+
+describe("Post a Job reads ?sellForMe=1", () => {
+  it("skips the entry screen and pre-fills category, title and description", async () => {
+    const form = blankComments(readFileSync(join(process.cwd(), "src/pages/post-job/usePostJobForm.ts"), "utf8"));
+    expect(form).toMatch(/const skipEntry = !!\(searchParams\.get\(SELL_FOR_ME_PARAM\) \|\|/);
+    vi.resetModules();
+    vi.doMock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: false }) }));
+    vi.doMock("@/integrations/supabase/client", () => ({
+      supabase: { rpc: () => Promise.resolve({ data: null, error: null }), from: () => ({}) },
+    }));
+    const { useJobFormEffects } = await import("@/pages/post-job/useJobFormEffects");
+    const set = { category: "", title: "", description: "" };
+    const noop = () => {};
+    renderHook(() =>
+      useJobFormEffects({
+        searchParams: new URLSearchParams("sellForMe=1"),
+        profile: null,
+        flushDraft: noop,
+        saveDraft: noop,
+        setOnboardingFeeCents: noop,
+        setOpenJobCount: noop,
+        setOnboardingFeePaid: noop,
+        setTitle: (v) => { set.title = v; },
+        setDescription: (v) => { set.description = v; },
+        setCategory: (v) => { set.category = v; },
+        setStreetAddress: noop,
+        setCity: noop,
+        setAddrState: noop,
+        setZipCode: noop,
+        setBudget: noop,
+        setEstimatedHours: noop,
+        setSpecialRequirements: noop,
+        setIsRecurring: noop,
+        setRecurrenceInterval: noop,
+        setParish: noop,
+        setOfferToHelperId: noop,
+        setOfferToHelperName: noop,
+        title: "",
+        description: "",
+        category: "",
+        streetAddress: "",
+        city: "",
+        addrState: "",
+        zipCode: "",
+        dateNeeded: "",
+        startTime: "",
+        estimatedHours: "",
+        budget: "",
+        specialRequirements: "",
+        isRecurring: false,
+        recurrenceInterval: "weekly",
+        recurrenceEndDate: "",
+        isFlexibleSchedule: false,
+        isUrgent: false,
+        urgentFee: "",
+        isGroupJob: false,
+        helpersNeeded: "1",
+        credentialTier: 0,
+        includeMaterials: false,
+        materialsNote: "",
+        offerToHelperId: null,
+      }),
+    );
+    expect(set).toEqual(buildSellForMePrefill());
+  });
+});

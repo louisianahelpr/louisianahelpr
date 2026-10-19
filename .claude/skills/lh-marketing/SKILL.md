@@ -76,10 +76,10 @@ There is a credential tier ladder — `src/lib/careerLadder.ts:66-73` defines
 ID verification exists (`HowItWorksSection.tsx:55` — "Verify your ID once, then
 work"). **What you may say about this is tightly limited — see §4.**
 
-**The 24 job categories.** The `job_category` Postgres enum, canonical order and
+**The 25 job categories.** The `job_category` Postgres enum, canonical order and
 labels from `JOB_CATEGORY_LABELS` in `src/lib/jobCategories.ts` (post-a-job
-popularity order, "Other" last; 24 entries, counted 2026-10-15 after the twelve
-trades were added (owner decision T1) — the enum is the source, re-read it before
+popularity order, "Other" last; 25 entries, counted 2026-10-19 after Declutter
+Help was added ("Sell it for me"), on top of the twelve trades (owner decision T1) — the enum is the source, re-read it before
 relying on the count):
 
 | value | label |
@@ -89,6 +89,7 @@ relying on the count):
 | `handyman` | Handyman |
 | `moving` | Moving |
 | `errands` | Errands |
+| `declutter_help` | Declutter Help |
 | `delivery` | Delivery |
 | `pet_care` | Pet Care |
 | `assembly` | Assembly |

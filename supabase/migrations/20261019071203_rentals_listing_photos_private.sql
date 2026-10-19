@@ -789,7 +789,9 @@ BEGIN
   END IF;
   -- Round 3 #1 (purge vs lift): lock this property's queue entries first. A claim younger than 15 minutes
   -- means the purge cron may be deleting those objects right now: refuse (nothing changes; try again later)
-  -- rather than restore listings whose photos are going. Otherwise the entries are dropped with the lift.
+  -- rather than restore listings whose photos are going. An older claim (a run that died part way, lead
+  -- round 4 #2) may have removed some objects already: refuse too unless every claimed object is still in
+  -- Storage (its storage.objects row; read only, never deleted here). Otherwise the entries are dropped.
   PERFORM 1 FROM public.rental_photo_purge_queue q
     JOIN public.rental_listings l ON l.id = public.rentals_photo_path_listing(q.storage_path)
    WHERE q.bucket_id = 'listing-photos' AND l.property_id = p_property_id
@@ -797,7 +799,10 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.rental_photo_purge_queue q
                JOIN public.rental_listings l ON l.id = public.rentals_photo_path_listing(q.storage_path)
               WHERE q.bucket_id = 'listing-photos' AND l.property_id = p_property_id
-                AND q.claimed_at > now() - interval '15 minutes') THEN
+                AND (q.claimed_at > now() - interval '15 minutes'
+                     OR (q.claimed_at IS NOT NULL
+                         AND NOT EXISTS (SELECT 1 FROM storage.objects o
+                                          WHERE o.bucket_id = 'listing-photos' AND o.name = q.storage_path)))) THEN
     RAISE EXCEPTION 'photos_purging' USING ERRCODE = '55000';
   END IF;
   DELETE FROM public.rental_photo_purge_queue q

@@ -242,7 +242,7 @@ const due = one(await svc(`SELECT (((now() AT TIME ZONE 'America/Chicago')::date
 ok(ended?.ended_by === "landlord" && ended.forwarding_address === null && ended.address_visible_to_landlord === false && ended.deposit.return_by === due,
   "#4: after a landlord-only early end the landlord still does not see the address; the one-month return-by date runs (R.S. 9:3251)");
 ok((await dep(TENANT, tA))?.address_visible_to_landlord === false, "and the tenant is shown it is not shared yet");
-ok(Array.isArray(await setDep(LANDLORD, tA, 120000, today)), "#10: the landlord can still record (or fix) the deposit after the end, within 30 days");
+ok(refused(await setDep(LANDLORD, tA, 90000, today), /deposit_already_recorded/), "round 2 #2: after the end a recorded deposit is never overwritten");
 await svc(`UPDATE public.rental_tenancies SET lease_ends_on = public.shop_local_today() WHERE id = '${tA}'`);
 const atLeaseEnd = await dep(LANDLORD, tA);
 ok(atLeaseEnd?.forwarding_address === "500 New Home Rd, Baton Rouge LA 70801" && atLeaseEnd.address_visible_to_landlord === true,
@@ -261,9 +261,11 @@ ok(refused(await settle(LANDLORD, tA, 120000, [], "2099-01-01"), /bad_settlement
 
 // --- the sweep: reminders to the landlord, once per stage
 const sw = async () => rows(await svc(`SELECT public.rentals_deposit_sweep() AS r`))[0]?.r;
+await svc(`DELETE FROM public.test_accounts WHERE user_id = '${TENANT}'`); // Homes off for the tenant: the privacy notice still goes
 const s1 = await sw();
+await svc(`INSERT INTO public.test_accounts (user_id) VALUES ('${TENANT}')`);
 ok(s1?.reminders === 1 && (await notes(LANDLORD, "Return the deposit")) === 1, "the end day: the landlord is reminded of the one-month rule");
-ok(s1?.address_notices === 1 && (await notes(TENANT, "Forwarding address shared")) === 1, "#4: the tenant is told once the landlord can see their address");
+ok(s1?.address_notices === 1 && (await notes(TENANT, "Forwarding address shared")) === 1, "#4 / round 2 #6: the tenant is told once the landlord can see their address (even with Homes off for them)");
 await sw();
 ok((await notes(LANDLORD, "Return the deposit")) === 1 && (await notes(TENANT, "Forwarding address shared")) === 1, "once each (a second sweep sends nothing)");
 await svc(`UPDATE public.rental_tenancies SET ended_at = now() - interval '25 days' WHERE id = '${tA}'`);
@@ -321,6 +323,7 @@ const preB = await dep(TENANT2, tB);
 ok(preB?.deposit === null && preB.forwarding_address === "77 Next Place, Lafayette LA 70503", "kept on the tenancy's record, no deposit yet");
 ok((await dep(LANDLORD, tB))?.forwarding_address === null && (await dep(LANDLORD, tB))?.has_forwarding_address === true, "the landlord of the live tenancy sees only that one was given");
 ok(Array.isArray(await as("authenticated", TENANT2, `SELECT public.rentals_end_tenancy('${tB}')`)), "the TENANT ends the tenancy");
+ok((await notes(TENANT2, "Forwarding address shared")) === 1, "round 2 #6: told at that moment, not the next morning");
 ok((await dep(LANDLORD, tB))?.forwarding_address === "77 Next Place, Lafayette LA 70503" && (await dep(LANDLORD, tB))?.can_record === true,
   "#4: a tenant-ended tenancy shares the address at once; the landlord can still record the deposit");
 ok(rows(await as("authenticated", LANDLORD, `SELECT * FROM public.rentals_my_ended_deposits()`)).some((r) => r.tenancy_id === tB),
@@ -330,15 +333,15 @@ const postB = await dep(TENANT2, tB);
 ok(postB?.deposit?.amount_cents === 50000 && postB.forwarding_address === "77 Next Place, Lafayette LA 70503", "the address given earlier is attached to it");
 await svc(`DELETE FROM public.test_accounts WHERE user_id IN ('${TENANT2}', '${LANDLORD}')`);
 const sOff = await sw();
-ok(sOff?.reminders === 0 && sOff.address_notices === 0 && (await notes(TENANT2, "Forwarding address shared")) === 0,
-  "#8: Homes off for the landlord: no reminder; off for the tenant: no notice");
+ok(sOff?.reminders === 0 && sOff.address_notices === 0 && (await notes(TENANT2, "Forwarding address shared")) === 1,
+  "#8: Homes off for the landlord: no reminder; the tenant's notice is not sent twice");
 await svc(`INSERT INTO public.test_accounts (user_id) VALUES ('${LANDLORD}')`);
 await svc(`UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = '${LANDLORD}'`);
 ok((await sw())?.reminders === 0, "#8: a banned landlord gets no reminder");
 await svc(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${LANDLORD}'`);
 await svc(`INSERT INTO public.test_accounts (user_id) VALUES ('${TENANT2}')`);
 const sBack = await sw();
-ok(sBack?.reminders === 1 && sBack.address_notices === 1 && (await notes(TENANT2, "Forwarding address shared")) === 1, "both go out once they are back");
+ok(sBack?.reminders === 1 && sBack.address_notices === 0 && (await notes(TENANT2, "Forwarding address shared")) === 1, "the reminder goes out once the landlord is back");
 
 // --- gates
 await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'rentals'`);

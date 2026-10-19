@@ -408,6 +408,8 @@ export function RentPanel({ tenancyId }: { tenancyId: string }) {
   if (q.isError) return <p className="text-xs text-muted-foreground">Couldn't load the rent record.</p>;
   if (!q.data) return <div className="h-10 animate-pulse rounded-xl bg-muted" aria-label="Loading rent" />;
   const l = q.data;
+  // An ended tenancy that never had rent tracked has no rent card.
+  if (l.tenancy_status === "ended" && !l.plan && l.charges.length === 0 && l.payments.length === 0) return null;
   const toConfirm = l.payments.filter((p) => p.status === "reported");
   return (
     <section className="space-y-2 border-t border-border pt-3" aria-label="Rent">

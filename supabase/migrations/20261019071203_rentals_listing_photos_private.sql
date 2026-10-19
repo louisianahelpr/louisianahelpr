@@ -171,20 +171,22 @@ END
 $mig$;
 
 -- ---------------------------------------------------------------------------
--- 4. The serve key: read only by the definer functions below.
+-- 4. The serve key: read by the definer functions below (and nothing a client can call).
 CREATE TABLE IF NOT EXISTS public.rentals_photo_serve_keys (
   id smallint PRIMARY KEY CHECK (id = 1),
   secret bytea NOT NULL CHECK (octet_length(secret) >= 32),
   created_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.rentals_photo_serve_keys ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.rentals_photo_serve_keys FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON TABLE public.rentals_photo_serve_keys FROM PUBLIC, anon, authenticated;
+-- The server role only (it bypasses RLS anyway); no client role ever reads the key.
+GRANT SELECT ON TABLE public.rentals_photo_serve_keys TO service_role;
 -- 2 x gen_random_uuid() (the strong random source, no extension needed) = 244 random bits.
 INSERT INTO public.rentals_photo_serve_keys (id, secret)
 VALUES (1, decode(replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', ''), 'hex'))
 ON CONFLICT (id) DO NOTHING;
 COMMENT ON TABLE public.rentals_photo_serve_keys IS
-  'The secret that signs listing photo refs (20261019071203). No policy, no grant: only rentals_photo_ref / rentals_listing_photo_object read it.';
+  'The secret that signs listing photo refs (20261019071203). No policy, no client grant: rentals_photo_ref / rentals_listing_photo_object read it.';
 
 -- The signature of one ref's message: sha256(k || sha256(k || msg)), the nested form (no length extension), 128 bits.
 CREATE OR REPLACE FUNCTION public.rentals_photo_sig(p_msg text)
@@ -344,6 +346,7 @@ AS $fn$
 DECLARE
   v_uid uuid := (SELECT auth.uid());
 BEGIN
+  PERFORM public.require_feature('rentals');
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;

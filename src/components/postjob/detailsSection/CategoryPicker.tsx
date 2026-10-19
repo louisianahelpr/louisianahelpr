@@ -73,7 +73,7 @@ export function CategoryPicker({
               }}
               aria-pressed={active}
               aria-label={c.label}
-              className="flex items-center gap-2.5 p-2 text-left rounded-ds-md transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="flex items-center gap-2.5 max-[359px]:gap-2 p-2 max-[359px]:px-1.5 text-left rounded-ds-md transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               style={
                 active
                   ? {
@@ -100,7 +100,7 @@ export function CategoryPicker({
               }
             >
               <span
-                className={`relative w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${colors?.dot ?? ""}`}
+                className={`relative w-7 h-7 max-[359px]:w-6 max-[359px]:h-6 rounded-full flex items-center justify-center shrink-0 ${colors?.dot ?? ""}`}
                 style={
                   !colors?.dot
                     ? { background: "hsl(var(--olivewood) / 0.12)" }
@@ -147,8 +147,12 @@ export function CategoryPicker({
                   </span>
                 )}
               </span>
+              {/* NEVER BREAKS INSIDE A WORD (owner, 2026-10-19: "Handyma/n" at 320). It wraps only
+                  between words (break-normal); below 360px the chip gives the label room instead
+                  (24px icon, 8px gap, 6px side padding: 73px, measured 63px before, and "Handyman"
+                  is 68.6px). Guard: src/test/categoryChipsNeverBreakAWord.test.ts. */}
               <span
-                className="font-sans font-semibold leading-tight line-clamp-2 break-words text-ds-12 text-left"
+                className="font-sans font-semibold leading-tight line-clamp-2 break-normal hyphens-none text-ds-12 text-left"
                 style={{
                   color: active ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.85)",
                 }}

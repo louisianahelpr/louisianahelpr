@@ -18,7 +18,7 @@ import { readApplicationRows, readableApplicationRows } from "@/lib/applicationC
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { fetchJobSeriesState } from "@/lib/jobSeriesState";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
-import { useBackoutNotices } from "@/lib/backoutNotices";
+import { backoutNoticeApplies, useBackoutNotices } from "@/lib/backoutNotices";
 import { fetchScheduleChangesAskedOf } from "@/lib/scheduleChange";
 import { fetchMyScheduleClashes } from "@/lib/scheduleClashes";
 import { closedApplicantsSummary } from "@/pages/posts/postedJobs/applicantBadge";
@@ -1061,8 +1061,10 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
   }).data;
   const postedJobsList = posted.postedJobs;
   const tag = useCallback(
-    <J extends { id: string }>(j: J): J => {
-      const n = backout.get(j.id);
+    <J extends { id: string; status?: string | null }>(j: J): J => {
+      // A closed job shows no "it's open again" banner (20261019020032).
+      const open = backout.get(j.id);
+      const n = open && backoutNoticeApplies(open.backout_kind, j.status) ? open : undefined;
       const a = asked?.includes(j.id);
       const c = clashes?.get(j.id);
       return n || a || c

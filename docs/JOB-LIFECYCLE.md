@@ -39,7 +39,9 @@ A decline of an offer, or a cancel by either side after an accept:
 - their card moves to **Needs You** with a red banner naming who and what ("Lexi cancelled —
   they won't be coming" / "Sam cancelled this job — don't go"), and stays there until they
   tap **Got It**;
-- inside 24 h of the start, the push repeats until Got It.
+- inside 24 h of the start, the push repeats until Got It, while the job is still live: once it is
+  completed or cancelled, an "it's open again" notice closes by itself (a poster's cancel still warns
+  the Helpr until Got It; 20261019020032).
 
 ## The steps
 

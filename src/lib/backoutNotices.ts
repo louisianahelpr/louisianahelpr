@@ -28,6 +28,18 @@ export function backoutBannerText(n: Pick<BackoutNotice, "backout_kind" | "actor
   }
 }
 
+/**
+ * Whether a notice still has something to say about its job; the same rule as
+ * backout_notice_applies() in SQL (20261019020032). "It's open to everyone
+ * again" is moot once the job is completed or cancelled; a poster_cancelled
+ * notice IS the cancel ("Don't go."), so it stays until Got It. The server
+ * closes moot notices itself; this keeps a card from showing one in the
+ * moment before that read refreshes.
+ */
+export function backoutNoticeApplies(kind: BackoutNotice["backout_kind"], jobStatus: string | null | undefined): boolean {
+  return kind === "poster_cancelled" || (jobStatus !== "completed" && jobStatus !== "cancelled");
+}
+
 const backoutNoticesKey = (userId: string | null | undefined) => ["activity", "backout", userId] as const;
 
 /** The caller's open (not yet Got It) notices, by job. Under the activity prefix so its refreshes cover it. */

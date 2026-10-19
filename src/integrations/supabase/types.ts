@@ -10207,6 +10207,10 @@ export type Database = {
           tip_amount: number
         }[]
       }
+      backout_notice_applies: {
+        Args: { p_job_status: string; p_kind: string }
+        Returns: boolean
+      }
       backout_notice_text: {
         Args: { p_actor: string; p_kind: string; p_title: string }
         Returns: {
@@ -10295,6 +10299,7 @@ export type Database = {
       check_stale_dispute_settlement_claims: { Args: never; Returns: Json }
       check_user_reports_reach_ledger: { Args: never; Returns: number }
       client_compat_floor: { Args: never; Returns: number }
+      close_moot_backout_notices: { Args: { p_job?: string }; Returns: number }
       declutter_active_strike_count: { Args: { p_user_id: string }; Returns: number }
       create_quote_request: {
         Args: {

@@ -13,6 +13,7 @@ import {
   setListingStatus,
   type RentalListing,
 } from "@/lib/rentals/listings";
+import { useRefreshOnExpiredRef } from "./useRefreshOnExpiredRef";
 import { listingShowing, listingStatusLabel } from "@/lib/rentals/listingCopy";
 import { rentalsErrorMessage } from "@/lib/rentals/copy";
 import { RentalsCard } from "../rentalsUi";
@@ -55,6 +56,7 @@ export function Photos({ listing, uid }: { listing: RentalListing; uid: string }
   const qc = useQueryClient();
   const photos = useQuery({ queryKey: ["rentals-listing-photos", listing.id], queryFn: () => fetchListingPhotos(listing.id) });
   const refresh = () => qc.invalidateQueries({ queryKey: ["rentals-listing-photos", listing.id] });
+  const refreshExpired = useRefreshOnExpiredRef([["rentals-listing-photos", listing.id]]);
   const add = useMutation({
     mutationFn: async (files: File[]) => {
       for (const f of files) await addListingPhoto(uid, listing.id, f);
@@ -72,7 +74,7 @@ export function Photos({ listing, uid }: { listing: RentalListing; uid: string }
         <div className="grid grid-cols-3 gap-2">
           {photos.data.map((p, i) => (
             <div key={p.id} className="relative">
-              <img src={listingPhotoUrl(p.ref, 320)} alt={`Photo ${i + 1}`} className="aspect-square w-full rounded-xl bg-muted object-cover" />
+              <img src={listingPhotoUrl(p.ref, 320)} onError={() => refreshExpired(p.ref)} alt={`Photo ${i + 1}`} className="aspect-square w-full rounded-xl bg-muted object-cover" />
               {i === 0 && (
                 <span className="absolute bottom-1.5 left-1.5 rounded-full bg-card px-2 py-0.5 text-ds-11 font-semibold shadow-sm">Cover</span>
               )}

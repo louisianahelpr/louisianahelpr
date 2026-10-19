@@ -56,9 +56,10 @@ describe("listing photos: private bucket, refs only", () => {
     expect(add).not.toMatch(/'job-photos'/);
   });
 
-  it("the take-down detaches the listing's photos", () => {
+  it("the take-down detaches the photos of every listing it removes and deletes their objects server-side", () => {
     const body = blankSqlComments(defs.get("rentals_admin_remove_listing")!.stmt);
-    expect(body).toMatch(/DELETE\s+FROM\s+public\.rental_listing_photos\s+WHERE\s+listing_id\s*=\s*p_listing_id/i);
+    expect(body).toMatch(/DELETE\s+FROM\s+public\.rental_listing_photos\s+WHERE\s+listing_id\s*=\s*ANY\s*\(v_ids\)/i);
+    expect(body).toMatch(/DELETE\s+FROM\s+storage\.objects\s+WHERE\s+bucket_id\s*=\s*'listing-photos'/i);
   });
 
   it("the newest declaration of the listing-photos bucket is private", () => {
@@ -89,5 +90,9 @@ describe("listing photos: the app goes through the proxy", () => {
     const offenders = files.filter((f) => /storage_path|photo_paths|photo_ids/.test(blankComments(readFileSync(join(dir, f), "utf8"))));
     expect(offenders).toEqual([]);
     expect(files.length).toBeGreaterThan(3);
+    // Every listing photo <img> refetches its read when its ref has expired (review #6).
+    const imgs = files.flatMap((f) => blankComments(readFileSync(join(dir, f), "utf8")).match(/<img\b[\s\S]*?\/>/g) ?? []).filter((t) => t.includes("listingPhotoUrl("));
+    expect(imgs.length).toBeGreaterThan(2);
+    expect(imgs.filter((t) => !/onError=\{\(\) => refresh\w*\(/.test(t))).toEqual([]);
   });
 });

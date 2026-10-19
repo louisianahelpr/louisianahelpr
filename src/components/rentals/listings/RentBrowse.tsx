@@ -11,6 +11,7 @@ import { FilterSheet } from "@/components/dashboard/FilterSheet";
 import { chipStyles } from "@/components/dashboard/JobFilters";
 import { hapticLight } from "@/lib/haptics";
 import { fetchBrowseListings, fetchBrowseSaleListings, listingPhotoUrl } from "@/lib/rentals/listings";
+import { useRefreshOnExpiredRef } from "./useRefreshOnExpiredRef";
 import { availableLine, bedsBathsLine, priceLine, rentLine } from "@/lib/rentals/listingCopy";
 import { dollarsToCents } from "@/lib/rentals/copy";
 
@@ -45,6 +46,7 @@ interface CardRow {
 
 function ListingCard({ l }: { l: CardRow }) {
   const cover = l.photo_refs?.[0];
+  const refresh = useRefreshOnExpiredRef([["rentals-browse"], ["rentals-browse-sale"]]);
   return (
     <Link
       to={`/rentals/listings/${l.id}`}
@@ -52,7 +54,7 @@ function ListingCard({ l }: { l: CardRow }) {
     >
       <span className="relative block overflow-hidden rounded-2xl bg-muted">
         {cover ? (
-          <img src={listingPhotoUrl(cover)} alt="" className="aspect-[16/10] w-full object-cover ctl-tint" loading="lazy" />
+          <img src={listingPhotoUrl(cover)} alt="" onError={() => refresh(cover)} className="aspect-[16/10] w-full object-cover ctl-tint" loading="lazy" />
         ) : (
           <span className="flex aspect-[16/10] w-full items-center justify-center text-muted-foreground" aria-hidden>
             <Home className="h-8 w-8" />

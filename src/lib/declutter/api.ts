@@ -131,6 +131,44 @@ export async function fetchLiveItems(): Promise<DeclutterItem[]> {
   return (rows ?? []) as DeclutterItem[];
 }
 
+/**
+ * The item page's "More from this seller" row: the seller's other live (and
+ * reserved) listings, newest first. The same table read as Browse, so RLS and
+ * the 'declutter' switch decide exactly as they do there; no private field.
+ */
+export async function fetchSellerItems(sellerId: string, exceptItemId: string): Promise<DeclutterItem[]> {
+  const rows = await readItems((cols) =>
+    supabase
+      .from("declutter_items")
+      .select(cols)
+      .eq("seller_id", sellerId)
+      .in("status", ["live", "reserved"])
+      .neq("id", exceptItemId)
+      .order("live_at", { ascending: false })
+      .limit(12),
+  );
+  return (rows ?? []) as DeclutterItem[];
+}
+
+/**
+ * The item page's "Similar items" row: other sellers' live listings in the
+ * same category, newest first (this seller's own are in the row above).
+ */
+export async function fetchSimilarItems(category: string, exceptItemId: string, sellerId: string): Promise<DeclutterItem[]> {
+  const rows = await readItems((cols) =>
+    supabase
+      .from("declutter_items")
+      .select(cols)
+      .eq("category", category)
+      .in("status", ["live", "reserved"])
+      .neq("id", exceptItemId)
+      .neq("seller_id", sellerId)
+      .order("live_at", { ascending: false })
+      .limit(12),
+  );
+  return (rows ?? []) as DeclutterItem[];
+}
+
 /** The member's own listings, every status. */
 export async function fetchMyItems(userId: string): Promise<DeclutterItem[]> {
   const rows = await readItems((cols) =>

@@ -134,6 +134,7 @@ async function refundInFull(
   const sorry = `We couldn't start your ID check, so we refunded your ${IDV_FEE_TEXT} in full. Please try again in a few minutes.`;
   try {
     if (!row.stripe_payment_intent_id) throw new Error("no stripe_payment_intent_id on the paid row");
+    // own-mistake full refund (owner, 2026-10-14): they paid and the check could not start on our side, so the whole fee, card fee included, goes back.
     const refund = await stripe.refunds.create(
       { payment_intent: row.stripe_payment_intent_id, metadata: { kind: "idv_fee_refund", idv_fee_payment_id: row.id } },
       { idempotencyKey: `idv-fee-refund:${row.id}` },

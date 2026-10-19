@@ -51,6 +51,7 @@ async function refundIfSurplus(
   if (!verified && !duplicate) return;
   try {
     if (!paymentIntentId) throw new Error("no payment_intent on the session");
+    // own-mistake full refund (owner, 2026-10-14): we took a payment for a check they did not need (already verified, or already holding a paid check), so the whole fee goes back.
     const refund = await stripe.refunds.create(
       { payment_intent: paymentIntentId, metadata: { kind: "idv_fee_refund", idv_fee_payment_id: row.id, why: verified ? "already_verified" : "duplicate" } },
       { idempotencyKey: `idv-fee-refund:${row.id}` },

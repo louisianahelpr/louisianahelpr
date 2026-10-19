@@ -308,7 +308,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/shops/ShopDailyCap.tsx` | input×1 | number |  | shop-daily-cap |
-| `src/components/shops/ShopEditView.tsx` | input×6, textarea×1, select×1, checkbox/switch/radio×5, date/calendar×2 | file, text, time | 60, 2000, 80, 20 | Loading your shop · shop-name · shop-category · shop-about · shop-area · Broussard · shop-storefront · shop-selling |
+| `src/components/shops/ShopEditView.tsx` | input×6, textarea×1, checkbox/switch/radio×5, date/calendar×2 | file, text, time | 60, 2000, 80, 20 | Loading your shop · shop-name · shop-category · shop-about · shop-area · Broussard · shop-storefront · shop-selling |
 | `src/components/shops/ShopItemEditor.tsx` | input×5, textarea×1, select×2, checkbox/switch/radio×3 | text, number, file | 80, 2000 | item-editor-title · item-kind · item-type · item-title · item-description · item-price · 18 · item-lead |
 | `src/components/shops/ShopPickupAddressSection.tsx` | input×4 | text | 120, 60, 5 | shop-pickup-address · shop-pickup-heading · Loading your pickup address · pickup-line1 · pickup-line2 · pickup-city · pickup-zip |
 

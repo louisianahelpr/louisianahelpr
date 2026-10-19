@@ -6639,7 +6639,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 176,
+      "line": 177,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6659,7 +6659,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 180,
+      "line": 181,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6669,7 +6669,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 186,
+      "line": 187,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6679,7 +6679,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 191,
+      "line": 192,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6689,7 +6689,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 197,
+      "line": 198,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6699,7 +6699,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 201,
+      "line": 202,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

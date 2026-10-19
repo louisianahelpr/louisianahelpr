@@ -698,7 +698,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39172560319. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #2937, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39167100554. notes: Q1775. feed: issue #2937 · feed: ledger a8ceee56bbd5
   - nightly-webkit: issue #2962, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39131032798. notes: Q1780. feed: issue #2962 · feed: ledger 70e7b0decb9a
-  - db-drift-detect: issue #3154, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39145327542. feed: issue #3154 · feed: ledger 8018e82cb167
+  - db-drift-detect: issue #3154, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39178781147. feed: issue #3154 · feed: ledger 8018e82cb167
   - staleness-watch: issue #3307, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39136859301. feed: issue #3307 · feed: ledger db0fb15c4ec3
   - e2e-real-backend: issue #3311, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39039797666. feed: issue #3311 · feed: ledger 3a3460b71be7
 - [ ] **Q2144 MEDIUM cron http failure: declutter-money returned 500 (# defect(s) reported).** Mirrored 2026-10-18 from alert-ledger row e62e32bec0c4 (error_logs: cron-http; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger e62e32bec0c4. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'e62e32bec0c415c8c17d26c4ff5e035f'` => closed

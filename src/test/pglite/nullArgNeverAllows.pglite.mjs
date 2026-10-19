@@ -134,6 +134,8 @@ CREATE TABLE public.rental_tenancies (id uuid PRIMARY KEY, unit_id uuid, propert
 CREATE TABLE public.rental_listings (id uuid PRIMARY KEY, unit_id uuid, property_id uuid, owner_id uuid, status text,
   headline text, rent_cents integer, beds numeric, baths numeric, available_on date, published_at timestamptz, expires_at timestamptz,
   kind text NOT NULL DEFAULT 'rent', removed_by_admin boolean NOT NULL DEFAULT false);
+-- Homes photos (20261019071203): the delete check reads the photo rows.
+CREATE TABLE public.rental_listing_photos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), listing_id uuid, owner_id uuid, storage_path text, position integer);
 -- Homes Buy (20261019061241): rentals_listing_visible reads the sale-listing fee for a sale listing.
 CREATE TABLE IF NOT EXISTS public.platform_settings (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), homes_sale_listing_fee_cents integer);
 CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NULL, description text NOT NULL);
@@ -209,8 +211,8 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "is_identity_verified",
   // Homes listings (20261019043000); after is_identity_verified, which its newest SQL body calls (20261019061241).
   "rentals_listing_visible",
-  // Homes public link (20261019062540).
-  "rentals_public_listing_visible"];
+  // Homes public link (20261019062540) and listing photo storage checks (20261019071203).
+  "rentals_public_listing_visible", "rentals_listing_photo_access", "rentals_listing_photo_deletable"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, so it comes after it).
 const AFTER_STUBS = ["job_announceable_to", "shop_publicly_visible", "shop_visible_to"];

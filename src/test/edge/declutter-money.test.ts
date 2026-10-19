@@ -14,10 +14,10 @@
  * @mutate supabase/functions/declutter-money/index.ts |       const refund = existing ?? await stripe.refunds.create( |       const refund = await stripe.refunds.create(
  * @mutate supabase/functions/declutter-money/index.ts |           { idempotencyKey: `declutter-payout-${p.payout_id}` }, |           {},
  * @mutate supabase/functions/declutter-money/index.ts |       let transfer = existing; |       let transfer = undefined as typeof existing;
- * @mutate supabase/functions/declutter-money/index.ts |     if (hold.kind === "held") { |     if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |    if (hold.kind === "held") {\n      out.held++;\n      await skipRow("declutter", | if (false) {\n      out.held++;\n      await skipRow("declutter",
  * @mutate supabase/functions/declutter-money/index.ts |     if ((p.seller_id && review.users.has(p.seller_id)) \|\| (p.buyer_id && review.users.has(p.buyer_id))) { |     if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |   const refused = verifyCronSecret(req);\n  if (refused) return refused; |
- * @mutate supabase/functions/declutter-money/index.ts |             destination: p.stripe_account_id,\n            transfer_group: group, |             destination: p.stripe_account_id,
+ * @mutate supabase/functions/declutter-money/index.ts |             destination: p.stripe_account_id as string,\n            transfer_group: group, |             destination: p.stripe_account_id as string,
  * @mutate supabase/functions/declutter-money/index.ts |   if (p.attempts + 1 < 12) return; |   return;
  * @mutate supabase/functions/declutter-money/index.ts |   if (gaveUp.error) defects.record(`declutter_refund_gave_up_check failed: ${gaveUp.error.message}`); |   if (gaveUp.error) void 0;
  * @mutate supabase/functions/declutter-money/index.ts |   if (gaveUp.error) defects.record(`declutter_refund_gave_up_check failed: ${gaveUp.error.message}`); |   if (gaveUp.error) return cronError(FN, `declutter_refund_gave_up_check failed: ${gaveUp.error.message}`);
@@ -36,6 +36,43 @@
  * @mutate supabase/functions/declutter-money/index.ts |   const gaveUp = await admin.rpc("declutter_refund_gave_up_check", {}); |   const gaveUp = { error: null, data: 0 };
  * @mutate supabase/functions/declutter-money/index.ts |     message: /charge is not whole/.test(why) |     message: false
  * @mutate supabase/functions/declutter-money/index.ts |     if (recorded && byPage && recorded !== byPage) throw new Error(`refund row says ${recorded} but its order's page is ${byPage}`); |
+ * @mutate supabase/functions/declutter-money/index.ts |         if (!(await payeeReadyNow(stripe, mode, "declutter", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue; |
+ * @mutate supabase/functions/declutter-money/index.ts |         if (!(await payeeReadyNow(stripe, mode, "helpr_task", h.payout_id, h.helpr_id, h.stripe_account_id as string, h.amount_cents))) continue; |
+ * @mutate supabase/functions/_shared/connectReadiness.ts |   return account?.capabilities?.transfers === "active"; |   return !!account;
+ * @mutate supabase/functions/_shared/connectReadiness.ts |       if (isUnusableConnectAccountError(e)) return { kind: "unusable", reason: `account_unusable: ${message}`.slice(0, 200) }; |       throw e;
+ * @mutate supabase/functions/_shared/connectReadiness.ts |  return cache.get(cacheKey(mode, accountId)); |  return undefined;
+ * @mutate supabase/functions/declutter-money/index.ts |      await skipRow(kind, payoutId, payeeId, amountCents, 15, "transient", r.message); |
+ * @mutate supabase/functions/declutter-money/index.ts |    if (delivered === false) return; |    if (false) return;
+ * @mutate supabase/functions/declutter-money/index.ts |    if (w?.page_due !== true) return; |    return;
+ * @mutate supabase/functions/declutter-money/index.ts |      await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 60, "held", "the payee is on an admin payout hold"); |
+ * @mutate supabase/functions/declutter-money/index.ts |      else out.payouts_sent++;\n      await clearWait("declutter", p.payout_id); |      else out.payouts_sent++;
+ * @mutate supabase/functions/declutter-money/index.ts |    if (r.kind === "not_ready" && stripe && (await resyncGate(stripe, payeeId, r.account)) === "banned") { |    if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |    if ((error as { code?: string }).code === "PGRST202") {\n      if (!waitRpcMissing) defects.record(`${name}: | if (false) {\n      if (!waitRpcMissing) defects.record(`${name}:
+ * @mutate supabase/functions/declutter-money/index.ts |  const maybeSent_declutter = (x: PayoutDue) => Number(x.attempts ?? 0) > 0 \|\| sellerMarked.has(x.payout_id); |  const maybeSent_declutter = (x: PayoutDue) => Number(x.attempts ?? 0) > 0;
+ * @mutate supabase/functions/declutter-money/index.ts |        if (!(await markSending("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue; |
+ * @mutate supabase/functions/declutter-money/index.ts |        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "data_defect", "no order and no recorded Stripe mode"); |
+ * @mutate supabase/functions/_shared/connectReadiness.ts |    : transfers === "pending" ? "under_review" : "setup_unfinished"; |    : "setup_unfinished";
+ * @mutate supabase/functions/declutter-money/index.ts |        if (await unpayableNow("declutter", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, mode)) continue; |
+ * @mutate supabase/functions/declutter-money/index.ts |      if (beforeSend && transientBeforeSend(e)) {\n        // Nothing was sent: later, without using a try.\n        out.payout_retry_later++;\n        console.log(JSON.stringify({ event: "payout_deferred_transient", kind: "declutter" |      if (false) {\n        // Nothing was sent: later, without using a try.\n        out.payout_retry_later++;\n        console.log(JSON.stringify({ event: "payout_deferred_transient", kind: "declutter"
+ * @mutate supabase/functions/declutter-money/index.ts |      if (p.attempts + 1 >= 12) await clearWait("declutter", p.payout_id); |
+ * @mutate supabase/functions/declutter-money/index.ts |  await waitRpc("payout_payee_waits_prune", {}); |
+ * @mutate supabase/functions/declutter-money/index.ts |  await waitRpc("payout_held_check", {}); |
+ * @mutate supabase/functions/declutter-money/index.ts |      if (!r.accountSpecific) { |      if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |      kind: "payout_wait", severity: "warning", seed: w.payee_seed === true, oncePerDayKey: `payout-wait-${kind}-${payoutId}-${category}`, |      kind: "payout_wait", severity: "warning", seed: false, oncePerDayKey: `payout-wait-${kind}-${payoutId}-${category}`,
+ * @mutate supabase/functions/declutter-money/index.ts |      if (refused.size >= 3 && stripe && !probedModes.has(mode)) { |      if (refused.size >= 1 && stripe && !probedModes.has(mode)) {
+ * @mutate supabase/functions/declutter-money/index.ts |      else await skipRow(kind, payoutId, null, amountCents, 1440, "payee_deleted", "payee account deleted: money held, decide by hand"); |      else await skipRow(kind, payoutId, null, amountCents, 60, "no_account", "x");
+ * @mutate supabase/functions/declutter-money/index.ts |        await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 15, "record_failed", `transfer ${transfer.id} not recorded`); |
+ * @mutate supabase/functions/declutter-money/index.ts |    if (stuck) await waitRpc("payout_hold_for_review", { p_kind: kind, p_id: payoutId, p_category: category, p_reason: reason }); |    if (false) await waitRpc("payout_hold_for_review", { p_kind: kind, p_id: payoutId, p_category: category, p_reason: reason });
+ * @mutate supabase/functions/declutter-money/index.ts |        if (!(await stillPayableNow("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue; |
+ * @mutate supabase/functions/declutter-money/index.ts |    if (h.source_kind !== "declutter_delivery" \|\| !h.transfer_group \|\| !h.payment_intent_id) { |    if (!h.transfer_group) {
+ * @mutate supabase/functions/declutter-money/index.ts |      await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 60, "ban_review", "a party is under ban review"); |      await deferRow("declutter_refund", r.refund_id, 60);
+ * @mutate supabase/functions/_shared/connectReadiness.ts |      if (status === 403 \|\| status === 401 \|\| code === "account_invalid" \|\| /does not have access/i.test(message)) { |      if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |      kind: "payout_wait", severity: "warning", | kind: "custom", severity: "warning",
+ * @mutate supabase/functions/declutter-money/index.ts |    if ((category === "mixed_parties" \|\| category === "data_defect") && maybeSentRows.has(payoutId)) { |    if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |    if (suspendedUntil !== null && suspendedUntil > Date.now()) { |    if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |        if (keyBroken) { |        if (true) {
+ * @mutate supabase/functions/_shared/connectReadiness.ts |      if (/does not have access to account/i.test(message) && /does not exist/i.test(message)) { |      if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 15, "record_failed", `refund ${refund.id} not recorded`); |
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -116,6 +153,7 @@ beforeEach(() => {
     id: "pi_order1", status: "succeeded", latest_charge: { id: "ch_order1", amount_refunded: 0, disputed: false },
   });
   stripeMock.transfers.create.mockResolvedValue({ id: "tr_new1", destination: "acct_seller1" });
+  stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "active" }, payouts_enabled: true });
   stripeMock.refunds.create.mockResolvedValue({ id: "re_new1", status: "succeeded" });
 });
 
@@ -185,6 +223,237 @@ describe("declutter-money: seller payouts (B53)", () => {
     expect(body.no_payout_account).toBe(1);
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+  });
+
+  it("a seller who started payout setup but has not finished it is skipped WITHOUT using up a try (declutter-proof 2026-10-19)", async () => {
+    // Prod, measured: eli's test account acct_1URzEe3CI9eFJjCC, transfers "inactive". The old code sent the
+    // transfer, Stripe refused it, and each refusal used one of the 12 tries; the 12th gave the row up.
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "inactive" } });
+    const { status, body } = await run({ payouts: [payoutRow()] });
+    expect(status).toBe(200);
+    expect(body.payout_account_not_ready).toBe(1);
+    expect(body.payouts_failed).toBe(0);
+    expect(stripeMock.accounts.retrieve).toHaveBeenCalledWith("acct_seller1");
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+    expect(slackAlerts).toHaveLength(0);
+    // Pushed back (no starvation: it leaves the front of the queue) and the wait recorded.
+    expect(rpcs("payout_defer")[0]?.args).toEqual({ p_kind: "declutter", p_payout_id: PAYOUT, p_minutes: 60 });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_kind: "declutter", p_payout_id: PAYOUT, p_payee: SELLER, p_category: "setup_unfinished" });
+  });
+
+  it("transferReady is the TRANSFER rule: transfers active is enough even with bank payouts paused (payouts_enabled is the separate payout gate)", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "active" }, payouts_enabled: false });
+    const { body } = await run({ payouts: [payoutRow()] });
+    expect(body.payout_account_not_ready).toBe(0);
+    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("an account read that throws a passing error uses NO try: deferred 15 minutes, retried later", async () => {
+    stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("Rate limit"), { statusCode: 429, type: "StripeRateLimitError" }));
+    const { status, body } = await run({ payouts: [payoutRow({ attempts: 11 })] });
+    expect(status).toBe(200);
+    expect(body.payout_account_unreadable).toBe(1);
+    expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+    expect(rpcs("payout_defer")[0]?.args).toEqual({ p_kind: "declutter", p_payout_id: PAYOUT, p_minutes: 15 });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(slackAlerts.some((a: any) => /gave up/i.test(String(a.title ?? "")))).toBe(false);
+  });
+
+  it("Stripe refusing our read of ONE account (403) is that payee's problem: no try, a payee wait, a per-ACCOUNT alert, no key-wide page", async () => {
+    stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("permission denied for acct_seller1"), { statusCode: 403 }));
+    const { status, body } = await run({ payouts: [payoutRow(), payoutRow({ payout_id: "0000000b-0000-4000-8000-0000000000c4", order_id: "0000000b-0000-4000-8000-0000000000a4" })] });
+    expect(status).toBe(200);
+    expect(body.payout_account_unreadable).toBe(2);
+    expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+    expect(rpcs("payout_defer").map((c: any) => c.args.p_minutes)).toEqual([60, 60]);
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "unreadable" });
+    const perAccount = slackAlerts.filter((a: any) => /could not be read/.test(String(a.title ?? "")));
+    expect(new Set(perAccount.map((a: any) => a.oncePerDayKey))).toEqual(new Set(["connect-read-refused-live-acct_seller1"]));
+    expect(slackAlerts.some((a: any) => /can't read Connect accounts/.test(String(a.title ?? "")))).toBe(false);
+    expect(stripeMock.accounts.retrieve).toHaveBeenCalledTimes(1);
+    // One refused account never probes the key.
+    expect(stripeMock.balance.retrieve).not.toHaveBeenCalled();
+  });
+
+  it("three different accounts refused in one run is OUR key: one critical line per mode per day", async () => {
+    stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("permission denied"), { statusCode: 403 }));
+    const row = (n: number) => payoutRow({ payout_id: `0000000b-0000-4000-8000-0000000000d${n}`, order_id: `0000000b-0000-4000-8000-0000000000e${n}`, stripe_account_id: `acct_s${n}` });
+    stripeMock.accounts.retrieve.mockImplementation(async (id: string) => { throw Object.assign(new Error(`permission denied for ${id}`), { statusCode: 403 }); });
+    stripeMock.balance.retrieve.mockRejectedValue(Object.assign(new Error("Invalid API Key"), { statusCode: 401 }));
+    await run({ payouts: [row(1), row(2), row(3)] });
+    const key = slackAlerts.filter((a: any) => /can't read Connect accounts/.test(String(a.title ?? "")));
+    expect(key.length).toBeGreaterThan(0);
+    expect((key[0] as any).oncePerDayKey).toBe("connect-read-refused-live");
+  });
+
+  it("three refused accounts while the platform's own balance reads fine is NOT our key (no critical line)", async () => {
+    const row = (n: number) => payoutRow({ payout_id: `0000000b-0000-4000-8000-0000000000d${n}`, order_id: `0000000b-0000-4000-8000-0000000000e${n}`, stripe_account_id: `acct_s${n}` });
+    stripeMock.accounts.retrieve.mockImplementation(async (id: string) => { throw Object.assign(new Error(`permission denied for ${id}`), { statusCode: 403 }); });
+    stripeMock.balance.retrieve.mockResolvedValue({ available: [] });
+    await run({ payouts: [row(1), row(2), row(3)] });
+    expect(stripeMock.balance.retrieve).toHaveBeenCalledTimes(1);
+    expect(slackAlerts.some((a: any) => /can't read Connect accounts/.test(String(a.title ?? "")))).toBe(false);
+  });
+
+  it("Stripe's 'does not have access to account … (or that account does not exist)' is that payee's account gone: unusable", async () => {
+    stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("The provided key 'sk_live_x' does not have access to account 'acct_seller1' (or that account does not exist). Application access may have been revoked."), { statusCode: 403, code: "account_invalid" }));
+    await run({ payouts: [payoutRow()] });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "unusable" });
+  });
+
+  it("an error that names no account (a code bug, an invalid key) is NOT transient: the key-wide line at once, the payout waits", async () => {
+    stripeMock.accounts.retrieve.mockRejectedValue(new TypeError("Cannot read properties of undefined"));
+    const { body } = await run({ payouts: [payoutRow()] });
+    expect(body.payout_account_unreadable).toBe(1);
+    expect(slackAlerts.some((a: any) => /can't read Connect accounts/.test(String(a.title ?? "")))).toBe(true);
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "unreadable" });
+  });
+
+  it("a passing read failure is bounded: recorded as transient (24-hour page) with one line a day per account", async () => {
+    stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("Rate limit"), { statusCode: 429, type: "StripeRateLimitError" }));
+    await run({ payouts: [payoutRow()] });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "transient" });
+    expect(slackAlerts.some((a: any) => a.oncePerDayKey === "connect-read-transient-live-acct_seller1")).toBe(true);
+  });
+
+  it("a payee who DELETED their account: paged at once as payee_deleted, retried only daily, no Stripe call", async () => {
+    scenario.rpc.payout_payee_wait_seen = { page_due: true, reminded: false, waiting_since: "2026-10-19T00:00:00Z" };
+    await run({ payouts: [payoutRow({ seller_id: null, stripe_account_id: null })] });
+    expect(stripeMock.transfers.list).not.toHaveBeenCalled();
+    expect(rpcs("payout_defer")[0]?.args).toEqual({ p_kind: "declutter", p_payout_id: PAYOUT, p_minutes: 1440 });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_payee: null, p_category: "payee_deleted" });
+    const page = slackAlerts.find((a: any) => /won't pay itself/.test(String(a.title ?? ""))) as { message?: string } | undefined;
+    expect(String(page?.message)).toMatch(/pay by hand after checking/);
+    expect(rpcs("payout_hold_for_review")[0]?.args).toMatchObject({ p_kind: "declutter", p_id: PAYOUT, p_category: "payee_deleted" });
+  });
+
+  it("a transfer Stripe took whose recording fails is deferred and bounded (record_failed), never left at the front", async () => {
+    scenario.rpcErrors = { declutter_payout_executed: { message: "db down", code: "57P01" } };
+    await run({ payouts: [payoutRow()] });
+    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+    expect(rpcs("payout_defer")[0]?.args).toEqual({ p_kind: "declutter", p_payout_id: PAYOUT, p_minutes: 15 });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "record_failed" });
+    expect(slackAlerts.some((a: any) => a.oncePerDayKey === `payout-unrecorded-declutter-${PAYOUT}`)).toBe(true);
+  });
+
+  it("Stripe reviewing the account (transfers pending) waits as under_review (its own reminder words)", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "pending" } });
+    await run({ payouts: [payoutRow()] });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "under_review" });
+  });
+
+  it("a test-account payee's page routes as seed and is a warning kind, not a page kind", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "inactive" }, requirements: { disabled_reason: "rejected.fraud" } });
+    scenario.rpc.payout_payee_wait_seen = { page_due: true, reminded: false, waiting_since: "2026-10-19T00:00:00Z", payee_seed: true };
+    await run({ payouts: [payoutRow()] });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "rejected" });
+    const page = slackAlerts.find((a: any) => /won't pay itself/.test(String(a.title ?? ""))) as { seed?: boolean; kind?: string } | undefined;
+    expect(page?.seed).toBe(true);
+    expect(page?.kind).toBe("payout_wait");
+  });
+
+  it("a payout a send was started for (marked) is reconciled first even with no try counted, never skipped blind", async () => {
+    scenario.rpc.payout_send_marks_for = [PAYOUT];
+    stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_marked", destination: "acct_old", reversed: false, metadata: { kind: "declutter_payout", payout_id: PAYOUT } }] });
+    const { body } = await run({ payouts: [payoutRow({ stripe_account_id: null, attempts: 0 })] });
+    expect(stripeMock.transfers.list).toHaveBeenCalledTimes(1);
+    expect(body.payouts_reconciled).toBe(1);
+    expect(rpcs("payout_payee_wait_seen")).toHaveLength(0);
+  });
+
+  it("the send is marked BEFORE the transfer; a mark that cannot be written sends nothing (deferred, no try)", async () => {
+    let markedBeforeSend = false;
+    stripeMock.transfers.create.mockImplementation(async () => {
+      markedBeforeSend = rpcs("payout_mark_sending").length === 1;
+      return { id: "tr_new1", destination: "acct_seller1" };
+    });
+    await run({ payouts: [payoutRow()] });
+    expect(markedBeforeSend).toBe(true);
+    expect(rpcs("payout_mark_sending")[0]?.args).toEqual({ p_kind: "declutter", p_payout_id: PAYOUT });
+  });
+
+  it("a send mark that fails stops the transfer", async () => {
+    scenario.rpcErrors = { payout_mark_sending: { message: "db down", code: "57P01" } };
+    await run({ payouts: [payoutRow()] });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+    expect(rpcs("payout_defer")[0]?.args).toEqual({ p_kind: "declutter", p_payout_id: PAYOUT, p_minutes: 15 });
+  });
+
+  it("a refund with no Stripe mode to run on (refund by hand) is deferred a day, never left at the front", async () => {
+    await run({ refunds: [refundRow({ order_id: null, buyer_id: null, seller_id: null, livemode: null, checkout_session_id: null })] });
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(rpcs("payout_defer").map((c: any) => c.args)).toContainEqual({ p_kind: "declutter_refund", p_payout_id: REFUND, p_minutes: 1440 });
+  });
+
+  it("an unusable account (gone, or a sandbox account under the live key) uses no try and pages ops once", async () => {
+    stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("No such account: 'acct_seller1'"), { statusCode: 404, code: "resource_missing" }));
+    scenario.rpc.payout_payee_wait_seen = { page_due: true, reminded: true, waiting_since: "2026-10-19T00:00:00Z" };
+    const { body } = await run({ payouts: [payoutRow()] });
+    expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "unusable" });
+    expect(body.payee_setup_paged).toBe(1);
+    const pages = slackAlerts.filter((a: any) => /won't pay itself/.test(String(a.title ?? "")));
+    expect(pages).toHaveLength(1);
+    // Once per payout and reason (an unusable account will not fix itself: the words say so).
+    expect((pages[0] as any).oncePerDayKey).toBe(`payout-wait-declutter-${PAYOUT}-unusable`);
+    expect(String((pages[0] as any).message)).toMatch(/HELD FOR REVIEW/);
+    expect(String((pages[0] as any).message)).toMatch(/"Release to automatic"/);
+    expect(String((pages[0] as any).message)).toMatch(/"Mark settled by hand"/);
+    // Delivered: the row is held for review (out of every queue) and the page marked, in one call.
+    expect(rpcs("payout_hold_for_review")[0]?.args).toMatchObject({ p_kind: "declutter", p_id: PAYOUT, p_category: "unusable" });
+    expect(rpcs("payout_payee_paged")).toHaveLength(0);
+  });
+
+  it("a page Slack did not take is NOT marked paged (it is tried again next run)", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "inactive" } });
+    scenario.rpc.payout_payee_wait_seen = { page_due: true, reminded: false, waiting_since: "2026-10-01T00:00:00Z" };
+    const shared = await import("./mocks/shared");
+    shared.postSlackOpsAlert.mockImplementation(async (input: unknown) => { slackAlerts.push(input); return false as never; });
+    const { body } = await run({ payouts: [payoutRow()] });
+    expect(slackAlerts.some((a: any) => /waiting too long/.test(String(a.title ?? "")))).toBe(true);
+    expect(rpcs("payout_payee_paged")).toHaveLength(0);
+    expect(rpcs("payout_hold_for_review")).toHaveLength(0);
+    expect(body.payee_setup_paged).toBe(0);
+    shared.postSlackOpsAlert.mockImplementation(async (input: unknown) => { slackAlerts.push(input); });
+  });
+
+  it("one account read per account per run; a second payout of a payee already found not ready makes NO Stripe call", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "inactive" }, payouts_enabled: false });
+    await run({ payouts: [payoutRow(), payoutRow({ payout_id: "0000000b-0000-4000-8000-0000000000c1", order_id: "0000000b-0000-4000-8000-0000000000a1" })] });
+    expect(stripeMock.accounts.retrieve).toHaveBeenCalledTimes(1);
+    expect(stripeMock.transfers.list).toHaveBeenCalledTimes(1);
+    expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledTimes(1);
+    expect(rpcs("payout_defer")).toHaveLength(2);
+  });
+
+  it("a refunded or disputed charge still fails LOUDLY when the payee is not ready (the charge is checked first)", async () => {
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_order1", status: "succeeded", latest_charge: { id: "ch_order1", amount_refunded: 0, disputed: true },
+    });
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "inactive" } });
+    await run({ payouts: [payoutRow({ attempts: 11 })] });
+    expect(rpcs("declutter_payout_executed")[0]?.args).toMatchObject({ p_succeeded: false });
+    expect(slackAlerts.some((a: any) => /Do NOT pay the seller by hand/.test(String(a.message ?? "")))).toBe(true);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+  });
+
+  it("an account with no capabilities block at all is not ready either (never a guess that it is)", async () => {
+    // (payouts_enabled missing too: not ready.)
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1" });
+    const { body } = await run({ payouts: [payoutRow()] });
+    expect(body.payout_account_not_ready).toBe(1);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+  });
+
+  it("a transfer already sent is still recorded when the account later stops being ready (reconcile first)", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "inactive" } });
+    stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_old1", destination: "acct_seller1", reversed: false, metadata: { kind: "declutter_payout", payout_id: PAYOUT } }] });
+    const { body } = await run({ payouts: [payoutRow()] });
+    expect(body.payouts_reconciled).toBe(1);
+    expect(body.payout_account_not_ready).toBe(0);
+    expect(rpcs("declutter_payout_executed")[0]?.args).toMatchObject({ p_transfer_id: "tr_old1", p_succeeded: true });
   });
 
   it("never pays from anything but the order's own whole charge (refunded or disputed: nothing moves)", async () => {
@@ -436,6 +705,15 @@ describe("declutter-money: Helpr delivery payouts (slice 5, row 42)", () => {
     expect(rpcs("helpr_task_payout_executed")).toHaveLength(0);
   });
 
+  it("a Helpr whose payout setup is unfinished is skipped without using a try", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helpr1", capabilities: { transfers: "pending" } });
+    const { body } = await run({ helprPayouts: [helprRow()] });
+    expect(body.payout_account_not_ready).toBe(1);
+    expect(body.helpr_payouts_failed).toBe(0);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(rpcs("helpr_task_payout_executed")).toHaveLength(0);
+  });
+
   it("a charge refunded beyond what was recorded pays no Helpr; the failure is recorded", async () => {
     stripeMock.paymentIntents.retrieve.mockResolvedValue({
       id: "pi_order1", status: "succeeded", latest_charge: { id: "ch_order1", amount_refunded: 9000, disputed: false },
@@ -498,4 +776,199 @@ describe("declutter-money: delivery-fee refunds (slice 5, row 40)", () => {
     await run({ deliveryRefunds: [deliveryRefundRow({ checkout_session_id: "cs_test_abc" })] });
     expect(stripeMock.__key).toBe("sk_test_declutter");
   });
+});
+
+
+describe("declutter-money: skipped payouts never starve the queue (/code-review of f6551863a)", () => {
+  it("a sent-but-unrecorded transfer is RECONCILED even when the payee now reads not ready: recorded once, never paged or sent again", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "inactive" }, payouts_enabled: false });
+    stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_sent1", destination: "acct_seller1", reversed: false, metadata: { kind: "declutter_payout", payout_id: PAYOUT } }] });
+    const { body } = await run({ payouts: [payoutRow()] });
+    expect(body.payouts_reconciled).toBe(1);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(stripeMock.accounts.retrieve).not.toHaveBeenCalled();
+    expect(rpcs("payout_payee_wait_seen")).toHaveLength(0);
+    expect(rpcs("payout_defer")).toHaveLength(0);
+    expect(rpcs("payout_payee_wait_cleared")[0]?.args).toEqual({ p_kind: "declutter", p_payout_id: PAYOUT });
+  });
+
+  it("a seller with no payout account and no try used: NO Stripe call at all, deferred, wait recorded", async () => {
+    const { body } = await run({ payouts: [payoutRow({ stripe_account_id: null })] });
+    expect(body.no_payout_account).toBe(1);
+    expect(stripeMock.transfers.list).not.toHaveBeenCalled();
+    expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+    expect(stripeMock.accounts.retrieve).not.toHaveBeenCalled();
+    expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+    expect(rpcs("payout_defer")[0]?.args).toEqual({ p_kind: "declutter", p_payout_id: PAYOUT, p_minutes: 60 });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "no_account" });
+  });
+
+  it("a seller with no payout account who HAS used a try is reconciled (a transfer may exist), then deferred before the charge check", async () => {
+    stripeMock.transfers.list.mockResolvedValue({ data: [] });
+    const { body } = await run({ payouts: [payoutRow({ stripe_account_id: null, attempts: 2 })] });
+    expect(body.no_payout_account).toBe(1);
+    expect(stripeMock.transfers.list).toHaveBeenCalledTimes(1);
+    expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+    expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+  });
+
+  it("a passing Stripe failure BEFORE the transfer (reconcile or charge read) is deferred, never a failed try", async () => {
+    stripeMock.transfers.list.mockRejectedValue(Object.assign(new Error("api_error"), { statusCode: 503, type: "StripeAPIError" }));
+    const first = await run({ payouts: [payoutRow({ attempts: 11 })] });
+    expect(first.body.payout_retry_later).toBe(1);
+    expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+    expect(rpcs("payout_defer")[0]?.args).toEqual({ p_kind: "declutter", p_payout_id: PAYOUT, p_minutes: 15 });
+    expect(slackAlerts.some((a: any) => /gave up/i.test(String(a.title ?? "")))).toBe(false);
+  });
+
+  it("a passing failure reading the order's charge is deferred too", async () => {
+    stripeMock.paymentIntents.retrieve.mockRejectedValue(Object.assign(new Error("connection reset"), { type: "StripeConnectionError" }));
+    const { body } = await run({ payouts: [payoutRow()] });
+    expect(body.payout_retry_later).toBe(1);
+    expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+  });
+
+  it("the 12th failed try clears the payee wait (any end starts a later wait fresh)", async () => {
+    stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("invalid destination"), { statusCode: 400, type: "StripeInvalidRequestError" }));
+    await run({ payouts: [payoutRow({ attempts: 11 })] });
+    expect(rpcs("declutter_payout_executed")[0]?.args).toMatchObject({ p_succeeded: false });
+    expect(rpcs("payout_payee_wait_cleared")[0]?.args).toEqual({ p_kind: "declutter", p_payout_id: PAYOUT });
+  });
+
+  it("every run prunes the waits of payouts that ended any other way, and re-raises held rows", async () => {
+    await run({});
+    expect(rpcs("payout_payee_waits_prune")).toHaveLength(1);
+    expect(rpcs("payout_held_check")).toHaveLength(1);
+  });
+
+  it("a refund skipped under ban review is deferred too (refunds never starve)", async () => {
+    scenario.reads.ban_settlement_queue = { rows: [{ user_id: BUYER }] };
+    await run({ refunds: [refundRow()] });
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(rpcs("payout_defer").map((c: any) => c.args)).toContainEqual({ p_kind: "declutter_refund", p_payout_id: REFUND, p_minutes: 60 });
+  });
+
+  it("held, under ban review and a failed hold read all DEFER the row (it leaves the front of the queue) and are bounded", async () => {
+    scenario.reads.payout_holds = { rows: [{ helper_id: SELLER, reason: "review" }] };
+    await run({ payouts: [payoutRow()] });
+    expect(rpcs("payout_defer")[0]?.args).toEqual({ p_kind: "declutter", p_payout_id: PAYOUT, p_minutes: 60 });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "held" });
+    // Held before any Stripe call (not only by the re-check right before the transfer).
+    expect(stripeMock.transfers.list).not.toHaveBeenCalled();
+  });
+
+  it("a payee whose cached gate is stale is re-synced ONCE per run, however many payouts they have", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "inactive" }, payouts_enabled: false,
+      charges_enabled: false, requirements: { currently_due: ["external_account"], eventually_due: [], past_due: [], errors: [] } });
+    scenario.reads.profiles = { rows: [{ user_id: SELLER, stripe_account_id: "acct_seller1", stripe_identity_verified: true,
+      stripe_charges_enabled: true, stripe_payouts_enabled: true, email: "seller@example.test" }] };
+    scenario.reads.payment_method_fingerprints = { rows: [] };
+    await run({ payouts: [payoutRow(), payoutRow({ payout_id: "0000000b-0000-4000-8000-0000000000c2", order_id: "0000000b-0000-4000-8000-0000000000a2" })] });
+    const writes = scenario.writes.filter((w: any) => w.table === "profiles" && w.op === "update");
+    expect(writes).toHaveLength(1);
+    expect(writes[0].payload).toMatchObject({ stripe_payouts_enabled: false });
+  });
+
+  it("the migration not deployed yet (PGRST202) is ONE defect a run, and the payout still moves no money", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "inactive" }, payouts_enabled: false });
+    scenario.rpcErrors = { payout_defer: { message: "Could not find the function", code: "PGRST202" },
+      payout_payee_wait_seen: { message: "Could not find the function", code: "PGRST202" } };
+    const { status, body } = await run({ payouts: [payoutRow(), payoutRow({ payout_id: "0000000b-0000-4000-8000-0000000000c3", order_id: "0000000b-0000-4000-8000-0000000000a3" })] });
+    // The missing migration is a defect (the run reports it once), never a try or a transfer.
+    expect(status).toBe(500);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+    expect(JSON.stringify(body).match(/PGRST202/g)?.length).toBe(1);
+  });
+
+  it("a paid-after-waiting payout pages nobody and clears its wait", async () => {
+    const { body } = await run({ payouts: [payoutRow()] });
+    expect(body.payouts_sent).toBe(1);
+    expect(rpcs("payout_payee_wait_cleared")[0]?.args).toEqual({ p_kind: "declutter", p_payout_id: PAYOUT });
+    expect(slackAlerts).toHaveLength(0);
+  });
+});
+
+describe("declutter-money: HELD FOR REVIEW and the last checks before a transfer (v6)", () => {
+  it("a key 'does not have access' to an account is an ACCESS error (unreadable), never 'unusable'", async () => {
+    stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("The provided key 'rk_live_x' does not have access to account 'acct_seller1'"), { code: "account_invalid" }));
+    await run({ payouts: [payoutRow()] });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "unreadable" });
+    expect(rpcs("payout_hold_for_review")).toHaveLength(0);
+  });
+
+  it("only a 404 'No such account' is unusable", async () => {
+    stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("No such account: 'acct_seller1'"), { statusCode: 404, code: "resource_missing" }));
+    await run({ payouts: [payoutRow()] });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "unusable" });
+  });
+
+  it("a payee banned since the queue was read is never sent the transfer: held for review as banned", async () => {
+    scenario.reads.profiles = { rows: [{ user_id: SELLER, ban_status: "banned", auto_suspended_until: null }] };
+    scenario.rpc.payout_payee_wait_seen = { page_due: true, reminded: false, waiting_since: "2026-10-19T00:00:00Z" };
+    await run({ payouts: [payoutRow()] });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "banned" });
+    expect(rpcs("payout_hold_for_review")[0]?.args).toMatchObject({ p_category: "banned" });
+  });
+
+  it("a Helpr payout whose source is not a Declutter delivery is a data defect: held at once, never 'pays itself'", async () => {
+    scenario.rpc.payout_payee_wait_seen = { page_due: true, reminded: false, waiting_since: "2026-10-19T00:00:00Z" };
+    await run({ helprPayouts: [helprRow({ source_kind: "job", payment_intent_id: null, transfer_group: "job_x" })] });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(rpcs("helpr_task_payout_executed")).toHaveLength(0);
+    expect(rpcs("payout_defer")[0]?.args).toMatchObject({ p_kind: "helpr_task", p_minutes: 1440 });
+    expect(rpcs("payout_hold_for_review")[0]?.args).toMatchObject({ p_kind: "helpr_task", p_category: "data_defect" });
+  });
+
+  it("a refund under ban review is recorded and bounded like a payout (never silent, never the front)", async () => {
+    scenario.reads.ban_settlement_queue = { rows: [{ user_id: BUYER }] };
+    await run({ refunds: [refundRow()] });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_kind: "declutter_refund", p_payout_id: REFUND, p_category: "ban_review" });
+  });
+
+  it("a refund with no Stripe mode is a data defect: held for review once the page goes out", async () => {
+    scenario.rpc.payout_payee_wait_seen = { page_due: true, reminded: false, waiting_since: "2026-10-19T00:00:00Z" };
+    await run({ refunds: [refundRow({ order_id: null, buyer_id: null, seller_id: null, livemode: null, checkout_session_id: null, attempts: 0 })] });
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(rpcs("payout_hold_for_review")[0]?.args).toMatchObject({ p_kind: "declutter_refund", p_id: REFUND, p_category: "data_defect" });
+  });
+});
+
+describe("declutter-money: v7 (suspensions, reconcile before hold)", () => {
+  it("a TEMPORARY suspension is a bounded wait that resumes on its own, never held for review", async () => {
+    const until = new Date(Date.now() + 3 * 3600_000).toISOString();
+    scenario.reads.profiles = { rows: [{ user_id: SELLER, ban_status: "temp_banned", auto_suspended_until: until }] };
+    await run({ payouts: [payoutRow()] });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "suspended" });
+    expect(rpcs("payout_hold_for_review")).toHaveLength(0);
+    expect(Number((rpcs("payout_defer")[0]?.args as { p_minutes?: number } | undefined)?.p_minutes)).toBeGreaterThanOrEqual(170);
+  });
+
+  it("a data defect on a row a transfer may exist for is held as needs_reconcile (search Stripe first), never as data_defect", async () => {
+    scenario.rpc.payout_payee_wait_seen = { page_due: true, reminded: false, waiting_since: "2026-10-19T00:00:00Z" };
+    await run({ helprPayouts: [helprRow({ source_kind: "job", payment_intent_id: null, transfer_group: null, attempts: 2 })] });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_category: "needs_reconcile" });
+    expect(rpcs("payout_hold_for_review")[0]?.args).toMatchObject({ p_category: "needs_reconcile" });
+    const page = slackAlerts.find((a: any) => /held for review/.test(String(a.title ?? ""))) as { message?: string } | undefined;
+    expect(String(page?.message)).toMatch(/search Stripe for it by its payout metadata/);
+    expect(String(page?.message)).toMatch(/never another payout of the same payee/);
+  });
+
+  it("a refund whose recording fails is recorded and bounded (record_failed)", async () => {
+    scenario.rpcErrors = { declutter_refund_executed: { message: "db down", code: "57P01" } };
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_new1", status: "succeeded" });
+    await run({ refunds: [refundRow({ livemode: true, checkout_session_id: "cs_live_x" })] });
+    expect(rpcs("payout_payee_wait_seen").map((c: any) => c.args)).toContainEqual(expect.objectContaining({ p_kind: "declutter_refund", p_category: "record_failed" }));
+  });
+
+  it("the held page names the real Stripe group of the row", async () => {
+    stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("No such account: 'acct_seller1'"), { statusCode: 404, code: "resource_missing" }));
+    scenario.rpc.payout_payee_wait_seen = { page_due: true, reminded: false, waiting_since: "2026-10-19T00:00:00Z" };
+    await run({ payouts: [payoutRow()] });
+    const page = slackAlerts.find((a: any) => /held for review/.test(String(a.title ?? ""))) as { message?: string } | undefined;
+    expect(String(page?.message)).toContain(`declutter_order_${ORDER}`);
+  });
+
 });

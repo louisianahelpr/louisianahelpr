@@ -437,7 +437,8 @@ async function findShopOrderInFlight(admin: PurgeCapableClient, userId: string):
     .from("shop_payouts")
     .select("id, shop_orders!inner(seller_id)")
     .eq("shop_orders.seller_id", userId)
-    .in("status", ["pending", "failed"])
+    // A payout held for review is money still owed to this person (20261019070737).
+    .in("status", ["pending", "failed", "held_for_review"])
     .limit(1);
   if (owed.error) {
     if (/does not exist|42P01|PGRST205/i.test(`${owed.error.code ?? ""} ${owed.error.message}`)) {
@@ -477,7 +478,7 @@ async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string):
   // (helpr_task_payouts.helpr_id is SET NULL with the account).
   const tasks = await activeHelprRows(admin, "helpr_tasks", userId, ["accepted", "picked_up", "delivered"]);
   if (!tasks.ok || tasks.active) return tasks.active ? { ...tasks, detail: `helpr delivery ${tasks.detail}` } : tasks;
-  const pay = await activeHelprRows(admin, "helpr_task_payouts", userId, ["pending", "failed"]);
+  const pay = await activeHelprRows(admin, "helpr_task_payouts", userId, ["pending", "failed", "held_for_review"]);
   if (!pay.ok || pay.active) return pay.active ? { ...pay, detail: `helpr delivery pay ${pay.detail}` } : pay;
   return { ok: true, active: false };
 }

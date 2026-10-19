@@ -31,7 +31,7 @@
  * @mutate src/hooks/usePermissionRationale.ts | body: "Declutter uses your location to show how far away each item is | body: "We use your location to show jobs near you, how far away each item is
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { act, within, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -302,6 +302,36 @@ describe("Declutter location ask", () => {
     live.items = [];
     delete sellerStats.reviewed;
     delete sellerStats.fresh;
+  });
+
+  it("category tiles (lead 2026-10-19): one sideways row, icon + one word; a tap shows only that category and marks it, a second tap shows everything", async () => {
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |  && (!category \|\| item.category === category), | ,
+    // @mutate src/components/declutter/DeclutterCategoryTiles.tsx | onClick={() => onChange(on ? null : key)} | onClick={() => onChange(key)}
+    // @mutate src/components/declutter/DeclutterCategoryTiles.tsx | aria-pressed={on} | aria-pressed={false}
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |       <DeclutterCategoryTiles value={category} onChange={setCategory} />\n |
+    const item = (id: string, title: string, category: string) => ({
+      id, seller_id: "u2", status: "live", title, category, condition_stars: 4,
+      price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
+    });
+    live.items = [item("i1", "Oak rocking chair", "furniture"), item("i2", "Stand mixer", "kitchen")];
+    at("/declutter", <DeclutterPage />);
+    await screen.findByText("Oak rocking chair");
+    const tiles = screen.getByRole("list", { name: "Categories" });
+    expect(within(tiles).getAllByRole("button").length).toBeGreaterThan(10);
+    const kitchen = within(tiles).getByRole("button", { name: "Kitchen" });
+    expect(within(tiles).getByRole("button", { name: "Decor" })).toBeInTheDocument();
+    fireEvent.click(kitchen);
+    expect(kitchen).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByText("Oak rocking chair")).toBeNull();
+    expect(screen.getByText("Stand mixer")).toBeInTheDocument();
+    fireEvent.click(within(tiles).getByRole("button", { name: "Toys" }));
+    expect(screen.getByText("Nothing in Toys right now.")).toBeInTheDocument();
+    const toys = within(tiles).getByRole("button", { name: "Toys" });
+    fireEvent.click(toys);
+    expect(toys).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByText("Oak rocking chair")).toBeInTheDocument();
+    expect(screen.getByText("Stand mixer")).toBeInTheDocument();
+    live.items = [];
   });
 
   it("an item page never asks for location", async () => {

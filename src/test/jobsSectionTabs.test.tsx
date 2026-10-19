@@ -13,6 +13,7 @@
  * @mutate src/components/job-card/embeddedActivity.tsx |   return current === tapped ? "all" : tapped; |   return tapped;
  * @mutate src/components/sections/StatusBoxes.tsx |               aria-pressed={on} |               aria-pressed={false}
  * @mutate src/pages/home/useDetailJob.ts |         if (!next.has("tab")) next.set("tab", "browse"); |
+ * @mutate src/pages/jobs/JobsSection.tsx |   const tab = params.get("tab") ? resolveJobsTab(params, picked) : openedOnLegacyLink ? "working" : "browse"; |   const tab = resolveJobsTab(params, picked);
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, renderHook, act, screen, cleanup, fireEvent, within } from "@testing-library/react";
@@ -104,6 +105,25 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     const url = `/jobs?${update(new URLSearchParams()).toString()}`;
     expect(url).toBe("/jobs?job=j-1&tab=browse");
     open(url);
+    expect(screen.getByTestId("feed")).toBeTruthy();
+    expect(screen.queryByTestId("list-applied")).toBeNull();
+  });
+
+  it("typing in Browse's search (?q= written AFTER the section opened) stays on Browse (run 4: it jumped to Working)", async () => {
+    const { useSearchParams } = await import("react-router-dom");
+    function TypeInSearch() {
+      const [, set] = useSearchParams();
+      return <button type="button" onClick={() => set((p) => { const n = new URLSearchParams(p); n.set("q", "f"); return n; }, { replace: true })}>type</button>;
+    }
+    render(
+      <MemoryRouter initialEntries={["/jobs"]}>
+        <Routes>
+          <Route path="/jobs" element={<><JobsSection /><TypeInSearch /><Where /></>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "type" }));
+    expect(screen.getByTestId("where").textContent).toBe("/jobs?q=f");
     expect(screen.getByTestId("feed")).toBeTruthy();
     expect(screen.queryByTestId("list-applied")).toBeNull();
   });

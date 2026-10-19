@@ -165,8 +165,21 @@ export interface MyIdentity {
   submittedAt: string | null;
   reviewedAt: string | null;
 }
+/** Before db-deploy has created rentals_my_identity (20261019051407), PostgREST answers PGRST202
+ *  with no hint (a hint means a function by that name exists with other arguments: a real bug). */
+function identityNotDeployed(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const e = error as { code?: unknown; hint?: unknown };
+  return e.code === "PGRST202" && !e.hint;
+}
+
 export async function fetchMyIdentity(): Promise<MyIdentity> {
-  const row = (unwrap(await supabase.rpc("rentals_my_identity")) ?? [])[0];
+  const res = await supabase.rpc("rentals_my_identity");
+  // Not deployed yet: read as not verified and nothing sent, never the screen's load error.
+  if (res.error && identityNotDeployed(res.error)) {
+    return { verified: false, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
+  }
+  const row = (unwrap(res) ?? [])[0];
   const s = row?.id_status;
   return {
     verified: row?.verified === true,

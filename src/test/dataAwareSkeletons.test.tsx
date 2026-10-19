@@ -75,8 +75,9 @@ describe("cold visits draw the zero state, warm visits the list", () => {
   it("guest Browse: cold or cached, the chunk skeleton draws job cards, never the empty outline (Q1368)", () => {
     const cold = withCache(() => {}, <GuestBrowseSkeleton />);
     expect(cold.container.querySelectorAll('[class*="w-[88px]"]').length).toBe(0);
-    // Six JobCardSkeletons, counted by the card's own left rail (JOB_CARD_RAIL).
-    expect(cold.container.querySelectorAll('[class*="left-0 top-0 bottom-0 w-1.5"]').length).toBe(6);
+    // Six JobCardSkeletons, counted by the card's own clip (JOB_CARD_CLIP); the
+    // left rail it used to count went with design tweak T3 (owner 2026-10-18).
+    expect(cold.container.querySelectorAll('[class*="relative h-full overflow-hidden rounded-2xl"]').length).toBe(6);
     expect(cold.container.textContent).not.toMatch(/Nothing today/);
     cleanup();
     const warm = withCache((qc) => qc.setQueryData(["guestDashboardJobs"], [{ id: "j1" }]), <GuestBrowseSkeleton />);

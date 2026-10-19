@@ -46,6 +46,25 @@ export async function handleChargeRefundUpdated(
   // that (declutter_refund_reversed). A Declutter charge is not a job: nothing
   // below applies.
   const meta = (refund.metadata ?? {}) as Record<string, string>;
+  // Shops (M3, 20261019071055): its refunds live in shop_refunds. The row that
+  // recorded this refund is reopened (failed, due now) so declutter-money sends
+  // a new one under a new key (shop_refund_reversed); a Shops charge is not a
+  // job, so nothing below applies.
+  if (meta.kind === "shop_refund" && meta.shop_refund_id) {
+    const { data: reopened, error: sErr } = await supabase.rpc("shop_refund_reversed", {
+      p_refund_id: meta.shop_refund_id, p_stripe_refund_id: refund.id,
+    });
+    if (sErr) throw new Error(`shop_refund_reversed failed for ${refund.status} refund ${refund.id}: ${sErr.message}`);
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error", severity: "warning", oncePerDayKey: `shop-refund-reversed-${refund.id}`,
+      title: `Shops refund ${refund.status}`,
+      message: reopened === true
+        ? "Stripe failed a Shops refund after it was recorded; the row is reopened and declutter-money sends a new one."
+        : "Stripe failed a Shops refund that no row recorded as sent; check the order.",
+      fields: { Refund: refund.id, ShopRefund: meta.shop_refund_id, Order: meta.order_id ?? "?" },
+    });
+    return;
+  }
   if (meta.kind === "declutter_refund" && meta.delivery_refund_id) {
     // Slice 5: a delivery fee refunded on its own (row 40) lives in
     // declutter_delivery_refunds; the same rule, its own row.
@@ -91,6 +110,32 @@ export async function handleChargeRefundUpdated(
 
   // A Declutter refund made by hand in the Dashboard carries no kind: if we recorded it, its row reopens.
   if (await handleDeclutterHandRefundFailed(refund, { supabase })) return;
+
+  // A Shops refund made by hand that we recorded (shop_hand_refunds): it stops counting, the order stays
+  // closed and its payout held, and a person is paged (the buyer is NOT repaid). Not deployed yet
+  // (PGRST202) or not a Shops hand refund: the jobs path below runs as before.
+  {
+    const { data: shopHand, error: shErr } = await supabase.rpc("shop_hand_refund_failed", { p_stripe_refund_id: refund.id });
+    if (shErr && (shErr as { code?: string }).code !== "PGRST202") {
+      throw new Error(`shop_hand_refund_failed failed for ${refund.id}: ${shErr.message}`);
+    }
+    if (!shErr && (shopHand === "marked_failed" || shopHand === "reopened_held" || shopHand === "already")) {
+      if (shopHand === "marked_failed" || shopHand === "reopened_held") {
+        await postSlackOpsAlert({
+          kind: "money_at_risk", severity: "critical", oncePerDayKey: `shop-hand-refund-failed-${refund.id}`,
+          title: "Shops refund made by hand FAILED",
+          // Rule A of the v2 review: nothing sends on its own; the order stays held. A refund row an admin had
+          // settled with this refund is held for review again (/code-review of shops-m3 run 3 #2b).
+          message: `Stripe moved hand refund ${refund.id} to ${refund.status} (${refund.failure_reason ?? "no reason given"}). The buyer has NOT been repaid. `
+            + (shopHand === "reopened_held"
+              ? "The app refund an admin had settled with it is held for review again (nothing goes out on its own): decide it in admin > Payouts held for review."
+              : "The order stays held (no refund or payout goes out on its own): refund it again by hand and record it in admin > Shops orders, or release the held refund in admin > Payouts held for review."),
+          fields: { Refund: refund.id, Outcome: String(shopHand) },
+        });
+      }
+      return;
+    }
+  }
 
   const { data: removed, error: delErr } = await supabase
     .from("payment_refunds")

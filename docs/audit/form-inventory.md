@@ -30,6 +30,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/admin/AdminReferrals.tsx` | input×1 | search |  | Search referrals by name or code · Search by name or code… · Clear search · Copy referral code |
 | `src/components/admin/AdminReports.tsx` | textarea×1 |  |  | Message to user |
 | `src/components/admin/AdminSettings.tsx` | input×1 | url |  | socialWebhook · Remove admin · Search users |
+| `src/components/admin/AdminShopsOrders.tsx` | input×4, textarea×2 | text, radio | 500 | admin-shops-hand-refund · Loading the Shops queue · admin-shops-not-deployed · admin-shops-problem · admin-shops-refund · admin-shops-payout · admin-shops-strike · shop-refund-reason |
 | `src/components/admin/AdminSubscriptions.tsx` | input×1 | search |  | Search by name, email, or tier… · Clear search · Filter by subscription status |
 | `src/components/admin/AdminUserNotes.tsx` | textarea×2, select×2 |  |  | New admin note · Note category · Edit note · Delete note |
 | `src/components/admin/AdminUsers.tsx` | input×1, select×1, checkbox/switch/radio×1 | search |  | Search name, email, phone or job ID… · Clear search · Sort by · show-test-accounts |
@@ -319,6 +320,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/shops/ShopHandoverActions.tsx` | input×1, textarea×1 | file |  | Nobody was there at pickup · shop-handover-problem · shop-payout-line · shop-handover-actions · shop-handover-wait |
+| `src/components/shops/ShopOrderCancel.tsx` | textarea×1 |  |  | shop-cancel-terms-changed · shop-cancel-actions · Our oven broke |
 
 ## /signup
 

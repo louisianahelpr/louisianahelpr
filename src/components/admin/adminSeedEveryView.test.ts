@@ -80,6 +80,7 @@ const VIEWS: Record<string, Rule> = {
   exceptions: { kind: "tags", render: [`${A}AdminExceptionQueue.tsx`], resolve: [`${A}AdminExceptionQueue.tsx`] },
   banreview: { kind: "tags", render: [`${A}AdminBanReview.tsx`], resolve: [`${A}AdminBanReview.tsx`] },
   stalled: { kind: "tags", render: [`${A}AdminStalledJobs.tsx`], resolve: [`${A}AdminStalledJobs.tsx`] },
+  shops: { kind: "tags", render: [`${A}AdminShopsOrders.tsx`], resolve: [`${A}AdminShopsOrders.tsx`] },
   marketing: { kind: "none", why: "email campaign composer; no member rows" },
   social: { kind: "none", why: "Facebook/Instagram post queue; no member rows" },
 };
@@ -89,7 +90,8 @@ const VIEWS: Record<string, Rule> = {
  *  shared job column list (which AdminJobs selects). */
 // readJobsAheadOfDb("<columns>", ...) is a jobs select that retries without a column the
 // database does not have yet (src/lib/jobColumns.ts); its column list counts like select's.
-const RESOLVES_SEED = /fetchSeedUserIds\(\s*\w|(?:select|readJobsAheadOfDb)\(\s*["`][^"`]*\bis_seed\b|from\("profiles"\)\s*\.select\("\*"\)|^\s*"is_seed",$/m;
+// shops_admin_queue (20261019071055) returns each row's order is_seed itself (o.is_seed / k.is_seed in its SELECTs).
+const RESOLVES_SEED = /rpc\("shops_admin_queue"\)|fetchSeedUserIds\(\s*\w|(?:select|readJobsAheadOfDb)\(\s*["`][^"`]*\bis_seed\b|from\("profiles"\)\s*\.select\("\*"\)|^\s*"is_seed",$/m;
 
 /** The `case "<id>":` labels of Admin.tsx's view switch, read from source. */
 function switchCases(): string[] {

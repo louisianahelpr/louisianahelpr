@@ -10,6 +10,9 @@
  *                           The SQL refuses an id already recorded on any money row in the app.
  * Each row shows the payee, their payout account, the amount, the Stripe group / payment, and
  * the ids OTHER rows of the same payee already recorded, so a sibling's transfer is not reused.
+ * A Shops refund (20261019071055, held because a refund was made in Stripe on its order) is
+ * settled only for its WHOLE amount (the amount is fixed here; the SQL refuses any other), and
+ * the SQL refuses to release a Shops row while that Stripe refund stands.
  */
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,9 +24,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { AdminCard } from "@/components/admin/AdminViewShell";
 import { formatPriceExact } from "@/lib/format";
 import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
+import { adminSettleHeldShopRefund } from "@/lib/shops/orders";
+import { shopsErrorMessage } from "@/lib/shops/errors";
 
 export type HeldRow = {
-  kind: "declutter" | "helpr_task" | "shop" | "declutter_refund" | "delivery_refund";
+  kind: "declutter" | "helpr_task" | "shop" | "declutter_refund" | "delivery_refund" | "shop_refund";
   id: string;
   payee_id: string | null;
   payee_account?: string | null;
@@ -40,7 +45,11 @@ const KIND_LABEL: Record<HeldRow["kind"], string> = {
   shop: "Shop payout",
   declutter_refund: "Declutter refund",
   delivery_refund: "Delivery-fee refund",
+  shop_refund: "Shops refund",
 };
+
+/** Settled only for the whole amount the row owes (the SQL CHECKs it too). */
+const WHOLE_AMOUNT_ONLY: ReadonlySet<HeldRow["kind"]> = new Set(["shop_refund"]);
 
 async function fetchHeld(): Promise<HeldRow[]> {
   const { data, error } = await supabase.rpc("admin_payouts_held_for_review");
@@ -68,6 +77,19 @@ export function HeldForReview() {
     if (!draft) return;
     setBusy(true);
     try {
+      // A Shops refund settled with a Stripe refund id is checked WITH Stripe first (shop-checkout); the RPC takes only "other: ...".
+      if (draft.action === "settle" && draft.row.kind === "shop_refund" && !/^\s*other:/i.test(draft.ref)) {
+        try {
+          await adminSettleHeldShopRefund(draft.row.id, draft.ref.trim(), draft.note);
+        } catch (e) {
+          toast.error(shopsErrorMessage(e));
+          return;
+        }
+        toast.success("Marked settled by hand.");
+        setDraft(null);
+        await qc.invalidateQueries({ queryKey: ["admin", "payouts-held-for-review"] });
+        return;
+      }
       const { error: err } = draft.action === "release"
         ? await supabase.rpc("admin_payout_release",
           { p_kind: draft.row.kind, p_id: draft.row.id, p_note: draft.note, p_confirm_no_transfer: draft.confirmed })
@@ -130,7 +152,11 @@ export function HeldForReview() {
                   <>
                     <Input aria-label="Stripe id" placeholder={r.kind.endsWith("refund") ? "re_... or other: how it was refunded" : "tr_... / po_... or other: how it was paid"}
                       value={draft.ref} onChange={(e) => setDraft({ ...draft, ref: e.target.value })} />
-                    <Input aria-label="Amount" inputMode="decimal" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
+                    <Input aria-label="Amount" inputMode="decimal" value={draft.amount} readOnly={WHOLE_AMOUNT_ONLY.has(r.kind)}
+                      onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
+                    {WHOLE_AMOUNT_ONLY.has(r.kind) && (
+                      <p className="text-xs text-muted-foreground">A Shops refund is settled only for its whole amount.</p>
+                    )}
                   </>
                 )}
                 <Textarea aria-label="Note" placeholder="Why" value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />

@@ -40,8 +40,9 @@ const AdminExceptionQueue = lazy(() => import("@/components/admin/AdminException
 const AdminBanReview = lazy(() => import("@/components/admin/AdminBanReview"));
 const AdminSocialPosts = lazy(() => import("@/components/admin/AdminSocialPosts"));
 const AdminStalledJobs = lazy(() => import("@/components/admin/AdminStalledJobs"));
+const AdminShopsOrders = lazy(() => import("@/components/admin/AdminShopsOrders"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled" | "shops";
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
@@ -76,6 +77,7 @@ const VIEW_LABELS: Record<View, string> = {
     exceptions: "Exception Queue",
     banreview: "Ban Review",
     stalled: "Stuck Jobs",
+    shops: "Shops Orders",
   };
 
 const Admin = () => {
@@ -523,6 +525,8 @@ const Admin = () => {
       // them done — escalated by the stalled-completion sweep for a HUMAN
       // decision. Deep-linked from the `admin_alert` that escalation raises.
       case "stalled": return <AdminStalledJobs />;
+      // Shops M4: problems, refunds, payouts and Shops strikes (20261019071055).
+      case "shops": return <AdminShopsOrders />;
       case "marketing": return <AdminMarketing />;
       case "social": return <AdminSocialPosts />;
       default: return (

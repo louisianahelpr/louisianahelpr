@@ -1070,6 +1070,9 @@ describe("Popup grammar — footer", () => {
       // Q1550: the Application Sent pop-up's other answer goes on browsing;
       // nothing is being cancelled (the application is already sent).
       "Keep Browsing",
+      // Shops M3 (ShopOrderCancel): the buyer's / shop's "Cancel order?" confirm. Same grammar
+      // as "Keep the Job": "Cancel" beside "Cancel order" would read as the action itself.
+      "Keep the order",
       "Keep it",
       // DisputedSection's withdraw confirm ("Withdraw this dispute?"). Same
       // grammar as "Keep the Job": the secondary names the state that is

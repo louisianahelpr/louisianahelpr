@@ -238,6 +238,8 @@ describe("the order sheet", () => {
     await waitFor(() => expect(ext.openExternalUrl).toHaveBeenCalled());
     expect(orders.requestOrder).toHaveBeenCalledWith({
       shopId: "s1", lines: [{ item_id: "a", quantity: 2 }, { item_id: "b", quantity: 1 }], readyDate: "2026-10-21", note: "",
+      // M3: the cancel terms the buyer read go with the order (shop-checkout refuses terms_changed).
+      terms: { cancel_policy: "until_accept", ready_tap_cancel: undefined },
     });
     expect(ext.openExternalUrl.mock.calls[0][0]).toBe("https://checkout.stripe.com/c/pay/test");
   });

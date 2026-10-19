@@ -2250,7 +2250,7 @@ export type Database = {
           created_at: string
           id: string
           is_seed: boolean
-          refund_id: string
+          refund_id: string | null
           remaining_cents: number
           seller_id: string
           shop_refund_id: string | null
@@ -2260,7 +2260,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_seed?: boolean
-          refund_id: string
+          refund_id?: string | null
           remaining_cents: number
           seller_id: string
           shop_refund_id?: string | null
@@ -2270,7 +2270,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_seed?: boolean
-          refund_id?: string
+          refund_id?: string | null
           remaining_cents?: number
           seller_id?: string
           shop_refund_id?: string | null

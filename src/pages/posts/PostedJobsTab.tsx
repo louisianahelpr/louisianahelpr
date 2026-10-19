@@ -8,10 +8,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { type Job, type EnrichedApplication } from "../../components/job-card/activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
-import { ActivitySectionedView } from "@/components/job-card/ActivitySectionedView";
 import { ActivityBucketGroups, POSTED_GROUP_LABEL } from "@/components/job-card/ActivityBucketGroups";
 import { PagedActivityList } from "@/components/job-card/PagedActivityList";
-import { bucketPostedJob, postedActivityBucket } from "@/components/job-card/activityFilters";
+import { postedActivityBucket } from "@/components/job-card/activityFilters";
 import { useBulkDismiss } from "@/pages/posts/useBulkDismiss";
 import { BulkDismissBar } from "@/pages/posts/BulkDismissBar";
 import type { TrackingData } from "@/components/JobTracking";
@@ -82,15 +81,9 @@ interface PostedJobsTabProps {
   applicantErrors: Record<string, boolean>;
   /** Refetch the feed after an inline card mutation (e.g. dispute action). */
   onActionComplete: () => void;
-  /** When true, render items grouped into collapsible Active /
-   *  Completed / Cancelled sections instead of a flat list.
-   *  Driven by the page-level "All" status filter. The page's
-   *  outer header (PostsHeader) is the sole source of truth for
-   *  filter + search in both modes. */
+  /** Jobs > Posted, "All" filter (owner, 2026-10-19): group by whose move it
+   *  is (Needs you / Upcoming / ...) under headers instead of a flat list. */
   groupByStatus?: boolean;
-  /** Jobs & Posts > Posted (owner, 2026-10-19): with `groupByStatus`, group by
-   *  whose move it is (Needs you / Upcoming / ...) under headers instead. */
-  bucketGroups?: boolean;
   /** Active status filter key, its per-bucket counts, the filter labels, and
    *  the setter — all four only for the end-of-list block (see ListTail). The
    *  header above still owns the filter itself; this is a read of it. */
@@ -300,7 +293,7 @@ export const PostedJobsTab = ({
   applicationsLoading = false, applicationsError = false,
   onAcceptApplication, onDeclineApplication, onLoadInlineApplicants,
   inlineApplicants, loadingApplicants, applicantErrors,
-  onActionComplete, groupByStatus = false, bucketGroups = false,
+  onActionComplete, groupByStatus = false,
   statusFilter, statusCounts, statusLabels, onSelectStatusFilter,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
@@ -440,26 +433,16 @@ export const PostedJobsTab = ({
   }
 
   // The page header (PostsHeader) owns the only search + status
-  // filter — both modes render the already-filtered list. "All" routes
-  // through the collapsible 3-section grouped shell; a specific status
-  // renders a flat list. The applicants full-screen modal renders below
+  // filter — both modes render the already-filtered list. "All" groups by
+  // whose move it is under headers; a specific status renders a flat list. The applicants full-screen modal renders below
   // as a sibling so it surfaces in either mode.
-  const listView = groupByStatus && bucketGroups ? (
+  const listView = groupByStatus ? (
     <ActivityBucketGroups
       items={visibleJobs}
       getKey={(job) => job.id}
       bucketOf={(job) => postedActivityBucket(job, pendingApplicantCounts?.[job.id] ?? 0)}
       renderItem={renderJobCard}
       labels={POSTED_GROUP_LABEL}
-    />
-  ) : groupByStatus ? (
-    <ActivitySectionedView
-      tab="posted"
-      items={visibleJobs}
-      getKey={(job) => job.id}
-      bucketize={bucketPostedJob}
-      renderItem={renderJobCard}
-      onHiddenChange={setHiddenCount}
     />
   ) : visibleJobs.length === 0 ? (
     <EmptyState

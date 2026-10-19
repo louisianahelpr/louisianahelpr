@@ -21,10 +21,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { type Application, type AppliedApp, type Job } from "../../components/job-card/activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
-import { ActivitySectionedView } from "@/components/job-card/ActivitySectionedView";
 import { ActivityBucketGroups, WORKING_GROUP_LABEL } from "@/components/job-card/ActivityBucketGroups";
 import { PagedActivityList } from "@/components/job-card/PagedActivityList";
-import { bucketAppliedApp, appliedActivityBucket } from "@/components/job-card/activityFilters";
+import { appliedActivityBucket } from "@/components/job-card/activityFilters";
 import type { TrackingData } from "@/components/JobTracking";
 import { logWithdrawReason, type WithdrawReason } from "@/lib/applicationWithdrawAnalytics";
 
@@ -54,14 +53,9 @@ interface AppliedJobsTabProps {
    *  job that's already in dispute. */
   onViewDispute: (job: Job) => void;
   onRefresh: () => void;
-  /** When true, render items grouped into collapsible Active /
-   *  Completed / Closed sections instead of a flat list.
-   *  Driven by the page-level "All" status filter. The page's outer
-   *  header (JobsHeader) is the sole source of truth for filter +
-   *  search in both modes. */
+  /** Jobs > Working, "All" filter (owner, 2026-10-19): group by bucket under
+   *  headers instead of a flat list. */
   groupByStatus?: boolean;
-  /** Jobs & Posts > Working (owner, 2026-10-19): group by bucket under headers. */
-  bucketGroups?: boolean;
 }
 
 export const AppliedJobsTab = ({
@@ -70,7 +64,7 @@ export const AppliedJobsTab = ({
   respondingHelperAppId,
   onComplete, completingJobId,
   onResolveRevision, onHelperReview, onDispute, onViewDispute, onRefresh,
-  groupByStatus = false, bucketGroups = false,
+  groupByStatus = false,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();
   const [disputeResponse, setDisputeResponse] = useState("");
@@ -322,26 +316,15 @@ export const AppliedJobsTab = ({
   }
 
   // The page header (JobsHeader) owns the only search + status
-  // filter — both modes render the already-filtered list. "All" routes
-  // through the grouped Sectioned view ("Closed" labels the third
-  // section since helper-side rejections and cancelled jobs collapse
-  // into one bucket); a specific status renders a flat list.
-  const listView = groupByStatus && bucketGroups ? (
+  // filter — both modes render the already-filtered list. "All" groups by
+  // bucket under headers; a specific status renders a flat list.
+  const listView = groupByStatus ? (
     <ActivityBucketGroups
       items={apps}
       getKey={(app) => app.id}
       bucketOf={appliedActivityBucket}
       renderItem={renderAppliedCard}
       labels={WORKING_GROUP_LABEL}
-    />
-  ) : groupByStatus ? (
-    <ActivitySectionedView
-      tab="applied"
-      items={apps}
-      getKey={(app) => app.id}
-      bucketize={bucketAppliedApp}
-      renderItem={renderAppliedCard}
-      labels={{ cancelled: "Closed" }}
     />
   ) : (
     // Flat (single-status) list rendered in normal document flow — the

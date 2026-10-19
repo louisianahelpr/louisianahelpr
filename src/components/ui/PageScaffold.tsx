@@ -67,6 +67,10 @@ interface PageScaffoldProps {
   titleCardClassName?: string;
   /** Extra classes appended to the scaffold root (e.g. a CSS mount fade). */
   className?: string;
+  /** Q959: the panel's blur is the ONE blur; the liquid-glass cards inside it
+   *  stop running their own (see `.page-panel--one-blur` in index.css). On for
+   *  My Posts / My Jobs and their loading skeleton. */
+  oneBlur?: boolean;
 }
 
 // `page-panel` is a styling HOOK, not a look: `panelSurfaceStyle` zeroes the
@@ -88,6 +92,7 @@ export function PageScaffold({
   animate = false,
   className,
   titleCardClassName,
+  oneBlur = false,
 }: PageScaffoldProps) {
   const titleCardClass = titleCardClassName
     ? `${TITLE_CARD_CLASS} ${titleCardClassName}`
@@ -153,7 +158,7 @@ export function PageScaffold({
   );
 
   const panelEl = (
-    <section className={PANEL_CLASS + enterClass} style={panelStyle}>
+    <section className={PANEL_CLASS + (oneBlur ? " page-panel--one-blur" : "") + enterClass} style={panelStyle}>
       {children}
     </section>
   );

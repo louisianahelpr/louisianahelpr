@@ -4,7 +4,8 @@
  * show, and with no saved card either one asks for a card and comes back to
  * itself). Moved out of DeclutterTradeViews.tsx unchanged (component size limit).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -68,6 +69,22 @@ function AddCardStep({ action, itemId, onReturned, onCancel }: {
   );
 }
 
+/**
+ * True while `el` is off screen (IntersectionObserver). False where the
+ * observer does not exist, so the in-page buttons are then the only ones.
+ */
+function useOffScreen(el: RefObject<HTMLElement>): boolean {
+  const [off, setOff] = useState(false);
+  useEffect(() => {
+    const node = el.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => setOff(!entry.isIntersecting));
+    io.observe(node);
+    return () => io.disconnect();
+  }, [el]);
+  return off;
+}
+
 /** Back from saving a card: how long to wait for Stripe's webhook to file it, and how often to look. */
 const CARD_WAIT_MS = 10_000;
 const CARD_POLL_MS = 1_500;
@@ -86,6 +103,11 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const panel = useRef<HTMLElement>(null);
+  const buttons = useRef<HTMLDivElement>(null);
+  // Phone (owner, 2026-10-19): while the in-page buttons are scrolled out of
+  // view, the same two actions ride in a bar above the bottom dock.
+  const barShown = useOffScreen(buttons);
   const [amount, setAmount] = useState("");
   /** The action waiting for a card: shown as AddCardStep, then resumed once a card is on file. */
   const [needCard, setNeedCard] = useState<AfterCardAction | null>(null);
@@ -185,9 +207,9 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
     return <DeclutterNotice tone="warn" title="You must be 18 or older to buy on Declutter." />;
   }
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="Buy or make an offer">
+    <section ref={panel} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4" aria-label="Buy or make an offer">
       {/* Full width and stacked on a phone (a long price never squeezes them); side by side from sm. */}
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div ref={buttons} className="grid gap-2 sm:grid-cols-2">
         <Button
           type="button"
           size="wrap"
@@ -263,6 +285,40 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
       <p className="text-xs text-muted-foreground">
         At checkout you pay the price plus a buyer's fee of 5% + 70¢ (once per seller). The seller keeps the whole price.
       </p>
+      {barShown && typeof document !== "undefined" &&
+        createPortal(
+          // Portaled to <body>: a fixed bar inside the page would be placed by its transformed ancestor, not the screen.
+          <div data-declutter-buybar="" className="fixed inset-x-0 bottom-safe-nav z-40 px-4 sm:hidden">
+            <div role="group" aria-label="Buy or make an offer" className="mx-auto flex max-w-xl gap-2 rounded-2xl border border-border bg-card p-2 shadow-lg">
+              <Button
+                type="button"
+                size="wrap"
+                className="flex-1 min-w-0 rounded-full"
+                disabled={buy.isPending || card.isLoading}
+                onClick={() => {
+                  tap("buy");
+                  if (!card.data) panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+              >
+                Buy now · {formatPrice(item.current_price_cents)}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="wrap"
+                className="flex-1 min-w-0 rounded-full"
+                disabled={card.isLoading}
+                onClick={() => {
+                  tap("offer");
+                  panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+              >
+                Make an offer
+              </Button>
+            </div>
+          </div>,
+          document.body,
+        )}
     </section>
   );
 }

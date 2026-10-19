@@ -11,6 +11,7 @@ import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles";
 
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
 /** Slice 5 adds "delivery": a Helpr picks it up and brings it (rows 24, 29-30, 40-43). */
@@ -205,6 +206,24 @@ export async function fetchSellerRatings(sellerIds: string[]): Promise<Map<strin
     out.set(r.user_id, { avg: Number(r.avg_rating ?? 0), count: r.review_count ?? 0 });
   }
   return out;
+}
+
+/** What the item page's seller card shows: public fields only (get_safe_profiles, granted to every member). */
+export interface SellerCard {
+  name: string | null;
+  avatarUrl: string | null;
+  joinedAt: string | null;
+}
+
+/**
+ * The seller card's name, photo and join date. Re-matched by user_id
+ * (pickRequestedProfile): get_safe_profiles also answers profile ids, so a
+ * row for a different person is never shown as this seller.
+ */
+export async function fetchSellerCard(sellerId: string): Promise<SellerCard | null> {
+  const rows = (unwrap(await supabase.rpc("get_safe_profiles", { user_ids: [sellerId] })) ?? []) as SafeProfileIdRow[];
+  const row = pickRequestedProfile(rows, sellerId) as (SafeProfileIdRow & { full_name?: string | null; avatar_url?: string | null; created_at?: string | null }) | null;
+  return row ? { name: row.full_name ?? null, avatarUrl: row.avatar_url ?? null, joinedAt: row.created_at ?? null } : null;
 }
 
 export async function setWatch(itemId: string, watch: boolean): Promise<string> {

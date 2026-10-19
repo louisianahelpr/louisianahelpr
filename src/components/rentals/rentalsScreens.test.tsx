@@ -293,6 +293,7 @@ describe("Rentals screens", () => {
     expect(screen.getByRole("button", { name: "Send to my landlord" })).toBeTruthy();
   });
 
+  // The ID + ownership proof live under Homes > Owning since the section dashboard (2026-10-19).
   describe("landlord ID: a photo sent with the ownership proof, reviewed by an admin, free (owner 2026-10-19)", () => {
     const NEEDS_PROOF = { id: "p1", owner_id: "u1", label: "Oak", street_address: "1 Oak", city: "Lafayette", zip_code: "70501", ownership_status: "needs_proof", ownership_review_note: null, auto_approve_limit_cents: null };
     const file = (name: string, type = "image/jpeg") => new File(["x"], name, { type });
@@ -304,7 +305,7 @@ describe("Rentals screens", () => {
     it("not verified: ONE Send for review takes the ID front, the optional back and the ownership proof; no price anywhere", async () => {
       state.identity = { verified: false, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
       state.properties = [NEEDS_PROOF];
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       const send = await screen.findByRole("button", { name: "Send for review" });
       expect(screen.getByText(/It's free/)).toBeTruthy();
       expect(screen.queryByText(/\$\d/)).toBeNull();
@@ -331,7 +332,7 @@ describe("Rentals screens", () => {
     it("the back is optional: front + proof is enough", async () => {
       state.identity = { verified: false, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
       state.properties = [NEEDS_PROOF];
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       const send = await screen.findByRole("button", { name: "Send for review" });
       fireEvent.change(screen.getByLabelText(/Photo of your ID, front/), { target: { files: [file("front.jpg")] } });
       fireEvent.change(screen.getByLabelText(/Ownership proof/), { target: { files: [file("deed.pdf", "application/pdf")] } });
@@ -342,7 +343,7 @@ describe("Rentals screens", () => {
 
     it("already verified (Stripe, payouts, or an approved ID): only the ownership proof is asked for", async () => {
       state.properties = [NEEDS_PROOF];
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       expect(await screen.findByLabelText(/Ownership proof/)).toBeTruthy();
       expect(screen.queryByLabelText(/Photo of your ID/)).toBeNull();
       expect(screen.queryByText(/Every landlord on Louisiana Helpr is ID-verified/)).toBeNull();
@@ -351,7 +352,7 @@ describe("Rentals screens", () => {
     it("pending: the ID is with our team, no second ID upload", async () => {
       state.identity = { verified: false, idStatus: "pending_review", reviewNote: null, submittedAt: "2026-10-19T00:00:00Z", reviewedAt: null };
       state.properties = [NEEDS_PROOF];
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       expect(await screen.findByText(/Your ID is with our team for review/)).toBeTruthy();
       expect(screen.queryByLabelText(/Photo of your ID/)).toBeNull();
     });
@@ -360,7 +361,7 @@ describe("Rentals screens", () => {
       state.identity = { verified: false, idStatus: "rejected", reviewNote: "The photo is blurry", submittedAt: null, reviewedAt: "2026-10-19T00:00:00Z" };
       state.properties = [{ ...NEEDS_PROOF, ownership_status: "approved" }];
       state.units = [{ id: "un1", property_id: "p1", label: "A" }];
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       expect(await screen.findByText("We need a new photo of your ID.")).toBeTruthy();
       expect(screen.getByText("Reason: The photo is blurry")).toBeTruthy();
       expect(screen.getByLabelText(/Photo of your ID, front/)).toBeTruthy();
@@ -374,7 +375,7 @@ describe("Rentals screens", () => {
       state.properties = [{ ...NEEDS_PROOF, ownership_status: "approved" }];
       state.units = [{ id: "un1", property_id: "p1", label: "A" }];
       vi.mocked(inviteTenant).mockRejectedValueOnce(new RentalsCopyError(null, { message: "identity_not_verified", code: "42501" }));
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       fireEvent.click(await screen.findByRole("button", { name: "Invite tenant" }));
       await waitFor(() => expect(inviteTenant).toHaveBeenCalled());
     });
@@ -384,7 +385,7 @@ describe("Rentals screens", () => {
       state.properties = [NEEDS_PROOF];
       vi.mocked(submitOwnershipProof).mockRejectedValueOnce(new RentalsCopyError("That file didn't upload. Try adding it again.", new Error("bad_proof_path")));
       const toastError = vi.spyOn((await import("sonner")).toast, "error");
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       const send = await screen.findByRole("button", { name: "Send for review" });
       fireEvent.change(screen.getByLabelText(/Photo of your ID, front/), { target: { files: [file("front.jpg")] } });
       fireEvent.change(screen.getByLabelText(/Ownership proof/), { target: { files: [file("deed.pdf", "application/pdf")] } });
@@ -396,7 +397,7 @@ describe("Rentals screens", () => {
     it("an approved review whose verdict was taken away asks for a new photo (never a dead end)", async () => {
       state.identity = { verified: false, idStatus: "approved", reviewNote: null, submittedAt: null, reviewedAt: "2026-10-19T00:00:00Z" };
       state.properties = [NEEDS_PROOF];
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       expect(await screen.findByText("We need a new photo of your ID.")).toBeTruthy();
       expect(screen.getByLabelText(/Photo of your ID, front/)).toBeTruthy();
     });
@@ -404,7 +405,7 @@ describe("Rentals screens", () => {
     it("adding a property no longer needs an ID first", async () => {
       vi.mocked(createProperty).mockResolvedValueOnce("p9");
       state.identity = { verified: false, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       fireEvent.click(await screen.findByRole("button", { name: "Add a property" }));
       expect(screen.getByText(/Next you send ownership proof and, if you aren't ID-verified yet, a photo of your ID/)).toBeTruthy();
     });

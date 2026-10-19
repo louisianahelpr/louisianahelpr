@@ -7,10 +7,18 @@
  * window (48 h default), and "Ask for Quotes" sends the form's details to
  * create_quote_request, never the Review & Pay path.
  *
- * @mutate src/pages/post-job/FormStep.tsx |   const quotesEligible = quotesOn && !form.offerToHelperId && !form.isRecurring && !form.isGroupJob; |   const quotesEligible = quotesOn && !form.offerToHelperId;
+ * @mutate src/pages/post-job/FormStep.tsx |   const quotesShape = !form.offerToHelperId && !form.isRecurring && !form.isGroupJob; |   const quotesShape = !form.offerToHelperId;
+ *
+ * Owner 2026-10-19: without the switch (everyone but testers) the choice still shows, with
+ * "Get quotes" greyed and marked Coming soon; a tap only says so, never the quote form or its RPC.
+ * @mutate src/pages/post-job/FormStep.tsx |   const quotesEligible = quotesOn && quotesShape; |   const quotesEligible = quotesShape;
+ * @mutate src/components/quotes/PostJobQuoteChoice.tsx |           if (v === "quotes" && quotesComingSoon) { |           if (false) {
+ * @mutate src/components/quotes/PostJobQuoteChoice.tsx |             setSoonTapped(true); |             void 0;
+ * @mutate src/components/quotes/PostJobQuoteChoice.tsx |           quotesComingSoon\n            ? { |           false\n            ? {
+ * @mutate src/pages/post-job/FormStep.tsx | quotesComingSoon={!quotesOn} | quotesComingSoon={false}
  * @mutate src/pages/post-job/FormStep.tsx |           if (!askingQuotes) return form.handleReview(e); |           return form.handleReview(e);
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx |           { value: "price", label: "Set a price" }, |           { value: "price", label: "Set my price" },
- * @mutate src/components/quotes/PostJobQuoteChoice.tsx |         {PRICE_MODE_NEXT[value]}\n |         \n
+ * @mutate src/components/quotes/PostJobQuoteChoice.tsx |         {quotesComingSoon && soonTapped ? QUOTES_COMING_SOON : PRICE_MODE_NEXT[value]}\n |         \n
  * @mutate src/lib/quotes/api.ts | export const DEFAULT_QUOTE_WINDOW: QuoteWindowHours = 48; | export const DEFAULT_QUOTE_WINDOW: QuoteWindowHours = 24;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -20,7 +28,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = { feature: true, calls: [] as { fn: string; args: unknown }[] };
 
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature }));
+vi.mock("@/hooks/useFeature", () => ({
+  useFeature: () => state.feature,
+  useFeatureStatus: () => ({ on: state.feature, settled: true, lastAnswer: state.feature }),
+}));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
 vi.mock("@/components/postjob/DetailsSection", () => ({ DetailsSection: () => <div>details</div> }));
 vi.mock("@/components/postjob/LogisticsSection", () => ({ LogisticsSection: () => <div>logistics</div> }));
@@ -82,17 +93,57 @@ describe("Post a Job: Set a price or Get quotes", () => {
     expect(screen.getByText(/Members near you send theirs; you pick one and pay only when you book/)).toBeInTheDocument();
   });
 
-  it("switch off: no choice, the budget and Review & Pay as today", () => {
+  it("switch off (not a tester): the choice shows with Get quotes greyed and Coming soon; a tap only says so", async () => {
     state.feature = false;
-    show(form());
-    expect(screen.queryByRole("radio", { name: "Get quotes" })).toBeNull();
+    show(form({ budgetComplete: true, budgetNum: 80 }));
+    expect(screen.getByRole("radio", { name: "Set a price" })).toHaveAttribute("aria-checked", "true");
+    const soon = screen.getByRole("radio", { name: "Get quotes, coming soon" });
+    expect(soon).toHaveTextContent("Coming soon");
+    expect(soon.querySelector("[data-quotes-coming-soon]")?.className).toMatch(/text-muted-foreground/);
+    fireEvent.click(soon);
+    // Said in the line under the pills (toast.info is silenced app-wide by src/lib/toastPolicy.ts).
+    expect(screen.getByText("Getting quotes from local pros is coming soon. For now, set your price.")).toBeInTheDocument();
+    // Still Set a price: the budget and Review & Pay, never the quote window or its RPC.
+    expect(screen.getByRole("radio", { name: "Set a price" })).toHaveAttribute("aria-checked", "true");
+    expect(soon).toHaveAttribute("aria-checked", "false");
     expect(screen.getByText("Budget section")).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "48 hours" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Ask for Quotes/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Review & Pay/ }));
+    await waitFor(() => expect(handleReview).toHaveBeenCalled());
+    expect(state.calls.filter((c) => /quote/i.test(c.fn))).toEqual([]);
+  });
+
+  it("switch turned off mid-form with Get quotes picked: back to Set a price and the budget, no quote window", () => {
+    const { rerender } = show(form());
+    fireEvent.click(screen.getByRole("radio", { name: "Get quotes" }));
+    expect(screen.queryByText("Budget section")).toBeNull();
+    state.feature = false;
+    rerender(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <FormStep form={form()} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByText("Budget section")).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "48 hours" })).toBeNull();
+    expect(screen.getByRole("radio", { name: "Get quotes, coming soon" })).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("switch on (a tester): the real Get quotes, no Coming soon", () => {
+    show(form());
+    const real = screen.getByRole("radio", { name: "Get quotes" });
+    expect(real).not.toHaveTextContent("Coming soon");
+    fireEvent.click(real);
+    expect(screen.queryByText(/coming soon\. For now, set your price/)).toBeNull();
+    expect(screen.getByRole("radio", { name: "48 hours" })).toBeInTheDocument();
   });
 
   it("a series, a crew job or a direct offer keeps today's flow", () => {
     for (const over of [{ isRecurring: true }, { isGroupJob: true }, { offerToHelperId: "h1" }]) {
       const { unmount } = show(form(over));
-      expect(screen.queryByRole("radio", { name: "Get quotes" })).toBeNull();
+      expect(screen.queryByRole("radio", { name: /Get quotes/ })).toBeNull();
       unmount();
     }
   });

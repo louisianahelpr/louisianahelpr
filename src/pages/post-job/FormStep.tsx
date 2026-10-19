@@ -13,7 +13,7 @@ import { detailsBlocker } from "./detailsBlocker";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { AgeGateNote } from "@/components/AgeGateNote";
 import { useRef, useState } from "react";
-import { useFeature } from "@/hooks/useFeature";
+import { useFeatureStatus } from "@/hooks/useFeature";
 import {
   PriceModeChoice,
   QuoteRequestSection,
@@ -46,10 +46,15 @@ export function FormStep({ form }: FormStepProps) {
   // the top says why before any of the form is filled in.
   const { underAge } = useAgeGate();
   // Quotes on jobs (hidden 'quotes' switch): "Get quotes" replaces the budget
-  // with a quote window for a one-time job with no direct offer.
-  const quotesOn = useFeature("quotes");
+  // with a quote window for a one-time job with no direct offer. Without the
+  // switch (everyone but testers, owner 2026-10-19) the choice still shows,
+  // with "Get quotes" greyed and marked Coming soon; it never opens the quote
+  // form (priceMode stays "price", so QuoteRequestSection never mounts).
+  const quotes = useFeatureStatus("quotes");
+  const quotesOn = quotes.on;
   const [priceModeRaw, setPriceMode] = useState<PriceMode>("price");
-  const quotesEligible = quotesOn && !form.offerToHelperId && !form.isRecurring && !form.isGroupJob;
+  const quotesShape = !form.offerToHelperId && !form.isRecurring && !form.isGroupJob;
+  const quotesEligible = quotesOn && quotesShape;
   const priceMode: PriceMode = quotesEligible ? priceModeRaw : "price";
   const quoteAsk = useRef<QuoteAskHandle>(null);
   const [quoteSending, setQuoteSending] = useState(false);
@@ -131,7 +136,9 @@ export function FormStep({ form }: FormStepProps) {
         className="space-y-4"
       >
         {/* Set a price | Get quotes: the form's first choice (owner 2026-10-19). */}
-        {quotesEligible && <PriceModeChoice value={priceMode} onChange={setPriceMode} />}
+        {quotesShape && quotes.settled && (
+          <PriceModeChoice value={priceMode} onChange={setPriceMode} quotesComingSoon={!quotesOn} />
+        )}
 
         {/* SECTION 1: DETAILS */}
         <div>

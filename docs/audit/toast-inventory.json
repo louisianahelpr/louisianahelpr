@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 891,
-    "files": 220,
+    "files": 221,
     "rendering": 776,
     "suppressedByPolicy": 115,
     "byKind": {
@@ -4658,6 +4658,56 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/DeclutterOfferPanel.tsx",
+      "line": 56,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOfferPanel.tsx",
+      "line": 117,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Offer sent. The seller has 48 hours to answer."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterOfferPanel.tsx",
+      "line": 120,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOfferPanel.tsx",
+      "line": 125,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "It's yours. Check out within 48 hours."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterOfferPanel.tsx",
+      "line": 128,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeclutterSellView.tsx",
       "line": 194,
       "kind": "toast.error",
@@ -4799,57 +4849,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 105,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 135,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Offer sent. The seller has 48 hours to answer."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 138,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 143,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "It's yours. Check out within 48 hours."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 146,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 240,
+      "line": 103,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4899,7 +4899,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 248,
+      "line": 111,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4909,7 +4909,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 359,
+      "line": 222,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -4919,7 +4919,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 362,
+      "line": 225,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4929,7 +4929,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 430,
+      "line": 293,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4939,7 +4939,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 481,
+      "line": 344,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4949,7 +4949,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 488,
+      "line": 351,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -54,12 +54,12 @@
  * PostsHeader's and JobsHeader's do. Desktop has no chevron at all.
  * See src/test/filterDisclosureParity.test.ts for the cross-screen guard.
  *
- * @mutate src/components/messages/ConversationList.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(false); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
+ * @mutate src/components/messages/ConversationList.tsx |   const headerEl = phoneTopBar && !selectMode ? ( |   const headerEl = false ? (
  * @mutate src/components/messages/ConversationList.tsx | const headerMeta = isWebDesktop && !sectionEmpty ? <div id={INBOX_TABS_ID}>{inboxTabs}</div> : undefined; | const headerMeta = undefined;
  * @mutate src/lib/inboxDefault.ts | active: "Active", | active: "Unread",
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
-import { render, screen, cleanup, within, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -76,6 +76,12 @@ vi.mock("@/lib/haptics", () => ({
 
 import { ConversationList } from "@/components/messages/ConversationList";
 import type { Conversation } from "@/components/messages/types";
+// The phone header is the shared AppTopBar since Q2231; its bell and avatar
+// need the app's providers, and this file tests the list, not the bar.
+vi.mock("@/components/sections/AppTopBar", () => ({
+  AppTopBar: ({ title }: { title?: string }) => <header data-testid="app-top-bar"><h1>{title}</h1></header>,
+}));
+
 
 // The exact gate useIsWebDesktop reads (min-width: 900px, non-native).
 function setWebDesktop(on: boolean) {
@@ -160,12 +166,6 @@ function disclosure() {
   );
 }
 
-/** Phone only: press the chevron if the strip is folded (it starts folded, owner 2026-09-25). */
-function openPhoneStrip() {
-  const chevron = disclosure();
-  if (chevron && chevron.getAttribute("aria-expanded") === "false") fireEvent.click(chevron);
-}
-
 afterEach(() => {
   cleanup();
   setWebDesktop(false);
@@ -207,12 +207,15 @@ describe("Messages inbox filter tabs — always visible, never behind a disclosu
       // OWNER, 2026-09-25 (iPhone screenshots): "This should open with the
       // chevrons collapsed. Not expanded." So on phone the strip starts
       // folded and the chevron reveals it; desktop is unchanged.
+      // PHONE since Q2231 (owner, 2026-10-19): the top bar is the shared
+      // AppTopBar and Active / All live in the search row's ONE "more" menu
+      // (its items are pinned in messagesTopBarGlobalRule.test.tsx), so there
+      // is no chevron and no strip on the phone.
       if (!webDesktop) {
-        const folded = disclosure();
-        expect(folded, "phone must offer the fold My Posts / My Jobs do").toBeTruthy();
-        expect(folded!.getAttribute("aria-expanded"), "the phone strip starts FOLDED (owner, 2026-09-25)").toBe("false");
-        expect(tabGroup(), "a folded strip is not rendered").toBeNull();
-        openPhoneStrip();
+        expect(disclosure(), "no chevron on the phone any more (Q2231)").toBeNull();
+        expect(tabGroup(), "no strip on the phone (Q2231)").toBeNull();
+        expect(screen.getByRole("button", { name: "More conversation options" }).getAttribute("aria-haspopup")).toBe("menu");
+        return;
       }
 
       // On FIRST PAINT, with no click. This is the assertion that survived the
@@ -246,10 +249,10 @@ describe("Messages inbox filter tabs — always visible, never behind a disclosu
     it(`${label}: exactly ONE strip renders — never both placements, never neither`, () => {
       setWebDesktop(webDesktop);
       const { container } = renderInbox();
-      if (!webDesktop) openPhoneStrip();
+      // Desktop: the inline strip. Phone (Q2231): none, the more menu instead.
       expect(
         container.querySelectorAll('[role="group"][aria-label="Filter conversations"]'),
-      ).toHaveLength(1);
+      ).toHaveLength(webDesktop ? 1 : 0);
     });
   }
 
@@ -272,19 +275,13 @@ describe("Messages inbox filter tabs — always visible, never behind a disclosu
     expect(row!.contains(tabGroup()!)).toBe(true);
   });
 
-  it("phone / native: the strip is on its OWN line, not crammed into the header row", () => {
+  it("phone / native: no strip and no chevron in the header; the one more menu carries Active / All (Q2231)", () => {
     setWebDesktop(false);
     renderInbox();
-    openPhoneStrip();
-    const h1 = screen.getByRole("heading", { level: 1, name: "Messages" });
-    const row = h1.closest("div.flex.items-center");
-    expect(row).not.toBeNull();
-    const group = tabGroup();
-    expect(group, "the phone strip must still render").not.toBeNull();
-    expect(
-      row!.contains(group!),
-      "at 320 the header row has 20px beside a title that needs 88 — the strip may not go in it",
-    ).toBe(false);
+    expect(tabGroup()).toBeNull();
+    expect(disclosure()).toBeNull();
+    expect(screen.getByRole("searchbox", { name: "Search conversations" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "More conversation options" })).toBeTruthy();
   });
 
   /**

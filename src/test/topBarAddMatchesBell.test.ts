@@ -22,8 +22,11 @@ describe("the section + matches the bell", () => {
     expect(add).toContain('size="icon"');
     expect(add).toContain("className={TOP_BAR_ICON_CLASS}");
   });
-  it("the bell wears the same icon class", () => {
-    expect(bar).toMatch(/<NotificationPanel triggerClassName=\{`\$\{TOP_BAR_ICON_CLASS\}/);
+  it("the bell wears the same icon size (its class starts with the +'s)", () => {
+    const icon = bar.match(/const TOP_BAR_ICON_CLASS = "([^"]+)";/)?.[1] ?? "";
+    expect(icon).toMatch(/h-11 w-11/);
+    const bell = bar.match(/<NotificationPanel triggerClassName="([^"]+)"/)?.[1] ?? "";
+    expect(bell.startsWith(icon), `bell "${bell}" vs + "${icon}"`).toBe(true);
   });
   it("no filled primary surface anywhere in the bar", () => {
     expect(bar).not.toMatch(/btn-grad-primary/);

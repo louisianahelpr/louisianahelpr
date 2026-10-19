@@ -111,6 +111,12 @@ import { ConversationList } from "@/components/messages/ConversationList";
 import type { Conversation } from "@/components/messages/types";
 import { blankComments } from "./helpers/blankNonCode";
 import { readdirSync } from "./helpers/trackedFiles";
+// The phone header is the shared AppTopBar since Q2231; its bell and avatar
+// need the app's providers, and this file tests the list, not the bar.
+vi.mock("@/components/sections/AppTopBar", () => ({
+  AppTopBar: ({ title }: { title?: string }) => <header data-testid="app-top-bar"><h1>{title}</h1></header>,
+}));
+
 
 const SRC = path.resolve(__dirname, "..");
 
@@ -314,8 +320,10 @@ function renderInbox() {
   );
 }
 
+// Desktop website only since Q2231 (owner, 2026-10-19): on a phone the field
+// is always open in its own slim row (messagesSearchOwnLineBelow360.test.tsx),
+// so there is no expanding search there to dismiss.
 describe.each([
-  ["phone / native", false],
   ["desktop website (>=900px)", true],
 ])("Messages inbox search — %s", (_label, webDesktop) => {
   it("the inventory is real: this fixture produces a searchable inbox", () => {

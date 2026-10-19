@@ -65,6 +65,12 @@ vi.mock("@/lib/haptics", () => ({
 import { ConversationList } from "@/components/messages/ConversationList";
 import type { Conversation } from "@/components/messages/types";
 import { defaultInboxTab, UNFILTERED_INBOX_TAB, coerceInboxView } from "@/lib/inboxDefault";
+// The phone header is the shared AppTopBar since Q2231; its bell and avatar
+// need the app's providers, and this file tests the list, not the bar.
+vi.mock("@/components/sections/AppTopBar", () => ({
+  AppTopBar: ({ title }: { title?: string }) => <header data-testid="app-top-bar"><h1>{title}</h1></header>,
+}));
+
 
 // Phone, so the tabs sit behind the disclosure — the surface where the
 // hidden-unread banner matters most, because the tab counts are not on screen.

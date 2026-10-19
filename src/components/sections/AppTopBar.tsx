@@ -66,7 +66,7 @@ export function AppTopBar({
         )}
         {!isWebDesktop && (
         <span data-testid="top-bar-bell">
-          <NotificationPanel triggerClassName={`${TOP_BAR_ICON_CLASS} [&>span]:top-0.5 [&>span]:-right-0.5`} />
+          <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
         </span>
         )}
         {user && !isWebDesktop && (

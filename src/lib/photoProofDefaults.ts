@@ -23,6 +23,8 @@ const PHOTO_PROOF_DEFAULT_OFF: ReadonlySet<string> = new Set<JobCategory>([
   "errands",
   "delivery",
   "pet_care",
+  // The listings themselves are the result; a before/after pair of a room means nothing.
+  "declutter_help",
 ]);
 
 /** Pre-set for the photo-proof toggle, given the chosen category. */

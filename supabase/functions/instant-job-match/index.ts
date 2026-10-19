@@ -341,6 +341,7 @@ serve(async (req) => {
       concrete_masonry: "🏗️",
       fencing: "🚧",
       pressure_washing: "💦",
+      declutter_help: "🏷️",
       other: "✨",
     };
     const emoji = categoryEmoji[job.category] ?? "✨";

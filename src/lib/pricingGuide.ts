@@ -24,6 +24,8 @@ export const categoryPricing: Record<string, { min: number; max: number; label: 
 export const UNPRICED_CATEGORIES: ReadonlySet<string> = new Set([
   "electrical", "plumbing", "hvac", "roofing", "welding", "carpentry", "auto_repair",
   "appliance_repair", "flooring", "concrete_masonry", "fencing", "pressure_washing",
+  // Declutter Help (2026-10-19): no researched range yet either.
+  "declutter_help",
 ]);
 
 /**

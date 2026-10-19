@@ -51,6 +51,7 @@ import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, TAX_STATE
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 import PriceHint from "./DeclutterPriceHint";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
+import { SellItForMeEntry } from "./SellItForMe";
 
 interface FormState {
   title: string;
@@ -332,6 +333,9 @@ export default function SellFlow() {
           <Link to="/profile?tab=payment" className="underline font-semibold">Set up payouts</Link>
         </DeclutterNotice>
       )}
+
+      {/* "Sell it for me" (owner 2026-10-19): a new listing only, never on a draft already started. */}
+      {!itemId && <SellItForMeEntry />}
 
       <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-labelledby="sell-details">
         <h2 id="sell-details" className="text-base font-semibold">1. The item</h2>

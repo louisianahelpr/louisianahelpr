@@ -25,7 +25,7 @@
  * @mutate src/components/rentals/HomesBrowse.tsx |         <HomesBuy /> |         {null}
  * @mutate src/components/rentals/RentalsHomeView.tsx | function SaleListingLink({ propertyId, approved, listing }: { propertyId: string; approved: boolean; listing: RentalListing \| undefined }) {\n  if (!approved) return null; | function SaleListingLink({ propertyId, approved, listing }: { propertyId: string; approved: boolean; listing: RentalListing \| undefined }) {\n  if (approved \|\| !approved) return null;
  * @mutate src/components/rentals/listings/RentBrowse.tsx |       price: priceLine(l.sale_price_cents), |       price: "",
- * @mutate src/components/rentals/RentalsHomeView.tsx |       <span className="font-semibold">Removed by Louisiana Helpr.</span> {listing.removed_reason} |       {null}
+ * @mutate src/components/rentals/RentalsHomeView.tsx |       <span className="font-semibold">Listings removed by Louisiana Helpr.</span> {reason} Contact support if you think this is a mistake. |       {null}
  * @mutate src/components/rentals/HomesBrowse.tsx | No commission. A title company | Price negotiable with the owner. A title company
  * @mutate src/components/rentals/HomesBrowse.tsx |           <RentBrowse />\n |           {null}\n
  * @mutate src/components/rentals/RentalsHomeView.tsx |           <HomesBrowse />\n |           {null}\n

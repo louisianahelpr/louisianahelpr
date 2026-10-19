@@ -10,13 +10,14 @@
  * this card is not either. Search (a link code, headline or label words, a
  * ZIP) and 25 a page with totals, so no listing is out of reach (round 4 #5).
  */
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { adminLiftTakedown, adminRemoveListing, fetchAdminListings, type AdminListings } from "@/lib/rentals/listings";
 import { rentalsErrorMessage } from "@/lib/rentals/copy";
 import { AdminCard } from "../AdminViewShell";
+import { AdminUserSearchField } from "./AdminUserSearchField";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 
 const KEY = ["admin-homes-listings"];
@@ -121,8 +122,7 @@ export function HomesListingsCard() {
     if (openOffset > 0 && openOffset >= q.data.open_total) setOpenOffset(lastPage(q.data.open_total, q.data.page_size));
     if (takenOffset > 0 && takenOffset >= q.data.taken_down_total) setTakenOffset(lastPage(q.data.taken_down_total, q.data.page_size));
   }, [q.data, q.isPlaceholderData, openOffset, takenOffset]);
-  const search = (e: FormEvent) => {
-    e.preventDefault();
+  const search = () => {
     setQuery(draft.trim());
     setOpenOffset(0);
     setTakenOffset(0);
@@ -132,19 +132,19 @@ export function HomesListingsCard() {
       title="Homes: listings"
       subtitle="Take down a listing that breaks the rules: every open listing on that property goes, and nothing on it can be listed again until you lift it."
     >
-      <form className="mb-3 flex gap-2" role="search" onSubmit={search}>
-        <input
-          className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
-          aria-label="Search Homes listings"
+      <div className="mb-3 flex gap-2" role="search">
+        <AdminUserSearchField
+          label="Search Homes listings"
           placeholder="Link code, headline or ZIP"
           maxLength={100}
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={setDraft}
+          onEnter={search}
         />
-        <Button type="submit" size="sm" variant="outline">
+        <Button type="button" variant="outline" onClick={search}>
           Search
         </Button>
-      </form>
+      </div>
       {q.isError ? (
         <>
           <ReportErrorScreen source="HomesListingsCard.load" title="Homes listings" />

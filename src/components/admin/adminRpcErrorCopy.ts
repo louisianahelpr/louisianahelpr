@@ -220,6 +220,20 @@ export const ADMIN_RPC_ERROR_COPY = {
     not_held_for_review: "This row isn't held for review any more. Another admin may have handled it. Refresh the list.",
     ref_already_used: "That Stripe id is already recorded on another payout or refund. Check you have the right one.",
   },
+  // Homes take-down and lift (20261019062540): HomesListingsCard.
+  rentals_admin_remove_listing: {
+    not_authorized: "Only an admin can take a listing down.",
+    account_restricted: RC.account_restricted,
+    reason_required: "Write the reason (5 to 500 characters). The owner sees it.",
+    listing_not_found: "That listing is gone. Refresh the list.",
+    listing_not_live: "Only a live or paused listing can be taken down. Refresh the list.",
+  },
+  rentals_admin_lift_takedown: {
+    not_authorized: "Only an admin can lift a take-down.",
+    account_restricted: RC.account_restricted,
+    reason_required: "Write a note (5 to 500 characters) saying why it is lifted.",
+    listing_not_found: "That take-down was already lifted. Refresh the list.",
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type AdminMappedRpc = keyof typeof ADMIN_RPC_ERROR_COPY;

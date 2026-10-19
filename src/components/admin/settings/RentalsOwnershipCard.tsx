@@ -20,6 +20,7 @@ import {
   fetchLandlordIds,
   fetchPendingLandlordIds,
   fetchPendingOwnership,
+  fetchTakenDownProperties,
   reviewLandlordId,
   reviewOwnership,
   signedFileUrl,
@@ -99,6 +100,8 @@ interface LandlordGroup {
   userId: string;
   id: LandlordIdReview | undefined;
   properties: RentalProperty[];
+  /** The owner's properties under a Homes take-down: shown so a reviewer sees the history (Q2187). */
+  takenDown: RentalProperty[];
 }
 
 /** Pending proofs and pending IDs, one group per landlord (oldest first). */
@@ -107,14 +110,17 @@ async function fetchQueue(): Promise<LandlordGroup[]> {
   const owners = [...new Set(properties.map((p) => p.owner_id))].filter((u) => !pendingIds.some((r) => r.user_id === u));
   const ownerIds = await fetchLandlordIds(owners);
   const groups = new Map<string, LandlordGroup>();
-  for (const r of [...pendingIds, ...ownerIds]) groups.set(r.user_id, { userId: r.user_id, id: r, properties: [] });
+  for (const r of [...pendingIds, ...ownerIds]) groups.set(r.user_id, { userId: r.user_id, id: r, properties: [], takenDown: [] });
   for (const p of properties) {
-    const g = groups.get(p.owner_id) ?? { userId: p.owner_id, id: undefined, properties: [] };
+    const g = groups.get(p.owner_id) ?? { userId: p.owner_id, id: undefined, properties: [], takenDown: [] };
     g.properties.push(p);
     groups.set(p.owner_id, g);
   }
   // Only landlords with something to decide: a pending ID or a pending proof.
-  return [...groups.values()].filter((g) => g.id?.status === "pending_review" || g.properties.length > 0);
+  const open = [...groups.values()].filter((g) => g.id?.status === "pending_review" || g.properties.length > 0);
+  const history = await fetchTakenDownProperties(open.map((g) => g.userId));
+  for (const g of open) g.takenDown = history.filter((p) => p.owner_id === g.userId);
+  return open;
 }
 
 function Row({ p, onDone }: { p: RentalProperty; onDone: () => void }) {
@@ -174,6 +180,12 @@ export function RentalsOwnershipCard() {
         <div className="space-y-3">
           {q.data.map((g) => (
             <div key={g.userId} data-testid="landlord-review-group" className="grid gap-3 rounded-xl border border-border p-3 text-sm sm:grid-cols-2">
+              {g.takenDown.length > 0 && (
+                <p role="note" className="rounded-lg bg-muted px-3 py-2 sm:col-span-2">
+                  <span className="font-semibold">Earlier take-down:</span>{" "}
+                  {g.takenDown.map((p) => `${p.label} (${p.listings_taken_down_reason ?? "no reason"})`).join("; ")}
+                </p>
+              )}
               <div className="space-y-2">
                 <p className="font-semibold">Photo ID</p>
                 <IdColumn r={g.id} onDone={done} />

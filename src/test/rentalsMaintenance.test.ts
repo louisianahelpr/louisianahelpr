@@ -104,7 +104,7 @@ const SHARED_RESTATED = ["is_submitted_credential_object"];
 const POLICY_HELPERS = ["rentals_caller_is_active_tenant_of"];
 /** Never switch-gated by design (20261019062540): the public link (anyone with it, signed out too; it checks the
  *  switch audience itself) and the admin take-down (moderation works whatever the audience). */
-const UNGATED = ["rentals_public_listing", "rentals_admin_remove_listing", "rentals_admin_lift_takedown"];
+const UNGATED = ["rentals_public_listing", "rentals_admin_remove_listing", "rentals_admin_lift_takedown", "rentals_admin_listings"];
 const INTERNAL = ["rentals_assert_member", "rentals_notify", "rentals_end_tenancy_on_tenant_delete"];
 const TABLES = ["rental_properties", "rental_units", "rental_tenancies", "maintenance_requests", "maintenance_request_photos"];
 

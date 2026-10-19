@@ -48,6 +48,13 @@ async function rpcValue<T>(p: PromiseLike<{ data: T | null; error: unknown }>, w
 export async function fetchMyProperties(uid: string): Promise<RentalProperty[]> {
   return (unwrap(await supabase.from("rental_properties").select(RENTAL_PROPERTY_COLUMNS).eq("owner_id", uid).order("created_at")) ?? []) as RentalProperty[];
 }
+/** Admin: the owners' properties under a Homes take-down (the ownership review shows that history, Q2187). */
+export async function fetchTakenDownProperties(ownerIds: string[]): Promise<RentalProperty[]> {
+  if (ownerIds.length === 0) return [];
+  return (unwrap(
+    await supabase.from("rental_properties").select(RENTAL_PROPERTY_COLUMNS).in("owner_id", ownerIds).not("listings_taken_down_at", "is", null),
+  ) ?? []) as RentalProperty[];
+}
 export async function fetchUnits(propertyIds: string[]): Promise<RentalUnit[]> {
   if (propertyIds.length === 0) return [];
   return (unwrap(await supabase.from("rental_units").select("*").in("property_id", propertyIds).order("label")) ?? []) as RentalUnit[];

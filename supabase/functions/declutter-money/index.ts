@@ -251,6 +251,7 @@ serve(async (req) => {
     held: 0, ban_review: 0, no_payout_account: 0, mixed_parties: 0,
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
     shop_handed_over: 0, shop_payouts_sent: 0, shop_payouts_reconciled: 0, shop_payouts_failed: 0,
+    rent_transfers_sent: 0, rent_transfers_reconciled: 0, rent_transfers_reversed: 0, rent_transfers_failed: 0,
   };
 
   // 5. SHOPS M1 (migration 20261018164442): the order clock, then every hold to
@@ -399,6 +400,89 @@ serve(async (req) => {
     }
   } catch (e) {
     defects.record(`shop payouts step: ${caughtMessage(e, "failed")}`.slice(0, 200));
+  }
+
+  // 7. HOMES BANK RENT (migration 20261019103751, DRAFT pending lh-money-escrow; TEST mode only): the
+  //    landlord's transfer for a bank payment the bank CONFIRMED (D9), from that payment's own charge while
+  //    it is whole, key `rent-bank-<row id>`, reconciled in the transfer group `rent_bank_<row id>` (set by
+  //    rent-bank-checkout); and the reversal of a sent transfer after a bank return. A live-mode row is never
+  //    paid here (live bank rent is not open). Holds and ban reviews are checked like a shop payout.
+  //    Its own try: a failure is a defect of this run and never stops the steps around it.
+  try {
+    const due = await admin.rpc("rentals_bank_transfers_due", { p_limit: BATCH });
+    if (due.error) defects.record(`rentals_bank_transfers_due failed: ${due.error.message}`);
+    type RentTransferDue = { bank_payment_id: string; action: "transfer" | "reverse"; transfer_cents: number; landlord_id: string | null; stripe_account_id: string | null;
+      payment_intent_id: string | null; stripe_transfer_id: string | null; livemode: boolean | null; attempts: number };
+    const rentDue = (due.data ?? []) as RentTransferDue[];
+    const rentReview = rentDue.length === 0
+      ? { ok: true as const, users: new Set<string>() }
+      : await loadBanReviewUsers(admin, [...new Set(rentDue.map((r) => r.landlord_id).filter((x): x is string => !!x))]);
+    // Fail closed: a ban-review read that failed moves no rent money this run (reversals still run).
+    if (!rentReview.ok) defects.record(`rent transfers: ban review read failed: ${rentReview.message}`);
+    for (const r of rentDue) {
+      if (r.action === "transfer") {
+        if (!rentReview.ok || (r.landlord_id && rentReview.users.has(r.landlord_id))) {
+          out.ban_review++;
+          continue;
+        }
+        const hold = await checkPayoutHold(admin, r.landlord_id);
+        if (hold.kind === "error") {
+          defects.record(`rent bank ${r.bank_payment_id}: hold read failed: ${hold.message}`);
+          continue;
+        }
+        if (hold.kind === "held") {
+          out.held++;
+          continue;
+        }
+      }
+      if (r.livemode !== false) {
+        defects.record(`rent bank ${r.bank_payment_id}: not a TEST-mode payment; live bank rent is not open, settle by hand`);
+        continue;
+      }
+      const stripe = modes.clientFor("test");
+      const group = `rent_bank_${r.bank_payment_id}`;
+      try {
+        if (r.action === "reverse") {
+          if (!r.stripe_transfer_id) throw new Error("no transfer to reverse");
+          const tr = await stripe.transfers.retrieve(r.stripe_transfer_id);
+          if (!tr.reversed) await stripe.transfers.createReversal(r.stripe_transfer_id, {}, { idempotencyKey: `rent-bank-reverse-${r.bank_payment_id}` });
+          const { error } = await admin.rpc("rentals_bank_transfer_executed", { p_id: r.bank_payment_id, p_action: "reverse", p_transfer_id: null, p_succeeded: true, p_error: null });
+          if (error) defects.record(`rent bank ${r.bank_payment_id}: reversal not recorded: ${error.message}`);
+          else out.rent_transfers_reversed++;
+          continue;
+        }
+        if (!r.stripe_account_id) {
+          out.no_payout_account++;
+          continue;
+        }
+        const listed = await stripe.transfers.list({ transfer_group: group, limit: 100 });
+        const existing = listed.data.find((t) => ((t.metadata ?? {}) as Record<string, string>).bank_payment_id === r.bank_payment_id && !t.reversed);
+        let tr = existing;
+        if (!tr) {
+          const charge = await wholeCharge(stripe, r.payment_intent_id, 0);
+          tr = await stripe.transfers.create(
+            { amount: r.transfer_cents, currency: "usd", destination: r.stripe_account_id, transfer_group: group, source_transaction: charge,
+              metadata: { kind: "rent_bank_transfer", bank_payment_id: r.bank_payment_id } },
+            { idempotencyKey: `rent-bank-${r.bank_payment_id}` },
+          );
+        }
+        const { error } = await admin.rpc("rentals_bank_transfer_executed", { p_id: r.bank_payment_id, p_action: "transfer", p_transfer_id: tr.id, p_succeeded: true, p_error: null });
+        if (error) {
+          defects.record(`rent bank ${r.bank_payment_id}: transfer ${tr.id} not recorded: ${error.message}`);
+          continue;
+        }
+        if (existing) out.rent_transfers_reconciled++;
+        else out.rent_transfers_sent++;
+      } catch (e) {
+        const msg = caughtMessage(e, "transfer failed");
+        defects.record(`rent bank ${r.bank_payment_id}: ${msg}`.slice(0, 200));
+        const { error } = await admin.rpc("rentals_bank_transfer_executed", { p_id: r.bank_payment_id, p_action: r.action, p_transfer_id: null, p_succeeded: false, p_error: msg.slice(0, 500) });
+        if (error) defects.record(`rent bank ${r.bank_payment_id}: failure not recorded: ${error.message}`);
+        out.rent_transfers_failed++;
+      }
+    }
+  } catch (e) {
+    defects.record(`rent bank step: ${caughtMessage(e, "failed")}`.slice(0, 200));
   }
 
   const [refundsRes, payoutsRes, helprRes, deliveryRes] = await Promise.all([

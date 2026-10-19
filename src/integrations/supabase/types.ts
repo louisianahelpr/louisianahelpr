@@ -13337,6 +13337,7 @@ export type Database = {
           action: string
           attempts: number
           bank_payment_id: string
+          landlord_id: string
           livemode: boolean
           payment_intent_id: string
           stripe_account_id: string

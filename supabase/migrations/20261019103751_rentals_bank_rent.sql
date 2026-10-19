@@ -392,14 +392,14 @@ GRANT EXECUTE ON FUNCTION public.rentals_bank_rent_returned(text, text) TO servi
 -- ---------------------------------------------------------------------------
 -- 7. The landlord's transfers (service only): what to send or pull back, and what Stripe did.
 CREATE OR REPLACE FUNCTION public.rentals_bank_transfers_due(p_limit integer)
-RETURNS TABLE (bank_payment_id uuid, action text, transfer_cents integer, stripe_account_id text, payment_intent_id text,
+RETURNS TABLE (bank_payment_id uuid, action text, transfer_cents integer, landlord_id uuid, stripe_account_id text, payment_intent_id text,
                stripe_transfer_id text, livemode boolean, attempts integer)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
-  SELECT b.id, CASE WHEN b.transfer_status = 'reverse_due' THEN 'reverse' ELSE 'transfer' END, b.transfer_cents, pr.stripe_account_id,
+  SELECT b.id, CASE WHEN b.transfer_status = 'reverse_due' THEN 'reverse' ELSE 'transfer' END, b.transfer_cents, t.landlord_id, pr.stripe_account_id,
          b.stripe_payment_intent_id, b.stripe_transfer_id, b.livemode, b.transfer_attempts
     FROM public.rental_rent_bank_payments b
     JOIN public.rental_tenancies t ON t.id = b.tenancy_id

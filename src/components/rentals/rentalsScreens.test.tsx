@@ -42,7 +42,7 @@
  * @mutate src/components/rentals/LandlordIdReview.tsx |         className="sr-only" |         className=""
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -628,10 +628,13 @@ describe("Rentals screens", () => {
     it("opens on Browse, leftmost, with one-word tabs; Browse needs no rental data", async () => {
       state.homeLoads = false;
       renderAt("/rentals");
-      const tabs = await screen.findAllByRole("tab");
+      // The SECTION toggle (Browse's own Rent | Buy switch is a second tablist inside it, HomesBrowse.tsx).
+      const section = await screen.findByRole("tablist", { name: "Homes" });
+      const tabs = within(section).getAllByRole("tab");
       expect(tabs.map((t) => t.textContent)).toEqual(["Browse", "Renting", "Owning"]);
       expect(tabs[0].getAttribute("aria-selected")).toBe("true");
-      expect(screen.getByTestId("homes-browse-empty").textContent).toContain("No homes listed near you yet");
+      // Browse is the listings (Rent | Buy), drawn without the rental data.
+      expect(await screen.findByText(/No homes for rent match yet/)).toBeTruthy();
       expect(tabs.length).toBeGreaterThan(2);
     });
     it("Owning: a status box shows only its group; a second tap shows every group", async () => {

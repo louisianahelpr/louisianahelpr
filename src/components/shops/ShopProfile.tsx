@@ -9,7 +9,7 @@
 import type { ReactNode } from "react";
 import { Clock, House, MapPin, ShoppingBag, Store } from "lucide-react";
 import { shopPhotoUrl, type ShopBadges, type ShopHour, type ShopPhotoKind } from "@/lib/shops/api";
-import { formatItemPrice, HOME_KITCHEN_NOTICE, itemPhotoUrl, readinessLabel, SHOP_ITEM_TYPE_LABEL, type ShopItem } from "@/lib/shops/items";
+import { formatItemPrice, HOME_KITCHEN_CARD_LINE, HOME_KITCHEN_NOTICE, itemPhotoUrl, readinessLabel, SHOP_ITEM_TYPE_LABEL, type ShopItem } from "@/lib/shops/items";
 import { publicPhotoUrl } from "@/lib/shops/publicShop";
 import { ShopBadgeList, ShopRating, WEEKDAYS } from "./shopsUi";
 
@@ -172,35 +172,46 @@ export function ShopHoursCard({ hours }: { hours: ShopHour[] }) {
 
 export function ShopItemsGrid({ items }: { items: (Omit<ShopItem, "photos"> & { photos: ItemPhoto[] })[] }) {
   if (items.length === 0) return <p className="text-sm text-muted-foreground">No items listed yet.</p>;
+  const anyHomeKitchen = items.some((i) => i.home_kitchen);
   return (
-    <ul className="grid grid-cols-2 gap-3">
-      {items.map((item) => {
-        const cover = item.photos[0];
-        return (
-          <li key={item.id} className="overflow-hidden rounded-xl border border-border bg-background">
-            <div className="flex aspect-square w-full items-center justify-center bg-muted">
-              {cover ? (
-                <img src={itemSrc(cover)} alt="" loading="lazy" className="h-full w-full object-cover" />
-              ) : (
-                <ShoppingBag className="h-8 w-8 text-muted-foreground/60" aria-hidden />
-              )}
-            </div>
-            <div className="space-y-0.5 p-2.5">
-              <p className="line-clamp-2 text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{item.title}</p>
-              <p className="text-sm font-bold text-foreground">{formatItemPrice(item.price_cents)}</p>
-              <p className="text-ds-11 text-muted-foreground">{SHOP_ITEM_TYPE_LABEL[item.subtype] ?? "Item"} · {readinessLabel(item)}</p>
-              {item.home_kitchen && (
-                // The R.S. 40:4.9 D(1) statement on every home-food item (L7), as a quiet footnote, not a box.
-                <p className="mt-1.5 flex gap-1 border-t border-border pt-1.5 text-ds-11 leading-snug text-muted-foreground" data-testid="home-kitchen-notice">
-                  <House className="mt-px h-3 w-3 shrink-0" aria-hidden />
-                  <span>{HOME_KITCHEN_NOTICE}</span>
-                </p>
-              )}
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+    <>
+      {anyHomeKitchen && (
+        // L7 (R.S. 40:4.9 D(1)): the full statement once, above the grid.
+        <p className="mb-3 flex gap-1.5 text-ds-12 leading-snug text-muted-foreground" data-testid="home-kitchen-statement">
+          <House className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span>Items marked home kitchen: {HOME_KITCHEN_NOTICE.charAt(0).toLowerCase() + HOME_KITCHEN_NOTICE.slice(1)}</span>
+        </p>
+      )}
+      <ul className="grid grid-cols-2 gap-3">
+        {items.map((item) => {
+          const cover = item.photos[0];
+          return (
+            <li key={item.id} className="overflow-hidden rounded-xl border border-border bg-background">
+              <div className="flex aspect-square w-full items-center justify-center bg-muted">
+                {cover ? (
+                  <img src={itemSrc(cover)} alt="" loading="lazy" className="h-full w-full object-cover" />
+                ) : (
+                  <ShoppingBag className="h-8 w-8 text-muted-foreground/60" aria-hidden />
+                )}
+              </div>
+              <div className="space-y-0.5 p-2.5">
+                <p className="line-clamp-2 text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{item.title}</p>
+                <p className="text-sm font-bold text-foreground">{formatItemPrice(item.price_cents)}</p>
+                <p className="text-ds-11 text-muted-foreground">{SHOP_ITEM_TYPE_LABEL[item.subtype] ?? "Item"} · {readinessLabel(item)}</p>
+                {item.home_kitchen && (
+                  // L7 on EVERY home-food card, as one compact line; the full words for screen readers.
+                  <p className="flex items-center gap-1 text-ds-10 text-muted-foreground" data-testid="home-kitchen-notice">
+                    <House className="h-3 w-3 shrink-0" aria-hidden />
+                    <span className="truncate" aria-hidden>{HOME_KITCHEN_CARD_LINE}</span>
+                    <span className="sr-only">{HOME_KITCHEN_NOTICE}</span>
+                  </p>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </>
   );
 }
 

@@ -110,7 +110,7 @@ describe("design tweaks (owner 2026-10-18)", () => {
     expect(nav).not.toMatch(/Post a new job/);
     const pills: Array<[string, RegExp]> = [
       ["src/components/declutter/DeclutterHomeView.tsx", /<SectionActionPill[\s\S]{0,120}?Sell an item/],
-      ["src/components/shops/ShopsHomeView.tsx", /<SectionActionPill[\s\S]{0,200}Open a shop/],
+      ["src/components/shops/ShopDashboardView.tsx", /<SectionActionPill[\s\S]{0,200}Open a shop/],
       ["src/components/rentals/RentalsHomeView.tsx", /<SectionActionPill[\s\S]{0,120}?Add a property/],
       ["src/pages/posts/PostedJobsTab.tsx", /<SectionActionPill[\s\S]{0,160}?Post a job/],
     ];

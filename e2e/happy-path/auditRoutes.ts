@@ -254,6 +254,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "posts", url: "/jobs?tab=posted" },
   // /posts (every old My Posts link) forwards to Jobs > Posted (PostsPage, Q2205): an alias of "posts".
   { name: "posts-redirect", url: "/posts", redirectsTo: "/jobs?tab=posted" },
+  // Jobs settings (2026-10-19): the Jobs rows that left Profile.
+  { name: "jobs-settings", url: "/jobs/settings" },
   { name: "jobs", url: "/jobs?tab=working" },
   { name: "messages", url: "/messages" },
   { name: "post-job", url: "/post-job" },

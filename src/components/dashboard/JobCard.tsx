@@ -684,10 +684,10 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                       the poster ticked `is_flexible_schedule`, else null and
                       the chip (and its separator) are not rendered at all.
                       Gating on `job.start_time` directly is what used to make
-                      a flexible-but-timeless job silently lose its "when". Below 360px it steps out, cut to "⏱ 1" at 320 before (Q2222). */}
-                  {job.date_needed && timeLabel && <span className="shrink-0 opacity-30 hidden min-[360px]:inline">·</span>}
+                      a flexible-but-timeless job silently lose its "when". */}
+                  {job.date_needed && timeLabel && <span className="shrink-0 opacity-30">·</span>}
                   {timeLabel && (
-                    <span data-meta-time className="shrink-0 hidden min-[360px]:flex items-center gap-1">
+                    <span data-meta-time className="shrink-0 flex items-center gap-1">
                       <Clock className="w-2.5 h-2.5 shrink-0" />
                       <span className="font-sans whitespace-nowrap">{timeLabel}</span>
                     </span>

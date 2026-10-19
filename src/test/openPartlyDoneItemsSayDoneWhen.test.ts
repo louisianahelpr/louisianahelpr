@@ -69,7 +69,6 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 2026-10-18 (salvage of ready/train-big-1016): Q2112 (robot analytics tagging, built) waits on its deploy.
 // 2026-10-19 (dashboards-build run 4): Q2205 (old Jobs/Home search surfaces deleted) waits on the nightly search specs on prod.
 const MARKERLESS_PARTLY_DONE: Record<string, string> = {
-  Q2199: "after the lead's authz review lands and db-deploy runs: the live columns, CHECKs and column ACL read back (information_schema.column_privileges, pg_constraint) and one member's choice seen on a second device; no marker kind reads a column ACL or a two-device look",
   Q2205: "after deploy: the nightly prod-audit search specs (search-x-off-center-press, search-keeps-title, expanding-search-geometry, search-close-one-press) green on the section screens; a nightly run's per-spec verdict, which no marker kind reads",
   Q1661: "one look on the iOS simulator at accessibility-XXXL, the item's own surface (the fix was measured in Chromium with the senior-mode class); no marker kind reads a simulator screenshot",
   Q1803: "owner 2026-10-14: closed, no birthday asked on main; ticked once the next App Store build (without PhotoPrompt's wheels) is live, which no marker kind reads",

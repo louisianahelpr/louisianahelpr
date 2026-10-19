@@ -8183,7 +8183,7 @@
     },
     {
       "file": "src/components/shops/ShopsHomeView.tsx",
-      "line": 142,
+      "line": 143,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -8193,7 +8193,7 @@
     },
     {
       "file": "src/components/shops/ShopsHomeView.tsx",
-      "line": 144,
+      "line": 145,
       "kind": "toast.error",
       "title": {
         "form": "literal",

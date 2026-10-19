@@ -41,7 +41,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { reportSectionsOpenFailureOnce, sectionIsComingSoon } from "@/components/landing/useSectionsOpen";
-import { isMissingRpc } from "@/lib/missingRpc";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { cardLinkFor } from "@/components/landing/SectionsShowcase";
 
 const ROOT = process.cwd();
@@ -120,9 +120,15 @@ describe("landing: the front door for all four sections", () => {
   });
 
   it("a missing RPC (PGRST202) is a quiet empty answer; any other error is not", () => {
-    expect(isMissingRpc({ code: "PGRST202" })).toBe(true);
-    expect(isMissingRpc({ code: "42501" })).toBe(false);
-    expect(isMissingRpc(null)).toBe(false);
+    expect(isMissingRpcNamed({ code: "PGRST202" }, "features_open_to_everyone")).toBe(true);
+    expect(isMissingRpcNamed({ code: "42501" }, "features_open_to_everyone")).toBe(false);
+    expect(isMissingRpcNamed(null, "features_open_to_everyone")).toBe(false);
+    // It exists with other parameters (PostgREST's hint names it): a real failure, not "not deployed".
+    expect(isMissingRpcNamed({
+      code: "PGRST202",
+      message: "Could not find the function public.features_open_to_everyone(p_x) in the schema cache",
+      hint: "Perhaps you meant to call the function public.features_open_to_everyone",
+    }, "features_open_to_everyone")).toBe(false);
     // Any other failure is reported once per session, however many visits' worth of retries.
     expect(reportSectionsOpenFailureOnce(new Error("x"))).toBe(true);
     expect(reportSectionsOpenFailureOnce(new Error("y"))).toBe(false);

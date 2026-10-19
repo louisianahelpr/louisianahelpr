@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { unwrap } from "@/lib/supabaseResult";
-import { isMissingRpc } from "@/lib/missingRpc";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { report } from "@/lib/errorLogger";
 
 /**
@@ -42,7 +42,7 @@ async function fetchSectionsOpen(): Promise<string[]> {
   try {
     const { supabase } = await import("@/integrations/supabase/client");
     const res = await supabase.rpc("features_open_to_everyone");
-    if (isMissingRpc(res.error)) return [];
+    if (isMissingRpcNamed(res.error, "features_open_to_everyone")) return [];
     const data = unwrap(res);
     return Array.isArray(data) ? data : [];
   } catch (error) {

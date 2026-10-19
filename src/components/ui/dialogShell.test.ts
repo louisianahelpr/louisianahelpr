@@ -451,6 +451,7 @@ describe("Popup grammar — footer", () => {
   const BRANCHED_COMMITS: Record<string, string> = {
     "src/components/admin/BanDialog.tsx": "warning commits glossy, ban commits red — exactly one renders",
     "src/components/BlockUserDialog.tsx": "see THREE_ACTION_EXCEPTIONS",
+    "src/components/rentals/LeasePanel.tsx": "the lease editor's last step: \"Save and next\" until the landlord reads it, then \"Sign and send\" — exactly one renders (reviewing ? send : save)",
   };
 
   /**
@@ -1082,6 +1083,10 @@ describe("Popup grammar — footer", () => {
       // cancel an irreversible thing that has already happened is the cruellest
       // possible reading. This popup reports an outcome; "Done" acknowledges it.
       "Done",
+      // The tenant's lease sign sheet (LeasePanel): the other answer to "Sign the
+      // lease" is asking the landlord for changes, a real path that opens a note
+      // box, not a dismissal; "Cancel" would read as cancelling the lease.
+      "Ask for changes",
     ]);
 
     // Not a dismiss at all: in a STEPPED dialog the secondary walks back one

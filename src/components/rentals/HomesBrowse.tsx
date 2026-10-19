@@ -38,6 +38,7 @@ function HomesKindSwitch({ value, onChange }: { value: HomesKind; onChange: (k: 
       ariaLabel="Rent or buy"
       semantics="tab"
       panelIdPrefix="homes"
+      className="w-full sm:max-w-xs"
       value={value}
       onChange={onChange}
       options={[

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { fetchPublicShop, shareShop, shopLink, type PublicShop } from "@/lib/shops/publicShop";
+import { fetchPublicShop, isShopId, shareShop, shopLink, type PublicShop } from "@/lib/shops/publicShop";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
 import { ShopCard, ShopGallery, ShopHero, ShopHoursCard, ShopItemsGrid } from "./ShopProfile";
@@ -47,8 +47,6 @@ export function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn:
         areaLabel={shop.area_label}
         storefront={shop.storefront}
         photos={shop.photos}
-        rating={shop.rating}
-        reviewCount={shop.review_count}
         badges={shop.badges}
         hours={shop.hours}
         actions={
@@ -102,14 +100,26 @@ export function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn:
   );
 }
 
+function ShopUnavailable() {
+  return (
+    <ShopsNotice title="This shop isn't available." tone="warn">
+      <p>It may be paused or closed. Check the link with whoever sent it.</p>
+    </ShopsNotice>
+  );
+}
+
 export default function PublicShopView() {
   const { id = "" } = useParams();
   const { user } = useAuthReady();
-  const shop = useQuery({ queryKey: ["shops", "public", id], queryFn: () => fetchPublicShop(id), enabled: !!id });
+  // A non-uuid id never asks the server (fetchPublicShop answers null for it):
+  // it is a link to no shop, so it gets "isn't available", not a retry.
+  const shop = useQuery({ queryKey: ["shops", "public", id], queryFn: () => fetchPublicShop(id), enabled: isShopId(id) });
   return (
     <AppPage title={shop.data?.name ?? "Shop"} backTo={user ? "/home" : "/"}>
       <ShopMeta shop={shop.data} id={id} />
-      {shop.isLoading ? (
+      {!isShopId(id) ? (
+        <ShopUnavailable />
+      ) : shop.isLoading ? (
         <div className="space-y-4" role="status" aria-label="Loading the shop">
           <Skeleton className="h-64 w-full rounded-2xl" />
           <Skeleton className="h-24 w-full rounded-2xl" />
@@ -122,9 +132,7 @@ export default function PublicShopView() {
           </Button>
         </ShopsNotice>
       ) : !shop.data ? (
-        <ShopsNotice title="This shop isn't available." tone="warn">
-          <p>It may be paused or closed. Check the link with whoever sent it.</p>
-        </ShopsNotice>
+        <ShopUnavailable />
       ) : (
         <PublicShopBody shop={shop.data} signedIn={!!user} />
       )}

@@ -232,6 +232,9 @@ ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id =
 const l1 = await ledger(TENANT, tA);
 ok(l1?.side === "tenant" && l1.balance_cents === 120000 && l1.charges.length === 1 && l1.plan?.pay_methods?.length === 2, "the tenant sees the schedule, the charge and what is owed");
 ok((await ledger(LANDLORD, tA))?.side === "landlord", "the landlord sees the same record");
+ok(l1?.home?.label === "Oak house" && l1.home.unit_label === "Main" && l1.home.city === "Lafayette" && !JSON.stringify(l1).includes("123 Oak")
+  && !JSON.stringify(l1).includes(LANDLORD) && !JSON.stringify(l1).includes(TENANT),
+  "R5: the record names the home for receipts (label, unit, city), never the street or either member's id");
 ok(refused(await as("authenticated", STRANGER, `SELECT public.rentals_rent_ledger('${tA}')`), /tenancy_not_found/, "P0002"), "a stranger sees nothing");
 ok(empty(await as("authenticated", STRANGER, `SELECT * FROM public.rental_rent_charges`)), "nor through the tables");
 ok(rows(await as("authenticated", TENANT, `SELECT * FROM public.rental_rent_charges WHERE tenancy_id = '${tA}'`)).length === 1, "the tenant reads their rows");
@@ -247,6 +250,8 @@ const decide = (uid, id, yes, reason) => as("authenticated", uid, `SELECT public
 ok(refused(await decide(TENANT, p1, true), /payment_not_found/), "the tenant cannot confirm their own payment");
 ok(Array.isArray(await decide(LANDLORD, p1, true)), "the landlord taps Rent received");
 ok((await ledger(TENANT, tA)).balance_cents === 70000, "the balance drops by the confirmed amount");
+ok(typeof (await ledger(TENANT, tA)).payments.find((x) => x.id === p1)?.decided_at === "string"
+  && (await ledger(TENANT, tA)).payments.find((x) => x.id === p1)?.status === "confirmed", "R5: a confirmed payment carries when it was confirmed (the receipt date)");
 ok(refused(await decide(LANDLORD, p1, false, "never came"), /payment_already_decided/), "a decided payment stays decided");
 const p2 = one(await pay(TENANT, tA, 70000, "check"));
 ok(refused(await decide(LANDLORD, p2, false), /reason_required/), "a decline needs a reason the tenant sees");

@@ -180,6 +180,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   // The shop's private pickup address (M1b part 2, 20261018210400), exported by
   // 20261018210401 to its owner only (the Stripe Tax location id is internal, dropped).
   shop_pickup_addresses: { by: ["owner_id"] },
+  job_helpr_fault_rulings: { section: "helpr_fault_rulings", by: ["helper_id"] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },
@@ -453,6 +454,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "job_quote_requests.poster_id": { reason: "quotes slice 1: export pending (OPEN Q?quotes-export); switch 'quotes' is off, so no rows exist" },
   "job_quotes.quoter_id": { reason: "quotes slice 1: export pending (OPEN Q?quotes-export); switch 'quotes' is off, so no rows exist" },
   "shops.sos_verified_by": { reason: "the staff member who checked a shop's Secretary of State number; the shop is the member's (exported by shops.owner_id, 20261017061157, with this staff id dropped)", stripped: true },
+  "job_helpr_fault_rulings.admin_id": { reason: "the staff member who ruled the Helpr at fault (Q2082 (b)); the ruling is the Helpr's (exported by job_helpr_fault_rulings.helper_id, 20261019015302, with this staff id dropped)", stripped: true },
   "shop_strikes.removed_by": { reason: "the staff member who removed a Shops strike; the strike is the member's (exported by shop_strikes.user_id, 20261018164443, with this staff id dropped)", stripped: true },
   "shop_orders.accept_by": { reason: "a deadline timestamp (when the shop must answer the order), not a person; the order is exported by shop_orders.buyer_id/seller_id (20261018164443)" },
   "shops.hidden_by": { reason: "the staff member who hid a shop; the shop is the member's (exported by shops.owner_id, 20261017061157, with this staff id dropped; the hide reason stays)", stripped: true },

@@ -43,6 +43,7 @@ import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
+import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
@@ -89,6 +90,8 @@ const ACTION_MONEY_KIND: Record<string, MoneyKind> = {
   cancel_escrow: "refund",
   admin_refund_dispute: "refund",
   admin_refund_general: "refund",
+  // Q2170: reads the fault refund on the job's own charge (moves no money), so the charge's mode.
+  admin_bill_helpr_fault: "refund",
 };
 const STRIPE_MODE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -3188,7 +3191,10 @@ serve(async (req) => {
           user_id: job.helper_id,
           job_id: job.id,
           title: "Dispute resolved — payment released!",
-          message: `The dispute on "${job.title}" has been resolved in your favor. $${formatPayoutDollars(helperPayout)} has been transferred.`,
+          // The ledger's amount: a Helpr-fault debt can take exact cents off it
+          // (Q2165), which the payout floor formatter would hide. No ledger
+          // row read: no figure (a recomputed one would be before the debt).
+          message: `The dispute on "${job.title}" has been resolved in your favor. ${settledTransfer.amountCents != null ? `$${formatExactDollars(settledTransfer.amountCents / 100)} has been transferred` : "Your payment has been transferred"}.`,
           type: "payment", link: "/profile?tab=earnings",
         });
       }
@@ -3213,6 +3219,16 @@ serve(async (req) => {
     if (action === "admin_refund_dispute") {
       const { jobId } = body;
       if (!jobId) throw new PublicError("Missing jobId");
+      // Q2082 (b), owner 2026-10-18 ("J4", "in the dispute tools"): a poster's
+      // no-show / backout report filed as a dispute is ruled here too. Same
+      // money as the general path: the card fee comes back (the Helpr is billed
+      // it after the flip), a first job's $2 setup fee is KEPT, and a Helpr
+      // whose account is gone means the ordinary fee-keeping refund (owner
+      // 2026-10-18 ~22:30Z: we never absorb a fee).
+      const disputeHelprFault = parseHelprFault(body.helprFault);
+      if (body.helprFault != null && !disputeHelprFault) {
+        throw new PublicError("Helpr at fault needs the Helpr, what happened (no-show or backout) and a note.");
+      }
 
       const { data: isAdmin, error: adminRoleErr } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
       if (adminRoleErr) console.error("[create-payment] admin_refund_dispute has_role check failed:", adminRoleErr.message);
@@ -3239,6 +3255,22 @@ serve(async (req) => {
           });
         }
       }
+
+      // Q2082 (b): the ruling first (shared with the general path); a refusal moves nothing.
+      // lh-money-escrow review of c4ec33afb #1: the same refusal as the general path.
+      if (!disputeHelprFault) {
+        const plainRefused = await refuseRefundWithoutFaultRuling(supabaseAdmin, jobId);
+        if (plainRefused) return plainRefused;
+      }
+      let disputeHelprFaultGone = false;
+      if (disputeHelprFault) {
+        const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, disputeHelprFault);
+        if ("refusal" in ruled) return ruled.refusal;
+        disputeHelprFaultGone = ruled.gone;
+      }
+      // Live = the card fee goes back and the Helpr is billed it.
+      const disputeHelprFaultLive = disputeHelprFault != null && !disputeHelprFaultGone;
+      let disputeHelprFaultCardFeeCents: number | null = null;
 
       // Refund the captured payment
       let paymentIntentId = job.stripe_payment_intent_id;
@@ -3330,27 +3362,42 @@ serve(async (req) => {
             const disputeOtherRefundedCents = disputePriorRefunds
               .filter((r) => (r.status === "succeeded" || r.status === "pending") && r.metadata?.source !== "admin_refund_dispute")
               .reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
+            const disputeTaxCents = await chargeTaxCentsFor(stripe, pi);
             const disputeSplit = refundToPayerCents({
               capturedCents,
               actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents),
               customerFeeCents: cardCostFeeCents(job),
               setupFeeCents: setupFeeKeptCents(job),
               alreadyRefundedCents: disputeOtherRefundedCents,
-              taxCents: await chargeTaxCentsFor(stripe, pi),
+              taxCents: disputeTaxCents,
             });
-            const nonRefundableCents = disputeSplit.nonRefundableCents;
+            // Q2082 (b): a live Helpr fault returns the card fee too (zero card
+            // fee) but still keeps a first job's $2 setup fee and its tax.
+            const helprFaultDisputeSplit = refundToPayerCents({
+              capturedCents,
+              actualFeeCents: 0,
+              customerFeeCents: 0,
+              setupFeeCents: setupFeeKeptCents(job), // the $2 stays on a disputed Helpr fault too
+              alreadyRefundedCents: disputeOtherRefundedCents,
+              taxCents: disputeTaxCents,
+            });
+            const disputeEffectiveSplit = disputeHelprFaultLive ? helprFaultDisputeSplit : disputeSplit;
+            if (disputeHelprFaultLive) disputeHelprFaultCardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents);
+            const nonRefundableCents = disputeEffectiveSplit.nonRefundableCents;
             const refundAmount = disputeSplit.refundCents;
+            const helprFaultDisputeRefundCents = helprFaultDisputeSplit.refundCents;
+            const disputeSendCents = disputeHelprFaultLive ? helprFaultDisputeRefundCents : refundAmount;
             // Other flows already returned MORE than this refund may: the card
             // fee it keeps was given away earlier. The $0 branch below would
             // blame the processing fee; say what happened instead
             // (lh-money-escrow review of Q1675 #2).
-            if (disputeOtherRefundedCents > disputeSplit.ceilingCents + 1) {
+            if (disputeOtherRefundedCents > disputeEffectiveSplit.ceilingCents + 1) {
               await postSlackOpsAlert({
                 kind: "money_at_risk",
                 severity: "warning",
                 title: "Disputed job's charge was already refunded past what the refund keeps",
                 message: "Earlier refunds by another flow returned more than a dispute refund may (they ate into the card fee it keeps). Nothing more is refunded; reconcile by hand.",
-                fields: { job_id: jobId, payment_intent: paymentIntentId, refunded_cents: disputeOtherRefundedCents, refundable_cents: disputeSplit.ceilingCents },
+                fields: { job_id: jobId, payment_intent: paymentIntentId, refunded_cents: disputeOtherRefundedCents, refundable_cents: disputeEffectiveSplit.ceilingCents },
                 oncePerDayKey: `dispute-refunded-past-kept:${jobId}`,
               });
             }
@@ -3415,7 +3462,7 @@ serve(async (req) => {
               }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
             }
 
-            if (refundAmount > 0) {
+            if (disputeSendCents > 0) {
               // Stamp at the money step (round 3, M2): only a claim that
               // reached its Stripe call may stick; refund nothing without it.
               if (!(await stampDisputeSettlementClaim(supabaseAdmin, jobId, refundClaim.claim))) {
@@ -3432,14 +3479,23 @@ serve(async (req) => {
                     ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded
                     : 0) ?? 0,
                 );
-                const reusedDispute = await existingRefundCovering(stripe, paymentIntentId, disputeAlreadyRefundedCents, refundAmount, "admin_refund_dispute");
+                const reusedDispute = await existingRefundCovering(stripe, paymentIntentId, disputeAlreadyRefundedCents, disputeSendCents, "admin_refund_dispute");
                 if (reusedDispute) {
                   console.log(`[create-payment] admin_refund_dispute: charge for job ${jobId} already refunded ${disputeAlreadyRefundedCents}¢ — reusing ${reusedDispute.id}, not refunding again`);
                 }
-                refund = reusedDispute ?? await stripe.refunds.create(
+                refund = reusedDispute ?? (disputeHelprFaultLive ? await stripe.refunds.create(
+                  {
+                    payment_intent: paymentIntentId,
+                    // Q2082 (b): the card fee back too, the $2 setup fee kept;
+                    // the Helpr is billed the card fee after the flip.
+                    amount: helprFaultDisputeRefundCents,
+                    metadata: { source: "admin_refund_dispute", job_id: jobId, helpr_fault: "true" },
+                  },
+                  { idempotencyKey: `helpr-fault-dispute-refund-${jobId}` },
+                ) : await stripe.refunds.create(
                   { payment_intent: paymentIntentId, amount: refundAmount, metadata: { source: "admin_refund_dispute", job_id: jobId } },
                   { idempotencyKey: `refund-dispute-${jobId}` },
-                );
+                ));
               } catch (refundErr) {
                 // Give the claim back ONLY when Stripe DEFINITELY refused. A
                 // timeout, a dropped connection or a Stripe 5xx may have created
@@ -3460,10 +3516,10 @@ serve(async (req) => {
                 throw refundErr;
               }
               disputeRefundId = refund.id;
-              disputeRefundCents = Math.round(Number(refund.amount ?? refundAmount));
+              disputeRefundCents = Math.round(Number(refund.amount ?? disputeSendCents));
               // Another flow's earlier refund (Q1675) went back too: not kept.
               disputeKeptCents = Math.max(0, capturedCents - disputeOtherRefundedCents - disputeRefundCents);
-              disputeTaxKeptCents = disputeSplit.taxKeptCents;
+              disputeTaxKeptCents = disputeEffectiveSplit.taxKeptCents;
               await recordRefund(supabaseAdmin, {
                 refund,
                 jobId,
@@ -3471,7 +3527,11 @@ serve(async (req) => {
                 paymentIntentId,
                 source: "admin_refund_dispute",
                 isPartial: nonRefundableCents > 0,
-                reason: setupFeeKeptCents(job) > 0
+                reason: disputeHelprFaultLive
+                  ? (setupFeeKeptCents(job) > 0
+                    ? "dispute refund, Helpr at fault (card fee returned and billed to the Helpr; the $2 setup fee kept)"
+                    : "dispute refund, Helpr at fault (card fee returned and billed to the Helpr)")
+                  : setupFeeKeptCents(job) > 0
                     ? "dispute refund (minus non-refundable Stripe processing fee and the kept $2 setup fee)"
                     : "dispute refund (minus non-refundable Stripe processing fee)",
                 initiatedByUserId: user.id,
@@ -3498,7 +3558,7 @@ serve(async (req) => {
                   payment_intent: paymentIntentId,
                   captured_cents: capturedCents,
                   non_refundable_cents: nonRefundableCents,
-                  refund_amount: refundAmount,
+                  refund_amount: disputeSendCents,
                 },
               });
             }
@@ -3528,6 +3588,19 @@ serve(async (req) => {
           throw e;
         }
 
+      // Q2082 (b): the Helpr at fault is billed the card fee the refund
+      // returned (0 when they are gone and the refund kept it). Once per call;
+      // bill_helpr_fault_card_fee itself bills once per ruling. Q2170
+      // (lh-money-escrow #2): EVERY exit after a fault refund went out bills,
+      // not only the success path (a concurrent copy closed it first, a
+      // chargeback raced the flip, the flip failed).
+      // A cast, not an annotation: assigned inside the closure, so TS must not narrow it to null.
+      let disputeHelprFaultBill = null as { billedCents: number | null; failed: boolean } | null;
+      const billDisputeHelprFault = async () => {
+        if (!disputeHelprFault || disputeHelprFaultBill) return;
+        disputeHelprFaultBill = await billHelprFaultCardFee(supabaseAdmin, jobId, disputeHelprFault.helperId, disputeHelprFaultCardFeeCents, disputeRefundId ?? paymentIntentId ?? `job-${jobId}`);
+      };
+
       // Refund is out — same fail-loud rule as admin_release_dispute above.
       // dispute_status/dispute_resolved_at for the same reason: without them
       // trg_sync_has_active_dispute keeps has_active_dispute = true on a job
@@ -3554,13 +3627,18 @@ serve(async (req) => {
           // Q1208: this copy's own settlement claim is handed back too, as the
           // success path below does; returning without it left it held.
           await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaimHeld);
+          if (disputeRefundId) await billDisputeHelprFault();
           return settled;
         }
         const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund", disputeRefundCents > 0);
-        if (raced) return raced;
+        if (raced) {
+          if (disputeRefundId) await billDisputeHelprFault();
+          return raced;
+        }
       }
       if (refundUpdateErr || !refundUpdated || refundUpdated.length === 0) {
         console.error(`CRITICAL: refund issued for disputed job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, refundUpdateErr ?? "matched 0 rows");
+        if (disputeRefundId) await billDisputeHelprFault();
         return new Response(JSON.stringify({
           error: "refund issued but job status update failed — manual reconciliation needed",
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
@@ -3582,6 +3660,9 @@ serve(async (req) => {
       // restore that fails pages critical and is finished by hand, which can
       // no longer double-pay.
       const disputeGift = await returnGiftAfterRefund(supabaseAdmin, job, "Quick Refund");
+
+      // Q2082 (b): after the flip, the Helpr at fault is billed (above).
+      await billDisputeHelprFault();
 
       // Same two closing writes as the release path: the formal dispute record,
       // and the audit trail. What the poster got back counts the gift, as the
@@ -3610,6 +3691,7 @@ serve(async (req) => {
           payment_intent_id: paymentIntentId,
           stripe_refund_id: disputeRefundId,
           dispute_resolved_at: refundResolvedAt,
+          helpr_fault: disputeHelprFault ? { helper_id: disputeHelprFault.helperId, kind: disputeHelprFault.kind, card_fee_billed_cents: disputeHelprFaultBill?.billedCents ?? null, bill_failed: disputeHelprFaultBill?.failed ?? false, helpr_gone: disputeHelprFaultGone } : null,
         },
       });
 
@@ -3631,7 +3713,7 @@ serve(async (req) => {
             : null,
           recipientId: job.customer_id ?? null,
           jobId: job.id,
-          extra: `The dispute on "${job.title}" was resolved in your favor.${disputeGift.posterSentence}`,
+          extra: `The dispute on "${job.title}" was resolved in your favor.${disputeHelprFault ? (disputeHelprFaultGone ? " The Helpr was at fault. Their account no longer exists, so the card processing fee could not be charged to them and is kept from this refund." : " The Helpr was at fault, so the card processing fee comes back to you too.") : ""}${disputeGift.posterSentence}`,
         });
       } else {
         await insertNotifications(supabaseAdmin, {
@@ -3655,9 +3737,98 @@ serve(async (req) => {
 
       // The job IS settled; a gift that could not be returned is said in the
       // answer as well as the page, so the admin screen can show it.
-      return new Response(JSON.stringify({ success: true, ...(disputeGift.failed ? { giftRestoreFailed: true } : {}) }), {
+      return new Response(JSON.stringify({
+        success: true,
+        ...(disputeGift.failed ? { giftRestoreFailed: true } : {}),
+        ...(disputeHelprFault ? { helprFault: { cardFeeBilledCents: disputeHelprFaultBill?.billedCents ?? null, billFailed: disputeHelprFaultBill?.failed ?? false, helprGone: disputeHelprFaultGone } } : {}),
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });
+    }
+
+    // ─── ADMIN: bill the Helpr at fault again (Q2170, lh-money-escrow #2) ───
+    // A Helpr-at-fault refund closes the job (general: payment_status
+    // refunded; dispute: the dispute is resolved), so neither refund button is
+    // shown again and pressing "Helpr at fault" a second time is no recovery
+    // when bill_helpr_fault_card_fee failed after the refund went out. This
+    // action moves NO money: it finds the fault refund already on the charge
+    // (metadata helpr_fault, by either refund action), prices the card fee
+    // from the charge exactly as the refund did (actualOrEstimatedFeeCents),
+    // and bills it. bill_helpr_fault_card_fee bills once per ruling (FOR
+    // UPDATE, card_fee_cents set once), so a double press bills once.
+    if (action === "admin_bill_helpr_fault") {
+      const { jobId } = body;
+      if (!jobId) throw new PublicError("Missing jobId");
+      const { data: isAdmin, error: adminRoleErr } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (adminRoleErr) console.error("[create-payment] admin_bill_helpr_fault has_role check failed:", adminRoleErr.message);
+      if (!isAdmin) throw new PublicError("Not authorized — admin only");
+      const reply = (payload: Record<string, unknown>, status: number) => new Response(JSON.stringify(payload), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status,
+      });
+
+      const { data: ruling, error: rulingErr } = await supabaseAdmin
+        .from("job_helpr_fault_rulings").select("helper_id, card_fee_cents").eq("job_id", jobId).maybeSingle();
+      if (rulingErr) {
+        console.error(`[create-payment] admin_bill_helpr_fault: reading job ${jobId}'s ruling failed:`, rulingErr.message);
+        return reply({ error: "Couldn't read this job's Helpr-at-fault ruling. Nothing was billed: try again." }, 503);
+      }
+      if (!ruling) return reply({ error: "This job has no Helpr-at-fault ruling, so there is nothing to bill.", code: "no_helpr_fault_ruling" }, 409);
+      const helprGone = ruling.helper_id == null;
+      if (ruling.card_fee_cents != null) {
+        return reply({ success: true, alreadyBilled: true, helprFault: { cardFeeBilledCents: ruling.card_fee_cents, billFailed: false, helprGone } }, 200);
+      }
+
+      const { data: billJob, error: billJobErr } = await supabaseAdmin
+        .from("jobs").select("id, stripe_payment_intent_id, stripe_session_id").eq("id", jobId).maybeSingle();
+      if (billJobErr || !billJob) return reply({ error: "Couldn't read the job. Nothing was billed: try again." }, 503);
+      let faultRefund: Stripe.Refund | undefined;
+      let cardFeeCents = 0;
+      try {
+        let piId: string | null | undefined = billJob.stripe_payment_intent_id;
+        if (!piId && billJob.stripe_session_id) {
+          const session = await stripe.checkout.sessions.retrieve(billJob.stripe_session_id, { expand: ["payment_intent"] });
+          piId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+        }
+        if (!piId) return reply({ error: "This job has no payment on Stripe, so there is nothing to bill.", code: "no_payment" }, 409);
+        const listed = (await stripe.refunds.list({ payment_intent: piId, limit: 100 })).data ?? [];
+        faultRefund = listed.find((r) =>
+          (r.status === "succeeded" || r.status === "pending") &&
+          (r.metadata?.source === "admin_refund_general" || r.metadata?.source === "admin_refund_dispute") &&
+          (r.metadata?.helpr_fault === "true" || r.metadata?.helpr_fault === "helpr_gone"));
+        // lh-money-escrow re-review of b4102e4ec (nit): a dispute refund for a Helpr
+        // whose account was already gone is the ORDINARY refund (it kept the card fee)
+        // and carries no helpr_fault metadata, so a gone Helpr is settled at 0 here.
+        if (!faultRefund && helprGone) {
+          const zero = await billHelprFaultCardFee(supabaseAdmin, jobId, "deleted", 0, `job-${jobId}`);
+          if (zero.failed) return reply({ error: "Billing the Helpr failed again. Nothing was moved; try again.", helprFault: { cardFeeBilledCents: null, billFailed: true, helprGone } }, 503);
+          return reply({ success: true, helprFault: { cardFeeBilledCents: zero.billedCents, billFailed: false, helprGone } }, 200);
+        }
+        if (!faultRefund) {
+          return reply({
+            error: "No Helpr-at-fault refund has gone out on this job's charge, so the Helpr is not billed. Refund it with \"Helpr at fault\" first.",
+            code: "no_helpr_fault_refund",
+          }, 409);
+        }
+        // "helpr_gone": that refund KEPT the card fee (owner 2026-10-18), so 0 is billed.
+        if (faultRefund.metadata?.helpr_fault === "true") {
+          const pi = await stripe.paymentIntents.retrieve(piId, { expand: ["latest_charge.balance_transaction"] });
+          const capturedCents = pi.amount_received ?? pi.amount;
+          cardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents);
+        }
+      } catch (stripeErr) {
+        console.error(`[create-payment] admin_bill_helpr_fault: Stripe read failed for job ${jobId}:`, stripeErr);
+        return reply({ error: "Couldn't read the charge from Stripe. Nothing was billed: try again." }, 503);
+      }
+      const bill = await billHelprFaultCardFee(supabaseAdmin, jobId, ruling.helper_id ?? "deleted", cardFeeCents, faultRefund.id);
+      await logAdminMoneyAction(supabaseAdmin, {
+        adminId: user.id,
+        action: "helpr_fault_bill_retry",
+        jobId,
+        details: { helper_id: ruling.helper_id, stripe_refund_id: faultRefund.id, card_fee_cents: cardFeeCents, card_fee_billed_cents: bill.billedCents, bill_failed: bill.failed },
+      });
+      const helprFaultOutcome = { cardFeeBilledCents: bill.billedCents, billFailed: bill.failed, helprGone };
+      if (bill.failed) return reply({ error: "Billing the Helpr failed again. Nothing was moved; try again.", helprFault: helprFaultOutcome }, 503);
+      return reply({ success: true, helprFault: helprFaultOutcome }, 200);
     }
 
     // ─── ADMIN: General refund (non-dispute) — admin discretion ───
@@ -3672,6 +3843,19 @@ serve(async (req) => {
       // adjustments, partial-completion settlements, etc.
       const { jobId, reason, amountCents } = body;
       if (!jobId) throw new PublicError("Missing jobId");
+      // Q2082 (b), owner 2026-10-18 ("J4"): HELPR FAULT. After the poster
+      // reports a no-show or a backout, an admin rules the Helpr at fault: the
+      // poster gets EVERYTHING back (card fee and its tax included), the Helpr
+      // is billed the card fee Stripe kept (bill_helpr_fault_card_fee, taken
+      // from their next payout) and carries a strike (admin_rule_helpr_fault).
+      // Full refunds only: a partial cannot be "everything back".
+      const helprFault = parseHelprFault(body.helprFault);
+      if (body.helprFault != null && !helprFault) {
+        throw new PublicError("Helpr at fault needs the Helpr, what happened (no-show or backout) and a note.");
+      }
+      if (helprFault && typeof amountCents === "number") {
+        throw new PublicError("A Helpr-at-fault refund is always a full refund: leave the amount empty.");
+      }
 
       const { data: isAdmin, error: adminRoleErr } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
       if (adminRoleErr) console.error("[create-payment] admin_refund_general has_role check failed:", adminRoleErr.message);
@@ -3760,6 +3944,25 @@ serve(async (req) => {
           });
         }
       }
+      // Q2082 (b): the ruling comes first, as the admin (auth.uid() in the
+      // RPC is who ruled; it checks the admin role, the Helpr was booked here,
+      // and gives the Helpr exactly one strike for this job). It is
+      // idempotent ('already_ruled'), so a refund that stops below is retried
+      // by pressing the button again. No ruling, no fault refund.
+      // lh-money-escrow review of c4ec33afb #1: once a job HAS a Helpr-at-fault
+      // ruling, a refund without it would reuse the fault refund (card fee
+      // back) and never bill the Helpr: refused, nothing moved.
+      if (!helprFault) {
+        const plainRefused = await refuseRefundWithoutFaultRuling(supabaseAdmin, jobId);
+        if (plainRefused) return plainRefused;
+      }
+      let helprFaultGone = false;
+      if (helprFault) {
+        const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, helprFault);
+        if ("refusal" in ruled) return ruled.refusal;
+        helprFaultGone = ruled.gone;
+      }
+
       // ── Q1290: take the JOB before reading the payout ledger ──────────────
       // The ledger read below and the payout claim (payoutClaim.claimPayout:
       // insert a 'pending' payout_transfers row, THEN re-read the job expecting
@@ -3903,6 +4106,9 @@ serve(async (req) => {
       // returned everything refundable, or more): the job is still cancelled.
       let generalNothingLeft = false;
       let generalRefundCents: number | null = null;
+      // Q2082 (b): Stripe's real card fee on the charge, billed to the Helpr at fault.
+      let helprFaultCardFeeCents: number | null = null;
+      let helprFaultRefundRef: string | null = null;
       let paymentIntentId = job.stripe_payment_intent_id;
       try {
       if (!paymentIntentId && job.stripe_session_id) {
@@ -4003,6 +4209,7 @@ serve(async (req) => {
           // card fee, like the dispute paths, never the old 12%. cardCostFeeCents
           // counts customer_fee_amount only when it IS the card cost
           // (platform_fee_percent = 0); otherwise Stripe's real fee is kept.
+          const generalTaxCents = await chargeTaxCentsFor(stripe, pi);
           const generalSplit = refundToPayerCents({
             capturedCents,
             actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents),
@@ -4010,8 +4217,26 @@ serve(async (req) => {
             setupFeeCents: setupFeeKeptCents(job),
             alreadyRefundedCents: generalAlreadyRefundedCents,
             requestedCents: isPartial ? requestedCents : null,
-            taxCents: await chargeTaxCentsFor(stripe, pi),
+            taxCents: generalTaxCents,
           });
+          // Q2082 (b): a Helpr-at-fault refund returns the CARD FEE too (the
+          // Helpr is billed it after the refund), less what earlier refunds
+          // (the poster's own fee-keeping cancel) returned, which tops that
+          // cancel up. Owner 2026-10-18 ~22:30Z: a first job's $2 setup fee
+          // is still KEPT (with the sales tax on it, Q2082 (a)); and when the
+          // Helpr's account is gone (nobody to bill) the card fee is kept as
+          // well, so the refund is the ordinary one: we never absorb a fee.
+          const helprFaultSplit = refundToPayerCents({
+            capturedCents,
+            actualFeeCents: 0,
+            customerFeeCents: 0,
+            setupFeeCents: setupFeeKeptCents(job), // the $2 stays on a Helpr fault too
+            alreadyRefundedCents: generalAlreadyRefundedCents,
+            requestedCents: null,
+            taxCents: generalTaxCents,
+          });
+          const split = helprFault && !helprFaultGone ? helprFaultSplit : generalSplit;
+          if (helprFault && !helprFaultGone) helprFaultCardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents);
           // Q1320: a partial that, with the refunds already on this charge,
           // returns the WHOLE capture is a full refund in disguise. A partial
           // takes no job claim and flips nothing, and the single-Helpr payout
@@ -4022,16 +4247,16 @@ serve(async (req) => {
           // Since 2026-10-14 the whole charge is never refundable (the card fee
           // is kept), so "everything refundable" is the line: a partial that
           // reaches the ceiling (or passes it) is refused the same way.
-          if (isPartial && generalAlreadyRefundedCents + requestedCents! >= generalSplit.ceilingCents) {
-            const keptWords = generalSplit.setupKeptCents > 0
-              ? `the $${(generalSplit.feeKeptCents / 100).toFixed(2)} card processing fee and the one-time $${(generalSplit.setupKeptCents / 100).toFixed(2)} setup fee are kept`
-              : `the $${(generalSplit.feeKeptCents / 100).toFixed(2)} card processing fee is kept`;
+          if (isPartial && generalAlreadyRefundedCents + requestedCents! >= split.ceilingCents) {
+            const keptWords = split.setupKeptCents > 0
+              ? `the $${(split.feeKeptCents / 100).toFixed(2)} card processing fee and the one-time $${(split.setupKeptCents / 100).toFixed(2)} setup fee are kept`
+              : `the $${(split.feeKeptCents / 100).toFixed(2)} card processing fee is kept`;
             // Q2082 (a): the sales tax on what is kept is kept too, so the figure adds up.
-            const keptTaxWords = generalSplit.taxKeptCents > 0 ? `, with $${(generalSplit.taxKeptCents / 100).toFixed(2)} sales tax on it` : "";
+            const keptTaxWords = split.taxKeptCents > 0 ? `, with $${(split.taxKeptCents / 100).toFixed(2)} sales tax on it` : "";
             return new Response(JSON.stringify({
-              error: `This partial refund would return everything refundable on the $${(capturedCents / 100).toFixed(2)} charge ($${(generalSplit.ceilingCents / 100).toFixed(2)}: ${keptWords}${keptTaxWords}${generalAlreadyRefundedCents > 0 ? `; $${(generalAlreadyRefundedCents / 100).toFixed(2)} was already refunded` : ""}). Use a full refund instead: it cancels the job and stops its payout (it is refused if the Helpr was already paid). No money was moved.`,
+              error: `This partial refund would return everything refundable on the $${(capturedCents / 100).toFixed(2)} charge ($${(split.ceilingCents / 100).toFixed(2)}: ${keptWords}${keptTaxWords}${generalAlreadyRefundedCents > 0 ? `; $${(generalAlreadyRefundedCents / 100).toFixed(2)} was already refunded` : ""}). Use a full refund instead: it cancels the job and stops its payout (it is refused if the Helpr was already paid). No money was moved.`,
               useFullRefund: true,
-              refundableCents: generalSplit.remainingCents,
+              refundableCents: split.remainingCents,
             }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
           }
           // Q1674 (owner, 2026-10-12): an admin's FULL refund keeps a first
@@ -4039,23 +4264,23 @@ serve(async (req) => {
           // (generalSplit above). The refund is then everything left on the
           // charge but those fees (Stripe sees a partial; this path still
           // cancels the job).
-          const keptSetupCents = isPartial ? 0 : generalSplit.setupKeptCents;
-          const keptFeeCents = isPartial ? 0 : generalSplit.feeKeptCents;
-          if (!isPartial && (!Number.isFinite(capturedCents) || capturedCents <= generalSplit.nonRefundableCents)) {
+          const keptSetupCents = isPartial ? 0 : split.setupKeptCents;
+          const keptFeeCents = isPartial ? 0 : split.feeKeptCents;
+          if (!isPartial && (!Number.isFinite(capturedCents) || capturedCents <= split.nonRefundableCents)) {
             await postSlackOpsAlert({
               kind: "money_at_risk",
               severity: "critical",
               title: "General refund aborted — captured amount unreadable or not above the kept fees",
-              message: `admin_refund_general could not keep the card fee${keptSetupCents > 0 ? " and the $2 setup fee" : ""} on job ${jobId}: the captured amount (${String(capturedCents)}) is unreadable or not above them (${generalSplit.nonRefundableCents}c). No refund issued.`,
-              fields: { job_id: jobId, payment_intent: paymentIntentId, captured_cents: String(capturedCents), non_refundable_cents: generalSplit.nonRefundableCents },
+              message: `admin_refund_general could not keep the card fee${keptSetupCents > 0 ? " and the $2 setup fee" : ""} on job ${jobId}: the captured amount (${String(capturedCents)}) is unreadable or not above them (${split.nonRefundableCents}c). No refund issued.`,
+              fields: { job_id: jobId, payment_intent: paymentIntentId, captured_cents: String(capturedCents), non_refundable_cents: split.nonRefundableCents },
             });
             throw new PublicError(`admin_refund_general: invalid captured amount (${capturedCents}) for job ${jobId} — aborting, no refund issued.`);
           }
-          const fullTargetCents = generalSplit.ceilingCents;
+          const fullTargetCents = split.ceilingCents;
           const reused = !isPartial
             ? await existingRefundCovering(stripe, paymentIntentId, generalAlreadyRefundedCents, fullTargetCents, "admin_refund_general", priorRefunds.data)
             : null;
-          const keptFullAmountCents = generalSplit.remainingCents;
+          const keptFullAmountCents = split.remainingCents;
           generalKeptSetupCents = keptSetupCents;
           generalKeptFeeCents = keptFeeCents;
           // What a full refund KEPT is read from the money, not from the rule:
@@ -4093,7 +4318,24 @@ serve(async (req) => {
 
           if (!nothingLeftToSend) {
           generalRefundSent = true;
-          const refund = reused ?? await stripe.refunds.create({
+          const refund = reused ?? (helprFault ? await stripe.refunds.create({
+            payment_intent: paymentIntentId,
+            // Q2082 (b): everything back but a first job's $2 setup fee; the
+            // Helpr is billed the card fee below (or, Helpr gone, it is kept).
+            amount: split.refundCents,
+            metadata: {
+              reason: reason || "helpr_fault_full_refund",
+              admin_user_id: user.id,
+              // "false": existingRefundCovering finds a retried full refund by it.
+              partial: "false",
+              source: "admin_refund_general",
+              helpr_fault: helprFaultGone ? "helpr_gone" : "true",
+              kept_setup_fee_cents: String(keptSetupCents),
+              kept_card_fee_cents: String(keptFeeCents),
+            },
+          }, {
+            idempotencyKey: `refund-helpr-fault-${jobId}`,
+          }) : await stripe.refunds.create({
             payment_intent: paymentIntentId,
             // Partial or full, the amount is generalSplit's (never the card fee).
             amount: generalSplit.refundCents,
@@ -4117,9 +4359,9 @@ serve(async (req) => {
             idempotencyKey: isPartial
               ? `refund-general-${jobId}-${requestedCents}-seq${refundSeq}`
               : `refund-general-${jobId}-full`,
-          });
+          }));
           if (refund?.id) {
-            const refundedCents = Math.round(Number(refund.amount ?? generalSplit.refundCents));
+            const refundedCents = Math.round(Number(refund.amount ?? split.refundCents));
             generalRefundForNotice = {
               id: refund.id,
               amountCents: refundedCents,
@@ -4129,9 +4371,10 @@ serve(async (req) => {
               keptCents: Number.isFinite(capturedCents)
                 ? Math.max(0, capturedCents - generalAlreadyRefundedCents - (reused ? 0 : refundedCents))
                 : 0,
-              taxKeptCents: generalSplit.taxKeptCents,
+              taxKeptCents: split.taxKeptCents,
             };
             keptFromMoney(capturedCents - generalAlreadyRefundedCents - (reused ? 0 : refundedCents));
+            helprFaultRefundRef = refund.id;
           }
           await recordRefund(supabaseAdmin, {
             refund,
@@ -4242,10 +4485,27 @@ serve(async (req) => {
         }
         if (generalRefundUpdateErr || !generalRefundUpdated || generalRefundUpdated.length === 0) {
           console.error(`CRITICAL: general refund issued for job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, generalRefundUpdateErr ?? "matched 0 rows (state moved)");
+          // Q2170 (lh-money-escrow #2): the fault refund is out, so the Helpr is billed on this exit too.
+          if (helprFault && helprFaultRefundRef) {
+            await billHelprFaultCardFee(supabaseAdmin, jobId, helprFault.helperId, helprFaultCardFeeCents, helprFaultRefundRef);
+          }
           return new Response(JSON.stringify({
             error: "refund issued but job status update failed — manual reconciliation needed",
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
         }
+      }
+
+      // Q2082 (b): the Helpr at fault is billed the card fee Stripe kept, once
+      // (a replay returns 0), only after the poster's full refund went out and
+      // the job closed. A failure here is the platform absorbing a fee unless
+      // someone acts: it pages, and pressing the button again bills it
+      // (ruling and refund are both reused).
+      let helprFaultBilledCents: number | null = null;
+      let helprFaultBillFailed = false;
+      if (helprFault) {
+        const bill = await billHelprFaultCardFee(supabaseAdmin, jobId, helprFault.helperId, helprFaultCardFeeCents, helprFaultRefundRef ?? paymentIntentId ?? `job-${jobId}`);
+        helprFaultBilledCents = bill.billedCents;
+        helprFaultBillFailed = bill.failed;
       }
 
       // ── Give the gift card back (Q454) ── a FULL refund cancels the job, and
@@ -4282,6 +4542,7 @@ serve(async (req) => {
           refund_cents: generalRefundCents,
           kept_setup_fee_cents: generalKeptSetupCents,
           kept_card_fee_cents: generalKeptFeeCents,
+          helpr_fault: helprFault ? { helper_id: helprFault.helperId, kind: helprFault.kind, card_fee_billed_cents: helprFaultBilledCents, bill_failed: helprFaultBillFailed, helpr_gone: helprFaultGone } : null,
           gift_restored_cents: generalGift.restoredCents,
           gift_restore_failed: generalGift.failed,
           payment_intent_id: paymentIntentId,
@@ -4311,7 +4572,15 @@ serve(async (req) => {
             : null,
           recipientId: job.customer_id ?? null,
           jobId: job.id,
-          extra: [reason ? `Reason: ${reason}.` : "", generalGift.posterSentence.trim()].filter(Boolean).join(" ") || null,
+          extra: [
+            helprFault
+              ? (helprFaultGone
+                ? "The Helpr was at fault. Their account no longer exists, so the card processing fee could not be charged to them and is kept from this refund."
+                : "The Helpr was at fault, so the card processing fee comes back to you too.")
+              : "",
+            reason ? `Reason: ${reason}.` : "",
+            generalGift.posterSentence.trim(),
+          ].filter(Boolean).join(" ") || null,
         });
       } else if (!isPartial && generalRefundCents === null && generalNothingLeft) {
         // Q1674: earlier partials already returned everything but the kept
@@ -4367,7 +4636,11 @@ serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ success: true, refunded: true, partial: isPartial, ...(generalGift.failed ? { giftRestoreFailed: true } : {}) }), {
+      return new Response(JSON.stringify({
+        success: true, refunded: true, partial: isPartial,
+        ...(generalGift.failed ? { giftRestoreFailed: true } : {}),
+        ...(helprFault ? { helprFault: { cardFeeBilledCents: helprFaultBilledCents, billFailed: helprFaultBillFailed, helprGone: helprFaultGone } } : {}),
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });
     }
@@ -5337,11 +5610,31 @@ async function transferToHelper(
     return;
   }
 
-  // Whole dollars, rounded DOWN; the platform keeps the cents (Q236). The one
-  // figure both the transfer and its ledger row carry.
-  const amountCents = roundPayoutDownCents(Math.round(amount * 100));
+  // Q2082 (b), owner 2026-10-18 ("J4"): a card fee this Helpr owes from a
+  // Helpr-at-fault refund comes out of this payout too (what keeps it at $1 or
+  // more; the rest waits for the next payout). Taken once per job under the
+  // same payout_ref as release-payout and process-scheduled-payouts
+  // (_shared/helprFaultFee.ts). Fails closed, before any money moves.
+  const unroundedCents = Math.round(amount * 100);
+  const helprFaultTake = await takeHelprFaultFee(supabaseAdmin, helperId, jobId, helprFaultFeeCapCents(unroundedCents));
+  if (helprFaultTake.error !== undefined) {
+    console.error(`[create-payment] transferToHelper — Helpr-fault card fee read failed for job ${jobId}: ${helprFaultTake.error}`);
+    throw new PublicError("Could not read the Helpr's card-fee debt — no money was moved. Try again.");
+  }
+  const helprFaultFeeCents = helprFaultTake.cents;
+  // Every exit below that moves NO money gives the withheld fee back.
+  const restoreHelprFault = async () => {
+    if (helprFaultFeeCents > 0) await restoreHelprFaultFee(supabaseAdmin, helperId, jobId, "create-payment.transferToHelper");
+  };
+
+  // Whole dollars, rounded DOWN; the platform keeps the cents (Q236). Then
+  // the Helpr-fault debt off in exact cents (Q2165, owner 2026-10-19), so what
+  // is withheld is exactly what is booked. The one figure both the transfer
+  // and its ledger row carry.
+  const amountCents = roundPayoutDownCents(unroundedCents) - helprFaultFeeCents;
   if (amountCents <= 0) {
     // No money moved: the caller hands its settlement claim back.
+    await restoreHelprFault();
     throw new PublicError("The helpr's share rounds down to $0 — nothing to transfer. Resolve this dispute by hand.");
   }
 
@@ -5372,6 +5665,7 @@ async function transferToHelper(
         pi = await stripe.paymentIntents.retrieve(paymentIntentId);
       } catch (piErr) {
         console.error(`[create-payment] transferToHelper — could not retrieve ${paymentIntentId} to link the transfer to its charge for job ${jobId}:`, piErr);
+        await restoreHelprFault();
         throw new PublicError("Couldn't confirm the source charge with Stripe, so the payout was not sent. No money was moved — try again.");
       }
       if (pi.latest_charge) {
@@ -5382,6 +5676,7 @@ async function transferToHelper(
     if (beforeTransfer && !(await beforeTransfer())) {
       // The settlement claim is no longer this caller's. No money moved, so
       // this is NOT moneyMoved: the caller hands back whatever it still holds.
+      await restoreHelprFault();
       throw new PublicError("The settlement lock on this dispute was lost before the transfer — no money was moved. Refresh and try again.");
     }
 
@@ -5409,6 +5704,8 @@ async function transferToHelper(
         "StripeAuthenticationError",
       ].includes(type);
       if (!definite) (stripeErr as { moneyMoved?: boolean }).moneyMoved = true;
+      // A definite refusal sent nothing: the withheld card fee goes back.
+      else await restoreHelprFault();
       throw stripeErr;
     }
     console.log(`Transferred $${(amountCents / 100).toFixed(2)} to helper ${helperId} (transfer: ${transfer.id})`);
@@ -5439,8 +5736,10 @@ async function transferToHelper(
         // metadata literal in this file and a spread makes its inventory blind.
         metadata: {
           source: "admin_release_dispute",
-          onboarding_fee_cents: payoutWithheldMetadata(Math.round(amount * 100), 0, amountCents).onboarding_fee_cents,
-          rounding_remainder_cents: payoutWithheldMetadata(Math.round(amount * 100), 0, amountCents).rounding_remainder_cents,
+          onboarding_fee_cents: payoutWithheldMetadata(unroundedCents, 0, amountCents, helprFaultFeeCents).onboarding_fee_cents,
+          rounding_remainder_cents: payoutWithheldMetadata(unroundedCents, 0, amountCents, helprFaultFeeCents).rounding_remainder_cents,
+          // Q2082 (b): the Helpr-fault card fee kept back (the earnings export adds it back).
+          helpr_fault_fee_cents: helprFaultFeeCents,
         },
       });
     if (ledgerErr && ledgerErr.code === "23505") {
@@ -5698,6 +5997,140 @@ async function returnGiftAfterRefund(
  * else the largest. Null when none qualifies, so the caller refunds as before
  * (inside the key window that replays this action's own refund).
  */
+/** Q2082 (b): the admin's Helpr-at-fault ruling from the request body, or null when it is missing or malformed. */
+function parseHelprFault(raw: unknown): { helperId: string; kind: "no_show" | "backout"; note: string } | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as { helperId?: unknown; kind?: unknown; note?: unknown };
+  if (typeof r.helperId !== "string" || !STRIPE_MODE_UUID_RE.test(r.helperId)) return null;
+  if (r.kind !== "no_show" && r.kind !== "backout") return null;
+  const note = typeof r.note === "string" ? r.note.trim() : "";
+  if (note.length < 1 || note.length > 1000) return null;
+  return { helperId: r.helperId, kind: r.kind, note };
+}
+
+/**
+ * Q2082 (b): the Helpr-at-fault ruling comes FIRST, as the admin (auth.uid()
+ * in admin_rule_helpr_fault is who ruled; it checks the admin role, that the
+ * Helpr was booked on the job, and gives exactly one strike for it). It is
+ * idempotent ('already_ruled'), so a refund that stops later is retried by
+ * pressing the button again. No ruling, no fault refund: a refusal moves no
+ * money. Then (owner 2026-10-18 ~22:30Z) whether the ruled Helpr still exists:
+ * when their account is gone nobody can be billed, so the caller keeps the card
+ * fee from the refund (we never absorb it). Shared by admin_refund_general and
+ * admin_refund_dispute.
+ */
+async function ruleHelprFaultFirst(
+  authHeader: string,
+  supabaseAdmin: any,
+  jobId: string,
+  hf: { helperId: string; kind: "no_show" | "backout"; note: string },
+): Promise<{ gone: boolean } | { refusal: Response }> {
+  const asAdmin = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")) ?? "",
+    { global: { headers: { Authorization: authHeader } } },
+  );
+  const { error: ruleErr } = await asAdmin.rpc("admin_rule_helpr_fault", {
+    p_job_id: jobId, p_helper_id: hf.helperId, p_kind: hf.kind, p_note: hf.note,
+  });
+  if (ruleErr) {
+    console.error(`[create-payment] admin_rule_helpr_fault refused job ${jobId}:`, ruleErr.message);
+    return { refusal: new Response(JSON.stringify({
+      error: `${helprFaultRuleError(ruleErr.message)} No money was moved.`,
+      code: ruleErr.message,
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 }) };
+  }
+  const gone = await helprFaultHelprIsGone(supabaseAdmin, jobId);
+  if (gone === null) {
+    return { refusal: new Response(JSON.stringify({
+      error: "Couldn't read the Helpr-at-fault ruling just recorded. No money was moved: press it again.",
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 }) };
+  }
+  return { gone };
+}
+
+/**
+ * lh-money-escrow review of c4ec33afb #1: a job with a Helpr-at-fault ruling is
+ * only refunded AS a Helpr fault. A plain refund retried after a fault refund
+ * went out would reuse it (the card fee back to the poster) without billing the
+ * Helpr. Returns the refusal (nothing moved), or null when there is no ruling.
+ * Fails closed on an unreadable ruling.
+ */
+async function refuseRefundWithoutFaultRuling(supabaseAdmin: any, jobId: string): Promise<Response | null> {
+  const { data, error } = await supabaseAdmin
+    .from("job_helpr_fault_rulings").select("id").eq("job_id", jobId).maybeSingle();
+  if (error) {
+    console.error(`[create-payment] reading job ${jobId}'s Helpr-at-fault ruling failed:`, error.message);
+    return new Response(JSON.stringify({
+      error: "Couldn't check whether this job has a Helpr-at-fault ruling. No money was moved: try again.",
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+  }
+  if (!data) return null;
+  return new Response(JSON.stringify({
+    error: "This job has a Helpr-at-fault ruling, so refund it with \"Helpr at fault\" (that bills the Helpr the card fee). No money was moved.",
+    code: "helpr_fault_ruling_exists",
+  }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+}
+
+/**
+ * Q2082 (b): AFTER the fault refund and the job flip, bill the Helpr the card
+ * fee Stripe kept (bill_helpr_fault_card_fee: once per ruling, capped at the
+ * charge; 0 when the refund kept the fee because the Helpr is gone). A failure
+ * never undoes the refund: it pages, and the admin's "Bill the Helpr"
+ * (admin_bill_helpr_fault, Q2170) bills it later; it moves no money.
+ */
+async function billHelprFaultCardFee(
+  supabaseAdmin: any,
+  jobId: string,
+  helperId: string,
+  cardFeeCents: number | null,
+  refundRef: string,
+): Promise<{ billedCents: number | null; failed: boolean }> {
+  const { data: billed, error: billErr } = await supabaseAdmin.rpc("bill_helpr_fault_card_fee", {
+    p_job_id: jobId,
+    p_card_fee_cents: Math.max(0, Math.round(cardFeeCents ?? 0)),
+    p_refund_ref: refundRef,
+  });
+  if (billErr || typeof billed !== "number") {
+    console.error(`[create-payment] bill_helpr_fault_card_fee failed for job ${jobId}:`, billErr?.message ?? billed);
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Helpr-at-fault refund sent, but the Helpr was NOT billed the card fee",
+      message: `Job ${jobId} was refunded to the poster (Helpr at fault, card fee included), but billing the ${cardFeeCents ?? "?"}-cent card fee to the Helpr failed: ${billErr?.message ?? "no amount returned"}. Open the job in Admin > Jobs and press "Bill the Helpr" (create-payment admin_bill_helpr_fault: it moves no money and bills once).`,
+      fields: { job_id: jobId, helper_id: helperId, card_fee_cents: String(cardFeeCents ?? "") },
+    });
+    return { billedCents: null, failed: true };
+  }
+  return { billedCents: billed, failed: false };
+}
+
+/**
+ * Q2082 (b), owner 2026-10-18: true when the job's Helpr-at-fault ruling has
+ * no Helpr any more (their account was deleted: helper_id ON DELETE SET NULL),
+ * so the card fee cannot be billed and the refund keeps it. null = unreadable.
+ */
+async function helprFaultHelprIsGone(supabaseAdmin: any, jobId: string): Promise<boolean | null> {
+  const { data, error } = await supabaseAdmin
+    .from("job_helpr_fault_rulings").select("helper_id").eq("job_id", jobId).maybeSingle();
+  if (error || !data) {
+    console.error(`[create-payment] reading the Helpr-at-fault ruling of job ${jobId} failed:`, error?.message ?? "no ruling");
+    return null;
+  }
+  return data.helper_id == null;
+}
+
+/** Q2082 (b): admin_rule_helpr_fault's refusals, in words for the admin. */
+function helprFaultRuleError(code: string): string {
+  if (code.includes("not_authorized")) return "Only an admin can rule a Helpr at fault.";
+  if (code.includes("helper_not_booked")) return "That Helpr was not booked on this job (no booking and no no-show or backout report here).";
+  if (code.includes("already_ruled_other_helper")) return "This job was already ruled against a different Helpr.";
+  if (code.includes("job_not_paid")) return "This job was never paid, so there is nothing to refund.";
+  if (code.includes("job_not_found")) return "Job not found.";
+  if (code.includes("note_required") || code.includes("invalid_kind") || code.includes("helper_required")) return "Helpr at fault needs the Helpr, what happened (no-show or backout) and a note.";
+  return "Couldn't record the Helpr-at-fault ruling. Try again.";
+}
+
 async function existingRefundCovering(
   stripe: Stripe,
   paymentIntentId: string,

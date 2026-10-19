@@ -11,6 +11,21 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { Job } from "./types";
+import { HelprFaultFields } from "../helprFault/HelprFaultFields";
+import type { HelprFaultKind } from "../helprFault/helprFault";
+
+/** Q2082 (b): the "Helpr at fault" option of the refund (always a full refund). */
+export interface RefundHelprFaultState {
+  on: boolean;
+  helperId: string | null;
+  helperName?: string | null;
+  loading: boolean;
+  kind: HelprFaultKind;
+  note: string;
+  onToggle: (on: boolean) => void;
+  onKindChange: (kind: HelprFaultKind) => void;
+  onNoteChange: (note: string) => void;
+}
 
 interface RefundJobDialogProps {
   open: boolean;
@@ -25,6 +40,7 @@ interface RefundJobDialogProps {
   onAmountChange: (value: string) => void;
   onCancel: () => void;
   onConfirm: () => void;
+  helprFault?: RefundHelprFaultState;
 }
 
 export const RefundJobDialog = ({
@@ -39,13 +55,17 @@ export const RefundJobDialog = ({
   onAmountChange,
   onCancel,
   onConfirm,
+  helprFault,
 }: RefundJobDialogProps) => {
   // create-payment refuses a FULL refund once a pending or paid
   // payout_transfers row exists; only a partial goodwill refund is allowed.
   // So such a job needs an amount before the refund can be issued. The
   // ledger answer wins; payment_status is only the fallback while unknown.
   const paidOut = payoutMoved ?? detailJob?.payment_status === "released";
-  const needsAmount = paidOut && !(refundAmount.trim() && Number(refundAmount) > 0);
+  const faultOn = !!helprFault?.on && !paidOut;
+  const needsAmount = !faultOn && paidOut && !(refundAmount.trim() && Number(refundAmount) > 0);
+  // A Helpr-at-fault refund needs the Helpr and a note before it can be sent.
+  const faultIncomplete = faultOn && (!helprFault?.helperId || !helprFault.note.trim());
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -75,6 +95,31 @@ export const RefundJobDialog = ({
               </p>
             </div>
           )}
+          {helprFault && !paidOut && (
+            <div className="rounded-ds-sm border border-border p-3 space-y-2">
+              <label className="flex items-center gap-2 text-ds-13 font-medium text-foreground">
+                <input
+                  type="checkbox"
+                  aria-label="Helpr at fault"
+                  checked={helprFault.on}
+                  onChange={(e) => helprFault.onToggle(e.target.checked)}
+                />
+                Helpr at fault (no-show or backout): full refund
+              </label>
+              {helprFault.on && (
+                <HelprFaultFields
+                  helperId={helprFault.helperId}
+                  helperName={helprFault.helperName}
+                  loading={helprFault.loading}
+                  kind={helprFault.kind}
+                  note={helprFault.note}
+                  onKindChange={helprFault.onKindChange}
+                  onNoteChange={helprFault.onNoteChange}
+                />
+              )}
+            </div>
+          )}
+          {!faultOn && (
           <div className="space-y-1.5">
             <label className="text-ds-11 font-medium text-foreground">
               Refund amount <span className="text-muted-foreground font-normal">{paidOut ? "(required: already paid out, partial only)" : "(blank = full refund)"}</span>
@@ -101,6 +146,7 @@ export const RefundJobDialog = ({
               </p>
             )}
           </div>
+          )}
           <Textarea
             aria-label="Refund reason (optional)"
             placeholder="Reason (optional, included in customer notification and audit log)"
@@ -129,9 +175,9 @@ export const RefundJobDialog = ({
           </DialogSecondaryAction>
           <DialogDestructiveAction
             onClick={onConfirm}
-            disabled={refunding || needsAmount}
+            disabled={refunding || needsAmount || faultIncomplete}
           >
-            {refunding ? "Refunding…" : "Issue Refund"}
+            {refunding ? "Refunding…" : faultOn ? "Refund (Helpr at fault)" : "Issue Refund"}
           </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>

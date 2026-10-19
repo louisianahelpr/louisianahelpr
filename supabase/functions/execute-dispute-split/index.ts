@@ -67,6 +67,7 @@ import { cardCostFeeCents, chargeTaxCentsFor, refundToPayerCents } from "../_sha
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
+import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { checkPayoutHold, checkJobPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { jobMoneyMode, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
@@ -792,6 +793,10 @@ serve(async (req) => {
   // Kept off the first-attempt path, where there is nothing to find.
   if (!settledTransfer && isResume && helperCents > 0) {
     let recovered: string | null = null;
+    // What Stripe says the recovered transfer carried (lh-money-escrow
+    // re-review of b1730c932 #1): the healed ledger row records THAT, never a
+    // re-computed amount.
+    let recoveredStripeCents: number | null = null;
     try {
       const priorTransfers = await stripe.transfers.list({
         transfer_group: `job_${job.id}`,
@@ -800,7 +805,10 @@ serve(async (req) => {
       const match = (priorTransfers?.data ?? []).find(
         (t: Stripe.Transfer) => t?.metadata?.dispute_id === disputeId,
       );
-      if (match) recovered = match.id;
+      if (match) {
+        recovered = match.id;
+        recoveredStripeCents = Number.isFinite(Number(match.amount)) ? Number(match.amount) : null;
+      }
     } catch (e) {
       // Fail CLOSED: an unverifiable transfer history is exactly the case
       // this check exists for, so never fall through to "nothing was paid".
@@ -813,7 +821,10 @@ serve(async (req) => {
     if (!recovered && dispute.execution_transfer_id) {
       try {
         const stamped = await stripe.transfers.retrieve(dispute.execution_transfer_id);
-        if (stamped?.id) recovered = stamped.id;
+        if (stamped?.id) {
+          recovered = stamped.id;
+          recoveredStripeCents = Number.isFinite(Number(stamped.amount)) ? Number(stamped.amount) : null;
+        }
       } catch (e) {
         if (isTestObjectUnderLiveKey(e)) {
           // A test-mode stamp means an earlier execution ran under the test
@@ -836,6 +847,15 @@ serve(async (req) => {
       }
     }
     if (recovered) {
+      // Q2082 (b), lh-money-escrow re-review of b1730c932 #1: the recovered
+      // transfer carried the split less any Helpr-fault card fee the attempt
+      // that sent it took, so the healed row records the amount STRIPE shows.
+      // It never calls take_helpr_fault_fee: that could take NEW debt billed
+      // since, book it as collected and withhold none of it.
+      if (recoveredStripeCents == null) {
+        console.error(`[execute-dispute-split] recovered transfer ${recovered} for dispute ${disputeId} has no readable amount; recording the split's share`);
+      }
+      const recoveredCents = recoveredStripeCents ?? helperCents;
       // Stamp the recovered leg on the dispute FIRST (round-5 review, LOW-4):
       // the ledger heal below is best-effort, and every later exit of this run
       // — a claim refusal, a refund failure — would otherwise leave the leg
@@ -855,7 +875,7 @@ serve(async (req) => {
       settledTransfer = {
         stripe_transfer_id: recovered,
         status: "paid",
-        amount_cents: helperCents,
+        amount_cents: recoveredCents,
         platform_fee_cents: platformFeeCents,
       };
       // Heal the divergence we just proved. Best-effort: the leg is settled
@@ -865,7 +885,7 @@ serve(async (req) => {
           job_id: job.id,
           helper_id: job.helper_id,
           stripe_transfer_id: recovered,
-          amount_cents: helperCents,
+          amount_cents: recoveredCents,
           platform_fee_cents: platformFeeCents,
           status: "paid",
           initiated_by: "admin",
@@ -1002,7 +1022,9 @@ serve(async (req) => {
   // these, never the recomputed pair.
   const ledgerHelperCents = Number(settledTransfer?.amount_cents);
   const ledgerFeeCents = Number(settledTransfer?.platform_fee_cents);
-  const movedHelperCents = settledTransfer && Number.isFinite(ledgerHelperCents)
+  // `let`: on a first attempt the Helpr leg below sets it to what the
+  // transfer actually carried, less a Helpr-fault card fee (Q2082 (b)).
+  let movedHelperCents = settledTransfer && Number.isFinite(ledgerHelperCents)
     ? ledgerHelperCents
     : helperCents;
   const movedPlatformFeeCents = settledTransfer && Number.isFinite(ledgerFeeCents)
@@ -1444,13 +1466,38 @@ serve(async (req) => {
       );
     }
 
-    if (!(await stampMoneyStep())) return await lostClaim("transfer");
+    // Q2082 (b), owner 2026-10-18 ("J4"): a card fee this Helpr owes from a
+    // Helpr-at-fault refund comes out of this leg (what keeps it at $1 or
+    // more; the rest waits for the next payout), once per job under the
+    // payout_ref release-payout and process-scheduled-payouts use
+    // (_shared/helprFaultFee.ts). Fails closed, before the claim is stamped.
+    const unroundedHelperCents = Math.max(0, Math.round(helperPayoutDollars * 100));
+    const helprFaultTake = await takeHelprFaultFee(supabaseAdmin, job.helper_id, job.id, helprFaultFeeCapCents(unroundedHelperCents));
+    if (helprFaultTake.error !== undefined) {
+      console.error(`[execute-dispute-split] Helpr-fault card fee read failed for job ${job.id}: ${helprFaultTake.error}`);
+      await markFailed(supabaseAdmin, disputeId, "Helpr-fault card fee read failed", {}, job.id, settlementClaim);
+      return json({ error: "could not read the Helpr's card-fee debt — nothing was moved, retry" }, 500);
+    }
+    const helprFaultFeeCents = helprFaultTake.cents;
+    // Q2165 (owner 2026-10-19): the whole-dollar leg less the exact debt, so
+    // what is withheld is exactly what is booked (no debt: helperCents).
+    const helperTransferCents = roundPayoutDownCents(unroundedHelperCents) - helprFaultFeeCents;
+    movedHelperCents = helperTransferCents;
+    // The exits below that move NO money give the withheld fee back.
+    const restoreHelprFault = async () => {
+      if (helprFaultFeeCents > 0) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "execute-dispute-split");
+    };
+
+    if (!(await stampMoneyStep())) {
+      await restoreHelprFault();
+      return await lostClaim("transfer");
+    }
 
     let transfer: Stripe.Transfer;
     try {
       transfer = await stripe.transfers.create(
         {
-          amount: helperCents,
+          amount: helperTransferCents,
           currency: "usd",
           destination: helper.stripe_account_id,
           // Ties the transfer to the exact charge that funded it, so Stripe
@@ -1468,6 +1515,8 @@ serve(async (req) => {
             customer_id: job.customer_id ?? "",
             helper_share: String(helperShare),
             initiated_by: "admin",
+            // As release-payout does: what this transfer withheld for a Helpr-fault card fee.
+            helpr_fault_fee_cents: String(helprFaultFeeCents),
           },
         },
         {
@@ -1503,6 +1552,8 @@ serve(async (req) => {
       // read "nothing moved". Kept, the stamped claim sticks for Quick Release /
       // Quick Refund / the sweep and pages; a split retry takes it over and
       // recovers its own transfer by metadata.
+      // A definite refusal sent nothing: the withheld card fee goes back.
+      if (isDefiniteStripeRefusal(err)) await restoreHelprFault();
       await markFailed(
         supabaseAdmin, disputeId, `transfer failed: ${err.message}`, {}, job.id,
         isDefiniteStripeRefusal(err) ? settlementClaim : null,
@@ -1522,7 +1573,7 @@ serve(async (req) => {
       helper_id: job.helper_id,
       stripe_transfer_id: transfer.id,
       stripe_account_id: helper.stripe_account_id,
-      amount_cents: helperCents,
+      amount_cents: helperTransferCents,
       platform_fee_cents: platformFeeCents,
       status: "paid",
       paid_at: new Date().toISOString(),
@@ -1532,8 +1583,9 @@ serve(async (req) => {
         source: "execute_dispute_split",
         dispute_id: disputeId,
         helper_share: helperShare,
-        // Q1520: the cents rounded off (no onboarding fee on this path).
-        ...payoutWithheldMetadata(Math.max(0, Math.round(helperPayoutDollars * 100)), 0, helperCents),
+        // Q1520: the cents rounded off (no onboarding fee on this path), and
+        // Q2082 (b) the Helpr-fault card fee kept back (the export adds it back).
+        ...payoutWithheldMetadata(unroundedHelperCents, 0, helperTransferCents, helprFaultFeeCents),
         transfer_group: transfer.transfer_group ?? null,
       },
     });
@@ -1548,7 +1600,7 @@ serve(async (req) => {
         title: "Dispute split transferred but the payout ledger write failed",
         message:
           "A dispute-split transfer left Stripe and its payout_transfers row was NOT written. The retry cannot see it, so re-running could double-pay. Reconcile by hand before retrying.",
-        fields: { dispute_id: disputeId, job_id: job.id, transfer_id: transfer.id, amount_cents: helperCents, db_error: ledgerErr.message },
+        fields: { dispute_id: disputeId, job_id: job.id, transfer_id: transfer.id, amount_cents: helperTransferCents, db_error: ledgerErr.message },
       });
       await markFailed(supabaseAdmin, disputeId, `transfer ${transfer.id} sent but ledger write failed`, { transferId: transfer.id }, job.id, settlementClaim);
       return json(
@@ -1595,7 +1647,7 @@ serve(async (req) => {
       // resumes here rather than re-paying the helper.
       // Same rule as the transfer leg: only a definite refusal frees the claim.
       await markFailed(
-        supabaseAdmin, disputeId, `refund failed: ${err.message}`, { transferId, helperCents }, job.id,
+        supabaseAdmin, disputeId, `refund failed: ${err.message}`, { transferId, helperCents: movedHelperCents }, job.id,
         isDefiniteStripeRefusal(err) ? settlementClaim : null,
       );
       // Q1729: the Helpr's share already left the platform, so this dispute is
@@ -1617,7 +1669,7 @@ serve(async (req) => {
     if (refund.status === "failed" || refund.status === "canceled") {
       console.error(`[execute-dispute-split] refund ${refund.id} for dispute ${disputeId} came back '${refund.status}' (${refund.failure_reason ?? "no reason"}); not booked`);
       await markFailed(
-        supabaseAdmin, disputeId, `refund ${refund.id} is ${refund.status} at Stripe`, { transferId, helperCents }, job.id, settlementClaim,
+        supabaseAdmin, disputeId, `refund ${refund.id} is ${refund.status} at Stripe`, { transferId, helperCents: movedHelperCents }, job.id, settlementClaim,
       );
       if (transferId) await pageRefundLegFailed(disputeId, job.id, transferId, refundCents, `refund ${refund.id} is ${refund.status} at Stripe`);
       return json(
@@ -1874,7 +1926,7 @@ serve(async (req) => {
       user_id: job.helper_id,
       job_id: job.id,
       title: "Dispute settled — your share was sent",
-      message: `The dispute on "${job.title}" was settled with a ${Math.round(helperShare * 100)}% share to you. $${formatPayoutDollars(helperDollars)} is on its way to your bank.`,
+      message: `The dispute on "${job.title}" was settled with a ${Math.round(helperShare * 100)}% share to you. $${movedHelperCents % 100 !== 0 ? formatExactDollars(helperDollars) : formatPayoutDollars(helperDollars)} is on its way to your bank.`,
       type: "payment",
       // `/profile?tab=earnings` is the earnings screen — `/earnings` and
       // `/analytics` both redirect here, and Dashboard reads no `tab` param.

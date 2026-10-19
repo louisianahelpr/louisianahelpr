@@ -392,7 +392,7 @@ describe("execute-dispute-split edge function", () => {
       expect(payout.metadata).toMatchObject({ source: "execute_dispute_split", dispute_id: DISPUTE_ID });
       // Q1520 (review of the export change): $52.80 owed, $52 sent, so the 80c
       // rounded off is on the row for the earnings export.
-      // @mutate supabase/functions/execute-dispute-split/index.ts |         ...payoutWithheldMetadata(Math.max(0, Math.round(helperPayoutDollars * 100)), 0, helperCents), |
+      // @mutate supabase/functions/execute-dispute-split/index.ts |         ...payoutWithheldMetadata(unroundedHelperCents, 0, helperTransferCents, helprFaultFeeCents), |
       expect(payout.metadata).toMatchObject({ onboarding_fee_cents: 0, rounding_remainder_cents: 80 });
 
       const refund = writeTo("payment_refunds", "insert");
@@ -1881,3 +1881,90 @@ describe("execute-dispute-split edge function", () => {
 // Proof this guard can fail (scripts/vacuity). Without the admin-role check any
 // signed-in user could split a disputed job's escrow.
 // @mutate supabase/functions/execute-dispute-split/index.ts | if (!hasAdmin) throw new Error("admin role required"); |
+
+// Q2082 (b), owner 2026-10-18 ("J4"): a card fee the Helpr owes from a
+// Helpr-at-fault refund comes out of the split's Helpr leg too, under the same
+// per-job payout_ref as release-payout (_shared/helprFaultFee.ts).
+// @mutate supabase/functions/execute-dispute-split/index.ts |           amount: helperTransferCents, |           amount: helperCents,
+// @mutate supabase/functions/execute-dispute-split/index.ts |      return json({ error: "could not read the Helpr's card-fee debt — nothing was moved, retry" }, 500); |      console.error("ignored");
+// @mutate supabase/functions/execute-dispute-split/index.ts |      if (isDefiniteStripeRefusal(err)) await restoreHelprFault(); |      if (isDefiniteStripeRefusal(err)) console.error("no restore");
+// @mutate supabase/functions/execute-dispute-split/index.ts |        ...payoutWithheldMetadata(unroundedHelperCents, 0, helperTransferCents, helprFaultFeeCents), |        ...payoutWithheldMetadata(unroundedHelperCents, 0, helperTransferCents),
+describe("execute-dispute-split: a Helpr-fault card fee comes out of the Helpr leg (Q2082 (b))", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+  afterEach(() => {
+    resetEnv();
+  });
+  const takes = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "take_helpr_fault_fee");
+  const restores = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_helpr_fault_fee");
+
+  it("no debt: the leg is untouched (5200)", async () => {
+    seedExecutable(scenario, { helperShare: 0.6 });
+    const fn = await load();
+    await invoke(fn);
+    expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(5200);
+    expect(takes()).toHaveLength(1);
+  });
+
+  // Q2165 (owner 2026-10-19): the whole-dollar leg less the debt in EXACT cents.
+  // @mutate supabase/functions/execute-dispute-split/index.ts |     const helperTransferCents = roundPayoutDownCents(unroundedHelperCents) - helprFaultFeeCents; |     const helperTransferCents = roundPayoutDownCents(unroundedHelperCents - helprFaultFeeCents);
+  it("withholds the debt (capped so $1 stays) in exact cents from the whole-dollar leg, records it as its own line", async () => {
+    seedExecutable(scenario, { helperShare: 0.6 });
+    scenario.rpc.take_helpr_fault_fee = 369;
+    const fn = await load();
+    const res = await invoke(fn);
+    expect(res.status).toBe(200);
+    // $60 share less 12% = 5280 unrounded, 5200 whole; the cap keeps $1: 5100.
+    expect(takes()[0].args).toEqual({ p_helper_id: "helper-1", p_payout_ref: "job_payout_job-1", p_max_cents: 5100 });
+    // 5200 - 369 = 4831 (the old floor100(5280 - 369) sent 4900: 300 withheld, 369 booked).
+    expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(4831);
+    const row = writeTo("payout_transfers");
+    expect(row.amount_cents).toBe(4831);
+    expect(row.metadata).toEqual(expect.objectContaining({ helpr_fault_fee_cents: 369, rounding_remainder_cents: 80 }));
+    const note = (scenario.writes ?? []).find((w) => w.table === "notifications" && JSON.stringify(w.payload).includes("your share was sent"));
+    expect(JSON.stringify(note?.payload)).toContain("$48.31 is on its way");
+  });
+
+  it("an unreadable debt moves nothing (fails closed)", async () => {
+    seedExecutable(scenario, { helperShare: 0.6 });
+    scenario.rpcErrors = { take_helpr_fault_fee: { message: "connection reset" } };
+    const fn = await load();
+    const res = await invoke(fn);
+    expect(res.status).toBe(500);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+  });
+
+  // lh-money-escrow re-review of b1730c932 #1: a transfer Stripe already made
+  // (its ledger write was lost) is healed at the amount STRIPE shows; the
+  // recovery never takes new debt (it would book debt billed since as
+  // collected while withholding none of it).
+  // @mutate supabase/functions/execute-dispute-split/index.ts |       const recoveredCents = recoveredStripeCents ?? helperCents; |       const recoveredCents = helperCents;
+  it("a recovered transfer is healed at Stripe's amount and takes no new debt", async () => {
+    seedExecutable(scenario, { helperShare: 0.6, dispute: { execution_status: "failed" } });
+    scenario.reads.payout_transfers = { rows: [] };
+    scenario.rpc.take_helpr_fault_fee = 175;
+    stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_already", amount: 5000, metadata: { dispute_id: DISPUTE_ID } }] });
+    const fn = await load();
+    const res = await invoke(fn);
+    expect(res.status).toBe(200);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(takes()).toHaveLength(0);
+    expect(writeTo("payout_transfers").amount_cents).toBe(5000);
+  });
+
+  it("a definite Stripe refusal gives the withheld debt back", async () => {
+    seedExecutable(scenario, { helperShare: 0.6 });
+    scenario.rpc.take_helpr_fault_fee = 369;
+    stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("No such destination"), { type: "StripeInvalidRequestError" }));
+    const fn = await load();
+    const res = await invoke(fn);
+    expect(res.status).toBe(502);
+    expect(restores()).toHaveLength(1);
+    expect(restores()[0].args).toEqual({ p_helper_id: "helper-1", p_job_id: "job-1" });
+  });
+});

@@ -74,6 +74,11 @@ interface DisputeCardProps {
   closeAsTest?: (job: DisputedJob, note: string) => void;
   /** job.id currently being retried, if any. */
   retrying: string | null;
+  /**
+   * Q2082 (b): open the "Helpr at fault" refund for this dispute (a poster's
+   * no-show or backout report). Optional: the card renders without it.
+   */
+  openHelprFault?: (job: DisputedJob) => void;
 }
 
 // Renders one card. Shared between Open and Decided so the visual
@@ -101,6 +106,7 @@ export const DisputeCard = ({
   clearTestModeRecords,
   closeAsTest,
   retrying,
+  openHelprFault,
 }: DisputeCardProps) => {
   const record = disputeRecords[job.id];
   // The record's evidence when it has any, else the legacy job array — the same
@@ -395,6 +401,11 @@ export const DisputeCard = ({
           <Button size="sm" variant="outline" className="w-full sm:w-auto text-destructive" onClick={() => setConfirm({ job, action: "refund" })} disabled={resolving === job.id}>
             <XCircle className="w-4 h-4 mr-1" /> Quick: Refund Poster
           </Button>
+          {openHelprFault && (
+            <Button size="sm" variant="outline" className="w-full sm:w-auto text-destructive" onClick={() => openHelprFault(job)} disabled={resolving === job.id}>
+              <XCircle className="w-4 h-4 mr-1" /> Helpr at fault…
+            </Button>
+          )}
         </div>
       )}
 

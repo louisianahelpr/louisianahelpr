@@ -7654,6 +7654,127 @@ export type Database = {
         }
         Relationships: []
       }
+      rental_rent_autopay: {
+        Row: {
+          bank_label: string | null
+          created_at: string
+          enabled: boolean
+          livemode: boolean
+          stripe_customer_id: string | null
+          stripe_payment_method_id: string | null
+          tenancy_id: string
+          updated_at: string
+        }
+        Insert: {
+          bank_label?: string | null
+          created_at?: string
+          enabled?: boolean
+          livemode?: boolean
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          tenancy_id: string
+          updated_at?: string
+        }
+        Update: {
+          bank_label?: string | null
+          created_at?: string
+          enabled?: boolean
+          livemode?: boolean
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          tenancy_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_rent_autopay_tenancy_id_fkey"
+            columns: ["tenancy_id"]
+            isOneToOne: true
+            referencedRelation: "rental_tenancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_rent_bank_payments: {
+        Row: {
+          autopay: boolean
+          charge_cents: number
+          created_at: string
+          fee_cents: number
+          fee_payer: string
+          id: string
+          last_error: string | null
+          livemode: boolean | null
+          next_transfer_at: string | null
+          rent_cents: number
+          rent_charge_id: string | null
+          rent_payment_id: string | null
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_transfer_id: string | null
+          tenancy_id: string
+          transfer_attempts: number
+          transfer_cents: number
+          transfer_status: string
+          updated_at: string
+        }
+        Insert: {
+          autopay?: boolean
+          charge_cents: number
+          created_at?: string
+          fee_cents: number
+          fee_payer: string
+          id?: string
+          last_error?: string | null
+          livemode?: boolean | null
+          next_transfer_at?: string | null
+          rent_cents: number
+          rent_charge_id?: string | null
+          rent_payment_id?: string | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_transfer_id?: string | null
+          tenancy_id: string
+          transfer_attempts?: number
+          transfer_cents: number
+          transfer_status?: string
+          updated_at?: string
+        }
+        Update: {
+          autopay?: boolean
+          charge_cents?: number
+          created_at?: string
+          fee_cents?: number
+          fee_payer?: string
+          id?: string
+          last_error?: string | null
+          livemode?: boolean | null
+          next_transfer_at?: string | null
+          rent_cents?: number
+          rent_charge_id?: string | null
+          rent_payment_id?: string | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_transfer_id?: string | null
+          tenancy_id?: string
+          transfer_attempts?: number
+          transfer_cents?: number
+          transfer_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_rent_bank_payments_tenancy_id_fkey"
+            columns: ["tenancy_id"]
+            isOneToOne: false
+            referencedRelation: "rental_tenancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rental_rent_charges: {
         Row: {
           amount_cents: number
@@ -7767,6 +7888,8 @@ export type Database = {
       rental_rent_plans: {
         Row: {
           amount_cents: number
+          bank_fee_payer: string
+          bank_pay: boolean
           created_at: string
           first_due_on: string
           frequency: string
@@ -7779,6 +7902,8 @@ export type Database = {
         }
         Insert: {
           amount_cents: number
+          bank_fee_payer?: string
+          bank_pay?: boolean
           created_at?: string
           first_due_on: string
           frequency: string
@@ -7791,6 +7916,8 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
+          bank_fee_payer?: string
+          bank_pay?: boolean
           created_at?: string
           first_due_on?: string
           frequency?: string
@@ -13149,6 +13276,74 @@ export type Database = {
         Returns: undefined
       }
       rentals_assert_member: { Args: never; Returns: string }
+      rentals_autopay_due: {
+        Args: never
+        Returns: {
+          bank_payment_id: string
+          charge_cents: number
+          landlord_id: string
+          livemode: boolean
+          stripe_customer_id: string
+          stripe_payment_method_id: string
+          tenancy_id: string
+          tenant_id: string
+        }[]
+      }
+      rentals_autopay_saved: {
+        Args: {
+          p_bank_label: string
+          p_customer_id: string
+          p_livemode: boolean
+          p_payment_method_id: string
+          p_tenancy_id: string
+        }
+        Returns: undefined
+      }
+      rentals_bank_fee_cents: { Args: { p_cents: number }; Returns: number }
+      rentals_bank_rent_attach: {
+        Args: { p_id: string; p_livemode: boolean; p_session_id: string }
+        Returns: undefined
+      }
+      rentals_bank_rent_failed: {
+        Args: { p_expired: boolean; p_id: string }
+        Returns: undefined
+      }
+      rentals_bank_rent_processing: {
+        Args: { p_id: string; p_payment_intent_id: string }
+        Returns: undefined
+      }
+      rentals_bank_rent_returned: {
+        Args: { p_payment_intent_id: string; p_reason: string }
+        Returns: string
+      }
+      rentals_bank_rent_succeeded: {
+        Args: { p_payment_intent_id: string }
+        Returns: string
+      }
+      rentals_bank_state: { Args: { p_tenancy_id: string }; Returns: Json }
+      rentals_bank_transfer_executed: {
+        Args: {
+          p_action: string
+          p_error: string
+          p_id: string
+          p_succeeded: boolean
+          p_transfer_id: string
+        }
+        Returns: string
+      }
+      rentals_bank_transfers_due: {
+        Args: { p_limit: number }
+        Returns: {
+          action: string
+          attempts: number
+          bank_payment_id: string
+          livemode: boolean
+          payment_intent_id: string
+          stripe_account_id: string
+          stripe_transfer_id: string
+          transfer_cents: number
+        }[]
+      }
       rentals_browse_sale_listings: {
         Args: {
           p_city?: string
@@ -13481,6 +13676,14 @@ export type Database = {
         Args: { p_limit_cents: number; p_property_id: string }
         Returns: undefined
       }
+      rentals_set_autopay: {
+        Args: { p_enabled: boolean; p_tenancy_id: string }
+        Returns: undefined
+      }
+      rentals_set_bank_pay: {
+        Args: { p_enabled: boolean; p_fee_payer: string; p_tenancy_id: string }
+        Returns: undefined
+      }
       rentals_set_deposit: {
         Args: { p_amount_cents: number; p_received_on: string; p_tenancy_id: string }
         Returns: undefined
@@ -13505,6 +13708,10 @@ export type Database = {
           p_tenancy_id: string
         }
         Returns: undefined
+      }
+      rentals_start_bank_rent: {
+        Args: { p_rent_cents: number; p_tenancy_id: string }
+        Returns: Json
       }
       rentals_submit_landlord_id: {
         Args: { p_back_path: string; p_front_path: string }

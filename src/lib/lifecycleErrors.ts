@@ -1157,6 +1157,32 @@ export const RPC_ERROR_COPY = {
     payment_not_disputable: RC.payment_not_disputable,
     reason_required: "Write why (3 to 300 characters). Your landlord will see it.",
   },
+  // Homes bank rent in the app (20261019103751, draft; TEST mode only).
+  rentals_set_bank_pay: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    under_18: RC.under_18,
+    tenancy_not_found: RC.tenancy_not_found,
+    bad_bank_pay: RC.bad_bank_pay,
+    no_rent_plan: RC.no_rent_plan,
+    payouts_not_ready: "Turn on payouts in Profile first: bank rent is paid to your payout account.",
+  },
+  rentals_set_autopay: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    under_18: RC.under_18,
+    tenancy_not_found: RC.tenancy_not_found,
+    bad_autopay: RC.bad_autopay,
+    bank_pay_off: RC.bank_pay_off,
+    no_saved_bank: RC.no_saved_bank,
+  },
+  rentals_bank_state: {
+    feature_disabled: RC.feature_disabled,
+    not_authenticated: RC.not_authenticated,
+    tenancy_not_found: RC.tenancy_not_found,
+  },
   // Homes deposit tracker, track only (20261019082216).
   rentals_set_deposit: {
     account_restricted: RC.account_restricted,

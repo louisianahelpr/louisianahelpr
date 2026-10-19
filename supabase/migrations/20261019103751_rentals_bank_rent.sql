@@ -126,8 +126,9 @@ SET search_path TO 'public', 'pg_temp'
 AS $fn$
   SELECT CASE WHEN p_cents IS NULL OR p_cents <= 0 THEN 0 ELSE least(ceil(p_cents * 0.008)::integer, 500) END;
 $fn$;
-REVOKE ALL ON FUNCTION public.rentals_bank_fee_cents(integer) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rentals_bank_fee_cents(integer) TO authenticated, service_role;
+-- Server only: the card computes the same number itself (bankFeeCents) and the server freezes the real one.
+REVOKE ALL ON FUNCTION public.rentals_bank_fee_cents(integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rentals_bank_fee_cents(integer) TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- 4. The landlord turns bank pay on or off and chooses who pays the bank cost.

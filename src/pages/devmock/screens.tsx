@@ -31,7 +31,7 @@ function JobRows({ jobs, noteTone = "muted" }: { jobs: MockJob[]; noteTone?: "ac
 }
 
 function SampleNote({ what = "shops" }: { what?: string }) {
-  return <p className="-mt-2 text-[12px] text-muted-foreground flex items-center gap-1.5"><SampleBadge />Prod has no {what} yet — sample rows, real data shapes.</p>;
+  return <p className="-mt-2 text-[12px] text-muted-foreground flex items-center gap-1.5"><SampleBadge />Prod has no {what} yet</p>;
 }
 
 /* ================= HOME ================= */
@@ -184,7 +184,7 @@ export function HomeC() {
     <Frame dock="home">
       <Greeting />
       <Card className="flex divide-x divide-border/70">
-        {[["9", "To do", true], ["2", "This week"], [String(unreadMessages), "Unread"]].map(([n, l, hot]) => (
+        {[["5", "To do", true], ["2", "This week"], [String(unreadMessages), "Unread"]].map(([n, l, hot]) => (
           <div key={l as string} className="flex-1 px-4 py-3 text-center">
             <p className={`text-[24px] leading-7 font-bold ${hot ? "text-[hsl(var(--accent-ink))]" : ""}`}>{n}</p>
             <p className="text-[12px] text-muted-foreground">{l}</p>
@@ -523,7 +523,7 @@ export function HomesB() {
       <Card>
         <Row icon={Wrench} tone="accent" title="Hall light flickers" meta="Done Mon — is it fixed? Tell us" last />
       </Card>
-      <Pill outline><Wrench className="w-4 h-4" />Request a repair</Pill>
+      <div><Pill outline><Wrench className="w-4 h-4" />Request a repair</Pill></div>
       <Card><Row icon={MessageSquare} tone="primary" title={`Message ${t.lease.landlord}`} meta="Your landlord" last /></Card>
     </Frame>
   );

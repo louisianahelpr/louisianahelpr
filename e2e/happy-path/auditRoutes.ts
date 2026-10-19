@@ -80,8 +80,8 @@ export interface ScreenSpec {
    * number that counts the same screen twice is the same defect as a row that
    * renders NotFound and reports clean — the number flatters, silently.
    *
-   * Since Q194 (2026-09-23) every one of those redirect routes is DELETED, so
-   * no row declares `redirectsTo` today; the field stays for the next alias.
+   * Since Q194 (2026-09-23) every one of those redirect routes is DELETED; the
+   * only alias today is the owner-asked /quotes redirect (2026-10-19).
    *
    * `auditCatalogRoutes.test.ts` derives the truth from App.tsx rather than from
    * this field, so a row that redirects and does NOT declare it fails, and a
@@ -271,9 +271,10 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "declutter-sell", url: "/declutter/sell" },
   { name: "declutter-move", url: "/declutter/move" },
   { name: "declutter-item-missing", url: "/declutter/item/10000000-0000-4000-8000-00000000dead" },
-  // Quotes on jobs (hidden switch 'quotes', created OFF): the NotFound page while
-  // it is off for the sweep account, the real screens once testers include it.
-  { name: "quotes", url: "/quotes" },
+  // Quotes on jobs (hidden switch 'quotes', created OFF). The /quotes hub is
+  // retired (owner 2026-10-19): the route is QuotesHubRedirect, which sends a
+  // bare /quotes to Posts (/posts?quotes=1), so the row is an alias of "posts".
+  { name: "quotes", url: "/quotes", redirectsTo: "/posts" },
   { name: "quotes-request-missing", url: "/quotes/request/10000000-0000-4000-8000-00000000dead" },
   { name: "quotes-send-missing", url: "/quotes/send/10000000-0000-4000-8000-00000000dead" },
   // Rentals S1 (hidden switch 'rentals', created OFF): RentalsGate renders the

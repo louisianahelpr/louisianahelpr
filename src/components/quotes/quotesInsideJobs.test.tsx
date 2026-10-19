@@ -24,6 +24,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { blankComments } from "@/test/helpers/blankNonCode";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const state = { feature: true, rpc: {} as Record<string, unknown>, calls: [] as string[] };
 
@@ -67,7 +68,7 @@ function at(path: string, el: ReactNode, route = path.split("?")[0]) {
 
 const OPEN = {
   id: "r9", title: "Mow and edge a corner lot", description: "About a quarter acre.", category: "lawn_care",
-  date_needed: "2026-10-30", start_time: null, estimated_hours: 2, location: "Mid-City, Baton Rouge", latitude: 30.45,
+  date_needed: jobLocalDateISO(11), start_time: null, estimated_hours: 2, location: "Mid-City, Baton Rouge", latitude: 30.45,
   longitude: -91.15, parish: "East Baton Rouge", quotes_close_at: new Date(Date.now() + 20 * 3_600_000).toISOString(),
   created_at: "2026-10-15T09:00:00Z", my_quote_id: null, my_quote_status: null,
 };
@@ -123,7 +124,7 @@ describe("Jobs: open quote requests in the browse feed", () => {
 describe("My Jobs and Posts: the member's quotes", () => {
   it("My Jobs shows the quotes this member sent", async () => {
     state.rpc.get_my_job_quotes = [{
-      id: "a", request_id: "r9", title: "Haul a sofa", parish: "East Baton Rouge", date_needed: "2026-10-30", note: "Truck",
+      id: "a", request_id: "r9", title: "Haul a sofa", parish: "East Baton Rouge", date_needed: jobLocalDateISO(11), note: "Truck",
       available_note: "Friday", respond_until: new Date(Date.now() + 3_600_000).toISOString(), status: "pending", job_id: null,
       created_at: "2026-10-15T09:00:00Z", price_cents: 8000, last_offer_side: "quoter", offers: [],
     }];

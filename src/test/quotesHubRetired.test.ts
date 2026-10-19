@@ -17,7 +17,8 @@
  * @mutate src/App.tsx |       <Route path="/quotes" element={<QuotesHubRedirect />} /> |       <Route path="/quotes" element={<p>Quotes</p>} />
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
+import { readFileSync, existsSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, relative, resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
 

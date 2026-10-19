@@ -26,7 +26,12 @@ vi.mock("@/integrations/supabase/client", () => {
   const chain: Record<string, unknown> = {};
   for (const op of ["select", "eq", "gt", "is", "neq", "in", "not", "limit"]) chain[op] = () => chain;
   chain.order = () => Promise.resolve({ data: visitRows.value, error: null });
-  return { supabase: { from: () => chain, functions: { invoke: vi.fn() }, rpc: vi.fn(async () => ({ data: null, error: null })) } };
+  return { supabase: { from: () => chain, functions: { invoke: vi.fn() }, rpc: vi.fn(async () => ({ data: null, error: null })),
+    // useFeature (JobListQuotesSlot) waits on useAuthReady, which subscribes to auth.
+    auth: {
+      getSession: async () => ({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    } } };
 });
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/pinnedConversations", async (io) =>

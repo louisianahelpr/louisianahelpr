@@ -61,7 +61,7 @@ export function SectionTabs<T extends string>({
       value={value}
       onChange={onChange}
       className="w-full"
-      optionClassName="px-2 text-[13px] min-[360px]:text-sm whitespace-nowrap"
+      optionClassName="px-2 text-ds-13 min-[360px]:text-ds-14 whitespace-nowrap"
     />
     </div>
   );

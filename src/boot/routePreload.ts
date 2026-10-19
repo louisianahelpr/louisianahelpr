@@ -55,11 +55,11 @@ const protectedRoute = () => import("@/components/ProtectedRoute");
 export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unknown>>; signedIn: Array<() => Promise<unknown>> }> = {
   "/": {
     guest: [() => import("@/pages/info/Index")],
-    signedIn: [() => import("@/pages/home/Dashboard"), protectedRoute],
+    signedIn: [() => import("@/pages/home/HomeDashboard"), protectedRoute],
   },
   "/browse": {
     guest: [() => import("@/pages/home/DashboardGuest")],
-    signedIn: [() => import("@/pages/home/Dashboard"), protectedRoute],
+    signedIn: [() => import("@/pages/home/HomeDashboard"), protectedRoute],
   },
   "/login": {
     guest: [() => import("@/pages/auth/Login")],
@@ -71,7 +71,7 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
   },
   "/home": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/pages/home/Dashboard"), protectedRoute],
+    signedIn: [() => import("@/pages/home/HomeDashboard"), protectedRoute],
   },
   "/messages": {
     guest: [protectedRoute],

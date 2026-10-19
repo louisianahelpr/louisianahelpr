@@ -65,6 +65,14 @@ vi.mock("@/components/AppPage", () => ({
     </main>
   ),
 }));
+vi.mock("@/components/sections/SectionScreen", () => ({
+  SectionScreen: ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <main>
+      <h1>{title}</h1>
+      {children}
+    </main>
+  ),
+}));
 vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }));
 vi.mock("@/lib/rentals/api", () => ({
   fetchMyProperties: async () => state.properties,
@@ -150,14 +158,14 @@ describe("Rentals screens", () => {
       state.feature = false;
       state.switchSettled = false;
       renderAt("/rentals");
-      expect(screen.getByRole("heading", { name: "Rentals" })).toBeTruthy();
+      expect(screen.getByRole("heading", { name: "Homes" })).toBeTruthy();
       expect(screen.getByRole("status").textContent).toBe("Loading your rentals");
       expect(screen.queryByText("Homes you rent")).toBeNull();
       expect(screen.queryByText("Page not found")).toBeNull();
     });
-    it("/rentals while its data loads: both cards with bones", async () => {
+    it("/rentals?tab=rent while its data loads: both cards with bones", async () => {
       state.homeLoads = false;
-      renderAt("/rentals");
+      renderAt("/rentals?tab=rent");
       expect(await screen.findByRole("status", { name: "Loading your rentals" })).toBeTruthy();
       expect(screen.getByText("Homes you rent")).toBeTruthy();
       expect(screen.getByText("Properties you own")).toBeTruthy();
@@ -184,16 +192,21 @@ describe("Rentals screens", () => {
     });
   });
 
-  it("one page for everyone: both the renter and the owner sections show", async () => {
-    renderAt("/rentals");
+  it("one account for everyone: Renting holds the renter part, Owning the owner part", async () => {
+    const { unmount } = renderAt("/rentals?tab=own");
     expect(await screen.findByRole("button", { name: "Add a property" })).toBeTruthy();
-    expect(screen.getByText("Homes you rent")).toBeTruthy();
     expect(screen.getByText("Properties you own")).toBeTruthy();
+    expect(screen.queryByText("Homes you rent")).toBeNull();
+    unmount();
+    renderAt("/rentals?tab=rent");
+    expect(await screen.findByText(/When your landlord sends you an invite link/)).toBeTruthy();
+    expect(screen.getByText("Homes you rent")).toBeTruthy();
+    expect(screen.queryByText("Properties you own")).toBeNull();
   });
 
   it("an emergency shows the 911 / utility steps BEFORE anything is sent (Q40)", async () => {
     state.tenancies = [TENANCY];
-    renderAt("/rentals");
+    renderAt("/rentals?tab=rent");
     fireEvent.click(await screen.findByRole("button", { name: "Request a repair" }));
     fireEvent.click(screen.getByLabelText(/Emergency/));
     expect(screen.getByRole("alert").textContent).toMatch(/call 911/i);
@@ -206,10 +219,14 @@ describe("Rentals screens", () => {
   it("under 18: no repair request or property buttons (Q59)", async () => {
     state.underAge = true;
     state.tenancies = [TENANCY];
-    renderAt("/rentals");
+    const { unmount } = renderAt("/rentals?tab=rent");
     expect(await screen.findByText(/must be 18 or older/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Request a repair" })).toBeNull();
+    unmount();
+    renderAt("/rentals?tab=own&add=1");
+    expect(await screen.findByText(/must be 18 or older/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Add a property" })).toBeNull();
+    expect(screen.queryByLabelText("Property name")).toBeNull();
   });
 
   it("the landlord can only decline after picking a reason (Q46)", async () => {
@@ -325,7 +342,7 @@ describe("Rentals screens", () => {
 
     it("a tenant leaves a home they rent, after a confirm", async () => {
       state.tenancies = [TENANCY];
-      renderAt("/rentals");
+      renderAt("/rentals?tab=rent");
       await confirmIn("Leave this home", "Leave home");
       await vi.waitFor(() => expect(vi.mocked(endTenancy)).toHaveBeenCalledWith("t1"));
     });
@@ -338,7 +355,7 @@ describe("Rentals screens", () => {
         { id: "ti", unit_id: "u9", status: "invited", accepted_at: null, invite_expires_at: "2099-10-30T12:00:00Z", created_at: "2026-10-17T11:00:00Z" },
         { id: "tx", unit_id: "u9", status: "invited", accepted_at: null, invite_expires_at: "2026-10-01T12:00:00Z", created_at: "2026-09-17T11:00:00Z" },
       ];
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       expect(await screen.findByText(/Tenant connected/)).toBeTruthy();
       expect(screen.getByText(/Invite not used yet/)).toBeTruthy();
       // An invite past its date says so, and can still be cancelled (lh-money-escrow review of 801589ae1 #5).
@@ -353,10 +370,39 @@ describe("Rentals screens", () => {
 
     it("closing the confirm ends nothing", async () => {
       state.tenancies = [TENANCY];
-      renderAt("/rentals");
+      renderAt("/rentals?tab=rent");
       fireEvent.click(await screen.findByRole("button", { name: "Leave this home" }));
       fireEvent.click(await screen.findByRole("button", { name: "Keep it" }));
       expect(vi.mocked(endTenancy)).not.toHaveBeenCalled();
+    });
+  });
+
+  // @mutate src/components/sections/SectionTabs.tsx | { value: BROWSE as string, label: "Browse" }, ...tabs.map | ...tabs.map
+  describe("Homes section dashboard (owner, 2026-10-19)", () => {
+    it("opens on Browse, leftmost, with one-word tabs; Browse needs no rental data", async () => {
+      state.homeLoads = false;
+      renderAt("/rentals");
+      const tabs = await screen.findAllByRole("tab");
+      expect(tabs.map((t) => t.textContent)).toEqual(["Browse", "Renting", "Owning"]);
+      expect(tabs[0].getAttribute("aria-selected")).toBe("true");
+      expect(screen.getByTestId("homes-browse-empty").textContent).toContain("No homes listed near you yet");
+      expect(tabs.length).toBeGreaterThan(2);
+    });
+    it("Owning: a status box shows only its group; a second tap shows every group", async () => {
+      state.properties = [{ id: "p1", owner_id: "u1", label: "Oak", street_address: "1 Oak", city: "Lafayette", zip_code: "70501", ownership_status: "approved", auto_approve_limit_cents: null }];
+      renderAt("/rentals?tab=own");
+      expect(await screen.findByRole("button", { name: "Add a property" })).toBeTruthy();
+      const needs = document.querySelector('[data-status-box="needs"]') as HTMLButtonElement;
+      fireEvent.click(needs);
+      expect(needs.getAttribute("aria-pressed")).toBe("true");
+      expect(screen.queryByText("Properties you own")).toBeNull();
+      fireEvent.click(needs);
+      expect(needs.getAttribute("aria-pressed")).toBe("false");
+      expect(screen.getByText("Properties you own")).toBeTruthy();
+    });
+    it("the top bar's + (?tab=own&add=1) opens the add-property form", async () => {
+      renderAt("/rentals?tab=own&add=1");
+      expect(await screen.findByLabelText("Property name")).toBeTruthy();
     });
   });
 });

@@ -27,9 +27,10 @@ import {
   authPages,
   noNavPages,
   tabStacks,
-  jobsAndPostsItem,
 } from "@/components/mobileNav/mobileNavHelpers";
 import { useSectionTabs, comingSoonLabel, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
+import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
+import { dockItems } from "@/components/mobileNav/dockItems";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
@@ -78,6 +79,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // off for them is GREYED and says "coming soon" instead of navigating
   // (owner, 2026-10-18). Guests keep the five-tab dock, which locks for them.
   const sectionTabs = useSectionTabs();
+  const { visible: visibleSections } = useSectionPrefs();
   const sectionDock = !isGuest;
   // Signed-out visitors get no bottom dock (below), so nothing should reserve
   // space for one. This class zeroes `--bottom-nav-h`, which feeds Tailwind's
@@ -739,7 +741,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 edge; at 6px it sits 8px in. Height is untouched (h-14). */}
             <div className="flex items-stretch h-14 px-1.5">
               {(sectionDock
-                ? [leftItems[0], jobsAndPostsItem, ...sectionTabs.map(({ path, icon, label, on }) => ({ path, icon, label, comingSoon: !on }))]
+                ? dockItems(sectionTabs, visibleSections)
                 : [...leftItems, ...rightItems]).map((item) => (
                 <div key={item.path} className="flex flex-1 items-stretch relative">
                   {renderItem(item)}

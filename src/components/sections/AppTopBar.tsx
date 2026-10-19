@@ -28,7 +28,7 @@ export function AppTopBar({
   return (
     <header className="flex items-center justify-between gap-2 h-16" data-testid="app-top-bar">
       {title ? (
-        <h1 className="min-w-0 truncate text-[22px] min-[360px]:text-[26px] leading-8 font-bold tracking-tight">{title}</h1>
+        <h1 className="min-w-0 truncate text-ds-22 min-[360px]:text-ds-26 leading-8 font-bold tracking-tight">{title}</h1>
       ) : (
         <HelprMark size="sm" emblemOnly to="/home" />
       )}

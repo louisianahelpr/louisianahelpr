@@ -30,7 +30,7 @@ export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenCh
                 <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <Icon className="w-[18px] h-[18px]" aria-hidden />
                 </span>
-                <span className="flex-1 min-w-0 text-[15px] font-semibold truncate">{s.label}</span>
+                <span className="flex-1 min-w-0 text-ds-15 font-semibold truncate">{s.label}</span>
                 <span className="flex items-center">
                   <button type="button" aria-label={`Move ${s.label} up`} disabled={i === 0} onClick={() => move(key, -1)} className="w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground disabled:invisible">
                     <ChevronUp className="w-4 h-4" aria-hidden />

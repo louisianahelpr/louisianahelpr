@@ -1,10 +1,11 @@
 -- export_my_data: Download My Data gains the Homes -> Rent listings sections
 -- (rental_listings and rental_listing_photos, from 20261019043000_rentals_listings).
 --
--- The body is main's NEWEST export_my_data (20261018210401_export_my_data_shop_pickup_address)
--- VERBATIM with the two listings sections (plus a comment) added after the
--- shop_pickup_addresses section, and nothing else. A branch that restates it
--- after this one must start from THIS body.
+-- The body is the NEWEST export_my_data (20261019015302_export_my_data_helpr_fault:
+-- main's 20261018210401 plus the Helpr's own helpr_fault_rulings section, landed in
+-- the same train) VERBATIM with the two listings sections (plus a comment) added
+-- after the shop_pickup_addresses section, and nothing else. A branch that
+-- restates it after this one must start from THIS body.
 --
 -- Replay-safe: CREATE OR REPLACE of the one (uuid) overload; the no-argument
 -- door stays dropped (Q408); plpgsql does not resolve table names at CREATE
@@ -386,6 +387,13 @@ BEGIN
       WHERE t.owner_id = v_uid));
   v_out := v_out || jsonb_build_object('rental_listing_photos', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.rental_listing_photos t
       WHERE t.owner_id = v_uid));
+  -- Q2082 (b): the Helpr's own Helpr-fault rulings (20261019015301), without
+  -- the staff member who ruled (admin_id) or the poster's Stripe refund id
+  -- (refund_ref, the other party's payment). The ruling's note IS theirs
+  -- (why they were ruled at fault), so it is exported. The table exists from that
+  -- migration on, which always runs first.
+  v_out := v_out || jsonb_build_object('helpr_fault_rulings', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'admin_id' - 'refund_ref'), '[]'::jsonb) FROM public.job_helpr_fault_rulings t
+    WHERE t.helper_id = v_uid));
   RETURN v_out;
 END;
 $function$;

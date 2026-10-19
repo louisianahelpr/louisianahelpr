@@ -8,6 +8,7 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { TEXTLIKE, runtime, settle, type Account } from "./harness";
+import { APPLICANTS_PRIMARY, CANCEL_JOB_CHIP, DECLINE_BUTTON, EDIT_JOB_CHIP, MORE_BUTTON, MORE_PANEL, PRIVATE_NOTE_BUTTON } from "./applicantCardNames";
 
 export interface FormSpec {
   name: string;
@@ -341,25 +342,35 @@ const openAdminJobAction = (buttonName: RegExp) => async (page: Page) => {
 
 /**
  * Q100: open the applicant fixture's card on My Posts, expanded. `?job=`
- * resolves the card's bucket (Activity.tsx); the card opens collapsed, so tap
- * its title when the "Edit job" chip is not already showing.
+ * resolves the card's bucket (Activity.tsx) and opens it; tap its title only
+ * when the card's row (More + Applicants) is not already showing. Every chip of
+ * that row lives under `More` since 2026-10-08 (applicantCardNames.ts), so the
+ * card being open is read from its primary, never from "Edit job".
  */
 async function openApplicantFixtureCard(page: Page): Promise<void> {
   const job = runtime.applicantJob;
   if (!job) throw new Error("Q100: no applicant fixture — messy-input.spec.ts's beforeAll did not mint one");
   await page.goto(`/posts?job=${job.id}`);
   await settle(page);
-  const edit = page.getByRole("button", { name: /^edit job$/i }).first();
-  const title = page.getByText(job.title, { exact: false }).first();
-  await edit.or(title).first().waitFor({ timeout: 30_000 });
-  if (!(await edit.isVisible().catch(() => false))) await title.click();
-  await edit.waitFor({ timeout: 15_000 });
+  const title = page.getByRole("heading", { name: job.title }).first();
+  await title.waitFor({ timeout: 30_000 });
+  const applicants = page.getByRole("button", { name: APPLICANTS_PRIMARY }).first();
+  if (!(await applicants.isVisible().catch(() => false))) await title.click();
+  await applicants.waitFor({ timeout: 15_000 });
+}
+
+/** Open the fixture card's `More` popover and press the chip named `chip` inside it. */
+async function pressMoreChip(page: Page, chip: RegExp): Promise<void> {
+  await openApplicantFixtureCard(page);
+  await page.getByRole("button", { name: MORE_BUTTON }).first().click();
+  const panel = page.getByRole("dialog", { name: MORE_PANEL });
+  await panel.getByRole("button", { name: chip }).first().click({ timeout: 15_000 });
 }
 
 async function openApplicantsPanel(page: Page): Promise<void> {
   await openApplicantFixtureCard(page);
-  await page.getByRole("button", { name: /^applicants/i }).first().click();
-  await page.getByRole("button", { name: /^decline /i }).first().waitFor({ timeout: 20_000 });
+  await page.getByRole("button", { name: APPLICANTS_PRIMARY }).first().click();
+  await page.getByRole("button", { name: DECLINE_BUTTON }).first().waitFor({ timeout: 20_000 });
 }
 
 export const FORMS: FormSpec[] = [
@@ -705,8 +716,7 @@ export const FORMS: FormSpec[] = [
   {
     name: "edit-job", url: "/posts", as: "poster",
     prepare: async (page) => {
-      await openApplicantFixtureCard(page);
-      await page.getByRole("button", { name: /^edit job$/i }).first().click();
+      await pressMoreChip(page, EDIT_JOB_CHIP);
       await page.getByRole("textbox", { name: /^job title$/i }).waitFor({ timeout: 15_000 });
     },
     covers: ["src/pages/posts/EditJobDialog.tsx"],
@@ -714,8 +724,7 @@ export const FORMS: FormSpec[] = [
   {
     name: "cancel-job", url: "/posts", as: "poster",
     prepare: async (page) => {
-      await openApplicantFixtureCard(page);
-      await page.getByRole("button", { name: /^cancel job$/i }).first().click();
+      await pressMoreChip(page, CANCEL_JOB_CHIP);
       await page.locator("#cancel-reason").waitFor({ timeout: 15_000 });
     },
     covers: ["src/components/CancellationDialog.tsx"],
@@ -726,7 +735,7 @@ export const FORMS: FormSpec[] = [
     name: "applicants-note", url: "/posts", as: "poster",
     prepare: async (page) => {
       await openApplicantsPanel(page);
-      await page.getByRole("button", { name: /add private note/i }).first().click();
+      await page.getByRole("button", { name: PRIVATE_NOTE_BUTTON }).first().click();
       await page.getByRole("textbox", { name: /^private note$/i }).waitFor({ timeout: 15_000 });
     },
     covers: ["src/pages/posts/postedJobs/ApplicantsPanel.tsx"],
@@ -735,7 +744,7 @@ export const FORMS: FormSpec[] = [
     name: "decline-applicant", url: "/posts", as: "poster",
     prepare: async (page) => {
       await openApplicantsPanel(page);
-      await page.getByRole("button", { name: /^decline /i }).first().click();
+      await page.getByRole("button", { name: DECLINE_BUTTON }).first().click();
       await page.locator("#decline-note").waitFor({ timeout: 15_000 });
     },
     covers: ["src/pages/posts/postedJobs/DeclineApplicantSheet.tsx"],

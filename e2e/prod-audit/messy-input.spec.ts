@@ -117,16 +117,22 @@ const SCOPE = (process.env.MESSY_INPUT_SCOPE ?? "").trim();
  * (Q889). The whole file takes ~58 minutes on prod, and a job that holds the
  * shared test accounts may hold them for at most an hour
  * (src/test/sharedAccountLockJobsAreShort.test.ts), so it runs as two locked
- * legs: leg 1 is the sweep, the targeted rules, the post-job steps and every
- * EVEN explore; leg 2 is every ODD explore and the coverage check, which reads
+ * legs: leg 1 is the sweep, the post-job steps and every EVEN explore;
+ * leg 2 is the targeted rules, every ODD explore and the coverage check, which reads
  * leg 1's credit files from MESSY_INPUT_PRIOR_CREDITS (the workflow hands them
  * over as an artifact). Unset (every local run, and the vacuity gate) declares
  * everything, exactly as before. A half's tests are not DECLARED in the other
  * leg, so they are neither run nor reported there.
  */
 const MESSY_INPUT_LEGS: Record<"1" | "2", ReadonlySet<string>> = {
-  "1": new Set(["sweep", "targeted", "explore-post-job", "explore-even"]),
-  "2": new Set(["explore-odd", "coverage"]),
+  // The targeted rules (~3.7 test-minutes, 14 tests) moved to leg 2 on
+  // 2026-10-18: leg 1 timed out after test 90 of 100 on runs 39102037116 and
+  // 39030048100 alike (six failures, each a worker restart that rebuilt the
+  // beforeAll fixtures, ~76 s apiece), while leg 2 finished in 29.5 of its 42
+  // minutes on 39030048100. Declared before the coverage check, so their
+  // credits still count.
+  "1": new Set(["sweep", "explore-post-job", "explore-even"]),
+  "2": new Set(["targeted", "explore-odd", "coverage"]),
 };
 const LEG = (process.env.MESSY_INPUT_LEG ?? "").trim();
 if (LEG && LEG !== "1" && LEG !== "2") throw new Error(`MESSY_INPUT_LEG must be 1 or 2, got ${JSON.stringify(LEG)}`);
@@ -290,6 +296,12 @@ if (legHas("targeted")) test.describe("targeted rules", () => {
     // password-grant attempt with a wrong password would count against the
     // test account's lockout.
     await page.route(`${SUPABASE_URL}/auth/v1/token*`, (route) => route.abort("blockedbyclient"));
+    // Aborted here, it never reaches GoTrue, so it is not a sign-in: without
+    // this the request meter counted it as one, and prod-audit's signIns budget
+    // (e2e/request-budgets.json) read 1 more than the harness's mints
+    // (e2e/requestMeter.mjs `__requestMeterSkip`, the same hook
+    // press-every-control uses for requests its context answers itself).
+    Object.assign(ctx, { __requestMeterSkip: (req: { url(): string }) => req.url().startsWith(`${SUPABASE_URL}/auth/v1/token`) });
     const submit = page.getByRole("button", { name: /^(sign in|log in)$/i }).first();
     await submit.click();
     await page.waitForTimeout(400);
@@ -338,28 +350,23 @@ if (legHas("targeted")) test.describe("targeted rules", () => {
     await ctx.close();
   });
 
-  scoped("signup step 2: the DOB wheel cannot pick an under-18 year; phone and ZIP formats are refused inline; nothing is sent", async ({ browser }, info) => {
+  // Step 2 asks name, city and ZIP only since 2026-10-09 (owner; c34c5fee5): no
+  // phone, no birthday. Step 1's 18+ box (#age-confirm, ticked in this form's
+  // prepare) is the age gate complete-signup accepts. Pinned on the app side by
+  // src/test/signupStepTwoIsShort.test.ts; every `#id` this file drives must
+  // exist in src/ (src/test/messyInputApplicantNames.test.ts).
+  scoped("signup step 2: asks no birthday or phone (step 1's 18+ box is the age gate); a 4-digit ZIP is refused inline; nothing is sent", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "signup-step2")!);
     const signup = watchWrites(page, /\/auth\/v1\/signup/);
     await expect(page.locator("#firstName"), "step 2 did not open").toBeVisible({ timeout: 10_000 });
-    await page.locator("#dob").click();
-    const years = page.getByRole("listbox", { name: /year/i }).getByRole("option");
-    await expect(years.first()).toBeVisible({ timeout: 5_000 });
-    const labels = (await years.allInnerTexts()).map((t) => Number(t.trim())).filter((n) => !Number.isNaN(n));
-    const maxYear = Math.max(...labels);
-    expect(maxYear, `the year wheel offers ${maxYear}: an under-18 date of birth is selectable`).toBeLessThanOrEqual(new Date().getFullYear() - 18);
-    await page.keyboard.press("Escape");
-    await shoot(page, info, "signup-step2-dob-wheel");
-    for (const [id, bad] of [["#phone", "123"], ["#zipCode", "1234"]] as const) {
-      const el = page.locator(id);
-      if (!(await el.isVisible().catch(() => false))) continue;
-      await el.fill(bad);
-      await el.press("Tab");
-    }
+    await expect(page.locator("#dob, #phone"), "step 2 asks a birthday or phone again (owner, 2026-10-09: name, city and ZIP only)").toHaveCount(0);
+    await page.locator("#zipCode").fill("1234");
+    await page.locator("#zipCode").press("Tab");
     await page.getByRole("button", { name: /create account|sign up|continue|finish/i }).last().click().catch(() => {});
     await page.waitForTimeout(600);
     expect(signup, "an invalid step 2 must not create an account").toHaveLength(0);
-    await expect(page.getByText(/valid phone|10 digits|zip|5 digits|required|18 or older/i).first(), "no inline message for the bad phone/ZIP").toBeVisible();
+    await expect(page.getByText(/zip|5 digits|required/i).first(), "no inline message for the bad ZIP").toBeVisible();
+    await shoot(page, info, "signup-step2-bad-zip");
     await assertHealthy(page, info, "signup-step2-bad");
     await ctx.close();
   });
@@ -376,26 +383,24 @@ if (legHas("targeted")) test.describe("targeted rules", () => {
     await ctx.close();
   });
 
-  scoped("complete-profile: under-18 unreachable, 3-digit phone and 4-digit ZIP refused inline, whitespace name refused; no profile write", async ({ browser }, info) => {
+  // Complete Profile asks no birthday and no phone since 2026-10-14 (owner;
+  // 8d44b5aab). A Google/Apple sign-up ticks the 18+ box here instead; the
+  // incomplete seed account is an email sign-up, which ticked it on step 1, so
+  // the box is not shown to it (CompleteProfile.tsx ageBoxShown).
+  scoped("complete-profile: asks no birthday or phone; whitespace name and 4-digit ZIP refused; no profile write", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "complete-profile")!);
     const writes = watchWrites(page, /\/rest\/v1\/(profiles|rpc\/complete_profile)/);
     await expect(page.locator("#firstName"), "complete-profile did not render for the incomplete seed account").toBeVisible({ timeout: 15_000 });
-    await page.locator("#dob").click();
-    const years = page.getByRole("listbox", { name: /year/i }).getByRole("option");
-    await expect(years.first()).toBeVisible({ timeout: 5_000 });
-    const maxYear = Math.max(...(await years.allInnerTexts()).map((t) => Number(t.trim())).filter((n) => !Number.isNaN(n)));
-    expect(maxYear, "an under-18 date of birth is selectable").toBeLessThanOrEqual(new Date().getFullYear() - 18);
-    await page.keyboard.press("Escape");
+    await expect(page.locator("#dob, #phone"), "Complete Profile asks a birthday or phone again (owner, 2026-10-14)").toHaveCount(0);
     await page.locator("#firstName").fill(WS);
     await page.locator("#lastName").fill(WS);
-    await page.locator("#phone").fill("123");
     await page.locator("#zipCode").fill("1234");
     await page.locator("#zipCode").press("Tab");
     const submit = page.getByRole("button", { name: /save|continue|finish|complete|done/i }).last();
     await submit.click({ force: true }).catch(() => {});
     await page.waitForTimeout(800);
     expect(writes.map((w) => `${w.method()} ${w.url()}`), "an invalid profile must not be written").toEqual([]);
-    await expect(page.getByText(/valid phone|10 digits|zip|name|required|18 or older/i).first(), "no inline message").toBeVisible();
+    await expect(page.getByText(/zip|name|required|18 or older/i).first(), "no inline message").toBeVisible();
     await assertHealthy(page, info, "complete-profile-bad");
     await ctx.close();
   });

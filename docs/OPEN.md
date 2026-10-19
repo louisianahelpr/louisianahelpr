@@ -95,7 +95,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1801 items — 1440 done, 52 partly done (fixed, protection pending), 309 open.**
+**Queue: 1801 items — 1441 done, 51 partly done (fixed, protection pending), 309 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -864,7 +864,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Nightly reds — worked 2026-09-15, what is left
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [~] **Q959** LOW REPORT: Activity screen is expensive to composite (15 backdrop-filter layers) — Open (owner report): Activity's 15-layer backdrop-filter cost still awaits an owner call. (archive L3007) **OWNER DECISION 2026-10-05 (pop-up): keep the frosted look but cut layers (one shared blur behind the Activity cards).** **BUILT 2026-10-18 (salvage-1018, from ready/sec-b-10 398cef8e9):** PageScaffold `oneBlur` on My Posts / My Jobs and their skeleton puts `.page-panel--one-blur` on the panel; the cards inside stop running their own backdrop-filter. GUARD: src/test/activityOneSharedBlur.test.tsx (11 of 14 red without the change). Left: re-measure the blurring-element count on a built main in a browser (sec-b-10 measured /posts 21 -> 6 and /jobs 12 -> 5 on 10-15), then tick.
 
 ### Owner visual notes 2026-09-14 (53 entries)
 Reconciled 2026-09-23; detail in the archive at the line shown.

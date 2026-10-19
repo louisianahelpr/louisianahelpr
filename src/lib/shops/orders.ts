@@ -26,11 +26,12 @@ export const CANCEL_POLICY_TEXT: Record<CancelPolicy, { label: string; detail: s
     label: "Free to cancel until the shop accepts",
     detail: "Once the shop accepts, the order is final.",
   },
-  // Owner 2026-10-18 ~22:30Z (Q2155): free cancel closes when the ready date begins or when the shop
-  // marks the order ready, whichever is first, never at pickup (shop_order_free_cancel_until, 20261018211820).
+  // Owner 2026-10-18 ~22:30Z + 2026-10-19 ~01:30Z (Q2155): free cancel closes when the ready date begins, or
+  // when the shop marks the order ready on the day before it; an earlier ready tap counts only from the day
+  // before; never at pickup (shop_order_free_cancel_until, 20261019013802).
   until_handover: {
     label: "Free to cancel until your order is ready",
-    detail: "After the shop accepts, you can cancel for a refund of the price until your ready date begins, or until the shop marks your order ready if that comes first. The card fee is not refunded.",
+    detail: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready, free cancel ends then, but never before the day before your ready date. The card fee is not refunded.",
   },
 };
 export const CANCEL_POLICIES = Object.keys(CANCEL_POLICY_TEXT) as CancelPolicy[];

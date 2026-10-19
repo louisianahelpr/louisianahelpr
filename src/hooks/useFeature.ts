@@ -35,10 +35,17 @@ export function useFeature(key: FeatureKey): boolean {
  * `settled` to the page's useArrivalGate so the skeleton holds until the
  * answer is in.
  *
+ * `lastAnswer` is the server's last SUCCESSFUL answer (null until one
+ * arrives, and when signed out). A refetch that fails flips `on` to false but
+ * leaves `lastAnswer` as it was: for a page that must not swap a member's
+ * full view for a lesser one on a network blip (ShopPage), where the reads
+ * behind the full view are gated on the server anyway. Gate nothing on it
+ * that `on` should gate.
+ *
  * The string-literal rule is the same as useFeature's
  * (featureSwitchRegistry.test.ts reads both).
  */
-export function useFeatureStatus(key: FeatureKey): { on: boolean; settled: boolean } {
+export function useFeatureStatus(key: FeatureKey): { on: boolean; settled: boolean; lastAnswer: boolean | null } {
   const { user, isReady } = useAuthReady();
   const uid = user?.id ?? null;
   const { data, isSuccess, isError } = useQuery({
@@ -51,5 +58,7 @@ export function useFeatureStatus(key: FeatureKey): { on: boolean; settled: boole
   // the status to error, and an error reads as off.
   const on = isReady && !!uid && isSuccess && data === true;
   const settled = isReady && (!uid || isSuccess || isError);
-  return { on, settled };
+  // React Query keeps `data` from the last success through a failed refetch.
+  const lastAnswer = isReady && !!uid && typeof data === "boolean" ? data : null;
+  return { on, settled, lastAnswer };
 }

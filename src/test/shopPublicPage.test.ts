@@ -20,10 +20,18 @@
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |   SELECT public.feature_enabled_for('shops')\n     AND public.shop_state_ok(p_shop_id); |   SELECT public.feature_enabled_for('shops');
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |     'badges', public.shop_badges(v_s.id), |     'badges', public.shop_badges(v_s.id), 'rating', (SELECT r.rating FROM public.shop_owner_rating(v_s.owner_id) r),
 // @mutate supabase/functions/shop-photo/index.ts |   const rl = await checkRateLimit(req, | const rl = { allowed: true, retryAfter: 0 }; void (req,
+// @mutate supabase/functions/shop-photo/index.ts |       if (og) {\n | if (false) {\n
+// @mutate supabase/functions/shop-photo/index.ts | !(length > 0 && length <= FALLBACK_MAX_BYTES) | false
+// @mutate supabase/functions/shop-photo/index.ts | &quality=80&format=origin` | &quality=80`
+// @mutate supabase/functions/shop-photo/index.ts |     if (og && !type.startsWith("image/jpeg")) { |     if (false) {
+// @mutate supabase/functions/shop-photo/index.ts | maxRequests: 1200, ipMaxRequests: 6000, | maxRequests: 300, ipMaxRequests: 300,
+// @mutate supabase/functions/shop-photo/index.ts |   if (lastAlertDay === day) return;\n |
+// @mutate supabase/functions/shop-photo/index.ts |         alertStorage(upstream.status, "render refused a link-card image"); |         await alertStorage(upstream.status, "render refused a link-card image");
 // @mutate supabase/functions/shop-photo/index.ts |   const width = og ? (asked === OG_HEIGHT ? OG_HEIGHT : 1200) : | const width =
 // @mutate src/lib/shops/publicShop.ts |   if (!isShopId(shopId)) return null;\n |
 // @mutate src/lib/shops/publicShop.ts |   if ((error as { code?: string } \| null)?.code === "PGRST202") return null; |
-// @mutate src/pages/shops/ShopPage.tsx |   const { on, settled } = useFeatureStatus("shops"); |   const { on } = useFeatureStatus("shops"); const settled = true;
+// @mutate src/pages/shops/ShopPage.tsx |   const { settled, lastAnswer } = useFeatureStatus("shops"); |   const { lastAnswer } = useFeatureStatus("shops"); const settled = true;
+// @mutate src/pages/shops/ShopPage.tsx |   if (lastAnswer === true) return <ShopView />; |   if (useFeatureStatus("shops").on) return <ShopView />;
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO authenticated, service_role;
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |     'area_label', v_s.area_label, |     'area_label', v_s.area_label, 'owner_id', v_s.owner_id,
 // @mutate api/share.ts |     robots: SHOP_ROBOTS,\n    image: shopImage(shop), |     image: shopImage(shop),
@@ -87,6 +95,34 @@ describe("SH2b: shops_public_shop is the anon read, and only the page's fields",
     expect(edge.indexOf("createClient(")).toBeLessThan(edge.indexOf("serve("));
     // Render refused -> the original object, then an alert (review #3).
     expect(edge).toMatch(/\/storage\/v1\/render\/image\/public\/job-photos\/[\s\S]*\/storage\/v1\/object\/public\/job-photos\/[\s\S]*alertStorage\(/);
+
+  });
+
+  it("the photo proxy is robust: capped fallback, JPEG kept, burst-sized limit, unawaited deduped alert (lead re-review)", () => {
+    const edge = blankComments(read("supabase/functions/shop-photo/index.ts"));
+    // #1 the un-resized original: never for a link card, never over 2 MB or unsized.
+    const fallback = edge.indexOf("/storage/v1/object/public/job-photos/");
+    expect(fallback).toBeGreaterThan(0);
+    const ogRefusal = edge.indexOf("if (og) {");
+    expect(ogRefusal).toBeGreaterThan(0);
+    expect(ogRefusal).toBeLessThan(fallback);
+    expect(edge).toMatch(/const FALLBACK_MAX_BYTES = 2 \* 1024 \* 1024;/);
+    expect(edge).toMatch(/!\(length > 0 && length <= FALLBACK_MAX_BYTES\)/);
+    // #2 format=origin keeps the JPEG a JPEG (format=jpeg is refused by storage, measured);
+    // and an og answer that is not image/jpeg is refused, so og:image:type is never false.
+    expect(edge).toMatch(/\/storage\/v1\/render\/image\/public\/job-photos\/[^`]*&format=origin`/);
+    expect(edge).toMatch(/if \(og && !type\.startsWith\("image\/jpeg"\)\)/);
+    // #4 a page bursts ~114 images: the per-address window fits it, the wide one is wider.
+    const rate = /const RATE = \{ windowMs: 60_000, maxRequests: (\d+), ipMaxRequests: (\d+),/.exec(edge);
+    expect(rate, "the RATE constant").toBeTruthy();
+    expect(Number(rate![1])).toBeGreaterThanOrEqual(1200);
+    expect(Number(rate![2])).toBeGreaterThan(Number(rate![1]));
+    // #6 the alert is fired, not awaited, and deduped before postSlackOpsAlert writes its row.
+    expect(edge).not.toMatch(/await alertStorage\(/);
+    const fn = edge.slice(edge.indexOf("function alertStorage("), edge.indexOf("function unavailable("));
+    expect(fn.indexOf("if (lastAlertDay === day) return;")).toBeGreaterThan(0);
+    expect(fn.indexOf("if (lastAlertDay === day) return;")).toBeLessThan(fn.indexOf("postSlackOpsAlert("));
+    expect(fn).not.toMatch(/\bawait\b/);
   });
 
   it("the preview image is served at exactly the size api/share.ts declares (review #6)", () => {
@@ -240,8 +276,29 @@ describe("SH2b: the page never shows a retry for a link that cannot work", () =>
 
   it("ShopPage decides member vs public through useFeatureStatus, not a hand-built query key (review #7)", () => {
     const page = blankComments(read("src/pages/shops/ShopPage.tsx"));
-    expect(page).toMatch(/const \{ on, settled \} = useFeatureStatus\("shops"\);/);
+    expect(page).toMatch(/const \{ settled, lastAnswer \} = useFeatureStatus\("shops"\);/);
     expect(page).not.toMatch(/feature-enabled|getQueryState/);
+  });
+
+  it("a failed switch refetch keeps a member on the full page; only a successful 'off' shows the public one (re-review #3)", async () => {
+    const status = { on: false, settled: false, lastAnswer: null as boolean | null };
+    vi.doMock("@/hooks/useFeature", () => ({ useFeatureStatus: () => status }));
+    vi.doMock("@/components/shops/ShopView", () => ({ default: function ShopView() { return null; } }));
+    vi.doMock("@/components/shops/PublicShopView", () => ({ default: function PublicShopView() { return null; } }));
+    vi.doMock("@/components/AppPage", () => ({ default: function AppPage() { return null; } }));
+    const { default: ShopPage } = await import("@/pages/shops/ShopPage");
+    const shown = () => ((ShopPage() as { type: { name: string } }).type.name);
+    expect(shown()).toBe("AppPage"); // pending: nothing paints yet
+    Object.assign(status, { on: true, settled: true, lastAnswer: true });
+    expect(shown()).toBe("ShopView");
+    Object.assign(status, { on: false, settled: true, lastAnswer: true }); // refetch ERROR
+    expect(shown()).toBe("ShopView");
+    Object.assign(status, { on: false, settled: true, lastAnswer: false }); // successful off
+    expect(shown()).toBe("PublicShopView");
+    Object.assign(status, { on: false, settled: true, lastAnswer: null }); // signed out / first read failed
+    expect(shown()).toBe("PublicShopView");
+    for (const m of ["@/hooks/useFeature", "@/components/shops/ShopView", "@/components/shops/PublicShopView", "@/components/AppPage"]) vi.doUnmock(m);
+    vi.resetModules();
   });
 });
 

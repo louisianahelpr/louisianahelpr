@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // @mutate src/hooks/useFeature.ts | const settled = isReady && (!uid \|\| isSuccess \|\| isError); | const settled = true;
 // @mutate src/hooks/useFeature.ts | const settled = isReady && (!uid \|\| isSuccess \|\| isError); | const settled = isReady && (!uid \|\| isSuccess);
 // @mutate src/hooks/useFeature.ts |     enabled: isReady && !!uid, |     enabled: true,
+// @mutate src/hooks/useFeature.ts | const lastAnswer = isReady && !!uid && typeof data === "boolean" ? data : null; | const lastAnswer = isSuccess && typeof data === "boolean" ? data : null;
 
 const rpc = vi.fn();
 const auth = { user: { id: "u1" } as { id: string } | null, isReady: true };
@@ -77,9 +78,9 @@ describe("useFeatureStatus: settled says the answer is in (Q?profile-declutter-s
     let resolve!: (v: unknown) => void;
     rpc.mockReturnValue(new Promise((r) => { resolve = r; }));
     const { result } = renderHook(() => useFeatureStatus("switch_canary"), { wrapper });
-    expect(result.current).toEqual({ on: false, settled: false });
+    expect(result.current).toEqual({ on: false, settled: false, lastAnswer: null });
     resolve({ data: true, error: null });
-    await waitFor(() => expect(result.current).toEqual({ on: true, settled: true }));
+    await waitFor(() => expect(result.current).toEqual({ on: true, settled: true, lastAnswer: true }));
   });
 
   it("an RPC error is an answer: settled, and off", async () => {
@@ -92,12 +93,44 @@ describe("useFeatureStatus: settled says the answer is in (Q?profile-declutter-s
   it("signed out is settled at once and asks nothing; auth not ready is unsettled", async () => {
     auth.user = null;
     const a = renderHook(() => useFeatureStatus("switch_canary"), { wrapper });
-    expect(a.result.current).toEqual({ on: false, settled: true });
+    expect(a.result.current).toEqual({ on: false, settled: true, lastAnswer: null });
     auth.user = { id: "u1" };
     auth.isReady = false;
     const b = renderHook(() => useFeatureStatus("switch_canary"), { wrapper });
     await new Promise((r) => setTimeout(r, 20));
-    expect(b.result.current).toEqual({ on: false, settled: false });
+    expect(b.result.current).toEqual({ on: false, settled: false, lastAnswer: null });
     expect(rpc).not.toHaveBeenCalled();
+  });
+});
+
+describe("useFeatureStatus: lastAnswer survives a failed refetch (lead re-review of SH2b #3)", () => {
+  it("a refetch error turns on off but keeps the last successful answer", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const w = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    rpc.mockResolvedValueOnce({ data: true, error: null });
+    const { result } = renderHook(() => useFeatureStatus("switch_canary"), { wrapper: w });
+    await waitFor(() => expect(result.current).toEqual({ on: true, settled: true, lastAnswer: true }));
+    rpc.mockResolvedValueOnce({ data: null, error: { message: "network", code: "" } });
+    await client.refetchQueries({ queryKey: ["feature-enabled", "switch_canary"] });
+    await waitFor(() => expect(result.current.on).toBe(false));
+    expect(result.current).toEqual({ on: false, settled: true, lastAnswer: true });
+  });
+
+  it("a successful 'off' is the new last answer", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const w = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    rpc.mockResolvedValueOnce({ data: true, error: null });
+    const { result } = renderHook(() => useFeatureStatus("switch_canary"), { wrapper: w });
+    await waitFor(() => expect(result.current.lastAnswer).toBe(true));
+    rpc.mockResolvedValueOnce({ data: false, error: null });
+    await client.refetchQueries({ queryKey: ["feature-enabled", "switch_canary"] });
+    await waitFor(() => expect(result.current).toEqual({ on: false, settled: true, lastAnswer: false }));
+  });
+
+  it("an error with no earlier answer has no last answer", async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: "permission denied", code: "42501" } });
+    const { result } = renderHook(() => useFeatureStatus("switch_canary"), { wrapper });
+    await waitFor(() => expect(result.current.settled).toBe(true));
+    expect(result.current.lastAnswer).toBeNull();
   });
 });

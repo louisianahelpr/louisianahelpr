@@ -27,6 +27,13 @@ vi.mock("@/lib/haptics", () => ({
 }));
 
 import { ConversationList } from "@/components/messages/ConversationList";
+import { INBOX_TAB_LABEL, INBOX_TAB_ORDER } from "@/lib/inboxDefault";
+// The phone header is the shared AppTopBar since Q2231; its bell and avatar
+// need the app's providers, and this file tests the list, not the bar.
+vi.mock("@/components/sections/AppTopBar", () => ({
+  AppTopBar: ({ title }: { title?: string }) => <header data-testid="app-top-bar"><h1>{title}</h1></header>,
+}));
+
 
 afterEach(cleanup);
 
@@ -50,7 +57,10 @@ function renderEmptyInbox() {
 
 /** Radix's DropdownMenu opens on pointerdown (jsdom needs the button + pointer type). */
 function openOptions() {
-  const trigger = screen.getByRole("button", { name: "Conversation list options" });
+  // Phone since Q2231: the search row's one "more" menu; desktop: the hamburger.
+  const trigger =
+    screen.queryByRole("button", { name: "Conversation list options" }) ??
+    screen.getByRole("button", { name: "More conversation options" });
   trigger.focus();
   fireEvent.keyDown(trigger, { key: "Enter" });
 }
@@ -64,7 +74,10 @@ describe("special inbox views are never a blank panel", () => {
   it("the options menu offers exactly the views checked here (floor + two-way)", () => {
     renderEmptyInbox();
     openOptions();
-    const offered = screen.getAllByRole("menuitem").map((m) => (m.textContent ?? "").trim());
+    // The phone's more menu also carries the Active / All filter (Q2231);
+    // those are the inbox's tabs, not special views, so they are set aside.
+    const tabs = INBOX_TAB_ORDER.map((k) => INBOX_TAB_LABEL[k]);
+    const offered = screen.getAllByRole("menuitem").map((m) => (m.textContent ?? "").trim()).filter((t) => !tabs.includes(t));
     expect(offered.length).toBeGreaterThan(1);
     expect(offered.sort()).toEqual(VIEWS.map(([v]) => v).sort());
   });

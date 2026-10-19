@@ -158,7 +158,7 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(rail).toMatch(/\.\.\.dockItems\(sectionTabs, visibleSections\),\s*PROFILE_ITEM,/);
     expect(rail).not.toMatch(/path: "\/posts"/);
     expect(rail).not.toMatch(/Post a Job/);
-    expect(rail).toContain("onClick={() => (soon ? sayComingSoon(label) : navigate(path))}");
+    expect(rail).toContain("onClick={() => { if (soon) return sayComingSoon(label); if (location.pathname === path) announceTabReselect(path); navigate(path); }}");
     expect(rail).toContain("aria-disabled={soon ? true : undefined}");
   });
 

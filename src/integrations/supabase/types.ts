@@ -12828,6 +12828,7 @@ export type Database = {
         Args: { p_label: string; p_property_id: string }
         Returns: string
       }
+      rentals_address_key: { Args: { p_street: string; p_zip: string }; Returns: string }
       rentals_admin_review_landlord_id: {
         Args: {
           p_approve: boolean
@@ -13071,6 +13072,38 @@ export type Database = {
         }
         Returns: undefined
       }
+      rentals_public_listing: {
+        Args: { p_slug: string }
+        Returns: {
+          accepts_vouchers: string
+          accessibility: string[]
+          available_on: string
+          baths: number
+          beds: number
+          city: string
+          deposit_cents: number
+          description: string
+          headline: string
+          kind: string
+          lease_months_max: number
+          lease_months_min: number
+          lot_sq_ft: number
+          parking: string
+          pet_rules: string
+          pets: string
+          photo_ids: string[]
+          published_at: string
+          rent_cents: number
+          rent_frequency: string
+          sale_price_cents: number
+          sq_ft: number
+          utilities_included: string[]
+          year_built: number
+          zip_code: string
+        }[]
+      }
+      rentals_public_listing_photo_path: { Args: { p_photo_id: string }; Returns: string }
+      rentals_public_listing_visible: { Args: { p_listing_id: string }; Returns: boolean }
       rentals_remove_listing_photo: {
         Args: { p_photo_id: string }
         Returns: string

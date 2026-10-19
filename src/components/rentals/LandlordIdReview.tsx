@@ -10,8 +10,9 @@
  *   SendForReview    the one form: ID photos when the ID is still needed, the
  *                    ownership proof when the property needs it.
  */
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { CheckCircle2, Clock, ImageUp, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -26,18 +27,29 @@ import { LANDLORD_ID_RETENTION_DAYS } from "../../../supabase/functions/_shared/
  */
 export const idPhotoNeeded = (id: MyIdentity | undefined): boolean => !!id && !id.verified && id.idStatus !== "pending_review";
 
+/** The notice row: one flat tinted strip with a leading icon (the Homes status look). */
+function Notice({ icon: Icon, children }: { icon: typeof Clock; children: ReactNode }) {
+  return (
+    <div role="status" className="flex items-start gap-3 rounded-2xl bg-muted px-4 py-3 text-ds-14">
+      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--bark))]" aria-hidden />
+      <div className="min-w-0 space-y-1">{children}</div>
+    </div>
+  );
+}
+
 export function IdStatusNotice({ id }: { id: MyIdentity }) {
   if (id.verified) return null;
   if (id.idStatus === "pending_review") {
     return (
-      <p role="status" className="rounded-xl border border-border bg-muted p-3 text-sm">
-        Your ID is with our team for review. We'll let you know here when it's checked.
-      </p>
+      <Notice icon={Clock}>
+        <p>Your ID is with our team for review. We'll let you know here when it's checked.</p>
+      </Notice>
     );
   }
+  const again = id.idStatus === "rejected" || id.idStatus === "approved";
   return (
-    <div role="status" className="rounded-xl border border-border bg-muted p-3 text-sm space-y-1">
-      {id.idStatus === "rejected" || id.idStatus === "approved" ? (
+    <Notice icon={again ? ShieldAlert : ShieldCheck}>
+      {again ? (
         <>
           <p className="font-semibold">We need a new photo of your ID.</p>
           {id.reviewNote && <p className="text-muted-foreground">Reason: {id.reviewNote}</p>}
@@ -52,15 +64,43 @@ export function IdStatusNotice({ id }: { id: MyIdentity }) {
         </Link>
         : Stripe's ID check there counts too.
       </p>
-    </div>
+    </Notice>
   );
 }
 
+/**
+ * A file pick that looks like the rest of the app: a full-width tile with the
+ * label, and the chosen file's name once picked. The native input stays inside
+ * the label (screen readers and tests find it by the label's words).
+ */
 function FileField({ label, accept, onPick, disabled }: { label: string; accept: string; onPick: (f: File | null) => void; disabled: boolean }) {
+  const [name, setName] = useState<string | null>(null);
   return (
-    <label className="block text-sm">
-      <span className="block mb-1">{label}</span>
-      <input type="file" accept={accept} disabled={disabled} onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
+    <label
+      className={`flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed px-4 py-3 text-ds-14 focus-within:ring-2 focus-within:ring-ring ${name ? "border-[hsl(var(--bark)/0.5)] bg-[hsl(var(--bark)/0.06)]" : "border-border"} ${disabled ? "cursor-not-allowed text-muted-foreground" : ""}`}
+    >
+      {name ? (
+        <CheckCircle2 className="h-5 w-5 shrink-0 text-[hsl(var(--bark))]" aria-hidden />
+      ) : (
+        <ImageUp className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+      )}
+      <span className="min-w-0 flex-1">
+        <span className="block">{label}</span>
+        <span className="block truncate text-ds-13 text-muted-foreground" title={name ?? undefined}>
+          {name ?? "Tap to choose a file"}
+        </span>
+      </span>
+      <input
+        type="file"
+        accept={accept}
+        disabled={disabled}
+        className="sr-only"
+        onChange={(e) => {
+          const f = e.target.files?.[0] ?? null;
+          setName(f?.name ?? null);
+          onPick(f);
+        }}
+      />
     </label>
   );
 }
@@ -115,7 +155,7 @@ export function SendForReview({
   const ready = (!needsId || front !== null) && (!needsProof || proof !== null);
   return (
     <form
-      className="space-y-2"
+      className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
         if (ready) send.mutate();
@@ -131,11 +171,11 @@ export function SendForReview({
         <FileField label="Ownership proof: a deed, tax bill or parish assessor page with your name" accept="image/jpeg,image/png,application/pdf" onPick={setProof} disabled={send.isPending} />
       )}
       {needsId && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-ds-13 text-muted-foreground">
           Only our review team sees your ID. We delete the photo {LANDLORD_ID_RETENTION_DAYS} days after it's checked.
         </p>
       )}
-      <Button type="submit" size="sm" disabled={!ready || send.isPending}>
+      <Button type="submit" className="w-full sm:w-auto" disabled={!ready || send.isPending}>
         {send.isPending ? "Sending…" : "Send for review"}
       </Button>
     </form>

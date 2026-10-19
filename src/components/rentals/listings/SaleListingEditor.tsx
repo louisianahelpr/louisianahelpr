@@ -93,7 +93,7 @@ export function SaleEditorForm({ listing, propertyId, uid }: { listing: RentalLi
   });
   const flags = listing?.wording_flags ?? [];
   return (
-    <div className="space-y-6">
+    <div className="max-w-2xl space-y-6">
       <p className="px-1 text-ds-14 text-muted-foreground">{SALE_HOW_IT_WORKS}</p>
       {flags.length > 0 && (
         <p role="alert" className="rounded-2xl border border-destructive p-4 text-ds-14">

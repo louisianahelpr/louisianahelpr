@@ -1,12 +1,10 @@
 {
-  "generated": "2026-10-19T10:22:07.810Z",
-  "guards": 2060,
-  "registered": 2060,
+  "generated": "2026-10-19T14:25:27.969Z",
+  "guards": 2084,
+  "registered": 2084,
   "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/components/quotes/quotesInsideJobs.test.tsx",
-    "src/test/edge/landlordIdRetention.test.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],
   "classD_selfReferential": [
     {
@@ -166,6 +164,15 @@
       ]
     },
     {
+      "module": "src/components/landing/HowItWorksSection.tsx",
+      "tests": [
+        "src/test/landingStepsVisibleByDefault.test.tsx"
+      ],
+      "parents": [
+        "src/pages/info/Index.tsx"
+      ]
+    },
+    {
       "module": "src/components/messages/ChatView.tsx",
       "tests": [
         "src/test/cancelledThreadClosesBeforeTheTap.test.tsx",
@@ -187,6 +194,7 @@
         "src/test/messagesDesktopFilterTabsInline.test.tsx",
         "src/test/messagesNoSeparateTopPanel.test.tsx",
         "src/test/messagesSearchOwnLineBelow360.test.tsx",
+        "src/test/messagesSectionTabs.test.tsx",
         "src/test/searchDismissAndOverlay.test.tsx",
         "src/test/specialInboxViewsNeverBlank.test.tsx"
       ],
@@ -228,15 +236,6 @@
       ],
       "parents": [
         "src/components/profile/SavedHelpersTab.tsx"
-      ]
-    },
-    {
-      "module": "src/components/quotes/QuotesHubRedirect.tsx",
-      "tests": [
-        "src/components/quotes/quotesInsideJobs.test.tsx"
-      ],
-      "parents": [
-        "src/App.tsx"
       ]
     },
     {
@@ -355,7 +354,5 @@
       ]
     }
   ],
-  "edge_classA": [
-    "src/test/edge/landlordIdRetention.test.ts"
-  ]
+  "edge_classA": []
 }

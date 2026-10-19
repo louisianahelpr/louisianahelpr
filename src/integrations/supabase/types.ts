@@ -12962,6 +12962,10 @@ export type Database = {
       }
       session_email_unconfirmed: { Args: never; Returns: boolean }
       set_available_now: { Args: { p_hours?: number }; Returns: string }
+      set_helpr_fault_fee_withheld: {
+        Args: { p_cents: number; p_helper_id: string; p_payout_ref: string }
+        Returns: number
+      }
       set_thread_snooze: {
         Args: { _job_id: string; _other_user_id: string; _until: string }
         Returns: string

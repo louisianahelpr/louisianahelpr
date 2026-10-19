@@ -392,8 +392,11 @@ export type UnrecordedTransferCheck =
    * An orphaned claim of this (job, helper) and exactly ONE unrecorded transfer
    * that is unmistakably its payout (destination, metadata.job_id and amount all
    * match). Settle `claimId` with `transferId`; do NOT call transfers.create.
+   * `amountCents` is what THAT transfer carried and `helprFaultFeeCents` what
+   * it withheld for a Helpr-fault card fee (its metadata; 0 when absent): the
+   * ledger is settled with these, never with the adopting run's recompute.
    */
-  | { kind: "adopt"; claimId: string; transferId: string }
+  | { kind: "adopt"; claimId: string; transferId: string; amountCents: number; helprFaultFeeCents: number }
   /** Another run holds a claim inside the in-flight window: stand down, no page. */
   | { kind: "inflight" }
   /** Unrecorded money that cannot be attributed: refuse and page. */
@@ -496,7 +499,14 @@ export async function checkUnrecordedTransfers(
       t.metadata?.job_id === args.jobId &&
       Number(t.amount) === claimAmount
     ) {
-      return { kind: "adopt", claimId: openClaim.id, transferId: t.id };
+      const fault = Math.round(Number(t.metadata?.helpr_fault_fee_cents ?? 0));
+      return {
+        kind: "adopt",
+        claimId: openClaim.id,
+        transferId: t.id,
+        amountCents: Number(t.amount),
+        helprFaultFeeCents: Number.isFinite(fault) && fault > 0 ? fault : 0,
+      };
     }
   }
   return { kind: "conflict", transferIds: unrecorded.map((t) => t.id) };

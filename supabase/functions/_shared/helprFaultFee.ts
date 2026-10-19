@@ -21,7 +21,7 @@
 import { roundPayoutDownCents } from "./money.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js rpc builder (thenable), as in heldTipRepay.ts
-type Db = { rpc: (fn: string, args: Record<string, unknown>) => any };
+type Db = { rpc: (fn: string, args: Record<string, unknown>) => any; from?: (t: string) => any };
 
 /** The payout every single-Helpr job path takes the debt under. */
 function helprFaultPayoutRef(jobId: string): string {
@@ -68,8 +68,34 @@ export async function takeHelprFaultFee(
   return { cents };
 }
 
-/** Gives the withheld debt back; logged loudly when it cannot (never silent). */
+/**
+ * Gives the withheld debt back; logged loudly when it cannot (never silent).
+ * Stands down when an earlier attempt for this (job, Helpr) failed UNCLEARLY
+ * (a failed payout_transfers row stamped helpr_fault_fee_kept_cents): that
+ * transfer may be out with the fee held back, so a later run's early exit
+ * must not hand the debt back for another payout to take again
+ * (lh-money-escrow review of ab64957d4 #1). Fails closed: an unreadable
+ * ledger keeps the deduction booked.
+ */
 export async function restoreHelprFaultFee(supabaseAdmin: Db, helperId: string, jobId: string, source: string): Promise<void> {
+  if (supabaseAdmin.from) {
+    const { data: failedRows, error: readErr } = await supabaseAdmin
+      .from("payout_transfers")
+      .select("id, status, metadata")
+      .eq("job_id", jobId)
+      .eq("helper_id", helperId)
+      .eq("status", "failed");
+    if (readErr) {
+      console.error(`[${source}] Helpr-fault fee kept booked for job ${jobId}: the earlier attempts could not be read (${readErr.message ?? String(readErr)})`);
+      return;
+    }
+    const kept = ((failedRows ?? []) as Array<{ status?: string; metadata?: Record<string, unknown> | null }>)
+      .some((r) => r.status === "failed" && Number(r.metadata?.helpr_fault_fee_kept_cents ?? 0) > 0);
+    if (kept) {
+      console.warn(`[${source}] Helpr-fault fee kept booked for job ${jobId}: an earlier transfer attempt failed unclearly and may be out`);
+      return;
+    }
+  }
   const { error } = await supabaseAdmin.rpc("restore_helpr_fault_fee", {
     p_helper_id: helperId,
     p_job_id: jobId,
@@ -80,4 +106,41 @@ export async function restoreHelprFaultFee(supabaseAdmin: Db, helperId: string, 
       error,
     );
   }
+}
+
+/**
+ * Once money has moved: make what this job's payout BOOKS as withheld equal
+ * what its transfer actually withheld (set_helpr_fault_fee_withheld,
+ * migration 20261019043252). Closes the gaps between the take before the
+ * transfer and the money (lh-money-escrow reviews of c4ec33afb #5, b1730c932
+ * #3, the exact-cents delta #7): another run restoring the deduction while
+ * this run's transfer withheld it (the Helpr would owe it again), and an
+ * adopted orphan transfer that withheld a different figure than this run took.
+ * Never blocks the payout (the money is out); returns a problem to page, or
+ * null. A database without the function yet (PGRST202) books nothing new.
+ */
+export async function recordHelprFaultFeeWithheld(
+  supabaseAdmin: Db,
+  helperId: string,
+  jobId: string,
+  withheldCents: number,
+): Promise<string | null> {
+  const want = Math.max(0, Math.round(Number(withheldCents) || 0));
+  const { data, error } = await supabaseAdmin.rpc("set_helpr_fault_fee_withheld", {
+    p_helper_id: helperId,
+    p_payout_ref: helprFaultPayoutRef(jobId),
+    p_cents: want,
+  });
+  if (error) {
+    if (error.code === "PGRST202") {
+      if (want > 0) console.warn(`[helprFaultFee] set_helpr_fault_fee_withheld not deployed yet: job ${jobId}'s ${want}c booking not re-checked`);
+      return null;
+    }
+    return `the Helpr-fault card fee withheld (${want}c) could not be booked for job ${jobId}: ${error.message ?? String(error)}`;
+  }
+  const booked = Math.round(Number(data ?? 0));
+  if (booked !== want) {
+    return `job ${jobId}'s payout withheld ${want}c for a Helpr-fault card fee but only ${booked}c is owed: pay the Helpr back the difference`;
+  }
+  return null;
 }

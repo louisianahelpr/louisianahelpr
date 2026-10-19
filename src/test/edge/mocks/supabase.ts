@@ -296,6 +296,10 @@ function freshScenario(): SupabaseScenario {
       // One wallet (Q2139): the claim keeps the customer it was offered (first
       // writer). A scenario about a lost race returns another id.
       claim_stripe_customer: (a?: unknown) => (a as { p_customer?: string } | undefined)?.p_customer ?? null,
+      // Helpr-fault fee true-up once money moved: books exactly what the
+      // payout withheld (the neutral answer). A scenario about a debt already
+      // gone returns less.
+      set_helpr_fault_fee_withheld: (a?: unknown) => (a as { p_cents?: number } | undefined)?.p_cents ?? 0,
     },
     rpcErrors: {},
     rpcCalls: [],

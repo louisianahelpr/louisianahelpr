@@ -14,10 +14,10 @@
  *
  * @mutate supabase/functions/release-payout/index.ts |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents) - helprFaultFeeCents; |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents);
  * @mutate supabase/functions/release-payout/index.ts |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents) - helprFaultFeeCents; |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents - helprFaultFeeCents);
- * @mutate supabase/functions/release-payout/index.ts |    if (helprFaultFeeCents > 0) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout"); |    if (helprFaultFeeCents < 0) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout");
+ * @mutate supabase/functions/release-payout/index.ts |    if (helprFaultFeeCents > 0 && !opts.keepHelprFaultFee) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout"); |    if (helprFaultFeeCents < 0 && !opts.keepHelprFaultFee) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout");
  * @mutate supabase/functions/release-payout/index.ts |      return jsonResponse({ error: "could not read the Helpr's card-fee debt — retry. Nothing was moved." }, 500); |      console.error("ignored");
- * @mutate supabase/functions/process-scheduled-payouts/index.ts |      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents; |      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0));
- * @mutate supabase/functions/process-scheduled-payouts/index.ts |      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents; |      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0) - helprFaultFeeCents);
+ * @mutate supabase/functions/process-scheduled-payouts/index.ts |      let payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents; |      let payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0));
+ * @mutate supabase/functions/process-scheduled-payouts/index.ts |      let payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents; |      let payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0) - helprFaultFeeCents);
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |          helperPayout = (roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents) / 100; |          helperPayout = helperPayout + 0;
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |          continue;\n        }\n        if (take.cents > 0) { |        }\n        if (take.cents > 0) {
  * @mutate supabase/functions/_shared/money.ts |    ...(fault > 0 ? { helpr_fault_fee_cents: fault } : {}), |    ...({}),
@@ -144,10 +144,12 @@ describe("Q2082 (b): a Helpr-fault card fee comes out of the next payout", () =>
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
 
-    it("a failed transfer gives the withheld debt back", async () => {
+    it("a transfer Stripe definitely refused gives the withheld debt back", async () => {
       seedRelease(scenario);
       scenario.rpc.take_helpr_fault_fee = 369;
-      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("insufficient funds"), { type: "StripeError" }));
+      // A definite refusal: nothing was created. An unclear error keeps the
+      // debt booked (src/test/edge/helprFaultFeePayoutRaces.test.ts).
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("insufficient funds"), { type: "StripeInvalidRequestError" }));
       const res = await run();
       expect(res.status).toBe(502);
       expect(restoreCalls()).toHaveLength(1);

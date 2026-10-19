@@ -11,8 +11,8 @@ import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { crewFeeShareReturnCents } from "../_shared/refundAmount.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
-import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
-import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
+import { formatExactDollars, formatPayoutDollars, isDefiniteStripeRefusal, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
+import { helprFaultFeeCapCents, recordHelprFaultFeeWithheld, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnrecordedTransfers, claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
@@ -1521,9 +1521,15 @@ serve(async (req) => {
       // the flag as already-paid and the $2 is silently lost forever.
       // Q2082 (b): what this payout withheld for a Helpr-fault card fee (below).
       let helprFaultFeeCents = 0;
-      const rollBackOnboardingFeeClaim = async () => {
+      // keepHelprFaultFee: an exit where money MAY have moved with the fee
+      // held back (a transfer error that is not a definite refusal, a transfer
+      // at Stripe the ledger does not record) keeps the deduction booked;
+      // giving it back let the next payout take it again (lh-money-escrow
+      // reviews of the exact-cents delta #6 and c4ec33afb #5a). The retry's
+      // take returns the same booked figure, so nothing is taken twice.
+      const rollBackOnboardingFeeClaim = async (opts: { keepHelprFaultFee?: boolean } = {}) => {
         // The Helpr-fault card fee taken below goes back on the same exits.
-        if (helprFaultFeeCents > 0) await restoreHelprFaultFee(supabaseAdmin, helperId, job.id, "process-scheduled-payouts");
+        if (helprFaultFeeCents > 0 && !opts.keepHelprFaultFee) await restoreHelprFaultFee(supabaseAdmin, helperId, job.id, "process-scheduled-payouts");
         if (!owesOnboardingFee) return;
         const { error: unclaimErr } = await supabaseAdmin
           .from("profiles")
@@ -1587,7 +1593,7 @@ serve(async (req) => {
       const escrowValueCents = capturedCents + giftAppliedCents;
       // The transfer: whole dollars after the onboarding fee, less the exact
       // Helpr-fault debt (Q2165), the same figure helperPayout holds.
-      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents;
+      let payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents;
       if (payoutCents > escrowValueCents) {
         console.error(
           `[process-scheduled-payouts] REFUSING: payout ${payoutCents}c exceeds escrow ${escrowValueCents}c ` +
@@ -1662,14 +1668,15 @@ serve(async (req) => {
       }
       if (unrecorded.kind === "conflict") {
         console.error(`[process-scheduled-payouts] REFUSING job ${job.id}: Stripe shows ${unrecorded.transferIds.join(", ")} with no payout_transfers row`);
-        await rollBackOnboardingFeeClaim();
+        // That transfer may have withheld the Helpr-fault fee: keep it booked.
+        await rollBackOnboardingFeeClaim({ keepHelprFaultFee: true });
         await postSlackOpsAlert({
           kind: "money_at_risk",
           seed: seedJobIds.has(job.id),
           severity: "critical",
           title: "Scheduled payout refused — a transfer for this job is at Stripe with no ledger row",
-          message: `Job ${job.id} is due a payout, but Stripe shows ${unrecorded.transferIds.join(", ")} in its transfer group and payout_transfers does not record it. No second transfer was sent; reconcile the ledger against Stripe by hand.`,
-          fields: { job_id: job.id, helper_id: helperId, transfer_ids: unrecorded.transferIds.join(", ") },
+          message: `Job ${job.id} is due a payout, but Stripe shows ${unrecorded.transferIds.join(", ")} in its transfer group and payout_transfers does not record it. No second transfer was sent; reconcile the ledger against Stripe by hand.${helprFaultFeeCents > 0 ? ` A Helpr-fault card fee of ${helprFaultFeeCents}c stays booked as withheld for this job: if that transfer did not withhold it (its metadata helpr_fault_fee_cents), give it back with set_helpr_fault_fee_withheld(helper, 'job_payout_${job.id}', 0).` : ""}`,
+          fields: { job_id: job.id, helper_id: helperId, transfer_ids: unrecorded.transferIds.join(", "), helpr_fault_fee_cents: String(helprFaultFeeCents) },
         });
         results.push({ job_id: job.id, status: "unrecorded_transfer_at_stripe", transfer_ids: unrecorded.transferIds });
         jobDefect(job.id, `job ${job.id}: unrecorded Stripe transfer ${unrecorded.transferIds.join(", ")} — payout refused`);
@@ -1809,7 +1816,30 @@ serve(async (req) => {
           : await stripe.transfers.create(transferParams, {
             idempotencyKey,
           });
+        // An adopted orphan carries what IT sent and withheld, not this
+        // run's recompute: the ledger and the notice say what moved.
+        if (adoptedTransferId && unrecorded.kind === "adopt") {
+          payoutCents = unrecorded.amountCents;
+          helprFaultFeeCents = unrecorded.helprFaultFeeCents;
+          helperPayout = payoutCents / 100;
+        }
         console.log(`Payout: $${helperPayout.toFixed(2)} to helper ${helperId} for job ${job.id} (onboarding fee deducted: $${onboardingFeeDollars.toFixed(2)})`);
+        // The deduction booked for this job now equals what the transfer withheld.
+        {
+          const problem = await recordHelprFaultFeeWithheld(supabaseAdmin, helperId, job.id, helprFaultFeeCents);
+          if (problem) {
+            console.error(`CRITICAL: [process-scheduled-payouts] ${problem}`);
+            jobDefect(job.id, problem);
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              seed: seedJobIds.has(job.id),
+              severity: "critical",
+              title: "Helpr-fault card fee booking disagrees with the payout",
+              message: problem,
+              fields: { job_id: job.id, transfer_id: transfer.id, helpr_fault_fee_cents: String(helprFaultFeeCents) },
+            });
+          }
+        }
 
         // Write the payout_transfers ledger row immediately after the transfer
         // and BEFORE the payment_status flip. Without this, a crash between
@@ -2022,8 +2052,12 @@ serve(async (req) => {
         // itself throws. So `failedCount` stayed 0, the idempotency key stayed
         // unsalted, and Stripe replayed this same cached failure for ~24h,
         // making every retry a silent no-op for a day.
+        const keepFault = helprFaultFeeCents > 0 && !isDefiniteStripeRefusal(e);
         const failed = await failClaim(supabaseAdmin, claim.claimId, (e as Error).message, {
           source: "scheduled_payout",
+          // Marks the Helpr-fault fee as kept booked: a later run's early
+          // exit must not give it back (restoreHelprFaultFee stands down).
+          ...(keepFault ? { helpr_fault_fee_kept_cents: helprFaultFeeCents } : {}),
         });
         if (!failed.ok) {
           console.error(
@@ -2034,7 +2068,10 @@ serve(async (req) => {
 
         // Un-claim the onboarding fee if THIS job claimed it — no money moved,
         // so the fee was never collected and the flag must not say it was.
-        await rollBackOnboardingFeeClaim();
+        // The Helpr-fault fee goes back only on a DEFINITE refusal, as in
+        // create-payment and execute-dispute-split: a timeout may have created
+        // the transfer with the fee held back.
+        await rollBackOnboardingFeeClaim({ keepHelprFaultFee: !isDefiniteStripeRefusal(e) });
 
         await postSlackOpsAlert({
           kind: "payout_failed",
@@ -2047,6 +2084,10 @@ serve(async (req) => {
             "Helpr ID": helperId,
             Amount: `$${helperPayout.toFixed(2)}`,
             Error: (e as Error).message?.slice(0, 200),
+            // An unclear failure keeps the Helpr-fault fee booked (it may be
+            // out with the transfer); if Stripe shows no transfer and the job
+            // will not be paid: set_helpr_fault_fee_withheld(helper, 'job_payout_<job>', 0).
+            ...(keepFault ? { "Helpr-fault fee kept booked": `${helprFaultFeeCents}c (if no transfer exists and the job will not be paid: set_helpr_fault_fee_withheld(helper, 'job_payout_${job.id}', 0))` } : {}),
           },
           link: "https://www.louisianahelpr.com/admin?view=payouts",
         });

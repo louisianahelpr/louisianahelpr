@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { MapPin, SearchX, Wrench, X } from "lucide-react";
@@ -503,6 +504,12 @@ export const PostedJobsTab = ({
        produces the identical rhythm without touching margins. */
     <div className="flex flex-col gap-section flex-1">
       {/* Q210(b): $300+ recurring visits the payer must confirm on-session. */}
+      {/* The bottom-nav "+" is gone (owner, 2026-10-19): My Posts carries its own "Post a job". */}
+      <div>
+        <SectionActionPill onClick={ageGate("post", () => navigate("/post-job"))} {...ageGatedProps("post")}>
+          Post a job
+        </SectionActionPill>
+      </div>
       <RecurringVisitPayments userId={userId} />
       {/* Only with cards on screen to point at — see LocationPressHint. */}
       {!locationHintSeen && visibleJobs.length > 0 && (

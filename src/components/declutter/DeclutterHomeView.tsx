@@ -8,6 +8,7 @@
  * open the tab that now holds them. Hidden unless the 'declutter' switch is on
  * for the member (DeclutterGate).
  */
+import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -156,7 +157,8 @@ function ListingsSkeleton() {
 }
 
 function BrowseView({ userId }: { userId: string }) {
-  const [maxMiles, setMaxMiles] = useState<number | null>(25);
+  // Any distance by default (owner, 2026-10-19); the member's own choice holds for the visit.
+  const [maxMiles, setMaxMiles] = useState<number | null>(null);
   // No location prompt on landing: miles come from what we already know, and
   // the device is asked only from the "Use my location" button below.
   const { origin, askDevice, asked, asking, canAskAgain, deviceNote } = useDeclutterOrigin();
@@ -455,9 +457,9 @@ export default function DeclutterHome() {
     <AppPage
       title="Declutter"
       titleActions={
-        <Button type="button" size="sm" className="whitespace-nowrap" onClick={() => navigate("/declutter/sell")}>
+        <SectionActionPill onClick={() => navigate("/declutter/sell")}>
           Sell an item
-        </Button>
+        </SectionActionPill>
       }
     >
       <p className="text-sm text-muted-foreground">Buy and sell used household items near you. Pick up, or have a Helpr deliver it.</p>

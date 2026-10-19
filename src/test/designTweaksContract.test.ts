@@ -15,6 +15,10 @@
  * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |       <CategoryChipRow\n |       {filters.selectedCategory && <CategoryChipRow\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (mine.isLoading) return <ListingsSkeleton />; |   if (mine.isLoading) return <p role="status">Loading your listings…</p>;
  * @mutate src/index.css |   [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: scale(0.97); |   [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: none;
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |   const [maxMiles, setMaxMiles] = useState<number \| null>(null); |   const [maxMiles, setMaxMiles] = useState<number \| null>(25);
+ * @mutate src/components/MobileNav.tsx |           {/* No Post "+" here any more |           <button aria-label="Post a new job"><Plus /></button>\n          {/* No Post "+" here any more
+ * @mutate src/components/shops/ShopsHomeView.tsx |           <SectionActionPill\n            disabled={mine.isLoading} |           <Button\n            disabled={mine.isLoading}
+ * @mutate src/pages/posts/PostedJobsTab.tsx |           Post a job\n |
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -93,7 +97,24 @@ describe("design tweaks (owner 2026-10-18)", () => {
   });
 
   it("inventory: every tweak section is present", () => {
-    const n = (css.match(/^\/\* T[1-8] — /gm) ?? []).length;
+    // Counted on the raw file: the section headings ARE comments, which `css` has blanked.
+    const raw = readFileSync(resolve(ROOT, "src/index.css"), "utf8");
+    const n = (raw.match(/^\/\* T[1-8] — /gm) ?? []).length;
     expect(n).toBeGreaterThan(7);
+  });
+
+  it("owner 10-19: Declutter opens on Any distance, the dock has no +, and each section's add action is the shared pill", () => {
+    expect(code("src/components/declutter/DeclutterHomeView.tsx")).toMatch(/useState<number \| null>\(null\)/);
+    const nav = code("src/components/MobileNav.tsx");
+    expect(nav).not.toMatch(/<Plus\b/);
+    expect(nav).not.toMatch(/Post a new job/);
+    const pills: Array<[string, RegExp]> = [
+      ["src/components/declutter/DeclutterHomeView.tsx", /<SectionActionPill[\s\S]{0,120}?Sell an item/],
+      ["src/components/shops/ShopsHomeView.tsx", /<SectionActionPill[\s\S]{0,200}Open a shop/],
+      ["src/components/rentals/RentalsHomeView.tsx", /<SectionActionPill[\s\S]{0,120}?Add a property/],
+      ["src/pages/posts/PostedJobsTab.tsx", /<SectionActionPill[\s\S]{0,160}?Post a job/],
+    ];
+    for (const [f, re] of pills) expect(code(f), f).toMatch(re);
+    expect(pills.length).toBeGreaterThan(3);
   });
 });

@@ -101,7 +101,7 @@ export const DashboardSkeleton = () => (
       {[0, 1, 2, 3].map((i) => (
         <Skeleton
           key={i}
-          className="rounded-2xl h-[104px] border border-[hsl(var(--olivewood)/0.12)]"
+          className="rounded-2xl h-[104px]"
           style={{ borderRadius: "1rem" }}
         />
       ))}

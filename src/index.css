@@ -4565,6 +4565,23 @@ html.page-scrolled .page-title-card {
   border-bottom: 0.5px solid hsl(var(--border)) !important;
 }
 html.page-scrolled .page-title-card h1 { font-size: 1.0625rem !important; margin-left: auto !important; margin-right: auto !important; }
+/* Dark: the card rules above (T2) would paint the title card as a card; it is page chrome, flat until scrolled. */
+:root[data-theme="dark"] .page-title-card { background-color: transparent !important; }
+:root.page-scrolled[data-theme="dark"] .page-title-card { background-color: hsl(var(--background) / 0.88) !important; }
+/* Phone: the compact bar runs edge to edge and its title sits on the screen's centre line, not the leftover space beside the icons. */
+@media (max-width: 767px) {
+  html.page-scrolled .page-title-card {
+    position: relative;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+  }
+  html.page-scrolled .page-title-card h1 {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    margin: 0 !important; white-space: nowrap; pointer-events: none;
+  }
+}
 @media (prefers-reduced-motion: no-preference) {
   .page-title-card, .page-title-card h1 { transition: font-size 0.22s ease, padding 0.22s ease, background-color 0.22s ease; }
 }

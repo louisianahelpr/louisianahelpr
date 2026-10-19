@@ -16,7 +16,7 @@ export function HomeTopPair() {
   const navigate = useNavigate();
   if (!user) return null;
   return (
-    <span className="dashboard-title-bell flex items-center gap-1.5 sm:gap-2">
+    <span className="dashboard-title-bell flex items-center gap-1.5 max-[359px]:gap-0 sm:gap-2">
       <button
         type="button"
         aria-label={unreadCount > 0 ? `Messages, ${unreadCount} unread` : "Messages"}

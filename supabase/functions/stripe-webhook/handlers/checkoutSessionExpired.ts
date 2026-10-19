@@ -1,4 +1,5 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
+import { isRentBank, rentBankSessionExpired } from "./rentBank.ts";
 import type { WebhookContext } from "../context.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 
@@ -20,6 +21,11 @@ export async function handleCheckoutSessionExpired(
 ): Promise<void> {
   const session = event.data.object as Stripe.Checkout.Session;
   const meta = session.metadata as Record<string, string> | null;
+  // Homes bank rent: the page expired unpaid.
+  if (isRentBank(session)) {
+    await rentBankSessionExpired(session, { supabase, logStep });
+    return;
+  }
 
   // ── Release the job's hold on this session ────────────────────────────────
   //

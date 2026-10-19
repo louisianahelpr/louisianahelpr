@@ -1,6 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { isRentBank, rentBankIntentSucceeded } from "./rentBank.ts";
 
 export async function handlePaymentIntentSucceeded(
   event: Stripe.Event,
@@ -8,6 +9,11 @@ export async function handlePaymentIntentSucceeded(
 ): Promise<void> {
   const pi = event.data.object as Stripe.PaymentIntent;
   logStep("Payment intent succeeded", { id: pi.id, amount: pi.amount });
+  // Homes bank rent: the bank confirmed it (D9). Shares nothing with the job tax path below.
+  if (isRentBank(pi)) {
+    await rentBankIntentSucceeded(pi, { supabase, logStep });
+    return;
+  }
 
   // Record the confirmed sales tax amount on the job.
   // Stripe Tax writes the final collected tax on the PaymentIntent at

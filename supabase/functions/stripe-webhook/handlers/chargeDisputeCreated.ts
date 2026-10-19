@@ -5,6 +5,7 @@
 // are real signal (2026-09-22: "transfer failed" on seed jobs = the empty test
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
+import { rentBankReturned } from "./rentBank.ts";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../../_shared/adminIds.ts";
@@ -23,7 +24,19 @@ export async function handleChargeDisputeCreated(
   event: Stripe.Event,
   ctx: WebhookContext,
 ): Promise<void> {
-  await applyCardDispute(event.data.object as Stripe.Dispute, ctx, "created");
+  const dispute = event.data.object as Stripe.Dispute;
+  // Homes bank rent: an ACH return after success arrives as a dispute; reverse the rent payment and pull
+  // back the landlord's transfer (D9). Ours only when a bank-rent row carries this payment intent.
+  const piId = typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id;
+  if (piId) {
+    const { data: rb, error: rbErr } = await ctx.supabase.from("rental_rent_bank_payments").select("id").eq("stripe_payment_intent_id", piId).maybeSingle();
+    if (rbErr) throw new Error(`rent bank lookup failed for ${piId}: ${rbErr.message}`);
+    if (rb) {
+      await rentBankReturned(piId, `The bank returned the payment (${dispute.reason ?? "returned"}).`, ctx);
+      return;
+    }
+  }
+  await applyCardDispute(dispute, ctx, "created");
 }
 
 /**

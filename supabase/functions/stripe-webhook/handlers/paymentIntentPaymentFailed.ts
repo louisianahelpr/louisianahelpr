@@ -1,4 +1,5 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
+import { isRentBank, rentBankIntentFailed } from "./rentBank.ts";
 import type { WebhookContext } from "../context.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
@@ -415,6 +416,11 @@ export async function handlePaymentIntentPaymentFailed(
   const pi = event.data.object as Stripe.PaymentIntent;
   const failedEmail = pi.receipt_email || (pi as any).last_payment_error?.charge?.billing_details?.email;
   logStep("Payment intent failed", { id: pi.id, email: failedEmail });
+  // Homes bank rent: the debit failed before it succeeded; nothing was recorded.
+  if (isRentBank(pi)) {
+    await rentBankIntentFailed(pi, { supabase, logStep });
+    return;
+  }
 
   // ME-040: jobs.stripe_payment_intent_id is only written on the SUCCESS path;
   // a card decline never lands there. Use metadata.job_id (stamped unconditionally

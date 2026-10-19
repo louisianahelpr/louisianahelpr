@@ -28,6 +28,7 @@ import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
 import { recordWalletDefaultCard } from "./_walletDefaultCard.ts";
 import { isDeclutterSession, settleDeclutterSession } from "./declutterCheckout.ts";
 import { isShopSession, settleShopSession } from "./shopCheckout.ts";
+import { isRentBank, settleRentBankSession } from "./rentBank.ts";
 
 export async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
@@ -57,6 +58,11 @@ async function settleCheckoutSession(
   // charged here; the maker's acceptance captures it (shop-checkout).
   if (isShopSession(session)) {
     await settleShopSession(event, session, { stripe, supabase, logStep });
+    return;
+  }
+  // Homes bank rent (20261019103751): the debit started; only payment_intent.succeeded records it.
+  if (isRentBank(session)) {
+    await settleRentBankSession(session, { supabase, logStep });
     return;
   }
   // Q210(b): a $300+ recurring visit paid on-session. Settled before the

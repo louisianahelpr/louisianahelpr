@@ -8,10 +8,14 @@
  *
  * @mutate src/components/job-card/activityFilters.ts |   if ((j as { backout_notice?: unknown }).backout_notice) return "needs_you"; |
  * @mutate src/components/job-card/activityFilters.ts |   if ((app.job as { backout_notice?: unknown } \| null)?.backout_notice) return "needs_you"; |
+ * @mutate src/lib/backoutNotices.ts | (jobStatus !== "completed" && jobStatus !== "cancelled") | true
+ *
+ * And a closed job shows no "it's open again" banner (owner-reported
+ * 2026-10-19; the server rule is backout_notice_applies, 20261019020032).
  */
 import { describe, expect, it } from "vitest";
 import { appliedActivityBucket, postedActivityBucket } from "@/components/job-card/activityFilters";
-import { backoutBannerText } from "@/lib/backoutNotices";
+import { backoutBannerText, backoutNoticeApplies } from "@/lib/backoutNotices";
 import type { AppliedApp } from "@/components/job-card/activityConstants";
 
 const notice = (backout_kind: string, actor_name: string | null = "Lexi") => ({ id: "n", job_id: "j", backout_kind, actor_name });
@@ -32,5 +36,15 @@ describe("a back-out keeps the card in Needs You until Got It", () => {
     expect(backoutBannerText(notice("poster_cancelled", "Sam") as never)).toBe("Sam cancelled this job. Don't go.");
     expect(backoutBannerText(notice("offer_declined") as never)).toMatch(/^Lexi declined your offer/);
     expect(backoutBannerText(notice("offer_expired", null) as never)).toMatch(/expired without an answer/);
+  });
+  it("a notice that said 'open to everyone again' does not apply once the job is completed or cancelled", () => {
+    for (const kind of ["offer_declined", "offer_expired", "helper_cancelled", "helper_unconfirmed"] as const) {
+      expect(backoutNoticeApplies(kind, "open")).toBe(true);
+      expect(backoutNoticeApplies(kind, "accepted")).toBe(true);
+      expect(backoutNoticeApplies(kind, "cancelled")).toBe(false);
+      expect(backoutNoticeApplies(kind, "completed")).toBe(false);
+    }
+    // The cancel itself still tells the Helpr "Don't go." until Got It.
+    expect(backoutNoticeApplies("poster_cancelled", "cancelled")).toBe(true);
   });
 });

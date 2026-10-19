@@ -131,8 +131,8 @@ export interface ScreenHeaderRowProps {
   /**
    * Paint the title with the same box and type, but as an `aria-hidden` span
    * rather than an `<h1>`. For a LOADING placeholder of this row only: while
-   * a screen is pending its single h1 is `<LoadingHeading>`'s, so a visible h1
-   * here would give it two. The row's geometry is unchanged, which is the
+   * a screen is pending its single h1 belongs to the section top bar, so a
+   * visible h1 here would give it two. The row's geometry is unchanged, which is the
    * point: the placeholder IS this row, not a drawing of it.
    */
   decorativeTitle?: boolean;

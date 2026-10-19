@@ -10,6 +10,9 @@
  * So the assertions that matter here are all of the same shape: **Stripe was
  * not called.** A test that only checks the status code would pass while the
  * money still moved.
+ *
+ * @mutate supabase/functions/stripe-idv-start/index.ts |     if (verifiedAnyRoute === true) { |     if (profile?.idv_status === "verified") {
+ * @mutate supabase/functions/stripe-idv-start/index.ts |     if (verifiedErr) {\n      throw | if (false) {\n      throw
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -129,6 +132,46 @@ describe("stripe-idv-start cost guard", () => {
     // a bounced native handoff) billing for a second session.
     const opts = stripeMock.identity.verificationSessions.create.mock.calls[0][1];
     expect(opts.idempotencyKey).toBe("idv:helper-1:1");
+  });
+
+  // Owner 2026-10-19: verified once, by ANY route, is never asked again. A
+  // Connect-verified or admin-approved member (idv_status may still say
+  // 'pending') gets alreadyVerified: no reuse, no claim, no Stripe call.
+  it("verified by another route (the one rule, is_identity_verified): alreadyVerified, nothing reused, claimed or created", async () => {
+    scenario.authUser = USER;
+    scenario.reads.profiles = { rows: [{ idv_status: "pending", idv_session_id: "vs_open", full_name: "Dana R" }] };
+    scenario.rpc.is_identity_verified = true;
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: {} }));
+
+    expect(res.status).toBe(200);
+    expect((await json(res)).alreadyVerified).toBe(true);
+    expect(stripeMock.identity.verificationSessions.retrieve).not.toHaveBeenCalled();
+    expect(stripeMock.identity.verificationSessions.create).not.toHaveBeenCalled();
+    expect(scenario.rpcCalls?.filter((c) => c.name === "claim_idv_attempt") ?? []).toHaveLength(0);
+    expect(scenario.rpcCalls?.find((c) => c.name === "is_identity_verified")?.args).toEqual({ p_user_id: "helper-1" });
+  });
+
+  it("is_identity_verified not deployed yet (PGRST202): the old answer, not an outage", async () => {
+    scenario.authUser = USER;
+    scenario.reads.profiles = { rows: [{ idv_status: "verified", idv_session_id: null, full_name: "Dana R" }] };
+    scenario.rpcErrors = { is_identity_verified: { message: "Could not find the function", code: "PGRST202" } };
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: {} }));
+    expect(res.status).toBe(200);
+    expect((await json(res)).alreadyVerified).toBe(true);
+    expect(stripeMock.identity.verificationSessions.create).not.toHaveBeenCalled();
+  });
+
+  it("an unreadable identity answer fails closed: no Stripe call", async () => {
+    seedFreshHelper();
+    scenario.rpcErrors = { is_identity_verified: { message: "boom" } };
+    scenario.rpc.claim_idv_attempt = { claimed: true, reason: null, attempt: 1, max_attempts: 1 };
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: {} }));
+
+    expect(res.status).toBe(500);
+    expect(stripeMock.identity.verificationSessions.create).not.toHaveBeenCalled();
   });
 
   it("reuses an open session WITHOUT claiming an attempt — reuse is free, so it must not cost one", async () => {

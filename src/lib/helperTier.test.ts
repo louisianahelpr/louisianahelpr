@@ -44,14 +44,16 @@ describe("computeHelperTier — Tier 0 (no badge)", () => {
     ).toBe(0);
   });
 
-  it("does not accept a legacy 'verified' idv_status as identity verification", () => {
-    // A profile row still carrying the old admin/upload state must NOT earn
-    // the rung — `idv_status` is no longer part of the ladder's input at all.
-    const legacy = {
+  it("accepts idv_status 'verified' through the one identity rule (owner 2026-10-19: verified once counts everywhere)", () => {
+    // Stripe Identity, an admin-approved ID photo or admin manual_verify all
+    // write idv_status = 'verified'; the rung reads it with the Connect flag
+    // through isIdentityVerified (src/lib/awardGate.ts), as every gate does.
+    const viaIdv = {
       stripe_account_id: "acct_123",
       idv_status: "verified",
     };
-    expect(computeHelperTier(legacy, zeroStats)).toBe(0);
+    expect(computeHelperTier(viaIdv, zeroStats)).toBe(1);
+    expect(computeHelperTier({ stripe_account_id: "acct_123", idv_status: "pending" }, zeroStats)).toBe(0);
   });
 
   it("returns 0 when stripe_account_id is missing", () => {

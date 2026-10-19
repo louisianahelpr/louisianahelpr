@@ -92,8 +92,7 @@ export function ActionsTab({
             // stripe_identity_verified)` computes in the database — reading only
             // `idv_status` here would call a Stripe-verified account "Awaiting
             // first login" while the hiring gate treats it as verified.
-            const idvVerified = viewProfile.idv_status === 'verified'
-              || viewProfile.stripe_identity_verified === true;
+            const idvVerified = alreadyVerified;
             const hasStripe = !!viewProfile.stripe_account_id;
             const isActive = hasLoggedIn || idvVerified || hasStripe;
             const activeLabel = idvVerified

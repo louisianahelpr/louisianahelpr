@@ -258,8 +258,9 @@ describe("every admin fan-out title has a close rule (Q355)", () => {
   it("found the rule table and its branches", () => {
     // Restated by Q1324's follow-up with one more rule (ban-settlement-review), then by Rentals slice 3
     // (rentals-ownership-review, 20261017223352).
-    expect(ruleDef?.file, "admin_alert_close_rule").toMatch(/admin_(queue|notice)_alerts_close_themselves|ban_review_freezes_money_hides_posts_neutral_reason|rentals_ownership_review_alert/);
-    expect(pendingDef?.file, "admin_queue_still_pending").toMatch(/rentals_ownership_review_alert/);
+    // Then by Landlord ID (rentals-landlord-id-review, 20261019051407).
+    expect(ruleDef?.file, "admin_alert_close_rule").toMatch(/admin_(queue|notice)_alerts_close_themselves|ban_review_freezes_money_hides_posts_neutral_reason|rentals_ownership_review_alert|rentals_landlord_id_review/);
+    expect(pendingDef?.file, "admin_queue_still_pending").toMatch(/rentals_ownership_review_alert|rentals_landlord_id_review/);
     // Floors, 2026-09-26: 19 rule rows, 13 branches, 1 manual row.
     expect(RULES.length).toBeGreaterThanOrEqual(19);
     expect(BRANCHES.size).toBeGreaterThanOrEqual(13);

@@ -118,6 +118,8 @@ export const EXPORT_SECTIONS = [
   "shop_orders", "shop_order_lines", "shop_strikes", "shop_pickup_addresses",
   // Q2082 (b): the Helpr's own Helpr-fault rulings (20261019015302).
   "helpr_fault_rulings",
+  // Landlord ID (owner 2026-10-19): the member's own ID review (status, dates, note).
+  "landlord_id_reviews",
   "storage_objects",
 ];
 

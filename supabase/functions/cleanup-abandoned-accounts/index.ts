@@ -29,6 +29,7 @@ import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { purgeAccount } from "../_shared/accountPurge.ts";
 import { drainPreVerificationWipes, type WipeSweepClient } from "../_shared/preVerificationWipeSweep.ts";
+import { LANDLORD_ID_RETENTION_DAYS, sweepLandlordIdImages, type LandlordIdSweepClient } from "../_shared/landlordIdRetention.ts";
 import { serve } from "../_shared/buildStamp.ts";
 
 /**
@@ -287,11 +288,17 @@ serve(async (req) => {
     const takeover = await drainPreVerificationWipes(supabase as unknown as WipeSweepClient, { dryRun });
     for (const f of takeover.failures) defects.record(`pre-verification wipe: ${f}`);
 
+    // Landlord ID photos (owner 2026-10-19): deleted LANDLORD_ID_RETENTION_DAYS
+    // after the admin's decision, through the Storage API.
+    const landlordId = await sweepLandlordIdImages(supabase as unknown as LandlordIdSweepClient, { dryRun });
+    for (const f of landlordId.failures) defects.record(`landlord ID retention: ${f}`);
+
     return cronResult(
       "cleanup-abandoned-accounts",
       {
         dryRun,
         preVerificationWipes: { pending: takeover.wipes, objectsRemoved: takeover.removed, done: takeover.done, failed: takeover.failedWipes },
+        landlordIdRetention: { days: LANDLORD_ID_RETENTION_DAYS, due: landlordId.due, objectsRemoved: landlordId.removed, stamped: landlordId.stamped },
         cutoff,
         scanned: candidates.length,
         // In dryRun this is the WOULD-DELETE count; nothing was touched.

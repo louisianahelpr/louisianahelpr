@@ -44,6 +44,13 @@ const S3_FILES = ["20261017220911_rentals_link_one_live_job.sql", "2026101722162
   // HOMES rename: the same function restated with the alert naming the "Homes: ownership proof" card.
   "20261019044500_rentals_ownership_alert_homes_words.sql"];
 const S3 = process.env.S3 === "skip" ? "SELECT 1" : S3_FILES.map((f) => readFileSync(`${MIG_DIR}${f}`, "utf8")).join("\n");
+// 20261019051407: landlord ID by admin review (owner 2026-10-19), and identity by ANY route through
+// public.is_identity_verified (Stripe Identity, Stripe Connect, an approved ID). Adding a property no longer
+// asks for identity (inviting still does). LID=skip leaves the idv_status-only gates (the RED run for the
+// CONNECT checks below). Its own proof (approve /
+// reject / storage / retention / every-section rule): src/test/pglite/landlordIdReview.pglite.mjs.
+const LID_FILE = "20261019051407_rentals_landlord_id_review.sql";
+const LID = process.env.LID === "skip" ? "SELECT 1" : readFileSync(`${MIG_DIR}${LID_FILE}`, "utf8");
 
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */
 function newestDefinition(name) {
@@ -90,7 +97,7 @@ CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY, enrolled_at timesta
 CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), admin_id uuid, action text NOT NULL,
   target_type text, target_id text, details jsonb, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE, is_seed boolean DEFAULT false,
-  idv_status text, date_of_birth date, ban_status text DEFAULT 'active', auto_suspended_until timestamptz,
+  idv_status text, stripe_identity_verified boolean, date_of_birth date, ban_status text DEFAULT 'active', auto_suspended_until timestamptz,
   license_url text, insurance_url text);
 CREATE TABLE public.helper_credentials (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, document_url text);
 CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid, status text NOT NULL DEFAULT 'open',
@@ -114,11 +121,13 @@ CREATE FUNCTION public.notification_crosses_seed_boundary(p_recipient uuid, p_jo
 
 const U = (n) => `00000000-0000-0000-0000-0000000000${String(n).padStart(2, "0")}`;
 const LANDLORD = U(1), TENANT = U(2), STRANGER = U(3), MINOR = U(4), BANNED = U(5), NOIDV = U(6), ADMIN = U(7), ORDINARY = U(8), TENANT2 = U(9);
+// Stripe Connect's identity verdict only, next to a legacy idv_status 'pending' (the owner's own profile, 2026-10-19).
+const CONNECT = U(10);
 
 const db = new PGlite();
 await db.exec(SCHEMA);
 // Q807 gate: the migration calls attach_unconfirmed_email_gate() (newest definitions, read by name).
-for (const name of ["ops_alert_normalise", "is_caller_banned", "member_under_18", "contact_leak_reason",
+for (const name of ["ops_alert_normalise", "identity_is_verified", "is_caller_banned", "member_under_18", "contact_leak_reason",
   "session_email_unconfirmed", "refuse_unconfirmed_email_write", "attach_unconfirmed_email_gate"]) {
   await db.exec(newestDefinition(name).stmt);
 }
@@ -128,7 +137,7 @@ await db.exec(`
   REVOKE ALL ON FUNCTION public.contact_leak_reason(text) FROM PUBLIC, anon;`);
 await db.exec(SWITCHES);
 await db.exec(`
-  INSERT INTO auth.users (id) SELECT ('00000000-0000-0000-0000-0000000000' || lpad(g::text, 2, '0'))::uuid FROM generate_series(1, 9) g;
+  INSERT INTO auth.users (id) SELECT ('00000000-0000-0000-0000-0000000000' || lpad(g::text, 2, '0'))::uuid FROM generate_series(1, 10) g;
   INSERT INTO public.profiles (user_id, idv_status, date_of_birth, ban_status) VALUES
     ('${LANDLORD}', 'verified', '1980-01-01', 'active'),
     ('${TENANT}',   'verified', '1990-01-01', 'active'),
@@ -139,9 +148,11 @@ await db.exec(`
     ('${ADMIN}',    'verified', '1975-01-01', 'active'),
     ('${ORDINARY}', 'verified', '1985-01-01', 'active'),
     ('${TENANT2}',  NULL,       NULL,         'active');
+  INSERT INTO public.profiles (user_id, idv_status, stripe_identity_verified, date_of_birth, ban_status) VALUES
+    ('${CONNECT}', 'pending', true, '1982-01-01', 'active');
   INSERT INTO public.user_roles (user_id, role) VALUES ('${ADMIN}', 'admin');
   INSERT INTO public.test_accounts (user_id) VALUES ('${LANDLORD}'), ('${TENANT}'), ('${STRANGER}'), ('${MINOR}'),
-    ('${BANNED}'), ('${NOIDV}'), ('${TENANT2}');`);
+    ('${BANNED}'), ('${NOIDV}'), ('${TENANT2}'), ('${CONNECT}');`);
 
 let pass = 0;
 let fail = 0;
@@ -155,6 +166,7 @@ const skip = process.env.NEW_MIGRATION === "skip";
 if (!skip) {
   for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
   for (let i = 0; i < 3; i++) await db.exec(S3);
+  for (let i = 0; i < 3; i++) await db.exec(LID);
 }
 
 async function as(role, uid, sql) {
@@ -187,6 +199,7 @@ ok(refused(await as("authenticated", LANDLORD, createProp()), /feature_disabled/
 await svc(`UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'rentals'`);
 await db.exec(skip ? "SELECT 1" : MIGRATION);
 await db.exec(skip ? "SELECT 1" : S3);
+await db.exec(skip ? "SELECT 1" : LID);
 ok(one(await svc(`SELECT audience FROM public.feature_switches WHERE key = 'rentals'`)) === "testers",
   "a replay keeps the audience an admin chose");
 ok(refused(await as("authenticated", ORDINARY, createProp()), /feature_disabled/, "42501"),
@@ -194,12 +207,29 @@ ok(refused(await as("authenticated", ORDINARY, createProp()), /feature_disabled/
 ok(refused(await as("anon", null, createProp()), /permission denied/), "anon cannot execute rentals_create_property");
 
 // --- landlord gates (Q5, Q59)
-ok(refused(await as("authenticated", NOIDV, createProp()), /identity_not_verified/, "42501"),
-  "an account without a verified ID cannot add a property (Q5)");
+// 20261019051407: the ID goes to review WITH the ownership proof, so adding the property asks for no ID
+// (Q5 now holds at the invite, below: "a landlord whose ID is no longer verified cannot invite").
+const noIdProp = one(await as("authenticated", NOIDV, createProp("No ID yet house")));
+ok(typeof noIdProp === "string", "an account without a verified ID adds a property (ID and proof are reviewed together)");
+await svc(`DELETE FROM public.rental_properties WHERE owner_id = '${NOIDV}'`); // keeps the counts below about LANDLORD
 ok(refused(await as("authenticated", MINOR, createProp()), /under_18/, "42501"), "under 18 cannot add a property (Q59)");
 ok(refused(await as("authenticated", BANNED, createProp()), /account_restricted/, "42501"), "a banned account cannot add a property");
 const prop = one(await as("authenticated", LANDLORD, createProp()));
 ok(typeof prop === "string", "an ID-verified tester landlord adds a property");
+// Either verdict (20261019051407): the Stripe Connect identity verdict alone is enough, legacy 'pending' or not.
+const connectProp = one(await as("authenticated", CONNECT, createProp("Connect landlord house")));
+ok(typeof connectProp === "string", "a landlord verified by Stripe Connect only (idv_status 'pending') adds a property");
+await svc(`DELETE FROM public.rental_properties WHERE owner_id = '${CONNECT}'`); // keeps the counts below about LANDLORD
+ok(one(await svc(`SELECT public.is_identity_verified('${CONNECT}')`)) === true
+  && one(await svc(`SELECT public.is_identity_verified('${LANDLORD}')`)) === true
+  && one(await svc(`SELECT public.is_identity_verified('${NOIDV}')`)) === false
+  && one(await svc(`SELECT public.is_identity_verified('${U(99)}')`)) === false,
+  "is_identity_verified: Connect-verified true, Identity-verified true, neither false, no profile false");
+const idvAcl = one(await svc(`SELECT coalesce(proacl::text, '') FROM pg_proc WHERE oid = 'public.is_identity_verified(uuid)'::regprocedure`)) ?? "";
+ok(/service_role=X/.test(idvAcl) && !/(^|[{,])(anon|authenticated)?=X/.test(idvAcl),
+  `is_identity_verified EXECUTE is service_role only (proacl ${idvAcl || "none"})`);
+ok(refused(await as("authenticated", NOIDV, `SELECT public.is_identity_verified('${CONNECT}')`), /permission denied/),
+  "a client cannot ask is_identity_verified about another user");
 ok(one(await svc(`SELECT ownership_status FROM public.rental_properties WHERE id = '${prop}'`)) === "needs_proof",
   "a new property needs ownership proof");
 const unit = one(await as("authenticated", LANDLORD, `SELECT public.rentals_add_unit('${prop}', 'Unit A') AS id`));
@@ -545,7 +575,10 @@ ok(one(await sub(TENANT, `${TENANT}/other/x.jpg`)) === false, "an unrelated file
 await svc(`UPDATE public.profiles SET idv_status = 'requires_input' WHERE user_id = '${LANDLORD}'`);
 ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_invite_tenant('${unit}')`), /identity_not_verified/, "42501"),
   "a landlord whose ID is no longer verified cannot invite");
-await svc(`UPDATE public.profiles SET idv_status = 'verified' WHERE user_id = '${LANDLORD}'`);
+await svc(`UPDATE public.profiles SET stripe_identity_verified = true WHERE user_id = '${LANDLORD}'`);
+ok(typeof one(await as("authenticated", LANDLORD, `SELECT public.rentals_invite_tenant('${unit}') AS t`)) === "string",
+  "the same landlord with Stripe Connect's identity verdict invites again (either verdict)");
+await svc(`UPDATE public.profiles SET idv_status = 'verified', stripe_identity_verified = NULL WHERE user_id = '${LANDLORD}'`);
 
 // --- a tenant with an ACTIVE tenancy can delete their account
 const token3 = one(await as("authenticated", LANDLORD, `SELECT public.rentals_invite_tenant('${unit}') AS t`));

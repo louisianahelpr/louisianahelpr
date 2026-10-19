@@ -7,6 +7,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { unwrap } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isStorageObjectPath } from "@/lib/storagePath";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
@@ -149,6 +150,88 @@ export async function submitOwnershipProof(uid: string, propertyId: string, file
     "a JPEG, PNG or PDF",
   );
   await rpcVoid(supabase.rpc("rentals_submit_ownership_proof", { p_property_id: propertyId, p_storage_path: path }), (e) => rpcErrorMessage("rentals_submit_ownership_proof", e));
+}
+
+/**
+ * The caller's identity for Homes (rentals_my_identity): verified by ANY route
+ * (Stripe Identity, Stripe Connect's check in payout setup, or an admin-approved
+ * ID photo: public.is_identity_verified, the one rule), and their ID review.
+ */
+export interface MyIdentity {
+  verified: boolean;
+  /** null: never sent an ID photo. */
+  idStatus: "pending_review" | "approved" | "rejected" | null;
+  reviewNote: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+}
+export async function fetchMyIdentity(): Promise<MyIdentity> {
+  const row = (unwrap(await supabase.rpc("rentals_my_identity")) ?? [])[0];
+  const s = row?.id_status;
+  return {
+    verified: row?.verified === true,
+    idStatus: s === "pending_review" || s === "approved" || s === "rejected" ? s : null,
+    reviewNote: row?.review_note ?? null,
+    submittedAt: row?.submitted_at ?? null,
+    reviewedAt: row?.reviewed_at ?? null,
+  };
+}
+
+/**
+ * Send a photo of your ID (front; back optional) for an admin's review (owner
+ * 2026-10-19: replaces the paid Stripe check; free). Both go into the caller's
+ * own private user-documents folder under landlord-id/ (owner + admin read
+ * only); the RPC checks the paths and that the files exist.
+ */
+export async function submitLandlordId(uid: string, front: File, back: File | null): Promise<void> {
+  // Photos only (an ID is photographed): the same image list as request photos, inside the bucket's types.
+  const stamp = Date.now();
+  const uploaded: string[] = [];
+  try {
+    const frontPath = await uploadOwn(`${uid}/landlord-id/${stamp}-front-${safeName(front.name)}`, front, RENTALS_REQUEST_PHOTO_TYPES, "a JPEG, PNG, WebP or HEIC photo");
+    uploaded.push(frontPath);
+    const backPath = back
+      ? await uploadOwn(`${uid}/landlord-id/${stamp}-back-${safeName(back.name)}`, back, RENTALS_REQUEST_PHOTO_TYPES, "a JPEG, PNG, WebP or HEIC photo")
+      : null;
+    if (backPath) uploaded.push(backPath);
+    await rpcVoid(
+      supabase.rpc("rentals_submit_landlord_id", { p_front_path: frontPath, p_back_path: backPath as string }),
+      (e) => rpcErrorMessage("rentals_submit_landlord_id", e),
+    );
+  } catch (e) {
+    // An ID photo no review names would never reach the 30-day sweep: take it back
+    // out now. Best effort; the original refusal is what the landlord sees, and a
+    // failed removal is reported (a leftover is Q2202's case).
+    if (uploaded.length > 0) {
+      const { error: rmErr } = await supabase.storage.from(RENTALS_BUCKET).remove(uploaded);
+      if (rmErr) report(rmErr, { tags: { source: "submitLandlordId.cleanup" }, context: { paths: uploaded.length } });
+    }
+    throw e;
+  }
+}
+
+/** The landlord_id_reviews columns a client may read (every column but reviewed_by, staff-only). */
+const LANDLORD_ID_COLUMNS = "user_id, status, front_path, back_path, submitted_at, reviewed_at, review_note, images_deleted_at, created_at, updated_at";
+export type LandlordIdReview = Omit<Tables["landlord_id_reviews"]["Row"], "reviewed_by">;
+/** Admin queue: ID photos waiting for a review (admin RLS). */
+export async function fetchPendingLandlordIds(): Promise<LandlordIdReview[]> {
+  return (unwrap(
+    await supabase.from("landlord_id_reviews").select(LANDLORD_ID_COLUMNS).eq("status", "pending_review").order("submitted_at"),
+  ) ?? []) as LandlordIdReview[];
+}
+/** Admin: the current ID review of these landlords (any status), for the ownership queue. */
+export async function fetchLandlordIds(userIds: string[]): Promise<LandlordIdReview[]> {
+  if (userIds.length === 0) return [];
+  return (unwrap(await supabase.from("landlord_id_reviews").select(LANDLORD_ID_COLUMNS).in("user_id", userIds)) ?? []) as LandlordIdReview[];
+}
+/**
+ * Admin-only (approve, or reject with a note); copy in ADMIN_RPC_ERROR_COPY, fetched only on a refusal.
+ * `submittedAt` is the submission the admin opened: a newer photo is refused (review_changed).
+ */
+export async function reviewLandlordId(userId: string, approve: boolean, note: string, submittedAt: string): Promise<void> {
+  const res = await supabase.rpc("rentals_admin_review_landlord_id", { p_user_id: userId, p_approve: approve, p_note: note, p_submitted_at: submittedAt });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return rpcVoid(Promise.resolve(res), (e) => admin?.rpcErrorMessage("rentals_admin_review_landlord_id", e) ?? null);
 }
 
 /** Admin-only: its copy lives in ADMIN_RPC_ERROR_COPY and is fetched only on a refusal (loadAdminRpcErrorCopy). */

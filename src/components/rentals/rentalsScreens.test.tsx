@@ -28,9 +28,15 @@
  * @mutate src/components/rentals/HomesBrowse.tsx |           <RentBrowse />\n |           {null}\n
  * @mutate src/components/rentals/RentalsHomeView.tsx |           <HomesBrowse />\n |           {null}\n
  * @mutate src/components/rentals/listings/RentBrowse.tsx |       to={`/rentals/listings/${l.id}`} |       to="/rentals"
+ * Landlord ID by admin review (owner 2026-10-19, replacing the paid Stripe check):
+ * @mutate src/components/rentals/LandlordIdReview.tsx |       if (needsId && front) await submitLandlordId(uid, front, back); |       if (needsId && front) await submitLandlordId(uid, front, null);
+ * @mutate src/components/rentals/LandlordIdReview.tsx |   const ready = (!needsId \|\| front !== null) && (!needsProof \|\| proof !== null); |   const ready = !needsProof \|\| proof !== null;
+ * @mutate src/components/rentals/LandlordIdReview.tsx |           {id.reviewNote && <p className="text-muted-foreground">Reason: {id.reviewNote}</p>} |           {null}
+ * @mutate src/components/rentals/LandlordIdReview.tsx | => !!id && !id.verified && id.idStatus !== "pending_review"; | => !!id && id.idStatus !== "pending_review" && id.idStatus !== "approved";
+ * @mutate src/components/rentals/LandlordIdReview.tsx |         toast.error(`Your ID was sent for review. The ownership proof didn't go through: ${words}`); |         toast.error(words);
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -49,6 +55,9 @@ const state = {
   live: [] as unknown[],
   request: null as unknown,
   job: { jobId: null as string | null, booking: "none", jobStatus: null as string | null },
+  identity: { verified: true, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null } as {
+    verified: boolean; idStatus: string | null; reviewNote: string | null; submittedAt: string | null; reviewedAt: string | null;
+  },
 };
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature }));
@@ -79,6 +88,8 @@ vi.mock("@/lib/rentals/api", () => ({
   fetchUnits: async () => state.units,
   fetchLiveTenancies: async () => state.live,
   endTenancy: vi.fn(async () => undefined),
+  fetchMyIdentity: async () => state.identity,
+  submitLandlordId: vi.fn(async () => undefined),
   fetchMyHomes: () => {
     state.homeReads++;
     return state.homeLoads ? Promise.resolve(state.tenancies) : new Promise(() => {});
@@ -99,7 +110,7 @@ vi.mock("@/lib/rentals/api", () => ({
   confirmVisit: vi.fn(async () => undefined),
   cancelRequestJob: vi.fn(async () => undefined),
   createProperty: vi.fn(),
-  submitOwnershipProof: vi.fn(),
+  submitOwnershipProof: vi.fn(async () => undefined),
   addUnit: vi.fn(),
   setAutoApprove: vi.fn(),
   inviteTenant: vi.fn(),
@@ -111,7 +122,8 @@ vi.mock("@/lib/rentals/listings", () => ({
   listingPhotoUrl: (p: string) => `https://cdn.test/${p}`,
 }));
 
-import { cancelRequestJob, confirmVisit, endTenancy } from "@/lib/rentals/api";
+import { cancelRequestJob, confirmVisit, createProperty, endTenancy, inviteTenant, submitLandlordId, submitOwnershipProof } from "@/lib/rentals/api";
+import { RentalsCopyError } from "@/lib/rentals/copy";
 import RentalsPage from "@/pages/rentals/RentalsPage";
 import MaintenanceRequestPage from "@/pages/rentals/MaintenanceRequestPage";
 
@@ -155,6 +167,7 @@ beforeEach(() => {
   state.live = [];
   state.request = null;
   state.job = { jobId: null, booking: "none", jobStatus: null };
+  state.identity = { verified: true, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
 });
 
 describe("Rentals screens", () => {
@@ -265,6 +278,123 @@ describe("Rentals screens", () => {
     expect(screen.queryByRole("button", { name: "Send to my landlord" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /I'm safe/ }));
     expect(screen.getByRole("button", { name: "Send to my landlord" })).toBeTruthy();
+  });
+
+  describe("landlord ID: a photo sent with the ownership proof, reviewed by an admin, free (owner 2026-10-19)", () => {
+    const NEEDS_PROOF = { id: "p1", owner_id: "u1", label: "Oak", street_address: "1 Oak", city: "Lafayette", zip_code: "70501", ownership_status: "needs_proof", ownership_review_note: null, auto_approve_limit_cents: null };
+    const file = (name: string, type = "image/jpeg") => new File(["x"], name, { type });
+    beforeEach(() => {
+      vi.mocked(submitLandlordId).mockClear();
+      vi.mocked(submitOwnershipProof).mockClear();
+    });
+
+    it("not verified: ONE Send for review takes the ID front, the optional back and the ownership proof; no price anywhere", async () => {
+      state.identity = { verified: false, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
+      state.properties = [NEEDS_PROOF];
+      renderAt("/rentals");
+      const send = await screen.findByRole("button", { name: "Send for review" });
+      expect(screen.getByText(/It's free/)).toBeTruthy();
+      expect(screen.queryByText(/\$\d/)).toBeNull();
+      expect(screen.getByRole("link", { name: "set up payouts" }).getAttribute("href")).toBe("/profile?tab=earnings");
+      expect(screen.getByText(/We delete the photo 30 days after it's checked/)).toBeTruthy();
+      // Nothing is sent until both required files are there.
+      expect((send as HTMLButtonElement).disabled).toBe(true);
+      // The proof alone is not enough: the ID front is required too.
+      fireEvent.change(screen.getByLabelText(/Ownership proof/), { target: { files: [file("deed.pdf", "application/pdf")] } });
+      expect((send as HTMLButtonElement).disabled).toBe(true);
+      fireEvent.change(screen.getByLabelText(/Back of your ID/), { target: { files: [file("back.jpg")] } });
+      expect((send as HTMLButtonElement).disabled).toBe(true);
+      fireEvent.change(screen.getByLabelText(/Photo of your ID, front/), { target: { files: [file("front.jpg")] } });
+      expect((send as HTMLButtonElement).disabled).toBe(false);
+      fireEvent.click(send);
+      await waitFor(() => expect(submitOwnershipProof).toHaveBeenCalled());
+      const idCall = vi.mocked(submitLandlordId).mock.calls[0] as unknown as [string, File, File | null];
+      expect(idCall[0]).toBe("u1");
+      expect(idCall[1].name).toBe("front.jpg");
+      expect(idCall[2]?.name).toBe("back.jpg");
+      expect(vi.mocked(submitOwnershipProof).mock.calls[0]?.slice(0, 2)).toEqual(["u1", "p1"]);
+    });
+
+    it("the back is optional: front + proof is enough", async () => {
+      state.identity = { verified: false, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
+      state.properties = [NEEDS_PROOF];
+      renderAt("/rentals");
+      const send = await screen.findByRole("button", { name: "Send for review" });
+      fireEvent.change(screen.getByLabelText(/Photo of your ID, front/), { target: { files: [file("front.jpg")] } });
+      fireEvent.change(screen.getByLabelText(/Ownership proof/), { target: { files: [file("deed.pdf", "application/pdf")] } });
+      fireEvent.click(send);
+      await waitFor(() => expect(submitLandlordId).toHaveBeenCalled());
+      expect((vi.mocked(submitLandlordId).mock.calls[0] as unknown as unknown[])[2]).toBeNull();
+    });
+
+    it("already verified (Stripe, payouts, or an approved ID): only the ownership proof is asked for", async () => {
+      state.properties = [NEEDS_PROOF];
+      renderAt("/rentals");
+      expect(await screen.findByLabelText(/Ownership proof/)).toBeTruthy();
+      expect(screen.queryByLabelText(/Photo of your ID/)).toBeNull();
+      expect(screen.queryByText(/Every landlord on Louisiana Helpr is ID-verified/)).toBeNull();
+    });
+
+    it("pending: the ID is with our team, no second ID upload", async () => {
+      state.identity = { verified: false, idStatus: "pending_review", reviewNote: null, submittedAt: "2026-10-19T00:00:00Z", reviewedAt: null };
+      state.properties = [NEEDS_PROOF];
+      renderAt("/rentals");
+      expect(await screen.findByText(/Your ID is with our team for review/)).toBeTruthy();
+      expect(screen.queryByLabelText(/Photo of your ID/)).toBeNull();
+    });
+
+    it("rejected: needs a new photo, with the admin's note, and the ID form alone when no property waits for proof", async () => {
+      state.identity = { verified: false, idStatus: "rejected", reviewNote: "The photo is blurry", submittedAt: null, reviewedAt: "2026-10-19T00:00:00Z" };
+      state.properties = [{ ...NEEDS_PROOF, ownership_status: "approved" }];
+      state.units = [{ id: "un1", property_id: "p1", label: "A" }];
+      renderAt("/rentals");
+      expect(await screen.findByText("We need a new photo of your ID.")).toBeTruthy();
+      expect(screen.getByText("Reason: The photo is blurry")).toBeTruthy();
+      expect(screen.getByLabelText(/Photo of your ID, front/)).toBeTruthy();
+      expect(screen.queryByLabelText(/Ownership proof/)).toBeNull();
+      // Inviting waits for the ID.
+      expect((screen.getByRole("button", { name: "Invite tenant" }) as HTMLButtonElement).disabled).toBe(true);
+      expect(screen.getByText("You can invite tenants once your ID is checked.")).toBeTruthy();
+    });
+
+    it("an invite refused for identity refreshes the state instead of a dead end", async () => {
+      state.properties = [{ ...NEEDS_PROOF, ownership_status: "approved" }];
+      state.units = [{ id: "un1", property_id: "p1", label: "A" }];
+      vi.mocked(inviteTenant).mockRejectedValueOnce(new RentalsCopyError(null, { message: "identity_not_verified", code: "42501" }));
+      renderAt("/rentals");
+      fireEvent.click(await screen.findByRole("button", { name: "Invite tenant" }));
+      await waitFor(() => expect(inviteTenant).toHaveBeenCalled());
+    });
+
+    it("the ID went through but the proof failed: says the ID is in, and shows the server's state", async () => {
+      state.identity = { verified: false, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
+      state.properties = [NEEDS_PROOF];
+      vi.mocked(submitOwnershipProof).mockRejectedValueOnce(new RentalsCopyError("That file didn't upload. Try adding it again.", new Error("bad_proof_path")));
+      const toastError = vi.spyOn((await import("sonner")).toast, "error");
+      renderAt("/rentals");
+      const send = await screen.findByRole("button", { name: "Send for review" });
+      fireEvent.change(screen.getByLabelText(/Photo of your ID, front/), { target: { files: [file("front.jpg")] } });
+      fireEvent.change(screen.getByLabelText(/Ownership proof/), { target: { files: [file("deed.pdf", "application/pdf")] } });
+      fireEvent.click(send);
+      await waitFor(() => expect(toastError).toHaveBeenCalledWith("Your ID was sent for review. The ownership proof didn't go through: That file didn't upload. Try adding it again."));
+      toastError.mockRestore();
+    });
+
+    it("an approved review whose verdict was taken away asks for a new photo (never a dead end)", async () => {
+      state.identity = { verified: false, idStatus: "approved", reviewNote: null, submittedAt: null, reviewedAt: "2026-10-19T00:00:00Z" };
+      state.properties = [NEEDS_PROOF];
+      renderAt("/rentals");
+      expect(await screen.findByText("We need a new photo of your ID.")).toBeTruthy();
+      expect(screen.getByLabelText(/Photo of your ID, front/)).toBeTruthy();
+    });
+
+    it("adding a property no longer needs an ID first", async () => {
+      vi.mocked(createProperty).mockResolvedValueOnce("p9");
+      state.identity = { verified: false, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
+      renderAt("/rentals");
+      fireEvent.click(await screen.findByRole("button", { name: "Add a property" }));
+      expect(screen.getByText(/Next you send ownership proof and, if you aren't ID-verified yet, a photo of your ID/)).toBeTruthy();
+    });
   });
 
   it("under 18: no repair request or property buttons (Q59)", async () => {

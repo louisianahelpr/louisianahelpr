@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
+import { isIdentityVerified } from "@/lib/awardGate";
 import { report } from "@/lib/errorLogger";
 import { pickRequestedProfile } from "@/lib/safeProfiles";
 import {
@@ -257,7 +258,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // relies on), so a direct select is fine.
         supabase
           .from("profiles")
-          .select("stripe_identity_verified, stripe_account_id, background_check_status")
+          .select("stripe_identity_verified, idv_status, stripe_account_id, background_check_status")
           .eq("user_id", userId!)
           .maybeSingle(),
         // Count-only queries — `head: true` skips row payload, so these
@@ -858,7 +859,8 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // this was permanently false for every visitor. The RPC computes it
         // server-side; the direct read stays as the PGRST202 fallback.
         isIdVerified:
-          publicStats?.is_id_verified ?? idCheckRes.data?.stripe_identity_verified === true,
+          publicStats?.is_id_verified
+          ?? isIdentityVerified({ connectIdentityVerified: idCheckRes.data?.stripe_identity_verified, idvStatus: idCheckRes.data?.idv_status }),
         // Owner-only surface (the purchase CTA). Deliberately NOT sourced from
         // the RPC: the raw status is never published, only the 'verified' bit.
         backgroundCheckStatus: (idCheckRes.data?.background_check_status ?? "none") as string,
@@ -868,6 +870,10 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         tierProfile: {
           stripe_identity_verified:
             publicStats?.is_id_verified ?? idCheckRes.data?.stripe_identity_verified ?? null,
+          // The fallback read's Stripe Identity / approved-ID verdict, read with the
+          // Connect one through the one rule (isIdentityVerified). The RPC's
+          // is_id_verified already is that rule.
+          idv_status: publicStats ? null : idCheckRes.data?.idv_status ?? null,
           /* The ladder only ever truthiness-tests this (`if
              (!profile.stripe_account_id) return false` in src/lib/helperTier.ts),
              so the RPC publishes a boolean and the real acct_… identifier never

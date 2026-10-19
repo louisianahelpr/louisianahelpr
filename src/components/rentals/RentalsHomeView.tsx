@@ -19,6 +19,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import {
   addUnit,
   createProperty,
+  fetchMyIdentity,
   fetchMyProperties,
   fetchMyRequests,
   fetchMyHomes,
@@ -26,8 +27,8 @@ import {
   fetchUnits,
   inviteTenant,
   setAutoApprove,
-  submitOwnershipProof,
   type MaintenanceRequest,
+  type MyIdentity,
   type RentalProperty,
   type RentalUnit,
   type UnitTenancy,
@@ -40,6 +41,7 @@ import { EndTenancyButton } from "./EndTenancyButton";
 import { HomesBrowse } from "./HomesBrowse";
 import { fetchMyListings, type RentalListing } from "@/lib/rentals/listings";
 import { listingStatusLabel } from "@/lib/rentals/listingCopy";
+import { IdStatusNotice, SendForReview, idPhotoNeeded } from "./LandlordIdReview";
 
 function RequestRow({ r }: { r: MaintenanceRequest }) {
   return (
@@ -70,7 +72,7 @@ function AddPropertyForm({ onDone }: { onDone: () => void }) {
   const m = useMutation({
     mutationFn: () => createProperty(label, street, city, zip),
     onSuccess: () => {
-      toast.success("Property added. Next: add your ownership proof.");
+      toast.success("Property added. Next: send your ownership proof for review.");
       onDone();
     },
     onError: (e) => toast.error(rentalsErrorMessage(e)),
@@ -89,7 +91,7 @@ function AddPropertyForm({ onDone }: { onDone: () => void }) {
         <Input aria-label="City" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} required />
         <Input className="max-w-[7rem]" aria-label="ZIP code" placeholder="ZIP" inputMode="numeric" value={zip} onChange={(e) => setZip(e.target.value)} required />
       </div>
-      <p className="text-xs text-muted-foreground">Only the owner of a property can add it. You need a verified ID.</p>
+      <p className="text-xs text-muted-foreground">Only the owner of a property can add it. Next you send ownership proof and, if you aren't ID-verified yet, a photo of your ID.</p>
       <Button type="submit" size="sm" disabled={m.isPending}>
         {m.isPending ? "Adding…" : "Add property"}
       </Button>
@@ -119,6 +121,7 @@ function PropertyCard({
   listings,
   uid,
   onChange,
+  identity,
 }: {
   p: RentalProperty;
   units: RentalUnit[];
@@ -126,18 +129,11 @@ function PropertyCard({
   listings: RentalListing[];
   uid: string;
   onChange: () => void;
+  identity: MyIdentity;
 }) {
   const [unitLabel, setUnitLabel] = useState("");
   const [limit, setLimit] = useState(p.auto_approve_limit_cents != null ? String(p.auto_approve_limit_cents / 100) : "");
   const [links, setLinks] = useState<Record<string, string>>({});
-  const proof = useMutation({
-    mutationFn: (f: File) => submitOwnershipProof(uid, p.id, f),
-    onSuccess: () => {
-      toast.success("Proof sent. An admin will check it.");
-      onChange();
-    },
-    onError: (e) => toast.error(rentalsErrorMessage(e)),
-  });
   const unit = useMutation({
     mutationFn: () => addUnit(p.id, unitLabel),
     onSuccess: () => {
@@ -157,9 +153,13 @@ function PropertyCard({
   const invite = useMutation({
     mutationFn: (unitId: string) => inviteTenant(unitId),
     onSuccess: (token, unitId) => setLinks((l) => ({ ...l, [unitId]: inviteUrl(window.location.origin, token) })),
-    onError: (e) => toast.error(rentalsErrorMessage(e)),
+    onError: (e) => {
+      toast.error(rentalsErrorMessage(e));
+      onChange(); // identity_not_verified / ownership_not_approved: show the current state
+    },
   });
   const approved = p.ownership_status === "approved";
+  const needsProof = !approved && p.ownership_status !== "pending_review";
   return (
     <div className="rounded-xl border border-border p-3 space-y-3">
       <div>
@@ -172,20 +172,8 @@ function PropertyCard({
           <p className="text-xs text-muted-foreground">Reason: {p.ownership_review_note}</p>
         )}
       </div>
-      {!approved && p.ownership_status !== "pending_review" && (
-        <label className="block text-sm">
-          <span className="block mb-1">Ownership proof: a deed, tax bill or parish assessor page with your name</span>
-          <input
-            type="file"
-            accept="image/jpeg,image/png,application/pdf"
-            disabled={proof.isPending}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) proof.mutate(f);
-            }}
-          />
-        </label>
-      )}
+      {/* The ID rides with this property's proof; with no proof to send, the ID form stands alone above. */}
+      <SendForReview uid={uid} propertyId={p.id} needsId={needsProof && idPhotoNeeded(identity)} needsProof={needsProof} onSent={onChange} />
       <div className="space-y-2">
         <p className="text-sm font-medium">Units</p>
         {units.length === 0 && <p className="text-xs text-muted-foreground">No units yet. A house can be one unit called "Main".</p>}
@@ -193,7 +181,7 @@ function PropertyCard({
           <div key={u.id} className="space-y-1">
             <div className="flex items-center justify-between gap-2 text-sm">
               <span>{u.label}</span>
-              <Button type="button" size="sm" variant="outline" disabled={!approved || invite.isPending} onClick={() => invite.mutate(u.id)}>
+              <Button type="button" size="sm" variant="outline" disabled={!approved || !identity.verified || invite.isPending} onClick={() => invite.mutate(u.id)}>
                 Invite tenant
               </Button>
             </div>
@@ -228,6 +216,7 @@ function PropertyCard({
           </div>
         ))}
         {!approved && <p className="text-xs text-muted-foreground">You can invite tenants once your ownership proof is approved.</p>}
+        {approved && !identity.verified && <p className="text-xs text-muted-foreground">You can invite tenants once your ID is checked.</p>}
         <form
           className="flex items-center gap-2"
           onSubmit={(e) => {
@@ -292,15 +281,16 @@ export default function RentalsHomeView() {
     queryKey: ["rentals-home", uid],
     enabled: !!uid,
     queryFn: async () => {
-      const [properties, homes, requests, tenancies, listings] = await Promise.all([
+      const [properties, homes, requests, tenancies, listings, identity] = await Promise.all([
         fetchMyProperties(uid),
         fetchMyHomes(),
         fetchMyRequests(),
         fetchLiveTenancies(uid),
         fetchMyListings(uid),
+        fetchMyIdentity(),
       ]);
       const units = await fetchUnits(properties.map((p) => p.id));
-      return { properties, units, homes, requests, tenancies, listings };
+      return { properties, units, homes, requests, tenancies, listings, identity };
     },
   });
   const refresh = () => qc.invalidateQueries({ queryKey: ["rentals-home", uid] });
@@ -349,6 +339,12 @@ export default function RentalsHomeView() {
               )
             }
           >
+            {(data.data.properties.length > 0 || data.data.identity.idStatus !== null) && <IdStatusNotice id={data.data.identity} />}
+            {/* The ID alone, when no property is waiting for its proof (e.g. a new photo after a rejection). */}
+            {idPhotoNeeded(data.data.identity) && data.data.properties.length > 0
+              && !data.data.properties.some((p) => p.ownership_status === "needs_proof" || p.ownership_status === "rejected") && (
+              <SendForReview uid={uid} propertyId={null} needsId needsProof={false} onSent={refresh} />
+            )}
             {adding && (
               <AddPropertyForm
                 onDone={() => {
@@ -369,6 +365,7 @@ export default function RentalsHomeView() {
                 tenancies={data.data.tenancies}
                 listings={data.data.listings}
                 onChange={refresh}
+                identity={data.data.identity}
               />
             ))}
             {data.data.requests.filter((r) => r.landlord_id === uid).length > 0 && <p className="text-sm font-medium">Requests from tenants</p>}

@@ -980,7 +980,6 @@ export const RPC_ERROR_COPY = {
   rentals_create_property: {
     account_restricted: RC.account_restricted,
     feature_disabled: RC.feature_disabled,
-    identity_not_verified: RC.identity_not_verified,
     not_authenticated: RC.not_authenticated,
     too_many_properties: RC.too_many_properties,
     under_18: RC.under_18,
@@ -1089,6 +1088,15 @@ export const RPC_ERROR_COPY = {
     feature_disabled: RC.feature_disabled,
     not_authenticated: RC.not_authenticated,
     property_not_found: RC.property_not_found,
+    under_18: RC.under_18,
+  },
+  rentals_submit_landlord_id: {
+    account_restricted: RC.account_restricted,
+    already_verified: RC.already_verified,
+    bad_id_path: RC.bad_id_path,
+    feature_disabled: RC.feature_disabled,
+    id_photo_missing: RC.id_photo_missing,
+    not_authenticated: RC.not_authenticated,
     under_18: RC.under_18,
   },
   rentals_cancel_request_job: {

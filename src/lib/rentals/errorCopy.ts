@@ -14,7 +14,14 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   not_authenticated: "Please sign in again to continue.",
   account_restricted: "Your account is restricted, so Homes is not available right now.",
   under_18: "You must be 18 or older to use Homes.",
-  identity_not_verified: "Verify your ID first. Every landlord on Louisiana Helpr is ID-verified.",
+  // Owner 2026-10-19: Stripe's ID check (payout setup) or a photo of your ID
+  // that an admin approves; no charge either way.
+  identity_not_verified: "Verify your ID first: send a photo of your ID for review (free), or set up payouts. Every landlord on Louisiana Helpr is ID-verified.",
+  already_verified: "Your ID is already verified.",
+  bad_id_path: "Your ID photo didn't upload. Try adding it again.",
+  id_photo_missing: "Your ID photo didn't upload. Try adding it again.",
+  profile_not_found: "We couldn't find that account.",
+  review_changed: "The landlord sent a new photo since you opened this. Refresh and look again.",
   too_many_properties: "You've added the most properties one account can have.",
   property_not_found: "That property isn't available.",
   already_approved: "This property's ownership is already approved.",

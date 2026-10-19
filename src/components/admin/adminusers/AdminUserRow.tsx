@@ -5,6 +5,7 @@
  * management screen. Extracted verbatim from AdminUsers.tsx —
  * behaviour-preserving structural refactor.
  */
+import { isIdentityVerified } from "@/lib/awardGate";
 import { memo } from "react";
 import { formatName } from "@/lib/utils";
 import UserAvatar from "@/components/UserAvatar";
@@ -158,7 +159,8 @@ const AdminUserRowBase = ({
             // (#1582) captured every row as "Good · Never logged in" because
             // both were read off maps that had not arrived yet.
             const neverLoggedIn = lastLoginSummary !== null && !lastLogin;
-            const hasIdv = p.idv_status === "verified";
+            // The one identity rule (Stripe Identity, Connect, or an approved ID).
+            const hasIdv = isIdentityVerified({ connectIdentityVerified: p.stripe_identity_verified, idvStatus: p.idv_status });
             const hasStripe = !!p.stripe_account_id;
             // Same legacy-role pattern as deniedCount above.
             const isHelper = (p as { role?: string }).role !== "customer";

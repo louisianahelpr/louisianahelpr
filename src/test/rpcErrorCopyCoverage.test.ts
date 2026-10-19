@@ -143,6 +143,10 @@ const UNREACHABLE: Allowlist = {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
   },
+  rentals_my_identity: {
+    feature_disabled: { reason: RENTALS_READ },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+  },
   // Best effort after the job is posted (useJobSubmit): a refused link is
   // reported to the ops ledger and told as one fixed sentence; the job is posted either way.
   link_maintenance_request_job: {

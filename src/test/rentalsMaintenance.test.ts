@@ -22,7 +22,7 @@
  * measured 2026-10-15).
  */
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql | VALUES ('rentals', 'off', | VALUES ('rentals', 'testers',
-// @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql |   IF v_status <> 'approved' THEN\n    RAISE EXCEPTION 'ownership_not_approved' |   IF false THEN\n    RAISE EXCEPTION 'ownership_not_approved'
+// @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql |   IF v_status <> 'approved' THEN\n    RAISE EXCEPTION 'ownership_not_approved' |   IF false THEN\n    RAISE EXCEPTION 'ownership_not_approved'
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql |   v_auto := p_urgency <> 'emergency' AND v_p.auto_approve_limit_cents IS NOT NULL; |   v_auto := v_p.auto_approve_limit_cents IS NOT NULL;
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql |   IF public.member_under_18(v_uid) THEN |   IF false THEN
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) FROM PUBLIC, anon;
@@ -76,10 +76,13 @@ const MEMBER_RPCS = [
   "rentals_approve_request",
   "rentals_decline_request",
   "rentals_tenant_answer_fixed",
+  // Landlord ID by admin review (20261019051407).
+  "rentals_submit_landlord_id",
 ];
 /** RPCs that only take access away or link a job (banned / under-18 may still leave). */
-const OTHER_RPCS = ["rentals_end_tenancy", "rentals_withdraw_request", "link_maintenance_request_job", "rentals_admin_review_property"];
-const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes", "rentals_visit_for_job"];
+const OTHER_RPCS = ["rentals_end_tenancy", "rentals_withdraw_request", "link_maintenance_request_job", "rentals_admin_review_property",
+  "rentals_admin_review_landlord_id"];
+const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes", "rentals_visit_for_job", "rentals_my_identity"];
 /** Slice 3 writes: visit time (the Helpr, not a Rentals member, proposes; the tenant confirms through
  *  rentals_assert_member) and the landlord's cancel of an unpaid repair job. */
 const VISIT_RPCS = ["rentals_propose_visit", "rentals_confirm_visit", "rentals_cancel_request_job"];
@@ -134,7 +137,12 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
   });
 
   it("3. the owner rules", () => {
-    expect(flat(body("rentals_create_property"))).toContain("p.user_id = v_uid AND p.idv_status = 'verified'");
+    // Identity through the one helper (20261019051407; src/test/rentalsIdentityGateUsesHelper.test.ts), at the
+    // invite: adding a property asks for none (20261019051407, the ID is reviewed with the proof).
+    expect(flat(body("rentals_invite_tenant"))).toContain("IF NOT public.is_identity_verified(v_uid) THEN RAISE EXCEPTION 'identity_not_verified'");
+    expect(flat(body("rentals_create_property"))).not.toContain("identity_not_verified");
+    expect(flat(body("rentals_admin_review_landlord_id"))).toContain("NOT public.has_role(v_uid, 'admin'::public.app_role)");
+    expect(flat(body("rentals_admin_review_landlord_id"))).toContain("INSERT INTO public.admin_audit_log");
     expect(flat(body("rentals_invite_tenant"))).toContain("IF v_status <> 'approved' THEN RAISE EXCEPTION 'ownership_not_approved'");
     expect(flat(body("rentals_invite_tenant"))).toContain("encode(sha256(convert_to(v_token, 'UTF8')), 'hex')");
     expect(flat(body("rentals_admin_review_property"))).toContain("NOT public.has_role(v_uid, 'admin'::public.app_role)");
@@ -185,7 +193,7 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
     expect(sub).toContain("mp.tenant_id = auth.uid() AND mp.storage_path = p_name");
     expect(sub).toContain("c.document_url = p_name"); // the live credential branches kept
     expect(flat(body("rentals_file_request"))).toContain("pg_advisory_xact_lock(hashtext('rentals_file:' || v_uid::text))");
-    expect(flat(body("rentals_invite_tenant"))).toContain("pr.idv_status = 'verified'");
+    expect(flat(body("rentals_invite_tenant"))).toContain("IF NOT public.is_identity_verified(v_uid) THEN RAISE EXCEPTION 'identity_not_verified'");
     // Filing never creates a job (the noJobRowBeforePayment rule): the landlord posts and pays.
     for (const fn of [...MEMBER_RPCS, ...OTHER_RPCS]) expect(body(fn), fn).not.toMatch(/INSERT\s+INTO\s+public\.jobs\b/i);
   });

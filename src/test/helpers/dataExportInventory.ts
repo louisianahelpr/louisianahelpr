@@ -180,6 +180,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   // The shop's private pickup address (M1b part 2, 20261018210400), exported by
   // 20261018210401 to its owner only (the Stripe Tax location id is internal, dropped).
   shop_pickup_addresses: { by: ["owner_id"] },
+  landlord_id_reviews: { by: ["user_id"] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },
@@ -466,6 +467,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "declutter_delivery_dropoffs.seller_id": { reason: "the other side of the order: the drop-off address is the BUYER's and is never exported to the seller (exported by declutter_delivery_dropoffs.buyer_id, 20261017055506)" },
   "declutter_handovers.confirmed_by": { reason: "how a Declutter handover was confirmed ('buyer', 'seller', 'porch', 'auto', 'admin'; 'code' on historical rows only), not a person; the table has no person column (it is keyed by order_id; 20261015042253, no QR 'scan' since 20261018183715)" },
   "declutter_problems.decided_by": { reason: "the staff member who decided a Declutter problem report; the report is the member's (exported by declutter_problems.reporter_id, 20261015042253, with this staff id dropped)", stripped: true },
+  "landlord_id_reviews.reviewed_by": { reason: "the admin who reviewed a landlord's ID photo (owner 2026-10-19); the review is the landlord's (exported by landlord_id_reviews.user_id with this staff id dropped)", stripped: true },
   "rental_properties.ownership_reviewed_by": { reason: "the admin who checked a landlord's ownership proof; the property is the landlord's (exported by rental_properties.owner_id, 20261017205605, with this staff id dropped)", stripped: true },
   "declutter_seller_flags.set_by": { reason: "the staff member (or NULL for the server) who flagged a seller as business-like; the flag is the member's (the flag is exported by declutter_seller_flags.user_id, 20261014200728, with this staff id dropped)" },
   // Q552: the service-role-only enrolment of the platform's OWN test accounts

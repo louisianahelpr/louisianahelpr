@@ -2,7 +2,11 @@
  * CLASS CHECK — the retired "upload your ID to us" path stays retired (Q40).
  *
  * Users never send an ID to Helpr: Stripe Identity collects it (owner,
- * 2026-09-23). The legacy path survived anyway, in four layers that did not
+ * 2026-09-23). ONE later exception, by owner decision 2026-10-19: a landlord
+ * sends a photo of their ID for admin review (landlord_id_reviews, private
+ * user-documents/<uid>/landlord-id/, deleted 30 days after the decision;
+ * src/test/landlordIdNoCharge.test.ts). It shares no token with the retired
+ * path below. The legacy path survived anyway, in four layers that did not
  * know about each other:
  *   - Profile.tsx `handleIdUpload` → id-documents + profiles.id_document_url
  *     (+ idv_status 'pending'), unreachable but live code;

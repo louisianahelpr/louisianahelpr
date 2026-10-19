@@ -9,7 +9,11 @@
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |   if (!on) return null; |
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |         <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => m.mutate(false)}> |         <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => m.mutate(true)}>
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |       {q.isError ? ( |       {false ? (
- * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |               open: (url, target) => window.open(url, target), |               open: () => null,
+ * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |           open: (url, target) => window.open(url, target), |           open: () => null,
+ * Landlord ID beside the proof (owner 2026-10-19):
+ * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |         <Button size="sm" variant="outline" disabled={decide.isPending} onClick={() => decide.mutate(false)}> |         <Button size="sm" variant="outline" disabled={decide.isPending} onClick={() => decide.mutate(true)}>
+ * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |   return [...groups.values()].filter((g) => g.id?.status === "pending_review" \|\| g.properties.length > 0); |   return [...groups.values()].filter((g) => g.properties.length > 0);
+ * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |         {r.back_path && <OpenFile path={r.back_path} label="Open ID (back)" />} |         {null}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -18,8 +22,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const state = {
   feature: true,
   pending: [] as unknown[] | Error,
+  pendingIds: [] as unknown[],
+  ownerIds: [] as unknown[],
 };
 const reviewOwnership = vi.fn(async () => undefined);
+const reviewLandlordId = vi.fn(async () => undefined);
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature }));
 vi.mock("@/components/ui/ReportErrorScreen", () => ({ ReportErrorScreen: () => <p>report</p> }));
@@ -29,6 +36,9 @@ vi.mock("@/lib/rentals/api", () => ({
     return state.pending;
   },
   reviewOwnership: (...args: unknown[]) => reviewOwnership(...(args as [])),
+  fetchPendingLandlordIds: async () => state.pendingIds,
+  fetchLandlordIds: async (ids: string[]) => (state.ownerIds as { user_id: string }[]).filter((r) => ids.includes(r.user_id)),
+  reviewLandlordId: (...args: unknown[]) => reviewLandlordId(...(args as [])),
   signedFileUrl: async () => "https://signed/x",
 }));
 
@@ -36,6 +46,7 @@ import { RentalsOwnershipCard } from "./RentalsOwnershipCard";
 
 const PROPERTY = {
   id: "p1",
+  owner_id: "l1",
   label: "Oak Street duplex",
   street_address: "12 Oak St",
   city: "Lafayette",
@@ -56,7 +67,10 @@ describe("RentalsOwnershipCard", () => {
   beforeEach(() => {
     state.feature = true;
     state.pending = [];
+    state.pendingIds = [];
+    state.ownerIds = [];
     reviewOwnership.mockClear();
+    reviewLandlordId.mockClear();
   });
 
   it("renders nothing while the 'rentals' switch is off", () => {
@@ -105,5 +119,46 @@ describe("RentalsOwnershipCard", () => {
     } finally {
       open.mockRestore();
     }
+  });
+
+  describe("landlord ID beside the ownership proof (owner 2026-10-19)", () => {
+    const ID = { user_id: "l1", status: "pending_review", front_path: "l1/landlord-id/1-front.jpg", back_path: "l1/landlord-id/1-back.jpg", review_note: null, submitted_at: "2026-10-19T01:00:00Z" };
+
+    it("shows the ID and the proof side by side and approves / rejects the ID with its note", async () => {
+      state.pending = [PROPERTY];
+      state.pendingIds = [ID];
+      renderCard();
+      const group = await screen.findByTestId("landlord-review-group");
+      expect(group.textContent).toContain("Photo ID");
+      expect(group.textContent).toContain("Ownership proof");
+      expect(screen.getByRole("button", { name: "Open ID (front)" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Open ID (back)" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Open ownership proof" })).toBeTruthy();
+      expect(screen.getAllByTestId("landlord-review-group")).toHaveLength(1);
+
+      fireEvent.click(screen.getByRole("button", { name: "Approve ID" }));
+      // The decision names the submission the admin opened (a newer photo is refused: review_changed).
+      await waitFor(() => expect(reviewLandlordId).toHaveBeenCalledWith("l1", true, "", "2026-10-19T01:00:00Z"));
+      expect(reviewOwnership).not.toHaveBeenCalled();
+
+      fireEvent.change(screen.getByLabelText("ID note (required to reject)"), { target: { value: "Photo is blurry" } });
+      fireEvent.click(screen.getByRole("button", { name: "Reject ID" }));
+      await waitFor(() => expect(reviewLandlordId).toHaveBeenLastCalledWith("l1", false, "Photo is blurry", "2026-10-19T01:00:00Z"));
+    });
+
+    it("an ID waiting with no proof waiting still shows (a new photo after a rejection)", async () => {
+      state.pendingIds = [ID];
+      renderCard();
+      expect(await screen.findByRole("button", { name: "Approve ID" })).toBeTruthy();
+      expect(screen.getByText("No proof waiting.")).toBeTruthy();
+    });
+
+    it("a proof whose landlord's ID is already approved shows the ID status, no ID buttons", async () => {
+      state.pending = [PROPERTY];
+      state.ownerIds = [{ ...ID, status: "approved" }];
+      renderCard();
+      expect(await screen.findByText("ID approved.")).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Approve ID" })).toBeNull();
+    });
   });
 });

@@ -5033,6 +5033,48 @@ export type Database = {
           },
         ]
       }
+      landlord_id_reviews: {
+        Row: {
+          back_path: string | null
+          created_at: string
+          front_path: string | null
+          images_deleted_at: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          back_path?: string | null
+          created_at?: string
+          front_path?: string | null
+          images_deleted_at?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          back_path?: string | null
+          created_at?: string
+          front_path?: string | null
+          images_deleted_at?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       legal_acceptances: {
         Row: {
           created_at: string
@@ -12032,6 +12074,7 @@ export type Database = {
       }
       is_fixture_email: { Args: { p_email: string }; Returns: boolean }
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
+      is_identity_verified: { Args: { p_user_id: string }; Returns: boolean }
       is_late_cancellation: {
         Args: { p_has_helper: boolean; p_hours_until: number }
         Returns: boolean
@@ -12098,6 +12141,17 @@ export type Database = {
       kick_payout_schedule_sync: {
         Args: { p_helper_id: string }
         Returns: boolean
+      }
+      landlord_id_images_deleted: {
+        Args: { p_reviewed_at: string; p_user_id: string }
+        Returns: boolean
+      }
+      landlord_id_images_due: {
+        Args: { p_limit?: number; p_retention_days: number }
+        Returns: {
+          reviewed_at: string
+          user_id: string
+        }[]
       }
       lift_ban_settlement_review: {
         Args: { p_admin_id: string; p_ban_status?: string; p_user_id: string }
@@ -12470,6 +12524,15 @@ export type Database = {
         Args: { p_label: string; p_property_id: string }
         Returns: string
       }
+      rentals_admin_review_landlord_id: {
+        Args: {
+          p_approve: boolean
+          p_note: string
+          p_submitted_at: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       rentals_admin_review_property: {
         Args: { p_approve: boolean; p_note: string; p_property_id: string }
         Returns: undefined
@@ -12535,6 +12598,16 @@ export type Database = {
           zip_code: string
         }[]
       }
+      rentals_my_identity: {
+        Args: never
+        Returns: {
+          id_status: string
+          review_note: string
+          reviewed_at: string
+          submitted_at: string
+          verified: boolean
+        }[]
+      }
       rentals_notify: {
         Args: {
           p_email: boolean
@@ -12556,6 +12629,10 @@ export type Database = {
       }
       rentals_set_auto_approve: {
         Args: { p_limit_cents: number; p_property_id: string }
+        Returns: undefined
+      }
+      rentals_submit_landlord_id: {
+        Args: { p_back_path: string; p_front_path: string }
         Returns: undefined
       }
       rentals_submit_ownership_proof: {

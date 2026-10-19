@@ -114,6 +114,8 @@ export const EXPORT_SECTIONS = [
   "shop_item_attestations", "shop_cottage_confirmations", "shop_cottage_sales",
   "rental_properties", "rental_units", "rental_tenancies", "maintenance_requests", "maintenance_request_photos",
   "shop_orders", "shop_order_lines", "shop_strikes", "shop_pickup_addresses",
+  // Landlord ID (owner 2026-10-19): the member's own ID review (status, dates, note).
+  "landlord_id_reviews",
   "storage_objects",
 ];
 

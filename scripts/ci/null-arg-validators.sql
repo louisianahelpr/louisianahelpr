@@ -55,6 +55,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('helper_credential_document_ok', 'allow',    'helper_credentials document is the member''s own object'),
   ('helper_has_advanced_analytics', 'allow',    'caller''s own paid-tier entitlement'),
   ('identity_is_verified',          'allow',    'identity badge / hire gate verdict'),
+  ('is_identity_verified',          'allow',    'rentals identity gate: the user''s identity_is_verified verdict looked up by id (20261019051407)'),
   ('is_party_to_job',               'allow',    'user is a party to the job'),
   ('is_party_to_job_folder',        'allow',    'caller is a party to the job owning this storage folder'),
   ('is_crew_member_of_job_folder',  'allow',    'caller is on the crew of the job owning this storage folder (Q407)'),
@@ -79,6 +80,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_refund_set_mode',     'action',   'VOLATILE: records a Declutter refund''s Stripe mode once and returns it (service only; 20261015042253)'),
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
   ('declutter_set_porch_ok',        'action',   'VOLATILE: the seller sets porch pickup on their own draft and gets the stored value back; a NULL choice raises invalid_porch_choice (row 101; 20261017055504)'),
+  ('landlord_id_images_deleted',    'action',   'VOLATILE: the retention sweep stamps a landlord ID review whose photos it removed and reports whether it did (service only; a NULL argument matches no row and answers FALSE; 20261019051407)'),
   ('declutter_retire_order',        'action',   'VOLATILE: retires an unpaid order whose Stripe page timed out and reports whether it did (service only; a NULL argument matches no order and answers FALSE; 20261014224914)'),
   ('declutter_delivery_slot_ok',    'allow',    'TRUE = a Helpr may pick this delivery order up at this time (seller''s window, before the 7-day deadline; 20261017055505)'),
   ('helpr_task_photo_access',       'allow',    'TRUE = the caller may write (the assigned Helpr, own folder, active task) or read (a party or an admin) this helpr-tasks object (20261017055505)'),
@@ -183,6 +185,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   -- identity: each argument alone can say yes, so each gets the tuple where it is the one deciding.
   ('identity_is_verified',          NULL, ARRAY['''verified''', 'false'], ARRAY[1]),
   ('identity_is_verified',          NULL, ARRAY['''unverified''', 'true'], ARRAY[2]),
+  -- D's profile carries idv_status = 'verified' (profiles fixture step), so the non-NULL call is TRUE.
+  ('is_identity_verified',          NULL, ARRAY['''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1]),
   ('is_party_to_job',               NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
   ('is_party_to_job_folder',        '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101/x.png'''], ARRAY[1]),
   -- B is on J's crew (the 'roster' fixture step), so the non-NULL call is TRUE.
@@ -261,6 +265,7 @@ BEGIN
       WHEN 'profiles' THEN
         INSERT INTO public.profiles (user_id) VALUES (A), (B), (D) ON CONFLICT (user_id) DO NOTHING;
         UPDATE public.profiles SET subscription_tier = 'pro', subscription_expires_at = NULL WHERE user_id = B;
+        UPDATE public.profiles SET idv_status = 'verified' WHERE user_id = D;  -- is_identity_verified's TRUE case
         -- Q1844 (20261017085012): helper_has_advanced_analytics also asks the 'memberships' switch, so turn it
         -- on for everyone here (rolled back with the rest), or B's baseline call is false and proves nothing.
         IF to_regclass('public.feature_switches') IS NOT NULL THEN

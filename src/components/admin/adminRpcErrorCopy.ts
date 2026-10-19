@@ -190,6 +190,16 @@ export const ADMIN_RPC_ERROR_COPY = {
     not_pending_review: RC.not_pending_review,
     reason_required: "Add a reason. The landlord will see it.",
   },
+  rentals_admin_review_landlord_id: {
+    account_restricted: RC.account_restricted,
+    decision_required: RC.decision_required,
+    feature_disabled: RC.feature_disabled,
+    not_authorized: "Only an admin can do that, and never for their own ID.",
+    not_pending_review: "This ID isn't waiting for a review.",
+    profile_not_found: RC.profile_not_found,
+    reason_required: "Add a reason. The landlord will see it.",
+    review_changed: "The landlord sent a new photo since you opened this. Refresh and look again.",
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type AdminMappedRpc = keyof typeof ADMIN_RPC_ERROR_COPY;

@@ -86,7 +86,9 @@ CREATE TYPE public.app_role AS ENUM ('admin', 'moderator', 'user');
 CREATE TYPE public.job_category AS ENUM ('cleaning', 'other');
 CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE,
   subscription_tier text, subscription_expires_at timestamptz, ban_status text, auto_suspended_until timestamptz,
-  is_seed boolean DEFAULT false);
+  is_seed boolean DEFAULT false,
+  -- is_identity_verified (20261019051407) reads the two identity verdict columns.
+  idv_status text, stripe_identity_verified boolean DEFAULT false);
 CREATE TABLE public.user_roles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, role public.app_role NOT NULL,
   UNIQUE (user_id, role));
 CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text NOT NULL, description text NOT NULL,
@@ -195,7 +197,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Shops slice 1 (20261017061155).
   "shop_owner_in_good_standing", "shop_publicly_visible", "shop_visible_to",
   // Rentals S1 (20261017205605).
-  "rentals_caller_is_active_tenant_of"];
+  "rentals_caller_is_active_tenant_of",
+  // Rentals identity either verdict (20261019051407); after identity_is_verified, which its SQL body calls.
+  "is_identity_verified"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, so it comes after it).
 const AFTER_STUBS = ["job_announceable_to", "shop_publicly_visible", "shop_visible_to"];

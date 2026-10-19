@@ -93,7 +93,7 @@
  * @mutate supabase/migrations/20261017055505_declutter_helpr_delivery.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
- * @mutate supabase/migrations/20261017055505_declutter_helpr_delivery.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
+ * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | CREATE TRIGGER trg_zero_fee BEFORE INSERT ON public.declutter_refunds FOR EACH ROW EXECUTE FUNCTION public.declutter_zero_fee();\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_orders SET card_fee_cents = 0;\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -171,15 +171,25 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
         "for (const r of refunds) {",
       ],
       mentions: [
+        // Payout readiness: the eight skipRow lines pass refund_cents to noteWaiting for the wait record and the ops
+        // page (an amount shown, never sent); skipRow defers the row and moves no money.
         "refund_cents: number;",
         "refund_cents: number;",
+        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 60, \"ban_review\", \"a party is under ban review\");",
+        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"data_defect\", \"no order and no recorded Stripe mode\");",
         "amount: r.refund_cents,",
+        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 15, \"record_failed\", `refund ${refund.id} not recorded`);",
         "message: `Stripe answered ${refund.status} for refund row ${r.refund_id} (${dollars(r.refund_cents)}, order ${r.order_id ?? \"none\"}). ${r.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
         "await tellBuyerRefunded(admin, r.buyer_id, r.refund_cents);",
+        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"mixed_parties\", \"the order mixes a test account and a real one\");",
+        "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 60, \"ban_review\", \"a party is under ban review\");",
         "payment_intent_id: d.payment_intent_id, refund_cents: d.refund_cents, attempts: d.attempts, livemode: null,",
+        "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, \"data_defect\", \"no Stripe mode\");",
         "amount: d.refund_cents,",
+        "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 15, \"record_failed\", `refund ${dRefund.id} not recorded`);",
         "message: `Stripe answered ${dRefund.status} for delivery refund ${d.delivery_refund_id} (${dollars(d.refund_cents)}, order ${d.order_id}). ${d.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
         "await tellBuyerRefunded(admin, d.buyer_id, d.refund_cents);",
+        "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, \"mixed_parties\", \"the order mixes a test account and a real one\");",
       ],
     },
   },
@@ -339,12 +349,17 @@ const SQL_POLICIES = {
       declutter_record_hand_refund: "20261017055500_declutter_refund_hand_settle.sql e91bafe49bc1f340",
       declutter_record_refund: "20261017060455_declutter_seller_out_pays_fee.sql f85f29c34b2fda23",
       declutter_refund_answer: "20261015042253_declutter_slice4_handover_payout.sql bf344cb7353cb326",
-      declutter_refund_executed: "20261017055500_declutter_refund_hand_settle.sql fda24c97dc66b80c",
+      // Payout readiness (20261019070737): writes only a row still in the automatic path (status pending / failed),
+      // never one an admin holds for review or settled by hand; the amount (refund_cents) is untouched, so the fee
+      // policy recorded by declutter_record_refund stands.
+      declutter_refund_executed: "20261019070737_payout_waits_for_payee_setup.sql d56d6750b97358bc",
       declutter_refund_gave_up_check: "20261017055500_declutter_refund_hand_settle.sql 1fa348b4a38b6f7c",
       declutter_refund_paid_order: "20261014224914_declutter_slice3b_payments.sql 2e178605dfca8501",
       declutter_refund_reversed: "20261017055500_declutter_refund_hand_settle.sql df1710d5a746e90b",
       declutter_refund_set_mode: "20261015042253_declutter_slice4_handover_payout.sql c41b6779b527f9c7",
-      declutter_refunds_due: "20261017055505_declutter_helpr_delivery.sql fcc24a16eaf31209",
+      // Payout readiness (20261019070737): a deferred pending refund waits for next_attempt_at, and a delivery_damage
+      // refund also counts a seller payout settled by hand as paid; the projected refund_cents is unchanged.
+      declutter_refunds_due: "20261019070737_payout_waits_for_payee_setup.sql 42525eabe75fde8f",
       // Reads which order a refund belongs to and tells the seller the debt booked for it; writes no amount.
       declutter_seller_out_fee_notice: "20261017060455_declutter_seller_out_pays_fee.sql 5cbd77f0949a09ec",
       // A10 (owner, 2026-10-17): the trigger on a seller-fault refund cancels the buyer's setup job (no fee) and
@@ -357,6 +372,26 @@ const SQL_POLICIES = {
       // Shops M1: records the card fee Stripe kept when a held order is captured (or the 2.9% + 30c estimate),
       // for a later refund to keep; it records no refund and decides no refund amount.
       shop_order_captured: "20261018164442_shops_orders_checkout.sql 3fe4dbb559a29a1f",
+      // Payout readiness (20261019070737, lander33 pin for the lead's review). None of these decides or changes a refund
+      // amount; each touches declutter_refunds only by status / time / review columns:
+      // the admin page's list of held rows (a read; shows refund_cents as recorded).
+      admin_payouts_held_for_review: "20261019070737_payout_waits_for_payee_setup.sql 6fa6a56325019e33",
+      // puts a held refund back to 'pending' with its recorded refund_cents (the fee kept at record time is kept).
+      admin_payout_release: "20261019070737_payout_waits_for_payee_setup.sql 47a7da98fedbb02e",
+      // records how a held refund was settled outside the app (Stripe re_/pyr_ id or "other:") and the amount the admin
+      // says moved (settled_by_hand_cents, payout_settlements, the hand-refund ledger); it sends no money and never
+      // changes refund_cents, so no new fee is returned by the app (owner: hand-settled = no new money movement).
+      // A Stripe id (re_ or pyr_) makes the refund 'succeeded' only for at least refund_cents (settle_amount_short:
+      // a short refund never closes the row); only "other:" ends 'settled_by_hand'.
+      admin_payout_settle_by_hand: "20261019070737_payout_waits_for_payee_setup.sql 12a49c0991260de6",
+      // pushes next_attempt_at of a pending / failed row; no try used, no amount.
+      payout_defer: "20261019070737_payout_waits_for_payee_setup.sql 64f967d0b2d0c9f4",
+      // pages ops and tells the payee once per held row; writes only held_notified_at.
+      payout_held_check: "20261019070737_payout_waits_for_payee_setup.sql 8c5847e745f8e5bb",
+      // the payout run holds a pending / failed row for review (status + reason); no amount.
+      payout_hold_for_review: "20261019070737_payout_waits_for_payee_setup.sql 744e5a8f330d8f6f",
+      // deletes wait / send-mark bookkeeping rows of ended payouts; reads declutter_refunds status only.
+      payout_payee_waits_prune: "20261019070737_payout_waits_for_payee_setup.sql c4543482b291f2dc",
     } as Record<string, string>,
     /**
      * Every top-level statement (outside a function body) that names declutter_refunds (table, ALTER, policy,
@@ -374,6 +409,9 @@ const SQL_POLICIES = {
       "declutter_refunds 20261017060455_declutter_seller_out_pays_fee.sql": ["1192c0e245b11665", "47702b9f63c08805", "afb94a44f9fb4011", "12bd66289bce9d64"],
       // A10: AFTER INSERT ... WHEN fee_policy = 'full_seller_pays_fee' -> declutter_refund_cancels_setup_jobs.
       "declutter_refunds 20261017073146_declutter_add_a_helpr.sql": ["fcfe90bf2d9d7b5b"],
+      // Payout readiness: the status CHECK swapped to add held_for_review / settled_by_hand (DROP + ADD in one DO block)
+      // and the review / settled-by-hand / held_notified_at columns; none touches refund_cents, card_fee_cents or fee_policy.
+      "declutter_refunds 20261019070737_payout_waits_for_payee_setup.sql": ["8e751398a6ae0f95","c964f08d0e8c041d","064bf163b9bea4fa","af87ef16f6190cb0"],
       "declutter_refunds 20261015042253_declutter_slice4_handover_payout.sql": ["997e0a466b670952", "1192c0e245b11665", "2fd39357580a2cf8", "4cf2e4567f6437bd", "7ba23fa882b28f10", "afb94a44f9fb4011", "97fe1330f0f7f13d", "9eb0bd77676aa5f0", "c63b7d95e91cc6a9", "6ca67d8b1161e8fe", "50ba5fd871e1f2c0", "acc8636c50c78d27"],
     } as Record<string, string[]>,
     /** Fragments of declutter_record_refund's body, whitespace-collapsed, that decide the fee and the amount. */

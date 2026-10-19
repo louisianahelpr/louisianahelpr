@@ -219,6 +219,7 @@ export const ADMIN_RPC_ERROR_COPY = {
     invalid_stripe_ref: "Give the Stripe id it was settled with (tr_... or po_... for a payout, re_... for a refund), or \"other: how it was paid\".",
     not_held_for_review: "This row isn't held for review any more. Another admin may have handled it. Refresh the list.",
     ref_already_used: "That Stripe id is already recorded on another payout or refund. Check you have the right one.",
+    settle_amount_short: "That's less than this refund owes. Refund the rest in Stripe first, then record the full amount.",
   },
   // Homes take-down and lift (20261019062540): HomesListingsCard.
   rentals_admin_remove_listing: {

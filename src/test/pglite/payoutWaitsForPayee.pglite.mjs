@@ -335,6 +335,22 @@ ok(!skip && adopt?.adopted_hand_refund === true
   && (await q(`SELECT status, stripe_refund_ref FROM public.declutter_refunds WHERE id = '${U(700)}'`))?.[0]?.stripe_refund_ref === "re_dash1",
   "a Dashboard refund the ledger recorded with no row, on THIS row's payment, is ADOPTED (linked), and the row settles with it");
 
+// a refund reaches 'succeeded' only for the whole amount owed (lead /code-review of 12dc563c8)
+await db.exec(`INSERT INTO public.declutter_refunds (id, order_id, reason, stripe_payment_intent_id, refund_cents, status, created_at)
+  VALUES ('${U(706)}', '${U(106)}', 'buyer_cancelled', 'pi_r706', 1200, 'held_for_review', now() - interval '1 hour');
+  INSERT INTO public.declutter_delivery_refunds (id, order_id, status, refund_cents) VALUES ('${U(705)}', '${U(105)}', 'held_for_review', 900);`);
+ok(!skip && /settle_amount_short/.test((await settle("declutter_refund", U(706), "re_part706", 1000))?.error ?? "")
+  && /settle_amount_short/.test((await settle("delivery_refund", U(705), "pyr_part705", 500))?.error ?? "")
+  && (await q(`SELECT status FROM public.declutter_refunds WHERE id = '${U(706)}'`))?.[0]?.status === "held_for_review"
+  && (await q(`SELECT status FROM public.declutter_delivery_refunds WHERE id = '${U(705)}'`))?.[0]?.status === "held_for_review"
+  && Number((await q(`SELECT count(*) AS n FROM public.payout_settlements WHERE row_id IN ('${U(705)}', '${U(706)}')`))?.[0]?.n) === 0,
+  "a SHORT Stripe refund (re_ or pyr_) is refused (settle_amount_short) and the row stays held, nothing recorded");
+const fullRe = (await settle("declutter_refund", U(706), "re_full706", 1200))?.[0]?.r;
+const fullPyr = (await settle("delivery_refund", U(705), "pyr_full705", 900))?.[0]?.r;
+ok(!skip && fullRe?.status === "succeeded" && fullPyr?.status === "succeeded"
+  && (await q(`SELECT stripe_refund_ref FROM public.declutter_delivery_refunds WHERE id = '${U(705)}'`))?.[0]?.stripe_refund_ref === "pyr_full705",
+  "the FULL amount is accepted: re_ and pyr_ both end 'succeeded' with that id");
+
 // held rows: the admin decision is never overwritten, and they never go quiet
 await db.exec(`UPDATE public.declutter_refunds SET status = 'held_for_review' WHERE id = '${U(700)}'`);
 await db.exec(`INSERT INTO public.declutter_refunds (id, order_id, reason, stripe_payment_intent_id, refund_cents, status, created_at)

@@ -21,6 +21,7 @@ import AdminJobs from "../AdminJobs";
 import { HelprFaultDisputeDialog } from "./HelprFaultDisputeDialog";
 import { NO_HELPR_COPY } from "./helprFault";
 import { blankComments } from "@/test/helpers/blankNonCode";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const JOB_ID = "job-hf-1";
 const POSTER_ID = "poster-hf";
@@ -94,7 +95,7 @@ beforeEach(() => {
     id: JOB_ID, title: "Rake and bag leaves", customer_id: POSTER_ID, helper_id: HELPER_ID,
     status: "assigned", payment_status: "escrow", budget: 60, location: "Lafayette, LA",
     category: "Yard Work", description: "Front yard.", created_at: "2026-10-10T12:00:00Z",
-    date_needed: "2026-10-12", flag_reasons: null,
+    date_needed: jobLocalDateISO(-7), flag_reasons: null,
   };
   strikeRows = [];
   invokeCalls = [];

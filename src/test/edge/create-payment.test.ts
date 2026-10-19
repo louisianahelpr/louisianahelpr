@@ -3603,7 +3603,7 @@ describe("create-payment edge function", () => {
       // @mutate supabase/functions/create-payment/index.ts |      else await restoreHelprFault(); |      else console.error("no restore");
       // @mutate supabase/functions/create-payment/index.ts |          helpr_fault_fee_cents: helprFaultFeeCents, |          helpr_fault_fee_cents: 0,
       // lh-money-escrow review of the exact-cents delta #1: the Helpr's notice quotes the ledger's amount.
-      // @mutate supabase/functions/create-payment/index.ts | `$${formatExactDollars(settledTransfer.amountCents / 100)} has been transferred` | `$${helperPayout} has been transferred`
+      // @mutate supabase/functions/create-payment/index.ts | `$${formatExactDollars(ledgerTransferredCents / 100)} has been transferred` | `$${helperPayout} has been transferred`
       it("Quick Release withholds a Helpr-fault card fee (capped so $1 stays) and records it (Q2082 (b))", async () => {
         seedReleasable();
         scenario.reads.payout_transfers = {

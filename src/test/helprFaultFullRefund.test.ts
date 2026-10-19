@@ -31,7 +31,8 @@
  * @mutate supabase/functions/create-payment/index.ts |             const disputeEffectiveSplit = disputeHelprFaultLive ? helprFaultDisputeSplit : disputeSplit; |             const disputeEffectiveSplit = disputeSplit;
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { latestFunctionDefs } from "./helpers/rpcErrorInventory";

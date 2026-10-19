@@ -193,7 +193,7 @@ BEGIN
   IF v_fee > 0 THEN
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (r.helper_id, 'Card fee added',
-            format('A job you were ruled at fault on (a no-show or a backout) was refunded to the poster in full. Its $%s card fee is added to what you owe; it comes out of your next payout.',
+            format('A job you were ruled at fault on (a no-show or a backout) was refunded to the person who posted it. Its $%s card fee is added to what you owe; it comes out of your next payout.',
                    to_char(v_fee / 100.0, 'FM999999990.00')),
             'system_alert', '/profile?tab=earnings');
   END IF;

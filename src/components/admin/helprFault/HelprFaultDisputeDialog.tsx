@@ -83,7 +83,7 @@ export const HelprFaultDisputeDialog = ({ job, profiles, onClose, onDone }: Help
   return (
     <Dialog open={!!job} onOpenChange={(o) => { if (!o) close(); }}>
       <DialogContent>
-        <DialogHero title="Helpr at fault?" />
+        <DialogHero title="Helpr At Fault?" />
         <div className="space-y-3">
           <DialogBody>
             <p>

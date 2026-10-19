@@ -369,8 +369,9 @@ function isStateToggle({ meta = {}, label = "" }) {
  * Pressed as admin they are mutating, so mutationGate only lets them act on a
  * test-owned record. src/test/pressGatesEveryAdminWrite.test.ts keeps this
  * vocabulary in step with the admin buttons that write, read from the source.
+ * "Bill the Helpr" (J4 Helpr at fault, BillHelprFaultButton) bills a card fee.
  */
-export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend|end series|set to)\b/i;
+export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend|end series|set to|bill)\b/i;
 /**
  * THE APP SAYS IT IS THE COMMIT (2026-10-17). DialogPrimaryAction inside a
  * confirm (role="alertdialog": every BrandConfirmDialog) and every

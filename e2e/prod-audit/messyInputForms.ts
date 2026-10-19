@@ -775,6 +775,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Admin "Helpr at fault" (J4, 2026-10-19): a no-show/backed-out radio and one note, in the admin refund dialog and the dispute card.
+  "src/components/admin/helprFault/HelprFaultFields.tsx": "admin-only, needs a paid job with a booked Helpr and a full refund (journeys never pay on live Stripe); the kind is a two-value radio (admin_rule_helpr_fault refuses anything else: invalid_kind) and the note is space-trimmed (btrim) and refused empty or over 1000 characters (note_required; job_helpr_fault_rulings CHECK); FORMS sweep owed with a seeded paid job",
   // Admin "End series" (Q417 (c), 2026-10-17): one reason textarea on a recurring job in the admin job dialog.
   "src/components/admin/adminJobs/EndSeriesSection.tsx": "admin-only, needs a live recurring series; the reason is space-trimmed (btrim) and refused under 10 characters by rpc_admin_end_recurring_series (end_series_needs_reason, pinned by seriesEndByPlatform.pglite.mjs); the button stays off below 10; FORMS sweep owed with a seeded series",
   // Quotes on jobs (2026-10-15): behind the hidden 'quotes' switch, created OFF on prod; the server refuses each field

@@ -24,7 +24,7 @@
  * @mutate src/components/MobileNav.tsx |         ariaDisabled={soon} |
  * @mutate src/components/MobileNav.tsx |   const sectionDock = !isGuest; |   const sectionDock = false;
  * @mutate src/components/DesktopSidebarNav.tsx |     ...dockItems(sectionTabs, visibleSections), |     ...dockItems(sectionTabs, visibleSections), { path: "/posts", icon: User, label: "Posts" },
- * @mutate src/components/DesktopSidebarNav.tsx |                 onClick={() => (soon ? sayComingSoon(label) : navigate(path))} |                 onClick={() => navigate(path)}
+ * @mutate src/components/DesktopSidebarNav.tsx | onClick={() => { if (soon) return sayComingSoon(label); if | onClick={() => { if (false) return sayComingSoon(label); if
  * @mutate src/components/sections/AppTopBar.tsx |         <span data-testid="top-bar-bell"> |         <span data-testid="top-bar-bell-x">
  * @mutate src/components/profile/ProfileLanding.tsx |       <SettingsSection\n |       <Link to="/declutter">Declutter</Link>\n      <SettingsSection\n
  */

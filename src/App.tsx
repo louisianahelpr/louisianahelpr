@@ -100,6 +100,9 @@ const ForgotPassword = lazyWithPreload(() => import("./pages/auth/ForgotPassword
 const ResetPassword = lazyWithPreload(() => import("./pages/auth/ResetPassword"));
 const Unsubscribe = lazyWithPreload(() => import("./pages/auth/Unsubscribe"));
 const Dashboard = lazyWithPreload(() => import("./pages/home/Dashboard"));
+// HOME (owner final decisions, 2026-10-19): the app opens on the dashboard
+// for every section; the job feed moved to Jobs > Browse.
+const HomeDashboard = lazyWithPreload(() => import("./pages/home/HomeDashboard"));
 const Profile = lazyWithPreload(() => import("./pages/profile/Profile"));
 // Lazy: it reads useAuthReady, which pulls the Supabase client.
 const PostJob = lazyWithPreload(() => import("./pages/post-job/PostJob"));
@@ -233,7 +236,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           the moments that require it (accept, payout) inside the components.
           Banned users are redirected, and an unverified EMAIL is redirected to
           /signup-pending on every protected route (Q180, Q193) — see ProtectedRoute. */}
-      <Route path="/home" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<DashboardRouteSkeleton />}><Dashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
+      <Route path="/home" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<DashboardRouteSkeleton />}><HomeDashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ActivityRouteSkeleton tab="applied" />}><JobsPage /></ProtectedRoute>, <ActivityRouteSkeleton tab="applied" />)}</RouteErrorBoundary>} />

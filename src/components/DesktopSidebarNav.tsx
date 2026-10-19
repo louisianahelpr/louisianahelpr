@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
+import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -106,6 +108,9 @@ const DesktopSidebarNav = () => {
   // 'rentals' switch; owner 2026-10-18: the nav says Homes) follows Shops:
   // the dock's section tabs, read from the same hook so the two cannot drift.
   const sectionTabs = useSectionTabs();
+  // Customize (owner, 2026-10-19): a section the member hid leaves the rail too.
+  const { prefs: sectionPrefs } = useSectionPrefs();
+  const hiddenPaths = new Set(sectionPrefs.hidden.map((k) => SECTIONS.find((d) => d.key === k)!.path));
   // Quotes (owner answer 12, 2026-10-17: Helprs find quote requests in BOTH
   // the Jobs browse filter and a Quotes link in the menu) joins the same way,
   // only while the hidden 'quotes' switch is on for this member.
@@ -114,7 +119,7 @@ const DesktopSidebarNav = () => {
     ...NAV_ITEMS.slice(0, 4),
     // A section switched off for this viewer is listed GREYED and says
     // "coming soon" instead of navigating (owner, 2026-10-18).
-    ...sectionTabs.map(({ path, icon, label, on }) => ({ path, icon, label, comingSoon: !on })),
+    ...sectionTabs.filter((t) => !hiddenPaths.has(t.path)).map(({ path, icon, label, on }) => ({ path, icon, label, comingSoon: !on })),
     ...(quotesOn ? [{ path: "/quotes", icon: FileText, label: "Quotes" }] : []),
     ...NAV_ITEMS.slice(4),
   ];
@@ -279,10 +284,10 @@ const DesktopSidebarNav = () => {
                 aria-current={active ? "page" : undefined}
                 aria-disabled={soon ? true : undefined}
                 aria-label={soon ? comingSoonLabel(label) : undefined}
-                className={`group relative flex w-full items-center gap-3 rounded-ds-md px-3 py-2.5 text-left transition-colors${soon ? " opacity-50 cursor-not-allowed" : ""}`}
+                className={`group relative flex w-full items-center gap-3 rounded-ds-md px-3 py-2.5 text-left transition-colors${soon ? " cursor-not-allowed" : ""}`}
                 style={{
                   background: active ? "hsl(var(--bark) / 0.08)" : "transparent",
-                  color: active ? "hsl(var(--bark))" : "hsl(var(--ink-deep))",
+                  color: active ? "hsl(var(--bark))" : soon ? "hsl(var(--muted-foreground))" : "hsl(var(--ink-deep))",
                 }}
               >
                 <span className="relative inline-flex">

@@ -27,7 +27,6 @@ import {
   authPages,
   noNavPages,
   tabStacks,
-  jobsAndPostsItem,
 } from "@/components/mobileNav/mobileNavHelpers";
 import { useSectionTabs, comingSoonLabel, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";

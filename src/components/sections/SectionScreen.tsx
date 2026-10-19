@@ -13,7 +13,8 @@ export function SectionScreen({
   add,
   children,
 }: {
-  title: string;
+  /** Omit on Home: the logo shows instead. */
+  title?: string;
   add?: { label: string; path: string };
   children: ReactNode;
 }) {

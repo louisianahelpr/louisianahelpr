@@ -63,14 +63,14 @@ export function StatusBoxes<K extends string>({
                 on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"
               }`}
             >
-              <span className={`block text-[20px] leading-6 font-bold ${!on && b.hot && b.count > 0 ? "text-[hsl(var(--accent-ink))]" : ""}`}>{b.count}</span>
-              <span className={`block text-[11px] leading-4 mt-0.5 truncate ${on ? "" : "text-muted-foreground"}`}>{b.label}</span>
+              <span className={`block text-ds-20 leading-6 font-bold ${!on && b.hot && b.count > 0 ? "text-[hsl(var(--accent-ink))]" : ""}`}>{b.count}</span>
+              <span className={`block text-ds-11 leading-4 mt-0.5 truncate ${on ? "" : "text-muted-foreground"}`}>{b.label}</span>
             </button>
           );
         })}
       </div>
       {active && (
-        <p className="text-[13px] text-muted-foreground px-1" aria-live="polite">
+        <p className="text-ds-13 text-muted-foreground px-1" aria-live="polite">
           Showing only <b className="text-foreground">{active.label}</b> · tap it again to show all
         </p>
       )}
@@ -95,12 +95,12 @@ export function GroupSection({
   return (
     <section className="flex flex-col gap-2" aria-label={title}>
       <div className="flex items-baseline justify-between px-1">
-        <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-muted-foreground">
+        <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">
           {title}
           {count !== undefined && <span className="ml-1.5 text-foreground/70">{count}</span>}
         </h2>
         {onSeeAll && (
-          <button type="button" onClick={onSeeAll} className="text-[13px] font-semibold text-primary">
+          <button type="button" onClick={onSeeAll} className="text-ds-13 font-semibold text-primary">
             {seeAllLabel}
           </button>
         )}
@@ -136,9 +136,9 @@ export function GroupRow({
     >
       {leading}
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-semibold truncate">{title}</span>
-        {meta && <span className="block text-[13px] text-muted-foreground truncate mt-0.5">{meta}</span>}
-        {note && <span className="block text-[13px] text-[hsl(var(--accent-ink))] truncate mt-0.5">{note}</span>}
+        <span className="block text-ds-15 font-semibold truncate">{title}</span>
+        {meta && <span className="block text-ds-13 text-muted-foreground truncate mt-0.5">{meta}</span>}
+        {note && <span className="block text-ds-13 text-[hsl(var(--accent-ink))] truncate mt-0.5">{note}</span>}
       </span>
       {right ?? <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden />}
     </button>

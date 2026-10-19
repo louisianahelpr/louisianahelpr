@@ -33,23 +33,30 @@ export function normalizePrefs(input: unknown): SectionPrefs {
   return { order: dedup, hidden };
 }
 
+function readRaw(userId: string | undefined): string | null {
+  if (!userId) return null;
+  try {
+    return safeStorage.getItem(`${KEY}:${userId}`);
+  } catch {
+    return null; // storage blocked: defaults
+  }
+}
+
+function parseRaw(raw: string | null): unknown {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null; // a malformed value reads as defaults
+  }
+}
+
 function read(userId: string | undefined): SectionPrefs {
   const id = userId ?? "anon";
-  let raw: string | null = null;
-  try {
-    raw = userId ? safeStorage.getItem(`${KEY}:${userId}`) : null;
-  } catch {
-    raw = null; // storage blocked: defaults
-  }
+  const raw = readRaw(userId);
   const hit = cache.get(id);
   if (hit && hit.raw === raw) return hit.prefs;
-  let parsed: unknown = null;
-  try {
-    parsed = raw ? JSON.parse(raw) : null;
-  } catch {
-    parsed = null; // a malformed value reads as defaults
-  }
-  const prefs = normalizePrefs(parsed);
+  const prefs = normalizePrefs(parseRaw(raw));
   cache.set(id, { raw, prefs });
   return prefs;
 }

@@ -242,8 +242,10 @@ for (let i = 1; i < 5; i++) {
 ok(photoIds.every((x) => typeof x === "string"), "five photos uploaded to listing-photos and attached");
 ok(Array.isArray(await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${rentId}', 'live')`)), "the listing goes live");
 
-// --- 4. storage reads/deletes: the owner and admins only; never an attached object
+// --- 4. storage reads/deletes: the owner only; never an attached object
 ok(empty(await as("authenticated", STRANGER, `SELECT name FROM storage.objects WHERE bucket_id = 'listing-photos'`)), "a stranger sees no listing-photos object");
+ok(empty(await as("authenticated", ADMIN, `SELECT name FROM storage.objects WHERE bucket_id = 'listing-photos'`)),
+  "round 3 #3 (lead): an admin reads no listing-photo original either (the purge runs as the server)");
 ok(rows(await as("authenticated", LANDLORD, `SELECT name FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(0)}'`)).length === 1, "the owner sees their own object");
 ok(empty(await as("authenticated", LANDLORD, `DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(0)}' RETURNING id`)), "an ATTACHED photo cannot be deleted by its owner");
 ok(empty(await as("authenticated", ADMIN, `DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(0)}' RETURNING id`)), "nor by an admin");
@@ -342,6 +344,9 @@ ok(one(await obj(bRef)) === P(0, bId), "setup: a draft's owner ref resolves");
 await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${bId}', 'removed')`);
 ok(one(await obj(bRef)) === null, "an owner-removed listing's refs resolve to nothing");
 
+// an upload never attached, in the listing's folder (round 3 #4: the take-down must queue it too)
+await up(LANDLORD, P(6));
+ok(one(await svc(`SELECT count(*)::int FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(6)}'`)) === 1, "setup: an unattached upload in the listing's folder");
 // --- 7. Q2211 + round 3: the take-down HIDES the photos (every ref dead, the owner cannot sign them), keeps
 //        them for a lift, and queues them for the purge 30 days on
 ok(Array.isArray(await as("authenticated", ADMIN, `SELECT public.rentals_admin_remove_listing('${rentId}', 'Photos do not show this home.')`)), "an admin takes the listing down");
@@ -349,20 +354,40 @@ ok(one(await obj(mRef)) === null && one(await obj(oRef)) === null, "Q2211: the m
 ok(empty(await as("authenticated", LANDLORD, `SELECT name FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(0)}'`)),
   "round 3 #1: the owner can no longer read (sign) a taken-down listing's photos");
 ok(one(await svc(`SELECT count(*)::int FROM public.rental_listing_photos WHERE listing_id IN ('${rentId}', '${saleId}')`)) === 10
-  && one(await svc(`SELECT count(*)::int FROM storage.objects WHERE bucket_id = 'listing-photos' AND (name LIKE '%/${rentId}/%' OR name LIKE '%/${saleId}/%')`)) === 10,
+  && one(await svc(`SELECT count(*)::int FROM storage.objects WHERE bucket_id = 'listing-photos' AND (name LIKE '%/${rentId}/%' OR name LIKE '%/${saleId}/%')`)) === 11,
   "round 3 #1: the photos of both listings on the property are KEPT (attached, objects in place) for a lift");
 const queued = one(await svc(`SELECT count(*)::int FROM public.rental_photo_purge_queue WHERE bucket_id = 'listing-photos' AND due_at > now() + interval '29 days'`));
-ok(queued === 10, "and queued for the purge 30 days on");
+ok(queued === 11, "and queued for the purge 30 days on");
+ok(one(await svc(`SELECT count(*)::int FROM public.rental_photo_purge_queue WHERE storage_path = '${P(6)}'`)) === 1,
+  "round 3 #4 (lead): the UNATTACHED object in a taken-down listing's folder is queued too (its owner can no longer delete it)");
 const audit = rows(await svc(`SELECT details FROM public.admin_audit_log WHERE action = 'rentals_listing_removed' AND target_id = '${rentId}'`))[0]?.details;
-ok(audit?.photos_held?.length === 10 && audit.photos_held.every((x) => x.startsWith(`${LANDLORD}/rental-listings/`)), "the audit log names every photo it holds (10)");
+ok(audit?.photos_held?.length === 11 && audit.photos_held.every((x) => x.startsWith(`${LANDLORD}/rental-listings/`)), "the audit log names every object it holds (10 attached + 1 not)");
 ok(refused(await up(LANDLORD, P(5)), /row-level security/), "no uploads into a taken-down listing's folder");
 ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_admin_remove_listing('${saleId}', 'Not allowed here.')`), /not_authorized/), "a member cannot take down");
 const due1 = rows(await svc(`SELECT * FROM public.rentals_photo_purge_due(500)`));
 ok(due1.length === 5 && due1.every((r) => r.bucket_id === "job-photos"), "the purge's due list holds only the legacy objects today (the take-down's wait 30 days)");
 ok(refused(await as("authenticated", ADMIN, `SELECT * FROM public.rentals_photo_purge_due(10)`), /permission denied/), "the purge RPCs are server-only");
-// a lift restores everything, and its queue entries are dropped, never purged
+// round 3 #1 (lead): purge vs lift. A claimed (in-flight) entry blocks the lift; a stale claim does not.
 const propId = one(await svc(`SELECT property_id FROM public.rental_listings WHERE id = '${rentId}'`));
-ok(Array.isArray(await as("authenticated", ADMIN, `SELECT public.rentals_admin_lift_takedown('${propId}', 'Removed by mistake.')`)), "an admin lifts the take-down");
+await svc(`UPDATE public.rental_photo_purge_queue SET due_at = now() - interval '1 minute' WHERE storage_path = '${P(1)}'`);
+const claimed = rows(await svc(`SELECT * FROM public.rentals_photo_purge_due(500)`)).filter((r) => r.bucket_id === "listing-photos").map((r) => r.storage_path);
+ok(claimed.length === 1 && claimed[0] === P(1)
+  && one(await svc(`SELECT claimed_at IS NOT NULL FROM public.rental_photo_purge_queue WHERE storage_path = '${P(1)}'`)) === true,
+  "round 3 #1: the purge CLAIMS what it hands out (a still-taken-down listing's photo)");
+ok(rows(await svc(`SELECT * FROM public.rentals_photo_purge_due(500)`)).every((r) => r.storage_path !== P(1)), "a fresh claim is not handed out twice");
+ok(refused(await as("authenticated", ADMIN, `SELECT public.rentals_admin_lift_takedown('${propId}', 'Removed by mistake.')`), /photos_purging/, "55000"),
+  "round 3 #1: a lift is REFUSED while the purge may be deleting its photos (nothing restored over a missing photo)");
+ok(one(await svc(`SELECT listings_taken_down_at IS NOT NULL FROM public.rental_properties WHERE id = '${propId}'`)) === true
+  && one(await svc(`SELECT count(*)::int FROM public.rental_photo_purge_queue WHERE bucket_id = 'listing-photos'`)) === 11,
+  "and the refused lift changed nothing (still taken down, every entry queued)");
+await svc(`UPDATE public.rental_photo_purge_queue SET claimed_at = now() - interval '16 minutes', due_at = now() + interval '30 days' WHERE storage_path = '${P(1)}'`);
+ok(one(await svc(`SELECT public.rentals_photo_purge_done('listing-photos', ARRAY['${P(2)}']::text[])`)) === 0
+  && one(await svc(`SELECT count(*)::int FROM public.rental_listing_photos WHERE storage_path = '${P(2)}'`)) === 1,
+  "purge_done drops only CLAIMED entries (an unclaimed path reported done stays queued, its photo row too)");
+// a lift restores everything, and its queue entries are dropped under the lock, never purged
+ok(Array.isArray(await as("authenticated", ADMIN, `SELECT public.rentals_admin_lift_takedown('${propId}', 'Removed by mistake.')`)), "an admin lifts the take-down (a stale claim does not block it)");
+ok(one(await svc(`SELECT count(*)::int FROM public.rental_photo_purge_queue WHERE bucket_id = 'listing-photos'`)) === 0,
+  "round 3 #1: the lift itself dropped every queue entry of the property (the cron never sees them)");
 await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${rentId}', 'live')`);
 ok(one(await obj(mRef)) === P(0), "round 3 #1: after the lift the same photos show again (nothing was lost)");
 await svc(`UPDATE public.rental_photo_purge_queue SET due_at = now() - interval '1 minute' WHERE bucket_id = 'listing-photos'`); // as if 30 days passed
@@ -373,8 +398,8 @@ ok(rows(await svc(`SELECT * FROM public.rentals_photo_purge_due(500)`)).every((r
 ok(Array.isArray(await as("authenticated", ADMIN, `SELECT public.rentals_admin_remove_listing('${rentId}', 'Photos do not show this home.')`)), "taken down again");
 await svc(`UPDATE public.rental_photo_purge_queue SET due_at = now() - interval '1 minute' WHERE bucket_id = 'listing-photos'`);
 const due2 = rows(await svc(`SELECT * FROM public.rentals_photo_purge_due(500)`)).filter((r) => r.bucket_id === "listing-photos").map((r) => r.storage_path);
-ok(due2.length === 10, "30 days on, the purge gets the 10 held photos");
-ok(one(await svc(`SELECT public.rentals_photo_purge_done('listing-photos', ARRAY[${due2.map((x) => `'${x}'`).join(",")}]::text[])`)) === 10, "after Storage removed them, purge_done clears the queue");
+ok(due2.length === 11, "30 days on, the purge gets the 11 held objects (10 attached + 1 not)");
+ok(one(await svc(`SELECT public.rentals_photo_purge_done('listing-photos', ARRAY[${due2.map((x) => `'${x}'`).join(",")}]::text[])`)) === 11, "after Storage removed them, purge_done clears the queue");
 ok(one(await svc(`SELECT count(*)::int FROM public.rental_listing_photos WHERE listing_id IN ('${rentId}', '${saleId}')`)) === 0, "and the photo rows go");
 
 // --- 8. the key and the signer are out of every client's reach
@@ -385,7 +410,7 @@ for (const role of ["anon", "authenticated", "service_role"]) {
 const acl = async (sig) => one(await svc(`SELECT coalesce(proacl::text, '') FROM pg_proc WHERE oid = '${sig}'::regprocedure`)) ?? "";
 const la = await acl("public.rentals_listing_photo_object(text)");
 ok(/service_role=X/.test(la) && !/(^|[{,])(anon|authenticated)?=X/.test(la), `rentals_listing_photo_object: server-only (${la})`);
-for (const sig of ["public.rentals_photo_purge_due(integer)", "public.rentals_photo_purge_done(text,text[])"]) {
+for (const sig of ["public.rentals_photo_purge_due(integer)", "public.rentals_photo_purge_done(text,text[])", "public.rentals_photo_path_listing(text)"]) {
   const a = await acl(sig);
   ok(/service_role=X/.test(a) && !/(^|[{,])(anon|authenticated)?=X/.test(a), `${sig}: server-only (${a})`);
 }

@@ -341,8 +341,9 @@ GRANT EXECUTE ON FUNCTION public.payout_payee_wait_cleared(text, uuid) TO servic
 --                               column that stores a Stripe transfer / refund / payout id;
 --                               payout_settlements is UNIQUE), except a Dashboard refund the
 --                               hand-refund ledger recorded with no row for THIS row's payment,
---                               which is ADOPTED (linked). A tr_ on a payout and a re_ on a
---                               refund make the row 'succeeded' with that id (a Declutter refund
+--                               which is ADOPTED (linked). A tr_ on a payout and a re_ / pyr_
+--                               on a refund make the row 'succeeded' with that id (a refund
+--                               only for at least the amount owed: settle_amount_short) (a Declutter refund
 --                               through the hand-refund ledger, so a later failure still
 --                               reconciles); anything else is 'settled_by_hand'.
 -- A payee who re-onboards later is never sent a second transfer: the row never returns to a queue.
@@ -607,6 +608,7 @@ DECLARE
   v_adopted boolean := false;
   v_payout boolean := p_kind IN ('declutter', 'helpr_task', 'shop');
   v_succeeded boolean;
+  v_refund_cents integer;
 BEGIN
   IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin') THEN
     RAISE EXCEPTION 'admin_only' USING ERRCODE = '42501';
@@ -635,14 +637,24 @@ BEGIN
   ELSIF p_kind = 'shop' THEN
     SELECT status INTO v_status FROM public.shop_payouts WHERE id = p_id FOR UPDATE;
   ELSIF p_kind = 'declutter_refund' THEN
-    SELECT status INTO v_status FROM public.declutter_refunds WHERE id = p_id FOR UPDATE;
+    SELECT status, refund_cents INTO v_status, v_refund_cents FROM public.declutter_refunds WHERE id = p_id FOR UPDATE;
   ELSIF p_kind = 'delivery_refund' THEN
-    SELECT status INTO v_status FROM public.declutter_delivery_refunds WHERE id = p_id FOR UPDATE;
+    SELECT status, refund_cents INTO v_status, v_refund_cents FROM public.declutter_delivery_refunds WHERE id = p_id FOR UPDATE;
   ELSE
     RAISE EXCEPTION 'invalid_kind' USING ERRCODE = '22023';
   END IF;
   IF v_status IS DISTINCT FROM 'held_for_review' THEN
     RAISE EXCEPTION 'not_held_for_review' USING ERRCODE = '55000';
+  END IF;
+  -- A transfer on a payout / a refund (re_ or pyr_) on a refund: 'succeeded' with that id (the
+  -- ledgers and the webhooks know it). A Stripe payout id or money paid outside Stripe:
+  -- 'settled_by_hand'.
+  v_succeeded := v_stripe IS NOT NULL AND (NOT v_payout OR v_stripe ~ '^tr_');
+  -- A refund reaches 'succeeded' only for the WHOLE amount owed: a short Stripe refund would
+  -- close the row (and count as refunded) while the buyer is still owed the rest.
+  IF NOT v_payout AND v_succeeded AND p_amount_cents < COALESCE(v_refund_cents, 0) THEN
+    RAISE EXCEPTION 'settle_amount_short' USING ERRCODE = '22023',
+      HINT = 'Refund the rest in Stripe first, then record the full amount.';
   END IF;
   IF v_stripe IS NOT NULL THEN
     -- A Dashboard refund the hand-refund ledger recorded with no row, on THIS row's payment, is
@@ -660,9 +672,6 @@ BEGIN
   END IF;
   INSERT INTO public.payout_settlements (stripe_ref, off_stripe_note, row_kind, row_id, amount_cents)
   VALUES (v_stripe, v_other, p_kind, p_id, p_amount_cents);
-  -- A transfer on a payout / a refund on a refund: 'succeeded' with that id (the ledgers and the
-  -- webhooks know it). A Stripe payout id or money paid outside Stripe: 'settled_by_hand'.
-  v_succeeded := v_stripe IS NOT NULL AND (NOT v_payout OR v_stripe ~ '^tr_');
   IF p_kind = 'declutter_refund' AND v_stripe IS NOT NULL AND NOT v_adopted THEN
     INSERT INTO public.declutter_hand_refunds (stripe_refund_id, stripe_payment_intent_id, order_id, refund_row_id, amount_cents,
                                                livemode, hand_outcome)

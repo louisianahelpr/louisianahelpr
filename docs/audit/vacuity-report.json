@@ -1,10 +1,12 @@
 {
-  "generated": "2026-10-19T10:36:01.904Z",
+  "generated": "2026-10-19T10:22:07.810Z",
   "guards": 2060,
   "registered": 2060,
   "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/components/quotes/quotesInsideJobs.test.tsx",
+    "src/test/edge/landlordIdRetention.test.ts"
   ],
   "classD_selfReferential": [
     {
@@ -229,6 +231,15 @@
       ]
     },
     {
+      "module": "src/components/quotes/QuotesHubRedirect.tsx",
+      "tests": [
+        "src/components/quotes/quotesInsideJobs.test.tsx"
+      ],
+      "parents": [
+        "src/App.tsx"
+      ]
+    },
+    {
       "module": "src/components/RouteErrorBoundary.tsx",
       "tests": [
         "src/test/errorBoundariesQuietDuringChunkRecovery.test.tsx",
@@ -344,5 +355,7 @@
       ]
     }
   ],
-  "edge_classA": []
+  "edge_classA": [
+    "src/test/edge/landlordIdRetention.test.ts"
+  ]
 }

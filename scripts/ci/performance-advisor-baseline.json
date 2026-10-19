@@ -150,6 +150,8 @@
     "public.rental_listing_photos.rental_listing_photos_owner_idx",
     "public.rental_listings.rental_listings_live_idx",
     "public.rental_listings.rental_listings_owner_idx",
-    "public.rental_listings.rental_listings_property_idx"
+    "public.rental_listings.rental_listings_property_idx",
+    "public.rental_rent_charges.rental_rent_charges_tenancy_idx",
+    "public.rental_rent_payments.rental_rent_payments_tenancy_idx"
   ]
 }

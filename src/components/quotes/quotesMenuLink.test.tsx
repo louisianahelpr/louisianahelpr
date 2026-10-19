@@ -7,7 +7,6 @@
  * rail renders only on the wide desktop website).
  *
  * @mutate src/components/profile/profileLanding/QuotesEntryRow.tsx |   if (!on) return null; |   if (false) return null;
- * @mutate src/components/profile/ProfileLanding.tsx |       <QuotesEntryRow />\n | \n
  * @mutate src/components/DesktopSidebarNav.tsx |     ...(quotesOn ? [{ path: "/quotes", icon: FileText, label: "Quotes" }] : []), |     ...[],
  */
 import { describe, expect, it, vi } from "vitest";
@@ -38,8 +37,9 @@ describe("the Quotes menu link (owner answer 12)", () => {
     expect(screen.getByRole("link", { name: /Quotes/ }).getAttribute("href")).toBe("/quotes");
   });
 
-  it("is on the Profile landing (phone menu) and the desktop rail, behind the switch", () => {
-    expect(src("src/components/profile/ProfileLanding.tsx")).toMatch(/<QuotesEntryRow \/>/);
+  it("is on the desktop rail behind the switch, and no longer a Profile landing row", () => {
+    // Quotes moved into Post a Job (owner, 2026-10-19): Profile no longer carries its row.
+    expect(src("src/components/profile/ProfileLanding.tsx")).not.toMatch(/<QuotesEntryRow \/>/);
     const rail = src("src/components/DesktopSidebarNav.tsx");
     expect(rail).toContain('const quotesOn = useFeature("quotes");');
     expect(rail).toContain('...(quotesOn ? [{ path: "/quotes", icon: FileText, label: "Quotes" }] : []),');

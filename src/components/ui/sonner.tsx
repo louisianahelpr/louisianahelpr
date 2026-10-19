@@ -130,7 +130,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           // so it wraps at the actual available width instead of the text's
           // un-shrunk intrinsic width; short titles still render on one line
           // because they're short, not because wrapping is disabled.
-          title: "!font-display !italic !font-bold !text-ds-15 !leading-tight !whitespace-normal !break-words !min-w-0 !text-[hsl(var(--ink-deep))]",
+          title: "!font-sans !not-italic !font-semibold !text-ds-15 !leading-tight !whitespace-normal !break-words !min-w-0 !text-[hsl(var(--ink-deep))]",
           description: "!font-sans !text-ds-12 !text-[hsl(var(--olivewood)/0.8)] !whitespace-normal !break-words !min-w-0",
           // Action ("View", "Retry", …) — the toast's one real control, so it
           // gets the app's primary-CTA surface in miniature: the same bark

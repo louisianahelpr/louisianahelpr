@@ -141,8 +141,8 @@ function SettleForm({ tenancyId, amountCents, onDone }: { tenancyId: string; amo
           />
         </div>
       ))}
-      <Button type="button" size="sm" variant="ghost" disabled={rows.length >= 20} onClick={() => setRows((cur) => [...cur, { reason: "", amount: "" }])}>
-        Keep part of it
+      <Button type="button" size="sm" variant="outline" disabled={rows.length >= 20} onClick={() => setRows((cur) => [...cur, { reason: "", amount: "" }])}>
+        {rows.length === 0 ? "Keep part of it" : "Keep more"}
       </Button>
       <p className="text-sm">
         Return <span className="font-semibold">{returned >= 0 ? money(returned) : "—"}</span>
@@ -153,7 +153,10 @@ function SettleForm({ tenancyId, amountCents, onDone }: { tenancyId: string; amo
           You can't keep more than the deposit.
         </p>
       )}
-      <Input className="min-w-0" aria-label="Day you returned it" type="date" max={centralToday()} value={on} onChange={(e) => setOn(e.target.value)} required />
+      <label className="block text-xs text-muted-foreground" htmlFor={`returned-${tenancyId}`}>
+        Day you returned it
+      </label>
+      <Input id={`returned-${tenancyId}`} className="min-w-0" type="date" max={centralToday()} value={on} onChange={(e) => setOn(e.target.value)} required />
       <Button type="submit" size="sm" disabled={m.isPending || !valid}>
         {m.isPending ? "Sending…" : "Send the statement"}
       </Button>

@@ -86,11 +86,14 @@ export const HOME_KITCHEN_NOTICE =
 
 /**
  * The same notice as ONE compact line on each item card (lead 2026-10-19:
- * keep it on every card, one short line so the grid stays short). Screen
- * readers get the full HOME_KITCHEN_NOTICE; the full statement also shows
- * once at the top of the shop's Items.
+ * keep it on every card, one short line so the grid stays short). It is the
+ * mark the full statement at the top of the shop's Items names ("Items marked
+ * home kitchen: made in a home kitchen that is not licensed or inspected...");
+ * screen readers get the full HOME_KITCHEN_NOTICE on every card. Two words
+ * because a card is ~85px of text at 320 ("Home kitchen, not inspected"
+ * truncated to "Home kitche..." there and "...not ..." at 375, measured).
  */
-export const HOME_KITCHEN_CARD_LINE = "Home kitchen, not inspected";
+export const HOME_KITCHEN_CARD_LINE = "Home kitchen";
 
 interface ShopItemPhoto {
   id: string;

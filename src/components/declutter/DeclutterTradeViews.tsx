@@ -24,27 +24,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
 import {
-  buyNow,
   fetchMyActiveStrikes,
-  fetchMyCard,
   fetchMyCart,
   fetchMyOffers,
-  makeOffer,
   respondOffer,
   sellerCancelSale,
-  startCardSave,
   startCheckoutPayment,
   type CartLine,
   type Handover,
-  type DeclutterItem,
   type MyOffer,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
-import { checkoutAmounts, minOfferCents } from "@/lib/declutter/money";
+import { checkoutAmounts } from "@/lib/declutter/money";
 import { fetchDeliveryQuote, type DeliveryQuote } from "@/lib/declutter/delivery";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { DeclutterNotice } from "./declutterUi";
@@ -69,7 +63,7 @@ function timeLeft(iso: string, now = Date.now()): string {
 
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
 
-function invalidateTrades(qc: ReturnType<typeof useQueryClient>) {
+export function invalidateTrades(qc: ReturnType<typeof useQueryClient>) {
   void qc.invalidateQueries({ queryKey: ["declutter"] });
 }
 
@@ -84,137 +78,6 @@ export function StrikeCount({ userId }: { userId: string }) {
         ? "Declutter is paused for you until one of them goes away. Each strike goes away 1 year after you got it."
         : "Each strike goes away 1 year after you got it. At 3 strikes you can't buy or sell on Declutter until one goes away."}
     </DeclutterNotice>
-  );
-}
-
-/** Row 36: save a card on Stripe's own page. Nothing is charged. */
-function SaveCardPrompt({ onBack }: { onBack: () => void }) {
-  const [opening, setOpening] = useState(false);
-  return (
-    <DeclutterNotice title="Save a card to buy or make offers.">
-      <p>Your card is charged only when you buy, or automatically where you turned on automatic charges (like auto-tip).</p>
-      <button
-        type="button"
-        className="btn-grad-primary mt-3 rounded-full px-5 py-2.5 text-sm font-semibold"
-        disabled={opening}
-        onClick={async () => {
-          setOpening(true);
-          try {
-            await openExternalUrl(await startCardSave(), () => { setOpening(false); onBack(); });
-          } catch (err) {
-            toast.error(declutterErrorMessage(err));
-            setOpening(false);
-          }
-        }}
-      >
-        {opening ? "Opening…" : "Save a card"}
-      </button>
-    </DeclutterNotice>
-  );
-}
-
-/** The buy / offer panel on someone else's live item (rows 36, 53, 56-59). */
-export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: string }) {
-  const qc = useQueryClient();
-  const { underAge } = useAgeGate();
-  const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState("");
-  const card = useQuery({ queryKey: ["declutter", "card", userId], queryFn: () => fetchMyCard(userId) });
-  const minCents = minOfferCents(item.current_price_cents);
-  const cents = dollarsInputToCents(amount);
-  const offerProblem =
-    cents === null ? "Enter an amount, like 25 or 25.50."
-      : cents >= item.current_price_cents ? "Offer less than the price. To pay the price, tap Buy."
-        : cents < minCents ? `Offers must be at least ${formatPrice(minCents)} (half the price).`
-          : null;
-  const send = useMutation({
-    mutationFn: () => makeOffer(item.id, cents as number),
-    onSuccess: () => {
-      setOpen(false);
-      setAmount("");
-      toast.success("Offer sent. The seller has 48 hours to answer.");
-      invalidateTrades(qc);
-    },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
-  const buy = useMutation({
-    mutationFn: () => buyNow(item.id, item.current_price_cents),
-    onSuccess: () => {
-      toast.success("It's yours. Check out within 48 hours.");
-      invalidateTrades(qc);
-    },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
-
-  if (item.status === "reserved") {
-    return <DeclutterNotice title="Someone is buying this item.">If they don't check out in time, it goes back up for sale.</DeclutterNotice>;
-  }
-  if (underAge) {
-    return <DeclutterNotice tone="warn" title="You must be 18 or older to buy on Declutter." />;
-  }
-  if (card.isLoading) return <p role="status" className="text-sm text-muted-foreground">Loading…</p>;
-  if (card.isError) {
-    return <ErrorState variant="inline" title="We couldn't check your saved card." body={declutterErrorMessage(card.error)} onRetry={() => void card.refetch()} />;
-  }
-  if (!card.data) return <SaveCardPrompt onBack={() => void card.refetch()} />;
-  return (
-    <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="Buy or make an offer">
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="btn-grad-primary rounded-full px-5 py-2.5 text-sm font-semibold"
-          disabled={buy.isPending}
-          onClick={() => {
-            if (window.confirm(`Buy "${item.title}" for ${formatPrice(item.current_price_cents)}? You'll have 48 hours to check out and pay. Your card isn't charged now.`)) {
-              buy.mutate();
-            }
-          }}
-        >
-          Buy for {formatPrice(item.current_price_cents)}
-        </button>
-        <button
-          type="button"
-          className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold"
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-        >
-          Make an offer
-        </button>
-      </div>
-      {open && (
-        <form
-          className="space-y-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!offerProblem) send.mutate();
-          }}
-        >
-          <label htmlFor="declutter-offer" className="text-sm font-medium">Your offer</label>
-          <div className="flex gap-2">
-            <input
-              id="declutter-offer"
-              inputMode="decimal"
-              className="flex-1 min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder={`At least ${formatPrice(minCents)}`}
-              aria-describedby="declutter-offer-help"
-            />
-            <button type="submit" className="btn-grad-primary rounded-full px-4 text-sm font-semibold" disabled={send.isPending || !!offerProblem}>
-              Send offer
-            </button>
-          </div>
-          <p id="declutter-offer-help" className="text-xs text-muted-foreground">
-            {amount.trim() && offerProblem
-              ? offerProblem
-              : `The seller has 48 hours to accept, say no or answer with another price. If they accept, you have 48 hours to check out. Nothing is charged until you pay.`}
-          </p>
-        </form>
-      )}
-      <p className="text-xs text-muted-foreground">
-        At checkout you pay the price plus a buyer's fee of 5% + 70¢ (once per seller). The seller keeps the whole price.
-      </p>
-    </section>
   );
 }
 

@@ -11,9 +11,13 @@
  * @mutate src/components/declutter/DeclutterItemView.tsx | <p className="text-sm font-medium [overflow-wrap:anywhere]">Q: | <p className="text-sm font-medium">Q:
  * @mutate src/components/declutter/DeclutterSellView.tsx |                 <Checkbox id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]} |                 <input type="checkbox" id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]}
  * @mutate src/components/declutter/declutterUi.tsx |     if (agreed.data === true) return <>{agreedSales}</>; |
+ * Owner 2026-10-19: back from Stripe's card page, the member returns to the item and carries on.
+ * @mutate src/pages/declutter/DeclutterPage.tsx |     const state: AfterCardState \| null = cardReturn === "saved" ? { afterCard: next.action } : null; |     const state: AfterCardState \| null = null;
+ * @mutate src/pages/declutter/DeclutterPage.tsx |     navigate(afterCardPath(next.itemId), { replace: true, state }); |     void state;
+ * @mutate src/components/declutter/DeclutterItemView.tsx |       {canAct && user && <OfferPanel item={it} userId={user.id} />}\n\n      <PriceHint |       <PriceHint
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -26,6 +30,7 @@ const state = {
   photos: [] as unknown[],
   questions: [] as unknown[],
   agreed: false,
+  card: null as unknown,
 };
 
 vi.mock("@/hooks/useFeature", () => ({
@@ -81,7 +86,7 @@ vi.mock("@/lib/declutter/api", () => ({
   setWatch: async () => "watching",
   askQuestion: async () => "q",
   answerQuestion: async () => "a",
-  fetchMyCard: async () => null,
+  fetchMyCard: async () => state.card,
   fetchMyActiveStrikes: async () => 0,
   fetchMyOffers: async () => [],
   fetchMyCart: async () => [],
@@ -95,6 +100,7 @@ vi.mock("@/lib/declutter/api", () => ({
 import DeclutterPage from "@/pages/declutter/DeclutterPage";
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
 import DeclutterItemPage from "@/pages/declutter/DeclutterItemPage";
+import { rememberAfterCard } from "@/lib/declutter/afterCard";
 import { dollarsToCents, formProblem } from "./DeclutterSellView";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
@@ -129,6 +135,8 @@ describe("Declutter screens", () => {
     state.photos = [];
     state.questions = [];
     state.agreed = false;
+    state.card = null;
+    sessionStorage.clear();
   });
 
   it("switch off: every Declutter route is the 404", async () => {
@@ -186,15 +194,64 @@ describe("Declutter screens", () => {
     expect(screen.queryByRole("button", { name: /offer/i })).toBeNull();
   });
 
-  it("a buyer sees area + miles wording, the watch heart, and (no saved card) why they can't offer yet", async () => {
+  it("a buyer sees area + miles wording, the watch heart, and (no saved card) Buy now and Make an offer, which ask for a card first", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     expect(await screen.findByText("Pickup in Mid-City, Baton Rouge")).toBeInTheDocument();
     expect(screen.getByText("The exact address is shared after you pay.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Watch this item" })).toBeInTheDocument();
-    expect(await screen.findByText("Save a card to buy or make offers.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Buy for/ })).toBeNull();
+    // Owner 2026-10-19: the two actions show with no saved card (Marketplace / OfferUp / Mercari).
+    const buyNow = await screen.findByRole("button", { name: "Buy now · $40" });
+    expect(screen.getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
+    expect(screen.getByText("You're only charged when you buy.")).toBeInTheDocument();
+    await waitFor(() => expect(buyNow).toBeEnabled());
+    fireEvent.click(buyNow);
+    expect(await screen.findByText("Add a card to finish.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add a card" })).toBeInTheDocument();
+    // Near the price: the actions come before the description, not at the bottom of the page.
+    expect(buyNow.compareDocumentPosition(screen.getByText("Solid oak.")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(await screen.findByText(/4\.8 stars from 12 reviews/)).toBeInTheDocument();
+  });
+
+  describe("back from Stripe's card page (declutter-card returns to /declutter?card=saved or =cancelled)", () => {
+    const ID = "0f0e0d0c-0b0a-4908-8706-050403020100";
+    function returnTo(path: string) {
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      qc.setQueryData(featureSwitchBatchKey("u1"), { declutter: state.feature });
+      return render(
+        <QueryClientProvider client={qc}>
+          <MemoryRouter initialEntries={[path]}>
+            <Routes>
+              <Route path="/declutter" element={<DeclutterPage />} />
+              <Route path="/declutter/item/:id" element={<DeclutterItemPage />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+    }
+
+    it("card saved: back on the item the member left, with the offer box open", async () => {
+      state.item = { ...ITEM, id: ID, seller_id: "u2", status: "live" };
+      state.card = { brand: "visa", last4: "4242" };
+      rememberAfterCard(ID, "offer");
+      returnTo("/declutter?card=saved");
+      expect(await screen.findByRole("heading", { name: "Oak rocking chair" })).toBeInTheDocument();
+      expect(await screen.findByLabelText("Your offer")).toBeInTheDocument();
+    });
+
+    it("cancelled: back on the item, nothing started", async () => {
+      state.item = { ...ITEM, id: ID, seller_id: "u2", status: "live" };
+      rememberAfterCard(ID, "offer");
+      returnTo("/declutter?card=cancelled");
+      expect(await screen.findByRole("button", { name: "Buy now · $40" })).toBeInTheDocument();
+      expect(screen.queryByLabelText("Your offer")).toBeNull();
+      expect(screen.queryByText("Checking for your card…")).toBeNull();
+    });
+
+    it("nothing remembered: stays on Declutter", async () => {
+      returnTo("/declutter?card=saved");
+      expect(await screen.findByText("Nothing for sale yet.")).toBeInTheDocument();
+    });
   });
 });
 

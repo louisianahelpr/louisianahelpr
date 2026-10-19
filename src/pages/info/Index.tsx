@@ -17,6 +17,7 @@ const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 // removed per user request; the hero is the only thing above the fold.
 import HeroSection from "@/components/landing/HeroSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
+import { SectionsShowcase, TrustAndJoin } from "@/components/landing/SectionsShowcase";
 
 const SITE_URL = "https://www.louisianahelpr.com";
 
@@ -148,7 +149,13 @@ const Index = () => {
           first viewport, and the moving marquee itself is enough of an
           invitation to keep scrolling. */}
 
+      {/* Below the fold (owner, 2026-10-19): the four sections, how Jobs
+          works, then trust and the one sign-up action. */}
+      <SectionsShowcase />
+
       <HowItWorksSection />
+
+      <TrustAndJoin />
     </PublicLayout>
   );
 };

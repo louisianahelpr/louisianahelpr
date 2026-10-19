@@ -130,6 +130,9 @@ export function FormStep({ form }: FormStepProps) {
         }}
         className="space-y-4"
       >
+        {/* Set a price | Get quotes: the form's first choice (owner 2026-10-19). */}
+        {quotesEligible && <PriceModeChoice value={priceMode} onChange={setPriceMode} />}
+
         {/* SECTION 1: DETAILS */}
         <div>
           <DetailsSection
@@ -202,8 +205,7 @@ export function FormStep({ form }: FormStepProps) {
           />
         </div>
 
-        {/* SECTION 3: BUDGET (or, with quotes on, the quote window) */}
-        {quotesEligible && <PriceModeChoice value={priceMode} onChange={setPriceMode} />}
+        {/* SECTION 3: BUDGET (or, with "Get quotes" picked at the top, the quote window) */}
         {askingQuotes ? (
           <QuoteRequestSection ref={quoteAsk} stepNumber={3} onSendingChange={setQuoteSending} />
         ) : (

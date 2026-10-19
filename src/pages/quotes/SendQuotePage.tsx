@@ -29,6 +29,7 @@ import {
 } from "@/lib/quotes/api";
 import { quoteErrorMessage } from "@/lib/quotes/errors";
 import { QuotesGate, QuotesNotice, dayLabel, timeLeft } from "@/components/quotes/quotesUi";
+import { QUOTE_HOMES } from "@/lib/quotes/homes";
 import { parseWholeDollars } from "@/components/quotes/QuoteAnswerControls";
 
 const TITLE = "Send a quote";
@@ -55,7 +56,7 @@ function SendQuoteForm({ requestId, userId }: { requestId: string; userId: strin
     onSuccess: () => {
       toast.success("Quote sent", { description: "We'll let you know when they answer." });
       void qc.invalidateQueries({ queryKey: ["quotes"] });
-      navigate("/quotes?view=mine", { replace: true });
+      navigate(QUOTE_HOMES.myQuotes, { replace: true });
     },
     onError: (err) => toast.error(quoteErrorMessage(err)),
   });
@@ -98,7 +99,7 @@ function SendQuoteForm({ requestId, userId }: { requestId: string; userId: strin
   if (request.my_quote_id) {
     return (
       <QuotesNotice title="You already sent a quote for this job">
-        <Button type="button" size="sm" className="mt-3" onClick={() => navigate("/quotes?view=mine")}>
+        <Button type="button" size="sm" className="mt-3" onClick={() => navigate(QUOTE_HOMES.myQuotes)}>
           See your quotes
         </Button>
       </QuotesNotice>
@@ -219,8 +220,8 @@ function SendQuote() {
 
 export default function SendQuotePage() {
   return (
-    <QuotesGate title={TITLE} backTo="/quotes?view=open" label="Loading the request">
-      <AppPage title={TITLE} backTo="/quotes?view=open">
+    <QuotesGate title={TITLE} backTo={QUOTE_HOMES.openRequests} label="Loading the request">
+      <AppPage title={TITLE} backTo={QUOTE_HOMES.openRequests}>
         <SendQuote />
       </AppPage>
     </QuotesGate>

@@ -10495,8 +10495,10 @@ export type Database = {
           helper_id: string
           job_id: string
           tip_amount: number
+          tip_state: string
         }[]
       }
+      auto_tip_job_state: { Args: { p_job_id: string }; Returns: string }
       backout_notice_applies: {
         Args: { p_job_status: string; p_kind: string }
         Returns: boolean

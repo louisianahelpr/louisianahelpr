@@ -67,7 +67,7 @@ async function runWithFailedHelperRead(): Promise<Response> {
       customer_id: "poster-1",
       helper_id: "helper-1",
       budget: 100,
-      tip_amount: 10,
+      tip_amount: 10, tip_state: "chargeable",
     },
   ];
   scenario.reads.profiles = { error: { message: "connection reset", code: "08006" } };
@@ -166,7 +166,7 @@ describe("auto-tip-charge edge function", () => {
   it("a percent auto-tip under the $3 minimum is never charged; the poster is asked to tip by hand", async () => {
     const fn = await loadConfigured();
     scenario.rpc.auto_tip_candidates = [
-      { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 20, tip_amount: 2.5 },
+      { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 20, tip_amount: 2.5, tip_state: "chargeable" },
     ];
     scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
     const res = await fn.fetch(cronRequest(fn));
@@ -183,7 +183,7 @@ describe("auto-tip-charge edge function", () => {
     async function runGiveUp(): Promise<Response> {
       const fn = await loadConfigured();
       scenario.rpc.auto_tip_candidates = [
-        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10 },
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10, tip_state: "chargeable" },
       ];
       scenario.reads.profiles = { rows: [{ stripe_account_id: null }] };
       return fn.fetch(cronRequest(fn));
@@ -235,7 +235,7 @@ describe("auto-tip-charge edge function", () => {
       scenario.writeSelectRows["tips:update"] = [];
       const fn = await loadConfigured();
       scenario.rpc.auto_tip_candidates = [
-        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10 },
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10, tip_state: "chargeable" },
       ];
       scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_1" }] };
       scenario.adminUsers = { "poster-1": { email: "poster@test.com" } };
@@ -267,7 +267,7 @@ describe("auto-tip-charge edge function", () => {
     async function runSuccessfulCharge(): Promise<Response> {
       const fn = await loadConfigured();
       scenario.rpc.auto_tip_candidates = [
-        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10 },
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10, tip_state: "chargeable" },
       ];
       scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
       // The card sits on the poster's stored wallet customer (Q2138: never

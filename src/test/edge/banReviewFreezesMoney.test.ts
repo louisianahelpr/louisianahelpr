@@ -250,7 +250,7 @@ describe("auto-tip-charge: no auto-tip is charged on a frozen job", () => {
   async function run(): Promise<Response> {
     setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key", STRIPE_SECRET_KEY: "sk_test_abc", CRON_SECRET });
     scenario.rpc.auto_tip_candidates = [
-      { job_id: "job-t", customer_id: POSTER, helper_id: HELPR, budget: 100, tip_amount: 10 },
+      { job_id: "job-t", customer_id: POSTER, helper_id: HELPR, budget: 100, tip_amount: 10, tip_state: "chargeable" },
     ];
     scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
     scenario.adminUsers = { [POSTER]: { email: "poster@test.com" } };

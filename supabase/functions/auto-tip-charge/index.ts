@@ -113,7 +113,7 @@ serve(async (req) => {
       throw new Error(`auto_tip_candidates failed: ${candErr.message}`);
     }
 
-    const results = { considered: candidates?.length ?? 0, charged: 0, prompted: 0, failed: 0, held: 0, heldAgedOut: 0 };
+    const results = { considered: candidates?.length ?? 0, charged: 0, prompted: 0, failed: 0, held: 0, heldAgedOut: 0, closed: 0 };
     /** Q1224: jobs whose poster was already told this run that a held tip aged out. */
     const agedOutNotified = new Set<string>();
     // `results.failed` is NOT the page-worthy counter. It mixes real defects
@@ -147,6 +147,62 @@ serve(async (req) => {
     }
 
     /**
+     * Records an automatic tip that will never be charged (a 'failed' auto
+     * row, which also ends its candidacy) and tells the poster once per job.
+     * Used when a held tip ages out (ageOutHeldTip) and at once when the job's
+     * money went back (tip_state 'closed', 20261019043709): a tip is never
+     * dropped without a row and a word to the poster. Nothing is charged.
+     */
+    const recordUnsentTip = async (
+      c: Record<string, unknown>,
+      tipDollars: number,
+      failureReason: string,
+      posterMessage: string,
+      counter: "heldAgedOut" | "closed",
+    ): Promise<void> => {
+      const jobId = c.job_id as string;
+      const { data: agedRow, error: agedErr } = await supabase
+        .from("tips")
+        .insert({
+          job_id: jobId,
+          tipper_id: c.customer_id,
+          helper_id: c.helper_id,
+          amount: tipDollars,
+          source: "auto",
+          payment_status: "failed",
+          failure_reason: failureReason,
+          auto_prompt_sent_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+      if (agedErr || !agedRow) {
+        // 23505: a row for this (job, member) already exists; it was recorded.
+        if ((agedErr as { code?: string } | null)?.code !== "23505") {
+          log("ERROR recording an auto-tip that will not be sent", { jobId, counter, error: agedErr?.message });
+          defects.record(`unsent tip record (${counter}) ${jobId}: ${agedErr?.message ?? "no row returned"}`);
+        }
+        return;
+      }
+      results[counter]++;
+      // One notice per JOB (review of Q1224): a crew job has one candidate
+      // per member, and its members' rows are recorded in the same run.
+      if (agedOutNotified.has(jobId)) return;
+      agedOutNotified.add(jobId);
+      const { error: agedNotifyErr } = await supabase.from("notifications").insert({
+        user_id: c.customer_id,
+        job_id: c.job_id,
+        type: "payment",
+        title: "Your automatic tip wasn't sent",
+        message: posterMessage,
+        link: `/posts?job=${c.job_id}`,
+      });
+      if (agedNotifyErr) {
+        log("ERROR writing the unsent-tip notification", { jobId, counter, error: agedNotifyErr.message });
+        defects.record(`unsent tip notification (${counter}) ${jobId}: ${agedNotifyErr.message}`);
+      }
+    };
+
+    /**
      * A tip that cannot be charged now (the Helpr's payout hold, Q1224, or an
      * open ban settlement review on either party, Q1415 (a)) stays a
      * candidate, but auto_tip_candidates offers a job for 14 days only. On the
@@ -172,49 +228,52 @@ serve(async (req) => {
       }
       const completedMs = heldJob?.completed_at ? Date.parse(heldJob.completed_at as string) : NaN;
       if (!Number.isFinite(completedMs) || Date.now() - completedMs < AUTO_TIP_HELD_RECORD_AFTER_MS) return;
-      const { data: agedRow, error: agedErr } = await supabase
-        .from("tips")
-        .insert({
-          job_id: jobId,
-          tipper_id: c.customer_id,
-          helper_id: c.helper_id,
-          amount: tipDollars,
-          source: "auto",
-          payment_status: "failed",
-          failure_reason: failureReason,
-          auto_prompt_sent_at: new Date().toISOString(),
-        })
-        .select("id")
-        .single();
-      if (agedErr || !agedRow) {
-        // 23505: a row for this (job, member) already exists; it was recorded.
-        if ((agedErr as { code?: string } | null)?.code !== "23505") {
-          log("ERROR recording an auto-tip that aged out under a hold", { jobId, error: agedErr?.message });
-          defects.record(`held tip record ${jobId}: ${agedErr?.message ?? "no row returned"}`);
-        }
-        return;
-      }
-      results.heldAgedOut++;
-      // One notice per JOB (review of Q1224): a crew job has one candidate
-      // per member, and its members' rows are recorded in the same run.
-      if (agedOutNotified.has(jobId)) return;
-      agedOutNotified.add(jobId);
-      const { error: agedNotifyErr } = await supabase.from("notifications").insert({
-        user_id: c.customer_id,
-        job_id: c.job_id,
-        type: "payment",
-        title: "Your automatic tip wasn't sent",
-        message: posterMessage,
-        link: `/posts?job=${c.job_id}`,
-      });
-      if (agedNotifyErr) {
-        log("ERROR writing the aged-out tip notification", { jobId, error: agedNotifyErr.message });
-        defects.record(`held tip notification ${jobId}: ${agedNotifyErr.message}`);
-      }
+      await recordUnsentTip(c, tipDollars, failureReason, posterMessage, "heldAgedOut");
     };
 
     for (const c of candidates ?? []) {
       const jobId = c.job_id as string;
+      // The job's money and dispute state (auto_tip_candidates' tip_state,
+      // the rule of 20261019043709, read in the same query as the candidate):
+      //   'closed'  the payment went back (refund, chargeback, closed with no
+      //             payment): recorded as a 'failed' auto tip and the poster
+      //             told, nothing charged (never a silent skip);
+      //   'held'    a live dispute: stays a candidate, like a payout hold, and
+      //             ages out on the window's last day with a word to the poster;
+      //   'chargeable' goes on, and is asked again right before the charge.
+      const tipState = c.tip_state as string | null;
+      if (tipState === "closed") {
+        log("Job's payment went back — recording the auto-tip as not sent", { jobId });
+        const closedCents = Math.round(Number(c.tip_amount) * 100);
+        await recordUnsentTip(
+          c,
+          Number.isFinite(closedCents) && closedCents > 0 ? closedCents / 100 : 0,
+          "payment_returned: the job's payment was refunded, charged back or closed with no payment; nothing was charged",
+          "The payment for this job was returned, so your automatic tip was not charged. Nothing was taken from your card.",
+          "closed",
+        );
+        continue;
+      }
+      if (tipState === "held") {
+        log("Live dispute on the job — tip not charged", { jobId });
+        results.held++;
+        const disputeTipCents = Math.round(Number(c.tip_amount) * 100);
+        if (Number.isFinite(disputeTipCents) && disputeTipCents > 0) {
+          await ageOutHeldTip(
+            c,
+            disputeTipCents / 100,
+            "dispute: the job was under dispute for the whole automatic-tip window; nothing was charged",
+            "Your automatic tip for this job couldn't be sent while the job was under review, so it was not charged. Nothing was taken from your card.",
+          );
+        }
+        continue;
+      }
+      if (tipState !== "chargeable") {
+        log("ERROR unknown tip_state from auto_tip_candidates — not charging", { jobId, tipState });
+        results.failed++;
+        defects.record(`tip_state ${jobId}: ${String(tipState)}`);
+        continue;
+      }
       if (frozenByBanReview(banReview, c as { customer_id?: string | null; helper_id?: string | null })) {
         // Stays a candidate: charged after a lift, inside the candidate window.
         log("Ban review open on the poster or Helpr — tip not charged", { jobId });
@@ -624,6 +683,36 @@ serve(async (req) => {
           await giveUp("no_saved_card", true);
           results.prompted++;
           walletGaps.push(`${jobId} (no default card on the ${mode} wallet)`);
+          continue;
+        }
+
+        // LAST READ BEFORE THE CHARGE (lead re-review 2026-10-19): the job's
+        // state asked again, uncached, after every other read, so a refund,
+        // chargeback or dispute that landed during this run is seen with the
+        // claim row already holding off a concurrent tick. Anything but
+        // 'chargeable' releases the claim and charges nothing; 'closed' is
+        // then recorded and told (it is no longer a candidate), 'held' and an
+        // unreadable answer are retried next tick.
+        const { data: stateNow, error: stateNowErr } = await supabase.rpc("auto_tip_job_state", { p_job_id: jobId });
+        if (stateNowErr || stateNow !== "chargeable") {
+          await releaseClaimForRetry(`job state before the charge: ${stateNowErr ? stateNowErr.message : String(stateNow)}`);
+          if (stateNowErr || typeof stateNow !== "string") {
+            log("ERROR re-reading the job's state before the charge — not charging", { jobId, error: stateNowErr?.message });
+            results.failed++;
+            defects.record(`job state before charge ${jobId}: ${stateNowErr?.message ?? "no answer"}`);
+          } else if (stateNow === "closed") {
+            log("Job's payment went back during the run — not charging", { jobId });
+            await recordUnsentTip(
+              c,
+              tipDollars,
+              "payment_returned: the job's payment was refunded, charged back or closed with no payment; nothing was charged",
+              "The payment for this job was returned, so your automatic tip was not charged. Nothing was taken from your card.",
+              "closed",
+            );
+          } else {
+            log("Live dispute opened during the run — not charging", { jobId });
+            results.held++;
+          }
           continue;
         }
 

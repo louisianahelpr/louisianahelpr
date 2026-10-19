@@ -408,16 +408,23 @@ export async function handleChargeRefunded(
     // payment_refunds, creating a Stripe↔DB gap that breaks finance reconciliation
     // and leaves the audit trail unprovable.
     if (!isOnboardingFeeCorrection && latestRefund?.id) {
-      // Non-fatal job lookup — partial refunds can exist without a matching job
+      // A MISSING job is fine — partial refunds can exist without a matching job
       // (e.g. direct PI refunds from the Dashboard). job_id and customer_id are
       // nullable on payment_refunds for exactly this case.
       let partialJobId: string | null = null;
       let partialCustomerId: string | null = null;
-      const { data: partialJob } = await supabase
+      const { data: partialJob, error: partialJobErr } = await supabase
         .from("jobs")
         .select("id, customer_id")
         .eq("stripe_payment_intent_id", refundPiId)
         .maybeSingle();
+      // A failed READ is not "no matching job": writing the ledger row with no
+      // job_id would hide this refund from every per-job rule that reads
+      // payment_refunds (auto_tip_job_state, 20261019043709). Throw so Stripe
+      // redelivers the event (lead re-review of wip/reds-1019-9, 2026-10-19).
+      if (partialJobErr) {
+        throw new Error(`charge.refunded: job lookup for partial refund ${refundPiId} failed: ${partialJobErr.message}`);
+      }
       if (partialJob) {
         partialJobId = partialJob.id;
         partialCustomerId = partialJob.customer_id;

@@ -1143,8 +1143,9 @@ export function ConversationList({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {/* No Active / All on a section with no threads (as before Q2231). */}
+        {/* A radio pair, so a screen reader hears which one is on (the check is visual only). */}
         {!sectionEmpty && INBOX_TAB_ORDER.map((key) => (
-          <DropdownMenuItem key={key} onClick={() => setInboxFilter(key)}>
+          <DropdownMenuItem key={key} role="menuitemradio" aria-checked={inboxTab === key} onClick={() => setInboxFilter(key)}>
             <Check className={`w-4 h-4 mr-2 ${inboxTab === key ? "" : "invisible"}`} aria-hidden />
             {INBOX_TAB_LABEL[key]}
           </DropdownMenuItem>

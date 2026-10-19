@@ -6774,6 +6774,8 @@ export type Database = {
           preferred_helper_id: string | null
           promotions_before_unsubscribe: Json | null
           saved_helper_seen: Json
+          section_order: string[] | null
+          sections_hidden: string[] | null
           senior_mode: boolean
           skills: string | null
           stripe_account_id: string | null
@@ -6879,6 +6881,8 @@ export type Database = {
           preferred_helper_id?: string | null
           promotions_before_unsubscribe?: Json | null
           saved_helper_seen?: Json
+          section_order?: string[] | null
+          sections_hidden?: string[] | null
           senior_mode?: boolean
           skills?: string | null
           stripe_account_id?: string | null
@@ -6984,6 +6988,8 @@ export type Database = {
           preferred_helper_id?: string | null
           promotions_before_unsubscribe?: Json | null
           saved_helper_seen?: Json
+          section_order?: string[] | null
+          sections_hidden?: string[] | null
           senior_mode?: boolean
           skills?: string | null
           stripe_account_id?: string | null

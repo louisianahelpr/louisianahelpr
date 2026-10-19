@@ -239,6 +239,8 @@ export const ADMIN_RPC_ERROR_COPY = {
     invalid_note: "Add a short note saying why it can go back to automatic.",
     not_held_for_review: "This row isn't held for review any more. Another admin may have handled it. Refresh the list.",
     confirm_no_transfer_required: "Tick the box once you have checked Stripe and found no transfer or refund for this row made outside the app.",
+    refunded_in_stripe: "A refund made in Stripe stands on this order, so this stays held. Mark it settled by hand once you have decided.",
+    order_not_payable: "The shop isn't paid for this order automatically (a problem is open, or it wasn't handed over). Mark it settled by hand instead.",
   },
   admin_payout_settle_by_hand: {
     admin_only: "Only admins can mark a payout settled by hand.",
@@ -249,6 +251,8 @@ export const ADMIN_RPC_ERROR_COPY = {
     not_held_for_review: "This row isn't held for review any more. Another admin may have handled it. Refresh the list.",
     ref_already_used: "That Stripe id is already recorded on another payout or refund. Check you have the right one.",
     settle_amount_short: "That's less than this refund owes. Refund the rest in Stripe first, then record the full amount.",
+    settle_amount_differs: "A Shops refund is settled only for its whole amount. Enter the full amount shown.",
+    hand_refund_short: "That Stripe refund is less than this refund owes. Once the buyer has the rest, use \"other:\" with the refund ids.",
   },
   // Homes take-down and lift (20261019062540): HomesListingsCard.
   rentals_admin_remove_listing: {

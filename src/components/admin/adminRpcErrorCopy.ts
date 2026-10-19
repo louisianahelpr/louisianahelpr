@@ -47,6 +47,35 @@ export const ADMIN_RPC_ERROR_COPY = {
     helper_required: "Pick the Helpr whose payouts to hold.",
     reason_required: "Add a reason for the hold. Other admins see it.",
   },
+  // Shops M4 (20261019071055): the Shops orders queue.
+  shops_admin_queue: {
+    admin_only: "Only admins can see the Shops queue.",
+  },
+  shops_admin_pay_shop: {
+    admin_only: "Only admins can decide a Shops order.",
+    invalid_note: "Add a note of up to 500 characters. Other admins see it.",
+    invalid_method: "That action isn't available. Reload and try again.",
+    invalid_payout: "Something went wrong paying the shop. Reload and try again.",
+    order_final: "This order was already picked up and is final.",
+    order_not_charged_yet: "The buyer's card isn't charged yet. Try again in a few minutes.",
+    order_not_found: "This order isn't available any more. Refresh the list.",
+    order_not_open: "This order is already closed. Refresh the list.",
+    problem_open: "A problem is open on this order.",
+    refunded_in_stripe: "This order was refunded in Stripe. Decide its held refund or payout in Payouts held for review.",
+  },
+  shops_admin_remove_strike: {
+    admin_only: "Only admins can remove a Shops strike.",
+    invalid_note: "Add a note of up to 500 characters. Other admins see it.",
+    strike_not_found: "That strike was already removed or has ended. Refresh the list.",
+  },
+  shops_admin_give_strike: {
+    admin_only: "Only admins can give a Shops strike.",
+    invalid_note: "Add a note of up to 500 characters. Other admins see it.",
+    invalid_side: "Pick the buyer or the shop.",
+    member_gone: "That member's account is gone, so there is nobody to give a strike to.",
+    order_not_found: "This order isn't available any more. Refresh the list.",
+    strike_exists: "That side already has an admin strike for this order.",
+  },
   admin_deny_payout_hold: {
     admin_only: "Only admins can deny a payout.",
     no_payout_hold: "This Helpr is no longer on hold. Another admin may have released it, so refresh the queue.",
@@ -210,6 +239,8 @@ export const ADMIN_RPC_ERROR_COPY = {
     invalid_note: "Add a short note saying why it can go back to automatic.",
     not_held_for_review: "This row isn't held for review any more. Another admin may have handled it. Refresh the list.",
     confirm_no_transfer_required: "Tick the box once you have checked Stripe and found no transfer or refund for this row made outside the app.",
+    refunded_in_stripe: "A refund made in Stripe stands on this order, so this stays held. Mark it settled by hand once you have decided.",
+    shop_payout_not_due: "The shop isn't paid for this order automatically (a problem is open, or it wasn't handed over). Mark it settled by hand instead.",
   },
   admin_payout_settle_by_hand: {
     admin_only: "Only admins can mark a payout settled by hand.",
@@ -220,6 +251,8 @@ export const ADMIN_RPC_ERROR_COPY = {
     not_held_for_review: "This row isn't held for review any more. Another admin may have handled it. Refresh the list.",
     ref_already_used: "That Stripe id is already recorded on another payout or refund. Check you have the right one.",
     settle_amount_short: "That's less than this refund owes. Refund the rest in Stripe first, then record the full amount.",
+    settle_amount_differs: "A Shops refund is settled only for its whole amount. Enter the full amount shown.",
+    stripe_check_required: "A Shops refund settled with a Stripe refund id is checked with Stripe first. Paste the re_... id in the Stripe id box, or use \"other:\".",
   },
   // Homes take-down and lift (20261019062540): HomesListingsCard.
   rentals_admin_remove_listing: {

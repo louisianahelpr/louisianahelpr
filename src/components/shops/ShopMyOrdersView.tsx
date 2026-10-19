@@ -21,6 +21,7 @@ import { ShopOrderCard } from "./ShopOrderCard";
 import { ShopHandoverActions } from "./ShopHandoverActions";
 import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes";
 import { OrderGroup } from "./shopsUi";
+import { BuyerCancelOrder } from "./ShopOrderCancel";
 
 /** The buyer's order groups under Shops > Orders (owner, 2026-10-19). */
 const BUYER_GROUPS = ["waiting", "accepted", "done"] as const;
@@ -79,6 +80,7 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
         </Button>
       )}
       {(o.status === "accepted" || o.status === "handed_over") && <ShopHandoverActions order={o} side="buyer" userId={uid} />}
+      {o.status === "accepted" && <BuyerCancelOrder order={o} />}
     </ShopOrderCard>
   );
   const Frame = embedded ? EmbeddedFrame : StandaloneFrame;

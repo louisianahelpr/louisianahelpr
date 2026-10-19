@@ -2253,6 +2253,7 @@ export type Database = {
           refund_id: string
           remaining_cents: number
           seller_id: string
+          shop_refund_id: string | null
         }
         Insert: {
           amount_cents: number
@@ -2262,6 +2263,7 @@ export type Database = {
           refund_id: string
           remaining_cents: number
           seller_id: string
+          shop_refund_id?: string | null
         }
         Update: {
           amount_cents?: number
@@ -2271,6 +2273,7 @@ export type Database = {
           refund_id?: string
           remaining_cents?: number
           seller_id?: string
+          shop_refund_id?: string | null
         }
         Relationships: [
           {
@@ -2895,6 +2898,30 @@ export type Database = {
           url?: string | null
           user_agent?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      facilitator_threshold_alerts: {
+        Row: {
+          crossed_at: string
+          ops_alert_sent_at: string | null
+          threshold_cents: number
+          total_cents_at_alert: number
+          year: number
+        }
+        Insert: {
+          crossed_at?: string
+          ops_alert_sent_at?: string | null
+          threshold_cents: number
+          total_cents_at_alert: number
+          year: number
+        }
+        Update: {
+          crossed_at?: string
+          ops_alert_sent_at?: string | null
+          threshold_cents?: number
+          total_cents_at_alert?: number
+          year?: number
         }
         Relationships: []
       }
@@ -6570,6 +6597,8 @@ export type Database = {
           row_id: string
           row_kind: string
           stripe_ref: string | null
+          voided_at: string | null
+          voided_reason: string | null
         }
         Insert: {
           amount_cents: number
@@ -6579,6 +6608,8 @@ export type Database = {
           row_id: string
           row_kind: string
           stripe_ref?: string | null
+          voided_at?: string | null
+          voided_reason?: string | null
         }
         Update: {
           amount_cents?: number
@@ -6588,6 +6619,8 @@ export type Database = {
           row_id?: string
           row_kind?: string
           stripe_ref?: string | null
+          voided_at?: string | null
+          voided_reason?: string | null
         }
         Relationships: []
       }
@@ -8817,6 +8850,54 @@ export type Database = {
           },
         ]
       }
+      shop_hand_refunds: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          failed_at: string | null
+          is_seed: boolean
+          livemode: boolean | null
+          note: string | null
+          order_id: string
+          outcome: string
+          recorded_by: string | null
+          recorded_how: string
+          shop_refund_id: string | null
+          stripe_payment_intent_id: string
+          stripe_refund_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          failed_at?: string | null
+          is_seed?: boolean
+          livemode?: boolean | null
+          note?: string | null
+          order_id: string
+          outcome: string
+          recorded_by?: string | null
+          recorded_how: string
+          shop_refund_id?: string | null
+          stripe_payment_intent_id: string
+          stripe_refund_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          failed_at?: string | null
+          is_seed?: boolean
+          livemode?: boolean | null
+          note?: string | null
+          order_id?: string
+          outcome?: string
+          recorded_by?: string | null
+          recorded_how?: string
+          shop_refund_id?: string | null
+          stripe_payment_intent_id?: string
+          stripe_refund_id?: string
+        }
+        Relationships: []
+      }
       shop_handovers: {
         Row: {
           confirmed_at: string | null
@@ -9435,6 +9516,96 @@ export type Database = {
           },
         ]
       }
+      shop_refunds: {
+        Row: {
+          attempts: number
+          card_fee_cents: number
+          created_at: string
+          executed_at: string | null
+          fee_policy: string
+          held_notified_at: string | null
+          id: string
+          is_seed: boolean
+          kept_cents: number
+          last_error: string | null
+          next_attempt_at: string
+          note: string | null
+          order_id: string
+          paid_cents: number
+          reason: string
+          refund_cents: number
+          reversals: number
+          review_held_at: string | null
+          review_reason: string | null
+          settled_by_hand_cents: number | null
+          settled_by_hand_note: string | null
+          settled_by_hand_ref: string | null
+          status: string
+          stripe_payment_intent_id: string
+          stripe_refund_id: string | null
+          tax_cents: number
+          tax_kept_cents: number
+        }
+        Insert: {
+          attempts?: number
+          card_fee_cents: number
+          created_at?: string
+          executed_at?: string | null
+          fee_policy: string
+          held_notified_at?: string | null
+          id?: string
+          is_seed?: boolean
+          kept_cents: number
+          last_error?: string | null
+          next_attempt_at?: string
+          note?: string | null
+          order_id: string
+          paid_cents: number
+          reason: string
+          refund_cents: number
+          reversals?: number
+          review_held_at?: string | null
+          review_reason?: string | null
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
+          status?: string
+          stripe_payment_intent_id: string
+          stripe_refund_id?: string | null
+          tax_cents: number
+          tax_kept_cents: number
+        }
+        Update: {
+          attempts?: number
+          card_fee_cents?: number
+          created_at?: string
+          executed_at?: string | null
+          fee_policy?: string
+          held_notified_at?: string | null
+          id?: string
+          is_seed?: boolean
+          kept_cents?: number
+          last_error?: string | null
+          next_attempt_at?: string
+          note?: string | null
+          order_id?: string
+          paid_cents?: number
+          reason?: string
+          refund_cents?: number
+          reversals?: number
+          review_held_at?: string | null
+          review_reason?: string | null
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
+          status?: string
+          stripe_payment_intent_id?: string
+          stripe_refund_id?: string | null
+          tax_cents?: number
+          tax_kept_cents?: number
+        }
+        Relationships: []
+      }
       shop_strikes: {
         Row: {
           expires_at: string
@@ -9446,6 +9617,7 @@ export type Database = {
           reason: string
           removed_at: string | null
           removed_by: string | null
+          removed_note: string | null
           user_id: string
         }
         Insert: {
@@ -9458,6 +9630,7 @@ export type Database = {
           reason: string
           removed_at?: string | null
           removed_by?: string | null
+          removed_note?: string | null
           user_id: string
         }
         Update: {
@@ -9470,6 +9643,7 @@ export type Database = {
           reason?: string
           removed_at?: string | null
           removed_by?: string | null
+          removed_note?: string | null
           user_id?: string
         }
         Relationships: [
@@ -11889,6 +12063,15 @@ export type Database = {
         }
         Returns: Json
       }
+      facilitated_la_sales_cents: {
+        Args: { p_year: number }
+        Returns: number
+      }
+      facilitator_alert_sent: {
+        Args: { p_year: number }
+        Returns: undefined
+      }
+      facilitator_threshold_check: { Args: never; Returns: Json }
       get_my_job_quotes: {
         Args: never
         Returns: {
@@ -14293,6 +14476,18 @@ export type Database = {
       }
       shop_cottage_year: { Args: never; Returns: number }
       shop_extras_readable: { Args: { p_shop_id: string }; Returns: boolean }
+      shop_give_strike: {
+        Args: { p_order: string; p_reason: string; p_side: string; p_user: string }
+        Returns: string
+      }
+      shop_hand_refund_failed: {
+        Args: { p_stripe_refund_id: string }
+        Returns: string
+      }
+      shop_hold_order_for_hand_refund: {
+        Args: { p_order_id: string; p_why: string }
+        Returns: undefined
+      }
       shop_item_required_statements: {
         Args: { p_kind: string; p_subtype: string }
         Returns: string[]
@@ -14344,6 +14539,10 @@ export type Database = {
       }
       shop_link_visible: { Args: { p_shop_id: string }; Returns: boolean }
       shop_local_today: { Args: never; Returns: string }
+      shop_lock_open_charged_order: {
+        Args: { p_allow_problem: boolean; p_order_id: string }
+        Returns: unknown
+      }
       shop_mark_order_held: {
         Args: {
           p_amount_total: number
@@ -14363,6 +14562,14 @@ export type Database = {
         Returns: Json
       }
       shop_order_sweep: { Args: never; Returns: Json }
+      shop_order_unaccounted_hand_refund: {
+        Args: { p_order_id: string }
+        Returns: boolean
+      }
+      shop_owe_shop: {
+        Args: { p_order_id: string }
+        Returns: number
+      }
       shop_owner_in_good_standing: {
         Args: { p_owner_id: string }
         Returns: boolean
@@ -14379,13 +14586,100 @@ export type Database = {
         }[]
       }
       shop_publicly_visible: { Args: { p_shop_id: string }; Returns: boolean }
+      shop_record_hand_refund: {
+        Args: { p_admin: string; p_amount_cents: number; p_how: string; p_livemode: boolean; p_note: string; p_payment_intent_id: string; p_stripe_refund_id: string }
+        Returns: string
+      }
+      shop_refund_amounts: {
+        Args: { p_order_id: string; p_reason: string }
+        Returns: {
+          card_fee_cents: number
+          fee_policy: string
+          kept_cents: number
+          paid_cents: number
+          refund_cents: number
+          tax_cents: number
+          tax_kept_cents: number
+        }[]
+      }
+      shop_refund_executed: {
+        Args: { p_error: string; p_refund_id: string; p_stripe_refund_id: string; p_succeeded: boolean }
+        Returns: string
+      }
+      shop_refund_fee_policy: {
+        Args: { p_reason: string }
+        Returns: string
+      }
+      shop_refund_reversed: {
+        Args: { p_refund_id: string; p_stripe_refund_id: string }
+        Returns: boolean
+      }
+      shop_refund_sweep: { Args: never; Returns: Json }
+      shop_refund_tax_kept: {
+        Args: { p_kept: number; p_paid: number; p_tax: number }
+        Returns: number
+      }
+      shop_refund_to_send: {
+        Args: { p_refund_id: string }
+        Returns: {
+          attempts: number
+          buyer_id: string
+          checkout_session_id: string
+          livemode: boolean
+          order_id: string
+          payment_intent_id: string
+          refund_cents: number
+          refund_id: string
+          reversals: number
+          seller_id: string
+        }[]
+      }
+      shop_refunds_due: {
+        Args: { p_limit: number }
+        Returns: {
+          attempts: number
+          buyer_id: string
+          checkout_session_id: string
+          livemode: boolean
+          order_id: string
+          payment_intent_id: string
+          refund_cents: number
+          refund_id: string
+          reversals: number
+          seller_id: string
+        }[]
+      }
+      shop_return_stock: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       shop_state_ok: { Args: { p_shop_id: string }; Returns: boolean }
       shop_text_clean: { Args: { p_text: string }; Returns: string }
       shop_visible_to: {
         Args: { p_shop_id: string; p_viewer: string }
         Returns: boolean
       }
+      shop_write_refund: {
+        Args: { p_note: string; p_order_id: string; p_reason: string }
+        Returns: unknown
+      }
       shops_accept_order: { Args: { p_order_id: string }; Returns: Json }
+      shops_admin_record_hand_refund: {
+        Args: { p_admin: string; p_amount_cents: number; p_note: string; p_order_id: string; p_stripe_refund_id: string }
+        Returns: Json
+      }
+      shops_admin_refund_order: {
+        Args: { p_note: string; p_order_id: string; p_reason: string }
+        Returns: Json
+      }
+      shops_admin_settle_held_refund: {
+        Args: { p_admin: string; p_amount_cents: number; p_note: string; p_refund_id: string; p_stripe_refund_id: string }
+        Returns: Json
+      }
+      shops_buyer_cancel_order: {
+        Args: { p_expect: string; p_order_id: string }
+        Returns: Json
+      }
       shops_cancel_order_request: {
         Args: { p_order_id: string }
         Returns: Json
@@ -14405,6 +14699,10 @@ export type Database = {
         }[]
       }
       shops_order_terms: { Args: { p_shop_id: string }; Returns: Json }
+      shops_report_no_show: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
       shops_request_order: {
         Args: {
           p_lines: Json
@@ -14462,6 +14760,14 @@ export type Database = {
         Returns: Json
       }
       shops_set_handover_mode: { Args: { p_mode: string }; Returns: string }
+      shops_order_cancel_quote: { Args: { p_order_id: string }; Returns: Json }
+      shops_admin_queue: { Args: never; Returns: Json }
+      shops_admin_pay_shop: { Args: { p_note: string; p_order_id: string }; Returns: Json }
+      shops_admin_remove_strike: { Args: { p_note: string; p_strike_id: string }; Returns: Json }
+      shops_admin_give_strike: {
+        Args: { p_note: string; p_order_id: string; p_side: string }
+        Returns: Json
+      }
       shops_set_ready_tap_cancel: { Args: { p_choice: string }; Returns: string }
       shops_add_item_photo: {
         Args: { p_item_id: string; p_storage_path: string }
@@ -14674,6 +14980,10 @@ export type Database = {
       shops_set_item_stock: {
         Args: { p_item_id: string; p_lead_time_days: number; p_stock_count: number }
         Returns: number
+      }
+      shops_shop_cancel_order: {
+        Args: { p_order_id: string; p_reason: string }
+        Returns: Json
       }
       shops_shop_faqs: { Args: { p_shop_id: string }; Returns: Json }
       shops_shop_policies: { Args: { p_shop_id: string }; Returns: Json }

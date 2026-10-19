@@ -142,6 +142,10 @@ const PATHS: Record<string, Protection> = {
     kind: "not-job-escrow",
     why: "Shops M1: captures or cancels a Shops order's own card hold (metadata.kind shop_order); a Shops order is not a job escrow",
   },
+  "supabase/functions/_shared/shopRefunds.ts": {
+    kind: "not-job-escrow",
+    why: "Shops M3: refunds a Shops order's own PaymentIntent from a shop_refunds row (metadata.kind shop_refund); a Shops order is not a job escrow",
+  },
   "supabase/functions/_shared/heldTipRepay.ts": {
     kind: "not-job-escrow",
     why: "reverses and re-pays only a TIP (its own destination charge, Q1222), never a job's escrow",

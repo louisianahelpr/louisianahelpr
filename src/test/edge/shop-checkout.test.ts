@@ -71,7 +71,7 @@ const clientOf = (call: { client?: number }) => scenario.clients?.[call.client ?
 const orderRow = (over: Record<string, unknown> = {}) => ({
   id: ORDER, buyer_id: BUYER, seller_id: MAKER, status: "awaiting_hold", items_cents: 6100, premium_cents: 375,
   stripe_checkout_session_id: null, stripe_payment_intent_id: null, payment_livemode: null, captured_at: null,
-  capture_attempts: 0, ...over,
+  capture_attempts: 0, cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before", ...over,
 });
 
 beforeEach(() => {
@@ -92,7 +92,8 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
   }
   const ask = (fn: Awaited<ReturnType<typeof load>>) => fn.request({
     headers: { Authorization: "Bearer buyer-jwt" },
-    body: { action: "order", shop_id: SHOP, lines: [{ item_id: ITEM, quantity: 2 }], ready_date: "2026-10-30", note: "" },
+    body: { action: "order", shop_id: SHOP, lines: [{ item_id: ITEM, quantity: 2 }], ready_date: "2026-10-30", note: "",
+      terms: { cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before" } },
   });
   function frozen(over: Record<string, unknown> = {}) {
     scenario.rpc.shops_request_order = { order_id: ORDER, items_cents: 6100, premium_cents: 375, superseded_session_id: null, ...over };

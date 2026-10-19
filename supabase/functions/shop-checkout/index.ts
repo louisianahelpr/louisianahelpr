@@ -19,6 +19,26 @@
  *   cancel  { order_id }  THE BUYER, before the maker answers. The page is
  *           expired or the hold cancelled; nothing is kept (O2).
  *
+ * M3 (migration 20261019071055_shops_refunds_cancels_strikes): each action
+ * below runs its member RPC FIRST. That RPC locks the order row, decides
+ * (the buyer's cancel reads shop_order_free_cancel_until under the lock),
+ * records the outcome and writes the refund row, and COMMITS; only then does
+ * this send the refund to Stripe (_shared/shopRefunds.ts, key
+ * shop-refund-<refund id>). A refund Stripe did not take stays pending and
+ * declutter-money sends it within 10 minutes, so the answer is still 200.
+ *   buyer_cancel { order_id, expect: 'free' | 'late' }  THE BUYER, after the
+ *           accept (O2). free = the price back less Stripe's card fee and its
+ *           tax (J3); late = nothing back, the shop is paid (no Stripe call).
+ *   shop_cancel  { order_id, reason }  THE SHOP (L42): a full refund, the card
+ *           fee billed to the shop, a Shops strike.
+ *   no_show      { order_id }  THE SHOP (O3): a late cancel + a buyer strike
+ *           (no Stripe call: the shop is paid by the payout step).
+ *   admin_refund { order_id, reason, note }  AN ADMIN (M4, L43/L75).
+ * 'order' may carry the cancel terms the buyer read (terms: {cancel_policy,
+ * ready_tap_cancel}); an order frozen under other terms is closed before any
+ * Stripe page opens (409 terms_changed; money review of the M2 ready-tap choice).
+ * An older app build sends none: its order freezes the current terms and goes on.
+ *
  * Money: the buyer pays the item prices + Declutter's F1 fee (5% + 70c, the
  * card cost inside it; the shop keeps 100% of its prices) + Stripe Tax, all
  * frozen or checked in SQL. M1b part 2 (tax memo Q3): a pickup sale is taxed
@@ -43,6 +63,8 @@ import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { storedStripeCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { captureShopHold, releaseShopHold, shopOrderMode } from "../_shared/shopHolds.ts";
+import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import {
   sessionIdMode,
   stripeModeForParties,
@@ -196,6 +218,15 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   if (!Array.isArray(body.lines)) return json({ error: "invalid_order_lines" }, 400);
   const note = typeof body.note === "string" ? body.note : "";
   const native = isNativeRequest(body);
+  // The cancel terms the buyer's screen showed (shops_order_terms). OPTIONAL
+  // (/code-review of shops-m3-v1 #5): an app build from before this field sends
+  // none, and its order freezes the shop's current terms server-side and goes
+  // ahead. Only terms the client SENT that differ from the frozen ones refuse
+  // (terms_changed); terms sent in the wrong shape are a bad request.
+  const terms = (body.terms ?? null) as { cancel_policy?: unknown; ready_tap_cancel?: unknown } | null;
+  if (terms !== null && (typeof terms !== "object" || typeof terms.cancel_policy !== "string" || typeof terms.ready_tap_cancel !== "string")) {
+    return json({ error: "invalid_terms" }, 400);
+  }
 
   // The SQL's own gates first, as the buyer (switch, ban, the shop visible to them,
   // not blocked): nothing is sent to Stripe for a caller the order would refuse,
@@ -231,6 +262,25 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   const frozen = data as { order_id?: string; items_cents?: number; premium_cents?: number; superseded_session_id?: string | null } | null;
   if (!frozen?.order_id) return json({ error: TRY_AGAIN }, 500);
   if (frozen.superseded_session_id) await expirePage(frozen.superseded_session_id);
+
+  // The terms the order froze (the shop row was locked while it was written)
+  // must be the ones the buyer read, when the buyer's app sent them; else the
+  // order closes before any page opens.
+  if (terms !== null) {
+    const { data: frozenTerms, error: termsReadErr } = await admin.from("shop_orders")
+      .select("cancel_policy, ready_tap_cancel").eq("id", frozen.order_id).maybeSingle();
+    const ft = frozenTerms as { cancel_policy?: string; ready_tap_cancel?: string } | null;
+    if (termsReadErr || !ft) {
+      console.error(`[shop-checkout] order ${frozen.order_id} terms read failed: ${termsReadErr?.message ?? "no row"}`);
+      await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });
+      return json({ error: TRY_AGAIN }, 503);
+    }
+    if (ft.cancel_policy !== terms.cancel_policy || ft.ready_tap_cancel !== terms.ready_tap_cancel) {
+      const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });
+      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after terms changed: ${closeErr.message}`);
+      return json({ error: "terms_changed", terms: { cancel_policy: ft.cancel_policy, ready_tap_cancel: ft.ready_tap_cancel } }, 409);
+    }
+  }
 
   const o = await readOrder(admin, frozen.order_id);
   if (!o || o.status !== "awaiting_hold" || !o.seller_id) return json({ error: TRY_AGAIN }, 500);
@@ -383,6 +433,174 @@ async function cancel(body: Record<string, unknown>, asBuyer: Db, admin: Db) {
   return json({ cancelled: true });
 }
 
+/**
+ * After a member RPC committed a refund row: send it now. A failure here is not
+ * the member's: the row is pending and declutter-money sends it within 10 minutes.
+ */
+async function sendRefundNow(admin: Db, orderId: string, refundId: unknown): Promise<"sent" | "pending" | null> {
+  if (typeof refundId !== "string" || !UUID_RE.test(refundId)) return null;
+  try {
+    const { data, error } = await admin.rpc("shop_refund_to_send", { p_refund_id: refundId });
+    if (error) throw new Error(`shop_refund_to_send failed: ${error.message}`);
+    const row = ((data ?? []) as ShopRefundRow[])[0];
+    if (!row) return "sent";
+    const o = await readOrder(admin, orderId);
+    if (!o) throw new Error("order vanished");
+    const outcome = await sendShopRefund(await stripeForOrder(admin, o), admin, row);
+    return outcome === "failed" ? "pending" : "sent";
+  } catch (e) {
+    console.error(JSON.stringify({ event: "shop_refund_deferred", order: orderId, refund: refundId, detail: caughtMessage(e, "send failed").slice(0, 200) }));
+    return "pending";
+  }
+}
+
+type DecidedRow = { result?: string; refund_id?: string | null; refund_cents?: number } | null;
+
+async function buyerCancel(body: Record<string, unknown>, asBuyer: Db, admin: Db) {
+  const orderId = typeof body.order_id === "string" ? body.order_id : "";
+  if (!UUID_RE.test(orderId)) return json({ error: "order_not_found" }, 404);
+  const expect = body.expect === "free" || body.expect === "late" ? body.expect : null;
+  if (!expect) return json({ error: "invalid_expect" }, 400);
+  const { data, error } = await asBuyer.rpc("shops_buyer_cancel_order", { p_order_id: orderId, p_expect: expect });
+  if (error) return rpcRefusal(error);
+  const d = data as DecidedRow;
+  const refund = await sendRefundNow(admin, orderId, d?.refund_id);
+  return json({ cancelled: true, result: d?.result ?? null, refund_cents: d?.refund_cents ?? 0, refund });
+}
+
+async function shopCancel(body: Record<string, unknown>, asShop: Db, admin: Db) {
+  const orderId = typeof body.order_id === "string" ? body.order_id : "";
+  if (!UUID_RE.test(orderId)) return json({ error: "order_not_found" }, 404);
+  const reason = typeof body.reason === "string" ? body.reason : null;
+  const { data, error } = await asShop.rpc("shops_shop_cancel_order", { p_order_id: orderId, p_reason: reason });
+  if (error) return rpcRefusal(error);
+  const d = data as DecidedRow;
+  const refund = await sendRefundNow(admin, orderId, d?.refund_id);
+  return json({ cancelled: true, result: d?.result ?? null, refund_cents: d?.refund_cents ?? 0, refund });
+}
+
+async function noShow(body: Record<string, unknown>, asShop: Db) {
+  const orderId = typeof body.order_id === "string" ? body.order_id : "";
+  if (!UUID_RE.test(orderId)) return json({ error: "order_not_found" }, 404);
+  const { error } = await asShop.rpc("shops_report_no_show", { p_order_id: orderId });
+  if (error) return rpcRefusal(error);
+  // No refund: the shop is paid by declutter-money's payout step.
+  return json({ no_show: true });
+}
+
+async function adminRefund(body: Record<string, unknown>, asAdmin: Db, admin: Db) {
+  const orderId = typeof body.order_id === "string" ? body.order_id : "";
+  if (!UUID_RE.test(orderId)) return json({ error: "order_not_found" }, 404);
+  const reason = typeof body.reason === "string" ? body.reason : "";
+  const note = typeof body.note === "string" ? body.note : "";
+  // has_role(admin) is checked inside the RPC, as the caller.
+  const { data, error } = await asAdmin.rpc("shops_admin_refund_order", { p_order_id: orderId, p_reason: reason, p_note: note });
+  if (error) return rpcRefusal(error);
+  const d = data as DecidedRow;
+  const refund = await sendRefundNow(admin, orderId, d?.refund_id);
+  return json({ refunded: true, refund_cents: d?.refund_cents ?? 0, refund });
+}
+
+/**
+ * Read one refund from Stripe. A bad id, one from the other mode or another account is
+ * Stripe's resource_missing: null (the caller answers refund_not_found, 404, in plain
+ * words), never "try again" (run-3 review L5). Any other Stripe error throws.
+ */
+async function retrieveRefund(stripe: Stripe, refundId: string): Promise<Stripe.Refund | null> {
+  try {
+    return await stripe.refunds.retrieve(refundId);
+  } catch (e) {
+    const err = e as { code?: string; statusCode?: number };
+    if (err?.code === "resource_missing" || err?.statusCode === 404) return null;
+    throw e;
+  }
+}
+
+/**
+ * "Record a refund made in Stripe" (admin Shops orders; rule B of the v2 review).
+ * AN ADMIN only (user_roles read with the service key; nobody else reaches
+ * Stripe here). The refund is RETRIEVED from Stripe (read only, no Stripe write)
+ * and must be a live refund on THIS order's PaymentIntent for exactly the amount
+ * typed; only then is it recorded (service-only shops_admin_record_hand_refund,
+ * with the admin's id: has_role checked again there, audited).
+ */
+async function adminRecordHandRefund(body: Record<string, unknown>, userId: string, admin: Db) {
+  const orderId = typeof body.order_id === "string" ? body.order_id : "";
+  if (!UUID_RE.test(orderId)) return json({ error: "order_not_found" }, 404);
+  const refundId = typeof body.refund_id === "string" ? body.refund_id.trim() : "";
+  if (!/^(re|pyr)_[A-Za-z0-9]+$/.test(refundId)) return json({ error: "invalid_stripe_ref" }, 400);
+  const cents = typeof body.amount_cents === "number" && Number.isInteger(body.amount_cents) && body.amount_cents > 0 ? body.amount_cents : 0;
+  if (!cents) return json({ error: "invalid_amount" }, 400);
+  const note = typeof body.note === "string" ? body.note : "";
+  const { data: role, error: roleErr } = await admin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+  if (roleErr) throw new Error(`admin role read failed: ${roleErr.message}`);
+  if (!role) return json({ error: "admin_only" }, 403);
+  const o = await readOrder(admin, orderId);
+  if (!o?.stripe_payment_intent_id) return json({ error: "order_not_found" }, 404);
+  const refund = await retrieveRefund(await stripeForOrder(admin, o), refundId);
+  if (!refund) return json({ error: "refund_not_found" }, 404);
+  const refundPi = typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null;
+  if (refundPi !== o.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409);
+  if (refund.amount !== cents) return json({ error: "refund_amount_differs", amount_cents: refund.amount }, 409);
+  if (refund.status === "failed" || refund.status === "canceled") return json({ error: "refund_not_live" }, 409);
+  const { data, error } = await admin.rpc("shops_admin_record_hand_refund", {
+    p_admin: userId, p_order_id: orderId, p_stripe_refund_id: refundId, p_amount_cents: cents, p_note: note,
+  });
+  if (error) return rpcRefusal(error);
+  return json({ recorded: true, result: (data as { result?: string } | null)?.result ?? null });
+}
+
+/**
+ * Settle a HELD Shops refund with a refund made in Stripe (Payouts held for review;
+ * /code-review of shops-m3 run 3 #2/#3). AN ADMIN only (user_roles read with the
+ * service key). The refund is RETRIEVED from Stripe (read only, no Stripe write) and
+ * must be live, on THIS refund row's PaymentIntent, and for at least the whole refund
+ * the row owes; then the service-only shops_admin_settle_held_refund records it (with
+ * the admin's id and Stripe's amount: has_role checked again there, audited). The
+ * client RPC admin_payout_settle_by_hand takes only "other: ..." for a Shops refund.
+ */
+async function adminSettleHeldRefund(body: Record<string, unknown>, userId: string, admin: Db) {
+  const rowId = typeof body.refund_row_id === "string" ? body.refund_row_id : "";
+  if (!UUID_RE.test(rowId)) return json({ error: "refund_not_found" }, 404);
+  const refundId = typeof body.refund_id === "string" ? body.refund_id.trim() : "";
+  if (!/^(re|pyr)_[A-Za-z0-9]+$/.test(refundId)) return json({ error: "invalid_stripe_ref" }, 400);
+  const note = typeof body.note === "string" ? body.note : "";
+  const { data: role, error: roleErr } = await admin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+  if (roleErr) throw new Error(`admin role read failed: ${roleErr.message}`);
+  if (role == null) return json({ error: "admin_only" }, 403);
+  const { data: row, error: rowErr } = await admin.from("shop_refunds")
+    .select("id, order_id, stripe_payment_intent_id, refund_cents, status").eq("id", rowId).maybeSingle();
+  if (rowErr) throw new Error(`shop refund read failed: ${rowErr.message}`);
+  if (!row) return json({ error: "refund_not_found" }, 404);
+  const o = await readOrder(admin, row.order_id as string);
+  if (!o?.stripe_payment_intent_id) return json({ error: "refund_not_found" }, 404);
+  const refund = await retrieveRefund(await stripeForOrder(admin, o), refundId);
+  if (!refund) return json({ error: "refund_not_found" }, 404);
+  const refundPi = typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null;
+  if (refundPi !== row.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409);
+  if (refund.status === "failed" || refund.status === "canceled") return json({ error: "refund_not_live" }, 409);
+  // Only a refund Stripe has FINISHED settles a row (run-3 review L3): a pending one can still fail.
+  if (refund.status !== "succeeded") return json({ error: "refund_pending" }, 409);
+  if (Number(refund.amount ?? 0) < Number(row.refund_cents)) return json({ error: "hand_refund_short", amount_cents: refund.amount }, 409);
+  const { data, error } = await admin.rpc("shops_admin_settle_held_refund", {
+    p_admin: userId, p_refund_id: rowId, p_stripe_refund_id: refundId, p_amount_cents: Number(refund.amount), p_note: note,
+  });
+  if (error) return rpcRefusal(error);
+  const settled = (data ?? {}) as { result?: string; owed_cents?: number; over_refunded_cents?: number };
+  // A Stripe refund LARGER than the row owes settled it (the money already moved): the card fee and tax the
+  // app keeps went back too, so ops are told, never quiet (run-3 review L2; audited in the SQL).
+  if (Number(settled.over_refunded_cents ?? 0) > 0) {
+    await postSlackOpsAlert({
+      kind: "money_at_risk", severity: "critical", oncePerDayKey: `shop-refund-over-${rowId}`,
+      title: "Shops: a held refund was settled with a LARGER Stripe refund",
+      message: `Refund ${refundId} gave the buyer $${(Number(refund.amount) / 100).toFixed(2)}; this order's refund owed $${(Number(settled.owed_cents ?? 0) / 100).toFixed(2)}. `
+        + `The $${(Number(settled.over_refunded_cents) / 100).toFixed(2)} difference (the card fee and its tax the app keeps) went back too: recover it or record why.`,
+      fields: { ShopRefund: rowId, Order: String(row.order_id), Refund: refundId, Admin: userId },
+    });
+  }
+  return json({ settled: true, result: settled.result ?? null, over_refunded_cents: Number(settled.over_refunded_cents ?? 0) });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -411,6 +629,12 @@ serve(async (req) => {
     if (body.action === "accept") return await accept(body, asMember, admin);
     if (body.action === "decline") return await decline(body, asMember, admin);
     if (body.action === "cancel") return await cancel(body, asMember, admin);
+    if (body.action === "buyer_cancel") return await buyerCancel(body, asMember, admin);
+    if (body.action === "shop_cancel") return await shopCancel(body, asMember, admin);
+    if (body.action === "no_show") return await noShow(body, asMember);
+    if (body.action === "admin_refund") return await adminRefund(body, asMember, admin);
+    if (body.action === "admin_record_hand_refund") return await adminRecordHandRefund(body, user.id, admin);
+    if (body.action === "admin_settle_held_refund") return await adminSettleHeldRefund(body, user.id, admin);
     return json({ error: "invalid_action" }, 400);
   } catch (error) {
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);

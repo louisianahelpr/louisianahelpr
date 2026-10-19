@@ -142,6 +142,8 @@ const CROSS_USER: Record<string, string> = {
   "fn feature_enabled_for_user: has_role(p_user_id)": "EXECUTE is service_role only (edge functions pass their verified caller): is_server_context(); feature_enabled_for passes auth.uid(): the caller arm",
   "fn export_my_data: user_may_see_job_address(v_uid)": "EXECUTE is service_role only (v_uid := p_user_id): is_server_context()",
   "fn lift_ban_settlement_review: has_role(p_admin_id)": "EXECUTE is service_role only: is_server_context()",
+  "fn shops_admin_record_hand_refund: has_role(v_uid)": "EXECUTE is service_role only (20261019071055; shop-checkout admin_record_hand_refund passes its verified admin): is_server_context()",
+  "fn shops_admin_settle_held_refund: has_role(p_admin)": "EXECUTE is service_role only (20261019071055; shop-checkout admin_settle_held_refund passes its verified admin): is_server_context()",
   "fn rpc_poster_confirm_member_arrival: group_member_slot(_helper_id)": "the caller is the job's poster (checked first in the RPC): the poster arm",
   'policy reviews."Users can create reviews for eligible jobs": group_member_slot(reviews.reviewee_id)': "the same clause requires j.customer_id = auth.uid(): the poster arm",
 };

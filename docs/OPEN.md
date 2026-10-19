@@ -695,11 +695,11 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - a11y-webkit-prod: issue #2375, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39167774119. notes: Q593. feed: issue #2375 · feed: ledger 6205197429d4
   - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39200818768. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
   - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39158661660. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
-  - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39193592436. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
+  - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39213294086. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #2937, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39167100554. notes: Q1775. feed: issue #2937 · feed: ledger a8ceee56bbd5
   - staleness-watch: issue #3307, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39210281188. feed: issue #3307 · feed: ledger db0fb15c4ec3
   - e2e-real-backend: issue #3311, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39178783199. feed: issue #3311 · feed: ledger 3a3460b71be7
-  - main: vitest: no open issue. feed: ledger f22e3275d50d
+  - main: Vitest: issue #3409, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39213293902. feed: issue #3409 · feed: ledger f22e3275d50d
   - nightly-webkit: no open issue. feed: ledger 70e7b0decb9a
 - [ ] **Q2144 MEDIUM cron http failure: declutter-money returned 500 (# defect(s) reported).** Mirrored 2026-10-18 from alert-ledger row e62e32bec0c4 (error_logs: cron-http; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger e62e32bec0c4. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'e62e32bec0c415c8c17d26c4ff5e035f'` => closed
 

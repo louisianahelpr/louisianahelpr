@@ -37,15 +37,23 @@ export function DeclutterHomeSkeleton() {
  * once (Q?declutter-settle: the distance row used to land above an already
  * painted "Loading items…" line and push it 238px down at 375).
  */
+/** The Browse grid: 2 across on a phone, 3 on a small tablet, 4-5 on a desktop (owner, 2026-10-19 14:55Z). */
+export const DECLUTTER_GRID = "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
+
 export function DeclutterBrowseBones() {
   return (
     <div className="space-y-4" role="status" aria-label="Loading items">
       {/* The one compact search + filter row (the distance choices live in its sheet). */}
       <Skeleton className="h-10 w-full rounded-full" />
-      <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" aria-hidden>
+      <ul className={DECLUTTER_GRID} aria-hidden>
         {[0, 1, 2, 3].map((i) => (
           <li key={i} className="min-w-0">
             <Skeleton className="aspect-square w-full rounded-2xl" />
+            <div className="space-y-1.5 px-0.5 pt-2">
+              <Skeleton className="h-4 w-14" />
+              <Skeleton className="h-3.5 w-4/5" />
+              <Skeleton className="h-3 w-3/5" />
+            </div>
           </li>
         ))}
       </ul>

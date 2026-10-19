@@ -266,7 +266,7 @@ describe("Declutter location ask", () => {
     expect(screen.queryByText(/About \d+ mi away/)).toBeNull();
   });
 
-  it("a Browse card: title up to two lines, the price big, the place on one line, stars only when the seller has reviews", async () => {
+  it("a Browse card (owner design 2026-10-19 14:55Z): square photo or the category tint, bold price, ONE-line title, small place line, stars only when the seller has reviews", async () => {
     const card = (id: string, seller: string, title: string) => ({
       id, seller_id: seller, status: "live", title, category: "furniture", condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
@@ -276,8 +276,13 @@ describe("Declutter location ask", () => {
     live.items = [card("i1", "reviewed", "Oak rocking chair"), card("i2", "fresh", "Brass floor lamp"), card("i3", "unknown", "Cast iron skillet")];
     const browse = at("/declutter", <DeclutterPage />);
     const reviewed = (await screen.findByText("Oak rocking chair")).closest("a")!;
-    expect(reviewed.querySelector("[data-card-title]")!.className).toMatch(/\bline-clamp-2\b/);
-    expect(reviewed.querySelector("[data-card-price]")!.className).toMatch(/\btext-lg\b/);
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | mt-0.5 block truncate text-sm | mt-0.5 block line-clamp-2 text-sm
+    expect(reviewed.querySelector("[data-card-title]")!.className).toMatch(/\btruncate\b/);
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | min-w-0 text-base font-bold leading-tight | min-w-0 text-base font-medium leading-tight
+    expect(reviewed.querySelector("[data-card-price]")!.className).toMatch(/\bfont-bold\b/);
+    // No photo: the category's icon on a tint, never an empty grey box (PhotoPlaceholder).
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-full w-full" /> | null
+    expect(reviewed.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
     // A price is never cut: it wraps the old price under it before it would clip.
     expect(reviewed.querySelector("[data-card-price]")!.className).not.toMatch(/\btruncate\b/);
     expect(reviewed.querySelector("[data-card-place]")!.className).toMatch(/\btruncate\b/);

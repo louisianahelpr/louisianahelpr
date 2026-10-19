@@ -61,7 +61,7 @@ export const fieldSelectClass =
  * opens in a sheet, so the card shows the money and the next action (owner, 2026-10-19: shorter cards).
  * The tap target is 44px; the icon stays small.
  */
-export function InfoButton({ title, children }: { title: string; children: ReactNode }) {
+function InfoButton({ title, children }: { title: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <>

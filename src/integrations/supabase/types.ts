@@ -7610,6 +7610,7 @@ export type Database = {
           id: string
           kind: string
           late_fee_cents: number
+          on_time_at: string | null
           rent_charge_id: string | null
           tenancy_id: string
           waived_at: string | null
@@ -7622,6 +7623,7 @@ export type Database = {
           id?: string
           kind: string
           late_fee_cents?: number
+          on_time_at?: string | null
           rent_charge_id?: string | null
           tenancy_id: string
           waived_at?: string | null
@@ -7634,6 +7636,7 @@ export type Database = {
           id?: string
           kind?: string
           late_fee_cents?: number
+          on_time_at?: string | null
           rent_charge_id?: string | null
           tenancy_id?: string
           waived_at?: string | null
@@ -7662,14 +7665,13 @@ export type Database = {
           created_at: string
           decided_at: string | null
           decline_reason: string | null
-          dispute_reason: string | null
-          disputed_at: string | null
           id: string
           paid_on: string
           pay_method: string
           reported_by: string
           status: string
           tenancy_id: string
+          tenant_disputes: Json
         }
         Insert: {
           amount_cents: number
@@ -7677,14 +7679,13 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decline_reason?: string | null
-          dispute_reason?: string | null
-          disputed_at?: string | null
           id?: string
           paid_on: string
           pay_method: string
           reported_by: string
           status?: string
           tenancy_id: string
+          tenant_disputes?: Json
         }
         Update: {
           amount_cents?: number
@@ -7692,14 +7693,13 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decline_reason?: string | null
-          dispute_reason?: string | null
-          disputed_at?: string | null
           id?: string
           paid_on?: string
           pay_method?: string
           reported_by?: string
           status?: string
           tenancy_id?: string
+          tenant_disputes?: Json
         }
         Relationships: [
           {
@@ -7721,6 +7721,7 @@ export type Database = {
           late_fee_cents: number
           pay_methods: string[]
           reminded_for: string | null
+          skipped: Json
           tenancy_id: string
           updated_at: string
         }
@@ -7733,6 +7734,7 @@ export type Database = {
           late_fee_cents?: number
           pay_methods?: string[]
           reminded_for?: string | null
+          skipped?: Json
           tenancy_id: string
           updated_at?: string
         }
@@ -7745,6 +7747,7 @@ export type Database = {
           late_fee_cents?: number
           pay_methods?: string[]
           reminded_for?: string | null
+          skipped?: Json
           tenancy_id?: string
           updated_at?: string
         }

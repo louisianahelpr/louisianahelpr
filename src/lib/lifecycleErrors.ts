@@ -1115,6 +1115,7 @@ export const RPC_ERROR_COPY = {
     under_18: RC.under_18,
     tenancy_not_found: RC.tenancy_not_found,
     bad_rent_payment: RC.bad_rent_payment,
+    payment_over_balance: RC.payment_over_balance,
   },
   rentals_decide_rent_payment: {
     account_restricted: RC.account_restricted,

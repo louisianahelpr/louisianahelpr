@@ -128,7 +128,7 @@ async function load(): Promise<EdgeHarness> {
   return loadEdgeFunction("listing-photo");
 }
 const get = (fn: EdgeHarness, qs: string) => fn.fetch(fn.request({ method: "GET", url: `https://edge.test/listing-photo?${qs}` }));
-const jpegResponse = (b: Uint8Array) => new Response(b, { status: 200, headers: { "Content-Type": "image/jpeg", "Content-Length": String(b.length) } });
+const jpegResponse = (b: Uint8Array) => new Response(b as unknown as BodyInit, { status: 200, headers: { "Content-Type": "image/jpeg", "Content-Length": String(b.length) } });
 
 describe("listing-photo handler", () => {
   let calls: Array<{ url: string; auth: string | null }>;

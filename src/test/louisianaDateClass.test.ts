@@ -59,6 +59,10 @@ const UTC_DAY_STRING = /\.toISOString\(\)\s*(?:\.\s*(?:slice|substring|substr)\(
 const UTC_DAY_TRUNCATION = /Date\.UTC\(\s*([\w.$]+)\.getUTCFullYear\(\)\s*,\s*\1\.getUTCMonth\(\)\s*,\s*\1\.getUTCDate\(\)\s*\)/g;
 /** Exact count of UTC date-string producers allowed per file, each with the reason it is not a Louisiana-day comparison. */
 const EXCEPTIONS: Record<string, { count: number; reason: string }> = {
+  "supabase/functions/listing-photo/index.ts": {
+    count: 1,
+    reason: "the key of a once-per-UTC-day Slack alert on a storage failure (dedupe of ops pages); it is never compared with a job, visit or rent date.",
+  },
   "supabase/functions/_shared/alertPolicy.ts": {
     count: 1,
     reason: "utcDayStartIso opens a once-per-day alert window (dedupe of ops pages); it is never compared with a job or visit date.",

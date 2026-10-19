@@ -110,6 +110,7 @@ vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }
 // The rent record has its own screen tests (RentPanel.test.tsx); here it is a marker per tenancy.
 vi.mock("./RentPanel", () => ({ RentPanel: ({ tenancyId }: { tenancyId: string }) => <p data-testid="rent-panel">rent {tenancyId}</p> }));
 vi.mock("./DepositPanel", () => ({ DepositPanel: ({ tenancyId }: { tenancyId: string }) => <p data-testid="deposit-panel">deposit {tenancyId}</p> }));
+vi.mock("./LeasePanel", () => ({ LeasePanel: () => null, SignedLeases: () => null }));
 vi.mock("@/lib/rentals/rent", () => ({ fetchMyEndedDeposits: async () => state.ended }));
 vi.mock("@/lib/rentals/api", () => ({
   fetchMyProperties: async () => state.properties,

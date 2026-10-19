@@ -346,6 +346,7 @@ const EXCUSED_INLINE: Record<string, string> = {
   "pages/home/QuickApplyHandler.tsx": "a toast (failWith), not a rendered screen",
   "components/rentals/RentPanel.tsx": "one line inside a home's card where its rent record goes (the Homes screen and the card loaded)",
   "components/rentals/DepositPanel.tsx": "one line inside a home's card where its deposit record goes (the Homes screen and the card loaded)",
+  "components/rentals/LeasePanel.tsx": "one line inside a home's card where its lease goes (the Homes screen and the card loaded)",
 };
 
 const tsxFiles = walk(SRC).filter((f) => f.endsWith(".tsx"));

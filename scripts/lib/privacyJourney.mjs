@@ -121,7 +121,7 @@ export const EXPORT_SECTIONS = [
   // Landlord ID (owner 2026-10-19): the member's own ID review (status, dates, note).
   "landlord_id_reviews",
   // Homes rent + deposit records (20261019073106, 20261019082216; exported by 20261019083350).
-  "rental_rent_plans", "rental_rent_charges", "rental_rent_payments", "rental_deposits",
+  "rental_rent_plans", "rental_rent_charges", "rental_rent_payments", "rental_deposits", "rental_leases",
   "storage_objects",
 ];
 

@@ -139,6 +139,7 @@ const ShopDashboardPage = lazyWithPreload(() => import("./pages/shops/ShopDashbo
 const Legal = lazyWithPreload(() => import("./pages/info/Legal"));
 const NotFound = lazyWithPreload(() => import("./pages/info/NotFound"));
 const JobDetail = lazyWithPreload(() => import("./pages/jobs/JobDetail"));
+const JobsSettings = lazyWithPreload(() => import("./pages/jobs/JobsSettings"));
 const DashboardGuest = lazyWithPreload(() => import("./pages/home/DashboardGuest"));
 
 // The seven pages that used to be lazy-imported here are now Profile tabs and
@@ -339,6 +340,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           `/jobs/:id` to `/api/share`, which server-renders the OG tags for
           crawlers and hands humans the same SPA, so a shared job still shows a
           real card in Messages and on social. */}
+      {/* Jobs settings (lead decision 2026-10-19, option A): a static segment, so it ranks above /jobs/:id. */}
+      <Route path="/jobs/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><JobsSettings /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/jobs/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><JobDetail /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Guest "home dashboard" — what iOS native users see before signing up.
           Mirrors /home's chrome and JobCard rendering, but every action

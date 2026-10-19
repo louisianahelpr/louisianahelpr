@@ -149,7 +149,7 @@ export function ChatTimeline({
           </div>
           <div className="space-y-1">
             <p
-              className="font-display italic font-bold text-ds-17"
+              className="font-display font-bold text-ds-17"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Couldn't load this conversation.
@@ -185,7 +185,7 @@ export function ChatTimeline({
           </div>
           <div className="space-y-1">
             <p
-              className="font-display italic font-bold text-ds-17"
+              className="font-display font-bold text-ds-17"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               {composerLocked ? "No messages yet." : "Say hello."}

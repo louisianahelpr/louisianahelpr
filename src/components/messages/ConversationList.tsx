@@ -1429,7 +1429,7 @@ export function ConversationList({
                 <MessageSquare className="w-5 h-5" style={{ color: "hsl(var(--success-ink))" }} strokeWidth={1.75} />
               </div>
               <p
-                className="font-display italic font-bold text-ds-16"
+                className="font-display font-bold text-ds-16"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 {/* The "You're all caught up" variant went with the Unread
@@ -1506,7 +1506,7 @@ export function ConversationList({
                 <Search className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
               </div>
               <p
-                className="font-display italic font-bold text-ds-16"
+                className="font-display font-bold text-ds-16"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 No conversations match

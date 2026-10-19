@@ -461,7 +461,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
         <div className="min-w-0">
           {/* Status eyebrow removed (owner, 2026-08-29: "delete globally"). */}
           <h3
-            className="font-display italic font-bold leading-tight text-headline-card"
+            className="font-display font-bold leading-tight text-headline-card"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
           >
             {kind === "license" ? "Professional License" : "Insurance"}
@@ -681,7 +681,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           <div className="flex-1 min-w-0">
             {/* Status eyebrow removed (owner, 2026-08-29: "delete globally"). */}
             <h3
-              className="font-display italic font-bold leading-tight text-ds-16"
+              className="font-display font-bold leading-tight text-ds-16"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               We couldn't verify your {reverifyKind === "both" ? "license or insurance" : reverifyKind}.
@@ -718,7 +718,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                 verified" etc) — the card no longer states verification status
                 at a glance, only the icon tint above (bark vs burnt-sienna)
                 hints at it. */}
-            <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+            <h2 className="font-display font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               Professional Credentials
             </h2>
             <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -760,7 +760,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                 Business Name label below is its own heading. */}
             <Label
               htmlFor="business-name"
-              className="font-display italic font-bold leading-tight cursor-pointer text-headline-card"
+              className="font-display font-bold leading-tight cursor-pointer text-headline-card"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Business Name
@@ -864,7 +864,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                   direction (2026-08-27) — the h3 below already says the
                   documents are attached, so nothing is lost. */}
               <h3
-                className="font-display italic font-bold leading-tight text-ds-16"
+                className="font-display font-bold leading-tight text-ds-16"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 {draftKinds.length > 1

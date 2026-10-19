@@ -255,7 +255,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
         </span>
         <span className="min-w-0 flex-1">
           <span
-            className="block font-display italic font-bold text-ds-17"
+            className="block font-display font-bold text-ds-17"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
           >
             Start Fresh
@@ -285,7 +285,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           </span>
           <span className="min-w-0 flex-1">
             <span
-              className="block font-display italic font-bold text-ds-17"
+              className="block font-display font-bold text-ds-17"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
             >
               Pick Up Your Draft
@@ -344,7 +344,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             </span>
             <span className="min-w-0 flex-1">
               <span
-                className="block font-display italic font-bold text-ds-17"
+                className="block font-display font-bold text-ds-17"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
               >
                 Repost a Recent Job
@@ -435,7 +435,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           </span>
           <span className="min-w-0 flex-1">
             <span
-              className="block font-display italic font-bold text-ds-17"
+              className="block font-display font-bold text-ds-17"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
             >
               Use a Template

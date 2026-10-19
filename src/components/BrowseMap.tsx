@@ -944,7 +944,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
                   posts yet" while a category filter is on is simply false,
                   and it hides the one action that fixes it. */}
               <p
-                className="font-display italic font-bold leading-tight text-headline-card"
+                className="font-display font-bold leading-tight text-headline-card"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 {filtersActive ? "No pins match." : "Empty map for now."}

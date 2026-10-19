@@ -145,7 +145,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
                 className="flex justify-between items-baseline pt-2 mt-1.5"
                 style={{ borderTop: "0.5px dashed hsl(var(--bark) / 0.22)" }}
               >
-                <span className="font-display italic font-bold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>You receive</span>
+                <span className="font-display font-bold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>You receive</span>
                 <span
                   className="font-sans font-bold tabular-nums text-ds-22"
                   style={{ color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}

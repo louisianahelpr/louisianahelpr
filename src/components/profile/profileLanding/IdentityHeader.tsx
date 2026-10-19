@@ -210,7 +210,7 @@ export function IdentityHeader({
               that did not.
 
               It was also the last title still carrying the PRE-convergence
-              Profile treatment — `font-display italic` with an inline
+              Profile treatment — `font-display` with an inline
               `clamp(1.4rem, 2vw + 0.4rem, 1.75rem)`, the exact declaration
               ProfileTabHeader's note says the eighteen tabs were moved OFF on
               2026-08-29 in favour of the shared `.text-page-title`. The tabs
@@ -229,7 +229,7 @@ export function IdentityHeader({
                 name back into the first box to the right of the profile pic");
                 the page title above now reads "Profile". */}
             {displayName && (
-              <h2 className="font-display italic font-bold text-ds-20 leading-tight break-words" style={{ color: "hsl(var(--ink-deep))" }}>
+              <h2 className="font-display font-bold text-ds-20 leading-tight break-words" style={{ color: "hsl(var(--ink-deep))" }}>
                 {displayName}
               </h2>
             )}

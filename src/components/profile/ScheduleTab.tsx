@@ -216,7 +216,7 @@ const ScheduleCard = ({
         >
           <div aria-hidden className="flex items-center justify-between gap-3">
             <h4
-              className="job-card-title senior-clamp-2 font-display italic font-bold leading-snug truncate min-w-0 text-headline-card"
+              className="job-card-title senior-clamp-2 font-display font-bold leading-snug truncate min-w-0 text-headline-card"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               {job.title}
@@ -543,7 +543,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     disagree — the digits were simply not legible enough to
                     trust. Splitting the year onto the numeric face removes
                     the ambiguity without changing a single value. */}
-                <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                <h2 className="font-display font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   {currentMonth.toLocaleDateString("en-US", { month: "long" })}{" "}
                   <span className="font-sans not-italic font-semibold tabular-nums" style={{ letterSpacing: "0.01em" }}>
                     {currentMonth.getFullYear()}
@@ -713,7 +713,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
           {selectedDate && (
             <div className="space-y-3">
               <div>
-                <h3 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                <h3 className="font-display font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                 </h3>
               </div>
@@ -747,7 +747,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
           {!selectedDate && (
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                <h3 className="font-display font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   Upcoming jobs
                 </h3>
                 {/* Posted/Applied/All toggle (item 27) — the list mixes jobs
@@ -809,7 +809,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     <CalendarDays className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
                   </div>
                   <div className="space-y-1">
-                    <p className="font-display italic font-bold text-ds-16" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                    <p className="font-display font-bold text-ds-16" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                       Calendar's clear.
                     </p>
                     <p className="font-sans max-w-[260px] text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

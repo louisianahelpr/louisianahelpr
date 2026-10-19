@@ -551,7 +551,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
                            info on the right panel"). Still font-display
                            italic, same family as the status-tab count this
                            previously matched. */
-                        className="font-display italic text-ds-16 leading-none min-w-0 shrink-0 truncate"
+                        className="font-display text-ds-16 leading-none min-w-0 shrink-0 truncate"
                         /* --ink-deep, matching the SELECTED status tab on
                            Posts and Jobs — those went black in the same
                            pass and this is the same label in the same slot

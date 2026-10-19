@@ -288,7 +288,7 @@ export function CompletionChoiceSheet({
                   </div>
                   <div>
                     <p
-                      className="font-display italic font-bold leading-tight text-ds-16"
+                      className="font-display font-bold leading-tight text-ds-16"
                       style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
                     >
                       All Done — Looks Great!
@@ -323,7 +323,7 @@ export function CompletionChoiceSheet({
                   </div>
                   <div>
                     <p
-                      className="font-display italic font-bold leading-tight text-ds-16"
+                      className="font-display font-bold leading-tight text-ds-16"
                       style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
                     >
                       I Need Something Fixed First

@@ -628,7 +628,7 @@ const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } =
                 <AlertTriangle className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} />
               </div>
               <p
-                className="font-display italic font-bold leading-tight text-ds-15"
+                className="font-display font-bold leading-tight text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
               >
                 Couldn't load notifications.
@@ -700,7 +700,7 @@ const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } =
                 <CheckCheck className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={2} />
               </div>
               <p
-                className="font-display italic font-bold leading-tight text-ds-15"
+                className="font-display font-bold leading-tight text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
               >
                 {filter === "unread" && notifications.length > 0
@@ -794,7 +794,7 @@ const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } =
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p
-                                className="min-w-0 flex-1 font-display italic font-bold leading-tight truncate text-ds-15"
+                                className="min-w-0 flex-1 font-display font-bold leading-tight truncate text-ds-15"
                                 style={{
                                   color: !n.read ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",
                                   letterSpacing: "-0.012em",

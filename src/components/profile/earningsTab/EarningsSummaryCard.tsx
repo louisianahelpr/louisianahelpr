@@ -84,7 +84,7 @@ export function EarningsSummaryCard({
           <TrendingUp className="w-4 h-4 text-primary" />
         </div>
         <h2
-          className="font-display italic font-bold leading-tight text-ds-17"
+          className="font-display font-bold leading-tight text-ds-17"
           style={{ color: "hsl(var(--ink-deep))" }}
         >
           Earned

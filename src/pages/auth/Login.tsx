@@ -348,7 +348,7 @@ const Login = () => {
                 <ShieldCheck className="w-5 h-5 text-primary" strokeWidth={1.75} />
               </div>
               <h2
-                className="font-display italic font-bold leading-tight"
+                className="font-display font-bold leading-tight"
                 style={{ fontSize: "clamp(1.2rem, 2vw + 0.4rem, 1.5rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
               >
                 Two-step verification

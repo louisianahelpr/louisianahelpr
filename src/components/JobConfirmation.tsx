@@ -374,7 +374,7 @@ export function JobConfirmation({
               Scheduled for
             </p>
             <p
-              className="font-display italic font-bold leading-tight text-ds-16"
+              className="font-display font-bold leading-tight text-ds-16"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
             >
               {jobDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
@@ -566,7 +566,7 @@ export function JobConfirmation({
       >
         <div>
           <h3
-            className="font-display italic font-bold leading-tight text-ds-14"
+            className="font-display font-bold leading-tight text-ds-14"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
           >
             Still on for this one?

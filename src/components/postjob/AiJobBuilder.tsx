@@ -98,7 +98,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
 
   return (
     // Brand-aligned: liquid-glass surface (was dashed border + bg-muted/30),
-    // Sparkles icon in a sienna-tinted circle, font-display italic title.
+    // Sparkles icon in a sienna-tinted circle, font-display title.
     // Reads as a premium value-add instead of a developer-debug widget.
     //
     // The header row is a CLONE of the Repost / Use-a-Template rows in
@@ -126,7 +126,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
         </span>
         <span className="min-w-0 flex-1">
           <span
-            className="block font-display italic font-bold text-ds-17"
+            className="block font-display font-bold text-ds-17"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
           >
             Try the AI Job Builder

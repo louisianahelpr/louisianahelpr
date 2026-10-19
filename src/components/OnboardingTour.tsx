@@ -412,7 +412,7 @@ const OnboardingTour = ({ profileComplete = false, userId, onActiveChange }: Onb
                 <DialogPrimitive.Title asChild>
                   <h3
                     id="onboarding-tour-title"
-                    className="font-display italic font-bold leading-tight"
+                    className="font-display font-bold leading-tight"
                     style={{
                       fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)",
                       color: "hsl(var(--ink-deep))",

@@ -14,7 +14,16 @@
  * (fetchable, so the preview works), and the one share helper.
  */
 // @mutate src/App.tsx | <Route path="/shops/:id" element={<RouteErrorBoundary>{routeEl(<ShopPage />)}</RouteErrorBoundary>} /> | <Route path="/shops/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
-// @mutate supabase/migrations/20261019042744_shops_public_page.sql |        AND NOT s.paused\n |
+// @mutate supabase/migrations/20261019042744_shops_public_page.sql |      AND COALESCE((SELECT NOT s.paused FROM public.shops s WHERE s.id = p_shop_id), false); |      ;
+// @mutate supabase/migrations/20261019042744_shops_public_page.sql |      AND public.shop_state_ok(p_shop_id)\n     AND COALESCE | AND COALESCE
+// @mutate supabase/migrations/20261019042744_shops_public_page.sql |      AND public.shop_state_ok(p_shop_id)\n     AND COALESCE | AND public.feature_enabled_for_user('shops', (SELECT owner_id FROM public.shops WHERE id = p_shop_id)) AND public.shop_state_ok(p_shop_id) AND COALESCE
+// @mutate supabase/migrations/20261019042744_shops_public_page.sql |   SELECT public.feature_enabled_for('shops')\n     AND public.shop_state_ok(p_shop_id); |   SELECT public.feature_enabled_for('shops');
+// @mutate supabase/migrations/20261019042744_shops_public_page.sql |     'badges', public.shop_badges(v_s.id), |     'badges', public.shop_badges(v_s.id), 'rating', (SELECT r.rating FROM public.shop_owner_rating(v_s.owner_id) r),
+// @mutate supabase/functions/shop-photo/index.ts |   const rl = await checkRateLimit(req, | const rl = { allowed: true, retryAfter: 0 }; void (req,
+// @mutate supabase/functions/shop-photo/index.ts |   const width = og ? (asked === OG_HEIGHT ? OG_HEIGHT : 1200) : | const width =
+// @mutate src/lib/shops/publicShop.ts |   if (!isShopId(shopId)) return null;\n |
+// @mutate src/lib/shops/publicShop.ts |   if ((error as { code?: string } \| null)?.code === "PGRST202") return null; |
+// @mutate src/pages/shops/ShopPage.tsx |   const { on, settled } = useFeatureStatus("shops"); |   const { on } = useFeatureStatus("shops"); const settled = true;
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO authenticated, service_role;
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |     'area_label', v_s.area_label, |     'area_label', v_s.area_label, 'owner_id', v_s.owner_id,
 // @mutate api/share.ts |     robots: SHOP_ROBOTS,\n    image: shopImage(shop), |     image: shopImage(shop),
@@ -72,6 +81,22 @@ describe("SH2b: shops_public_shop is the anon read, and only the page's fields",
     const edge = blankComments(read("supabase/functions/shop-photo/index.ts"));
     expect(edge).toMatch(/rpc\("shops_public_photo_path"/);
     expect(read("supabase/config.toml")).toMatch(/\[functions\.shop-photo\]\s*\n\s*verify_jwt = false/);
+    // No JWT, so an address rate limit before any lookup (lead /code-review #2), and one client per isolate.
+    expect(edge.indexOf("await checkRateLimit(req,")).toBeGreaterThan(0);
+    expect(edge.indexOf("await checkRateLimit(req,")).toBeLessThan(edge.indexOf('rpc("shops_public_photo_path"'));
+    expect(edge.indexOf("createClient(")).toBeLessThan(edge.indexOf("serve("));
+    // Render refused -> the original object, then an alert (review #3).
+    expect(edge).toMatch(/\/storage\/v1\/render\/image\/public\/job-photos\/[\s\S]*\/storage\/v1\/object\/public\/job-photos\/[\s\S]*alertStorage\(/);
+  });
+
+  it("the preview image is served at exactly the size api/share.ts declares (review #6)", () => {
+    const edge = blankComments(read("supabase/functions/shop-photo/index.ts"));
+    expect(edge).toMatch(/const OG_HEIGHT = 630;/);
+    expect(edge).toMatch(/const width = og \? \(asked === OG_HEIGHT \? OG_HEIGHT : 1200\) :/);
+    expect(edge).toMatch(/og \? `width=\$\{width\}&height=\$\{OG_HEIGHT\}&resize=cover`/);
+    const share = blankComments(read("api/share.ts"));
+    expect(share).toMatch(/const w = square \? 630 : 1200;/);
+    expect(share).toMatch(/width: w,\s*height: 630,/);
   });
 
   it("anon may execute shops_public_shop; shop_link_visible stays internal", () => {
@@ -81,11 +106,25 @@ describe("SH2b: shops_public_shop is the anon read, and only the page's fields",
     expect(migSql(vis!.file)).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.shop_link_visible\(uuid\) TO [^;]*\b(anon|authenticated)\b/);
   });
 
-  it("refuses hidden, paused, seed-while-hidden, bad-standing and switched-off owners' shops", () => {
-    const body = blankSqlComments(vis!.stmt);
-    for (const rule of [/hidden_at IS NULL/, /NOT s\.paused/, /seed_jobs_hidden_publicly\(\)/, /shop_owner_in_good_standing\(s\.owner_id\)/, /feature_enabled_for_user\('shops', s\.owner_id\)/]) {
-      expect(body, String(rule)).toMatch(rule);
+  it("refuses hidden, paused, seed-while-hidden, bad-standing shops and a switched-off Shops, through ONE shared state rule", () => {
+    const state = defs.get("shop_state_ok");
+    const members = defs.get("shop_publicly_visible");
+    expect(state && members).toBeTruthy();
+    const stateBody = blankSqlComments(state!.stmt);
+    for (const rule of [/hidden_at IS NULL/, /seed_jobs_hidden_publicly\(\)/, /shop_owner_in_good_standing\(s\.owner_id\)/]) {
+      expect(stateBody, String(rule)).toMatch(rule);
     }
+    // Lead /code-review #4: members and link visitors read the SAME helper, no copy of the rule.
+    const membersBody = blankSqlComments(members!.stmt);
+    expect(membersBody).toMatch(/feature_enabled_for\('shops'\)\s+AND public\.shop_state_ok\(p_shop_id\)/);
+    expect(membersBody).not.toMatch(/hidden_at|seed_jobs_hidden_publicly/);
+    const body = blankSqlComments(vis!.stmt);
+    expect(body).toMatch(/public\.shop_state_ok\(p_shop_id\)/);
+    expect(body).toMatch(/NOT s\.paused/);
+    expect(body).toMatch(/f\.key = 'shops' AND f\.audience IN \('testers', 'everyone'\)/);
+    expect(body).not.toMatch(/hidden_at|seed_jobs_hidden_publicly/);
+    // Lead /code-review #5: never the OWNER's own switch (a per-owner answer is a tester oracle for anon).
+    expect(body).not.toMatch(/feature_enabled_for/);
     expect(blankSqlComments(fn!.stmt)).toMatch(/NOT public\.shop_link_visible\(p_shop_id\)/);
   });
 
@@ -93,10 +132,11 @@ describe("SH2b: shops_public_shop is the anon read, and only the page's fields",
     const body = blankSqlComments(fn!.stmt);
     const keys = [...body.matchAll(/'([a-z_]+)',\s/g)].map((m) => m[1]);
     expect(keys.length).toBeGreaterThan(15);
-    for (const banned of ["owner_id", "pin_lat", "pin_lng", "sos_number", "hidden_reason", "hidden", "following", "mine", "pickup_address", "address_line1"]) {
+    // rating / review_count: the owner's PERSON rating (get_public_profile_stats) would fingerprint the owner (review #10).
+    for (const banned of ["owner_id", "pin_lat", "pin_lng", "sos_number", "hidden_reason", "hidden", "following", "mine", "pickup_address", "address_line1", "rating", "review_count"]) {
       expect(keys, banned).not.toContain(banned);
     }
-    expect(body).not.toMatch(/shop_pickup_address|shop_item_private/);
+    expect(body).not.toMatch(/shop_pickup_address|shop_item_private|shop_owner_rating|get_public_profile_stats/);
     // A storage path starts with the owner's user id: photos go out by id only.
     expect(keys).not.toContain("storage_path");
     expect(body).toMatch(/i\.status = 'live'/);
@@ -180,6 +220,28 @@ describe("SH2b: link preview + search engines", () => {
     };
     expect(allowed(`/shops/${SHOP_ID}`)).toBe(true);
     expect(allowed("/shops")).toBe(false);
+  });
+});
+
+describe("SH2b: the page never shows a retry for a link that cannot work", () => {
+  it("a non-uuid id answers null with no request; a not-yet-deployed RPC (PGRST202) answers null", async () => {
+    const rpc = vi.fn();
+    vi.doMock("@/integrations/supabase/client", () => ({ supabase: { rpc } }));
+    const { fetchPublicShop } = await import("@/lib/shops/publicShop");
+    expect(await fetchPublicShop("mine")).toBeNull();
+    expect(rpc).not.toHaveBeenCalled();
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "PGRST202", message: "Could not find the function" } });
+    expect(await fetchPublicShop(SHOP_ID)).toBeNull();
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "57014", message: "canceling statement" } });
+    await expect(fetchPublicShop(SHOP_ID)).rejects.toThrow();
+    vi.doUnmock("@/integrations/supabase/client");
+    vi.resetModules();
+  });
+
+  it("ShopPage decides member vs public through useFeatureStatus, not a hand-built query key (review #7)", () => {
+    const page = blankComments(read("src/pages/shops/ShopPage.tsx"));
+    expect(page).toMatch(/const \{ on, settled \} = useFeatureStatus\("shops"\);/);
+    expect(page).not.toMatch(/feature-enabled|getQueryState/);
   });
 });
 

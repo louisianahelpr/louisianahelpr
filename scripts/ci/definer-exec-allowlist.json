@@ -12,7 +12,7 @@
     "my_credential_tier()": "reviewed 2026-10-05 (Q14): read inside the open_jobs_browse view; answers for auth.uid() only.",
     "seed_jobs_hidden_publicly()": "reviewed 2026-10-12 (Q14): the global launch switch, one public boolean. No app code calls it (the old client match was the feature-flag KEY constant in src/config/showSeedJobs.ts, and live 2026-10-12 only definer functions call it, no view or policy); scripts/check-launch-flags.sh reads it as anon with the publishable key.",
     "seed_hidden_in_discovery()": "reviewed 2026-10-07 (Q552): read inside the open_jobs_browse view, whose callers need EXECUTE (a view's function EXECUTE is checked against the caller); answers only whether the launch switch hides test rows from the CALLER.",
-    "shops_public_shop(uuid)": "reviewed 2026-10-19 (SH2b, owner: shop pages viewable by anyone with the link): returns only what the public shop page shows for a shop shop_link_visible allows (not hidden, not paused, owner in good standing and switched on); no owner id, pin, SoS number, hidden reason or pickup address; NULL otherwise."
+    "shops_public_shop(uuid)": "client"
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",
@@ -358,6 +358,6 @@
     "shops_save_my_pickup_address(text, text, text, text)": "reviewed 2026-10-18 (Q1284): Shops M1b (20261018210400); reads the caller only through public.shops_assert_owner_eligible(), called first after require_feature and the ban check (v_uid := ...), which refuses a NULL caller (42501 not_authenticated); the one row it writes is the caller's own shop's pickup address (shops.owner_id = v_uid).",
     "shops_set_handover_mode(text)": "reviewed 2026-10-18 (Q1284): Shops M2 (20261018211820); reads the caller only through public.shops_assert_owner_eligible(), called first after require_feature and the ban check (v_uid := ...), which refuses a NULL caller (42501 not_authenticated); the one row it writes is the caller's own shop (WHERE owner_id = v_uid).",
     "shops_set_ready_tap_cancel(text)": "reviewed 2026-10-19 (Q1284): Shops O2 (20261019015018); reads the caller only through public.shops_assert_owner_eligible(), called first after require_feature and the ban check (v_uid := ...), which refuses a NULL caller (42501 not_authenticated); the one row it writes is the caller's own shop (WHERE owner_id = v_uid).",
-    "shops_public_shop(uuid)": "reviewed 2026-10-19 (SH2b, owner: shop pages viewable by anyone with the link): returns only what the public shop page shows for a shop shop_link_visible allows (not hidden, not paused, owner in good standing and switched on); no owner id, pin, SoS number, hidden reason or pickup address; NULL otherwise."
+    "shops_public_shop(uuid)": "reviewed 2026-10-19 (Q1284): SH2b public shop page (owner: anyone with the link may look; 20261019042744); deliberately reads no caller, it answers the same for anon and members. Returns only what the page shows, for a shop shop_link_visible allows (shop_state_ok: not hidden, no test shop while seeds are hidden, owner in good standing; not paused; Shops not switched off for everyone; never the owner's own switch, which would be a tester oracle); photos by id only; no owner id, person rating, pin, SoS number, hidden reason or pickup address; one NULL for every refusal."
   }
 }

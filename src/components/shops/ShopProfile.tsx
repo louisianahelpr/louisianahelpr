@@ -103,8 +103,9 @@ export function ShopHero(props: {
   areaLabel: string;
   storefront: boolean;
   photos: Photo[];
-  rating: number | null;
-  reviewCount: number;
+  /** Members only: the public page omits the owner's person rating (it would fingerprint the owner). */
+  rating?: number | null;
+  reviewCount?: number;
   badges: ShopBadges | null | undefined;
   hours: ShopHour[];
   actions?: ReactNode;
@@ -134,7 +135,7 @@ export function ShopHero(props: {
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <OpenNowPill hours={props.hours} />
-          {props.reviewCount > 0 && props.rating != null ? <ShopRating rating={props.rating} count={props.reviewCount} /> : null}
+          {(props.reviewCount ?? 0) > 0 && props.rating != null ? <ShopRating rating={props.rating} count={props.reviewCount ?? 0} /> : null}
         </div>
         <div className="mt-3">
           <ShopBadgeList badges={props.badges} />

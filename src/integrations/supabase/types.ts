@@ -7350,24 +7350,6 @@ export type Database = {
           },
         ]
       }
-      rental_listing_photo_legacy: {
-        Row: {
-          bucket_id: string
-          moved_at: string
-          storage_path: string
-        }
-        Insert: {
-          bucket_id?: string
-          moved_at?: string
-          storage_path: string
-        }
-        Update: {
-          bucket_id?: string
-          moved_at?: string
-          storage_path?: string
-        }
-        Relationships: []
-      }
       rental_listing_photos: {
         Row: {
           created_at: string

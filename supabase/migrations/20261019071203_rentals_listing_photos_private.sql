@@ -32,8 +32,8 @@
 --    (rentals_photo_serve_keys: RLS on, no policy, no grant). The scope says
 --    which rule the proxy re-checks on every fetch:
 --      p  the public link (rentals_public_listing): rentals_public_listing_visible
---      m  a member's browse / listing page: rentals_listing_visible
---      o  the owner's own listing (their page and editor): not removed
+--      m  a member's browse / listing page: rentals_listing_visible, switch not off
+--      o  the owner's own listing (their page and editor): not removed, switch not off
 --    exp is the end of the NEXT whole hour (1-2 h out), so a page's photo URLs
 --    stay the same for an hour and browsers cache them.
 --    rentals_listing_photo_object(ref) (service_role only) verifies the
@@ -44,20 +44,29 @@
 --    comments) from the bytes it serves, the rendered ones and the capped
 --    fallback alike (_shared/jpegStripMetadata.ts): server-side, whatever the
 --    upload carried (Q2212).
--- 5. The admin take-down now DETACHES the listing's photos (the rows go, so the
---    photo ids stop resolving at once) and returns their paths so the admin
---    screen deletes the objects (rentals_admin_remove_listing, return type
---    void -> text[]).
+-- 5. The admin take-down (now on the property, 20261019062540) also DETACHES
+--    the photos of every listing it removes (the rows go, so their refs stop
+--    resolving at once) and deletes their Storage objects server-side, naming
+--    the paths in the audit log (lead review of Q2211 #3): nothing is left that
+--    the landlord could still sign or serve.
 -- 6. rentals_public_listing_photo_path (20261019062540, the id-only lookup) is
 --    dropped: the public link now returns refs like every other read.
 --
 -- EXISTING PHOTOS: measured read-only on prod 2026-10-19 07:10Z:
 -- rental_listings 0 rows, rental_listing_photos 0 rows, job-photos objects
 -- under */rental-listings/* 0. A database migration cannot move Storage bytes,
--- so a photo row whose object is NOT in listing-photos is moved, never lost,
--- into rental_listing_photo_legacy (server-only) and its live listing, now
--- short of photos, is paused for its owner to re-add them. With 0 rows that is
--- a no-op on prod; it keeps a replay or a late upload safe.
+-- so any listing photo still in the PUBLIC job-photos bucket is taken OUT of
+-- it (lead review of Q2211 #5): its storage.objects row is deleted (Storage's
+-- protect_delete trigger allows it under storage.allow_delete_query, set for
+-- this transaction only), so its public URL answers 404, and its photo row is
+-- detached; a live listing left short of photos is paused for its owner to add
+-- them again. With 0 rows that is a no-op on prod; it keeps a late upload safe.
+--
+-- DELETED OBJECT ROWS: deleting a storage.objects row (here and in the
+-- take-down) makes the object unreachable through every Storage API (public
+-- URL, signed URL, render, download all look the row up first); its bytes stay
+-- in the backing store as an unreferenced blob. The paths are recorded (the
+-- take-down's admin_audit_log row; this migration's NOTICE).
 --
 -- Replay-safe: ON CONFLICT on the bucket and the key, DROP POLICY IF EXISTS,
 -- DROP FUNCTION IF EXISTS before each changed return shape, CREATE OR REPLACE,
@@ -117,42 +126,39 @@ CREATE POLICY "listing-photos: the owner and admins read" ON storage.objects
   FOR SELECT TO authenticated
   USING (bucket_id = 'listing-photos' AND public.rentals_listing_photo_access(name, 'select'));
 
+-- Is this object attached to a listing? Answered as the definer, never through the caller's switch-gated RLS
+-- (lead review of Q2211 #4): an attached photo can never be deleted, whatever the caller's switch says.
+CREATE OR REPLACE FUNCTION public.rentals_listing_photo_attached(p_name text)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT EXISTS (SELECT 1 FROM public.rental_listing_photos p WHERE p.storage_path = p_name);
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_listing_photo_attached(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.rentals_listing_photo_attached(text) TO authenticated, service_role;
+
 DROP POLICY IF EXISTS "listing-photos: the owner or an admin deletes an unattached photo" ON storage.objects;
 CREATE POLICY "listing-photos: the owner or an admin deletes an unattached photo" ON storage.objects
   FOR DELETE TO authenticated
   USING (
     bucket_id = 'listing-photos'
     AND public.rentals_listing_photo_access(name, 'delete')
-    AND NOT EXISTS (SELECT 1 FROM public.rental_listing_photos p WHERE p.storage_path = objects.name)
+    AND NOT public.rentals_listing_photo_attached(name)
   );
 
 -- ---------------------------------------------------------------------------
--- 3. Photos already attached from job-photos: kept, server-only (see header).
-CREATE TABLE IF NOT EXISTS public.rental_listing_photo_legacy (
-  storage_path text PRIMARY KEY,
-  bucket_id text NOT NULL DEFAULT 'job-photos',
-  moved_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.rental_listing_photo_legacy ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.rental_listing_photo_legacy FROM PUBLIC, anon, authenticated;
-GRANT ALL ON TABLE public.rental_listing_photo_legacy TO service_role;
-COMMENT ON TABLE public.rental_listing_photo_legacy IS
-  'Listing photo rows whose object was still in the public job-photos bucket when listing photos went private (20261019071203). Server-only; remove the objects with the service role.';
-
+-- 3. Listing photos still in the PUBLIC job-photos bucket: out of it (see header).
 DO $mig$
 DECLARE
-  v_moved integer;
+  v_paths text[];
 BEGIN
   WITH legacy AS (
     DELETE FROM public.rental_listing_photos ph
      WHERE NOT EXISTS (SELECT 1 FROM storage.objects o WHERE o.bucket_id = 'listing-photos' AND o.name = ph.storage_path)
-    RETURNING ph.storage_path, ph.listing_id, ph.owner_id
-  ), kept AS (
-    -- The path alone (it names the owner's folder; account deletion purges job-photos/<uid>/rental-listings/).
-    INSERT INTO public.rental_listing_photo_legacy (storage_path)
-    SELECT storage_path FROM legacy
-    ON CONFLICT (storage_path) DO NOTHING
-    RETURNING storage_path
+    RETURNING ph.storage_path, ph.listing_id
   ), paused AS (
     -- A live listing keeps at least 5 photos (Q11); one that lost photos here waits for its owner.
     UPDATE public.rental_listings l SET status = 'paused', updated_at = now()
@@ -163,9 +169,11 @@ BEGIN
            - (SELECT count(*) FROM legacy g WHERE g.listing_id = l.id) < 5
     RETURNING l.id
   )
-  SELECT (SELECT count(*) FROM kept) INTO v_moved;
-  IF v_moved > 0 THEN
-    RAISE NOTICE 'rentals_listing_photos_private: % legacy job-photos listing photo row(s) moved to rental_listing_photo_legacy', v_moved;
+  SELECT array_agg(storage_path ORDER BY storage_path) INTO v_paths FROM legacy;
+  IF v_paths IS NOT NULL THEN
+    PERFORM set_config('storage.allow_delete_query', 'true', true);
+    DELETE FROM storage.objects WHERE bucket_id = 'job-photos' AND name = ANY (v_paths);
+    RAISE NOTICE 'rentals_listing_photos_private: % listing photo(s) taken out of job-photos: %', cardinality(v_paths), v_paths;
   END IF;
 END
 $mig$;
@@ -258,6 +266,12 @@ BEGIN
      AND l.status <> 'removed'
      AND NOT l.removed_by_admin;
   IF v_path IS NULL THEN
+    RETURN NULL;
+  END IF;
+  -- The Homes switch is a kill switch for every ref (lead review of Q2211 #2): switched off, nothing is served.
+  -- p already requires Homes open to everyone (rentals_public_listing_visible).
+  IF v_scope IN ('m', 'o')
+     AND NOT EXISTS (SELECT 1 FROM public.feature_switches fs WHERE fs.key = 'rentals' AND fs.audience <> 'off') THEN
     RETURN NULL;
   END IF;
   v_ok := CASE v_scope
@@ -592,7 +606,13 @@ BEGIN
   RETURN QUERY
   -- A stranger never gets home size + lot size + year built next to the ZIP of a home FOR SALE: together
   -- they name the parcel in the assessor's records (review fix #5). Signed-in members see them on the page.
-  SELECT l.kind, l.headline, l.description, l.rent_cents, l.rent_frequency, l.deposit_cents, l.sale_price_cents,
+  -- Nor a headline or description that could name the street, the year or the lot (must-fix 4): for a home
+  -- for sale a stranger gets a plain headline and no description; signed-in members read the owner's words.
+  SELECT l.kind,
+         CASE WHEN l.kind = 'sale' THEN trim_scale(l.beds)::text || ' bed, ' || trim_scale(l.baths)::text || ' bath home for sale'
+              ELSE l.headline END,
+         CASE WHEN l.kind = 'sale' THEN NULL ELSE l.description END,
+         l.rent_cents, l.rent_frequency, l.deposit_cents, l.sale_price_cents,
          l.beds, l.baths,
          CASE WHEN l.kind = 'sale' THEN NULL ELSE l.sq_ft END,
          CASE WHEN l.kind = 'sale' THEN NULL ELSE l.lot_sq_ft END,
@@ -611,12 +631,12 @@ REVOKE ALL ON FUNCTION public.rentals_public_listing(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.rentals_public_listing(text) TO anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
--- 9. The admin take-down: the newest body (20261019062540), and it DETACHES
---    the listing's photos (their ids stop resolving at once) and returns the
---    object paths for the admin screen to delete. void -> text[], so dropped first.
-DROP FUNCTION IF EXISTS public.rentals_admin_remove_listing(uuid, text);
-CREATE FUNCTION public.rentals_admin_remove_listing(p_listing_id uuid, p_reason text)
-RETURNS text[]
+-- 9. The admin take-down: the newest body (20261019062540, on the property), and
+--    it DETACHES the photos of every listing it removes (their refs stop
+--    resolving at once) and deletes their objects server-side, paths in the
+--    audit log (Q2211, lead review #3).
+CREATE OR REPLACE FUNCTION public.rentals_admin_remove_listing(p_listing_id uuid, p_reason text)
+RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
@@ -625,6 +645,7 @@ DECLARE
   v_uid uuid := (SELECT auth.uid());
   v_l public.rental_listings%ROWTYPE;
   v_reason text := btrim(coalesce(p_reason, ''));
+  v_ids uuid[];
   v_paths text[];
 BEGIN
   -- Moderation is never gated by the feature switch (review fix #7): an admin can take a listing down
@@ -639,26 +660,45 @@ BEGIN
     RAISE EXCEPTION 'reason_required' USING ERRCODE = '22023';
   END IF;
   SELECT * INTO v_l FROM public.rental_listings WHERE id = p_listing_id FOR UPDATE;
-  -- An owner-removed listing can still be taken down (it records who, why, and blocks re-posting);
-  -- one already taken down cannot be taken down twice.
-  IF NOT FOUND OR v_l.removed_by_admin THEN
+  IF NOT FOUND THEN
     RAISE EXCEPTION 'listing_not_found' USING ERRCODE = 'P0002';
   END IF;
-  UPDATE public.rental_listings
-     SET status = 'removed', removed_by_admin = true, removed_reason = v_reason, updated_at = now()
-   WHERE id = p_listing_id;
-  -- Q2211: the photos are detached (no ref resolves any more) and their objects handed back for deletion.
+  -- Only a listing people can see or the owner can put back up (live or paused); history (sold, leased,
+  -- removed) is not taken down (lead review must-fix 6).
+  IF v_l.status NOT IN ('live', 'paused') THEN
+    RAISE EXCEPTION 'listing_not_live' USING ERRCODE = '22023';
+  END IF;
+  PERFORM 1 FROM public.rental_properties WHERE id = v_l.property_id FOR UPDATE;
+  UPDATE public.rental_properties
+     SET listings_taken_down_at = now(), listings_taken_down_reason = v_reason
+   WHERE id = v_l.property_id;
+  -- Every OPEN listing on the property goes, either kind, any unit (must-fix 2).
   WITH gone AS (
-    DELETE FROM public.rental_listing_photos WHERE listing_id = p_listing_id RETURNING storage_path
+    UPDATE public.rental_listings
+       SET removed_from_status = status, status = 'removed', removed_by_admin = true, removed_reason = v_reason,
+           updated_at = now()
+     WHERE property_id = v_l.property_id AND status IN ('draft', 'live', 'paused')
+    RETURNING id
   )
-  SELECT coalesce(array_agg(storage_path ORDER BY storage_path), ARRAY[]::text[]) INTO v_paths FROM gone;
+  SELECT array_agg(id ORDER BY id) INTO v_ids FROM gone;
+  -- Q2211: their photos are detached and their objects deleted here, server-side (no orphan the landlord
+  -- could still sign); the paths go in the audit log.
+  WITH detached AS (
+    DELETE FROM public.rental_listing_photos WHERE listing_id = ANY (v_ids) RETURNING storage_path
+  )
+  SELECT array_agg(storage_path ORDER BY storage_path) INTO v_paths FROM detached;
+  IF v_paths IS NOT NULL THEN
+    PERFORM set_config('storage.allow_delete_query', 'true', true);
+    DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = ANY (v_paths);
+    PERFORM set_config('storage.allow_delete_query', 'false', true);
+  END IF;
   INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
   VALUES (v_uid, 'rentals_listing_removed', 'rental_listing', p_listing_id::text,
           jsonb_build_object('reason', v_reason, 'kind', v_l.kind, 'status_before', v_l.status,
-                             'photos_detached', cardinality(v_paths)));
+                             'property_id', v_l.property_id, 'listings_removed', to_jsonb(v_ids),
+                             'photos_deleted', to_jsonb(coalesce(v_paths, ARRAY[]::text[]))));
   PERFORM public.rentals_notify(v_l.owner_id, 'Listing removed',
     'Louisiana Helpr removed your listing "' || v_l.headline || '": ' || v_reason, '/rentals', true, true);
-  RETURN v_paths;
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_admin_remove_listing(uuid, text) FROM PUBLIC, anon;

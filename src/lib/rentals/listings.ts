@@ -131,6 +131,12 @@ export function listingPhotoUrl(ref: string, width = 640): string {
   return `${base}/functions/v1/listing-photo?r=${encodeURIComponent(ref)}&w=${width}`;
 }
 
+/** True when a photo ref's expiry (its third part, epoch seconds) has passed or is within a minute. */
+export function listingRefExpired(ref: string, now = Date.now()): boolean {
+  const exp = Number(ref.split(".")[2]);
+  return !Number.isFinite(exp) || exp * 1000 <= now + 60_000;
+}
+
 /** Create a draft (listingId null, unitId set) or save an edit. Returns the listing id. */
 export async function saveListing(listingId: string | null, unitId: string | null, fields: ListingFields): Promise<string> {
   const { data, error } = await supabase.rpc("rentals_save_listing", {

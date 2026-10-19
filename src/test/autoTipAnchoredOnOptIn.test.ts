@@ -18,8 +18,8 @@
  * may compare updated_at against now(): "when this row was last touched" is
  * not an event a charge, payout or release can be timed from.
  *
- * @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND j.helper_id IS NOT NULL\n    AND p.auto_tip_mode <> 'off'\n    AND p.auto_tip_enabled_at IS NOT NULL\n    AND j.completed_at >= p.auto_tip_enabled_at\n    AND j.completed_at > now() |     AND j.helper_id IS NOT NULL\n    AND p.auto_tip_mode <> 'off'\n    AND p.auto_tip_enabled_at IS NOT NULL\n    AND j.completed_at >= p.auto_tip_enabled_at\n    AND j.updated_at > now()
- * @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND j.helper_id IS NOT NULL\n    AND p.auto_tip_mode <> 'off'\n    AND p.auto_tip_enabled_at IS NOT NULL\n    AND j.completed_at >= p.auto_tip_enabled_at |     AND j.helper_id IS NOT NULL\n    AND p.auto_tip_mode <> 'off'\n    AND p.auto_tip_enabled_at IS NOT NULL\n    AND true
+ * @mutate supabase/migrations/20261019043709_auto_tip_skips_closed_payment.sql |     AND j.helper_id IS NOT NULL\n    AND p.auto_tip_mode <> 'off'\n    AND p.auto_tip_enabled_at IS NOT NULL\n    AND j.completed_at >= p.auto_tip_enabled_at\n    AND j.completed_at > now() |     AND j.helper_id IS NOT NULL\n    AND p.auto_tip_mode <> 'off'\n    AND p.auto_tip_enabled_at IS NOT NULL\n    AND j.completed_at >= p.auto_tip_enabled_at\n    AND j.updated_at > now()
+ * @mutate supabase/migrations/20261019043709_auto_tip_skips_closed_payment.sql |     AND j.helper_id IS NOT NULL\n    AND p.auto_tip_mode <> 'off'\n    AND p.auto_tip_enabled_at IS NOT NULL\n    AND j.completed_at >= p.auto_tip_enabled_at |     AND j.helper_id IS NOT NULL\n    AND p.auto_tip_mode <> 'off'\n    AND p.auto_tip_enabled_at IS NOT NULL\n    AND true
  * @mutate supabase/functions/auto-tip-charge/index.ts | await supabase.rpc("auto_tip_candidates"); | await supabase.rpc("auto_tip_candidates", { _since_hours: 24 });
  */
 import { describe, it, expect } from "vitest";

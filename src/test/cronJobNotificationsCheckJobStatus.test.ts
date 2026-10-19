@@ -183,7 +183,7 @@ describe("a cron sweep that notifies about a job checks the job is still live", 
  * RED on the original bug: with 20261019043709 removed, auto-tip-charge is a
  * charger that tests no payment state (see the last test).
  *
- * @mutate supabase/migrations/20261019043709_auto_tip_skips_closed_payment.sql |         OR NOT public.job_payment_is_funded(j.payment_status)\n        OR EXISTS ( |         OR EXISTS (
+ * @mutate supabase/migrations/20261019043709_auto_tip_skips_closed_payment.sql |     SELECT CASE\n      WHEN j.status <> 'completed'::job_status\n        OR NOT public.job_payment_is_funded(j.payment_status)\n |     SELECT CASE\n      WHEN j.status <> 'completed'::job_status\n
  * @mutate supabase/functions/auto-tip-charge/index.ts |         if (stateNowErr \|\| stateNow !== "chargeable") { |         if (stateNowErr) {
  * @mutate supabase/functions/auto-tip-charge/index.ts | supabase.rpc("auto_tip_job_state", { p_job_id: jobId }) | supabase.rpc("auto_tip_job_state", { p_job_id: c0 })
  * @mutate supabase/functions/auto-tip-charge/index.ts |       if (tipState === "closed") { |       if (tipState === "closed" && false) {

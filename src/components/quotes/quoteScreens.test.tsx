@@ -31,7 +31,8 @@
  */
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "@/test/helpers/trackedFiles";
 import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "@/test/helpers/blankNonCode";
 import { resolve } from "node:path";

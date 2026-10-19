@@ -58,6 +58,9 @@ const NOT_FROM_A_REVIEW: Record<string, string> = {
   Q2114: "sec-c measuring prod analytics_events (first_payment_collected), salvaged from ready/train-big-1016; not a code reviewer's finding",
   Q2197: "filed by the declutter-proof lane from a code read; \"review\" is the held-for-review status and the review rounds of its fix, not a filed finding",
   Q2082: "the owner's jobs-fee feature item; it lists lh-money-escrow review points of slice 3a as before-the-flip conditions, not a filed finding",
+  Q1901: "the loading-states budget red mirrored from a CI run; \"lead review\" notes why the budget was left, not a filed finding",
+  Q2175: "owner-reported repeated back-out notices; \"lead re-reviewed\" is the status of its fix branch, not a filed finding",
+  Q2177: "found by the quotes-merge lane; the review words are the status of its fix (an lh-authz-rls pass, the lead's /code-review), not a filed finding",
 };
 /**
  * An item MIRRORED from a feed (nightly-red issue, ops ledger, audit bus) is

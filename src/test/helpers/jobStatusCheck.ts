@@ -34,7 +34,7 @@ export function sqlBody(def: FnDef): string {
 }
 
 /** Names the body binds to a jobs row: `jobs j`, `jobs AS j`, `INTO v_job FROM jobs`, `v public.jobs%ROWTYPE`, `jobs`. */
-export function jobAliases(body: string): Set<string> {
+function jobAliases(body: string): Set<string> {
   const out = new Set(["jobs"]);
   for (const m of body.matchAll(/\b(?:from|join|update)\s+(?:public\s*\.\s*)?"?jobs"?\s+(?:as\s+)?(\w+)/gi))
     if (!SQL_WORDS.has(m[1].toLowerCase())) out.add(m[1].toLowerCase());

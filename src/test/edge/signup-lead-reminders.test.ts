@@ -27,7 +27,7 @@
  * @mutate supabase/functions/record-signup-lead/index.ts |       return json({ error: "Could not save" }, 500);\n    }\n  } catch |     }\n  } catch
  * @mutate supabase/functions/record-signup-lead/index.ts |     if (verdict === "refused") return json({ error: "Security check failed" }, 403); |     void verdict;
  * @mutate supabase/functions/record-signup-lead/index.ts |   if (outcome?.success === true && outcome.action === SIGNUP_ACTION) return "ok"; |   if (outcome) return "ok";
- * @mutate supabase/functions/record-signup-lead/index.ts |   if (outcome?.success === true) {\n |   if (false) {\n
+ * @mutate supabase/functions/record-signup-lead/index.ts |     return "refused";\n  }\n  const codes |     return "ok";\n  }\n  const codes
  * @mutate supabase/functions/record-signup-lead/index.ts | token.length > MAX_TOKEN_LEN) { | token.length > MAX_TOKEN_LEN && false) {
  * @mutate supabase/functions/record-signup-lead/index.ts |     if (verdict === "unavailable") return json({ error: "Could not verify" }, 503); |     void verdict;
  */

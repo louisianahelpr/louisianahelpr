@@ -117,3 +117,8 @@ describe("tierFeePercent (client dashboard resolver) mirrors the edge payout res
 // The lapsed-subscription revert, on the client resolver this file pins to the
 // edge one.
 // @mutate src/lib/subscriptionTiers.ts | const expired = expiresAt ? new Date(expiresAt).getTime() < Date.now() : false; | const expired = false;
+// A missing/unknown tier resolves to the ELITE rate instead of the free one: the
+// never-undercharge default inverted, so a Helpr whose tier cannot be read is
+// charged 8% instead of 12% (moved here from moneyFigures.parity, which no
+// longer calls tierFeePercent).
+// @mutate src/lib/subscriptionTiers.ts | TIER_PERKS[toSubscriptionTier(expired ? "free" : (rawTier ?? "").toLowerCase())].platformFeePercent | TIER_PERKS[toSubscriptionTier(expired ? "free" : (rawTier ?? "elite").toLowerCase())].platformFeePercent

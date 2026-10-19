@@ -6,7 +6,8 @@
  */
 // @mutate scripts/lib/sensitiveReview.mjs |   if (/^supabase\/migrations\/.+\.sql$/.test(path)) return true; |   if (/^supabase\/migrations\/.+\.sql$/.test(path)) return false;
 // @mutate scripts/lib/sensitiveReview.mjs |   if (/^supabase\/functions\//.test(path)) return true; |   if (/^supabase\/functions\//.test(path)) return false;
-// @mutate scripts/lib/sensitiveReview.mjs | return SRC_SENSITIVE.test(path); | return false;
+// @mutate scripts/lib/sensitiveReview.mjs | return SRC_SENSITIVE.test(path) \|\| SRC_SENSITIVE_CASED.test(path); | return false;
+// @mutate scripts/lib/sensitiveReview.mjs | const SRC_SENSITIVE_CASED = /(Fees?[A-Z.]\|(?<![a-z])ban(?=[A-Z.])\|Ban(?![a-z]))/; | const SRC_SENSITIVE_CASED = /(Fees?[A-Z.]\|(?<![a-z])ban(?=[A-Z.])\|Ban(?![a-z]))/i;
 // @mutate scripts/lib/sensitiveReview.mjs |   if (/\.(test\|spec)\.[cm]?[jt]sx?$/.test(path) | if (/\.(never)\.[cm]?[jt]sx?$/.test(path)
 // @mutate scripts/lib/sensitiveReview.mjs |     if (reviewer === "not-needed" \|\| REVIEWERS.includes(reviewer)) found = | found =
 // @mutate scripts/lib/sensitiveReview.mjs |   return { rows, missing: rows.filter((r) => !r.review) }; |   return { rows, missing: [] };
@@ -65,6 +66,19 @@ describe("which paths are money / authz / data-model (this repo's own tree)", ()
 
   it("leaves docs, plain UI and tests alone", () => {
     for (const p of ["docs/OPEN.md", "src/components/ui/button.tsx", "src/lib/cancellationFee.parity.test.ts", "e2e/x.spec.ts"]) expect(isSensitive(p), p).toBe(false);
+  });
+
+  // 2026-10-18 stranded review (lander/quotes-2 finding): `Fees?[A-Z.]` under the /i flag read
+  // "Feed" as "Fee"+"d", and `Ban` read "Banner" / "useJobAnalytics", so every feed and banner
+  // change was asked for a money review. The camelCase starts now match with case.
+  it("a Feed or Banner file is not a fee or ban file; real fee and ban files still are", () => {
+    for (const p of ["src/components/dashboard/BrowseTasksFeed.tsx", "src/hooks/useFeedPhase.ts", "src/components/feedback/NpsPrompt.tsx",
+      "src/components/OfflineBanner.tsx", "src/pages/posts/postedJobs/useJobAnalytics.ts"]) expect(isSensitive(p), p).toBe(false);
+    for (const p of ["src/components/analytics/EarningsFeePanel.tsx", "src/lib/legacyFeeFallback.ts", "src/lib/banStatus.ts",
+      "src/components/admin/BanUserDialog.tsx", "src/lib/fees.ts", "src/lib/platformFee.ts", "src/hooks/useBannedUser.ts"]) expect(isSensitive(p), p).toBe(true);
+    const feedFiles = tracked.filter((p) => /^src\/.+Feed.*\.tsx?$/.test(p) && !/\.test\./.test(p));
+    expect(feedFiles.length).toBeGreaterThan(3);
+    expect(feedFiles.filter(isSensitive)).toEqual([]);
   });
 });
 

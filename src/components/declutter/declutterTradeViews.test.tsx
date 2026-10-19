@@ -4,12 +4,21 @@
  * API module is stubbed; the backend proof is
  * src/test/pglite/declutterSlice3.pglite.mjs and scripts/declutter/race-accept.mjs.
  *
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (!card.data) return <SaveCardPrompt |   if (false) return <SaveCardPrompt
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (underAge) { |   if (false) {
+ * Owner 2026-10-19: Buy now and Make an offer always show; with no saved card either one asks for a
+ * card (AddCardStep) and comes back to itself (src/lib/declutter/afterCard.ts).
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (card.data) {\n      setNeedCard(null); |     if (true) {\n      setNeedCard(null);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               rememberAfterCard(itemId, action);\n | \n
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (item.status === "live" && !underAge) run(resume); |     if (false) run(resume);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState<AfterCardAction \| null>(() => afterCardFromState(location.state)); | useState<AfterCardAction \| null>(() => null);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     refetchInterval: resume ? CARD_POLL_MS : false, |     refetchInterval: false,
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setNeedCard(resume);\n    }, CARD_WAIT_MS); |     }, CARD_WAIT_MS);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null }); |       void navigate;
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {!showCardStep && <p className="text-xs | {true && <p className="text-xs
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (underAge) { |   if (false) {
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | o.floor_price_cents !== null && o.amount_cents < o.floor_price_cents; | o.floor_price_cents !== null;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |             await openExternalUrl(await startCardSave(), | await openExternalUrl("https://example.invalid",
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
  * Row 101 (porch is the default; a seller can turn it off per item).
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = offered.includes(handover) ? handover : offered[0]; |   const chosen = handover;
@@ -21,13 +30,16 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
   underAge: false,
   card: null as unknown,
+  bought: 0,
+  /** When set, the next openExternalUrl comes straight back (the in-app browser sheet closing) with this card saved. */
+  returnWithCard: null as unknown,
   strikes: 0,
   offers: [] as unknown[],
   cart: [] as unknown[],
@@ -57,7 +69,10 @@ vi.mock("@/lib/declutter/api", () => ({
     return "o1";
   },
   respondOffer: async () => "declined",
-  buyNow: async () => "l1",
+  buyNow: async () => {
+    state.bought++;
+    return "l1";
+  },
   sellerCancelSale: async () => 1,
   startCardSave: async () => "https://checkout.stripe.test/setup",
   startCheckoutPayment: async (sellerId: string, handover: string) => {
@@ -67,16 +82,34 @@ vi.mock("@/lib/declutter/api", () => ({
 }));
 // Slice 4's paid-order cards have their own test (declutterHandoverViews.test.tsx).
 vi.mock("./DeclutterHandoverViews", () => ({ PaidOrdersSection: () => null }));
-vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: async (url: string) => { state.opened.push(url); } }));
+vi.mock("@/lib/openExternalUrl", () => ({
+  openExternalUrl: async (url: string, onReturn?: () => void) => {
+    state.opened.push(url);
+    if (state.returnWithCard && onReturn) {
+      state.card = state.returnWithCard;
+      onReturn();
+    }
+  },
+}));
 vi.mock("@/components/AppPage", () => ({ default: ({ title, children }: { title: string; children: React.ReactNode }) => <main><h1>{title}</h1>{children}</main> }));
 
-import { CartView, FinishSalesView, OfferPanel, OffersSection, StrikeCount, dollarsInputToCents } from "./DeclutterTradeViews";
+import { CartView, FinishSalesView, OffersSection, StrikeCount, dollarsInputToCents } from "./DeclutterTradeViews";
+import { OfferPanel } from "./DeclutterOfferPanel";
 
-function show(el: React.ReactNode) {
+/** The router's history state, shown so a test can see OfferPanel clear it. */
+function RouterState() {
+  const loc = useLocation();
+  return <output data-testid="router-state">{JSON.stringify(loc.state ?? null)}</output>;
+}
+
+function show(el: React.ReactNode, entry: string | { pathname: string; state: unknown } = "/declutter/item/i1") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>{el}</MemoryRouter>
+      <MemoryRouter initialEntries={[entry]}>
+        {el}
+        <RouterState />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -96,6 +129,10 @@ describe("Declutter slice 3 screens", () => {
   beforeEach(() => {
     state.underAge = false;
     state.card = null;
+    state.bought = 0;
+    state.returnWithCard = null;
+    sessionStorage.clear();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     state.strikes = 0;
     state.offers = [];
     state.cart = [];
@@ -106,13 +143,91 @@ describe("Declutter slice 3 screens", () => {
     state.quotes = [];
   });
 
-  it("no saved card: says why, shows no Buy or offer button, and Save a card opens Stripe's page (row 36)", async () => {
+  it("no saved card: Buy now and Make an offer still show; Buy asks for a card first and remembers where to come back (row 36)", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
-    expect(await screen.findByText("Save a card to buy or make offers.")).toBeInTheDocument();
-    expect(screen.getByText(/charged only when you buy, or automatically where you turned on automatic charges/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Buy for/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Save a card" }));
+    const buy = await screen.findByRole("button", { name: "Buy now · $40" });
+    expect(screen.getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
+    // The reassurance is a line under the buttons, not a box in their place.
+    expect(screen.getByText("You're only charged when you buy.")).toBeInTheDocument();
+    expect(screen.queryByText("Save a card to buy or make offers.")).toBeNull();
+    await waitFor(() => expect(buy).toBeEnabled());
+    fireEvent.click(buy);
+    expect(await screen.findByText("Add a card to finish.")).toBeInTheDocument();
+    expect(screen.getByText(/You're only charged when you buy\. Then you confirm the buy\./)).toBeInTheDocument();
+    // Said once: the line under the buttons steps aside while the card step says it.
+    expect(screen.getAllByText(/You're only charged when you buy\./)).toHaveLength(1);
+    expect(window.confirm).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Add a card" }));
     await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.test/setup"]));
+    // The web returns to /declutter?card=saved: this is how it finds the way back.
+    expect(JSON.parse(sessionStorage.getItem("declutter.afterCard") ?? "{}")).toMatchObject({ itemId: "i1", action: "buy" });
+    expect(state.bought).toBe(0);
+  });
+
+  it("no saved card: Make an offer asks for a card, and Not now puts the buttons back", async () => {
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    const offer = await screen.findByRole("button", { name: "Make an offer" });
+    await waitFor(() => expect(offer).toBeEnabled());
+    fireEvent.click(offer);
+    expect(await screen.findByText(/Then you enter your offer\./)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Your offer")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Not now" }));
+    expect(screen.queryByText("Add a card to finish.")).toBeNull();
+  });
+
+  it("back from saving a card in the app (the sheet closes): Buy goes straight to its confirm", async () => {
+    state.returnWithCard = { brand: "visa", last4: "4242" };
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    const buy = await screen.findByRole("button", { name: "Buy now · $40" });
+    await waitFor(() => expect(buy).toBeEnabled());
+    fireEvent.click(buy);
+    fireEvent.click(await screen.findByRole("button", { name: "Add a card" }));
+    await waitFor(() => expect(window.confirm).toHaveBeenCalledWith(expect.stringMatching(/^Buy "Oak rocking chair" for \$40\?/)));
+    await waitFor(() => expect(state.bought).toBe(1));
+    expect(screen.queryByText("Add a card to finish.")).toBeNull();
+  });
+
+  it("back from Stripe's page on the web (router state, set by /declutter?card=saved): the offer box opens and the state is cleared", async () => {
+    state.card = { brand: "visa", last4: "4242" };
+    show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "offer" } });
+    expect(await screen.findByLabelText("Your offer")).toBeInTheDocument();
+    // A reload or Back never replays it.
+    await waitFor(() => expect(screen.getByTestId("router-state")).toHaveTextContent("null"));
+    expect(window.confirm).not.toHaveBeenCalled();
+  });
+
+  it("a link with ?after_card=buy does nothing by itself: only the router state resumes", async () => {
+    state.card = { brand: "visa", last4: "4242" };
+    show(<OfferPanel item={ITEM} userId="u1" />, "/declutter/item/i1?after_card=buy");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Buy now · $40" })).toBeEnabled());
+    expect(window.confirm).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText("Your offer")).toBeNull();
+  });
+
+  it("back before Stripe's webhook filed the card: it keeps looking, then Buy goes to its confirm", async () => {
+    show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "buy" } });
+    expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
+    expect(screen.queryByText("Add a card to finish.")).toBeNull();
+    state.card = { brand: "visa", last4: "4242" };
+    await waitFor(() => expect(window.confirm).toHaveBeenCalledTimes(1), { timeout: 4_000 });
+    await waitFor(() => expect(state.bought).toBe(1));
+    expect(screen.queryByText("Checking for your card…")).toBeNull();
+  });
+
+  it("back with no card after the wait (closed Stripe's page): the card step shows again for the same action", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "offer" } });
+      expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
+      await act(async () => {
+        vi.advanceTimersByTime(10_001);
+      });
+      expect(await screen.findByText(/Then you enter your offer\./)).toBeInTheDocument();
+      expect(screen.queryByText("Checking for your card…")).toBeNull();
+      expect(window.confirm).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("under 18: buying is a plain block (row 53)", async () => {
@@ -120,13 +235,14 @@ describe("Declutter slice 3 screens", () => {
     state.card = { brand: "visa", last4: "4242" };
     show(<OfferPanel item={ITEM} userId="u1" />);
     expect(await screen.findByText("You must be 18 or older to buy on Declutter.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Buy for/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Buy now/ })).toBeNull();
   });
 
   it("with a card: Buy at the price and an offer of at least half (rows 57-58)", async () => {
     state.card = { brand: "visa", last4: "4242" };
     show(<OfferPanel item={ITEM} userId="u1" />);
-    expect(await screen.findByRole("button", { name: "Buy for $40" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Buy now · $40" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Make an offer" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Make an offer" }));
     const input = screen.getByLabelText("Your offer");
     fireEvent.change(input, { target: { value: "19.99" } });
@@ -263,7 +379,7 @@ describe("Declutter slice 3 screens", () => {
     expect(await screen.findByText("Declutter is closed for now.")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Pay $3.85" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel sale" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Buy for|Make an offer|Sell an item/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Buy now|Make an offer|Sell an item/ })).toBeNull();
   });
 
   it("strike count reads 'You have N of 3 strikes' and is absent at 0", async () => {

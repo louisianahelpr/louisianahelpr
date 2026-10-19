@@ -90,8 +90,22 @@ const NAV_ITEMS: Array<{
 export { useIsWebDesktop };
 
 const DesktopSidebarNav = () => {
-  const { open: sidePanelOpen } = useSidePanel();
+  // Render nothing unless we're on the wide desktop website. This is the same
+  // gate as the `web-desktop` <html> class, so the rail and the CSS that
+  // insets the shell turn on/off together. It sits in front of every hook the
+  // rail calls: below 900px the rail can never show, and its reads (the
+  // feature_enabled_for RPC of each hidden-switch destination above all) went
+  // out on every phone page load for nothing (a11y-webkit-prod 38911703338,
+  // nightly-red #2375: x386 at 375 with one switch; 39167774119 read
+  // feature_enabled_for x1503 over 448 tests with three). Guard:
+  // src/test/desktopRailReadsOnlyOnDesktop.test.tsx.
   const isWebDesktop = useIsWebDesktop();
+  if (!isWebDesktop) return null;
+  return <DesktopSidebarRail />;
+};
+
+const DesktopSidebarRail = () => {
+  const { open: sidePanelOpen } = useSidePanel();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAdmin } = useCurrentUser();
@@ -132,11 +146,6 @@ const DesktopSidebarNav = () => {
   const adminBadges = useAdminBadges();
   const adminTotal = Object.values(adminBadges).reduce((a, n) => a + n, 0);
 
-
-  // Render nothing unless we're on the wide desktop website. This is the same
-  // gate as the `web-desktop` <html> class, so the rail and the CSS that
-  // insets the shell turn on/off together.
-  if (!isWebDesktop) return null;
   if (!isDesktopRailRoute(location.pathname)) return null;
   // The rail is authed app chrome — its destinations are ProtectedRoutes. On a
   // guest-reachable rail route (e.g. /browse, which redirects authed users to

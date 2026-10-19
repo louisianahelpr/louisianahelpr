@@ -68,7 +68,7 @@ interface Queue { problems: Problem[]; refunds: RefundRow[]; payouts: PayoutRow[
 
 const NOT_DEPLOYED = "This isn't on the server yet (it is still deploying). Try again in a few minutes.";
 
-export const REFUND_REASONS: { value: AdminRefundReason; label: string; detail: string }[] = [
+const REFUND_REASONS: { value: AdminRefundReason; label: string; detail: string }[] = [
   { value: "problem_shop_fault", label: "The shop's fault", detail: "Full refund. The shop pays the card fee and gets a Shops strike." },
   { value: "problem_no_fault", label: "Nobody's fault", detail: "The price back; the card-processing cost and its tax are kept." },
   { value: "problem_our_mistake", label: "Our mistake", detail: "Full refund. Louisiana Helpr carries the card fee." },
@@ -120,7 +120,7 @@ const TITLES: Record<Action["kind"], string> = {
 };
 
 /** "12.34" or "$12.34" -> 1234 cents; anything else -> null. */
-export function parseDollarsToCents(text: string): number | null {
+function parseDollarsToCents(text: string): number | null {
   const m = /^\$?\s*(\d{1,6})(?:\.(\d{1,2}))?$/.exec(text.trim());
   if (!m) return null;
   const cents = Number(m[1]) * 100 + Number((m[2] ?? "0").padEnd(2, "0"));

@@ -45,7 +45,7 @@ function louisianaToday(now: number = Date.now()): string {
 }
 
 /** The buyer's words for what a cancel does now. */
-export function cancelQuoteText(q: CancelQuote): string {
+function cancelQuoteText(q: CancelQuote): string {
   if (q.unavailable) return "Cancelling a paid order isn't available yet. Please try again in a few minutes.";
   if (!q.can_cancel) return "This order can't be cancelled any more.";
   if (q.free) {

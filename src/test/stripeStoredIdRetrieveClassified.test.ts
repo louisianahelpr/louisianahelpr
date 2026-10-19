@@ -216,6 +216,7 @@ const EXEMPT: Record<string, string> = {
   // failed read is a failed payout attempt that backs off (declutter_payout_executed).
   "declutter-money/index.ts::stripe.balance.retrieve()": "the platform's own balance (a probe that our key still works); no stored id",
   "declutter-money/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)": "a Declutter order's own payment (wholeCharge, before a seller or Helpr payout), on its parties' mode; minted after the live switch",
+  "shop-checkout/index.ts::stripe.refunds.retrieve(refundId)": "an id an admin TYPES (Record a refund made in Stripe, Shops M3), not a stored one; a test-mode, foreign or bad id is Stripe's resource_missing, which retrieveRefund turns into null (refund_not_found, nothing recorded)",
   // Q2138 (one wallet): the poster's wallet customer is stored PER MODE (stripe_customers keyed
   // user_id + wallet_mode) and read on the client of that same mode, so a test customer never meets the
   // live key; a missing one (resource_missing) is handled as deleted (Q2140), anything else retries.

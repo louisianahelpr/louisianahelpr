@@ -87,9 +87,32 @@ export function seatPayoutReady(r) {
     (r.idv_status === "verified" || r.stripe_identity_verified === true);
 }
 
+/**
+ * The Declutter payout proof's throwaway seller
+ * (scripts/e2e/declutterPayoutProof.mjs proofEmail): enrolled and is_seed, it
+ * holds its run's Custom TEST account for the length of one run, then unlinks
+ * it. Its address carries the run tag (helpr-payout-proof-<YYYYMMDDHHmm><6 hex>-seller),
+ * so this check can tell a run in flight from a leftover with the profile row
+ * alone (no Stripe read): exempt for PROOF_RUN_WINDOW_MINUTES from the run's
+ * start (the workflow's job timeout is 75 min), a violation like any other
+ * after that, so --restore puts back a run that failed to unlink.
+ */
+export const PROOF_SELLER_EMAIL = /^helpr-payout-proof-(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})[0-9a-f]{6}-seller@mailinator\.com$/;
+export const PROOF_RUN_WINDOW_MINUTES = 120;
+
+/** True while `r` is a payout proof's own seller inside its run's window. */
+export function proofRunInFlight(r, now = Date.now()) {
+  const m = PROOF_SELLER_EMAIL.exec(String(r?.email ?? "").toLowerCase());
+  if (!m || r.is_seed !== true) return false;
+  const started = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]));
+  const ageMin = (now - started) / 60_000;
+  return ageMin >= -5 && ageMin <= PROOF_RUN_WINDOW_MINUTES;
+}
+
 /** Why one row violates the rule, or null when it is clean. */
-function seatViolation(r) {
+function seatViolation(r, now = Date.now()) {
   if (!r || !r.stripe_account_id) return null;
+  if (proofRunInFlight(r, now)) return null;
   const who = `${r.email ?? r.user_id} (${r.user_id}) holds Stripe account ${r.stripe_account_id}`;
   if (SANCTIONED_TEST_CONNECT_ACCOUNTS[r.user_id] !== r.stripe_account_id) return `${who}, which is not the sanctioned test-mode fixture`;
   // A fixture that lost is_seed would be paid on the LIVE key (stripeMode.ts
@@ -104,8 +127,8 @@ function seatViolation(r) {
 }
 
 /** One line per test account that breaks the rule (empty = clean). */
-export function stripeSeatViolations(rows) {
-  return rows.map(seatViolation).filter((v) => v !== null);
+export function stripeSeatViolations(rows, now = Date.now()) {
+  return rows.map((r) => seatViolation(r, now)).filter((v) => v !== null);
 }
 
 async function main() {

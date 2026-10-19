@@ -1,0 +1,131 @@
+name: Declutter payout proof
+
+# ONE Declutter sale end to end on prod in Stripe TEST mode, until the
+# seller's payout lands as a transfer on a test connected account
+# (scripts/e2e/declutterPayoutProof.mjs has the whole sequence and its rules).
+# The last gate before Declutter opens (owner 2026-10-19). Lead decision
+# 2026-10-19: the test key lives only in this repo's secrets, so the proof runs
+# here, manual only.
+#
+# Fail-closed before anything is written:
+#   1. the repo variable E2E_STRIPE_MODE must be `test` (stripe-sandbox-off.sh
+#      sets it to `live` first, so this never runs after launch);
+#   2. STRIPE_TEST_SECRET_KEY must be a test-mode key (sk_test_/rk_test_), and
+#      the script asks Stripe again (livemode=false) before its first write.
+# The key is only ever handed to node through env; nothing echoes it.
+# The unlink step runs whatever happens (if: always()), so the throwaway
+# seller never keeps the run's Stripe account (seatStripeAccounts.mjs checks
+# every enrolled test account before each journeys run).
+# Manual only: no schedule, no push trigger.
+
+on:
+  workflow_dispatch:
+    inputs:
+      price_cents:
+        description: "Item price in cents (100..100000). The seller's payout is this amount; the buyer pays it plus 5% + 70c."
+        required: false
+        default: "500"
+
+permissions:
+  contents: read
+
+# Its own group, NOT `prod-load`: a dispatch may never take the shared group
+# (src/test/prodWorkflowSpacing.test.ts rule 4: GitHub keeps one pending run
+# per group, so a dispatch there cancels a waiting nightly, or is cancelled).
+# The seat checks that run beside it (seatStripeAccounts.mjs, the sweeper)
+# exempt this run's seller while the run can still be going (proofRunInFlight),
+# so a journeys run neither goes red on it nor unlinks it mid-proof.
+concurrency:
+  group: declutter-payout-proof
+  cancel-in-progress: false
+
+jobs:
+  proof:
+    name: One Declutter sale to a landed payout (Stripe test mode)
+    runs-on: ubuntu-latest
+    # 75 = install (~10) + the proof (40) + a fixed budget for the cleanup that
+    # must run (unlink 5) and the restore check (10), with margin.
+    timeout-minutes: 75
+    steps:
+      - name: Refuse unless Stripe is in test mode and the key is a test key
+        env:
+          STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ "$STRIPE_MODE" != "test" ]; then
+            echo "::error::E2E_STRIPE_MODE is '$STRIPE_MODE', not 'test'; refusing to run a payout proof"; exit 1
+          fi
+          case "$STRIPE_TEST_SECRET_KEY" in
+            sk_test_*|rk_test_*) ;;
+            *) echo "::error::STRIPE_TEST_SECRET_KEY is not a test-mode key; refusing"; exit 1 ;;
+          esac
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY secret is empty"; exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        # `playwright install --with-deps` runs `apt-get update`; Google's repo
+        # is only ever a source of outages here (see e2e-real-backend.yml).
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: bash scripts/ci/playwright-install.sh chromium
+
+      - name: Run the sale and wait for the payout
+        id: proof
+        timeout-minutes: 40
+        env:
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PRICE_CENTS: ${{ inputs.price_cents || '500' }}
+        run: node scripts/e2e/declutterPayoutProof.mjs run --state "$RUNNER_TEMP/declutter-payout-proof.json" --price-cents "$PRICE_CENTS"
+
+      # Step 6 of the proof, again, whatever happened above (a cancelled or
+      # timed-out step never reaches the script's own finally). Idempotent.
+      - name: Close a failed run's money, then unlink the run's Stripe account
+        if: always()
+        timeout-minutes: 5
+        env:
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/e2e/declutterPayoutProof.mjs unlink --state "$RUNNER_TEMP/declutter-payout-proof.json"
+
+      # The restore check (DR-006) must read the new transfer as recorded:
+      # every test-mode PaymentIntent and transfer since the run started has
+      # its database row.
+      - name: Restore check reads the proof's money
+        if: steps.proof.outcome == 'success'
+        timeout-minutes: 10
+        env:
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          SINCE=$(jq -r .startedAt "$RUNNER_TEMP/declutter-payout-proof.json")
+          # Exit 1 = some object since SINCE has no row; it may be another run's, so the
+          # verdict below is scoped to the proof's own PaymentIntent and transfer. Exit 2
+          # (could not measure) fails here.
+          rc=0
+          node scripts/check-stripe-restore-drift.mjs --since "$SINCE" --mode test --json "${RUNNER_TEMP}/stripe-drift.json" || rc=$?
+          if [ "$rc" -gt 1 ]; then echo "::error::the restore check could not measure (exit $rc)"; exit 1; fi
+          node scripts/e2e/declutterPayoutProof.mjs restore-verdict --state "$RUNNER_TEMP/declutter-payout-proof.json" --drift "${RUNNER_TEMP}/stripe-drift.json"
+
+      - name: Keep the proof record
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: declutter-payout-proof
+          path: |
+            ${{ runner.temp }}/declutter-payout-proof.json
+            ${{ runner.temp }}/stripe-drift.json
+          if-no-files-found: warn

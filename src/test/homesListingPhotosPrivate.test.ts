@@ -15,8 +15,9 @@
  * ph.storage_path, attach takes job-photos, no listing-photos bucket), and the
  * pre-Q2211 listings.ts (getPublicUrl on job-photos) fails the client checks.
  */
-// @mutate supabase/migrations/20261019071203_rentals_listing_photos_private.sql | ARRAY(SELECT public.rentals_photo_ref(ph.id, 'm') FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5), | ARRAY(SELECT ph.storage_path FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5),
-import { readFileSync, readdirSync } from "node:fs";
+// @mutate supabase/migrations/20261019071203_rentals_listing_photos_private.sql | l.available_on, l.pets,\n         rp.city, rp.zip_code,\n         ARRAY(SELECT public.rentals_photo_ref(ph.id, 'm') FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5), | l.available_on, l.pets,\n         rp.city, rp.zip_code,\n         ARRAY(SELECT ph.storage_path FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5),
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

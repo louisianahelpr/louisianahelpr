@@ -337,6 +337,9 @@ describe("every fixture literal could be inserted", () => {
     // A Stripe refund object in a refunds.list mock (`{ id, amount, status, reason, metadata }`), not a disputes row:
     // once lane J's declutter_hand_refunds (2026-10-16) took no generic column, `reason` + `status` pointed at disputes.
     { file: "src/test/edge/disputeSettlementWebhook.test.ts", keys: ["id", "amount", "status", "reason", "metadata"] },
+    // storage.objects rows (`{ bucket_id, name, size }`), not public rows: once rental_photo_purge_queue (20261019071203)
+    // took bucket_id as the only public table with it, these were graded against its bucket CHECK.
+    { file: "src/test/storageBackup.test.ts", keys: ["bucket_id", "name", "size"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

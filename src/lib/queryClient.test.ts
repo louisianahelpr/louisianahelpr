@@ -1,7 +1,7 @@
 import { QueryClient, dehydrate, onlineManager } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { queryClient } from "./queryClient";
+import { queryClient, _isHandledCopyError } from "./queryClient";
 
 /**
  * These tests pin the ONE property that makes an offline write visible:
@@ -143,3 +143,43 @@ describe("retryDelay is jittered (CC-005)", () => {
 });
 
 // @mutate src/lib/queryClient.ts | * (0.5 + Math.random()), // CC-005 jitter | * 1, // CC-005 jitter
+
+/**
+ * _isHandledCopyError — skips Sentry reporting for expected user-facing
+ * validation errors that the component's onError already toasts.
+ *
+ * @mutate src/lib/queryClient.ts | if (typeof e.userMessage === "string" && e.userMessage.length > 0) return true; | if (false) return true;
+ * @mutate src/lib/queryClient.ts | if (e.worded === true) return true; | if (false) return true;
+ */
+describe("_isHandledCopyError", () => {
+  it("returns true for a shop rpcData error with a non-empty .userMessage", () => {
+    const e = Object.assign(new Error("invalid_name"), { userMessage: "Give your shop a name of 2 to 60 characters." });
+    expect(_isHandledCopyError(e)).toBe(true);
+  });
+
+  it("returns true for a RentalsCopyError-shaped error with .worded = true", () => {
+    const e = Object.assign(new Error("Verify your ID first."), { worded: true, words: "Verify your ID first." });
+    expect(_isHandledCopyError(e)).toBe(true);
+  });
+
+  it("returns false for a plain Error with no .userMessage or .worded (network failure → should reach Sentry)", () => {
+    expect(_isHandledCopyError(new Error("Failed to fetch"))).toBe(false);
+  });
+
+  it("returns false when .userMessage is an empty string (no copy mapped)", () => {
+    expect(_isHandledCopyError(Object.assign(new Error("unknown_code"), { userMessage: "" }))).toBe(false);
+  });
+
+  it("returns false when .worded is false (RentalsCopyError with null words → unmapped code → should reach Sentry)", () => {
+    const e = Object.assign(new Error("identity_not_verified"), { worded: false, words: null });
+    expect(_isHandledCopyError(e)).toBe(false);
+  });
+
+  it("returns false for null", () => {
+    expect(_isHandledCopyError(null)).toBe(false);
+  });
+
+  it("returns false for a non-object primitive", () => {
+    expect(_isHandledCopyError("string error")).toBe(false);
+  });
+});

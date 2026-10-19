@@ -25,7 +25,7 @@
  * @mutate src/components/DesktopSidebarNav.tsx |   { path: "/posts", icon: ClipboardList, label: "Posts", badgeKey: "posts" }, |   { path: "/posts", icon: Send, label: "Posts", badgeKey: "posts" },
  * @mutate src/components/DesktopSidebarNav.tsx |                 onClick={() => (soon ? sayComingSoon(label) : navigate(path))} |                 onClick={() => navigate(path)}
  * @mutate src/components/dashboard/DashboardTitleBar.tsx |         {!trailing && <HomeTopPair />} |
- * @mutate src/components/profile/ProfileLanding.tsx |       <QuotesEntryRow /> |       <QuotesEntryRow />\n      <Link to="/declutter">Declutter</Link>
+ * @mutate src/components/profile/ProfileLanding.tsx |       <SettingsSection\n |       <Link to="/declutter">Declutter</Link>\n      <SettingsSection\n
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";

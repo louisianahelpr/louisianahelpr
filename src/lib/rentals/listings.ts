@@ -100,7 +100,8 @@ export async function fetchListing(id: string): Promise<ListingDetail | null> {
 }
 
 export async function fetchMyListings(uid: string): Promise<RentalListing[]> {
-  const res = await supabase.from("rental_listings").select("*").eq("owner_id", uid).neq("status", "removed").order("created_at");
+  // A listing an admin took down stays in the owner's list with the reason (Q2187 review #8); one the owner removed does not.
+  const res = await supabase.from("rental_listings").select("*").eq("owner_id", uid).or("status.neq.removed,removed_by_admin.eq.true").order("created_at");
   if (res.error && listingsNotDeployed(res.error)) return [];
   return (unwrap(res) ?? []) as RentalListing[];
 }

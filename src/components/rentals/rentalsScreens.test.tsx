@@ -25,6 +25,7 @@
  * @mutate src/components/rentals/HomesBrowse.tsx |         <HomesBuy /> |         {null}
  * @mutate src/components/rentals/RentalsHomeView.tsx | function SaleListingLink({ propertyId, approved, listing }: { propertyId: string; approved: boolean; listing: RentalListing \| undefined }) {\n  if (!approved) return null; | function SaleListingLink({ propertyId, approved, listing }: { propertyId: string; approved: boolean; listing: RentalListing \| undefined }) {\n  if (approved \|\| !approved) return null;
  * @mutate src/components/rentals/listings/RentBrowse.tsx |       price: priceLine(l.sale_price_cents), |       price: "",
+ * @mutate src/components/rentals/RentalsHomeView.tsx |       <span className="font-semibold">Removed by Louisiana Helpr.</span> {listing.removed_reason} |       {null}
  * @mutate src/components/rentals/HomesBrowse.tsx | No commission. A title company | Price negotiable with the owner. A title company
  * @mutate src/components/rentals/HomesBrowse.tsx |           <RentBrowse />\n |           {null}\n
  * @mutate src/components/rentals/RentalsHomeView.tsx |           <HomesBrowse />\n |           {null}\n
@@ -58,6 +59,7 @@ const state = {
   browse: [] as unknown[],
   browseFilters: [] as unknown[],
   sale: [] as unknown[],
+  myListings: [] as unknown[],
   saleFilters: [] as unknown[],
   underAge: false,
   tenancies: [] as unknown[],
@@ -136,7 +138,7 @@ vi.mock("@/lib/rentals/listings", () => ({
     state.saleFilters.push(f);
     return state.sale;
   },
-  fetchMyListings: async () => [],
+  fetchMyListings: async () => state.myListings,
   listingPhotoUrl: (p: string) => `https://cdn.test/${p}`,
 }));
 
@@ -180,6 +182,7 @@ beforeEach(() => {
   state.browse = [];
   state.browseFilters = [];
   state.sale = [];
+  state.myListings = [];
   state.saleFilters = [];
   state.underAge = false;
   state.tenancies = [];
@@ -393,6 +396,17 @@ describe("Rentals screens", () => {
       renderAt("/rentals");
       const sell = await screen.findByRole("link", { name: "Sell this home" });
       expect(sell.getAttribute("href")).toBe("/rentals/listings/new?sell=p1");
+    });
+
+    it("a listing an admin took down stays in the owner's list with the reason, and no Sell this home in its place (Q2187)", async () => {
+      state.identity = { verified: true, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
+      state.properties = [{ ...NEEDS_PROOF, ownership_status: "approved" }];
+      state.myListings = [{ id: "l9", kind: "sale", property_id: "p1", unit_id: null, status: "removed", removed_by_admin: true,
+        removed_reason: "Photos do not show this home.", expires_at: null }];
+      renderAt("/rentals");
+      expect(await screen.findByText("Removed by Louisiana Helpr.")).toBeTruthy();
+      expect(screen.getByText(/Photos do not show this home\./)).toBeTruthy();
+      expect(screen.queryByRole("link", { name: "Sell this home" })).toBeNull();
     });
 
     it("the back is optional: front + proof is enough", async () => {

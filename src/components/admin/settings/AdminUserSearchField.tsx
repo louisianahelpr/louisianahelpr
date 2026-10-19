@@ -1,15 +1,24 @@
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-/** The Add Admin dialog's search box, with the clear ✕ every search field has. */
+/**
+ * An admin search box with the clear ✕ every search field has: the Add Admin dialog's (the default words) and
+ * the Homes listings card's (its own label and placeholder).
+ */
 export function AdminUserSearchField({
   value,
   onChange,
   onEnter,
+  label = "Search users by name or email",
+  placeholder = "Search by name or email…",
+  maxLength,
 }: {
   value: string;
   onChange: (next: string) => void;
   onEnter: () => void;
+  label?: string;
+  placeholder?: string;
+  maxLength?: number;
 }) {
   return (
     // `self-start`: the row's Search button is h-14 (56px) and the default
@@ -20,8 +29,9 @@ export function AdminUserSearchField({
     <div className="relative flex-1 self-start">
       <Input
         type="search"
-        aria-label="Search users by name or email"
-        placeholder="Search by name or email…"
+        aria-label={label}
+        placeholder={placeholder}
+        maxLength={maxLength}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && onEnter()}

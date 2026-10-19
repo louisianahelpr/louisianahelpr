@@ -35,6 +35,10 @@ const MIGRATION = readFileSync(
   "utf8",
 );
 // The client's column list for rental_properties (src/lib/rentals/api.ts), read so the proof tests what the app sends.
+// The take-down columns the client also reads come from 20261019062540 (not applied in this proof).
+const TAKEDOWN_COLUMNS = `ALTER TABLE public.rental_properties ADD COLUMN IF NOT EXISTS listings_taken_down_at timestamptz;
+  ALTER TABLE public.rental_properties ADD COLUMN IF NOT EXISTS listings_taken_down_reason text;
+  GRANT SELECT (listings_taken_down_at, listings_taken_down_reason) ON public.rental_properties TO authenticated;`;
 const RENTAL_PROPERTY_COLUMNS = readFileSync(new URL("../../lib/rentals/api.ts", import.meta.url), "utf8")
   .match(/export const RENTAL_PROPERTY_COLUMNS =\s*"([^"]+)";/)?.[1] ?? "id";
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
@@ -284,6 +288,7 @@ ok(one(await svc(`SELECT public.admin_queue_still_pending('rentals-ownership-rev
   "alert: it closes once no proof waits");
 ok(refused(await as("authenticated", LANDLORD, `SELECT * FROM public.rental_properties WHERE id = '${prop}'`), /permission denied/),
   "nor through select * (the client names its columns)");
+await db.exec(TAKEDOWN_COLUMNS);
 const ownerRow = rows(await as("authenticated", LANDLORD, `SELECT to_jsonb(t) AS j FROM (SELECT ${RENTAL_PROPERTY_COLUMNS} FROM public.rental_properties WHERE id = '${prop}') t`))[0]?.j;
 ok(ownerRow?.ownership_status === "approved" && !("ownership_reviewed_by" in ownerRow) && !JSON.stringify(ownerRow).includes(ADMIN),
   "the landlord's own read (the client's column list) returns the row with no reviewer id anywhere in it");

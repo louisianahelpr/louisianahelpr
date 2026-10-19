@@ -113,6 +113,81 @@ export function ceilingFor(label, file = join(process.cwd(), "e2e", "request-bud
   return c;
 }
 
+/**
+ * A finished slot is given back only this long after its last sample: when a
+ * test fails, Playwright tears the worker down (close() writes `live: false`)
+ * and starts a fresh one in the SAME slot a moment later. Inside this window
+ * the slot still counts as busy, so the restart never finds its share taken.
+ */
+export const SLOT_RESTART_GRACE_MS = 30_000;
+
+/**
+ * SHARE THAT FOLLOWS THE RUN (nightly-red #2375, a11y-webkit-prod 38911703338):
+ * a run's `workers` split the ceiling evenly, and a worker kept its fixed share
+ * after its siblings had finished. The a11y sweep's two spec files run one per
+ * worker; reduced-motion ends after ~14 min and a11y-prod then ran alone for
+ * ~30 min at 200/min of the 400 ceiling: its chromium leg was held 1862 s
+ * (31 of its 43.6 min) and the webkit leg ran into its 52-min step timeout
+ * (38580933416; again 39167774119 on 2026-10-18, held 2508 s, cut at 448 of
+ * 462 tests).
+ *
+ * So the share is the ceiling over the run's BUSY slots. A slot is a worker's
+ * `parallelIndex` within one Playwright runner (same `ppid`); it is free only
+ * when its newest sample says `live: false` (written by close() at worker
+ * teardown) and is older than SLOT_RESTART_GRACE_MS. A worker restarted after
+ * a failure takes the same slot, so it never doubles the run's share. A slot
+ * whose worker was killed before teardown (no `live: false`), or any sample
+ * that cannot be read, keeps the fixed split: the error only ever runs toward
+ * the old split, never past the ceiling.
+ *
+ * `minutes` is what must count against this worker's minutes: every sample of
+ * another invocation, its own slot's predecessors, and every sample of a free
+ * slot (their requests landed in minutes this worker now shares). A busy slot's
+ * samples sit in that slot's own share and are left out.
+ */
+export function siblingState(label, { ownFile = null, ownSlot = null, ppid = process.ppid, dir = REQUEST_BUDGET_DIR, now = Date.now() } = {}) {
+  const minutes = {};
+  const add = (s) => {
+    for (const [m, n] of Object.entries(s.minutes ?? {})) minutes[m] = (minutes[m] ?? 0) + n;
+  };
+  if (!existsSync(dir)) return { minutes, freeSlots: 0 };
+  const slots = new Map();
+  let unreadable = false;
+  for (const f of readdirSync(dir)) {
+    if (!f.endsWith(".json") || f === "summary.json") continue;
+    const path = join(dir, f);
+    if (ownFile && path === ownFile) continue;
+    let s;
+    try {
+      s = JSON.parse(readFileSync(path, "utf8"));
+    } catch {
+      unreadable = true; // a sample mid-write: no slot is given back on this read, the safe side
+      continue;
+    }
+    if (s.label !== label) continue;
+    if (s.ppid !== ppid) {
+      add(s); // an earlier invocation: never one of this run's workers, but its requests count
+      continue;
+    }
+    const slot = s.slot ?? `file:${f}`;
+    if (!slots.has(slot)) slots.set(slot, []);
+    slots.get(slot).push(s);
+  }
+  let freeSlots = 0;
+  for (const [slot, list] of slots) {
+    if (slot === ownSlot) {
+      list.forEach(add);
+      continue;
+    }
+    const newest = list.reduce((a, b) => ((b.startedAt ?? 0) > (a.startedAt ?? 0) ? b : a));
+    const free = !unreadable && newest.live === false && now - (newest.endedAt ?? now) >= SLOT_RESTART_GRACE_MS;
+    if (!free) continue;
+    freeSlots++;
+    list.forEach(add);
+  }
+  return { minutes, freeSlots };
+}
+
 /** Requests per epoch minute that earlier processes of `label` already wrote to `dir`. */
 export function priorMinutes(label, dir = REQUEST_BUDGET_DIR) {
   const out = {};
@@ -204,6 +279,15 @@ export class RequestMeter {
     this.startedAt = Date.now();
     /** Pacing is off until paceTo(): the metered node scripts measure without it. */
     this.ceiling = 0;
+    /** The label's whole-run ceiling, worker count and this worker's slot (see siblingState). */
+    this.ceilingTotal = 0;
+    this.workers = 1;
+    this.slot = null;
+    /** Re-read the run's siblings at every gate (paceTo's `followSiblings`). */
+    this.followSiblings = false;
+    this.siblingsDir = REQUEST_BUDGET_DIR;
+    /** false once close() ran: this process sends nothing more. */
+    this.live = true;
     this.prior = {};
     this.reserve = PACE_MIN_RESERVE;
     this.sinceGate = 0;
@@ -221,9 +305,17 @@ export class RequestMeter {
    * `workers` processes may share it at once, so each gets its share.
    * `prior` is what earlier processes of the label recorded, per epoch minute.
    */
-  paceTo(ceilingPerMinute, { workers = 1, prior = priorMinutes(this.label), learned = priorBursts(this.label), now, sleep } = {}) {
-    this.ceiling = Math.floor(ceilingPerMinute / Math.max(1, workers));
+  paceTo(
+    ceilingPerMinute,
+    { workers = 1, slot = null, followSiblings = false, siblingsDir = REQUEST_BUDGET_DIR, prior = priorMinutes(this.label), learned = priorBursts(this.label), now, sleep } = {},
+  ) {
+    this.ceilingTotal = ceilingPerMinute;
+    this.workers = Math.max(1, workers);
+    this.slot = slot;
+    this.ceiling = Math.floor(ceilingPerMinute / this.workers);
     this.prior = prior;
+    this.followSiblings = followSiblings;
+    this.siblingsDir = siblingsDir;
     // A restarted worker starts from what its predecessors learned, not from scratch.
     this.bursts = { ...learned.bursts, ...this.bursts };
     this.reserve = Math.max(this.reserve, learned.reserve);
@@ -239,6 +331,16 @@ export class RequestMeter {
    */
   async pace(key = "") {
     if (!this.ceiling) return 0;
+    if (this.followSiblings) {
+      const { minutes, freeSlots } = siblingState(this.label, {
+        ownFile: this.file ?? null,
+        ownSlot: this.slot,
+        dir: this.siblingsDir,
+        now: this.clock.now(),
+      });
+      this.prior = minutes;
+      this.ceiling = Math.floor(this.ceilingTotal / Math.max(1, this.workers - freeSlots));
+    }
     if (this.lastKey !== null) this.bursts[this.lastKey] = Math.max(this.bursts[this.lastKey] ?? 0, this.sinceGate);
     this.reserve = Math.max(this.reserve, this.sinceGate);
     const known = this.bursts[key];
@@ -396,6 +498,10 @@ export class RequestMeter {
       learnedBursts: this.currentBursts(),
       reserve: this.reserve,
       paceWaitMs: this.paceWaitMs,
+      /** the Playwright runner process, this worker's slot in it, and whether it is still sending (siblingState) */
+      ppid: process.ppid,
+      slot: this.slot,
+      live: this.live,
       startedAt: this.startedAt,
       endedAt: Date.now(),
     };
@@ -408,5 +514,11 @@ export class RequestMeter {
     if (!this.file) this.file = join(REQUEST_BUDGET_DIR, `${safe}.${process.pid}.${this.startedAt}.json`);
     writeFileSync(this.file, JSON.stringify(this.toJSON(), null, 2));
     return this.file;
+  }
+
+  /** The last flush, at worker teardown: marks the sample `live: false`, so its slot goes back to the run (siblingState). */
+  close() {
+    this.live = false;
+    return this.flush();
   }
 }

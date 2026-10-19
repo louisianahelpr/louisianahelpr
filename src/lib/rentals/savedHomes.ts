@@ -9,19 +9,20 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { RentalsCopyError } from "./copy";
 
 export type SavedListing = Database["public"]["Functions"]["rentals_saved_listings"]["Returns"][number];
 
-function notDeployed(error: unknown): boolean {
-  const code = error && typeof error === "object" && "code" in error ? String((error as { code: unknown }).code) : "";
-  return code === "PGRST202" || code === "PGRST205";
+/** saved_homes before db-deploy created it: PostgREST answers PGRST205 (no such table). */
+function tableNotDeployed(error: unknown): boolean {
+  return Boolean(error && typeof error === "object" && "code" in error && (error as { code: unknown }).code === "PGRST205");
 }
 
 /** The listing ids the member saved. */
 export async function fetchSavedHomeIds(): Promise<Set<string>> {
   const res = await supabase.from("saved_homes").select("listing_id");
-  if (res.error && notDeployed(res.error)) return new Set();
+  if (res.error && tableNotDeployed(res.error)) return new Set();
   return new Set((unwrap(res) ?? []).map((r) => r.listing_id));
 }
 
@@ -35,6 +36,6 @@ export async function setSavedHome(listingId: string, saved: boolean): Promise<b
 /** The Saved list: homes still listed, newest saved first. */
 export async function fetchSavedListings(): Promise<SavedListing[]> {
   const res = await supabase.rpc("rentals_saved_listings");
-  if (res.error && notDeployed(res.error)) return [];
+  if (isMissingRpcNamed(res.error, "rentals_saved_listings")) return [];
   return (unwrap(res) ?? []) as SavedListing[];
 }

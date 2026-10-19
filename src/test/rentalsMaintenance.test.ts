@@ -108,10 +108,13 @@ const LEASE_ACTION_RPCS = ["rentals_lease_send", "rentals_lease_sign", "rentals_
   "rentals_lease_discard"];
 /** RPCs that only take access away or link a job (banned / under-18 may still leave). */
 const OTHER_RPCS = ["rentals_end_tenancy", "rentals_withdraw_request", "link_maintenance_request_job", "rentals_admin_review_property",
-  "rentals_admin_review_landlord_id"];
+  "rentals_admin_review_landlord_id",
+  // The saved-homes heart (20261019185722): a bookmark on a listing the member can see; banned members cannot save
+  // (is_caller_banned on save), unsaving always works; no member gates, it acts on nobody else.
+  "rentals_set_saved_home"];
 const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes", "rentals_visit_for_job", "rentals_browse_listings", "rentals_listing", "rentals_my_identity",
   "rentals_browse_sale_listings", "rentals_my_listing_photos", "rentals_rent_ledger", "rentals_deposit", "rentals_my_ended_deposits",
-  "rentals_lease", "rentals_my_leases"];
+  "rentals_lease", "rentals_my_leases", "rentals_saved_listings"];
 /** Listings helpers (20261019043000): server-only. */
 const LISTING_INTERNAL = ["rentals_listing_wording_flags", "rentals_lock_own_listing", "rentals_listing_visible", "homes_sale_wording_flags"];
 /** Slice 3 writes: visit time (the Helpr, not a Rentals member, proposes; the tenant confirms through

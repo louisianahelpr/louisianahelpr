@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { VirtualizedJobList } from "@/components/dashboard/VirtualizedJobList";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -29,12 +29,15 @@ export function MainFeedSection({
   common,
   containerRef,
   setHoveredJobId,
+  footer,
 }: {
   jobs: EnrichedJob[];
   recommendedBadgeId: string | null;
   common: JobCardCommonProps;
   containerRef: PullToRefresh["containerRef"];
   setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
+  /** Under the last card, above the dock clearance (the Browse end card). */
+  footer?: ReactNode;
 }) {
   return (
     <div
@@ -64,6 +67,7 @@ export function MainFeedSection({
           </div>
         )}
       />
+      {footer}
     </div>
   );
 }

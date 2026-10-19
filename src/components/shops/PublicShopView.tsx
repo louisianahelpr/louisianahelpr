@@ -45,16 +45,15 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
         badges={shop.badges}
         hours={shop.hours}
         coverAction={
-          <Button
+          // A plain 44px round button (the tap-target minimum), not <Button size="icon"> (56px swamps a 160px cover).
+          <button
             type="button"
-            size="icon"
-            variant="secondary"
-            className="h-10 w-10 rounded-full bg-background/90 text-foreground shadow-md backdrop-blur hover:bg-background"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-background/90 text-foreground shadow-md backdrop-blur transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Share this shop"
             onClick={() => void shareShop(shop)}
           >
             <Share2 className="h-[18px] w-[18px]" aria-hidden />
-          </Button>
+          </button>
         }
         actions={
           signedIn ? (
@@ -64,7 +63,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
             </p>
           ) : (
             <div className="w-full space-y-2.5">
-              <Button asChild className="btn-grad-primary h-12 w-full rounded-full text-base">
+              <Button asChild className="btn-grad-primary w-full rounded-full">
                 <Link to={`/signup?redirect=${back}`}>Sign up to order or message</Link>
               </Button>
               <p className="text-center text-sm text-muted-foreground">

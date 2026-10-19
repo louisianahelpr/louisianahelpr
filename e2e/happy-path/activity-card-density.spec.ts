@@ -43,8 +43,7 @@ import { SEED_JOBS, SEED_APPLICATIONS, CUSTOMER_ID, HELPER_ID } from "./seedData
    "You"/"Soon". `activityBuckets` and `shortLabelBreakpoint` are leaf modules
    with no React imports precisely so specs can read them.
    Same reason e2e/prod-audit/activity-tabs-visible.spec.ts imports them. */
-import { BUCKET_LABEL, BUCKET_SHORT_LABEL, type ActivityBucket } from "../../src/lib/activityBuckets";
-import { SHORT_LABEL_BELOW_PX } from "../../src/lib/shortLabelBreakpoint";
+import { POSTED_GROUP_LABEL } from "../../src/lib/activityBuckets";
 
 const SHOTS = join(homedir(), ".lh-shots", "ui-review", "activity-density");
 mkdirSync(SHOTS, { recursive: true });
@@ -435,7 +434,7 @@ test.describe("My Posts — card density + header", () => {
     await activateCardToggle(toggle);
     await expect(description.first()).toBeVisible();
     // Same card — the toggle expanded in place rather than navigating.
-    await expect(page).toHaveURL(/\/posts/);
+    await expect(page).toHaveURL(/\/jobs\?tab=posted/); // /posts lives at Jobs > Posted since 2026-10-19
     await page.screenshot({ path: `${SHOTS}/card-expanded-375.png`, fullPage: true });
 
     const collapse = deepCleanCard.getByRole("button", { name: "Collapse Job Details" });
@@ -896,37 +895,18 @@ test.describe("My Posts — card density + header", () => {
     // "all" is gone from the chip set and deliberately NOT asserted here: it
     // still resolves as a filter VALUE so notification deep links keep working,
     // but it has no chip and therefore no label to name.
-    /* The word this viewport actually paints, read off the app's own two
-       vocabularies rather than spelled out here. The project runs at 375,
-       which is below SHORT_LABEL_BELOW_PX (390) — so the tabs say
-       "You · Waiting · Soon · Done", not "Needs You · Waiting · Scheduled ·
-       Done". Derived from the live viewport, not the number 375, so moving
-       either the project viewport or the breakpoint keeps this honest. */
-    const vw = page.viewportSize()?.width ?? 0;
-    expect(vw, "viewport width is needed to know which vocabulary paints").toBeGreaterThan(0);
-    const wordFor = (key: ActivityBucket) =>
-      vw < SHORT_LABEL_BELOW_PX ? BUCKET_SHORT_LABEL[key] : BUCKET_LABEL[key];
-
+    /* Jobs > Posted (2026-10-19): the buckets are STATUS BOXES, always on
+       screen (no chevron, no folded row), each a count over its group's word
+       from POSTED_GROUP_LABEL, the app's own vocabulary. */
     for (const filter of ["needs_you", "scheduled", "waiting", "done"] as const) {
-      const label = wordFor(filter);
+      const label = POSTED_GROUP_LABEL[filter];
       await page.goto(`/jobs?tab=posted&filter=${filter}`);
       await page.waitForSelector("h1");
       await settle(page);
       await dismissNudge(page);
-      /* The tab row sits behind a chevron next to search. On a phone it ALWAYS
-         opens FOLDED, whatever the filter (owner, 2026-10-08: "Post and job at
-         the top should open collapsed for their top panels"). The state is
-         asserted BEFORE touching anything, then the row is pressed open to read
-         its tab. At desktop width the tabs sit in the header row and there is
-         no chevron. */
-      const toggle = page.getByRole("button", { name: /Filter by status|Hide status filters/ }).first();
-      if (await toggle.count()) {
-        expect(await toggle.getAttribute("aria-expanded"), `filter=${filter}: the phone tab row opens folded`).toBe("false");
-        await toggle.click();
-      }
-
-      const tab = page.getByRole("group", { name: "Filter by status" }).getByRole("button", { name: new RegExp(`^${label}`) });
+      const tab = page.getByRole("group", { name: "Filter by status" }).locator(`[data-status-box="${filter}"]`);
       await expect(tab, `filter=${filter} tab is present`).toBeVisible();
+      await expect(tab, `filter=${filter} box names its group`).toContainText(label);
       await expect(tab, `filter=${filter} tab is selected`).toHaveAttribute("aria-pressed", "true");
       // Still exactly one heading — the indicator is a span, never an h2.
       await assertOneH1(page);

@@ -86,8 +86,14 @@ test.describe("text on btn-grad-primary", () => {
         for (const wrap of Array.from(document.querySelectorAll<HTMLElement>("[data-site]"))) {
           const i = Number(wrap.dataset.site);
           const grad = wrap.querySelector<HTMLElement>("[data-grad]");
-          const stops = grad ? parse(getComputedStyle(grad).backgroundImage).map((c) => c.slice(0, 3)) : [];
-          if (!grad || stops.length < 2) { out.push({ i, glyph: "-", ratio: null, why: "the gradient is not painted (no colour stops in the computed background-image)" }); continue; }
+          let stops = grad ? parse(getComputedStyle(grad).backgroundImage).map((c) => c.slice(0, 3)) : [];
+          // Owner 2026-10-18 (option 3B): btn-grad-primary is SOLID olive now, background-image none.
+          // Its one fill colour is then the one stop the glyphs are scored against.
+          if (grad && stops.length === 0) {
+            const fill = parse(getComputedStyle(grad).backgroundColor)[0];
+            if (fill && (fill[3] ?? 1) > 0) stops = [fill.slice(0, 3)];
+          }
+          if (!grad || stops.length < 1) { out.push({ i, glyph: "-", ratio: null, why: "the fill is not painted (no colour in the computed background-image or background-color)" }); continue; }
           // "pill": the gradient is a backdrop and the glyphs are its siblings.
           const scope = wrap.dataset.shape === "pill" && grad.parentElement ? grad.parentElement : grad;
           for (const el of Array.from(wrap.querySelectorAll<HTMLElement>("[data-ink]"))) {

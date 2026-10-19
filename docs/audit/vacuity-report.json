@@ -1,8 +1,14 @@
 {
-  "generated": "2026-10-19T22:31:28.875Z",
-  "guards": 2103,
-  "registered": 2103,
-  "unregistered": [],
+  "generated": "2026-10-19T23:36:13.344Z",
+  "guards": 2111,
+  "registered": 2106,
+  "unregistered": [
+    "src/lib/declutter/sellForMe.test.ts",
+    "src/lib/rentals/savedHomes.test.ts",
+    "src/lib/reviewStats.test.ts",
+    "src/lib/shops/hours.test.ts",
+    "src/lib/threadMutes.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/test/browseEndCard.test.tsx"

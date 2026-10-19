@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS public.rental_rent_payments (
   tenancy_id uuid NOT NULL REFERENCES public.rental_tenancies(id) ON DELETE CASCADE,
   amount_cents integer NOT NULL CHECK (amount_cents BETWEEN 1 AND 10000000),
   paid_on date NOT NULL,
-  method text NOT NULL CHECK (method IN ('zelle', 'venmo', 'cashapp', 'cash', 'check', 'money_order', 'other')),
+  pay_method text NOT NULL CHECK (pay_method IN ('zelle', 'venmo', 'cashapp', 'cash', 'check', 'money_order', 'other')),
   reported_by text NOT NULL CHECK (reported_by IN ('tenant', 'landlord')),
   status text NOT NULL DEFAULT 'reported' CHECK (status IN ('reported', 'confirmed', 'declined')),
   decided_at timestamptz,
@@ -232,7 +232,7 @@ BEGIN
     RAISE EXCEPTION 'bad_rent_payment' USING ERRCODE = '22023';
   END IF;
   SELECT * INTO v_t FROM public.rental_tenancies WHERE id = p_tenancy_id;
-  INSERT INTO public.rental_rent_payments (tenancy_id, amount_cents, paid_on, method, reported_by, status, decided_at)
+  INSERT INTO public.rental_rent_payments (tenancy_id, amount_cents, paid_on, pay_method, reported_by, status, decided_at)
   VALUES (p_tenancy_id, p_amount_cents, p_paid_on, p_method, v_side,
           CASE WHEN v_side = 'landlord' THEN 'confirmed' ELSE 'reported' END,
           CASE WHEN v_side = 'landlord' THEN now() END)
@@ -395,7 +395,7 @@ BEGIN
                           'amount_cents', c.amount_cents, 'waived', c.waived_at IS NOT NULL) ORDER BY c.due_on, c.kind)
                           FROM public.rental_rent_charges c WHERE c.tenancy_id = p_tenancy_id), '[]'::jsonb),
     'payments', COALESCE((SELECT jsonb_agg(jsonb_build_object('id', p.id, 'amount_cents', p.amount_cents, 'paid_on', p.paid_on,
-                          'method', p.method, 'reported_by', p.reported_by, 'status', p.status, 'decline_reason', p.decline_reason,
+                          'method', p.pay_method, 'reported_by', p.reported_by, 'status', p.status, 'decline_reason', p.decline_reason,
                           'decided_at', p.decided_at)
                           ORDER BY p.paid_on, p.created_at)
                           FROM public.rental_rent_payments p WHERE p.tenancy_id = p_tenancy_id), '[]'::jsonb));

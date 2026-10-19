@@ -127,6 +127,8 @@ function visit(node: ts.Node, fn: (n: ts.Node) => void) {
 /** Numeric value of an expression: a literal, or a same-file `const NAME = <literal>`. */
 function numeric(sf: ts.SourceFile, e: ts.Expression): number | null {
   if (ts.isNumericLiteral(e)) return Number(e.text.replace(/_/g, ""));
+  // `cond ? X : false`: a poller that is on only while `cond` holds polls every X.
+  if (ts.isConditionalExpression(e) && e.whenFalse.kind === ts.SyntaxKind.FalseKeyword) return numeric(sf, e.whenTrue);
   if (ts.isIdentifier(e)) {
     let v: number | null = null;
     visit(sf, (n) => {
@@ -178,8 +180,9 @@ function pollers(): Poller[] {
 const KNOWN_NETWORK_POLLERS: Record<string, { ms: number; why: string }> = {
   "pages/auth/SignupPending.tsx setInterval": { ms: 5_000, why: "email-verification gate screen; stops on navigate, below the floor on purpose (the user is waiting on it)" },
   "pages/auth/CompleteProfile.tsx setInterval": { ms: 2_500, why: "profile-row retry while a brand-new profile is being created; stops as soon as it exists" },
+  "components/declutter/DeclutterOfferPanel.tsx refetchInterval": { ms: 1_500, why: "back from saving a card for Buy now / Make an offer: re-reads the saved card until Stripe's webhook files it; on only while resuming, and CARD_WAIT_MS (10 s) ends it, so at most ~7 reads" },
 };
-const BELOW_FLOOR_ALLOWED = new Set(["pages/auth/SignupPending.tsx setInterval", "pages/auth/CompleteProfile.tsx setInterval"]);
+const BELOW_FLOOR_ALLOWED = new Set(["pages/auth/SignupPending.tsx setInterval", "pages/auth/CompleteProfile.tsx setInterval", "components/declutter/DeclutterOfferPanel.tsx refetchInterval"]);
 
 describe("hot-query load (Q53)", () => {
   it("scans a real source tree", () => {

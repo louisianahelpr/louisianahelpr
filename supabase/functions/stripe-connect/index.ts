@@ -14,6 +14,43 @@ import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, str
 const STALE_CLEAR_HOURLY_CAP = 5;
 const STALE_CLEAR_KIND = "stale-clear";
 
+/**
+ * A shared TEST ACCOUNT (public.test_accounts + is_seed, the same rule that
+ * puts it on the Stripe TEST key) never gets a NEW Connect account, and never
+ * has the one it holds deleted and replaced, from this function.
+ *
+ * WHY (nightly-red #2436): every journey hires these seats, and an is_seed
+ * Helpr is accept-ready only while it holds NO Stripe account (or is fully
+ * payout-ready). A half-onboarded account makes accept_job_offer answer
+ * `pending_setup` and every hiring journey fails. It happened twice: to
+ * helper-e2e on 2026-10-15, and to eli.test.helper 5af6ce6d on 2026-10-18
+ * 18:55Z. Both times a local node script called `onboard` as the seat, and
+ * the second call was a lane's money proof. The ONE sanctioned seat account
+ * (helper-e2e's test-mode fixture, scripts/e2e/seatStripeAccounts.mjs) is
+ * already linked. A create can never return that account's id, so no create
+ * for a seat is ever the sanctioned pair. A proof that needs a seller with
+ * payouts uses that fixture.
+ * Guard: src/test/edge/stripeConnectNoNewAccountForTestSeat.test.ts.
+ */
+class TestSeatConnectRefused extends Error {
+  constructor(userId: string, what: string) {
+    super(`[stripe-connect] refused ${what} for test account ${userId}: shared test seats never get a new Connect account`);
+    this.name = "TestSeatConnectRefused";
+  }
+}
+/**
+ * The App Store review account (apple-reviewer@louisianahelpr.com, f2098932,
+ * enrolled is_seed, measured on prod 2026-10-19 with no Connect account). It
+ * is the ONE test account exempt from the refusal above. Apple's reviewer
+ * must be able to tap "Set up payouts" and reach Stripe's (test-mode)
+ * onboarding, or the build risks rejection (lead review, 2026-10-19). It is
+ * not a journeys seat, so it can never break a hiring journey.
+ * public.test_accounts has no purpose column, so the id lives here.
+ */
+const APP_REVIEW_ACCOUNT_IDS: ReadonlySet<string> = new Set(["f2098932-5563-47c3-9589-1d22cca72003"]);
+const TEST_SEAT_REFUSED_MESSAGE =
+  "Test accounts can't set up a new payout account. Use the sanctioned test fixture account instead.";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -222,7 +259,10 @@ serve(async (req) => {
     callerId = user.id;
     // Stripe mode (owner 2026-10-12): a test account runs on the TEST key, everyone
     // else on the live key; decided from the caller's own row, never the body.
-    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), {
+    const callerMode = await stripeModeForParties(supabaseAdmin, [user.id]);
+    // TEST mode is exactly "the caller is an enrolled is_seed test account".
+    const callerIsTestSeat = callerMode === "test" && !APP_REVIEW_ACCOUNT_IDS.has(user.id);
+    const stripe = new Stripe(stripeSecretKeyFor(callerMode), {
       apiVersion: "2025-08-27.basil",
     });
     stripeClient = stripe;
@@ -251,6 +291,7 @@ serve(async (req) => {
       let accountId = profile?.stripe_account_id;
 
       if (!accountId) {
+        if (callerIsTestSeat) throw new TestSeatConnectRefused(user.id, "accounts.create");
         const nameParts = (profile?.full_name || "").trim().split(/\s+/);
         const firstName = nameParts[0] || undefined;
         const lastName = nameParts.slice(1).join(" ") || undefined;
@@ -628,6 +669,9 @@ serve(async (req) => {
 
     // ─── RESET: Delete old account and create fresh Express one ───
     if (action === "reset") {
+      // Refused BEFORE anything is deleted at Stripe: a reset deletes the
+      // seat's account (the sanctioned fixture included) and creates a new one.
+      if (callerIsTestSeat) throw new TestSeatConnectRefused(user.id, "reset");
       const { return_url } = body;
       const { data: profile, error: profileReadErr } = await supabaseAdmin
         .from("profiles")
@@ -796,6 +840,13 @@ serve(async (req) => {
     throw new Error("Invalid action");
   } catch (error) {
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);
+    if (error instanceof TestSeatConnectRefused) {
+      console.error(error.message);
+      return new Response(JSON.stringify({ error: TEST_SEAT_REFUSED_MESSAGE, reason: "test_seat_no_new_connect_account" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
     // Log the full error so Supabase Edge Function logs surface a real
     // diagnosis (the log api only shows status codes, not response bodies,
     // so without console.error every 500 is opaque). Hundreds of v6 500s

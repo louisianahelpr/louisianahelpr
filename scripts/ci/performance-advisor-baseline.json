@@ -144,6 +144,7 @@
     "public.shop_strikes.shop_strikes_removed_by_idx",
     "public.shop_payouts.shop_payouts_due_idx",
     "public.job_helpr_fault_fee_deductions.job_helpr_fault_fee_deductions_ruling_idx",
-    "public.job_helpr_fault_rulings.job_helpr_fault_rulings_helper_idx"
+    "public.job_helpr_fault_rulings.job_helpr_fault_rulings_helper_idx",
+    "public.idv_fee_payments.idv_fee_payments_user_created_idx"
   ]
 }

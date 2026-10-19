@@ -22,9 +22,11 @@
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |   const cancelJob = useMutation({ mutationFn: () => cancelRequestJob(id), | const cancelJob = useMutation({ mutationFn: async () => undefined,
  * @mutate src/components/rentals/MaintenanceRequestView.tsx | r.visit_job_id != null && r.visit_job_id === r.job_id ? r.visit_proposed_for : null; | r.visit_job_id != null ? r.visit_proposed_for : null;
  * @mutate src/components/rentals/MaintenanceRequestView.tsx | onClick={() => okVisit.mutate(visitAt)}> | onClick={() => okVisit.mutate(new Date().toISOString())}>
+ * @mutate src/components/rentals/RentalsHomeView.tsx |       if (isIdentityNotVerified(e)) onNeedsId(); |       void onNeedsId;
+ * @mutate src/components/rentals/VerifyIdNotice.tsx |           onClick={() => void run(paid ? "start" : "checkout")} |           onClick={() => void run("start")}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -65,6 +67,12 @@ vi.mock("@/components/AppPage", () => ({
     </main>
   ),
 }));
+// The paid ID check (src/lib/rentals/idCheck.ts) is NOT stubbed: these tests
+// read the exact body it sends to stripe-idv-start and the URL it opens.
+const invoke = vi.fn();
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke: (...a: unknown[]) => invoke(...a) } } }));
+const openExternalUrl = vi.fn(async (_url: string, _onReturn?: () => void) => undefined);
+vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: (url: string, onReturn?: () => void) => openExternalUrl(url, onReturn) }));
 vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }));
 vi.mock("@/lib/rentals/api", () => ({
   fetchMyProperties: async () => state.properties,
@@ -94,7 +102,9 @@ vi.mock("@/lib/rentals/api", () => ({
   inviteTenant: vi.fn(),
 }));
 
-import { cancelRequestJob, confirmVisit, endTenancy } from "@/lib/rentals/api";
+import { cancelRequestJob, confirmVisit, createProperty, endTenancy, inviteTenant } from "@/lib/rentals/api";
+import { RentalsCopyError } from "@/lib/rentals/copy";
+import { IDV_FEE_TEXT } from "../../../supabase/functions/_shared/idvFee";
 import RentalsPage from "@/pages/rentals/RentalsPage";
 import MaintenanceRequestPage from "@/pages/rentals/MaintenanceRequestPage";
 
@@ -201,6 +211,64 @@ describe("Rentals screens", () => {
     expect(screen.queryByRole("button", { name: "Send to my landlord" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /I'm safe/ }));
     expect(screen.getByRole("button", { name: "Send to my landlord" })).toBeTruthy();
+  });
+
+  describe("identity_not_verified: the Verify your ID pill (owner 2026-10-19)", () => {
+    const refusal = () => new RentalsCopyError(null, { message: "identity_not_verified", code: "42501" });
+    beforeEach(() => {
+      invoke.mockReset();
+      openExternalUrl.mockClear();
+    });
+
+    it("Add property refused: the pill shows with the price, and pays through stripe-idv-start's Checkout", async () => {
+      vi.mocked(createProperty).mockRejectedValueOnce(refusal());
+      invoke.mockResolvedValueOnce({ data: { url: "https://checkout.stripe.com/c/pay/cs_test_1" }, error: null });
+      renderAt("/rentals");
+      fireEvent.click(await screen.findByRole("button", { name: "Add a property" }));
+      fireEvent.change(screen.getByLabelText("Property name"), { target: { value: "Oak" } });
+      fireEvent.change(screen.getByLabelText("Street address"), { target: { value: "1 Oak" } });
+      fireEvent.change(screen.getByLabelText("City"), { target: { value: "Lafayette" } });
+      fireEvent.change(screen.getByLabelText("ZIP code"), { target: { value: "70501" } });
+      fireEvent.click(screen.getByRole("button", { name: "Add property" }));
+      const pill = await screen.findByRole("button", { name: "Verify your ID" });
+      expect(screen.getByText(new RegExp(`photo ID \\+ selfie, \\${IDV_FEE_TEXT}`))).toBeTruthy();
+      expect(screen.getByRole("link", { name: "Set up payouts" }).getAttribute("href")).toBe("/profile?tab=earnings");
+      fireEvent.click(pill);
+      await waitFor(() => expect(openExternalUrl).toHaveBeenCalled());
+      expect(invoke).toHaveBeenCalledWith("stripe-idv-start", { body: { action: "checkout", native: false } });
+      expect(openExternalUrl.mock.calls[0]?.[0]).toBe("https://checkout.stripe.com/c/pay/cs_test_1");
+    });
+
+    it("Invite tenant refused: the same pill", async () => {
+      state.properties = [{ id: "p1", owner_id: "u1", label: "Oak", street_address: "1 Oak", city: "Lafayette", zip_code: "70501", ownership_status: "approved", auto_approve_limit_cents: null }];
+      state.units = [{ id: "un1", property_id: "p1", label: "A" }];
+      vi.mocked(inviteTenant).mockRejectedValueOnce(refusal());
+      renderAt("/rentals");
+      fireEvent.click(await screen.findByRole("button", { name: "Invite tenant" }));
+      expect(await screen.findByRole("button", { name: "Verify your ID" })).toBeTruthy();
+    });
+
+    it("back from Checkout (?idv=paid): Start your ID check opens the hosted Stripe Identity page", async () => {
+      invoke.mockResolvedValueOnce({ data: { url: "https://verify.stripe.com/start/test_x", sessionId: "vs_1" }, error: null });
+      renderAt("/rentals?idv=paid");
+      fireEvent.click(await screen.findByRole("button", { name: "Start your ID check" }));
+      await waitFor(() => expect(openExternalUrl).toHaveBeenCalled());
+      expect(invoke).toHaveBeenCalledWith("stripe-idv-start", { body: { action: "start", native: false } });
+      expect(openExternalUrl.mock.calls[0]?.[0]).toBe("https://verify.stripe.com/start/test_x");
+    });
+
+    it("any other refusal shows no pill", async () => {
+      vi.mocked(createProperty).mockRejectedValueOnce(new RentalsCopyError(null, { message: "too_many_properties" }));
+      renderAt("/rentals");
+      fireEvent.click(await screen.findByRole("button", { name: "Add a property" }));
+      fireEvent.change(screen.getByLabelText("Property name"), { target: { value: "Oak" } });
+      fireEvent.change(screen.getByLabelText("Street address"), { target: { value: "1 Oak" } });
+      fireEvent.change(screen.getByLabelText("City"), { target: { value: "Lafayette" } });
+      fireEvent.change(screen.getByLabelText("ZIP code"), { target: { value: "70501" } });
+      fireEvent.click(screen.getByRole("button", { name: "Add property" }));
+      await waitFor(() => expect(createProperty).toHaveBeenCalled());
+      expect(screen.queryByRole("button", { name: "Verify your ID" })).toBeNull();
+    });
   });
 
   it("under 18: no repair request or property buttons (Q59)", async () => {

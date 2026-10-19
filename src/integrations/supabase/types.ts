@@ -3630,6 +3630,51 @@ export type Database = {
         }
         Relationships: []
       }
+      idv_fee_payments: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          paid_at: string | null
+          status: string
+          stripe_checkout_session_id: string
+          stripe_livemode: boolean
+          stripe_payment_intent_id: string | null
+          stripe_refund_id: string | null
+          stripe_verification_session_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          status?: string
+          stripe_checkout_session_id: string
+          stripe_livemode: boolean
+          stripe_payment_intent_id?: string | null
+          stripe_refund_id?: string | null
+          stripe_verification_session_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          status?: string
+          stripe_checkout_session_id?: string
+          stripe_livemode?: boolean
+          stripe_payment_intent_id?: string | null
+          stripe_refund_id?: string | null
+          stripe_verification_session_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       instant_payouts: {
         Row: {
           created_at: string

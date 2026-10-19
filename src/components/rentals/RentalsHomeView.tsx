@@ -5,7 +5,7 @@
  * auto-approve, incoming requests). Hidden unless the 'rentals' switch is on.
  */
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
@@ -30,11 +30,12 @@ import {
   type RentalUnit,
   type UnitTenancy,
 } from "@/lib/rentals/api";
-import { OWNERSHIP_STATUS_LABEL, REQUEST_STATUS_LABEL, dollarsToCents, inviteUrl, rentalsErrorMessage } from "@/lib/rentals/copy";
+import { OWNERSHIP_STATUS_LABEL, REQUEST_STATUS_LABEL, dollarsToCents, inviteUrl, isIdentityNotVerified, rentalsErrorMessage } from "@/lib/rentals/copy";
 import { RentalsCard, fmtDate } from "./rentalsUi";
 import { MaintenanceRequestForm } from "./MaintenanceRequestForm";
 import { RentalsHomeSkeleton } from "./RentalsSkeletons";
 import { EndTenancyButton } from "./EndTenancyButton";
+import { VerifyIdNotice } from "./VerifyIdNotice";
 
 function RequestRow({ r }: { r: MaintenanceRequest }) {
   return (
@@ -57,7 +58,7 @@ function RequestRow({ r }: { r: MaintenanceRequest }) {
   );
 }
 
-function AddPropertyForm({ onDone }: { onDone: () => void }) {
+function AddPropertyForm({ onDone, onNeedsId }: { onDone: () => void; onNeedsId: () => void }) {
   const [label, setLabel] = useState("");
   const [street, setStreet] = useState("");
   const [city, setCity] = useState("");
@@ -68,7 +69,10 @@ function AddPropertyForm({ onDone }: { onDone: () => void }) {
       toast.success("Property added. Next: add your ownership proof.");
       onDone();
     },
-    onError: (e) => toast.error(rentalsErrorMessage(e)),
+    onError: (e) => {
+      toast.error(rentalsErrorMessage(e));
+      if (isIdentityNotVerified(e)) onNeedsId();
+    },
   });
   return (
     <form
@@ -98,12 +102,14 @@ function PropertyCard({
   tenancies,
   uid,
   onChange,
+  onNeedsId,
 }: {
   p: RentalProperty;
   units: RentalUnit[];
   tenancies: UnitTenancy[];
   uid: string;
   onChange: () => void;
+  onNeedsId: () => void;
 }) {
   const [unitLabel, setUnitLabel] = useState("");
   const [limit, setLimit] = useState(p.auto_approve_limit_cents != null ? String(p.auto_approve_limit_cents / 100) : "");
@@ -135,7 +141,10 @@ function PropertyCard({
   const invite = useMutation({
     mutationFn: (unitId: string) => inviteTenant(unitId),
     onSuccess: (token, unitId) => setLinks((l) => ({ ...l, [unitId]: inviteUrl(window.location.origin, token) })),
-    onError: (e) => toast.error(rentalsErrorMessage(e)),
+    onError: (e) => {
+      toast.error(rentalsErrorMessage(e));
+      if (isIdentityNotVerified(e)) onNeedsId();
+    },
   });
   const approved = p.ownership_status === "approved";
   return (
@@ -262,6 +271,12 @@ export default function RentalsHomeView() {
   const uid = user?.id ?? "";
   const qc = useQueryClient();
   const [adding, setAdding] = useState(false);
+  // identity_not_verified from Add property / Invite tenant shows the "Verify
+  // your ID" pill; ?idv=paid is the return from the ID check's Checkout.
+  const [params] = useSearchParams();
+  const idvParam = params.get("idv");
+  const [needsId, setNeedsId] = useState(false);
+  const showIdNotice = needsId || idvParam === "paid";
   // Q59: under 18 can't add a property, accept an invite or request a repair
   // (greyed out here; the server refuses too: rentals_assert_member).
   const { underAge } = useAgeGate();
@@ -324,8 +339,15 @@ export default function RentalsHomeView() {
               )
             }
           >
+            {showIdNotice && <VerifyIdNotice paid={idvParam === "paid" && !needsId} onChange={refresh} />}
+            {idvParam === "complete" && !showIdNotice && (
+              <p role="status" className="text-sm text-muted-foreground">
+                Thanks. Stripe is checking your ID; this usually takes a few minutes.
+              </p>
+            )}
             {adding && (
               <AddPropertyForm
+                onNeedsId={() => setNeedsId(true)}
                 onDone={() => {
                   setAdding(false);
                   refresh();
@@ -343,6 +365,7 @@ export default function RentalsHomeView() {
                 units={data.data.units.filter((u) => u.property_id === p.id)}
                 tenancies={data.data.tenancies}
                 onChange={refresh}
+                onNeedsId={() => setNeedsId(true)}
               />
             ))}
             {data.data.requests.filter((r) => r.landlord_id === uid).length > 0 && <p className="text-sm font-medium">Requests from tenants</p>}

@@ -31,6 +31,17 @@ export class RentalsCopyError extends Error {
 const RENTALS_FALLBACK_COPY = "Couldn't do that just now. Check your connection and try again.";
 
 /** The server RAISEs the code as the error MESSAGE; show it in plain words. */
+/**
+ * True when a rentals RPC refused with identity_not_verified (the landlord has
+ * neither ID check). Reads the server's raw code off the original error, not
+ * the worded message, so a copy change can never hide the "Verify your ID" pill.
+ */
+export function isIdentityNotVerified(err: unknown): boolean {
+  const raw = err instanceof RentalsCopyError ? err.cause : err;
+  const msg = raw && typeof raw === "object" && "message" in raw ? String((raw as { message: unknown }).message) : "";
+  return msg.trim() === "identity_not_verified";
+}
+
 export function rentalsErrorMessage(err: unknown): string {
   if (err instanceof RentalsCopyError && err.words != null) return err.words;
   const msg = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : "";

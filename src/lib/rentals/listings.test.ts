@@ -11,7 +11,7 @@ const state = { rpcError: null as null | { code: string; message: string }, tabl
 vi.mock("@/integrations/supabase/client", () => {
   const chain = () => {
     const c: Record<string, unknown> = {};
-    for (const k of ["select", "eq", "neq"]) c[k] = () => c;
+    for (const k of ["select", "eq", "neq", "or"]) c[k] = () => c;
     c.order = async () => ({ data: state.tableError ? null : [], error: state.tableError });
     return c;
   };

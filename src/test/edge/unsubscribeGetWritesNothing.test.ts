@@ -87,13 +87,17 @@ describe("email-unsubscribe: a GET writes nothing (Q1655)", () => {
   });
 
   it("the page's resubscribe POST writes the switch back on and answers JSON", async () => {
+    // Q2092: Resubscribe undoes only what this link's unsubscribe turned off, read from
+    // profiles.promotions_before_unsubscribe (here: both were on, both are off now).
+    scenario.reads.profiles = { rows: [{ user_id: "real-user-1", marketing_consent: false, promotions_before_unsubscribe: { marketing_consent: true, email_promotions: true } }] };
+    scenario.reads.notification_preferences = { rows: [{ user_id: "real-user-1", email_promotions: false }] };
     const fn = await loadUnsub();
     const res = await post(fn, "", "action=resubscribe&e=member%40example.com&sig=ok-promotions");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ status: "resubscribed", list: "promotions" });
     const prefs = scenario.writes.filter((w) => w.table === "notification_preferences");
     expect(prefs.map((w) => w.payload)).toEqual([{ user_id: "real-user-1", email_promotions: true }]);
-    expect(scenario.writes.filter((w) => w.table === "profiles").map((w) => w.payload)).toEqual([{ marketing_consent: true }]);
+    expect(scenario.writes.filter((w) => w.table === "profiles").map((w) => w.payload)).toEqual([{ marketing_consent: true, promotions_before_unsubscribe: null }]);
   });
 
   for (const [name, body] of [

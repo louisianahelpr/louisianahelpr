@@ -26,6 +26,7 @@
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const away = milesLabel(miles, geo.status === "ready" && geo.approximate); |   const away = milesLabel(miles);
  * @mutate src/components/declutter/DeclutterHomeView.tsx | miles={miles} approximate={origin.status === "ready" && origin.approximate} /> | miles={miles} approximate={false} />
  * @mutate src/components/declutter/useDeclutterOrigin.ts |     asked && device.status === "error" | false && device.status === "error"
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |   const reviewed = rating && rating.count > 0 ? rating : null; |   const reviewed = rating ?? null;
  * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />} | skeleton={<DeclutterItemSkeleton />}
  * @mutate src/hooks/usePermissionRationale.ts | body: "Declutter uses your location to show how far away each item is | body: "We use your location to show jobs near you, how far away each item is
  */
@@ -41,6 +42,8 @@ const state = { feature: true, featureSettled: true };
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature, useFeatureStatus: () => ({ on: state.feature, settled: true }) }));
 // What Browse lists; empty unless a test puts an item up.
 const live: { items: unknown[] } = { items: [] };
+// Sellers' shared star ratings (the Browse cards read them in one call).
+const sellerStats: Record<string, { avg: number; count: number }> = {};
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 // ONE object, as React Query hands back: a fresh profile per render would
 // re-run every effect keyed on it.
@@ -77,6 +80,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchPhotos: async () => [],
   fetchQuestions: async () => [],
   fetchSellerRating: async () => ({ avg: 0, count: 0 }),
+  fetchSellerRatings: async (ids: string[]) => new Map(ids.filter((id) => sellerStats[id]).map((id) => [id, sellerStats[id]])),
   fetchWatching: async () => new Set(),
   fetchItem: async () => ({
     id: "i1", seller_id: "u2", status: "live", title: "Oak rocking chair", description: "Solid oak.",
@@ -260,6 +264,33 @@ describe("Declutter location ask", () => {
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     expect(await screen.findByText(/Less than 1 mi away/)).toBeInTheDocument();
     expect(screen.queryByText(/About \d+ mi away/)).toBeNull();
+  });
+
+  it("a Browse card: title up to two lines, the price big, the place on one line, stars only when the seller has reviews", async () => {
+    const card = (id: string, seller: string, title: string) => ({
+      id, seller_id: seller, status: "live", title, category: "furniture", condition_stars: 4,
+      price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
+    });
+    sellerStats.reviewed = { avg: 4.8, count: 12 };
+    sellerStats.fresh = { avg: 0, count: 0 };
+    live.items = [card("i1", "reviewed", "Oak rocking chair"), card("i2", "fresh", "Brass floor lamp"), card("i3", "unknown", "Cast iron skillet")];
+    const browse = at("/declutter", <DeclutterPage />);
+    const reviewed = (await screen.findByText("Oak rocking chair")).closest("a")!;
+    expect(reviewed.querySelector("[data-card-title]")!.className).toMatch(/\bline-clamp-2\b/);
+    expect(reviewed.querySelector("[data-card-price]")!.className).toMatch(/\btext-lg\b/);
+    expect(reviewed.querySelector("[data-card-place]")!.className).toMatch(/\btruncate\b/);
+    expect(reviewed.querySelector("[data-card-rating]")!.getAttribute("aria-label")).toBe("Seller rated 4.8 of 5 from 12 reviews");
+    // No reviews (or no row at all): no stars, and never the item's condition dressed as a rating.
+    for (const t of ["Brass floor lamp", "Cast iron skillet"]) {
+      const a = screen.getByText(t).closest("a")!;
+      expect(a.querySelector("[data-card-rating]")).toBeNull();
+      expect(a.querySelector("svg.lucide-star")).toBeNull();
+    }
+    expect(screen.queryByRole("img", { name: /^Condition:/ })).toBeNull();
+    browse.unmount();
+    live.items = [];
+    delete sellerStats.reviewed;
+    delete sellerStats.fresh;
   });
 
   it("an item page never asks for location", async () => {

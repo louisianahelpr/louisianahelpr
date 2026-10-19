@@ -556,6 +556,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               important local-marketplace signal was the first thing dropped.
               Urgency now gets its own row below, which is also what the
               My Posts / My Jobs cards already do. */}
+          {/* Below 360px EVERY card takes two lines (Q2222): place on the
+              first, date · time on the second, so the start time is whole at
+              320 and all cards stay one height. From 360px up it is one line. */}
           {/* STAYS ON ONE LINE — never wraps (owner: "should never go to a
               second line. all job cards should remain same size always").
               A wrapping row was tried and rejected: it fixed the truncation but
@@ -565,7 +568,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               The width the group-job chip needs is bought back below instead —
               see the `is_group_job` chip, which drops its separator and rides
               tighter than the rest of the row. */}
-          <div className="job-meta-row flex items-center gap-x-2 flex-nowrap overflow-hidden">
+          <div className="job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden">
             {/* Place, date, time never hidden (owner, 2026-10-08); floor = pin + ~5 letters. */}
             <span className="flex items-center gap-1 min-w-[5.25rem] overflow-hidden">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
@@ -633,7 +636,10 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 {distanceLabel}
               </span>
             )}
-            <span className="shrink-0 opacity-30">·</span>
+            {/* The line break below 360px: a full-width, 2px-tall item, so the
+                "when" group starts line two on every card (Q2222). */}
+            <span aria-hidden data-meta-break className="hidden max-[359px]:block basis-full h-0.5" />
+            <span className="shrink-0 opacity-30 max-[359px]:hidden">·</span>
             {/* Date + time + duration live in ONE no-wrap group so the "when"
                 of a job can never be split across lines — the trio moves
                 together. "Due" is dropped — the date is self-evidently the day
@@ -657,28 +663,10 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                       </span>
                     </span>
                   )}
-                  {/* Start time is the FIRST thing dropped under 360px — the
-                      same sub-360 guard the recurring chip already uses, for
-                      the same measured reason. This row is nowrap and clipped,
-                      so anything that does not fit is not "tight", it is
-                      SILENTLY GONE: at 320px the group-size chip ("👥 4") was
-                      being cut off the right edge of every multi-helpr card
-                      while the clock read "11:00 AM". On a 320px phone, what
-                      day the work is and how many helprs it needs both beat
-                      what o'clock it starts, and the time is one tap away on
-                      the detail sheet. Dropping it deliberately is the only
-                      way the chips behind it survive. */}
-                  {/* The clock is the thing that GIVES when the countdown is on
-                      the row. With "1 day left" present, a 375 phone had the
-                      city collapse to a single letter ("D" for Denham Springs)
-                      while "8:00 AM" sat there whole — the city is the
-                      local-marketplace signal, the hour is on the detail sheet.
-                      So on a countdown card the time only appears from 430px;
-                      without a countdown it keeps its 360px floor. */}
-                  {/* The distance pill competes for the same width as the
-                      countdown, so it moves the clock to the same 430px floor:
-                      with a radius active at 375, city + pill + date + clock is
-                      already ~15px over the row, and the city is what gave. */}
+                  {/* The start time is never hidden by a width rule (owner,
+                      2026-10-08: "location, date and time never be hidden").
+                      Below 360px the row breaks before this group instead
+                      (Q2222), so date · time have the whole second line. */}
                   {/* `timeLabel` is `jobStartTimeLabel` (src/lib/jobDate.ts) —
                       the ONE rule: a clock time, else the word "Flexible" when
                       the poster ticked `is_flexible_schedule`, else null and

@@ -87,6 +87,41 @@ test("every open job the API returns is rendered somewhere", async ({ page, cont
   expect(missing, `open jobs returned by the API but rendered nowhere: ${missing.join(", ")}`).toEqual([]);
 });
 
+// Q2222: at 320 a card cut its start time to "⏱ 1". The time is owner-protected
+// (never hidden), so below 360px every card's meta row takes two lines (place,
+// then date · time); from 360px up it stays one line. Measured on the real CSS.
+// @mutate src/components/dashboard/JobCard.tsx | flex-nowrap max-[359px]:flex-wrap overflow-hidden | flex-nowrap overflow-hidden
+for (const width of [320, 375]) {
+  test(`the start time is whole at ${width} and every card is one height`, async ({ page, context, baseURL }) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width, height: 740 });
+    await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
+    await context.addInitScript(() => {
+      try {
+        localStorage.setItem("helpr.onboarding_tour_dismissed_at", new Date().toISOString());
+        localStorage.setItem("helpr_welcomed", "1");
+      } catch { /* noop */ }
+    });
+    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules });
+    await page.goto("/jobs", { waitUntil: "domcontentloaded" });
+    await expect(page.locator(".job-meta-row [data-meta-time]").first()).toBeVisible({ timeout: 30_000 });
+    const rows = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>(".job-meta-row")).filter((r) => r.querySelector("[data-meta-time]")).map((r) => {
+        const row = r.getBoundingClientRect();
+        const time = r.querySelector<HTMLElement>("[data-meta-time]")!.getBoundingClientRect();
+        const pin = r.querySelector<HTMLElement>("svg")!.getBoundingClientRect();
+        const card = r.closest<HTMLElement>('[aria-label^="View JOB"]')?.getBoundingClientRect();
+        return { timeRight: time.right, rowRight: row.right, timeTop: time.top, pinTop: pin.top, card: card?.height ?? 0 };
+      }));
+    expect(rows.length).toBeGreaterThan(3);
+    for (const r of rows) expect(r.timeRight, "the start time is cut by the row's edge").toBeLessThanOrEqual(r.rowRight + 0.5);
+    const twoLines = rows.map((r) => r.timeTop - r.pinTop > 6);
+    expect(new Set(twoLines), width < 360 ? "below 360 every card breaks after the place" : "from 360 up the row is one line").toEqual(new Set([width < 360]));
+    const heights = rows.map((r) => Math.round(r.card));
+    expect(Math.max(...heights) - Math.min(...heights), `card heights ${heights.join(",")}`).toBeLessThanOrEqual(1);
+  });
+}
+
 
 // PROOF THIS SPEC CAN FAIL — the 2026-09-16 shape, reproduced.
 //

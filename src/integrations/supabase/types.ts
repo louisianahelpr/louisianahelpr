@@ -7350,6 +7350,24 @@ export type Database = {
           },
         ]
       }
+      rental_listing_photo_legacy: {
+        Row: {
+          bucket_id: string
+          moved_at: string
+          storage_path: string
+        }
+        Insert: {
+          bucket_id?: string
+          moved_at?: string
+          storage_path: string
+        }
+        Update: {
+          bucket_id?: string
+          moved_at?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       rental_listing_photos: {
         Row: {
           created_at: string
@@ -7846,6 +7864,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rentals_photo_serve_keys: {
+        Row: {
+          created_at: string
+          id: number
+          secret: string
+        }
+        Insert: {
+          created_at?: string
+          id: number
+          secret: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          secret?: string
+        }
+        Relationships: []
       }
       saved_jobs: {
         Row: {

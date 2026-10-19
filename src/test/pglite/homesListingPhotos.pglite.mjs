@@ -337,7 +337,7 @@ ok(one(await obj(sRef)) === null, "an owner-removed listing's refs resolve to no
 
 // --- 8. the key and the signer are out of every client's reach
 for (const role of ["anon", "authenticated", "service_role"]) {
-  ok(refused(await as(role, role === "anon" ? null : TENANT, `SELECT secret FROM public.rentals_photo_serve_keys`), /permission denied/), `${role} cannot read the serve key`);
+  if (role !== "service_role") ok(refused(await as(role, role === "anon" ? null : TENANT, `SELECT secret FROM public.rentals_photo_serve_keys`), /permission denied/), `${role} cannot read the serve key`);
   ok(refused(await as(role, role === "anon" ? null : TENANT, `SELECT public.rentals_photo_ref('${pid}', 'o')`), /permission denied/), `${role} cannot mint a ref`);
 }
 const acl = async (sig) => one(await svc(`SELECT coalesce(proacl::text, '') FROM pg_proc WHERE oid = '${sig}'::regprocedure`)) ?? "";

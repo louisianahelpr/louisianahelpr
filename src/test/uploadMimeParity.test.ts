@@ -119,7 +119,8 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/postjob/detailsSection/PhotoUpload.tsx": { bucket: "job-photos" },
   "src/components/postjob/detailsSection/PhotoReorderGrid.tsx": { bucket: "job-photos" }, // Q1299: split out of PhotoUpload
   "src/components/postjob/detailsSection/VideoScope.tsx": { bucket: "job-photos" },
-  "src/components/declutter/DeclutterSellView.tsx": { bucket: "job-photos" },
+  // The listing photo picker moved to the photo-first step 1 (DeclutterSellPhotos, 2026-10-19).
+  "src/components/declutter/DeclutterSellPhotos.tsx": { bucket: "job-photos" },
   // Room photos (moving-out mode) are never stored: cleaned to JPEG and sent to the photo tool only; held to the listing photos' bucket so it offers nothing a listing photo could not be.
   "src/components/declutter/DeclutterMoveView.tsx": { bucket: "job-photos" },
   "src/components/declutter/DeclutterHandoverViews.tsx": { bucket: "declutter-handover" },

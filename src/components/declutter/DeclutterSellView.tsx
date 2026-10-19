@@ -1,13 +1,14 @@
 /**
  * /declutter/sell[?item=<draft id>] — post an item (spec rows 31, 32, 34, 52,
- * 54, 56, 23, 53). One page, in order:
- *   1. The details: name, price + hidden lowest price (row 56, B3), area
+ * 54, 56, 23, 53). One page, in order (photo-first, owner 2026-10-19):
+ *   1. Photos, 3 to 12 (row 31; DeclutterSellPhotos.tsx), cleaned of location
+ *      data before upload (src/lib/declutter/photos.ts). Before the first save
+ *      they wait on the device and upload right after it. Then "Fill in from
+ *      my photos" (row 32): the AI drafts the details for the seller to edit;
+ *      it also checks for banned items (row 34), which the server keeps.
+ *   2. The details: name, price + hidden lowest price (row 56, B3), area
  *      label (never a street address) and the private pickup address.
  *      Saving creates the draft (or edits it: declutter_update_draft).
- *   2. Photos, 3 to 12 (row 31), cleaned of location data before upload
- *      (src/lib/declutter/photos.ts), then "Fill in from my photos" (row 32):
- *      the AI drafts the details for the seller to edit; it also checks for
- *      banned items (row 34), which the server keeps for an admin.
  *   3. The seller's usual pickup times (row 52, B6).
  *   4. The four tax confirmations (row 54).
  *   5. List it: live, or waiting for a review (row 33).
@@ -21,7 +22,6 @@ import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { X } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
@@ -34,7 +34,6 @@ import {
   fetchMyItemPrivate,
   fetchMyPickupWindows,
   fetchPhotos,
-  photoPublicUrl,
   publishItem,
   removePhoto,
   setPorchOk,
@@ -51,6 +50,7 @@ import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, TAX_STATE
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 import PriceHint from "./DeclutterPriceHint";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
+import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 
 interface FormState {
   title: string;
@@ -122,7 +122,8 @@ export default function SellFlow() {
   const [publishing, setPublishing] = useState(false);
   // Row 101: porch pickup is the default; the seller turns it off per item.
   const [porchOk, setPorchOkChoice] = useState(true);
-  const fileRef = useRef<HTMLInputElement>(null);
+  // Photos chosen before the first save (there is no draft to hold them yet).
+  const [held, setHeld] = useState<File[]>([]);
   // Where the price hint looks (W12): the pickup address once found, else the
   // saved listing's area, else what we already know about the member.
   // Never asks for location.
@@ -229,7 +230,12 @@ export default function SellFlow() {
       // A new draft allows porch; only a seller who turned it off needs the second
       // call. If it fails the draft still exists with porch on, and the next save retries it.
       if (!porchOk) await setPorchOk(id, false);
-      toast.success("Saved. Now add photos.");
+      // The photos chosen first go up now that the draft exists. A photo that
+      // fails says so (uploadPhotos) and can simply be added again.
+      const waiting = held;
+      setHeld([]);
+      const added = await uploadPhotos(id, waiting);
+      toast.success(added > 0 ? "Saved with your photos." : "Saved. Now add photos.");
       return id;
     } catch (err) {
       toast.error(declutterErrorMessage(err));
@@ -239,23 +245,34 @@ export default function SellFlow() {
     }
   }
 
-  async function onFiles(files: FileList | null) {
-    if (!files || !itemId) return;
-    const room = 12 - photoCount;
-    const list = Array.from(files).slice(0, Math.max(0, room));
-    if (files.length > room) toast.error("A listing can have up to 12 photos.");
+  /** Uploads each photo to the draft; a failed one is said out loud and skipped. Returns how many went up. */
+  async function uploadPhotos(id: string, list: File[]): Promise<number> {
+    let added = 0;
     setUploading(list.length);
     for (const f of list) {
       try {
-        await addPhoto(user!.id, itemId, f);
+        await addPhoto(user!.id, id, f);
+        added += 1;
       } catch (err) {
         toast.error(declutterErrorMessage(err));
       } finally {
         setUploading((n) => n - 1);
       }
     }
-    void qc.invalidateQueries({ queryKey: ["declutter", "item-photos", itemId] });
-    if (fileRef.current) fileRef.current.value = "";
+    void qc.invalidateQueries({ queryKey: ["declutter", "item-photos", id] });
+    return added;
+  }
+
+  async function onFiles(files: FileList | null) {
+    if (!files) return;
+    const room = MAX_PHOTOS - photoCount - held.length;
+    const list = Array.from(files).slice(0, Math.max(0, room));
+    if (files.length > room) toast.error("A listing can have up to 12 photos.");
+    if (!itemId) {
+      setHeld((h) => [...h, ...list]);
+      return;
+    }
+    await uploadPhotos(itemId, list);
   }
 
   async function onRemovePhoto(photoId: string) {
@@ -333,8 +350,18 @@ export default function SellFlow() {
         </DeclutterNotice>
       )}
 
+      <SellPhotos
+        uploaded={photos.data ?? []}
+        held={held}
+        onFiles={(f) => void onFiles(f)}
+        onRemoveUploaded={(photoId) => void onRemovePhoto(photoId)}
+        onRemoveHeld={(i) => setHeld((h) => h.filter((_, j) => j !== i))}
+        uploading={uploading}
+        ai={itemId && photoCount > 0 ? { busy: aiBusy, run: () => void onAiDraft() } : null}
+      />
+
       <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-labelledby="sell-details">
-        <h2 id="sell-details" className="text-base font-semibold">1. The item</h2>
+        <h2 id="sell-details" className="text-base font-semibold">2. The item</h2>
         <label className="block text-sm font-medium" htmlFor="sell-title">Name</label>
         <input id="sell-title" className={input} maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Oak rocking chair" />
         <label className="block text-sm font-medium" htmlFor="sell-desc">Description</label>
@@ -401,50 +428,12 @@ export default function SellFlow() {
         </div>
         {problem && <p className="text-xs text-muted-foreground" data-testid="sell-form-problem">{problem}</p>}
         <Button type="button" size="sm" disabled={saving} onClick={() => void saveDetails()}>
-          {saving ? "Saving…" : itemId ? "Save details" : "Save and add photos"}
+          {saving ? "Saving…" : itemId ? "Save details" : held.length > 0 ? "Save and upload photos" : "Save and continue"}
         </Button>
       </section>
 
       {itemId ? (
         <>
-          <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-labelledby="sell-photos">
-            <h2 id="sell-photos" className="text-base font-semibold">2. Photos ({photoCount} of 3 to 12)</h2>
-            <p className="text-xs text-muted-foreground">Take your own photos of the item. Location data is removed from every photo before it's uploaded.</p>
-            <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {(photos.data ?? []).map((p, i) => (
-                <li key={p.id} className="relative">
-                  <img src={photoPublicUrl(p.storage_path)} alt={`Photo ${i + 1}`} className="aspect-square w-full object-cover rounded-xl bg-muted" />
-                  <button
-                    type="button"
-                    className="absolute top-0 right-0 w-11 h-11 flex items-center justify-center"
-                    onClick={() => void onRemovePhoto(p.id)}
-                    aria-label={`Remove photo ${i + 1}`}
-                  >
-                    <span className="w-7 h-7 rounded-full bg-background/90 text-foreground shadow flex items-center justify-center" aria-hidden>
-                      <X className="w-4 h-4" />
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" id="sell-files" onChange={(e) => void onFiles(e.target.files)} />
-            <div className="flex flex-wrap gap-2">
-              {photoCount < 12 && (
-                <Button asChild variant="outline" size="sm" className="cursor-pointer">
-                  <label htmlFor="sell-files">{uploading > 0 ? `Adding ${uploading}…` : "Add photos"}</label>
-                </Button>
-              )}
-              {photoCount > 0 && (
-                <Button type="button" variant="outline" size="sm" disabled={aiBusy} onClick={() => void onAiDraft()}>
-                  {aiBusy ? "Looking at your photos…" : "Fill in from my photos"}
-                </Button>
-              )}
-            </div>
-            {photoCount > 0 && (
-              <p className="text-xs text-muted-foreground">The photo tool fills in the name, description, category, size and condition. You can change anything, then save.</p>
-            )}
-          </section>
-
           <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-labelledby="sell-pickup">
             <h2 id="sell-pickup" className="text-base font-semibold">3. Your usual pickup times</h2>
             <p className="text-xs text-muted-foreground">Buyers pick one of these times. They apply to all your listings.</p>
@@ -475,7 +464,7 @@ export default function SellFlow() {
           </section>
         </>
       ) : (
-        <p className="text-sm text-muted-foreground">After you save, you'll add photos, pickup times and four quick confirmations.</p>
+        <p className="text-sm text-muted-foreground">After you save, you'll set your pickup times and four quick confirmations.</p>
       )}
     </AppPage>
   );

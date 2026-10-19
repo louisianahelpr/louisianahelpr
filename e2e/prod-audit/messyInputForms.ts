@@ -760,7 +760,7 @@ export const FORMS: FormSpec[] = [
   {
     name: "declutter-sell", url: "/declutter/sell", as: "helper",
     prepare: async (page) => { await page.locator("#sell-title").waitFor({ timeout: 20_000 }); },
-    covers: ["src/components/declutter/DeclutterSellView.tsx", "src/components/declutter/DeclutterPickupTimes.tsx"],
+    covers: ["src/components/declutter/DeclutterSellView.tsx", "src/components/declutter/DeclutterSellPhotos.tsx", "src/components/declutter/DeclutterPickupTimes.tsx"],
   },
   {
     name: "declutter-ask", url: "/declutter", as: "poster",

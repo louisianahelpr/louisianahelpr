@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { useDockYield } from "@/components/mobileNav/useDockYield";
 import { buyNow, fetchMyCard, makeOffer, startCardSave, type DeclutterItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
@@ -108,6 +109,8 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
   // Phone (owner, 2026-10-19): while the in-page buttons are scrolled out of
   // view, the same two actions ride in a bar above the bottom dock.
   const barShown = useOffScreen(buttons);
+  // The bar owns the bottom strip while it shows; the dock steps aside (Q1646).
+  useDockYield(barShown && !underAge && item.status === "live");
   const [amount, setAmount] = useState("");
   /** The action waiting for a card: shown as AddCardStep, then resumed once a card is on file. */
   const [needCard, setNeedCard] = useState<AfterCardAction | null>(null);
@@ -288,12 +291,12 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
       {barShown && typeof document !== "undefined" &&
         createPortal(
           // Portaled to <body>: a fixed bar inside the page would be placed by its transformed ancestor, not the screen.
-          <div data-declutter-buybar="" className="fixed inset-x-0 bottom-safe-nav z-40 px-4 sm:hidden">
-            <div role="group" aria-label="Buy or make an offer" className="mx-auto flex max-w-xl gap-2 rounded-2xl border border-border bg-card p-2 shadow-lg">
+          // Flush on the bottom edge while the dock yields (useDockYield), as on Marketplace's item page.
+          <div data-declutter-buybar="" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-4 pt-2 pb-[calc(var(--safe-area-bottom,0px)+0.5rem)] shadow-[0_-4px_16px_rgb(0_0_0/0.06)] sm:hidden">
+            <div role="group" aria-label="Buy or make an offer" className="mx-auto flex max-w-xl gap-2">
               <Button
                 type="button"
-                size="wrap"
-                className="flex-1 min-w-0 rounded-full"
+                className="h-11 flex-1 min-w-0 whitespace-nowrap rounded-full px-3 text-sm"
                 disabled={buy.isPending || card.isLoading}
                 onClick={() => {
                   tap("buy");
@@ -305,8 +308,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
               <Button
                 type="button"
                 variant="outline"
-                size="wrap"
-                className="flex-1 min-w-0 rounded-full"
+                className="h-11 flex-1 min-w-0 whitespace-nowrap rounded-full px-3 text-sm"
                 disabled={card.isLoading}
                 onClick={() => {
                   tap("offer");

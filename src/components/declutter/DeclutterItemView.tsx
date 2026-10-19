@@ -295,8 +295,6 @@ export default function ItemView({ itemId }: { itemId: string }) {
           <DeclutterItemRows item={it} viewerId={user?.id ?? null} from={geo.status === "ready" ? { lat: geo.lat, lng: geo.lng, approximate: geo.approximate } : null} />
         </div>
       )}
-      {/* Room under the last row for the phone's buy bar (OfferPanel). */}
-      {canAct && <div className="h-20 sm:hidden" aria-hidden />}
     </AppPage>
   );
 }

@@ -200,7 +200,7 @@ export function ShopItemsGrid({ items }: { items: (Omit<ShopItem, "photos"> & { 
                 <p className="text-ds-11 text-muted-foreground">{SHOP_ITEM_TYPE_LABEL[item.subtype] ?? "Item"} · {readinessLabel(item)}</p>
                 {item.home_kitchen && (
                   // L7 on EVERY home-food card, as one compact line; the full words for screen readers.
-                  <p className="flex items-center gap-1 text-ds-10 text-muted-foreground" data-testid="home-kitchen-notice">
+                  <p className="flex items-center gap-0.5 text-ds-10 tracking-normal text-muted-foreground" data-testid="home-kitchen-notice">
                     <House className="h-3 w-3 shrink-0" aria-hidden />
                     <span className="truncate" aria-hidden>{HOME_KITCHEN_CARD_LINE}</span>
                     <span className="sr-only">{HOME_KITCHEN_NOTICE}</span>

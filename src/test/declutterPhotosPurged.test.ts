@@ -14,7 +14,7 @@
  * every other missing subfolder bucket still fails the step (Q219).
  * @mutate supabase/functions/_shared/purgeBuckets.ts |     notCreatedYet: missing.filter((b) => SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET.includes(b)), |     notCreatedYet: [] as string[],
  * @mutate supabase/functions/_shared/purgeBuckets.ts |     failing: missing.filter((b) => !SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET.includes(b)), |     failing: [] as string[],
- * @mutate supabase/functions/_shared/purgeBuckets.ts | export const SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET: readonly string[] = ["declutter-handover", "helpr-tasks"]; | export const SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET: readonly string[] = ["declutter-handover", "helpr-tasks", "job-photos"];
+ * @mutate supabase/functions/_shared/purgeBuckets.ts | export const SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET: readonly string[] = ["declutter-handover", "helpr-tasks", "listing-photos"]; | export const SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET: readonly string[] = ["declutter-handover", "helpr-tasks", "listing-photos", "job-photos"];
  * Slice 5: the Helpr's truck photo is erased with the account.
  * @mutate supabase/functions/_shared/purgeBuckets.ts |   { bucket: "helpr-tasks", folder: "vehicle" }, |
  * @mutate src/lib/helprTasks/api.ts |   return uploadCleaned(`${userId}/vehicle/${nonce()}.jpg`, file); |   return uploadCleaned(`${userId}/truck/${nonce()}.jpg`, file);
@@ -83,8 +83,8 @@ describe("account deletion erases job-photos/<uid>/declutter/ (Declutter B4)", (
 
   it("a subfolder bucket whose migration has not run yet is nothing to erase; any other missing bucket fails (Q219)", () => {
     // EXACT: only the bucket a migration newer than the purge creates (20261017055502).
-    // ...and helpr-tasks (20261017055505, slice 5).
-    expect([...SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET]).toEqual(["declutter-handover", "helpr-tasks"]);
+    // ...and helpr-tasks (20261017055505, slice 5), and listing-photos (20261019071203, Q2211).
+    expect([...SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET]).toEqual(["declutter-handover", "helpr-tasks", "listing-photos"]);
     for (const b of SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET) expect(IDENTITY_SUBFOLDERS.map((s) => s.bucket)).toContain(b);
     expect(classifyMissingSubfolderBuckets(["declutter-handover", "job-photos"])).toEqual({
       notCreatedYet: ["declutter-handover"],

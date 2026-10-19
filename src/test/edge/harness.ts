@@ -599,6 +599,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/caughtMessage.ts";`,
   );
 
+  // JPEG metadata strip (Q2212): `_shared/jpegStripMetadata.ts` has ZERO
+  // imports (pure byte walking), so the REAL module runs and the listing-photo
+  // tests assert on the bytes actually served.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/jpegStripMetadata\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/jpegStripMetadata.ts";`,
+  );
+
   // Ban-evasion payment fingerprints (Q1324): `_shared/paymentFingerprint.ts`
   // imports only caughtMessage, so the REAL module runs. Which fingerprint is
   // sent, for which account, and how a failed or missing RPC is read (never as

@@ -169,12 +169,18 @@ AS $fn$
   WITH s AS (
     -- '#4' is a unit too; then everything but letters and digits becomes one space, padded for the word match.
     SELECT ' ' || btrim(regexp_replace(replace(lower(coalesce(p_street, '')), '#', ' unit '), '[^a-z0-9]+', ' ', 'g')) || ' ' AS t
+  ), l AS (
+    -- A LEADING unit part ("Unit 4, 123 Oak St") goes when a house number follows it (round 4 #1).
+    SELECT regexp_replace(t, '^ (apt|apartment|unit|suite|ste|bldg|building|rm|room|trlr|trailer|spc|space) ([a-z]?[0-9]+[a-z]?|[a-z]) (?=[0-9])', ' ') AS t
+      FROM s
   ), h AS (
-    SELECT t, substring(t from '^ [^ ]*') AS head FROM s
+    SELECT t, substring(t from '^ [^ ]*') AS head FROM l
   ), u AS (
     -- The unit part goes, from its first designator on (never the first word: that is the house number).
+    -- 'ste', 'space', 'building', 'room' and 'trailer' count only before a number or letter-number
+    -- ("Ste Marie" is a Louisiana street word, round 4 #1).
     SELECT btrim(head || regexp_replace(substr(t, char_length(head) + 1),
-                 ' (apt|apartment|unit|suite|ste|bldg|building|rm|room|trlr|trailer|spc|space)( .*)?$', ' ')) AS t FROM h
+                 ' (apt|apartment|unit|suite|bldg|rm|trlr|spc|(ste|space|building|room|trailer)(?= [a-z]?[0-9]))( .*)?$', ' ')) AS t FROM h
   )
   SELECT coalesce((SELECT string_agg(coalesce(m.short, w.tok), ' ' ORDER BY w.ord)
                      FROM unnest(string_to_array(u.t, ' ')) WITH ORDINALITY AS w(tok, ord)

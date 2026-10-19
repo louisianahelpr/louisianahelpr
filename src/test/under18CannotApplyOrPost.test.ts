@@ -80,6 +80,7 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/lib/cppRouting.ts": "App Store custom-product-page landing map; lands on the gated form",
   "src/lib/nativeLaunchRoute.ts": "cold-launch route restore; lands on the gated form",
   "src/components/MobileNav.tsx": "idle chunk prefetch only: the dock has no + since 2026-10-19; the entry is AppTopBar's +, which is gated",
+  "src/lib/declutter/sellForMe.ts": "data only: Sell it for me's Post a Job path; the buttons that open it (SellItForMe.tsx) read useAgeGate and grey it",
   "src/components/sections/sectionsConfig.ts": "data only: the Jobs section's + path; the entry a member taps is AppTopBar, which reads useAgeGate and greys it",
   "src/pages/post-job/EntryChoice.tsx": "a step INSIDE /post-job; the form it opens is gated",
   "src/pages/post-job/OfferToSavedHelpr.tsx": "a step INSIDE /post-job; the form it opens is gated",

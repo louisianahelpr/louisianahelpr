@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { useFeature } from "@/hooks/useFeature";
+import { useAgeGate } from "@/hooks/useAgeGate";
 import { browseShops, fetchShopCardExtras } from "@/lib/shops/api";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { sellForMePostJobPath, SELL_FOR_ME_SHOP_CATEGORY } from "@/lib/declutter/sellForMe";
@@ -58,10 +59,16 @@ export function SellItForMeEntry() {
   );
 }
 
-export function SellItForMeSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function SellItForMeSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const shopsOn = useFeature("shops");
   const navigate = useNavigate();
+  // Under 18 cannot post a job (Q1586): the choice is greyed and a tap says why.
+  const { underAge, explain, gatedProps } = useAgeGate();
   const hireHelpr = () => {
+    if (underAge) {
+      explain("post");
+      return;
+    }
     onOpenChange(false);
     navigate(sellForMePostJobPath());
   };
@@ -73,7 +80,7 @@ export function SellItForMeSheet({ open, onOpenChange }: { open: boolean; onOpen
           <p className="text-sm text-muted-foreground">
             {shopsOn ? "Pick who helps. It's your choice." : "A local Helpr can do the photos and listings with you."}
           </p>
-          <button type="button" className={ROW} onClick={hireHelpr} data-testid="sell-for-me-hire-helpr">
+          <button type="button" className={ROW} onClick={hireHelpr} data-testid="sell-for-me-hire-helpr" {...gatedProps("post")}>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               <UserRound className="h-5 w-5" aria-hidden />
             </span>
@@ -85,7 +92,7 @@ export function SellItForMeSheet({ open, onOpenChange }: { open: boolean; onOpen
             </span>
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           </button>
-          {shopsOn && open && <LocalBusinesses onHireHelpr={hireHelpr} />}
+          {shopsOn && open && <LocalBusinesses onHireHelpr={hireHelpr} hireProps={gatedProps("post")} />}
         </div>
       </SheetContent>
     </Sheet>
@@ -93,7 +100,7 @@ export function SellItForMeSheet({ open, onOpenChange }: { open: boolean; onOpen
 }
 
 /** Option B: nearby shops that sell things for people. */
-function LocalBusinesses({ onHireHelpr }: { onHireHelpr: () => void }) {
+function LocalBusinesses({ onHireHelpr, hireProps }: { onHireHelpr: () => void; hireProps: ReturnType<ReturnType<typeof useAgeGate>["gatedProps"]> }) {
   const { origin } = useDeclutterOrigin();
   const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
   const categories = useShopCategories();
@@ -131,7 +138,7 @@ function LocalBusinesses({ onHireHelpr }: { onHireHelpr: () => void }) {
         <div className="rounded-2xl border border-border bg-card p-4 text-center" data-testid="sell-for-me-no-businesses">
           <Store className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden />
           <p className="mt-2 text-sm font-semibold">No local businesses offer this yet.</p>
-          <SectionActionPill className="mt-3" onClick={onHireHelpr}>
+          <SectionActionPill className="mt-3" onClick={onHireHelpr} {...hireProps}>
             Hire a Helpr instead
           </SectionActionPill>
         </div>

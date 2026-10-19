@@ -22,7 +22,7 @@ export function sellForMePostJobPath(): string {
 }
 
 /** The job category option A posts in (migration 20261019210635). */
-export const SELL_FOR_ME_JOB_CATEGORY: JobCategory = "declutter_help";
+const SELL_FOR_ME_JOB_CATEGORY: JobCategory = "declutter_help";
 
 /** The Shops category option B lists (migration 20261019210636). */
 export const SELL_FOR_ME_SHOP_CATEGORY = "declutter_estate_sales";
@@ -31,14 +31,14 @@ export const SELL_FOR_ME_SHOP_CATEGORY = "declutter_estate_sales";
  * The suggested title. public.jobs caps a title at 32 characters (Q782), so
  * the longer "Photograph and list my items for sale" would not fit.
  */
-export const SELL_FOR_ME_TITLE = "Photograph and list my items";
+const SELL_FOR_ME_TITLE = "Photograph and list my items";
 
 /** The no-account-access promise, said in the job itself (owner 2026-10-19). */
 export const SELL_FOR_ME_NO_ACCOUNT_LINE =
   "Your Helpr takes the photos and writes the listings with you; you post them from your account.";
 
 /** The description template the poster fills in (under the 1000-character cap). */
-export const SELL_FOR_ME_DESCRIPTION = [
+const SELL_FOR_ME_DESCRIPTION = [
   "I'd like help selling things I no longer need on Declutter.",
   "",
   "How many items: about ",
@@ -58,6 +58,3 @@ export interface SellForMePrefill {
 export function buildSellForMePrefill(): SellForMePrefill {
   return { category: SELL_FOR_ME_JOB_CATEGORY, title: SELL_FOR_ME_TITLE, description: SELL_FOR_ME_DESCRIPTION };
 }
-
-/** The message a seller would send a business, once shops can be asked (Q1869 / Q1947). */
-export const SELL_FOR_ME_QUOTE_MESSAGE = "I'd like a quote to help sell my items: ";

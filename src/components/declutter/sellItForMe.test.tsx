@@ -14,16 +14,17 @@
  * src/test/shopCategories.test.ts, the enum value src/lib/jobCategories.test.ts.
  *
  * @mutate src/components/declutter/SellItForMe.tsx |   if (!declutterOn) return null; |
- * @mutate src/components/declutter/SellItForMe.tsx |           {shopsOn && open && <LocalBusinesses onHireHelpr={hireHelpr} />} |           {open && <LocalBusinesses onHireHelpr={hireHelpr} />}
+ * @mutate src/components/declutter/SellItForMe.tsx | {shopsOn && open && <LocalBusinesses onHireHelpr={hireHelpr} hireProps={gatedProps("post")} />} | {open && <LocalBusinesses onHireHelpr={hireHelpr} hireProps={gatedProps("post")} />}
  * @mutate src/components/declutter/SellItForMe.tsx |     queryFn: () => browseShops({ lat: from?.lat ?? null, lng: from?.lng ?? null, category: SELL_FOR_ME_SHOP_CATEGORY }), |     queryFn: () => browseShops({ lat: from?.lat ?? null, lng: from?.lng ?? null }),
  * @mutate src/components/declutter/SellItForMe.tsx |                   onClick={() => setAsked(s.id)} |                   onClick={() => {}}
- * @mutate src/components/declutter/SellItForMe.tsx |           <SectionActionPill className="mt-3" onClick={onHireHelpr}> |           <SectionActionPill className="mt-3">
+ * @mutate src/components/declutter/SellItForMe.tsx |           <SectionActionPill className="mt-3" onClick={onHireHelpr} {...hireProps}> |           <SectionActionPill className="mt-3" {...hireProps}>
+ * @mutate src/components/declutter/SellItForMe.tsx |     if (underAge) {\n      explain("post");\n      return;\n    } | 
  * @mutate src/components/declutter/SellItForMe.tsx |     navigate(sellForMePostJobPath()); |     navigate("/post-job");
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SellItForMeEntry />\n | \n
  * @mutate src/components/declutter/DeclutterSellView.tsx |       {!itemId && <SellItForMeEntry />} |
  * @mutate src/pages/post-job/useJobFormEffects.ts |     setCategory(p.category);\n    setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]); |     setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]);
  * @mutate src/pages/post-job/usePostJobForm.ts |   const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) \|\| | const skipEntry = !!(
- * @mutate src/lib/declutter/sellForMe.ts | export const SELL_FOR_ME_TITLE = "Photograph and list my items"; | export const SELL_FOR_ME_TITLE = "Photograph and list my items for sale";
+ * @mutate src/lib/declutter/sellForMe.ts | const SELL_FOR_ME_TITLE = "Photograph and list my items"; | const SELL_FOR_ME_TITLE = "Photograph and list my items for sale";
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
@@ -38,9 +39,18 @@ const state = vi.hoisted(() => ({
   shops: [] as unknown[],
   browseCalls: [] as unknown[],
   fail: false,
+  underAge: false,
+  explained: [] as string[],
 }));
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => !!state.switches[k] }));
+vi.mock("@/hooks/useAgeGate", () => ({
+  useAgeGate: () => ({
+    underAge: state.underAge,
+    explain: (kind: string) => { state.explained.push(kind); },
+    gatedProps: (kind: string) => (state.underAge ? { "aria-disabled": true, "data-age-gated": kind } : {}),
+  }),
+}));
 vi.mock("./useDeclutterOrigin", () => ({ useDeclutterOrigin: () => ({ origin: { status: "ready", lat: 30.45, lng: -91.15 } }) }));
 vi.mock("@/lib/shops/api", () => ({
   browseShops: async (args: unknown) => {
@@ -119,6 +129,22 @@ describe("Sell it for me: A, hire a Helpr", () => {
     state.switches = { declutter: true, shops: true };
     state.shops = [];
     state.browseCalls = [];
+    state.underAge = false;
+    state.explained = [];
+  });
+
+  it("under 18 the Helpr choice (and the empty state's) is greyed and only says why (Q1586)", async () => {
+    state.underAge = true;
+    show();
+    open();
+    const hire = await screen.findByTestId("sell-for-me-hire-helpr");
+    expect(hire).toHaveAttribute("data-age-gated", "post");
+    fireEvent.click(hire);
+    const other = within(await screen.findByTestId("sell-for-me-no-businesses")).getByRole("button", { name: "Hire a Helpr instead" });
+    expect(other).toHaveAttribute("data-age-gated", "post");
+    fireEvent.click(other);
+    expect(state.explained).toEqual(["post", "post"]);
+    expect(screen.queryByTestId("where")).toBeNull();
   });
 
   it("opens Post a Job pre-filled for a Declutter Help job", async () => {

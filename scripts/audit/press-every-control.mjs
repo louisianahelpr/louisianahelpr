@@ -735,6 +735,12 @@ const CONSOLE_NOISE = [
   // A 406 from `.single()` with zero rows is real PostgREST behaviour the app
   // handles (maybeSingle → null); the network watcher excludes 406 too.
   /status of 406/i,
+  // The network gate's own aborts (route.abort("blockedbyclient")): a side
+  // effect or a gate miss is already recorded on the row; the browser's
+  // console line about the refused request is the harness, not the app
+  // (press-every-control 39225521269: "View <job>" FAILED on it after
+  // record_job_view, a listed side effect, was aborted).
+  /net::ERR_BLOCKED_BY_CLIENT/i,
 ];
 
 /**

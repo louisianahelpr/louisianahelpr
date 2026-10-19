@@ -294,6 +294,10 @@ ok(refused(await remove(ADMIN, draftId), /listing_not_live/, "22023"), "must-fix
 const admOpen = rows(await as("authenticated", ADMIN, `SELECT public.rentals_admin_listings() AS a`))[0]?.a;
 ok(admOpen?.open?.some((x) => x.id === rentId) && admOpen.open.some((x) => x.id === saleId) && !admOpen.open.some((x) => x.id === draftId),
   "the admin card lists live and paused listings to take down (not drafts)");
+const openQ = async (q, oo = 0) => rows(await as("authenticated", ADMIN, `SELECT public.rentals_admin_listings('${q}', ${oo}, 0) AS a`))[0]?.a;
+ok((await openQ(slug))?.open?.map((x) => x.id).join() === rentId, "round 4 #5: the open list finds a listing by its link code");
+ok((await openQ("BRICK"))?.open?.map((x) => x.id).join() === saleId, "by headline words (any case)");
+ok((await openQ("70501"))?.open_total === 2 && (await openQ("70501", 1))?.open?.length === 1 && admOpen.page_size === 25, "by ZIP, paged with a total");
 await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'rentals'`);
 ok(Array.isArray(await remove(ADMIN, rentId)), "an admin removes a live listing, even with the Homes switch off (moderation is never gated)");
 await svc(`UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'rentals'`);
@@ -330,15 +334,44 @@ ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_create_pro
   "the owner cannot add the taken-down address again (case, spacing and punctuation ignored)");
 ok(typeof one(await as("authenticated", LANDLORD, `SELECT public.rentals_create_property('Other', '77 Pine St', 'Lafayette', '70501') AS id`)) === "string",
   "a different address is fine");
+// round 4 #2: the key is normalised (suffixes, directions, unit/apt part, ZIP+4), and ANY other owner's match is flagged
+const key = async (st, z) => one(await svc(`SELECT public.rentals_address_key('${st}', '${z}')`));
+ok((await key("123 Oak Street, Apt 4", "70501-1234")) === (await key("123 oak st", "70501")), "round 4 #2: 'Street, Apt 4' and ZIP+4 key the same as 'st'");
+ok((await key("45 North Elm Avenue #2B", "70503")) === (await key("45 N. Elm Ave", "70503")), "directions, avenue/ave and a '#' unit key the same");
+ok((await key("9 Pine Road Suite 100", "70503")) === (await key("9 PINE RD", "70503")), "road/rd and a suite key the same");
+ok((await key("124 Oak St", "70501")) !== (await key("123 Oak St", "70501")), "a different house number is a different home");
+ok((await key("123 Oak St", "70508")) !== (await key("123 Oak St", "70501")), "a different ZIP is a different home");
+ok((await key("12 Aptitude Ln", "70501")) === "12 aptitude ln|70501", "a street word that only starts like a unit word is kept");
+ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_create_property('Oak unit', '123 Oak Street, Unit 4', 'Lafayette', '70501-1234')`), /property_taken_down/, "42501"),
+  "the owner cannot add it back as 'Street, Unit 4' with a ZIP+4 either");
+const otherProp = one(await as("authenticated", STRANGER, `SELECT public.rentals_create_property('My Oak', '123 Oak Street', 'Lafayette', '70501') AS id`));
+ok(typeof otherProp === "string", "another member adding the same address is not refused (it is flagged to the reviewer)");
+const otherClean = one(await as("authenticated", STRANGER, `SELECT public.rentals_create_property('Mine', '500 Cedar Dr', 'Lafayette', '70501') AS id`));
+const matches = one(await as("authenticated", ADMIN, `SELECT public.rentals_admin_takedown_matches(ARRAY['${otherProp}', '${otherClean}']::uuid[])`));
+ok(Array.isArray(matches) && matches.length === 1 && matches[0].property_id === otherProp && matches[0].matched_property_id === prop
+  && matches[0].matched_street === "123 Oak St" && matches[0].same_owner === false && matches[0].reason === "Photos do not show this home.",
+  "round 4 #2: the reviewer sees the other owner's match, with the matched taken-down address and its reason (and nothing for a clean address)");
+ok(refused(await as("authenticated", STRANGER, `SELECT public.rentals_admin_takedown_matches(ARRAY['${otherProp}']::uuid[])`), /not_authorized/, "42501"),
+  "a member cannot read the matches (the street is admin-only)");
+ok(refused(await as("anon", null, `SELECT public.rentals_admin_takedown_matches(ARRAY['${otherProp}']::uuid[])`), /permission denied/), "nor anon");
 // must-fix 6: lifting a mistaken take-down (admin only, audited): drafts back to draft, live/paused back to paused
 ok(refused(await lift(LANDLORD, prop), /not_authorized/, "42501"), "a member cannot lift a take-down");
 ok(refused(await lift(ADMIN, prop, "no"), /reason_required/, "22023"), "lifting needs a note");
 const adm = rows(await as("authenticated", ADMIN, `SELECT public.rentals_admin_listings() AS a`))[0]?.a;
 ok(adm?.taken_down?.length === 1 && adm.taken_down[0].property_id === prop && adm.taken_down[0].reason === "Photos do not show this home." && !JSON.stringify(adm).includes("Oak St"),
   "the admin card lists the taken-down property with its reason (no street)");
+// round 4 #5: search (link code, headline or label words, ZIP) and pages of 25 with totals
+const admQ = async (q, oo = 0, to = 0) => rows(await as("authenticated", ADMIN, `SELECT public.rentals_admin_listings(${q === null ? "NULL" : `'${q}'`}, ${oo}, ${to}) AS a`))[0]?.a;
+ok((await admQ("photos do not"))?.taken_down_total === 0 && (await admQ("oak"))?.taken_down_total === 1, "the taken-down list searches by property label (not by the reason)");
+ok((await admQ(slug))?.taken_down?.[0]?.property_id === prop, "and by a listing's link code on that property");
+ok((await admQ("70501"))?.taken_down_total === 1 && (await admQ("70599"))?.taken_down_total === 0, "and by ZIP");
+ok((await admQ(null, 0, 25))?.taken_down?.length === 0 && (await admQ(null, 0, 25))?.taken_down_total === 1, "a page past the end is empty but keeps the total");
+ok(refused(await as("authenticated", ADMIN, `SELECT public.rentals_admin_listings('${"x".repeat(101)}', 0, 0)`), /bad_query/, "22023"), "an over-long search is refused");
 ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_admin_listings()`), /not_authorized/, "42501"), "a member cannot read the admin list");
 ok(refused(await as("anon", null, `SELECT public.rentals_admin_listings()`), /permission denied/), "nor anon");
 ok(Array.isArray(await lift(ADMIN, prop)), "an admin lifts it");
+const afterLift = one(await as("authenticated", ADMIN, `SELECT public.rentals_admin_takedown_matches(ARRAY['${otherProp}']::uuid[])`));
+ok(Array.isArray(afterLift) && afterLift.length === 0, "once lifted, the other owner's property is no longer flagged");
 const back = rows(await svc(`SELECT id, status, removed_by_admin FROM public.rental_listings WHERE id IN ('${rentId}', '${saleId}', '${draftId}') ORDER BY id`));
 const st = (x) => back.find((r) => r.id === x);
 ok(st(rentId)?.status === "paused" && st(saleId)?.status === "paused" && st(draftId)?.status === "draft" && back.every((r) => r.removed_by_admin === false),
@@ -358,11 +391,12 @@ ok(refused(await remove(ADMIN, saleId), /listing_not_live/, "22023"), "and a sol
 const acl = async (sig) => one(await svc(`SELECT coalesce(proacl::text, '') FROM pg_proc WHERE oid = '${sig}'::regprocedure`)) ?? "";
 const pa = await acl("public.rentals_public_listing(text)");
 ok(/anon=X/.test(pa) && /authenticated=X/.test(pa) && !/(^|[{,])=X/.test(pa), `rentals_public_listing: anon + authenticated by name, not PUBLIC (${pa})`);
-for (const sig of ["public.rentals_admin_remove_listing(uuid,text)", "public.rentals_admin_lift_takedown(uuid,text)"]) {
+for (const sig of ["public.rentals_admin_remove_listing(uuid,text)", "public.rentals_admin_lift_takedown(uuid,text)",
+  "public.rentals_admin_listings(text,integer,integer)", "public.rentals_admin_takedown_matches(uuid[])"]) {
   const ra = await acl(sig);
   ok(/authenticated=X/.test(ra) && !/(^|[{,])(anon)?=X/.test(ra), `${sig}: authenticated (admin checked inside), anon/PUBLIC no (${ra})`);
 }
-for (const sig of ["public.rentals_public_listing_photo_path(uuid)", "public.rentals_public_listing_visible(uuid)"]) {
+for (const sig of ["public.rentals_public_listing_photo_path(uuid)", "public.rentals_public_listing_visible(uuid)", "public.rentals_address_key(text,text)"]) {
   const a = await acl(sig);
   ok(/service_role=X/.test(a) && !/(^|[{,])(anon|authenticated)?=X/.test(a), `${sig}: server-only (${a})`);
 }

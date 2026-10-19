@@ -318,7 +318,8 @@
     "rentals_public_listing(text)": "reviewed 2026-10-19 (Q2188): the public Homes listing link (D12) /r/<slug>, for anyone with the link (signed out too). Returns one listing's coarse facts only while rentals_public_listing_visible holds (live, not expired, ownership approved, owner not banned, not taken down, Homes open to everyone, not a test/seed owner): city + ZIP never the street, no owner or listing id, no storage path (photos by id/ref), and no size/lot/year for a home for sale; a hidden or unknown slug is P0002 listing_not_found. Proof: src/test/pglite/homesPublicLink.pglite.mjs. The /r/ page that calls it comes with the Slice 3 client.",
     "rentals_admin_remove_listing(uuid, text)": "client",
     "rentals_admin_lift_takedown(uuid, text)": "client",
-    "rentals_admin_listings()": "client"
+    "rentals_admin_listings(text, integer, integer)": "client",
+    "rentals_admin_takedown_matches(uuid[])": "client"
   },
   "unscoped": {
     "choose_new_social_account(uuid)": "reviewed 2026-10-05 (Q446): the signed-out choice screen marks the pending one-account choice whose random id only the refused sign-in received; it reads and returns nothing about any person, and marking a row only lets that same Apple/Google identity create its account.",

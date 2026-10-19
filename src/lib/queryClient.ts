@@ -39,7 +39,13 @@ function reportCacheError(kind: "QueryCache" | "MutationCache", error: unknown, 
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
-    onError: (error, query) => reportCacheError("QueryCache", error, query.queryKey),
+    // `meta: { reportsItself: true }`: a query that reports its own failure (at most
+    // once per session, e.g. the signed-out landing's public switch read) is
+    // skipped here, so one bad deploy does not log an error on every anon visit.
+    onError: (error, query) => {
+      if (query.meta?.reportsItself === true) return;
+      reportCacheError("QueryCache", error, query.queryKey);
+    },
   }),
   mutationCache: new MutationCache({
     onError: (error, _vars, _ctx, mutation) => reportCacheError("MutationCache", error, mutation.options.mutationKey),

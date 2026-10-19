@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, ArrowRight, Search, ChevronDown } from "lucide-react";
+import { ArrowRight, Search, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import HelprMark from "@/components/HelprMark";
+import { goSignedInOr } from "./goSignedInOr";
 
 /**
  * Hero — Louisiana Helpr 2026 brand system.
@@ -81,21 +82,16 @@ const HeroSection = () => {
     };
   }, []);
 
-  // CTAs render as real <Link>s (crawlable href = the anonymous-visitor
-  // destination). The onClick intercepts client-side so logged-in users get
-  // auth-aware routing instead, while crawlers/JS-disabled visitors still
-  // follow the static href.
-  const goToPostJob = async (e?: React.MouseEvent) => {
+  // The CTA renders as a real <Link> (crawlable href = the anonymous-visitor
+  // destination). The onClick intercepts client-side so a signed-in visitor
+  // lands on Home instead of the sign-up form.
+  const goToAccount = async (e?: React.MouseEvent) => {
     e?.preventDefault();
     if (loggedIn) {
-      navigate("/post-job");
+      navigate("/home");
       return;
     }
-    const { supabase } = await import("@/integrations/supabase/client");
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    navigate(session?.user ? "/post-job" : "/signup");
+    await goSignedInOr(navigate, "/home", "/signup");
   };
 
   return (
@@ -166,69 +162,29 @@ const HeroSection = () => {
           Jobs, Declutter, Shops and Homes: everything local, in one place.
         </p>
 
-        {/* Primary CTA sits horizontally next to a demoted Browse Jobs
-            text link so the fold has one clear primary + one quiet
-            secondary, side-by-side. Stacks vertically on mobile. */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+        {/* ONE obvious sign-up action (owner, 2026-10-19: the landing is the
+            front door for all four sections, so the CTA is the account, not
+            one section's form), with Browse as a quiet text link beside it. */}
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-7">
           <Button
             asChild
             size="xl"
-            className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] text-ds-17"
-            style={{
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              lineHeight: 1,
-              letterSpacing: "-0.005em",
-              color: "hsl(var(--parchment))",
-              border: "1px solid hsl(var(--bark-border))",
-              boxShadow:
-                "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
-            }}
+            className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-full tracking-tight text-ds-17"
+            style={{ fontFamily: "Montserrat, system-ui, sans-serif", fontWeight: 600, lineHeight: 1, color: "hsl(var(--parchment))" }}
           >
-            <Link to="/signup" onClick={goToPostJob}>
-              <Sparkles className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
-              Post a Job
-              <ArrowRight className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
+            <Link to="/signup" onClick={goToAccount} data-testid="landing-signup">
+              Join Helpr free
+              <ArrowRight className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.5} />
             </Link>
           </Button>
-          <Button
-            asChild
-            size="xl"
-            variant="outline"
-            className="group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-all duration-200 text-ds-17"
-            style={{
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              lineHeight: 1,
-              letterSpacing: "-0.005em",
-              color: "hsl(var(--bark))",
-              // `--surface-premium`, not a literal white. At
-              // `rgba(255,255,255,0.45)` this secondary hero CTA painted as a
-              // washed-out grey slab on the dark canvas, right beside a
-              // correctly-tinted "Post a job" — the two primary actions on the
-              // landing page disagreeing about what surface they sit on.
-              // (`--bark` above is already theme-aware and lightens on dark,
-              // so only the background was wrong.)
-              background: "var(--surface-premium)",
-              backgroundImage: "none",
-              backdropFilter: "blur(20px) saturate(180%)",
-              WebkitBackdropFilter: "blur(20px) saturate(180%)",
-              border: "1.5px solid hsl(var(--bark) / 0.4)",
-              boxShadow:
-                "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(46,47,34,0.08)",
-            }}
+          {/* The feed this visitor can use: the guest board, or Jobs > Browse once signed in. */}
+          <Link
+            to={loggedIn ? "/jobs" : "/browse"}
+            className="group inline-flex items-center gap-1.5 text-ds-17 font-semibold text-[hsl(var(--bark))] underline-offset-4 hover:underline"
           >
-            {/* Points at the feed this visitor can actually use: the guest
-                board, or the authed one once they are signed in. A plain
-                <Link> with the right `to` needs no click handler — the old one
-                preventDefault'd and re-navigated to a third route whose only
-                job was to look at the session and bounce again. */}
-            <Link to={loggedIn ? "/home" : "/browse"}>
-              <Search className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
-              Browse Jobs
-              <ArrowRight className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
-            </Link>
-          </Button>
+            <Search className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />
+            Browse local jobs
+          </Link>
         </div>
       </div>
 

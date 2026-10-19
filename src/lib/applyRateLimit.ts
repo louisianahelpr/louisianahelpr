@@ -28,13 +28,7 @@
  * The record helper is best-effort; a missing RPC is silently swallowed.
  */
 import { supabase } from "@/integrations/supabase/client";
-
-/** True when the Supabase RPC error code means "function not deployed". */
-function isMissingRpc(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const code = (error as { code?: string }).code;
-  return code === "PGRST202";
-}
+import { isMissingRpc } from "@/lib/missingRpc";
 
 export type RateLimitReason =
   | "rate_limit_minute"

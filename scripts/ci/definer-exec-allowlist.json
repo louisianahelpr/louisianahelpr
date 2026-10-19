@@ -12,7 +12,8 @@
     "my_credential_tier()": "reviewed 2026-10-05 (Q14): read inside the open_jobs_browse view; answers for auth.uid() only.",
     "seed_jobs_hidden_publicly()": "reviewed 2026-10-12 (Q14): the global launch switch, one public boolean. No app code calls it (the old client match was the feature-flag KEY constant in src/config/showSeedJobs.ts, and live 2026-10-12 only definer functions call it, no view or policy); scripts/check-launch-flags.sh reads it as anon with the publishable key.",
     "seed_hidden_in_discovery()": "reviewed 2026-10-07 (Q552): read inside the open_jobs_browse view, whose callers need EXECUTE (a view's function EXECUTE is checked against the caller); answers only whether the launch switch hides test rows from the CALLER.",
-    "shops_public_shop(uuid)": "client"
+    "shops_public_shop(uuid)": "client",
+    "features_open_to_everyone()": "client"
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",
@@ -313,7 +314,8 @@
     "shops_set_handover_mode(text)": "reviewed 2026-10-18 (Q14): Shops M2 (20261018211820; lh-authz-rls re-review approve-with-notes): client RPC behind switch 'shops' (require_feature first); refuses a banned caller; sets the caller's own shop's handover choice only.",
     "shops_set_ready_tap_cancel(text)": "reviewed 2026-10-19 (Q14): Shops O2 (20261019015018; lh-authz-rls review): client RPC behind switch 'shops' (require_feature first); refuses a banned caller; sets the caller's own shop's ready-tap choice only (WHERE owner_id = the caller).",
     "admin_rule_helpr_fault(uuid, uuid, text, text)": "reviewed 2026-10-19 (Q14): Helpr at fault (Q2082; 20261019015301; lh-authz-rls approve). Admin only (has_role on auth.uid(); every other caller is refused with not_authorized). Records one Helpr-at-fault ruling (no_show or backout) per job and Helpr with a required note, adds the strike once, and writes admin_audit_log; moves no money (the card fee is billed later by the service-role-only bill_helpr_fault_card_fee). Called by create-payment's admin refund paths with the admin's own JWT so the ruling records who ruled.",
-    "shops_public_shop(uuid)": "client"
+    "shops_public_shop(uuid)": "client",
+    "features_open_to_everyone()": "client"
   },
   "unscoped": {
     "choose_new_social_account(uuid)": "reviewed 2026-10-05 (Q446): the signed-out choice screen marks the pending one-account choice whose random id only the refused sign-in received; it reads and returns nothing about any person, and marking a row only lets that same Apple/Google identity create its account.",
@@ -358,6 +360,7 @@
     "shops_save_my_pickup_address(text, text, text, text)": "reviewed 2026-10-18 (Q1284): Shops M1b (20261018210400); reads the caller only through public.shops_assert_owner_eligible(), called first after require_feature and the ban check (v_uid := ...), which refuses a NULL caller (42501 not_authenticated); the one row it writes is the caller's own shop's pickup address (shops.owner_id = v_uid).",
     "shops_set_handover_mode(text)": "reviewed 2026-10-18 (Q1284): Shops M2 (20261018211820); reads the caller only through public.shops_assert_owner_eligible(), called first after require_feature and the ban check (v_uid := ...), which refuses a NULL caller (42501 not_authenticated); the one row it writes is the caller's own shop (WHERE owner_id = v_uid).",
     "shops_set_ready_tap_cancel(text)": "reviewed 2026-10-19 (Q1284): Shops O2 (20261019015018); reads the caller only through public.shops_assert_owner_eligible(), called first after require_feature and the ban check (v_uid := ...), which refuses a NULL caller (42501 not_authenticated); the one row it writes is the caller's own shop (WHERE owner_id = v_uid).",
-    "shops_public_shop(uuid)": "reviewed 2026-10-19 (Q1284): SH2b public shop page (owner: anyone with the link may look; 20261019042744); deliberately reads no caller, it answers the same for anon and members. Returns only what the page shows, for a shop shop_link_visible allows (shop_state_ok: not hidden, no test shop while seeds are hidden, owner in good standing; not paused; Shops not switched off for everyone; never the owner's own switch, which would be a tester oracle); photos by id only; no owner id, person rating, pin, SoS number, hidden reason or pickup address; one NULL for every refusal."
+    "shops_public_shop(uuid)": "reviewed 2026-10-19 (Q1284): SH2b public shop page (owner: anyone with the link may look; 20261019042744); deliberately reads no caller, it answers the same for anon and members. Returns only what the page shows, for a shop shop_link_visible allows (shop_state_ok: not hidden, no test shop while seeds are hidden, owner in good standing; not paused; Shops not switched off for everyone; never the owner's own switch, which would be a tester oracle); photos by id only; no owner id, person rating, pin, SoS number, hidden reason or pickup address; one NULL for every refusal.",
+    "features_open_to_everyone()": "reviewed 2026-10-19 (Q14): the signed-out landing's one public read (front door, code-review approve). Takes no arguments and touches no person: returns which of the three section switch keys (declutter, shops, rentals; already in the client bundle) are at audience 'everyone', nothing about testers, admins or any other switch, so it has no auth.uid() to scope by."
   }
 }

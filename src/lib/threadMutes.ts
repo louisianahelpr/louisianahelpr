@@ -27,18 +27,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { isTeamThreadKey } from "@/lib/teamThread";
+import { isMissingRpc } from "@/lib/missingRpc";
 
 const STORAGE_KEY = "helpr_muted_threads_v2";
 // Legacy key from before the snooze TTL existed — migrated lazily on
 // first read so existing forever-mutes don't snap back to unmuted.
 const LEGACY_STORAGE_KEY = "helpr_muted_threads_v1";
 
-/** True when the Supabase RPC error code means "function not deployed". */
-function isMissingRpc(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const code = (error as { code?: string }).code;
-  return code === "PGRST202";
-}
 
 /** Stable composite key — mirrors the (user, job, other) tuple. */
 function localKey(userId: string, jobId: string, otherUserId: string): string {

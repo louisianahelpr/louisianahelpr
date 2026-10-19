@@ -381,11 +381,16 @@ ok(one(await svc(`SELECT listings_taken_down_at IS NOT NULL FROM public.rental_p
   && one(await svc(`SELECT count(*)::int FROM public.rental_photo_purge_queue WHERE bucket_id = 'listing-photos'`)) === 11,
   "and the refused lift changed nothing (still taken down, every entry queued)");
 await svc(`UPDATE public.rental_photo_purge_queue SET claimed_at = now() - interval '16 minutes', due_at = now() + interval '30 days' WHERE storage_path = '${P(1)}'`);
+// lead round 4 #2: a STALE claim whose object is already gone (a run that died after Storage removed it) refuses too
+await svc(`UPDATE storage.objects SET name = name || '.gone' WHERE bucket_id = 'listing-photos' AND name = '${P(1)}'`);
+ok(refused(await as("authenticated", ADMIN, `SELECT public.rentals_admin_lift_takedown('${propId}', 'Removed by mistake.')`), /photos_purging/, "55000"),
+  "lead round 4 #2: a stale claim whose object is gone from Storage refuses the lift (no listing restored over a missing photo)");
+await svc(`UPDATE storage.objects SET name = '${P(1)}' WHERE bucket_id = 'listing-photos' AND name = '${P(1)}.gone'`);
 ok(one(await svc(`SELECT public.rentals_photo_purge_done('listing-photos', ARRAY['${P(2)}']::text[])`)) === 0
   && one(await svc(`SELECT count(*)::int FROM public.rental_listing_photos WHERE storage_path = '${P(2)}'`)) === 1,
   "purge_done drops only CLAIMED entries (an unclaimed path reported done stays queued, its photo row too)");
 // a lift restores everything, and its queue entries are dropped under the lock, never purged
-ok(Array.isArray(await as("authenticated", ADMIN, `SELECT public.rentals_admin_lift_takedown('${propId}', 'Removed by mistake.')`)), "an admin lifts the take-down (a stale claim does not block it)");
+ok(Array.isArray(await as("authenticated", ADMIN, `SELECT public.rentals_admin_lift_takedown('${propId}', 'Removed by mistake.')`)), "an admin lifts the take-down (a stale claim whose objects are all still there does not block it)");
 ok(one(await svc(`SELECT count(*)::int FROM public.rental_photo_purge_queue WHERE bucket_id = 'listing-photos'`)) === 0,
   "round 3 #1: the lift itself dropped every queue entry of the property (the cron never sees them)");
 await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${rentId}', 'live')`);

@@ -184,6 +184,22 @@ const UNREACHABLE: Allowlist = {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
   },
+  // Homes rent and deposit records (20261019073106, 20261019082216): reads; a failed read shows the panel's own
+  // fixed load-error line ("Couldn't load the rent record." / "...the deposit record."), never a code's words.
+  rentals_rent_ledger: {
+    feature_disabled: { reason: RENTALS_READ },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+    tenancy_not_found: { reason: "no code's words at this site: the panel only renders for a tenancy the caller's own list returned; a not-found (ended or revoked meanwhile) shows the panel's fixed load-error line." },
+  },
+  rentals_deposit: {
+    feature_disabled: { reason: RENTALS_READ },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+    tenancy_not_found: { reason: "no code's words at this site: the panel only renders for a tenancy the caller's own list returned; a not-found (ended or revoked meanwhile) shows the panel's fixed load-error line." },
+  },
+  rentals_my_ended_deposits: {
+    feature_disabled: { reason: RENTALS_READ },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+  },
   rentals_my_identity: {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },

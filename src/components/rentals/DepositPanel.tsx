@@ -153,7 +153,7 @@ function SettleForm({ tenancyId, amountCents, onDone }: { tenancyId: string; amo
           You can't keep more than the deposit.
         </p>
       )}
-      <Input aria-label="Day you returned it" type="date" max={centralToday()} value={on} onChange={(e) => setOn(e.target.value)} required />
+      <Input className="min-w-0" aria-label="Day you returned it" type="date" max={centralToday()} value={on} onChange={(e) => setOn(e.target.value)} required />
       <Button type="submit" size="sm" disabled={m.isPending || !valid}>
         {m.isPending ? "Sending…" : "Send the statement"}
       </Button>

@@ -111,8 +111,8 @@ describe("Q2082 (b): Helpr at fault = full refund, Helpr billed the card fee, on
     const rule = code.slice(code.indexOf("async function ruleHelprFaultFirst("));
     expect(rule).toMatch(/await asAdmin\.rpc\("admin_rule_helpr_fault"[\s\S]*?const gone = await helprFaultHelprIsGone\(supabaseAdmin, jobId\); if \(gone === null\) \{ return \{ refusal: new Response\([^;]*status: 503 \}\) \}; \} return \{ gone \}; \}/);
     for (const [action, call, flag] of [
-      ["admin_refund_general", "const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, helprFault); if (\"refusal\" in ruled) return ruled.refusal; helprFaultGone = ruled.gone;", "helprFaultGone"],
-      ["admin_refund_dispute", "const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, disputeHelprFault); if (\"refusal\" in ruled) return ruled.refusal; disputeHelprFaultGone = ruled.gone;", "disputeHelprFaultGone"],
+      ["admin_refund_general", "const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, helprFault); if (\"refusal\" in ruled) { await putGeneralClaimBack(\"the Helpr-at-fault ruling was refused\"); return ruled.refusal; } helprFaultGone = ruled.gone;", "helprFaultGone"],
+      ["admin_refund_dispute", "const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, disputeHelprFault); if (\"refusal\" in ruled) { await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaim.claim); return ruled.refusal; } disputeHelprFaultGone = ruled.gone; disputeHelprFaultLive = !disputeHelprFaultGone;", "disputeHelprFaultGone"],
     ]) {
       const start = code.indexOf(`if (action === "${action}")`);
       const end = code.indexOf("if (action === \"", start + 10);
@@ -124,9 +124,42 @@ describe("Q2082 (b): Helpr at fault = full refund, Helpr billed the card fee, on
     // Gone: the ordinary fee-keeping split, and no card fee to bill.
     expect(code).toContain("const split = helprFault && !helprFaultGone ? helprFaultSplit : generalSplit;");
     expect(code).toContain("if (helprFault && !helprFaultGone) helprFaultCardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents);");
-    expect(code).toContain("const disputeHelprFaultLive = disputeHelprFault != null && !disputeHelprFaultGone;");
+    expect(code).toContain("let disputeHelprFaultLive = false;");
     expect(code).toContain("const disputeEffectiveSplit = disputeHelprFaultLive ? helprFaultDisputeSplit : disputeSplit;");
     expect(code).toContain("if (disputeHelprFaultLive) disputeHelprFaultCardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents);");
     expect(code).toContain("const disputeSendCents = disputeHelprFaultLive ? helprFaultDisputeRefundCents : refundAmount;");
+  });
+
+  // lh-money-escrow review of c4ec33afb #3 (and lh-authz-rls LOW #2): the
+  // ruling and its strike are recorded only AFTER every refusal that moves no
+  // money: in the general refund after the payout-ledger check and Stripe's
+  // transfer list, in the dispute refund after the settlement claim and
+  // Stripe's transfer list. Recorded first, a refusal there left a permanent
+  // ruling + strike with no money moved.
+  // @mutate supabase/functions/create-payment/index.ts |      let helprFaultGone = false;\n | let helprFaultGone = false; if (helprFault) { const r0 = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, helprFault); if ("refusal" in r0) return r0.refusal; }\n
+  // @mutate supabase/functions/create-payment/index.ts |      let disputeHelprFaultCardFeeCents: number \| null = null;\n |      let disputeHelprFaultCardFeeCents: number \| null = null; if (disputeHelprFault) { const r0 = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, disputeHelprFault); if ("refusal" in r0) return r0.refusal; }\n
+  it("the ruling is recorded only after the refund's own refusals (no strike on a refused refund)", () => {
+    const code = norm(blankComments(readFileSync(join(ROOT, "supabase/functions/create-payment/index.ts"), "utf8")));
+    const cases: Array<[string, string[]]> = [
+      ["admin_refund_general", ["crewBlockFeeRefusal(", "escrowAlreadyMovedTheOtherWay(", "stripe.transfers.list("]],
+      ["admin_refund_dispute", ["crewBlockFeeRefusal(", "claimDisputeSettlement(", "stripe.transfers.list("]],
+    ];
+    let checked = 0;
+    for (const [action, refusals] of cases) {
+      const start = code.indexOf(`if (action === "${action}")`);
+      const end = code.indexOf("if (action === \"", start + 10);
+      const block = code.slice(start, end > 0 ? end : undefined);
+      const rulings = block.split("await ruleHelprFaultFirst(").length - 1;
+      expect(rulings, `${action} records the ruling exactly once`).toBe(1);
+      const ruledAt = block.indexOf("await ruleHelprFaultFirst(");
+      for (const r of refusals) {
+        const at = block.indexOf(r);
+        expect(at, `${action}: ${r} is present`).toBeGreaterThan(0);
+        expect(ruledAt, `${action}: the ruling comes after ${r}`).toBeGreaterThan(at);
+        checked++;
+      }
+      expect(ruledAt).toBeLessThan(block.indexOf("stripe.refunds.create("));
+    }
+    expect(checked).toBeGreaterThan(5);
   });
 });

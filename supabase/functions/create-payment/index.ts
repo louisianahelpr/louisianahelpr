@@ -3256,20 +3256,19 @@ serve(async (req) => {
         }
       }
 
-      // Q2082 (b): the ruling first (shared with the general path); a refusal moves nothing.
+      // Q2082 (b): the ruling is recorded inside the claim, below (shared with the general path).
       // lh-money-escrow review of c4ec33afb #1: the same refusal as the general path.
       if (!disputeHelprFault) {
         const plainRefused = await refuseRefundWithoutFaultRuling(supabaseAdmin, jobId);
         if (plainRefused) return plainRefused;
       }
+      // The ruling itself is recorded further down, inside the settlement
+      // claim and after Stripe confirms no transfer left: a refusal before it
+      // used to leave a permanent ruling + strike with no money moved
+      // (lh-money-escrow review of c4ec33afb #3).
       let disputeHelprFaultGone = false;
-      if (disputeHelprFault) {
-        const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, disputeHelprFault);
-        if ("refusal" in ruled) return ruled.refusal;
-        disputeHelprFaultGone = ruled.gone;
-      }
-      // Live = the card fee goes back and the Helpr is billed it.
-      const disputeHelprFaultLive = disputeHelprFault != null && !disputeHelprFaultGone;
+      // Live = the card fee goes back and the Helpr is billed it (set once ruled).
+      let disputeHelprFaultLive = false;
       let disputeHelprFaultCardFeeCents: number | null = null;
 
       // Refund the captured payment
@@ -3381,26 +3380,8 @@ serve(async (req) => {
               alreadyRefundedCents: disputeOtherRefundedCents,
               taxCents: disputeTaxCents,
             });
-            const disputeEffectiveSplit = disputeHelprFaultLive ? helprFaultDisputeSplit : disputeSplit;
-            if (disputeHelprFaultLive) disputeHelprFaultCardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents);
-            const nonRefundableCents = disputeEffectiveSplit.nonRefundableCents;
             const refundAmount = disputeSplit.refundCents;
             const helprFaultDisputeRefundCents = helprFaultDisputeSplit.refundCents;
-            const disputeSendCents = disputeHelprFaultLive ? helprFaultDisputeRefundCents : refundAmount;
-            // Other flows already returned MORE than this refund may: the card
-            // fee it keeps was given away earlier. The $0 branch below would
-            // blame the processing fee; say what happened instead
-            // (lh-money-escrow review of Q1675 #2).
-            if (disputeOtherRefundedCents > disputeEffectiveSplit.ceilingCents + 1) {
-              await postSlackOpsAlert({
-                kind: "money_at_risk",
-                severity: "warning",
-                title: "Disputed job's charge was already refunded past what the refund keeps",
-                message: "Earlier refunds by another flow returned more than a dispute refund may (they ate into the card fee it keeps). Nothing more is refunded; reconcile by hand.",
-                fields: { job_id: jobId, payment_intent: paymentIntentId, refunded_cents: disputeOtherRefundedCents, refundable_cents: disputeEffectiveSplit.ceilingCents },
-                oncePerDayKey: `dispute-refunded-past-kept:${jobId}`,
-              });
-            }
             // A retried/double-clicked call within Stripe's ~24h key lifetime
             // returns the original refund. After key expiry, a repeat attempt
             // is rejected by Stripe with charge_already_refunded — still loud.
@@ -3462,6 +3443,36 @@ serve(async (req) => {
               }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
             }
 
+            // Q2082 (b): the ruling, only now that every refusal that moves no
+            // money has passed (the claim is held and Stripe shows no transfer).
+            // A refusal from the ruling itself hands the claim back.
+            if (disputeHelprFault) {
+              const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, disputeHelprFault);
+              if ("refusal" in ruled) {
+                await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaim.claim);
+                return ruled.refusal;
+              }
+              disputeHelprFaultGone = ruled.gone;
+              disputeHelprFaultLive = !disputeHelprFaultGone;
+            }
+            const disputeEffectiveSplit = disputeHelprFaultLive ? helprFaultDisputeSplit : disputeSplit;
+            if (disputeHelprFaultLive) disputeHelprFaultCardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents);
+            const nonRefundableCents = disputeEffectiveSplit.nonRefundableCents;
+            const disputeSendCents = disputeHelprFaultLive ? helprFaultDisputeRefundCents : refundAmount;
+            // Other flows already returned MORE than this refund may: the card
+            // fee it keeps was given away earlier. The $0 branch below would
+            // blame the processing fee; say what happened instead
+            // (lh-money-escrow review of Q1675 #2).
+            if (disputeOtherRefundedCents > disputeEffectiveSplit.ceilingCents + 1) {
+              await postSlackOpsAlert({
+                kind: "money_at_risk",
+                severity: "warning",
+                title: "Disputed job's charge was already refunded past what the refund keeps",
+                message: "Earlier refunds by another flow returned more than a dispute refund may (they ate into the card fee it keeps). Nothing more is refunded; reconcile by hand.",
+                fields: { job_id: jobId, payment_intent: paymentIntentId, refunded_cents: disputeOtherRefundedCents, refundable_cents: disputeEffectiveSplit.ceilingCents },
+                oncePerDayKey: `dispute-refunded-past-kept:${jobId}`,
+              });
+            }
             if (disputeSendCents > 0) {
               // Stamp at the money step (round 3, M2): only a claim that
               // reached its Stripe call may stick; refund nothing without it.
@@ -3944,11 +3955,6 @@ serve(async (req) => {
           });
         }
       }
-      // Q2082 (b): the ruling comes first, as the admin (auth.uid() in the
-      // RPC is who ruled; it checks the admin role, the Helpr was booked here,
-      // and gives the Helpr exactly one strike for this job). It is
-      // idempotent ('already_ruled'), so a refund that stops below is retried
-      // by pressing the button again. No ruling, no fault refund.
       // lh-money-escrow review of c4ec33afb #1: once a job HAS a Helpr-at-fault
       // ruling, a refund without it would reuse the fault refund (card fee
       // back) and never bill the Helpr: refused, nothing moved.
@@ -3956,12 +3962,12 @@ serve(async (req) => {
         const plainRefused = await refuseRefundWithoutFaultRuling(supabaseAdmin, jobId);
         if (plainRefused) return plainRefused;
       }
+      // The ruling itself is recorded inside the job claim below, after the
+      // payout-ledger and Stripe checks: recorded first, a refusal there left
+      // a permanent ruling + strike with no money moved (lh-money-escrow
+      // review of c4ec33afb #3). A fault refund is always full, so it always
+      // passes through that block.
       let helprFaultGone = false;
-      if (helprFault) {
-        const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, helprFault);
-        if ("refusal" in ruled) return ruled.refusal;
-        helprFaultGone = ruled.gone;
-      }
 
       // ── Q1290: take the JOB before reading the payout ledger ──────────────
       // The ledger read below and the payout claim (payoutClaim.claimPayout:
@@ -4070,6 +4076,21 @@ serve(async (req) => {
               alreadyMoved: true,
             }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
           }
+        }
+
+        // Q2082 (b): the ruling, as the admin (auth.uid() in the RPC is who
+        // ruled; it checks the admin role, that the Helpr was booked here, and
+        // gives exactly one strike for this job), only now that the cheap
+        // refusals above have passed. Idempotent ('already_ruled'), so a refund
+        // that stops below is retried by pressing the button again. A refusal
+        // from the ruling hands the job claim back.
+        if (helprFault) {
+          const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, helprFault);
+          if ("refusal" in ruled) {
+            await putGeneralClaimBack("the Helpr-at-fault ruling was refused");
+            return ruled.refusal;
+          }
+          helprFaultGone = ruled.gone;
         }
       }
 

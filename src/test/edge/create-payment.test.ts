@@ -3043,9 +3043,9 @@ describe("create-payment edge function", () => {
       // setup fee, and when the Helpr's account is gone keeps the card fee as
       // well (nobody to bill; we never absorb it).
       // @mutate supabase/functions/create-payment/index.ts | setupFeeCents: setupFeeKeptCents(job), // the $2 stays on a disputed Helpr fault too | setupFeeCents: 0, // the $2 stays on a disputed Helpr fault too
-      // @mutate supabase/functions/create-payment/index.ts |       const disputeHelprFaultLive = disputeHelprFault != null && !disputeHelprFaultGone; |       const disputeHelprFaultLive = disputeHelprFault != null;
+      // @mutate supabase/functions/create-payment/index.ts |              disputeHelprFaultLive = !disputeHelprFaultGone; |              disputeHelprFaultLive = true;
       // @mutate supabase/functions/create-payment/index.ts |             if (disputeHelprFaultLive) disputeHelprFaultCardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents); |             if (disputeHelprFaultLive) disputeHelprFaultCardFeeCents = 0;
-      // @mutate supabase/functions/create-payment/index.ts |         if ("refusal" in ruled) return ruled.refusal;\n        disputeHelprFaultGone = ruled.gone; |         disputeHelprFaultGone = "gone" in ruled && ruled.gone;
+      // @mutate supabase/functions/create-payment/index.ts |              disputeHelprFaultGone = ruled.gone;\n              disputeHelprFaultLive = !disputeHelprFaultGone; |              disputeHelprFaultGone = false;\n              disputeHelprFaultLive = true;
       const HF = { helperId: "00000000-0000-4000-8000-0000000000a1", kind: "no_show", note: "never came" };
       const runFault = async () => {
         const fn = await load();
@@ -3090,6 +3090,28 @@ describe("create-payment edge function", () => {
         expect(res.status).toBe(409);
         expect((await res.json()).code).toBe("helpr_fault_ruling_exists");
         expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      });
+      // lh-money-escrow review of c4ec33afb #3: the ruling (and its strike) is
+      // recorded only once the refund's own refusals have passed. Stripe shows
+      // a transfer already left for this job: refused, and NO ruling recorded.
+      it("Helpr at fault refused by a refund refusal (a transfer already left): no ruling, no strike, nothing moved", async () => {
+        seedDispute({ budget: 100, customer_fee_amount: 0, platform_fee_percent: 0 }, faultCharge);
+        scenario.rpc.admin_rule_helpr_fault = { outcome: "ruled" };
+        stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_ghost", amount: 8800, amount_reversed: 0, transfer_group: "job_job-1" }] });
+        const res = await runFault();
+        expect(res.status).toBe(409);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect((scenario.rpcCalls ?? []).map((c) => c.name)).not.toContain("admin_rule_helpr_fault");
+      });
+      it("Helpr at fault refused by the ruling: the settlement claim is handed back", async () => {
+        seedDispute({ budget: 100, customer_fee_amount: 0, platform_fee_percent: 0 }, faultCharge);
+        scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "tok-hf" };
+        scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), admin_rule_helpr_fault: { message: "helper_not_booked" } };
+        const res = await runFault();
+        expect(res.status).toBe(409);
+        expect((scenario.rpcCalls ?? []).filter((c) => c.name === "release_dispute_settlement_claim")).toEqual([
+          expect.objectContaining({ args: { _job_id: "job-1", _token: "tok-hf" } }),
+        ]);
       });
       it("Helpr at fault refused by the ruling: nothing moved", async () => {
         seedDispute({ budget: 100, customer_fee_amount: 0, platform_fee_percent: 0 }, faultCharge);

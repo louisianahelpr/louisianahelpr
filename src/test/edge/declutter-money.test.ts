@@ -36,6 +36,9 @@
  * @mutate supabase/functions/declutter-money/index.ts |   const gaveUp = await admin.rpc("declutter_refund_gave_up_check", {}); |   const gaveUp = { error: null, data: 0 };
  * @mutate supabase/functions/declutter-money/index.ts |     message: /charge is not whole/.test(why) |     message: false
  * @mutate supabase/functions/declutter-money/index.ts |     if (recorded && byPage && recorded !== byPage) throw new Error(`refund row says ${recorded} but its order's page is ${byPage}`); |
+ * @mutate supabase/functions/declutter-money/index.ts |       if (!transfer && !(await transfersActive(stripe, p.stripe_account_id))) { |       if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |       if (!hTransfer && !(await transfersActive(stripe, h.stripe_account_id))) { |       if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |   return account?.capabilities?.transfers === "active"; |   return !!account;
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -116,6 +119,7 @@ beforeEach(() => {
     id: "pi_order1", status: "succeeded", latest_charge: { id: "ch_order1", amount_refunded: 0, disputed: false },
   });
   stripeMock.transfers.create.mockResolvedValue({ id: "tr_new1", destination: "acct_seller1" });
+  stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "active" } });
   stripeMock.refunds.create.mockResolvedValue({ id: "re_new1", status: "succeeded" });
 });
 
@@ -185,6 +189,36 @@ describe("declutter-money: seller payouts (B53)", () => {
     expect(body.no_payout_account).toBe(1);
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+  });
+
+  it("a seller who started payout setup but has not finished it is skipped WITHOUT using up a try (declutter-proof 2026-10-19)", async () => {
+    // Prod, measured: eli's test account acct_1URzEe3CI9eFJjCC, transfers "inactive". The old code sent the
+    // transfer, Stripe refused it, and each refusal used one of the 12 tries; the 12th gave the row up.
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "inactive" } });
+    const { status, body } = await run({ payouts: [payoutRow()] });
+    expect(status).toBe(200);
+    expect(body.payout_account_not_ready).toBe(1);
+    expect(body.payouts_failed).toBe(0);
+    expect(stripeMock.accounts.retrieve).toHaveBeenCalledWith("acct_seller1");
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+    expect(slackAlerts).toHaveLength(0);
+  });
+
+  it("an account with no capabilities block at all is not ready either (never a guess that it is)", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1" });
+    const { body } = await run({ payouts: [payoutRow()] });
+    expect(body.payout_account_not_ready).toBe(1);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+  });
+
+  it("a transfer already sent is still recorded when the account later stops being ready (reconcile first)", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_seller1", capabilities: { transfers: "inactive" } });
+    stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_old1", destination: "acct_seller1", reversed: false, metadata: { kind: "declutter_payout", payout_id: PAYOUT } }] });
+    const { body } = await run({ payouts: [payoutRow()] });
+    expect(body.payouts_reconciled).toBe(1);
+    expect(body.payout_account_not_ready).toBe(0);
+    expect(rpcs("declutter_payout_executed")[0]?.args).toMatchObject({ p_transfer_id: "tr_old1", p_succeeded: true });
   });
 
   it("never pays from anything but the order's own whole charge (refunded or disputed: nothing moves)", async () => {
@@ -433,6 +467,15 @@ describe("declutter-money: Helpr delivery payouts (slice 5, row 42)", () => {
   it("a Helpr with no payout account is skipped without using a try", async () => {
     const { body } = await run({ helprPayouts: [helprRow({ stripe_account_id: null })] });
     expect(body.no_payout_account).toBe(1);
+    expect(rpcs("helpr_task_payout_executed")).toHaveLength(0);
+  });
+
+  it("a Helpr whose payout setup is unfinished is skipped without using a try", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helpr1", capabilities: { transfers: "pending" } });
+    const { body } = await run({ helprPayouts: [helprRow()] });
+    expect(body.payout_account_not_ready).toBe(1);
+    expect(body.helpr_payouts_failed).toBe(0);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     expect(rpcs("helpr_task_payout_executed")).toHaveLength(0);
   });
 

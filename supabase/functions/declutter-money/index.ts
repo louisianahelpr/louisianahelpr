@@ -157,6 +157,19 @@ const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const tookIt = (status: string | null | undefined) => status !== "failed" && status !== "canceled";
 
 /**
+ * Will Stripe take a transfer to this Connect account? Only when its transfers capability is
+ * active. A seller who STARTED payout setup has a stripe_account_id but no active capability
+ * until Stripe's onboarding is finished; a transfer then fails, and 12 failed tries used to give
+ * the row up (no longer due) with a "pay by hand" page, so a seller who finished setup a week
+ * later was never paid. Not ready is not a failed try: the row stays due, like no account at all
+ * (declutter-proof 2026-10-19, measured on prod's test account acct_1URzEe3CI9eFJjCC).
+ */
+async function transfersActive(stripe: Stripe, accountId: string): Promise<boolean> {
+  const account = await stripe.accounts.retrieve(accountId);
+  return account?.capabilities?.transfers === "active";
+}
+
+/**
  * The order's charge, if a payout may be funded from it: paid, not disputed,
  * and refunded by no more than the order recorded (lh-money-escrow review 3.4;
  * slice 5: a delivery fee refunded on its own is a known refund). Throws
@@ -248,7 +261,7 @@ serve(async (req) => {
     payouts_sent: 0, payouts_reconciled: 0, payouts_failed: 0,
     helpr_payouts_sent: 0, helpr_payouts_reconciled: 0, helpr_payouts_failed: 0,
     delivery_refunds_sent: 0, delivery_refunds_reconciled: 0, delivery_refunds_failed: 0,
-    held: 0, ban_review: 0, no_payout_account: 0, mixed_parties: 0,
+    held: 0, ban_review: 0, no_payout_account: 0, payout_account_not_ready: 0, mixed_parties: 0,
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
     shop_handed_over: 0, shop_payouts_sent: 0, shop_payouts_reconciled: 0, shop_payouts_failed: 0,
   };
@@ -535,6 +548,10 @@ serve(async (req) => {
           && (meta.payout_id === p.payout_id || (typeof t.destination === "string" ? t.destination : t.destination?.id) === p.stripe_account_id);
       });
       let transfer = existing;
+      if (!transfer && !(await transfersActive(stripe, p.stripe_account_id))) {
+        out.payout_account_not_ready++;
+        continue;
+      }
       if (!transfer) {
         // Funded by the order's OWN charge (never the platform balance), and only while that charge is
         // whole: paid, no refund beyond what the order recorded, no dispute (lh-money-escrow review 3.4).
@@ -613,6 +630,10 @@ serve(async (req) => {
         return meta.kind === "helpr_task_payout" && meta.payout_id === h.payout_id && !t.reversed;
       });
       let hTransfer = existing;
+      if (!hTransfer && !(await transfersActive(stripe, h.stripe_account_id))) {
+        out.payout_account_not_ready++;
+        continue;
+      }
       if (!hTransfer) {
         const charge = await wholeCharge(stripe, h.payment_intent_id, h.refunds_recorded_cents);
         hTransfer = await stripe.transfers.create(

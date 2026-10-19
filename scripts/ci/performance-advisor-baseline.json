@@ -141,6 +141,7 @@
     "public.job_quote_requests.job_quote_requests_job_idx",
     "public.maintenance_requests.maintenance_requests_visit_job_idx",
     "public.shop_strikes.shop_strikes_order_idx",
-    "public.shop_strikes.shop_strikes_removed_by_idx"
+    "public.shop_strikes.shop_strikes_removed_by_idx",
+    "public.shop_payouts.shop_payouts_due_idx"
   ]
 }

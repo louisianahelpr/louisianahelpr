@@ -7350,6 +7350,56 @@ export type Database = {
           },
         ]
       }
+      rental_deposits: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          deductions: Json
+          forwarding_address: string | null
+          received_on: string
+          reminded_stage: number
+          returned_cents: number | null
+          returned_on: string | null
+          settled_at: string | null
+          tenancy_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          deductions?: Json
+          forwarding_address?: string | null
+          received_on: string
+          reminded_stage?: number
+          returned_cents?: number | null
+          returned_on?: string | null
+          settled_at?: string | null
+          tenancy_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          deductions?: Json
+          forwarding_address?: string | null
+          received_on?: string
+          reminded_stage?: number
+          returned_cents?: number | null
+          returned_on?: string | null
+          settled_at?: string | null
+          tenancy_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_deposits_tenancy_id_fkey"
+            columns: ["tenancy_id"]
+            isOneToOne: true
+            referencedRelation: "rental_tenancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rental_listing_photos: {
         Row: {
           created_at: string
@@ -13181,6 +13231,9 @@ export type Database = {
       rentals_dispute_rent_payment: {
         Args: { p_payment_id: string; p_reason: string }
         Returns: undefined
+      rentals_deposit: {
+        Args: { p_tenancy_id: string }
+        Returns: Json
       }
       rentals_end_tenancy: {
         Args: { p_tenancy_id: string }
@@ -13294,6 +13347,16 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      rentals_my_ended_deposits: {
+        Args: never
+        Returns: {
+          label: string
+          settled: boolean
+          side: string
+          tenancy_id: string
+          unit_label: string
+        }[]
       }
       rentals_my_homes: {
         Args: never
@@ -13413,12 +13476,29 @@ export type Database = {
         Args: { p_limit_cents: number; p_property_id: string }
         Returns: undefined
       }
+      rentals_set_deposit: {
+        Args: { p_amount_cents: number; p_received_on: string; p_tenancy_id: string }
+        Returns: undefined
+      }
+      rentals_set_forwarding_address: {
+        Args: { p_address: string; p_tenancy_id: string }
+        Returns: undefined
+      }
       rentals_set_listing_status: {
         Args: { p_listing_id: string; p_status: string }
         Returns: undefined
       }
       rentals_set_rent_plan: {
         Args: { p_fields: Json; p_tenancy_id: string }
+        Returns: undefined
+      }
+      rentals_settle_deposit: {
+        Args: {
+          p_deductions: Json
+          p_returned_cents: number
+          p_returned_on: string
+          p_tenancy_id: string
+        }
         Returns: undefined
       }
       rentals_submit_landlord_id: {

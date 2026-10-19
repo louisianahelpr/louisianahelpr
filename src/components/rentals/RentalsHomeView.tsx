@@ -41,6 +41,8 @@ import { MaintenanceRequestForm } from "./MaintenanceRequestForm";
 import { RentalsHomeSkeleton } from "./RentalsSkeletons";
 import { EndTenancyButton } from "./EndTenancyButton";
 import { RentPanel } from "./RentPanel";
+import { DepositPanel } from "./DepositPanel";
+import { fetchMyEndedDeposits, type EndedDeposit } from "@/lib/rentals/rent";
 import { HomesBrowse } from "./HomesBrowse";
 import { fetchMyListings, type RentalListing } from "@/lib/rentals/listings";
 import { listingStatusLabel } from "@/lib/rentals/listingCopy";
@@ -148,6 +150,23 @@ function SaleListingLink({ propertyId, approved, listing }: { propertyId: string
   );
 }
 
+/** D6: after move-out the live-tenancy card is gone, but the deposit still has to be settled (one month). */
+function MovedOut({ items }: { items: EndedDeposit[] }) {
+  return (
+    <>
+      {items.map((d) => (
+        <div key={d.tenancy_id} className={`${RENTALS_ITEM_CARD} space-y-2`} data-testid="moved-out-deposit">
+          <p className="font-semibold">
+            {d.label}
+            {d.unit_label ? `, ${d.unit_label}` : ""} <span className="text-xs font-normal text-muted-foreground">· moved out</span>
+          </p>
+          <DepositPanel tenancyId={d.tenancy_id} />
+        </div>
+      ))}
+    </>
+  );
+}
+
 function PropertyCard({
   p,
   units,
@@ -249,6 +268,7 @@ function PropertyCard({
             {tenancies.filter((t) => t.unit_id === u.id && t.status === "active").map((t) => (
               <div key={`rent-${t.id}`} className="pl-3">
                 <RentPanel tenancyId={t.id} />
+                <DepositPanel tenancyId={t.id} />
               </div>
             ))}
             {links[u.id] && (
@@ -334,16 +354,17 @@ export default function RentalsHomeView() {
     queryKey: ["rentals-home", uid],
     enabled: !!uid,
     queryFn: async () => {
-      const [properties, homes, requests, tenancies, listings, identity] = await Promise.all([
+      const [properties, homes, requests, tenancies, listings, identity, endedDeposits] = await Promise.all([
         fetchMyProperties(uid),
         fetchMyHomes(),
         fetchMyRequests(),
         fetchLiveTenancies(uid),
         fetchMyListings(uid),
         fetchMyIdentity(),
+        fetchMyEndedDeposits(),
       ]);
       const units = await fetchUnits(properties.map((p) => p.id));
-      return { properties, units, homes, requests, tenancies, listings, identity };
+      return { properties, units, homes, requests, tenancies, listings, identity, endedDeposits };
     },
   });
   const refresh = () => qc.invalidateQueries({ queryKey: ["rentals-home", uid] });
@@ -383,6 +404,7 @@ export default function RentalsHomeView() {
                     {h.unit_label ? `, ${h.unit_label}` : ""}
                   </p>
                   <RentPanel tenancyId={h.tenancy_id} />
+                  <DepositPanel tenancyId={h.tenancy_id} />
                   {!underAge && <MaintenanceRequestForm tenancyId={h.tenancy_id} uid={uid} onFiled={refresh} />}
                   <EndTenancyButton tenancyId={h.tenancy_id} kind="leave" onDone={refresh} />
                 </div>
@@ -391,6 +413,7 @@ export default function RentalsHomeView() {
             {data.data.requests.filter((r) => r.tenant_id === uid).map((r) => (
               <RequestRow key={r.id} r={r} />
             ))}
+            <MovedOut items={data.data.endedDeposits.filter((d) => d.side === "tenant")} />
           </RentalsCard>
 
           <RentalsCard
@@ -449,6 +472,7 @@ export default function RentalsHomeView() {
                 identity={data.data.identity}
               />
             ))}
+            <MovedOut items={data.data.endedDeposits.filter((d) => d.side === "landlord")} />
             {data.data.requests.filter((r) => r.landlord_id === uid).length > 0 && <p className="text-sm font-medium">Requests from tenants</p>}
             {data.data.requests.filter((r) => r.landlord_id === uid).map((r) => (
               <RequestRow key={r.id} r={r} />

@@ -18,20 +18,25 @@ import { SHORT_LABEL_BELOW_PX } from "@/components/ui/UnderlineTabs";
 import { NARROW_TITLE_ASIDE_PX } from "@/components/ui/ScreenHeaderRow";
 import { blankComments } from "./helpers/blankNonCode";
 
+// Built from parts on purpose: a literal "min-" or "max-" glued to a bracketed
+// interpolation in ANY scanned file poisons Tailwind's whole arbitrary-variant
+// family (src/test/arbitraryWidthVariantsCompile.test.ts; 47 of 63 rules lost).
+const variant = (edge: "min" | "max", px: number, util: string) => [edge, "-", "[", String(px), "px]:", util].join("");
+
 const code = (p: string) => blankComments(readFileSync(join(process.cwd(), p), "utf8"));
 
 describe("breakpoint constants match the literal classes that implement them", () => {
   it("UnderlineTabs swaps to the short label below SHORT_LABEL_BELOW_PX", () => {
     const src = code("src/components/ui/UnderlineTabs.tsx");
     expect(SHORT_LABEL_BELOW_PX).toBeGreaterThan(300);
-    expect(src).toContain(`min-[${SHORT_LABEL_BELOW_PX}px]:hidden`);
-    expect(src).toContain(`min-[${SHORT_LABEL_BELOW_PX}px]:inline`);
+    expect(src).toContain(variant("min", SHORT_LABEL_BELOW_PX, "hidden"));
+    expect(src).toContain(variant("min", SHORT_LABEL_BELOW_PX, "inline"));
   });
 
   it("ScreenHeaderRow wraps the search field onto its own line below NARROW_TITLE_ASIDE_PX", () => {
     const src = code("src/components/ui/ScreenHeaderRow.tsx");
     expect(NARROW_TITLE_ASIDE_PX).toBeGreaterThan(400);
-    expect(src).toContain(`max-[${NARROW_TITLE_ASIDE_PX - 1}px]:flex-wrap`);
-    expect(src).toContain(`max-[${NARROW_TITLE_ASIDE_PX - 1}px]:basis-full`);
+    expect(src).toContain(variant("max", NARROW_TITLE_ASIDE_PX - 1, "flex-wrap"));
+    expect(src).toContain(variant("max", NARROW_TITLE_ASIDE_PX - 1, "basis-full"));
   });
 });

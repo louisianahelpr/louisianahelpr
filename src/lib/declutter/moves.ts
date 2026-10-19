@@ -181,9 +181,11 @@ export interface MoveItem {
   title: string;
   current_price_cents: number;
   area_label: string;
+  /** For the photo-less card's icon (PhotoPlaceholder). */
+  category?: string;
 }
 
-const MOVE_ITEM_COLUMNS = "id, status, title, current_price_cents, area_label";
+const MOVE_ITEM_COLUMNS = "id, status, title, current_price_cents, area_label, category";
 
 /** The seller's own moving-sale listings, every status still worth showing. */
 export async function fetchMyMoveItems(userId: string): Promise<MoveItem[]> {

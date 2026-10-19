@@ -144,12 +144,21 @@ for (const variant of [
     await expect(bar).toBeVisible();
     await expect(bar.getByRole("heading", { level: 1, name: "Jobs" })).toBeVisible();
     const add = (await bar.getByTestId("section-add").boundingBox())!;
-    const bellBox = (await bar.getByTestId("top-bar-bell").boundingBox())!;
-    const profile = (await bar.getByTestId("top-bar-profile").boundingBox())!;
-    expect(add.x + add.width, `"+" sits left of the bell @ ${variant.tag}`).toBeLessThanOrEqual(bellBox.x + 1);
-    expect(bellBox.x + bellBox.width, `the bell sits just left of the profile @ ${variant.tag}`).toBeLessThanOrEqual(profile.x + 1);
-    for (const [name, box] of [["+", add], ["profile", profile]] as const) {
-      expect(Math.abs(box.y + box.height / 2 - (bellBox.y + bellBox.height / 2)), `${name} shares the bar with the bell`).toBeLessThan(6);
+    // Desktop website (Q2221): the bar keeps the title and "+" only; the bell lives in the desktop
+    // header and Profile in the rail, so neither repeats here.
+    let barBottom = add.y + add.height;
+    if (isDesktopWeb) {
+      await expect(bar.getByTestId("top-bar-bell"), `no second bell @ ${variant.tag}`).toHaveCount(0);
+      await expect(bar.getByTestId("top-bar-profile"), `no avatar in the bar @ ${variant.tag}`).toHaveCount(0);
+    } else {
+      const bellBox = (await bar.getByTestId("top-bar-bell").boundingBox())!;
+      const profile = (await bar.getByTestId("top-bar-profile").boundingBox())!;
+      expect(add.x + add.width, `"+" sits left of the bell @ ${variant.tag}`).toBeLessThanOrEqual(bellBox.x + 1);
+      expect(bellBox.x + bellBox.width, `the bell sits just left of the profile @ ${variant.tag}`).toBeLessThanOrEqual(profile.x + 1);
+      for (const [name, box] of [["+", add], ["profile", profile]] as const) {
+        expect(Math.abs(box.y + box.height / 2 - (bellBox.y + bellBox.height / 2)), `${name} shares the bar with the bell`).toBeLessThan(6);
+      }
+      barBottom = bellBox.y + bellBox.height;
     }
 
     // THE PILL IS GONE, on every width (owner, pointing at it: "remove").
@@ -163,7 +172,7 @@ for (const variant of [
     await expect(tabs.getByRole("tab")).toHaveText(["Browse", "Posted", "Working"]);
     await expect(tabs.getByRole("tab", { name: "Browse" })).toHaveAttribute("aria-selected", "true");
     const tabsBox = (await tabs.boundingBox())!;
-    expect(tabsBox.y, "the tabs sit under the top bar").toBeGreaterThanOrEqual(bellBox.y + bellBox.height - 1);
+    expect(tabsBox.y, "the tabs sit under the top bar").toBeGreaterThanOrEqual(barBottom - 1);
 
     // --- search + Filters: one slim row on phone, the feed strip on desktop ---
     for (const name of ACTION_ICON_NAMES) {

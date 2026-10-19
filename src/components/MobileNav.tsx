@@ -11,6 +11,7 @@ import { prefetchRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { prefetchRoute, prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { TabButton } from "@/components/mobileNav/TabButton";
+import { announceTabReselect } from "@/components/mobileNav/tabReselect";
 import { UserAvatar } from "@/components/UserAvatar";
 import { GateSheet } from "@/components/mobileNav/GateSheet";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
@@ -475,6 +476,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         navigate(effectivePath);
         return;
       }
+      // A re-tap of the tab you are on: screens that reset on it listen
+      // (Home folds its To do list back up).
+      announceTabReselect(path);
       if (location.search || location.hash) {
         hapticLight();
         navigate(effectivePath);
@@ -601,11 +605,19 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </span>
           )}
         </div>
-        {/* Icon-only bar — the per-tab word label was removed deliberately:
-            every destination already shows its title at the top of the page,
-            so the bottom-nav word was redundant chrome. The tab's accessible
-            name is preserved via TabButton's `ariaLabel`, so screen readers
-            still announce "Home / Posts / Jobs / Messages / Profile". */}
+        {/* One-word label under each icon (owner, 2026-10-19, Facebook /
+            Airbnb style): Home, Jobs, Declutter, Shops, Homes, Messages.
+            ONE line, never truncated, at 320 with all six tabs: 10px there,
+            11px from 360. No overflow clip, so a word wider than its slot
+            spills into the slot gap rather than losing letters; the rendered
+            guard (e2e/happy-path/nav-hide-on-scroll.spec.ts "labels") measures
+            that no two labels touch and none leaves the dock. */}
+        <span
+          data-dock-label
+          className={`relative z-10 block whitespace-nowrap text-ds-10 min-[360px]:text-ds-11 leading-[13px] tracking-[-0.01em] ${isActive ? "font-bold" : "font-medium"}`}
+        >
+          {label}
+        </span>
         {/* Burnt-Sienna underline accent — 4px wide × 1.5px tall dot
             below the active label. Only renders for active so the
             non-active tabs stay clean. */}

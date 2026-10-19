@@ -32,7 +32,8 @@ import {
   type DeclutterPhoto,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { formatPrice, milesLabel, nearestFirst } from "@/lib/declutter/distance";
+import { DISTANCE_CHOICES, formatPrice, milesLabel, nearestFirst } from "@/lib/declutter/distance";
+import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
@@ -210,8 +211,21 @@ function BrowseView({ userId }: { userId: string }) {
           ))}
         </ul>
       )}
+      {rows.length > 0 && (
+        <BrowseEndCard
+          // Widen one step (DISTANCE_CHOICES), up to "Any distance"; none when
+          // the distance is already any (lead, 2026-10-19).
+          onWiden={from && maxMiles !== null ? () => setMaxMiles(widerMiles(maxMiles)) : undefined}
+          widenLabel={from && maxMiles !== null ? (widerMiles(maxMiles) === null ? "Any distance" : `Widen to ${widerMiles(maxMiles)} mi`) : undefined}
+        />
+      )}
     </div>
   );
+}
+
+/** The next DISTANCE_CHOICES step above `miles`; null = "Any distance". */
+function widerMiles(miles: number): number | null {
+  return DISTANCE_CHOICES.find((m): m is number => m !== null && m > miles) ?? null;
 }
 
 function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean }) {

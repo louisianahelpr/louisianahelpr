@@ -10,7 +10,7 @@ import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatJobDate } from "@/lib/dateUtils";
 import { useHomeSummary, type ComingUpItem } from "./homeDashboard/useHomeSummary";
-import { useTodoOpen } from "./homeDashboard/useTodoOpen";
+import { useOnTabReselect } from "@/components/mobileNav/tabReselect";
 import { feedLinkTarget } from "./homeDashboard/feedLinkForward";
 
 function greeting(d = new Date()) {
@@ -27,7 +27,10 @@ export function jobMetaLine(job: ComingUpItem["job"]) {
 /**
  * HOME (owner final decisions, 2026-10-19): the app opens here. Greeting; three
  * stat boxes (To do / This week / Unread); the To do list, COLLAPSED until the
- * To do box or its header is tapped (remembered for the session only); the
+ * To do STAT BOX is tapped, the one control that opens it (owner, 2026-10-19:
+ * "only show To do expanded when it's clicked"; the separate "To do (n)" bar
+ * duplicated the box and is gone). Never remembered: Home arrives collapsed on
+ * load, on coming back from a section, and on a re-tap of the Home tab. The
  * member's sections as 2x2 boxes; Coming up. No "+" and no category pills.
  */
 export default function HomeDashboard() {
@@ -45,7 +48,10 @@ function HomeDashboardScreen() {
   const summary = useHomeSummary(user);
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
-  const [todoOpen, toggleTodo] = useTodoOpen();
+  // Plain state, never stored: a remount (load, coming back) starts collapsed.
+  const [todoOpen, setTodoOpen] = useState(false);
+  const toggleTodo = () => setTodoOpen((o) => !o);
+  useOnTabReselect("/home", () => setTodoOpen(false));
   // Profile's "Your sections" row opens Home with ?customize=1.
   const [params, setParams] = useSearchParams();
   const [customize, setCustomizeState] = useState(params.get("customize") === "1");
@@ -78,24 +84,27 @@ function HomeDashboardScreen() {
               type="button"
               data-stat={s.key}
               aria-expanded={s.key === "todo" ? s.pressed : undefined}
+              aria-controls={s.key === "todo" && s.pressed ? "home-todo-list" : undefined}
+              data-open={s.key === "todo" && s.pressed ? "" : undefined}
               onClick={s.onClick}
-              className="btn-press flex-1 min-w-0 px-2 py-3 text-center"
+              className={`btn-press relative flex-1 min-w-0 px-2 py-3 text-center first:rounded-l-[inherit] last:rounded-r-[inherit] transition-colors ${s.pressed ? "bg-[hsl(var(--bark)/0.08)]" : ""}`}
             >
               <span className={`block text-ds-24 leading-7 font-bold ${s.hot ? "text-[hsl(var(--accent-ink))]" : ""}`}>{s.n}</span>
-              <span className="block text-ds-12 text-muted-foreground">{s.label}</span>
+              <span className={`flex items-center justify-center gap-0.5 text-ds-12 ${s.pressed ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
+                {s.label}
+                {s.key === "todo" && (
+                  <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${s.pressed ? "rotate-180" : ""}`} aria-hidden />
+                )}
+              </span>
+              {s.pressed && <span aria-hidden className="absolute left-1/2 -translate-x-1/2 bottom-1 w-6 h-[3px] rounded-full bg-[hsl(var(--burnt-sienna))]" />}
             </button>
           ))}
         </div>
 
-        {todoCount > 0 && !todoOpen && (
-          <button type="button" data-testid="todo-collapsed" onClick={toggleTodo} aria-expanded={false} className="btn-press liquid-glass flex items-center justify-between px-4 py-3">
-            <span className="text-ds-15 font-semibold">To do ({todoCount})</span>
-            <ChevronDown className="w-4 h-4 text-muted-foreground" aria-hidden />
-          </button>
-        )}
-        {todoOpen && todoCount > 0 && (
-          <div data-testid="todo-list">
+        {todoOpen && (
+          <div data-testid="todo-list" id="home-todo-list">
             <GroupSection title="To do" count={todoCount} onSeeAll={toggleTodo} seeAllLabel="Hide">
+              {todoCount === 0 && <p className="px-4 py-4 text-ds-14 text-muted-foreground">Nothing needs you right now.</p>}
               {summary.todos.slice(0, 3).map((t, i, arr) => (
                 <GroupRow key={t.id} title={t.title} meta={t.meta} onClick={() => navigate(t.to)} last={i === arr.length - 1 && todoCount <= 3} />
               ))}

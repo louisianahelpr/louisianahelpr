@@ -43,6 +43,7 @@ import { type EarningsRange } from "@/components/profile/earningsTab/EarningsRan
 import { EarningsSummaryCard } from "@/components/profile/earningsTab/EarningsSummaryCard";
 import { ThresholdBanner } from "@/components/profile/earningsTab/ThresholdBanner";
 import { WalletCard } from "@/components/profile/earningsTab/WalletCard";
+import { HelprFaultFeeCard } from "@/components/profile/earningsTab/HelprFaultFeeCard";
 import { MoneyViewSwitcher, moneyViewFromSearch, type MoneyView } from "@/components/profile/earningsTab/MoneyViewSwitcher";
 import { SpentSection } from "@/components/profile/earningsTab/SpentSection";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
@@ -339,6 +340,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           onDismiss={dismiss1099Banner}
         />
       )}
+
+      {pageReady && <HelprFaultFeeCard userId={profile?.user_id} />}
 
       {/* Wallet card (Available + Pending side-by-side), ABOVE the Earned |
           Spent switcher on both halves (owner, 2026-10-08: "move wallet above

@@ -43,7 +43,7 @@ import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
-import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
+import { helprFaultDeductionNote, helprFaultFeeCapCents, helprFaultFeeFromMetadata, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
@@ -3177,6 +3177,9 @@ serve(async (req) => {
           // instead of quietly picking one.
           helper_payout_cents: settledTransfer.amountCents,
           computed_helper_payout_cents: roundPayoutDownCents(Math.round(helperPayout * 100)),
+          // What the transfer withheld for a Helpr-fault card fee: the computed
+          // figure is before it, so the two differ by exactly this (exact-cents review nit #2).
+          helpr_fault_fee_cents: settledTransfer.helprFaultFeeCents,
           platform_fee_cents: Math.round((feeAmt / dpHelpersCount) * 100),
           helper_fee_percent: disputeFeePercent,
           payment_intent_id: captureResult.paymentIntentId,
@@ -3194,7 +3197,7 @@ serve(async (req) => {
           // The ledger's amount: a Helpr-fault debt can take exact cents off it
           // (Q2165), which the payout floor formatter would hide. No ledger
           // row read: no figure (a recomputed one would be before the debt).
-          message: `The dispute on "${job.title}" has been resolved in your favor. ${settledTransfer.amountCents != null ? `$${formatExactDollars(settledTransfer.amountCents / 100)} has been transferred` : "Your payment has been transferred"}.`,
+          message: `The dispute on "${job.title}" has been resolved in your favor. ${settledTransfer.amountCents != null ? `$${formatExactDollars(settledTransfer.amountCents / 100)} has been transferred` : "Your payment has been transferred"}.${helprFaultDeductionNote(settledTransfer.helprFaultFeeCents)}`,
           type: "payment", link: "/profile?tab=earnings",
         });
       }
@@ -4747,12 +4750,12 @@ async function lookupSettledTransfer(
   supabaseAdmin: any,
   jobId: string,
   helperId: string | null,
-): Promise<{ transferId: string | null; amountCents: number | null }> {
-  const empty = { transferId: null, amountCents: null };
+): Promise<{ transferId: string | null; amountCents: number | null; helprFaultFeeCents: number }> {
+  const empty = { transferId: null, amountCents: null, helprFaultFeeCents: 0 };
   if (!helperId) return empty;
   const { data, error } = await supabaseAdmin
     .from("payout_transfers")
-    .select("stripe_transfer_id, amount_cents, status")
+    .select("stripe_transfer_id, amount_cents, status, metadata")
     .eq("job_id", jobId)
     .eq("helper_id", helperId)
     .in("status", ["pending", "paid"])
@@ -4768,6 +4771,7 @@ async function lookupSettledTransfer(
   return {
     transferId: (row.stripe_transfer_id as string | undefined) ?? null,
     amountCents: Number.isFinite(cents) && cents >= 0 ? Math.round(cents) : null,
+    helprFaultFeeCents: helprFaultFeeFromMetadata(row.metadata),
   };
 }
 

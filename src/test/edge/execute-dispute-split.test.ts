@@ -1889,6 +1889,7 @@ describe("execute-dispute-split edge function", () => {
 // @mutate supabase/functions/execute-dispute-split/index.ts |      return json({ error: "could not read the Helpr's card-fee debt — nothing was moved, retry" }, 500); |      console.error("ignored");
 // @mutate supabase/functions/execute-dispute-split/index.ts |      if (isDefiniteStripeRefusal(err)) await restoreHelprFault(); |      if (isDefiniteStripeRefusal(err)) console.error("no restore");
 // @mutate supabase/functions/execute-dispute-split/index.ts |        ...payoutWithheldMetadata(unroundedHelperCents, 0, helperTransferCents, helprFaultFeeCents), |        ...payoutWithheldMetadata(unroundedHelperCents, 0, helperTransferCents),
+// @mutate supabase/functions/execute-dispute-split/index.ts |    movedHelprFaultFeeCents = helprFaultFeeCents;\n |
 describe("execute-dispute-split: a Helpr-fault card fee comes out of the Helpr leg (Q2082 (b))", () => {
   beforeEach(() => {
     resetEnv();
@@ -1908,6 +1909,8 @@ describe("execute-dispute-split: a Helpr-fault card fee comes out of the Helpr l
     await invoke(fn);
     expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(5200);
     expect(takes()).toHaveLength(1);
+    const note = (scenario.writes ?? []).find((w) => w.table === "notifications" && JSON.stringify(w.payload).includes("your share was sent"));
+    expect(JSON.stringify(note?.payload)).not.toContain("card fee");
   });
 
   // Q2165 (owner 2026-10-19): the whole-dollar leg less the debt in EXACT cents.
@@ -1927,6 +1930,8 @@ describe("execute-dispute-split: a Helpr-fault card fee comes out of the Helpr l
     expect(row.metadata).toEqual(expect.objectContaining({ helpr_fault_fee_cents: 369, rounding_remainder_cents: 80 }));
     const note = (scenario.writes ?? []).find((w) => w.table === "notifications" && JSON.stringify(w.payload).includes("your share was sent"));
     expect(JSON.stringify(note?.payload)).toContain("$48.31 is on its way");
+    // lh-money-escrow re-review of b1730c932 #7: the notice names the deduction plainly.
+    expect(JSON.stringify(note?.payload)).toContain("A $3.69 card fee from a job you were ruled at fault on was deducted from it.");
   });
 
   it("an unreadable debt moves nothing (fails closed)", async () => {

@@ -178,3 +178,20 @@ export async function restoreHelprFaultFeeForJob(supabaseAdmin: Db, jobId: strin
     return 0;
   }
 }
+
+/**
+ * The Helpr's payout notice names a Helpr-fault card fee it deducted, in exact
+ * cents (lh-money-escrow re-review of b1730c932 #7: the Quick Release and
+ * dispute-split notices said nothing). "" when nothing was deducted. The
+ * amount comes from the payout's own ledger row (metadata.helpr_fault_fee_cents).
+ */
+export function helprFaultDeductionNote(cents: number): string {
+  if (!Number.isFinite(cents) || cents <= 0) return "";
+  return ` A $${(Math.round(cents) / 100).toFixed(2)} card fee from a job you were ruled at fault on was deducted from it.`;
+}
+
+/** What a payout_transfers row's metadata says this payout withheld for a Helpr-fault card fee (0 when none). */
+export function helprFaultFeeFromMetadata(metadata: unknown): number {
+  const v = Number((metadata as { helpr_fault_fee_cents?: unknown } | null | undefined)?.helpr_fault_fee_cents);
+  return Number.isFinite(v) && v > 0 ? Math.round(v) : 0;
+}

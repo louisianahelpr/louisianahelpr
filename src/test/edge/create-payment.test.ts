@@ -3624,13 +3624,14 @@ describe("create-payment edge function", () => {
       // @mutate supabase/functions/create-payment/index.ts |    throw new PublicError("Could not read the Helpr's card-fee debt — no money was moved. Try again.");\n  }\n  const helprFaultFeeCents = helprFaultTake.cents; |  }\n  const helprFaultFeeCents = helprFaultTake.cents ?? 0;
       // @mutate supabase/functions/create-payment/index.ts |      else await restoreHelprFault(); |      else console.error("no restore");
       // @mutate supabase/functions/create-payment/index.ts |          helpr_fault_fee_cents: helprFaultFeeCents, |          helpr_fault_fee_cents: 0,
+      // @mutate supabase/functions/create-payment/index.ts |    helprFaultFeeCents: helprFaultFeeFromMetadata(row.metadata), |    helprFaultFeeCents: 0,
       // lh-money-escrow review of the exact-cents delta #1: the Helpr's notice quotes the ledger's amount.
       // @mutate supabase/functions/create-payment/index.ts | `$${formatExactDollars(settledTransfer.amountCents / 100)} has been transferred` | `$${helperPayout} has been transferred`
       it("Quick Release withholds a Helpr-fault card fee (capped so $1 stays) and records it (Q2082 (b))", async () => {
         seedReleasable();
         scenario.reads.payout_transfers = {
           selectOverrides: [
-            { includes: "amount_cents", result: { rows: [{ stripe_transfer_id: "tr_d", amount_cents: 8431, status: "paid" }] } },
+            { includes: "amount_cents", result: { rows: [{ stripe_transfer_id: "tr_d", amount_cents: 8431, status: "paid", metadata: { helpr_fault_fee_cents: 369 } }] } },
             { includes: "status", result: { rows: [] } },
           ],
         };
@@ -3651,6 +3652,11 @@ describe("create-payment edge function", () => {
         expect(payload?.metadata).toEqual(expect.objectContaining({ helpr_fault_fee_cents: 369, rounding_remainder_cents: 0 }));
         const helprNote = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === HELPER.id);
         expect(String((helprNote?.payload as Record<string, unknown>)?.message)).toContain("$84.31 has been transferred");
+        // lh-money-escrow re-review of b1730c932 #7: the notice names the deduction, and the
+        // audit row carries it (the computed figure is before it; exact-cents review nit #2).
+        expect(String((helprNote?.payload as Record<string, unknown>)?.message)).toContain("A $3.69 card fee from a job you were ruled at fault on was deducted from it.");
+        const audit = scenario.writes.find((w) => w.table === "admin_audit_log" && w.op === "insert");
+        expect(JSON.stringify(audit?.payload)).toContain('"helpr_fault_fee_cents":369');
       });
 
       it("Quick Release moves nothing when the Helpr-fault debt cannot be read (Q2082 (b))", async () => {

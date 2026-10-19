@@ -40,6 +40,7 @@ import { RENTALS_ITEM_CARD, RentalsCard, fmtDate } from "./rentalsUi";
 import { MaintenanceRequestForm } from "./MaintenanceRequestForm";
 import { RentalsHomeSkeleton } from "./RentalsSkeletons";
 import { EndTenancyButton } from "./EndTenancyButton";
+import { RentPanel } from "./RentPanel";
 import { HomesBrowse } from "./HomesBrowse";
 import { fetchMyListings, type RentalListing } from "@/lib/rentals/listings";
 import { listingStatusLabel } from "@/lib/rentals/listingCopy";
@@ -245,6 +246,11 @@ function PropertyCard({
                 <EndTenancyButton tenancyId={t.id} kind={t.status === "active" ? "end" : "cancel-invite"} onDone={onChange} />
               </div>
             ))}
+            {tenancies.filter((t) => t.unit_id === u.id && t.status === "active").map((t) => (
+              <div key={`rent-${t.id}`} className="pl-3">
+                <RentPanel tenancyId={t.id} />
+              </div>
+            ))}
             {links[u.id] && (
               <div className="rounded-lg bg-muted p-2 text-xs break-all">
                 <p className="mb-1">Send this link to your tenant (works once, for 14 days):</p>
@@ -376,6 +382,7 @@ export default function RentalsHomeView() {
                     {h.label}
                     {h.unit_label ? `, ${h.unit_label}` : ""}
                   </p>
+                  <RentPanel tenancyId={h.tenancy_id} />
                   {!underAge && <MaintenanceRequestForm tenancyId={h.tenancy_id} uid={uid} onFiled={refresh} />}
                   <EndTenancyButton tenancyId={h.tenancy_id} kind="leave" onDone={refresh} />
                 </div>

@@ -4,6 +4,7 @@
  * what each STATE renders; the backend proof is
  * src/test/pglite/rentalsMaintenance.pglite.mjs.
  *
+ * @mutate src/components/rentals/RentalsHomeView.tsx | t.unit_id === u.id && t.status === "active").map | t.unit_id === u.id).map
  * @mutate src/components/rentals/rentalsUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/components/rentals/MaintenanceRequestForm.tsx |   const showEmergencySteps = urgency === "emergency" && !emergencyAcknowledged; |   const showEmergencySteps = false;
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |                 disabled={!reason \|\| decline.isPending} |                 disabled={decline.isPending}
@@ -96,6 +97,8 @@ vi.mock("@/components/AppPage", () => ({
   ),
 }));
 vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }));
+// The rent record has its own screen tests (RentPanel.test.tsx); here it is a marker per tenancy.
+vi.mock("./RentPanel", () => ({ RentPanel: ({ tenancyId }: { tenancyId: string }) => <p data-testid="rent-panel">rent {tenancyId}</p> }));
 vi.mock("@/lib/rentals/api", () => ({
   fetchMyProperties: async () => state.properties,
   fetchUnits: async () => state.units,
@@ -649,6 +652,19 @@ describe("Rentals screens", () => {
       const dialog = await screen.findByRole("alertdialog");
       fireEvent.click(Array.from(dialog.querySelectorAll("button")).find((b) => b.textContent === "Cancel invite")!);
       await vi.waitFor(() => expect(vi.mocked(endTenancy)).toHaveBeenCalledWith("ti"));
+    });
+
+    it("D2: the rent record shows in each home rented and under each CONNECTED unit only (never an invite)", async () => {
+      state.tenancies = [TENANCY];
+      state.properties = [{ id: "p1", owner_id: "u1", label: "Oak", street_address: "1 Oak", city: "Lafayette", zip_code: "70501", ownership_status: "approved", auto_approve_limit_cents: null }];
+      state.units = [{ id: "u9", property_id: "p1", label: "A" }];
+      state.live = [
+        { id: "ta", unit_id: "u9", status: "active", accepted_at: "2026-10-16T12:00:00Z", invite_expires_at: "2026-10-30T12:00:00Z", created_at: "2026-10-16T11:00:00Z" },
+        { id: "ti", unit_id: "u9", status: "invited", accepted_at: null, invite_expires_at: "2099-10-30T12:00:00Z", created_at: "2026-10-17T11:00:00Z" },
+      ];
+      renderAt("/rentals");
+      await screen.findByText(/Tenant connected/);
+      expect(screen.getAllByTestId("rent-panel").map((e) => e.textContent).sort()).toEqual(["rent t1", "rent ta"]);
     });
 
     it("closing the confirm ends nothing", async () => {

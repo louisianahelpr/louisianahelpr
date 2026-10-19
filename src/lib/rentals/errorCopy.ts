@@ -78,4 +78,10 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   too_many: "Too many at once. Try again with fewer.",
   // The lift while the photo purge runs (20261019071203).
   photos_purging: "This home's photos are being deleted right now. Try again in 15 minutes.",
+  // The rent tracker, pay direct (20261019073106).
+  bad_rent_plan: "Check the rent schedule: an amount of at least $1, how often, a first due date from today on (a monthly one on day 1 to 28), and at least one way to pay.",
+  bad_rent_payment: "Check the payment: an amount, a date that isn't in the future, and how it was paid.",
+  payment_not_found: "That payment isn't available.",
+  payment_already_decided: "That payment was already confirmed or declined.",
+  charge_not_found: "That charge isn't available.",
 };

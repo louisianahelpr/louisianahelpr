@@ -17,9 +17,10 @@ type PullToRefresh = ReturnType<typeof usePullToRefresh>;
  * card (index 0, when >0) gets the "Recommended" pill — it no longer
  * selects a different list primitive or a different wrapper.
  *
- * `px-4` matches the toolbar row directly above it (owner: "same spacing" —
- * the feed used to sit 4px further left than the "N jobs" label introducing
- * it).
+ * `lg:px-4` matches the desktop toolbar row directly above it (owner: "same
+ * spacing"). On a phone it is `px-1`, the section header's own inset (Jobs >
+ * Browse, 2026-10-19): the cards line up with the search row above them like
+ * every other section's list, and get 24px back at 320 (Q2222).
  */
 export function MainFeedSection({
   jobs,
@@ -36,7 +37,7 @@ export function MainFeedSection({
 }) {
   return (
     <div
-      className="px-4 pt-3"
+      className="px-1 lg:px-4 pt-3"
       style={{ paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))" }}
     >
       <VirtualizedJobList

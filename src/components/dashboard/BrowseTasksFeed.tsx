@@ -501,7 +501,8 @@ export function BrowseTasksFeed({
           <>
             {showFullSkeleton && density === "comfortable" && (
               <div
-                className="px-3 pt-3 pb-1 space-y-list"
+                // The list's own inset (MainFeedSection), so bones -> cards do not shift (Q2222).
+                className="px-1 lg:px-4 pt-3 pb-1 space-y-list"
                 aria-hidden
               >
                 {/* Recommended-section variant — matches the real recommended

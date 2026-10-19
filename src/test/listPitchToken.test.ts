@@ -36,7 +36,7 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 // Shown able to fail on the original defect and on the token itself:
 // @mutate src/components/GuestBrowseSkeleton.tsx | "grid grid-cols-1 gap-list md:grid-cols-2 md:gap-4" | "grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-4"
 // @mutate src/components/dashboard/MainFeedSection.tsx | className="pb-list" | className="pb-2 lg:pb-2.5 xl:pb-3"
-// @mutate src/components/dashboard/BrowseTasksFeed.tsx | className="px-3 pt-3 pb-1 space-y-list" | className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-3"
+// @mutate src/components/dashboard/BrowseTasksFeed.tsx | className="px-1 lg:px-4 pt-3 pb-1 space-y-list" | className="px-1 lg:px-4 pt-3 pb-1 space-y-2.5 lg:space-y-3"
 // @mutate src/components/job-card/PagedActivityList.tsx | className="space-y-list ds-activity-grid" | className="space-y-3 ds-activity-grid"
 // @mutate src/components/JobsSectionSkeleton.tsx | pb-0 space-y-list" | pb-0 space-y-2.5"
 // @mutate src/index.css | --list-gap: 0.75rem; | --list-gap: 0.5rem;

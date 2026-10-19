@@ -302,6 +302,15 @@ let fc = await feesC();
 ok(fc.length === 1 && fc[0].rent_due === await daysAgo(2) && fc[0].amount_cents === 1000,
   "#5/#1: the reported (undecided) payment keeps the first week on time, the recorded one the second; only the unpaid third week gets its own $10 fee");
 ok(refused(await pay(TENANT, tC, 10000000), /payment_over_balance/), "round 2 #3: a tenant's report is capped at what is open plus one rent");
+{
+  // open on tC now: 3 weeks ($300) + 1 fee... minus confirmed $100 = what is open; plus one rent ($100)
+  const cap = one(await svc(`SELECT (SELECT sum(amount_cents) FROM public.rental_rent_charges WHERE tenancy_id = '${tC}' AND waived_at IS NULL AND due_on <= public.shop_local_today())
+    - (SELECT sum(amount_cents) FROM public.rental_rent_payments WHERE tenancy_id = '${tC}' AND status = 'confirmed') + 10000
+    - (SELECT coalesce(sum(amount_cents), 0) FROM public.rental_rent_payments WHERE tenancy_id = '${tC}' AND status = 'reported')`));
+  ok(typeof one(await pay(TENANT, tC, cap - 100)) === "string", "setup: a report just under the cap");
+  ok(refused(await pay(TENANT, tC, 200), /payment_over_balance/), "round 3 #2: reports still waiting count against the cap");
+  await svc(`DELETE FROM public.rental_rent_payments WHERE tenancy_id = '${tC}' AND status = 'reported' AND amount_cents = ${cap - 100}`);
+}
 ok(Array.isArray(await decide(LANDLORD, rep1, false, "It never arrived.")), "the landlord declines the first week's reported payment");
 await sweep(); await sweep();
 fc = await feesC();
@@ -336,13 +345,27 @@ ok(one(await svc(`SELECT count(*)::int FROM public.rental_rent_charges WHERE ten
 const unitF = one(await as("authenticated", LANDLORD, `SELECT public.rentals_add_unit('${prop}', 'Unit F') AS id`));
 const tF = await tenancy(unitF, TENANT);
 ok(Array.isArray(await plan(LANDLORD, tF, P({ frequency: "weekly", amount_cents: 10000, grace_days: 0, late_fee_cents: 300 }))), "setup: weekly, no grace days");
-await svc(`UPDATE public.rental_rent_plans SET first_due_on = public.shop_local_today() - 11,
-  skipped = jsonb_build_array(jsonb_build_object('from', public.shop_local_today() - 5, 'to', public.shop_local_today() - 3)) WHERE tenancy_id = '${tF}'`);
+await svc(`UPDATE public.rental_rent_plans SET first_due_on = public.shop_local_today() - 11 WHERE tenancy_id = '${tF}'`);
+await svc(`INSERT INTO public.rental_rent_sweep_skips (tenancy_id, periods)
+  VALUES ('${tF}', jsonb_build_array(jsonb_build_object('from', public.shop_local_today() - 5, 'to', public.shop_local_today() - 3)))`);
 await pay(TENANT, tF, 10000, "zelle", await daysAgo(11)); // reported today, for the week due 11 days ago
 await sweep();
 const feesF = rows(await svc(`SELECT r.due_on::text AS d FROM public.rental_rent_charges f JOIN public.rental_rent_charges r ON r.id = f.rent_charge_id WHERE f.tenancy_id = '${tF}'`));
 ok(feesF.length === 1 && feesF[0].d === await daysAgo(11),
   "round 2 #3/#4: a report made today does not make the week due 11 days ago on time; the week whose due date fell while the sweep skipped the tenancy gets no fee");
+// round 3 #3: a late report dated back, then confirmed, never makes its row on time
+const unitG = one(await as("authenticated", LANDLORD, `SELECT public.rentals_add_unit('${prop}', 'Unit G') AS id`));
+const tG = await tenancy(unitG, TENANT);
+ok(Array.isArray(await plan(LANDLORD, tG, P({ frequency: "weekly", amount_cents: 10000, grace_days: 0, late_fee_cents: 300 }))), "setup: weekly, no grace days");
+await svc(`UPDATE public.rental_rent_plans SET first_due_on = public.shop_local_today() - 4 WHERE tenancy_id = '${tG}'`);
+await svc(`SELECT public.rentals_rent_sweep()`);
+await svc(`DELETE FROM public.rental_rent_charges WHERE tenancy_id = '${tG}' AND kind = 'late_fee'`);
+const lateRep = one(await pay(TENANT, tG, 10000, "cash", await daysAgo(4))); // reported today, dated 4 days back
+ok(Array.isArray(await decide(LANDLORD, lateRep, true)), "the landlord confirms it");
+await sweep();
+ok(one(await svc(`SELECT count(*)::int FROM public.rental_rent_charges WHERE tenancy_id = '${tG}' AND kind = 'late_fee'`)) === 1
+  && one(await svc(`SELECT count(*)::int FROM public.rental_rent_charges WHERE tenancy_id = '${tG}' AND kind = 'rent' AND on_time_at IS NOT NULL`)) === 0,
+  "round 3 #3: it counts from the day it was reported, so the row is late, not locked on time");
 
 // --- lead review #9: reminders skip a prepaid due date; a same-day plan edit never sends a second one
 const unitD = one(await as("authenticated", LANDLORD, `SELECT public.rentals_add_unit('${prop}', 'Unit D') AS id`));
@@ -367,7 +390,10 @@ await svc(`UPDATE public.rental_rent_plans SET first_due_on = public.shop_local_
 const beforeB = one(await svc(`SELECT count(*)::int FROM public.rental_rent_charges WHERE tenancy_id = '${tB}'`));
 await sweep();
 ok(one(await svc(`SELECT count(*)::int FROM public.rental_rent_charges WHERE tenancy_id = '${tB}'`)) === beforeB, "#8: Homes off for the tenant: nothing written for that tenancy");
-{ const sk = one(await svc(`SELECT skipped FROM public.rental_rent_plans WHERE tenancy_id = '${tB}'`)); ok(Array.isArray(sk) && sk.length === 1 && sk[0].from === today && sk[0].to === today, "round 2 #4: the skipped day is remembered"); }
+{ const sk = one(await svc(`SELECT periods FROM public.rental_rent_sweep_skips WHERE tenancy_id = '${tB}'`)); ok(Array.isArray(sk) && sk.length === 1 && sk[0].from === today && sk[0].to === today, "round 2 #4: the skipped day is remembered"); }
+ok(refused(await as("authenticated", TENANT2, `SELECT * FROM public.rental_rent_sweep_skips`), /permission denied/)
+  && refused(await as("authenticated", LANDLORD, `SELECT * FROM public.rental_rent_sweep_skips`), /permission denied/),
+  "round 3 #1: neither side can read the skipped days (they would reveal the other side's ban or switch-off)");
 await svc(`INSERT INTO public.test_accounts (user_id) VALUES ('${TENANT2}')`);
 await svc(`UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = '${LANDLORD}'`);
 await sweep();

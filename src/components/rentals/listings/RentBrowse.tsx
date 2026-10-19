@@ -163,8 +163,11 @@ function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k:
     queryKey: [kind.key === "rent" ? "rentals-browse" : "rentals-browse-sale", applied],
     queryFn: () => kind.fetch(applied),
   });
-  // Buy counts as a filter, so the button wears its badge while it is on.
-  const activeFilters = (buy ? 1 : 0) + (minBeds != null ? 1 : 0) + (maxCents != null ? 1 : 0);
+  // The filters that NARROW the list (bedrooms, price): what the empty state's words and its
+  // Clear filters button are about. Buy is a choice of list, not a narrowing.
+  const narrowing = (minBeds != null ? 1 : 0) + (maxCents != null ? 1 : 0);
+  // Buy counts on the filter button, so it wears its badge while Buy is on.
+  const activeFilters = (buy ? 1 : 0) + narrowing;
   const clearFilters = () => {
     setMinBeds(null);
     setMaxRent("");
@@ -263,13 +266,13 @@ function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k:
           icon={Home}
           title={`No ${kind.noun} here yet`}
           body={
-            city || activeFilters
+            city || narrowing
               ? `No ${kind.noun} match yet. Try another city or fewer filters.`
               : `No ${kind.noun} match yet. New homes show up here as owners list them.`
           }
           action={
-            activeFilters > 0 ? (
-              <Button type="button" variant="outline" size="sm" onClick={clearFilters}>
+            narrowing > 0 ? (
+              <Button type="button" variant="outline" size="sm" onClick={() => { setMinBeds(null); setMaxRent(""); }}>
                 Clear filters
               </Button>
             ) : undefined

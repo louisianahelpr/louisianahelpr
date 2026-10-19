@@ -10,6 +10,9 @@ import { Search, SlidersHorizontal, X } from "lucide-react";
  * filter is on. One component, so the four cannot drift apart again (Shops
  * had a plain "All shops" button; Homes was 4px taller).
  *
+ * Below 360px the PLACEHOLDER steps down to 13px so the longest one ("Homes
+ * for sale: City or ZIP") is whole at 320; what you type stays 15px.
+ *
  * Geometry is pinned by e2e/prod-audit/section-shell-alignment.spec.ts.
  */
 export function SectionSearchRow({
@@ -64,7 +67,7 @@ export function SectionSearchRow({
         placeholder={placeholder}
         aria-label={placeholder}
         enterKeyHint="search"
-        className="flex-1 min-w-0 bg-transparent text-ds-15 text-foreground outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
+        className="flex-1 min-w-0 bg-transparent text-ds-15 text-foreground outline-none placeholder:text-muted-foreground max-[359px]:placeholder:text-ds-13 [&::-webkit-search-cancel-button]:hidden"
       />
       {value && (
         <button type="button" aria-label="Clear search" onClick={() => onChange("")} className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-muted-foreground">

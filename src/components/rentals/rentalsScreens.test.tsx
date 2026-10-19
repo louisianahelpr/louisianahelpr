@@ -26,6 +26,8 @@
  * @mutate src/components/rentals/HomesBrowse.tsx |   const kind: HomesKind = params.get("kind") === "buy" \|\| params.get("mode") === "buy" ? "buy" : "rent"; |   const kind: HomesKind = params.get("kind") === "buy" ? "buy" : "rent";
  * @mutate src/components/rentals/listings/RentBrowse.tsx |         placeholder={buy ? "Homes for sale: City or ZIP" : "City or ZIP"} |         placeholder="City or ZIP"
  * @mutate src/components/rentals/listings/RentBrowse.tsx |   const activeFilters = (buy ? 1 : 0) + | const activeFilters = (buy ? 0 : 0) +
+ * @mutate src/components/rentals/listings/RentBrowse.tsx |             city \|\| narrowing | city \|\| activeFilters
+ * @mutate src/components/rentals/listings/RentBrowse.tsx |             narrowing > 0 ? ( |             activeFilters > 0 ? (
  * @mutate src/components/rentals/listings/RentBrowse.tsx |                       onKind(k.value); |                       void k;
  * @mutate src/components/rentals/HomesBrowse.tsx | intro={kind === "buy" ? <BuyIntro /> : undefined} | intro={undefined}
  * @mutate src/components/rentals/RentalsHomeView.tsx | function SaleListingLink({ propertyId, approved, listing }: { propertyId: string; approved: boolean; listing: RentalListing \| undefined }) {\n  if (!approved) return null; | function SaleListingLink({ propertyId, approved, listing }: { propertyId: string; approved: boolean; listing: RentalListing \| undefined }) {\n  if (approved \|\| !approved) return null;
@@ -301,6 +303,9 @@ describe("Rentals screens", () => {
         expect(screen.getByPlaceholderText("Homes for sale: City or ZIP")).toBeTruthy();
         expect(screen.getByRole("button", { name: "Filters (1 active)" })).toBeTruthy();
         expect(screen.queryByText(/No homes for rent match yet/)).toBeNull();
+        // Buy is a choice of list, not a narrowing: the empty state does not say "fewer filters" or offer Clear filters.
+        expect(panel.textContent).toContain("New homes show up here as owners list them.");
+        expect(screen.queryByRole("button", { name: "Clear filters" })).toBeNull();
       });
     }
     it("Buy: a home for sale shows its price, beds/baths and city + ZIP, no move-in date, and links to its page; filters reach the sale read", async () => {

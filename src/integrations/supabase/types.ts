@@ -7352,11 +7352,12 @@ export type Database = {
       }
       rental_deposits: {
         Row: {
-          amount_cents: number
+          address_shared_noticed_at: string | null
+          amount_cents: number | null
           created_at: string
           deductions: Json
           forwarding_address: string | null
-          received_on: string
+          received_on: string | null
           reminded_stage: number
           returned_cents: number | null
           returned_on: string | null
@@ -7365,11 +7366,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          amount_cents: number
+          address_shared_noticed_at?: string | null
+          amount_cents?: number | null
           created_at?: string
           deductions?: Json
           forwarding_address?: string | null
-          received_on: string
+          received_on?: string | null
           reminded_stage?: number
           returned_cents?: number | null
           returned_on?: string | null
@@ -7378,11 +7380,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          amount_cents?: number
+          address_shared_noticed_at?: string | null
+          amount_cents?: number | null
           created_at?: string
           deductions?: Json
           forwarding_address?: string | null
-          received_on?: string
+          received_on?: string | null
           reminded_stage?: number
           returned_cents?: number | null
           returned_on?: string | null
@@ -13228,14 +13231,15 @@ export type Database = {
         }
         Returns: undefined
       }
-      rentals_dispute_rent_payment: {
-        Args: { p_payment_id: string; p_reason: string }
-        Returns: undefined
       rentals_deposit: {
         Args: { p_tenancy_id: string }
         Returns: Json
       }
       rentals_deposit_sweep: { Args: never; Returns: Json }
+      rentals_dispute_rent_payment: {
+        Args: { p_payment_id: string; p_reason: string }
+        Returns: undefined
+      }
       rentals_end_tenancy: {
         Args: { p_tenancy_id: string }
         Returns: undefined

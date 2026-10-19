@@ -150,7 +150,7 @@ function SaleListingLink({ propertyId, approved, listing }: { propertyId: string
   );
 }
 
-/** D6: after move-out the live-tenancy card is gone, but the deposit still has to be settled (one month). */
+/** D6: after move-out the live-tenancy card is gone, but the deposit still has to be settled (one month) and the rent record stays open to both sides for 90 days. */
 function MovedOut({ items }: { items: EndedDeposit[] }) {
   return (
     <>
@@ -160,6 +160,7 @@ function MovedOut({ items }: { items: EndedDeposit[] }) {
             {d.label}
             {d.unit_label ? `, ${d.unit_label}` : ""} <span className="text-xs font-normal text-muted-foreground">· moved out</span>
           </p>
+          <RentPanel tenancyId={d.tenancy_id} />
           <DepositPanel tenancyId={d.tenancy_id} />
         </div>
       ))}

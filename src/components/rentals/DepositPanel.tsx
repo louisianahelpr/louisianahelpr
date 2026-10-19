@@ -2,11 +2,15 @@
  * Homes security deposit, TRACK ONLY (owner D6; R.S. 9:3251; 20261019082216).
  * Paid directly to the landlord; the app keeps one record and the return clock.
  *
- *   Landlord: record the deposit (amount, day received); after the tenancy
- *             ends, see the tenant's forwarding address and the return-by date,
- *             and settle it: the amount returned and each amount kept with its
- *             reason (the itemized statement the tenant gets). Final.
- *   Tenant:   the amount, give a forwarding address, and the statement.
+ *   Landlord: record the deposit (amount, day received; up to 30 days after
+ *             the end if never recorded); after the tenancy ends, the return-by
+ *             date and settle it: the amount returned and each amount kept with
+ *             its reason (the itemized statement the tenant gets). Final. The
+ *             tenant's forwarding address shows only once the tenant ended the
+ *             tenancy or the lease end date passed (lead review #4).
+ *   Tenant:   the amount, give a forwarding address (before the deposit is
+ *             recorded too) with a line saying when the landlord sees it, and
+ *             the statement.
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { dollarsToCents, rentalsErrorMessage } from "@/lib/rentals/copy";
 import {
+  addressShareLine,
   centralToday,
   dayLabel,
   fetchDeposit,
@@ -65,7 +70,7 @@ function AddressForm({ tenancyId, current, onDone }: { tenancyId: string; curren
   const m = useMutation({
     mutationFn: () => setForwardingAddress(tenancyId, address),
     onSuccess: () => {
-      toast("Forwarding address saved. Your landlord sees it once you've moved out.");
+      toast("Forwarding address saved.");
       onDone();
     },
     onError: (e) => toast.error(rentalsErrorMessage(e)),
@@ -177,29 +182,70 @@ function Statement({ d }: { d: NonNullable<DepositRecord["deposit"]> }) {
   );
 }
 
+function AddressBlock({ r, tenancyId, onDone }: { r: DepositRecord; tenancyId: string; onDone: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const finish = () => {
+    setEditing(false);
+    onDone();
+  };
+  if (r.side === "tenant") {
+    return (
+      <div className="space-y-1">
+        {r.forwarding_address && !editing ? (
+          <p className="flex items-center justify-between gap-2 text-xs">
+            <span>Forwarding address: {r.forwarding_address}</span>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(true)}>
+              Change
+            </Button>
+          </p>
+        ) : (
+          <AddressForm tenancyId={tenancyId} current={r.forwarding_address} onDone={finish} />
+        )}
+        <p className="text-xs text-muted-foreground" data-testid="address-share-line">
+          {addressShareLine(r)}
+        </p>
+      </div>
+    );
+  }
+  if (r.forwarding_address) return <p className="text-xs">Send it to: {r.forwarding_address}</p>;
+  return (
+    <p className="text-xs text-muted-foreground">
+      {!r.has_forwarding_address
+        ? "Your tenant hasn't given a forwarding address yet."
+        : r.lease_ends_on && r.tenancy_status === "ended"
+          ? `Your tenant gave a forwarding address. You'll see it on ${dayLabel(r.lease_ends_on)}, when the lease ends.`
+          : "Your tenant gave a forwarding address. You'll see it once they end the tenancy, or after the lease end date."}
+    </p>
+  );
+}
+
 export function DepositPanel({ tenancyId }: { tenancyId: string }) {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: depositKey(tenancyId), queryFn: () => fetchDeposit(tenancyId) });
-  const [editingAddress, setEditingAddress] = useState(false);
-  const done = () => {
-    setEditingAddress(false);
-    void qc.invalidateQueries({ queryKey: depositKey(tenancyId) });
-  };
+  const done = () => void qc.invalidateQueries({ queryKey: depositKey(tenancyId) });
   if (q.isError) return <p className="text-xs text-muted-foreground">Couldn't load the deposit record.</p>;
   if (!q.data) return null;
-  const { side, tenancy_status: status, deposit: d } = q.data;
+  const r = q.data;
+  const { side, tenancy_status: status, deposit: d } = r;
   return (
     <section className="space-y-2 border-t border-border pt-3" aria-label="Security deposit">
       <p className="text-sm font-medium">Security deposit</p>
       {!d ? (
-        side === "landlord" && status === "active" ? (
-          <>
-            <p className="text-xs text-muted-foreground">Paid to you directly. Record it so you both have the same record.</p>
-            <RecordForm tenancyId={tenancyId} onDone={done} />
-          </>
-        ) : (
-          <p className="text-xs text-muted-foreground">No deposit recorded.</p>
-        )
+        <>
+          {r.can_record ? (
+            <>
+              <p className="text-xs text-muted-foreground">
+                {status === "ended"
+                  ? "Not recorded yet. You can still record it for 30 days after the tenancy ended."
+                  : "Paid to you directly. Record it so you both have the same record."}
+              </p>
+              <RecordForm tenancyId={tenancyId} onDone={done} />
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground">{side === "tenant" ? "Your landlord hasn't recorded a deposit yet." : "No deposit recorded."}</p>
+          )}
+          {side === "tenant" && <AddressBlock r={r} tenancyId={tenancyId} onDone={done} />}
+        </>
       ) : (
         <>
           <p className="text-xs text-muted-foreground">
@@ -208,24 +254,15 @@ export function DepositPanel({ tenancyId }: { tenancyId: string }) {
           {d.settled_at ? (
             <Statement d={d} />
           ) : side === "tenant" ? (
-            d.forwarding_address && !editingAddress ? (
-              <p className="flex items-center justify-between gap-2 text-xs">
-                <span>Forwarding address: {d.forwarding_address}</span>
-                <Button type="button" size="sm" variant="ghost" onClick={() => setEditingAddress(true)}>
-                  Change
-                </Button>
-              </p>
-            ) : (
-              <AddressForm tenancyId={tenancyId} current={d.forwarding_address} onDone={done} />
-            )
+            <AddressBlock r={r} tenancyId={tenancyId} onDone={done} />
           ) : status === "ended" ? (
             <>
               <p className="text-sm font-semibold">Return by {d.return_by ? dayLabel(d.return_by) : ""}</p>
-              <p className="text-xs">{d.forwarding_address ? `Send it to: ${d.forwarding_address}` : "Your tenant hasn't given a forwarding address yet."}</p>
+              <AddressBlock r={r} tenancyId={tenancyId} onDone={done} />
               <SettleForm tenancyId={tenancyId} amountCents={d.amount_cents} onDone={done} />
             </>
           ) : (
-            <p className="text-xs text-muted-foreground">{d.has_forwarding_address ? "Your tenant gave a forwarding address. You'll see it when the tenancy ends." : ""}</p>
+            r.has_forwarding_address && <AddressBlock r={r} tenancyId={tenancyId} onDone={done} />
           )}
         </>
       )}

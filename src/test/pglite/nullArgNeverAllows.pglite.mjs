@@ -218,7 +218,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Homes listings (20261019043000); after is_identity_verified, which its newest SQL body calls (20261019061241).
   "rentals_listing_visible",
   // Homes public link (20261019062540) and listing photo storage checks (20261019071203).
-  "rentals_public_listing_visible", "rentals_listing_photo_access", "rentals_listing_photo_deletable"];
+  "rentals_public_listing_visible", "rentals_listing_photo_access", "rentals_listing_photo_deletable",
+  // Homes rent tracker read policies (20261019073106).
+  "rentals_tenancy_party"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).

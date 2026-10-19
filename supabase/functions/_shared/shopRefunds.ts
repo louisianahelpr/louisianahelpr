@@ -41,7 +41,7 @@ export type ShopRefundRow = {
 export type ShopRefundOutcome = "sent" | "reconciled" | "failed";
 
 /** The most tries before the money step stops and ops refunds it by hand. */
-export const SHOP_REFUND_MAX_ATTEMPTS = 12;
+const SHOP_REFUND_MAX_ATTEMPTS = 12;
 
 /**
  * The idempotency key of one try: the row's failed attempts so far, and, once
@@ -49,7 +49,7 @@ export const SHOP_REFUND_MAX_ATTEMPTS = 12;
  * (shop_refund_reversed resets attempts to 0 and adds a reversal, /code-review
  * of shops-m3-v1 #4), so a re-send never replays the reversed refund's key.
  */
-export function shopRefundKey(refundId: string, attempts: number, reversals = 0): string {
+function shopRefundKey(refundId: string, attempts: number, reversals = 0): string {
   const n = Number.isInteger(attempts) && attempts > 0 ? attempts : 0;
   const v = Number.isInteger(reversals) && reversals > 0 ? reversals : 0;
   return `shop-refund-${refundId}${v === 0 ? "" : `-v${v}`}${n === 0 ? "" : `-r${n}`}`;

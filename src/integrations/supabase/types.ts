@@ -7514,6 +7514,33 @@ export type Database = {
           },
         ]
       }
+      rental_photo_purge_queue: {
+        Row: {
+          bucket_id: string
+          claimed_at: string | null
+          created_at: string
+          due_at: string
+          reason: string
+          storage_path: string
+        }
+        Insert: {
+          bucket_id: string
+          claimed_at?: string | null
+          created_at?: string
+          due_at: string
+          reason: string
+          storage_path: string
+        }
+        Update: {
+          bucket_id?: string
+          claimed_at?: string | null
+          created_at?: string
+          due_at?: string
+          reason?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       rental_properties: {
         Row: {
           auto_approve_limit_cents: number | null
@@ -13009,6 +13036,7 @@ export type Database = {
         Args: { p_action: string; p_name: string }
         Returns: boolean
       }
+      rentals_listing_photo_deletable: { Args: { p_name: string }; Returns: boolean }
       rentals_listing_photo_object: { Args: { p_ref: string }; Returns: string }
       rentals_listing_visible: {
         Args: { p_listing_id: string }
@@ -13103,6 +13131,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      rentals_photo_path_listing: { Args: { p_path: string }; Returns: string }
+      rentals_photo_purge_done: { Args: { p_bucket: string; p_paths: string[] }; Returns: number }
+      rentals_photo_purge_due: {
+        Args: { p_limit?: number }
+        Returns: {
+          bucket_id: string
+          storage_path: string
+        }[]
+      }
+      rentals_photo_ref: { Args: { p_photo_id: string; p_scope: string }; Returns: string }
+      rentals_photo_sig: { Args: { p_msg: string }; Returns: string }
       rentals_public_listing: {
         Args: { p_slug: string }
         Returns: {
@@ -13122,7 +13161,7 @@ export type Database = {
           parking: string
           pet_rules: string
           pets: string
-          photo_ids: string[]
+          photo_refs: string[]
           published_at: string
           rent_cents: number
           rent_frequency: string
@@ -13133,7 +13172,6 @@ export type Database = {
           zip_code: string
         }[]
       }
-      rentals_public_listing_photo_path: { Args: { p_photo_id: string }; Returns: string }
       rentals_public_listing_visible: { Args: { p_listing_id: string }; Returns: boolean }
       rentals_remove_listing_photo: {
         Args: { p_photo_id: string }

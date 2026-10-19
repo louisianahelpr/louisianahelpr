@@ -38,7 +38,7 @@ import {
   STATUS_HELP,
   STATUS_LABEL,
 } from "./declutterUi";
-import { OfferPanel } from "./DeclutterTradeViews";
+import { OfferPanel } from "./DeclutterOfferPanel";
 import PriceHint from "./DeclutterPriceHint";
 
 function SellerLine({ sellerId }: { sellerId: string }) {
@@ -203,6 +203,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
         {!isSeller && <SellerLine sellerId={it.seller_id} />}
       </section>
 
+      {/* Buy now and Make an offer sit right under the price (owner, 2026-10-19). */}
+      {canAct && user && <OfferPanel item={it} userId={user.id} />}
+
       <PriceHint category={it.category} conditionStars={it.condition_stars} at={{ lat: Number(it.area_lat), lng: Number(it.area_lng) }} place="this_area" />
 
       {isSeller && (
@@ -218,8 +221,6 @@ export default function ItemView({ itemId }: { itemId: string }) {
           <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{it.description}</p>
         </section>
       )}
-
-      {canAct && user && <OfferPanel item={it} userId={user.id} />}
 
       <section className="space-y-2">
         <h2 className="text-base font-semibold">Questions</h2>

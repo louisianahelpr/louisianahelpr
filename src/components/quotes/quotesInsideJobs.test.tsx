@@ -132,6 +132,9 @@ describe("old /quotes links redirect to the new homes", () => {
   });
 
   it("the quote screens' own links and back buttons go to the new homes", () => {
+    // Inventory floor (vacuity: the files read here must exist and hold real code).
+    expect(src("src/pages/quotes/SendQuotePage.tsx").length).toBeGreaterThan(500);
+    expect(src("src/pages/quotes/QuoteRequestPage.tsx").length).toBeGreaterThan(500);
     expect(src("src/pages/quotes/SendQuotePage.tsx")).toContain("navigate(QUOTE_HOMES.myQuotes, { replace: true });");
     expect(src("src/pages/quotes/SendQuotePage.tsx")).toContain("backTo={QUOTE_HOMES.openRequests}");
     expect(src("src/pages/quotes/QuoteRequestPage.tsx")).toContain("backTo={QUOTE_HOMES.myRequests}");

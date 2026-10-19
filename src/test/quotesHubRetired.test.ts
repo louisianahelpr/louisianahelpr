@@ -14,7 +14,7 @@
  *
  * @mutate src/pages/quotes/SendQuotePage.tsx |       navigate(QUOTE_HOMES.myQuotes, { replace: true }); |       navigate("/quotes?view=mine", { replace: true });
  * @mutate src/components/DesktopSidebarNav.tsx |     ...NAV_ITEMS.slice(4),\n |     ...[{ path: "/quotes", icon: Store, label: "Quotes" }],\n    ...NAV_ITEMS.slice(4),\n
- * @mutate src/App.tsx |       <Route path="/quotes" element={<QuotesHubRedirect />} /> |       <Route path="/quotes" element={<p>Quotes</p>} />
+ * @mutate src/App.tsx |       <Route path="/quotes" element={routeEl(<QuotesHubRedirect />)} /> |       <Route path="/quotes" element={<p>Quotes</p>} />
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, existsSync, statSync } from "node:fs";
@@ -76,7 +76,8 @@ describe("no screen links to the retired /quotes hub (owner 2026-10-19)", () => 
 
   it("the route is the redirect, not a page", () => {
     const app = blankComments(read("src/App.tsx"));
-    expect(app).toContain('<Route path="/quotes" element={<QuotesHubRedirect />} />');
+    expect(app).toContain('<Route path="/quotes" element={routeEl(<QuotesHubRedirect />)} />');
+    expect(app).toContain('const QuotesHubRedirect = lazyWithPreload(() => import("./components/quotes/QuotesHubRedirect"));');
     expect(existsSync(join(root, "src/pages/quotes/QuotesPage.tsx"))).toBe(false);
   });
 });

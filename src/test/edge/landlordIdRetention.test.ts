@@ -116,6 +116,8 @@ describe("landlord ID retention sweep", () => {
 
   it("the daily cron runs it and reports its failures as defects", () => {
     const src = blankComments(readFileSync(join(process.cwd(), "supabase/functions/cleanup-abandoned-accounts/index.ts"), "utf8"));
+    // Inventory floor (vacuity): the cron source this reads is real code, not an empty file.
+    expect(src.length).toBeGreaterThan(1000);
     expect(src).toContain("const landlordId = await sweepLandlordIdImages(supabase as unknown as LandlordIdSweepClient, { dryRun });");
     expect(src).toContain("for (const f of landlordId.failures) defects.record(`landlord ID retention: ${f}`);");
   });

@@ -289,7 +289,7 @@ describe("declutter-money: the Louisiana marketplace-facilitator early warning (
     scenario.rpc.facilitator_threshold_check = { year: 2026, total_cents: 8012345, ops_alert_due: true };
     scenario.rpc.facilitator_alert_sent = null;
     await fn.fetch(fn.request({ headers: { Authorization: "Bearer cron-secret" } }));
-    const alert = slackAlerts.find((a: any) => /facilitator threshold/i.test(String(a.title ?? "")));
+    const alert = slackAlerts.find((a: any) => /facilitator threshold/i.test(String(a.title ?? ""))) as { kind?: string; message?: string } | undefined;
     expect(alert?.kind).toBe("money_at_risk");
     expect(String(alert?.message)).toContain("$80123.45");
     expect(rpcs("facilitator_alert_sent")[0]?.args).toEqual({ p_year: 2026 });

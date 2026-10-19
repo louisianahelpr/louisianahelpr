@@ -34,7 +34,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import type { ShopOrder } from "@/lib/shops/orders";
 
-const invoke = vi.hoisted(() => vi.fn(async (_fn: string, _opts: { body: Record<string, unknown> }) => ({ data: { ok: true }, error: null })));
+const invoke = vi.hoisted(() => vi.fn(async (_fn: string, _opts: { body: Record<string, unknown> }) =>
+  ({ data: { ok: true } as Record<string, unknown>, error: null as unknown })));
 const rpc = vi.hoisted(() => vi.fn());
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke }, rpc } }));
 vi.mock("@/lib/nativeInit", () => ({ isNativePlatform: false }));

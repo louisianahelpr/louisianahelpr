@@ -128,11 +128,15 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
     expect(done).toMatch(/IF\s+p_how\s+IS\s+NULL\s+OR\s+p_how\s+NOT\s+IN\s*\(\s*'buyer',\s*'auto',\s*'admin'\s*\)\s+THEN\s+RAISE\s+EXCEPTION\s+'invalid_method'/i);
     expect(done).not.toMatch(/'shop'/);
     expect(MIG).toMatch(/confirmed_how\s+text\s+CHECK\s*\(\s*confirmed_how\s+IS\s+NULL\s+OR\s+confirmed_how\s+IN\s*\(\s*'buyer',\s*'auto',\s*'admin'\s*\)\s*\)/i);
-    // Every function any migration leaves that calls the transition: the buyer's tap and the clock, nothing else.
+    // Every function any migration leaves that calls the transition: the buyer's tap, the clock and
+    // an admin's decision of a reported problem (Shops M4, 20261019043209), nothing else.
     const callers = [...DEFS.entries()]
       .filter(([name, d]) => name !== "shop_complete_handover" && /\bshop_complete_handover\s*\(/i.test(blankSqlComments(d.stmt)))
       .map(([name]) => name).sort();
-    expect(callers).toEqual(["shop_handover_sweep", "shops_confirm_pickup"]);
+    expect(callers).toEqual(["shop_handover_sweep", "shops_admin_pay_shop", "shops_confirm_pickup"]);
+    // The admin path is admin-only and finishes with 'admin', never as the shop.
+    expect(body("shops_admin_pay_shop")).toMatch(/NOT\s+public\.has_role\(v_uid,\s*'admin'\)/i);
+    expect(body("shops_admin_pay_shop")).toMatch(/shop_complete_handover\(o\.id,\s*'admin'\)/i);
     expect(DEFS.has("shops_mark_picked_up")).toBe(false);
     // And the transition stays the ONLY writer of a finished handover: no other function marks the
     // order handed over, stamps confirmed_at or writes a payout row (authz review of 201265b4c).

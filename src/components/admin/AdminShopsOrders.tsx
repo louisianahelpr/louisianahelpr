@@ -67,15 +67,14 @@ type Action =
   | { kind: "give_strike"; orderId: string; side: "buyer" | "shop" }
   | { kind: "hold"; sellerId: string };
 
-/** An admin RPC's refusal in words (ADMIN_RPC_ERROR_COPY), else the Shops words for its code. */
-function adminFail(rpc: "shops_admin_queue" | "shops_admin_pay_shop" | "shops_admin_remove_strike" | "shops_admin_give_strike",
-  error: { message: string }): never {
-  throw Object.assign(new Error(error.message), error, { userMessage: rpcErrorMessage(rpc, error) ?? undefined });
+/** An admin RPC's refusal, carrying its words (read at each call site with rpcErrorMessage). */
+function adminFail(error: { message: string }, userMessage: string | null): never {
+  throw Object.assign(new Error(error.message), error, { userMessage: userMessage ?? undefined });
 }
 
 async function fetchQueue(): Promise<Queue> {
   const { data, error } = await supabase.rpc("shops_admin_queue");
-  if (error) adminFail("shops_admin_queue", error);
+  if (error) adminFail(error, rpcErrorMessage("shops_admin_queue", error));
   const q = (data ?? {}) as Partial<Queue>;
   return { problems: q.problems ?? [], refunds: q.refunds ?? [], payouts: q.payouts ?? [], strikes: q.strikes ?? [] };
 }
@@ -83,16 +82,16 @@ async function fetchQueue(): Promise<Queue> {
 async function runAction(a: Action, note: string, reason: AdminRefundReason | null): Promise<void> {
   if (a.kind === "pay") {
     const { error } = await supabase.rpc("shops_admin_pay_shop", { p_order_id: a.orderId, p_note: note });
-    if (error) adminFail("shops_admin_pay_shop", error);
+    if (error) adminFail(error, rpcErrorMessage("shops_admin_pay_shop", error));
   } else if (a.kind === "refund") {
     if (!reason) throw new Error("invalid_reason");
     await adminRefundOrder(a.orderId, reason, note);
   } else if (a.kind === "remove_strike") {
     const { error } = await supabase.rpc("shops_admin_remove_strike", { p_strike_id: a.strikeId, p_note: note });
-    if (error) adminFail("shops_admin_remove_strike", error);
+    if (error) adminFail(error, rpcErrorMessage("shops_admin_remove_strike", error));
   } else if (a.kind === "give_strike") {
     const { error } = await supabase.rpc("shops_admin_give_strike", { p_order_id: a.orderId, p_side: a.side, p_note: note });
-    if (error) adminFail("shops_admin_give_strike", error);
+    if (error) adminFail(error, rpcErrorMessage("shops_admin_give_strike", error));
   }
 }
 

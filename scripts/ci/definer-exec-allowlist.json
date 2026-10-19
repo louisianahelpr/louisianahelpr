@@ -13,7 +13,8 @@
     "seed_jobs_hidden_publicly()": "reviewed 2026-10-12 (Q14): the global launch switch, one public boolean. No app code calls it (the old client match was the feature-flag KEY constant in src/config/showSeedJobs.ts, and live 2026-10-12 only definer functions call it, no view or policy); scripts/check-launch-flags.sh reads it as anon with the publishable key.",
     "seed_hidden_in_discovery()": "reviewed 2026-10-07 (Q552): read inside the open_jobs_browse view, whose callers need EXECUTE (a view's function EXECUTE is checked against the caller); answers only whether the launch switch hides test rows from the CALLER.",
     "shops_public_shop(uuid)": "client",
-    "features_open_to_everyone()": "client"
+    "features_open_to_everyone()": "client",
+    "rentals_public_listing(text)": "reviewed 2026-10-19 (Q2188): the public Homes listing link (D12) /r/<slug>, for anyone with the link (signed out too). Returns one listing's coarse facts only while rentals_public_listing_visible holds (live, not expired, ownership approved, owner not banned, not taken down, Homes open to everyone, not a test/seed owner): city + ZIP never the street, no owner or listing id, no storage path (photos by id/ref), and no size/lot/year for a home for sale; a hidden or unknown slug is P0002 listing_not_found. Proof: src/test/pglite/homesPublicLink.pglite.mjs. The /r/ page that calls it comes with the Slice 3 client."
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",
@@ -320,7 +321,9 @@
     "shops_set_ready_tap_cancel(text)": "reviewed 2026-10-19 (Q14): Shops O2 (20261019015018; lh-authz-rls review): client RPC behind switch 'shops' (require_feature first); refuses a banned caller; sets the caller's own shop's ready-tap choice only (WHERE owner_id = the caller).",
     "admin_rule_helpr_fault(uuid, uuid, text, text)": "reviewed 2026-10-19 (Q14): Helpr at fault (Q2082; 20261019015301; lh-authz-rls approve). Admin only (has_role on auth.uid(); every other caller is refused with not_authorized). Records one Helpr-at-fault ruling (no_show or backout) per job and Helpr with a required note, adds the strike once, and writes admin_audit_log; moves no money (the card fee is billed later by the service-role-only bill_helpr_fault_card_fee). Called by create-payment's admin refund paths with the admin's own JWT so the ruling records who ruled.",
     "shops_public_shop(uuid)": "client",
-    "features_open_to_everyone()": "client"
+    "features_open_to_everyone()": "client",
+    "rentals_public_listing(text)": "reviewed 2026-10-19 (Q2188): the public Homes listing link (D12) /r/<slug>, for anyone with the link (signed out too). Returns one listing's coarse facts only while rentals_public_listing_visible holds (live, not expired, ownership approved, owner not banned, not taken down, Homes open to everyone, not a test/seed owner): city + ZIP never the street, no owner or listing id, no storage path (photos by id/ref), and no size/lot/year for a home for sale; a hidden or unknown slug is P0002 listing_not_found. Proof: src/test/pglite/homesPublicLink.pglite.mjs. The /r/ page that calls it comes with the Slice 3 client.",
+    "rentals_admin_remove_listing(uuid, text)": "reviewed 2026-10-19 (Q2187): the admin take-down of a Homes listing; refuses every caller that is not has_role(auth.uid(), 'admin') with not_authorized, needs a 5-500 character reason, writes admin_audit_log and tells the owner why. Never switch-gated (moderation). Proof: src/test/pglite/homesPublicLink.pglite.mjs. The Admin -> Settings card that calls it comes with the Slice 3 client."
   },
   "unscoped": {
     "choose_new_social_account(uuid)": "reviewed 2026-10-05 (Q446): the signed-out choice screen marks the pending one-account choice whose random id only the refused sign-in received; it reads and returns nothing about any person, and marking a row only lets that same Apple/Google identity create its account.",

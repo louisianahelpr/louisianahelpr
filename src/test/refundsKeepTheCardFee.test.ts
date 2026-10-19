@@ -467,7 +467,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // puts a held refund back to 'pending' with its recorded refund_cents (the fee kept at record time is kept).
       // 20261019112103: + a held Shops refund / payout, refused while a refund made in Stripe stands (refunded_in_stripe)
       // or when the queue would not send it; a released Shops row starts its tries at 0. No amount changes.
-      admin_payout_release: "20261019112103_shops_held_for_review_admin_tools.sql c6232ad30260cfd2",
+      admin_payout_release: "20261019112103_shops_held_for_review_admin_tools.sql 486fe38ef3f5f44a",
       // records how a held refund was settled outside the app (Stripe re_/pyr_ id or "other:") and the amount the admin
       // says moved (settled_by_hand_cents, payout_settlements, the hand-refund ledger); it sends no money and never
       // changes refund_cents, so no new fee is returned by the app (owner: hand-settled = no new money movement).
@@ -575,8 +575,40 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       { table: "shop_refunds" },
       { table: "shop_orders", only: /\bcard_fee_cents\b/i },
     ],
-    functions: {},
-    statements: {},
+    // Every function that reads or writes a Shops refund row, its amount or its status, read and pinned (run 3, the lead's
+    // /code-review of shops-m3): amounts come only from shop_refund_amounts (held by the shop_refunds CHECKs); the
+    // held-for-review admin tools move status and record what moved, never change refund_cents.
+    functions: {
+      admin_payout_release: "20261019112103_shops_held_for_review_admin_tools.sql 486fe38ef3f5f44a",
+      admin_payout_settle_by_hand: "20261019112103_shops_held_for_review_admin_tools.sql f65d8088fd3c48d3",
+      admin_payouts_held_for_review: "20261019112103_shops_held_for_review_admin_tools.sql c1e1ff95266b714b",
+      payout_held_check: "20261019112103_shops_held_for_review_admin_tools.sql b489b512cdf15ef7",
+      shop_hand_refund_failed: "20261019071055_shops_refunds_cancels_strikes.sql ba27ff33a9f0c110",
+      shop_hold_order_for_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 1e75907ab8fb3269",
+      shop_money_rows_seed: "20261018211820_shops_handover_payout.sql 55e7c11ee19013d2",
+      shop_order_captured: "20261018164442_shops_orders_checkout.sql 3fe4dbb559a29a1f",
+      shop_record_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 57f661acd2c47d64",
+      shop_refund_amounts: "20261019071055_shops_refunds_cancels_strikes.sql e33a946acc47db26",
+      shop_refund_executed: "20261019071055_shops_refunds_cancels_strikes.sql c9dd716154e3d67f",
+      shop_refund_fee_policy: "20261019071055_shops_refunds_cancels_strikes.sql f658275f8b61b0af",
+      shop_refund_reversed: "20261019071055_shops_refunds_cancels_strikes.sql df880e58ddff9ccd",
+      shop_refund_sweep: "20261019071055_shops_refunds_cancels_strikes.sql 8851f4c472395adc",
+      shop_refund_tax_kept: "20261019071055_shops_refunds_cancels_strikes.sql 55fb2a820bce5eca",
+      shop_refund_to_send: "20261019071055_shops_refunds_cancels_strikes.sql b349bdd3f8d3b813",
+      shop_refunds_due: "20261019071055_shops_refunds_cancels_strikes.sql bbfc70978e922056",
+      shop_write_refund: "20261019071055_shops_refunds_cancels_strikes.sql 8e2784ad6a3144e8",
+      shops_admin_queue: "20261019071055_shops_refunds_cancels_strikes.sql 45af68a4538108a7",
+      shops_admin_record_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql e84eb2bcd3a84095",
+      shops_admin_refund_order: "20261019071055_shops_refunds_cancels_strikes.sql a7df4ee33cc5ef18",
+      shops_admin_settle_held_refund: "20261019071055_shops_refunds_cancels_strikes.sql 6d0001f095b1ff76",
+      shops_buyer_cancel_order: "20261019071055_shops_refunds_cancels_strikes.sql 69cdd0dcef74aa6b",
+      shops_order_cancel_quote: "20261019071055_shops_refunds_cancels_strikes.sql fdc45c450183721c",
+      shops_shop_cancel_order: "20261019071055_shops_refunds_cancels_strikes.sql c7cabc81cc0fc3e4",
+    },
+    statements: {
+      "shop_orders 20261018164442_shops_orders_checkout.sql": ["c270fbd5dcbf5fcd"],
+      "shop_refunds 20261019071055_shops_refunds_cancels_strikes.sql": ["75ac5d08aa20b56e", "3b8b9ce1c7e3e63c", "a5b2dee5e1716c6e", "e11df43619a2b9ad"],
+    },
     bodies: {
       shop_refund_amounts: [
         "least(so.total_cents, COALESCE(so.card_fee_cents, public.declutter_card_fee_estimate(so.total_cents))) AS fee,",

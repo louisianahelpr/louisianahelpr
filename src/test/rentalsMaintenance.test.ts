@@ -86,13 +86,16 @@ const MEMBER_RPCS = [
   "rentals_set_listing_status",
   // Landlord ID by admin review (20261019051407).
   "rentals_submit_landlord_id",
+  // Homes -> Buy listings (20261019061241).
+  "rentals_save_sale_listing",
 ];
 /** RPCs that only take access away or link a job (banned / under-18 may still leave). */
 const OTHER_RPCS = ["rentals_end_tenancy", "rentals_withdraw_request", "link_maintenance_request_job", "rentals_admin_review_property",
   "rentals_admin_review_landlord_id"];
-const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes", "rentals_visit_for_job", "rentals_browse_listings", "rentals_listing", "rentals_my_identity"];
+const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes", "rentals_visit_for_job", "rentals_browse_listings", "rentals_listing", "rentals_my_identity",
+  "rentals_browse_sale_listings"];
 /** Listings helpers (20261019043000): server-only. */
-const LISTING_INTERNAL = ["rentals_listing_wording_flags", "rentals_lock_own_listing", "rentals_listing_visible"];
+const LISTING_INTERNAL = ["rentals_listing_wording_flags", "rentals_lock_own_listing", "rentals_listing_visible", "homes_sale_wording_flags"];
 /** Slice 3 writes: visit time (the Helpr, not a Rentals member, proposes; the tenant confirms through
  *  rentals_assert_member) and the landlord's cancel of an unpaid repair job. */
 const VISIT_RPCS = ["rentals_propose_visit", "rentals_confirm_visit", "rentals_cancel_request_job"];
@@ -232,11 +235,14 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
       expect(ALL_MIG, fn).toMatch(new RegExp(String.raw`REVOKE ALL ON FUNCTION public\.${fn}\([^)]*\) FROM PUBLIC, anon, authenticated;`));
     }
     const live = flat(body("rentals_set_listing_status"));
-    expect(live).toContain("IF cardinality(public.rentals_listing_wording_flags(concat_ws(' ', v_l.headline, v_l.description, v_l.pet_rules))) > 0 THEN RAISE EXCEPTION 'wording_flagged'");
+    // 20261019061241: a sale listing runs the sale list (fair housing + no haggling), a rent listing the fair-housing list.
+    expect(live).toContain("IF v_l.kind = 'sale' THEN v_flags := public.homes_sale_wording_flags(concat_ws(' ', v_l.headline, v_l.description)); ELSE v_flags := public.rentals_listing_wording_flags(concat_ws(' ', v_l.headline, v_l.description, v_l.pet_rules)); END IF; IF cardinality(v_flags) > 0 THEN RAISE EXCEPTION 'wording_flagged'");
+    // and a sale listing never goes live while the flat listing fee is above 0 (no payment flow exists).
+    expect(live).toContain("IF COALESCE(v_fee, 0) > 0 THEN RAISE EXCEPTION 'listing_fee_not_ready'");
     expect(live).toContain("IF v_photos < 5 THEN RAISE EXCEPTION 'too_few_photos'");
     expect(live).toContain("rp.ownership_status = 'approved'");
     // The browse and the page never return the street address (Q12).
-    for (const fn of ["rentals_browse_listings", "rentals_listing"]) expect(body(fn), fn).not.toMatch(/street_address/);
+    for (const fn of ["rentals_browse_listings", "rentals_browse_sale_listings", "rentals_listing"]) expect(body(fn), fn).not.toMatch(/street_address/);
     expect(flat(body("rentals_lock_own_listing"))).toContain("WHERE id = p_listing_id AND owner_id = p_uid AND p_uid IS NOT NULL");
     // The proof exists and names this migration.
     expect(readFileSync(join(ROOT, "src/test/pglite/rentalsListings.pglite.mjs"), "utf8")).toContain("20261019043000");

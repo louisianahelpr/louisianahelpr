@@ -734,10 +734,10 @@
      (tight contact + mid ambient + wide soft) reads as a real surface
      floating above the canvas rather than a same-tone panel painted onto
      it — the single biggest lever for visual hierarchy. */
+  /* Nearly flat (owner, 2026-10-18, option 3B): one small soft shadow. */
   --card-shadow:
     0 1px 2px hsl(222 24% 16% / 0.05),
-    0 6px 16px -4px hsl(222 24% 16% / 0.08),
-    0 18px 36px -12px hsl(222 24% 16% / 0.06);
+    0 4px 10px -6px hsl(222 24% 16% / 0.08);
   --card-hover-shadow:
     0 2px 4px hsl(222 24% 16% / 0.07),
     0 10px 24px -4px hsl(222 24% 16% / 0.10),
@@ -1064,10 +1064,9 @@
   --copper:         var(--bark);
 
   /* Dark card elevation — invert the shadow tint to be lighter not darker */
+  /* Flat dark cards (owner, 2026-10-18, option 3B): no black bloom. */
   --card-shadow:
-    0 1px 2px hsl(0 0% 0% / 0.25),
-    0 10px 22px -8px hsl(0 0% 0% / 0.35),
-    0 26px 50px -18px hsl(0 0% 0% / 0.28);
+    0 1px 2px hsl(0 0% 0% / 0.25);
   --card-hover-shadow:
     0 2px 5px hsl(0 0% 0% / 0.30),
     0 16px 32px -8px hsl(0 0% 0% / 0.40),
@@ -1225,9 +1224,12 @@ html[data-theme="dark"].web-desktop:not(.app-shell) body:has(.app-shell-frame),
 }
 
 
+/* Flat dark card (owner, 2026-10-18, option 3B): a solid near-black fill
+   and a faint neutral hairline, no olive-tinted rim and no glow. */
 [data-theme="dark"] .liquid-glass {
-  background-color: var(--glass-bg-soft);
-  border-color: var(--glass-border);
+  background-color: hsl(0 0% 10%);
+  border-color: hsl(0 0% 100% / 0.07);
+  box-shadow: 0 1px 2px hsl(0 0% 0% / 0.3);
 }
 
 [data-theme="dark"] .skeleton-glass {
@@ -1239,9 +1241,7 @@ html[data-theme="dark"].web-desktop:not(.app-shell) body:has(.app-shell-frame),
 [data-theme="dark"] :where(.bg-card) {
   background-color: hsl(var(--card));
   border-color: hsl(var(--border) / 0.7);
-  box-shadow:
-    inset 0 1px 0 0 hsl(0 0% 100% / 0.06),
-    var(--card-shadow);
+  box-shadow: var(--card-shadow);
 }
 
 /* iOS Safe Area Support
@@ -2237,12 +2237,12 @@ body[data-scroll-locked] .offline-banner {
 }
 
 .text-page-title {
-  font-family: "Bodoni Moda", "Bodoni Moda Fallback", "Bodoni Moda Fallback Liberation", Georgia, serif !important;
-  font-style: italic !important;
-  font-weight: 700 !important;
+  font-family: Montserrat, "Montserrat Fallback", system-ui, -apple-system, sans-serif !important;
+  font-style: normal !important;
+  font-weight: 650 !important;
   font-size: var(--headline-hero) !important;
   line-height: 1.1 !important;
-  letter-spacing: -0.025em !important;
+  letter-spacing: -0.02em !important;
   color: hsl(var(--ink-deep));
 }
 
@@ -2676,12 +2676,14 @@ button,
      copy that merely happened to agree — which is exactly why the dark-mode
      contrast fix first landed here and changed nothing: the nav CTAs build the
      same gradient inline from the tokens. One set of values now. */
-  background-image: radial-gradient(
-    125% 125% at 32% 22%,
-    hsl(var(--bark-light)) 0%,
-    hsl(var(--bark)) 46%,
-    hsl(var(--bark-deep)) 100%
-  );
+  /* SOLID OLIVE, NEARLY FLAT (owner, 2026-10-18, option 3B): the radial
+     "lit orb" gradient is gone. `background-image: none` is stated, not
+     left implicit, so an older gradient rule can never show through; the
+     small soft shadow comes from the Button's ELEV_FILLED. Guards:
+     src/test/segmentedControlInvariant.test.tsx (this rule) and
+     e2e/happy-path/apply-single-sheet.spec.ts (computed style on a real CTA). */
+  background-color: hsl(var(--bark));
+  background-image: none;
   /* THE INK COMES WITH THE SURFACE (Q2162). The class used
      to paint only the gradient and leave the text colour to each call site;
      <Button> pins parchment, and a hand-rolled <button> that stated nothing
@@ -2749,11 +2751,12 @@ button,
 
 /* AFTER `.segmented-option` on purpose: both are single-class selectors, so
    source order is the only thing that decides which colour wins. */
+/* FLAT (owner, 2026-10-18 option 3B: the primary surface is solid olive, no
+   gloss). The inset highlight + drop shadow this carried read as the old glossy
+   pill next to the flat cards; the selected segment is the solid fill alone. */
 .segmented-option-selected {
   color: hsl(var(--parchment));
-  box-shadow:
-    inset 0 1px 0 hsl(var(--parchment) / 0.22),
-    0 2px 8px -3px hsl(var(--bark) / 0.55);
+  box-shadow: none;
 }
 
 /* The count pill some segments carry (NotificationPanel's Unread/All). On the
@@ -2831,25 +2834,19 @@ button,
      the cool-neutral palette. The defined `--border` hairline + drop
      shadow finish the separation. Dark mode overrides this below. */
   background-color: hsl(0 0% 100%);
-  -webkit-backdrop-filter: blur(20px) saturate(170%);
-  backdrop-filter: blur(20px) saturate(170%);
+  /* No backdrop blur: the fill is opaque, so a blur behind it only cost GPU
+     (and option 3B, 2026-10-18, is flat cards). */
   /* Solid, fully-opaque warm hairline. A translucent border let the
      backdrop blur wash the edge out to nothing — the card lost its
      outline against the champagne canvas. A defined 1px line at full
      strength is the single most reliable separator in light mode. */
   border: 1px solid hsl(var(--border));
   border-radius: 1.5rem;
+  /* NEARLY FLAT (owner, 2026-10-18, option 3B): one small soft shadow, no
+     inner top highlight, no deep drop. */
   box-shadow:
-    /* Brighter top inner highlight so the card catches light off its top
-       edge over the warm champagne canvas, reading as glass rather than
-       flat fill. */
-    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.9),
-    /* Deepened drop shadow — roughly doubled from before so the card
-       casts a real, perceptible shadow onto the page. This is what makes
-       the separation read as physical depth rather than a faint tint. */
-    0 1px 3px hsl(var(--olivewood) / 0.1),
-    0 14px 28px -8px hsl(var(--olivewood) / 0.16),
-    0 32px 64px -16px hsl(var(--olivewood) / 0.2);
+    0 1px 2px hsl(var(--olivewood) / 0.08),
+    0 4px 12px -6px hsl(var(--olivewood) / 0.12);
 }
 
 /* Subtle paper-like depth for empty-state surfaces — barely-there
@@ -3080,9 +3077,8 @@ button,
      `bg-card`, so it is unaffected. */
   background-color: hsl(var(--card));
   border-color: hsl(var(--border) / 0.7);
-  box-shadow:
-    inset 0 1px 0 0 hsl(0 0% 100% / 0.6),
-    var(--card-shadow);
+  /* No inner top highlight (owner, 2026-10-18, option 3B: nearly flat). */
+  box-shadow: var(--card-shadow);
 }
 
 
@@ -4496,4 +4492,215 @@ html.senior-mode *::after {
   aspect-ratio: 256 / 220;
   height: auto;
   object-fit: contain;
+}
+
+/* ── Small modern tweaks (owner 2026-10-18, approved on the mock-ups in
+   wip/design-tweaks-mock). Same olive/rust tokens and Montserrat; Bodoni
+   stays on the landing H1 only. ── */
+
+/* T1 — plain upright titles: every display title is Montserrat semibold,
+   upright. The landing H1 (.landing-h1) is the one Bodoni headline left. */
+.font-display:not(.landing-h1, .landing-h1 *) {
+  font-family: Montserrat, "Montserrat Fallback", system-ui, -apple-system, sans-serif !important;
+  font-style: normal !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* T2 — cleaner cards: no outline, no inner rim, no blur; a faint soft shadow. */
+.liquid-glass,
+:where(.bg-card),
+[data-feed-card],
+[data-activity-card] {
+  border-color: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 1px 2px hsl(220 14% 20% / 0.06), 0 4px 14px -6px hsl(220 14% 20% / 0.10) !important;
+}
+.page-panel { box-shadow: none !important; background-color: transparent !important; }
+[data-feed-card] > div, [data-activity-card] { border-radius: 1rem; }
+:root[data-theme="dark"] .liquid-glass,
+:root[data-theme="dark"] :where(.bg-card),
+:root[data-theme="dark"] [data-feed-card],
+:root[data-theme="dark"] [data-activity-card] {
+  background-color: hsl(0 0% 11%) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .page-panel { background-color: transparent !important; }
+
+/* T3 — simpler job cards: price is plain bold ink, the category an icon + label. */
+.money-chip {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.money-chip, .money-chip * { color: hsl(var(--foreground)) !important; }
+.money-chip > :first-child { font-size: 1.25rem !important; font-weight: 800 !important; }
+.job-card-title { font-size: 1.0625rem !important; }
+.job-cat-label { padding-left: 1rem; padding-top: 0.75rem; }
+[data-activity-card] div.pt-6 { padding-top: 2.25rem !important; }
+[data-feed-card] .job-cat-label { padding-left: 0.875rem; }
+
+/* T4 — iOS large titles that shrink into the bar on scroll
+   (html.page-scrolled is set by src/lib/largeTitles.ts). */
+.page-title-card {
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;
+}
+.page-title-card h1 { font-size: 2.125rem !important; line-height: 1.1 !important; }
+[data-app-page-scroll] h1.text-page-title { font-size: 1.75rem !important; line-height: 1.1 !important; }
+html.page-scrolled .page-title-card {
+  padding-top: 0.15rem !important;
+  padding-bottom: 0.15rem !important;
+  background-color: hsl(var(--background) / 0.88) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  border-radius: 0 !important;
+  border-bottom: 0.5px solid hsl(var(--border)) !important;
+}
+html.page-scrolled .page-title-card h1 { font-size: 1.0625rem !important; margin-left: auto !important; margin-right: auto !important; }
+/* Dark: the card rules above (T2) would paint the title card as a card; it is page chrome, flat until scrolled. */
+:root[data-theme="dark"] .page-title-card { background-color: transparent !important; }
+:root.page-scrolled[data-theme="dark"] .page-title-card { background-color: hsl(var(--background) / 0.88) !important; }
+/* Phone: the compact bar runs edge to edge and its title sits on the screen's centre line, not the leftover space beside the icons. */
+@media (max-width: 767px) {
+  html.page-scrolled .page-title-card {
+    position: relative;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+  }
+  html.page-scrolled .page-title-card h1 {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    margin: 0 !important; white-space: nowrap; pointer-events: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .page-title-card, .page-title-card h1 { transition: font-size 0.22s ease, padding 0.22s ease, background-color 0.22s ease; }
+}
+.compact-title-bar {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 60;
+  padding-top: var(--safe-area-top, 0px);
+  height: calc(44px + var(--safe-area-top, 0px));
+  display: flex; align-items: center; justify-content: center;
+  font: 600 17px/1 Montserrat, system-ui, sans-serif; letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background) / 0.88);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 0.5px solid hsl(var(--border));
+  opacity: 0; pointer-events: none;
+}
+.compact-title-bar.on { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  .compact-title-bar { transition: opacity 0.18s ease; }
+}
+
+/* T5 — loading placeholders: a clearer grey shimmer on every skeleton bone. */
+[data-skeleton] { background-color: hsl(220 12% 91%) !important; }
+[data-skeleton]::after {
+  background-image: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.65), transparent) !important;
+}
+/* The faster sweep only for motion-OK users and never !important, so the
+   Reduce Motion catch-all still wins (src/test/reducedMotionCatchAll.test.ts);
+   the doubled attribute out-ranks the Tailwind animate utility instead. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-skeleton][data-skeleton]::after { animation-duration: 1.3s; }
+}
+:root[data-theme="dark"] [data-skeleton] { background-color: hsl(0 0% 17%) !important; }
+:root[data-theme="dark"] [data-skeleton]::after {
+  background-image: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.07), transparent) !important;
+}
+
+/* T6 — slide-up sheet (SheetContent floor): glued to the bottom edge, grab handle, plain dim scrim. */
+.sheet-floor {
+  top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
+  margin: 0 auto !important; height: auto !important;
+  width: 100% !important; max-width: 40rem !important;
+  border-radius: 1.5rem 1.5rem 0 0 !important;
+  border-bottom-width: 0 !important;
+  padding-bottom: var(--safe-area-bottom, 0px) !important;
+  --tw-enter-scale: 1 !important; --tw-exit-scale: 1 !important;
+  --tw-enter-translate-y: 100% !important; --tw-exit-translate-y: 100% !important;
+  box-shadow: 0 -8px 30px -12px hsl(220 14% 20% / 0.25) !important;
+}
+.sheet-floor.p-0 > :nth-child(2) { padding: 0.25rem 0.5rem 0 1.25rem; }
+.sheet-floor-scrim {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  background-color: hsl(0 0% 0% / 0.28) !important;
+}
+.sheet-grab-handle {
+  width: 36px; height: 5px; border-radius: 3px; flex-shrink: 0;
+  margin: 8px auto 2px;
+  background: hsl(var(--muted-foreground) / 0.35);
+}
+
+/* T7 — pill filter chips: one sideways-scrolling row, an edge fade shows there is more. */
+.category-chip-row,
+.chip-row {
+  display: flex !important; flex-wrap: nowrap !important; gap: 0.5rem !important;
+  overflow-x: auto !important; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
+  mask-image: linear-gradient(to right, #000 88%, transparent);
+}
+.category-chip-row { border-bottom: 0 !important; padding-top: 0.25rem !important; padding-bottom: 0.5rem !important; }
+.chip-row { background: transparent !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; }
+.category-chip-row::-webkit-scrollbar,
+.chip-row::-webkit-scrollbar { display: none; }
+.category-chip-row > button,
+.chip-row > button {
+  flex: 0 0 auto !important; border-radius: 9999px !important;
+  min-height: 36px; padding: 0 0.95rem !important; font-size: 0.875rem !important; font-weight: 600 !important;
+  border: 1px solid hsl(var(--border)) !important;
+  background: hsl(var(--card)) !important; background-image: none !important;
+  color: hsl(var(--foreground)) !important; box-shadow: none !important;
+}
+.category-chip-row > button[aria-pressed="true"],
+.chip-row > button[aria-selected="true"],
+.chip-row > button[aria-checked="true"],
+.chip-row > button[aria-pressed="true"] {
+  background: hsl(var(--bark)) !important; border-color: hsl(var(--bark)) !important;
+  color: hsl(var(--parchment)) !important;
+}
+
+/* T8 — press: cards and buttons dip to 97% under the finger (Reduce Motion: no movement). */
+@media (prefers-reduced-motion: no-preference) {
+  [data-feed-card], [data-activity-card], button {
+    transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  /* Compose the Tailwind translate back in: a bare scale() would replace a
+     centred X's -translate-y-1/2 and drop it out from under the finger
+     (src/test/pressKeepsTranslate.test.ts, owner 2026-10-01 dead search X). */
+  [data-feed-card]:active, [data-activity-card]:active, button:active {
+    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button:active, [data-feed-card]:active, [data-activity-card]:active {
+    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) !important;
+  }
+}
+
+/* Section top bar title (owner, 2026-10-19): ONE size in every section. The
+   bar sits in a PageScaffold title card on Jobs (T4 would make it 34px and,
+   once scrolled, centre it over the + and bell) and in an AppPage-style
+   scroller elsewhere (T4: 28px), so this one rule pins it for all of them. */
+html body .app-top-bar h1.text-page-title {
+  font-size: 1.625rem !important;
+  line-height: 2rem !important;
+  position: static !important;
+  transform: none !important;
+  margin: 0 !important;
+  white-space: nowrap;
+}
+@media (max-width: 359px) {
+  html body .app-top-bar h1.text-page-title { font-size: 1.375rem !important; }
 }

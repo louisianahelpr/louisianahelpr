@@ -35,7 +35,7 @@
 // @mutate src/components/profile/EarningsTab.tsx | useArrivalGate(!loading, streakState.settled && !ledgerPending) | useArrivalGate(!loading, true)
 // @mutate src/components/profile/EarningsTab.tsx | streakState.settled && !ledgerPending) | streakState.settled)
 // @mutate src/components/profile/ReviewsTab.tsx | {!loading && reviewCount > 0 && avgRating != null && ( | {reviewCount > 0 && avgRating != null && (
-// @mutate src/pages/home/Dashboard.tsx |         titleCard={isWebDesktop ? undefined : <DashboardTitleBar | titleCard={<DashboardTitleBar
+// @mutate src/pages/home/Dashboard.tsx |         titleCard={embeddedTitle}\n        titleCardClassName="" |         titleCard={undefined}\n        titleCardClassName=""
 // @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | invisible font-sans leading-none tabular-nums text-ds-17 | invisible h-9 w-16
 // @mutate src/pages/home/DashboardGuest.tsx | const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS; | const FEED_GRID_CLASS = "grid grid-cols-1 gap-3";
 // @mutate src/pages/home/DashboardGuest.tsx | footer={feedSettled} | footer={true}
@@ -45,11 +45,10 @@
 // @mutate src/components/GuestBrowseSkeleton.tsx | 0.25rem) + var(--public-nav-h))" }} /> | 1.5rem) + 3rem)" }} />
 // @mutate src/components/dashboard/VirtualizedJobList.tsx | initialRect: { width: 0, height: typeof window === "undefined" ? 800 : window.innerHeight }, |
 // @mutate src/lib/simpleMode.ts | let profileSeniorMode = cachedProfileFlag(); | let profileSeniorMode = false;
-// @mutate src/pages/profile/Profile.tsx | useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled && quotesSwitch.settled) | useArrivalGate(!loading, membershipsSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled && quotesSwitch.settled)
+// @mutate src/pages/profile/Profile.tsx | useArrivalGate(!loading, membershipsSwitch.settled) | useArrivalGate(!loading, true)
 // @mutate src/pages/profile/Profile.tsx | const showSkeleton = tab === "landing" ? !landingReady : loading; | const showSkeleton = loading;
 // @mutate src/pages/profile/Profile.tsx |   if (showSkeleton) { |   if (loading) {
 // @mutate src/pages/profile/Profile.tsx | <div aria-busy="true" className="container mx-auto | <div className="container mx-auto
-// @mutate src/components/profile/profileLanding/DeclutterEntryRow.tsx | useFeatureStatus("declutter") | useFeatureStatus("declutter_wanted")
 // @mutate src/components/declutter/DeclutterHomeView.tsx | useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled && todoSettled) | useArrivalGate(true, true)
 // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (!tabsReady) return <DeclutterHomeSkeleton />;\n |
 // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (listLoading) return <DeclutterBrowseBones />;\n |
@@ -202,8 +201,8 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     for (const f of landingFiles) {
       for (const m of read(f).matchAll(/\buseFeature(?:Status)?\s*\(\s*"([a-z0-9_]+)"\s*\)/g)) keys.add(m[1]);
     }
-    // declutter (DeclutterEntryRow) and memberships (useProfileLandingDerived).
-    expect(keys.size).toBeGreaterThan(1);
+    // memberships (useProfileLandingDerived). Quotes left the landing 2026-10-19.
+    expect(keys.size).toBeGreaterThan(0);
 
     const profile = read("pages/profile/Profile.tsx");
     const gate = /const landingReady = useArrivalGate\(!loading, ([^;]+)\);/.exec(profile);
@@ -266,9 +265,11 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     expect(read("components/profile/ReviewsTab.tsx")).toMatch(/\{!loading && reviewCount > 0 && avgRating != null && \(/);
   });
 
-  it("the desktop dashboard loads in the loaded page's frame (no title card at desktop)", () => {
+  it("the Browse feed loads in the loaded page's frame (one title card, both frames)", () => {
     const src = read("pages/home/Dashboard.tsx");
-    expect(src.match(/titleCard=\{isWebDesktop \? undefined : /g)?.length).toBe(1);
+    // 2026-10-19: Jobs > Browse embeds this page under the section's own header (embeddedTitle), the SAME title
+    // card in the loading and the loaded frame; the standalone (non-embedded) frames left with Q2205.
+    expect(src.match(/titleCard=\{embeddedTitle\}/g)?.length).toBe(2);
     expect(src).toMatch(/data-testid="dashboard-desktop-loading"/);
   });
 

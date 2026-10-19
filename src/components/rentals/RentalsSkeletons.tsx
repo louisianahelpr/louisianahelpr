@@ -22,13 +22,16 @@
  * the page replaces it).
  */
 import AppPage from "@/components/AppPage";
+import { SectionScreen } from "@/components/sections/SectionScreen";
+import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RentalsCard } from "./rentalsUi";
 
 /** /rentals while its data loads (switch on): the two cards with their real titles; one bone where each card's first line lands. */
 export function RentalsHomeSkeleton() {
   return (
-    <AppPage title="Homes">
+    <SectionScreen title="Homes" add={sectionByKey("homes").add}>
+      <Skeleton className="h-11 w-full rounded-full" aria-hidden />
       <div className="space-y-4" role="status" aria-label="Loading Homes">
         <RentalsCard title="Homes you rent">
           <Skeleton className="h-10 w-full rounded-xl" aria-hidden />
@@ -37,7 +40,7 @@ export function RentalsHomeSkeleton() {
           <Skeleton className="h-10 w-full rounded-xl" aria-hidden />
         </RentalsCard>
       </div>
-    </AppPage>
+    </SectionScreen>
   );
 }
 

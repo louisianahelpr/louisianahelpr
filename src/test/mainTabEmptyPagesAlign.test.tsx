@@ -105,10 +105,10 @@ describe("main-tab empty pages put their circle, title and button in one place",
     }
   });
 
-  it("Messages' desktop header buttons are My Posts' inline 28px box, and its search slot reserves 28px", () => {
+  // Re-pointed 2026-10-19 (Q2205): My Posts' header (PostsHeader), the box this was matched TO, left with the old
+  // screen; Messages keeps the same compact 28px geometry on its own, pinned as literal values.
+  it("Messages' desktop header buttons are the inline 28px box, and its search slot reserves 28px", () => {
     const msgs = code("src/components/messages/ConversationList.tsx");
-    const posts = code("src/pages/posts/PostsHeader.tsx");
-    expect(posts).toContain('inlineFilters ? "h-7 w-7 !min-h-0 !min-w-0" : "h-11 w-11"');
     const desktopClass = /const HEADER_ICON_BUTTON_DESKTOP_CLASS =([\s\S]*?);/.exec(msgs)?.[1] ?? "";
     expect(desktopClass).toContain("h-7 w-7 !min-h-0 !min-w-0");
     for (const label of ["Search conversations", "Conversation list options"]) {
@@ -118,8 +118,7 @@ describe("main-tab empty pages put their circle, title and button in one place",
       );
     }
     expect(msgs).toMatch(/triggerWidth: isWebDesktop \? "28px" : "44px"/);
-    // The row itself: My Posts' compact geometry on the desktop website.
-    expect(posts).toContain('className={inlineFilters ? "[&>div:first-child]:!py-0" : undefined}');
+    // The row itself: the compact geometry on the desktop website.
     expect(msgs).toContain('${isWebDesktop && !embedded ? "[&>div:first-child]:!py-0" : ""}');
     expect(msgs).toContain('minHeight: embedded ? "52px" : isWebDesktop ? COMPACT_HEADER_ROW_MIN_HEIGHT : undefined,');
   });

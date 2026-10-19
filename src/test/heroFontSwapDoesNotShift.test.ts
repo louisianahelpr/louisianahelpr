@@ -87,7 +87,9 @@ describe("hero font loading (Q371)", () => {
       ...[...css.matchAll(/font-family:\s*("Bodoni Moda"\s*,[^;]*);/g)].map((m) => m[1]),
       ...[...read("tailwind.config.ts").matchAll(/\[\s*"\\"Bodoni Moda\\""[^\]]*\]/g)].map((m) => m[0].replace(/\\"/g, '"')),
     ];
-    expect(stacks.length).toBeGreaterThanOrEqual(2);
+    // Floor 2 -> 1 (2026-10-19): the owner approved upright Montserrat titles (design-small T1),
+    // so .text-page-title left Bodoni; the landing H1's Tailwind stack is the one left.
+    expect(stacks.length).toBeGreaterThanOrEqual(1);
     for (const s of stacks) {
       const g = s.indexOf('"Bodoni Moda Fallback"');
       const l = s.indexOf('"Bodoni Moda Fallback Liberation"');

@@ -1,5 +1,5 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
-import { BUCKET_LABEL, BUCKET_SHORT_LABEL } from "../../src/lib/activityBuckets";
+import { BUCKET_LABEL } from "../../src/lib/activityBuckets";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { APIRequestContext, Browser, BrowserContext, Locator, Page } from "@playwright/test";
@@ -28,6 +28,7 @@ import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { findChip } from "./cardChips";
 import { ZONE, fillJobDetails, fillLogistics, fillBudget, slotAhead } from "./postJobForm";
+import { searchFeed } from "../feedSearch";
 
 /**
  * Journeys 2–6 — the marketplace, as ONE serial chain on ONE job, because each
@@ -174,17 +175,19 @@ async function readJob(api: APIRequestContext, session: Session, id: string) {
 
 /** My Posts / My Jobs status tabs: a group of buttons behind a disclosure on phones. */
 async function openStatusTab(page: Page, name: "Needs You" | "Scheduled" | "Waiting" | "Done" | "Cancelled") {
-  const group = page.getByRole("group", { name: "Filter by status" });
-  const show = page.getByRole("button", { name: /^Show status filters$|^Filter by status$/ });
-  await expect(group.or(show).first(), "the status filter never rendered").toBeVisible({ timeout: 30_000 });
-  if (!(await group.isVisible())) await show.first().click();
-  await expect(group).toBeVisible();
-  // Below 390px each tab wears its short word ("You", "Soon", "Cancel"), and
-  // the short word IS its accessible name (UnderlineTabs hides the long one).
+  // Jobs > Posted / Working (2026-10-19, Q2205): four STATUS BOXES filter the list (tap = only that group). The
+  // terminal "cancelled" bucket has no box; it is reached by its filter link, the way notifications reach it.
   const bucket = (Object.keys(BUCKET_LABEL) as Array<keyof typeof BUCKET_LABEL>).find((k) => BUCKET_LABEL[k] === name)!;
-  const tabName = new RegExp(`^(${BUCKET_LABEL[bucket]}|${BUCKET_SHORT_LABEL[bucket]})\\b`);
-  await group.getByRole("button", { name: tabName }).click();
-  await expect(group.getByRole("button", { name: tabName })).toHaveAttribute("aria-pressed", "true");
+  if (bucket === "cancelled") {
+    const u = new URL(page.url());
+    u.searchParams.set("filter", bucket);
+    await page.goto(u.pathname + u.search);
+    return;
+  }
+  const box = page.locator(`[data-status-box="${bucket}"]`);
+  await expect(box, "the status boxes never rendered").toBeVisible({ timeout: 30_000 });
+  if ((await box.getAttribute("aria-pressed")) !== "true") await box.click();
+  await expect(box).toHaveAttribute("aria-pressed", "true");
 }
 
 function title(journey: string, outcome: "smooth" | "revision" | "disputed", persona: "poster-only" | "helper-only" | "both" = "both") {
@@ -365,7 +368,7 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("poster sees the job in My Posts", async () => {
-      await page.goto("/posts");
+      await page.goto("/jobs?tab=posted");
       // A just-posted, funded, unapplied job is "Waiting" — nothing is on the
       // poster's desk — UNLESS its day has arrived, which since the 2026-09-19
       // reorder makes it the most live thing on the screen and files it under
@@ -384,17 +387,12 @@ test.describe.serial("marketplace chain", () => {
       // window, as the service role since created_at is server-owned (Q1189, #2436).
       await ageJobPastEarlyAccess(SUPABASE_URL, S.jobId!, "the marketplace job");
       const hp = S.helperPage;
-      await hp.goto("/home");
-      // Browse renders its toolbar (search included) with the feed, not over the
-      // skeleton; on the `slow` row (every backend call held 3-8s) it was still
-      // skeleton at the old 20s click timeout (run 35957628804).
-      await hp.getByRole("button", { name: "Search jobs" }).first().click({ timeout: 60_000 });
-      // The Browse search field is an ARIA combobox now, not a searchbox:
-      // `useComboboxKeyboard`'s comboboxProps sets role="combobox" on the input
-      // for the recent-searches popup, which overrides type="search"'s implicit
-      // role. getByRole("searchbox") matched nothing and the journey read a
-      // working field as a missing one (nightly red, 2026-09-15).
-      await hp.getByRole("combobox", { name: "Search jobs" }).fill(RUN);
+      // The feed is Jobs > Browse since 2026-10-19 (Q2205); /home is the dashboard.
+      await hp.goto("/jobs");
+      // Browse renders its search with the feed, not over the skeleton; on the
+      // `slow` row (every backend call held 3-8s) it was still skeleton at the
+      // old 20s timeout (run 35957628804). searchFeed handles both widths.
+      await searchFeed(hp, RUN, { timeout: 60_000 });
       await expect(hp.getByRole("button", { name: new RegExp(`View .*${RUN}`) }), "the helper cannot find the funded job in Browse").toBeVisible({ timeout: 60_000 });
       await assertHealthy(hp, "helper browse finds job");
       await journey.milestone(hp, "helper-browse-finds-job");
@@ -412,9 +410,8 @@ test.describe.serial("marketplace chain", () => {
     const NOTE = `Journey note ${RUN}: I can do this one.`;
 
     await test.step("helper opens the job and applies with a note", async () => {
-      await hp.goto("/home");
-      await hp.getByRole("button", { name: "Search jobs" }).first().click({ timeout: 60_000 });
-      await hp.getByRole("combobox", { name: "Search jobs" }).fill(RUN);
+      await hp.goto("/jobs");
+      await searchFeed(hp, RUN, { timeout: 60_000 });
       await hp.getByRole("button", { name: new RegExp(`View .*${RUN}`) }).click();
       const dialog = hp.getByRole("dialog").first();
       await expect(dialog.getByRole("button", { name: "Apply Now" })).toBeVisible({ timeout: 30_000 });
@@ -439,7 +436,7 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("helper sees the application in My Jobs", async () => {
-      await hp.goto("/jobs");
+      await hp.goto("/jobs?tab=working");
       await openStatusTab(hp, "Waiting");
       await expect(hp.getByText(TITLE).first(), "the applied job is missing from the helper's My Jobs").toBeVisible({ timeout: 30_000 });
       await assertHealthy(hp, "helper my jobs");
@@ -456,7 +453,7 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("poster sees the applicant with the note", async () => {
-      await pp.goto("/posts");
+      await pp.goto("/jobs?tab=posted");
       await openStatusTab(pp, "Needs You");
       await expect(pp.getByText(TITLE).first(), "the job with an applicant is not in My Posts > Needs You").toBeVisible({ timeout: 60_000 });
       await pp.getByText(TITLE).first().click();
@@ -480,7 +477,7 @@ test.describe.serial("marketplace chain", () => {
     await test.step("poster hires the applicant", async () => {
       const panel = pp.getByRole("region", { name: /Applicants for/ }).or(pp.getByRole("dialog")).first();
       if (!(await panel.getByRole("button", { name: /^Select / }).first().isVisible().catch(() => false))) {
-        await pp.goto("/posts");
+        await pp.goto("/jobs?tab=posted");
         await openStatusTab(pp, "Needs You");
         await pp.getByText(TITLE).first().click();
         await pp.getByRole("button", { name: "Applicants (1)" }).first().click();
@@ -509,7 +506,7 @@ test.describe.serial("marketplace chain", () => {
       expect(job.response_deadline, "the offer carries no response_deadline; accept_application stamps one").toBeTruthy();
       const deadline = Date.parse(job.response_deadline);
       await atClock(browser, S.helper, new Date(deadline - 90_000), async (page) => {
-        const c = await card(page, "/jobs", "Needs You");
+        const c = await card(page, "/jobs?tab=working", "Needs You");
         // The answer clock reads "<time> left to answer" since the offer
         // cards share one clock panel (CountdownRows, Q1399, 2026-10-07). This
         // leg needs a funded job, so it sat skipped in LIVE mode and still
@@ -527,7 +524,7 @@ test.describe.serial("marketplace chain", () => {
         // This leg first ran on a funded job after that rule and looked only
         // at the four live tabs (nightly-red #2436, e2e-journeys 39004547274:
         // "is on no /jobs tab").
-        const c = await card(page, "/jobs", "Cancelled");
+        const c = await card(page, "/jobs?tab=working", "Cancelled");
         await expect(c.getByText("This offer has expired").first(), "a minute past the deadline the offer does not say it expired").toBeVisible({ timeout: 45_000 });
         expect(await findChip(page, c, /^Accept\b/, 5_000), "Accept is still offered after the deadline, where respond refuses it").toBeNull();
         await assertHealthy(page, "offer a minute past its deadline");
@@ -536,7 +533,7 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("helper accepts the offer", async () => {
-      await hp.goto("/jobs");
+      await hp.goto("/jobs?tab=working");
       await openStatusTab(hp, "Needs You");
       await expect(hp.getByText(TITLE).first(), "the offer is not in the helper's Needs You").toBeVisible({ timeout: 60_000 });
       await hp.getByText(TITLE).first().click();
@@ -559,14 +556,14 @@ test.describe.serial("marketplace chain", () => {
       // SLOT comment). One derivation, both cards: the poster's `bucketFor`
       // and the helper's `appliedActivityBucket` ask `jobIsLive` the same way.
       const tab = scheduledTab();
-      await pp.goto("/posts");
+      await pp.goto("/jobs?tab=posted");
       await openStatusTab(pp, tab);
       await expect(pp.getByText(TITLE).first(), `the hired job is not in the poster's ${tab} tab`).toBeVisible({ timeout: 30_000 });
       await pp.getByText(TITLE).first().click();
       const posterMoney = await pp.getByText(/held|funded|secured|escrow|protected|paid/i).filter({ visible: true }).count();
       test.info().annotations.push({ type: "funded-indicator", description: `poster ${tab} card money copy matches: ${posterMoney}` });
       await journey.milestone(pp, "poster-scheduled-funded");
-      await hp.goto("/jobs");
+      await hp.goto("/jobs?tab=working");
       await openStatusTab(hp, tab);
       await expect(hp.getByText(TITLE).first(), `the hired job is not in the helper's ${tab} tab`).toBeVisible({ timeout: 30_000 });
       await hp.getByText(TITLE).first().click();
@@ -579,7 +576,7 @@ test.describe.serial("marketplace chain", () => {
     await test.step("poster messages the helper with an attachment", async () => {
       // Message may be on the row or in More: at 390px the booked card's row
       // is More + "I'm Still On" (e2e-journeys 39020810698, 2026-10-17).
-      const booked = await card(pp, "/posts", scheduledTab());
+      const booked = await card(pp, "/jobs?tab=posted", scheduledTab());
       const message = await findChip(pp, booked, /^Message\b/, 30_000);
       expect(message, `the poster's ${scheduledTab()} card offers no Message, on the row or in More`).not.toBeNull();
       await message!.click();
@@ -698,7 +695,7 @@ test.describe.serial("marketplace chain", () => {
   }
 
   /** Open this run's card on a tab and return it. */
-  async function card(page: Page, path: "/posts" | "/jobs", tab: "Needs You" | "Scheduled" | "Waiting" | "Done" | "Cancelled", reload = true) {
+  async function card(page: Page, path: "/jobs?tab=posted" | "/jobs?tab=working", tab: "Needs You" | "Scheduled" | "Waiting" | "Done" | "Cancelled", reload = true) {
     if (reload) await page.goto(path);
     await page.waitForTimeout(1_500);
     await declineLocation(page);
@@ -806,7 +803,7 @@ test.describe.serial("marketplace chain", () => {
          control the row offers must be PRESSABLE, not merely painted. A
          24h-out slot rendered "I'm On My Way" disabled under "Actions unlock
          at 9:40 PM on Sep 22" and this assertion passed on it. */
-      const c = await card(hp, "/jobs", scheduledTab());
+      const c = await card(hp, "/jobs?tab=working", scheduledTab());
       const stillOn = c.getByRole("button", { name: /I'm Still On/ }).first();
       const onWay = c.getByRole("button", { name: /I'm On My Way/ }).first();
       await expect(stillOn.or(onWay).first(), "the helper card offers neither Still On nor On My Way").toBeVisible({ timeout: 45_000 });
@@ -828,7 +825,7 @@ test.describe.serial("marketplace chain", () => {
            is the narrower of the two (`hoursUntilJob > -12` from the job's
            midnight, against the helper's -24), so on an evening job it has
            already closed while the helper's is still open. */
-        const pc = await card(pp, "/posts", scheduledTab());
+        const pc = await card(pp, "/jobs?tab=posted", scheduledTab());
         const posterStillOn = pc.getByRole("button", { name: /I'm Still On/ }).first();
         if (await appears(posterStillOn, 10_000)) {
           await press(pp, pc, /I'm Still On/, "poster confirm");
@@ -845,7 +842,7 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("helper heads over and arrives; poster confirms arrival", async () => {
-      let c = await card(hp, "/jobs", scheduledTab(), false);
+      let c = await card(hp, "/jobs?tab=working", scheduledTab(), false);
       await press(hp, c, /I'm On My Way/, "on my way");
       // The location rationale on the way: this helper declines here (en-route
       // tracking is optional).
@@ -867,7 +864,7 @@ test.describe.serial("marketplace chain", () => {
       // A job with no coordinates has nothing to measure against and the RPC
       // accepts any real fix; Lafayette stands in for that case.
       await hp.context().setGeolocation({ latitude: Number(latitude ?? 30.2241), longitude: Number(longitude ?? -92.0198) });
-      c = await card(hp, "/jobs", scheduledTab(), false);
+      c = await card(hp, "/jobs?tab=working", scheduledTab(), false);
       const arriveBtn = c.getByRole("button", { name: /I've Arrived/ }).first();
       await expect(arriveBtn, `arrived: no "I've Arrived" control`).toBeVisible({ timeout: 45_000 });
       // Same rule as `press`: painted is not pressable on this rail.
@@ -884,7 +881,7 @@ test.describe.serial("marketplace chain", () => {
       ).toBe(true);
       await assertHealthy(hp, "arrived");
       await journey.milestone(hp, "arrived-gps");
-      c = await card(pp, "/posts", "Needs You");
+      c = await card(pp, "/jobs?tab=posted", "Needs You");
       await press(pp, c, /Confirm They Arrived/, "poster confirms arrival");
       await journey.milestone(pp, "poster-confirmed-arrival");
     });
@@ -907,7 +904,7 @@ test.describe.serial("marketplace chain", () => {
       }
       const seen: string[] = [];
       for (let i = 0; i < 8; i++) {
-        const c = await card(hp, "/jobs", "Needs You");
+        const c = await card(hp, "/jobs?tab=working", "Needs You");
         // "Before Photo" / "After Photo" — the PhotoProofCaptureChip labels.
         // These read "Add a before photo" / "Add an after photo" until
         // 2026-09-21, which is PhotoProofStep's title; that panel has ZERO call
@@ -994,7 +991,7 @@ test.describe.serial("marketplace chain", () => {
          `getByText` on whatever tab the loop happened to leave open, which
          after the move renders the job nowhere at all — "element(s) not found",
          reading as missing copy on a job that had completed perfectly. */
-      const submitted = await card(hp, "/jobs", "Waiting");
+      const submitted = await card(hp, "/jobs?tab=working", "Waiting");
       await expect(
         submitted.getByText(/Waiting for the person who posted this job|Marked Complete/).first(),
         "the helper's card does not say the submission is with the poster",
@@ -1022,7 +1019,7 @@ test.describe.serial("marketplace chain", () => {
       const instant = flag.ok() && Boolean(((await flag.json()) as Array<{ auto_release_on_complete?: boolean }>)[0]?.auto_release_on_complete);
       test.info().annotations.push({ type: "poster-instant-release", description: String(instant) });
       await atClock(browser, S.helper, new Date(end - 90_000), async (page) => {
-        const c = await card(page, "/jobs", "Waiting");
+        const c = await card(page, "/jobs?tab=working", "Waiting");
         if (instant) {
           await expect(c.getByText(/They approve instantly/).first()).toBeVisible({ timeout: 45_000 });
           await expect(c.getByText(/remaining$/), "an instant-release poster's card draws a 24h countdown").toHaveCount(0);
@@ -1034,7 +1031,7 @@ test.describe.serial("marketplace chain", () => {
         await journey.milestone(page, "tt-review-window-1m-left");
       });
       await atClock(browser, S.helper, new Date(end + 60_000), async (page) => {
-        const c = await card(page, "/jobs", "Waiting");
+        const c = await card(page, "/jobs?tab=working", "Waiting");
         if (instant) {
           await expect(c.getByText(/They approve instantly/).first()).toBeVisible({ timeout: 45_000 });
           await expect(c.getByText(/completing automatically/), "an instant-release poster's card says it is completing automatically").toHaveCount(0);
@@ -1058,7 +1055,7 @@ test.describe.serial("marketplace chain", () => {
          reach it — but `onRevision(` has ZERO call sites in `src/`, so nothing
          can open it. The spec was waiting 45s on a control no code path
          renders, and its failure read as a missing product feature. */
-      const c = await card(pp, "/posts", "Needs You");
+      const c = await card(pp, "/jobs?tab=posted", "Needs You");
       await press(pp, c, /^Approve\b/, "open the completion choice");
       const sheet = pp.getByRole("dialog").filter({ hasText: "I Need Something Fixed First" });
       await expect(sheet, "Approve did not open the two-path completion sheet").toBeVisible({ timeout: 20_000 });
@@ -1071,10 +1068,10 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("helper sees the note and resubmits", async () => {
-      const c = await card(hp, "/jobs", "Needs You");
+      const c = await card(hp, "/jobs?tab=working", "Needs You");
       await expect(c.getByText(`Journey ${RUN}: please redo the corner.`), "the helper never sees the revision note").toBeVisible({ timeout: 45_000 });
       await press(hp, c, /I'll Fix It/, "acknowledge revision");
-      const c2 = await card(hp, "/jobs", "Needs You", false);
+      const c2 = await card(hp, "/jobs?tab=working", "Needs You", false);
       await press(hp, c2, /Mark Fixed/, "mark fixed");
       const yes = hp.getByRole("dialog").getByRole("button", { name: /Mark Fixed|Yes|Confirm/ }).last();
       if (await appears(yes, 5_000)) await yes.click();
@@ -1082,7 +1079,7 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("poster approves and releases the payment", async () => {
-      const c = await card(pp, "/posts", "Needs You");
+      const c = await card(pp, "/jobs?tab=posted", "Needs You");
       /* The SAME two-path sheet as the revision step, taken the other way.
          This step used to press Approve and then look for a dialog headed
          "Release the payment?" — which is `DisputedStep`'s confirm, on the
@@ -1103,7 +1100,7 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("poster reviews the helper and tips", async () => {
-      const c = await card(pp, "/posts", "Done");
+      const c = await card(pp, "/jobs?tab=posted", "Done");
       const review = pp.getByRole("dialog").filter({ hasText: "Your overall experience" });
       /* `^Review\b`, not `^Review$`. Every chip in a job step row composes its
          accessible name as "<label> — <ariaLabel>" (JobActionRow's
@@ -1140,17 +1137,17 @@ test.describe.serial("marketplace chain", () => {
       await expect
         .poll(
           async () =>
-            (await findChip(pp, await card(pp, "/posts", "Done"), /^Reviewed\b/, 20_000)) ? 1 : 0,
+            (await findChip(pp, await card(pp, "/jobs?tab=posted", "Done"), /^Reviewed\b/, 20_000)) ? 1 : 0,
           { timeout: 120_000, message: "the poster's card never showed the Reviewed badge after the review was submitted" },
         )
         .toBeGreaterThan(0);
-      const c2 = await card(pp, "/posts", "Done", false);
+      const c2 = await card(pp, "/jobs?tab=posted", "Done", false);
       await press(pp, c2, /^Tip\b/, "tip");
       await journey.milestone(pp, "tip-sheet");
     });
 
     await test.step("helper reviews the poster", async () => {
-      const c = await card(hp, "/jobs", "Done");
+      const c = await card(hp, "/jobs?tab=working", "Done");
       await press(hp, c, /^Leave a review for/i, "helper review");
       const review = hp.getByRole("dialog").filter({ hasText: "Your overall experience" });
       await expect(review).toBeVisible({ timeout: 30_000 });

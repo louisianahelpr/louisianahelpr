@@ -6,6 +6,7 @@ import { clickOrSayWhatMoves } from "./clickDiagnostics";
 import { HELPER_E2E_ID, POSTER_E2E_ID } from "./throwaway";
 import { ensureBrowseFixture } from "../../scripts/e2e/browseFixture.mjs";
 import { EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH } from "../prelaunch";
+import { searchFeed } from "../feedSearch";
 
 /**
  * Journey 1 — discovery.
@@ -177,22 +178,20 @@ test(authedTitle, async ({ browser, request, journey }) => {
 
   let total = 0;
   await test.step("signed-in Browse lists jobs", async () => {
-    await page.goto("/home");
+    // The feed is Jobs > Browse since 2026-10-19 (Q2205); /home is the dashboard.
+    await page.goto("/jobs");
     await expect(cards.first()).toBeVisible({ timeout: 60_000 });
     total = await cards.count();
-    await assertHealthy(page, "/home browse");
+    await assertHealthy(page, "/jobs browse");
     await journey.milestone(page, "helper-browse");
   });
 
   await test.step("search narrows the feed", async () => {
     const firstName = (await cards.first().getAttribute("aria-label"))!.replace(/^View /, "").replace(/ — \$.*$/, "");
     const word = firstName.split(/\s+/).find((w) => w.length >= 5) ?? firstName.split(/\s+/)[0];
-    await page.getByRole("button", { name: "Search jobs" }).first().click();
-    // See the note on the combobox role in 02-marketplace.spec.ts: the field
-    // is role="combobox" now (recent-searches popup), not searchbox.
-    const box = page.getByRole("combobox", { name: "Search jobs" });
-    await expect(box).toBeVisible();
-    await box.fill("zzqxj-no-such-job");
+    // Phone: the permanent row; desktop: the feed strip's field behind its magnifier (see e2e/feedSearch.ts).
+    await searchFeed(page, "zzqxj-no-such-job");
+    const box = page.locator('input[aria-label="Search jobs"]').filter({ visible: true }).first();
     await expect(cards, "a nonsense search still listed jobs").toHaveCount(0, { timeout: 20_000 });
     await expect(page.getByText(/no jobs match|no (results|matches)/i).filter({ visible: true }).first(), "no empty-state copy for a search with no results").toBeVisible();
     await assertHealthy(page, "search with no results");

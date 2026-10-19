@@ -141,7 +141,7 @@ export function JobPrice({
     // hand-resynced twice: once for the palette, once for size and weight).
     const amountNode = <MoneyAmount amount={earnings} size={size} />;
 
-    const chipClass = `inline-flex flex-col items-center justify-center rounded-ds-md text-center ${size === "lg" ? "px-3.5 py-2" : "px-2.5 py-1"} ${className ?? ""}`;
+    const chipClass = `money-chip inline-flex flex-col items-center justify-center rounded-ds-md text-center ${size === "lg" ? "px-3.5 py-2" : "px-2.5 py-1"} ${className ?? ""}`;
     // `lg` gets a raised shadow + a stronger border so it visually leads the
     // row it sits in (owner: "add some sort of effect to where this stands
     // out more, above the rest") — the default `sm` chip stays flat, since

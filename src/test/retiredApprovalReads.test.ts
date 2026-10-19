@@ -29,7 +29,7 @@
  * checks failed — (a) 19 code references in 6 files; (c) 8 client/edge reads
  * in 4 files; SQL: enforce_referral_credit_eligibility.
  *
- * @mutate src/App.tsx | <ProtectedRoute fallback={<DashboardRouteSkeleton />}><Dashboard /> | <ProtectedRoute allowPending fallback={<DashboardRouteSkeleton />}><Dashboard />
+ * @mutate src/App.tsx | <ProtectedRoute fallback={<DashboardRouteSkeleton />}><HomeDashboard /> | <ProtectedRoute allowPending fallback={<DashboardRouteSkeleton />}><HomeDashboard />
  * @mutate supabase/functions/admin-update-email/index.ts | if (conflictingProfiles?.[0]) { | if (conflictingProfiles?.[0] && conflictingProfiles[0].approval_status !== 'denied') {
  * @mutate src/components/admin/adminAnalytics/adminAnalyticsHelpers.ts | const verifiedUsers = profiles.filter(p => p.email_verified).length; | const verifiedUsers = profiles.filter(p => p.email_verified).length; const deniedUsers = profiles.filter(p => p.approval_status === "denied").length;
  * @mutate src/hooks/useProfile.ts | "user_id, full_name, email, avatar_url, ban_status, idv_status, | "user_id, full_name, email, avatar_url, ban_status, approval_status, idv_status,

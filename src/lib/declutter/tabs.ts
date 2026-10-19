@@ -13,7 +13,6 @@
 import type { CartLine, MyOffer } from "./api";
 
 export type DeclutterTab = "browse" | "buying" | "selling" | "deliver" | "wanted";
-export const DECLUTTER_TABS: readonly DeclutterTab[] = ["browse", "buying", "selling", "wanted", "deliver"];
 
 /** The tabs before 2026-10-18, still in links already sent. */
 export type OldDeclutterView = "mine" | "offers" | "cart";

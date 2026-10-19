@@ -34,11 +34,12 @@
  *     with its reason — and the native WebKit ✕ stays hidden, or every one
  *     of them would grow an unchecked ✕.
  */
-// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | maxWidth: 899, | minWidth: 900,
+// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: `[data-feed-strip] ${CLOSE}`,\n    minWidth: 900, | close: `[data-feed-strip] ${CLOSE}`,
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | name: "legal", file: "src/pages/info/Legal.tsx", | name: "legal", file: "src/pages/info/Legal.ts",
-// @mutate e2e/prod-audit/search-keeps-title.spec.ts | name: "jobs", file: "src/pages/jobs/JobsHeader.tsx", | name: "jobs", file: "src/pages/jobs/Jobs.tsx",
+// @mutate e2e/prod-audit/search-keeps-title.spec.ts | name: "messages", file: "src/components/messages/ConversationList.tsx", | name: "messages", file: "src/components/messages/ConversationList.ts",
 // @mutate src/index.css | input[type="search"]::-webkit-search-cancel-button, | input[type="search"]::-webkit-search-cancelled,
 // @mutate src/components/admin/AdminUsers.tsx | aria-label="Clear search" | aria-label="Clear"
+// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: CLEAR,\n    maxWidth: 899,\n  },\n  {\n    name: "declutter-browse-row" | close: CLEAR,\n  },\n  {\n    name: "declutter-browse-row"
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | name: "admin-command-palette", file: "src/components/admin/AdminCommandPalette.tsx", | name: "admin-command-palette", file: "src/components/admin/AdminCommandPalette.ts",
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -56,6 +57,25 @@ const TITLE_SPEC = "e2e/prod-audit/search-keeps-title.spec.ts";
 const NO_X: Record<string, string> = {
   // Q913 (owner, 2026-10-07): the six admin fields listed here got a clear ✕
   // and joined the press spec; nothing is ✕-less now.
+};
+
+/** ✕ files that render ONLY below the desktop breakpoint, so the press spec
+ * can drive them at 375 alone. Exact: a stale entry fails, and each one's
+ * surface must say `maxWidth: 899`. */
+const PHONE_ONLY: Record<string, string> = {
+  // Jobs > Browse (owner, 2026-10-19): Dashboard renders the compact row only
+  // when !isWebDesktop; at 1440 the feed strip's BrowseSearchBar is the field.
+  "src/components/dashboard/browseTasksToolbar/BrowseCompactSearchRow.tsx": "phone-only row; desktop uses the feed strip",
+};
+
+/** ✕ files that render ONLY at the desktop breakpoint, so the press spec
+ * drives them at 1440 alone. Exact: a stale entry fails, and each one's
+ * surface must say `minWidth: 900`. */
+const DESKTOP_ONLY: Record<string, string> = {
+  // Q2205 (2026-10-19): the phone /home bar that also rendered BrowseSearchBar
+  // left with the old Home feed; its one caller is Jobs > Browse's desktop feed
+  // strip (Dashboard renders the strip only when isWebDesktop).
+  "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx": "desktop feed strip only; phone uses the compact row",
 };
 
 function walk(dir: string): string[] {
@@ -153,6 +173,8 @@ describe("every search field is driven in a real browser (inventory minus checke
     // Measured 2026-10-01: 12 search fields in 12 files; 6 render a ✕; 3
     // expanding header searches. Q913 (2026-10-07): all 12 render a ✕, 6 of
     // them (the admin boxes) a "Clear search" one on a permanent field.
+    // 2026-10-19: +2, the section dashboards' permanent Browse rows (Jobs, Declutter).
+    // 2026-10-19 (Q2205): -2, PostsHeader / JobsHeader left with the old My Posts / My Jobs pages.
     expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(12);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
@@ -161,17 +183,15 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/components/admin/AdminSubscriptions.tsx",
       "src/components/admin/AdminUsers.tsx",
       "src/components/admin/settings/AdminUserSearchField.tsx",
+      "src/components/dashboard/browseTasksToolbar/BrowseCompactSearchRow.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
+      "src/components/declutter/DeclutterBrowseBar.tsx",
       "src/components/messages/ConversationList.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
       "src/pages/info/Legal.tsx",
-      "src/pages/jobs/JobsHeader.tsx",
-      "src/pages/posts/PostsHeader.tsx",
     ]);
     expect(EXPANDING_CALLERS).toEqual([
       "src/components/messages/ConversationList.tsx",
-      "src/pages/jobs/JobsHeader.tsx",
-      "src/pages/posts/PostsHeader.tsx",
     ]);
   });
 
@@ -185,8 +205,21 @@ describe("every search field is driven in a real browser (inventory minus checke
     expect(surfaces.length).toBeGreaterThanOrEqual(X_FILES.length);
     for (const s of surfaces) expect(s.file, `${PRESS_SPEC}: surface "${s.name}" names no existing file`).toSatisfy((f: string) => X_FILES.includes(f));
     const missing: string[] = [];
+    for (const f of Object.keys(PHONE_ONLY)) {
+      expect(X_FILES, `PHONE_ONLY entry ${f} renders no search ✕ — remove it`).toContain(f);
+      const own = surfaces.filter((s) => s.file === f);
+      expect(own.length, `${f}: no press-spec surface`).toBeGreaterThan(0);
+      for (const s of own) expect(s.maxWidth, `${s.name}: a PHONE_ONLY surface must say maxWidth: 899`).toBe(899);
+    }
+    for (const f of Object.keys(DESKTOP_ONLY)) {
+      expect(X_FILES, `DESKTOP_ONLY entry ${f} renders no search ✕ — remove it`).toContain(f);
+      expect(PHONE_ONLY[f], `${f} cannot be both phone-only and desktop-only`).toBeUndefined();
+      const own = surfaces.filter((s) => s.file === f);
+      expect(own.length, `${f}: no press-spec surface`).toBeGreaterThan(0);
+      for (const s of own) expect(s.minWidth, `${s.name}: a DESKTOP_ONLY surface must say minWidth: 900`).toBe(900);
+    }
     for (const f of X_FILES) {
-      for (const vw of [375, 1440]) {
+      for (const vw of PHONE_ONLY[f] ? [375] : DESKTOP_ONLY[f] ? [1440] : [375, 1440]) {
         if (!surfaces.some((s) => s.file === f && runsAt(s, vw))) missing.push(`${f} @${vw}`);
       }
     }
@@ -202,14 +235,13 @@ describe("every search field is driven in a real browser (inventory minus checke
     expect([...files].filter((f) => !want.includes(f)), `title-spec surfaces naming a file with no opening search`).toEqual([]);
   });
 
-  it("the opening searches are exactly the six that were before Q913 (a permanent field is not one)", () => {
+  // Six before Q913; four since Q2205 (PostsHeader / JobsHeader left with the old My Posts / My Jobs pages).
+  it("the opening searches are exactly these four (a permanent field is not one)", () => {
     expect(OPENING_X_FILES).toEqual([
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/messages/ConversationList.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
       "src/pages/info/Legal.tsx",
-      "src/pages/jobs/JobsHeader.tsx",
-      "src/pages/posts/PostsHeader.tsx",
     ]);
   });
 

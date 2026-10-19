@@ -148,8 +148,9 @@ const expandJobCard = async (page: Page, title: string) => {
  * is the app's own deep link (Activity.tsx `deepLinkJobId`): it resolves the
  * bucket the job is ACTUALLY in, exactly as a notification tap does.
  */
+// The old My Jobs / My Posts paths; Jobs > Working / Posted since 2026-10-19 (Q2205), with the job deep link kept.
 const openActivityCard = async (page: Page, tab: "/jobs" | "/posts", job: { id: string; title: string }) => {
-  await page.goto(`${tab}?job=${job.id}`);
+  await page.goto(`/jobs?tab=${tab === "/jobs" ? "working" : "posted"}&job=${job.id}`);
   await settle(page);
   await expandJobCard(page, job.title);
 };
@@ -434,10 +435,12 @@ export const FORMS: FormSpec[] = [
     prepare: async (page) => { await pressIfPresent(page, /start fresh/i); },
     covers: ["src/components/postjob/detailsSection/TitleField.tsx", "src/components/postjob/detailsSection/DescriptionField.tsx"],
   },
-  { name: "dashboard-search", url: "/home", as: "helper", prepare: openSearch, covers: ["src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx"] },
+  // The feed moved to Jobs > Browse (2026-10-19, Q2205): at phone width its search is the permanent compact row.
+  // posts-search / jobs-search left with the My Posts / My Jobs headers (Posted / Working carry no search).
+  { name: "dashboard-search", url: "/jobs", as: "helper", prepare: openSearch, covers: ["src/components/dashboard/browseTasksToolbar/BrowseCompactSearchRow.tsx"] },
   { name: "messages-list", url: "/messages", as: "helper", prepare: openSearch, covers: ["src/components/messages/ConversationList.tsx"] },
-  { name: "posts-search", url: "/posts", as: "poster", prepare: openSearch, covers: ["src/pages/posts/PostsHeader.tsx"] },
-  { name: "jobs-search", url: "/jobs", as: "helper", prepare: openSearch, covers: ["src/pages/jobs/JobsHeader.tsx"] },
+  // Declutter > Browse (2026-10-19): one permanent search row, the same shape as Jobs > Browse (every test account is a tester).
+  { name: "declutter-search", url: "/declutter", as: "helper", prepare: openSearch, covers: ["src/components/declutter/DeclutterBrowseBar.tsx"] },
   { name: "complete-profile", url: "/complete-profile", as: "incomplete", covers: ["src/pages/auth/CompleteProfile.tsx", "src/components/postjob/CityAutocomplete.tsx"] },
   { name: "profile-edit", url: "/profile?tab=profile", as: "helper", covers: ["src/components/profile/ProfileEditForm.tsx", "src/components/profile/profileEditForm/PhotoNameSection.tsx"] },
   { name: "profile-support", url: "/profile?tab=support", as: "helper", covers: ["src/components/profile/SupportInline.tsx"] },
@@ -500,14 +503,14 @@ export const FORMS: FormSpec[] = [
     name: "messages-thread", url: "/messages", as: "helper", prepare: openMessageThread("poster"),
     covers: ["src/components/RichMessageInput.tsx", "src/components/messages/ChatView.tsx"],
   },
-  { name: "saved-searches-dialog", url: "/home", as: "poster", prepare: openSavedSearches, covers: ["src/components/SavedSearches.tsx"] },
+  { name: "saved-searches-dialog", url: "/jobs", as: "poster", prepare: openSavedSearches, covers: ["src/components/SavedSearches.tsx"] },
   { name: "report-user-dialog", url: "/home", as: "poster", prepare: openReportDialog("helper"), covers: ["src/components/ReportDialog.tsx"] },
   // Covers DisputeDialog.tsx, the file that renders the fields. The old entry
   // named ActivityDialogs.tsx, which only mounts it and is not in the form
   // inventory at all — a `covers` entry the coverage test could never check.
-  { name: "activity-dispute-dialog", url: "/jobs", as: "helper", prepare: openDisputeDialog, covers: ["src/components/DisputeDialog.tsx"] },
-  { name: "active-job-section", url: "/jobs", as: "helper", prepare: openActiveJobSection, covers: ["src/pages/jobs/appliedJobCard/ActiveJobSection.tsx"] },
-  { name: "disputed-section", url: "/jobs", as: "helper", prepare: openDisputedSectionResponse, covers: ["src/pages/jobs/appliedJobCard/DisputedSection.tsx"] },
+  { name: "activity-dispute-dialog", url: "/jobs?tab=working", as: "helper", prepare: openDisputeDialog, covers: ["src/components/DisputeDialog.tsx"] },
+  { name: "active-job-section", url: "/jobs?tab=working", as: "helper", prepare: openActiveJobSection, covers: ["src/pages/jobs/appliedJobCard/ActiveJobSection.tsx"] },
+  { name: "disputed-section", url: "/jobs?tab=working", as: "helper", prepare: openDisputedSectionResponse, covers: ["src/pages/jobs/appliedJobCard/DisputedSection.tsx"] },
   { name: "pending-application-section", url: "/jobs", as: "helper", prepare: openPendingApplicationEdit, covers: ["src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx"] },
   {
     name: "admin-reports-message", url: "/admin?view=reports", as: "admin",
@@ -786,6 +789,10 @@ export const FORMS: FormSpec[] = [
 export const GAPS: Record<string, string> = {
   // Admin "Helpr at fault" (J4, 2026-10-19): a no-show/backed-out radio and one note, in the admin refund dialog and the dispute card.
   "src/components/admin/helprFault/HelprFaultFields.tsx": "admin-only, needs a paid job with a booked Helpr and a full refund (journeys never pay on live Stripe); the kind is a two-value radio (admin_rule_helpr_fault refuses anything else: invalid_kind) and the note is space-trimmed (btrim) and refused empty or over 1000 characters (note_required; job_helpr_fault_rulings CHECK); FORMS sweep owed with a seeded paid job",
+  // Q2205 (2026-10-19): the feed's phone search left /home with the old Home feed.
+  "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx": "desktop-only since Q2205 (the /jobs feed strip, >=900px); this sweep runs at 375, where the same filters.setSearchQuery is typed through BrowseCompactSearchRow (dashboard-search); its field and ✕ are driven at 1440 by search-x-off-center-press and expanding-search-geometry",
+  // The section dashboards (2026-10-19): Home's Customize sheet.
+  "src/components/sections/CustomizeSheet.tsx": "holds no typed text: one show/hide switch per section and reorder buttons; nothing to type messy input into",
   // Admin "End series" (Q417 (c), 2026-10-17): one reason textarea on a recurring job in the admin job dialog.
   "src/components/admin/adminJobs/EndSeriesSection.tsx": "admin-only, needs a live recurring series; the reason is space-trimmed (btrim) and refused under 10 characters by rpc_admin_end_recurring_series (end_series_needs_reason, pinned by seriesEndByPlatform.pglite.mjs); the button stays off below 10; FORMS sweep owed with a seeded series",
   // Quotes on jobs (2026-10-15): behind the hidden 'quotes' switch, created OFF on prod; the server refuses each field

@@ -28,11 +28,11 @@
 import { describe, it, expect, vi } from "vitest";
 
 const PAGES: [string, string][] = [
-  ["@/pages/home/Dashboard", "Dashboard"],
+  ["@/pages/home/HomeDashboard", "HomeDashboard"],
   ["@/pages/profile/Profile", "Profile"],
   ["@/pages/post-job/PostJob", "PostJob"],
   ["@/pages/posts/PostsPage", "PostsPage"],
-  ["@/pages/jobs/JobsPage", "JobsPage"],
+  ["@/pages/jobs/JobsSection", "JobsSection"],
   ["@/pages/jobs/JobDetail", "JobDetail"],
   ["@/pages/messages/Messages", "Messages"],
   ["@/pages/info/Support", "Support"],
@@ -96,7 +96,7 @@ describe("prefetchRoute — which chunk it warms", () => {
     const { prefetchRoute } = await loadFresh();
     prefetchRoute("/home");
     await settle();
-    expect(loaded).toContain("Dashboard");
+    expect(loaded).toContain("HomeDashboard");
   });
 
   it("resolves a parameterized path by prefix (/user/:id -> /user)", async () => {

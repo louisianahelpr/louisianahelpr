@@ -85,8 +85,13 @@
 // a shortLabel below 390px to fit five tabs, a title and a search button into
 // 320-414px, and "it fits" is worthless if the words are gone. Blanking them
 // reds "a tab button painted no word at all".
-// @mutate src/pages/posts/PostsHeader.tsx |         label: f.label, |         label: "",
-// @mutate src/pages/jobs/JobsHeader.tsx |         label: f.label, |         label: "",
+// RE-POINTED 2026-10-19 (Q2205): My Posts / My Jobs and their folding tab row
+// were retired; Jobs > Posted / Working filter with four STATUS BOXES that are
+// always up. Same claim — this screen's navigation is on the screen without a
+// press, every word painted and WHOLE — measured on the boxes: a box that
+// paints no word, or cuts it ("Needs y…"), goes red.
+// @mutate src/components/sections/StatusBoxes.tsx | title={b.label}>{b.label}</span> | title={b.label}></span>
+// @mutate src/components/sections/StatusBoxes.tsx | max-[359px]:text-ds-10 max-[359px]:tracking-normal | max-[359px]:tracking-normal
 import { test, expect, type Browser, type Page, type TestInfo } from "../prodTest";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -95,15 +100,14 @@ import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
 /* The inbox's own strip, as data — same rule as BUCKET_ORDER below: the words
    this spec expects are the app's, never a copy kept here. */
 import { INBOX_TAB_LABEL, INBOX_TAB_ORDER } from "../../src/lib/inboxDefault";
-import { SHORT_LABEL_BELOW_PX } from "../../src/lib/shortLabelBreakpoint";
 /* The bucket inventory comes from the app's own leaf module — the same list
    PostsHeader and JobsHeader build their tabs from, never a copy. activityFilters.ts
    re-exports these three; this spec imports the leaf directly because that one
    has no React/runtime dependencies for the e2e tsconfig to pull in. */
 import {
   BUCKET_ORDER,
-  BUCKET_LABEL,
-  BUCKET_SHORT_LABEL,
+  POSTED_GROUP_LABEL,
+  WORKING_GROUP_LABEL,
 } from "../../src/lib/activityBuckets";
 
 const SHOTS = process.env.LH_TABS_SHOTS;
@@ -125,12 +129,12 @@ const INBOX_WORDS = INBOX_TAB_ORDER.map((k) => INBOX_TAB_LABEL[k]);
  * added, which is the point.
  */
 const ROUTES = [
-  { name: "posts", url: "/posts" },
-  { name: "jobs", url: "/jobs" },
+  { name: "posted", url: "/jobs?tab=posted", labels: POSTED_GROUP_LABEL },
+  { name: "working", url: "/jobs?tab=working", labels: WORKING_GROUP_LABEL },
 ] as const;
 
-/** Both Activity screens offer the same five buckets, in BUCKET_ORDER. */
-const BUCKETS = BUCKET_ORDER;
+/** The four boxes (EmbeddedActivityHeader's BOX_BUCKETS): every bucket but the terminal "cancelled". */
+const BOXES = BUCKET_ORDER.filter((k) => k !== "cancelled");
 
 type TabShot = {
   /** The group's box. `null` when the row is not rendered at all. */
@@ -250,15 +254,119 @@ async function authedContext(
 
 async function openActivity(page: Page, url: string) {
   await page.goto(url, { waitUntil: "domcontentloaded" });
-  // The header row is what this spec is about, so wait for the row's OWN
-  // control rather than the list: an empty bucket never paints a card, and
-  // waiting for one would time out on exactly the state under test.
-  await page.waitForSelector("[data-search-trigger]", { state: "visible", timeout: 45_000 });
+  // The boxes are what this spec is about, so wait for a box rather than the
+  // list: an empty bucket never paints a card.
+  await page.waitForSelector("[data-status-box]", { state: "visible", timeout: 45_000 });
   await page.waitForTimeout(1500);
 }
 
+type BoxShot = {
+  group: { w: number; h: number } | null;
+  boxes: { key: string; word: string; w: number; h: number; cut: boolean; count: number }[];
+  collapsedBy: string | null;
+};
+
+/** The status boxes as a user sees them: the painted label, its box, and whether the label is CUT (ellipsis). */
+async function readBoxes(page: Page): Promise<BoxShot> {
+  return page.evaluate((groupSel) => {
+    const group = document.querySelector<HTMLElement>(groupSel);
+    const gr = group?.getBoundingClientRect();
+    const boxes = Array.from(group?.querySelectorAll<HTMLElement>("button[data-status-box]") ?? []).map((b) => {
+      const spans = b.querySelectorAll<HTMLElement>("span");
+      const label = spans[1];
+      const r = label?.getBoundingClientRect();
+      return {
+        key: b.getAttribute("data-status-box") || "",
+        word: (label?.textContent || "").trim(),
+        w: Math.round(r?.width ?? 0),
+        h: Math.round(r?.height ?? 0),
+        cut: !!label && label.scrollWidth > label.clientWidth + 0.5,
+        count: Number((spans[0]?.textContent || "0").trim()) || 0,
+      };
+    });
+    const closed = Array.from(document.querySelectorAll<HTMLElement>("button[aria-expanded]")).find(
+      (b) => b.getAttribute("aria-expanded") === "false" && /status|filter/i.test(b.getAttribute("aria-label") || ""),
+    );
+    return {
+      group: gr ? { w: Math.round(gr.width), h: Math.round(gr.height) } : null,
+      boxes,
+      collapsedBy: closed ? closed.getAttribute("aria-label") : null,
+    };
+  }, GROUP);
+}
+
+/** THE CLAIM, at one width on one screen: four boxes on screen, each word painted, whole, and the app's own. */
+function assertBoxes(shot: BoxShot, tag: string, labels: Record<string, string>) {
+  expect(shot.collapsedBy, `${tag}: the status filter is behind a closed disclosure ("${shot.collapsedBy}")`).toBeNull();
+  expect(shot.group, `${tag}: no status boxes in the DOM at all`).not.toBeNull();
+  expect(shot.group!.w * shot.group!.h, `${tag}: the boxes are in the DOM with a ZERO box`).toBeGreaterThan(0);
+  expect(shot.boxes.map((b) => b.key), `${tag}: the boxes, in order`).toEqual(BOXES);
+  for (const b of shot.boxes) {
+    expect(b.word, `${tag}: the ${b.key} box painted no word at all`).not.toBe("");
+    expect(b.word, `${tag}: the ${b.key} box's word is not the app's own`).toBe(labels[b.key]);
+    expect(b.w * b.h, `${tag}: the "${b.word}" label has a zero box`).toBeGreaterThan(0);
+    expect(b.cut, `${tag}: the "${b.word}" label is CUT (ellipsis) — src/test/activityTabLabelsFitAPhone.test.ts budgets this`).toBe(false);
+  }
+}
+
+// ── 1. ON ARRIVAL, NO PRESS: every box, every word, whole ──────────────────
+for (const vw of [320, 375, 414, 1440] as const) {
+  for (const route of ROUTES) {
+    test(`${route.name}: the four status boxes are on the screen, words whole @${vw}`, async ({ browser }, info) => {
+      const ctx = await authedContext(browser, vw, info.project.use.baseURL);
+      const page = await ctx.newPage();
+      try {
+        await openActivity(page, route.url);
+        const shot = await readBoxes(page);
+        note(
+          info,
+          `${route.name}@${vw} words=${JSON.stringify(shot.boxes.map((b) => b.word))} cut=${JSON.stringify(shot.boxes.filter((b) => b.cut).map((b) => b.word))} ` +
+            `box=${shot.group ? `${shot.group.w}×${shot.group.h}` : "none"}`,
+        );
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, `${route.name}-${vw}-${SCHEME}-default.png`) });
+        assertBoxes(shot, `${route.name}@${vw}`, route.labels);
+      } finally {
+        await ctx.close();
+      }
+    });
+  }
+}
+
+// ── 2. EVERY BOX, EMPTY ONES INCLUDED ───────────────────────────────────────
 /**
- * OWNER, 2026-09-25 (iPhone screenshots of My Posts, My Jobs, Messages): "This
+ * A filtered view is the one state where a screen is most tempted to drop its
+ * own navigation, and an EMPTY bucket the most. So every box is driven (tap =
+ * only that group), and the run asserts it saw at least one EMPTY and one
+ * POPULATED box across both tabs — a sweep that only landed on full ones
+ * would be green for the wrong reason.
+ */
+test("every box on Posted and Working keeps the boxes up, empty or full @375", async ({ browser }, info) => {
+  const ctx = await authedContext(browser, 375, info.project.use.baseURL);
+  const page = await ctx.newPage();
+  try {
+    let sawEmpty = 0;
+    let sawFull = 0;
+    for (const route of ROUTES) {
+      for (const key of BOXES) {
+        await openActivity(page, `${route.url}&filter=${key}`);
+        const shot = await readBoxes(page);
+        const live = shot.boxes.find((b) => b.key === key);
+        if ((live?.count ?? 0) > 0) sawFull++;
+        else sawEmpty++;
+        note(info, `${route.name}&filter=${key} @375 count=${live?.count ?? "?"} box=${shot.group ? `${shot.group.w}×${shot.group.h}` : "none"}`);
+        assertBoxes(shot, `${route.name}&filter=${key}@375`, route.labels);
+      }
+    }
+    expect(sawEmpty, "no EMPTY box was exercised — the claim is untested").toBeGreaterThan(0);
+    expect(sawFull, "no POPULATED box was exercised — the claim is untested").toBeGreaterThan(0);
+  } finally {
+    await ctx.close();
+  }
+});
+
+/**
+ * OWNER, 2026-09-25 (iPhone screenshots of My Posts, My Jobs, Messages; the
+ * inbox keeps it): "This
  * should open with the chevrons collapsed. Not expanded." On a phone the row
  * now arrives FOLDED and one press on the chevron opens it. Since 2026-10-08
  * ("Post and job at the top should open collapsed") that holds for EVERY
@@ -301,143 +409,6 @@ function assertVisible(shot: TabShot, tag: string, expectedTabs: number) {
     ).toBeGreaterThan(0);
   }
 }
-
-// ── 1. THE OWNER'S OWN REPRO: the plain route, no query string, no press ────
-for (const vw of [320, 375, 414, 1440] as const) {
-  for (const route of ROUTES) {
-    test(`${route.name}: phone arrives folded, one press shows every tab; desktop shows them @${vw}`, async ({
-      browser,
-    }, info) => {
-      const ctx = await authedContext(browser, vw, info.project.use.baseURL);
-      const page = await ctx.newPage();
-      try {
-        await openActivity(page, route.url);
-        if (vw < 900) {
-          // Owner, 2026-09-25: the phone row arrives FOLDED on the default filter.
-          const arrived = await readTabs(page);
-          note(info, `${route.name}@${vw} on arrival collapsedBy=${arrived.collapsedBy ?? "—"}`);
-          expect(
-            arrived.collapsedBy,
-            `${route.name}@${vw}: the status tabs arrived OPEN; the owner asked on 2026-09-25 ` +
-              `for My Posts / My Jobs to open with the chevron collapsed`,
-          ).not.toBeNull();
-          await unfold(page, "Filter by status");
-        }
-        const shot = await readTabs(page);
-        note(
-          info,
-          `${route.name}@${vw} words=${JSON.stringify(shot.tabs.map((t) => t.word))} ` +
-            `box=${shot.group ? `${shot.group.w}×${shot.group.h}` : "none"} ` +
-            `collapsedBy=${shot.collapsedBy ?? "—"}`,
-        );
-        if (SHOTS) {
-          await page.screenshot({
-            path: join(SHOTS, `${route.name}-${vw}-${SCHEME}-default.png`),
-          });
-        }
-        assertVisible(shot, `${route.name}@${vw}`, BUCKETS.length);
-
-        // ── THE WORD THE BREAKPOINT PROMISES, read off the screen ──────────
-        // Below SHORT_LABEL_BELOW_PX the stand-ins; at it and above, the
-        // owner's own five words. Asserted per tab against the filter
-        // definitions, so neither vocabulary can drift from the other.
-        const expectWords = BUCKETS.map((key) =>
-          vw < SHORT_LABEL_BELOW_PX ? BUCKET_SHORT_LABEL[key] : BUCKET_LABEL[key],
-        );
-        expect(
-          shot.tabs.map((t) => t.word),
-          `${route.name}@${vw}: the words PAINTED are not the ones the breakpoint ` +
-            `promises. SHORT_LABEL_BELOW_PX is ${SHORT_LABEL_BELOW_PX}, so ${vw} should ` +
-            `show ${vw < SHORT_LABEL_BELOW_PX ? "the short stand-ins" : "the owner's five long words"}. ` +
-            `A class name in the source is not a rule in the stylesheet: on 2026-09-20 ` +
-            `min-[390px]:inline compiled to nothing and the long words were display:none ` +
-            `at every width up to 900.`,
-        ).toEqual(expectWords);
-
-        // ── VACUITY: collapse it, and the same measurement must go red ─────
-        // This is the state the owner reported, reproduced on the same page in
-        // the same run — the "before" beside the "after".
-        if (vw < 900) {
-          await page.click('button[aria-expanded][aria-label="Hide status filters"]');
-          await page.waitForTimeout(250);
-          const after = await readTabs(page);
-          note(
-            info,
-            `${route.name}@${vw} VACUITY after one press on the chevron: ` +
-              `box=${after.group ? `${after.group.w}×${after.group.h}` : "none"} ` +
-              `collapsedBy=${after.collapsedBy ?? "—"}`,
-          );
-          expect(
-            after.group === null || after.collapsedBy !== null,
-            `${route.name}@${vw}: pressing the disclosure did NOT take the tab row away, ` +
-              `so the visibility assertion above cannot fail and proves nothing.`,
-          ).toBe(true);
-        }
-      } finally {
-        await ctx.close();
-      }
-    });
-  }
-}
-
-// ── 2. EVERY BUCKET, EMPTY ONES INCLUDED ────────────────────────────────────
-/**
- * The root cause was never emptiness — it was the live filter being the
- * DEFAULT one — but "every bucket including the empty ones" is the claim the
- * owner made, and a bucket with no rows is the one state where a screen is
- * most tempted to drop its own navigation. So every bucket is driven, and the
- * run asserts it saw at least one EMPTY one and at least one POPULATED one:
- * a sweep that happened to land only on full buckets would be green for the
- * wrong reason.
- */
-test("every bucket on both Activity screens keeps its tabs, empty or full @375", async ({
-  browser,
-}, info) => {
-  const ctx = await authedContext(browser, 375, info.project.use.baseURL);
-  const page = await ctx.newPage();
-  try {
-    let sawEmpty = 0;
-    let sawFull = 0;
-    for (const route of ROUTES) {
-      for (const key of BUCKETS) {
-        await openActivity(page, `${route.url}?filter=${key}`);
-        // EVERY bucket arrives folded on a phone (owner, 2026-10-08: "Post and
-        // job at the top should open collapsed for their top panels"; it
-        // superseded the 2026-09-25 rule that a non-default filter arrives
-        // open, which this loop still asserted and failed on in prod-audit run
-        // 38181023758). Arriving folded is checked, then one press opens it.
-        const arrived = await readTabs(page);
-        expect(
-          arrived.collapsedBy,
-          `${route.url}?filter=${key}@375: the status tabs arrived OPEN; the owner asked on 2026-10-08 for them to open collapsed`,
-        ).not.toBeNull();
-        await unfold(page, "Filter by status");
-        const shot = await readTabs(page);
-        // "Populated" is read off the row itself, in the SAME DOM snapshot as
-        // the boxes above (a second evaluate later races the count query and
-        // read numbers that did not match the row on screen). UnderlineTabs
-        // omits the count entirely at zero, so a live tab with no number
-        // beside it is an empty bucket. Counted ACROSS both screens, because
-        // which of the two has rows is a property of the test account on the
-        // day, not of the claim: on 2026-09-20 the poster's /posts had
-        // rows and its /jobs had none, which is the pair this needs.
-        const count = shot.liveCount;
-        if (count > 0) sawFull++;
-        else sawEmpty++;
-        note(
-          info,
-          `${route.name}?filter=${key} @375 count=${count} ` +
-            `box=${shot.group ? `${shot.group.w}×${shot.group.h}` : "none"}`,
-        );
-        assertVisible(shot, `${route.name}?filter=${key}@375`, BUCKETS.length);
-      }
-    }
-    expect(sawEmpty, "no EMPTY bucket was exercised — the claim is untested").toBeGreaterThan(0);
-    expect(sawFull, "no POPULATED bucket was exercised — the claim is untested").toBeGreaterThan(0);
-  } finally {
-    await ctx.close();
-  }
-});
 
 // ── 3. MESSAGES: THE ROW IS RESERVED, AND IT IS THERE EITHER WAY ────────────
 /**

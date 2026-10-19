@@ -31,6 +31,7 @@
  */
 // @mutate src/index.css | here to this. */\n  transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); | here to this. */\n  transform: scale(0.97);
 // @mutate src/index.css | `.btn-press:active`. */\n  transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); | `.btn-press:active`. */\n  transform: scale(0.97);
+// @mutate src/index.css | [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); | [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: scale(0.97);
 // @mutate src/index.css | Chromium and WebKit, 2026-10-07). Keep the translate, drop the rest. */\n    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)); | Chromium and WebKit, 2026-10-07). Keep the translate, drop the rest. */\n    transform: none;
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -146,8 +147,9 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     const selectors = rules.map((r) => r.selector);
     expect(selectors).toContain(".btn-press:active");
     expect(selectors).toContain(".glass-press:active");
-    // EXACT: two primitives, each with a normal and a reduced-motion :active rule.
-    expect(rules.length).toBe(4);
+    // EXACT: two primitives, each with a normal and a reduced-motion :active rule,
+    // plus the approved T8 press (design-small, owner 2026-10-18) and its reduced twin.
+    expect(rules.length).toBe(6);
   });
 
   it("Q910: every press-primitive rule that sets a transform, at REST too, keeps the translate", () => {
@@ -177,8 +179,9 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
   it("every translated X button wears only press classes that rule covers", () => {
     const xs = translatedXButtons();
     const files = new Set(xs.map((x) => x.file));
-    // Inventory, EXACT: the six search clear-Xs (BrowseSearchBar,
-    // ConversationList, SavedHelpersTab, PostsHeader, JobsHeader, Legal),
+    // Inventory, EXACT: the four search clear-Xs (BrowseSearchBar,
+    // ConversationList, SavedHelpersTab, Legal; PostsHeader / JobsHeader left
+    // with Q2205),
     // the six admin search clear-Xs Q913 added (AdminCommandPalette,
     // AdminNotificationLogs, AdminReferrals, AdminSubscriptions, AdminUsers,
     // AdminUserSearchField) plus ChatView's safety-banner dismiss. A new one
@@ -195,10 +198,9 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
       "src/components/messages/ConversationList.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
       "src/pages/info/Legal.tsx",
-      "src/pages/jobs/JobsHeader.tsx",
-      "src/pages/posts/PostsHeader.tsx",
     ]);
-    expect(xs.length).toBe(13);
+    // 11 since 2026-10-19 (Q2205): PostsHeader / JobsHeader's Xs left with the old My Posts / My Jobs pages.
+    expect(xs.length).toBe(11);
 
     // Any class on these Xs that has an :active transform rule anywhere in
     // src CSS was checked translate-safe above, so the class is covered. What
@@ -212,9 +214,10 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
       x.className.split(/\s+/).filter((c) => /press/.test(c) && !covered.has(c)).map((c) => `${x.file}:${x.line} wears ${c}`),
     );
     expect(bad, `press classes with no translate-safe :active rule:\n${bad.join("\n")}`).toEqual([]);
-    // The twelve search Xs (six app, six admin) are the ones that press;
-    // ChatView's dismiss has no press feedback, so it has no :active
-    // transform to lose its centring to.
-    expect(xs.filter((x) => x.className.split(/\s+/).some((c) => covered.has(c))).length).toBe(12);
+    // The ten search Xs (four app — six until Q2205 retired PostsHeader /
+    // JobsHeader — and six admin) are the ones that press; ChatView's dismiss
+    // has no press feedback, so it has no :active transform to lose its
+    // centring to.
+    expect(xs.filter((x) => x.className.split(/\s+/).some((c) => covered.has(c))).length).toBe(10);
   });
 });

@@ -420,7 +420,7 @@ interface CapturedJoin {
   hasPresence: boolean;
 }
 
-const AUTHED_ROUTES = ["/home", "/posts", "/jobs", "/messages", "/profile"];
+const AUTHED_ROUTES = ["/home", "/jobs", "/jobs?tab=posted", "/jobs?tab=working", "/messages", "/profile"];
 
 test("1b · runtime: no duplicate channel names, every binding filtered to the user", async ({
   page,

@@ -1,7 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   JOB_CARD_SHELL_FRAME,
-  JOB_CARD_SHELL_RAIL,
   JOB_CARD_SHELL_TAB_SLOT,
   JOB_CARD_TITLE_PAD_WITH_TAB,
 } from "@/components/job-card/JobCardShell";
@@ -72,21 +71,17 @@ import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
  * is what made the placeholder 69px too tall on every row. What has to match
  * is the RESERVATION.
  *
- * The two things it still leads with, and must (they were added 2026-09-19 for
- * the first half of the same report):
- *   - THE CATEGORY RAIL, the 6px colour stripe down the left edge.
+ * The one thing it still leads with, and must (added 2026-09-19 for the first
+ * half of the same report; the 6px colour rail went with design tweak T3,
+ * 2026-10-18):
  *   - THE CATEGORY TAB, which overlays the card's top-left corner and is why
  *     the title row runs `pt-6` rather than `py-2.5`.
  */
 export function CollapsedActivityCardSkeleton({ metaLines = 2 }: { metaLines?: 1 | 2 } = {}) {
   return (
     <div className={JOB_CARD_SHELL_FRAME} aria-hidden>
-      {/* Category rail — neutral olivewood while loading; the real card
-          recolours it per category. */}
-      <span
-        className={JOB_CARD_SHELL_RAIL}
-        style={{ background: "hsl(var(--olivewood) / 0.18)" }}
-      />
+      {/* No category rail: the cards dropped it (owner design tweak T3,
+          2026-10-18), so the bone draws none either. */}
       {/* Category tab, in the real tab's own box, so the ~20px it occupies is
           reserved rather than guessed. */}
       <div className={JOB_CARD_SHELL_TAB_SLOT}>

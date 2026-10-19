@@ -16,7 +16,6 @@
  * GUARDED_LOCALLY is exact both ways: a listed site that no longer exists, or
  * whose guard line is gone, fails too.
  */
-// @mutate src/components/dashboard/JobCard.tsx | categoryColors[job.category] \|\| categoryColors.other | categoryColors[job.category]
 // @mutate src/components/postjob/MaterialsPanel.tsx |   if (!items \|\| items.length === 0) return null; |   if (items.length === 0) return null;
 import { describe, it, expect } from "vitest";
 import ts from "typescript";

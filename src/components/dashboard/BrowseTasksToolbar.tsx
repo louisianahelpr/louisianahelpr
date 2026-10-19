@@ -5,7 +5,6 @@ import { SavedSearches } from "@/components/SavedSearches";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { hapticLight } from "@/lib/haptics";
 import type { BrowseTasksToolbarProps } from "./browseTasksToolbar/types";
-import { CategoryChipRow } from "./browseTasksToolbar/CategoryChipRow";
 import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
 
 /**
@@ -152,13 +151,9 @@ export function BrowseTasksToolbar({
           title just the H logo"). */}
       {renderHeading && <h1 className="sr-only">{headingTitle}</h1>}
 
-      {/* One-tap category picker row. */}
-      {filters.selectedCategory && (
-        <CategoryChipRow
-          selectedCategory={filters.selectedCategory}
-          setSelectedCategory={filters.setSelectedCategory}
-        />
-      )}
+      {/* No category pill row (owner final decisions, 2026-10-19: "a ton of
+          pills at the top"). Category is a section of the filter sheet below,
+          and the Filters button counts it while one is picked. */}
 
       {/* Unified filter bottom sheet — the SlidersHorizontal button above
           toggles `filtersOpen`, which opens this sheet with all the filter

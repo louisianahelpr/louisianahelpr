@@ -1,20 +1,21 @@
 import { useEffect, useState } from "react";
+import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
+import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
-  Send,
+  Briefcase,
   ClipboardList,
   MessageSquare,
   User,
   Plus,
   ShieldAlert,
   ChevronDown,
-  Sofa,
-  Store,
   type LucideIcon,
 } from "lucide-react";
-import { useFeature } from "@/hooks/useFeature";
+import { useSectionTabs, comingSoonLabel, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
+import { POST_FAB_STYLE } from "@/components/mobileNav/postFabStyle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { useAdminBadges } from "@/components/admin/adminBadgeStore";
@@ -53,8 +54,10 @@ const NAV_ITEMS: Array<{
   badgeKey?: "messages" | "posts" | "jobs";
 }> = [
   { path: "/home", icon: Home, label: "Home" },
-  { path: "/posts", icon: Send, label: "Posts", badgeKey: "posts" },
-  { path: "/jobs", icon: ClipboardList, label: "Jobs", badgeKey: "jobs" },
+  // The dock's own Posts and Jobs icons (mobileNavHelpers leftItems /
+  // rightItems), so one destination wears one icon on every surface.
+  { path: "/posts", icon: ClipboardList, label: "Posts", badgeKey: "posts" },
+  { path: "/jobs", icon: Briefcase, label: "Jobs", badgeKey: "jobs" },
   { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" },
   { path: "/profile", icon: User, label: "Profile" },
 ];
@@ -113,16 +116,20 @@ const DesktopSidebarRail = () => {
   // Declutter (docs/specs/declutter-auctions.md row 1: its own tab) joins the
   // destinations after Messages only while the hidden switch is on for this
   // member; for everyone else the panel is unchanged.
-  const declutterOn = useFeature("declutter");
-  // Shops (docs/specs/local-shops-prep.md L1-L2: its own destination) joins
-  // after Declutter the same way, only while the hidden 'shops' switch is on.
-  const shopsOn = useFeature("shops");
+  // Shops (docs/specs/local-shops-prep.md L1-L2) follows it, and Homes (the
+  // 'rentals' switch; owner 2026-10-18: the nav says Homes) follows Shops:
+  // the dock's section tabs, read from the same hook so the two cannot drift.
+  const sectionTabs = useSectionTabs();
+  // Customize (owner, 2026-10-19): a section the member hid leaves the rail too.
+  const { prefs: sectionPrefs } = useSectionPrefs();
+  const hiddenPaths = new Set(sectionPrefs.hidden.map((k) => SECTIONS.find((d) => d.key === k)!.path));
   // No Quotes destination: the /quotes hub retired (owner 2026-10-19); quotes
   // live in Post a Job, Jobs, My Jobs and Posts (src/lib/quotes/homes.ts).
   const navItems = [
     ...NAV_ITEMS.slice(0, 4),
-    ...(declutterOn ? [{ path: "/declutter", icon: Sofa, label: "Declutter" }] : []),
-    ...(shopsOn ? [{ path: "/shops", icon: Store, label: "Shops" }] : []),
+    // A section switched off for this viewer is listed GREYED and says
+    // "coming soon" instead of navigating (owner, 2026-10-18).
+    ...sectionTabs.filter((t) => !hiddenPaths.has(t.path)).map(({ path, icon, label, on }) => ({ path, icon, label, comingSoon: !on })),
     ...NAV_ITEMS.slice(4),
   ];
   // Admin's own sections, collapsed by default so an admin's panel is the same
@@ -245,12 +252,9 @@ const DesktopSidebarRail = () => {
           onMouseEnter={() => prefetchRoute("/post-job")}
           className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-sans font-semibold text-ds-15 transition-transform active:scale-[0.98]"
           style={{
-            background:
-              "radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-deep)) 100%)",
-            color: "hsl(var(--parchment))",
-            border: "1px solid hsl(var(--bark-border))",
-            boxShadow:
-              "inset 0 1.5px 1px 0 rgba(255,255,255,0.28), 0 8px 18px -6px hsl(var(--bark) / 0.5)",
+            // Nearly flat (owner, 2026-10-18, option 3B): the dock FAB's
+            // surface, solid olive with one small soft shadow.
+            ...POST_FAB_STYLE,
           }}
         >
           <Plus className="h-5 w-5" strokeWidth={2.5} />
@@ -270,19 +274,24 @@ const DesktopSidebarRail = () => {
           `overflow-y-auto` never has anything to scroll — the list just grows
           past the bottom of the panel instead. */}
       <ul className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-3 py-2">
-        {navItems.map(({ path, icon: Icon, label, badgeKey }) => {
-          const active = isActive(path);
-          const count = badgeFor(badgeKey);
+        {navItems.map((item) => {
+          const { path, icon: Icon, label } = item;
+          const badgeKey = "badgeKey" in item ? item.badgeKey : undefined;
+          const soon = "comingSoon" in item && !!item.comingSoon;
+          const active = !soon && isActive(path);
+          const count = soon ? 0 : badgeFor(badgeKey);
           return (
             <li key={path}>
               <button
-                onClick={() => navigate(path)}
-                onMouseEnter={() => prefetchRoute(path)}
+                onClick={() => (soon ? sayComingSoon(label) : navigate(path))}
+                onMouseEnter={() => !soon && prefetchRoute(path)}
                 aria-current={active ? "page" : undefined}
-                className="group relative flex w-full items-center gap-3 rounded-ds-md px-3 py-2.5 text-left transition-colors"
+                aria-disabled={soon ? true : undefined}
+                aria-label={soon ? comingSoonLabel(label) : undefined}
+                className={`group relative flex w-full items-center gap-3 rounded-ds-md px-3 py-2.5 text-left transition-colors${soon ? " cursor-not-allowed" : ""}`}
                 style={{
                   background: active ? "hsl(var(--bark) / 0.08)" : "transparent",
-                  color: active ? "hsl(var(--bark))" : "hsl(var(--ink-deep))",
+                  color: active ? "hsl(var(--bark))" : soon ? "hsl(var(--muted-foreground))" : "hsl(var(--ink-deep))",
                 }}
               >
                 <span className="relative inline-flex">
@@ -309,6 +318,11 @@ const DesktopSidebarRail = () => {
                 >
                   {label}
                 </span>
+                {soon && (
+                  <span aria-hidden className="ml-auto font-sans text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
+                    Soon
+                  </span>
+                )}
               </button>
             </li>
           );

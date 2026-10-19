@@ -12,7 +12,7 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks } from "./fixtures";
 //
 // This captures the sizes Apple actually reviews on, so the decision to keep or
 // drop iPad support is made from screenshots rather than assumption.
-const ROUTES = ["/home", "/post-job", "/messages", "/profile", "/profile?tab=subscription", "/posts"];
+const ROUTES = ["/home", "/post-job", "/messages", "/profile", "/profile?tab=subscription", "/jobs?tab=posted"];
 
 const SIZES = [
   { name: "ipad-11-portrait", width: 834, height: 1194 },

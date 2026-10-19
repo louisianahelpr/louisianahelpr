@@ -115,3 +115,19 @@ export function ShopsGate({ children, title, backTo }: { children: ReactNode; ti
     </AppPage>
   );
 }
+
+/**
+ * One group of order cards under a Shops tab (owner, 2026-10-19): the
+ * section-dashboard header (uppercase title + count) over the existing cards.
+ */
+export function OrderGroup({ title, count, empty, children }: { title: string; count: number; empty: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2" aria-label={title}>
+      <h2 className="px-1 text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">
+        {title}
+        <span className="ml-1.5 text-foreground/70">{count}</span>
+      </h2>
+      {count === 0 ? <p className="px-1 text-sm text-muted-foreground">{empty}</p> : <ul className="space-y-3">{children}</ul>}
+    </section>
+  );
+}

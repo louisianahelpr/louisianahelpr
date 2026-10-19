@@ -214,10 +214,9 @@ export type AppliedApp = Application & {
  * alike — a bucket so broad that every card needed its own status band to say
  * which kind it was.
  *
- * When it is empty the page OPENS on the first bucket that has anything
- * (owner, 2026-10-08, superseding the earlier "no automatic fallback": "if
- * needs you is empty open the waiting, if there is nothing in waiting then it
- * goes to scheduled and so on"). See firstBucketWithItems and JobListPage.
+ * Jobs > Posted / Working (owner, 2026-10-19) open on EVERY group ("all")
+ * instead, under status boxes; the old open-on-the-first-non-empty-bucket rule
+ * (2026-10-08) went with My Posts / My Jobs (Q2205).
  *
  * See ActivityBucket in activityFilters.ts for what each of the four means and
  * why they are exhaustive.
@@ -226,11 +225,3 @@ export function defaultStatusFilterFor(_tab: "posted" | "applied"): string {
   return "needs_you";
 }
 
-/**
- * The bucket a page OPENS on: `preferred` when it holds anything, else the
- * first bucket in tab order that does; `preferred` again when all are empty.
- */
-export function firstBucketWithItems(order: readonly string[], counts: Record<string, number>, preferred: string): string {
-  if ((counts[preferred] ?? 0) > 0) return preferred;
-  return order.find((k) => (counts[k] ?? 0) > 0) ?? preferred;
-}

@@ -56,13 +56,15 @@ describe("Button", () => {
   });
 
   describe("elevation contract", () => {
+    // Flipped 2026-10-19: the owner approved the nearly-flat filled button (design-small,
+    // option 3B), so this asserts the 2-layer soft shadow and NO inner highlight.
     const expectFilledElevation = (className: string) => {
-      // 3-layer drop shadow (tight 1px contact + 2/6 ambient + 4/12 halo)
-      expect(className).toContain("0_1px_1px_hsl(var(--ink-deep)/0.10)");
-      expect(className).toContain("0_2px_6px_hsl(var(--ink-deep)/0.12)");
-      expect(className).toContain("0_4px_12px_-2px_hsl(var(--ink-deep)/0.08)");
-      // inner top-edge cream highlight (parchment/0.22)
-      expect(className).toContain("inset_0_1px_0_hsl(var(--parchment)/0.22)");
+      // 2-layer soft shadow (tight 1px/2px contact + 2/6 ambient)
+      expect(className).toContain("0_1px_2px_hsl(var(--ink-deep)/0.10)");
+      expect(className).toContain("0_2px_6px_-2px_hsl(var(--ink-deep)/0.12)");
+      expect(className).not.toContain("0_4px_12px_-2px_hsl(var(--ink-deep)/0.08)");
+      // no inner top-edge cream highlight (that shine read as glossy)
+      expect(className).not.toContain("inset_0_1px_0_hsl(var(--parchment)/0.22)");
       // active press — scale down 0.97 (crisper than translate alone)
       expect(className).toContain("active:scale-[0.97]");
     };
@@ -124,7 +126,7 @@ describe("Button", () => {
     it("ghost stays intentionally flat (no shadow, no highlight, no press scale)", () => {
       render(<Button variant="ghost">Skip</Button>);
       const cls = screen.getByRole("button").className;
-      expect(cls).not.toContain("0_1px_1px_hsl(var(--ink-deep)/0.10)");
+      expect(cls).not.toContain("0_1px_2px_hsl(var(--ink-deep)/0.10)");
       expect(cls).not.toContain("inset_0_1px_0_hsl(var(--parchment)/0.22)");
       expect(cls).not.toContain("active:scale-[0.97]");
     });
@@ -132,7 +134,7 @@ describe("Button", () => {
     it("link stays intentionally flat", () => {
       render(<Button variant="link">Learn More</Button>);
       const cls = screen.getByRole("button").className;
-      expect(cls).not.toContain("0_1px_1px_hsl(var(--ink-deep)/0.10)");
+      expect(cls).not.toContain("0_1px_2px_hsl(var(--ink-deep)/0.10)");
       expect(cls).not.toContain("inset_0_1px_0_hsl(var(--parchment)/0.22)");
       expect(cls).not.toContain("active:scale-[0.97]");
     });
@@ -155,7 +157,7 @@ describe("Button", () => {
 });
 
 // The filled-variant depth contract, which five variants share. Deleting the
-// 3-layer shadow regresses primary/default/destructive/secondary/shimmer back
-// to flat in one edit. (Class names only — see the header on what this cannot
+// 2-layer soft shadow regresses primary/default/destructive/secondary/shimmer to
+// no shadow in one edit. (Class names only — see the header on what this cannot
 // see.)
-// @mutate src/components/ui/button.tsx | "shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12),0_4px_12px_-2px_hsl(var(--ink-deep)/0.08)] " + | "" +
+// @mutate src/components/ui/button.tsx | "shadow-[0_1px_2px_hsl(var(--ink-deep)/0.10),0_2px_6px_-2px_hsl(var(--ink-deep)/0.12)] " + | "" +

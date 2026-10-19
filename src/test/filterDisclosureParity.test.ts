@@ -33,9 +33,11 @@
  * a filter is on, fires a haptic on press, and suppresses the chevron on the
  * wide screen.
  *
- * My Posts and My Jobs each own their header (src/pages/posts/PostsHeader.tsx,
- * src/pages/jobs/JobsHeader.tsx; owner, 2026-09-25: "They should be there own
- * headers"), so each is its own entry in the inventory below.
+ * RE-POINTED 2026-10-19 (Q2205): My Posts and My Jobs (PostsHeader /
+ * JobsHeader) were retired with the old screens. Their successors, Jobs >
+ * Posted / Working, filter with the section's status boxes (no strip, so no
+ * disclosure), so Messages is the one screen left carrying this control; the
+ * traits stay pinned on it, and a new phone filter strip joins SCREENS.
  *
  * NOT pinned: the tab words, the counts, the ids, the exact class strings,
  * the row composition. The screens filter different things and are
@@ -48,8 +50,6 @@
  *
  * @mutate src/components/messages/ConversationList.tsx | aria-expanded={tabsOpen} | data-expanded={tabsOpen}
  * @mutate src/components/messages/ConversationList.tsx |   const [tabsOpenPhone, setTabsOpenPhone] = useState(false); |   const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultInboxFilter);
- * @mutate src/pages/posts/PostsHeader.tsx |   const [tabsOpenPhone, setTabsOpenPhone] = useState(false); |   const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter);
- * @mutate src/pages/jobs/JobsHeader.tsx |   const [tabsOpenPhone, setTabsOpenPhone] = useState(false); |   const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -60,8 +60,6 @@ import { resolve } from "node:path";
  * loudly rather than letting it pass over a file that no longer exists.
  */
 const SCREENS = {
-  "My Posts": "src/pages/posts/PostsHeader.tsx",
-  "My Jobs": "src/pages/jobs/JobsHeader.tsx",
   Messages: "src/components/messages/ConversationList.tsx",
 } as const;
 
@@ -123,10 +121,11 @@ const TRAITS: Array<{ trait: string; pattern: RegExp; why: string }> = [
 ];
 
 describe("filter disclosure — My Posts, My Jobs and Messages cannot drift apart", () => {
-  it("the inventory is real: three distinct, non-trivial sources were read", () => {
+  it("the inventory is real: the screens with a phone filter strip were read", () => {
     const names = Object.keys(SOURCES);
-    expect(names).toHaveLength(3);
-    expect(new Set(Object.values(SCREENS)).size).toBe(3);
+    // 1 since 2026-10-19 (Q2205): My Posts / My Jobs left; see the header note.
+    expect(names).toHaveLength(1);
+    expect(new Set(Object.values(SCREENS)).size).toBe(1);
     for (const src of Object.values(SOURCES)) expect(src.length).toBeGreaterThan(2000);
   });
 

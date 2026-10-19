@@ -5,10 +5,6 @@ import { useProfileLandingDerived } from "./profileLanding/useProfileLandingDeri
 import { IdentityHeader } from "./profileLanding/IdentityHeader";
 import { SettingsSection } from "./profileLanding/SettingsSection";
 import { PayoutStatusRow } from "./profileLanding/PayoutStatusRow";
-import { DeclutterEntryRow } from "./profileLanding/DeclutterEntryRow";
-import { ShopsEntryRow } from "./profileLanding/ShopsEntryRow";
-import { RentalsEntryRow } from "./profileLanding/RentalsEntryRow";
-import { QuotesEntryRow } from "./profileLanding/QuotesEntryRow";
 import { PROFILE_PAGE_TITLE } from "./profileLanding/headingContract";
 
 export function ProfileLanding({
@@ -112,11 +108,10 @@ export function ProfileLanding({
           under a quiet section label. (Replaces the old mix of square
           category tiles + a separate row list — list-of-rows scales
           cleaner and is easier to scan.) */}
-      {/* Declutter, Shops, Rentals and Quotes (hidden switches): each renders nothing unless it is on. */}
-      <DeclutterEntryRow />
-      <ShopsEntryRow />
-      <RentalsEntryRow />
-      <QuotesEntryRow />
+      {/* No section rows here (owner: sections don't live in Profile).
+          Declutter, Shops and Homes are tabs in the dock and the rail
+          (useSectionTabs, 2026-10-18); Quotes moved into Post a Job
+          (2026-10-19), so its row left too. */}
 
       <SettingsSection
         menuGroups={menuGroups}

@@ -1,82 +1,80 @@
 /*
- * The My Posts / My Jobs loading placeholder reserves the phone tab row
- * exactly when the loaded header shows it: folded on the default filter,
- * open on any other `?filter=` (owner, 2026-09-25: "open with the chevrons
- * collapsed"). A placeholder that reserves a row the page will not show
- * makes every card jump up when the data lands.
+ * THE JOBS PLACEHOLDER RESERVES EXACTLY WHAT THE LOADED SCREEN SHOWS.
  *
- * @mutate src/components/ActivityPageSkeleton.tsx | {!isWebDesktop && tabRowOpens && ( | {!isWebDesktop && (
+ * Re-pointed 2026-10-19 (Q2205). This file pinned the old My Posts / My Jobs
+ * placeholder (ActivityPageSkeleton): it reserved the phone tab row only when
+ * the loaded header would show it, and drew the loaded header row itself, so
+ * no card jumped when the data landed (owner, 2026-09-25; VN-32). Those
+ * screens became Jobs > Posted / Working, and the /jobs route fallback is now
+ * the Jobs-section silhouette (JobsSectionSkeleton). Same promise, new rows:
+ *   - the frame matches the tab the URL will open on (Browse: the search row;
+ *     Posted / Working: the four status boxes; /posts lands on Posted; an old
+ *     My Jobs link such as /jobs?filter= lands on Working);
+ *   - the header is the loaded header's shape: top bar with its three
+ *     controls (+, bell, profile), then the tab toggle;
+ *   - ONE h1 while pending.
+ *
+ * @mutate src/components/JobsSectionSkeleton.tsx |   if (window.location.pathname.startsWith("/posts")) return "posted"; |
+ * @mutate src/components/JobsSectionSkeleton.tsx |       {header}\n      <StatusBoxBones />\n | {header}\n
+ * @mutate src/components/JobsSectionSkeleton.tsx | {!isWebDesktop && <Skeleton className="h-10 w-full rounded-full" aria-hidden />} | {null}
+ * @mutate src/components/JobsSectionSkeleton.tsx |       <h1 className="sr-only">Jobs</h1>\n |
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 
-import { ActivityPageSkeleton } from "@/components/ActivityPageSkeleton";
-
-/** The reserved tab row's five label bones. */
-const tabBones = (c: HTMLElement) => c.querySelectorAll(".flex.items-baseline.gap-3 > *").length;
+import JobsSectionSkeleton from "@/components/JobsSectionSkeleton";
 
 afterEach(() => {
   cleanup();
   window.history.replaceState(null, "", "/");
 });
 
-describe("the Activity placeholder reserves the phone tab row only when it will show", () => {
-  for (const tab of ["posted", "applied"] as const) {
-    const path = tab === "posted" ? "/posts" : "/jobs";
+function at(url: string) {
+  window.history.replaceState(null, "", url);
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter>
+        <JobsSectionSkeleton />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
 
-    it(`${path} with no filter: no tab row reserved (it arrives folded)`, () => {
-      window.history.replaceState(null, "", path);
-      const { container } = render(<ActivityPageSkeleton tab={tab} />);
-      expect(tabBones(container)).toBe(0);
-    });
+/** The four status-box bones (StatusBoxBones: a 4-column grid of h-16 bones). */
+const statusBoxes = (c: HTMLElement) => c.querySelectorAll(".grid.grid-cols-4 > .h-16").length;
+/** BrowseCompactSearchRow's one h-10 pill. */
+const searchRow = (c: HTMLElement) => c.querySelectorAll(".h-10.w-full.rounded-full").length;
 
-    it(`${path}?filter=needs_you (the default): no tab row reserved`, () => {
-      window.history.replaceState(null, "", `${path}?filter=needs_you`);
-      const { container } = render(<ActivityPageSkeleton tab={tab} />);
-      expect(tabBones(container)).toBe(0);
-    });
-
-    it(`${path}?filter=cancelled: the tab row is reserved (it arrives open)`, () => {
-      window.history.replaceState(null, "", `${path}?filter=cancelled`);
-      const { container } = render(<ActivityPageSkeleton tab={tab} />);
-      expect(tabBones(container)).toBe(5);
-    });
-  }
+describe("the /jobs placeholder draws the tab the URL opens on", () => {
+  it.each([
+    ["/jobs", "browse"],
+    ["/jobs?tab=posted", "list"],
+    ["/jobs?tab=working", "list"],
+    ["/posts", "list"],
+    ["/posts?filter=done", "list"],
+    ["/jobs?filter=needs_you", "list"],
+    ["/jobs?job=abc", "list"],
+    ["/jobs?tab=nonsense", "browse"],
+  ] as const)("%s -> %s frame", (url, frame) => {
+    const { container } = at(url);
+    expect(statusBoxes(container), "status boxes").toBe(frame === "list" ? 4 : 0);
+    expect(searchRow(container), "Browse search row").toBe(frame === "browse" ? 1 : 0);
+  });
 });
 
-/*
- * THE TITLE ROW IS THE LOADED ROW (loading-states-refresh 36158775025,
- * customer /jobs #0: "0 placeholder rows -> 2 real"). The placeholder drew one
- * 128px bar alone in a 44px box where PostsHeader / JobsHeader render a
- * ScreenHeaderRow: the screen's name, then a cluster of two 44px controls
- * (search, filter chevron). It is now that same ScreenHeaderRow, with the name
- * (known before any data) and one 44px box per control holding a bone the size of its 16px glyph (a filled 44px bone merged the row into the list cluster, run 36165226511), and the screen keeps ONE
- * h1 while pending (LoadingHeading's; the row's title is decorative).
- *
- * @mutate src/components/ActivityPageSkeleton.tsx | <Skeleton className="h-4 w-4 rounded" />\n            </span>\n            <span | <Skeleton className="h-11 w-11 rounded-ds-md" />\n            </span>\n            <span
- * @mutate src/components/ActivityPageSkeleton.tsx |         decorativeTitle\n | \n
- */
-describe("the Activity placeholder's title row is the loaded header row", () => {
-  for (const tab of ["posted", "applied"] as const) {
-    const path = tab === "posted" ? "/posts" : "/jobs";
-    const title = tab === "posted" ? "My Posts" : "My Jobs";
-
-    it(`${path}: the screen's name plus one bone per header control, and a single h1`, () => {
-      window.history.replaceState(null, "", path);
-      const { container } = render(<ActivityPageSkeleton tab={tab} />);
-      const name = [...container.querySelectorAll("span[aria-hidden]")].find((e) => e.textContent === title);
-      expect(name, "the row shows the screen's name").toBeTruthy();
-      const row = name!.parentElement!.parentElement!;
-      const cluster = row.lastElementChild!;
-      expect(cluster.children).toHaveLength(2);
-      for (const box of cluster.children) {
-        expect(box.className).toMatch(/\bh-11\b.*\bw-11\b/);
-        expect(box.children).toHaveLength(1);
-        expect(box.firstElementChild!.className).toMatch(/\bh-4\b.*\bw-4\b/);
-      }
-      expect(container.querySelectorAll("h1")).toHaveLength(1);
-    });
-  }
+describe("the placeholder's header is the loaded header's shape", () => {
+  it.each(["/jobs", "/jobs?tab=posted"])("%s: top bar with three controls, the tab toggle, and a single h1", (url) => {
+    const { container } = at(url);
+    const bar = container.querySelector(".app-top-bar.h-16");
+    expect(bar, "the top bar's own h-16 box").not.toBeNull();
+    // title bone + one cluster holding +, bell, profile
+    expect(bar!.children).toHaveLength(2);
+    expect(bar!.lastElementChild!.children).toHaveLength(3);
+    expect(container.querySelectorAll(".h-12.w-full.rounded-full"), "the 48px tab toggle").toHaveLength(1);
+    expect(container.querySelectorAll("h1")).toHaveLength(1);
+  });
 });

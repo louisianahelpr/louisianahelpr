@@ -19,7 +19,7 @@
  * switch added to the landing without being held here fails.
  */
 // @mutate src/pages/profile/Profile.tsx | const showSkeleton = tab === "landing" ? !landingReady : loading; | const showSkeleton = loading;
-// @mutate src/pages/profile/Profile.tsx | const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled && quotesSwitch.settled); | const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled);
+// @mutate src/pages/profile/Profile.tsx | const landingReady = useArrivalGate(!loading, membershipsSwitch.settled); | const landingReady = useArrivalGate(!loading, true);
 // @mutate src/pages/profile/Profile.tsx |   const membershipsSwitch = useFeatureStatus("memberships"); |   const membershipsSwitch = { on: false, settled: true };
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -124,6 +124,13 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+/** Files in profileLanding/ the landing no longer renders, so their switch reads hold no paint. EXACT. */
+// @two-way src/pages/profile/Profile.switchHold.test.tsx:stale NOT_RENDERED entry
+const NOT_RENDERED: Record<string, string> = {
+  // QuotesEntryRow.tsx was here until 2026-10-19: quotes moved into Post a Job and the file was deleted
+  // (src/components/quotes/quotesMenuLink.test.tsx pins it gone).
+};
+
 describe("the Profile landing waits for its switches (Q1894)", () => {
   it("keeps the skeleton until EVERY switch answers, then paints the landing", async () => {
     renderLanding();
@@ -131,16 +138,12 @@ describe("the Profile landing waits for its switches (Q1894)", () => {
     expect(screen.queryByTestId("skeleton")).toBeTruthy();
     expect(screen.queryByTestId("landing")).toBeNull();
     // Every read starts with the page, not with the landing.
-    expect([...switches.pending.keys()].sort()).toEqual(["declutter", "memberships", "quotes", "rentals", "shops"]);
-    await answer("declutter", true);
+    // 2026-10-19: Declutter, Shops and Homes left the landing for the dock (design-small) and
+    // Quotes moved into Post a Job, so Membership is the one switch-gated row left.
+    expect([...switches.pending.keys()].sort()).toEqual(["memberships"]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
     expect(screen.queryByTestId("landing"), "painted before 'memberships' answered").toBeNull();
     await answer("memberships", false);
-    expect(screen.queryByTestId("landing"), "painted before 'shops' answered").toBeNull();
-    await answer("shops", false);
-    expect(screen.queryByTestId("landing"), "painted before 'rentals' answered").toBeNull();
-    await answer("rentals", false);
-    expect(screen.queryByTestId("landing"), "painted before 'quotes' answered").toBeNull();
-    await answer("quotes", false);
     expect(await screen.findByTestId("landing")).toBeTruthy();
     expect(screen.queryByTestId("skeleton")).toBeNull();
   });
@@ -159,20 +162,29 @@ describe("the Profile landing waits for its switches (Q1894)", () => {
     expect(screen.queryByTestId("landing")).toBeTruthy();
   });
 
+  it("NOT_RENDERED is exact: each file is still in profileLanding/ and the landing renders none of them", () => {
+    const landing = blankComments(readFileSync(resolve(__dirname, "../../components/profile/ProfileLanding.tsx"), "utf8"));
+    const dir = readdirSync(resolve(__dirname, "../../components/profile/profileLanding"));
+    for (const f of Object.keys(NOT_RENDERED)) {
+      expect(dir, `stale NOT_RENDERED entry ${f} — remove it`).toContain(f);
+      expect(landing).not.toMatch(new RegExp(`<${f.replace(/\.tsx?$/, "")}[\\s/>]`));
+    }
+  });
+
   it("every switch the landing's own files read is one Profile.tsx holds (inventory from source)", () => {
     const root = resolve(__dirname, "../../components/profile");
     const files = [
       resolve(root, "ProfileLanding.tsx"),
       ...readdirSync(resolve(root, "profileLanding"))
-        .filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f))
+        .filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f) && !NOT_RENDERED[f])
         .map((f) => resolve(root, "profileLanding", f)),
     ];
     const read = new Set<string>();
     for (const f of files) {
       for (const m of blankComments(readFileSync(f, "utf8")).matchAll(/\buseFeature(?:Status)?\s*\(\s*"([a-z_]+)"\s*\)/g)) read.add(m[1]);
     }
-    // FLOOR: the landing reads 'declutter' and 'memberships' today.
-    expect(read.size, "found no useFeature reads in the landing: this guard has rotted").toBeGreaterThan(1);
+    // FLOOR 1 -> 0 (2026-10-19): the landing reads only 'memberships' now (see NOT_RENDERED).
+    expect(read.size, "found no useFeature reads in the landing: this guard has rotted").toBeGreaterThan(0);
     const profile = blankComments(readFileSync(resolve(__dirname, "Profile.tsx"), "utf8"));
     const held = new Set([...profile.matchAll(/\buseFeatureStatus\s*\(\s*"([a-z_]+)"\s*\)/g)].map((m) => m[1]));
     expect([...read].filter((k) => !held.has(k)), "a landing row gated on a switch Profile.tsx does not wait for").toEqual([]);

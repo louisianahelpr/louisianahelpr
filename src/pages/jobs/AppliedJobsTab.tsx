@@ -22,8 +22,9 @@ import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllus
 import { type Application, type AppliedApp, type Job } from "../../components/job-card/activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
 import { ActivitySectionedView } from "@/components/job-card/ActivitySectionedView";
+import { ActivityBucketGroups, WORKING_GROUP_LABEL } from "@/components/job-card/ActivityBucketGroups";
 import { PagedActivityList } from "@/components/job-card/PagedActivityList";
-import { bucketAppliedApp } from "@/components/job-card/activityFilters";
+import { bucketAppliedApp, appliedActivityBucket } from "@/components/job-card/activityFilters";
 import type { TrackingData } from "@/components/JobTracking";
 import { logWithdrawReason, type WithdrawReason } from "@/lib/applicationWithdrawAnalytics";
 
@@ -59,6 +60,8 @@ interface AppliedJobsTabProps {
    *  header (JobsHeader) is the sole source of truth for filter +
    *  search in both modes. */
   groupByStatus?: boolean;
+  /** Jobs & Posts > Working (owner, 2026-10-19): group by bucket under headers. */
+  bucketGroups?: boolean;
 }
 
 export const AppliedJobsTab = ({
@@ -67,7 +70,7 @@ export const AppliedJobsTab = ({
   respondingHelperAppId,
   onComplete, completingJobId,
   onResolveRevision, onHelperReview, onDispute, onViewDispute, onRefresh,
-  groupByStatus = false,
+  groupByStatus = false, bucketGroups = false,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();
   const [disputeResponse, setDisputeResponse] = useState("");
@@ -323,7 +326,15 @@ export const AppliedJobsTab = ({
   // through the grouped Sectioned view ("Closed" labels the third
   // section since helper-side rejections and cancelled jobs collapse
   // into one bucket); a specific status renders a flat list.
-  const listView = groupByStatus ? (
+  const listView = groupByStatus && bucketGroups ? (
+    <ActivityBucketGroups
+      items={apps}
+      getKey={(app) => app.id}
+      bucketOf={appliedActivityBucket}
+      renderItem={renderAppliedCard}
+      labels={WORKING_GROUP_LABEL}
+    />
+  ) : groupByStatus ? (
     <ActivitySectionedView
       tab="applied"
       items={apps}

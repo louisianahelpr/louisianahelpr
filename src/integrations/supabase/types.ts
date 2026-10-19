@@ -13392,6 +13392,7 @@ export type Database = {
         Args: { p_item_id: string; p_variant_id: string }
         Returns: number
       }
+      shop_link_visible: { Args: { p_shop_id: string }; Returns: boolean }
       shop_local_today: { Args: never; Returns: string }
       shop_mark_order_held: {
         Args: {
@@ -13428,6 +13429,7 @@ export type Database = {
         }[]
       }
       shop_publicly_visible: { Args: { p_shop_id: string }; Returns: boolean }
+      shop_state_ok: { Args: { p_shop_id: string }; Returns: boolean }
       shop_visible_to: {
         Args: { p_shop_id: string; p_viewer: string }
         Returns: boolean
@@ -13665,6 +13667,10 @@ export type Database = {
       }
       shops_my_shop_id: { Args: never; Returns: string }
       shops_publish_item: { Args: { p_item_id: string }; Returns: string }
+      shops_public_photo_path: {
+        Args: { p_kind: string; p_photo_id: string }
+        Returns: string
+      }
       shops_public_shop: { Args: { p_shop_id: string }; Returns: Json }
       shops_record_item_ai_check: {
         Args: {

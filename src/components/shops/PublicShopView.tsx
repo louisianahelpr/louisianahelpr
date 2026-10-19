@@ -12,6 +12,7 @@ import { Share2 } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { fetchPublicShop, isShopId, shareShop, shopLink, type PublicShop } from "@/lib/shops/publicShop";
@@ -19,7 +20,7 @@ import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
 import { ShopCard, ShopGallery, ShopHero, ShopHoursCard, ShopItemsGrid } from "./ShopProfile";
 
-export const SHOP_PAGE_ROBOTS = "noindex, follow";
+const SHOP_PAGE_ROBOTS = "noindex, follow";
 
 function ShopMeta({ shop, id }: { shop: PublicShop | null | undefined; id: string }) {
   usePageMeta({
@@ -31,7 +32,7 @@ function ShopMeta({ shop, id }: { shop: PublicShop | null | undefined; id: strin
   return null;
 }
 
-export function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolean }) {
+function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolean }) {
   const back = encodeURIComponent(`/shops/${shop.id}`);
   const share = (
     <Button type="button" variant="outline" className="rounded-full" onClick={() => void shareShop(shop)}>
@@ -65,7 +66,7 @@ export function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn:
       {!signedIn && (
         <p className="px-1 text-center text-sm text-muted-foreground">
           Already a member?{" "}
-          <Link className="font-semibold text-primary underline-offset-2 hover:underline" to={`/login?redirect=${back}`}>
+          <Link className="link-standard font-semibold" to={`/login?redirect=${back}`}>
             Sign in
           </Link>
         </p>
@@ -126,6 +127,7 @@ export default function PublicShopView() {
         </div>
       ) : shop.isError ? (
         <ShopsNotice title="We couldn't load this shop." tone="warn">
+          <ReportErrorScreen source="PublicShopView.load" title="We couldn't load this shop." />
           <p>{shopsErrorMessage(shop.error)}</p>
           <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => void shop.refetch()}>
             Try again

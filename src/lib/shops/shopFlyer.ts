@@ -41,13 +41,13 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, max: number): string[
 }
 
 /** The link split where it reads best on paper: the site, then the shop's path. */
-export function flyerLinkLines(shopId: string): [string, string] {
+function flyerLinkLines(shopId: string): [string, string] {
   const url = shopLink(shopId).replace(/^https:\/\/www\./, "");
   const cut = url.indexOf("/shops/");
   return [url.slice(0, cut) + "/shops/", url.slice(cut + "/shops/".length)];
 }
 
-export async function drawShopFlyer(shop: { id: string; name: string; category_label?: string | null; area_label?: string | null; logoUrl?: string | null }): Promise<Blob> {
+async function drawShopFlyer(shop: { id: string; name: string; category_label?: string | null; area_label?: string | null; logoUrl?: string | null }): Promise<Blob> {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;

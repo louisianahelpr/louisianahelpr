@@ -31,7 +31,7 @@ function fmtTime(t: string): string {
   return mm ? `${h12}:${String(mm).padStart(2, "0")} ${ampm}` : `${h12} ${ampm}`;
 }
 
-export function hoursText(h: { opens: string; closes: string }): string {
+function hoursText(h: { opens: string; closes: string }): string {
   return `${fmtTime(h.opens)} to ${fmtTime(h.closes)}`;
 }
 
@@ -50,7 +50,7 @@ function louisianaNow(now: Date): { weekday: number; hhmm: string } {
 }
 
 /** "Open now · until 5 PM", "Closed · opens Tuesday 9 AM", or null when the shop set no hours. */
-export function openStatus(hours: ShopHour[], now: Date = new Date()): { open: boolean; label: string } | null {
+function openStatus(hours: ShopHour[], now: Date = new Date()): { open: boolean; label: string } | null {
   if (hours.length === 0) return null;
   const { weekday, hhmm } = louisianaNow(now);
   const current = hours.find((h) => h.weekday === weekday && h.opens <= hhmm && hhmm < h.closes);
@@ -68,7 +68,7 @@ export function openStatus(hours: ShopHour[], now: Date = new Date()): { open: b
   return { open: false, label: "Closed" };
 }
 
-export function OpenNowPill({ hours }: { hours: ShopHour[] }) {
+function OpenNowPill({ hours }: { hours: ShopHour[] }) {
   const s = openStatus(hours);
   if (!s) return null;
   return (

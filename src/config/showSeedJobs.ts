@@ -180,5 +180,10 @@ export const SEED_GATED_SURFACES = [
   // Shops slice 1 (20261017061155): a test account's shop is hidden from other
   // members while seeds are hidden; the shops read policy and every shops_* RPC
   // ask through this one predicate.
-  { surface: "shop visibility (shops read policy, browse, shop page)", object: "public.shop_publicly_visible" },
+  // Since 20261019042744 (SH2b) the hidden / seed / standing rule lives in
+  // ONE helper, shop_state_ok, which both the members' predicate and the
+  // public link page's predicate call (`via`).
+  { surface: "shop state rule (members and anyone with the link)", object: "public.shop_state_ok" },
+  { surface: "shop visibility (shops read policy, browse, shop page)", object: "public.shop_publicly_visible", via: "public.shop_state_ok" },
+  { surface: "public shop page for anyone with the link (SH2b)", object: "public.shop_link_visible", via: "public.shop_state_ok" },
 ] as const;

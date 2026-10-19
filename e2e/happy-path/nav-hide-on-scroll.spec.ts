@@ -315,7 +315,7 @@ for (const route of ROUTES) {
       const more = page.getByRole("button", { name: "More conversation options" });
       if (await more.count()) {
         await more.first().click();
-        await page.getByRole("menuitem", { name: /^All/ }).first().click();
+        await page.getByRole("menuitemradio", { name: /^All/ }).first().click();
       } else {
         await page.getByRole("tab", { name: /^All/ }).or(
           page.getByRole("button", { name: /^All/ }),
@@ -473,3 +473,46 @@ test("switching Jobs > Browse to map view cannot strand the dock off-screen", as
 // hide-on-scroll-down and reveal-on-scroll-up working perfectly, which is why a
 // spec that only scrolled up and down would stay green.
 // @mutate src/components/MobileNav.tsx | if (!scrollable) setNavHidden(false); |
+
+/**
+ * THE DOCK LABELS, MEASURED (owner, 2026-10-19: a one-word label under each
+ * icon, one line, never cut, at 320 with all six tabs). The source half is
+ * src/test/dockLabelsOneLine.test.ts; this is the pixel half: each label is
+ * one line, shows every letter, stays inside the dock and the viewport, and
+ * no two labels touch.
+ */
+for (const width of [320, 375]) {
+  test(`dock labels: one line, uncut, none touching @ ${width}`, async ({ context, page, baseURL }) => {
+    await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
+    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: listRules });
+    await boot(page, "/home");
+    await page.setViewportSize({ width, height: 700 });
+    await page.waitForTimeout(400);
+    const m = await page.evaluate(() => {
+      const nav = document.querySelector<HTMLElement>('nav[aria-label="Bottom navigation"]');
+      const navBox = nav?.getBoundingClientRect();
+      const labels = [...document.querySelectorAll<HTMLElement>('nav[aria-label="Bottom navigation"] [data-dock-label]')]
+        .filter((el) => el.getClientRects().length > 0)
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          const lh = parseFloat(getComputedStyle(el).lineHeight) || 13;
+          return { text: (el.textContent ?? "").trim(), left: r.left, right: r.right, h: r.height, lh, cut: el.scrollWidth > el.clientWidth + 0.5 };
+        })
+        .sort((a, b) => a.left - b.left);
+      return { labels, navLeft: navBox?.left ?? 0, navRight: navBox?.right ?? 0, vw: innerWidth };
+    });
+    // Floor: Home + Messages always, plus the member's sections.
+    expect(m.labels.length, `labels=${JSON.stringify(m.labels.map((l) => l.text))}`).toBeGreaterThanOrEqual(4);
+    for (const l of m.labels) {
+      expect(l.text.length, "a dock label is empty").toBeGreaterThan(1);
+      expect(l.h, `"${l.text}" wraps to a second line`).toBeLessThanOrEqual(l.lh * 1.5);
+      expect(l.cut, `"${l.text}" is cut`).toBe(false);
+      expect(l.left, `"${l.text}" leaves the dock on the left`).toBeGreaterThanOrEqual(Math.max(0, m.navLeft) - 0.5);
+      expect(l.right, `"${l.text}" leaves the dock on the right`).toBeLessThanOrEqual(Math.min(m.vw, m.navRight) + 0.5);
+    }
+    for (let i = 1; i < m.labels.length; i++) {
+      const a = m.labels[i - 1], b = m.labels[i];
+      expect(b.left - a.right, `"${a.text}" and "${b.text}" touch at ${width}`).toBeGreaterThanOrEqual(1);
+    }
+  });
+}

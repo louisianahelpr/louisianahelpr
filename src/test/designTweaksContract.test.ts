@@ -8,6 +8,7 @@
  * @mutate src/index.css | .font-display:not(.landing-h1, .landing-h1 *) { | .font-display-off {
  * @mutate src/components/landing/HeroSection.tsx | className="landing-h1 relative | className="relative
  * @mutate src/components/dashboard/JobCard.tsx |         {/* No category rail: |         <span aria-hidden className={`${JOB_CARD_RAIL}`} />\n        {/* No category rail:
+ * @mutate src/components/ui/skeletons/JobCardSkeleton.tsx |         {/* No category rail: |         <span className={JOB_CARD_RAIL} />\n        {/* No category rail:
  * @mutate src/components/job/JobCategoryTab.tsx | className={`job-cat-label inline-flex | className={`job-cat-label bg-primary inline-flex
  * @mutate src/main.tsx | installLargeTitles();\n |
  * @mutate src/components/dashboard/FilterSheet.tsx |         side="bottom"\n        floor\n |         side="bottom"\n
@@ -50,6 +51,10 @@ describe("design tweaks (owner 2026-10-18)", () => {
   it("T3: job cards carry no colour rail and the category is an icon + label", () => {
     for (const f of ["src/components/dashboard/JobCard.tsx", "src/components/job-card/JobCardShell.tsx"]) {
       expect(code(f), f).not.toMatch(/\$\{JOB_CARD(_SHELL)?_RAIL\}/);
+    }
+    // ...and neither do their loading bones (the stripe outlived the cards once).
+    for (const f of ["src/components/ui/skeletons/JobCardSkeleton.tsx", "src/components/ui/skeletons/ApplicationCardSkeleton.tsx"]) {
+      expect(code(f), f).not.toMatch(/\bJOB_CARD(_SHELL)?_RAIL\b/);
     }
     const tab = code("src/components/job/JobCategoryTab.tsx");
     expect(tab).toMatch(/job-cat-label inline-flex/);

@@ -3713,7 +3713,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 77,
+      "line": 78,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -3723,7 +3723,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 80,
+      "line": 81,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

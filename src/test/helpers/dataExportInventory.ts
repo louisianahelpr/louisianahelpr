@@ -185,6 +185,12 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   shop_pickup_addresses: { by: ["owner_id"] },
   job_helpr_fault_rulings: { section: "helpr_fault_rulings", by: ["helper_id"] },
   landlord_id_reviews: { by: ["user_id"] },
+  // Homes rent + deposit records (20261019083350): keyed by TENANCY, no person column; each section reads the
+  // rows of the tenancies the member is a side of (landlord or tenant): the rental_tenancies sub-select.
+  rental_rent_plans: { by: [] },
+  rental_rent_charges: { by: [] },
+  rental_rent_payments: { by: [] },
+  rental_deposits: { by: [] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },

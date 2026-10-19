@@ -7895,7 +7895,6 @@ export type Database = {
           late_fee_cents: number
           pay_methods: string[]
           reminded_for: string | null
-          skipped: Json
           tenancy_id: string
           updated_at: string
         }
@@ -7908,7 +7907,6 @@ export type Database = {
           late_fee_cents?: number
           pay_methods?: string[]
           reminded_for?: string | null
-          skipped?: Json
           tenancy_id: string
           updated_at?: string
         }
@@ -7921,13 +7919,38 @@ export type Database = {
           late_fee_cents?: number
           pay_methods?: string[]
           reminded_for?: string | null
-          skipped?: Json
           tenancy_id?: string
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "rental_rent_plans_tenancy_id_fkey"
+            columns: ["tenancy_id"]
+            isOneToOne: true
+            referencedRelation: "rental_tenancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_rent_sweep_skips: {
+        Row: {
+          periods: Json
+          tenancy_id: string
+          updated_at: string
+        }
+        Insert: {
+          periods?: Json
+          tenancy_id: string
+          updated_at?: string
+        }
+        Update: {
+          periods?: Json
+          tenancy_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_rent_sweep_skips_tenancy_id_fkey"
             columns: ["tenancy_id"]
             isOneToOne: true
             referencedRelation: "rental_tenancies"

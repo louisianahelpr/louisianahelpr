@@ -204,6 +204,35 @@ export function HomeC() {
   );
 }
 
+
+export function HomeD() {
+  return (
+    <Frame dock="home">
+      <Greeting />
+      <Card className="flex divide-x divide-border/70">
+        {[["5", "To do", true], ["2", "This week"], [String(unreadMessages), "Unread"]].map(([n, l, hot]) => (
+          <div key={l as string} className="flex-1 px-4 py-3 text-center">
+            <p className={`text-[24px] leading-7 font-bold ${hot ? "text-[hsl(var(--accent-ink))]" : ""}`}>{n}</p>
+            <p className="text-[12px] text-muted-foreground">{l}</p>
+          </div>
+        ))}
+      </Card>
+      <SectionHead title="To do" link="See all 5" />
+      <NeedsYouCard limit={3} />
+      <SectionHead title="Your sections" />
+      <div className="grid grid-cols-2 gap-3">
+        {sections.map((s) => <SectionTile key={s.key} s={s} />)}
+      </div>
+      <SectionHead title="Coming up" link="Calendar" />
+      <Card>
+        {comingUp.map((r, i) => (
+          <Row key={r.text} icon={r.icon} tone="primary" title={r.text} meta={r.meta} tag={r.sample ? "Sample" : undefined} right={<Money>{r.right}</Money>} last={i === comingUp.length - 1} />
+        ))}
+      </Card>
+    </Frame>
+  );
+}
+
 function Badge({ n }: { n: number }) {
   return (
     <span className="flex items-center gap-1 shrink-0">
@@ -530,7 +559,7 @@ export function HomesB() {
 }
 
 export const SCREENS: Record<string, () => JSX.Element> = {
-  "home-a": HomeA, "home-b": () => <HomeB />, "home-b-plus": HomeBPlus, "home-c": HomeC,
+  "home-a": HomeA, "home-b": () => <HomeB />, "home-b-plus": HomeBPlus, "home-c": HomeC, "home-d": HomeD,
   "jobs-a": JobsA, "jobs-a-working": JobsAWorking, "jobs-b": JobsB, "jobs-c": JobsC,
   "declutter-a": DeclutterA, "declutter-b": DeclutterB,
   "shops-a": ShopsA, "shops-a-buyer": ShopsABuyer,

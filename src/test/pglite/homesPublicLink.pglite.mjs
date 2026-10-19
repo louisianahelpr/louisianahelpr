@@ -342,6 +342,12 @@ ok((await key("9 Pine Road Suite 100", "70503")) === (await key("9 PINE RD", "70
 ok((await key("124 Oak St", "70501")) !== (await key("123 Oak St", "70501")), "a different house number is a different home");
 ok((await key("123 Oak St", "70508")) !== (await key("123 Oak St", "70501")), "a different ZIP is a different home");
 ok((await key("12 Aptitude Ln", "70501")) === "12 aptitude ln|70501", "a street word that only starts like a unit word is kept");
+ok((await key("Unit 4, 123 Oak Street", "70501")) === (await key("123 Oak St", "70501")), "lead round 4 #1: a LEADING unit part goes too");
+ok((await key("#B 123 Oak St", "70501")) === (await key("123 Oak St", "70501")), "and a leading '#B'");
+ok((await key("400 Ste Marie St", "70501")) === "400 ste marie st|70501", "lead round 4 #1: 'Ste Marie' (a real street word) is kept");
+ok((await key("400 Ste Marie St Ste 2B", "70501")) === "400 ste marie st|70501", "but 'Ste 2B' after the street is a suite and goes");
+ok((await key("9 Building Rd", "70501")) === "9 building rd|70501" && (await key("9 Main St Room 12", "70501")) === "9 main st|70501",
+  "'building'/'room' count only before a number");
 ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_create_property('Oak unit', '123 Oak Street, Unit 4', 'Lafayette', '70501-1234')`), /property_taken_down/, "42501"),
   "the owner cannot add it back as 'Street, Unit 4' with a ZIP+4 either");
 const otherProp = one(await as("authenticated", STRANGER, `SELECT public.rentals_create_property('My Oak', '123 Oak Street', 'Lafayette', '70501') AS id`));

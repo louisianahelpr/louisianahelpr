@@ -13,7 +13,7 @@
 // ?tab=, any of those params means the link was written for My Jobs, so it
 // lands on Working; a plain /jobs opens on Browse. /posts?... arrives here as
 // /jobs?tab=posted&... (App.tsx redirect), so it lands on Posted.
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import Dashboard from "@/pages/home/Dashboard";
 import JobListPage from "@/components/job-card/JobListPage";
@@ -40,7 +40,12 @@ export function resolveJobsTab(params: URLSearchParams, picked: string): "browse
 const JobsSection = () => {
   const [params, setParams] = useSearchParams();
   const [picked] = useSectionTab(["posted", "working"]);
-  const tab = resolveJobsTab(params, picked);
+  // An OLD My Jobs link is decided from the URL the section OPENED with, once.
+  // Browse writes ?q= (its search) and ?job= (its open job) into the same URL
+  // as you use it; read live, typing one letter in Browse's search jumped to
+  // Working (dashboards build run 4, replaceState-churn spec).
+  const [openedOnLegacyLink] = useState(() => resolveJobsTab(params, picked) === "working" && !params.get("tab"));
+  const tab = params.get("tab") ? resolveJobsTab(params, picked) : openedOnLegacyLink ? "working" : "browse";
   const section = sectionByKey("jobs");
 
   const onTab = useCallback(

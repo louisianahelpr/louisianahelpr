@@ -136,7 +136,8 @@ function LocalBusinesses({ onHireHelpr }: { onHireHelpr: () => void }) {
           </SectionActionPill>
         </div>
       ) : (
-        <ul className="space-y-6">
+        // One card across in a phone-width sheet, two side by side once the sheet is wide (desktop).
+        <ul className="grid gap-x-4 gap-y-6 sm:grid-cols-2">
           {list.map((s) => (
             <li key={s.id} className="min-w-0 space-y-2" data-testid="sell-for-me-shop">
               <ShopBrowseCard shop={s} category={categoryLabel(categories.data, s.category)} group={group} extras={extras.data?.get(s.id)} />
@@ -145,7 +146,7 @@ function LocalBusinesses({ onHireHelpr }: { onHireHelpr: () => void }) {
                   variant="outline"
                   aria-disabled="true"
                   aria-label="Request a quote, coming soon"
-                  className="bg-muted/50 text-muted-foreground hover:bg-muted/50 hover:text-muted-foreground"
+                  className="bg-muted/50 text-muted-foreground shadow-none hover:bg-muted/50 hover:text-muted-foreground"
                   onClick={() => setAsked(s.id)}
                   data-testid="sell-for-me-request-quote"
                 >

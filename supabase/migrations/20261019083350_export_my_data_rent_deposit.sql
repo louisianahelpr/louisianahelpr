@@ -1,7 +1,7 @@
 -- export_my_data: Download My Data gains the Homes rent and deposit records (rental_rent_plans,
 -- rental_rent_charges, rental_rent_payments from 20261019073106; rental_deposits from 20261019082216) of every
 -- tenancy the member is a side of. The landlord gets the tenant's forwarding address only once the tenancy
--- has ended.
+-- has ended AND the tenant ended it or the lease end date passed (rentals_deposit's rule).
 --
 -- The body is the NEWEST export_my_data before this one (20261019051408_export_my_data_landlord_id) VERBATIM
 -- with the four sections above added before RETURN, and nothing else. A branch that restates it after this
@@ -401,7 +401,7 @@ BEGIN
   -- Homes rent tracker (20261019073106) and deposit tracker (20261019082216): the rent schedule, charges,
   -- payments and deposit of every tenancy the member is a side of (landlord or tenant). These tables are keyed
   -- by tenancy, not by a person. The landlord gets the tenant's forwarding address only once the tenancy has
-  -- ended (the same rule as rentals_deposit).
+  -- ended AND the tenant ended it or the lease end date passed (the same rule as rentals_deposit).
   v_out := v_out || jsonb_build_object('rental_rent_plans', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.rental_rent_plans t
     WHERE t.tenancy_id IN (SELECT tn.id FROM public.rental_tenancies tn WHERE tn.landlord_id = v_uid OR tn.tenant_id = v_uid)));
   v_out := v_out || jsonb_build_object('rental_rent_charges', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.rental_rent_charges t
@@ -409,7 +409,9 @@ BEGIN
   v_out := v_out || jsonb_build_object('rental_rent_payments', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.rental_rent_payments t
     WHERE t.tenancy_id IN (SELECT tn.id FROM public.rental_tenancies tn WHERE tn.landlord_id = v_uid OR tn.tenant_id = v_uid)));
   v_out := v_out || jsonb_build_object('rental_deposits', (SELECT coalesce(jsonb_agg(
-      CASE WHEN x.tenant_id = v_uid OR x.status = 'ended' THEN to_jsonb(t) ELSE to_jsonb(t) - 'forwarding_address' END), '[]'::jsonb)
+      CASE WHEN x.tenant_id = v_uid
+                OR (x.status = 'ended' AND (x.ended_by = 'tenant' OR (x.lease_ends_on IS NOT NULL AND x.lease_ends_on <= public.shop_local_today())))
+           THEN to_jsonb(t) ELSE to_jsonb(t) - 'forwarding_address' END), '[]'::jsonb)
       FROM public.rental_deposits t JOIN public.rental_tenancies x ON x.id = t.tenancy_id
     WHERE t.tenancy_id IN (SELECT tn.id FROM public.rental_tenancies tn WHERE tn.landlord_id = v_uid OR tn.tenant_id = v_uid)));
   RETURN v_out;

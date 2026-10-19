@@ -128,7 +128,7 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/shops/ShopEditView.tsx": { bucket: "job-photos" },
   "src/components/shops/ShopItemEditor.tsx": { bucket: "job-photos" },
   "src/components/shops/ShopHandoverActions.tsx": { bucket: "shop-handover" },
-  "src/components/rentals/listings/ListingEditor.tsx": { bucket: "job-photos" },
+  "src/components/rentals/listings/editorParts.tsx": { bucket: "job-photos" }, // the shared Photos card (Rent and Buy editors)
   "src/components/rentals/LandlordIdReview.tsx": { bucket: "user-documents" }, // ownership proof + landlord ID photo (owner 2026-10-19)
   "src/components/rentals/MaintenanceRequestForm.tsx": { bucket: "user-documents" }, // request photos
   "src/components/admin/marketing/MarketingComposerDialog.tsx": {

@@ -1,7 +1,7 @@
 /**
  * Every element in src/ that wears the primary gradient (`btn-grad-primary`),
  * read from the source with the TypeScript parser, as a small DOM fixture that
- * the built stylesheet can be applied to (Q2154).
+ * the built stylesheet can be applied to (Q2162).
  *
  * WHY A FIXTURE AND NOT A SCREEN. 41 sites wear (2026-10-15) the gradient and most of them
  * are a SELECTED or an error state (a picked withdraw reason, a series date

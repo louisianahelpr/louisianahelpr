@@ -334,7 +334,13 @@
     "rentals_listing_photo_deletable(text)": "policy",
     "shops_set_my_faqs(jsonb)": "client",
     "shops_shop_faqs(uuid)": "client",
-    "shops_shop_policies(uuid)": "client"
+    "shops_shop_policies(uuid)": "client",
+    "rentals_set_rent_plan(uuid, jsonb)": "reviewed 2026-10-19 (Q2218): Homes rent tracker (D2, pay direct), not called by the app yet (the Renting/Owning cards come next); require_feature('rentals'), a member who is not banned or under 18, and only the tenancy's own landlord (plan, confirm, record, waive) or tenant (report, read). Proof: src/test/pglite/homesRentTracker.pglite.mjs.",
+    "rentals_add_rent_payment(uuid, integer, date, text)": "reviewed 2026-10-19 (Q2218): Homes rent tracker (D2, pay direct), not called by the app yet (the Renting/Owning cards come next); require_feature('rentals'), a member who is not banned or under 18, and only the tenancy's own landlord (plan, confirm, record, waive) or tenant (report, read). Proof: src/test/pglite/homesRentTracker.pglite.mjs.",
+    "rentals_decide_rent_payment(uuid, boolean, text)": "reviewed 2026-10-19 (Q2218): Homes rent tracker (D2, pay direct), not called by the app yet (the Renting/Owning cards come next); require_feature('rentals'), a member who is not banned or under 18, and only the tenancy's own landlord (plan, confirm, record, waive) or tenant (report, read). Proof: src/test/pglite/homesRentTracker.pglite.mjs.",
+    "rentals_waive_rent_charge(uuid)": "reviewed 2026-10-19 (Q2218): Homes rent tracker (D2, pay direct), not called by the app yet (the Renting/Owning cards come next); require_feature('rentals'), a member who is not banned or under 18, and only the tenancy's own landlord (plan, confirm, record, waive) or tenant (report, read). Proof: src/test/pglite/homesRentTracker.pglite.mjs.",
+    "rentals_rent_ledger(uuid)": "reviewed 2026-10-19 (Q2218): Homes rent tracker (D2, pay direct), not called by the app yet (the Renting/Owning cards come next); require_feature('rentals'), a member who is not banned or under 18, and only the tenancy's own landlord (plan, confirm, record, waive) or tenant (report, read). Proof: src/test/pglite/homesRentTracker.pglite.mjs.",
+    "rentals_tenancy_party(uuid)": "policy"
   },
   "unscoped": {
     "choose_new_social_account(uuid)": "reviewed 2026-10-05 (Q446): the signed-out choice screen marks the pending one-account choice whose random id only the refused sign-in received; it reads and returns nothing about any person, and marking a row only lets that same Apple/Google identity create its account.",

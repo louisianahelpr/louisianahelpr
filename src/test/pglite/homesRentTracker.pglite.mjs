@@ -218,7 +218,7 @@ const day31 = one(await svc(`SELECT (date_trunc('month', current_date) + interva
 ok(refused(await plan(LANDLORD, tA, P({ first_due_on: day31 })), /bad_rent_plan/), "a monthly due day after the 28th is refused (every month has it)");
 ok(Array.isArray(await plan(LANDLORD, tA, P())), "the landlord sets a monthly schedule due today");
 ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${TENANT}' AND title = 'Rent schedule set'`)) === 1, "the tenant is told");
-ok(refused(await as("authenticated", TENANT, `INSERT INTO public.rental_rent_plans (tenancy_id, landlord_id, amount_cents, frequency, first_due_on) VALUES ('${tA}', '${LANDLORD}', 1, 'monthly', current_date)`), /permission denied/),
+ok(refused(await as("authenticated", TENANT, `INSERT INTO public.rental_rent_plans (tenancy_id, amount_cents, frequency, first_due_on) VALUES ('${tA}', 100, 'monthly', current_date)`), /permission denied/),
   "no client writes the tables directly");
 
 // --- the sweep writes today's rent and a reminder, once

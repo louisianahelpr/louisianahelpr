@@ -476,9 +476,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         navigate(effectivePath);
         return;
       }
-      // A re-tap of the tab you are on: screens that reset on it listen
-      // (Home folds its To do list back up).
-      announceTabReselect(path);
+      announceTabReselect(path); // a re-tap of this tab: screens that reset on it listen (Home folds To do up)
       if (location.search || location.hash) {
         hapticLight();
         navigate(effectivePath);
@@ -605,22 +603,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </span>
           )}
         </div>
-        {/* One-word label under each icon (owner, 2026-10-19, Facebook /
-            Airbnb style): Home, Jobs, Declutter, Shops, Homes, Messages.
-            ONE line, never truncated, at 320 with all six tabs: 10px there,
-            11px from 360. No overflow clip, so a word wider than its slot
-            spills into the slot gap rather than losing letters; the rendered
-            guard (e2e/happy-path/nav-hide-on-scroll.spec.ts "dock labels") measures
-            that no two labels touch and none leaves the dock. */}
-        <span
-          data-dock-label
-          className={`relative z-10 block whitespace-nowrap text-ds-10 min-[360px]:text-ds-11 leading-[13px] tracking-[-0.01em] ${isActive ? "font-bold" : "font-medium"}`}
-        >
+        {/* One-word label under each icon (owner, 2026-10-19): ONE line, never cut, 10px at 320, 11px from 360; no clip,
+            so a wide word spills into the slot gap. Guards: dockLabelsOneLine + nav-hide-on-scroll.spec.ts "dock labels". */}
+        <span data-dock-label className={`relative z-10 block whitespace-nowrap text-ds-10 min-[360px]:text-ds-11 leading-[13px] tracking-[-0.01em] ${isActive ? "font-bold" : "font-medium"}`}>
           {label}
         </span>
-        {/* Burnt-Sienna underline accent — 4px wide × 1.5px tall dot
-            below the active label. Only renders for active so the
-            non-active tabs stay clean. */}
+        {/* Burnt-Sienna underline accent below the active label only, so the non-active tabs stay clean. */}
         {isActive && (
           <DockPill
             layoutId="mobile-nav-underline"

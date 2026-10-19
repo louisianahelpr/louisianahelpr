@@ -111,12 +111,15 @@ describe("main-tab empty pages put their circle, title and button in one place",
     const msgs = code("src/components/messages/ConversationList.tsx");
     const desktopClass = /const HEADER_ICON_BUTTON_DESKTOP_CLASS =([\s\S]*?);/.exec(msgs)?.[1] ?? "";
     expect(desktopClass).toContain("h-7 w-7 !min-h-0 !min-w-0");
-    for (const label of ["Search conversations", "Conversation list options"]) {
-      // The BUTTON carrying the label (the search field's input shares it).
-      expect(msgs, label).toMatch(
-        new RegExp(`aria-label="${label}"\\s*className=\\{isWebDesktop \\? HEADER_ICON_BUTTON_DESKTOP_CLASS : HEADER_ICON_BUTTON_CLASS\\}`),
-      );
-    }
+    // The BUTTON carrying the label (the search field's input shares it).
+    expect(msgs, "Search conversations").toMatch(
+      /aria-label="Search conversations"\s*className=\{isWebDesktop \? HEADER_ICON_BUTTON_DESKTOP_CLASS : HEADER_ICON_BUTTON_CLASS\}/,
+    );
+    // The hamburger lives in InboxMenus.tsx; ConversationList hands it the same class pair.
+    expect(msgs, "Conversation list options").toMatch(
+      /<InboxOptionsMenu[^>]*triggerClassName=\{isWebDesktop \? HEADER_ICON_BUTTON_DESKTOP_CLASS : HEADER_ICON_BUTTON_CLASS\}/,
+    );
+    expect(code("src/components/messages/InboxMenus.tsx")).toContain('aria-label="Conversation list options" className={triggerClassName}');
     expect(msgs).toMatch(/triggerWidth: isWebDesktop \? "28px" : "44px"/);
     // The row itself: the compact geometry on the desktop website.
     expect(msgs).toContain('${isWebDesktop && !embedded ? "[&>div:first-child]:!py-0" : ""}');

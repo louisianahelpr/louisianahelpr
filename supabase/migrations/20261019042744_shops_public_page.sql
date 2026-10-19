@@ -11,13 +11,26 @@
 -- nothing else:
 --   * only a shop that is not hidden by an admin, not paused, whose owner is
 --     in good standing (not banned, under 3 marketplace strikes), not a test
---     account's while seed data is hidden, and whose OWNER has the 'shops'
---     switch (the viewer's switch no longer matters; the owner's does, so a
---     shop opened before its owner could use Shops is never linkable);
+--     account's while seed data is hidden, while the 'shops' switch is not
+--     OFF for everyone (a global kill: it answers the same for every shop).
+--     The not-hidden / seed / standing part is shop_state_ok, the ONE helper
+--     shop_publicly_visible (members) now reads too, so the two rules cannot
+--     drift (lead /code-review #4).
+--     It deliberately does NOT ask whether the OWNER has the switch
+--     (feature_enabled_for_user): that answer differs per owner while Shops is
+--     testers-only, so a NULL-vs-shop reply would tell anyone with a shop id
+--     whether its owner is a tester or admin (lead /code-review #5). A shop
+--     row exists only once its owner opened it through shops_save_my_shop, which
+--     require_feature('shops') gates, so the owner had the switch then;
 --   * name, about, category (label too: shop_categories is members-only),
 --     area label (never an address), parishes served, storefront flag, what it
---     offers, badges, the owner's rating, hours, logo/cover/gallery photos,
---     and the LIVE items (only while the shop sells) with their photos;
+--     offers, badges, hours, logo/cover/gallery photos, and the LIVE items
+--     (only while the shop sells) with their photos;
+--   * NOT the owner's person rating: shop_owner_rating reads
+--     get_public_profile_stats for the owner, and matching its exact
+--     rating + count against public profile stats would point at the person
+--     behind the shop (lead /code-review #10). A shop-level rating comes with
+--     shop reviews (Q2207);
 --   * photos by ID only, never their storage path: the path starts with the
 --     owner's user id (<uid>/shops/...), and get_safe_profiles is anon-callable,
 --     so a path would name the person behind a home kitchen (lh-authz-rls
@@ -28,18 +41,23 @@
 --     untouched), item review state or anything in shop_item_private.
 -- No table grant to anon changes: the function is SECURITY DEFINER and the
 -- tables stay unreadable to anon over REST. Any other answer (no such shop,
--- hidden, paused, owner switched off) is the same NULL, so the call is no
+-- hidden, paused, Shops switched off) is the same NULL, so the call is no
 -- oracle for which of those it was.
 --
 -- Search engines: the page is noindex until the switch opens to everyone
 -- (api/share.ts + vercel.json X-Robots-Tag), not a robots.txt Disallow, which
 -- would also block the link-preview fetch.
 --
--- REPLAY-SAFETY: every function it calls exists from earlier migrations
--- (20261017061155, 20261017061157, 20261012031120, 20260901035245) and is
--- resolved at call time; CREATE OR REPLACE throughout.
+-- REPLAY-SAFETY: every function and table it reads exists from earlier
+-- migrations (20261017061155, 20261017061157, 20261012031120, 20260901035245);
+-- SQL bodies are validated at CREATE, so shop_state_ok is created before the
+-- two functions that call it; CREATE OR REPLACE throughout.
 
-CREATE OR REPLACE FUNCTION public.shop_link_visible(p_shop_id uuid)
+-- The shop-state rule every viewer shares: not hidden by an admin, no test
+-- shop while the launch switch hides seed data, owner in good standing. One
+-- definition, read by shop_publicly_visible (members, 20261017061155's rule,
+-- now through here) and shop_link_visible (anyone with the link).
+CREATE OR REPLACE FUNCTION public.shop_state_ok(p_shop_id uuid)
 RETURNS boolean
 LANGUAGE sql
 STABLE
@@ -48,17 +66,49 @@ SET search_path TO 'public', 'pg_temp'
 AS $fn$
   SELECT COALESCE((
     SELECT s.hidden_at IS NULL
-       AND NOT s.paused
        AND NOT (s.is_seed AND public.seed_jobs_hidden_publicly())
        AND public.shop_owner_in_good_standing(s.owner_id)
-       AND public.feature_enabled_for_user('shops', s.owner_id)
       FROM public.shops s WHERE s.id = p_shop_id), false);
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_state_ok(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shop_state_ok(uuid) TO service_role;
+COMMENT ON FUNCTION public.shop_state_ok(uuid) IS
+  'Shops: the shop-state rule every viewer shares (not hidden, no test shop while seeds are hidden, owner in good '
+  'standing). Internal; read by shop_publicly_visible and shop_link_visible so the two never drift.';
+
+-- Members: unchanged rule (the viewer's own 'shops' switch, then the shared
+-- state), now through shop_state_ok. Grants restated as 20261017061155 set them.
+CREATE OR REPLACE FUNCTION public.shop_publicly_visible(p_shop_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT public.feature_enabled_for('shops')
+     AND public.shop_state_ok(p_shop_id);
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_publicly_visible(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.shop_publicly_visible(uuid) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.shop_link_visible(p_shop_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT p_shop_id IS NOT NULL
+     AND EXISTS (SELECT 1 FROM public.feature_switches f
+                  WHERE f.key = 'shops' AND f.audience IN ('testers', 'everyone'))
+     AND public.shop_state_ok(p_shop_id)
+     AND COALESCE((SELECT NOT s.paused FROM public.shops s WHERE s.id = p_shop_id), false);
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_link_visible(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_link_visible(uuid) TO service_role;
 COMMENT ON FUNCTION public.shop_link_visible(uuid) IS
-  'SH2b: may anyone with the link see this shop? Not hidden, not paused, owner in good standing and switched on, '
-  'no test shop while seeds are hidden. Internal (service_role); read by shops_public_shop.';
+  'SH2b: may anyone with the link see this shop? shop_state_ok, not paused, and Shops not switched off for everyone. '
+  'Never asks the owner''s own switch (a per-owner answer would be a tester oracle). Internal; read by shops_public_shop.';
 
 CREATE OR REPLACE FUNCTION public.shops_public_shop(p_shop_id uuid)
 RETURNS jsonb
@@ -69,14 +119,11 @@ SET search_path TO 'public', 'pg_temp'
 AS $fn$
 DECLARE
   v_s public.shops%ROWTYPE;
-  v_rating numeric;
-  v_count integer;
 BEGIN
   IF p_shop_id IS NULL OR NOT public.shop_link_visible(p_shop_id) THEN
     RETURN NULL;
   END IF;
   SELECT * INTO v_s FROM public.shops WHERE id = p_shop_id;
-  SELECT r.rating, r.review_count INTO v_rating, v_count FROM public.shop_owner_rating(v_s.owner_id) r;
   RETURN jsonb_build_object(
     'id', v_s.id,
     'name', v_s.name,
@@ -90,8 +137,6 @@ BEGIN
     'offers_selling', v_s.offers_selling,
     'offers_quotes', v_s.offers_quotes,
     'badges', public.shop_badges(v_s.id),
-    'rating', v_rating,
-    'review_count', COALESCE(v_count, 0),
     'hours', COALESCE((SELECT jsonb_agg(jsonb_build_object(
                  'weekday', h.weekday, 'opens', to_char(h.opens_local, 'HH24:MI'), 'closes', to_char(h.closes_local, 'HH24:MI'))
                ORDER BY h.weekday, h.opens_local) FROM public.shop_hours h WHERE h.shop_id = v_s.id), '[]'::jsonb),

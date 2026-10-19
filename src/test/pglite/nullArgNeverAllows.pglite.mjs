@@ -167,7 +167,9 @@ CREATE TABLE public.ban_settlement_queue (id uuid PRIMARY KEY DEFAULT gen_random
 -- the class SQL's 'shop' fixture step touch; the strike count is stubbed at 0
 -- (its own table is not under test here).
 CREATE TABLE public.shops (id uuid PRIMARY KEY, owner_id uuid NOT NULL UNIQUE, name text, category text, area_label text,
-  pin_lat numeric, pin_lng numeric, hidden_at timestamptz, is_seed boolean NOT NULL DEFAULT false);
+  pin_lat numeric, pin_lng numeric, hidden_at timestamptz, is_seed boolean NOT NULL DEFAULT false,
+  -- SH2b (20261019042744): shop_link_visible also reads paused.
+  paused boolean NOT NULL DEFAULT false);
 CREATE FUNCTION public.declutter_active_strike_count(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
 -- Shops M1 (20261018164444) reads the shop's own strike count instead; stubbed at 0 the same way.
 CREATE FUNCTION public.shop_active_strike_count(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
@@ -200,6 +202,8 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "helpr_task_source_slot_ok", "helpr_task_vehicle_fits",
   // Shops slice 1 (20261017061155).
   "shop_owner_in_good_standing", "shop_publicly_visible", "shop_visible_to",
+  // SH2b public shop page (20261019042744).
+  "shop_state_ok", "shop_link_visible",
   // Rentals S1 (20261017205605).
   "rentals_caller_is_active_tenant_of",
   // Homes listings (20261019043000).
@@ -207,8 +211,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Rentals identity either verdict (20261019051407); after identity_is_verified, which its SQL body calls.
   "is_identity_verified"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
-// (shop_visible_to calls shop_publicly_visible, so it comes after it).
-const AFTER_STUBS = ["job_announceable_to", "shop_publicly_visible", "shop_visible_to"];
+// (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
+// each comes after its callee).
+const AFTER_STUBS = ["job_announceable_to", "shop_state_ok", "shop_publicly_visible", "shop_link_visible", "shop_visible_to"];
 // job_offer_cutoff (Q1784): called by the newest allow bodies; loaded verbatim
 // like the rest (SQL bodies are validated at CREATE, so it must exist first).
 const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];

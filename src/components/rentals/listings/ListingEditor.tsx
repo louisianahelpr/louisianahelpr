@@ -269,7 +269,7 @@ function EditorForm({ listing, unitId, uid }: { listing: RentalListing | null; u
   });
   const flags = listing?.wording_flags ?? [];
   return (
-    <div className="space-y-4">
+    <div className="max-w-2xl space-y-4">
       {flags.length > 0 && (
         <p role="alert" className="rounded-xl border border-destructive p-3 text-sm">
           Fair housing law doesn't allow a listing to say who may live in a home. Rewrite these words before it can show: {flags.join(", ")}.

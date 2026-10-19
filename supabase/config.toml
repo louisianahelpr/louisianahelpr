@@ -32,6 +32,11 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # nothing — see the function header for why emails cannot use the website.
   [functions.brand-asset]
     verify_jwt = false
+  # SH2b: photos on the public shop page, by photo id, for signed-out visitors
+  # (an <img> sends no Authorization header). Serves only a link-visible
+  # shop's photos and never reveals the storage path (it names the owner).
+  [functions.shop-photo]
+    verify_jwt = false
 
   [functions.auth-email-hook]
     verify_jwt = false

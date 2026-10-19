@@ -35,6 +35,10 @@
  * is load-bearing (every major consumer takes the FIRST og:image, and
  * og:image:width/height/alt bind to the preceding parent by position, not by
  * name), and the safest way to honour that is to leave it completely alone.
+ * One exception (SH2b, 2026-10-19): a shop card rewrites the VALUES of the
+ * FIRST og:image block and twitter:image to the shop's own photo (Meta.image),
+ * with width/height that match the rendered size; still no tag is added,
+ * removed or reordered.
  *
  * PRIVACY
  * -------
@@ -108,6 +112,15 @@ interface Meta {
    * successful fetch.
    */
   robots?: string;
+  /**
+   * SH2b shop cards only: the shop's own photo. Applied as VALUES on the FIRST
+   * og:image block (url, type, width, height, alt) and twitter:image; no tag
+   * is added, removed or reordered, so the positional binding index.html
+   * relies on holds. Omitted everywhere else: those cards keep the H mark.
+   */
+  image?: { url: string; type: string; width: number; height: number; alt: string };
+  /** CDN cache override (shop cards: minutes, so a hidden or paused shop stops previewing). */
+  cdnCache?: string;
 }
 
 /* ------------------------------------------------------------------ *
@@ -199,6 +212,15 @@ function applyMeta(html: string, meta: Meta): string {
   out = setMetaContent(out, "name", "twitter:title", meta.ogTitle);
   out = setMetaContent(out, "name", "twitter:description", meta.ogDescription ?? meta.description);
   if (meta.robots) out = setMetaContent(out, "name", "robots", meta.robots);
+  if (meta.image) {
+    out = setMetaContent(out, "property", "og:image", meta.image.url);
+    out = setMetaContent(out, "property", "og:image:type", meta.image.type);
+    out = setMetaContent(out, "property", "og:image:width", String(meta.image.width));
+    out = setMetaContent(out, "property", "og:image:height", String(meta.image.height));
+    out = setMetaContent(out, "property", "og:image:alt", meta.image.alt);
+    out = setMetaContent(out, "name", "twitter:image", meta.image.url);
+    out = setMetaContent(out, "name", "twitter:image:alt", meta.image.alt);
+  }
   return out;
 }
 
@@ -375,6 +397,110 @@ function unavailableJobMeta(url: string): Meta {
 }
 
 /* ------------------------------------------------------------------ *
+ * Shops (SH2b, owner 2026-10-19): a shop page anyone with the link can see
+ * ------------------------------------------------------------------ */
+
+/**
+ * The card reads shops_public_shop, the same anon RPC the signed-out page
+ * reads (migration 20261019042744): only what the public page shows, never
+ * the owner id, the pin, the SoS number or the pickup address. NULL (hidden,
+ * paused, owner switched off, no such shop) is `absent`.
+ */
+interface PublicShopCard {
+  name: string;
+  about: string | null;
+  category_label: string | null;
+  area_label: string | null;
+  photos: { id: string; kind: string }[] | null;
+}
+
+type ShopLookup = { state: "found"; shop: PublicShopCard } | { state: "absent" } | { state: "unknown" };
+
+async function fetchPublicShopCard(id: string): Promise<ShopLookup> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { state: "unknown" };
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/shops_public_shop`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_shop_id: id }),
+      signal: AbortSignal.timeout(DB_TIMEOUT_MS),
+    });
+    if (!res.ok) return { state: "unknown" };
+    const body = (await res.json()) as PublicShopCard | null;
+    if (body === null) return { state: "absent" };
+    if (typeof body !== "object" || typeof body.name !== "string") return { state: "unknown" };
+    return { state: "found", shop: body };
+  } catch {
+    // Timeout, DNS, connection refused: we learned nothing, so the generic shell.
+    return { state: "unknown" };
+  }
+}
+
+/** Shop pages stay out of search until the Shops switch opens to everyone. */
+export const SHOP_ROBOTS = "noindex, follow";
+const SHOP_CDN_CACHE = "public, s-maxage=60, stale-while-revalidate=60";
+
+/**
+ * The shop's cover (else its logo) at 1200x630 (630x630 for a logo), so the
+ * declared og:image width/height are true. Served by photo ID through the
+ * shop-photo edge function, never by storage path: the path starts with the
+ * owner's user id, and this URL sits in third-party preview caches for good
+ * (lh-authz-rls review, must-fix 1). The function re-checks the shop is
+ * link-visible on every fetch.
+ */
+function shopImage(shop: PublicShopCard): Meta["image"] | undefined {
+  const photos = Array.isArray(shop.photos) ? shop.photos : [];
+  const pick = photos.find((p) => p.kind === "cover") ?? photos.find((p) => p.kind === "logo");
+  if (!pick || typeof pick.id !== "string" || !UUID_RE.test(pick.id) || !SUPABASE_URL) return undefined;
+  const square = pick.kind === "logo";
+  const w = square ? 630 : 1200;
+  return {
+    url: `${SUPABASE_URL}/functions/v1/shop-photo?id=${pick.id}&kind=shop&w=${w}&og=1`,
+    type: "image/jpeg",
+    width: w,
+    height: 630,
+    alt: clean(`${shop.name} on Louisiana Helpr`, 120),
+  };
+}
+
+function unavailableShopMeta(url: string): Meta {
+  return {
+    title: "This shop isn't available — Helpr",
+    ogTitle: "This shop isn't available",
+    description: "This shop may be paused or closed. Find local shops and Helprs on Louisiana Helpr.",
+    url,
+    robots: SHOP_ROBOTS,
+    cdnCache: SHOP_CDN_CACHE,
+  };
+}
+
+async function metaForShop(id: string, url: string): Promise<Meta | null> {
+  if (!UUID_RE.test(id)) return unavailableShopMeta(url);
+  const lookup = await fetchPublicShopCard(id);
+  if (lookup.state === "unknown") return null;
+  if (lookup.state === "absent") return unavailableShopMeta(url);
+  const shop = lookup.shop;
+  const name = clean(shop.name, 60);
+  if (!name) return unavailableShopMeta(url);
+  const what = [clean(shop.category_label, 60), clean(shop.area_label, 80)].filter(Boolean).join(" in ");
+  const about = clean(shop.about, 140);
+  return {
+    title: `${name} — Helpr`,
+    ogTitle: name,
+    description: clean([what ? `${what}.` : "A local shop on Louisiana Helpr.", about].filter(Boolean).join(" "), 200),
+    url,
+    robots: SHOP_ROBOTS,
+    image: shopImage(shop),
+    cdnCache: SHOP_CDN_CACHE,
+  };
+}
+
+/* ------------------------------------------------------------------ *
  * Routing
  * ------------------------------------------------------------------ */
 
@@ -527,9 +653,9 @@ function metaForNoindexPage(id: string): Meta | null {
  * invoked directly with a real route path — which is how the local harness and
  * the unit-style checks exercise it.
  */
-function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex"; id: string } | null {
+function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop"; id: string } | null {
   const declared = url.searchParams.get("_og");
-  if (declared === "job" || declared === "user" || declared === "page" || declared === "noindex") {
+  if (declared === "job" || declared === "user" || declared === "page" || declared === "noindex" || declared === "shop") {
     return { kind: declared, id: url.searchParams.get("_id") ?? "" };
   }
   if (declared === "signup") return { kind: "signup", id: "" };
@@ -538,6 +664,8 @@ function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "n
   const jobMatch = pathname.match(/^\/jobs\/([^/]+)$/);
   if (jobMatch) return { kind: "job", id: decodeURIComponent(jobMatch[1]) };
   if (pathname === "/signup") return { kind: "signup", id: "" };
+  const shopMatch = pathname.match(/^\/shops\/([^/]+)$/);
+  if (shopMatch) return { kind: "shop", id: decodeURIComponent(shopMatch[1]) };
   const userMatch = pathname.match(/^\/user\/([^/]+)$/);
   if (userMatch) return { kind: "user", id: decodeURIComponent(userMatch[1]) };
   if (publicPageMetaFor(pathname, null)) return { kind: "page", id: pathname.slice(1) };
@@ -560,6 +688,11 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
     return metaForJob(route.id, canonical);
   }
 
+  if (route.kind === "shop") {
+    const seg = safeIdSegment(route.id);
+    return metaForShop(route.id, seg ? `${SITE_ORIGIN}/shops/${seg}` : `${SITE_ORIGIN}/shops`);
+  }
+
   if (route.kind === "signup") {
     return metaForSignup(url.searchParams.get("ref"));
   }
@@ -580,7 +713,7 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
  * Handler
  * ------------------------------------------------------------------ */
 
-function respond(html: string): Response {
+function respond(html: string, cdnCache: string = "public, s-maxage=300, stale-while-revalidate=86400"): Response {
   return new Response(html, {
     status: 200,
     headers: {
@@ -590,7 +723,7 @@ function respond(html: string): Response {
       // `Vercel-CDN-Cache-Control` is CDN-only and is not set by that rule, so
       // it adds edge caching without colliding with it — crawlers re-scraping
       // a popular job don't each cost a database round trip.
-      "Vercel-CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=86400",
+      "Vercel-CDN-Cache-Control": cdnCache,
     },
   });
 }
@@ -605,7 +738,9 @@ export default {
       const meta = await resolveMeta(url);
       const shell = absolutiseIconLinks(SHELL_HTML);
       if (!meta) return respond(shell);
-      return respond(applyMeta(shell, meta));
+      // A shop card goes stale within minutes, never a day: a shop hidden,
+      // paused or closed must stop previewing (lh-authz-rls should-fix 2).
+      return respond(applyMeta(shell, meta), meta.cdnCache);
     } catch {
       // Silence is the contract here: an OG-meta lookup that fails must
       // degrade to the plain shell, never to a broken share page. The

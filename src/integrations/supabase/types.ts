@@ -13665,6 +13665,7 @@ export type Database = {
       }
       shops_my_shop_id: { Args: never; Returns: string }
       shops_publish_item: { Args: { p_item_id: string }; Returns: string }
+      shops_public_shop: { Args: { p_shop_id: string }; Returns: Json }
       shops_record_item_ai_check: {
         Args: {
           p_flag_reason: string

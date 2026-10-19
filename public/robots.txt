@@ -48,6 +48,13 @@ Disallow: /signup-pending
 Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /user/
+# Shops (SH2b, 2026-10-19): /shops is the signed-in browse tab; a shop page
+# (/shops/<id>) is open to anyone with the link, so it stays FETCHABLE (the
+# link preview needs it, as with /jobs/ above) and is kept out of search by
+# noindex instead: the X-Robots-Tag header in vercel.json and the robots meta
+# api/share.ts writes, until the Shops switch opens to everyone.
+Disallow: /shops
+Allow: /shops/
 # Internal engineering utility (client-side-only Apple JWT signer, sends
 # nothing over the network) — already carries <meta name="robots" noindex">
 # but was still crawlable/reachable with no entry here at all, which reads

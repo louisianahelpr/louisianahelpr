@@ -506,6 +506,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // staff's own rather than the person's.
   "admin_audit_log.admin_id": { reason: "staff action log, keyed by the staff member" },
   "job_payout_holds.held_by": { reason: "Q1491: the staff member who placed a JOB payout hold (NULL when stripe-webhook placed it); a server-only money-control row about the job, not the person's own data" },
+  "shop_hand_refunds.recorded_by": { reason: "the staff member who recorded a Shops refund made by hand in Stripe (NULL when stripe-webhook recorded it; Shops M3, 20261019071055); a server-only money-control row about the order, not the person's own data" },
   "series_platform_ends.admin_id": { reason: "the staff member who ended a series (Q1735); the series is the poster's, exported with their jobs" },
   "new_member_admin_notices.user_id": { reason: "2026-10-09: the server's once-only marker that admins were told this member joined (when they confirmed their email); a timestamp about the account, none of the person's own data" },
   "pre_verification_wipes.user_id": { reason: "Q447: the server's record that a pre-verification takeover deleted what someone else typed into this account (and which stored objects to remove); it holds none of the person's own data" },

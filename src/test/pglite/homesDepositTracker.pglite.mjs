@@ -122,6 +122,7 @@ await db.exec(`
   REVOKE ALL ON FUNCTION public.is_caller_banned() FROM PUBLIC, anon;
   REVOKE ALL ON FUNCTION public.contact_leak_reason(text) FROM PUBLIC, anon;`);
 await db.exec(SWITCHES);
+await db.exec(newestDefinition("shop_local_today").stmt); // the Louisiana date the rent and deposit rules use
 await db.exec(`
   INSERT INTO auth.users (id) SELECT ('00000000-0000-0000-0000-0000000000' || lpad(g::text, 2, '0'))::uuid FROM generate_series(1, 9) g;
   INSERT INTO public.profiles (user_id, idv_status, date_of_birth, ban_status) VALUES
@@ -189,7 +190,7 @@ const rows = (r) => (Array.isArray(r) ? r : []);
 const empty = (r) => Array.isArray(r) && r.length === 0;
 
 
-const today = one(await svc(`SELECT current_date::text`));
+const today = one(await svc(`SELECT public.shop_local_today()::text`));
 const prop = one(await as("authenticated", LANDLORD, `SELECT public.rentals_create_property('Oak house', '123 Oak St', 'Lafayette', '70501') AS id`));
 await as("authenticated", LANDLORD, `SELECT public.rentals_submit_ownership_proof('${prop}', '${LANDLORD}/rentals/${prop}/deed.pdf')`);
 await as("authenticated", ADMIN, `SELECT public.rentals_admin_review_property('${prop}', true, 'ok')`);
@@ -223,24 +224,29 @@ ok((await notes(TENANT, "Deposit recorded")) === 1, "the tenant is told");
 ok(refused(await as("authenticated", TENANT, `SELECT * FROM public.rental_deposits`), /permission denied/), "no client reads the table directly (the address rule lives in rentals_deposit)");
 ok(refused(await as("authenticated", LANDLORD, `UPDATE public.rental_deposits SET amount_cents = 1`), /permission denied/), "nor writes it");
 
-// --- the forwarding address: the tenant's; the landlord reads it only after the tenancy ends
+// --- the forwarding address: the tenant's; the landlord reads it only once the tenancy ended AND the tenant ended it
+// or the lease end date passed (lead review #4)
 ok(refused(await fwd(LANDLORD, tA, "500 New Home Rd, Baton Rouge LA 70801"), /tenancy_not_found/, "P0002"), "the landlord cannot set the tenant's address");
 ok(refused(await fwd(TENANT, tA, "short"), /bad_address/, "22023"), "an address needs 10+ characters");
-ok(refused(await fwd(TENANT2, tB, "500 New Home Rd, Baton Rouge LA 70801"), /deposit_not_found/, "P0002"), "no deposit recorded, no address to keep");
 ok(Array.isArray(await fwd(TENANT, tA, "500  New Home Rd,  Baton Rouge LA 70801")), "the tenant gives a forwarding address");
-ok((await dep(TENANT, tA))?.deposit?.forwarding_address === "500 New Home Rd, Baton Rouge LA 70801", "the tenant sees their own (spaces tidied)");
+ok((await dep(TENANT, tA))?.forwarding_address === "500 New Home Rd, Baton Rouge LA 70801", "the tenant sees their own (spaces tidied)");
 const live = await dep(LANDLORD, tA);
-ok(live?.deposit?.forwarding_address === null && live.deposit.has_forwarding_address === true && live.deposit.return_by === null,
+ok(live?.forwarding_address === null && live.has_forwarding_address === true && live.deposit.return_by === null,
   "while the tenancy is live the landlord sees only that an address was given, not the address, and no return clock yet");
 
 // --- settling: only after the tenancy ends; returned + itemized kept = the deposit; final
 ok(refused(await settle(LANDLORD, tA, 120000, []), /tenancy_not_ended/, "22023"), "a deposit is settled after the tenancy ends");
-await svc(`UPDATE public.rental_tenancies SET status = 'ended', ended_at = now() WHERE id = '${tA}'`);
+ok(Array.isArray(await as("authenticated", LANDLORD, `SELECT public.rentals_end_tenancy('${tA}')`)), "the LANDLORD ends the tenancy early");
 const ended = await dep(LANDLORD, tA);
 const due = one(await svc(`SELECT (((now() AT TIME ZONE 'America/Chicago')::date + interval '1 month')::date)::text`));
-ok(ended?.deposit?.forwarding_address === "500 New Home Rd, Baton Rouge LA 70801" && ended.deposit.return_by === due,
-  "after the end the landlord sees the forwarding address and the one-month return-by date (R.S. 9:3251)");
-ok(refused(await setDep(LANDLORD, tA, 1000), /tenancy_not_found/), "the amount cannot be changed after the tenancy ended");
+ok(ended?.ended_by === "landlord" && ended.forwarding_address === null && ended.address_visible_to_landlord === false && ended.deposit.return_by === due,
+  "#4: after a landlord-only early end the landlord still does not see the address; the one-month return-by date runs (R.S. 9:3251)");
+ok((await dep(TENANT, tA))?.address_visible_to_landlord === false, "and the tenant is shown it is not shared yet");
+ok(Array.isArray(await setDep(LANDLORD, tA, 120000, today)), "#10: the landlord can still record (or fix) the deposit after the end, within 30 days");
+await svc(`UPDATE public.rental_tenancies SET lease_ends_on = public.shop_local_today() WHERE id = '${tA}'`);
+const atLeaseEnd = await dep(LANDLORD, tA);
+ok(atLeaseEnd?.forwarding_address === "500 New Home Rd, Baton Rouge LA 70801" && atLeaseEnd.address_visible_to_landlord === true,
+  "#4: once the lease end date passes the landlord sees the forwarding address");
 const endedL = rows(await as("authenticated", LANDLORD, `SELECT * FROM public.rentals_my_ended_deposits()`));
 const endedT = rows(await as("authenticated", TENANT, `SELECT * FROM public.rentals_my_ended_deposits()`));
 ok(endedL.length === 1 && endedL[0].tenancy_id === tA && endedL[0].side === "landlord" && endedL[0].label === "Oak house" && endedL[0].settled === false
@@ -255,15 +261,18 @@ ok(refused(await settle(LANDLORD, tA, 120000, [], "2099-01-01"), /bad_settlement
 
 // --- the sweep: reminders to the landlord, once per stage
 const sw = async () => rows(await svc(`SELECT public.rentals_deposit_sweep() AS r`))[0]?.r;
-ok((await sw())?.reminders === 1 && (await notes(LANDLORD, "Return the deposit")) === 1, "the end day: the landlord is reminded of the one-month rule");
+const s1 = await sw();
+ok(s1?.reminders === 1 && (await notes(LANDLORD, "Return the deposit")) === 1, "the end day: the landlord is reminded of the one-month rule");
+ok(s1?.address_notices === 1 && (await notes(TENANT, "Forwarding address shared")) === 1, "#4: the tenant is told once the landlord can see their address");
 await sw();
-ok((await notes(LANDLORD, "Return the deposit")) === 1, "once (a second sweep sends nothing)");
+ok((await notes(LANDLORD, "Return the deposit")) === 1 && (await notes(TENANT, "Forwarding address shared")) === 1, "once each (a second sweep sends nothing)");
 await svc(`UPDATE public.rental_tenancies SET ended_at = now() - interval '25 days' WHERE id = '${tA}'`);
 await sw(); await sw();
 ok((await notes(LANDLORD, "Deposit return due soon")) === 1, "7 days before the return-by date: one reminder");
 await svc(`UPDATE public.rental_tenancies SET ended_at = now() - interval '33 days' WHERE id = '${tA}'`);
 await sw(); await sw();
 ok((await notes(LANDLORD, "Deposit return is overdue")) === 1, "past the return-by date: one overdue reminder");
+ok(refused(await setDep(LANDLORD, tA, 1000), /tenancy_not_found/), "#10: more than 30 days after the end the amount no longer changes");
 ok((await notes(TENANT, "Deposit return is overdue")) === 0, "the reminders go to the landlord only");
 
 ok(Array.isArray(await settle(LANDLORD, tA, 95000, [{ reason: "Carpet cleaning", amount_cents: 15000 }, { reason: "Broken blinds", amount_cents: 10000 }])),
@@ -275,7 +284,7 @@ const st = one(await svc(`SELECT message FROM public.notifications WHERE user_id
 ok(typeof st === "string" && st.includes("$950.00") && st.includes("Carpet cleaning: $150.00") && st.includes("Broken blinds: $100.00"),
   "the tenant gets the itemized statement");
 ok(refused(await settle(LANDLORD, tA, 120000, []), /deposit_settled/, "22023"), "a settled deposit is final");
-ok(refused(await fwd(TENANT, tA, "9 Other Street, Lafayette LA 70501"), /deposit_not_found/), "and its address no longer changes");
+ok(refused(await fwd(TENANT, tA, "9 Other Street, Lafayette LA 70501"), /deposit_settled/), "and its address no longer changes");
 await svc(`UPDATE public.rental_deposits SET reminded_stage = 0 WHERE tenancy_id = '${tA}'`);
 ok((await sw())?.reminders === 0, "a settled deposit is never reminded");
 
@@ -298,12 +307,38 @@ ok(exL?.rental_deposits?.length === 1 && exL.rental_deposits[0].forwarding_addre
   "export: the landlord gets it too, the address included once the tenancy has ended");
 ok(exS?.rental_deposits?.length === 0 && exS.rental_rent_plans.length === 0 && exS.rental_rent_charges.length === 0 && exS.rental_rent_payments.length === 0,
   "export: a stranger gets none of it");
-await svc(`INSERT INTO public.rental_deposits (tenancy_id, amount_cents, received_on, forwarding_address) VALUES ('${tB}', 50000, current_date, '12 Live Street, Lafayette LA 70501')`);
+await svc(`INSERT INTO public.rental_deposits (tenancy_id, amount_cents, received_on, forwarding_address) VALUES ('${tB}', 50000, public.shop_local_today(), '12 Live Street, Lafayette LA 70501')`);
 const exL2 = await ex(LANDLORD);
 ok(exL2?.rental_deposits?.find((d) => d.tenancy_id === tB) && !("forwarding_address" in exL2.rental_deposits.find((d) => d.tenancy_id === tB)),
   "export: the landlord of a LIVE tenancy never gets the tenant's forwarding address");
 ok((await ex(TENANT2))?.rental_deposits?.[0]?.forwarding_address === "12 Live Street, Lafayette LA 70501", "export: that tenant does");
 await svc(`DELETE FROM public.rental_deposits WHERE tenancy_id = '${tB}'`);
+ok(exL?.rental_deposits?.[0]?.forwarding_address !== undefined, "setup: the landlord export above came after the lease end date passed");
+
+// --- lead review #10 + #4: the address before the deposit; a TENANT-ended tenancy shares it at once; recorded after the end
+ok(Array.isArray(await fwd(TENANT2, tB, "77 Next Place, Lafayette LA 70503")), "#10: the tenant gives the address before any deposit is recorded");
+const preB = await dep(TENANT2, tB);
+ok(preB?.deposit === null && preB.forwarding_address === "77 Next Place, Lafayette LA 70503", "kept on the tenancy's record, no deposit yet");
+ok((await dep(LANDLORD, tB))?.forwarding_address === null && (await dep(LANDLORD, tB))?.has_forwarding_address === true, "the landlord of the live tenancy sees only that one was given");
+ok(Array.isArray(await as("authenticated", TENANT2, `SELECT public.rentals_end_tenancy('${tB}')`)), "the TENANT ends the tenancy");
+ok((await dep(LANDLORD, tB))?.forwarding_address === "77 Next Place, Lafayette LA 70503" && (await dep(LANDLORD, tB))?.can_record === true,
+  "#4: a tenant-ended tenancy shares the address at once; the landlord can still record the deposit");
+ok(rows(await as("authenticated", LANDLORD, `SELECT * FROM public.rentals_my_ended_deposits()`)).some((r) => r.tenancy_id === tB),
+  "#10: the moved-out list carries the ended tenancy with no deposit yet");
+ok(Array.isArray(await setDep(LANDLORD, tB, 50000, today)), "#10: the landlord records the deposit after the end");
+const postB = await dep(TENANT2, tB);
+ok(postB?.deposit?.amount_cents === 50000 && postB.forwarding_address === "77 Next Place, Lafayette LA 70503", "the address given earlier is attached to it");
+await svc(`DELETE FROM public.test_accounts WHERE user_id IN ('${TENANT2}', '${LANDLORD}')`);
+const sOff = await sw();
+ok(sOff?.reminders === 0 && sOff.address_notices === 0 && (await notes(TENANT2, "Forwarding address shared")) === 0,
+  "#8: Homes off for the landlord: no reminder; off for the tenant: no notice");
+await svc(`INSERT INTO public.test_accounts (user_id) VALUES ('${LANDLORD}')`);
+await svc(`UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = '${LANDLORD}'`);
+ok((await sw())?.reminders === 0, "#8: a banned landlord gets no reminder");
+await svc(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${LANDLORD}'`);
+await svc(`INSERT INTO public.test_accounts (user_id) VALUES ('${TENANT2}')`);
+const sBack = await sw();
+ok(sBack?.reminders === 1 && sBack.address_notices === 1 && (await notes(TENANT2, "Forwarding address shared")) === 1, "both go out once they are back");
 
 // --- gates
 await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'rentals'`);

@@ -10,11 +10,17 @@
 -- what was returned and kept and why, and sends the statement to the tenant.
 --
 --   rental_deposits  one per tenancy: the amount, when the landlord received
---                    it, the tenant's forwarding address (the landlord reads it
---                    only once the tenancy has ended), and the settlement:
+--                    it, the tenant's forwarding address, and the settlement:
 --                    returned amount, itemized deductions, when it was sent.
+--                    The tenant may give the address BEFORE the landlord records
+--                    the deposit (the row then has no amount yet; the amount is
+--                    attached when recorded; lead review #10).
+--   The landlord reads the forwarding address only once the tenancy ended AND
+--   either the TENANT ended it or the lease end date passed: never right after a
+--   landlord-only early end (lead review #4). The tenant is told when it becomes
+--   visible (the sweep, once).
 --
---   rentals_set_deposit(tenancy, amount_cents, received_on)   landlord, live tenancy
+--   rentals_set_deposit(tenancy, amount_cents, received_on)   landlord, live tenancy or ended in the last 30 days
 --   rentals_set_forwarding_address(tenancy, address)          tenant, live or ended
 --   rentals_settle_deposit(tenancy, returned_cents, deductions, returned_on)
 --                                                             landlord, ended tenancy
@@ -29,30 +35,36 @@
 -- 1. The table.
 CREATE TABLE IF NOT EXISTS public.rental_deposits (
   tenancy_id uuid PRIMARY KEY REFERENCES public.rental_tenancies(id) ON DELETE CASCADE,
-  amount_cents integer NOT NULL CHECK (amount_cents BETWEEN 100 AND 10000000),
-  received_on date NOT NULL,
+  -- NULL until the landlord records it (the tenant may give the forwarding address first).
+  amount_cents integer CHECK (amount_cents IS NULL OR amount_cents BETWEEN 100 AND 10000000),
+  received_on date,
   forwarding_address text CHECK (forwarding_address IS NULL OR char_length(forwarding_address) BETWEEN 10 AND 300),
   returned_cents integer CHECK (returned_cents IS NULL OR returned_cents >= 0),
   deductions jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(deductions) = 'array'),
   returned_on date,
   settled_at timestamptz,
   reminded_stage smallint NOT NULL DEFAULT 0 CHECK (reminded_stage BETWEEN 0 AND 3),
+  -- When the tenant was told the landlord can now see the forwarding address (once).
+  address_shared_noticed_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT rental_deposits_settled CHECK ((settled_at IS NULL) = (returned_cents IS NULL) AND (settled_at IS NULL) = (returned_on IS NULL))
+  CONSTRAINT rental_deposits_settled CHECK ((settled_at IS NULL) = (returned_cents IS NULL) AND (settled_at IS NULL) = (returned_on IS NULL)),
+  CONSTRAINT rental_deposits_recorded CHECK ((amount_cents IS NULL) = (received_on IS NULL)),
+  CONSTRAINT rental_deposits_settled_recorded CHECK (settled_at IS NULL OR amount_cents IS NOT NULL)
 );
 ALTER TABLE public.rental_deposits ENABLE ROW LEVEL SECURITY;
 -- Q807: the table refuses a write from a session whose email is not confirmed.
 SELECT public.attach_unconfirmed_email_gate();
 REVOKE ALL ON TABLE public.rental_deposits FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.rental_deposits TO service_role;
--- No client SELECT: the forwarding address is shown to the landlord only once the tenancy ended, so every
--- read goes through rentals_deposit, which applies that rule.
+-- No client SELECT: the forwarding address is shown to the landlord only under the rule above, so every
+-- read goes through rentals_deposit, which applies it.
 COMMENT ON TABLE public.rental_deposits IS
   'Homes D6 deposit tracker (20261019082216): track only, paid directly to the landlord. Read through rentals_deposit; written by its RPCs.';
 
 -- ---------------------------------------------------------------------------
--- 2. The landlord records the deposit (amount and the day they received it).
+-- 2. The landlord records the deposit (amount and the day they received it): while the tenancy is live or
+--    within 30 days after it ended (lead review #10). A forwarding address the tenant already gave stays.
 CREATE OR REPLACE FUNCTION public.rentals_set_deposit(p_tenancy_id uuid, p_amount_cents integer, p_received_on date)
 RETURNS void
 LANGUAGE plpgsql
@@ -70,11 +82,12 @@ BEGIN
   PERFORM public.rentals_assert_member();
   v_uid := (SELECT auth.uid());
   SELECT * INTO v_t FROM public.rental_tenancies WHERE id = p_tenancy_id FOR UPDATE;
-  IF NOT FOUND OR v_t.landlord_id IS DISTINCT FROM v_uid OR v_t.status <> 'active' THEN
+  IF NOT FOUND OR v_t.landlord_id IS DISTINCT FROM v_uid
+     OR NOT (v_t.status = 'active' OR (v_t.status = 'ended' AND v_t.ended_at > now() - interval '30 days')) THEN
     RAISE EXCEPTION 'tenancy_not_found' USING ERRCODE = 'P0002';
   END IF;
   IF p_amount_cents IS NULL OR p_amount_cents NOT BETWEEN 100 AND 10000000
-     OR p_received_on IS NULL OR p_received_on > current_date OR p_received_on < current_date - 3660 THEN
+     OR p_received_on IS NULL OR p_received_on > public.shop_local_today() OR p_received_on < public.shop_local_today() - 3660 THEN
     RAISE EXCEPTION 'bad_deposit' USING ERRCODE = '22023';
   END IF;
   -- A settled deposit is final.
@@ -118,10 +131,13 @@ BEGIN
   IF char_length(v_addr) NOT BETWEEN 10 AND 300 THEN
     RAISE EXCEPTION 'bad_address' USING ERRCODE = '22023';
   END IF;
-  UPDATE public.rental_deposits SET forwarding_address = v_addr, updated_at = now()
-   WHERE tenancy_id = p_tenancy_id AND settled_at IS NULL;
+  -- Before the deposit is recorded too: the row is made without an amount (lead review #10).
+  INSERT INTO public.rental_deposits AS d (tenancy_id, forwarding_address)
+  VALUES (p_tenancy_id, v_addr)
+  ON CONFLICT (tenancy_id) DO UPDATE SET forwarding_address = EXCLUDED.forwarding_address, updated_at = now()
+   WHERE d.settled_at IS NULL;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'deposit_not_found' USING ERRCODE = 'P0002';
+    RAISE EXCEPTION 'deposit_settled' USING ERRCODE = '22023';
   END IF;
 END;
 $fn$;
@@ -160,7 +176,7 @@ BEGIN
     RAISE EXCEPTION 'tenancy_not_found' USING ERRCODE = 'P0002';
   END IF;
   SELECT * INTO v_d FROM public.rental_deposits WHERE tenancy_id = p_tenancy_id FOR UPDATE;
-  IF NOT FOUND THEN
+  IF NOT FOUND OR v_d.amount_cents IS NULL THEN
     RAISE EXCEPTION 'deposit_not_found' USING ERRCODE = 'P0002';
   END IF;
   IF v_d.settled_at IS NOT NULL THEN
@@ -189,7 +205,7 @@ BEGIN
     v_lines := v_lines || E'\n- ' || v_reason || ': ' || to_char(v_cents / 100.0, 'FM$999,999,990.00');
   END LOOP;
   IF p_returned_cents IS NULL OR p_returned_cents < 0 OR p_returned_cents + v_kept <> v_d.amount_cents
-     OR p_returned_on IS NULL OR p_returned_on > current_date OR p_returned_on < v_d.received_on THEN
+     OR p_returned_on IS NULL OR p_returned_on > public.shop_local_today() OR p_returned_on < v_d.received_on THEN
     RAISE EXCEPTION 'bad_settlement' USING ERRCODE = '22023';
   END IF;
   UPDATE public.rental_deposits
@@ -206,8 +222,9 @@ REVOKE ALL ON FUNCTION public.rentals_settle_deposit(uuid, integer, jsonb, date)
 GRANT EXECUTE ON FUNCTION public.rentals_settle_deposit(uuid, integer, jsonb, date) TO authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
--- 5. The record both sides see. The return-by date is one month after the tenancy ended. The forwarding
---    address goes to the landlord only once the tenancy has ended (the tenant always sees their own).
+-- 5. The record both sides see. The return-by date is one month after the tenancy ended. The tenant always
+--    sees their own forwarding address; the landlord only once the tenancy ended AND the tenant ended it or
+--    the lease end date passed (lead review #4; the same rule in export_my_data and the sweep's notice).
 CREATE OR REPLACE FUNCTION public.rentals_deposit(p_tenancy_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -221,6 +238,7 @@ DECLARE
   v_side text;
   v_d public.rental_deposits%ROWTYPE;
   v_due date;
+  v_visible boolean;
 BEGIN
   PERFORM public.require_feature('rentals');
   v_uid := (SELECT auth.uid());
@@ -233,31 +251,38 @@ BEGIN
     RAISE EXCEPTION 'tenancy_not_found' USING ERRCODE = 'P0002';
   END IF;
   SELECT * INTO v_d FROM public.rental_deposits WHERE tenancy_id = p_tenancy_id;
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object('side', v_side, 'tenancy_status', v_t.status, 'deposit', NULL);
-  END IF;
+  v_visible := v_t.status = 'ended'
+               AND (v_t.ended_by = 'tenant' OR (v_t.lease_ends_on IS NOT NULL AND v_t.lease_ends_on <= public.shop_local_today()));
   v_due := CASE WHEN v_t.status = 'ended' AND v_t.ended_at IS NOT NULL
                 THEN ((v_t.ended_at AT TIME ZONE 'America/Chicago')::date + interval '1 month')::date END;
   RETURN jsonb_build_object(
     'side', v_side,
     'tenancy_status', v_t.status,
-    'deposit', jsonb_build_object(
+    'ended_by', v_t.ended_by,
+    'lease_ends_on', v_t.lease_ends_on,
+    -- The landlord may still record it: live, or ended in the last 30 days, and not settled.
+    'can_record', v_side = 'landlord' AND v_d.settled_at IS NULL
+                  AND (v_t.status = 'active' OR v_t.ended_at > now() - interval '30 days'),
+    'forwarding_address', CASE WHEN v_side = 'tenant' OR v_visible THEN v_d.forwarding_address END,
+    'has_forwarding_address', v_d.forwarding_address IS NOT NULL,
+    'address_visible_to_landlord', v_visible AND v_d.forwarding_address IS NOT NULL,
+    'deposit', CASE WHEN v_d.amount_cents IS NULL THEN NULL ELSE jsonb_build_object(
       'amount_cents', v_d.amount_cents,
       'received_on', v_d.received_on,
-      'forwarding_address', CASE WHEN v_side = 'tenant' OR v_t.status = 'ended' THEN v_d.forwarding_address END,
-      'has_forwarding_address', v_d.forwarding_address IS NOT NULL,
       'return_by', v_due,
       'returned_cents', v_d.returned_cents,
       'deductions', v_d.deductions,
       'returned_on', v_d.returned_on,
-      'settled_at', v_d.settled_at));
+      'settled_at', v_d.settled_at) END);
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_deposit(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rentals_deposit(uuid) TO authenticated, service_role;
 
--- 5b. Deposits of ENDED tenancies the caller is a side of, still to settle or settled in the last 90 days:
---     the Homes screen lists them after move-out (the live-tenancy cards are gone by then).
+-- 5b. ENDED tenancies the caller is a side of whose deposit is still open: recorded and not settled,
+--     settled in the last 90 days, or not recorded yet within 30 days of the end (the landlord can still
+--     record it, the tenant can still give the address). The Homes screen lists them after move-out
+--     (the live-tenancy cards are gone by then).
 CREATE OR REPLACE FUNCTION public.rentals_my_ended_deposits()
 RETURNS TABLE (tenancy_id uuid, side text, label text, unit_label text, settled boolean)
 LANGUAGE plpgsql
@@ -275,13 +300,14 @@ BEGIN
   END IF;
   RETURN QUERY
   SELECT t.id, CASE WHEN t.landlord_id = v_uid THEN 'landlord' ELSE 'tenant' END, rp.label, u.label, d.settled_at IS NOT NULL
-    FROM public.rental_deposits d
-    JOIN public.rental_tenancies t ON t.id = d.tenancy_id
+    FROM public.rental_tenancies t
+    LEFT JOIN public.rental_deposits d ON d.tenancy_id = t.id
     JOIN public.rental_properties rp ON rp.id = t.property_id
     JOIN public.rental_units u ON u.id = t.unit_id
    WHERE t.status = 'ended'
      AND (t.landlord_id = v_uid OR t.tenant_id = v_uid)
-     AND (d.settled_at IS NULL OR d.settled_at > now() - interval '90 days')
+     AND ((d.amount_cents IS NOT NULL AND (d.settled_at IS NULL OR d.settled_at > now() - interval '90 days'))
+          OR (d.amount_cents IS NULL AND t.ended_at > now() - interval '30 days'))
    ORDER BY t.ended_at DESC;
 END;
 $fn$;
@@ -289,9 +315,12 @@ REVOKE ALL ON FUNCTION public.rentals_my_ended_deposits() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rentals_my_ended_deposits() TO authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
--- 6. The reminders (server only, daily): to the landlord of an ENDED tenancy whose deposit is not settled,
---    on the day it ended (stage 1), 7 days before the return-by date (stage 2) and on the day after it
---    passed (stage 3), once each. Friendly words; the app never sends a legal notice.
+-- 6. The reminders (server only, daily, Louisiana dates):
+--    * to the landlord of an ENDED tenancy whose recorded deposit is not settled, on the day it ended
+--      (stage 1), 7 days before the return-by date (stage 2) and on the day after it passed (stage 3),
+--      once each. Friendly words; the app never sends a legal notice;
+--    * to the tenant, once, when the landlord can now see their forwarding address (lead review #4).
+--    Skipped while the recipient is banned or Homes is off for them (lead review #8).
 CREATE OR REPLACE FUNCTION public.rentals_deposit_sweep()
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -301,15 +330,22 @@ AS $fn$
 DECLARE
   v record;
   v_due date;
-  v_today date := (now() AT TIME ZONE 'America/Chicago')::date;
+  v_today date := public.shop_local_today();
   v_stage smallint;
   v_n integer := 0;
+  v_notices integer := 0;
 BEGIN
   FOR v IN
     SELECT d.tenancy_id, d.amount_cents, d.reminded_stage, t.landlord_id, t.ended_at
       FROM public.rental_deposits d
       JOIN public.rental_tenancies t ON t.id = d.tenancy_id
-     WHERE d.settled_at IS NULL AND t.status = 'ended' AND t.ended_at IS NOT NULL AND d.reminded_stage < 3
+     WHERE d.settled_at IS NULL AND d.amount_cents IS NOT NULL
+       AND t.status = 'ended' AND t.ended_at IS NOT NULL AND d.reminded_stage < 3
+       AND public.feature_enabled_for_user('rentals', t.landlord_id)
+       AND NOT EXISTS (SELECT 1 FROM public.profiles pr
+                        WHERE pr.user_id = t.landlord_id
+                          AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
+                          AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now()))
      FOR UPDATE OF d
   LOOP
     v_due := ((v.ended_at AT TIME ZONE 'America/Chicago')::date + interval '1 month')::date;
@@ -326,7 +362,28 @@ BEGIN
       v_n := v_n + 1;
     END IF;
   END LOOP;
-  RETURN jsonb_build_object('reminders', v_n);
+  -- The tenant's notice: the landlord can now see the forwarding address (once).
+  FOR v IN
+    SELECT d.tenancy_id, t.tenant_id
+      FROM public.rental_deposits d
+      JOIN public.rental_tenancies t ON t.id = d.tenancy_id
+     WHERE d.forwarding_address IS NOT NULL AND d.address_shared_noticed_at IS NULL AND d.settled_at IS NULL
+       AND t.status = 'ended' AND t.tenant_id IS NOT NULL
+       AND (t.ended_by = 'tenant' OR (t.lease_ends_on IS NOT NULL AND t.lease_ends_on <= v_today))
+       AND public.feature_enabled_for_user('rentals', t.tenant_id)
+       AND NOT EXISTS (SELECT 1 FROM public.profiles pr
+                        WHERE pr.user_id = t.tenant_id
+                          AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
+                          AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now()))
+     FOR UPDATE OF d
+  LOOP
+    UPDATE public.rental_deposits SET address_shared_noticed_at = now(), updated_at = now() WHERE tenancy_id = v.tenancy_id;
+    PERFORM public.rentals_notify(v.tenant_id, 'Forwarding address shared',
+      'Your landlord can now see the forwarding address you gave, to send your deposit and any itemized statement. You can change it under Homes.',
+      '/rentals', false);
+    v_notices := v_notices + 1;
+  END LOOP;
+  RETURN jsonb_build_object('reminders', v_n, 'address_notices', v_notices);
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_deposit_sweep() FROM PUBLIC, anon, authenticated;
@@ -337,7 +394,7 @@ BEGIN
   IF to_regclass('public.cron_work_expectations') IS NOT NULL THEN
     INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note, work_visibility, work_exempt_reason)
     VALUES ('rentals-deposit-sweep', interval '26 hours',
-            'Homes deposit tracker (D6): daily, reminds the landlord of an ended tenancy to return the deposit (R.S. 9:3251 one-month clock).',
+            'Homes deposit tracker (D6): daily, reminds the landlord of an ended tenancy to return the deposit (R.S. 9:3251 one-month clock) and tells the tenant once when the landlord can see their forwarding address.',
             'exempt',
             'While no tenancy with a recorded deposit has ended, a run that sends nothing is the healthy state.')
     ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap, note = EXCLUDED.note,

@@ -96,6 +96,15 @@ updates:
       - dependency-name: "@rollup/plugin-terser"
       - dependency-name: "vite-plugin-pwa"
         update-types: ["version-update:semver-major"]
+      # nightly-red #2962 (2026-10-18): Playwright 1.64.x ships Linux WebKit
+      # build 2370, which stops painting once the filter sheet opens, so
+      # WebKit clicks never see their target "stable" (nightly-webkit runs
+      # 38692697851, 39131032798; bisect 38697230656, 38697854281).
+      # package.json pins 1.63.0 exactly; a newer release line is still
+      # offered so it can be re-checked.
+      # Guard: src/test/playwrightWebkitLinuxPin.test.ts.
+      - dependency-name: "@playwright/test"
+        versions: ["1.64.x"]
 
   # ---------- GitHub Actions workflows ----------
   - package-ecosystem: "github-actions"

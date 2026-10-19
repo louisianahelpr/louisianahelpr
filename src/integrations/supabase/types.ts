@@ -7408,6 +7408,8 @@ export type Database = {
           pets: string
           property_id: string
           published_at: string | null
+          removed_by_admin: boolean
+          removed_reason: string | null
           rent_cents: number | null
           rent_frequency: string
           sale_price_cents: number | null
@@ -7442,6 +7444,8 @@ export type Database = {
           pets?: string
           property_id: string
           published_at?: string | null
+          removed_by_admin?: boolean
+          removed_reason?: string | null
           rent_cents?: number | null
           rent_frequency?: string
           sale_price_cents?: number | null
@@ -7476,6 +7480,8 @@ export type Database = {
           pets?: string
           property_id?: string
           published_at?: string | null
+          removed_by_admin?: boolean
+          removed_reason?: string | null
           rent_cents?: number | null
           rent_frequency?: string
           sale_price_cents?: number | null

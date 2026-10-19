@@ -108,8 +108,18 @@ function AddPropertyForm({ onDone }: { onDone: () => void }) {
 }
 
 /** Homes -> Rent (RL1a): list a unit for rent, or open its listing. Only once ownership is approved. */
+/** A listing an admin took down: the owner sees that it is gone and why (Q2187 review #8). */
+function TakenDown({ listing }: { listing: RentalListing }) {
+  return (
+    <p role="status" className="rounded-xl bg-muted px-3 py-2 text-xs">
+      <span className="font-semibold">Removed by Louisiana Helpr.</span> {listing.removed_reason}
+    </p>
+  );
+}
+
 function UnitListingLink({ unitId, approved, listing }: { unitId: string; approved: boolean; listing: RentalListing | undefined }) {
   if (!approved) return null;
+  if (listing?.removed_by_admin) return <TakenDown listing={listing} />;
   return listing ? (
     <Link to={`/rentals/listings/${listing.id}/edit`} className="flex justify-between gap-2 pl-3 text-xs">
       <span className="text-muted-foreground">Listing: {listingStatusLabel(listing.status, listing.expires_at)}</span>
@@ -128,6 +138,7 @@ function UnitListingLink({ unitId, approved, listing }: { unitId: string; approv
  */
 function SaleListingLink({ propertyId, approved, listing }: { propertyId: string; approved: boolean; listing: RentalListing | undefined }) {
   if (!approved) return null;
+  if (listing?.removed_by_admin) return <TakenDown listing={listing} />;
   return listing ? (
     <Link to={`/rentals/listings/${listing.id}/edit`} className="flex justify-between gap-2 text-sm">
       <span className="text-muted-foreground">For sale: {listingStatusLabel(listing.status, listing.expires_at)}</span>

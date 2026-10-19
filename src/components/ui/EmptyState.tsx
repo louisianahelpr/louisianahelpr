@@ -267,6 +267,7 @@ export function EmptyState({
         <div className="w-full min-w-0 space-y-2">
           {title && (
             <p
+              data-empty-title=""
               // Upright Montserrat, the app's title face (owner, 2026-10-18 new look); was Bodoni display italic.
               className="font-sans font-bold leading-tight break-words"
               style={{

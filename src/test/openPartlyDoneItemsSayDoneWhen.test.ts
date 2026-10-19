@@ -67,7 +67,9 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 2026-10-17 (lander, batch1): Q1787 (sec-c, turnover title) is built and waits on a live look at a seeded turnover after deploy (prod has 0 str_processed_events rows).
 // 2026-10-18 (salvage of ready/sec-b-10): Q1661 (senior-scale job-card titles, built) and Q1803 (owner closed it) join; each waits on a look or a release no marker reads.
 // 2026-10-18 (salvage of ready/train-big-1016): Q2112 (robot analytics tagging, built) waits on its deploy.
+// 2026-10-19 (dashboards-build run 4): Q2205 (old Jobs/Home search surfaces deleted) waits on the nightly search specs on prod.
 const MARKERLESS_PARTLY_DONE: Record<string, string> = {
+  Q2205: "after deploy: the nightly prod-audit search specs (search-x-off-center-press, search-keeps-title, expanding-search-geometry, search-close-one-press) green on the section screens; a nightly run's per-spec verdict, which no marker kind reads",
   Q1661: "one look on the iOS simulator at accessibility-XXXL, the item's own surface (the fix was measured in Chromium with the senior-mode class); no marker kind reads a simulator screenshot",
   Q1803: "owner 2026-10-14: closed, no birthday asked on main; ticked once the next App Store build (without PhotoPrompt's wheels) is live, which no marker kind reads",
   Q2112: "after deploy: the live tag_automated_analytics_event, its trigger and analytics_events_real read back (pg_get_functiondef, pg_class ACL) and a day of robot events tagged; no marker kind reads a deployed migration's effect on new rows",

@@ -531,7 +531,18 @@ function classify(expr: ts.Node | null, ctx: Ctx): Verdict {
     // A childless component IS the whole output — follow it to its file and
     // ask the same question there.
     const spec = specifierFor(ctx.src, tag);
-    if (!spec) return { v: "fail", why: `<${tag} /> at ${here} — no import for it in this file, so nothing can see what it renders` };
+    if (!spec) {
+      // Declared in THIS file (HomeDashboard: a forwarding wrapper around its
+      // own screen, 2026-10-19): follow it here, the same question one level down.
+      const local = componentIn(ctx.src, tag);
+      if (!local) return { v: "fail", why: `<${tag} /> at ${here} — no import for it in this file, so nothing can see what it renders` };
+      const ls = returnsOf(local).map((r) =>
+        classify(r, { ...ctx, depth: ctx.depth + 1, trail: [...ctx.trail, `<${tag} /> (same file)`] }),
+      );
+      if (ls.some((r) => r.v === "shell")) return SHELL;
+      if (ls.every((r) => r.v === "none")) return { v: "none" };
+      return ls.find((r) => r.v === "fail") ?? { v: "none" };
+    }
     const target = resolveSpec(ctx.abs, spec.spec);
     if (!target)
       return {

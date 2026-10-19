@@ -11,7 +11,7 @@
  * `/home?<param>` written in src (comments blanked) must be either forwarded
  * (FEED_LINK_PARAMS) or one Home itself reads (HOME_OWN_PARAMS), exactly.
  *
- * @mutate src/pages/home/homeDashboard/feedLinkForward.ts | export const FEED_LINK_PARAMS = ["quickApply", "boosted", "boost_cancelled", "job", "cat"] as const; | export const FEED_LINK_PARAMS = ["boosted", "boost_cancelled", "job", "cat"] as const;
+ * @mutate src/pages/home/homeDashboard/feedLinkForward.ts | export const FEED_LINK_PARAMS = ["quickApply", "boosted", "boost_cancelled", "job", "cat", "wantsQuotes"] as const; | export const FEED_LINK_PARAMS = ["boosted", "boost_cancelled", "job", "cat"] as const;
  * @mutate src/pages/home/homeDashboard/feedLinkForward.ts |   p.set("tab", "browse"); |
  * @mutate src/pages/home/HomeDashboard.tsx |   if (forward) return <Navigate replace to={forward} />; |
  */

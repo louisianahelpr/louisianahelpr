@@ -68,7 +68,7 @@ describe("Applicants empty state starts at the top of its card (owner, 2026-10-0
       );
       const card = container.querySelector<HTMLElement>(".liquid-glass");
       expect(card, `${phase}: no EmptyState card rendered`).not.toBeNull();
-      const title = card!.querySelector("p.font-display")?.textContent ?? "";
+      const title = card!.querySelector("[data-empty-title]") /* the title by its hook, not its font (Montserrat since 2026-10-18) */?.textContent ?? "";
       expect(title, `${phase}: rendered no title`).not.toBe("");
       titles.add(title);
       expect(card!.className, `${phase}: the content is centred down a tall card`).toContain(

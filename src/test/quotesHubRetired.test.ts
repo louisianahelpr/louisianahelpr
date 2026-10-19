@@ -13,7 +13,7 @@
  * the request and send screens, not the hub, and stay.
  *
  * @mutate src/pages/quotes/SendQuotePage.tsx |       navigate(QUOTE_HOMES.myQuotes, { replace: true }); |       navigate("/quotes?view=mine", { replace: true });
- * @mutate src/components/DesktopSidebarNav.tsx |     ...NAV_ITEMS.slice(4),\n |     ...[{ path: "/quotes", icon: Store, label: "Quotes" }],\n    ...NAV_ITEMS.slice(4),\n
+ * @mutate src/components/DesktopSidebarNav.tsx |     PROFILE_ITEM,\n |     { path: "/quotes", icon: ShieldAlert, label: "Quotes" },\n    PROFILE_ITEM,\n
  * @mutate src/App.tsx |       <Route path="/quotes" element={<QuotesHubRedirect />} /> |       <Route path="/quotes" element={<p>Quotes</p>} />
  */
 import { describe, expect, it } from "vitest";

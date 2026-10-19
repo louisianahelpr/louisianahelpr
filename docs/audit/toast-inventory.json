@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 867,
-    "files": 216,
-    "rendering": 757,
+    "calls": 881,
+    "files": 218,
+    "rendering": 771,
     "suppressedByPolicy": 110,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 58,
-      "toast.error": 631,
+      "toast": 63,
+      "toast.error": 640,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,9 +18,9 @@
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 413,
+      "literal": 421,
       "template": 97,
-      "dynamic": 404,
+      "dynamic": 411,
       "jsx": 0
     }
   },
@@ -6396,6 +6396,216 @@
       "renders": true
     },
     {
+      "file": "src/components/rentals/LeasePanel.tsx",
+      "line": 177,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LeasePanel.tsx",
+      "line": 183,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Signed and sent. Your tenant was told."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LeasePanel.tsx",
+      "line": 187,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LeasePanel.tsx",
+      "line": 278,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Lease signed. You both can download it any time."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LeasePanel.tsx",
+      "line": 284,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LeasePanel.tsx",
+      "line": 292,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Sent to your landlord."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LeasePanel.tsx",
+      "line": 297,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LeasePanel.tsx",
+      "line": 370,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Taken back. Change it and send it again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LeasePanel.tsx",
+      "line": 373,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LeasePanel.tsx",
+      "line": 378,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LeaseSigned.tsx",
+      "line": 47,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This lease needs the newest app. Update the app and try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LeaseSigned.tsx",
+      "line": 51,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This lease's record doesn't match its words, so no PDF was made. Contact support."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LeaseSigned.tsx",
+      "line": 65,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Lease downloaded"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "file.fileName"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/LeaseSigned.tsx",
+      "line": 68,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't make the PDF. Try again."
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/rentals/MaintenanceRequestForm.tsx",
       "line": 48,
       "kind": "toast.success",
@@ -6694,7 +6904,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 379,
+      "line": 378,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6704,7 +6914,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 382,
+      "line": 381,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6746,7 +6956,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 86,
+      "line": 87,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6756,7 +6966,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 89,
+      "line": 90,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6777,7 +6987,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 203,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6798,7 +7008,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 208,
+      "line": 210,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6818,7 +7028,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 211,
+      "line": 213,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6839,7 +7049,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 217,
+      "line": 219,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6860,7 +7070,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 290,
+      "line": 297,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6870,7 +7080,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 290,
+      "line": 297,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6880,7 +7090,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 326,
+      "line": 333,
       "kind": "toast.error",
       "title": {
         "form": "literal",

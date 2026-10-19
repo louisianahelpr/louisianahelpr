@@ -87,6 +87,8 @@ describe("Activity lists page at 50 with Show older", () => {
     const src = readFileSync(join(__dirname, "..", "..", "pages", "posts", "PostedJobsTab.tsx"), "utf8");
     expect(src).toContain("moreHidden={hiddenCount > 0}");
     expect(src).toContain("if (moreHidden || !onSelectStatusFilter || others.length === 0) {");
-    expect(src.match(/onHiddenChange=\{setHiddenCount\}/g)).toHaveLength(2);
+    // One list reports hidden cards: the flat list. The "All" view is
+    // ActivityBucketGroups (Q2205), which shows its own counts + "See all".
+    expect(src.match(/onHiddenChange=\{setHiddenCount\}/g)).toHaveLength(1);
   });
 });

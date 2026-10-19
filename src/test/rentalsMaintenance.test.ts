@@ -99,12 +99,19 @@ const MEMBER_RPCS = [
   "rentals_set_deposit",
   "rentals_set_forwarding_address",
   "rentals_settle_deposit",
+  // Lease, our Louisiana template only (20261019110137).
+  "rentals_lease_save",
 ];
+/** Lease actions (20261019110137): every member gate, but the caller is read inside rentals_lease_for_action
+ *  (v_uid := auth.uid(), checked against the tenancy's landlord or tenant side; service_role only), not in the body. */
+const LEASE_ACTION_RPCS = ["rentals_lease_send", "rentals_lease_sign", "rentals_lease_request_changes", "rentals_lease_withdraw",
+  "rentals_lease_discard"];
 /** RPCs that only take access away or link a job (banned / under-18 may still leave). */
 const OTHER_RPCS = ["rentals_end_tenancy", "rentals_withdraw_request", "link_maintenance_request_job", "rentals_admin_review_property",
   "rentals_admin_review_landlord_id"];
 const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes", "rentals_visit_for_job", "rentals_browse_listings", "rentals_listing", "rentals_my_identity",
-  "rentals_browse_sale_listings", "rentals_my_listing_photos", "rentals_rent_ledger", "rentals_deposit", "rentals_my_ended_deposits"];
+  "rentals_browse_sale_listings", "rentals_my_listing_photos", "rentals_rent_ledger", "rentals_deposit", "rentals_my_ended_deposits",
+  "rentals_lease", "rentals_my_leases"];
 /** Listings helpers (20261019043000): server-only. */
 const LISTING_INTERNAL = ["rentals_listing_wording_flags", "rentals_lock_own_listing", "rentals_listing_visible", "homes_sale_wording_flags"];
 /** Slice 3 writes: visit time (the Helpr, not a Rentals member, proposes; the tenant confirms through
@@ -138,18 +145,18 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
     expect(DEFS.has("rentals_file_request")).toBe(true);
     expect(callable.size).toBeGreaterThan(10);
     expect(LATER.length).toBeGreaterThan(1);
-    expect([...callable].sort()).toEqual([...MEMBER_RPCS, ...OTHER_RPCS, ...READ_RPCS, ...VISIT_RPCS, ...POLICY_HELPERS, ...SHARED_RESTATED, ...UNGATED].sort());
+    expect([...callable].sort()).toEqual([...MEMBER_RPCS, ...LEASE_ACTION_RPCS, ...OTHER_RPCS, ...READ_RPCS, ...VISIT_RPCS, ...POLICY_HELPERS, ...SHARED_RESTATED, ...UNGATED].sort());
   });
 
   it("1. every client-callable Rentals RPC starts with require_feature('rentals')", () => {
-    const missing = [...MEMBER_RPCS, ...OTHER_RPCS, ...READ_RPCS, ...VISIT_RPCS].filter(
+    const missing = [...MEMBER_RPCS, ...LEASE_ACTION_RPCS, ...OTHER_RPCS, ...READ_RPCS, ...VISIT_RPCS].filter(
       (fn) => !/\bBEGIN\s+PERFORM\s+public\.require_feature\('rentals'\);/i.test(body(fn)),
     );
     expect(missing).toEqual([]);
   });
 
   it("2. write RPCs name is_caller_banned(), read the caller from auth.uid(), and member RPCs run the member gates", () => {
-    for (const fn of [...MEMBER_RPCS, ...VISIT_RPCS, "link_maintenance_request_job", "rentals_admin_review_property"]) {
+    for (const fn of [...MEMBER_RPCS, ...LEASE_ACTION_RPCS, ...VISIT_RPCS, "link_maintenance_request_job", "rentals_admin_review_property"]) {
       const b = body(fn);
       expect(b, `${fn} must not be STABLE/IMMUTABLE (it writes)`).not.toMatch(/\b(STABLE|IMMUTABLE)\b/i);
       expect(b, `${fn} names is_caller_banned()`).toMatch(/public\.is_caller_banned\(\)/);
@@ -158,6 +165,11 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
       expect(body(fn), fn).toContain("PERFORM public.rentals_assert_member();");
       expect(body(fn), fn).toContain("v_uid := (SELECT auth.uid());");
     }
+    for (const fn of LEASE_ACTION_RPCS) {
+      expect(body(fn), fn).toContain("PERFORM public.rentals_assert_member();");
+      expect(body(fn), fn).toMatch(/:= public\.rentals_lease_for_action\(p_lease_id, '(landlord|tenant)', '\w+'\);/);
+    }
+    expect(body("rentals_lease_for_action")).toContain("v_uid uuid := (SELECT auth.uid());");
     const gate = flat(body("rentals_assert_member"));
     expect(gate).toContain("IF v_uid IS NULL THEN RAISE EXCEPTION 'not_authenticated'");
     expect(gate).toContain("IF public.is_caller_banned() THEN");
@@ -223,7 +235,7 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
     expect(flat(body("rentals_file_request"))).toContain("pg_advisory_xact_lock(hashtext('rentals_file:' || v_uid::text))");
     expect(flat(body("rentals_invite_tenant"))).toContain("IF NOT public.is_identity_verified(v_uid) THEN RAISE EXCEPTION 'identity_not_verified'");
     // Filing never creates a job (the noJobRowBeforePayment rule): the landlord posts and pays.
-    for (const fn of [...MEMBER_RPCS, ...OTHER_RPCS]) expect(body(fn), fn).not.toMatch(/INSERT\s+INTO\s+public\.jobs\b/i);
+    for (const fn of [...MEMBER_RPCS, ...LEASE_ACTION_RPCS, ...OTHER_RPCS]) expect(body(fn), fn).not.toMatch(/INSERT\s+INTO\s+public\.jobs\b/i);
   });
 
   it("4. no client role writes a Rentals table; internal helpers are server-only", () => {

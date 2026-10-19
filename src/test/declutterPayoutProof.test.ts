@@ -298,6 +298,13 @@ describe("declutter-payout-proof.yml", () => {
   it("runs the restore check on the proof's money", () => {
     expect(steps.some((s) => (s.run ?? "").includes("check-stripe-restore-drift.mjs") && (s.run ?? "").includes("--mode test"))).toBe(true);
   });
+  it("never waits on the first match of an .or() chain (the open Card button overlay never reads visible)", () => {
+    // Run 39342447913: `card.or(cardButton).or(radio).or(submit).first().waitFor(visible)` sat 60 s on
+    // the zero-size card-accordion-item-button overlay while the card fields were drawn.
+    const code = readFileSync(join(ROOT, "scripts/e2e/declutterPayoutProof.mjs"), "utf8").split("\n").filter((l) => !/^\s*\/\//.test(l)).join("\n");
+    expect(code).not.toMatch(/\.or\([^\n]*\.first\(\)\.waitFor\(/);
+    expect(code).toMatch(/for \(const l of \[card, cardItem, radio, submit\]\) if \(await l\.first\(\)\.isVisible\(\)/);
+  });
   it("the script unlinks with the same fields seatStripeAccounts --restore clears", () => {
     const src = readFileSync(join(ROOT, "scripts/e2e/declutterPayoutProof.mjs"), "utf8");
     expect(src).toContain('import { RESET_FIELDS } from "./seatStripeAccounts.mjs"');

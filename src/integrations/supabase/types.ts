@@ -7409,6 +7409,7 @@ export type Database = {
           property_id: string
           published_at: string | null
           removed_by_admin: boolean
+          removed_from_status: string | null
           removed_reason: string | null
           rent_cents: number | null
           rent_frequency: string
@@ -7445,6 +7446,7 @@ export type Database = {
           property_id: string
           published_at?: string | null
           removed_by_admin?: boolean
+          removed_from_status?: string | null
           removed_reason?: string | null
           rent_cents?: number | null
           rent_frequency?: string
@@ -7481,6 +7483,7 @@ export type Database = {
           property_id?: string
           published_at?: string | null
           removed_by_admin?: boolean
+          removed_from_status?: string | null
           removed_reason?: string | null
           rent_cents?: number | null
           rent_frequency?: string
@@ -7518,6 +7521,8 @@ export type Database = {
           created_at: string
           id: string
           label: string
+          listings_taken_down_at: string | null
+          listings_taken_down_reason: string | null
           owner_id: string
           ownership_proof_path: string | null
           ownership_review_note: string | null
@@ -7535,6 +7540,8 @@ export type Database = {
           created_at?: string
           id?: string
           label: string
+          listings_taken_down_at?: string | null
+          listings_taken_down_reason?: string | null
           owner_id: string
           ownership_proof_path?: string | null
           ownership_review_note?: string | null
@@ -7552,6 +7559,8 @@ export type Database = {
           created_at?: string
           id?: string
           label?: string
+          listings_taken_down_at?: string | null
+          listings_taken_down_reason?: string | null
           owner_id?: string
           ownership_proof_path?: string | null
           ownership_review_note?: string | null

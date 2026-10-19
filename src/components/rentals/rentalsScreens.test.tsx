@@ -415,15 +415,27 @@ describe("Rentals screens", () => {
       expect(sell.getAttribute("href")).toBe("/rentals/listings/new?sell=p1");
     });
 
-    it("a listing an admin took down stays in the owner's list with the reason, and no Sell this home in its place (Q2187)", async () => {
+    it("a property an admin took down shows the reason once, from the property, with no way to list on it (Q2187, lead must-fix 3)", async () => {
       state.identity = { verified: true, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
-      state.properties = [{ ...NEEDS_PROOF, ownership_status: "approved" }];
-      state.myListings = [{ id: "l9", kind: "sale", property_id: "p1", unit_id: null, status: "removed", removed_by_admin: true,
-        removed_reason: "Photos do not show this home.", expires_at: null }];
+      state.properties = [{ ...NEEDS_PROOF, ownership_status: "approved", listings_taken_down_at: "2026-10-19T07:00:00Z",
+        listings_taken_down_reason: "Photos do not show this home." }];
+      state.myListings = [];
       renderAt("/rentals");
-      expect(await screen.findByText("Removed by Louisiana Helpr.")).toBeTruthy();
+      expect(await screen.findByText("Listings removed by Louisiana Helpr.")).toBeTruthy();
       expect(screen.getByText(/Photos do not show this home\./)).toBeTruthy();
       expect(screen.queryByRole("link", { name: "Sell this home" })).toBeNull();
+    });
+
+    it("the owner's CURRENT listing shows (an old removed row never hides it; the list holds no removed rows)", async () => {
+      state.identity = { verified: true, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
+      state.properties = [{ ...NEEDS_PROOF, ownership_status: "approved", listings_taken_down_at: null, listings_taken_down_reason: null }];
+      state.myListings = [{ id: "l10", kind: "sale", property_id: "p1", unit_id: null, status: "live", removed_by_admin: false,
+        removed_reason: null, expires_at: "2026-11-18T00:00:00Z" }];
+      renderAt("/rentals");
+      expect(await screen.findByText(/For sale:/)).toBeTruthy();
+      expect(screen.queryByText("Listings removed by Louisiana Helpr.")).toBeNull();
+      const lib = (await import("node:fs")).readFileSync("src/lib/rentals/listings.ts", "utf8");
+      expect(lib).toMatch(/\.eq\("owner_id", uid\)\.neq\("status", "removed"\)/);
     });
 
     it("the back is optional: front + proof is enough", async () => {

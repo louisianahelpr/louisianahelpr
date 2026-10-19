@@ -36,7 +36,8 @@ export function BrowseEndCard({
   return (
     <div data-testid="browse-end-card" className="pt-2 pb-4">
       <EmptyState
-        variant="inline"
+        // Bare, like every Browse's empty state (owner, 2026-10-19: one style, Homes').
+        variant="bare"
         icon={CheckCircle2}
         title={onWiden ? "That's everything nearby." : "That's everything for now."}
         body={body}

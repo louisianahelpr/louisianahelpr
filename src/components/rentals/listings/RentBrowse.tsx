@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Home, Search, SlidersHorizontal, X } from "lucide-react";
+import { Home } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LISTING_GRID, ListingCardBone } from "./listingBones";
@@ -15,6 +15,7 @@ import { useRefreshOnExpiredRef } from "./useRefreshOnExpiredRef";
 import { availableLine, bedsBathsLine, priceLine, rentLine } from "@/lib/rentals/listingCopy";
 import { dollarsToCents } from "@/lib/rentals/copy";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
+import { SectionSearchRow } from "@/components/sections/SectionSearchRow";
 
 /**
  * Homes -> Rent: homes for rent (RL1a). Live listings, filtered by FACTS about
@@ -125,10 +126,27 @@ const SALE: BrowseKind = {
     })),
 };
 
-export const RentBrowse = () => <ListingsBrowse kind={RENT} />;
-export const SaleBrowse = () => <ListingsBrowse kind={SALE} />;
+/** Rent (default) or Buy, chosen in the filter sheet (owner, 2026-10-19). */
+export type HomesKind = "rent" | "buy";
 
-function ListingsBrowse({ kind }: { kind: BrowseKind }) {
+const KINDS: { value: HomesKind; label: string }[] = [
+  { value: "rent", label: "Rent" },
+  { value: "buy", label: "Buy" },
+];
+
+/**
+ * Homes > Browse: one screen for Rent and Buy. Rent or Buy is the FIRST choice
+ * in the filter sheet (owner, 2026-10-19: the Rent | Buy pill row under the
+ * toggle went away, so Homes has exactly the rows every section has). While
+ * Buy is on, the search row says so ("Homes for sale: City or ZIP") and the
+ * filter button counts it. `intro` is Buy's verified-owners line.
+ */
+export function HomesListings({ homes, onKind, intro }: { homes: HomesKind; onKind: (k: HomesKind) => void; intro?: ReactNode }) {
+  return <ListingsBrowse key={homes} kind={homes === "buy" ? SALE : RENT} onKind={onKind} intro={intro} />;
+}
+
+function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k: HomesKind) => void; intro?: ReactNode }) {
+  const buy = kind.key === "sale";
   const [place, setPlace] = useState("");
   const [city, setCity] = useState("");
   const [minBeds, setMinBeds] = useState<number | null>(null);
@@ -145,58 +163,27 @@ function ListingsBrowse({ kind }: { kind: BrowseKind }) {
     queryKey: [kind.key === "rent" ? "rentals-browse" : "rentals-browse-sale", applied],
     queryFn: () => kind.fetch(applied),
   });
-  const activeFilters = (minBeds != null ? 1 : 0) + (maxCents != null ? 1 : 0);
+  // Buy counts as a filter, so the button wears its badge while it is on.
+  const activeFilters = (buy ? 1 : 0) + (minBeds != null ? 1 : 0) + (maxCents != null ? 1 : 0);
   const clearFilters = () => {
     setMinBeds(null);
     setMaxRent("");
+    if (buy) onKind("rent");
   };
   return (
     <section aria-label={kind.key === "rent" ? "Homes for rent" : "Homes for sale"} className="space-y-4">
-      <form
-        role="search"
-        aria-label={`Search ${kind.noun}`}
-        className="flex h-11 items-center gap-2 rounded-full border border-border bg-card pl-3.5 pr-1"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setCity(place.trim());
-        }}
-      >
-        <Search className="h-[18px] w-[18px] shrink-0 text-muted-foreground" aria-hidden />
-        <input
-          type="search"
-          value={place}
-          onChange={(e) => setPlace(e.target.value)}
-          placeholder="City or ZIP"
-          aria-label="City or ZIP"
-          enterKeyHint="search"
-          className="min-w-0 flex-1 bg-transparent text-ds-15 outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
-        />
-        {place && (
-          <button
-            type="button"
-            aria-label="Clear search"
-            onClick={() => setPlace("")}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground"
-          >
-            <X className="h-4 w-4" aria-hidden />
-          </button>
-        )}
-        <button
-          ref={filtersButtonRef}
-          type="button"
-          onClick={() => setFiltersOpen(!filtersOpen)}
-          aria-label={activeFilters ? `Filters (${activeFilters} active)` : "Filters"}
-          aria-expanded={filtersOpen}
-          className={`btn-press relative flex h-9 w-9 items-center justify-center rounded-full ${activeFilters || filtersOpen ? "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]" : "text-muted-foreground"}`}
-        >
-          <SlidersHorizontal className="h-[18px] w-[18px]" aria-hidden />
-          {activeFilters > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-ds-9 font-bold text-primary-foreground">
-              {activeFilters}
-            </span>
-          )}
-        </button>
-      </form>
+      <SectionSearchRow
+        searchLabel={`Search ${kind.noun}`}
+        value={place}
+        onChange={setPlace}
+        onSubmit={() => setCity(place.trim())}
+        placeholder={buy ? "Homes for sale: City or ZIP" : "City or ZIP"}
+        filterCount={activeFilters}
+        filtersOpen={filtersOpen}
+        onFilters={() => setFiltersOpen(!filtersOpen)}
+        filtersButtonRef={filtersButtonRef}
+      />
+      {intro}
       <FilterSheet
         open={filtersOpen}
         onOpenChange={setFiltersOpen}
@@ -204,6 +191,28 @@ function ListingsBrowse({ kind }: { kind: BrowseKind }) {
         activeFilterCount={activeFilters}
         onClearAll={clearFilters}
         sections={[
+          {
+            key: "kind",
+            title: "Homes to",
+            content: (
+              <div role="group" aria-label="Rent or buy" className={chipStyles.chipRow}>
+                {KINDS.map((k) => (
+                  <button
+                    key={k.value}
+                    type="button"
+                    aria-pressed={(buy ? "buy" : "rent") === k.value}
+                    onClick={() => {
+                      hapticLight();
+                      onKind(k.value);
+                    }}
+                    className={`${chipStyles.chipBase} ${(buy ? "buy" : "rent") === k.value ? chipStyles.chipActive : chipStyles.chipIdle}`}
+                  >
+                    {k.label}
+                  </button>
+                ))}
+              </div>
+            ),
+          },
           {
             key: "beds",
             title: "Bedrooms",

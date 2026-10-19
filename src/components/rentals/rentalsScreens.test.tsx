@@ -689,9 +689,13 @@ describe("Rentals screens", () => {
         { id: "ta", unit_id: "u9", status: "active", accepted_at: "2026-10-16T12:00:00Z", invite_expires_at: "2026-10-30T12:00:00Z", created_at: "2026-10-16T11:00:00Z" },
         { id: "ti", unit_id: "u9", status: "invited", accepted_at: null, invite_expires_at: "2099-10-30T12:00:00Z", created_at: "2026-10-17T11:00:00Z" },
       ];
-      renderAt("/rentals");
+      // Main's Renting | Owning tabs: the home rented on Renting, the connected unit on Owning.
+      const { unmount } = renderAt("/rentals?tab=own");
       await screen.findByText(/Tenant connected/);
-      expect(screen.getAllByTestId("rent-panel").map((e) => e.textContent).sort()).toEqual(["rent t1", "rent ta"]);
+      expect(screen.getAllByTestId("rent-panel").map((e) => e.textContent)).toEqual(["rent ta"]);
+      unmount();
+      renderAt("/rentals?tab=rent");
+      expect((await screen.findAllByTestId("rent-panel")).map((e) => e.textContent)).toEqual(["rent t1"]);
     });
 
     it("D6: the deposit shows beside the rent record, and a moved-out tenancy's deposit stays on the right side until settled", async () => {
@@ -703,13 +707,16 @@ describe("Rentals screens", () => {
         { tenancy_id: "old-l", side: "landlord", label: "Elm", unit_label: "B", settled: false },
         { tenancy_id: "old-t", side: "tenant", label: "Pine", unit_label: "", settled: true },
       ];
-      renderAt("/rentals");
+      const { unmount } = renderAt("/rentals?tab=own");
       await screen.findByText(/Tenant connected/);
-      expect(screen.getAllByTestId("deposit-panel").map((e) => e.textContent).sort()).toEqual(["deposit old-l", "deposit old-t", "deposit t1", "deposit ta"]);
-      const rent = screen.getByRole("region", { name: "Homes you rent" });
+      expect(screen.getAllByTestId("deposit-panel").map((e) => e.textContent).sort()).toEqual(["deposit old-l", "deposit ta"]);
       const own = screen.getByRole("region", { name: "Properties you own" });
-      expect(within(rent).getByText(/Pine/).closest("[data-testid=moved-out-deposit]")).toBeTruthy();
       expect(within(own).getByText(/Elm, B/).closest("[data-testid=moved-out-deposit]")).toBeTruthy();
+      unmount();
+      renderAt("/rentals?tab=rent");
+      expect((await screen.findAllByTestId("deposit-panel")).map((e) => e.textContent).sort()).toEqual(["deposit old-t", "deposit t1"]);
+      const rent = screen.getByRole("region", { name: "Homes you rent" });
+      expect(within(rent).getByText(/Pine/).closest("[data-testid=moved-out-deposit]")).toBeTruthy();
     });
 
     it("closing the confirm ends nothing", async () => {

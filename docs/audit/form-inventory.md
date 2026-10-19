@@ -264,10 +264,12 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
+| `src/components/rentals/DepositPanel.tsx` | input×6, date/calendar×2 | text, date |  | Record the deposit · Deposit amount in dollars · Deposit ($) · Day you received it · Forwarding address · Settle the deposit · What for (e.g. carpet cleaning) · deposit-statement |
 | `src/components/rentals/LandlordIdReview.tsx` | input×1 | file |  |  |
 | `src/components/rentals/listings/RentBrowse.tsx` | input×2 | search, text |  | City or ZIP · Clear search · Bedrooms · Any amount |
 | `src/components/rentals/MaintenanceRequestForm.tsx` | input×4, textarea×1, select×2, checkbox/switch/radio×2 | radio, file, text | 2000, 300, 500 | Repair request · e.g. weekdays after 5pm |
-| `src/components/rentals/RentalsHomeView.tsx` | input×6 | text |  | Property name · Name (e.g. Oak Street duplex) · Street address · City · ZIP code · ZIP · New unit name · Unit name (e.g. Apt 2) |
+| `src/components/rentals/RentalsHomeView.tsx` | input×6 | text |  | Property name · Name (e.g. Oak Street duplex) · Street address · City · ZIP code · ZIP · moved-out-deposit · New unit name |
+| `src/components/rentals/RentPanel.tsx` | input×13, select×2, date/calendar×4 | text, date, checkbox |  | rent-balance · Rent schedule · Rent amount in dollars · Rent ($) · How often · Grace days · Late fee in dollars · Late fee ($) |
 
 ## /rentals/listings/new, /rentals/listings/:id/edit
 

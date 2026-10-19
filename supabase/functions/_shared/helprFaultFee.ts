@@ -161,7 +161,9 @@ export async function restoreHelprFaultFeeForJob(supabaseAdmin: Db, jobId: strin
   try {
     const { data, error } = await supabaseAdmin.rpc("restore_helpr_fault_fee_for_job", { p_job_id: jobId });
     if (error) {
-      if (error.code !== "PGRST202") {
+      if (error.code === "PGRST202") {
+        console.warn(`[${source}] restore_helpr_fault_fee_for_job not deployed yet: job ${jobId}'s Helpr-fault deduction not re-checked`);
+      } else {
         console.error(
           `CRITICAL: [${source}] job ${jobId} ended with no payout, and the Helpr-fault card fee its payout attempt withheld could not be given back: the debt reads collected but nothing was withheld; money-reconciliation will page it:`,
           error,

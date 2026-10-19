@@ -23,7 +23,9 @@
  * Runs the REAL handler sources through the edge harness.
  *
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | await restoreHelprFaultFeeForJob(supabase, String(refundedJob.id), "stripe-webhook charge.refunded"); | void 0;
- * @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | if (recordedFullyReversed && reversedLedger?.job_id) { | if (reversedLedger?.job_id) {
+ * @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | if (recordedFullyReversed && reversedLedger?.job_id && !ours.error) { | if (reversedLedger?.job_id && !ours.error) {
+ * @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | if (recordedFullyReversed && reversedLedger?.job_id && !ours.error) { | if (recordedFullyReversed && reversedLedger?.job_id) {
+ * @mutate supabase/functions/money-reconciliation/index.ts | ((p.metadata ?? {}).fully_reversed !== true \|\| | ((p.metadata ?? {}).fully_reversed !== "never" \|\|
  * @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | await restoreHelprFaultFeeForJob(supabase, String(reversedLedger.job_id), "stripe-webhook transfer.reversed"); | void 0;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | await restoreHelprFaultFeeForJob(supabase, String(closedJob.id), "stripe-webhook charge.dispute.closed lost"); | void 0;
  * @mutate supabase/functions/money-reconciliation/index.ts | (p.status === "paid" \|\| p.status === "reversed") && | (p.status === "paid" \|\| p.status === "reversed" \|\| p.status === "pending") &&
@@ -124,6 +126,14 @@ describe("transfer.reversed gives it back only on a FULL reversal that is not a 
     expect(restoreCalls()).toHaveLength(0);
   });
 
+  it("an unreadable clawback lookup gives nothing back (it may be a clawback a won dispute repays)", async () => {
+    const fn = await loadWebhook();
+    reversed("evt_hf_rev_lookupfail", { reversed: true, amount_reversed: 4631 });
+    scenario.reads.chargeback_clawbacks = { error: { message: "connection reset" } };
+    await post(fn);
+    expect(restoreCalls()).toHaveLength(0);
+  });
+
   it("a card-dispute clawback is not given back (a won dispute repays it net of the fee)", async () => {
     const fn = await loadWebhook();
     reversed("evt_hf_rev_claw", { reversed: true, amount_reversed: 4631 });
@@ -208,6 +218,20 @@ describe("money-reconciliation: helpr_fault_deduction_not_collected", () => {
     const f = finding(b);
     expect(f).toMatchObject({ severity: "critical", count: 1 });
     expect(f!.sample[0]).toMatchObject({ job_id: "job-x", helper_id: "h-1", ruling_id: "rul-1", payout_rows: "pending" });
+  });
+
+  it("pages for a FULLY reversed payout (it collected nothing) unless a won dispute re-paid it", async () => {
+    let fn = await loadRecon();
+    seed(5, [{ job_id: "job-x", helper_id: "h-1", status: "reversed", stripe_transfer_id: "tr_o", amount_cents: 4600, metadata: { helpr_fault_fee_cents: 369, fully_reversed: true } }]);
+    expect(finding(await run(fn))).toMatchObject({ count: 1 });
+
+    resetSupabaseMock(); resetSharedMocks(); resetStripeMock();
+    fn = await loadRecon();
+    seed(5, [
+      { job_id: "job-x", helper_id: "h-1", status: "reversed", stripe_transfer_id: "tr_o", amount_cents: 4600, metadata: { helpr_fault_fee_cents: 369, fully_reversed: true } },
+      { job_id: "job-x", helper_id: "h-1", status: "paid", stripe_transfer_id: "tr_repay", amount_cents: 4600, metadata: { original_transfer_id: "tr_o" } },
+    ]);
+    expect(finding(await run(fn))).toBeUndefined();
   });
 
   it("pages when the paid row records no withheld fee", async () => {

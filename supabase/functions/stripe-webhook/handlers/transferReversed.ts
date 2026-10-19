@@ -145,8 +145,11 @@ export async function handleTransferReversed(
 
   // Every cent of a job payout came back (a reversal by hand): the
   // Helpr-fault card fee it withheld was not collected, so the debt is owed
-  // again. A partial reversal keeps it (money-reconciliation pages it).
-  if (recordedFullyReversed && reversedLedger?.job_id) {
+  // again. A partial reversal keeps it (money-reconciliation pages it). Not
+  // when the clawback lookup failed: this may be a dispute clawback a won
+  // dispute repays net of the fee (the Helpr would pay it twice);
+  // money-reconciliation pages a deduction left uncollected.
+  if (recordedFullyReversed && reversedLedger?.job_id && !ours.error) {
     await restoreHelprFaultFeeForJob(supabase, String(reversedLedger.job_id), "stripe-webhook transfer.reversed");
   }
 

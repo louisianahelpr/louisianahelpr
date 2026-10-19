@@ -1708,12 +1708,12 @@ serve(async (req) => {
         const jobIds = [...new Set(dedRows.map((d) => String(d.payout_ref).slice("job_payout_".length)))];
         const [rulRes, ptRes] = await Promise.all([
           admin.from("job_helpr_fault_rulings").select("id, helper_id, job_id").in("id", rulingIds),
-          admin.from("payout_transfers").select("job_id, helper_id, status, metadata").in("job_id", jobIds),
+          admin.from("payout_transfers").select("job_id, helper_id, status, stripe_transfer_id, metadata").in("job_id", jobIds),
         ]);
         if (rulRes.error) throw new Error(`money-reconciliation: job_helpr_fault_rulings read failed: ${rulRes.error.message}`);
         if (ptRes.error) throw new Error(`money-reconciliation: payout_transfers read (helpr-fault deductions) failed: ${ptRes.error.message}`);
         const helperByRuling = new Map(((rulRes.data ?? []) as Array<{ id: string; helper_id: string | null }>).map((r) => [String(r.id), r.helper_id]));
-        type PtRow = { job_id: string; helper_id: string | null; status: string; metadata: Record<string, unknown> | null };
+        type PtRow = { job_id: string; helper_id: string | null; status: string; stripe_transfer_id?: string | null; metadata: Record<string, unknown> | null };
         const ptRows = (ptRes.data ?? []) as PtRow[];
         for (const d of dedRows) {
           const jobId = String(d.payout_ref).slice("job_payout_".length);
@@ -1722,7 +1722,13 @@ serve(async (req) => {
             String(p.job_id) === jobId &&
             (helperId === null || p.helper_id === helperId) &&
             (p.status === "paid" || p.status === "reversed") &&
-            Number((p.metadata ?? {}).helpr_fault_fee_cents ?? 0) > 0
+            Number((p.metadata ?? {}).helpr_fault_fee_cents ?? 0) > 0 &&
+            // A FULLY reversed payout collected nothing (lh-silent-failure
+            // review of the job-end give-back #1) unless a won dispute re-paid
+            // it (the re-pay is net of the fee): a paid row naming it.
+            ((p.metadata ?? {}).fully_reversed !== true ||
+              ptRows.some((q) => q.status === "paid" && p.stripe_transfer_id != null &&
+                (q.metadata ?? {}).original_transfer_id === p.stripe_transfer_id))
           );
           if (!withheld) {
             checks.helprFaultDeductionNotCollected.add({

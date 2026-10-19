@@ -21,7 +21,7 @@ function ListingCard({ l }: { l: BrowseListing }) {
   return (
     <Link
       to={`/rentals/listings/${l.id}`}
-      className="group block overflow-hidden rounded-2xl border border-border bg-card transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group block overflow-hidden rounded-2xl border border-border bg-card ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {cover ? (
         <img src={listingPhotoUrl(cover)} alt="" className="aspect-[4/3] w-full bg-muted object-cover" loading="lazy" />

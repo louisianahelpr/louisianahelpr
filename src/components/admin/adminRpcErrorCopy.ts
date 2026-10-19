@@ -47,7 +47,7 @@ export const ADMIN_RPC_ERROR_COPY = {
     helper_required: "Pick the Helpr whose payouts to hold.",
     reason_required: "Add a reason for the hold. Other admins see it.",
   },
-  // Shops M4 (20261019043209): the Shops orders queue.
+  // Shops M4 (20261019071055): the Shops orders queue.
   shops_admin_queue: {
     admin_only: "Only admins can see the Shops queue.",
   },

@@ -1,6 +1,6 @@
 /**
  * Cancelling an ACCEPTED, charged Shops order (Shops M3, migration
- * 20261019043209_shops_refunds_cancels_strikes; spec O2, O3, L42).
+ * 20261019071055_shops_refunds_cancels_strikes; spec O2, O3, L42).
  *
  *   Buyer: "Cancel order". The dialog reads shops_order_cancel_quote first and
  *          says plainly what happens: inside the shop's free-cancel time the

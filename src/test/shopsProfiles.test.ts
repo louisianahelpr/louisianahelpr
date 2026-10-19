@@ -135,7 +135,7 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
     const HANDOVER = blankSqlComments(readFileSync(join(MIG_DIR, "20261018211820_shops_handover_payout.sql"), "utf8"));
     const READY_TAP = blankSqlComments(readFileSync(join(MIG_DIR, "20261019015018_shop_ready_tap_cancel_choice.sql"), "utf8"));
     const FAQS = blankSqlComments(readFileSync(join(MIG_DIR, "20261019072541_shops_faqs.sql"), "utf8"));
-    const REFUNDS = blankSqlComments(readFileSync(join(MIG_DIR, "20261019043209_shops_refunds_cancels_strikes.sql"), "utf8"));
+    const REFUNDS = blankSqlComments(readFileSync(join(MIG_DIR, "20261019071055_shops_refunds_cancels_strikes.sql"), "utf8"));
     const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP + FAQS + REFUNDS).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
     raised.add("feature_disabled"); // require_feature's code
     // shop-checkout's own answer when Stripe refuses the pickup address (M1b part 2), not a SQL code.

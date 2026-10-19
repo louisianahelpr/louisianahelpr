@@ -1,5 +1,5 @@
 /**
- * Admin > Shops Orders (Shops M4, migration 20261019043209), rendered through
+ * Admin > Shops Orders (Shops M4, migration 20261019071055), rendered through
  * the admin page's own view switch entry:
  *
  *  1. The view is a real admin view (Admin.tsx case "shops", the rail's

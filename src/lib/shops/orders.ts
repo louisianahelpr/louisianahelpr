@@ -237,7 +237,7 @@ export async function cancelOrderRequest(orderId: string): Promise<void> {
   await invokeShopCheckout({ action: "cancel", order_id: orderId });
 }
 
-/** What a buyer's cancel of an accepted order would do now (shops_order_cancel_quote, 20261019043209). */
+/** What a buyer's cancel of an accepted order would do now (shops_order_cancel_quote, 20261019071055). */
 export interface CancelQuote {
   can_cancel: boolean;
   free?: boolean;

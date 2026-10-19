@@ -1,5 +1,5 @@
 /**
- * Shops M3 (20261019043209_shops_refunds_cancels_strikes): the static half of the
+ * Shops M3 (20261019071055_shops_refunds_cancels_strikes): the static half of the
  * refund/cancel guards. Reads the NEWEST definition of each function (any dollar
  * tag, src/test/helpers/effectiveFunctionDefs.ts), comments blanked.
  *
@@ -15,9 +15,9 @@
  * Behaviour (red/green, 3x replay): src/test/pglite/shopsRefunds.pglite.mjs.
  * Stripe call order and keys, executed: src/test/edge/shop-refunds.test.ts.
  *
- * @mutate supabase/migrations/20261019043209_shops_refunds_cancels_strikes.sql |   SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;\n  IF NOT FOUND OR o.buyer_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  o := public.shop_lock_open_charged_order(o.id, false);\n  -- 2. |
- * @mutate supabase/migrations/20261019043209_shops_refunds_cancels_strikes.sql |     WHEN reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee'\n    ELSE 'full_platform_absorbs' END), |     ELSE 'full_platform_absorbs' END),
- * @mutate supabase/migrations/20261019043209_shops_refunds_cancels_strikes.sql |     ELSE ceil(kept_cents::numeric * tax_cents / (paid_cents - tax_cents))::integer END), |     ELSE 0 END),
+ * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |   SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;\n  IF NOT FOUND OR o.buyer_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  o := public.shop_lock_open_charged_order(o.id, false);\n  -- 2. |
+ * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     WHEN reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee'\n    ELSE 'full_platform_absorbs' END), |     ELSE 'full_platform_absorbs' END),
+ * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     ELSE ceil(kept_cents::numeric * tax_cents / (paid_cents - tax_cents))::integer END), |     ELSE 0 END),
  * @mutate supabase/functions/shop-checkout/index.ts |   const { data, error } = await asShop.rpc("shops_shop_cancel_order", { p_order_id: orderId, p_reason: reason });\n  if (error) return rpcRefusal(error);\n  const d = data as DecidedRow;\n  const refund = await sendRefundNow(admin, orderId, d?.refund_id); |   const refund = await sendRefundNow(admin, orderId, null);\n  const { data, error } = await asShop.rpc("shops_shop_cancel_order", { p_order_id: orderId, p_reason: reason });\n  if (error) return rpcRefusal(error);\n  const d = data as DecidedRow;
  */
 import { describe, expect, it } from "vitest";
@@ -28,7 +28,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");
-const MIG = blankSqlComments(readFileSync(join(MIG_DIR, "20261019043209_shops_refunds_cancels_strikes.sql"), "utf8"));
+const MIG = blankSqlComments(readFileSync(join(MIG_DIR, "20261019071055_shops_refunds_cancels_strikes.sql"), "utf8"));
 const DEFS = effectiveDefs(MIG_DIR);
 /** The body after AS $tag$ (the header names the function itself). */
 const body = (name: string) => {

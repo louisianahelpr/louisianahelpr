@@ -123,7 +123,7 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   order_not_payable: "This order can't be paid any more. Start a new order.",
   order_not_accepted: "This order isn't accepted yet.",
   variant_not_available: "That option isn't available. Pick the item without it.",
-  // M3 (20261019043209): refunds, cancels and strikes.
+  // M3 (20261019071055): refunds, cancels and strikes.
   invalid_expect: "Something changed. Reload the order and try again.",
   cancel_terms_changed: "The free-cancel time for this order has changed. Look again before cancelling.",
   order_final: "This order was picked up and is final.",
@@ -131,7 +131,7 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   too_early_for_no_show: "You can report a no-show once the ready date is over.",
   refund_not_found: "This refund isn't available.",
   invalid_refund: "We couldn't send this refund just now. We'll try again.",
-  // M4 admin tools (20261019043209).
+  // M4 admin tools (20261019071055).
   admin_only: "Only admins can do that.",
   invalid_side: "Pick the buyer or the shop.",
   strike_not_found: "That strike was already removed or has ended. Refresh the list.",

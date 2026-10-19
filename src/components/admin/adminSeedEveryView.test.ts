@@ -90,7 +90,7 @@ const VIEWS: Record<string, Rule> = {
  *  shared job column list (which AdminJobs selects). */
 // readJobsAheadOfDb("<columns>", ...) is a jobs select that retries without a column the
 // database does not have yet (src/lib/jobColumns.ts); its column list counts like select's.
-// shops_admin_queue (20261019043209) returns each row's order is_seed itself (o.is_seed / k.is_seed in its SELECTs).
+// shops_admin_queue (20261019071055) returns each row's order is_seed itself (o.is_seed / k.is_seed in its SELECTs).
 const RESOLVES_SEED = /rpc\("shops_admin_queue"\)|fetchSeedUserIds\(\s*\w|(?:select|readJobsAheadOfDb)\(\s*["`][^"`]*\bis_seed\b|from\("profiles"\)\s*\.select\("\*"\)|^\s*"is_seed",$/m;
 
 /** The `case "<id>":` labels of Admin.tsx's view switch, read from source. */

@@ -106,7 +106,7 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "referrals", label: "Referrals", icon: Gift },
       { id: "payouts", label: "Payout Batches", icon: Banknote },
       { id: "tiers", label: "Helpr Tiers", icon: Award },
-      // Shops M4 (20261019043209): Shops order problems, refunds, payouts and strikes.
+      // Shops M4 (20261019071055): Shops order problems, refunds, payouts and strikes.
       { id: "shops", label: "Shops Orders", icon: Store },
     ],
   },

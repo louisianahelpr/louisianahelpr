@@ -340,7 +340,7 @@ export const SHOPS_RPC_ERROR_COPY = {
     order_not_found: SC.order_not_found,
     problem_open: SC.problem_open,
   },
-  // M3 (20261019043209): what a buyer's cancel would do now (read only).
+  // M3 (20261019071055): what a buyer's cancel would do now (read only).
   shops_order_cancel_quote: {
     not_authenticated: SC.not_authenticated,
     order_not_found: SC.order_not_found,

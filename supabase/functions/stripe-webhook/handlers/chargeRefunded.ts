@@ -110,7 +110,7 @@ export async function handleChargeRefunded(
     logStep("Declutter refund: recorded and announced by its own path", { chargeId: charge.id });
     return;
   }
-  // Shops (M3, 20261019043209): its refunds are decided, recorded (shop_refunds)
+  // Shops (M3, 20261019071055): its refunds are decided, recorded (shop_refunds)
   // and announced by their own RPCs; a Shops charge is not a job.
   if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_refund")) {
     logStep("Shops refund: recorded and announced by its own path", { chargeId: charge.id });

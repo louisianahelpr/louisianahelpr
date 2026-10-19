@@ -2,7 +2,7 @@
 // buyer's refund that Stripe kept refusing, which is money owed whoever owns it.
 //
 // shopRefunds — the one Stripe move of a Shops refund (Shops M3, migration
-// 20261019043209_shops_refunds_cancels_strikes). One copy, used by shop-checkout
+// 20261019071055_shops_refunds_cancels_strikes). One copy, used by shop-checkout
 // (right after the member's tap committed the decision) and declutter-money (the
 // 10-minute retry), so the two can never disagree.
 //

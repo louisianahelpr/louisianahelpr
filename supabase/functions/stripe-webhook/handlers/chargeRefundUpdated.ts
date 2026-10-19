@@ -46,7 +46,7 @@ export async function handleChargeRefundUpdated(
   // that (declutter_refund_reversed). A Declutter charge is not a job: nothing
   // below applies.
   const meta = (refund.metadata ?? {}) as Record<string, string>;
-  // Shops (M3, 20261019043209): its refunds live in shop_refunds. The row that
+  // Shops (M3, 20261019071055): its refunds live in shop_refunds. The row that
   // recorded this refund is reopened (failed, due now) so declutter-money sends
   // a new one under a new key (shop_refund_reversed); a Shops charge is not a
   // job, so nothing below applies.

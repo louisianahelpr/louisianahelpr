@@ -525,7 +525,7 @@ const Admin = () => {
       // them done — escalated by the stalled-completion sweep for a HUMAN
       // decision. Deep-linked from the `admin_alert` that escalation raises.
       case "stalled": return <AdminStalledJobs />;
-      // Shops M4: problems, refunds, payouts and Shops strikes (20261019043209).
+      // Shops M4: problems, refunds, payouts and Shops strikes (20261019071055).
       case "shops": return <AdminShopsOrders />;
       case "marketing": return <AdminMarketing />;
       case "social": return <AdminSocialPosts />;

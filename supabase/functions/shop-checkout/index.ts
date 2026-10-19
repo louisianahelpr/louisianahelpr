@@ -19,7 +19,7 @@
  *   cancel  { order_id }  THE BUYER, before the maker answers. The page is
  *           expired or the hold cancelled; nothing is kept (O2).
  *
- * M3 (migration 20261019043209_shops_refunds_cancels_strikes): each action
+ * M3 (migration 20261019071055_shops_refunds_cancels_strikes): each action
  * below runs its member RPC FIRST. That RPC locks the order row, decides
  * (the buyer's cancel reads shop_order_free_cancel_until under the lock),
  * records the outcome and writes the refund row, and COMMITS; only then does

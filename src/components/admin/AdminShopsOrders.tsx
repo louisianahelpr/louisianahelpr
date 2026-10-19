@@ -1,5 +1,5 @@
 /**
- * Admin > Shops Orders (Shops M4, migration 20261019043209_shops_refunds_cancels_strikes;
+ * Admin > Shops Orders (Shops M4, migration 20261019071055_shops_refunds_cancels_strikes;
  * spec L43, L75; docs/OPEN.md Q1952 / Q2156).
  *
  * One read, shops_admin_queue (admin only): open "I didn't get it" problems

@@ -1,5 +1,5 @@
 /**
- * Shops M3, the Stripe side (migration 20261019043209_shops_refunds_cancels_strikes;
+ * Shops M3, the Stripe side (migration 20261019071055_shops_refunds_cancels_strikes;
  * docs/specs/local-shops-prep.md L41-L43, O2, O3): shop-checkout's buyer_cancel /
  * shop_cancel / no_show / admin_refund and its terms check, _shared/shopRefunds.ts,
  * declutter-money's shop refund step and the webhook's Shops refund branches.

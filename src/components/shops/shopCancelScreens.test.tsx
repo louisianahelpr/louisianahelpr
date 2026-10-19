@@ -1,5 +1,5 @@
 /**
- * Shops M3 screens (migration 20261019043209_shops_refunds_cancels_strikes),
+ * Shops M3 screens (migration 20261019071055_shops_refunds_cancels_strikes),
  * rendered through the route pages the router mounts:
  *
  *  1. /shops/orders: "Cancel order" shows only on an accepted, CHARGED order

@@ -43,7 +43,7 @@
  *      _shared/shopHolds.ts with one idempotency key per capture attempt. Isolated: a
  *      Shops failure is a defect, never a stop for the steps above.
  *
- *   5b. SHOP REFUNDS (M3, migration 20261019043209) shop_refund_sweep() first
+ *   5b. SHOP REFUNDS (M3, migration 20261019071055) shop_refund_sweep() first
  *      (a left-out order with no ready photo 3 days after its date is refunded
  *      as the shop's fault), then shop_refunds_due(): every Shops refund the
  *      member's tap did not finish, through _shared/shopRefunds.ts (reconciled
@@ -51,7 +51,7 @@
  *      shop_refund_executed). The SQL decided the amount under the order's row
  *      lock; this only sends it. Isolated like step 5.
  *
- *   5c. LOUISIANA FACILITATOR THRESHOLD (20261019043209 section 12):
+ *   5c. LOUISIANA FACILITATOR THRESHOLD (20261019071055 section 12):
  *      facilitator_threshold_check() counts the year's completed Shops +
  *      Declutter item totals; past $80,000 it pages ops once (then
  *      facilitator_alert_sent), ahead of the $100,000 registration duty.
@@ -613,7 +613,7 @@ serve(async (req) => {
     defects.record(`shops step: ${caughtMessage(e, "failed")}`.slice(0, 200));
   }
 
-  // 5b. SHOP REFUNDS M3 (migration 20261019043209): the no-photo clock, then every
+  // 5b. SHOP REFUNDS M3 (migration 20261019071055): the no-photo clock, then every
   //     refund row the member's tap did not send. The SQL decided each amount
   //     under the order's row lock (reason -> fee policy -> amount are table
   //     CHECKs); _shared/shopRefunds.ts reconciles, then sends with key

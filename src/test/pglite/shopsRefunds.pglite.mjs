@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261019043209_shops_refunds_cancels_strikes (Shops M3:
+ * PGlite proof for 20261019071055_shops_refunds_cancels_strikes (Shops M3:
  * refunds, cancels and strikes; docs/specs/local-shops-prep.md L41-L43, L75,
  * O2, O3; owner 2026-10-18: no-show = late cancel + buyer strike, shop cancel =
  * full refund + card fee billed + shop strike, never absorb a fee, our mistake
@@ -26,7 +26,7 @@ const CATEGORIES = readFileSync(`${MIG_DIR}20261017224153_shop_categories_v2.sql
 const M1 = readFileSync(`${MIG_DIR}20261018164442_shops_orders_checkout.sql`, "utf8");
 const M1_STRIKES = readFileSync(`${MIG_DIR}20261018164444_shops_own_strike_count.sql`, "utf8");
 const M2 = readFileSync(`${MIG_DIR}20261018211820_shops_handover_payout.sql`, "utf8");
-const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261019043209_shops_refunds_cancels_strikes.sql`, "utf8");
+const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261019071055_shops_refunds_cancels_strikes.sql`, "utf8");
 const FREE_CANCEL = readFileSync(`${MIG_DIR}20261019013802_shop_free_cancel_ready_tap_day_before.sql`, "utf8");
 const READY_TAP = readFileSync(`${MIG_DIR}20261019015018_shop_ready_tap_cancel_choice.sql`, "utf8");
 const SLICE1 = readFileSync(`${MIG_DIR}20261017061155_shops_profiles.sql`, "utf8");

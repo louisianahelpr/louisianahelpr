@@ -24,7 +24,7 @@
  * @mutate src/hooks/useUserLocation.ts |   }, [enabled, request, rationale, attempt]); |   }, [enabled, request, rationale, attempt, profile]);
  * @mutate src/hooks/useUserLocation.ts |   return { lat: cached.lat, lng: cached.lng, approximate: cached.approximate }; |   return { lat: cached.lat, lng: cached.lng, approximate: false };
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const away = milesLabel(miles, geo.status === "ready" && geo.approximate); |   const away = milesLabel(miles);
- * @mutate src/components/declutter/DeclutterHomeView.tsx | miles={miles} approximate={origin.status === "ready" && origin.approximate} /> | miles={miles} approximate={false} />
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | miles={miles} approximate={origin.status === "ready" && origin.approximate} rating= | miles={miles} approximate={false} rating=
  * @mutate src/components/declutter/useDeclutterOrigin.ts |     asked && device.status === "error" | false && device.status === "error"
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   const reviewed = rating && rating.count > 0 ? rating : null; |   const reviewed = rating ?? null;
  * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />} | skeleton={<DeclutterItemSkeleton />}
@@ -278,6 +278,8 @@ describe("Declutter location ask", () => {
     const reviewed = (await screen.findByText("Oak rocking chair")).closest("a")!;
     expect(reviewed.querySelector("[data-card-title]")!.className).toMatch(/\bline-clamp-2\b/);
     expect(reviewed.querySelector("[data-card-price]")!.className).toMatch(/\btext-lg\b/);
+    // A price is never cut: it wraps the old price under it before it would clip.
+    expect(reviewed.querySelector("[data-card-price]")!.className).not.toMatch(/\btruncate\b/);
     expect(reviewed.querySelector("[data-card-place]")!.className).toMatch(/\btruncate\b/);
     expect(reviewed.querySelector("[data-card-rating]")!.getAttribute("aria-label")).toBe("Seller rated 4.8 of 5 from 12 reviews");
     // No reviews (or no row at all): no stars, and never the item's condition dressed as a rating.

@@ -108,18 +108,21 @@ function AddPropertyForm({ onDone }: { onDone: () => void }) {
 }
 
 /** Homes -> Rent (RL1a): list a unit for rent, or open its listing. Only once ownership is approved. */
-/** A listing an admin took down: the owner sees that it is gone and why (Q2187 review #8). */
-function TakenDown({ listing }: { listing: RentalListing }) {
+/**
+ * A property an admin took down (Q2187): the owner sees, once, that its listings are gone and why, and that
+ * nothing on it can be listed until Louisiana Helpr lifts it (lead review must-fix 3: shown from the property,
+ * never from an old removed row that could hide a live listing).
+ */
+function TakenDown({ reason }: { reason: string | null }) {
   return (
     <p role="status" className="rounded-xl bg-muted px-3 py-2 text-xs">
-      <span className="font-semibold">Removed by Louisiana Helpr.</span> {listing.removed_reason}
+      <span className="font-semibold">Listings removed by Louisiana Helpr.</span> {reason} Contact support if you think this is a mistake.
     </p>
   );
 }
 
 function UnitListingLink({ unitId, approved, listing }: { unitId: string; approved: boolean; listing: RentalListing | undefined }) {
   if (!approved) return null;
-  if (listing?.removed_by_admin) return <TakenDown listing={listing} />;
   return listing ? (
     <Link to={`/rentals/listings/${listing.id}/edit`} className="flex justify-between gap-2 pl-3 text-xs">
       <span className="text-muted-foreground">Listing: {listingStatusLabel(listing.status, listing.expires_at)}</span>
@@ -138,7 +141,6 @@ function UnitListingLink({ unitId, approved, listing }: { unitId: string; approv
  */
 function SaleListingLink({ propertyId, approved, listing }: { propertyId: string; approved: boolean; listing: RentalListing | undefined }) {
   if (!approved) return null;
-  if (listing?.removed_by_admin) return <TakenDown listing={listing} />;
   return listing ? (
     <Link to={`/rentals/listings/${listing.id}/edit`} className="flex justify-between gap-2 text-sm">
       <span className="text-muted-foreground">For sale: {listingStatusLabel(listing.status, listing.expires_at)}</span>
@@ -197,6 +199,8 @@ function PropertyCard({
   });
   const approved = p.ownership_status === "approved";
   const needsProof = !approved && p.ownership_status !== "pending_review";
+  // An admin took this property's listings down: nothing on it can be listed until that is lifted (Q2187).
+  const takenDown = !!p.listings_taken_down_at;
   return (
     <div className={`${RENTALS_ITEM_CARD} space-y-3`}>
       <div>
@@ -217,9 +221,10 @@ function PropertyCard({
       </div>
       {/* The ID rides with this property's proof; with no proof to send, the ID form stands alone above. */}
       <SendForReview uid={uid} propertyId={p.id} needsId={needsProof && idPhotoNeeded(identity)} needsProof={needsProof} onSent={onChange} />
+      {takenDown && <TakenDown reason={p.listings_taken_down_reason} />}
       <SaleListingLink
         propertyId={p.id}
-        approved={approved}
+        approved={approved && !takenDown}
         listing={listings.find((l) => l.kind === "sale" && l.property_id === p.id && l.status !== "sold")}
       />
       <div className="space-y-2">
@@ -233,7 +238,7 @@ function PropertyCard({
                 Invite tenant
               </Button>
             </div>
-            <UnitListingLink unitId={u.id} approved={approved} listing={listings.find((l) => l.kind === "rent" && l.unit_id === u.id && l.status !== "leased")} />
+            <UnitListingLink unitId={u.id} approved={approved && !takenDown} listing={listings.find((l) => l.kind === "rent" && l.unit_id === u.id && l.status !== "leased")} />
             {tenancies.filter((t) => t.unit_id === u.id).map((t) => (
               <div key={t.id} className="flex items-center justify-between gap-2 pl-3 text-xs">
                 <span className="text-muted-foreground">

@@ -17,9 +17,15 @@
 --     proxy's lookup. NULL unless the photo's listing is publicly visible.
 --
 -- Q2187: rentals_admin_remove_listing(p_listing_id, p_reason) lets an admin
--- remove ANY listing (rent or sale), writes admin_audit_log and tells the
--- owner why. A removed listing is terminal for its owner (every owner RPC
--- refuses status 'removed'), so a take-down cannot be undone by re-publishing.
+-- take down a LIVE or PAUSED listing (rent or sale). The take-down is on the
+-- PROPERTY (lead review of slices 2+3, 2026-10-19, must-fix 1, 2, 6, 7): every
+-- open listing on it (draft, live, paused, either kind, any unit) is removed,
+-- and nothing on that property can be saved, given photos or published again
+-- (trigger rentals_listing_takedown_guard), so a new unit or the other kind
+-- cannot dodge it. It writes admin_audit_log and tells the owner why.
+-- rentals_admin_lift_takedown(p_property_id, p_note) undoes a mistaken one
+-- (audited): the flag clears and each listing it removed goes back to draft
+-- (a draft) or paused (a live or paused one) for its owner to publish again.
 --
 -- Replay-safe: ADD COLUMN IF NOT EXISTS, constraints dropped before added,
 -- CREATE OR REPLACE, grants restated by role name. Proof:
@@ -29,12 +35,21 @@
 -- 1. Who took a listing down, and why (the owner sees the reason).
 ALTER TABLE public.rental_listings ADD COLUMN IF NOT EXISTS removed_by_admin boolean NOT NULL DEFAULT false;
 ALTER TABLE public.rental_listings ADD COLUMN IF NOT EXISTS removed_reason text;
+ALTER TABLE public.rental_listings ADD COLUMN IF NOT EXISTS removed_from_status text;
+ALTER TABLE public.rental_listings DROP CONSTRAINT IF EXISTS rental_listings_removed_from_status_check;
+ALTER TABLE public.rental_listings ADD CONSTRAINT rental_listings_removed_from_status_check
+  CHECK (removed_from_status IS NULL OR removed_from_status IN ('draft', 'live', 'paused'));
+-- The take-down is on the property: while set, nothing on it is listed again.
+ALTER TABLE public.rental_properties ADD COLUMN IF NOT EXISTS listings_taken_down_at timestamptz;
+ALTER TABLE public.rental_properties ADD COLUMN IF NOT EXISTS listings_taken_down_reason text;
+-- The owner reads them (the take-down banner); rental_properties is column-granted (never ownership_reviewed_by).
+GRANT SELECT (listings_taken_down_at, listings_taken_down_reason) ON public.rental_properties TO authenticated;
 ALTER TABLE public.rental_listings DROP CONSTRAINT IF EXISTS rental_listings_removed_reason_len;
 ALTER TABLE public.rental_listings ADD CONSTRAINT rental_listings_removed_reason_len
   CHECK (removed_reason IS NULL OR char_length(removed_reason) BETWEEN 5 AND 500);
 
 -- ---------------------------------------------------------------------------
--- 2. The admin take-down (Q2187).
+-- 2. The admin take-down (Q2187), on the property.
 CREATE OR REPLACE FUNCTION public.rentals_admin_remove_listing(p_listing_id uuid, p_reason text)
 RETURNS void
 LANGUAGE plpgsql
@@ -45,6 +60,7 @@ DECLARE
   v_uid uuid := (SELECT auth.uid());
   v_l public.rental_listings%ROWTYPE;
   v_reason text := btrim(coalesce(p_reason, ''));
+  v_ids uuid[];
 BEGIN
   -- Moderation is never gated by the feature switch (review fix #7): an admin can take a listing down
   -- whatever the 'rentals' audience is.
@@ -58,23 +74,116 @@ BEGIN
     RAISE EXCEPTION 'reason_required' USING ERRCODE = '22023';
   END IF;
   SELECT * INTO v_l FROM public.rental_listings WHERE id = p_listing_id FOR UPDATE;
-  -- An owner-removed listing can still be taken down (it records who, why, and blocks re-posting);
-  -- one already taken down cannot be taken down twice.
-  IF NOT FOUND OR v_l.removed_by_admin THEN
+  IF NOT FOUND THEN
     RAISE EXCEPTION 'listing_not_found' USING ERRCODE = 'P0002';
   END IF;
-  UPDATE public.rental_listings
-     SET status = 'removed', removed_by_admin = true, removed_reason = v_reason, updated_at = now()
-   WHERE id = p_listing_id;
+  -- Only a listing people can see or the owner can put back up (live or paused); history (sold, leased,
+  -- removed) is not taken down (lead review must-fix 6).
+  IF v_l.status NOT IN ('live', 'paused') THEN
+    RAISE EXCEPTION 'listing_not_live' USING ERRCODE = '22023';
+  END IF;
+  PERFORM 1 FROM public.rental_properties WHERE id = v_l.property_id FOR UPDATE;
+  UPDATE public.rental_properties
+     SET listings_taken_down_at = now(), listings_taken_down_reason = v_reason
+   WHERE id = v_l.property_id;
+  -- Every OPEN listing on the property goes, either kind, any unit (must-fix 2).
+  WITH gone AS (
+    UPDATE public.rental_listings
+       SET removed_from_status = status, status = 'removed', removed_by_admin = true, removed_reason = v_reason,
+           updated_at = now()
+     WHERE property_id = v_l.property_id AND status IN ('draft', 'live', 'paused')
+    RETURNING id
+  )
+  SELECT array_agg(id ORDER BY id) INTO v_ids FROM gone;
   INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
   VALUES (v_uid, 'rentals_listing_removed', 'rental_listing', p_listing_id::text,
-          jsonb_build_object('reason', v_reason, 'kind', v_l.kind, 'status_before', v_l.status));
+          jsonb_build_object('reason', v_reason, 'kind', v_l.kind, 'status_before', v_l.status,
+                             'property_id', v_l.property_id, 'listings_removed', to_jsonb(v_ids)));
   PERFORM public.rentals_notify(v_l.owner_id, 'Listing removed',
     'Louisiana Helpr removed your listing "' || v_l.headline || '": ' || v_reason, '/rentals', true, true);
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_admin_remove_listing(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rentals_admin_remove_listing(uuid, text) TO authenticated, service_role;
+
+-- 2b. Lifting a mistaken take-down (must-fix 6): audited; each listing it removed goes back to draft or
+--     paused, never straight to live (the owner publishes again, through every publish check).
+CREATE OR REPLACE FUNCTION public.rentals_admin_lift_takedown(p_property_id uuid, p_note text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  v_p public.rental_properties%ROWTYPE;
+  v_note text := btrim(coalesce(p_note, ''));
+  v_ids uuid[];
+BEGIN
+  IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin'::public.app_role) THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  IF char_length(v_note) < 5 OR char_length(v_note) > 500 THEN
+    RAISE EXCEPTION 'reason_required' USING ERRCODE = '22023';
+  END IF;
+  SELECT * INTO v_p FROM public.rental_properties WHERE id = p_property_id FOR UPDATE;
+  IF NOT FOUND OR v_p.listings_taken_down_at IS NULL THEN
+    RAISE EXCEPTION 'listing_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  UPDATE public.rental_properties SET listings_taken_down_at = NULL, listings_taken_down_reason = NULL WHERE id = p_property_id;
+  WITH back AS (
+    UPDATE public.rental_listings
+       SET status = CASE WHEN removed_from_status = 'draft' THEN 'draft' ELSE 'paused' END,
+           removed_by_admin = false, removed_reason = NULL, removed_from_status = NULL, updated_at = now()
+     WHERE property_id = p_property_id AND removed_by_admin AND status = 'removed' AND removed_from_status IS NOT NULL
+    RETURNING id
+  )
+  SELECT array_agg(id ORDER BY id) INTO v_ids FROM back;
+  INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
+  VALUES (v_uid, 'rentals_takedown_lifted', 'rental_property', p_property_id::text,
+          jsonb_build_object('note', v_note, 'reason_was', v_p.listings_taken_down_reason, 'listings_restored', to_jsonb(v_ids)));
+  PERFORM public.rentals_notify(v_p.owner_id, 'Listing back',
+    'Louisiana Helpr lifted the removal of your listings at ' || v_p.label || '. Open them to publish again.', '/rentals', true, true);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_admin_lift_takedown(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.rentals_admin_lift_takedown(uuid, text) TO authenticated, service_role;
+
+-- 2c. Nothing on a taken-down property is saved, given photos or published (must-fix 1, 7): one trigger
+--     per table, so every writer (draft save, sale save, status, photo attach) is refused up front.
+CREATE OR REPLACE FUNCTION public.rentals_listing_takedown_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_property uuid;
+BEGIN
+  IF TG_TABLE_NAME = 'rental_listings' THEN
+    IF NEW.status = 'removed' THEN
+      RETURN NEW;
+    END IF;
+    v_property := NEW.property_id;
+  ELSE
+    SELECT l.property_id INTO v_property FROM public.rental_listings l WHERE l.id = NEW.listing_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.rental_properties rp WHERE rp.id = v_property AND rp.listings_taken_down_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'listing_taken_down' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_listing_takedown_guard() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS rentals_listing_takedown_guard ON public.rental_listings;
+CREATE TRIGGER rentals_listing_takedown_guard BEFORE INSERT OR UPDATE ON public.rental_listings
+  FOR EACH ROW EXECUTE FUNCTION public.rentals_listing_takedown_guard();
+DROP TRIGGER IF EXISTS rentals_listing_takedown_guard ON public.rental_listing_photos;
+CREATE TRIGGER rentals_listing_takedown_guard BEFORE INSERT ON public.rental_listing_photos
+  FOR EACH ROW EXECUTE FUNCTION public.rentals_listing_takedown_guard();
 
 -- ---------------------------------------------------------------------------
 -- 3. Visible to the public: the signed-in rule, Homes open to everyone, a real (not test/seed) owner.
@@ -147,7 +256,13 @@ BEGIN
   RETURN QUERY
   -- A stranger never gets home size + lot size + year built next to the ZIP of a home FOR SALE: together
   -- they name the parcel in the assessor's records (review fix #5). Signed-in members see them on the page.
-  SELECT l.kind, l.headline, l.description, l.rent_cents, l.rent_frequency, l.deposit_cents, l.sale_price_cents,
+  -- Nor a headline or description that could name the street, the year or the lot (must-fix 4): for a home
+  -- for sale a stranger gets a plain headline and no description; signed-in members read the owner's words.
+  SELECT l.kind,
+         CASE WHEN l.kind = 'sale' THEN trim_scale(l.beds)::text || ' bed, ' || trim_scale(l.baths)::text || ' bath home for sale'
+              ELSE l.headline END,
+         CASE WHEN l.kind = 'sale' THEN NULL ELSE l.description END,
+         l.rent_cents, l.rent_frequency, l.deposit_cents, l.sale_price_cents,
          l.beds, l.baths,
          CASE WHEN l.kind = 'sale' THEN NULL ELSE l.sq_ft END,
          CASE WHEN l.kind = 'sale' THEN NULL ELSE l.lot_sq_ft END,
@@ -184,9 +299,9 @@ REVOKE ALL ON FUNCTION public.rentals_public_listing_photo_path(uuid) FROM PUBLI
 GRANT EXECUTE ON FUNCTION public.rentals_public_listing_photo_path(uuid) TO service_role;
 
 -- ---------------------------------------------------------------------------
--- 6. Status: 20261019061241's body with one check added: publishing is
---    refused for a unit (rent) or property (sale) whose listing an admin took
---    down ('listing_taken_down').
+-- 6. Status: 20261019061241's body with two changes: publishing is refused
+--    on a property an admin took down ('listing_taken_down'), and a sold or
+--    leased listing cannot be removed by its owner (final).
 CREATE OR REPLACE FUNCTION public.rentals_set_listing_status(p_listing_id uuid, p_status text)
 RETURNS void
 LANGUAGE plpgsql
@@ -224,13 +339,10 @@ BEGIN
     IF NOT public.is_identity_verified(v_uid) THEN
       RAISE EXCEPTION 'identity_not_verified' USING ERRCODE = '42501';
     END IF;
-    -- A take-down cannot be dodged by listing the same unit (rent) or property (sale) again (Q2187 review #4):
-    -- a unit/property with a listing an admin took down never shows again without an admin.
-    IF EXISTS (SELECT 1 FROM public.rental_listings x
-                WHERE x.removed_by_admin
-                  AND x.kind = v_l.kind
-                  AND ((v_l.kind = 'rent' AND x.unit_id = v_l.unit_id)
-                       OR (v_l.kind = 'sale' AND x.property_id = v_l.property_id))) THEN
+    -- A take-down is on the PROPERTY (lead review must-fix 1): no unit and neither kind on it goes live
+    -- again until an admin lifts it (the trigger refuses it too; this answers first, with the same code).
+    IF EXISTS (SELECT 1 FROM public.rental_properties rp
+                WHERE rp.id = v_l.property_id AND rp.listings_taken_down_at IS NOT NULL) THEN
       RAISE EXCEPTION 'listing_taken_down' USING ERRCODE = '42501';
     END IF;
     IF NOT EXISTS (SELECT 1 FROM public.rental_properties rp
@@ -284,6 +396,10 @@ BEGIN
     END IF;
     UPDATE public.rental_listings SET status = 'sold', updated_at = now() WHERE id = p_listing_id;
   ELSE
+    -- Sold and leased are final (must-fix 5): the record stays as it is.
+    IF v_l.status IN ('sold', 'leased') THEN
+      RAISE EXCEPTION 'bad_status' USING ERRCODE = '22023';
+    END IF;
     UPDATE public.rental_listings SET status = 'removed', updated_at = now() WHERE id = p_listing_id;
   END IF;
 END;

@@ -7778,6 +7778,7 @@ export type Database = {
       rental_rent_charges: {
         Row: {
           amount_cents: number
+          autopay_skip_noticed_at: string | null
           created_at: string
           due_on: string
           grace_days: number
@@ -7791,6 +7792,7 @@ export type Database = {
         }
         Insert: {
           amount_cents: number
+          autopay_skip_noticed_at?: string | null
           created_at?: string
           due_on: string
           grace_days?: number
@@ -7804,6 +7806,7 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
+          autopay_skip_noticed_at?: string | null
           created_at?: string
           due_on?: string
           grace_days?: number

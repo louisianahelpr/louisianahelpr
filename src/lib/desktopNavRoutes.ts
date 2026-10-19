@@ -89,6 +89,8 @@ const AUTH_PREFIXES = [
 // The public job page /jobs/<id> (PublicLayout, marketing Navbar + Footer)
 // starts with the Jobs tab's "/jobs" but is not an app screen.
 const AUTH_PREFIX_EXCLUSIONS: string[] = ["/jobs/"];
+// ...except the app screens that live under it: Jobs settings (2026-10-19) is a signed-in page.
+const APP_SCREENS_UNDER_EXCLUSIONS: string[] = ["/jobs/settings"];
 
 // `/admin` is NOT here any more. It was, back when the admin console rendered
 // its own top bar and its own left rail — a self-contained shell that did not
@@ -109,6 +111,7 @@ const NO_NAV_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset-passwo
  */
 export function isDesktopRailRoute(pathname: string) {
   if (NO_NAV_PREFIXES.some((p) => pathname.startsWith(p))) return false;
+  if (APP_SCREENS_UNDER_EXCLUSIONS.includes(pathname)) return true;
   if (AUTH_PREFIX_EXCLUSIONS.some((p) => pathname.startsWith(p))) return false;
   return AUTH_PREFIXES.some((p) => pathname.startsWith(p));
 }

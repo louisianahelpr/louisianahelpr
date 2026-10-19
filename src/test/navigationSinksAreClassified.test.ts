@@ -152,7 +152,8 @@ const CLASSIFIED: Record<string, string> = {
   "components/shops/ShopOrderSheet.tsx::url": STRIPE_EDGE_URL,
   "pages/profile/GiftCard.tsx::data.url": STRIPE_EDGE_URL,
   "pages/posts/postedJobs/RecurringVisitPayments.tsx::url": STRIPE_EDGE_URL,
-  "components/declutter/DeclutterTradeViews.tsx::await startCardSave()": STRIPE_EDGE_URL,
+  // startCardSave() returns declutter-card's Checkout (setup) session url (server-built).
+  "components/declutter/DeclutterOfferPanel.tsx::url": STRIPE_EDGE_URL,
   "components/declutter/DeclutterTradeViews.tsx::res.url": STRIPE_EDGE_URL,
   "pages/post-job/useJobSubmit.ts::paymentUrl": STRIPE_EDGE_URL,
   "lib/escrowCheckout.ts::url": STRIPE_EDGE_URL + " (create-payment action escrow, the quote screens' booking)",

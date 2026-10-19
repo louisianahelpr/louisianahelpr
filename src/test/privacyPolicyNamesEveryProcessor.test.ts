@@ -56,6 +56,8 @@ const NOT_PROCESSORS = [
   // Never called: csp-report/report.ts names the Vercel Toolbar's script URL
   // only to drop the browser's report that our CSP BLOCKED it (no data sent).
   "vercel.live",
+  // A link only: the Homes lease shows the EPA lead pamphlet (40 CFR 745.107) to a tenant of a pre-1978 home.
+  "epa.gov",
 ];
 
 const files = [...walk("src"), ...walk("supabase/functions")];

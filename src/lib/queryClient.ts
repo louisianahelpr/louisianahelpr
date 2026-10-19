@@ -37,6 +37,25 @@ function reportCacheError(kind: "QueryCache" | "MutationCache", error: unknown, 
   });
 }
 
+/**
+ * True for errors that already carry user-facing copy and are shown as a
+ * toast by the component's own onError handler:
+ *   - Shop rpcData errors set .userMessage when the RPC code maps to copy
+ *     (src/lib/shops/api.ts rpcData).
+ *   - RentalsCopyError sets .worded = true when words were found for the
+ *     refusal code (src/lib/rentals/copy.ts).
+ *
+ * These are expected validation refusals (e.g. invalid_name, identity_not_verified).
+ * Reporting them to Sentry produces noise without actionable signal.
+ */
+export function _isHandledCopyError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as Record<string, unknown>;
+  if (typeof e.userMessage === "string" && e.userMessage.length > 0) return true;
+  if (e.worded === true) return true;
+  return false;
+}
+
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     // `meta: { reportsItself: true }`: a query that reports its own failure (at most
@@ -48,7 +67,10 @@ export const queryClient = new QueryClient({
     },
   }),
   mutationCache: new MutationCache({
-    onError: (error, _vars, _ctx, mutation) => reportCacheError("MutationCache", error, mutation.options.mutationKey),
+    onError: (error, _vars, _ctx, mutation) => {
+      if (_isHandledCopyError(error)) return;
+      reportCacheError("MutationCache", error, mutation.options.mutationKey);
+    },
   }),
   defaultOptions: {
     queries: {

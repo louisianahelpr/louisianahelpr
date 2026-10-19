@@ -1245,6 +1245,7 @@ export type Database = {
           attempts: number
           created_at: string
           executed_at: string | null
+          held_notified_at: string | null
           id: string
           is_seed: boolean
           last_error: string | null
@@ -1252,6 +1253,11 @@ export type Database = {
           order_id: string
           reason: string
           refund_cents: number
+          review_held_at: string | null
+          review_reason: string | null
+          settled_by_hand_cents: number | null
+          settled_by_hand_note: string | null
+          settled_by_hand_ref: string | null
           status: string
           stripe_payment_intent_id: string
           stripe_refund_ref: string | null
@@ -1260,6 +1266,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           executed_at?: string | null
+          held_notified_at?: string | null
           id?: string
           is_seed?: boolean
           last_error?: string | null
@@ -1267,6 +1274,11 @@ export type Database = {
           order_id: string
           reason: string
           refund_cents: number
+          review_held_at?: string | null
+          review_reason?: string | null
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
           status?: string
           stripe_payment_intent_id: string
           stripe_refund_ref?: string | null
@@ -1275,6 +1287,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           executed_at?: string | null
+          held_notified_at?: string | null
           id?: string
           is_seed?: boolean
           last_error?: string | null
@@ -1282,6 +1295,11 @@ export type Database = {
           order_id?: string
           reason?: string
           refund_cents?: number
+          review_held_at?: string | null
+          review_reason?: string | null
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
           status?: string
           stripe_payment_intent_id?: string
           stripe_refund_ref?: string | null
@@ -1887,13 +1905,19 @@ export type Database = {
           created_at: string
           debt_cents: number
           executed_at: string | null
+          held_notified_at: string | null
           id: string
           is_seed: boolean
           items_cents: number
           last_error: string | null
           next_attempt_at: string
           order_id: string
+          review_held_at: string | null
+          review_reason: string | null
           seller_id: string | null
+          settled_by_hand_cents: number | null
+          settled_by_hand_note: string | null
+          settled_by_hand_ref: string | null
           status: string
           stripe_transfer_id: string | null
         }
@@ -1903,13 +1927,19 @@ export type Database = {
           created_at?: string
           debt_cents: number
           executed_at?: string | null
+          held_notified_at?: string | null
           id?: string
           is_seed?: boolean
           items_cents: number
           last_error?: string | null
           next_attempt_at?: string
           order_id: string
+          review_held_at?: string | null
+          review_reason?: string | null
           seller_id?: string | null
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
           status: string
           stripe_transfer_id?: string | null
         }
@@ -1919,13 +1949,19 @@ export type Database = {
           created_at?: string
           debt_cents?: number
           executed_at?: string | null
+          held_notified_at?: string | null
           id?: string
           is_seed?: boolean
           items_cents?: number
           last_error?: string | null
           next_attempt_at?: string
           order_id?: string
+          review_held_at?: string | null
+          review_reason?: string | null
           seller_id?: string | null
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
           status?: string
           stripe_transfer_id?: string | null
         }
@@ -2080,6 +2116,7 @@ export type Database = {
           executed_at: string | null
           fee_policy: string
           gave_up_notified_at: string | null
+          held_notified_at: string | null
           id: string
           is_seed: boolean
           kept_cents: number
@@ -2090,6 +2127,11 @@ export type Database = {
           paid_cents: number
           reason: string
           refund_cents: number
+          review_held_at: string | null
+          review_reason: string | null
+          settled_by_hand_cents: number | null
+          settled_by_hand_note: string | null
+          settled_by_hand_ref: string | null
           status: string
           stripe_payment_intent_id: string
           stripe_refund_ref: string | null
@@ -2101,6 +2143,7 @@ export type Database = {
           executed_at?: string | null
           fee_policy: string
           gave_up_notified_at?: string | null
+          held_notified_at?: string | null
           id?: string
           is_seed?: boolean
           kept_cents?: number
@@ -2111,6 +2154,11 @@ export type Database = {
           paid_cents: number
           reason: string
           refund_cents: number
+          review_held_at?: string | null
+          review_reason?: string | null
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
           status?: string
           stripe_payment_intent_id: string
           stripe_refund_ref?: string | null
@@ -2122,6 +2170,7 @@ export type Database = {
           executed_at?: string | null
           fee_policy?: string
           gave_up_notified_at?: string | null
+          held_notified_at?: string | null
           id?: string
           is_seed?: boolean
           kept_cents?: number
@@ -2132,6 +2181,11 @@ export type Database = {
           paid_cents?: number
           reason?: string
           refund_cents?: number
+          review_held_at?: string | null
+          review_reason?: string | null
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
           status?: string
           stripe_payment_intent_id?: string
           stripe_refund_ref?: string | null
@@ -3412,12 +3466,18 @@ export type Database = {
           created_at: string
           executed_at: string | null
           fee_cents: number
+          held_notified_at: string | null
           helpr_id: string | null
           id: string
           is_seed: boolean
           last_error: string | null
           next_attempt_at: string
           pay_cents: number
+          review_held_at: string | null
+          review_reason: string | null
+          settled_by_hand_cents: number | null
+          settled_by_hand_note: string | null
+          settled_by_hand_ref: string | null
           status: string
           stripe_transfer_id: string | null
           task_id: string
@@ -3428,12 +3488,18 @@ export type Database = {
           created_at?: string
           executed_at?: string | null
           fee_cents: number
+          held_notified_at?: string | null
           helpr_id?: string | null
           id?: string
           is_seed?: boolean
           last_error?: string | null
           next_attempt_at?: string
           pay_cents: number
+          review_held_at?: string | null
+          review_reason?: string | null
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
           status: string
           stripe_transfer_id?: string | null
           task_id: string
@@ -3444,12 +3510,18 @@ export type Database = {
           created_at?: string
           executed_at?: string | null
           fee_cents?: number
+          held_notified_at?: string | null
           helpr_id?: string | null
           id?: string
           is_seed?: boolean
           last_error?: string | null
           next_attempt_at?: string
           pay_cents?: number
+          review_held_at?: string | null
+          review_reason?: string | null
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
           status?: string
           stripe_transfer_id?: string | null
           task_id?: string
@@ -6375,6 +6447,60 @@ export type Database = {
         }
         Relationships: []
       }
+      payout_payee_reminders: {
+        Row: {
+          last_reminded_at: string
+          payee_id: string
+        }
+        Insert: {
+          last_reminded_at?: string
+          payee_id: string
+        }
+        Update: {
+          last_reminded_at?: string
+          payee_id?: string
+        }
+        Relationships: []
+      }
+      payout_payee_waits: {
+        Row: {
+          category: string
+          first_waiting_at: string
+          last_checked_at: string
+          last_reason: string
+          last_reminded_at: string | null
+          ops_paged_at: string | null
+          paged_category: string | null
+          payee_id: string | null
+          payout_id: string
+          payout_kind: string
+        }
+        Insert: {
+          category?: string
+          first_waiting_at?: string
+          last_checked_at?: string
+          last_reason: string
+          last_reminded_at?: string | null
+          ops_paged_at?: string | null
+          paged_category?: string | null
+          payee_id?: string | null
+          payout_id: string
+          payout_kind: string
+        }
+        Update: {
+          category?: string
+          first_waiting_at?: string
+          last_checked_at?: string
+          last_reason?: string
+          last_reminded_at?: string | null
+          ops_paged_at?: string | null
+          paged_category?: string | null
+          payee_id?: string | null
+          payout_id?: string
+          payout_kind?: string
+        }
+        Relationships: []
+      }
       payout_schedule_freezes: {
         Row: {
           alerted_at: string | null
@@ -6414,6 +6540,54 @@ export type Database = {
           stripe_account_id?: string | null
           updated_at?: string
           verified_at?: string | null
+        }
+        Relationships: []
+      }
+      payout_send_marks: {
+        Row: {
+          marked_at: string
+          payout_id: string
+          payout_kind: string
+        }
+        Insert: {
+          marked_at?: string
+          payout_id: string
+          payout_kind: string
+        }
+        Update: {
+          marked_at?: string
+          payout_id?: string
+          payout_kind?: string
+        }
+        Relationships: []
+      }
+      payout_settlements: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          off_stripe_note: string | null
+          row_id: string
+          row_kind: string
+          stripe_ref: string | null
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          off_stripe_note?: string | null
+          row_id: string
+          row_kind: string
+          stripe_ref?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          off_stripe_note?: string | null
+          row_id?: string
+          row_kind?: string
+          stripe_ref?: string | null
         }
         Relationships: []
       }
@@ -8265,6 +8439,33 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_faqs: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          position: number
+          question: string
+          shop_id: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          position: number
+          question: string
+          shop_id: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          position?: number
+          question?: string
+          shop_id?: string
+        }
+        Relationships: []
+      }
       shop_follows: {
         Row: {
           created_at: string
@@ -8751,12 +8952,18 @@ export type Database = {
           created_at: string
           debt_cents: number
           executed_at: string | null
+          held_notified_at: string | null
           id: string
           is_seed: boolean
           items_cents: number
           last_error: string | null
           next_attempt_at: string
           order_id: string
+          review_held_at: string | null
+          review_reason: string | null
+          settled_by_hand_cents: number | null
+          settled_by_hand_note: string | null
+          settled_by_hand_ref: string | null
           status: string
           stripe_transfer_id: string | null
         }
@@ -8766,12 +8973,18 @@ export type Database = {
           created_at?: string
           debt_cents: number
           executed_at?: string | null
+          held_notified_at?: string | null
           id?: string
           is_seed?: boolean
           items_cents: number
           last_error?: string | null
           next_attempt_at?: string
           order_id: string
+          review_held_at?: string | null
+          review_reason?: string | null
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
           status: string
           stripe_transfer_id?: string | null
         }
@@ -8781,12 +8994,18 @@ export type Database = {
           created_at?: string
           debt_cents?: number
           executed_at?: string | null
+          held_notified_at?: string | null
           id?: string
           is_seed?: boolean
           items_cents?: number
           last_error?: string | null
           next_attempt_at?: string
           order_id?: string
+          review_held_at?: string | null
+          review_reason?: string | null
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
           status?: string
           stripe_transfer_id?: string | null
         }
@@ -12593,6 +12812,7 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      money_ref_in_use: { Args: { p_ref: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -12737,6 +12957,48 @@ export type Database = {
       ops_alert_sentry_source: { Args: { p_source: string }; Returns: string }
       ops_alert_verify: { Args: never; Returns: Json }
       ops_route_key: { Args: { p_route: string }; Returns: string }
+      payout_defer: {
+        Args: { p_kind: string; p_minutes: number; p_payout_id: string }
+        Returns: undefined
+      }
+      payout_held_check: { Args: never; Returns: number }
+      payout_hold_for_review: {
+        Args: {
+          p_category: string
+          p_id: string
+          p_kind: string
+          p_reason: string
+        }
+        Returns: boolean
+      }
+      payout_mark_sending: {
+        Args: { p_kind: string; p_payout_id: string }
+        Returns: undefined
+      }
+      payout_payee_paged: {
+        Args: { p_category: string; p_kind: string; p_payout_id: string }
+        Returns: undefined
+      }
+      payout_payee_wait_cleared: {
+        Args: { p_kind: string; p_payout_id: string }
+        Returns: undefined
+      }
+      payout_payee_wait_seen: {
+        Args: {
+          p_amount_cents: number
+          p_category: string
+          p_kind: string
+          p_payee: string
+          p_payout_id: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      payout_payee_waits_prune: { Args: never; Returns: number }
+      payout_send_marks_for: {
+        Args: { p_ids: string[]; p_kind: string }
+        Returns: string[]
+      }
       poster_cancel_job: {
         Args: { p_job_id: string; p_reason?: string }
         Returns: Json
@@ -13530,6 +13792,7 @@ export type Database = {
         Returns: number
       }
       shop_badges: { Args: { p_shop_id: string }; Returns: Json }
+      shop_contact_leak_reason: { Args: { p_text: string }; Returns: string }
       shop_cottage_cap_reached: {
         Args: { p_owner_id: string }
         Returns: boolean
@@ -13539,6 +13802,7 @@ export type Database = {
         Returns: number
       }
       shop_cottage_year: { Args: never; Returns: number }
+      shop_extras_readable: { Args: { p_shop_id: string }; Returns: boolean }
       shop_item_required_statements: {
         Args: { p_kind: string; p_subtype: string }
         Returns: string[]
@@ -13626,6 +13890,7 @@ export type Database = {
       }
       shop_publicly_visible: { Args: { p_shop_id: string }; Returns: boolean }
       shop_state_ok: { Args: { p_shop_id: string }; Returns: boolean }
+      shop_text_clean: { Args: { p_text: string }; Returns: string }
       shop_visible_to: {
         Args: { p_shop_id: string; p_viewer: string }
         Returns: boolean

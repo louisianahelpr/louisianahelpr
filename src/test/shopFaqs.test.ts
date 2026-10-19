@@ -194,7 +194,7 @@ describe("SH12 v2 (lead re-review): the shop filter closes the bypasses", () => 
 
   it("the backfill flags, never deletes: failing shops hidden with the reason, failing items flagged, live ones back to review", () => {
     const sql = blankSqlComments(sqlRaw());
-    const bf = /DO \$backfill\$([\s\S]*?)\$backfill\$;/.exec(sql)?.[1] ?? "";
+    const bf = /DO (\$\w*\$)([\s\S]*?)\1;/.exec(sql)?.[2] ?? "";
     expect(bf.length).toBeGreaterThan(200);
     expect(bf).not.toMatch(/\bDELETE\b/i);
     expect(bf).toMatch(/FROM public\.shops WHERE hidden_at IS NULL/);

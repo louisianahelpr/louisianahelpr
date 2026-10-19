@@ -29,7 +29,7 @@ import { join } from "node:path";
  * INSERT/UPDATE/DELETE in its body.
  */
 export const READ_RPC =
-  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$))/;
+  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_payouts_held_for_review(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$))/;
 
 /**
  * Admin RPCs that WRITE. Not an allow-list — the opposite: naming one here is
@@ -37,6 +37,13 @@ export const READ_RPC =
  * this one". Each verified `provolatile = 'v'` on prod, 2026-09-20.
  */
 export const WRITE_RPC = new Set([
+  // 2026-10-19 (lander33, train12): the held-for-review payout page (20261019070737).
+  // "Release to automatic" puts a held payout/refund back to pending and "Settled by hand"
+  // closes it with the Stripe id or off-Stripe note; both plpgsql VOLATILE, admin only
+  // (has_role), writing the payout row + admin_audit_log. The list
+  // (admin_payouts_held_for_review) is STABLE and sits in READ_RPC above.
+  "admin_payout_release",
+  "admin_payout_settle_by_hand",
   // 2026-10-17 (lander, section A train): admin "End series" (Q417 (c)) ends a
   // recurring series and refunds unbooked paid visits (20261012194707); "Close
   // as test" (Q1769) settles a test-mode dispute (20261015061949). Both plpgsql,

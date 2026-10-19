@@ -129,8 +129,12 @@ const CLASSIFIED = [
   "charge-recurring-visits/index.ts::stripe.checkout.sessions.retrieve(sessionId)",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(pi)",
+  // J4 (Q2170): admin_bill_helpr_fault reads the job's stored session, then its PaymentIntent; a test-mode
+  // id is rethrown to the outer catch's 409 (no money moved), never the local 503 "try again".
+  "create-payment/index.ts::stripe.checkout.sessions.retrieve(billJob.stripe_session_id)",
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(previousSessionId)",
   "create-payment/index.ts::stripe.paymentIntents.retrieve(cancelPaymentIntentId)",
+  "create-payment/index.ts::stripe.paymentIntents.retrieve(piId)",
   // Q2074: the PaymentIntent a bounced bank payment left on the row; a test-mode one is dead and cleared.
   "create-payment/index.ts::stripe.paymentIntents.retrieve(rowPaymentIntentId)",
   // Q1732: the admin button's Stripe check; a test-mode id is the ONLY answer that lets the clear run.

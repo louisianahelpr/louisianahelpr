@@ -14,6 +14,8 @@ import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Building2, KeyRound } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import {
@@ -34,7 +36,7 @@ import {
   type UnitTenancy,
 } from "@/lib/rentals/api";
 import { OWNERSHIP_STATUS_LABEL, REQUEST_STATUS_LABEL, dollarsToCents, inviteUrl, rentalsErrorMessage } from "@/lib/rentals/copy";
-import { RentalsCard, fmtDate } from "./rentalsUi";
+import { RENTALS_ITEM_CARD, RentalsCard, fmtDate } from "./rentalsUi";
 import { MaintenanceRequestForm } from "./MaintenanceRequestForm";
 import { RentalsHomeSkeleton } from "./RentalsSkeletons";
 import { EndTenancyButton } from "./EndTenancyButton";
@@ -47,7 +49,7 @@ function RequestRow({ r }: { r: MaintenanceRequest }) {
   return (
     <Link
       to={`/rentals/requests/${r.id}`}
-      className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span className="min-w-0">
         <span className="block font-medium truncate" title={`${r.urgency === "emergency" ? "EMERGENCY: " : ""}${r.description}`}>
@@ -161,13 +163,19 @@ function PropertyCard({
   const approved = p.ownership_status === "approved";
   const needsProof = !approved && p.ownership_status !== "pending_review";
   return (
-    <div className="rounded-xl border border-border p-3 space-y-3">
+    <div className={`${RENTALS_ITEM_CARD} space-y-3`}>
       <div>
         <p className="font-semibold">{p.label}</p>
         <p className="text-xs text-muted-foreground">
           {p.street_address}, {p.city} {p.zip_code}
         </p>
-        <p className="text-xs font-semibold mt-1">{OWNERSHIP_STATUS_LABEL[p.ownership_status] ?? p.ownership_status}</p>
+        <p className="mt-2">
+          <span
+            className={`inline-flex rounded-full px-2.5 py-1 text-ds-12 font-semibold ${approved ? "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]" : "bg-muted"}`}
+          >
+            {OWNERSHIP_STATUS_LABEL[p.ownership_status] ?? p.ownership_status}
+          </span>
+        </p>
         {p.ownership_status === "rejected" && p.ownership_review_note && (
           <p className="text-xs text-muted-foreground">Reason: {p.ownership_review_note}</p>
         )}
@@ -309,12 +317,22 @@ export default function RentalsHomeView() {
             </p>
           )}
           <HomesBrowse />
-          <RentalsCard title="Homes you rent">
+          <RentalsCard title="Homes you rent" bare>
             {data.data.homes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">When your landlord sends you an invite link, open it to connect your home here.</p>
+              <EmptyState
+                variant="inline"
+                icon={KeyRound}
+                title="No home connected yet"
+                body="When your landlord sends you an invite link, open it and your home shows up here."
+                action={
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/rentals">Browse homes for rent</Link>
+                  </Button>
+                }
+              />
             ) : (
               data.data.homes.map((h) => (
-                <div key={h.tenancy_id} className="space-y-2">
+                <div key={h.tenancy_id} className={`${RENTALS_ITEM_CARD} space-y-2`}>
                   <p className="font-semibold">
                     {h.label}
                     {h.unit_label ? `, ${h.unit_label}` : ""}
@@ -331,8 +349,9 @@ export default function RentalsHomeView() {
 
           <RentalsCard
             title="Properties you own"
+            bare
             action={
-              !adding && !underAge && (
+              !adding && !underAge && data.data.properties.length > 0 && (
                 <Button type="button" size="sm" onClick={() => setAdding(true)}>
                   Add a property
                 </Button>
@@ -343,18 +362,34 @@ export default function RentalsHomeView() {
             {/* The ID alone, when no property is waiting for its proof (e.g. a new photo after a rejection). */}
             {idPhotoNeeded(data.data.identity) && data.data.properties.length > 0
               && !data.data.properties.some((p) => p.ownership_status === "needs_proof" || p.ownership_status === "rejected") && (
-              <SendForReview uid={uid} propertyId={null} needsId needsProof={false} onSent={refresh} />
+              <div className={RENTALS_ITEM_CARD}>
+                <SendForReview uid={uid} propertyId={null} needsId needsProof={false} onSent={refresh} />
+              </div>
             )}
             {adding && (
+              <div className={RENTALS_ITEM_CARD}>
               <AddPropertyForm
                 onDone={() => {
                   setAdding(false);
                   refresh();
                 }}
               />
+              </div>
             )}
             {data.data.properties.length === 0 && !adding && (
-              <p className="text-sm text-muted-foreground">Own a rental? Add it, invite your tenants, and turn their repair requests into Helpr jobs.</p>
+              <EmptyState
+                variant="inline"
+                icon={Building2}
+                title="Own a rental?"
+                body="Add it, invite your tenants, and turn their repair requests into Helpr jobs."
+                action={
+                  !underAge && (
+                    <Button type="button" size="sm" onClick={() => setAdding(true)}>
+                      Add a property
+                    </Button>
+                  )
+                }
+              />
             )}
             {data.data.properties.map((p) => (
               <PropertyCard

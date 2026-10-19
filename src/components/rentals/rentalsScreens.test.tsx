@@ -34,6 +34,12 @@
  * @mutate src/components/rentals/LandlordIdReview.tsx |           {id.reviewNote && <p className="text-muted-foreground">Reason: {id.reviewNote}</p>} |           {null}
  * @mutate src/components/rentals/LandlordIdReview.tsx | => !!id && !id.verified && id.idStatus !== "pending_review"; | => !!id && id.idStatus !== "pending_review" && id.idStatus !== "approved";
  * @mutate src/components/rentals/LandlordIdReview.tsx |         toast.error(`${words} Your ID was sent for review; only the ownership proof didn't go through.`); |         toast.error(words);
+ * @mutate src/components/rentals/listings/RentBrowse.tsx |     const t = setTimeout(() => setCity(place.trim()), SEARCH_SETTLE_MS); |     const t = setTimeout(() => undefined, SEARCH_SETTLE_MS);
+ * @mutate src/components/rentals/listings/RentBrowse.tsx |                       setMinBeds(b.value); |                       setMinBeds(null);
+ * @mutate src/components/rentals/RentalsHomeView.tsx |                     <Link to="/rentals">Browse homes for rent</Link> |                     <span>Browse homes for rent</span>
+ * @mutate src/components/rentals/RentalsHomeView.tsx |               !adding && !underAge && data.data.properties.length > 0 && ( |               !adding && !underAge && (
+ * @mutate src/components/rentals/LandlordIdReview.tsx |           setName(f?.name ?? null); |           setName(null);
+ * @mutate src/components/rentals/LandlordIdReview.tsx |         className="sr-only" |         className=""
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -48,6 +54,7 @@ const state = {
   homeLoads: true,
   homeReads: 0,
   browse: [] as unknown[],
+  browseFilters: [] as unknown[],
   underAge: false,
   tenancies: [] as unknown[],
   properties: [] as unknown[],
@@ -117,7 +124,10 @@ vi.mock("@/lib/rentals/api", () => ({
 }));
 
 vi.mock("@/lib/rentals/listings", () => ({
-  fetchBrowseListings: async () => state.browse,
+  fetchBrowseListings: async (f: unknown) => {
+    state.browseFilters.push(f);
+    return state.browse;
+  },
   fetchMyListings: async () => [],
   listingPhotoUrl: (p: string) => `https://cdn.test/${p}`,
 }));
@@ -160,6 +170,7 @@ beforeEach(() => {
   state.homeLoads = true;
   state.homeReads = 0;
   state.browse = [];
+  state.browseFilters = [];
   state.underAge = false;
   state.tenancies = [];
   state.properties = [];
@@ -249,6 +260,30 @@ describe("Rentals screens", () => {
       expect(screen.getByRole("tab", { name: "Buy" }).getAttribute("aria-selected")).toBe("true");
       expect(screen.queryByText(/No homes for rent match yet/)).toBeNull();
     });
+    it("ONE slim search row (owner bar 2026-10-19): City or ZIP with the filter button inside, no Search button, no bedroom/rent fields on the page; typing searches by itself", async () => {
+      renderAt("/rentals");
+      const row = await screen.findByRole("search", { name: "Search homes for rent" });
+      expect(row.querySelector('input[aria-label="City or ZIP"]')).toBeTruthy();
+      expect(row.querySelector('button[aria-label="Filters"]')).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Search" })).toBeNull();
+      expect(screen.queryByRole("combobox")).toBeNull();
+      expect(screen.queryByLabelText(/Most rent per month/)).toBeNull();
+      fireEvent.change(screen.getByLabelText("City or ZIP"), { target: { value: "Lafayette" } });
+      await vi.waitFor(() => expect(state.browseFilters.at(-1)).toMatchObject({ city: "Lafayette" }));
+    });
+    it("bedrooms and rent live in the filter sheet; a pick filters and the button counts it", async () => {
+      renderAt("/rentals");
+      fireEvent.click(await screen.findByRole("button", { name: "Filters" }));
+      fireEvent.click(await screen.findByRole("button", { name: "2+" }));
+      await vi.waitFor(() => expect(state.browseFilters.at(-1)).toMatchObject({ minBeds: 2 }));
+      expect(screen.getByLabelText("Filters (1 active)").tagName).toBe("BUTTON");
+    });
+    it("nothing to show: a friendly empty state for renters with one action to browse, and Add a property once (in the owner empty state)", async () => {
+      renderAt("/rentals");
+      expect(await screen.findByText("No home connected yet")).toBeTruthy();
+      expect(screen.getByRole("link", { name: "Browse homes for rent" }).getAttribute("href")).toBe("/rentals");
+      expect(screen.getAllByRole("button", { name: "Add a property" })).toHaveLength(1);
+    });
     it("tapping Buy then Rent swaps the panel and keeps the rest of the page", async () => {
       renderAt("/rentals");
       await screen.findByText(/No homes for rent match yet/);
@@ -313,6 +348,20 @@ describe("Rentals screens", () => {
       expect(idCall[1].name).toBe("front.jpg");
       expect(idCall[2]?.name).toBe("back.jpg");
       expect(vi.mocked(submitOwnershipProof).mock.calls[0]?.slice(0, 2)).toEqual(["u1", "p1"]);
+    });
+
+    it("the file picks look like the app (owner bar 2026-10-19): no bare browser file button; each tile says what to pick, then names the chosen file", async () => {
+      state.identity = { verified: false, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
+      state.properties = [NEEDS_PROOF];
+      renderAt("/rentals");
+      await screen.findByRole("button", { name: "Send for review" });
+      const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="file"]'));
+      expect(inputs.length).toBe(3);
+      for (const i of inputs) expect(i.className.split(/\s+/)).toContain("sr-only");
+      expect(screen.getAllByText("Tap to choose a file")).toHaveLength(3);
+      fireEvent.change(screen.getByLabelText(/Photo of your ID, front/), { target: { files: [file("front.jpg")] } });
+      expect(screen.getByLabelText(/Photo of your ID, front/).closest("label")?.textContent).toContain("front.jpg");
+      expect(screen.getAllByText("Tap to choose a file")).toHaveLength(2);
     });
 
     it("the back is optional: front + proof is enough", async () => {

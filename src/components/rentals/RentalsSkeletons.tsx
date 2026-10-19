@@ -24,17 +24,30 @@
 import AppPage from "@/components/AppPage";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RentalsCard } from "./rentalsUi";
+import { LISTING_GRID, ListingCardBone } from "./listings/listingBones";
 
-/** /rentals while its data loads (switch on): the two cards with their real titles; one bone where each card's first line lands. */
+/**
+ * /rentals while its data loads (switch on): Browse's frame (the Rent | Buy
+ * switch, the search row, the listing grid's bones) then the two groups with
+ * their real titles, each with one card bone where its first card lands.
+ */
 export function RentalsHomeSkeleton() {
   return (
     <AppPage title="Homes">
       <div className="space-y-4" role="status" aria-label="Loading Homes">
-        <RentalsCard title="Homes you rent">
-          <Skeleton className="h-10 w-full rounded-xl" aria-hidden />
+        <Skeleton className="h-11 w-full rounded-full" aria-hidden />
+        <div className="space-y-4">
+          <Skeleton className="h-11 w-full rounded-full" aria-hidden />
+          <div className={LISTING_GRID}>
+            <ListingCardBone />
+            <ListingCardBone />
+          </div>
+        </div>
+        <RentalsCard title="Homes you rent" bare>
+          <Skeleton className="h-24 w-full rounded-2xl" aria-hidden />
         </RentalsCard>
-        <RentalsCard title="Properties you own">
-          <Skeleton className="h-10 w-full rounded-xl" aria-hidden />
+        <RentalsCard title="Properties you own" bare>
+          <Skeleton className="h-24 w-full rounded-2xl" aria-hidden />
         </RentalsCard>
       </div>
     </AppPage>

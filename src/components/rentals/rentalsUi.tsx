@@ -23,17 +23,27 @@ export function RentalsGate({ children, skeleton }: { children: ReactNode; skele
   return settled ? <NotFound /> : <>{skeleton}</>;
 }
 
-export function RentalsCard({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
+/**
+ * One group on a Homes screen: a quiet uppercase header (the Shops/Jobs
+ * section-dashboard header) OUTSIDE the card, then one flat card holding the
+ * content. `bare` drops the card for a group whose items are cards themselves
+ * (a property, a home you rent): owner bar 2026-10-19, never a card inside a
+ * card.
+ */
+export function RentalsCard({ title, children, action, bare = false }: { title: string; children: ReactNode; action?: ReactNode; bare?: boolean }) {
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-semibold text-base">{title}</h2>
+    <section className="space-y-2" aria-label={title}>
+      <div className="flex min-h-9 items-center justify-between gap-3 px-1">
+        <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">{title}</h2>
         {action}
       </div>
-      {children}
+      {bare ? <div className="space-y-3">{children}</div> : <div className={`${RENTALS_ITEM_CARD} space-y-3`}>{children}</div>}
     </section>
   );
 }
+
+/** The one card surface for a thing on a Homes screen (flat: hairline, no shadow, no box inside it). */
+export const RENTALS_ITEM_CARD = "rounded-2xl border border-border bg-card p-4";
 
 export function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "";

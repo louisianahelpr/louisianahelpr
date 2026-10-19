@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ImagePlus, X } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -163,28 +164,35 @@ function Photos({ listing, uid }: { listing: RentalListing; uid: string }) {
         <div className="grid grid-cols-3 gap-2">
           {photos.data.map((p, i) => (
             <div key={p.id} className="relative">
-              <img src={listingPhotoUrl(p.storage_path)} alt={`Photo ${i + 1}`} className="aspect-square w-full rounded-lg object-cover" />
-              <Button
+              <img src={listingPhotoUrl(p.storage_path)} alt={`Photo ${i + 1}`} className="aspect-square w-full rounded-xl bg-muted object-cover" />
+              {i === 0 && (
+                <span className="absolute bottom-1.5 left-1.5 rounded-full bg-card px-2 py-0.5 text-ds-11 font-semibold shadow-sm">Cover</span>
+              )}
+              <button
                 type="button"
-                size="sm"
-                variant="outline"
-                className="mt-1 w-full"
+                aria-label={`Remove photo ${i + 1}`}
                 disabled={remove.isPending}
                 onClick={() => remove.mutate(p.id)}
+                className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center"
               >
-                Remove
-              </Button>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white">
+                  <X className="h-4 w-4" aria-hidden />
+                </span>
+              </button>
             </div>
           ))}
         </div>
       )}
-      <label className="block text-sm">
-        <span className="font-medium">{add.isPending ? "Adding photos…" : "Add photos"}</span>
+      <label
+        className={`flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-border px-4 py-4 text-ds-15 font-semibold focus-within:ring-2 focus-within:ring-ring ${add.isPending || n >= 25 ? "cursor-not-allowed text-muted-foreground" : ""}`}
+      >
+        <ImagePlus className="h-5 w-5" aria-hidden />
+        <span>{add.isPending ? "Adding photos…" : "Add photos"}</span>
         <input
           type="file"
           accept="image/*"
           multiple
-          className="mt-1 block w-full text-sm"
+          className="sr-only"
           disabled={add.isPending || n >= 25}
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []).slice(0, 25 - n);

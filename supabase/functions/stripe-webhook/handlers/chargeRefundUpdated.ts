@@ -111,6 +111,29 @@ export async function handleChargeRefundUpdated(
   // A Declutter refund made by hand in the Dashboard carries no kind: if we recorded it, its row reopens.
   if (await handleDeclutterHandRefundFailed(refund, { supabase })) return;
 
+  // A Shops refund made by hand that we recorded (shop_hand_refunds): it stops counting, the order stays
+  // closed and its payout held, and a person is paged (the buyer is NOT repaid). Not deployed yet
+  // (PGRST202) or not a Shops hand refund: the jobs path below runs as before.
+  {
+    const { data: shopHand, error: shErr } = await supabase.rpc("shop_hand_refund_failed", { p_stripe_refund_id: refund.id });
+    if (shErr && (shErr as { code?: string }).code !== "PGRST202") {
+      throw new Error(`shop_hand_refund_failed failed for ${refund.id}: ${shErr.message}`);
+    }
+    if (!shErr && (shopHand === "marked_failed" || shopHand === "already")) {
+      if (shopHand === "marked_failed") {
+        await postSlackOpsAlert({
+          kind: "money_at_risk", severity: "critical", oncePerDayKey: `shop-hand-refund-failed-${refund.id}`,
+          title: "Shops refund made by hand FAILED",
+          // Rule A of the v2 review: nothing reopens or sends on its own; the order stays held.
+          message: `Stripe moved hand refund ${refund.id} to ${refund.status} (${refund.failure_reason ?? "no reason given"}). The buyer has NOT been repaid. `
+            + "The order stays held (no refund or payout goes out on its own): refund it again by hand and record it in admin > Shops orders, or release the held refund in admin > Payouts held for review.",
+          fields: { Refund: refund.id },
+        });
+      }
+      return;
+    }
+  }
+
   const { data: removed, error: delErr } = await supabase
     .from("payment_refunds")
     .delete()

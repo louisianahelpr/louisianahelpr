@@ -34,6 +34,8 @@ export type ShopRefundRow = {
   livemode: boolean | null;
   checkout_session_id: string | null;
   attempts: number;
+  /** How many times Stripe failed / canceled a refund this row had recorded (each starts fresh tries). */
+  reversals?: number | null;
 };
 
 export type ShopRefundOutcome = "sent" | "reconciled" | "failed";
@@ -41,10 +43,16 @@ export type ShopRefundOutcome = "sent" | "reconciled" | "failed";
 /** The most tries before the money step stops and ops refunds it by hand. */
 export const SHOP_REFUND_MAX_ATTEMPTS = 12;
 
-/** The idempotency key of one try (the row's failed attempts so far). */
-export function shopRefundKey(refundId: string, attempts: number): string {
+/**
+ * The idempotency key of one try: the row's failed attempts so far, and, once
+ * Stripe reversed a refund the row recorded, which run of tries this is
+ * (shop_refund_reversed resets attempts to 0 and adds a reversal, /code-review
+ * of shops-m3-v1 #4), so a re-send never replays the reversed refund's key.
+ */
+export function shopRefundKey(refundId: string, attempts: number, reversals = 0): string {
   const n = Number.isInteger(attempts) && attempts > 0 ? attempts : 0;
-  return n === 0 ? `shop-refund-${refundId}` : `shop-refund-${refundId}-r${n}`;
+  const v = Number.isInteger(reversals) && reversals > 0 ? reversals : 0;
+  return `shop-refund-${refundId}${v === 0 ? "" : `-v${v}`}${n === 0 ? "" : `-r${n}`}`;
 }
 
 /** Send (or find) one Shops refund and record it. */
@@ -68,7 +76,7 @@ export async function sendShopRefund(stripe: Stripe, admin: Db, row: ShopRefundR
           amount: row.refund_cents,
           metadata: { kind: "shop_refund", shop_refund_id: row.refund_id, order_id: row.order_id },
         },
-        { idempotencyKey: shopRefundKey(row.refund_id, row.attempts) },
+        { idempotencyKey: shopRefundKey(row.refund_id, row.attempts, Number(row.reversals ?? 0)) },
       );
       if (made.status === "failed" || made.status === "canceled") why = `refund ${made.id} is ${made.status}`;
       else refundId = made.id;

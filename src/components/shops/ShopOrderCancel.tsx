@@ -11,8 +11,9 @@
  *          shows the new answer instead of charging the buyer for a stale one.
  *   Shop:  "Cancel order" (the buyer gets everything back, the card fee comes
  *          out of the shop's payout, a Shops strike), and "Buyer didn't show"
- *          on an in-person order once its ready date is over (O3: a late
- *          cancel, the shop is paid, the buyer gets a strike).
+ *          on an in-person order the shop marked ready, once its ready date is
+ *          over (O3: a late cancel, the shop is paid, the buyer gets a strike;
+ *          the server refuses an order never marked ready: not_ready).
  *
  * Hidden while a problem report is open (Louisiana Helpr decides those) and
  * before the card is charged.
@@ -45,6 +46,7 @@ function louisianaToday(now: number = Date.now()): string {
 
 /** The buyer's words for what a cancel does now. */
 export function cancelQuoteText(q: CancelQuote): string {
+  if (q.unavailable) return "Cancelling a paid order isn't available yet. Please try again in a few minutes.";
   if (!q.can_cancel) return "This order can't be cancelled any more.";
   if (q.free) {
     return `You're inside the shop's free-cancel time. You get ${formatCents(q.refund_cents ?? 0)} back, `
@@ -53,21 +55,21 @@ export function cancelQuoteText(q: CancelQuote): string {
   return "The shop's free-cancel time is over. If you cancel now, nothing is refunded and the shop is paid.";
 }
 
-function useOpenOrder(order: ShopOrder) {
+function useOpenOrder(order: ShopOrder): { cancellable: boolean; markedReady: boolean } {
   const open = order.status === "accepted" && !!order.captured_at && !order.handed_over_at;
   const handover = useQuery({
     queryKey: ["shops", "handover", order.id],
     queryFn: async () => (await fetchHandovers([order.id])).get(order.id) ?? null,
     enabled: open,
   });
-  return open && !handover.data?.problem_at && !handover.isLoading;
+  return { cancellable: open && !handover.data?.problem_at && !handover.isLoading, markedReady: !!handover.data?.ready_at };
 }
 
 export function BuyerCancelOrder({ order }: { order: ShopOrder }) {
   const qc = useQueryClient();
   const [asking, setAsking] = useState(false);
   const [changed, setChanged] = useState(false);
-  const cancellable = useOpenOrder(order);
+  const { cancellable } = useOpenOrder(order);
   const quote = useQuery({
     queryKey: ["shops", "cancel-quote", order.id],
     queryFn: () => fetchCancelQuote(order.id),
@@ -133,7 +135,7 @@ export function ShopCancelOrder({ order }: { order: ShopOrder }) {
   const reasonId = useId();
   const [asking, setAsking] = useState<"cancel" | "no_show" | null>(null);
   const [reason, setReason] = useState("");
-  const cancellable = useOpenOrder(order);
+  const { cancellable, markedReady } = useOpenOrder(order);
   const done = () => {
     setAsking(null);
     setReason("");
@@ -152,7 +154,8 @@ export function ShopCancelOrder({ order }: { order: ShopOrder }) {
     },
   });
   if (!cancellable) return null;
-  const noShowOpen = order.handover_mode === "in_person" && louisianaToday() > order.ready_date;
+  // Only an order the shop marked ready can be a no-show (the server says not_ready otherwise).
+  const noShowOpen = order.handover_mode === "in_person" && markedReady && louisianaToday() > order.ready_date;
   return (
     <div className="flex flex-wrap gap-2" data-testid="shop-cancel-actions">
       {noShowOpen && (

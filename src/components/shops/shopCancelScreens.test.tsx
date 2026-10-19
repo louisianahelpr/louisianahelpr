@@ -10,16 +10,20 @@
  *     says so instead of cancelling.
  *  2. /shops/dashboard: "Cancel order" (full refund, card fee, strike; the
  *     optional reason goes along) on an accepted charged order; "Buyer didn't
- *     show" only on an in-person order whose ready date is over.
+ *     show" only on an in-person order the shop marked ready whose ready date
+ *     is over (/code-review of shops-m3-v1 #2).
  *  3. The new endings in each side's words.
  *  4. The lib sends the right shop-checkout bodies: terms with every order,
  *     expect with a buyer cancel.
  *
  * @mutate src/components/shops/ShopOrderCancel.tsx |   const open = order.status === "accepted" && !!order.captured_at && !order.handed_over_at; |   const open = order.status === "accepted";
- * @mutate src/components/shops/ShopOrderCancel.tsx |   return open && !handover.data?.problem_at && !handover.isLoading; |   return open && !handover.isLoading;
+ * @mutate src/components/shops/ShopOrderCancel.tsx |   return { cancellable: open && !handover.data?.problem_at && !handover.isLoading, | return { cancellable: open && !handover.isLoading,
  * @mutate src/components/shops/ShopOrderCancel.tsx |           if (q?.can_cancel) cancel.mutate(q.free ? "free" : "late"); |           if (q?.can_cancel) cancel.mutate("free");
  * @mutate src/components/shops/ShopOrderCancel.tsx |         setChanged(true);\n        void quote.refetch();\n        return; |         setChanged(true);
- * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && louisianaToday() > order.ready_date; |   const noShowOpen = true;
+ * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && markedReady && louisianaToday() > order.ready_date; |   const noShowOpen = true;
+ * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && markedReady && louisianaToday() > order.ready_date; |   const noShowOpen = order.handover_mode === "in_person" && louisianaToday() > order.ready_date;
+ * @mutate src/lib/shops/orders.ts |   if (error && (error as { code?: string }).code === "PGRST202") return { can_cancel: false, unavailable: true }; |
+ * @mutate src/lib/shops/orders.ts |   if (closed && o.status === "partially_refunded") { |   if (false) {
  * @mutate src/components/shops/ShopOrderCancel.tsx |     mutationFn: (what: "cancel" \| "no_show") => (what === "cancel" ? shopCancelOrder(order.id, reason) : reportNoShow(order.id)), |     mutationFn: (what: "cancel" \| "no_show") => (what === "cancel" ? shopCancelOrder(order.id, "") : reportNoShow(order.id)),
  * @mutate src/components/shops/ShopMyOrdersView.tsx |               {o.status === "accepted" && <BuyerCancelOrder order={o} />} | {null}
  * @mutate src/components/shops/ShopDashboardView.tsx |                       <ShopCancelOrder order={o} />\n | \n
@@ -152,6 +156,18 @@ describe("the buyer's Cancel order (M3)", () => {
     expect(bodies()[0]).toMatchObject({ action: "buyer_cancel", expect: "late" });
   });
 
+  // /code-review of shops-m3-v1 #8: the quote RPC not deployed yet says so and offers no cancel (never a raw error).
+  it("quote not on the server yet (PGRST202): says so, and the confirm stays off", async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: "PGRST202", message: "Could not find the function public.shops_order_cancel_quote" } });
+    orders.fetchMyOrders.mockResolvedValue([order({})]);
+    renderAt("/shops/orders", <ShopOrdersPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
+    const dialog = await screen.findByRole("dialog", { name: "Cancel this order?" });
+    await within(dialog).findByText(/isn't available yet/);
+    expect((within(dialog).getByRole("button", { name: /^confirm/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
   it("cancel_terms_changed: re-reads the quote and says so, nothing else", async () => {
     orders.fetchMyOrders.mockResolvedValue([order({})]);
     invoke.mockResolvedValue({
@@ -188,13 +204,16 @@ describe("the shop's Cancel order and Buyer didn't show (M3)", () => {
     expect(bodies()[0]).toMatchObject({ action: "shop_cancel", order_id: "o1", reason: "Oven broke" });
   });
 
-  it("Buyer didn't show: only in person, only after the ready date", async () => {
+  it("Buyer didn't show: only in person, only marked ready, only after the ready date", async () => {
     orders.fetchShopOrders.mockResolvedValue([
       order({ id: "past", ready_date: "2020-01-02" }),
       order({ id: "porch", ready_date: "2020-01-02", handover_mode: "porch" }),
+      order({ id: "unready", ready_date: "2020-01-02" }),
     ]);
+    handover.fetchHandovers.mockImplementation((async (ids: string[]) => new Map(ids.filter((id) => id !== "unready")
+      .map((id) => [id, { order_id: id, ready_at: "2020-01-02T09:00:00Z", problem_at: null }]))) as never);
     renderAt("/shops/dashboard", <ShopDashboardPage />);
-    await waitFor(() => expect(screen.getAllByRole("button", { name: "Cancel order" })).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Cancel order" })).toHaveLength(3));
     const noShows = screen.getAllByRole("button", { name: "Buyer didn't show" });
     expect(noShows).toHaveLength(1);
     fireEvent.click(noShows[0]);
@@ -214,6 +233,10 @@ describe("the new endings and the lib's bodies", () => {
     expect(orderStatusLabel(o("refunded", "shop_cancelled"))).toBe("Cancelled by the shop (refunded in full)");
     expect(orderStatusLabel(o("refunded", "no_ready_photo"), "shop")).toBe("Refunded to the buyer (no ready photo)");
     expect(orderStatusLabel(o("refunded", "admin_refunded"))).toBe("Refunded by Louisiana Helpr");
+    // A refund made by hand in Stripe (/code-review of shops-m3-v1 #1).
+    expect(orderStatusLabel(o("refunded", "refunded_by_hand"), "shop")).toBe("Refunded to the buyer by Louisiana Helpr");
+    expect(orderStatusLabel(o("partially_refunded", "refunded_by_hand"))).toBe("Partly refunded by Louisiana Helpr");
+    expect(orderStatusLabel(o("partially_refunded", "refunded_by_hand"), "shop")).toBe("Partly refunded to the buyer by Louisiana Helpr");
     // M1's endings are unchanged.
     expect(orderStatusLabel(o("cancelled", "buyer_cancelled"))).toBe("Withdrawn (nothing charged)");
   });

@@ -74,7 +74,8 @@ export function cancelPolicyText(policy: CancelPolicy, readyTap: ReadyTapCancel 
 }
 
 type OrderStatus =
-  | "awaiting_hold" | "held" | "accepted" | "declined" | "expired" | "cancelled" | "superseded" | "handed_over" | "refunded";
+  | "awaiting_hold" | "held" | "accepted" | "declined" | "expired" | "cancelled" | "superseded" | "handed_over" | "refunded"
+  | "partially_refunded";
 
 interface OrderLine {
   id: string;
@@ -245,10 +246,14 @@ export interface CancelQuote {
   paid_cents?: number;
   refund_cents?: number;
   kept_cents?: number;
+  /** The quote RPC is not on the server yet (PGRST202, deploy lag): no cancel is offered. */
+  unavailable?: boolean;
 }
 
 export async function fetchCancelQuote(orderId: string): Promise<CancelQuote> {
   const { data, error } = await supabase.rpc("shops_order_cancel_quote", { p_order_id: orderId });
+  // A brand-new RPC the database has not deployed yet (/code-review of shops-m3-v1 #8): say so, offer nothing.
+  if (error && (error as { code?: string }).code === "PGRST202") return { can_cancel: false, unavailable: true };
   if (error) rpcFail(error, rpcErrorMessage("shops_order_cancel_quote", error));
   return (data ?? { can_cancel: false }) as unknown as CancelQuote;
 }
@@ -280,6 +285,16 @@ export async function adminRefundOrder(orderId: string, reason: AdminRefundReaso
   await invokeShopCheckout({ action: "admin_refund", order_id: orderId, reason, note: note.trim() });
 }
 
+/**
+ * Shops M3 (/code-review of shops-m3-v1 #1, v2 rule B): an admin records a refund made by hand
+ * in the Stripe Dashboard. shop-checkout reads it from Stripe and records it only when it is a
+ * live refund on this order's payment for exactly this amount. Answers the outcome.
+ */
+export async function adminRecordHandRefund(orderId: string, refundId: string, amountCents: number, note: string): Promise<string> {
+  const data = await invokeShopCheckout({ action: "admin_record_hand_refund", order_id: orderId, refund_id: refundId, amount_cents: amountCents, note });
+  return typeof data.result === "string" ? data.result : "";
+}
+
 /** F1 (owner 2026-10-18): 5% of the items, rounded, + 70 cents; the same rule as the order's table CHECK. */
 export function buyerFeeCents(itemsCents: number): number {
   return Math.round(itemsCents * 0.05) + 70;
@@ -297,11 +312,16 @@ const CLOSE_WORDS: Record<string, { buyer: string; shop: string }> = {
   shop_cancelled: { buyer: "Cancelled by the shop (refunded in full)", shop: "Cancelled by you (buyer refunded in full)" },
   no_ready_photo: { buyer: "Refunded in full (the shop never marked it ready)", shop: "Refunded to the buyer (no ready photo)" },
   admin_refunded: { buyer: "Refunded by Louisiana Helpr", shop: "Refunded to the buyer by Louisiana Helpr" },
+  // A refund Louisiana Helpr made by hand in Stripe (the shop is not paid until an admin decides).
+  refunded_by_hand: { buyer: "Refunded by Louisiana Helpr", shop: "Refunded to the buyer by Louisiana Helpr" },
 };
 
 /** "Waiting for the shop", "Accepted", ... in the buyer's (or the shop's) words. */
 export function orderStatusLabel(o: Pick<ShopOrder, "status" | "close_reason" | "captured_at">, side: "buyer" | "shop" = "buyer"): string {
   const closed = o.close_reason ? CLOSE_WORDS[o.close_reason] : undefined;
+  if (closed && o.status === "partially_refunded") {
+    return side === "buyer" ? "Partly refunded by Louisiana Helpr" : "Partly refunded to the buyer by Louisiana Helpr";
+  }
   if (closed && (o.status === "refunded" || o.status === "cancelled")) return closed[side];
   switch (o.status) {
     case "held": return "Waiting for the shop (card held, not charged)";
@@ -311,6 +331,7 @@ export function orderStatusLabel(o: Pick<ShopOrder, "status" | "close_reason" | 
     case "cancelled": return o.close_reason === "buyer_cancelled" ? "Withdrawn (nothing charged)" : "Cancelled (nothing charged)";
     case "handed_over": return "Picked up";
     case "refunded": return "Refunded";
+    case "partially_refunded": return "Partly refunded";
     // Never listed (fetchMyOrders / fetchShopOrders leave them out); worded for completeness.
     case "awaiting_hold": return "Not sent (the payment page was not finished)";
     case "superseded": return "Replaced by a newer order";

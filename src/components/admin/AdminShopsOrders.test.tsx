@@ -12,6 +12,17 @@
  *     (shops_admin_remove_strike) with a note.
  *  5. Payout hold: the existing admin_set_payout_hold on the shop's owner;
  *     release through admin_release_payout_hold.
+ *  6. Record a refund made in Stripe (/code-review of shops-m3-v1 #1, v2 rule B):
+ *     shop-checkout admin_record_hand_refund with the order, the re_ id, the
+ *     cents and a note (the edge checks it in Stripe); a held-for-review payout
+ *     says why (#6).
+ *  7. PGRST202 (#8): the queue says "not on the server yet" instead of an
+ *     error or an empty queue; an action says so in its toast.
+ *
+ * @mutate src/components/admin/AdminShopsOrders.tsx |     mutationFn: () => adminRecordHandRefund(orderId.trim(), refundId.trim(), cents ?? 0, note.trim()), |     mutationFn: () => adminRecordHandRefund(orderId.trim(), refundId.trim(), 0, note.trim()),
+ * @mutate src/components/admin/AdminShopsOrders.tsx |   if (error && isNotDeployed(error)) return { problems: [], refunds: [], payouts: [], strikes: [], notDeployed: true }; |
+ * @mutate src/components/admin/AdminShopsOrders.tsx |   throw Object.assign(new Error(error.message), error, { userMessage: (isNotDeployed(error) ? NOT_DEPLOYED : userMessage) ?? undefined }); |   throw Object.assign(new Error(error.message), error, { userMessage: userMessage ?? undefined });
+ * @mutate src/components/admin/AdminShopsOrders.tsx |   const cents = Number(m[1]) * 100 + Number((m[2] ?? "0").padEnd(2, "0")); |   const cents = Number(m[1]) * 100 + Number(m[2] ?? "0");
  *
  * @mutate src/components/admin/AdminShopsOrders.tsx |     const { error } = await supabase.rpc("shops_admin_pay_shop", { p_order_id: a.orderId, p_note: note }); |     const { error } = await supabase.rpc("shops_admin_pay_shop", { p_order_id: a.orderId, p_note: "" });
  * @mutate src/components/admin/AdminShopsOrders.tsx |     await adminRefundOrder(a.orderId, reason, note); |     await adminRefundOrder(a.orderId, "problem_our_mistake", note);
@@ -61,6 +72,8 @@ const QUEUE = {
       last_error: null, on_hold: false, hold_reason: null, is_seed: false },
     { payout_id: "p2", order_id: "o3", seller_id: "s3", shop_name: "Held Shop", amount_cents: 1500, status: "pending", attempts: 0,
       last_error: null, on_hold: true, hold_reason: "Fraud check", is_seed: false },
+    { payout_id: "p3", order_id: "o4", seller_id: null, shop_name: "Review Shop", amount_cents: 900, status: "held_for_review", attempts: 0,
+      last_error: null, review_reason: "refunded_by_hand: re_abc", on_hold: false, hold_reason: null, is_seed: false },
   ],
   strikes: [{ strike_id: "k1", user_id: "u9abcdef0", offender_side: "shop", reason: "shop_cancelled", order_id: "o9",
     given_at: "2026-10-20T00:00:00Z", expires_at: "2027-10-20T00:00:00Z", active_count: 1, is_seed: true }],
@@ -93,7 +106,8 @@ describe("Admin > Shops Orders (M4)", () => {
     expect(await screen.findByText(/"Nobody was there"/)).toBeTruthy();
     expect(screen.getAllByTestId("admin-shops-problem")).toHaveLength(1);
     expect(screen.getAllByTestId("admin-shops-refund")[0].textContent).toMatch(/\$23\.70 · shop_cancelled · failed \(2 tries\)/);
-    expect(screen.getAllByTestId("admin-shops-payout")).toHaveLength(2);
+    expect(screen.getAllByTestId("admin-shops-payout")).toHaveLength(3);
+    expect(screen.getByText(/Held for review: refunded_by_hand: re_abc/)).toBeTruthy();
     expect(screen.getByText(/ON HOLD: Fraud check/)).toBeTruthy();
     expect(screen.getAllByTestId("admin-shops-strike")[0].textContent).toMatch(/shop u9abcdef · shop_cancelled · 1 of 3/);
     expect(screen.getAllByText("Test").length).toBeGreaterThanOrEqual(2);
@@ -153,5 +167,45 @@ describe("Admin > Shops Orders (M4)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Release hold" }));
     await waitFor(() => expect(rpcCall("admin_release_payout_hold")).toBeTruthy());
     expect(rpcCall("admin_release_payout_hold")![1]).toEqual({ p_helper_id: "s3" });
+  });
+
+  it("records a refund made in Stripe through shop-checkout: order, re_ id, cents and note", async () => {
+    invoke.mockResolvedValue({ data: { recorded: true, result: "closed_refunded" }, error: null } as never);
+    renderView();
+    const form = await screen.findByTestId("admin-shops-hand-refund");
+    const save = within(form).getByRole("button", { name: "Record the refund" }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    fireEvent.change(within(form).getByLabelText("Order id"), { target: { value: "0000000c-0000-4000-8000-0000000000aa" } });
+    fireEvent.change(within(form).getByLabelText("Stripe refund id (re_…)"), { target: { value: "re_3Abc" } });
+    fireEvent.change(within(form).getByLabelText("Amount refunded ($)"), { target: { value: "20.5" } });
+    expect(save.disabled).toBe(true); // a note is required
+    fireEvent.change(within(form).getByLabelText("Note (required)"), { target: { value: "Refunded in the Dashboard by phone" } });
+    fireEvent.click(save);
+    await waitFor(() => expect(invoke).toHaveBeenCalled());
+    expect((invoke.mock.calls[0] as unknown as [string, { body: Record<string, unknown> }])[1].body).toEqual({
+      action: "admin_record_hand_refund", order_id: "0000000c-0000-4000-8000-0000000000aa", refund_id: "re_3Abc", amount_cents: 2050,
+      note: "Refunded in the Dashboard by phone",
+    });
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/shop is not paid/)));
+    expect(rpcCall("shops_admin_record_hand_refund")).toBeUndefined();
+  });
+
+  it("the queue not on the server yet (PGRST202) says so, never an error or an empty queue", async () => {
+    rpc.mockImplementation(async () => ({ data: null, error: { code: "PGRST202", message: "Could not find the function public.shops_admin_queue" } }));
+    renderView();
+    expect(await screen.findByTestId("admin-shops-not-deployed")).toBeTruthy();
+    expect(screen.queryByText(/We couldn't load the Shops queue/)).toBeNull();
+  });
+
+  it("an action not on the server yet (PGRST202) says so in its toast", async () => {
+    rpc.mockImplementation(async (name: string) => (name === "shops_admin_queue"
+      ? { data: QUEUE, error: null }
+      : { data: null, error: { code: "PGRST202", message: `Could not find the function public.${name}` } }));
+    renderView();
+    fireEvent.click(await screen.findByRole("button", { name: "Pay the shop" }));
+    const dialog = screen.getByRole("dialog", { name: "Pay the shop?" });
+    fireEvent.change(within(dialog).getByLabelText("Note (required)"), { target: { value: "x" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "confirm Confirm" }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/isn't on the server yet/)));
   });
 });

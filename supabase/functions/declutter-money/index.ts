@@ -653,14 +653,20 @@ serve(async (req) => {
     if (fac.error) defects.record(`facilitator_threshold_check failed: ${fac.error.message}`);
     const f = (fac.data ?? null) as { year?: number; total_cents?: number; ops_alert_due?: boolean } | null;
     if (f?.ops_alert_due === true && typeof f.year === "number") {
-      await postSlackOpsAlert({
+      // Marked sent ONLY when the post was delivered (/code-review of shops-m3-v1 #3):
+      // a post that failed stays due and is tried again on the next run.
+      const delivered = await postSlackOpsAlert({
         kind: "money_at_risk", severity: "critical", oncePerDayKey: `la-facilitator-threshold-${f.year}`,
         title: "Louisiana marketplace-facilitator threshold: $80,000 passed",
         message: `Shops + Declutter sales delivered into Louisiana reached ${dollars(Number(f.total_cents ?? 0))} in ${f.year} (items only, no fees or tax). Registration with the Remote Sellers Commission is required within 30 days of passing $100,000 (R.S. 47:340.1). Start it now.`,
         fields: { Year: String(f.year), Total: dollars(Number(f.total_cents ?? 0)) },
       });
-      const { error: sentErr } = await admin.rpc("facilitator_alert_sent", { p_year: f.year });
-      if (sentErr) defects.record(`facilitator_alert_sent failed: ${sentErr.message}`);
+      if (delivered === true) {
+        const { error: sentErr } = await admin.rpc("facilitator_alert_sent", { p_year: f.year });
+        if (sentErr) defects.record(`facilitator_alert_sent failed: ${sentErr.message}`);
+      } else {
+        defects.record(`facilitator alert for ${f.year} not delivered; retried next run`);
+      }
     }
   } catch (e) {
     defects.record(`facilitator step: ${caughtMessage(e, "failed")}`.slice(0, 200));

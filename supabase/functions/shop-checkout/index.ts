@@ -34,9 +34,10 @@
  *   no_show      { order_id }  THE SHOP (O3): a late cancel + a buyer strike
  *           (no Stripe call: the shop is paid by the payout step).
  *   admin_refund { order_id, reason, note }  AN ADMIN (M4, L43/L75).
- * 'order' also carries the cancel terms the buyer read (terms: {cancel_policy,
+ * 'order' may carry the cancel terms the buyer read (terms: {cancel_policy,
  * ready_tap_cancel}); an order frozen under other terms is closed before any
  * Stripe page opens (409 terms_changed; money review of the M2 ready-tap choice).
+ * An older app build sends none: its order freezes the current terms and goes on.
  *
  * Money: the buyer pays the item prices + Declutter's F1 fee (5% + 70c, the
  * card cost inside it; the shop keeps 100% of its prices) + Stripe Tax, all
@@ -216,11 +217,14 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   if (!Array.isArray(body.lines)) return json({ error: "invalid_order_lines" }, 400);
   const note = typeof body.note === "string" ? body.note : "";
   const native = isNativeRequest(body);
-  // The cancel terms the buyer's screen showed (shops_order_terms): required, so
-  // nobody pays under terms they never saw.
+  // The cancel terms the buyer's screen showed (shops_order_terms). OPTIONAL
+  // (/code-review of shops-m3-v1 #5): an app build from before this field sends
+  // none, and its order freezes the shop's current terms server-side and goes
+  // ahead. Only terms the client SENT that differ from the frozen ones refuse
+  // (terms_changed); terms sent in the wrong shape are a bad request.
   const terms = (body.terms ?? null) as { cancel_policy?: unknown; ready_tap_cancel?: unknown } | null;
-  if (!terms || typeof terms.cancel_policy !== "string" || typeof terms.ready_tap_cancel !== "string") {
-    return json({ error: "terms_required" }, 400);
+  if (terms !== null && (typeof terms !== "object" || typeof terms.cancel_policy !== "string" || typeof terms.ready_tap_cancel !== "string")) {
+    return json({ error: "invalid_terms" }, 400);
   }
 
   // The SQL's own gates first, as the buyer (switch, ban, the shop visible to them,
@@ -259,19 +263,22 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   if (frozen.superseded_session_id) await expirePage(frozen.superseded_session_id);
 
   // The terms the order froze (the shop row was locked while it was written)
-  // must be the ones the buyer read; else the order closes before any page opens.
-  const { data: frozenTerms, error: termsReadErr } = await admin.from("shop_orders")
-    .select("cancel_policy, ready_tap_cancel").eq("id", frozen.order_id).maybeSingle();
-  const ft = frozenTerms as { cancel_policy?: string; ready_tap_cancel?: string } | null;
-  if (termsReadErr || !ft) {
-    console.error(`[shop-checkout] order ${frozen.order_id} terms read failed: ${termsReadErr?.message ?? "no row"}`);
-    await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });
-    return json({ error: TRY_AGAIN }, 503);
-  }
-  if (ft.cancel_policy !== terms.cancel_policy || ft.ready_tap_cancel !== terms.ready_tap_cancel) {
-    const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });
-    if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after terms changed: ${closeErr.message}`);
-    return json({ error: "terms_changed", terms: { cancel_policy: ft.cancel_policy, ready_tap_cancel: ft.ready_tap_cancel } }, 409);
+  // must be the ones the buyer read, when the buyer's app sent them; else the
+  // order closes before any page opens.
+  if (terms !== null) {
+    const { data: frozenTerms, error: termsReadErr } = await admin.from("shop_orders")
+      .select("cancel_policy, ready_tap_cancel").eq("id", frozen.order_id).maybeSingle();
+    const ft = frozenTerms as { cancel_policy?: string; ready_tap_cancel?: string } | null;
+    if (termsReadErr || !ft) {
+      console.error(`[shop-checkout] order ${frozen.order_id} terms read failed: ${termsReadErr?.message ?? "no row"}`);
+      await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });
+      return json({ error: TRY_AGAIN }, 503);
+    }
+    if (ft.cancel_policy !== terms.cancel_policy || ft.ready_tap_cancel !== terms.ready_tap_cancel) {
+      const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });
+      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after terms changed: ${closeErr.message}`);
+      return json({ error: "terms_changed", terms: { cancel_policy: ft.cancel_policy, ready_tap_cancel: ft.ready_tap_cancel } }, 409);
+    }
   }
 
   const o = await readOrder(admin, frozen.order_id);
@@ -493,6 +500,39 @@ async function adminRefund(body: Record<string, unknown>, asAdmin: Db, admin: Db
   return json({ refunded: true, refund_cents: d?.refund_cents ?? 0, refund });
 }
 
+/**
+ * "Record a refund made in Stripe" (admin Shops orders; rule B of the v2 review).
+ * AN ADMIN only (user_roles read with the service key; nobody else reaches
+ * Stripe here). The refund is RETRIEVED from Stripe (read only, no Stripe write)
+ * and must be a live refund on THIS order's PaymentIntent for exactly the amount
+ * typed; only then is it recorded (service-only shops_admin_record_hand_refund,
+ * with the admin's id: has_role checked again there, audited).
+ */
+async function adminRecordHandRefund(body: Record<string, unknown>, userId: string, admin: Db) {
+  const orderId = typeof body.order_id === "string" ? body.order_id : "";
+  if (!UUID_RE.test(orderId)) return json({ error: "order_not_found" }, 404);
+  const refundId = typeof body.refund_id === "string" ? body.refund_id.trim() : "";
+  if (!/^(re|pyr)_[A-Za-z0-9]+$/.test(refundId)) return json({ error: "invalid_stripe_ref" }, 400);
+  const cents = typeof body.amount_cents === "number" && Number.isInteger(body.amount_cents) && body.amount_cents > 0 ? body.amount_cents : 0;
+  if (!cents) return json({ error: "invalid_amount" }, 400);
+  const note = typeof body.note === "string" ? body.note : "";
+  const { data: role, error: roleErr } = await admin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+  if (roleErr) throw new Error(`admin role read failed: ${roleErr.message}`);
+  if (!role) return json({ error: "admin_only" }, 403);
+  const o = await readOrder(admin, orderId);
+  if (!o?.stripe_payment_intent_id) return json({ error: "order_not_found" }, 404);
+  const refund = await (await stripeForOrder(admin, o)).refunds.retrieve(refundId);
+  const refundPi = typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null;
+  if (refundPi !== o.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409);
+  if (refund.amount !== cents) return json({ error: "refund_amount_differs", amount_cents: refund.amount }, 409);
+  if (refund.status === "failed" || refund.status === "canceled") return json({ error: "refund_not_live" }, 409);
+  const { data, error } = await admin.rpc("shops_admin_record_hand_refund", {
+    p_admin: userId, p_order_id: orderId, p_stripe_refund_id: refundId, p_amount_cents: cents, p_note: note,
+  });
+  if (error) return rpcRefusal(error);
+  return json({ recorded: true, result: (data as { result?: string } | null)?.result ?? null });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -525,6 +565,7 @@ serve(async (req) => {
     if (body.action === "shop_cancel") return await shopCancel(body, asMember, admin);
     if (body.action === "no_show") return await noShow(body, asMember);
     if (body.action === "admin_refund") return await adminRefund(body, asMember, admin);
+    if (body.action === "admin_record_hand_refund") return await adminRecordHandRefund(body, user.id, admin);
     return json({ error: "invalid_action" }, 400);
   } catch (error) {
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);

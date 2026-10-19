@@ -49,8 +49,10 @@
 -- constraint validated (the looser CHECKs hold for every existing row). Grants by
 -- role name; REVOKE ... FROM PUBLIC, anon (and authenticated for service steps).
 -- Only UNIQUE indexes (no new unused_index name). Section 12 adds the Louisiana
--- marketplace-facilitator YTD counter and its $80,000 early warning. Applied 3x by
--- src/test/pglite/shopsRefunds.pglite.mjs.
+-- marketplace-facilitator YTD counter and its $80,000 early warning. Section 13
+-- records refunds made BY HAND in the Stripe Dashboard (the webhook, or an admin's
+-- "Record a refund made in Stripe"): the order closes and the shop is never paid
+-- for it by a clock. Applied 3x by src/test/pglite/shopsRefunds.pglite.mjs.
 
 -- ---------------------------------------------------------------------------
 -- 0. The order: new close reasons; a captured order may now end 'cancelled'
@@ -63,10 +65,16 @@ BEGIN
     'capture_gave_up', 'order_closed', 'amount_mismatch', 'day_full',
     'handed_over',
     'buyer_cancelled_free', 'buyer_cancelled_late', 'buyer_no_show', 'shop_cancelled', 'no_ready_photo',
-    'admin_refunded'));
+    'admin_refunded', 'refunded_by_hand'));
+  -- 'partially_refunded': a refund made by hand in Stripe that did not return the whole
+  -- payment (section 13). Terminal; the shop is not paid until an admin decides.
+  ALTER TABLE public.shop_orders DROP CONSTRAINT IF EXISTS shop_orders_status_check;
+  ALTER TABLE public.shop_orders ADD CONSTRAINT shop_orders_status_check CHECK (status IN (
+    'awaiting_hold', 'held', 'accepted', 'declined', 'expired', 'cancelled', 'superseded', 'handed_over',
+    'refunded', 'partially_refunded'));
   ALTER TABLE public.shop_orders DROP CONSTRAINT IF EXISTS shop_orders_captured_is_accepted;
   ALTER TABLE public.shop_orders ADD CONSTRAINT shop_orders_captured_is_accepted CHECK (
-    captured_at IS NULL OR status IN ('accepted', 'handed_over', 'refunded', 'cancelled'));
+    captured_at IS NULL OR status IN ('accepted', 'handed_over', 'refunded', 'partially_refunded', 'cancelled'));
   -- A captured order that ends 'cancelled' is one the shop is paid for.
   ALTER TABLE public.shop_orders DROP CONSTRAINT IF EXISTS shop_orders_captured_cancel_is_late;
   ALTER TABLE public.shop_orders ADD CONSTRAINT shop_orders_captured_cancel_is_late CHECK (
@@ -75,12 +83,48 @@ BEGIN
   ALTER TABLE public.shop_orders DROP CONSTRAINT IF EXISTS shop_orders_refunded_captured;
   ALTER TABLE public.shop_orders ADD CONSTRAINT shop_orders_refunded_captured CHECK (
     status <> 'refunded' OR (captured_at IS NOT NULL
-      AND close_reason IN ('buyer_cancelled_free', 'shop_cancelled', 'no_ready_photo', 'admin_refunded')));
+      AND close_reason IN ('buyer_cancelled_free', 'shop_cancelled', 'no_ready_photo', 'admin_refunded', 'refunded_by_hand')));
+  ALTER TABLE public.shop_orders DROP CONSTRAINT IF EXISTS shop_orders_partial_is_by_hand;
+  ALTER TABLE public.shop_orders ADD CONSTRAINT shop_orders_partial_is_by_hand CHECK (
+    status <> 'partially_refunded' OR (captured_at IS NOT NULL AND close_reason = 'refunded_by_hand'));
 END
 $do$;
 
 -- ---------------------------------------------------------------------------
 -- 1. Refunds: one per order, ever. reason -> fee_policy -> amounts by CHECK.
+--    ONE formula (/code-review of shops-m3-v1 #7): who carries the card fee
+--    (shop_refund_fee_policy) and the tax kept on a kept fee (shop_refund_tax_kept)
+--    are the two functions the table CHECKs call, and shop_refund_amounts(order,
+--    reason) builds every refund amount from them: the buyer's quote and the
+--    refund write read the same figures the CHECKs hold.
+CREATE OR REPLACE FUNCTION public.shop_refund_fee_policy(p_reason text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT CASE
+    WHEN p_reason IN ('shop_cancelled', 'no_ready_photo', 'shop_removed', 'problem_shop_fault') THEN 'full_shop_pays_fee'
+    WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee'
+    WHEN p_reason = 'problem_our_mistake' THEN 'full_platform_absorbs'
+  END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_refund_fee_policy(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shop_refund_fee_policy(text) TO service_role;
+
+-- J3: the sales tax on what is kept is kept too, rounded up (Jobs' taxOnKeptCents).
+CREATE OR REPLACE FUNCTION public.shop_refund_tax_kept(p_kept integer, p_tax integer, p_paid integer)
+RETURNS integer
+LANGUAGE sql
+IMMUTABLE
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT CASE WHEN p_kept = 0 OR p_tax = 0 THEN 0
+              ELSE ceil(p_kept::numeric * p_tax / (p_paid - p_tax))::integer END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_refund_tax_kept(integer, integer, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shop_refund_tax_kept(integer, integer, integer) TO service_role;
+
 CREATE TABLE IF NOT EXISTS public.shop_refunds (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id uuid NOT NULL UNIQUE REFERENCES public.shop_orders(id) ON DELETE RESTRICT,
@@ -95,9 +139,16 @@ CREATE TABLE IF NOT EXISTS public.shop_refunds (
   kept_cents integer NOT NULL,
   tax_kept_cents integer NOT NULL,
   refund_cents integer NOT NULL,
-  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'succeeded', 'failed')),
+  -- held_for_review: a refund made by hand in Stripe stands on this order (section 13): no
+  -- cron sends this row; only an admin settles or releases it.
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'succeeded', 'failed', 'held_for_review')),
+  review_reason text CHECK (review_reason IS NULL OR char_length(review_reason) <= 300),
+  review_held_at timestamptz,
   stripe_refund_id text UNIQUE CHECK (stripe_refund_id IS NULL OR stripe_refund_id ~ '^(re|pyr)_'),
   attempts integer NOT NULL DEFAULT 0 CHECK (attempts BETWEEN 0 AND 100),
+  -- How many times Stripe failed / canceled a refund this row had recorded: each one
+  -- starts a fresh run of tries under its own idempotency keys (shop-refund-<id>-v<n>).
+  reversals integer NOT NULL DEFAULT 0 CHECK (reversals BETWEEN 0 AND 100),
   next_attempt_at timestamptz NOT NULL DEFAULT now(),
   last_error text,
   note text CHECK (note IS NULL OR char_length(note) <= 500),
@@ -106,15 +157,10 @@ CREATE TABLE IF NOT EXISTS public.shop_refunds (
   executed_at timestamptz,
   CONSTRAINT shop_refunds_tax_inside CHECK (tax_cents < paid_cents AND card_fee_cents <= paid_cents),
   -- Who carries Stripe's card fee, by reason (owner: never absorb, except our mistake).
-  CONSTRAINT shop_refunds_policy CHECK (fee_policy = CASE
-    WHEN reason IN ('shop_cancelled', 'no_ready_photo', 'shop_removed', 'problem_shop_fault') THEN 'full_shop_pays_fee'
-    WHEN reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee'
-    ELSE 'full_platform_absorbs' END),
+  CONSTRAINT shop_refunds_policy CHECK (fee_policy = public.shop_refund_fee_policy(reason)),
   CONSTRAINT shop_refunds_kept CHECK (kept_cents = CASE WHEN fee_policy = 'keep_card_fee' THEN card_fee_cents ELSE 0 END),
   -- J3: the sales tax on what is kept is kept too, rounded up (Jobs' taxOnKeptCents).
-  CONSTRAINT shop_refunds_tax_kept CHECK (tax_kept_cents = CASE
-    WHEN kept_cents = 0 OR tax_cents = 0 THEN 0
-    ELSE ceil(kept_cents::numeric * tax_cents / (paid_cents - tax_cents))::integer END),
+  CONSTRAINT shop_refunds_tax_kept CHECK (tax_kept_cents = public.shop_refund_tax_kept(kept_cents, tax_cents, paid_cents)),
   CONSTRAINT shop_refunds_amount CHECK (refund_cents = paid_cents - kept_cents - tax_kept_cents AND refund_cents > 0),
   CONSTRAINT shop_refunds_succeeded CHECK (status <> 'succeeded' OR stripe_refund_id IS NOT NULL)
 );
@@ -160,6 +206,35 @@ END
 $do$;
 GRANT SELECT (id, seller_id, amount_cents, remaining_cents, created_at) ON TABLE public.declutter_seller_fee_debts TO authenticated;
 GRANT ALL ON TABLE public.declutter_seller_fee_debts TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- 2b. The ledger of refunds made by hand in Stripe on a Shops charge (section 13
+--     says how it is written and what it blocks).
+CREATE TABLE IF NOT EXISTS public.shop_hand_refunds (
+  stripe_refund_id text PRIMARY KEY CHECK (stripe_refund_id ~ '^(re|pyr)_[A-Za-z0-9]+$'),
+  stripe_payment_intent_id text NOT NULL CHECK (stripe_payment_intent_id ~ '^pi_'),
+  order_id uuid NOT NULL REFERENCES public.shop_orders(id) ON DELETE RESTRICT,
+  shop_refund_id uuid REFERENCES public.shop_refunds(id) ON DELETE RESTRICT,
+  amount_cents integer NOT NULL CHECK (amount_cents > 0),
+  livemode boolean,
+  recorded_how text NOT NULL CHECK (recorded_how IN ('webhook', 'admin')),
+  recorded_by uuid,
+  outcome text NOT NULL,
+  note text CHECK (note IS NULL OR char_length(note) <= 500),
+  failed_at timestamptz,
+  is_seed boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT shop_hand_refunds_admin_says_who CHECK (recorded_how <> 'admin' OR recorded_by IS NOT NULL)
+);
+-- The two foreign keys are covered by UNIQUE indexes (their leading column), as in the rest of this file.
+CREATE UNIQUE INDEX IF NOT EXISTS shop_hand_refunds_order_once ON public.shop_hand_refunds (order_id, stripe_refund_id);
+CREATE UNIQUE INDEX IF NOT EXISTS shop_hand_refunds_row_once ON public.shop_hand_refunds (shop_refund_id, stripe_refund_id);
+ALTER TABLE public.shop_hand_refunds ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.shop_hand_refunds FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.shop_hand_refunds TO service_role;
+DROP TRIGGER IF EXISTS trg_shop_hand_refunds_seed ON public.shop_hand_refunds;
+CREATE TRIGGER trg_shop_hand_refunds_seed BEFORE INSERT ON public.shop_hand_refunds
+  FOR EACH ROW EXECUTE FUNCTION public.shop_money_rows_seed();
 
 -- ---------------------------------------------------------------------------
 -- 3. Strikes: once per order, person and reason; each expires after a year (L45).
@@ -211,6 +286,31 @@ GRANT EXECUTE ON FUNCTION public.shop_give_strike(uuid, text, text, uuid) TO ser
 -- 4. The shared steps (service only). Each expects the caller to hold the
 --    order's row lock already.
 
+-- Every refund amount for an order and a reason, from the two functions the
+-- table CHECKs call (the quote and the write read this, never their own formula).
+CREATE OR REPLACE FUNCTION public.shop_refund_amounts(p_order_id uuid, p_reason text)
+RETURNS TABLE (fee_policy text, paid_cents integer, tax_cents integer, card_fee_cents integer,
+               kept_cents integer, tax_kept_cents integer, refund_cents integer)
+LANGUAGE sql
+STABLE
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  WITH o AS (
+    SELECT so.total_cents, so.tax_cents,
+           least(so.total_cents, COALESCE(so.card_fee_cents, public.declutter_card_fee_estimate(so.total_cents))) AS fee,
+           public.shop_refund_fee_policy(p_reason) AS policy
+      FROM public.shop_orders so WHERE so.id = p_order_id
+  ), k AS (
+    SELECT o.*, CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept FROM o
+  )
+  SELECT k.policy, k.total_cents, k.tax_cents, k.fee, k.kept,
+         public.shop_refund_tax_kept(k.kept, k.tax_cents, k.total_cents),
+         k.total_cents - k.kept - public.shop_refund_tax_kept(k.kept, k.tax_cents, k.total_cents)
+    FROM k;
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_refund_amounts(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shop_refund_amounts(uuid, text) TO service_role;
+
 -- Write the refund row by reason; the CHECKs hold the amounts. A shop-paid fee
 -- becomes the shop's fee debt in the same transaction.
 CREATE OR REPLACE FUNCTION public.shop_write_refund(p_order_id uuid, p_reason text, p_note text)
@@ -222,31 +322,25 @@ AS $fn$
 DECLARE
   o public.shop_orders;
   r public.shop_refunds;
-  v_policy text;
-  v_fee integer;
-  v_kept integer;
-  v_tax_kept integer;
+  a record;
 BEGIN
   SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;
   IF NOT FOUND OR o.captured_at IS NULL OR o.stripe_payment_intent_id IS NULL THEN
     RAISE EXCEPTION 'order_not_charged_yet' USING ERRCODE = '55000';
   END IF;
-  v_policy := CASE
-    WHEN p_reason IN ('shop_cancelled', 'no_ready_photo', 'shop_removed', 'problem_shop_fault') THEN 'full_shop_pays_fee'
-    WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee'
-    ELSE 'full_platform_absorbs' END;
-  v_fee := least(o.total_cents, COALESCE(o.card_fee_cents, public.declutter_card_fee_estimate(o.total_cents)));
-  v_kept := CASE WHEN v_policy = 'keep_card_fee' THEN v_fee ELSE 0 END;
-  v_tax_kept := CASE WHEN v_kept = 0 OR o.tax_cents = 0 THEN 0
-                     ELSE ceil(v_kept::numeric * o.tax_cents / (o.total_cents - o.tax_cents))::integer END;
+  -- Never an app refund on top of a refund made by hand in Stripe (section 13).
+  IF EXISTS (SELECT 1 FROM public.shop_hand_refunds hr WHERE hr.order_id = o.id AND hr.failed_at IS NULL) THEN
+    RAISE EXCEPTION 'refunded_in_stripe' USING ERRCODE = '55000';
+  END IF;
+  SELECT * INTO a FROM public.shop_refund_amounts(o.id, p_reason);
   INSERT INTO public.shop_refunds (order_id, stripe_payment_intent_id, reason, fee_policy, paid_cents, tax_cents,
                                    card_fee_cents, kept_cents, tax_kept_cents, refund_cents, note)
-  VALUES (o.id, o.stripe_payment_intent_id, p_reason, v_policy, o.total_cents, o.tax_cents,
-          v_fee, v_kept, v_tax_kept, o.total_cents - v_kept - v_tax_kept, NULLIF(btrim(COALESCE(p_note, '')), ''))
+  VALUES (o.id, o.stripe_payment_intent_id, p_reason, a.fee_policy, a.paid_cents, a.tax_cents,
+          a.card_fee_cents, a.kept_cents, a.tax_kept_cents, a.refund_cents, NULLIF(btrim(COALESCE(p_note, '')), ''))
   RETURNING * INTO r;
-  IF v_policy = 'full_shop_pays_fee' AND v_fee > 0 AND o.seller_id IS NOT NULL THEN
+  IF a.fee_policy = 'full_shop_pays_fee' AND a.card_fee_cents > 0 AND o.seller_id IS NOT NULL THEN
     INSERT INTO public.declutter_seller_fee_debts (seller_id, shop_refund_id, amount_cents, remaining_cents)
-    VALUES (o.seller_id, r.id, v_fee, v_fee)
+    VALUES (o.seller_id, r.id, a.card_fee_cents, a.card_fee_cents)
     ON CONFLICT (shop_refund_id) DO NOTHING;
   END IF;
   -- The home-food sale did not happen: it leaves the yearly count (L8).
@@ -323,6 +417,12 @@ BEGIN
   IF o.captured_at IS NULL THEN
     RAISE EXCEPTION 'order_not_charged_yet' USING ERRCODE = '55000',
       HINT = 'The card is still being charged. Try again in a few minutes.';
+  END IF;
+  -- A refund made by hand in Stripe stands on this order (section 13): nobody refunds or
+  -- pays from it automatically; an admin decides through the held-for-review tools.
+  IF EXISTS (SELECT 1 FROM public.shop_hand_refunds hr WHERE hr.order_id = o.id AND hr.failed_at IS NULL) THEN
+    RAISE EXCEPTION 'refunded_in_stripe' USING ERRCODE = '55000',
+      HINT = 'This order was refunded in Stripe. Louisiana Helpr decides it.';
   END IF;
   IF NOT COALESCE(p_allow_problem, false)
      AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN
@@ -422,8 +522,7 @@ DECLARE
   o public.shop_orders;
   v_until timestamptz;
   v_free boolean;
-  v_fee integer;
-  v_tax_kept integer;
+  a record;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
@@ -438,14 +537,13 @@ BEGIN
   END IF;
   v_until := public.shop_order_free_cancel_until(o.id);
   v_free := v_until IS NOT NULL AND now() < v_until;
-  v_fee := least(o.total_cents, COALESCE(o.card_fee_cents, public.declutter_card_fee_estimate(o.total_cents)));
-  v_tax_kept := CASE WHEN v_fee = 0 OR o.tax_cents = 0 THEN 0
-                     ELSE ceil(v_fee::numeric * o.tax_cents / (o.total_cents - o.tax_cents))::integer END;
+  -- The free cancel's figures are exactly what shop_write_refund will write.
+  SELECT * INTO a FROM public.shop_refund_amounts(o.id, 'buyer_cancelled');
   RETURN jsonb_build_object('can_cancel', true, 'free', v_free,
     'free_until', CASE WHEN v_until IS NULL OR NOT isfinite(v_until) THEN NULL ELSE v_until END,
     'paid_cents', o.total_cents,
-    'refund_cents', CASE WHEN v_free THEN o.total_cents - v_fee - v_tax_kept ELSE 0 END,
-    'kept_cents', CASE WHEN v_free THEN v_fee + v_tax_kept ELSE o.total_cents END);
+    'refund_cents', CASE WHEN v_free THEN a.refund_cents ELSE 0 END,
+    'kept_cents', CASE WHEN v_free THEN a.kept_cents + a.tax_kept_cents ELSE o.total_cents END);
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shops_order_cancel_quote(uuid) FROM PUBLIC, anon;
@@ -507,9 +605,9 @@ REVOKE ALL ON FUNCTION public.shops_shop_cancel_order(uuid, text) FROM PUBLIC, a
 GRANT EXECUTE ON FUNCTION public.shops_shop_cancel_order(uuid, text) TO authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
--- 7. The buyer did not come (O3). AS THE SHOP. Only an in-person order, only
---    once its ready date has ended (Louisiana time), only before the automatic
---    finish. = a late cancel + a buyer strike.
+-- 7. The buyer did not come (O3). AS THE SHOP. Only an in-person order the shop
+--    marked ready, only once its ready date has ended (Louisiana time), only
+--    before the automatic finish. = a late cancel + a buyer strike.
 CREATE OR REPLACE FUNCTION public.shops_report_no_show(p_order_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -535,6 +633,12 @@ BEGIN
   IF o.handover_mode <> 'in_person' THEN
     RAISE EXCEPTION 'not_in_person' USING ERRCODE = '55000',
       HINT = 'A left-out order cannot be a no-show; it finishes on its own after the ready date.';
+  END IF;
+  -- Only an order the shop marked ready (/code-review of shops-m3-v1 #2): a shop
+  -- that never said "it's ready" cannot say the buyer failed to come for it.
+  IF NOT EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.ready_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'not_ready' USING ERRCODE = '55000',
+      HINT = 'Mark the order ready first. A no-show can only be reported for an order you had ready.';
   END IF;
   IF now() < ((o.ready_date + 1)::timestamp AT TIME ZONE 'America/Chicago') THEN
     RAISE EXCEPTION 'too_early_for_no_show' USING ERRCODE = '55000',
@@ -619,17 +723,18 @@ GRANT EXECUTE ON FUNCTION public.shop_refund_sweep() TO service_role;
 -- 9. Sending refunds (service only): the queue and the report back.
 CREATE OR REPLACE FUNCTION public.shop_refunds_due(p_limit integer)
 RETURNS TABLE (refund_id uuid, order_id uuid, buyer_id uuid, seller_id uuid, payment_intent_id text, refund_cents integer,
-               livemode boolean, checkout_session_id text, attempts integer)
+               livemode boolean, checkout_session_id text, attempts integer, reversals integer)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
   SELECT r.id, r.order_id, o.buyer_id, o.seller_id, r.stripe_payment_intent_id, r.refund_cents, o.payment_livemode,
-         o.stripe_checkout_session_id, r.attempts
+         o.stripe_checkout_session_id, r.attempts, r.reversals
     FROM public.shop_refunds r
     JOIN public.shop_orders o ON o.id = r.order_id
    WHERE r.status IN ('pending', 'failed') AND r.next_attempt_at <= now() AND r.attempts < 12
+     AND NOT EXISTS (SELECT 1 FROM public.shop_hand_refunds hr WHERE hr.order_id = r.order_id AND hr.failed_at IS NULL)
      -- The tap sends its own refund; the sweep only picks up one it did not finish.
      AND r.created_at <= now() - interval '2 minutes'
    ORDER BY r.next_attempt_at
@@ -641,17 +746,18 @@ GRANT EXECUTE ON FUNCTION public.shop_refunds_due(integer) TO service_role;
 -- One refund row as the edge sees it (the tap's own send, right after commit).
 CREATE OR REPLACE FUNCTION public.shop_refund_to_send(p_refund_id uuid)
 RETURNS TABLE (refund_id uuid, order_id uuid, buyer_id uuid, seller_id uuid, payment_intent_id text, refund_cents integer,
-               livemode boolean, checkout_session_id text, attempts integer)
+               livemode boolean, checkout_session_id text, attempts integer, reversals integer)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
   SELECT r.id, r.order_id, o.buyer_id, o.seller_id, r.stripe_payment_intent_id, r.refund_cents, o.payment_livemode,
-         o.stripe_checkout_session_id, r.attempts
+         o.stripe_checkout_session_id, r.attempts, r.reversals
     FROM public.shop_refunds r
     JOIN public.shop_orders o ON o.id = r.order_id
-   WHERE r.id = p_refund_id AND r.status IN ('pending', 'failed');
+   WHERE r.id = p_refund_id AND r.status IN ('pending', 'failed')
+     AND NOT EXISTS (SELECT 1 FROM public.shop_hand_refunds hr WHERE hr.order_id = r.order_id AND hr.failed_at IS NULL);
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_refund_to_send(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_refund_to_send(uuid) TO service_role;
@@ -693,9 +799,13 @@ REVOKE ALL ON FUNCTION public.shop_refund_executed(uuid, text, boolean, text) FR
 GRANT EXECUTE ON FUNCTION public.shop_refund_executed(uuid, text, boolean, text) TO service_role;
 
 -- A refund Stripe took and later FAILED or was canceled (charge.refund.updated):
--- the money never left, so the row is reopened (failed, due now, one more try =
--- a new idempotency key) and declutter-money sends a new refund. Only the
--- refund the row recorded can reopen it. Returns whether it did.
+-- the money never left, so the row is reopened (failed, due now) and
+-- declutter-money sends a new refund. Only the refund the row recorded can
+-- reopen it. Returns whether it did. (/code-review of shops-m3-v1 #4) The
+-- reopened row starts a FRESH run of tries (attempts back to 0, reversals + 1,
+-- so its keys are new: shop-refund-<id>-v<reversals>[-r<n>]): adding a try
+-- instead pushed a row on its 12th try past the queue's limit, so it was never
+-- re-sent and the give-up page (sent on a failed 12th try) never came.
 CREATE OR REPLACE FUNCTION public.shop_refund_reversed(p_refund_id uuid, p_stripe_refund_id text)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -705,7 +815,8 @@ AS $fn$
 BEGIN
   UPDATE public.shop_refunds
      SET status = 'failed', stripe_refund_id = NULL, next_attempt_at = now(),
-         attempts = least(attempts + 1, 100), last_error = left('Stripe reversed refund ' || COALESCE(p_stripe_refund_id, '?'), 500)
+         attempts = 0, reversals = least(reversals + 1, 100),
+         last_error = left('Stripe reversed refund ' || COALESCE(p_stripe_refund_id, '?'), 500)
    WHERE id = p_refund_id AND status = 'succeeded' AND stripe_refund_id = p_stripe_refund_id;
   RETURN FOUND;
 END;
@@ -734,6 +845,8 @@ AS $fn$
           OR (o.status = 'cancelled' AND o.close_reason IN ('buyer_cancelled_late', 'buyer_no_show')))
      AND NOT EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = p.order_id AND h.problem_at IS NOT NULL
                        AND h.confirmed_how IS DISTINCT FROM 'admin')
+     -- A charge refunded by hand in Stripe never pays the shop from here (section 13).
+     AND NOT EXISTS (SELECT 1 FROM public.shop_hand_refunds hr WHERE hr.order_id = p.order_id AND hr.failed_at IS NULL)
    ORDER BY p.next_attempt_at
    LIMIT least(greatest(COALESCE(p_limit, 20), 1), 100);
 $fn$;
@@ -1031,12 +1144,13 @@ BEGIN
        WHERE r.status <> 'succeeded') x),
     'payouts', (SELECT COALESCE(jsonb_agg(x ORDER BY x.created_at), '[]'::jsonb) FROM (
       SELECT p.id AS payout_id, p.order_id, o.seller_id, s.name AS shop_name, p.amount_cents, p.status, p.attempts,
-             p.last_error, p.created_at, (ph.helper_id IS NOT NULL) AS on_hold, ph.reason AS hold_reason, o.is_seed
+             p.last_error, p.review_reason, p.created_at, (ph.helper_id IS NOT NULL) AS on_hold, ph.reason AS hold_reason, o.is_seed
         FROM public.shop_payouts p
         JOIN public.shop_orders o ON o.id = p.order_id
         LEFT JOIN public.shops s ON s.id = o.shop_id
         LEFT JOIN public.payout_holds ph ON ph.helper_id = o.seller_id
-       WHERE p.status IN ('pending', 'failed')) x),
+       -- held_for_review too (/code-review of shops-m3-v1 #6): a payout no cron will send is exactly one an admin must see.
+       WHERE p.status IN ('pending', 'failed', 'held_for_review')) x),
     'facilitator', jsonb_build_object(
       'year', extract(year FROM (now() AT TIME ZONE 'America/Chicago'))::integer,
       'ytd_cents', public.facilitated_la_sales_cents(extract(year FROM (now() AT TIME ZONE 'America/Chicago'))::integer),
@@ -1052,7 +1166,224 @@ $fn$;
 REVOKE ALL ON FUNCTION public.shops_admin_queue() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.shops_admin_queue() TO authenticated, service_role;
 
--- Q807: every public table carries the unconfirmed-email statement gate (shop_refunds and facilitator_threshold_alerts are new).
+
+-- ---------------------------------------------------------------------------
+-- 13. Refunds made BY HAND in the Stripe Dashboard on a Shops charge
+--     (/code-review of shops-m3-v1 #1). The app made no refund, so nothing in
+--     shop_refunds knows it, yet the buyer has the money back: the shop must never
+--     be paid for that order by a clock. Each such Stripe refund is recorded once
+--     (shop_hand_refunds, keyed on its re_ id) by the webhook (charge.refunded,
+--     automatically) or by an admin ("Record a refund made in Stripe", admin Shops
+--     orders, checked against Stripe by shop-checkout first; no new Stripe refund is
+--     made). Only against THIS order's PaymentIntent. Recording it (rule A of the v2
+--     review: ANY live hand refund holds the WHOLE order):
+--       - every unsent app refund row and shop payout of the order -> held_for_review
+--         (never sent on top; an admin settles or releases it), and every refund path
+--         (the lock, shop_write_refund) refuses the order: refunded_in_stripe;
+--       - an order with no app refund closes: 'refunded' (the whole payment back) or
+--         'partially_refunded', close_reason 'refunded_by_hand'; an accepted order's
+--         stock comes back; the handover clock only reads 'accepted';
+--       - a hand refund Stripe fails later reopens NOTHING: the order stays held;
+--       - every new one is answered so the caller pages ops (a payout already sent,
+--         an app refund already sent, a refund id recorded on another payment).
+-- (The table shop_hand_refunds is created in section 2b: shop_payouts_due reads it.)
+
+-- Holds the WHOLE order (/code-review of shops-m3 v2, rule A): every unsent app refund
+-- row and every unsent shop payout of the order goes to held_for_review, so no cron sends
+-- money on top of a refund made by hand; an admin settles or releases each one.
+CREATE OR REPLACE FUNCTION public.shop_hold_order_for_hand_refund(p_order_id uuid, p_why text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  UPDATE public.shop_refunds SET status = 'held_for_review', review_held_at = now(), review_reason = left(p_why, 300)
+   WHERE order_id = p_order_id AND status IN ('pending', 'failed');
+  UPDATE public.shop_payouts SET status = 'held_for_review', review_held_at = now(), review_reason = left(p_why, 300)
+   WHERE order_id = p_order_id AND status IN ('pending', 'failed');
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_hold_order_for_hand_refund(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shop_hold_order_for_hand_refund(uuid, text) TO service_role;
+
+-- Service only (the webhook; the admin path). Accepted only against THIS order's
+-- PaymentIntent (the order is found by it). Every newly recorded refund holds the whole
+-- order (rule A). Answers what happened (the caller pages ops for each new one):
+--   'already'                       this re_ id is recorded on this same payment
+--   'recorded_other_order'          this re_ id is recorded on a DIFFERENT payment: nothing changed
+--   'not_shops'                     no Shops order has this payment
+--   'recorded_refund_held'          the order's app refund was not sent yet: it is held, never sent on top
+--   'recorded_row_already_settled'  the app refund was ALREADY sent: the buyer may have two refunds
+--   'closed_refunded' / 'closed_partially_refunded'  the order closed, the shop not paid
+--   'recorded_after_payout'         the shop's payout had already gone out: recover it by hand
+--   'recorded_not_charged'          the order was never recorded as captured: held, a person checks
+CREATE OR REPLACE FUNCTION public.shop_record_hand_refund(p_payment_intent_id text, p_stripe_refund_id text,
+  p_amount_cents integer, p_livemode boolean, p_how text, p_admin uuid, p_note text)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  o public.shop_orders;
+  r public.shop_refunds;
+  p public.shop_payouts;
+  v_prior public.shop_hand_refunds;
+  v_covered bigint;
+  v_outcome text;
+  v_full boolean;
+BEGIN
+  IF p_payment_intent_id IS NULL OR p_payment_intent_id !~ '^pi_'
+     OR p_stripe_refund_id IS NULL OR p_stripe_refund_id !~ '^(re|pyr)_[A-Za-z0-9]+$'
+     OR p_amount_cents IS NULL OR p_amount_cents <= 0 OR p_how IS NULL OR p_how NOT IN ('webhook', 'admin') THEN
+    RAISE EXCEPTION 'invalid_hand_refund' USING ERRCODE = '22023';
+  END IF;
+  SELECT * INTO v_prior FROM public.shop_hand_refunds h WHERE h.stripe_refund_id = p_stripe_refund_id;
+  IF FOUND THEN
+    RETURN CASE WHEN v_prior.stripe_payment_intent_id = p_payment_intent_id THEN 'already' ELSE 'recorded_other_order' END;
+  END IF;
+  -- The order row lock first (every Shops money path takes it).
+  SELECT * INTO o FROM public.shop_orders WHERE stripe_payment_intent_id = p_payment_intent_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN 'not_shops';
+  END IF;
+  SELECT * INTO r FROM public.shop_refunds WHERE order_id = o.id FOR UPDATE;
+  IF r.id IS NOT NULL AND r.stripe_refund_id = p_stripe_refund_id THEN
+    RETURN 'already';
+  END IF;
+  v_covered := p_amount_cents + COALESCE((SELECT sum(h.amount_cents) FROM public.shop_hand_refunds h
+                                           WHERE h.order_id = o.id AND h.failed_at IS NULL), 0);
+  v_full := v_covered >= o.total_cents;
+  IF o.captured_at IS NULL THEN
+    v_outcome := 'recorded_not_charged';
+  ELSIF r.id IS NOT NULL THEN
+    v_outcome := CASE WHEN r.status = 'succeeded' THEN 'recorded_row_already_settled' ELSE 'recorded_refund_held' END;
+  ELSE
+    SELECT * INTO p FROM public.shop_payouts WHERE order_id = o.id FOR UPDATE;
+    v_outcome := CASE WHEN p.id IS NOT NULL AND p.status IN ('succeeded', 'settled_by_hand') THEN 'recorded_after_payout'
+                      WHEN v_full THEN 'closed_refunded' ELSE 'closed_partially_refunded' END;
+  END IF;
+  INSERT INTO public.shop_hand_refunds (stripe_refund_id, stripe_payment_intent_id, order_id, shop_refund_id, amount_cents,
+                                        livemode, recorded_how, recorded_by, outcome, note)
+  VALUES (p_stripe_refund_id, p_payment_intent_id, o.id, r.id, p_amount_cents, p_livemode, p_how, p_admin, v_outcome,
+          NULLIF(btrim(COALESCE(p_note, '')), ''));
+  -- Rule A: the whole order is held (its unsent app refund and its unsent payout).
+  PERFORM public.shop_hold_order_for_hand_refund(o.id,
+    format('refunded_by_hand: %s ($%s) was refunded in Stripe; decide this row by hand',
+           p_stripe_refund_id, to_char(p_amount_cents / 100.0, 'FM999999990.00')));
+  IF r.id IS NOT NULL OR v_outcome = 'recorded_not_charged' THEN
+    RETURN v_outcome;
+  END IF;
+  -- No app refund: the order closes (whatever it was), and the shop is not paid by any clock.
+  IF o.status = 'accepted' THEN
+    PERFORM public.shop_return_stock(o.id);
+    DELETE FROM public.shop_cottage_sales WHERE source_ref = o.id;
+  END IF;
+  IF o.status IN ('accepted', 'handed_over', 'cancelled', 'partially_refunded') THEN
+    UPDATE public.shop_orders
+       SET status = CASE WHEN v_full THEN 'refunded' ELSE 'partially_refunded' END,
+           close_reason = 'refunded_by_hand', closed_at = COALESCE(closed_at, now())
+     WHERE id = o.id;
+  END IF;
+  IF v_outcome <> 'recorded_after_payout' THEN
+    PERFORM public.declutter_notify(o.seller_id, 'warning', 'Order refunded',
+      format('Louisiana Helpr refunded the order for %s to the buyer, so it is not paid out for now. Louisiana Helpr will tell you what happens next.',
+             to_char(o.ready_date, 'FMMonth FMDD')),
+      '/shops/dashboard', o.buyer_id);
+  END IF;
+  RETURN v_outcome;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_record_hand_refund(text, text, integer, boolean, text, uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shop_record_hand_refund(text, text, integer, boolean, text, uuid, text) TO service_role;
+
+-- "Record a refund made in Stripe" (admin Shops orders). SERVICE ONLY (rule B of the
+-- v2 review): shop-checkout's admin_record_hand_refund checks the caller is an admin,
+-- RETRIEVES the re_ from Stripe and checks it is a live refund on this order's payment
+-- for exactly this amount, then calls this with the admin's id. Records the re_ id and
+-- amount against the order; makes NO Stripe refund.
+CREATE OR REPLACE FUNCTION public.shops_admin_record_hand_refund(p_admin uuid, p_order_id uuid, p_stripe_refund_id text,
+  p_amount_cents integer, p_note text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := p_admin;
+  v_note text := btrim(COALESCE(p_note, ''));
+  v_ref text := btrim(COALESCE(p_stripe_refund_id, ''));
+  o public.shop_orders;
+  v_out text;
+BEGIN
+  IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin') THEN
+    RAISE EXCEPTION 'admin_only' USING ERRCODE = '42501';
+  END IF;
+  IF char_length(v_note) NOT BETWEEN 1 AND 500 THEN
+    RAISE EXCEPTION 'invalid_note' USING ERRCODE = '22023', HINT = 'Say why, in under 500 characters.';
+  END IF;
+  IF v_ref !~ '^(re|pyr)_[A-Za-z0-9]+$' THEN
+    RAISE EXCEPTION 'invalid_stripe_ref' USING ERRCODE = '22023', HINT = 'Paste the Stripe refund id (re_...).';
+  END IF;
+  SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id;
+  IF NOT FOUND OR o.stripe_payment_intent_id IS NULL THEN
+    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF p_amount_cents IS NULL OR p_amount_cents <= 0 OR p_amount_cents > o.total_cents THEN
+    RAISE EXCEPTION 'invalid_amount' USING ERRCODE = '22023', HINT = 'Enter the amount refunded, at most what the buyer paid.';
+  END IF;
+  -- A re_ id another money row already holds is not this order's hand refund.
+  IF NOT EXISTS (SELECT 1 FROM public.shop_hand_refunds h WHERE h.stripe_refund_id = v_ref AND h.order_id = o.id)
+     AND NOT EXISTS (SELECT 1 FROM public.shop_refunds r WHERE r.stripe_refund_id = v_ref AND r.order_id = o.id)
+     AND public.money_ref_in_use(v_ref) THEN
+    RAISE EXCEPTION 'ref_already_used' USING ERRCODE = '23505',
+      HINT = 'That Stripe id is already recorded on another payout or refund. Check you have the right one.';
+  END IF;
+  v_out := public.shop_record_hand_refund(o.stripe_payment_intent_id, v_ref, p_amount_cents, o.payment_livemode, 'admin', v_uid, v_note);
+  IF v_out <> 'already' THEN
+    INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
+    VALUES (v_uid, 'shops_admin_record_hand_refund', 'shop_order', o.id::text,
+            jsonb_build_object('stripe_refund_id', v_ref, 'amount_cents', p_amount_cents, 'note', v_note, 'outcome', v_out));
+  END IF;
+  RETURN jsonb_build_object('result', v_out, 'order_id', o.id);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shops_admin_record_hand_refund(uuid, uuid, text, integer, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shops_admin_record_hand_refund(uuid, uuid, text, integer, text) TO service_role;
+
+-- charge.refund.updated: a hand refund Stripe later failed / canceled moved no
+-- money. It is marked failed, the order STAYS held (nothing reopens or sends on its
+-- own: rule A of the v2 review), and the caller pages ops: the buyer is NOT repaid
+-- and a person decides. 'not_shops' when no hand refund has this id; 'already'
+-- when it was marked before.
+CREATE OR REPLACE FUNCTION public.shop_hand_refund_failed(p_stripe_refund_id text)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  h public.shop_hand_refunds;
+BEGIN
+  SELECT * INTO h FROM public.shop_hand_refunds WHERE stripe_refund_id = p_stripe_refund_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN 'not_shops';
+  END IF;
+  IF h.failed_at IS NOT NULL THEN
+    RETURN 'already';
+  END IF;
+  UPDATE public.shop_hand_refunds SET failed_at = now() WHERE stripe_refund_id = p_stripe_refund_id;
+  -- Never reopened automatically (rule A): the order stays held; a person decides.
+  PERFORM public.shop_hold_order_for_hand_refund(h.order_id,
+    left('refund made in Stripe ' || p_stripe_refund_id || ' FAILED; the buyer is not repaid: decide by hand', 300));
+  RETURN 'marked_failed';
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_hand_refund_failed(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shop_hand_refund_failed(text) TO service_role;
+
+-- Q807: every public table carries the unconfirmed-email statement gate (shop_refunds, shop_hand_refunds and facilitator_threshold_alerts are new).
 DO $do$
 BEGIN
   IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN

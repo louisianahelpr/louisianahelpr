@@ -61,6 +61,7 @@ export const ADMIN_RPC_ERROR_COPY = {
     order_not_found: "This order isn't available any more. Refresh the list.",
     order_not_open: "This order is already closed. Refresh the list.",
     problem_open: "A problem is open on this order.",
+    refunded_in_stripe: "This order was refunded in Stripe. Decide its held refund or payout in Payouts held for review.",
   },
   shops_admin_remove_strike: {
     admin_only: "Only admins can remove a Shops strike.",

@@ -16,8 +16,9 @@
  * Stripe call order and keys, executed: src/test/edge/shop-refunds.test.ts.
  *
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |   SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;\n  IF NOT FOUND OR o.buyer_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  o := public.shop_lock_open_charged_order(o.id, false);\n  -- 2. |
- * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     WHEN reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee'\n    ELSE 'full_platform_absorbs' END), |     ELSE 'full_platform_absorbs' END),
- * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     ELSE ceil(kept_cents::numeric * tax_cents / (paid_cents - tax_cents))::integer END), |     ELSE 0 END),
+ * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee'\n | \n
+ * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |              ELSE ceil(p_kept::numeric * p_tax / (p_paid - p_tax))::integer END; |              ELSE 0 END;
+ * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |   CONSTRAINT shop_refunds_policy CHECK (fee_policy = public.shop_refund_fee_policy(reason)), |
  * @mutate supabase/functions/shop-checkout/index.ts |   const { data, error } = await asShop.rpc("shops_shop_cancel_order", { p_order_id: orderId, p_reason: reason });\n  if (error) return rpcRefusal(error);\n  const d = data as DecidedRow;\n  const refund = await sendRefundNow(admin, orderId, d?.refund_id); |   const refund = await sendRefundNow(admin, orderId, null);\n  const { data, error } = await asShop.rpc("shops_shop_cancel_order", { p_order_id: orderId, p_reason: reason });\n  if (error) return rpcRefusal(error);\n  const d = data as DecidedRow;
  */
 import { describe, expect, it } from "vitest";
@@ -73,14 +74,22 @@ describe("Shops M3: refunds and cancels decide under the row lock, Stripe after 
     }
   });
 
-  it("shop_refunds holds reason -> fee policy -> amount as CHECKs", () => {
+  it("shop_refunds holds reason -> fee policy -> amount as CHECKs, through the ONE shared formula", () => {
     const table = MIG.slice(MIG.indexOf("CREATE TABLE IF NOT EXISTS public.shop_refunds"), MIG.indexOf("ALTER TABLE public.shop_refunds ENABLE"));
-    expect(table).toMatch(/WHEN reason IN \('shop_cancelled', 'no_ready_photo', 'shop_removed', 'problem_shop_fault'\) THEN 'full_shop_pays_fee'/);
-    expect(table).toMatch(/WHEN reason IN \('buyer_cancelled', 'problem_no_fault'\) THEN 'keep_card_fee'/);
-    // Only our mistake is left for the platform to carry.
-    expect(table).toMatch(/'problem_our_mistake'\)\),/);
+    // /code-review of shops-m3-v1 #7: the CHECKs call the functions the quote and the write use.
+    expect(table).toMatch(/CONSTRAINT shop_refunds_policy CHECK \(fee_policy = public\.shop_refund_fee_policy\(reason\)\)/);
+    expect(table).toMatch(/CONSTRAINT shop_refunds_tax_kept CHECK \(tax_kept_cents = public\.shop_refund_tax_kept\(kept_cents, tax_cents, paid_cents\)\)/);
+    const policy = body("shop_refund_fee_policy");
+    expect(policy).toMatch(/WHEN p_reason IN \('shop_cancelled', 'no_ready_photo', 'shop_removed', 'problem_shop_fault'\) THEN 'full_shop_pays_fee'/);
+    expect(policy).toMatch(/WHEN p_reason IN \('buyer_cancelled', 'problem_no_fault'\) THEN 'keep_card_fee'/);
+    // Only our mistake is left for the platform to carry (any other reason has no policy, so no row).
+    expect(policy).toMatch(/WHEN p_reason = 'problem_our_mistake' THEN 'full_platform_absorbs'\s+END/);
     expect(table).toMatch(/kept_cents = CASE WHEN fee_policy = 'keep_card_fee' THEN card_fee_cents ELSE 0 END/);
-    expect(table).toMatch(/ceil\(kept_cents::numeric \* tax_cents \/ \(paid_cents - tax_cents\)\)::integer/);
+    expect(body("shop_refund_tax_kept")).toMatch(/ceil\(p_kept::numeric \* p_tax \/ \(p_paid - p_tax\)\)::integer/);
+    for (const fn of ["shop_write_refund", "shops_order_cancel_quote"]) {
+      expect(body(fn), fn).toMatch(/shop_refund_amounts\(/);
+      expect(/ceil\(|declutter_card_fee_estimate/.test(body(fn)), fn).toBe(false);
+    }
     expect(table).toMatch(/refund_cents = paid_cents - kept_cents - tax_kept_cents AND refund_cents > 0/);
     expect(MIG).toMatch(/order_id uuid NOT NULL UNIQUE REFERENCES public\.shop_orders/);
   });

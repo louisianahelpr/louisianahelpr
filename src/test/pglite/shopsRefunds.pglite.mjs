@@ -191,6 +191,18 @@ await db.exec(`CREATE TABLE public.payout_holds (helper_id uuid PRIMARY KEY, rea
 // Declutter's item total and seed flag (20261014210518), read by the facilitator counter.
 await db.exec(`ALTER TABLE public.declutter_orders ADD COLUMN items_cents integer NOT NULL DEFAULT 100,
   ADD COLUMN is_seed boolean NOT NULL DEFAULT false;`);
+// Payout readiness (20261019070737), as prod has it under this migration: a shop payout can be
+// held for review (only an admin moves it on).
+await db.exec(`ALTER TABLE public.shop_payouts DROP CONSTRAINT IF EXISTS shop_payouts_status_check;
+ALTER TABLE public.shop_payouts ADD CONSTRAINT shop_payouts_status_check
+  CHECK (status IN ('pending', 'succeeded', 'failed', 'nothing_due', 'held_for_review', 'settled_by_hand'));
+ALTER TABLE public.shop_payouts ADD COLUMN review_reason text, ADD COLUMN review_held_at timestamptz;`);
+{ // and its money_ref_in_use (every text column holding a Stripe transfer / refund id), verbatim.
+  const ready = readFileSync(`${MIG_DIR}20261019070737_payout_waits_for_payee_setup.sql`, "utf8");
+  const i = ready.indexOf("CREATE OR REPLACE FUNCTION public.money_ref_in_use(");
+  const j = ready.indexOf("$fn$;", ready.indexOf("AS $fn$", i) + 7);
+  await db.exec(ready.slice(i, j + 5));
+}
 const skip = process.env.NEW_MIGRATION === "skip";
 if (!skip) {
   for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
@@ -365,6 +377,13 @@ ok((await payout(oNext))?.debt_cents === 80 && (await payout(oNext))?.amount_cen
 
 // --- 4. buyer no-show (O3): a late cancel + a buyer strike, in-person orders, after the ready date
 const oN = await chargedTax(BUYER, lines([itemA, 1]), D1, 0);
+// /code-review of shops-m3-v1 #2: only an order the shop marked ready can be a no-show.
+await pastReady(oN, 1);
+ok(refused(await member(OWNER, `SELECT public.shops_report_no_show('${oN}')`), /not_ready/, "55000")
+  && (await order(oN)).status === "accepted" && await strikes(BUYER) === 0,
+  "a shop that never marked the order ready cannot report a no-show (not_ready): no strike, nothing paid");
+await svc(`INSERT INTO public.shop_handovers (order_id, ready_at) VALUES ('${oN}', now() - interval '30 hours')`);
+await svc(`UPDATE public.shop_orders SET ready_date = ((now() AT TIME ZONE 'America/Chicago')::date + 1) WHERE id = '${oN}'`);
 ok(refused(await member(OWNER, `SELECT public.shops_report_no_show('${oN}')`), /too_early_for_no_show/, "55000"), "not before the ready date is over");
 await pastReady(oN, 1);
 ok(refused(await member(BUYER, `SELECT public.shops_report_no_show('${oN}')`), /order_not_found/, "P0002"), "only the shop reports a no-show");
@@ -468,8 +487,17 @@ ok(one(await svc(`SELECT public.shop_refund_executed('${fId}', 're_m3_1', true, 
 ok(one(await svc(`SELECT public.shop_refund_reversed('${fId}', 're_other')`)) === false
   && one(await svc(`SELECT status FROM public.shop_refunds WHERE id = '${fId}'`)) === "succeeded", "only the refund the row recorded can reopen it");
 ok(one(await svc(`SELECT public.shop_refund_reversed('${fId}', 're_m3_1')`)) === true
-  && (await svc(`SELECT refund_id, attempts FROM public.shop_refunds_due(50)`)).some((r) => r.refund_id === fId && r.attempts === 2),
-  "a refund Stripe failed later is reopened and sent again under a new key (one more attempt)");
+  && (await svc(`SELECT refund_id FROM public.shop_refunds_due(50)`)).some((r) => r.refund_id === fId),
+  "a refund Stripe failed later is reopened and sent again");
+// /code-review of shops-m3-v1 #4: a reversal starts a fresh run of tries (new keys via reversals),
+// so a row on its last try is re-sent, and can still reach the give-up page 12 tries later.
+const fDue = (await svc(`SELECT refund_id, attempts, reversals FROM public.shop_refunds_due(50)`)).find((r) => r.refund_id === fId);
+ok(fDue?.attempts === 0 && fDue.reversals === 1, "a reversed refund is due again with attempts reset and one reversal counted");
+await svc(`UPDATE public.shop_refunds SET attempts = 11 WHERE id = '${fId}'`);
+await svc(`SELECT public.shop_refund_executed('${fId}', 're_m3_3', true, NULL)`);
+ok(one(await svc(`SELECT public.shop_refund_reversed('${fId}', 're_m3_3')`)) === true
+  && (await svc(`SELECT refund_id, attempts, reversals FROM public.shop_refunds_due(50)`)).some((r) => r.refund_id === fId && r.attempts === 0 && r.reversals === 2),
+  "a refund reversed after its 11th try is re-sent (never pushed past the queue's limit)");
 ok(Array.isArray(await rows(BUYER, `SELECT id FROM public.shop_refunds WHERE order_id = '${oF}'`)) && (await rows(BUYER, `SELECT id FROM public.shop_refunds WHERE order_id = '${oF}'`)).length === 1
   && (await rows(ORDINARY, `SELECT id FROM public.shop_refunds`)).length === 0, "the two sides read their refund; nobody else does");
 ok(refused(await member(BUYER, `SELECT stripe_payment_intent_id FROM public.shop_refunds`), /permission denied/), "members never read the Stripe ids");
@@ -493,13 +521,140 @@ ok(Array.isArray(queue?.problems) && Array.isArray(queue.refunds) && queue.refun
 await svc(`INSERT INTO public.payout_holds (helper_id, reason) VALUES ('${OWNER}', 'review')`);
 ok(one(await member(ADMIN, `SELECT public.shops_admin_queue()`))?.payouts.every((p) => p.on_hold === true), "a payout hold shows on the shop's payouts");
 ok(refused(await member(OWNER, `SELECT public.shops_admin_queue()`), /admin_only/, "42501"), "members cannot read the queue");
+// /code-review of shops-m3-v1 #6: a payout held for review is in the admin's queue.
+await svc(`UPDATE public.shop_payouts SET status = 'held_for_review', review_reason = 'payee_deleted' WHERE order_id = '${oL}'`);
+ok(one(await member(ADMIN, `SELECT public.shops_admin_queue()`))?.payouts.some((p) => p.order_id === oL && p.status === "held_for_review" && p.review_reason === "payee_deleted"),
+  "a payout held for review shows in the admin queue");
+await svc(`UPDATE public.shop_payouts SET status = 'pending', review_reason = NULL WHERE order_id = '${oL}'`);
+
+// --- 11b. ONE refund formula (/code-review of shops-m3-v1 #7): the table CHECKs, the quote
+//      and the write all use shop_refund_fee_policy / shop_refund_tax_kept / shop_refund_amounts.
+// The shop's strikes are cleared so it takes orders again for the checks below.
+await svc(`UPDATE public.shop_strikes SET removed_at = now() WHERE user_id = '${OWNER}' AND removed_at IS NULL`);
+const conDef = async (name) => one(await svc(`SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = '${name}'`)) ?? "";
+ok(!skip && /shop_refund_fee_policy\(reason\)/.test(await conDef("shop_refunds_policy"))
+  && /shop_refund_tax_kept\(kept_cents, tax_cents, paid_cents\)/.test(await conDef("shop_refunds_tax_kept")),
+  "the table CHECKs call the shared policy and tax-kept functions");
+const bodyOf = async (fn) => {
+  const d = one(await svc(`SELECT pg_get_functiondef('public.${fn}'::regprocedure)`)) ?? "";
+  const m = /\bAS\s+\$\w*\$/.exec(d);
+  return m ? d.slice(m.index) : "";
+};
+const qb = await bodyOf("shops_order_cancel_quote(uuid)"), wb = await bodyOf("shop_write_refund(uuid, text, text)");
+ok(!skip && /shop_refund_amounts\(/.test(qb) && /shop_refund_amounts\(/.test(wb) && !/ceil\(|card_fee_estimate/.test(qb) && !/ceil\(|card_fee_estimate|CASE\s+WHEN p_reason/.test(wb),
+  "the quote and the write read shop_refund_amounts, with no formula of their own");
+const oQ = await chargedTax(BUYER, lines([itemA, 1]), D5, 120, 70);
+const qq = one(await member(BUYER, `SELECT public.shops_order_cancel_quote('${oQ}')`));
+const qa = (await svc(`SELECT * FROM public.shop_refund_amounts('${oQ}', 'buyer_cancelled')`))?.[0];
+ok(!skip && qq?.free === true && qa && qq.refund_cents === qa.refund_cents && qq.kept_cents === qa.kept_cents + qa.tax_kept_cents,
+  "the buyer's quote is exactly shop_refund_amounts");
+const qr = one(await cancel(BUYER, oQ, "free"));
+ok(!skip && qr?.refund_cents === qq.refund_cents, "and the refund written is exactly the quote");
+
+// --- 11c. refunds made BY HAND in Stripe (/code-review of shops-m3-v1 #1)
+const hand = (pi, re, cents, how = "webhook") => svc(`SELECT public.shop_record_hand_refund('${pi}', '${re}', ${cents}, false, '${how}', NULL, NULL) AS r`);
+const pi = async (id) => (await order(id)).stripe_payment_intent_id;
+// a) an open accepted order refunded in full by hand: closed, stock back, never auto-finished, never paid
+const oH1 = await chargedTax(BUYER, lines([itemB, 1]), D1, 0, 50);
+const h1Stock = await stockB();
+const h1 = await order(oH1);
+ok(one(await hand(h1.stripe_payment_intent_id, "re_hand1", h1.total_cents)) === "closed_refunded", "a full hand refund on an open order closes it");
+ok((await order(oH1)).status === "refunded" && (await order(oH1)).close_reason === "refunded_by_hand" && await stockB() === h1Stock + 1,
+  "refunded, refunded_by_hand, stock back");
+await pastDue(oH1);
+await sweep();
+ok((await order(oH1)).status === "refunded" && !(await payout(oH1)), "the handover clock never finishes or pays a hand-refunded order");
+ok(one(await hand(h1.stripe_payment_intent_id, "re_hand1", h1.total_cents)) === "already", "one Stripe refund is recorded once");
+// b) a handed-over order with its payout not sent: partially refunded, payout held for review, never due
+const oH2 = await chargedTax(BUYER, lines([itemA, 1]), D2, 0, 50);
+await member(BUYER, `SELECT public.shops_confirm_pickup('${oH2}')`);
+ok((await svc(`SELECT order_id FROM public.shop_payouts_due(50)`)).some((r) => r.order_id === oH2), "setup: the payout is due");
+ok(one(await hand(await pi(oH2), "re_hand2", 500)) === "closed_partially_refunded", "a partial hand refund after pickup is recorded");
+ok((await order(oH2)).status === "partially_refunded" && (await payout(oH2))?.status === "held_for_review"
+  && /refunded_by_hand/.test((await payout(oH2))?.review_reason ?? "")
+  && !(await svc(`SELECT order_id FROM public.shop_payouts_due(50)`)).some((r) => r.order_id === oH2),
+  "partially_refunded, the shop payout held for review and out of the queue");
+// Defence in depth: even a payout and order moved back by hand are never sent while a live hand refund stands.
+await svc(`UPDATE public.shop_payouts SET status = 'pending' WHERE order_id = '${oH2}'`);
+await svc(`UPDATE public.shop_orders SET status = 'handed_over', close_reason = 'handed_over' WHERE id = '${oH2}'`);
+ok(!(await svc(`SELECT order_id FROM public.shop_payouts_due(50)`)).some((r) => r.order_id === oH2),
+  "a payout is never sent while a live hand refund stands on its order");
+await svc(`UPDATE public.shop_orders SET status = 'partially_refunded', close_reason = 'refunded_by_hand' WHERE id = '${oH2}'`);
+// c) rule A (/code-review of shops-m3 v2): a hand refund on an order with an UNSENT app refund holds that
+//    row (full or short, it is never sent on top), and the order refuses every refund path from then on.
+const oH3 = await chargedTax(BUYER, lines([itemA, 1]), D3, 0, 50);
+await member(OWNER, `SELECT public.shops_shop_cancel_order('${oH3}', NULL)`);
+const h3r = await refund(oH3);
+await svc(`UPDATE public.shop_refunds SET created_at = now() - interval '5 minutes' WHERE id = '${h3r.id}'`);
+ok((await svc(`SELECT refund_id FROM public.shop_refunds_due(50)`)).some((r) => r.refund_id === h3r.id), "setup: the app refund is due");
+ok(one(await hand(await pi(oH3), "re_hand3", h3r.refund_cents - 1)) === "recorded_refund_held" && (await refund(oH3)).status === "held_for_review"
+  && /refunded_by_hand: re_hand3/.test((await refund(oH3)).review_reason ?? ""),
+  "a SHORT hand refund holds the unsent app refund (never sent on top)");
+ok(!(await svc(`SELECT refund_id FROM public.shop_refunds_due(50)`)).some((r) => r.refund_id === h3r.id)
+  && (await svc(`SELECT refund_id FROM public.shop_refund_to_send('${h3r.id}')`)).length === 0, "a held app refund is in no queue and the tap cannot send it");
+await svc(`UPDATE public.shop_refunds SET status = 'pending' WHERE id = '${h3r.id}'`);
+ok(!(await svc(`SELECT refund_id FROM public.shop_refunds_due(50)`)).some((r) => r.refund_id === h3r.id)
+  && (await svc(`SELECT refund_id FROM public.shop_refund_to_send('${h3r.id}')`)).length === 0,
+  "even moved back to pending, an app refund is never sent while a live hand refund stands on the order");
+await svc(`UPDATE public.shop_refunds SET status = 'held_for_review' WHERE id = '${h3r.id}'`);
+const oH3b = await chargedTax(BUYER, lines([itemA, 1]), D3, 0, 50);
+await member(OWNER, `SELECT public.shops_shop_cancel_order('${oH3b}', NULL)`);
+ok(one(await hand(await pi(oH3b), "re_hand3b", (await refund(oH3b)).refund_cents)) === "recorded_refund_held" && (await refund(oH3b)).status === "held_for_review",
+  "a hand refund that COVERS the unsent app refund holds it too: an admin settles it, nothing automatic");
+await svc(`UPDATE public.shop_refunds SET status = 'succeeded', stripe_refund_id = 're_app3c' WHERE order_id = '${oH3b}'`);
+ok(one(await hand(await pi(oH3b), "re_hand3c", 100)) === "recorded_row_already_settled", "a hand refund after the app's refund went out says so (two refunds)");
+// d) a hand refund that fails later never reopens anything: the order stays held, a person decides.
+ok(one(await svc(`SELECT public.shop_hand_refund_failed('re_hand3')`)) === "marked_failed" && (await refund(oH3)).status === "held_for_review"
+  && !(await svc(`SELECT refund_id FROM public.shop_refunds_due(50)`)).some((r) => r.refund_id === h3r.id),
+  "a failed hand refund marks it failed and leaves the order held (no automatic re-send)");
+// e) the same re_ id on a different order's payment is never adopted.
+ok(one(await hand(await pi(oH3b), "re_hand1", 100)) === "recorded_other_order"
+  && Number(one(await svc(`SELECT count(*) FROM public.shop_hand_refunds WHERE stripe_refund_id = 're_hand1'`))) === 1,
+  "a refund id recorded on another payment answers recorded_other_order and changes nothing");
+// A refund on an order never recorded as captured: recorded (it blocks any payout), nothing else changed, a person checks.
+const oH5 = one(await request(BUYER, lines([itemA, 1]), D5))?.order_id;
+await svc(`SELECT public.shop_attach_checkout_session('${oH5}', 'cs_test_m3_h5')`);
+await svc(`SELECT public.shop_mark_order_held('cs_test_m3_h5', 'pi_m3_h5', 1960, 0, false)`);
+ok(one(await hand("pi_m3_h5", "re_hand5", 100)) === "recorded_not_charged" && (await order(oH5)).status === "held",
+  "a refund on an order not recorded as captured is recorded and changes nothing else (never a webhook loop)");
+// f) once a hand refund stands, no refund path acts on the order (the lock refuses it).
+await member(OWNER, `SELECT public.shops_accept_order('${oH5}')`);
+await svc(`SELECT public.shop_order_captured('${oH5}', 50)`);
+ok(refused(await cancel(BUYER, oH5, "late"), /refunded_in_stripe/, "55000") && (await order(oH5)).status === "accepted",
+  "the lock itself refuses an order with a live hand refund (a late cancel writes no refund row, and is refused too)");
+ok(refused(await cancel(BUYER, oH5, "free"), /refunded_in_stripe/, "55000")
+  && refused(await member(OWNER, `SELECT public.shops_shop_cancel_order('${oH5}', NULL)`), /refunded_in_stripe/, "55000")
+  && refused(await member(ADMIN, `SELECT public.shops_admin_refund_order('${oH5}', 'problem_our_mistake', 'x')`), /refunded_in_stripe/, "55000")
+  && refused(await svc(`SELECT public.shop_write_refund('${oH5}', 'problem_our_mistake', NULL)`), /refunded_in_stripe/, "55000") && !(await refund(oH5)),
+  "with a live hand refund, every cancel / refund path and shop_write_refund refuse (refunded_in_stripe)");
+ok(one(await hand("pi_nobody", "re_handx", 100)) === "not_shops", "a payment no Shops order knows is not Shops");
+// d) the admin path: records, audits, refuses members and bad input, makes no Stripe refund (no new shop_refunds row)
+const oH4 = await chargedTax(BUYER, lines([itemA, 1]), D4, 0, 50);
+const adm = (uid, re, cents, note = "Refunded in the Dashboard") => svc(`SELECT public.shops_admin_record_hand_refund(${uid ? `'${uid}'` : "NULL"}, '${oH4}', '${re}', ${cents}, '${note}') AS r`);
+ok(refused(await adm(OWNER, "re_hand4", 100), /admin_only/, "42501") && refused(await adm(null, "re_hand4", 100), /admin_only/, "42501"),
+  "only an admin's id records a hand refund");
+ok(refused(await adm(ADMIN, "tr_nope", 100), /invalid_stripe_ref/, "22023") && refused(await adm(ADMIN, "re_hand4", 0), /invalid_amount/, "22023")
+  && refused(await adm(ADMIN, "re_hand4", 100, ""), /invalid_note/, "22023") && refused(await adm(ADMIN, "re_hand4", 999999), /invalid_amount/, "22023"),
+  "it needs a re_ id, an amount up to what was paid, and a note");
+ok(one(await adm(ADMIN, "re_hand4", (await order(oH4)).total_cents))?.result === "closed_refunded" && !(await refund(oH4))
+  && (await order(oH4)).status === "refunded"
+  && Number(one(await svc(`SELECT count(*) FROM public.admin_audit_log WHERE action = 'shops_admin_record_hand_refund' AND target_id = '${oH4}'`))) === 1,
+  "an admin records it: the order closes, it is audited, and no app refund is made");
+ok(refused(await svc(`SELECT public.shops_admin_record_hand_refund('${ADMIN}', '${oH4}', 're_app3c', 100, 'x')`), /ref_already_used/, "23505"),
+  "a re_ id another order's money row holds is refused");
+ok(one(await svc(`SELECT public.shop_hand_refund_failed('re_hand4')`)) === "marked_failed"
+  && one(await svc(`SELECT public.shop_hand_refund_failed('re_hand4')`)) === "already"
+  && one(await svc(`SELECT public.shop_hand_refund_failed('re_unknown')`)) === "not_shops", "a hand refund Stripe failed later stops counting, once");
 
 // --- 12. grants: service steps closed to members, member RPCs closed to anon
 const can = async (role, fn) => one(await svc(`SELECT has_function_privilege('${role}', 'public.${fn}', 'EXECUTE')`));
 let closed = true;
 for (const fn of ["shop_write_refund(uuid, text, text)", "shop_owe_shop(uuid)", "shop_return_stock(uuid)", "shop_give_strike(uuid, text, text, uuid)",
   "shop_lock_open_charged_order(uuid, boolean)", "shop_refunds_due(integer)", "shop_refund_to_send(uuid)", "shop_refund_executed(uuid, text, boolean, text)",
-  "shop_refund_sweep()", "shop_payouts_due(integer)", "shop_refund_reversed(uuid, text)"]) {
+  "shop_refund_sweep()", "shop_payouts_due(integer)", "shop_refund_reversed(uuid, text)",
+  "shop_refund_amounts(uuid, text)", "shop_refund_fee_policy(text)", "shop_refund_tax_kept(integer, integer, integer)",
+  "shop_record_hand_refund(text, text, integer, boolean, text, uuid, text)", "shop_hand_refund_failed(text)",
+  "shop_hold_order_for_hand_refund(uuid, text)", "shops_admin_record_hand_refund(uuid, uuid, text, integer, text)"]) {
   if (await can("authenticated", fn) || await can("anon", fn)) { closed = false; console.log(`  open to members: ${fn}`); }
 }
 ok(!skip && closed, "every service step is closed to members and anon");

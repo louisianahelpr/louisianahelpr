@@ -10,7 +10,7 @@
  * a shop can have gets its own icon (no silent fallback for a known key).
  *
  * @mutate src/components/declutter/MovingSaleBanner.tsx | <PhotoPlaceholder icon={categoryIcon(it.category)} seed={it.category} className="h-full w-full" /> | null
- * @mutate src/components/shops/ShopsHomeView.tsx | <PhotoPlaceholder icon={shopGroupIcon(group)} seed={group} className="h-full w-full" /> | <span />
+ * @mutate src/components/shops/ShopBrowseCard.tsx | <PhotoPlaceholder icon={shopGroupIcon(group)} seed={group} className="h-full w-full" /> | <span />
  * @mutate src/components/rentals/listings/RentBrowse.tsx | <PhotoPlaceholder icon={Home} seed={kind} className="h-full w-full" /> | <Home className="h-8 w-8" />
  * @mutate src/lib/declutter/categoryIcons.ts |   books_media: BookOpen, |   books_mediaz: BookOpen,
  * @mutate src/lib/shops/categoryIcons.ts |   pets: PawPrint, |   petz: PawPrint,
@@ -36,7 +36,7 @@ const read = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"
 const CARD_FILES = [
   "src/components/declutter/DeclutterItemCard.tsx",
   "src/components/declutter/MovingSaleBanner.tsx",
-  "src/components/shops/ShopsHomeView.tsx",
+  "src/components/shops/ShopBrowseCard.tsx",
   "src/components/rentals/listings/RentBrowse.tsx",
 ];
 
@@ -73,15 +73,20 @@ describe("a photo-less card shows its category on a tint, never a blank box", ()
   it("every Declutter category and every shop group has its own icon", () => {
     expect(Object.keys(CATEGORY_LABEL).length).toBeGreaterThan(10);
     expect(Object.keys(CATEGORY_LABEL).filter((k) => !CATEGORY_ICON[k])).toEqual([]);
-    // The shop groups come from the newest migration that seeds shop_categories.
-    const mig = readdirSync(join(ROOT, "supabase/migrations"))
+    // The shop groups as the migrations leave them: the newest file that
+    // restates the whole list, plus any later file that upserts single rows
+    // (e.g. 20261019210636's one category; the newest alone is not the list).
+    const groups = new Set<string>();
+    for (const sql of readdirSync(join(ROOT, "supabase/migrations"))
       .filter((n) => n.endsWith(".sql"))
       .sort()
-      .map((n) => blankSqlComments(readFileSync(join(ROOT, "supabase/migrations", n), "utf8")))
-      .filter((s) => /INSERT INTO public\.shop_categories/.test(s))
-      .pop() ?? "";
-    const insert = mig.slice(mig.indexOf("INSERT INTO public.shop_categories"));
-    const groups = new Set([...insert.matchAll(/\(\s*'[a-z_]+',\s*'([a-z_]+)',\s*'[^']+',/g)].map((m) => m[1]));
+      .map((n) => blankSqlComments(readFileSync(join(ROOT, "supabase/migrations", n), "utf8")))) {
+      // A file that restates the whole list (and deletes the rest) starts over.
+      if (/DELETE FROM public\.shop_categories WHERE slug <> ALL/.test(sql)) groups.clear();
+      for (const part of sql.split("INSERT INTO public.shop_categories").slice(1)) {
+        for (const m of part.matchAll(/\(\s*'[a-z_]+',\s*'([a-z_]+)',\s*'[^']+',/g)) groups.add(m[1]);
+      }
+    }
     expect(groups.size).toBeGreaterThan(8);
     expect([...groups].filter((g) => !SHOP_GROUP_ICON[g])).toEqual([]);
   });

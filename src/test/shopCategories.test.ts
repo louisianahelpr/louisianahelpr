@@ -19,10 +19,13 @@
 // @mutate supabase/migrations/20261017224153_shop_categories_v2.sql |   DELETE FROM public.shop_categories WHERE slug <> ALL (v_keep); | 
 // @mutate supabase/migrations/20261017224153_shop_categories_v2.sql |     ('equipment_rental', 'trades', 'Trades', 'Equipment rental', 313),\n | 
 // @mutate supabase/migrations/20261017224153_shop_categories_v2.sql | 'events_party', 'Events and party', 'Party rentals' | 'events_party', 'Rentals', 'Party rentals'
+// @mutate supabase/migrations/20261019210636_shop_category_declutter_estate_sales.sql | ('declutter_estate_sales', 'home_services' | ('declutter_estate_sales', 'other'
+// @mutate src/lib/declutter/sellForMe.ts | SELL_FOR_ME_SHOP_CATEGORY = "declutter_estate_sales" | SELL_FOR_ME_SHOP_CATEGORY = "declutter_estate_sale"
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { SELL_FOR_ME_SHOP_CATEGORY } from "@/lib/declutter/sellForMe";
 
 const MIG_DIR = join(process.cwd(), "supabase/migrations");
 
@@ -56,7 +59,7 @@ function effectiveCategories(): { rows: Map<string, Row>; files: string[] } {
 /** The v2.2 list (final), group by group, in order. */
 const V2 = [
   "Food to order: Bakery and cakes, Catering, Crawfish and seafood, BBQ and smoked meats, Meal prep, Home kitchen",
-  "Home services: Cleaning, Lawn and landscaping, Pressure washing, Pest control, Pool, Moving, Junk removal, Organizing, Tree service, Gutters, Window washing",
+  "Home services: Cleaning, Lawn and landscaping, Pressure washing, Pest control, Pool, Moving, Junk removal, Organizing, Tree service, Gutters, Window washing, Declutter and estate sale services",
   "Trades: Electrical, Plumbing, HVAC, Roofing, Welding, Carpentry, Flooring, Concrete and masonry, Fencing, Painting, Remodeling, Appliance repair, Handyman, Equipment rental",
   "Events and party: DJ, Photography, Videography, Venues, Decor, Florist, Party rentals, Bounce houses, Tables, chairs and tents",
   "Auto and marine: Mechanic, Mobile mechanic, Detailing, Towing, Tires, Boat repair",
@@ -86,7 +89,7 @@ describe("Shops categories v2: local businesses people order, book or rent from 
     }
   });
 
-  it("the whole list is exactly v2, group by group, in order (80 categories)", () => {
+  it("the whole list is exactly v2 plus Sell it for me's category, group by group, in order (81 categories)", () => {
     const groups: string[] = [];
     for (const r of sorted) {
       const last = groups[groups.length - 1];
@@ -94,7 +97,13 @@ describe("Shops categories v2: local businesses people order, book or rent from 
       else groups.push(`${r.groupLabel}: ${r.label}`);
     }
     expect(groups).toEqual(V2);
-    expect(rows.size).toBe(80);
+    expect(rows.size).toBe(81);
+  });
+
+  it("Sell it for me's business category exists in Home services, and its file only adds (owner 2026-10-19)", () => {
+    expect(rows.get(SELL_FOR_ME_SHOP_CATEGORY)).toMatchObject({ group: "home_services", label: "Declutter and estate sale services" });
+    const own = blankSqlComments(readFileSync(join(MIG_DIR, "20261019210636_shop_category_declutter_estate_sales.sql"), "utf8"));
+    expect(own).not.toMatch(/DELETE\s+FROM/i);
   });
 
   it("no group is called just 'Rentals' (that is the homes section); equipment rental sits in Trades", () => {

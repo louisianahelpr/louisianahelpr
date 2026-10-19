@@ -43,6 +43,7 @@ import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
 import { BuyingDash, SellingDash } from "./DeclutterMineViews";
+import { SellItForMeEntry } from "./SellItForMe";
 import { DeclutterBrowseBar } from "./DeclutterBrowseBar";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
@@ -356,6 +357,8 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
         listings={
           <div className="space-y-3">
             <MovingOutEntry on={movingOutOn} />
+            {/* "Sell it for me" sits with the listings, so the empty state shows it too (owner 2026-10-19). */}
+            <SellItForMeEntry />
             <MyListingsView userId={userId} haulOn={haulOn} />
           </div>
         }

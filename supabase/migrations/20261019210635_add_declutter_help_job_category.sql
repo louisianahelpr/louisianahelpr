@@ -1,0 +1,15 @@
+-- "Sell it for me" (owner order 2026-10-19 ~21Z): a seller who doesn't want to
+-- photograph and list things can hire a local Helpr. That job gets its own
+-- category, "Declutter Help". It is an ordinary paid Helpr job (every Jobs
+-- rule and fee); the Helpr helps in person and never gets the seller's
+-- account.
+--
+-- Sales tax: untaxed, like errands and cleaning (labor only, no tangible
+-- property changes hands; src/lib/salesTax.ts TAXABLE_CATEGORIES is unchanged).
+--
+-- ADD VALUE IF NOT EXISTS is replay-safe (a second run is a no-op) and cannot
+-- conflict with another lane adding other values. A value added inside a
+-- transaction cannot be USED in that same transaction, so this file only adds
+-- it. Old clients render an unknown category through their fallbacks
+-- (src/test/categoryLookupsHaveFallback.test.ts).
+ALTER TYPE public.job_category ADD VALUE IF NOT EXISTS 'declutter_help';

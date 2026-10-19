@@ -1,6 +1,7 @@
 import { fetchTurnoverPrefill } from "./turnoverPrefill";
 import { buildSetupJobPrefill, fetchSetupHelpr, isBookedSetupJob, parseSetupKind } from "@/lib/declutter/setupHelpr";
 import { todayYmd } from "@/lib/jobDate";
+import { buildSellForMePrefill, SELL_FOR_ME_PARAM } from "@/lib/declutter/sellForMe";
 import { useEffect, useCallback } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { formatName } from "@/lib/utils";
@@ -368,6 +369,18 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
       },
     );
     return () => { live = false; };
+    // The setters are stable useState setters; the param is the trigger.
+  }, [searchParams]);
+
+  // Declutter "Sell it for me", option A (`?sellForMe=1`, owner 2026-10-19):
+  // a Declutter Help job with a suggested title and a description template.
+  // Nothing is read: an ordinary job the poster prices and pays like any other.
+  useEffect(() => {
+    if (!searchParams.get(SELL_FOR_ME_PARAM)) return;
+    const p = buildSellForMePrefill();
+    setCategory(p.category);
+    setTitle(p.title);
+    setDescription(p.description);
     // The setters are stable useState setters; the param is the trigger.
   }, [searchParams]);
 

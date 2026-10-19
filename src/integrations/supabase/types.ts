@@ -13974,6 +13974,14 @@ export type Database = {
         Returns: Json
       }
       shops_set_handover_mode: { Args: { p_mode: string }; Returns: string }
+      shops_order_cancel_quote: { Args: { p_order_id: string }; Returns: Json }
+      shops_admin_queue: { Args: never; Returns: Json }
+      shops_admin_pay_shop: { Args: { p_note: string; p_order_id: string }; Returns: Json }
+      shops_admin_remove_strike: { Args: { p_note: string; p_strike_id: string }; Returns: Json }
+      shops_admin_give_strike: {
+        Args: { p_note: string; p_order_id: string; p_side: string }
+        Returns: Json
+      }
       shops_set_ready_tap_cancel: { Args: { p_choice: string }; Returns: string }
       shops_add_item_photo: {
         Args: { p_item_id: string; p_storage_path: string }

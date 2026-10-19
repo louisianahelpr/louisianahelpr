@@ -47,6 +47,34 @@ export const ADMIN_RPC_ERROR_COPY = {
     helper_required: "Pick the Helpr whose payouts to hold.",
     reason_required: "Add a reason for the hold. Other admins see it.",
   },
+  // Shops M4 (20261019043209): the Shops orders queue.
+  shops_admin_queue: {
+    admin_only: "Only admins can see the Shops queue.",
+  },
+  shops_admin_pay_shop: {
+    admin_only: "Only admins can decide a Shops order.",
+    invalid_note: "Add a note of up to 500 characters. Other admins see it.",
+    invalid_method: "That action isn't available. Reload and try again.",
+    invalid_payout: "Something went wrong paying the shop. Reload and try again.",
+    order_final: "This order was already picked up and is final.",
+    order_not_charged_yet: "The buyer's card isn't charged yet. Try again in a few minutes.",
+    order_not_found: "This order isn't available any more. Refresh the list.",
+    order_not_open: "This order is already closed. Refresh the list.",
+    problem_open: "A problem is open on this order.",
+  },
+  shops_admin_remove_strike: {
+    admin_only: "Only admins can remove a Shops strike.",
+    invalid_note: "Add a note of up to 500 characters. Other admins see it.",
+    strike_not_found: "That strike was already removed or has ended. Refresh the list.",
+  },
+  shops_admin_give_strike: {
+    admin_only: "Only admins can give a Shops strike.",
+    invalid_note: "Add a note of up to 500 characters. Other admins see it.",
+    invalid_side: "Pick the buyer or the shop.",
+    member_gone: "That member's account is gone, so there is nobody to give a strike to.",
+    order_not_found: "This order isn't available any more. Refresh the list.",
+    strike_exists: "That side already has an admin strike for this order.",
+  },
   admin_deny_payout_hold: {
     admin_only: "Only admins can deny a payout.",
     no_payout_hold: "This Helpr is no longer on hold. Another admin may have released it, so refresh the queue.",

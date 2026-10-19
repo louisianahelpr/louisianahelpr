@@ -123,10 +123,26 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   order_not_payable: "This order can't be paid any more. Start a new order.",
   order_not_accepted: "This order isn't accepted yet.",
   variant_not_available: "That option isn't available. Pick the item without it.",
+  // M3 (20261019043209): refunds, cancels and strikes.
+  invalid_expect: "Something changed. Reload the order and try again.",
+  cancel_terms_changed: "The free-cancel time for this order has changed. Look again before cancelling.",
+  order_final: "This order was picked up and is final.",
+  not_in_person: "A left-out order can't be a no-show; it finishes on its own after the ready date.",
+  too_early_for_no_show: "You can report a no-show once the ready date is over.",
+  refund_not_found: "This refund isn't available.",
+  invalid_refund: "We couldn't send this refund just now. We'll try again.",
+  // M4 admin tools (20261019043209).
+  admin_only: "Only admins can do that.",
+  invalid_side: "Pick the buyer or the shop.",
+  strike_not_found: "That strike was already removed or has ended. Refresh the list.",
+  member_gone: "That member's account is gone, so there is nobody to give a strike to.",
+  strike_exists: "That side already has an admin strike for this order.",
 };
 
 /** shop-checkout's own answers (not RPC codes). */
 const SHOP_CHECKOUT_COPY: Record<string, string> = {
+  // M3: the shop changed its cancel terms after the buyer loaded them; the sheet reloads them.
+  terms_changed: "The shop changed its cancel terms. Look again before paying.",
   hold_lost: "The buyer's card could not be charged, so this order is cancelled. Don't make it; nothing was charged.",
   payment_unavailable: "Payments aren't available right now. Nothing was charged. Please try again in a few minutes.",
   invalid_action: "That action isn't available. Reload the page and try again.",

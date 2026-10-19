@@ -211,9 +211,12 @@ async function invokeShopCheckout(body: Record<string, unknown>): Promise<Record
 /** Ask for an order: the Stripe page's URL (a card HOLD; nothing is charged until the shop accepts). */
 export async function requestOrder(args: {
   shopId: string; lines: { item_id: string; quantity: number }[]; readyDate: string; note: string;
+  /** The cancel terms the buyer read (shops_order_terms): shop-checkout answers terms_changed if the shop changed them since. */
+  terms: Pick<OrderTerms, "cancel_policy" | "ready_tap_cancel">;
 }): Promise<string> {
   const data = await invokeShopCheckout({
     action: "order", shop_id: args.shopId, lines: args.lines, ready_date: args.readyDate, note: args.note,
+    terms: { cancel_policy: args.terms.cancel_policy, ready_tap_cancel: args.terms.ready_tap_cancel ?? "from_day_before" },
   });
   if (typeof data.url !== "string" || !data.url) throw new Error("payment_unavailable");
   return data.url;
@@ -234,6 +237,49 @@ export async function cancelOrderRequest(orderId: string): Promise<void> {
   await invokeShopCheckout({ action: "cancel", order_id: orderId });
 }
 
+/** What a buyer's cancel of an accepted order would do now (shops_order_cancel_quote, 20261019043209). */
+export interface CancelQuote {
+  can_cancel: boolean;
+  free?: boolean;
+  free_until?: string | null;
+  paid_cents?: number;
+  refund_cents?: number;
+  kept_cents?: number;
+}
+
+export async function fetchCancelQuote(orderId: string): Promise<CancelQuote> {
+  const { data, error } = await supabase.rpc("shops_order_cancel_quote", { p_order_id: orderId });
+  if (error) rpcFail(error, rpcErrorMessage("shops_order_cancel_quote", error));
+  return (data ?? { can_cancel: false }) as unknown as CancelQuote;
+}
+
+/**
+ * Shops M3: the buyer cancels an accepted order. `expect` is what the screen
+ * showed ('free' or 'late'); if the window moved since, the server refuses
+ * with cancel_terms_changed and nothing happens.
+ */
+export async function buyerCancelOrder(orderId: string, expect: "free" | "late"): Promise<{ refundCents: number }> {
+  const data = await invokeShopCheckout({ action: "buyer_cancel", order_id: orderId, expect });
+  return { refundCents: typeof data.refund_cents === "number" ? data.refund_cents : 0 };
+}
+
+/** Shops M3 (L42): the shop cancels an accepted order: the buyer gets everything back, the shop pays the card fee + a strike. */
+export async function shopCancelOrder(orderId: string, reason: string): Promise<void> {
+  await invokeShopCheckout({ action: "shop_cancel", order_id: orderId, reason: reason.trim() || null });
+}
+
+/** Shops M3 (O3): the buyer did not come to an in-person pickup: a late cancel (the shop is paid) + a buyer strike. */
+export async function reportNoShow(orderId: string): Promise<void> {
+  await invokeShopCheckout({ action: "no_show", order_id: orderId });
+}
+
+export type AdminRefundReason = "problem_shop_fault" | "problem_no_fault" | "problem_our_mistake" | "shop_removed";
+
+/** Shops M4: an admin refunds an order by reason (the SQL decides who carries the card fee). */
+export async function adminRefundOrder(orderId: string, reason: AdminRefundReason, note: string): Promise<void> {
+  await invokeShopCheckout({ action: "admin_refund", order_id: orderId, reason, note: note.trim() });
+}
+
 /** F1 (owner 2026-10-18): 5% of the items, rounded, + 70 cents; the same rule as the order's table CHECK. */
 export function buyerFeeCents(itemsCents: number): number {
   return Math.round(itemsCents * 0.05) + 70;
@@ -243,8 +289,20 @@ export function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-/** "Waiting for the shop", "Accepted", ... in the buyer's words. */
-export function orderStatusLabel(o: Pick<ShopOrder, "status" | "close_reason" | "captured_at">): string {
+/** M3's endings of a charged order, in each side's words. */
+const CLOSE_WORDS: Record<string, { buyer: string; shop: string }> = {
+  buyer_cancelled_free: { buyer: "Cancelled by you (refunded, less the card-processing cost)", shop: "Cancelled by the buyer in your free-cancel time" },
+  buyer_cancelled_late: { buyer: "Cancelled by you late (not refunded; the shop is paid)", shop: "Cancelled by the buyer late (you are paid)" },
+  buyer_no_show: { buyer: "Missed pickup (not refunded; the shop is paid)", shop: "Buyer didn't show (you are paid)" },
+  shop_cancelled: { buyer: "Cancelled by the shop (refunded in full)", shop: "Cancelled by you (buyer refunded in full)" },
+  no_ready_photo: { buyer: "Refunded in full (the shop never marked it ready)", shop: "Refunded to the buyer (no ready photo)" },
+  admin_refunded: { buyer: "Refunded by Louisiana Helpr", shop: "Refunded to the buyer by Louisiana Helpr" },
+};
+
+/** "Waiting for the shop", "Accepted", ... in the buyer's (or the shop's) words. */
+export function orderStatusLabel(o: Pick<ShopOrder, "status" | "close_reason" | "captured_at">, side: "buyer" | "shop" = "buyer"): string {
+  const closed = o.close_reason ? CLOSE_WORDS[o.close_reason] : undefined;
+  if (closed && (o.status === "refunded" || o.status === "cancelled")) return closed[side];
   switch (o.status) {
     case "held": return "Waiting for the shop (card held, not charged)";
     case "accepted": return o.captured_at ? "Accepted and paid" : "Accepted (charging your card)";

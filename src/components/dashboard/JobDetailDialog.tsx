@@ -1,4 +1,5 @@
 import { useRef, type ReactNode } from "react";
+import { needsCategoryLicense } from "@/hooks/useViewerLicensedCategories";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHero, DialogBody } from "@/components/ui/dialog";
 import { Repeat, Rocket, Zap, Bookmark, Flag, Star } from "lucide-react";
@@ -119,6 +120,7 @@ const JobDetailDialog = ({
     viewerUserId,
     repeatJobs,
     viewerTier,
+    viewerLicensedCategories,
     distMilesForDriving,
     drivingLabel,
   } = useJobDetailData({ job, guest, userLat, userLng });
@@ -166,7 +168,8 @@ const JobDetailDialog = ({
     !!applyForm &&
     viewerUserId !== job.customer_id &&
     viewerAppPosition === null &&
-    !((job.credential_tier ?? 0) > 0 && viewerTier < (job.credential_tier ?? 0));
+    !((job.credential_tier ?? 0) > 0 && viewerTier < (job.credential_tier ?? 0)) &&
+    !needsCategoryLicense(job.category, viewerLicensedCategories);
 
   const handleAskQuestion = () => {
     // No onClose() — the route change unmounts this dialog on its own, and
@@ -941,6 +944,7 @@ const JobDetailDialog = ({
             viewerUserId={viewerUserId}
             viewerAppPosition={viewerAppPosition}
             viewerTier={viewerTier}
+            viewerLicensedCategories={viewerLicensedCategories}
             onAskQuestion={handleAskQuestion}
           />
         )}

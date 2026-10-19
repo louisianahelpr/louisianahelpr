@@ -48,6 +48,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useJobRef } from "@/hooks/useJobRef";
 import { useViewerCredentialTier } from "@/hooks/useViewerCredentialTier";
+import { useViewerLicensedCategories } from "@/hooks/useViewerLicensedCategories";
 import type { HelperAvailabilitySlot } from "./dashboardTypes";
 import { QuickApplyHandler } from "./QuickApplyHandler";
 import { useDashboardSideQueries } from "./useDashboardSideQueries";
@@ -101,6 +102,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
   // — a measured 28.9px of top-edge movement, ~95px once the apply form is no
   // longer the bigger late arrival. See the hook's own note.
   useViewerCredentialTier(true);
+  useViewerLicensedCategories(true);
 
   const {
     user, profile, isAdmin, loading, helprTier, allJobs, platformFee,

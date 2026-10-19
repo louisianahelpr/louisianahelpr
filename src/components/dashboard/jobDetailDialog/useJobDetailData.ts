@@ -5,6 +5,7 @@ import { getParishCentroid } from "@/lib/parishCentroids";
 import { report } from "@/lib/errorLogger";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
 import { useViewerCredentialTier } from "@/hooks/useViewerCredentialTier";
+import { useViewerLicensedCategories } from "@/hooks/useViewerLicensedCategories";
 import type { EnrichedJob } from "../types";
 
 interface UseJobDetailDataArgs {
@@ -56,6 +57,8 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
   // asserting tier 0 and swapping ~95px of footer for form when the RPC lands.
   // See the long note on the hook before moving this back inline.
   const viewerTier = useViewerCredentialTier(!guest);
+  // License-required categories this viewer is verified for (same warm-up).
+  const viewerLicensedCategories = useViewerLicensedCategories(!guest);
 
   // Reset transient state when the dialog switches to a new job.
   useEffect(() => {
@@ -180,6 +183,7 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
     viewerUserId,
     repeatJobs,
     viewerTier,
+    viewerLicensedCategories,
     distMilesForDriving,
     drivingLabel,
   };

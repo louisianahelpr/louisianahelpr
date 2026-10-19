@@ -6964,6 +6964,7 @@ export type Database = {
           last_verification_email_at: string | null
           latitude: number | null
           legacy_manual_review: boolean
+          license_categories: Database["public"]["Enums"]["job_category"][]
           license_expires_at: string | null
           license_rejection_reason: string | null
           license_reviewed_at: string | null
@@ -7069,6 +7070,7 @@ export type Database = {
           last_verification_email_at?: string | null
           latitude?: number | null
           legacy_manual_review?: boolean
+          license_categories?: Database["public"]["Enums"]["job_category"][]
           license_expires_at?: string | null
           license_rejection_reason?: string | null
           license_reviewed_at?: string | null
@@ -7174,6 +7176,7 @@ export type Database = {
           last_verification_email_at?: string | null
           latitude?: number | null
           legacy_manual_review?: boolean
+          license_categories?: Database["public"]["Enums"]["job_category"][]
           license_expires_at?: string | null
           license_rejection_reason?: string | null
           license_reviewed_at?: string | null
@@ -12855,6 +12858,7 @@ export type Database = {
           insurance_url: string
           is_insured: boolean
           is_licensed: boolean
+          license_categories: string[]
           license_status: string
           license_url: string
           submitted_at: string

@@ -5,6 +5,7 @@ import type { EnrichedJob } from "../types";
 import { signupUrlFor, rememberPendingSave } from "@/lib/jobIntent";
 import { askQuestionCounterpart } from "./askQuestionCounterpart";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { needsCategoryLicense } from "@/hooks/useViewerLicensedCategories";
 
 interface JobDetailFooterProps {
   job: EnrichedJob;
@@ -14,6 +15,8 @@ interface JobDetailFooterProps {
   viewerUserId: string | null;
   viewerAppPosition: number | null;
   viewerTier: number;
+  /** License-required categories the viewer is verified for; null = unknown. */
+  viewerLicensedCategories?: string[] | null;
   onAskQuestion: () => void;
 }
 
@@ -25,7 +28,7 @@ interface JobDetailFooterProps {
    account, so we surface one clear next step. */
 export const JobDetailFooter = ({
   job, guest, onApply, navigate,
-  viewerUserId, viewerAppPosition, viewerTier, onAskQuestion,
+  viewerUserId, viewerAppPosition, viewerTier, viewerLicensedCategories = null, onAskQuestion,
 }: JobDetailFooterProps) => {
   // Q1586(c): a saved birthday under 18 greys Apply Now out; the tap says why.
   const { gate, gatedProps } = useAgeGate();
@@ -175,6 +178,28 @@ export const JobDetailFooter = ({
             Applied
           </span>
         </div>
+      ) : needsCategoryLicense(job.category, viewerLicensedCategories) ? (
+        // LICENSE NEEDED (owner 2026-10-19): a license-required category and
+        // the viewer holds no verified license that covers it. Same single
+        // row as every branch of this slot (see the credential gate below);
+        // it opens Licensed & Insured, where they add it. The server refuses
+        // the apply regardless (20261019184311).
+        <button
+          type="button"
+          data-testid="license-needed"
+          onClick={() => navigate("/profile?tab=credentials")}
+          className="flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-3 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+          style={{
+            background: "hsl(var(--bark) / 0.08)",
+            border: "0.5px solid hsl(var(--bark) / 0.2)",
+          }}
+        >
+          <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} />
+          <span className="font-sans font-semibold text-ds-14 truncate" style={{ color: "hsl(var(--ink-deep))" }}>
+            License Needed to Apply
+          </span>
+          <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={2.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
+        </button>
       ) : (job.credential_tier ?? 0) > 0 && viewerTier < (job.credential_tier ?? 0) ? (
         // CREDENTIAL GATE — deliberately the SAME `h-11 sm:h-12` single row as
         // every other branch of this CTA slot (Apply / Applied / your-post).

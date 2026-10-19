@@ -93,14 +93,15 @@ export function jobCategoryLabel(value: string): string {
 
 /**
  * The main categories for the two-step picker (main category first, then its
- * subs; owner 2026-10-19). Every category sits in exactly one group, and the
- * groups list them in the canonical order above; jobCategoryGroups.test.ts
- * holds both. "Other" is its own last group so the escape hatch stays one tap
- * from the top.
+ * subs; owner 2026-10-19). Every category sits in exactly one group
+ * (jobCategoryGroups.test.ts). "Other" is its own last group so the escape
+ * hatch stays one tap from the top.
  */
 export interface JobCategoryGroup {
   slug: string;
   label: string;
+  /** The category whose icon and colour stand for the whole group. */
+  icon: JobCategory;
   items: ReadonlyArray<JobCategory>;
 }
 
@@ -108,19 +109,21 @@ export const JOB_CATEGORY_GROUPS: ReadonlyArray<JobCategoryGroup> = [
   {
     slug: "home",
     label: "Home",
+    icon: "handyman",
     items: ["cleaning", "yard_work", "handyman", "assembly", "painting", "storm_prep", "pressure_washing", "gutter_cleaning", "window_washing", "tv_mounting", "appliance_repair"],
   },
-  { slug: "moving_errands", label: "Moving & Errands", items: ["moving", "errands", "delivery"] },
+  { slug: "moving_errands", label: "Moving & Errands", icon: "moving", items: ["moving", "errands", "delivery"] },
   {
     slug: "trades",
     label: "Trades",
+    icon: "electrical",
     items: ["electrical", "plumbing", "hvac", "roofing", "welding", "carpentry", "flooring", "concrete_masonry", "fencing"],
   },
-  { slug: "automotive", label: "Automotive", items: ["auto_repair", "tire_service", "dent_windshield", "car_detailing", "locksmith"] },
-  { slug: "pets", label: "Pets", items: ["pet_care", "pet_grooming", "pet_waste_removal", "mobile_vet"] },
-  { slug: "beauty", label: "Beauty & Self-Care", items: ["hair_stylist", "makeup_spray_tan", "massage"] },
-  { slug: "events", label: "Events", items: ["events", "mobile_bartending", "drink_carts", "food_truck", "photo_booth"] },
-  { slug: "other", label: "Other", items: ["other"] },
+  { slug: "automotive", label: "Automotive", icon: "auto_repair", items: ["auto_repair", "tire_service", "dent_windshield", "car_detailing", "locksmith"] },
+  { slug: "pets", label: "Pets", icon: "pet_care", items: ["pet_care", "pet_grooming", "pet_waste_removal", "mobile_vet"] },
+  { slug: "beauty", label: "Beauty & Self-Care", icon: "hair_stylist", items: ["hair_stylist", "makeup_spray_tan", "massage"] },
+  { slug: "events", label: "Events", icon: "events", items: ["events", "mobile_bartending", "drink_carts", "food_truck", "photo_booth"] },
+  { slug: "other", label: "Other", icon: "other", items: ["other"] },
 ];
 
 /** `{ slug, label, items: { slug, label }[] }` groups for TwoStepCategoryPicker. */

@@ -1,5 +1,6 @@
 import { memo, useCallback, type KeyboardEvent } from "react";
-import { MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat } from "lucide-react";
+import { MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat, ShieldCheck } from "lucide-react";
+import { categoryRequiresLicense } from "@/lib/jobCategories";
 import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
 
@@ -543,6 +544,20 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             className="shrink-0"
           />
         </div>
+
+        {/* License-required category (owner 2026-10-19): said on the card, so
+            a Helpr knows before opening it. Its own slim line, not a rail chip:
+            the rail holds at most one secondary chip (see above). */}
+        {categoryRequiresLicense(job.category) && (
+          <p
+            data-testid="licensed-pros-only"
+            className="mt-1 inline-flex items-center gap-1 text-ds-11 font-sans font-semibold leading-none"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+            Licensed pros only
+          </p>
+        )}
 
         {/* Meta row — category lives in the badge above, so this leads
             with location. */}

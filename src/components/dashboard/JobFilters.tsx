@@ -13,6 +13,9 @@ import {
 } from "@/components/job-card/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { hapticLight } from "@/lib/haptics";
+import { JOB_CATEGORY_GROUPS, jobCategoryGroupOf } from "@/lib/jobCategories";
+import { ChevronDown } from "lucide-react";
+import { useState } from "react";
 
 export { categoryLabels };
 
@@ -141,32 +144,78 @@ export const SortContent = ({
   </div>
 );
 
+/**
+ * Category, in two steps (owner 2026-10-19; the same shape as Post a Job and
+ * Shops): the main categories in one wrapping row, and the open one's subs in
+ * a second row beneath it. The group holding the active filter opens by
+ * itself. "Other" has no subs, so its chip filters directly.
+ */
 export const CategoryContent = ({
   selectedCategory, setSelectedCategory, onSelect,
-}: { selectedCategory: string | null; setSelectedCategory: (v: string | null) => void; onSelect?: () => void }) => (
-  <div role="group" aria-label="Filter by category" className={chipRow}>
-    {Object.entries(categoryLabels).map(([key, label]) => {
-      const isActive = selectedCategory === key;
-      const titleColor = (categoryColors[key] || categoryColors.other).title;
-      return (
-        <button
-          aria-pressed={isActive}
-          key={key}
-          onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : key); onSelect?.(); }}
-          className={`${chipBase} ${isActive ? chipActive : chipIdle}`}
-        >
-          <CategoryIcon
-            category={key}
-            aria-hidden
-            className={`w-3.5 h-3.5 ${isActive ? "" : titleColor}`}
-            strokeWidth={2.25}
-          />
-          {label}
-        </button>
-      );
-    })}
-  </div>
-);
+}: { selectedCategory: string | null; setSelectedCategory: (v: string | null) => void; onSelect?: () => void }) => {
+  const [openGroup, setOpenGroup] = useState<string | null>(
+    () => jobCategoryGroupOf(selectedCategory ?? "")?.slug ?? null,
+  );
+  const open = JOB_CATEGORY_GROUPS.find((g) => g.slug === openGroup && g.items.length > 1) ?? null;
+  const pick = (key: string) => {
+    hapticLight();
+    setSelectedCategory(selectedCategory === key ? null : key);
+    onSelect?.();
+  };
+  return (
+    <div className="space-y-2.5">
+      <div role="group" aria-label="Filter by category" className={chipRow}>
+        {JOB_CATEGORY_GROUPS.map((g) => {
+          const single = g.items.length === 1;
+          const holds = (g.items as ReadonlyArray<string>).includes(selectedCategory ?? "");
+          const isOpen = !single && openGroup === g.slug;
+          const lit = single ? selectedCategory === g.items[0] : holds;
+          const titleColor = (categoryColors[g.icon] || categoryColors.other).title;
+          return (
+            <button
+              type="button"
+              key={g.slug}
+              aria-pressed={single ? lit : undefined}
+              aria-expanded={single ? undefined : isOpen}
+              onClick={() => {
+                if (single) { pick(g.items[0]); setOpenGroup(null); return; }
+                hapticLight();
+                setOpenGroup(isOpen ? null : g.slug);
+              }}
+              className={`${chipBase} ${lit ? chipActive : chipIdle} ${isOpen && !lit ? "border-[hsl(var(--bark)/0.6)]" : ""}`}
+            >
+              <CategoryIcon category={g.icon} aria-hidden className={`w-3.5 h-3.5 ${lit ? "" : titleColor}`} strokeWidth={2.25} />
+              {g.label}
+              {!single && (
+                <ChevronDown aria-hidden className={`w-3.5 h-3.5 -mr-0.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {open && (
+        <div role="group" aria-label={`${open.label} categories`} className={`${chipRow} pl-3 border-l-2 border-[hsl(var(--bark)/0.25)]`}>
+          {open.items.map((key) => {
+            const isActive = selectedCategory === key;
+            const titleColor = (categoryColors[key] || categoryColors.other).title;
+            return (
+              <button
+                type="button"
+                aria-pressed={isActive}
+                key={key}
+                onClick={() => pick(key)}
+                className={`${chipBase} ${isActive ? chipActive : chipIdle}`}
+              >
+                <CategoryIcon category={key} aria-hidden className={`w-3.5 h-3.5 ${isActive ? "" : titleColor}`} strokeWidth={2.25} />
+                {categoryLabels[key]}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const radiusOptions = [5, 10, 25, 50];
 

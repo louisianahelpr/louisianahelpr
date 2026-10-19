@@ -43,6 +43,15 @@
  *      _shared/shopHolds.ts with one idempotency key per capture attempt. Isolated: a
  *      Shops failure is a defect, never a stop for the steps above.
  *
+ *   6. SHOP PAYOUTS (M2, migration 20261018211820) shop_handover_sweep() first
+ *      (the automatic finish), then shop_payouts_due(): a shop's item price
+ *      minus its card-fee debt (taken in SQL at the handover). Same shape as a
+ *      Declutter payout: reconciled in the order's transfer group
+ *      `shop_order_<order id>` (set by shop-checkout) by metadata.payout_id,
+ *      sent from the order's own charge, key `shop-payout-<row id>`, recorded
+ *      with shop_payout_executed; the order's recorded Stripe mode (shopOrderMode)
+ *      before its parties. Isolated like step 5.
+ *
  *   A charge is "whole" for a payout when it is paid, not disputed, and has
  *   given back no more than the refunds the order RECORDED
  *   (refunds_recorded_cents): a delivery fee refunded on its own is known, an
@@ -117,6 +126,19 @@ type HelprPayoutDue = {
   payment_intent_id: string | null;
   transfer_group: string | null;
   refunds_recorded_cents: number | null;
+  attempts: number;
+};
+type ShopPayoutDue = {
+  payout_id: string;
+  order_id: string;
+  buyer_id: string | null;
+  seller_id: string | null;
+  amount_cents: number;
+  stripe_account_id: string | null;
+  payment_intent_id: string | null;
+  /** The payment's Stripe mode, recorded by the webhook (null: not recorded). */
+  livemode: boolean | null;
+  checkout_session_id: string | null;
   attempts: number;
 };
 type DeliveryRefundDue = {
@@ -228,6 +250,7 @@ serve(async (req) => {
     delivery_refunds_sent: 0, delivery_refunds_reconciled: 0, delivery_refunds_failed: 0,
     held: 0, ban_review: 0, no_payout_account: 0, mixed_parties: 0,
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
+    shop_handed_over: 0, shop_payouts_sent: 0, shop_payouts_reconciled: 0, shop_payouts_failed: 0,
   };
 
   // 5. SHOPS M1 (migration 20261018164442): the order clock, then every hold to
@@ -274,6 +297,108 @@ serve(async (req) => {
     }
   } catch (e) {
     defects.record(`shops step: ${caughtMessage(e, "failed")}`.slice(0, 200));
+  }
+
+  // 6. SHOP PAYOUTS (M2, migration 20261018211820): the automatic finish, then every
+  //    shop owed for a handed-over order. Its own try, like step 5.
+  try {
+    const finished = await admin.rpc("shop_handover_sweep", {});
+    if (finished.error) defects.record(`shop_handover_sweep failed: ${finished.error.message}`);
+    else out.shop_handed_over = Number((finished.data as { auto_handed_over?: number } | null)?.auto_handed_over ?? 0);
+    const due = await admin.rpc("shop_payouts_due", { p_limit: BATCH });
+    if (due.error) defects.record(`shop_payouts_due failed: ${due.error.message}`);
+    const shopPayouts = (due.data ?? []) as ShopPayoutDue[];
+    const shopReview = shopPayouts.length === 0
+      ? { ok: true as const, users: new Set<string>() }
+      : await loadBanReviewUsers(admin, [...new Set(shopPayouts.flatMap((p) => [p.buyer_id, p.seller_id]).filter((x): x is string => !!x))]);
+    // Fail closed: a ban-review read that failed moves no shop money this run.
+    if (!shopReview.ok) defects.record(`shop payouts: ban review read failed: ${shopReview.message}`);
+    const underReview: Set<string> = shopReview.ok ? shopReview.users : new Set();
+    for (const p of shopReview.ok ? shopPayouts : []) {
+      if ((p.seller_id && underReview.has(p.seller_id)) || (p.buyer_id && underReview.has(p.buyer_id))) {
+        out.ban_review++;
+        continue;
+      }
+      const shopHold = await checkPayoutHold(admin, p.seller_id);
+      if (shopHold.kind === "error") {
+        defects.record(`shop payout ${p.payout_id}: hold read failed: ${shopHold.message}`);
+        continue;
+      }
+      if (shopHold.kind === "held") {
+        out.held++;
+        continue;
+      }
+      if (!p.stripe_account_id) {
+        // Not a failed try: paid the run after the shop sets up payouts (the handover notice told them).
+        out.no_payout_account++;
+        continue;
+      }
+      const group = `shop_order_${p.order_id}`;
+      try {
+        const mode = shopOrderMode({ livemode: p.livemode, checkout_session_id: p.checkout_session_id });
+        if (mode) {
+          // The order's recorded mode must agree with its parties (a test order is never paid on the live key).
+          const byParties = await modes.modeForParties([p.buyer_id, p.seller_id]);
+          if (byParties !== mode) throw new Error(`shop order says ${mode} but its parties are ${byParties}`);
+        }
+        const stripe = mode ? modes.clientFor(mode) : (await modes.clientForParties([p.buyer_id, p.seller_id])).stripe;
+        const listed = await stripe.transfers.list({ transfer_group: group, limit: 100 });
+        const existing = listed.data.find((t) => {
+          const meta = (t.metadata ?? {}) as Record<string, string>;
+          return meta.kind === "shop_payout" && meta.payout_id === p.payout_id && !t.reversed;
+        });
+        let shopTransfer = existing;
+        if (!shopTransfer) {
+          // From the order's OWN charge, only while it is whole (paid, nothing refunded, not disputed).
+          const charge = await wholeCharge(stripe, p.payment_intent_id, 0);
+          shopTransfer = await stripe.transfers.create(
+            {
+              amount: p.amount_cents,
+              currency: "usd",
+              destination: p.stripe_account_id,
+              transfer_group: group,
+              source_transaction: charge,
+              metadata: { kind: "shop_payout", payout_id: p.payout_id, order_id: p.order_id },
+            },
+            { idempotencyKey: `shop-payout-${p.payout_id}` },
+          );
+        }
+        const { error } = await admin.rpc("shop_payout_executed", {
+          p_payout_id: p.payout_id, p_transfer_id: shopTransfer.id, p_succeeded: true, p_error: null,
+        });
+        if (error) {
+          defects.record(`shop payout ${p.payout_id}: transfer ${shopTransfer.id} not recorded: ${error.message}`);
+          continue;
+        }
+        if (existing) out.shop_payouts_reconciled++;
+        else out.shop_payouts_sent++;
+      } catch (e) {
+        if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
+          out.mixed_parties++;
+          defects.record(`shop payout ${p.payout_id}: the order mixes a test account and a real one; settle it by hand`);
+          continue;
+        }
+        const msg = caughtMessage(e, "transfer failed");
+        defects.record(`shop payout ${p.payout_id}: ${msg}`.slice(0, 200));
+        const { error } = await admin.rpc("shop_payout_executed", {
+          p_payout_id: p.payout_id, p_transfer_id: null, p_succeeded: false, p_error: msg.slice(0, 500),
+        });
+        if (error) defects.record(`shop payout ${p.payout_id}: failure not recorded: ${error.message}`);
+        out.shop_payouts_failed++;
+        if (p.attempts + 1 >= 12) {
+          await postSlackOpsAlert({
+            kind: "payout_failed", severity: "critical",
+            title: "Shops payout gave up",
+            message: /charge is not whole/.test(msg)
+              ? `Shop payout ${p.payout_id} (${dollars(p.amount_cents)}, order ${p.order_id}) gave up: the order's charge was refunded or disputed. Do NOT pay the shop by hand; decide the order first. Last reason: ${msg.slice(0, 200)}.`
+              : `Shop payout ${p.payout_id} (${dollars(p.amount_cents)}, order ${p.order_id}) failed 12 times. Last reason: ${msg.slice(0, 200)}. Pay it by hand.`,
+            fields: { Group: group },
+          });
+        }
+      }
+    }
+  } catch (e) {
+    defects.record(`shop payouts step: ${caughtMessage(e, "failed")}`.slice(0, 200));
   }
 
   const [refundsRes, payoutsRes, helprRes, deliveryRes] = await Promise.all([

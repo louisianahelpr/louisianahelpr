@@ -285,6 +285,42 @@ export const SHOPS_RPC_ERROR_COPY = {
     shop_strikes_blocked: SC.shop_strikes_blocked,
     under_18: SC.under_18,
   },
+  // M2 (20261018211820): the handover and the shop's handover choice.
+  shops_set_handover_mode: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_handover_mode: SC.invalid_handover_mode,
+    not_authenticated: SC.not_authenticated,
+    payout_setup_incomplete: SC.payout_setup_incomplete,
+    shop_not_found: SC.shop_not_found,
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    under_18: SC.under_18,
+  },
+  shops_mark_ready: {
+    account_restricted: SC.account_restricted,
+    not_authenticated: SC.not_authenticated,
+    order_not_charged_yet: SC.order_not_charged_yet,
+    order_not_found: SC.order_not_found,
+    photo_not_uploaded: SC.photo_not_uploaded,
+    problem_open: SC.problem_open,
+  },
+  shops_confirm_pickup: {
+    account_restricted: SC.account_restricted,
+    invalid_method: SC.invalid_method,
+    // declutter_consume_fee_debt's guard (a NULL seller): an accepted order always keeps its seller.
+    invalid_payout: "Something went wrong finishing this order. Please try again.",
+    not_authenticated: SC.not_authenticated,
+    order_not_charged_yet: SC.order_not_charged_yet,
+    order_not_found: SC.order_not_found,
+    problem_open: SC.problem_open,
+  },
+  shops_report_not_received: {
+    account_restricted: SC.account_restricted,
+    invalid_note: "Say what happened, in under 500 characters.",
+    not_authenticated: SC.not_authenticated,
+    order_not_found: SC.order_not_found,
+    order_not_open: "You can report an order from its ready date until you tap \"I got it\" or it finishes on its own.",
+  },
 } as const;
 
 export type ShopsRpc = keyof typeof SHOPS_RPC_ERROR_COPY;

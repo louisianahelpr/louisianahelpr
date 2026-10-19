@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 806,
-    "files": 197,
-    "rendering": 711,
-    "suppressedByPolicy": 95,
+    "calls": 813,
+    "files": 199,
+    "rendering": 714,
+    "suppressedByPolicy": 99,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 46,
-      "toast.error": 599,
+      "toast.error": 602,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 99,
+      "toast.success": 103,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 389,
+      "literal": 393,
       "template": 93,
-      "dynamic": 370,
+      "dynamic": 373,
       "jsx": 0
     }
   },
@@ -6589,7 +6589,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 65,
+      "line": 69,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6609,7 +6609,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 70,
+      "line": 74,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6619,7 +6619,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 78,
+      "line": 82,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6629,7 +6629,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 84,
+      "line": 88,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6700,6 +6700,76 @@
     {
       "file": "src/components/shops/ShopEditView.tsx",
       "line": 201,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopHandoverActions.tsx",
+      "line": 67,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopHandoverActions.tsx",
+      "line": 73,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Marked ready. The buyer is told."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopHandoverActions.tsx",
+      "line": 79,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Thanks. The order is done."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopHandoverActions.tsx",
+      "line": 88,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Reported. Louisiana Helpr looks at it before anyone is paid."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopHandoverActions.tsx",
+      "line": 102,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopHandoverModePicker.tsx",
+      "line": 21,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved. New orders use it."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopHandoverModePicker.tsx",
+      "line": 24,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6849,7 +6919,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 35,
+      "line": 36,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6859,7 +6929,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 44,
+      "line": 45,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6869,7 +6939,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 49,
+      "line": 50,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6879,7 +6949,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 132,
+      "line": 133,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

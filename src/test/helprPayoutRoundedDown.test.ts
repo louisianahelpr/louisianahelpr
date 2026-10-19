@@ -79,7 +79,7 @@ const NOT_A_JOB_PAYOUT: Record<string, string> = {
 const EXPECTED_TRANSFER_CALLS: Record<string, number> = {
   "supabase/functions/cash-out-credits/index.ts": 1,
   "supabase/functions/create-payment/index.ts": 1,
-  "supabase/functions/declutter-money/index.ts": 2,
+  "supabase/functions/declutter-money/index.ts": 3, // + Shops M2 shop payouts (20261018211820)
   "supabase/functions/execute-dispute-split/index.ts": 1,
   "supabase/functions/instant-payout/index.ts": 1,
   "supabase/functions/process-scheduled-payouts/index.ts": 1,
@@ -121,7 +121,7 @@ describe("Helpr payouts are whole dollars, rounded down (Q236)", () => {
       if (n > 0) found[f] = n;
     }
     expect(found).toEqual(EXPECTED_TRANSFER_CALLS);
-    expect(Object.values(found).reduce((a, b) => a + b, 0)).toBe(13);
+    expect(Object.values(found).reduce((a, b) => a + b, 0)).toBe(14);
     // Every file is classified exactly once.
     for (const f of Object.keys(found)) {
       const classes = [f in HELPR_PAYOUT_SITES, f in NOT_A_JOB_PAYOUT].filter(Boolean).length;

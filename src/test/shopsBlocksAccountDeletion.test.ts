@@ -20,6 +20,8 @@
  * @mutate supabase/functions/_shared/accountPurge.ts |     .eq("status", "awaiting_hold")\n    .select("id"); |     .select("id");
  * @mutate supabase/functions/_shared/accountPurge.ts |     console.error(`[accountPurge] closing unpaid Shops pages failed for ${userId}:`, res.error.message);\n    return { ok: false, | console.error("x");\n    return { ok: true,
  * @mutate supabase/functions/delete-own-account/index.ts |     const pages = await closeUnpaidShopPages(supabaseAdmin, user.id);\n    if (!pages.ok) { |     const pages = { ok: true };\n    if (!pages.ok) {
+ * Shops M2 (20261018211820): a shop still owed a payout is blocked too (lh-money-escrow review of 819e55ce3 #3).
+ * @mutate supabase/functions/_shared/accountPurge.ts |     return { ok: true, active: true, detail: `shop payout ${owed.data[0].id}`, reason: "shops" }; |     return { ok: true, active: false };
  * @mutate supabase/functions/admin-delete-user/index.ts |     const pages = await closeUnpaidShopPages(supabaseAdmin, userId);\n    if (!pages.ok) { |     const pages = { ok: true };\n    if (!pages.ok) {
  */
 import { readdirSync, readFileSync } from "node:fs";
@@ -115,6 +117,22 @@ describe("a Shops order in progress blocks deleting either party's account", () 
     const absent = await findActiveWork(fakeAdmin({ shop_orders: { error: { code: "42P01", message: 'relation "shop_orders" does not exist' } } }), BUYER);
     expect(absent).toMatchObject({ ok: true, active: false });
     const down = await findActiveWork(fakeAdmin({ shop_orders: { error: { code: "08006", message: "connection reset" } } }), BUYER);
+    expect(down.ok).toBe(false);
+  });
+
+  it("a shop still owed a payout cannot delete its account; a paid or nothing-due payout and the buyer do not block", async () => {
+    const payout = (status: string): Row => ({ id: "p1", status, "shop_orders.seller_id": SELLER });
+    for (const status of ["pending", "failed"]) {
+      const r = await findActiveWork(fakeAdmin({ shop_orders: [], shop_payouts: [payout(status)] }), SELLER);
+      expect(r, status).toMatchObject({ ok: true, active: true, reason: "shops" });
+    }
+    for (const status of ["succeeded", "nothing_due"]) {
+      const r = await findActiveWork(fakeAdmin({ shop_orders: [], shop_payouts: [payout(status)] }), SELLER);
+      expect(r, status).toMatchObject({ ok: true, active: false });
+    }
+    const buyer = await findActiveWork(fakeAdmin({ shop_orders: [], shop_payouts: [payout("pending")] }), BUYER);
+    expect(buyer).toMatchObject({ ok: true, active: false });
+    const down = await findActiveWork(fakeAdmin({ shop_payouts: { error: { code: "08006", message: "connection reset" } } }), SELLER);
     expect(down.ok).toBe(false);
   });
 

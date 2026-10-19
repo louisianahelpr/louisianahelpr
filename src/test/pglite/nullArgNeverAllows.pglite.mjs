@@ -163,6 +163,10 @@ CREATE TABLE public.ban_settlement_queue (id uuid PRIMARY KEY DEFAULT gen_random
 CREATE TABLE public.shops (id uuid PRIMARY KEY, owner_id uuid NOT NULL UNIQUE, name text, category text, area_label text,
   pin_lat numeric, pin_lng numeric, hidden_at timestamptz, is_seed boolean NOT NULL DEFAULT false);
 CREATE FUNCTION public.declutter_active_strike_count(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
+-- Shops M1 (20261018164444) reads the shop's own strike count instead; stubbed at 0 the same way.
+CREATE FUNCTION public.shop_active_strike_count(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
+-- Shops M1/M2: the columns shop_handover_photo_access (20261018211820) reads; no order row (an admin reads without one).
+CREATE TABLE public.shop_orders (id uuid PRIMARY KEY, buyer_id uuid, seller_id uuid, status text NOT NULL, captured_at timestamptz);
 CREATE SCHEMA IF NOT EXISTS storage;
 CREATE TABLE storage.buckets (id text PRIMARY KEY, name text);
 CREATE TABLE storage.objects (id bigserial PRIMARY KEY, bucket_id text, name text, owner uuid, UNIQUE (bucket_id, name));
@@ -184,7 +188,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "can_read_job_detail_change", "feature_enabled_for_user", "feature_enabled_for",
   // After feature_enabled_for_user: since 20261017085012 (Q1844) its SQL body calls it, and a SQL body is validated at CREATE.
   "helper_has_advanced_analytics",
-  "declutter_in_agreed_sale", "declutter_slot_in_windows", "declutter_handover_photo_access",
+  "declutter_in_agreed_sale", "declutter_slot_in_windows", "declutter_handover_photo_access", "shop_handover_photo_access",
   // Declutter slice 5 (20261017055505).
   "declutter_delivery_slot_ok", "helpr_task_photo_access", "helpr_task_photo_ok", "helpr_task_same_stripe_mode",
   "helpr_task_source_slot_ok", "helpr_task_vehicle_fits",

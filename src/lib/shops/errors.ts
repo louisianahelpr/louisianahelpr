@@ -97,6 +97,14 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   // Q345: a block between the two since the order was sent (never says who blocked).
   applicant_blocked: "This order can't be accepted any more. Decline it so the buyer's card hold is released.",
   invalid_cancel_policy: "Pick one of the three cancel policies.",
+  // M2 (20261018211820): the handover.
+  invalid_handover_mode: "Pick how buyers get their orders: in person or left out.",
+  order_not_charged_yet: "The buyer's card isn't charged yet. Try again in a few minutes.",
+  problem_open: "The buyer reported a problem with this order. Louisiana Helpr looks at it before anyone is paid.",
+  handover_mode_frozen: "An order keeps the pickup way it was placed under.",
+  invalid_method: "That action isn't available. Reload the page and try again.",
+  invalid_transfer: "We couldn't send this payout just now. We'll try again.",
+  payout_not_found: "This payout isn't available.",
   invalid_reason: "Keep the reason under 200 characters.",
   shop_has_open_orders: "Finish or decline your open orders before closing your shop.",
   too_many_order_requests: "You've started a lot of orders in the last hour. Wait a while and try again.",

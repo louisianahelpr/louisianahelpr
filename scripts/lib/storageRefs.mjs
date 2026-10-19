@@ -48,6 +48,7 @@ export const STORAGE_REFERENCE_COLUMNS = [
   // Declutter slice 4 (20261015042253): porch and problem photos, in the PRIVATE declutter-handover bucket (20261017055502), paths under <uid>/declutter/<handover|problem>/<order>/.
   { table: "declutter_handovers", column: "set_out_photo_path", array: false, bucket: "declutter-handover", writer: "declutter_porch_photo RPC, seller's set-out photo (src/lib/declutter/handover.ts uploads it; path)" },
   { table: "declutter_handovers", column: "picked_up_photo_path", array: false, bucket: "declutter-handover", writer: "declutter_porch_photo RPC, buyer's picked-up photo (src/lib/declutter/handover.ts uploads it; path)" },
+  { table: "shop_handovers", column: "ready_photo_path", array: false, bucket: "shop-handover", writer: "shops_mark_ready RPC, the shop's ready photo (src/lib/shops/handover.ts uploads it; path <uid>/shops/handover/<order>/<file>)" },
   { table: "declutter_problems", column: "photo_paths", array: true, bucket: "declutter-handover", writer: "declutter_report_problem RPC (up to 6 paths; the screens offer no problem photos yet)" },
   { table: "job_quotes", column: "photo_paths", array: true, bucket: "job-photos", writer: "src/lib/quotes/api.ts uploadQuotePhoto (path <uid>/quotes/<file>; submit_job_quote refuses a path outside the quoter's own folder)" },
   // Declutter slice 5 (20261017055505): Helpr delivery photos and truck photos, in the PRIVATE helpr-tasks bucket.

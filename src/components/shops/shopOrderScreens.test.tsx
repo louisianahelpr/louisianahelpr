@@ -28,6 +28,8 @@
  * @mutate src/lib/shops/orders.ts |   if (terms.full_days.includes(iso)) return "full"; |   if (false) return "full";
  * @mutate src/components/shops/ShopMyOrdersView.tsx |               {o.status === "held" && ( |               {o.status !== "declined" && (
  * @mutate src/components/shops/ShopMyOrdersView.tsx |     if (params.get("sent") !== "1") return; |     return;
+ * @mutate src/components/shops/ShopHandoverActions.tsx | onClick={() => ready.mutate(null)}>Mark ready</Button> | onClick={() => finish.mutate()}>Mark ready</Button>
+ * @mutate src/components/shops/ShopHandoverActions.tsx |       {side === "shop" ? ( |       {side === "shop" && false ? (
  * @mutate src/components/shops/ShopDashboardView.tsx |           if (declining) decline.mutate({ id: declining.id, why: reason }); |           if (declining) decline.mutate({ id: declining.id, why: "" });
  * @mutate src/components/shops/ShopDashboardView.tsx |           if (accepting) accept.mutate(accepting.id); |           void accepting;
  * @mutate src/pages/shops/ShopOrdersPage.tsx |       <ShopMyOrdersView />\n | \n
@@ -103,6 +105,12 @@ const orders = vi.hoisted(() => ({
   cancelOrderRequest: vi.fn(), acceptOrder: vi.fn(), declineOrder: vi.fn(), fetchCancelPolicy: vi.fn(), setCancelPolicy: vi.fn(),
 }));
 vi.mock("@/lib/shops/orders", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/orders")>()), ...orders }));
+// Shops M2: the handover parts load on their own; answered here so the order screens stay offline.
+const handover = vi.hoisted(() => ({
+  fetchHandoverMode: vi.fn(async () => "in_person"), setHandoverMode: vi.fn(), fetchHandovers: vi.fn(async () => new Map()),
+  fetchMyShopPayouts: vi.fn(async () => []), markReady: vi.fn(), confirmPickup: vi.fn(), reportNotReceived: vi.fn(),
+}));
+vi.mock("@/lib/shops/handover", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/handover")>()), ...handover }));
 vi.mock("@/components/declutter/useDeclutterOrigin", () => ({ useDeclutterOrigin: () => ({ origin: { status: "none" } }) }));
 
 import ShopPage from "@/pages/shops/ShopPage";
@@ -131,7 +139,7 @@ const order = (over: Partial<ShopOrder>): ShopOrder => ({
   id: "o1", buyer_id: "u1", seller_id: "u2", shop_id: "s1", status: "held", close_reason: null, ready_date: "2026-10-23",
   cancel_policy: "until_accept", note: "", decline_reason: null, items_cents: 2000, premium_cents: 170, tax_cents: 0,
   total_cents: 2170, created_at: "2026-10-19T10:00:00Z", held_at: "2026-10-19T10:00:00Z",
-  accept_by: new Date(Date.now() + 5 * 3_600_000 + 90_000).toISOString(), accepted_at: null, captured_at: null, closed_at: null,
+  accept_by: new Date(Date.now() + 5 * 3_600_000 + 90_000).toISOString(), accepted_at: null, captured_at: null, closed_at: null, handover_mode: "in_person", handed_over_at: null,
   shop_order_lines: [{ id: "l1", item_id: "i1", title: "Candle", kind: "made", unit_cents: 1000, quantity: 2, line_cents: 2000 }],
   shops: { name: "Bayou Bakes" }, ...over,
 });
@@ -267,6 +275,34 @@ describe("/shops/dashboard", () => {
     renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
     expect(await screen.findByText("You don't have a shop yet.")).toBeTruthy();
     expect(orders.fetchShopOrders).not.toHaveBeenCalled();
+  });
+});
+
+// Owner 2026-10-18 ~21:00Z: the BUYER must confirm. The shop's own tap never
+// finishes an order (no "Picked up"); only "I got it" or the 24-hour clock does.
+describe("the handover: the buyer confirms, the shop never finishes its own order", () => {
+  const due = order({ id: "o9", status: "accepted", captured_at: "2026-10-19T12:00:00Z", ready_date: "2026-10-01" });
+  it("the shop, on an in-person order past its ready date: Mark ready only, no Picked up, and it is told who finishes it", async () => {
+    api.fetchMyShopId.mockResolvedValue("s1");
+    orders.fetchCancelPolicy.mockResolvedValue("until_accept");
+    orders.fetchShopOrders.mockResolvedValue([due]);
+    handover.markReady.mockResolvedValue(undefined);
+    renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
+    expect(await screen.findByTestId("shop-handover-wait")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /picked up/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /got it/i })).toBeNull();
+    expect(screen.getByTestId("shop-handover-wait").textContent).toContain("24 hours after the ready date");
+    fireEvent.click(screen.getByRole("button", { name: "Mark ready" }));
+    await waitFor(() => expect(handover.markReady).toHaveBeenCalledWith("o9", null));
+    expect(handover.confirmPickup).not.toHaveBeenCalled();
+  });
+  it("the buyer taps I got it, and only then is the order finished", async () => {
+    orders.fetchMyOrders.mockResolvedValue([due]);
+    handover.confirmPickup.mockResolvedValue(undefined);
+    renderAt("/shops/orders", "/shops/orders", <ShopOrdersPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "I got it" }));
+    fireEvent.click(screen.getByRole("button", { name: "confirm I got it" }));
+    await waitFor(() => expect(handover.confirmPickup).toHaveBeenCalledWith("o9"));
   });
 });
 

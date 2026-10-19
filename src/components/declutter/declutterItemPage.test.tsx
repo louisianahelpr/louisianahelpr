@@ -9,11 +9,16 @@
  * @mutate src/components/declutter/DeclutterGallery.tsx |   if (urls.length === 0) { |   if (false) {
  * @mutate src/components/declutter/DeclutterGallery.tsx |               onClick={() => setOpen(i)} |               onClick={() => undefined}
  * @mutate src/components/declutter/DeclutterGallery.tsx |             if (el.clientWidth > 0) setAt(Math.round(el.scrollLeft / el.clientWidth)); |             void el;
- * @mutate src/components/declutter/DeclutterSellerCard.tsx |               {reviews > 0 && (\n                <span data-seller-rating | {true && (\n                <span data-seller-rating
- * @mutate src/components/declutter/DeclutterSellerCard.tsx |               {joined && <span>{joined}</span>} |
+ * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {reviews > 0 && (\n              <span data-seller-rating | {true && (\n              <span data-seller-rating
+ * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {joined && <span className="block text-xs text-muted-foreground">{joined}</span>} |
  * @mutate src/components/declutter/DeclutterItemView.tsx |     url: `${getPublicOrigin()}/declutter/item/${it.id}`, |     url: getPublicOrigin(),
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const barShown = useOffScreen(buttons); |   const barShown = false;
  * @mutate src/lib/declutter/api.ts |   const row = pickRequestedProfile(rows, sellerId) | const row = rows[0]
+ * @mutate src/lib/declutter/api.ts |       .eq("seller_id", sellerId) |       .neq("seller_id", "")
+ * @mutate src/lib/declutter/api.ts |       .neq("seller_id", sellerId) |       .neq("seller_id", "")
+ * @mutate src/components/declutter/DeclutterItemRows.tsx | (rows ?? []).filter((r) => r.seller_id !== viewerId) | (rows ?? [])
+ * @mutate src/components/declutter/DeclutterItemRows.tsx |       {moreRows.length > 0 && <Row |       {<Row
+ * @mutate src/components/declutter/DeclutterItemView.tsx |       {!isSeller && (\n        <div className="mt-8"> |       {(\n        <div className="mt-8">
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -26,7 +31,18 @@ const state = {
   rating: { avg: 4.8, count: 12 } as { avg: number; count: number } | null,
   seller: { name: "Dana Robichaux", avatarUrl: null, joinedAt: "2025-03-10T12:00:00Z" } as unknown,
   safeRows: [] as unknown[],
+  more: [] as unknown[],
+  similar: [] as unknown[],
+  tableRows: [] as unknown[],
 };
+const calls: [string, unknown[]][] = [];
+// A PostgREST builder that records each call and resolves to state.tableRows.
+const builder: object = new Proxy({}, {
+  get: (_t, k) =>
+    k === "then"
+      ? (res: (v: unknown) => void) => res({ data: state.tableRows, error: null })
+      : (...a: unknown[]) => { calls.push([String(k), a]); return builder; },
+});
 const shared: unknown[] = [];
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
@@ -53,13 +69,20 @@ vi.mock("@/lib/authRedirects", async () => ({
   getPublicOrigin: () => "https://www.louisianahelpr.com",
 }));
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { rpc: async () => ({ data: state.safeRows, error: null }) },
+  supabase: {
+    rpc: async () => ({ data: state.safeRows, error: null }),
+    from: (t: string) => { calls.push(["from", [t]]); return builder; },
+  },
 }));
 vi.mock("@/lib/declutter/api", async () => {
   const real = await vi.importActual<typeof import("@/lib/declutter/api")>("@/lib/declutter/api");
   return {
     ...real,
     fetchSellerCardReal: real.fetchSellerCard,
+    fetchSellerItemsReal: real.fetchSellerItems,
+    fetchSimilarItemsReal: real.fetchSimilarItems,
+    fetchSellerItems: async () => state.more,
+    fetchSimilarItems: async () => state.similar,
     fetchItem: async () => state.item,
     fetchPhotos: async () => state.photos,
     fetchQuestions: async () => [],
@@ -111,6 +134,9 @@ describe("the photo-first Declutter item page", () => {
     state.rating = { avg: 4.8, count: 12 };
     state.seller = { name: "Dana Robichaux", avatarUrl: null, joinedAt: "2025-03-10T12:00:00Z" };
     shared.length = 0;
+    state.more = [];
+    state.similar = [];
+    calls.length = 0;
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -189,5 +215,41 @@ describe("the photo-first Declutter item page", () => {
     expect(bar.className).toContain("bottom-safe-nav");
     expect(within(bar).getByRole("button", { name: "Buy now · $40" })).toBeInTheDocument();
     expect(within(bar).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
+  });
+  it("More from this seller and Similar items: rows of the Browse card, never the member's own items, an empty row left out", async () => {
+    const row = (n: number, extra: object) => ({ ...ITEM, id: `0f0e0d0c-0b0a-4908-8706-0504030201${String(n).padStart(2, "0")}`, title: `Thing ${n}`, ...extra });
+    state.more = [row(1, {}), row(2, {})];
+    state.similar = [row(3, { seller_id: "u3" }), row(4, { seller_id: "u1", title: "My own lamp" })];
+    const { unmount } = open();
+    const more = await screen.findByRole("region", { name: "More from this seller" });
+    expect(within(more).getAllByRole("link")).toHaveLength(2);
+    expect(more.querySelectorAll("[data-item-card]")).toHaveLength(2);
+    const similar = screen.getByRole("region", { name: "Similar items" });
+    expect(within(similar).getByText("Thing 3")).toBeInTheDocument();
+    expect(screen.queryByText("My own lamp")).toBeNull();
+    unmount();
+    state.more = [];
+    open();
+    await screen.findByRole("region", { name: "Similar items" });
+    expect(screen.queryByRole("region", { name: "More from this seller" })).toBeNull();
+  });
+
+  it("the seller's own item page shows no rows", async () => {
+    state.item = { ...ITEM, seller_id: "u1" };
+    state.more = [{ ...ITEM, id: "x", seller_id: "u9", title: "Other thing" }];
+    state.similar = [{ ...ITEM, id: "y", seller_id: "u9", title: "Similar thing" }];
+    open();
+    await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+    expect(screen.queryByText("Other thing")).toBeNull();
+    expect(screen.queryByText("Similar thing")).toBeNull();
+  });
+
+  it("the row reads: this seller's other live items, and other sellers' live items in the same category", async () => {
+    const r = api as unknown as Record<string, (...a: string[]) => Promise<unknown>>;
+    await r.fetchSellerItemsReal("u2", ID);
+    expect(calls).toEqual(expect.arrayContaining([["from", ["declutter_items"]], ["eq", ["seller_id", "u2"]], ["in", ["status", ["live", "reserved"]]], ["neq", ["id", ID]]]));
+    calls.length = 0;
+    await r.fetchSimilarItemsReal("furniture", ID, "u2");
+    expect(calls).toEqual(expect.arrayContaining([["eq", ["category", "furniture"]], ["in", ["status", ["live", "reserved"]]], ["neq", ["id", ID]], ["neq", ["seller_id", "u2"]]]));
   });
 });

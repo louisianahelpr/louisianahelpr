@@ -26,7 +26,7 @@
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const away = milesLabel(miles, geo.status === "ready" && geo.approximate); |   const away = milesLabel(miles);
  * @mutate src/components/declutter/DeclutterHomeView.tsx | miles={miles} approximate={origin.status === "ready" && origin.approximate} rating= | miles={miles} approximate={false} rating=
  * @mutate src/components/declutter/useDeclutterOrigin.ts |     asked && device.status === "error" | false && device.status === "error"
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   const reviewed = rating && rating.count > 0 ? rating : null; |   const reviewed = rating ?? null;
+ * @mutate src/components/declutter/DeclutterItemCard.tsx |   const reviewed = rating && rating.count > 0 ? rating : null; |   const reviewed = rating ?? null;
  * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />} | skeleton={<DeclutterItemSkeleton />}
  * @mutate src/hooks/usePermissionRationale.ts | body: "Declutter uses your location to show how far away each item is | body: "We use your location to show jobs near you, how far away each item is
  */

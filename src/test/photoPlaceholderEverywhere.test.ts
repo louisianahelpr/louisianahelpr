@@ -34,7 +34,7 @@ const read = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"
 
 /** The Browse cards (and the moving-sale cards) that must wear the shared placeholder. */
 const CARD_FILES = [
-  "src/components/declutter/DeclutterHomeView.tsx",
+  "src/components/declutter/DeclutterItemCard.tsx",
   "src/components/declutter/MovingSaleBanner.tsx",
   "src/components/shops/ShopsHomeView.tsx",
   "src/components/rentals/listings/RentBrowse.tsx",

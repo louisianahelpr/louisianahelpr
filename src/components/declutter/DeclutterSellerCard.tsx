@@ -49,20 +49,18 @@ export function DeclutterSellerCard({ sellerId }: { sellerId: string }) {
           <UserAvatar userId={sellerId} src={card.data?.avatarUrl} name={card.data?.name ?? name} className="h-12 w-12 shrink-0" />
           <span className="min-w-0 flex-1">
             <span className="block truncate font-semibold" title={name}>{name}</span>
-            <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-              {reviews > 0 && (
-                <span data-seller-rating="" className="inline-flex items-center gap-0.5 text-foreground">
-                  <Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" aria-hidden />
-                  <span className="font-semibold">{(stats.data?.avg ?? 0).toFixed(1)}</span>
-                  <span className="text-muted-foreground">
-                    <span className="sr-only"> stars from </span>
-                    <span aria-hidden>·</span> {reviews} review{reviews === 1 ? "" : "s"}
-                  </span>
+            {/* Two short lines, never one that wraps a stray "·" at 320. */}
+            {reviews > 0 && (
+              <span data-seller-rating="" className="flex items-center gap-1 text-xs text-foreground">
+                <Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" aria-hidden />
+                <span className="font-semibold">{(stats.data?.avg ?? 0).toFixed(1)}</span>
+                <span className="text-muted-foreground">
+                  <span className="sr-only"> stars from </span>
+                  <span aria-hidden>·</span> {reviews} review{reviews === 1 ? "" : "s"}
                 </span>
-              )}
-              {reviews > 0 && joined && <span aria-hidden>·</span>}
-              {joined && <span>{joined}</span>}
-            </span>
+              </span>
+            )}
+            {joined && <span className="block text-xs text-muted-foreground">{joined}</span>}
           </span>
           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         </>

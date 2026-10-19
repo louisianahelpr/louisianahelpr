@@ -34,12 +34,6 @@ function ShopMeta({ shop, id }: { shop: PublicShop | null | undefined; id: strin
 
 function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolean }) {
   const back = encodeURIComponent(`/shops/${shop.id}`);
-  const share = (
-    <Button type="button" variant="outline" className="rounded-full" onClick={() => void shareShop(shop)}>
-      <Share2 className="mr-1.5 h-4 w-4" aria-hidden />
-      Share
-    </Button>
-  );
   return (
     <div className="space-y-4 pb-8">
       <ShopHero
@@ -50,27 +44,39 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
         photos={shop.photos}
         badges={shop.badges}
         hours={shop.hours}
+        coverAction={
+          <Button
+            type="button"
+            size="icon"
+            variant="secondary"
+            className="h-10 w-10 rounded-full bg-background/90 text-foreground shadow-md backdrop-blur hover:bg-background"
+            aria-label="Share this shop"
+            onClick={() => void shareShop(shop)}
+          >
+            <Share2 className="h-[18px] w-[18px]" aria-hidden />
+          </Button>
+        }
         actions={
           signedIn ? (
-            share
+            // A member without Shops yet (testers-only today): they can look and share; ordering opens later.
+            <p className="w-full rounded-xl bg-muted/70 px-3 py-2.5 text-center text-sm text-muted-foreground">
+              Ordering from shops opens to everyone soon.
+            </p>
           ) : (
-            <>
-              <Button asChild className="btn-grad-primary rounded-full">
+            <div className="w-full space-y-2.5">
+              <Button asChild className="btn-grad-primary h-12 w-full rounded-full text-base">
                 <Link to={`/signup?redirect=${back}`}>Sign up to order or message</Link>
               </Button>
-              {share}
-            </>
+              <p className="text-center text-sm text-muted-foreground">
+                Already a member?{" "}
+                <Link className="link-standard font-semibold" to={`/login?redirect=${back}`}>
+                  Sign in
+                </Link>
+              </p>
+            </div>
           )
         }
       />
-      {!signedIn && (
-        <p className="px-1 text-center text-sm text-muted-foreground">
-          Already a member?{" "}
-          <Link className="link-standard font-semibold" to={`/login?redirect=${back}`}>
-            Sign in
-          </Link>
-        </p>
-      )}
       {shop.about && (
         <ShopCard id="shop-about" title="About">
           <p className="text-sm whitespace-pre-line break-words">{shop.about}</p>
@@ -83,7 +89,9 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
       )}
       {shop.offers_quotes && (
         <ShopCard id="shop-quotes" title="Quotes">
-          <p className="text-sm text-muted-foreground">This shop gives quotes. Sign in to ask for one when quotes open here.</p>
+          <p className="text-sm text-muted-foreground">
+            {signedIn ? "This shop gives quotes. Asking for one here opens soon." : "This shop gives quotes. Sign in to ask for one when quotes open here."}
+          </p>
         </ShopCard>
       )}
       <ShopHoursCard hours={shop.hours} />

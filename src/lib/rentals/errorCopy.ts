@@ -95,4 +95,16 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   tenancy_not_ended: "Settle the deposit after the tenancy ends.",
   deposit_already_recorded: "The deposit is already recorded. After the tenancy ends it can't be changed.",
   bad_settlement: "What you return plus what you keep must equal the deposit, and each amount kept needs a reason. The date can't be in the future.",
+  // The lease, our Louisiana template only (20261019110137).
+  bad_lease_fields: "Some lease answers are too long or not allowed. Check them and try again.",
+  lease_awaiting_signature: "This lease was sent and is waiting for your tenant. Take it back to make changes.",
+  lease_not_found: "That lease isn't available.",
+  lease_not_open: "This lease changed since you opened it. Refresh to see where it stands.",
+  bad_signature: "Type your full name to sign.",
+  lease_consent_required: "Agree to sign electronically to sign the lease.",
+  lease_changed: "This lease changed since you opened it. Read the newest version, then sign.",
+  bad_change_request: "Say what you would like changed (3 to 1000 characters).",
+  lease_signed_is_final: "A signed lease is final and can't be changed.",
+  lease_incomplete: "Fill in every blank of the lease before you sign it.",
+  lease_initials_required: "Tick each clause marked to initial before you sign.",
 };

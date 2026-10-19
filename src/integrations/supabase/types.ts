@@ -7577,6 +7577,89 @@ export type Database = {
           },
         ]
       }
+      rental_leases: {
+        Row: {
+          blanks_sha256: string | null
+          body_sha256: string | null
+          change_request: string | null
+          created_at: string
+          fields: Json
+          home_label: string | null
+          id: string
+          landlord_consent_at: string | null
+          landlord_id: string | null
+          landlord_initials: string[]
+          landlord_signed_at: string | null
+          landlord_signed_name: string | null
+          sent_at: string | null
+          status: string
+          template_version: string
+          tenancy_id: string | null
+          tenant_consent_at: string | null
+          tenant_id: string | null
+          tenant_initials: string[]
+          tenant_signed_at: string | null
+          tenant_signed_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          blanks_sha256?: string | null
+          body_sha256?: string | null
+          change_request?: string | null
+          created_at?: string
+          fields?: Json
+          home_label?: string | null
+          id?: string
+          landlord_consent_at?: string | null
+          landlord_id?: string | null
+          landlord_initials?: string[]
+          landlord_signed_at?: string | null
+          landlord_signed_name?: string | null
+          sent_at?: string | null
+          status?: string
+          template_version: string
+          tenancy_id?: string | null
+          tenant_consent_at?: string | null
+          tenant_id?: string | null
+          tenant_initials?: string[]
+          tenant_signed_at?: string | null
+          tenant_signed_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          blanks_sha256?: string | null
+          body_sha256?: string | null
+          change_request?: string | null
+          created_at?: string
+          fields?: Json
+          home_label?: string | null
+          id?: string
+          landlord_consent_at?: string | null
+          landlord_id?: string | null
+          landlord_initials?: string[]
+          landlord_signed_at?: string | null
+          landlord_signed_name?: string | null
+          sent_at?: string | null
+          status?: string
+          template_version?: string
+          tenancy_id?: string | null
+          tenant_consent_at?: string | null
+          tenant_id?: string | null
+          tenant_initials?: string[]
+          tenant_signed_at?: string | null
+          tenant_signed_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_leases_tenancy_id_fkey"
+            columns: ["tenancy_id"]
+            isOneToOne: false
+            referencedRelation: "rental_tenancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rental_listing_photos: {
         Row: {
           created_at: string
@@ -13536,6 +13619,90 @@ export type Database = {
         Args: { p_unit_id: string }
         Returns: string
       }
+      rentals_lease: { Args: { p_tenancy_id: string }; Returns: Json }
+      rentals_lease_blanks_sha256: {
+        Args: { p_fields: Json; p_version: string }
+        Returns: string
+      }
+      rentals_lease_discard: { Args: { p_lease_id: string }; Returns: undefined }
+      rentals_lease_for_action: {
+        Args: { p_lease_id: string; p_side: string; p_status: string }
+        Returns: {
+          blanks_sha256: string | null
+          body_sha256: string | null
+          change_request: string | null
+          created_at: string
+          fields: Json
+          home_label: string | null
+          id: string
+          landlord_consent_at: string | null
+          landlord_id: string | null
+          landlord_initials: string[]
+          landlord_signed_at: string | null
+          landlord_signed_name: string | null
+          sent_at: string | null
+          status: string
+          template_version: string
+          tenancy_id: string | null
+          tenant_consent_at: string | null
+          tenant_id: string | null
+          tenant_initials: string[]
+          tenant_signed_at: string | null
+          tenant_signed_name: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rental_leases"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rentals_lease_initial_keys: { Args: { p_fields: Json }; Returns: string[] }
+      rentals_lease_missing: {
+        Args: { p_fields: Json; p_version: string }
+        Returns: string[]
+      }
+      rentals_lease_request_changes: {
+        Args: { p_lease_id: string; p_note: string }
+        Returns: undefined
+      }
+      rentals_lease_save: {
+        Args: { p_fields: Json; p_template_version: string; p_tenancy_id: string }
+        Returns: string
+      }
+      rentals_lease_send: {
+        Args: {
+          p_body_sha256: string
+          p_consent: boolean
+          p_fields: Json
+          p_initials: string[]
+          p_lease_id: string
+          p_signed_name: string
+          p_template_version: string
+        }
+        Returns: undefined
+      }
+      rentals_lease_sign: {
+        Args: {
+          p_body_sha256: string
+          p_consent: boolean
+          p_initials: string[]
+          p_lease_id: string
+          p_sent_at: string
+          p_signed_name: string
+        }
+        Returns: undefined
+      }
+      rentals_lease_signature: { Args: { p_name: string }; Returns: string }
+      rentals_lease_signed_json: {
+        Args: {
+          l: Database["public"]["Tables"]["rental_leases"]["Row"]
+          p_uid: string
+        }
+        Returns: Json
+      }
+      rentals_lease_withdraw: { Args: { p_lease_id: string }; Returns: undefined }
       rentals_listing: {
         Args: { p_listing_id: string }
         Returns: {
@@ -13650,6 +13817,7 @@ export type Database = {
           zip_code: string
         }[]
       }
+      rentals_my_leases: { Args: never; Returns: Json }
       rentals_my_listing_photos: {
         Args: { p_listing_id: string }
         Returns: {

@@ -197,6 +197,13 @@ export function dayLabel(isoDate: string): string {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" });
 }
 
+/** A short day for list rows: "Oct 2" this year (Louisiana date), "Oct 2, 2025" otherwise. */
+export function shortDayLabel(isoDate: string, now = new Date()): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const sameYear = String(y) === centralToday(now).slice(0, 4);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) });
+}
+
 /** Today in Central time as YYYY-MM-DD (the date the server's checks use). */
 export function centralToday(now = new Date()): string {
   return now.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });

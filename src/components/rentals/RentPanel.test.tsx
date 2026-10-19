@@ -104,7 +104,8 @@ describe("RentPanel (D2 pay direct)", () => {
     });
     renderPanel();
     expect(await screen.findByText("1 payment is waiting for your landlord to confirm.")).toBeTruthy();
-    expect(screen.getByText("Not received: The check bounced.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "History and receipts" }));
+    expect(screen.getByText("Check · Not received: The check bounced.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Waive/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Rent received" })).toBeNull();
     // a waiting payment cannot be disputed (only one turned down, taken back or changed); the declined one can
@@ -119,6 +120,7 @@ describe("RentPanel (D2 pay direct)", () => {
       ],
     });
     renderPanel();
+    fireEvent.click(await screen.findByRole("button", { name: "History and receipts" }));
     const buttons = await screen.findAllByRole("button", { name: "Receipt" });
     expect(buttons).toHaveLength(1);
     fireEvent.click(buttons[0]);
@@ -178,6 +180,7 @@ describe("RentPanel (D2 pay direct)", () => {
     fireEvent.change(within(form).getByLabelText("Amount paid in dollars"), { target: { value: "1200" } });
     fireEvent.click(within(form).getByRole("button", { name: "Record payment" }));
     await waitFor(() => expect(addRentPayment).toHaveBeenCalledWith("t1", 120000, expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), "zelle"));
+    fireEvent.click(screen.getByRole("button", { name: "History and receipts" }));
     fireEvent.click(screen.getByRole("button", { name: "Waive rent due Oct 1, 2026" }));
     await waitFor(() => expect(waiveRentCharge).toHaveBeenCalledWith("c1"));
   });

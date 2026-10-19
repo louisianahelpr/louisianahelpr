@@ -61,11 +61,13 @@ interface AppPageProps {
   onBack?: () => void;
   /** Trailing actions on the title row (icon buttons, overflow menus). */
   titleActions?: ReactNode;
+  /** Phone: keep the h1 for screen readers but paint only back + titleActions (PageHeader's `phoneHidesTitle`). */
+  phoneHidesTitle?: boolean;
   /** Page content. */
   children: ReactNode;
 }
 
-function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps) {
+function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, children }: AppPageProps) {
   return (
     <AppShell
       scrollable={false}
@@ -103,7 +105,7 @@ function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps
                 on 2026-09-19. ProfileTabHeader's `-mb-4` is keyed to
                 PROFILE_TAB_BODY_CLASS's 16px. */}
             <ProfileTabBody>
-              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} />
+              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} />
               {children}
             </ProfileTabBody>
           </div>

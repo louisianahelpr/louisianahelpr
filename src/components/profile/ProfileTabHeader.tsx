@@ -18,6 +18,8 @@ interface ProfileTabHeaderProps {
    */
   backTo?: string;
   rightSlot?: ReactNode;
+  /** See PageHeader's `phoneHidesTitle`. */
+  phoneHidesTitle?: boolean;
 }
 
 /**
@@ -63,7 +65,7 @@ interface ProfileTabHeaderProps {
  * itself, because the alternative is loosening the shell test's exact-match
  * guard for every tab.
  */
-export function ProfileTabHeader({ title, onBack, backTo, rightSlot }: ProfileTabHeaderProps) {
+export function ProfileTabHeader({ title, onBack, backTo, rightSlot, phoneHidesTitle }: ProfileTabHeaderProps) {
   return (
     <div className="-mb-[var(--section-gap)]">
       <PageHeader
@@ -71,6 +73,7 @@ export function ProfileTabHeader({ title, onBack, backTo, rightSlot }: ProfileTa
         onBack={onBack}
         backTo={backTo}
         titleActions={rightSlot}
+        phoneHidesTitle={phoneHidesTitle}
         width="none"
         topInsetHandled
       />

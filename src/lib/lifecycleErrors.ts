@@ -1065,6 +1065,7 @@ export const RPC_ERROR_COPY = {
     wording_flagged: RC.wording_flagged,
     listing_fee_not_ready: RC.listing_fee_not_ready,
     sale_wording_flagged: RC.sale_wording_flagged,
+    listing_taken_down: "Louisiana Helpr removed an earlier listing for this home, so it can't go live again. Contact support if you think that was a mistake.",
   },
   rentals_save_sale_listing: {
     account_restricted: RC.account_restricted,

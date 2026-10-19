@@ -213,6 +213,7 @@ export const ADMIN_RPC_ERROR_COPY = {
     account_restricted: RC.account_restricted,
     reason_required: "Write a note (5 to 500 characters) saying why it is lifted.",
     listing_not_found: "That take-down was already lifted. Refresh the list.",
+    photos_purging: "Its photos are being deleted right now (30 days after the take-down). Try again in 15 minutes; any photo already gone must be added again by the owner.",
   },
 } satisfies Record<string, Record<string, string>>;
 

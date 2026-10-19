@@ -267,6 +267,7 @@ export const HISTORICAL = {
  * reason. A script that starts writing a committed file must move out of here.
  */
 export const WRITES_NOT_COMMITTED = {
+  "scripts/e2e/declutterPayoutProof.mjs": "the proof run's state JSON (--state, $RUNNER_TEMP in declutter-payout-proof.yml, uploaded as the run's artifact) and its $GITHUB_STEP_SUMMARY table; never a repo file",
   "scripts/rotate-review-demo-password.mjs": "Q1790: a 0600 backup of the new App Review demo password to ~/.lh-backups/review-demo-password-<date>.txt (outside the repo); never a repo file",
   "scripts/lib/freshCheckout.mjs": "an LH_STALE_CHECKOUT_OK override appends one line to ~/.lh-hygiene/stale-checkout-runs.log (or LH_HYGIENE_DIR), outside the repo, an audit trail of overrides; never a repo file",
   "scripts/land-queue.mjs": "the land queue's decision lines to $GITHUB_STEP_SUMMARY in land-queue.yml (a CI job summary, never a repo file)",

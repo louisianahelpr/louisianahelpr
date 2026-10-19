@@ -17,4 +17,7 @@ export type SeatRow = {
   idv_status?: string | null;
 };
 export function seatPayoutReady(row: SeatRow): boolean;
-export function stripeSeatViolations(rows: Array<SeatRow | null | undefined>): string[];
+export function stripeSeatViolations(rows: Array<SeatRow | null | undefined>, now?: number): string[];
+export const PROOF_SELLER_EMAIL: RegExp;
+export const PROOF_RUN_WINDOW_MINUTES: number;
+export function proofRunInFlight(row: SeatRow | null | undefined, now?: number): boolean;

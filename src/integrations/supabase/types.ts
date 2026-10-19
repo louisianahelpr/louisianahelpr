@@ -12158,6 +12158,7 @@ export type Database = {
       }
       is_fixture_email: { Args: { p_email: string }; Returns: boolean }
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
+      is_identity_verified: { Args: { p_user_id: string }; Returns: boolean }
       is_late_cancellation: {
         Args: { p_has_helper: boolean; p_hours_until: number }
         Returns: boolean
@@ -12771,6 +12772,10 @@ export type Database = {
       restore_gift_card_for_job: {
         Args: { p_dry_run?: boolean; p_job_id: string; p_share_bps?: number }
         Returns: Json
+      }
+      restore_helpr_fault_fee: {
+        Args: { p_helper_id: string; p_job_id: string }
+        Returns: number
       }
       retain_ban_for_user: {
         Args: { p_user_id: string; p_via?: string }
@@ -13465,6 +13470,10 @@ export type Database = {
       switch_quote_request_to_set_price: {
         Args: { p_budget: number; p_request_id: string }
         Returns: string
+      }
+      take_helpr_fault_fee: {
+        Args: { p_helper_id: string; p_max_cents: number; p_payout_ref: string }
+        Returns: number
       }
       toggle_thread_mute: {
         Args: { _job_id: string; _other_user_id: string }

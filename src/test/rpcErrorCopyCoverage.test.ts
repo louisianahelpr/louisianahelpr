@@ -200,6 +200,17 @@ const UNREACHABLE: Allowlist = {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
   },
+  // Homes lease reads (20261019110137): a failed read shows the panel's fixed "Couldn't load the lease." line,
+  // or nothing for the Past leases list; PGRST202 (not deployed yet) reads as no lease.
+  rentals_lease: {
+    feature_disabled: { reason: RENTALS_READ },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+    tenancy_not_found: { reason: "no code's words at this site: the panel only renders for a tenancy the caller's own list returned; a not-found shows the panel's fixed load-error line." },
+  },
+  rentals_my_leases: {
+    feature_disabled: { reason: RENTALS_READ },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+  },
   rentals_my_identity: {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },

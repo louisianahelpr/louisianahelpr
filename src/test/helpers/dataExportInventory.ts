@@ -191,6 +191,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   rental_rent_charges: { by: [] },
   rental_rent_payments: { by: [] },
   rental_deposits: { by: [] },
+  // Homes lease (20261019111310): by each party (kept on the lease); a draft's blanks go to the landlord only.
+  rental_leases: { by: ["landlord_id", "tenant_id"] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },

@@ -333,11 +333,10 @@ function PaymentRow({ l, p, onDone }: { l: RentLedger; p: RentPayment; onDone: (
               {p.status === "declined" && p.decline_reason ? `: ${p.decline_reason}` : ""}
             </span>
           )}
-          {p.status === "reversed" && p.corrections.some((c) => c.action === "reverse") && (
-            <span className="block text-xs text-muted-foreground">{PAY_METHOD_LABEL[p.method]}</span>
-          )}
-          {p.corrections.map((c) => (
+          {/* A taken-back payment: its method and the reason on one line (coordinator, 2026-10-19). */}
+          {p.corrections.map((c, i) => (
             <span key={c.at} className="block text-xs text-muted-foreground">
+              {p.status === "reversed" && c.action === "reverse" && i === p.corrections.length - 1 ? `${PAY_METHOD_LABEL[p.method]} · ` : ""}
               {correctionLine(c)}
             </span>
           ))}

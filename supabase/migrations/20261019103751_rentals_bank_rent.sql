@@ -387,7 +387,11 @@ BEGIN
      AND c.on_time_at >= (SELECT p.created_at FROM public.rental_rent_payments p WHERE p.id = v_b.rent_payment_id);
   UPDATE public.rental_rent_bank_payments
      SET status = 'returned',
-         transfer_status = CASE WHEN transfer_status = 'succeeded' THEN 'reverse_due' WHEN transfer_status IN ('pending', 'failed') THEN 'none' ELSE transfer_status END,
+         -- A failed transfer attempt may still have made one at Stripe (an ambiguous error), so it is pulled
+         -- back too: the reversal step finds it by its transfer group, or records that there was none
+         -- (lead review #4). Only a transfer never tried is simply dropped.
+         transfer_status = CASE WHEN transfer_status IN ('succeeded', 'failed') THEN 'reverse_due' WHEN transfer_status = 'pending' AND transfer_attempts = 0 THEN 'none'
+                                WHEN transfer_status = 'pending' THEN 'reverse_due' ELSE transfer_status END,
          next_transfer_at = now(), updated_at = now()
    WHERE id = v_b.id;
   SELECT * INTO v_t FROM public.rental_tenancies WHERE id = v_b.tenancy_id;
@@ -433,13 +437,26 @@ AS $fn$
 DECLARE
   v_status text;
 BEGIN
-  IF p_action NOT IN ('transfer', 'reverse') OR (p_succeeded AND p_action = 'transfer' AND (p_transfer_id IS NULL OR p_transfer_id !~ '^tr_')) THEN
+  IF p_action NOT IN ('transfer', 'reverse') OR (p_succeeded AND p_action = 'transfer' AND p_transfer_id IS NULL) OR p_transfer_id !~ '^tr_' THEN
     RAISE EXCEPTION 'invalid_transfer' USING ERRCODE = '22023';
+  END IF;
+  -- Lead review #4: the bank returned the payment while its transfer was being made. The transfer exists, so
+  -- it is recorded and pulled back, never orphaned.
+  IF p_succeeded AND p_action = 'transfer' THEN
+    UPDATE public.rental_rent_bank_payments
+       SET stripe_transfer_id = p_transfer_id, transfer_status = 'reverse_due', next_transfer_at = now(), transfer_attempts = 0,
+           last_error = NULL, updated_at = now()
+     WHERE id = p_id AND status = 'returned' AND transfer_status IN ('none', 'pending', 'failed', 'reverse_due')
+       AND (stripe_transfer_id IS NULL OR stripe_transfer_id = p_transfer_id)
+    RETURNING transfer_status INTO v_status;
+    IF FOUND THEN
+      RETURN v_status;
+    END IF;
   END IF;
   UPDATE public.rental_rent_bank_payments
      SET transfer_status = CASE WHEN NOT p_succeeded THEN CASE WHEN p_action = 'reverse' THEN 'reverse_due' ELSE 'failed' END
                                 WHEN p_action = 'reverse' THEN 'reversed' ELSE 'succeeded' END,
-         stripe_transfer_id = CASE WHEN p_succeeded AND p_action = 'transfer' THEN p_transfer_id ELSE stripe_transfer_id END,
+         stripe_transfer_id = CASE WHEN p_succeeded AND p_transfer_id IS NOT NULL THEN p_transfer_id ELSE stripe_transfer_id END,
          last_error = CASE WHEN p_succeeded THEN NULL ELSE left(p_error, 500) END,
          transfer_attempts = CASE WHEN p_succeeded THEN 0 ELSE least(transfer_attempts + 1, 100) END,
          next_transfer_at = CASE WHEN p_succeeded THEN next_transfer_at

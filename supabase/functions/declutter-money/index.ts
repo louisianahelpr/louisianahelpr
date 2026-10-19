@@ -444,10 +444,18 @@ serve(async (req) => {
       const group = `rent_bank_${r.bank_payment_id}`;
       try {
         if (r.action === "reverse") {
-          if (!r.stripe_transfer_id) throw new Error("no transfer to reverse");
-          const tr = await stripe.transfers.retrieve(r.stripe_transfer_id);
-          if (!tr.reversed) await stripe.transfers.createReversal(r.stripe_transfer_id, {}, { idempotencyKey: `rent-bank-reverse-${r.bank_payment_id}` });
-          const { error } = await admin.rpc("rentals_bank_transfer_executed", { p_id: r.bank_payment_id, p_action: "reverse", p_transfer_id: null, p_succeeded: true, p_error: null });
+          // The transfer by its recorded id, else found by its transfer group (an attempt whose answer was lost
+          // may still have made one; lead review #4). None at Stripe: nothing to pull back, recorded as done.
+          let trId = r.stripe_transfer_id;
+          if (!trId) {
+            const listed = await stripe.transfers.list({ transfer_group: group, limit: 100 });
+            trId = listed.data.find((t) => ((t.metadata ?? {}) as Record<string, string>).bank_payment_id === r.bank_payment_id)?.id ?? null;
+          }
+          if (trId) {
+            const tr = await stripe.transfers.retrieve(trId);
+            if (!tr.reversed) await stripe.transfers.createReversal(trId, {}, { idempotencyKey: `rent-bank-reverse-${r.bank_payment_id}` });
+          }
+          const { error } = await admin.rpc("rentals_bank_transfer_executed", { p_id: r.bank_payment_id, p_action: "reverse", p_transfer_id: trId, p_succeeded: true, p_error: null });
           if (error) defects.record(`rent bank ${r.bank_payment_id}: reversal not recorded: ${error.message}`);
           else out.rent_transfers_reversed++;
           continue;

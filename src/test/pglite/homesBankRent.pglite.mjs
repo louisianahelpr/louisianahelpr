@@ -311,6 +311,13 @@ ok((await bal()) === 120000 && (await notes(TENANT, "Rent payment did not go thr
     "lead #10: a returned bank payment clears the on-time mark of the rows it covered");
   await svc(`SELECT public.rentals_rent_sweep()`);
   ok((await feesZ()) === 1, "lead #10: and the next sweep adds the late fee");
+  // Lead review #4: the transfer was being made when the bank returned the payment; it is recorded and pulled back.
+  ok(one(await svc(`SELECT transfer_status FROM public.rental_rent_bank_payments WHERE id = '${bz.id}'`)) === "none", "setup: returned before any transfer was recorded");
+  ok(one(await svc(`SELECT public.rentals_bank_transfer_executed('${bz.id}', 'transfer', 'tr_z', true, NULL)`)) === "reverse_due"
+    && one(await svc(`SELECT stripe_transfer_id FROM public.rental_rent_bank_payments WHERE id = '${bz.id}'`)) === "tr_z"
+    && rows(await svc(`SELECT * FROM public.rentals_bank_transfers_due(10)`)).some((r) => r.bank_payment_id === bz.id && r.action === "reverse"),
+    "lead #4: a transfer made as the bank returned the payment is recorded and queued to be pulled back, never orphaned");
+  ok(refused(await svc(`SELECT public.rentals_bank_transfer_executed('${bz.id}', 'reverse', 'nope', true, NULL)`), /invalid_transfer/), "a transfer id is always a tr_ id");
 }
 
 // --- autopay (D7)

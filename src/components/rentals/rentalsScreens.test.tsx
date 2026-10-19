@@ -280,7 +280,7 @@ describe("Rentals screens", () => {
       expect(link.textContent).toContain("3 beds · 2 baths · Broussard 70518");
       expect(link.textContent).not.toMatch(/Available/);
       fireEvent.change(screen.getByLabelText("City or ZIP"), { target: { value: "70518" } });
-      await vi.waitFor(() => expect(state.saleFilters.at(-1)).toMatchObject({ city: "70518" }));
+      await vi.waitFor(() => expect(state.saleFilters[state.saleFilters.length - 1]).toMatchObject({ city: "70518" }));
       expect(state.browseFilters).toHaveLength(0);
     });
     it("ONE slim search row (owner bar 2026-10-19): City or ZIP with the filter button inside, no Search button, no bedroom/rent fields on the page; typing searches by itself", async () => {

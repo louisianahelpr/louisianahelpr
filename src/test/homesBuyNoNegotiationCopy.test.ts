@@ -30,7 +30,7 @@ const BUY_FILES = [
   "src/lib/rentals/listingCopy.ts",
 ];
 /** The Buy error words (errorCopy.ts is shared with the rest of Homes, so only these keys are Buy copy). */
-const BUY_ERROR_KEYS = ["property_already_listed", "property_not_found", "listing_fee_not_ready", "sale_wording_flagged"];
+const BUY_ERROR_KEYS = ["property_already_listed", "listing_fee_not_ready", "sale_wording_flagged"];
 const BARGAIN = /\b(negotia\w*|haggl\w*|bargain\w*|best\s+offer|offers?|counter-?offers?|obo|realtors?|agents?|brokers?|commissions?)\b/i;
 
 /** Every piece of copy in a source file. */

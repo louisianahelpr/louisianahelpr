@@ -34,6 +34,9 @@ vi.mock("@/components/AppPage", () => ({
   ),
 }));
 vi.mock("./ShopItemsList", () => ({ default: ({ shopId }: { shopId: string }) => <p>Items list for {shopId}</p> }));
+vi.mock("./ShopFaqs", () => ({ default: () => null }));
+vi.mock("./ShopPolicies", () => ({ default: () => null }));
+vi.mock("./ShopFaqsEditor", () => ({ default: () => null }));
 vi.mock("./ShopItemsSection", () => ({
   default: ({ shopId, ownerId }: { shopId: string; ownerId: string }) => <p>Items section for {shopId} by {ownerId}</p>,
 }));

@@ -31,8 +31,10 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   invalid_sos_number: "Check the Secretary of State number: letters, numbers and dashes only.",
   area_looks_like_address: "Use your town or neighborhood for the area, not a street address.",
   shop_not_found: "This shop isn't available.",
-  shop_hidden: "Louisiana Helpr hid your shop, so it can't be closed here. Contact support.",
+  // One neutral line for every write it is mapped to (item writes, FAQs and closing; lead 2026-10-19).
+  shop_hidden: "This shop is hidden by Louisiana Helpr right now, so it can't be changed. Contact support.",
   invalid_hours: "Each time needs a day, and an opening time before its closing time.",
+  invalid_faqs: "Each question needs 3 to 140 characters and an answer of up to 600, with at most 10 questions.",
   invalid_paused: "Choose whether the shop is open or paused.",
   invalid_photo_kind: "Choose where the photo goes: logo, cover, or gallery.",
   photo_not_uploaded: "That photo didn't finish uploading. Try adding it again.",

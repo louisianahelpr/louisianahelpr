@@ -33,6 +33,7 @@ import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
 import { ShopOrderCard } from "./ShopOrderCard";
 import CancelPolicyPicker from "./ShopCancelPolicyPicker";
+import ShopPayoutRow from "./ShopPayoutRow";
 import HandoverModePicker from "./ShopHandoverModePicker";
 import { ShopHandoverActions } from "./ShopHandoverActions";
 
@@ -126,6 +127,8 @@ export default function ShopDashboardView() {
   return (
     <AppPage title="Shop dashboard" backTo={`/shops/${myId.data}`}>
       <div className="space-y-6 pb-6">
+        {/* Only while payouts are not set up (SH12): an accepted order pays out to this account. */}
+        <ShopPayoutRow />
         {orders.isError ? (
           <ErrorState variant="inline" title="We couldn't load your orders." body={shopsErrorMessage(orders.error)} onRetry={() => void orders.refetch()} />
         ) : (

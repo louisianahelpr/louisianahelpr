@@ -73,6 +73,8 @@ vi.mock("@/components/AppPage", () => ({
   ),
 }));
 vi.mock("./ShopItemsList", () => ({ default: () => <p>Items list</p> }));
+vi.mock("./ShopFaqs", () => ({ default: () => null }));
+vi.mock("./ShopPolicies", () => ({ default: () => null }));
 // The calendar: a button per day of one week, disabled exactly as the sheet asks.
 const WEEK = ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25"];
 vi.mock("@/components/DatePickerField", () => ({

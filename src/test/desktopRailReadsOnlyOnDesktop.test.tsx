@@ -71,9 +71,9 @@ describe("the desktop rail reads only where it renders", () => {
     calls.desktop = true;
     const { container } = mount();
     expect(container.querySelector('nav[aria-label="Primary"]')).not.toBeNull();
-    // Floor: Declutter, Shops and Quotes on 2026-10-18.
-    expect(calls.feature.length).toBeGreaterThan(2);
-    expect(calls.feature).toEqual(expect.arrayContaining(["declutter", "shops", "quotes"]));
+    // Floor: Declutter and Shops (Quotes left the rail with the /quotes hub, owner 2026-10-19).
+    expect(calls.feature.length).toBeGreaterThan(1);
+    expect(calls.feature).toEqual(expect.arrayContaining(["declutter", "shops"]));
     expect(calls.badges).toBeGreaterThan(0);
   });
 });

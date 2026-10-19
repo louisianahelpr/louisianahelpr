@@ -12,7 +12,7 @@ import { daysBetween, formatMoveDate } from "@/lib/declutter/moveDates";
 
 export { louisianaToday } from "@/lib/declutter/moveDates";
 
-const MOVE_ITEM_COLUMNS = "id, status, title, current_price_cents, area_label";
+const MOVE_ITEM_COLUMNS = "id, status, title, current_price_cents, area_label, category";
 
 /**
  * The banner's line, plain words, with the exact move-out date (owner

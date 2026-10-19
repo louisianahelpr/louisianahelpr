@@ -38,6 +38,8 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, formatPrice, milesLabel, nearestFirst } from "@/lib/declutter/distance";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
+import { categoryIcon } from "@/lib/declutter/categoryIcons";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
 import { BuyingDash, SellingDash } from "./DeclutterMineViews";
@@ -59,7 +61,7 @@ import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 // Types only: the predicates (oneTripGroup, haulJobToDelete) come with the lazily loaded haul-away code (Q178).
 import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
-import { DeclutterBrowseBones, DeclutterHomeSkeleton } from "./DeclutterSkeletons";
+import { DECLUTTER_GRID, DeclutterBrowseBones, DeclutterHomeSkeleton } from "./DeclutterSkeletons";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => import("@/lib/declutter/haulAway");
@@ -77,9 +79,13 @@ function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
 }
 
 /**
- * A Browse card, photo first (Marketplace / OfferUp): title up to two lines,
- * the price big, the place on one line, and the seller's stars only when the
- * seller has reviews (the item's condition is on its own page).
+ * A Browse card (owner-approved design, 2026-10-19 14:55Z: Facebook
+ * Marketplace / Mercari): the square photo first (or the category icon on a
+ * soft tint, never a blank box), then the price in bold, the title on ONE
+ * line, and a small place line, so more items fit on a screen. No box around
+ * it: the photo's rounded corners are the card, as on Homes. The seller's
+ * stars only when the seller has reviews (Q2226); the item's condition is on
+ * its own page.
  */
 function ItemCard({ item, photoPath, miles, approximate, rating }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; rating?: { avg: number; count: number } }) {
   const away = milesLabel(miles, approximate);
@@ -87,18 +93,19 @@ function ItemCard({ item, photoPath, miles, approximate, rating }: { item: Declu
   return (
     <Link
       to={`/declutter/item/${item.id}`}
-      className="block rounded-2xl border border-border bg-card overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      data-item-card=""
+      className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <div className="aspect-square bg-muted">
+      <span className="block aspect-square overflow-hidden rounded-2xl bg-muted">
         {photoPath ? (
-          <img src={photoPublicUrl(photoPath)} alt="" loading="lazy" className="w-full h-full object-cover" />
-        ) : null}
-      </div>
-      <div className="p-3 space-y-1 min-w-0">
-        {/* Two lines reserved, so every card in a row is one height. */}
-        <p data-card-title className="font-semibold text-sm leading-snug line-clamp-2 min-h-[2.75em] break-words" title={item.title}>{item.title}</p>
-        <div className="flex items-baseline justify-between gap-2 min-w-0">
-          <p data-card-price className="min-w-0 text-lg font-bold leading-tight tabular-nums">
+          <img src={photoPublicUrl(photoPath)} alt="" loading="lazy" className="h-full w-full object-cover" />
+        ) : (
+          <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-full w-full" />
+        )}
+      </span>
+      <span className="block min-w-0 px-0.5 pt-2">
+        <span className="flex min-w-0 items-baseline justify-between gap-2">
+          <span data-card-price className="min-w-0 text-base font-bold leading-tight tabular-nums">
             {formatPrice(item.current_price_cents)}
             {item.current_price_cents < item.price_cents && (
               <span className="ml-1.5 text-xs font-medium text-muted-foreground">
@@ -106,7 +113,7 @@ function ItemCard({ item, photoPath, miles, approximate, rating }: { item: Declu
                 <s aria-hidden>{formatPrice(item.price_cents)}</s>
               </span>
             )}
-          </p>
+          </span>
           {reviewed && (
             <span
               data-card-rating
@@ -118,12 +125,13 @@ function ItemCard({ item, photoPath, miles, approximate, rating }: { item: Declu
               <span aria-hidden>{reviewed.avg.toFixed(1)}</span>
             </span>
           )}
-        </div>
-        <p data-card-place className="text-xs text-muted-foreground truncate" title={`${item.area_label}${away ? ` · ${away}` : ""}`}>
+        </span>
+        <span data-card-title className="mt-0.5 block truncate text-sm leading-snug" title={item.title}>{item.title}</span>
+        <span data-card-place className="block truncate text-xs text-muted-foreground" title={`${item.area_label}${away ? ` · ${away}` : ""}`}>
           {item.area_label}
           {away ? ` · ${away}` : ""}
-        </p>
-      </div>
+        </span>
+      </span>
     </Link>
   );
 }
@@ -214,7 +222,7 @@ function BrowseView({ userId }: { userId: string }) {
           body={others.length === 0 ? "Check back soon, or sell something of your own." : q ? "Try another word." : "Try a bigger distance."}
         />
       ) : (
-        <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <ul className={DECLUTTER_GRID}>
           {rows.map(({ item, miles }) => (
             <li key={item.id} className="min-w-0">
               <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate} rating={ratings.data?.get(item.seller_id)} />

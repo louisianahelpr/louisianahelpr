@@ -13,6 +13,8 @@ import { Truck } from "lucide-react";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchPhotos, photoPublicUrl } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
+import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { fetchSellerMovingSale, louisianaToday, movingSaleLine } from "@/lib/declutter/movingSale";
 
 const SHOWN = 6;
@@ -48,7 +50,11 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
               className="block rounded-xl border border-border overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className="aspect-square bg-muted">
-                {cover.get(it.id) ? <img src={photoPublicUrl(cover.get(it.id)!)} alt="" loading="lazy" className="w-full h-full object-cover" /> : null}
+                {cover.get(it.id) ? (
+                  <img src={photoPublicUrl(cover.get(it.id)!)} alt="" loading="lazy" className="w-full h-full object-cover" />
+                ) : (
+                  <PhotoPlaceholder icon={categoryIcon(it.category)} seed={it.category} className="h-full w-full" />
+                )}
               </div>
               <div className="p-2 min-w-0">
                 <p className="text-sm font-medium truncate" title={it.title}>{it.title}</p>

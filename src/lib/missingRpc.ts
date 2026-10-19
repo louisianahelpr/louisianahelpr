@@ -1,25 +1,16 @@
 /**
- * True when a Supabase RPC error means "function not deployed yet" (PostgREST
- * PGRST202): a build that shipped before its migration reached prod. Callers
- * treat it as a quiet fallback, never as an error to report on every visit.
- * One definition for the app (lead review, 2026-10-19).
- */
-export function isMissingRpc(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  return (error as { code?: string }).code === "PGRST202";
-}
-
-/**
- * A STRICTER "not deployed yet" for one RPC called by name, for a caller that
- * must not mistake a changed signature for a missing function (useFeature's
- * batched switch read, nightly-red #2601). PostgREST answers a missing
+ * "Not deployed yet" for ONE RPC called by name: the app's one definition
+ * (lead review, 2026-10-19). Every caller passes the name of the RPC it just
+ * called, and must not mistake a changed signature for a missing function
+ * (src/test/missingRpcIsNamed.test.ts). PostgREST answers a missing
  * function with PGRST202, and when its name is near an existing one it adds a
  * hint pointing at that neighbour ("Perhaps you meant to call the function
  * public.feature_enabled_for(p_key)"), so a hint naming ANOTHER function still
  * means "not deployed" (lead re-review of wip/reds-1019-2, 2026-10-19). A hint
- * naming `rpc` itself means it exists with other parameters: a real failure,
- * the case isMissingRpc above does not tell apart (Q2086 made the Stuck Jobs
- * screen's own copy strict for the same reason).
+ * naming `rpc` itself means it exists with other parameters: a real failure.
+ * The lenient form (any PGRST202) read that case as "not deployed" and fell
+ * back quietly (Q2086 made the Stuck Jobs screen's own copy strict for the
+ * same reason); it is gone.
  */
 export function isMissingRpcNamed(error: unknown, rpc: string): boolean {
   if (!error || typeof error !== "object") return false;

@@ -28,7 +28,7 @@ async function run(...outcomes: Array<Error | { id: string; status: string }>) {
   });
   const fn = await loadEdgeFunction("auto-tip-charge");
   scenario.rpc.auto_tip_candidates = [
-    { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10 },
+    { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10, tip_state: "chargeable" },
   ];
   scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
   scenario.adminUsers = { "poster-1": { email: "poster@test.com" } };

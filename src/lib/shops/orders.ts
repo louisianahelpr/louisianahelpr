@@ -59,6 +59,9 @@ export const READY_TAP_CANCEL_TEXT: Record<ReadyTapCancel, { label: string; hint
 };
 export const READY_TAP_CANCELS = Object.keys(READY_TAP_CANCEL_TEXT) as ReadyTapCancel[];
 
+/** How paying works, in the words the order sheet and the shop's policies card both show (one source). */
+export const ORDER_HOLD_TEXT = "Your card is held, not charged. The shop has 24 hours to accept; your card is charged only if it does.";
+
 /** The buyer's words for a shop's cancel rule: the preset, and under 'until_handover' the shop's ready-tap choice. */
 export function cancelPolicyText(policy: CancelPolicy, readyTap: ReadyTapCancel | null | undefined): { label: string; detail: string } {
   if (policy !== "until_handover") return CANCEL_POLICY_TEXT[policy];

@@ -27,6 +27,7 @@ import { fetchShopItems, formatItemPrice, type ShopItem } from "@/lib/shops/item
 import {
   buyerFeeCents,
   cancelPolicyText,
+  ORDER_HOLD_TEXT,
   earliestReadyDate,
   fetchOrderTerms,
   firstOpenReadyDate,
@@ -140,9 +141,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
     <section className="space-y-4 rounded-2xl border border-border bg-card p-4" aria-labelledby="shop-order">
       <div className="space-y-1">
         <h2 id="shop-order" className="text-sm font-semibold">Order</h2>
-        <p className="text-xs text-muted-foreground">
-          Your card is held, not charged. The shop has 24 hours to accept; your card is charged only if it does.
-        </p>
+        <p className="text-xs text-muted-foreground">{ORDER_HOLD_TEXT}</p>
       </div>
 
       <ul className="space-y-3">

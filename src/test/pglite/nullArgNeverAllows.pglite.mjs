@@ -209,6 +209,8 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "shop_owner_in_good_standing", "shop_publicly_visible", "shop_visible_to",
   // SH2b public shop page (20261019042744).
   "shop_state_ok", "shop_link_visible",
+  // SH12 shop FAQs/policies (20261019072541); after has_role and shop_link_visible, which it calls.
+  "shop_extras_readable",
   // Rentals S1 (20261017205605).
   "rentals_caller_is_active_tenant_of",
   // Rentals identity either verdict (20261019051407); after identity_is_verified, which its SQL body calls.
@@ -220,7 +222,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).
-const AFTER_STUBS = ["job_announceable_to", "shop_state_ok", "shop_publicly_visible", "shop_link_visible", "shop_visible_to"];
+const AFTER_STUBS = ["job_announceable_to", "shop_state_ok", "shop_publicly_visible", "shop_link_visible", "shop_visible_to", "shop_extras_readable"];
 // job_offer_cutoff (Q1784): called by the newest allow bodies; loaded verbatim
 // like the rest (SQL bodies are validated at CREATE, so it must exist first).
 const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];

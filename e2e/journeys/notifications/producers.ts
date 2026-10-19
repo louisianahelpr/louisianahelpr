@@ -157,6 +157,10 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
     uncovered:
       "Rentals S3 (20261017223352): the 'Ownership proof waits for review' admin alert; the RPC starts with require_feature('rentals'), the hidden switch created OFF, so it refuses the shared accounts until the switch reaches testers, and a test landlord's upload never pages a real admin (notification_crosses_seed_boundary). Proven in src/test/pglite/rentalsMaintenance.pglite.mjs (one alert per waiting spell to the admin, none to the landlord, the close rule maps it).",
   },
+  "sql:rentals_submit_landlord_id": {
+    uncovered:
+      "Landlord ID by admin review (20261019051407): the 'Landlord ID waits for review' admin alert; the RPC starts with require_feature('rentals'), the hidden switch created OFF, so it refuses the shared accounts until the switch reaches testers, and a test landlord's upload never pages a real admin (notification_crosses_seed_boundary). Proven in src/test/pglite/landlordIdReview.pglite.mjs (one alert per waiting spell, the close rule maps it to rentals-landlord-id-review).",
+  },
   "sql:cancel_job_after_failed_bank_payment": {
     uncovered:
       "Q1972 (20261017205845): runs only from the stripe-webhook payment_intent.payment_failed handler (EXECUTE service_role only) when a hired job's bank payment fails; Stripe is live and the journeys never pay, so no bank payment can be made to fail. Proven in src/test/pglite/failedBankPaymentCancelsHiredJob.pglite.mjs (the confirmed Helpr told once, the poster told plainly, no fee, no strike).",

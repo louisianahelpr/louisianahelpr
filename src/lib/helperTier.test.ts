@@ -242,4 +242,4 @@ describe("describeTierProgress", () => {
 // Tier 1 is a publicly-rendered "Verified" claim, so it needs an explicit
 // `true` from Stripe. Treating null/undefined (never verified) as good enough
 // hands the rung to every helper with a Connect account.
-// @mutate src/lib/helperTier.ts | if (profile.stripe_identity_verified !== true) return false; | if (profile.stripe_identity_verified === false) return false;
+// @mutate src/lib/helperTier.ts | isIdentityVerified({ connectIdentityVerified: profile?.stripe_identity_verified, idvStatus: profile?.idv_status }); | profile?.stripe_identity_verified !== false;

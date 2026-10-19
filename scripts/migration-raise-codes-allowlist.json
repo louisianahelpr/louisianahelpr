@@ -30,6 +30,12 @@
       "function": "public.declutter_confirm_handover",
       "code": "not_booked_yet",
       "reason": "Only the removed seller-typed 4-digit code path raised it (it read the handover row the booking creates, to compare the code). The owner removed the code (2026-10-18: porch pickup, no code); the buyer's \"I got it\" never required a booking before or after this migration."
+    },
+    {
+      "migration": "20261019051407_rentals_landlord_id_review.sql",
+      "function": "public.rentals_create_property",
+      "code": "identity_not_verified",
+      "reason": "Owner 2026-10-19 (landlord ID by admin review): adding a property no longer needs a verified ID, because the landlord's ID photo goes to admin review together with the ownership proof. Identity is required where it matters, at rentals_invite_tenant (and the listing gates, 20261019061019), all through public.is_identity_verified."
     }
   ]
 }

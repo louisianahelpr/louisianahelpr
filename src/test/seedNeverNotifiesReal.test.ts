@@ -251,6 +251,7 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   // Rentals S3 (20261017223352): the admin-queue alert's link names no job, so the
   // producer judges Q137 itself with the landlord as the actor.
   "sql:rentals_submit_ownership_proof#1": "operator broadcast to every admin: an ownership proof waits for review; the insert skips every admin for whom notification_crosses_seed_boundary(admin, NULL, NULL, landlord) is true, so a test landlord never pages a real admin (PGlite: rentalsMaintenance)",
+  "sql:rentals_submit_landlord_id#1": "operator broadcast to every admin: a landlord's ID photo waits for review; the insert skips every admin for whom notification_crosses_seed_boundary(admin, NULL, NULL, landlord) is true, so a test landlord never pages a real admin (PGlite: landlordIdReview)",
   "sql:declutter_price_drop_sweep#1": "Price dropped to watchers: a seed listing alerts only seed watchers (AND (NOT r.is_seed OR COALESCE(wp.is_seed, false)))",
 };
 // DIGEST: one row about MANY jobs; the producer must exclude seed jobs for

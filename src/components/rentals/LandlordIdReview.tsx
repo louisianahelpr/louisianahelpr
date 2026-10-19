@@ -103,7 +103,7 @@ export function SendForReview({
     onError: (e) => {
       const words = rentalsErrorMessage(e);
       if (idSent.current) {
-        toast.error(`Your ID was sent for review. The ownership proof didn't go through: ${words}`);
+        toast.error(`${words} Your ID was sent for review; only the ownership proof didn't go through.`);
       } else {
         toast.error(words);
       }

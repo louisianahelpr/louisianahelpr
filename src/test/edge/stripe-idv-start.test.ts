@@ -11,8 +11,8 @@
  * not called.** A test that only checks the status code would pass while the
  * money still moved.
  *
- * @mutate supabase/functions/stripe-idv-start/index.ts |     if (verifiedAnyRoute === true) { |     if (profile?.idv_status === "verified") {
- * @mutate supabase/functions/stripe-idv-start/index.ts |     if (verifiedErr) {\n      throw | if (false) {\n      throw
+ * @mutate supabase/functions/stripe-idv-start/index.ts |     if (verifiedAnyRoute === true \|\| (verifiedErr && profile?.idv_status === "verified")) { |     if (profile?.idv_status === "verified") {
+ * @mutate supabase/functions/stripe-idv-start/index.ts |     if (verifiedErr && verifiedErr.code !== "PGRST202") {\n      throw |     if (false) {\n      throw
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";

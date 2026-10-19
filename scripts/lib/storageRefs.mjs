@@ -60,6 +60,8 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "maintenance_request_photos", column: "storage_path", array: false, bucket: "user-documents", writer: "rentals_file_request RPC (path <uid>/rentals/requests/<batch>/<file>; src/lib/rentals/api.ts uploads it)" },
   { table: "rental_properties", column: "ownership_proof_path", array: false, bucket: "user-documents", writer: "rentals_submit_ownership_proof RPC (path <uid>/rentals/<property>/<file>; src/lib/rentals/api.ts uploads it)" },
   { table: "rental_listing_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "rentals_add_listing_photo RPC (path <uid>/rental-listings/<listing>/<file>; src/lib/rentals/listings.ts uploads it)" },
+  { table: "landlord_id_reviews", column: "front_path", array: false, bucket: "user-documents", writer: "rentals_submit_landlord_id RPC, the landlord's ID photo (path <uid>/landlord-id/<file>; src/lib/rentals/api.ts uploads it; nulled once the photo is deleted after review)" },
+  { table: "landlord_id_reviews", column: "back_path", array: false, bucket: "user-documents", writer: "rentals_submit_landlord_id RPC, the optional back of the ID (path <uid>/landlord-id/<file>; src/lib/rentals/api.ts uploads it; nulled once the photo is deleted after review)" },
 ];
 
 /**
@@ -74,6 +76,7 @@ export const NOT_STORAGE_COLUMNS = {
   "messages.attachment_mime": "the attachment's content type",
   "messages.attachment_size": "the attachment's size in bytes",
   "jobs.require_photo_proof": "a boolean setting",
+  "landlord_id_reviews.images_deleted_at": "a timestamp: when the ID photos were deleted after review (the paths are nulled then)",
   "platform_settings.social_webhook_url": "an outbound webhook endpoint",
   "profiles.hourly_rate": "a number ('hourly' contains 'url')",
   "shop_photos.photo_kind": "which slot the photo fills: 'logo', 'cover' or 'gallery' (a CHECK enum)",

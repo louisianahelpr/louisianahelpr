@@ -93,7 +93,7 @@ describe("stripe-webhook: paid ID check", () => {
     scenario.reads.idv_fee_payments = { rows: [] };
     let claimedBeforeRefund = false;
     stripeMock.refunds.create.mockImplementation(async () => {
-      claimedBeforeRefund = idvWrites().some((w) => w.op === "update" && w.payload.status === "refunded"
+      claimedBeforeRefund = idvWrites().some((w) => w.op === "update" && (w.payload as { status?: unknown }).status === "refunded"
         && w.filters.some((f) => f.op === "eq" && f.column === "status" && f.value === "paid"));
       return { id: "re_9" };
     });

@@ -154,8 +154,9 @@ jobs:
     # sequential legs, each its own waiter + lock job at 55 minutes (55, not
     # the 60 cap: four legs plus the budget job keep the run's worst case,
     # 232 min, inside the 240 before open-done-when, prodWorkflowSpacing rule 5):
-    #   1  messy-input part 1 (sweep, targeted, post-job, even explores)
-    #   2  messy-input part 2 (odd explores + the coverage check, fed leg 1's
+    #   1  messy-input part 1 (sweep, post-job, even explores)
+    #   2  messy-input part 2 (targeted rules since 2026-10-18, odd explores +
+    #      the coverage check, fed leg 1's
     #      credit files through an artifact) + rail-inset (2026-10-17: leg 2
     #      used 17 of its 42 minutes on 38181023758, and list B no longer fit
     #      leg 4's 28: run 38689259675 timed out at test 133 of 162, rail-inset

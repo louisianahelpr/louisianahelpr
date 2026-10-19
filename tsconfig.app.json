@@ -55,6 +55,8 @@
     "e2e/reporters/skipReporter.ts",
     // src/test/fundedOpenJobPlan.test.ts (Q100). Pinned by src/test/e2eImportsInAppTsconfig.test.ts.
     "e2e/prod-audit/fundedOpenJobPlan.ts",
+    // src/test/messyInputApplicantNames.test.ts (#2245) imports the applicant sweeps' names.
+    "e2e/prod-audit/applicantCardNames.ts",
     // src/test/slowNetworkCoversEverySteps.test.ts (Q68) imports the step list.
     "e2e/slow-network/steps.ts",
     // src/test/proofPhotoTeardownDetaches.test.ts imports the teardown helpers.

@@ -6,8 +6,10 @@
  * @mutate src/components/rentals/DepositPanel.tsx |       return setDeposit(tenancyId, cents, on); |       return setDeposit(tenancyId, 0, on);
  * @mutate src/components/rentals/DepositPanel.tsx |         returned, |         amountCents,
  * @mutate src/components/rentals/DepositPanel.tsx |   const valid = returned >= 0 && rows.every((r, i) => r.reason.trim().length >= 3 && (kept[i] ?? 0) > 0); |   const valid = true;
- * @mutate src/components/rentals/DepositPanel.tsx |         side === "landlord" && status === "active" ? ( |         status === "active" ? (
+ * @mutate src/components/rentals/DepositPanel.tsx |           {r.can_record ? ( |           {true ? (
  * @mutate src/components/rentals/DepositPanel.tsx |           ) : status === "ended" ? ( |           ) : true ? (
+ * @mutate src/components/rentals/DepositPanel.tsx |   if (r.forwarding_address) return <p className="text-xs">Send it to: {r.forwarding_address}</p>; |   if (r.has_forwarding_address) return <p className="text-xs">Send it to: {r.forwarding_address}</p>;
+ * @mutate src/components/rentals/DepositPanel.tsx |           {side === "tenant" && <AddressBlock r={r} tenancyId={tenancyId} onDone={done} />} |           {null}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -35,13 +37,23 @@ import { DepositPanel } from "./DepositPanel";
 const D = (o: Partial<NonNullable<DepositRecord["deposit"]>> = {}): NonNullable<DepositRecord["deposit"]> => ({
   amount_cents: 120000,
   received_on: "2026-10-01",
-  forwarding_address: null,
-  has_forwarding_address: false,
   return_by: null,
   returned_cents: null,
   deductions: [],
   returned_on: null,
   settled_at: null,
+  ...o,
+});
+const R = (o: Partial<DepositRecord> = {}): DepositRecord => ({
+  side: "tenant",
+  tenancy_status: "active",
+  ended_by: null,
+  lease_ends_on: null,
+  can_record: false,
+  forwarding_address: null,
+  has_forwarding_address: false,
+  address_visible_to_landlord: false,
+  deposit: null,
   ...o,
 });
 
@@ -54,18 +66,23 @@ const renderPanel = () =>
 
 describe("DepositPanel (D6 track only)", () => {
   beforeEach(() => {
-    state.rec = { side: "tenant", tenancy_status: "active", deposit: null };
+    state.rec = R();
     for (const f of [setDeposit, setForwardingAddress, settleDeposit]) f.mockClear();
   });
 
-  it("tenant, none recorded: says so, nothing to press", async () => {
+  it("tenant, none recorded: says so, and can already give the forwarding address (lead review #10), told who sees it", async () => {
     renderPanel();
-    expect(await screen.findByText("No deposit recorded.")).toBeTruthy();
-    expect(screen.queryByRole("form")).toBeNull();
+    expect(await screen.findByText("Your landlord hasn't recorded a deposit yet.")).toBeTruthy();
+    expect(screen.queryByRole("form", { name: "Record the deposit" })).toBeNull();
+    const form = screen.getByRole("form", { name: "Forwarding address" });
+    expect(screen.getByTestId("address-share-line").textContent).toBe("Your landlord sees it once you end the tenancy here.");
+    fireEvent.change(within(form).getByLabelText("Forwarding address"), { target: { value: "500 New Home Rd, Baton Rouge LA 70801" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Save address" }));
+    await waitFor(() => expect(setForwardingAddress).toHaveBeenCalledWith("t1", "500 New Home Rd, Baton Rouge LA 70801"));
   });
 
   it("landlord of a live tenancy records the amount and the day received", async () => {
-    state.rec = { side: "landlord", tenancy_status: "active", deposit: null };
+    state.rec = R({ side: "landlord", can_record: true });
     renderPanel();
     const form = await screen.findByRole("form", { name: "Record the deposit" });
     fireEvent.change(within(form).getByLabelText("Deposit amount in dollars"), { target: { value: "1200" } });
@@ -74,25 +91,41 @@ describe("DepositPanel (D6 track only)", () => {
     await waitFor(() => expect(setDeposit).toHaveBeenCalledWith("t1", 120000, "2026-10-01"));
   });
 
+  it("an ended tenancy with no deposit: the landlord can still record it (30 days) (lead review #10)", async () => {
+    state.rec = R({ side: "landlord", tenancy_status: "ended", ended_by: "tenant", can_record: true });
+    renderPanel();
+    expect(await screen.findByText("Not recorded yet. You can still record it for 30 days after the tenancy ended.")).toBeTruthy();
+    expect(screen.getByRole("form", { name: "Record the deposit" })).toBeTruthy();
+  });
+
   it("tenant gives a forwarding address; the landlord of a live tenancy sees only that one was given", async () => {
-    state.rec = { side: "tenant", tenancy_status: "active", deposit: D() };
+    state.rec = R({ deposit: D(), lease_ends_on: "2027-06-30" });
     renderPanel();
     expect(await screen.findByText(/\$1,200\.00, received Oct 1, 2026\. Louisiana law: returned within one month/)).toBeTruthy();
     const form = screen.getByRole("form", { name: "Forwarding address" });
     fireEvent.change(within(form).getByLabelText("Forwarding address"), { target: { value: "500 New Home Rd, Baton Rouge LA 70801" } });
     fireEvent.click(within(form).getByRole("button", { name: "Save address" }));
     await waitFor(() => expect(setForwardingAddress).toHaveBeenCalledWith("t1", "500 New Home Rd, Baton Rouge LA 70801"));
+    expect(screen.getByTestId("address-share-line").textContent).toBe("Your landlord sees it once you end the tenancy here, or after the lease ends Jun 30, 2027.");
   });
 
   it("landlord, live tenancy: no settle form yet, the address is not shown", async () => {
-    state.rec = { side: "landlord", tenancy_status: "active", deposit: D({ has_forwarding_address: true }) };
+    state.rec = R({ side: "landlord", deposit: D(), has_forwarding_address: true });
     renderPanel();
-    expect(await screen.findByText("Your tenant gave a forwarding address. You'll see it when the tenancy ends.")).toBeTruthy();
+    expect(await screen.findByText("Your tenant gave a forwarding address. You'll see it once they end the tenancy, or after the lease end date.")).toBeTruthy();
     expect(screen.queryByRole("form", { name: "Settle the deposit" })).toBeNull();
   });
 
+  it("lead review #4: after a landlord-only early end the landlord does not see the address until the lease end date", async () => {
+    state.rec = R({ side: "landlord", tenancy_status: "ended", ended_by: "landlord", lease_ends_on: "2027-03-31", has_forwarding_address: true, deposit: D({ return_by: "2026-11-19" }) });
+    renderPanel();
+    expect(await screen.findByText("Your tenant gave a forwarding address. You'll see it on Mar 31, 2027, when the lease ends.")).toBeTruthy();
+    expect(screen.queryByText(/Send it to/)).toBeNull();
+  });
+
   it("landlord after the end: the return-by date, the address, and an itemized settle (returned + kept = the deposit)", async () => {
-    state.rec = { side: "landlord", tenancy_status: "ended", deposit: D({ forwarding_address: "500 New Home Rd, Baton Rouge LA 70801", has_forwarding_address: true, return_by: "2026-11-19" }) };
+    state.rec = R({ side: "landlord", tenancy_status: "ended", ended_by: "tenant", forwarding_address: "500 New Home Rd, Baton Rouge LA 70801", has_forwarding_address: true,
+      address_visible_to_landlord: true, deposit: D({ return_by: "2026-11-19" }) });
     renderPanel();
     expect(await screen.findByText("Return by Nov 19, 2026")).toBeTruthy();
     expect(screen.getByText("Send it to: 500 New Home Rd, Baton Rouge LA 70801")).toBeTruthy();
@@ -109,7 +142,7 @@ describe("DepositPanel (D6 track only)", () => {
   });
 
   it("keeping more than the deposit is stopped before it is sent", async () => {
-    state.rec = { side: "landlord", tenancy_status: "ended", deposit: D({ return_by: "2026-11-19" }) };
+    state.rec = R({ side: "landlord", tenancy_status: "ended", deposit: D({ return_by: "2026-11-19" }) });
     renderPanel();
     const form = await screen.findByRole("form", { name: "Settle the deposit" });
     fireEvent.click(within(form).getByRole("button", { name: "Keep part of it" }));
@@ -120,11 +153,10 @@ describe("DepositPanel (D6 track only)", () => {
   });
 
   it("settled: both sides see the statement, no more forms", async () => {
-    state.rec = {
-      side: "tenant",
+    state.rec = R({
       tenancy_status: "ended",
       deposit: D({ returned_cents: 95000, deductions: [{ reason: "Carpet cleaning", amount_cents: 25000 }], returned_on: "2026-11-01", settled_at: "2026-11-01T15:00:00Z" }),
-    };
+    });
     renderPanel();
     const st = await screen.findByTestId("deposit-statement");
     expect(st.textContent).toContain("Returned $950.00 of $1,200.00 on Nov 1, 2026.");

@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 837,
-    "files": 208,
-    "rendering": 730,
+    "calls": 848,
+    "files": 210,
+    "rendering": 741,
     "suppressedByPolicy": 107,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 46,
-      "toast.error": 616,
+      "toast": 51,
+      "toast.error": 622,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,9 +18,9 @@
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 402,
-      "template": 95,
-      "dynamic": 386,
+      "literal": 406,
+      "template": 96,
+      "dynamic": 392,
       "jsx": 0
     }
   },
@@ -6335,6 +6335,170 @@
       "renders": true
     },
     {
+      "file": "src/components/rentals/RentPanel.tsx",
+      "line": 78,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Rent schedule saved. Your tenant was told."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentPanel.tsx",
+      "line": 81,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "e instanceof Error && e.message === \"bad_amount\" ? \"Enter amounts like 1200 or 50.\" : rentalsErrorMessage(e)",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Enter amounts like 1200 or 50."
+          },
+          {
+            "form": "dynamic",
+            "text": "rentalsErrorMessage(e)",
+            "from": "src/lib/rentals/copy.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "err.words"
+              },
+              {
+                "form": "dynamic",
+                "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentPanel.tsx",
+      "line": 146,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "side === \"tenant\" ? \"Sent to your landlord to confirm.\" : \"Payment recorded. Your tenant was told.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Sent to your landlord to confirm."
+          },
+          {
+            "form": "literal",
+            "text": "Payment recorded. Your tenant was told."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentPanel.tsx",
+      "line": 149,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "e instanceof Error && e.message === \"bad_amount\" ? \"Enter an amount like 1200.\" : rentalsErrorMessage(e)",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Enter an amount like 1200."
+          },
+          {
+            "form": "dynamic",
+            "text": "rentalsErrorMessage(e)",
+            "from": "src/lib/rentals/copy.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "err.words"
+              },
+              {
+                "form": "dynamic",
+                "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentPanel.tsx",
+      "line": 185,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "received ? \"Marked received. Your tenant was told.\" : \"Your tenant was told why.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Marked received. Your tenant was told."
+          },
+          {
+            "form": "literal",
+            "text": "Your tenant was told why."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentPanel.tsx",
+      "line": 188,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentPanel.tsx",
+      "line": 225,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Waived. It stays on the record, marked waived."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentPanel.tsx",
+      "line": 228,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/rentals/RentalVisitHelpr.tsx",
       "line": 31,
       "kind": "toast.error",
@@ -6357,7 +6521,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 77,
+      "line": 78,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6367,7 +6531,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 80,
+      "line": 81,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6388,7 +6552,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 176,
+      "line": 177,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6409,7 +6573,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 181,
+      "line": 182,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6429,7 +6593,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 184,
+      "line": 185,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6450,7 +6614,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 190,
+      "line": 191,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6471,7 +6635,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 257,
+      "line": 263,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6481,7 +6645,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 257,
+      "line": 263,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6491,7 +6655,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 293,
+      "line": 299,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7728,6 +7892,36 @@
       "title": {
         "form": "dynamic",
         "text": "title"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/rentals/rentReceipt.ts",
+      "line": 25,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save the receipt. Try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/rentals/rentReceipt.ts",
+      "line": 39,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "${fileName} downloaded"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/rentals/rentReceipt.ts",
+      "line": 42,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't download the receipt. Try again."
       },
       "renders": true
     },

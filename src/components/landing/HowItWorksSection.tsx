@@ -7,8 +7,8 @@ import {
 /**
  * How It Works — editorial magazine layout. Title lives in the left
  * column as a masthead; the three numbered steps flow across the right.
- * Steps are visible by default and fade in (120ms stagger) only when the
- * section starts below the fold. No cards, no glass panel, no icons — giant
+ * Steps are always visible; they slide up 16px (120ms stagger) only when
+ * the section starts below the fold. No cards, no glass panel, no icons — giant
  * Bodoni numerals anchor each step. Sits directly on parchment to match
  * the hero's editorial poster feel. Honors prefers-reduced-motion.
  *
@@ -70,8 +70,9 @@ const STEPS: Record<Side, { title: string; desc: string }[]> = {
  * full-page capture showed this section blank because the reveal never
  * fired). "shown" is what renders first, so no JS, no IntersectionObserver,
  * reduced motion, or a section already on screen all keep the steps visible.
- * Only a section that starts BELOW the fold is hidden (before first paint, in
- * a layout effect) and revealed when any part of it scrolls in.
+ * Nothing is ever see-through: a section that starts BELOW the fold only sits
+ * 16px low (set before first paint, in a layout effect) and slides up when any
+ * part of it scrolls in, so print, crawlers and full-page captures read it too.
  */
 type Reveal = "shown" | "waiting" | "revealed";
 
@@ -100,7 +101,7 @@ const HowItWorksSection = () => {
     io.observe(el);
     return () => io.disconnect();
   }, []);
-  const hidden = reveal === "waiting";
+  const lowered = reveal === "waiting";
 
   return (
     <section
@@ -233,10 +234,11 @@ const HowItWorksSection = () => {
                 // blank below three lines of copy.
                 className="h-full flex flex-col text-center rounded-2xl p-5 sm:p-7 lg:p-8"
                 style={{
-                  opacity: hidden ? 0 : 1,
-                  transform: hidden ? "translateY(24px)" : "translateY(0)",
+                  // Never an opacity of 0 (Q2228): the steps are readable in every state.
+                  opacity: 1,
+                  transform: lowered ? "translateY(16px)" : "translateY(0)",
                   // Short and lightly staggered, so a fast scroll never lands on blank cards.
-                  transition: reveal === "revealed" ? `opacity 600ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 120}ms, transform 600ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 120}ms` : undefined,
+                  transition: reveal === "revealed" ? `transform 600ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 120}ms` : undefined,
                   background: "hsl(var(--burnt-sienna) / 0.04)",
                   border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
                   boxShadow: "var(--elev-inset-hairline)",

@@ -59,12 +59,19 @@ CREATE TABLE IF NOT EXISTS public.rental_rent_plans (
   pay_methods text[] NOT NULL DEFAULT '{}'::text[]
     CHECK (pay_methods <@ ARRAY['zelle', 'venmo', 'cashapp', 'cash', 'check', 'money_order']::text[]),
   reminded_for date,
-  -- Louisiana days the sweep skipped this tenancy (a side banned or Homes off), as [{from, to}] periods:
-  -- no late fee for a rent row whose due + grace date fell in one (lead review round 2 #4).
-  skipped jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(skipped) = 'array'),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT rental_rent_plans_monthly_day CHECK (frequency <> 'monthly' OR extract(day FROM first_due_on) <= 28)
+);
+
+-- Louisiana days the sweep skipped a tenancy (a side banned or Homes off), as [{from, to}] periods: no late
+-- fee for a rent row whose due + grace date fell in one (lead review round 2 #4). Server only: it would
+-- reveal the other side's ban or switch-off, so no client reads it and Download My Data leaves it out
+-- (lead review round 3 #1).
+CREATE TABLE IF NOT EXISTS public.rental_rent_sweep_skips (
+  tenancy_id uuid PRIMARY KEY REFERENCES public.rental_tenancies(id) ON DELETE CASCADE,
+  periods jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(periods) = 'array'),
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS public.rental_rent_charges (
@@ -150,6 +157,9 @@ SELECT public.attach_unconfirmed_email_gate();
 ALTER TABLE public.rental_rent_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rental_rent_charges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rental_rent_payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rental_rent_sweep_skips ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.rental_rent_sweep_skips FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.rental_rent_sweep_skips TO service_role;
 REVOKE ALL ON TABLE public.rental_rent_plans FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.rental_rent_plans TO authenticated;
 GRANT ALL ON TABLE public.rental_rent_plans TO service_role;
@@ -315,14 +325,17 @@ BEGIN
     RAISE EXCEPTION 'bad_rent_payment' USING ERRCODE = '22023';
   END IF;
   SELECT * INTO v_t FROM public.rental_tenancies WHERE id = p_tenancy_id;
-  -- A tenant's report is at most what is open now plus one rent (lead review round 2 #3): a made-up
-  -- large report cannot hold off late fees on rows not yet due.
+  -- A tenant's reports still waiting, this one included, total at most what is open now plus one rent
+  -- (lead review rounds 2-3 #3/#2): made-up large reports cannot hold off late fees on rows not yet due.
   IF v_side = 'tenant' AND p_amount_cents >
        GREATEST(0, (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_charges
                      WHERE tenancy_id = p_tenancy_id AND waived_at IS NULL AND due_on <= public.shop_local_today())
                    - (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_payments
                        WHERE tenancy_id = p_tenancy_id AND status = 'confirmed'))
-       + COALESCE((SELECT amount_cents FROM public.rental_rent_plans WHERE tenancy_id = p_tenancy_id), 0) THEN
+       + COALESCE((SELECT amount_cents FROM public.rental_rent_plans WHERE tenancy_id = p_tenancy_id), 0)
+       -- the tenant's own reports still waiting count against the cap too (lead review round 3 #2)
+       - (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_payments
+           WHERE tenancy_id = p_tenancy_id AND status = 'reported' AND reported_by = 'tenant') THEN
     RAISE EXCEPTION 'payment_over_balance' USING ERRCODE = '22023';
   END IF;
   INSERT INTO public.rental_rent_payments (tenancy_id, amount_cents, paid_on, pay_method, reported_by, status, decided_at)
@@ -671,12 +684,14 @@ BEGIN
                      AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
                      AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now())) THEN
       -- Remember the skipped day: extend the last period when it ran to yesterday or today, else start one.
-      UPDATE public.rental_rent_plans
-         SET skipped = CASE
-               WHEN jsonb_array_length(skipped) > 0 AND (skipped -> -1 ->> 'to')::date >= v_today - 1
-                 THEN jsonb_set(skipped, ARRAY[(jsonb_array_length(skipped) - 1)::text, 'to'], to_jsonb(v_today))
-               ELSE skipped || jsonb_build_array(jsonb_build_object('from', v_today, 'to', v_today)) END
-       WHERE tenancy_id = v_plan.tenancy_id;
+      INSERT INTO public.rental_rent_sweep_skips AS k (tenancy_id, periods)
+      VALUES (v_plan.tenancy_id, jsonb_build_array(jsonb_build_object('from', v_today, 'to', v_today)))
+      ON CONFLICT (tenancy_id) DO UPDATE
+        SET periods = CASE
+              WHEN jsonb_array_length(k.periods) > 0 AND (k.periods -> -1 ->> 'to')::date >= v_today - 1
+                THEN jsonb_set(k.periods, ARRAY[(jsonb_array_length(k.periods) - 1)::text, 'to'], to_jsonb(v_today))
+              ELSE k.periods || jsonb_build_array(jsonb_build_object('from', v_today, 'to', v_today)) END,
+            updated_at = now();
       v_skipped := v_skipped + 1;
       CONTINUE;
     END IF;
@@ -701,16 +716,20 @@ BEGIN
          AND NOT EXISTS (SELECT 1 FROM public.rental_rent_charges f WHERE f.rent_charge_id = c.id)
          -- No fee when its due + grace date (or the day after, when the fee would have been written)
          -- fell while the sweep skipped this tenancy.
-         AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_plan.skipped) k
-                          WHERE c.due_on + c.grace_days BETWEEN (k ->> 'from')::date - 1 AND (k ->> 'to')::date)
+         AND NOT EXISTS (SELECT 1 FROM public.rental_rent_sweep_skips ss, jsonb_array_elements(ss.periods) k
+                          WHERE ss.tenancy_id = c.tenancy_id
+                            AND c.due_on + c.grace_days BETWEEN (k ->> 'from')::date - 1 AND (k ->> 'to')::date)
        ORDER BY c.due_on
     LOOP
       SELECT COALESCE(sum(amount_cents), 0) INTO v_through FROM public.rental_rent_charges
        WHERE tenancy_id = v_plan.tenancy_id AND kind = 'rent' AND waived_at IS NULL AND due_on <= v_rent.due_on;
-      -- Confirmed payments paid by the due + grace date.
+      -- Confirmed payments paid by the due + grace date. A payment the TENANT reported counts from the later
+      -- of its paid date and the day it was reported (Louisiana time), so a late report dated back and then
+      -- confirmed never makes a row on time (lead review round 3 #3).
       SELECT COALESCE(sum(amount_cents), 0) INTO v_paid FROM public.rental_rent_payments
        WHERE tenancy_id = v_plan.tenancy_id AND status = 'confirmed'
-         AND paid_on <= v_rent.due_on + v_rent.grace_days;
+         AND CASE WHEN reported_by = 'tenant' THEN GREATEST(paid_on, (created_at AT TIME ZONE 'America/Chicago')::date) ELSE paid_on END
+             <= v_rent.due_on + v_rent.grace_days;
       IF v_paid >= v_through THEN
         -- On time by confirmed payments alone: final (a later correction never adds a fee).
         UPDATE public.rental_rent_charges SET on_time_at = now() WHERE id = v_rent.id;
@@ -719,8 +738,7 @@ BEGIN
       -- Plus the tenant's reports MADE by that date (Louisiana time) and still waiting: on time until declined.
       v_paid := v_paid + (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_payments
                            WHERE tenancy_id = v_plan.tenancy_id AND status = 'reported'
-                             AND paid_on <= v_rent.due_on + v_rent.grace_days
-                             AND (created_at AT TIME ZONE 'America/Chicago')::date <= v_rent.due_on + v_rent.grace_days);
+                             AND GREATEST(paid_on, (created_at AT TIME ZONE 'America/Chicago')::date) <= v_rent.due_on + v_rent.grace_days);
       IF v_paid < v_through THEN
         INSERT INTO public.rental_rent_charges (tenancy_id, kind, due_on, amount_cents, rent_charge_id)
         VALUES (v_plan.tenancy_id, 'late_fee', v_today, v_rent.late_fee_cents, v_rent.id)

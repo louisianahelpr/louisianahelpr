@@ -28,8 +28,8 @@ export const unreadMessages = 4; // 3 (helper) + 1 (poster) unread in prod
 export const posted = {
   counts: { needsYou: 6, upcoming: 7, inProgress: 9, done: 18, cancelled: 307 },
   needsYou: [
-    { title: "Mow and edge a corner lot", category: "yard_work", budget: 95, date: "Sat, Oct 25", city: "Lafayette", note: "1 person applied — pick a helpr" },
-    { title: "Feed and walk two dogs", category: "pet_care", budget: 160, date: "Sat, Oct 25", city: "Lafayette", note: "1 person applied — pick a helpr" },
+    { title: "Mow and edge a corner lot", category: "yard_work", budget: 95, date: "Sun, Oct 25", city: "Lafayette", note: "1 person applied — pick a helpr" },
+    { title: "Feed and walk two dogs", category: "pet_care", budget: 160, date: "Sun, Oct 25", city: "Lafayette", note: "1 person applied — pick a helpr" },
     { title: "Handyman fixture job", category: "handyman", budget: 25, date: "Fri, Nov 13", city: "Baton Rouge", note: "Dispute open — add your side" },
   ] as MockJob[],
   upcoming: [
@@ -64,8 +64,8 @@ export const declutter = {
   selling: [
     { title: "Rocking chair", price: 38, was: 40, area: "Downtown, Baton Rouge", status: "Live", note: "Price dropped to $38" },
     { title: "Rocking chair (2nd)", price: 38, was: 40, area: "Downtown, Baton Rouge", status: "Live", note: "Price dropped to $38" },
-    { title: "Side table", price: 40, area: "Downtown, Baton Rouge", status: "In review", note: "We're checking it — usually within a day" },
-    { title: "Side table (2nd)", price: 40, area: "Downtown, Baton Rouge", status: "In review", note: "We're checking it — usually within a day" },
+    { title: "Side table", price: 40, area: "Downtown, Baton Rouge", status: "In review", note: "Being checked — about a day" },
+    { title: "Side table (2nd)", price: 40, area: "Downtown, Baton Rouge", status: "In review", note: "Being checked — about a day" },
   ],
   counts: { buying: 0, offers: 0, selling: 4, live: 2, review: 2, wanted: 0, deliver: 0 },
   nearby: [
@@ -97,7 +97,7 @@ export const shopSample = {
 export const homesSample = {
   landlord: {
     repairs: [
-      { property_label: "Oak St duplex", unit_label: "Unit B", category: "Plumbing", description: "Kitchen sink leaking under the cabinet", urgency: "urgent", status: "open", age: "2 h ago" },
+      { property_label: "Oak St duplex", unit_label: "Unit B", category: "Plumbing", description: "Kitchen sink leaking", urgency: "urgent", status: "open", age: "2 h ago" },
       { property_label: "Elm cottage", unit_label: "", category: "Appliance", description: "Dryer not heating", urgency: "normal", status: "visit_proposed", age: "Visit Thu 10 AM" },
     ],
     properties: [

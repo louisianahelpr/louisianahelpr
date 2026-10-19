@@ -313,6 +313,27 @@ await svc(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${T
 ok(Array.isArray(await bankPay(LANDLORD, tA, false, "landlord")) && one(await svc(`SELECT enabled FROM public.rental_rent_autopay WHERE tenancy_id = '${tA}'`)) === false,
   "the landlord turning bank pay off turns autopay off");
 
+// --- Download My Data (20261019105226): the two bank sections, their real text, run for each person
+{
+  const EXP = readFileSync(`${MIG_DIR}20261019105226_export_my_data_bank_rent.sql`, "utf8");
+  const a0 = EXP.indexOf("  -- Homes bank rent (20261019103751): the bank payments");
+  const a1 = EXP.indexOf("  RETURN v_out;", a0);
+  ok(a0 > 0 && a1 > a0, "setup: the export's bank sections found");
+  await svc(`CREATE OR REPLACE FUNCTION public.export_bank_probe(p_user_id uuid) RETURNS jsonb LANGUAGE plpgsql AS $probe$
+DECLARE v_uid uuid := p_user_id; v_out jsonb := '{}'::jsonb;
+BEGIN
+${EXP.slice(a0, a1)}  RETURN v_out;
+END $probe$`);
+  const ex = async (u) => one(await svc(`SELECT public.export_bank_probe('${u}')`));
+  const eT = await ex(TENANT), eL = await ex(LANDLORD), eS = await ex(STRANGER);
+  ok(eT?.rental_rent_bank_payments?.length >= 2 && eT.rental_rent_autopay?.[0]?.bank_label === "Test Bank 6789"
+    && !JSON.stringify(eT.rental_rent_autopay).includes("pm_1") && !JSON.stringify(eT.rental_rent_autopay).includes("cus_1"),
+    "export: the tenant gets the bank payments and their autopay (the bank's label, never the Stripe ids)");
+  ok(eL?.rental_rent_bank_payments?.length > eT.rental_rent_bank_payments.length && eL.rental_rent_autopay?.[0] && !("bank_label" in eL.rental_rent_autopay[0]),
+    "export: the landlord gets the bank payments and only whether autopay is on");
+  ok(eS?.rental_rent_bank_payments?.length === 0 && eS.rental_rent_autopay?.length === 0, "export: a stranger gets none");
+}
+
 // --- gates
 await bankPay(LANDLORD, tA, true, "landlord");
 await svc(`UPDATE public.profiles SET stripe_payouts_enabled = false WHERE user_id = '${LANDLORD}'`);

@@ -191,6 +191,9 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   rental_rent_charges: { by: [] },
   rental_rent_payments: { by: [] },
   rental_deposits: { by: [] },
+  // Homes bank rent (20261019105226): keyed by tenancy; the autopay section is the tenant's own, without Stripe ids.
+  rental_rent_bank_payments: { by: [] },
+  rental_rent_autopay: { by: [] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },

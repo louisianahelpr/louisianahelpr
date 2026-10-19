@@ -289,7 +289,7 @@ const AuthShell = ({
             <div className="flex items-center gap-2 mb-[var(--shell-gap)] sm:mb-4">
               {!hideBack && <div className="shrink-0">{backLink}</div>}
               <h1
-                className="flex-1 min-w-0 font-display italic font-bold text-headline-hero leading-tight truncate"
+                className="flex-1 min-w-0 font-display font-bold text-headline-hero leading-tight truncate"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
               >
                 {title}
@@ -301,7 +301,7 @@ const AuthShell = ({
             <div className="text-center mb-7">
               <Link to="/" className="inline-flex items-baseline gap-1">
                 <span
-                  className="font-display italic font-bold leading-none text-ds-32"
+                  className="font-display font-bold leading-none text-ds-32"
                   style={{
                     color: "hsl(var(--olivewood))",
                     letterSpacing: "-0.02em",
@@ -310,7 +310,7 @@ const AuthShell = ({
                   Helpr
                 </span>
                 <span
-                  className="font-display italic font-bold leading-none text-ds-22"
+                  className="font-display font-bold leading-none text-ds-22"
                   style={{
                     // --accent-ink, matching HelprMark's own "· LA" — see the
                     // comment there. Byte-identical in light, lifted in dark,

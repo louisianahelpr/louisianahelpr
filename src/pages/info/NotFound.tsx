@@ -78,7 +78,7 @@ const NotFound = () => {
             {/* mt-3: the gap the hidden eyebrow span used to give it as a
                 space-y-3 sibling (Q1129), kept so nothing moves. */}
             <h1
-              className="font-display italic font-bold leading-none mt-3"
+              className="font-display font-bold leading-none mt-3"
               style={{
                 fontSize: "clamp(4rem, 10vw + 1rem, 7rem)",
                 color: "hsl(var(--ink-deep))",

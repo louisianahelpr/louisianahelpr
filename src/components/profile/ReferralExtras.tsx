@@ -78,7 +78,7 @@ export function ReferralExtras({ referralCount, earnedFromReferrals }: ReferralE
                 every style class is unchanged, so nothing shifts on screen
                 (`text-ds-16` sets the size, not the browser's h-default). */}
             <h2
-              className="font-display italic font-bold leading-tight text-ds-16"
+              className="font-display font-bold leading-tight text-ds-16"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Your referral rank

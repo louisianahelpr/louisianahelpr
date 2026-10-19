@@ -123,7 +123,7 @@ export function PersonTile({
             {(reviewCount ?? 0) > 0 && (
               <span className="flex items-center gap-0.5 text-ds-11 shrink-0">
                 <Star className="w-3.5 h-3.5 fill-accent text-accent" />
-                <span className="font-display italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                <span className="font-display font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                   {rating?.toFixed(1)}
                 </span>
                 <span className="font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

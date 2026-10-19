@@ -18,9 +18,9 @@
  * that paint the name in search mode and for decorative skeleton titles) are
  * held to the same rule.
  *
- * @mutate src/components/auth/AuthShell.tsx | font-display italic font-bold text-headline-hero leading-tight truncate | font-display italic font-bold text-ds-24 leading-tight truncate
+ * @mutate src/components/auth/AuthShell.tsx | font-display font-bold text-headline-hero leading-tight truncate | font-display font-bold text-ds-24 leading-tight truncate
  * @mutate src/components/admin/AdminSectionHeader.tsx | leading-tight truncate text-headline-hero | leading-tight truncate text-ds-20
- * @mutate src/pages/auth/CompleteProfile.tsx | font-display italic font-bold text-headline-hero leading-tight mt-2 | font-display italic font-bold leading-tight mt-2
+ * @mutate src/pages/auth/CompleteProfile.tsx | font-display font-bold text-headline-hero leading-tight mt-2 | font-display font-bold leading-tight mt-2
  * @mutate src/components/ui/ScreenHeaderRow.tsx | text-foreground text-headline-hero leading-none shrink-0 | text-foreground text-ds-20 leading-none shrink-0
  * @mutate src/components/dashboard/DashboardBlockedScreen.tsx | <h1 className="text-page-title text-foreground"> | <h1 className="text-page-title text-foreground text-ds-24">
  */

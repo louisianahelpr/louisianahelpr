@@ -544,7 +544,7 @@ const CompleteProfile = () => {
           <div className="text-center mb-7">
             <h1
               // One page-title size everywhere (Q236(e)): text-headline-hero.
-              className="font-display italic font-bold text-headline-hero leading-tight mt-2"
+              className="font-display font-bold text-headline-hero leading-tight mt-2"
               style={{
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.025em",

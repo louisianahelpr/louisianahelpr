@@ -27,7 +27,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         // landed on top of the trigger above it.
         month: "space-y-4 relative",
         month_caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "flex items-center gap-1 font-display italic font-bold text-ds-15 tracking-tight text-[hsl(var(--ink-deep))]",
+        caption_label: "flex items-center gap-1 font-display font-bold text-ds-15 tracking-tight text-[hsl(var(--ink-deep))]",
         // captionLayout="dropdown": the native <select> sits transparently on
         // top of the styled label (which shows the value + a caret), so taps
         // open the OS picker while the calendar keeps its own typography.

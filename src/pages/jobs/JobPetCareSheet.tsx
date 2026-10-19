@@ -127,7 +127,7 @@ export function JobPetCareSheet({ jobId }: { jobId: string }) {
             )}
             <div className="min-w-0 flex-1 space-y-1.5">
               <p
-                className="font-display italic font-bold leading-tight text-ds-15"
+                className="font-display font-bold leading-tight text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
               >
                 {p.name}

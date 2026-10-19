@@ -141,7 +141,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             {isSubscriber ? (
               <>
                 <p
-                  className="font-display italic font-bold leading-none text-ds-28"
+                  className="font-display font-bold leading-none text-ds-28"
                   style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
                 >
                   Free boost.

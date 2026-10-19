@@ -749,7 +749,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
               <Button
                 onClick={handleDonate}
                 disabled={!canDonate || donateMutation.isPending}
-                className="w-full font-display italic font-semibold"
+                className="w-full font-display font-semibold"
               >
                 <Gift aria-hidden />
                 {donateMutation.isPending ? "Starting Checkout…" : "Continue to Checkout"}

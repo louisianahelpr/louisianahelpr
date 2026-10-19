@@ -575,7 +575,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-display italic font-bold leading-tight tracking-tight", className)}
+    className={cn("text-lg font-display font-bold leading-tight tracking-tight", className)}
     {...props}
   />
 ));
@@ -644,7 +644,7 @@ const DialogHero = ({ title }: {
     <DialogTitle
       // TIGHTENED (owner, 2026-08-29): was `pt-2`, matched to AlertDialogHero
       // — see the note there. Change one, change both.
-      className="font-display italic font-bold leading-tight [overflow-wrap:anywhere]"
+      className="font-display font-bold leading-tight [overflow-wrap:anywhere]"
       style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
     >
       {title}

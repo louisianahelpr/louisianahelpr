@@ -49,7 +49,7 @@ export function WalletCard({
             <Wallet className="w-4 h-4 text-primary" />
           </div>
           <div className="flex items-center gap-2">
-            <h2 className="font-display italic font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
+            <h2 className="font-display font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
               Wallet
             </h2>
             <span className="text-ds-9 font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary" style={{ letterSpacing: "0.05em" }}>LIVE</span>

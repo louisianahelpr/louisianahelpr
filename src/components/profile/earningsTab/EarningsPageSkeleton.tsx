@@ -139,7 +139,7 @@ export function EarningsPayoutSetupSkeleton() {
             <div className="flex items-start gap-3">
               <Skeleton className="w-5 h-5 shrink-0 mt-0.5 rounded-full" />
               <div>
-                <GhostLine className="font-display italic font-bold leading-tight text-ds-16" style={{ letterSpacing: "-0.015em" }}>
+                <GhostLine className="font-display font-bold leading-tight text-ds-16" style={{ letterSpacing: "-0.015em" }}>
                   Connect to start earning
                 </GhostLine>
                 <GhostLine className="font-sans mt-1 text-ds-13">

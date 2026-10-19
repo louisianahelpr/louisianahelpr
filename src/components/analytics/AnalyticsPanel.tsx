@@ -33,7 +33,7 @@ export function AnalyticsPanel({ title, caption, actions, children }: AnalyticsP
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <h2
-            className="font-display italic font-bold leading-tight text-headline-section"
+            className="font-display font-bold leading-tight text-headline-section"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
           >
             {title}

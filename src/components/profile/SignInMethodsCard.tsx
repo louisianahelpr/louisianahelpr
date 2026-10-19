@@ -100,7 +100,7 @@ export function SignInMethodsCard() {
           <KeyRound className="w-4 h-4 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+          <h2 className="font-display font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
             Sign-in methods
           </h2>
           <p className="text-ds-11 font-sans mt-0.5" style={{ color: isError ? "hsl(var(--destructive))" : "hsl(var(--olivewood) / 0.8)" }}>

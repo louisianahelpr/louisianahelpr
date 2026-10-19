@@ -145,7 +145,7 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
     <section className="space-y-3">
       <div>
         <h2
-          className="font-display italic font-bold leading-tight text-headline-section"
+          className="font-display font-bold leading-tight text-headline-section"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
         >
           Where your money comes from

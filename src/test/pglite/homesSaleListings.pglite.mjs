@@ -218,7 +218,8 @@ const kindRow = rows(await svc(`SELECT kind, unit_id, rent_cents, sale_price_cen
 ok(kindRow?.kind === "sale" && kindRow.unit_id === null && kindRow.rent_cents === null && Number(kindRow.sale_price_cents) === 24500000,
   "a sale listing is the whole property with a price (kind sale, no unit, no rent)");
 ok(refused(await save(LANDLORD, null, prop), /property_already_listed/, "22023"), "one open sale listing per property");
-ok(refused(await status(LANDLORD, draft, "live"), /wording_flagged/, "22023"), "a flagged sale listing cannot go live");
+const flaggedPublish = await status(LANDLORD, draft, "live");
+ok(refused(flaggedPublish, /sale_wording_flagged/, "22023"), `a flagged sale listing cannot go live, in the SALE copy (${JSON.stringify(flaggedPublish).slice(0, 80)})`);
 ok(typeof one(await save(LANDLORD, draft, null)) === "string", "the owner rewrites it");
 ok(one(await svc(`SELECT cardinality(wording_flags) FROM public.rental_listings WHERE id = '${draft}'`)) === 0, "the rewrite clears the flags");
 ok(refused(await save(STRANGER, draft, null), /listing_not_found/, "P0002"), "a stranger cannot edit it (P0002)");
@@ -236,11 +237,15 @@ await svc(`UPDATE public.platform_settings SET homes_sale_listing_fee_cents = 49
 ok(refused(await status(LANDLORD, draft, "live"), /listing_fee_not_ready/, "22023"), "FEE GATE: a fee above 0 refuses the publish (never shown unpaid)");
 ok(one(await svc(`SELECT status FROM public.rental_listings WHERE id = '${draft}'`)) === "draft", "and the listing stays a draft");
 ok(refused(await svc(`UPDATE public.platform_settings SET homes_sale_listing_fee_cents = -1`), /check|violates/), "the fee is never negative");
+const settingsRow = rows(await svc(`SELECT * FROM public.platform_settings`))[0];
+await svc(`DELETE FROM public.platform_settings`);
+ok(refused(await status(LANDLORD, draft, "live"), /listing_fee_not_ready/, "22023"), "FEE GATE fails closed: no settings row refuses the publish");
+await svc(`INSERT INTO public.platform_settings (id, onboarding_fee_cents) VALUES ('${settingsRow.id}', ${settingsRow.onboarding_fee_cents})`);
 await svc(`UPDATE public.platform_settings SET homes_sale_listing_fee_cents = 0`);
 ok(one(await svc(`SELECT column_default FROM information_schema.columns WHERE table_name = 'platform_settings' AND column_name = 'homes_sale_listing_fee_cents'`)) === "0",
   "the fee defaults to 0 (off until the owner sets it)");
 ok(Array.isArray(await status(LANDLORD, draft, "live")), "fee 0: the owner publishes it, nothing charged");
-ok(refused(await save(LANDLORD, draft, null, { description: "Make an offer!" }), /wording_flagged/, "22023"), "a live listing cannot be edited into haggling words");
+ok(refused(await save(LANDLORD, draft, null, { description: "Make an offer!" }), /sale_wording_flagged/, "22023"), "a live listing cannot be edited into haggling words (sale copy)");
 
 // --- reads: Buy shows sale only, Rent shows rent only
 const rentDraft = one(await as("authenticated", LANDLORD, `SELECT public.rentals_save_listing(NULL, '${unit}', '${JSON.stringify({
@@ -264,6 +269,16 @@ ok(page?.kind === "sale" && Number(page.sale_price_cents) === 24500000 && page.y
   && !JSON.stringify(page).includes("123 Oak"), "the listing page carries kind, price, year built and lot size, no street");
 ok(rows(await as("authenticated", TENANT, `SELECT * FROM public.rentals_listing('${rentDraft}')`))[0]?.kind === "rent", "and a rent page says rent");
 
+// --- a live sale listing hides when its owner is no longer ID-verified, or once a fee is set (review fix #2)
+await svc(`UPDATE public.profiles SET idv_status = NULL, stripe_identity_verified = false WHERE user_id = '${LANDLORD}'`);
+ok(empty(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_sale_listings()`)), "VERIFIED OWNER stays true: revoked ID hides the live sale listing");
+ok(rows(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_listings()`)).length === 1, "(the rent listing is unaffected by the sale-only rule)");
+await svc(`UPDATE public.profiles SET idv_status = 'verified' WHERE user_id = '${LANDLORD}'`);
+await svc(`UPDATE public.platform_settings SET homes_sale_listing_fee_cents = 4900`);
+ok(empty(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_sale_listings()`)), "a fee raised later hides live sale listings (no unpaid listing shows)");
+await svc(`UPDATE public.platform_settings SET homes_sale_listing_fee_cents = 0`);
+ok(rows(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_sale_listings()`)).length === 1, "fee back to 0, ID back: it shows again");
+
 // --- endings: sold is sale's, leased is rent's; a sold listing stays sold
 ok(refused(await status(LANDLORD, draft, "leased"), /bad_status/, "22023"), "a sale listing cannot be marked rented");
 ok(refused(await status(LANDLORD, rentDraft, "sold"), /bad_status/, "22023"), "a rent listing cannot be marked sold");
@@ -271,6 +286,13 @@ ok(Array.isArray(await status(LANDLORD, draft, "sold")), "the owner marks it sol
 ok(empty(await as("authenticated", TENANT, `SELECT * FROM public.rentals_browse_sale_listings()`)), "a sold listing leaves the browse");
 ok(refused(await status(LANDLORD, draft, "live"), /bad_status/, "22023"), "a sold listing cannot be shown again");
 ok(refused(await save(LANDLORD, draft, null), /listing_not_editable/, "22023"), "a sold listing cannot be edited");
+const soldPath = `${LANDLORD}/rental-listings/${draft}/late.jpg`;
+await putObj(soldPath);
+ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_add_listing_photo('${draft}', '${soldPath}')`), /listing_not_editable/, "22023"), "a sold listing takes no new photos");
+const soldPhoto = one(await svc(`SELECT id FROM public.rental_listing_photos WHERE listing_id = '${draft}' LIMIT 1`));
+ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_remove_listing_photo('${soldPhoto}')`), /listing_not_editable/, "22023"), "and loses none");
+ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_save_listing('${draft}', NULL, '${JSON.stringify({ headline: "x x x x x", rent_cents: 100000, beds: 1, baths: 1, available_on: "2026-11-01" })}'::jsonb)`), /listing_not_found/, "P0002"),
+  "the RENT editor refuses a sale listing cleanly (listing_not_found, not ownership_not_approved)");
 ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_save_sale_listing('${rentDraft}', NULL, '${S()}'::jsonb)`), /listing_not_found/, "P0002"),
   "the sale editor cannot rewrite a rent listing");
 ok(typeof one(await save(LANDLORD, null, prop)) === "string", "after a sale, the property can be listed again (a new listing)");
@@ -280,6 +302,9 @@ const fl = async (t) => one(await svc(`SELECT public.homes_sale_wording_flags('$
 ok((await fl("Updated kitchen, walk to the park. Price is firm.")).length === 0, "wording: plain facts and a firm price pass");
 ok((await fl("Make me an offer")).includes("make an offer"), "wording: 'make me an offer' is flagged");
 ok((await fl("Will haggle")).includes("negotiable"), "wording: 'haggle' is flagged");
+for (const firm of ["Price is non-negotiable.", "Price is not negotiable.", "No haggling please.", "Price is firm.", "Non negotiable price"]) {
+  ok((await fl(firm)).length === 0, `wording: a firm price passes ("${firm}")`);
+}
 ok(refused(await as("authenticated", LANDLORD, `SELECT public.homes_sale_wording_flags('x')`), /permission denied/), "the sale wording helper is server-only");
 
 // --- grants

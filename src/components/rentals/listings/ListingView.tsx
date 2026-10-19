@@ -104,8 +104,6 @@ function Gallery({ paths }: { paths: string[] }) {
   );
 }
 
-const dollars = (cents: number) => (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-
 /**
  * /rentals/listings/:id (Homes -> Rent, RL1a): the listing page. Photos,
  * rent, facts, where (city + ZIP only, Q12). The owner sees its status and
@@ -173,7 +171,7 @@ export default function ListingView() {
         ) : (
         <RentalsCard title="Details">
           <dl className="divide-y divide-border">
-            <Fact label="Deposit" value={l.deposit_cents == null ? "Ask the owner" : dollars(l.deposit_cents)} />
+            <Fact label="Deposit" value={l.deposit_cents == null ? "Ask the owner" : priceLine(l.deposit_cents)} />
             <Fact label="Lease" value={lease} />
             <Fact label="Pets" value={PETS_LABEL[l.pets] ?? l.pets} />
             <Fact label="Parking" value={PARKING_LABEL[l.parking] ?? l.parking} />

@@ -1,21 +1,15 @@
 import { useEffect, useState } from "react";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
-import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  Home,
-  Briefcase,
-  ClipboardList,
-  MessageSquare,
   User,
-  Plus,
   ShieldAlert,
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
 import { useSectionTabs, comingSoonLabel, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
-import { POST_FAB_STYLE } from "@/components/mobileNav/postFabStyle";
+import { dockItems, type DockItem } from "@/components/mobileNav/dockItems";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { useAdminBadges } from "@/components/admin/adminBadgeStore";
@@ -24,8 +18,6 @@ import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
-import { useAgeGate } from "@/hooks/useAgeGate";
-import { AgeGateNote } from "@/components/AgeGateNote";
 
 /**
  * DesktopSidebarNav — the persistent RIGHT-rail navigation shown ONLY on the
@@ -41,26 +33,12 @@ import { AgeGateNote } from "@/components/AgeGateNote";
  * `web-desktop` class, so the rail can never appear in the native app:
  *   !isNativePlatform && matchMedia('(min-width: 900px)')
  *
- * This is intentionally a first-pass desktop chrome: brand wordmark, the five
- * primary destinations (Home / Posts / Jobs / Messages / Profile) plus the
- * post-task action. It reuses the same badge sources MobileNav uses so the
+ * The destinations are the dock's own list (Home, the member's sections,
+ * Messages) plus Profile (Q2220). It reuses the same badge sources MobileNav uses so the
  * unread/activity counts stay consistent across the two navs.
  */
 
-const NAV_ITEMS: Array<{
-  path: string;
-  icon: LucideIcon;
-  label: string;
-  badgeKey?: "messages" | "posts" | "jobs";
-}> = [
-  { path: "/home", icon: Home, label: "Home" },
-  // The dock's own Posts and Jobs icons (mobileNavHelpers leftItems /
-  // rightItems), so one destination wears one icon on every surface.
-  { path: "/posts", icon: ClipboardList, label: "Posts", badgeKey: "posts" },
-  { path: "/jobs", icon: Briefcase, label: "Jobs", badgeKey: "jobs" },
-  { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" },
-  { path: "/profile", icon: User, label: "Profile" },
-];
+const PROFILE_ITEM = { path: "/profile", icon: User, label: "Profile" };
 
 /**
  * Admin — the SAME five destinations for everyone, plus one expandable group
@@ -111,8 +89,6 @@ const DesktopSidebarRail = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAdmin } = useCurrentUser();
-  // Q1586(c): a saved birthday under 18 greys Post a Job out, with the line under it.
-  const { underAge, gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   // Declutter (docs/specs/declutter-auctions.md row 1: its own tab) joins the
   // destinations after Messages only while the hidden switch is on for this
   // member; for everyone else the panel is unchanged.
@@ -121,16 +97,15 @@ const DesktopSidebarRail = () => {
   // the dock's section tabs, read from the same hook so the two cannot drift.
   const sectionTabs = useSectionTabs();
   // Customize (owner, 2026-10-19): a section the member hid leaves the rail too.
-  const { prefs: sectionPrefs } = useSectionPrefs();
-  const hiddenPaths = new Set(sectionPrefs.hidden.map((k) => SECTIONS.find((d) => d.key === k)!.path));
-  // No Quotes destination: the /quotes hub retired (owner 2026-10-19); quotes
-  // live in Post a Job, Jobs, My Jobs and Posts (src/lib/quotes/homes.ts).
-  const navItems = [
-    ...NAV_ITEMS.slice(0, 4),
-    // A section switched off for this viewer is listed GREYED and says
-    // "coming soon" instead of navigating (owner, 2026-10-18).
-    ...sectionTabs.filter((t) => !hiddenPaths.has(t.path)).map(({ path, icon, label, on }) => ({ path, icon, label, comingSoon: !on })),
-    ...NAV_ITEMS.slice(4),
+  const { visible: visibleSections } = useSectionPrefs();
+  // ONE PLACE FOR EACH THING (Q2220, dashboards build run 4): the rail is the
+  // dock's own list (Home, the member's shown sections in their order, with
+  // Posts living inside Jobs, then Messages) plus Profile. No separate Posts row
+  // and no "Post a Job" button: Jobs' "+" is in its top bar. A section switched
+  // off for this viewer is listed greyed and says "coming soon".
+  const navItems: Array<{ path: string; icon: LucideIcon; label: string; badgeKey?: DockItem["badgeKey"]; comingSoon?: boolean }> = [
+    ...dockItems(sectionTabs, visibleSections),
+    PROFILE_ITEM,
   ];
   // Admin's own sections, collapsed by default so an admin's panel is the same
   // shape as everyone else's until they open it. Auto-opens while you are
@@ -173,14 +148,16 @@ const DesktopSidebarRail = () => {
   // stays at 60fps and nothing reflows while it moves — which is the other half
   // of "smoother". `aria-hidden` and `inert` keep it out of reach mid-flight.
 
-  const badgeFor = (key?: "messages" | "posts" | "jobs") => {
+  const badgeFor = (key?: DockItem["badgeKey"]) => {
     if (key === "messages") return unreadCount;
     if (key === "posts") return postsCount;
     if (key === "jobs") return jobsCount;
+    if (key === "jobsAndPosts") return postsCount + jobsCount;
     return 0;
   };
 
-  const isActive = (path: string) => location.pathname === path;
+  // Jobs is active on /jobs and on /posts (which forwards to Jobs > Posted).
+  const isActive = (path: string) => location.pathname === path || (path === "/jobs" && location.pathname === "/posts");
 
   return (
     <nav
@@ -241,27 +218,6 @@ const DesktopSidebarRail = () => {
           at the top rather than a full header-height spacer. */}
       <div className="h-3 shrink-0" aria-hidden="true" />
 
-
-      {/* Post a Job leads the panel, above Home (owner). It is the one thing
-          this rail exists to make one click away — the destinations below are
-          places you can also reach from the bottom of the app. */}
-      <div className="px-4 pt-1 pb-2">
-        <button
-          onClick={ageGate("post", () => navigate("/post-job"))}
-          {...ageGatedProps("post")}
-          onMouseEnter={() => prefetchRoute("/post-job")}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-sans font-semibold text-ds-15 transition-transform active:scale-[0.98]"
-          style={{
-            // Nearly flat (owner, 2026-10-18, option 3B): the dock FAB's
-            // surface, solid olive with one small soft shadow.
-            ...POST_FAB_STYLE,
-          }}
-        >
-          <Plus className="h-5 w-5" strokeWidth={2.5} />
-          Post a Job
-        </button>
-        {underAge && <AgeGateNote kind="post" className="pt-1.5 text-center" />}
-      </div>
 
       {/* Destinations */}
       {/* SCROLLS. The panel had no overflow handling at all, which was fine

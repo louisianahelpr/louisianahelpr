@@ -68,6 +68,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
   fetchMyItems: async () => state.mine,
   fetchPhotos: async () => state.photos,
+  fetchSellerRatings: async () => new Map(),
   fetchQuestions: async () => state.questions,
   fetchSellerRating: async () => ({ avg: 4.8, count: 12 }),
   fetchWatching: async () => new Set(),

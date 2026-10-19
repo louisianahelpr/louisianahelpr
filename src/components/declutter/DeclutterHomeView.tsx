@@ -20,11 +20,12 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeatureStatus } from "@/hooks/useFeature";
-import { ChevronRight, Truck } from "lucide-react";
+import { ChevronRight, Star, Truck } from "lucide-react";
 import {
   fetchLiveItems,
   fetchMyItems,
   fetchPhotos,
+  fetchSellerRatings,
   photoPublicUrl,
   withdrawItem,
   type DeclutterItem,
@@ -32,7 +33,7 @@ import {
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, milesLabel, nearestFirst } from "@/lib/declutter/distance";
-import { ConditionStars, DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
+import { DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
 import { BuyingDash, SellingDash } from "./DeclutterMineViews";
@@ -71,8 +72,14 @@ function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
   return out;
 }
 
-function ItemCard({ item, photoPath, miles, approximate }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean }) {
+/**
+ * A Browse card, photo first (Marketplace / OfferUp): title up to two lines,
+ * the price big, the place on one line, and the seller's stars only when the
+ * seller has reviews (the item's condition is on its own page).
+ */
+function ItemCard({ item, photoPath, miles, approximate, rating }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; rating?: { avg: number; count: number } }) {
   const away = milesLabel(miles, approximate);
+  const reviewed = rating && rating.count > 0 ? rating : null;
   return (
     <Link
       to={`/declutter/item/${item.id}`}
@@ -84,18 +91,31 @@ function ItemCard({ item, photoPath, miles, approximate }: { item: DeclutterItem
         ) : null}
       </div>
       <div className="p-3 space-y-1 min-w-0">
-        <p className="font-semibold text-sm truncate" title={item.title}>{item.title}</p>
-        <p className="text-base font-bold">
-          {formatPrice(item.current_price_cents)}
-          {item.current_price_cents < item.price_cents && (
-            <span className="ml-1.5 text-xs font-medium text-muted-foreground">
-              <span className="sr-only">Price dropped, was </span>
-              <s aria-hidden>{formatPrice(item.price_cents)}</s>
+        {/* Two lines reserved, so every card in a row is one height. */}
+        <p data-card-title className="font-semibold text-sm leading-snug line-clamp-2 min-h-[2.75em] break-words" title={item.title}>{item.title}</p>
+        <div className="flex items-baseline justify-between gap-2 min-w-0">
+          <p data-card-price className="text-lg font-bold leading-tight tabular-nums truncate">
+            {formatPrice(item.current_price_cents)}
+            {item.current_price_cents < item.price_cents && (
+              <span className="ml-1.5 text-xs font-medium text-muted-foreground">
+                <span className="sr-only">Price dropped, was </span>
+                <s aria-hidden>{formatPrice(item.price_cents)}</s>
+              </span>
+            )}
+          </p>
+          {reviewed && (
+            <span
+              data-card-rating
+              role="img"
+              aria-label={`Seller rated ${reviewed.avg.toFixed(1)} of 5 from ${reviewed.count} review${reviewed.count === 1 ? "" : "s"}`}
+              className="shrink-0 inline-flex items-center gap-0.5 text-xs text-muted-foreground"
+            >
+              <Star className="w-3 h-3 text-amber-500" fill="currentColor" aria-hidden />
+              <span aria-hidden>{reviewed.avg.toFixed(1)}</span>
             </span>
           )}
-        </p>
-        <ConditionStars stars={item.condition_stars} showLabel={false} />
-        <p className="text-xs text-muted-foreground truncate" title={`${item.area_label}${away ? ` · ${away}` : ""}`}>
+        </div>
+        <p data-card-place className="text-xs text-muted-foreground truncate" title={`${item.area_label}${away ? ` · ${away}` : ""}`}>
           {item.area_label}
           {away ? ` · ${away}` : ""}
         </p>
@@ -143,6 +163,14 @@ function BrowseView({ userId }: { userId: string }) {
     enabled: others.length > 0,
   });
   const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);
+  const sellers = useMemo(() => [...new Set(others.map((i) => i.seller_id))].sort(), [others]);
+  // Stars on a card only when its seller has reviews. Runs beside the photos
+  // query and joins the one loading gate, so the cards still paint once.
+  const ratings = useQuery({
+    queryKey: ["declutter", "seller-ratings", sellers.join(",")],
+    queryFn: () => fetchSellerRatings(sellers),
+    enabled: sellers.length > 0,
+  });
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
   const rows = nearestFirst(others, from, from ? maxMiles : null).filter(({ item }) => !q || item.title.toLowerCase().includes(q));
@@ -150,7 +178,7 @@ function BrowseView({ userId }: { userId: string }) {
   // paint instead of the list first and its photos in a second wave
   // (oneLoadingGatePerScreen.test.ts). The photos query is disabled (never
   // loading) when there is nothing to show.
-  const listLoading = items.isLoading || photos.isLoading || origin.status === "pending";
+  const listLoading = items.isLoading || photos.isLoading || ratings.isLoading || origin.status === "pending";
 
   if (items.isError) {
     return <ErrorState variant="inline" title="We couldn't load items." body={declutterErrorMessage(items.error)} onRetry={() => void items.refetch()} />;
@@ -177,7 +205,7 @@ function BrowseView({ userId }: { userId: string }) {
         <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {rows.map(({ item, miles }) => (
             <li key={item.id} className="min-w-0">
-              <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate} />
+              <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate} rating={ratings.data?.get(item.seller_id)} />
             </li>
           ))}
         </ul>

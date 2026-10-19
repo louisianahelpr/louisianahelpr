@@ -1,5 +1,7 @@
 export type Kind = "payment_intent" | "transfer" | "refund";
-export const DB_ID_COLUMNS: Record<Kind, { table: string; column: string }[]>;
+export const DB_ID_COLUMNS: Record<Kind, { table: string; column: string; orderBy?: string }[]>;
+export const ID_PREFIX: Record<Kind, RegExp>;
+export function collectDbIds(kind: Kind, valuesByColumn: Record<string, unknown[]>): { ids: Set<string>; rejected: string[] };
 export const NOT_MATCHED: Record<string, string>;
 export const CANDIDATE_COLUMN: RegExp;
 export const STRIPE_LISTS: Record<Kind, string>;

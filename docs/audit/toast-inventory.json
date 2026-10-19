@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 832,
-    "files": 205,
-    "rendering": 728,
-    "suppressedByPolicy": 104,
+    "calls": 836,
+    "files": 208,
+    "rendering": 731,
+    "suppressedByPolicy": 105,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 46,
-      "toast.error": 614,
+      "toast": 48,
+      "toast.error": 615,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 108,
+      "toast.success": 109,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 399,
-      "template": 95,
-      "dynamic": 384,
+      "literal": 402,
+      "template": 96,
+      "dynamic": 385,
       "jsx": 0
     }
   },
@@ -4237,7 +4237,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 257,
+      "line": 235,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4257,7 +4257,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 260,
+      "line": 238,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4267,7 +4267,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 265,
+      "line": 243,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4277,7 +4277,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 270,
+      "line": 248,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4287,7 +4287,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 273,
+      "line": 251,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4867,11 +4867,11 @@
     },
     {
       "file": "src/components/job-card/JobListPage.tsx",
-      "line": 337,
+      "line": 302,
       "kind": "toast.info",
       "title": {
         "form": "template",
-        "text": "That job is no longer on ${tab === \"posted\" ? \"My Posts\" : \"My Jobs\"}."
+        "text": "That job is no longer in ${tab === \"posted\" ? \"Posted\" : \"Working\"}."
       },
       "renders": false
     },
@@ -5401,6 +5401,16 @@
       "title": {
         "form": "literal",
         "text": "Couldn't mark messages read — give it another try."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/mobileNav/useSectionTabs.ts",
+      "line": 30,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "${label} is coming soon"
       },
       "renders": true
     },
@@ -6295,7 +6305,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 77,
+      "line": 83,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6305,7 +6315,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 80,
+      "line": 86,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6326,7 +6336,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 145,
+      "line": 151,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6347,7 +6357,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 150,
+      "line": 156,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6364,27 +6374,6 @@
         ]
       },
       "renders": false
-    },
-    {
-      "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 153,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "rentalsErrorMessage(e)",
-        "from": "src/lib/rentals/copy.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "err.words"
-          },
-          {
-            "form": "dynamic",
-            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
-          }
-        ]
-      },
-      "renders": true
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
@@ -6409,7 +6398,28 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 218,
+      "line": 165,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentalsHomeView.tsx",
+      "line": 224,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6419,7 +6429,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 218,
+      "line": 224,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6429,7 +6439,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 254,
+      "line": 260,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6750,6 +6760,16 @@
       "renders": true
     },
     {
+      "file": "src/components/sections/CustomizeSheet.tsx",
+      "line": 45,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Keep at least one section on"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/series/EndSeriesControl.tsx",
       "line": 67,
       "kind": "toast.success",
@@ -6851,7 +6871,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 69,
+      "line": 86,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6871,7 +6891,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 74,
+      "line": 91,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6881,7 +6901,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 82,
+      "line": 99,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6891,7 +6911,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 88,
+      "line": 105,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7181,7 +7201,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 36,
+      "line": 54,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -7191,7 +7211,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 45,
+      "line": 64,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -7201,7 +7221,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 50,
+      "line": 69,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7306,6 +7326,30 @@
       "title": {
         "form": "dynamic",
         "text": "shopsErrorMessage(e)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopsHomeView.tsx",
+      "line": 92,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Link copied."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopsHomeView.tsx",
+      "line": 94,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't copy your shop's link"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "url"
       },
       "renders": true
     },
@@ -7930,7 +7974,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 341,
+      "line": 338,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -7940,7 +7984,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 757,
+      "line": 717,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8128,7 +8172,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 113,
+      "line": 116,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8138,7 +8182,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 123,
+      "line": 126,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8148,7 +8192,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 126,
+      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8158,7 +8202,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 153,
+      "line": 156,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8168,7 +8212,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 165,
+      "line": 168,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8185,7 +8229,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 166,
+      "line": 169,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8195,7 +8239,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 174,
+      "line": 177,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8205,7 +8249,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 187,
+      "line": 190,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8215,7 +8259,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 207,
+      "line": 210,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8225,7 +8269,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 216,
+      "line": 219,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -8235,7 +8279,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 228,
+      "line": 231,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9650,7 +9694,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 375,
+      "line": 373,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9660,7 +9704,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 399,
+      "line": 397,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9670,7 +9714,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 420,
+      "line": 418,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9680,7 +9724,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 501,
+      "line": 499,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9700,7 +9744,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 516,
+      "line": 514,
       "kind": "toast.error",
       "title": {
         "form": "literal",

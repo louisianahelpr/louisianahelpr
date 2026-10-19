@@ -370,7 +370,7 @@ describe("Rentals screens", () => {
     it("the file picks look like the app (owner bar 2026-10-19): no bare browser file button; each tile says what to pick, then names the chosen file", async () => {
       state.identity = { verified: false, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
       state.properties = [NEEDS_PROOF];
-      renderAt("/rentals");
+      renderAt("/rentals?tab=own");
       await screen.findByRole("button", { name: "Send for review" });
       const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="file"]'));
       expect(inputs.length).toBe(3);

@@ -129,7 +129,7 @@ export default function ListingView() {
           : "Ask the owner";
   return (
     <AppPage title="Home for rent" backTo="/rentals">
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="max-w-3xl space-y-6">
         <Gallery paths={l.photo_paths} />
         {l.is_mine && (
           <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted px-4 py-3 text-ds-14">

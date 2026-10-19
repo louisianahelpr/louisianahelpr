@@ -128,7 +128,7 @@ describe("the queue's count line is current", () => {
 });
 
 describe("every queue number is used once", () => {
-  it("no two items share a Q number (take the next one from `node scripts/queue-count.mjs`)", () => {
+  it("no two items share a Q number (claim numbers with `node scripts/queue-count.mjs --reserve <lane> <n>` before filing)", () => {
     expect(duplicateIds(open)).toEqual([]);
   });
 

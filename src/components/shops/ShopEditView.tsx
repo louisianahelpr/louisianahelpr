@@ -28,6 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
 import { geocodeAddress } from "@/lib/geocode";
 import { PARISHES } from "@/lib/parishes";
 import {
@@ -240,22 +241,7 @@ export default function ShopEditView() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="shop-category">Category</Label>
-          <select
-            id="shop-category"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
-            value={form.category}
-            onChange={(e) => set("category", e.target.value)}
-            required
-          >
-            <option value="" disabled>Choose a category</option>
-            {groups.map((g) => (
-              <optgroup key={g.slug} label={g.label}>
-                {g.items.map((c) => (
-                  <option key={c.slug} value={c.slug}>{c.label}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
+          <TwoStepCategoryPicker id="shop-category" value={form.category} onChange={(slug) => set("category", slug)} groups={groups} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="shop-about">About</Label>

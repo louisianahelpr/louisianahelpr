@@ -241,6 +241,12 @@ const due = one(await svc(`SELECT (((now() AT TIME ZONE 'America/Chicago')::date
 ok(ended?.deposit?.forwarding_address === "500 New Home Rd, Baton Rouge LA 70801" && ended.deposit.return_by === due,
   "after the end the landlord sees the forwarding address and the one-month return-by date (R.S. 9:3251)");
 ok(refused(await setDep(LANDLORD, tA, 1000), /tenancy_not_found/), "the amount cannot be changed after the tenancy ended");
+const endedL = rows(await as("authenticated", LANDLORD, `SELECT * FROM public.rentals_my_ended_deposits()`));
+const endedT = rows(await as("authenticated", TENANT, `SELECT * FROM public.rentals_my_ended_deposits()`));
+ok(endedL.length === 1 && endedL[0].tenancy_id === tA && endedL[0].side === "landlord" && endedL[0].label === "Oak house" && endedL[0].settled === false
+  && endedT.length === 1 && endedT[0].side === "tenant",
+  "after move-out both sides still find the deposit to settle (the live-tenancy cards are gone)");
+ok(empty(await as("authenticated", STRANGER, `SELECT * FROM public.rentals_my_ended_deposits()`)), "a stranger finds none");
 ok(refused(await settle(TENANT, tA, 120000, []), /tenancy_not_found/, "P0002"), "the tenant cannot settle it");
 ok(refused(await settle(LANDLORD, tA, 100000, []), /bad_settlement/, "22023"), "returned + kept must equal the deposit (an unexplained $200 short is refused)");
 ok(refused(await settle(LANDLORD, tA, 100000, [{ reason: "x", amount_cents: 20000 }]), /bad_settlement/), "each amount kept needs a reason (3+ characters)");
@@ -285,7 +291,7 @@ ok(refused(await as("anon", null, `SELECT public.rentals_deposit('${tB}')`), /pe
 
 const acl = async (sig) => one(await svc(`SELECT coalesce(proacl::text, '') FROM pg_proc WHERE oid = '${sig}'::regprocedure`)) ?? "";
 for (const sig of ["public.rentals_set_deposit(uuid,integer,date)", "public.rentals_set_forwarding_address(uuid,text)",
-  "public.rentals_settle_deposit(uuid,integer,jsonb,date)", "public.rentals_deposit(uuid)"]) {
+  "public.rentals_settle_deposit(uuid,integer,jsonb,date)", "public.rentals_deposit(uuid)", "public.rentals_my_ended_deposits()"]) {
   const a = await acl(sig);
   ok(/authenticated=X/.test(a) && !/(^|[{,])(anon)?=X/.test(a), `${sig}: authenticated, not anon/PUBLIC (${a})`);
 }

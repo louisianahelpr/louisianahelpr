@@ -23,18 +23,24 @@
  * @mutate e2e/requestMeter.mjs | await this.pace(pageKey(name === "goto" ? args[0] : page.url?.())); | await this.pace();
  * @mutate e2e/requestMeter.mjs | const used = (this.minutes[m] \|\| 0) + (this.prior[m] \|\| 0); | const used = this.minutes[m] \|\| 0;
  * @mutate e2e/requestMeter.mjs |       page[name] = async (...args) => { |       page[`${name}Unpaced`] = async (...args) => {
- * @mutate e2e/prodTest.ts | meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers }); | void ceilingFor;
+ * @mutate e2e/prodTest.ts | meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers, slot: workerInfo.parallelIndex, followSiblings: true }); | void ceilingFor;
  * @mutate e2e/requestMeter.mjs |     page.__requestMeterGate = (path) => this.pace(pageKey(path)); |
  * @mutate e2e/requestMeter.mjs |     this.bursts = { ...learned.bursts, ...this.bursts }; |     void learned;
  * @mutate e2e/requestMeter.mjs |     this.reserve = Math.max(this.reserve, learned.reserve); |     void learned.reserve;
  * @mutate e2e/requestMeter.mjs |       learnedBursts: this.currentBursts(), |       learnedBursts: {},
  * @mutate e2e/prodTest.ts | if (running.timeout > 0) running.setTimeout(running.timeout + ms); | void running;
+ * @mutate e2e/requestMeter.mjs |       this.ceiling = Math.floor(this.ceilingTotal / Math.max(1, this.workers - freeSlots)); |       this.ceiling = Math.floor(this.ceilingTotal / this.workers);
+ * @mutate e2e/requestMeter.mjs |     const free = !unreadable && newest.live === false && now - (newest.endedAt ?? now) >= SLOT_RESTART_GRACE_MS; |     const free = !unreadable && newest.live === false;
+ * @mutate e2e/requestMeter.mjs |     const free = !unreadable && newest.live === false && now - (newest.endedAt ?? now) >= SLOT_RESTART_GRACE_MS; |     const free = list.some((x) => x.live === false);
+ * @mutate e2e/requestMeter.mjs |     if (s.ppid !== ppid) { |     if (false) {
+ * @mutate e2e/requestMeter.mjs |     this.live = false; |     this.live = true;
+ * @mutate e2e/prodTest.ts |       meter.close(); |       meter.flush();
  */
-import { describe, it, expect } from "vitest";
+import { afterAll, describe, it, expect } from "vitest";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { RequestMeter, ceilingFor, gateClientNav, priorBursts } from "../../e2e/requestMeter.mjs";
+import { RequestMeter, SLOT_RESTART_GRACE_MS, ceilingFor, gateClientNav, priorBursts } from "../../e2e/requestMeter.mjs";
 import { aggregate } from "../../scripts/e2e/request-budget.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -256,6 +262,135 @@ describe("the request meter paces a run under its ceiling", () => {
     expect(meter.ceiling).toBe(200);
   });
 
+  describe("a worker's share follows the run's other workers (nightly-red #2375)", () => {
+    const T0 = 1_790_000_000_000;
+    const MINUTE = Math.floor(T0 / 60_000);
+    const LONG_AGO = T0 - 10 * 60_000;
+    const dirs: string[] = [];
+    const tmp = () => {
+      const d = mkdtempSync(join(tmpdir(), "rm-share-"));
+      dirs.push(d);
+      return d;
+    };
+    afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
+    /** A sibling sample as a worker of THIS run (same ppid) or of another invocation writes it. */
+    const sibling = (dir: string, name: string, fields: Record<string, unknown>) =>
+      writeFileSync(join(dir, `${name}.json`), JSON.stringify({ label: "a11y-prod", minutes: {}, ppid: process.ppid, startedAt: LONG_AGO, endedAt: LONG_AGO, ...fields }));
+    const meterIn = (dir: string, clock: ReturnType<typeof fakeClock>, slot = 0) =>
+      new RequestMeter("a11y-prod").paceTo(400, { workers: 2, slot, prior: {}, learned: { bursts: {}, reserve: 40 }, followSiblings: true, siblingsDir: dir, now: clock.now, sleep: clock.sleep });
+
+    it("the red: a lone worker kept half the ceiling after its sibling finished (a11y-prod held 1862 s, 38911703338)", async () => {
+      // The sweep's shape: reduced-motion's worker (slot 1) is done, a11y-prod
+      // (slot 0) walks 22-request pages alone. Fixed split: every minute stops at 200.
+      const run = async (follow: boolean) => {
+        const dir = tmp();
+        sibling(dir, "done", { slot: 1, live: false });
+        const clock = fakeClock(T0);
+        const meter = new RequestMeter("a11y-prod").paceTo(400, {
+          workers: 2, slot: 0, prior: {}, learned: { bursts: {}, reserve: 40 }, followSiblings: follow, siblingsDir: dir, now: clock.now, sleep: clock.sleep,
+        });
+        const page = meter.pacePage({ goto: async (_url: string) => undefined, reload: async () => undefined });
+        for (let nav = 0; nav < 180; nav++) {
+          await page.goto(`/p${nav % 30}`);
+          for (let r = 0; r < 22; r++) {
+            meter.record(URL, "GET", clock.now());
+            clock.advance(25);
+          }
+        }
+        return { meter, ms: clock.now() - T0 };
+      };
+      const fixed = await run(false);
+      const following = await run(true);
+      expect(fixed.meter.total).toBe(180 * 22);
+      expect(following.meter.total).toBe(180 * 22);
+      expect(peak(fixed.meter), "the fixed split never uses the finished sibling's half").toBeLessThanOrEqual(200);
+      expect(peak(following.meter), "the lone worker uses the whole ceiling").toBeGreaterThan(200);
+      expect(peak(following.meter), "and never more").toBeLessThanOrEqual(400);
+      expect(following.meter.paceWaitMs, "it is held less").toBeLessThan(fixed.meter.paceWaitMs);
+      expect(following.ms).toBeLessThan(fixed.ms);
+    });
+
+    it("a sibling still running keeps its half, and its requests sit in its own share", async () => {
+      const dir = tmp();
+      sibling(dir, "running", { slot: 1, live: true, minutes: { [MINUTE]: 150 } });
+      const meter = meterIn(dir, fakeClock(T0));
+      await meter.pace();
+      expect(meter.ceiling).toBe(200);
+      expect(meter.prior[MINUTE] ?? 0).toBe(0);
+    });
+
+    it("a worker restarted after a failure takes its predecessor's slot: the run never gets a second share (prod-audit 403 > 400 shape)", async () => {
+      const dir = tmp();
+      // Slot 1's first worker failed a test and was torn down (live:false);
+      // its replacement is running in the same slot.
+      sibling(dir, "failed", { slot: 1, live: false, startedAt: LONG_AGO, endedAt: T0 - 60_000, minutes: { [MINUTE]: 30 } });
+      sibling(dir, "replacement", { slot: 1, live: true, startedAt: T0 - 55_000, endedAt: T0 });
+      const meter = meterIn(dir, fakeClock(T0));
+      await meter.pace();
+      expect(meter.ceiling, "slot 1 is busy again").toBe(200);
+      expect(meter.prior[MINUTE] ?? 0, "slot 1's history is slot 1's share").toBe(0);
+    });
+
+    it("a slot just let go stays busy for the restart window, then is given back", async () => {
+      const dir = tmp();
+      sibling(dir, "just-done", { slot: 1, live: false, endedAt: T0 - 1_000 });
+      const clock = fakeClock(T0);
+      const meter = meterIn(dir, clock);
+      await meter.pace();
+      expect(meter.ceiling, "a replacement may be about to start in it").toBe(200);
+      clock.advance(SLOT_RESTART_GRACE_MS);
+      await meter.pace();
+      expect(meter.ceiling).toBe(400);
+    });
+
+    it("a sibling killed before teardown (no live:false) keeps its half: the safe side", async () => {
+      const dir = tmp();
+      sibling(dir, "killed", { slot: 1, minutes: { [MINUTE]: 10 } });
+      const meter = meterIn(dir, fakeClock(T0));
+      await meter.pace();
+      expect(meter.ceiling).toBe(200);
+    });
+
+    it("an unreadable sample gives no slot back on that read", async () => {
+      const dir = tmp();
+      sibling(dir, "done", { slot: 1, live: false });
+      writeFileSync(join(dir, "mid-write.json"), "{\"label\": \"a11y-");
+      const meter = meterIn(dir, fakeClock(T0));
+      await meter.pace();
+      expect(meter.ceiling).toBe(200);
+    });
+
+    it("a finished sibling's requests still count in the minutes they landed in", async () => {
+      const dir = tmp();
+      sibling(dir, "done", { slot: 1, live: false, minutes: { [MINUTE]: 390 } });
+      const clock = fakeClock(T0);
+      const meter = meterIn(dir, clock);
+      meter.record(URL, "GET", clock.now());
+      const held = await meter.pace();
+      expect(meter.ceiling).toBe(400);
+      expect(held, "390 + this worker's own request + a reserve does not fit this minute").toBeGreaterThan(0);
+      expect(Math.floor(clock.now() / 60_000)).toBe(MINUTE + 1);
+    });
+
+    it("a finished process of ANOTHER invocation never shrinks the split, but its requests count", async () => {
+      const dir = tmp();
+      sibling(dir, "earlier", { slot: 1, live: false, ppid: process.ppid + 1, minutes: { [MINUTE]: 50 } });
+      const meter = meterIn(dir, fakeClock(T0));
+      await meter.pace();
+      expect(meter.ceiling, "an earlier step's worker was never one of this run's").toBe(200);
+      expect(meter.prior[MINUTE]).toBe(50);
+    });
+
+    it("close() writes live:false; every sample carries the runner's ppid and the worker's slot", () => {
+      const meter = new RequestMeter("a11y-prod").paceTo(400, { workers: 2, slot: 1, prior: {}, learned: { bursts: {}, reserve: 40 } });
+      expect(meter.toJSON()).toMatchObject({ live: true, ppid: process.ppid, slot: 1 });
+      meter.live = false;
+      expect(meter.toJSON().live).toBe(false);
+      const src = blankComments(read("e2e/requestMeter.mjs"));
+      expect(src).toMatch(/close\(\) \{\s*this\.live = false;\s*return this\.flush\(\);/);
+    });
+  });
+
   it("pacing is off unless a run turns it on (the node scripts measure without it)", async () => {
     const meter = new RequestMeter("press-every-control");
     for (let i = 0; i < 5000; i++) meter.record(URL, "GET", 1_790_000_000_000);
@@ -264,7 +399,10 @@ describe("the request meter paces a run under its ceiling", () => {
 
   it("the metered fixture turns pacing on for every run, gates each test and lengthens its timeout by the hold", () => {
     const src = blankComments(read("e2e/prodTest.ts"));
-    expect(src).toMatch(/meter\.paceTo\(ceilingFor\(label\), \{ workers: workerInfo\.config\.workers \}\);/);
+    expect(src).toMatch(
+      /meter\.paceTo\(ceilingFor\(label\), \{ workers: workerInfo\.config\.workers, slot: workerInfo\.parallelIndex, followSiblings: true \}\);\s*meter\.flush\(\);/,
+    );
+    expect(src, "worker teardown marks the sample finished, so its slot goes back to the run").toMatch(/await use\(meter\);\s*meter\.close\(\);/);
     expect(src).toMatch(/await _requestMeter\.pace\(\);\s*await use\(\);/);
     expect(src).toMatch(/meter\.onPaceWait = \(ms\) => \{[\s\S]*?running = base\.info\(\);[\s\S]*?if \(running\.timeout > 0\) running\.setTimeout\(running\.timeout \+ ms\);/);
     const meter = blankComments(read("e2e/requestMeter.mjs"));

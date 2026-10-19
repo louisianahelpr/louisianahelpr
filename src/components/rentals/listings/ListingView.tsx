@@ -65,9 +65,9 @@ function Fact({ label, value }: { label: string; value: string }) {
  * yet) shows the same frame with a house mark, so the page never starts with
  * a hole.
  */
-function Gallery({ paths }: { paths: string[] }) {
+function Gallery({ refs }: { refs: string[] }) {
   const [at, setAt] = useState(0);
-  if (paths.length === 0) {
+  if (refs.length === 0) {
     return (
       <div className="flex aspect-[16/10] w-full items-center justify-center rounded-2xl bg-muted text-muted-foreground" aria-hidden>
         <Home className="h-10 w-10" />
@@ -85,19 +85,19 @@ function Gallery({ paths }: { paths: string[] }) {
           setAt(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)));
         }}
       >
-        {paths.map((p, i) => (
+        {refs.map((p, i) => (
           <img
             key={p}
-            src={listingPhotoUrl(p)}
-            alt={`Photo ${i + 1} of ${paths.length}`}
+            src={listingPhotoUrl(p, 1200)}
+            alt={`Photo ${i + 1} of ${refs.length}`}
             className="aspect-[16/10] w-full shrink-0 snap-center bg-muted object-cover"
             loading={i === 0 ? "eager" : "lazy"}
           />
         ))}
       </div>
-      {paths.length > 1 && (
+      {refs.length > 1 && (
         <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-ds-12 font-semibold text-white" aria-hidden>
-          {Math.min(at, paths.length - 1) + 1} / {paths.length}
+          {Math.min(at, refs.length - 1) + 1} / {refs.length}
         </span>
       )}
     </div>
@@ -131,7 +131,7 @@ export default function ListingView() {
   return (
     <AppPage title={sale ? "Home for sale" : "Home for rent"} backTo={sale ? "/rentals?kind=buy" : "/rentals"}>
       <div className="max-w-3xl space-y-6">
-        <Gallery paths={l.photo_paths} />
+        <Gallery refs={l.photo_refs} />
         {l.is_mine && (
           <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted px-4 py-3 text-ds-14">
             <span>Your listing: {listingStatusLabel(l.status, l.expires_at)}</span>

@@ -35,7 +35,7 @@ interface CardRow {
   baths: number;
   city: string;
   zip_code: string;
-  photo_paths: string[];
+  photo_refs: string[];
   is_mine: boolean;
   /** The big line: rent per period, or the sale price. */
   price: string;
@@ -44,7 +44,7 @@ interface CardRow {
 }
 
 function ListingCard({ l }: { l: CardRow }) {
-  const cover = l.photo_paths?.[0];
+  const cover = l.photo_refs?.[0];
   return (
     <Link
       to={`/rentals/listings/${l.id}`}

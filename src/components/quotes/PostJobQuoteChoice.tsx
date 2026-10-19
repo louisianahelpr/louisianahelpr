@@ -37,12 +37,29 @@ const PRICE_MODE_NEXT: Record<PriceMode, string> = {
   quotes: "No price yet. Members near you send theirs; you pick one and pay only when you book.",
 };
 
+/** What a member without the 'quotes' switch is told on tapping Get quotes (owner 2026-10-19). */
+export const QUOTES_COMING_SOON = "Getting quotes from local pros is coming soon. For now, set your price.";
+
 /**
  * The top of Post a Job (owner 2026-10-19: quotes live inside Post a Job):
  * "Set a price" or "Get quotes", as the app's pill choice (SegmentedControl:
  * olive gloss on the picked pill), with one line on what happens next.
+ *
+ * `quotesComingSoon` (everyone without the 'quotes' switch): "Get quotes" is
+ * greyed with a small "Coming soon" under it, and a tap only says so, in the
+ * line under the pills (a toast.info would be silenced by src/lib/toastPolicy.ts);
+ * the choice never moves off "Set a price".
  */
-export function PriceModeChoice({ value, onChange }: { value: PriceMode; onChange: (v: PriceMode) => void }) {
+export function PriceModeChoice({
+  value,
+  onChange,
+  quotesComingSoon = false,
+}: {
+  value: PriceMode;
+  onChange: (v: PriceMode) => void;
+  quotesComingSoon?: boolean;
+}) {
+  const [soonTapped, setSoonTapped] = useState(false);
   return (
     <div data-price-mode-choice>
       <p className="mb-2 text-sm font-semibold text-foreground">
@@ -51,14 +68,31 @@ export function PriceModeChoice({ value, onChange }: { value: PriceMode; onChang
       <SegmentedControl
         ariaLabel="How to price this job"
         value={value}
-        onChange={(v) => onChange(v as PriceMode)}
+        onChange={(v) => {
+          if (v === "quotes" && quotesComingSoon) {
+            setSoonTapped(true);
+            return;
+          }
+          onChange(v as PriceMode);
+        }}
         options={[
           { value: "price", label: "Set a price" },
-          { value: "quotes", label: "Get quotes" },
+          quotesComingSoon
+            ? {
+                value: "quotes",
+                ariaLabel: "Get quotes, coming soon",
+                label: (
+                  <span className="flex flex-col items-center leading-tight text-muted-foreground/60" data-quotes-coming-soon>
+                    <span>Get quotes</span>
+                    <span className="text-ds-10 font-medium">Coming soon</span>
+                  </span>
+                ),
+              }
+            : { value: "quotes", label: "Get quotes" },
         ]}
       />
       <p className="mt-2 text-sm text-muted-foreground" aria-live="polite">
-        {PRICE_MODE_NEXT[value]}
+        {quotesComingSoon && soonTapped ? QUOTES_COMING_SOON : PRICE_MODE_NEXT[value]}
       </p>
     </div>
   );

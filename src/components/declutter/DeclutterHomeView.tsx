@@ -20,7 +20,10 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeatureStatus } from "@/hooks/useFeature";
-import { ChevronRight, Star, Truck } from "lucide-react";
+import { ChevronRight, Sofa, Star, Truck } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import {
   fetchLiveItems,
   fetchMyItems,
@@ -180,6 +183,8 @@ function BrowseView({ userId }: { userId: string }) {
   // (oneLoadingGatePerScreen.test.ts). The photos query is disabled (never
   // loading) when there is nothing to show.
   const listLoading = items.isLoading || photos.isLoading || ratings.isLoading || origin.status === "pending";
+  // Offline with nothing loaded is never "Nothing for sale yet" (Q571).
+  const itemsPhase = useFeedPhase(items);
 
   if (items.isError) {
     return <ErrorState variant="inline" title="We couldn't load items." body={declutterErrorMessage(items.error)} onRetry={() => void items.refetch()} />;
@@ -198,10 +203,16 @@ function BrowseView({ userId }: { userId: string }) {
         onMaxMiles={setMaxMiles}
         ask={{ origin, asked, asking, canAskAgain, deviceNote, askDevice }}
       />
-      {rows.length === 0 ? (
-        <DeclutterNotice title={others.length === 0 ? "Nothing for sale yet." : q ? "Nothing matches that search." : "Nothing for sale this close."}>
-          {others.length === 0 ? "Check back soon, or sell something of your own." : q ? "Try another word." : "Try a bigger distance."}
-        </DeclutterNotice>
+      {itemsPhase === "offline-empty" ? (
+        <OfflineEmptyState body="Items for sale will show here once you're back online." onRetry={() => void items.refetch()} />
+      ) : rows.length === 0 ? (
+        // The shared empty state every Browse wears (owner, 2026-10-19: Homes' style, same place).
+        <EmptyState
+          variant="bare"
+          icon={Sofa}
+          title={others.length === 0 ? "Nothing for sale yet." : q ? "Nothing matches that search." : "Nothing for sale this close."}
+          body={others.length === 0 ? "Check back soon, or sell something of your own." : q ? "Try another word." : "Try a bigger distance."}
+        />
       ) : (
         <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {rows.map(({ item, miles }) => (

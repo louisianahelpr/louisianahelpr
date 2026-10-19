@@ -223,6 +223,7 @@ export function EmptyState({
             : `flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center ${justify} gap-5 px-5 sm:px-8 py-14 rounded-2xl`
       }
       style={cardStyle}
+      data-empty-state={variant}
     >
       {illustration ? (
         <div

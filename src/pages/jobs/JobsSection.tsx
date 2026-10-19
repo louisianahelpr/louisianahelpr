@@ -72,8 +72,11 @@ const JobsSection = () => {
     return <Navigate replace to={`/jobs?${p.toString()}`} />;
   }
 
+  // THE SECTION SHELL's head (owner, 2026-10-19: "make layout consistent so the shells are in the same
+  // place for each"): no inset of its own, the bar 4px over the toggle, exactly SectionScreen's
+  // (Declutter, Shops, Homes). Guard: e2e/prod-audit/section-shell-alignment.spec.ts.
   const header = (
-    <div className="flex flex-col gap-3 px-1">
+    <div className="flex flex-col gap-1">
       <AppTopBar title={section.label} add={section.add} />
       <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} />
     </div>

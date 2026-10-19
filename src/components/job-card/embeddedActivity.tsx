@@ -28,7 +28,7 @@ export function EmbeddedActivityHeader({
   const labels = tab === "posted" ? POSTED_GROUP_LABEL : WORKING_GROUP_LABEL;
   const value = (BOX_BUCKETS as readonly string[]).includes(statusFilter) ? (statusFilter as (typeof BOX_BUCKETS)[number]) : null;
   return (
-    <div className="flex flex-col gap-3 pb-1">
+    <div className="flex flex-col gap-4">
       {header}
       <StatusBoxes
         boxes={BOX_BUCKETS.map((k) => ({ key: k, label: labels[k], count: counts[k] ?? 0, hot: k === "needs_you" }))}

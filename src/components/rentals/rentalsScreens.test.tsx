@@ -23,13 +23,16 @@
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |   const cancelJob = useMutation({ mutationFn: () => cancelRequestJob(id), | const cancelJob = useMutation({ mutationFn: async () => undefined,
  * @mutate src/components/rentals/MaintenanceRequestView.tsx | r.visit_job_id != null && r.visit_job_id === r.job_id ? r.visit_proposed_for : null; | r.visit_job_id != null ? r.visit_proposed_for : null;
  * @mutate src/components/rentals/MaintenanceRequestView.tsx | onClick={() => okVisit.mutate(visitAt)}> | onClick={() => okVisit.mutate(new Date().toISOString())}>
- * @mutate src/components/rentals/HomesBrowse.tsx |   const kind: HomesKind = params.get("kind") === "buy" ? "buy" : "rent"; |   const kind: HomesKind = "rent";
- * @mutate src/components/rentals/HomesBrowse.tsx |         <HomesBuy /> |         {null}
+ * @mutate src/components/rentals/HomesBrowse.tsx |   const kind: HomesKind = params.get("kind") === "buy" \|\| params.get("mode") === "buy" ? "buy" : "rent"; |   const kind: HomesKind = params.get("kind") === "buy" ? "buy" : "rent";
+ * @mutate src/components/rentals/listings/RentBrowse.tsx |         placeholder={buy ? "Homes for sale: City or ZIP" : "City or ZIP"} |         placeholder="City or ZIP"
+ * @mutate src/components/rentals/listings/RentBrowse.tsx |   const activeFilters = (buy ? 1 : 0) + | const activeFilters = (buy ? 0 : 0) +
+ * @mutate src/components/rentals/listings/RentBrowse.tsx |                       onKind(k.value); |                       void k;
+ * @mutate src/components/rentals/HomesBrowse.tsx | intro={kind === "buy" ? <BuyIntro /> : undefined} | intro={undefined}
  * @mutate src/components/rentals/RentalsHomeView.tsx | function SaleListingLink({ propertyId, approved, listing }: { propertyId: string; approved: boolean; listing: RentalListing \| undefined }) {\n  if (!approved) return null; | function SaleListingLink({ propertyId, approved, listing }: { propertyId: string; approved: boolean; listing: RentalListing \| undefined }) {\n  if (approved \|\| !approved) return null;
  * @mutate src/components/rentals/listings/RentBrowse.tsx |       price: priceLine(l.sale_price_cents), |       price: "",
  * @mutate src/components/rentals/RentalsHomeView.tsx |       <span className="font-semibold">Listings removed by Louisiana Helpr.</span> {reason} Contact support if you think this is a mistake. |       {null}
  * @mutate src/components/rentals/HomesBrowse.tsx | No commission. A title company | Price negotiable with the owner. A title company
- * @mutate src/components/rentals/HomesBrowse.tsx |           <RentBrowse />\n |           {null}\n
+ * @mutate src/components/rentals/listings/RentBrowse.tsx | kind={homes === "buy" ? SALE : RENT} | kind={RENT}
  * @mutate src/components/rentals/RentalsHomeView.tsx |           <HomesBrowse />\n |           {null}\n
  * @mutate src/components/rentals/listings/RentBrowse.tsx |       to={`/rentals/listings/${l.id}`} |       to="/rentals"
  * Landlord ID by admin review (owner 2026-10-19, replacing the paid Stripe check):
@@ -258,7 +261,7 @@ describe("Rentals screens", () => {
     });
   });
 
-  describe("HOMES: Browse with a Rent | Buy switch (owner 2026-10-18/19)", () => {
+  describe("HOMES: Browse, Rent or Buy in the filter sheet (owner 2026-10-18/19)", () => {
     it("Rent: homes for rent show rent, beds/baths and city + ZIP, never the street, and link to the listing", async () => {
       state.browse = [{ id: "11111111-1111-4111-8111-111111111111", headline: "Bright 2 bed", rent_cents: 120000, rent_frequency: "monthly",
         beds: 2, baths: 1.5, sq_ft: 900, available_on: "2020-01-01", pets: "cats", city: "Lafayette", zip_code: "70501",
@@ -275,22 +278,31 @@ describe("Rentals screens", () => {
       expect(await screen.findByText(/No homes for rent match yet/)).toBeTruthy();
     });
     // Browse is its own tab since the section skeleton (2026-10-19): "Homes you rent" lives under Renting.
-    it("opens on Rent: the Homes title, the Rent | Buy switch with Rent selected", async () => {
+    // Owner, 2026-10-19: Rent | Buy moved INTO the filter sheet; no second pill row under the toggle.
+    it("opens on Rent: the Homes title, no Rent | Buy row on the page, Rent picked in the filter sheet", async () => {
       renderAt("/rentals");
-      expect((await screen.findByRole("tab", { name: "Rent" })).getAttribute("aria-selected")).toBe("true");
+      expect(await screen.findByRole("search", { name: "Search homes for rent" })).toBeTruthy();
       expect(screen.getByRole("heading", { name: "Homes" })).toBeTruthy();
-      expect(screen.getByRole("tab", { name: "Buy" }).getAttribute("aria-selected")).toBe("false");
+      expect(screen.queryByRole("tablist", { name: "Rent or buy" })).toBeNull();
+      expect(screen.queryByRole("tab", { name: "Buy" })).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+      const pair = await screen.findByRole("group", { name: "Rent or buy" });
+      expect(within(pair).getByRole("button", { name: "Rent" }).getAttribute("aria-pressed")).toBe("true");
+      expect(within(pair).getByRole("button", { name: "Buy" }).getAttribute("aria-pressed")).toBe("false");
     });
-    it("?kind=buy: homes for sale by verified owners; no commission or negotiating copy; the sale list, not the rent one", async () => {
-      renderAt("/rentals?kind=buy");
-      const panel = await screen.findByRole("tabpanel", { name: "Buy" });
-      expect(await screen.findByText(/No homes for sale match yet/)).toBeTruthy();
-      expect(panel.textContent).toContain("verified owners");
-      expect(panel.textContent).toMatch(/title company or attorney/);
-      expect(panel.textContent).not.toMatch(/\b(negotia|haggl|offer|realtor|agent)/i);
-      expect(screen.getByRole("tab", { name: "Buy" }).getAttribute("aria-selected")).toBe("true");
-      expect(screen.queryByText(/No homes for rent match yet/)).toBeNull();
-    });
+    for (const url of ["/rentals?kind=buy", "/rentals?mode=buy"]) {
+      it(`${url}: homes for sale by verified owners; the search row and filter badge say Buy is on; the sale list, not the rent one`, async () => {
+        renderAt(url);
+        const panel = await screen.findByRole("region", { name: "Homes for sale" });
+        expect(await screen.findByText(/No homes for sale match yet/)).toBeTruthy();
+        expect(panel.textContent).toContain("verified owners");
+        expect(panel.textContent).toMatch(/title company or attorney/);
+        expect(panel.textContent).not.toMatch(/\b(negotia|haggl|offer|realtor|agent)/i);
+        expect(screen.getByPlaceholderText("Homes for sale: City or ZIP")).toBeTruthy();
+        expect(screen.getByRole("button", { name: "Filters (1 active)" })).toBeTruthy();
+        expect(screen.queryByText(/No homes for rent match yet/)).toBeNull();
+      });
+    }
     it("Buy: a home for sale shows its price, beds/baths and city + ZIP, no move-in date, and links to its page; filters reach the sale read", async () => {
       state.sale = [{ id: "22222222-2222-4222-8222-222222222222", headline: "Brick 3 bed with a yard", sale_price_cents: 24500000, beds: 3, baths: 2,
         sq_ft: 1650, city: "Broussard", zip_code: "70518", photo_refs: [], is_mine: false, published_at: "2026-10-19T00:00:00Z" }];
@@ -300,7 +312,7 @@ describe("Rentals screens", () => {
       expect(link.textContent).toContain("$245,000");
       expect(link.textContent).toContain("3 beds · 2 baths · Broussard 70518");
       expect(link.textContent).not.toMatch(/Available/);
-      fireEvent.change(screen.getByLabelText("City or ZIP"), { target: { value: "70518" } });
+      fireEvent.change(screen.getByLabelText("Homes for sale: City or ZIP"), { target: { value: "70518" } });
       await vi.waitFor(() => expect(state.saleFilters[state.saleFilters.length - 1]).toMatchObject({ city: "70518" }));
       expect(state.browseFilters).toHaveLength(0);
     });
@@ -331,13 +343,17 @@ describe("Rentals screens", () => {
       await screen.findByText("Own a rental?");
       expect(screen.getAllByRole("button", { name: "Add a property" })).toHaveLength(1);
     });
-    it("tapping Buy then Rent swaps the panel and keeps the section tabs", async () => {
+    it("picking Buy then Rent in the filter sheet swaps the list and keeps the section tabs", async () => {
       renderAt("/rentals");
       await screen.findByText(/No homes for rent match yet/);
-      fireEvent.click(screen.getByRole("tab", { name: "Buy" }));
-      expect(await screen.findByText(/No homes for sale match yet/)).toBeTruthy();
       expect(screen.getByRole("tab", { name: "Renting" })).toBeTruthy();
-      fireEvent.click(screen.getByRole("tab", { name: "Rent" }));
+      fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+      fireEvent.click(within(await screen.findByRole("group", { name: "Rent or buy" })).getByRole("button", { name: "Buy" }));
+      expect(await screen.findByText(/No homes for sale match yet/)).toBeTruthy();
+      // The list is keyed by Rent / Buy, so picking one closes the sheet; the section tabs stay.
+      expect(screen.getByRole("tab", { name: "Renting" })).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Filters (1 active)" }));
+      fireEvent.click(within(await screen.findByRole("group", { name: "Rent or buy" })).getByRole("button", { name: "Rent" }));
       expect(await screen.findByText(/No homes for rent match yet/)).toBeTruthy();
       expect(screen.queryByText(/No homes for sale match yet/)).toBeNull();
     });
@@ -734,7 +750,7 @@ describe("Rentals screens", () => {
     it("opens on Browse, leftmost, with one-word tabs; Browse needs no rental data", async () => {
       state.homeLoads = false;
       renderAt("/rentals");
-      // The SECTION toggle (Browse's own Rent | Buy switch is a second tablist inside it, HomesBrowse.tsx).
+      // The SECTION toggle (Rent or Buy is a choice in Browse's filter sheet, HomesBrowse.tsx).
       const section = await screen.findByRole("tablist", { name: "Homes" });
       const tabs = within(section).getAllByRole("tab");
       expect(tabs.map((t) => t.textContent)).toEqual(["Browse", "Renting", "Owning"]);

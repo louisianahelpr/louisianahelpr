@@ -18,9 +18,10 @@ type PullToRefresh = ReturnType<typeof usePullToRefresh>;
  * selects a different list primitive or a different wrapper.
  *
  * `lg:px-4` matches the desktop toolbar row directly above it (owner: "same
- * spacing"). On a phone it is `px-1`, the section header's own inset (Jobs >
- * Browse, 2026-10-19): the cards line up with the search row above them like
- * every other section's list, and get 24px back at 320 (Q2222).
+ * spacing"). On a phone it is NONE: the page's 20px gutter is the inset, the
+ * same as Declutter, Shops and Homes (owner, 2026-10-19, one section shell),
+ * so the cards line up with the search row above them, and the first card
+ * sits 16px under it (the 12px shell gap + pt-1). Q2222.
  */
 export function MainFeedSection({
   jobs,
@@ -37,7 +38,7 @@ export function MainFeedSection({
 }) {
   return (
     <div
-      className="px-1 lg:px-4 pt-3"
+      className="px-0 lg:px-4 pt-1 lg:pt-3"
       style={{ paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))" }}
     >
       <VirtualizedJobList

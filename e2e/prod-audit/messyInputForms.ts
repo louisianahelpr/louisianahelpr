@@ -437,10 +437,10 @@ export const FORMS: FormSpec[] = [
   },
   // The feed moved to Jobs > Browse (2026-10-19, Q2205): at phone width its search is the permanent compact row.
   // posts-search / jobs-search left with the My Posts / My Jobs headers (Posted / Working carry no search).
-  { name: "dashboard-search", url: "/jobs", as: "helper", prepare: openSearch, covers: ["src/components/dashboard/browseTasksToolbar/BrowseCompactSearchRow.tsx"] },
+  { name: "dashboard-search", url: "/jobs", as: "helper", prepare: openSearch, covers: ["src/components/sections/SectionSearchRow.tsx", "src/components/dashboard/browseTasksToolbar/BrowseCompactSearchRow.tsx"] },
   { name: "messages-list", url: "/messages", as: "helper", prepare: openSearch, covers: ["src/components/messages/ConversationList.tsx"] },
-  // Declutter > Browse (2026-10-19): one permanent search row, the same shape as Jobs > Browse (every test account is a tester).
-  { name: "declutter-search", url: "/declutter", as: "helper", prepare: openSearch, covers: ["src/components/declutter/DeclutterBrowseBar.tsx"] },
+  // Declutter > Browse (2026-10-19): the same shared SectionSearchRow as Jobs > Browse (every test account is a tester).
+  { name: "declutter-search", url: "/declutter", as: "helper", prepare: openSearch, covers: ["src/components/sections/SectionSearchRow.tsx", "src/components/declutter/DeclutterBrowseBar.tsx"] },
   { name: "complete-profile", url: "/complete-profile", as: "incomplete", covers: ["src/pages/auth/CompleteProfile.tsx", "src/components/postjob/CityAutocomplete.tsx"] },
   { name: "profile-edit", url: "/profile?tab=profile", as: "helper", covers: ["src/components/profile/ProfileEditForm.tsx", "src/components/profile/profileEditForm/PhotoNameSection.tsx"] },
   { name: "profile-support", url: "/profile?tab=support", as: "helper", covers: ["src/components/profile/SupportInline.tsx"] },

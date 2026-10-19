@@ -6,9 +6,11 @@
  * and time never be hidden."
  *
  * Measured after (local build, the real CSS): at a 330px row the countdown
- * shows whole; at 200px it is absent and the city keeps its 72px.
+ * shows whole; at 200px it is absent and the city keeps its floor. The floor
+ * is pin + ~5 letters (58px, 2026-10-19; it was 84px, which left a short
+ * city's slack before the "·": the owner saw uneven separator spacing).
  *
- * @mutate src/components/dashboard/JobCard.tsx | <span className="flex items-center gap-1 min-w-[5.25rem] overflow-hidden"> | <span className="flex items-center gap-1 min-w-0 overflow-hidden">
+ * @mutate src/components/dashboard/JobCard.tsx | <span className="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"> | <span className="flex items-center gap-1 min-w-0 overflow-hidden">
  * @mutate src/components/dashboard/JobCard.tsx | className="flex-1 basis-0 min-w-0 h-[1.5em] overflow-hidden flex flex-wrap items-center gap-x-2" | className="shrink-0 flex items-center gap-x-2"
  */
 import { readFileSync } from "node:fs";
@@ -20,7 +22,7 @@ const SRC = blankComments(readFileSync(join(process.cwd(), "src/components/dashb
 
 describe("the browse card keeps place, date and time; the countdown only fills spare room", () => {
   it("the location group has a floor and never shrinks to its pin", () => {
-    expect(SRC).toContain('<span className="flex items-center gap-1 min-w-[5.25rem] overflow-hidden">');
+    expect(SRC).toContain('<span className="flex items-center gap-1 min-w-[3.625rem] overflow-hidden">');
   });
 
   it("the start time is never hidden by a width rule", () => {

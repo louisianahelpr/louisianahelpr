@@ -69,10 +69,11 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="Search conversations"]',
     close: CLOSE,
   },
-  // The section dashboards (owner, 2026-10-19): Jobs > Browse and Declutter >
-  // Browse open on ONE permanent search row, so the field is the trigger and the ✕ clears.
+  // The section dashboards (owner, 2026-10-19): every Browse (Jobs, Declutter,
+  // Shops, Homes) opens on the ONE shared permanent search row (SectionSearchRow),
+  // so the field is the trigger and the ✕ clears. Pressed in each section.
   {
-    name: "jobs-browse-row", file: "src/components/dashboard/browseTasksToolbar/BrowseCompactSearchRow.tsx",
+    name: "jobs-browse-row", file: "src/components/sections/SectionSearchRow.tsx",
     url: "/jobs",
     trigger: 'input[aria-label="Search jobs"]',
     field: 'input[aria-label="Search jobs"]',
@@ -80,10 +81,17 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     maxWidth: 899,
   },
   {
-    name: "declutter-browse-row", file: "src/components/declutter/DeclutterBrowseBar.tsx",
+    name: "declutter-browse-row", file: "src/components/sections/SectionSearchRow.tsx",
     url: "/declutter",
     trigger: 'input[aria-label="Search items"]',
     field: 'input[aria-label="Search items"]',
+    close: CLEAR,
+  },
+  {
+    name: "shops-browse-row", file: "src/components/sections/SectionSearchRow.tsx",
+    url: "/shops",
+    trigger: 'input[aria-label="Search shops"]',
+    field: 'input[aria-label="Search shops"]',
     close: CLEAR,
   },
   {
@@ -140,7 +148,7 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
   },
   // Homes Browse (2026-10-19): the slim City or ZIP row is a permanent field; its ✕ clears.
   {
-    name: "homes-rent", file: "src/components/rentals/listings/RentBrowse.tsx",
+    name: "homes-rent", file: "src/components/sections/SectionSearchRow.tsx",
     url: "/rentals",
     trigger: 'input[aria-label="City or ZIP"]',
     field: 'input[aria-label="City or ZIP"]',

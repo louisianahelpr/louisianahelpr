@@ -4707,5 +4707,8 @@ html body .app-top-bar h1.text-page-title {
 /* Jobs' section header rides in a PageScaffold title card (Posted / Working / Browse). Zero that card's frame
    and the scaffold's top gap so the top bar lands at the same y as every other section's (SectionScreen),
    measured 28px lower before (dashboards build run 4 shots). */
-.page-title-card:has(.app-top-bar) { padding: 0 !important; }
+/* The section shell (owner, 2026-10-19): a title card holding the shared top bar is no card at all, no padding
+   and no border, so Jobs and Messages put the bar, toggle and search row exactly where SectionScreen does. */
+.page-title-card:has(.app-top-bar) { padding: 0 !important; border-width: 0 !important; }
+.container:has(> div > .page-title-card .app-top-bar) .page-panel { border-width: 0 !important; }
 .container:has(> div > .page-title-card .app-top-bar) { padding-top: 0 !important; }

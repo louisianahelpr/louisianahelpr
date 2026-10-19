@@ -357,7 +357,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
 
 
   const embeddedTitle = (
-    <div className="flex flex-col gap-3 pb-1">
+    <div className="flex flex-col gap-4">
       {embeddedHeader}
       {!isWebDesktop && <BrowseCompactSearchRow filters={filters} filtersButtonRef={filtersButtonRef} />}
     </div>

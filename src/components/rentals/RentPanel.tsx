@@ -54,10 +54,15 @@ import { fieldSelectClass } from "./rentalsUi";
 
 const rentKey = (tenancyId: string) => ["rent-ledger", tenancyId];
 
+/** The balance, top right of the card: a small label over the amount, so neither wraps at 320/375. */
 function BalanceLine({ cents, side }: { cents: number; side: RentLedger["side"] }) {
-  if (cents > 0) return <p className="text-sm font-semibold">{side === "tenant" ? `You owe ${money(cents)}` : `Owed to you: ${money(cents)}`}</p>;
-  if (cents < 0) return <p className="text-sm font-semibold">Paid ahead: {money(-cents)}</p>;
-  return <p className="text-sm font-semibold">Paid up</p>;
+  const [label, amount] = cents > 0 ? [side === "tenant" ? "You owe" : "Owed to you", money(cents)] : cents < 0 ? ["Paid ahead", money(-cents)] : ["", "Paid up"];
+  return (
+    <p className="shrink-0 text-right" data-testid="rent-balance">
+      {label && <span className="block whitespace-nowrap text-xs text-muted-foreground">{label}</span>}
+      <span className="block whitespace-nowrap text-base font-semibold">{amount}</span>
+    </p>
+  );
 }
 
 /** A calendar date n days after a YYYY-MM-DD date. */
@@ -319,10 +324,13 @@ function PaymentRow({ l, p, onDone }: { l: RentLedger; p: RentPayment; onDone: (
           <span className="block">
             Paid {money(p.amount_cents)} · {PAY_METHOD_LABEL[p.method]} · {dayLabel(p.paid_on)}
           </span>
-          <span className="block text-xs text-muted-foreground">
-            {PAYMENT_STATUS_LABEL[p.status]}
-            {p.status === "declined" && p.decline_reason ? `: ${p.decline_reason}` : ""}
-          </span>
+          {/* A reversal's own line says "Taken back by the landlord: <reason>", so the bare status would repeat it. */}
+          {!(p.status === "reversed" && p.corrections.some((c) => c.action === "reverse")) && (
+            <span className="block text-xs text-muted-foreground">
+              {PAYMENT_STATUS_LABEL[p.status]}
+              {p.status === "declined" && p.decline_reason ? `: ${p.decline_reason}` : ""}
+            </span>
+          )}
           {p.corrections.map((c) => (
             <span key={c.at} className="block text-xs text-muted-foreground">
               {correctionLine(c)}
@@ -341,12 +349,12 @@ function PaymentRow({ l, p, onDone }: { l: RentLedger; p: RentPayment; onDone: (
             </Button>
           )}
           {mayFix && (
-            <Button type="button" size="sm" variant="ghost" aria-expanded={open === "fix"} onClick={() => setOpen(open === "fix" ? null : "fix")}>
+            <Button type="button" size="sm" variant="outline" aria-expanded={open === "fix"} onClick={() => setOpen(open === "fix" ? null : "fix")}>
               Fix
             </Button>
           )}
           {mayDispute && (
-            <Button type="button" size="sm" variant="ghost" aria-expanded={open === "dispute"} onClick={() => setOpen(open === "dispute" ? null : "dispute")}>
+            <Button type="button" size="sm" variant="outline" aria-expanded={open === "dispute"} onClick={() => setOpen(open === "dispute" ? null : "dispute")}>
               Dispute
             </Button>
           )}

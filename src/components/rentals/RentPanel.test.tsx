@@ -83,7 +83,7 @@ describe("RentPanel (D2 pay direct)", () => {
 
   it("tenant: the schedule, what is owed, how to pay; I paid sends amount, date and method", async () => {
     renderPanel();
-    expect(await screen.findByText("You owe $1,200.00")).toBeTruthy();
+    expect((await screen.findByTestId("rent-balance")).textContent).toBe("You owe$1,200.00");
     expect(screen.getByText(/\$1,200\.00 every month · next due Nov 1, 2026/)).toBeTruthy();
     expect(screen.getByText(/Late fee \$50\.00 if rent is still open more than 3 days after the due date\. Paid directly to the landlord by Zelle, Check\./)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "I paid" }));
@@ -157,7 +157,7 @@ describe("RentPanel (D2 pay direct)", () => {
       payments: [{ id: "p1", amount_cents: 50000, paid_on: "2026-10-02", method: "zelle", reported_by: "tenant", status: "reported", decline_reason: null, decided_at: null, ...PAY }],
     });
     renderPanel();
-    expect(await screen.findByText("Owed to you: $1,200.00")).toBeTruthy();
+    expect((await screen.findByTestId("rent-balance")).textContent).toBe("Owed to you$1,200.00");
     fireEvent.click(screen.getByRole("button", { name: "Rent received" }));
     await waitFor(() => expect(decideRentPayment).toHaveBeenCalledWith("p1", true, undefined));
     fireEvent.click(screen.getByRole("button", { name: "Not received" }));

@@ -227,6 +227,7 @@ const OUT_OF_SCOPE: Record<string, string> = {
   "src/components/ProtectedRoute.tsx::PROFILE_GATE_ALLOWED": "app routing config",
   "src/components/admin/AdminAuditLog.tsx::SKIP": "app display config (diff fields hidden in the audit log)",
   "scripts/lib/strandedContent.mjs::IGNORED_PATHS": "scope config, not an exemption: path PATTERNS whose lines are regenerated on every landing (generated inventories, the open-work list), so they can never match main line for line; excuses no stranded ref by name (Q1146)",
+  "src/test/playwrightWebkitLinuxPin.test.ts::KNOWN_BAD": "denylist, not an exemption: Playwright releases whose Linux WebKit build stops painting, which the pin must never take; a published release never changes its WebKit build, so an entry cannot stop reproducing, and it excuses no offender (nightly-red #2962)",
   "src/test/secretScanGate.test.ts::ALLOWED_SAMPLES": "test inputs the secret scanner must NOT flag, each asserted per sample; exempts nothing in the repo",
   "src/components/glassCardScale.test.ts::ALLOWED": "design vocabulary (permitted padding classes), not offenders",
   "src/components/policy/CollapsedPolicy.tsx::SKIP_TAGS": "app rendering config",

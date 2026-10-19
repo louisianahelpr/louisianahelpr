@@ -189,7 +189,7 @@ serve(async (req: Request) => {
       console.error("listing-photo: storage returned bytes that are not a well-formed JPEG");
       return unavailable();
     }
-    return new Response(req.method === "HEAD" ? null : clean, {
+    return new Response(req.method === "HEAD" ? null : new Uint8Array(clean), {
       status: 200,
       headers: {
         "Content-Type": "image/jpeg",

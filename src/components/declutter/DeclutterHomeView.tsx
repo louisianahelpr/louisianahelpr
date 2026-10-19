@@ -36,6 +36,8 @@ import { DISTANCE_CHOICES, formatPrice, nearestFirst } from "@/lib/declutter/dis
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
+import { DeclutterCategoryTiles } from "./DeclutterCategoryTiles";
+import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
 import { BuyingDash, SellingDash } from "./DeclutterMineViews";
@@ -116,8 +118,12 @@ function BrowseView({ userId }: { userId: string }) {
     enabled: sellers.length > 0,
   });
   const [query, setQuery] = useState("");
+  // One category at a time from the tiles; null = every category.
+  const [category, setCategory] = useState<string | null>(null);
   const q = query.trim().toLowerCase();
-  const rows = nearestFirst(others, from, from ? maxMiles : null).filter(({ item }) => !q || item.title.toLowerCase().includes(q));
+  const rows = nearestFirst(others, from, from ? maxMiles : null).filter(
+    ({ item }) => (!q || item.title.toLowerCase().includes(q)) && (!category || item.category === category),
+  );
   // ONE gate for the list and its cover photos, so the cards arrive in one
   // paint instead of the list first and its photos in a second wave
   // (oneLoadingGatePerScreen.test.ts). The photos query is disabled (never
@@ -143,6 +149,7 @@ function BrowseView({ userId }: { userId: string }) {
         onMaxMiles={setMaxMiles}
         ask={{ origin, asked, asking, canAskAgain, deviceNote, askDevice }}
       />
+      <DeclutterCategoryTiles value={category} onChange={setCategory} />
       {itemsPhase === "offline-empty" ? (
         <OfflineEmptyState body="Items for sale will show here once you're back online." onRetry={() => void items.refetch()} />
       ) : rows.length === 0 ? (
@@ -150,8 +157,8 @@ function BrowseView({ userId }: { userId: string }) {
         <EmptyState
           variant="bare"
           icon={Sofa}
-          title={others.length === 0 ? "Nothing for sale yet." : q ? "Nothing matches that search." : "Nothing for sale this close."}
-          body={others.length === 0 ? "Check back soon, or sell something of your own." : q ? "Try another word." : "Try a bigger distance."}
+          title={others.length === 0 ? "Nothing for sale yet." : q ? "Nothing matches that search." : category ? `Nothing in ${CATEGORY_WORD[category] ?? "this category"} right now.` : "Nothing for sale this close."}
+          body={others.length === 0 ? "Check back soon, or sell something of your own." : q ? "Try another word." : category ? "Try another category, or tap it again to see everything." : "Try a bigger distance."}
         />
       ) : (
         <ul className={DECLUTTER_GRID}>

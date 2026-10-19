@@ -40,3 +40,23 @@ export function categoryIcon(category: string | null | undefined): LucideIcon {
   return CATEGORY_ICON[category ?? ""] ?? CATEGORY_ICON.other;
 }
 
+/**
+ * One word per category for Browse's category tiles (lead, 2026-10-19: icon
+ * plus one word). The full names (CATEGORY_LABEL in declutterUi.tsx) stay on
+ * the item page and in the sell form.
+ */
+export const CATEGORY_WORD: Record<string, string> = {
+  furniture: "Furniture",
+  appliances: "Appliances",
+  electronics: "Electronics",
+  kitchen: "Kitchen",
+  home_decor: "Decor",
+  tools: "Tools",
+  outdoor_garden: "Garden",
+  sports_outdoors: "Sports",
+  toys_games: "Toys",
+  baby_kids: "Baby",
+  clothing: "Clothing",
+  books_media: "Books",
+  other: "Other",
+};

@@ -404,10 +404,20 @@ async function payCheckout(browser, url, label) {
     const card = page.locator("#cardNumber");
     const cardButton = page.getByTestId("card-accordion-item-button");
     const radio = page.getByRole("radio").first();
+    const cardItem = page.getByTestId("card-accordion-item");
     const submit = page.getByTestId("hosted-payment-submit-button");
-    await card.or(cardButton).or(radio).or(submit).first().waitFor({ state: "visible", timeout: 60_000 });
+    // NOT `a.or(b).first().waitFor(visible)`: `.first()` is the first match in DOM order, and
+    // with the Card item already open that is the card-accordion-item-button OVERLAY, a
+    // zero-size click area that never reads visible (run 39342447913 sat 60 s on it with the
+    // card fields drawn; reproduced locally on the same cs_test_ page). Any one visible is enough.
+    const drawn = async () => {
+      for (const l of [card, cardItem, radio, submit]) if (await l.first().isVisible().catch(() => false)) return true;
+      return false;
+    };
+    await poll("Stripe's payment form", drawn, { every: 500, timeoutMs: 60_000 });
     if (!(await card.isVisible().catch(() => false))) {
       if (await cardButton.count()) await cardButton.first().click({ force: true });
+      else if (await cardItem.count()) await cardItem.first().click({ force: true });
       else if (await radio.count()) await radio.click({ force: true });
     }
     // A buyer with a saved test card may be shown that card and no card fields:

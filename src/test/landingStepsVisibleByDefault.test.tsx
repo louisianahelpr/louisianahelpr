@@ -1,12 +1,13 @@
 /**
  * The landing's "How it works" steps are visible by default (lead, 2026-10-19:
  * a full-page capture of the live landing showed the section blank, because
- * its scroll reveal had never fired). The fade is an enhancement only: no
- * IntersectionObserver, reduced motion, or a section already on screen keep
- * the steps visible; only a section that starts below the fold waits, and any
- * pixel of it scrolling in reveals it (no ratio threshold).
+ * its scroll reveal had never fired). Motion is an enhancement only: the
+ * steps are never see-through (print, crawlers and full-page captures
+ * read them); a section that starts below the fold only sits 16px low and any
+ * pixel of it scrolling in slides it up (no ratio threshold).
  *
  * @mutate src/components/landing/HowItWorksSection.tsx | useState<Reveal>("shown") | useState<Reveal>("waiting")
+ * @mutate src/components/landing/HowItWorksSection.tsx |                   opacity: 1, |                   opacity: lowered ? 0 : 1,
  * @mutate src/components/landing/HowItWorksSection.tsx |       { threshold: 0 }, |       { threshold: 0.2 },
  * @mutate src/components/landing/HowItWorksSection.tsx |     if (!el \|\| el.getBoundingClientRect().top < window.innerHeight) return; |     if (!el) return;
  */
@@ -48,25 +49,26 @@ describe("How it works is visible by default; the reveal only enhances", () => {
     vi.stubGlobal("IntersectionObserver", undefined);
     at(5000);
     render(<HowItWorksSection />);
-    expect(card().style.opacity).toBe("1");
+    expect(card().style.transform).toBe("translateY(0)");
   });
 
   it("already on screen at load: visible, nothing observed", () => {
     vi.stubGlobal("IntersectionObserver", FakeIO);
     at(100);
     render(<HowItWorksSection />);
-    expect(card().style.opacity).toBe("1");
+    expect(card().style.transform).toBe("translateY(0)");
     expect(observed.length).toBe(0);
   });
 
-  it("below the fold: waits, then any pixel in view reveals it", () => {
+  it("below the fold: still readable, sits low, and any pixel in view slides it up", () => {
     vi.stubGlobal("IntersectionObserver", FakeIO);
     at(5000);
     render(<HowItWorksSection />);
-    expect(card().style.opacity).toBe("0");
+    expect(card().style.opacity).toBe("1");
+    expect(card().style.transform).toBe("translateY(16px)");
     expect(observed.length).toBeGreaterThan(0);
     expect(observed[0].opts?.threshold).toBe(0);
     act(() => observed[0].cb([{ isIntersecting: true }]));
-    expect(card().style.opacity).toBe("1");
+    expect(card().style.transform).toBe("translateY(0)");
   });
 });

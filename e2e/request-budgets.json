@@ -27,7 +27,7 @@
     },
     "prod-audit": {
       "perTest": 138.2,
-      "signIns": 0
+      "signIns": 12
     },
     "chromium-anon-surface": {
       "perTest": 1.8,

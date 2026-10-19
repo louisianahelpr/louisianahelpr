@@ -146,7 +146,8 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
     expect(cp.match(/setupFeeKeptCents\(job\)/g)?.length).toBeGreaterThanOrEqual(4); // cancel, dispute refund + reason, admin full refund
     // Owner, 2026-10-12 (second pop-up): an admin's FULL refund keeps it too
     // (through _shared/refundAmount.ts since 2026-10-14).
-    expect(cp).toContain("const keptSetupCents = isPartial ? 0 : generalSplit.setupKeptCents;");
+    // Owner 2026-10-18 ~22:30Z: `split` is generalSplit or the Helpr-fault split, and both keep the $2.
+    expect(cp).toContain("const keptSetupCents = isPartial ? 0 : split.setupKeptCents;");
     expect(code("src/components/admin/adminJobs/RefundJobDialog.tsx")).toContain("also keeps its one-time $2 setup fee");
     expect(code("supabase/functions/void-cancelled-payments/index.ts")).toMatch(/setupFeeCents: setupFeeKeptCents\(job\),/);
     expect(code("supabase/functions/void-cancelled-payments/index.ts")).toMatch(/customer_fee_amount, onboarding_fee_amount, cancellation_fee/);

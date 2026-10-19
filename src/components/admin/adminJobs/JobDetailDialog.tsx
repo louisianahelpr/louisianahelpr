@@ -12,6 +12,7 @@ import { openableDocumentUrl } from "@/lib/storagePath";
 import { JobNotes } from "@/components/job-card/JobNotes";
 import { useJobAccessNote } from "@/hooks/useJobAccessNote";
 import { EndSeriesSection } from "./EndSeriesSection";
+import { BillHelprFaultButton } from "../helprFault/BillHelprFaultButton";
 
 interface JobDetailDialogProps {
   detailJob: Job | null;
@@ -232,6 +233,8 @@ export const JobDetailDialog = ({
                     <DollarSign className="w-3.5 h-3.5" /> Refund Poster
                   </Button>
                 )}
+                {/* Q2170: billing the Helpr at fault failed after the refund; retry it. */}
+                {detailJob.payment_status === "refunded" && <BillHelprFaultButton jobId={detailJob.id} />}
               </div>
             )}
             {/* Q417 (c): end a recurring series as the platform (renders only

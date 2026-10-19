@@ -42,6 +42,11 @@ export function useDetailJob({ containerRef, searchParams, setSearchParams, allJ
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.set("job", value.id);
+        // The feed is Jobs > Browse (/jobs). A bare /jobs?job=<id> is an OLD
+        // My Jobs link and opens Working (JobsSection.resolveJobsTab), so the
+        // open job must name its tab or tapping a Browse card jumped to
+        // Working (dashboards build run 4; same rule as feedLinkForward.ts).
+        if (!next.has("tab")) next.set("tab", "browse");
         return next;
       }, { replace: true });
     }

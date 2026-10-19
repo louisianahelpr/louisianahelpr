@@ -12,6 +12,7 @@ import { assertNever } from "@/lib/assertNever";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 
 export type CancelPolicy = "until_24h_before_ready" | "until_accept" | "until_handover";
@@ -74,7 +75,8 @@ export function cancelPolicyText(policy: CancelPolicy, readyTap: ReadyTapCancel 
 }
 
 type OrderStatus =
-  | "awaiting_hold" | "held" | "accepted" | "declined" | "expired" | "cancelled" | "superseded" | "handed_over" | "refunded";
+  | "awaiting_hold" | "held" | "accepted" | "declined" | "expired" | "cancelled" | "superseded" | "handed_over" | "refunded"
+  | "partially_refunded";
 
 interface OrderLine {
   id: string;
@@ -211,9 +213,12 @@ async function invokeShopCheckout(body: Record<string, unknown>): Promise<Record
 /** Ask for an order: the Stripe page's URL (a card HOLD; nothing is charged until the shop accepts). */
 export async function requestOrder(args: {
   shopId: string; lines: { item_id: string; quantity: number }[]; readyDate: string; note: string;
+  /** The cancel terms the buyer read (shops_order_terms): shop-checkout answers terms_changed if the shop changed them since. */
+  terms: Pick<OrderTerms, "cancel_policy" | "ready_tap_cancel">;
 }): Promise<string> {
   const data = await invokeShopCheckout({
     action: "order", shop_id: args.shopId, lines: args.lines, ready_date: args.readyDate, note: args.note,
+    terms: { cancel_policy: args.terms.cancel_policy, ready_tap_cancel: args.terms.ready_tap_cancel ?? "from_day_before" },
   });
   if (typeof data.url !== "string" || !data.url) throw new Error("payment_unavailable");
   return data.url;
@@ -234,6 +239,73 @@ export async function cancelOrderRequest(orderId: string): Promise<void> {
   await invokeShopCheckout({ action: "cancel", order_id: orderId });
 }
 
+/** What a buyer's cancel of an accepted order would do now (shops_order_cancel_quote, 20261019071055). */
+export interface CancelQuote {
+  can_cancel: boolean;
+  free?: boolean;
+  free_until?: string | null;
+  paid_cents?: number;
+  refund_cents?: number;
+  kept_cents?: number;
+  /** The quote RPC is not on the server yet (PGRST202, deploy lag): no cancel is offered. */
+  unavailable?: boolean;
+}
+
+export async function fetchCancelQuote(orderId: string): Promise<CancelQuote> {
+  const { data, error } = await supabase.rpc("shops_order_cancel_quote", { p_order_id: orderId });
+  // A brand-new RPC the database has not deployed yet (/code-review of shops-m3-v1 #8): say so, offer nothing.
+  if (error && isMissingRpcNamed(error, "shops_order_cancel_quote")) return { can_cancel: false, unavailable: true };
+  if (error) rpcFail(error, rpcErrorMessage("shops_order_cancel_quote", error));
+  return (data ?? { can_cancel: false }) as unknown as CancelQuote;
+}
+
+/**
+ * Shops M3: the buyer cancels an accepted order. `expect` is what the screen
+ * showed ('free' or 'late'); if the window moved since, the server refuses
+ * with cancel_terms_changed and nothing happens.
+ */
+export async function buyerCancelOrder(orderId: string, expect: "free" | "late"): Promise<{ refundCents: number }> {
+  const data = await invokeShopCheckout({ action: "buyer_cancel", order_id: orderId, expect });
+  return { refundCents: typeof data.refund_cents === "number" ? data.refund_cents : 0 };
+}
+
+/** Shops M3 (L42): the shop cancels an accepted order: the buyer gets everything back, the shop pays the card fee + a strike. */
+export async function shopCancelOrder(orderId: string, reason: string): Promise<void> {
+  await invokeShopCheckout({ action: "shop_cancel", order_id: orderId, reason: reason.trim() || null });
+}
+
+/** Shops M3 (O3): the buyer did not come to an in-person pickup: a late cancel (the shop is paid) + a buyer strike. */
+export async function reportNoShow(orderId: string): Promise<void> {
+  await invokeShopCheckout({ action: "no_show", order_id: orderId });
+}
+
+export type AdminRefundReason = "problem_shop_fault" | "problem_no_fault" | "problem_our_mistake" | "shop_removed";
+
+/** Shops M4: an admin refunds an order by reason (the SQL decides who carries the card fee). */
+export async function adminRefundOrder(orderId: string, reason: AdminRefundReason, note: string): Promise<void> {
+  await invokeShopCheckout({ action: "admin_refund", order_id: orderId, reason, note: note.trim() });
+}
+
+/**
+ * Shops M3 (/code-review of shops-m3-v1 #1, v2 rule B): an admin records a refund made by hand
+ * in the Stripe Dashboard. shop-checkout reads it from Stripe and records it only when it is a
+ * live refund on this order's payment for exactly this amount. Answers the outcome.
+ */
+export async function adminRecordHandRefund(orderId: string, refundId: string, amountCents: number, note: string): Promise<string> {
+  const data = await invokeShopCheckout({ action: "admin_record_hand_refund", order_id: orderId, refund_id: refundId, amount_cents: amountCents, note });
+  return typeof data.result === "string" ? data.result : "";
+}
+
+/**
+ * Settle a HELD Shops refund with a refund made in Stripe (admin, Payouts held for review;
+ * /code-review of shops-m3 run 3). shop-checkout reads the refund from Stripe and settles the
+ * row only when it is live, on the row's payment, and covers the whole refund it owes.
+ */
+export async function adminSettleHeldShopRefund(refundRowId: string, refundId: string, note: string): Promise<string> {
+  const data = await invokeShopCheckout({ action: "admin_settle_held_refund", refund_row_id: refundRowId, refund_id: refundId, note });
+  return typeof data.result === "string" ? data.result : "";
+}
+
 /** F1 (owner 2026-10-18): 5% of the items, rounded, + 70 cents; the same rule as the order's table CHECK. */
 export function buyerFeeCents(itemsCents: number): number {
   return Math.round(itemsCents * 0.05) + 70;
@@ -243,8 +315,25 @@ export function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-/** "Waiting for the shop", "Accepted", ... in the buyer's words. */
-export function orderStatusLabel(o: Pick<ShopOrder, "status" | "close_reason" | "captured_at">): string {
+/** M3's endings of a charged order, in each side's words. */
+const CLOSE_WORDS: Record<string, { buyer: string; shop: string }> = {
+  buyer_cancelled_free: { buyer: "Cancelled by you (refunded, less the card-processing cost)", shop: "Cancelled by the buyer in your free-cancel time" },
+  buyer_cancelled_late: { buyer: "Cancelled by you late (not refunded; the shop is paid)", shop: "Cancelled by the buyer late (you are paid)" },
+  buyer_no_show: { buyer: "Missed pickup (not refunded; the shop is paid)", shop: "Buyer didn't show (you are paid)" },
+  shop_cancelled: { buyer: "Cancelled by the shop (refunded in full)", shop: "Cancelled by you (buyer refunded in full)" },
+  no_ready_photo: { buyer: "Refunded in full (the shop never marked it ready)", shop: "Refunded to the buyer (no ready photo)" },
+  admin_refunded: { buyer: "Refunded by Louisiana Helpr", shop: "Refunded to the buyer by Louisiana Helpr" },
+  // A refund Louisiana Helpr made by hand in Stripe (the shop is not paid until an admin decides).
+  refunded_by_hand: { buyer: "Refunded by Louisiana Helpr", shop: "Refunded to the buyer by Louisiana Helpr" },
+};
+
+/** "Waiting for the shop", "Accepted", ... in the buyer's (or the shop's) words. */
+export function orderStatusLabel(o: Pick<ShopOrder, "status" | "close_reason" | "captured_at">, side: "buyer" | "shop" = "buyer"): string {
+  const closed = o.close_reason ? CLOSE_WORDS[o.close_reason] : undefined;
+  if (closed && o.status === "partially_refunded") {
+    return side === "buyer" ? "Partly refunded by Louisiana Helpr" : "Partly refunded to the buyer by Louisiana Helpr";
+  }
+  if (closed && (o.status === "refunded" || o.status === "cancelled")) return closed[side];
   switch (o.status) {
     case "held": return "Waiting for the shop (card held, not charged)";
     case "accepted": return o.captured_at ? "Accepted and paid" : "Accepted (charging your card)";
@@ -253,6 +342,7 @@ export function orderStatusLabel(o: Pick<ShopOrder, "status" | "close_reason" | 
     case "cancelled": return o.close_reason === "buyer_cancelled" ? "Withdrawn (nothing charged)" : "Cancelled (nothing charged)";
     case "handed_over": return "Picked up";
     case "refunded": return "Refunded";
+    case "partially_refunded": return "Partly refunded";
     // Never listed (fetchMyOrders / fetchShopOrders leave them out); worded for completeness.
     case "awaiting_hold": return "Not sent (the payment page was not finished)";
     case "superseded": return "Replaced by a newer order";

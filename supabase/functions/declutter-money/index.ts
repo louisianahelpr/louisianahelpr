@@ -43,6 +43,19 @@
  *      _shared/shopHolds.ts with one idempotency key per capture attempt. Isolated: a
  *      Shops failure is a defect, never a stop for the steps above.
  *
+ *   5b. SHOP REFUNDS (M3, migration 20261019071055) shop_refund_sweep() first
+ *      (a left-out order with no ready photo 3 days after its date is refunded
+ *      as the shop's fault), then shop_refunds_due(): every Shops refund the
+ *      member's tap did not finish, through _shared/shopRefunds.ts (reconciled
+ *      by metadata.shop_refund_id, key `shop-refund-<row id>`, recorded with
+ *      shop_refund_executed). The SQL decided the amount under the order's row
+ *      lock; this only sends it. Isolated like step 5.
+ *
+ *   5c. LOUISIANA FACILITATOR THRESHOLD (20261019071055 section 12):
+ *      facilitator_threshold_check() counts the year's completed Shops +
+ *      Declutter item totals; past $80,000 it pages ops once (then
+ *      facilitator_alert_sent), ahead of the $100,000 registration duty.
+ *
  *   6. SHOP PAYOUTS (M2, migration 20261018211820) shop_handover_sweep() first
  *      (the automatic finish), then shop_payouts_due(): a shop's item price
  *      minus its card-fee debt (taken in SQL at the handover). Same shape as a
@@ -82,6 +95,7 @@ import { queueEmail } from "../_shared/resend.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { createStripeModeResolver, sessionIdMode, StripeModeRefused } from "../_shared/stripeMode.ts";
 import { captureShopHold, releaseShopHold, shopOrderMode, type ShopHoldRow } from "../_shared/shopHolds.ts";
+import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
 
 const FN = "declutter-money";
 const BATCH = 25;
@@ -254,6 +268,7 @@ serve(async (req) => {
     payee_setup_paged: 0, payee_banned: 0, payout_retry_later: 0, mixed_parties: 0,
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
     shop_handed_over: 0, shop_payouts_sent: 0, shop_payouts_reconciled: 0, shop_payouts_failed: 0,
+    shop_no_photo_refunded: 0, shop_refunds_sent: 0, shop_refunds_reconciled: 0, shop_refunds_failed: 0,
   };
 
   // Payouts a payee cannot receive yet (/code-review of f6551863a, 20261019070737). Every row a
@@ -596,6 +611,65 @@ serve(async (req) => {
     }
   } catch (e) {
     defects.record(`shops step: ${caughtMessage(e, "failed")}`.slice(0, 200));
+  }
+
+  // 5b. SHOP REFUNDS M3 (migration 20261019071055): the no-photo clock, then every
+  //     refund row the member's tap did not send. The SQL decided each amount
+  //     under the order's row lock (reason -> fee policy -> amount are table
+  //     CHECKs); _shared/shopRefunds.ts reconciles, then sends with key
+  //     shop-refund-<row id>. Its own try, like step 5.
+  try {
+    const noPhoto = await admin.rpc("shop_refund_sweep", {});
+    if (noPhoto.error) defects.record(`shop_refund_sweep failed: ${noPhoto.error.message}`);
+    else out.shop_no_photo_refunded = Number((noPhoto.data as { no_ready_photo_refunded?: number } | null)?.no_ready_photo_refunded ?? 0);
+    const dueRefunds = await admin.rpc("shop_refunds_due", { p_limit: BATCH });
+    if (dueRefunds.error) defects.record(`shop_refunds_due failed: ${dueRefunds.error.message}`);
+    for (const r of (dueRefunds.data ?? []) as ShopRefundRow[]) {
+      try {
+        const mode = shopOrderMode({ livemode: r.livemode, checkout_session_id: r.checkout_session_id });
+        const stripe = mode ? modes.clientFor(mode) : (await modes.clientForParties([r.buyer_id, r.seller_id])).stripe;
+        const done = await sendShopRefund(stripe, admin, r);
+        if (done === "sent") out.shop_refunds_sent++;
+        else if (done === "reconciled") out.shop_refunds_reconciled++;
+        else {
+          out.shop_refunds_failed++;
+          defects.record(`shop refund ${r.refund_id}: Stripe refused it (try ${Number(r.attempts ?? 0) + 1})`);
+        }
+      } catch (e) {
+        defects.record(`shop refund ${r.refund_id}: ${caughtMessage(e, "refund failed")}`.slice(0, 200));
+      }
+    }
+  } catch (e) {
+    defects.record(`shop refunds step: ${caughtMessage(e, "failed")}`.slice(0, 200));
+  }
+
+  // 5c. The Louisiana marketplace-facilitator early warning (R.S. 47:340.1: the
+  //     duty to register starts at $100,000 of facilitated retail sales delivered
+  //     into Louisiana in a calendar year). The SQL counts completed Shops +
+  //     Declutter item totals and writes one row per year at $80,000 (admins told
+  //     in-app once); this posts the ops alert until it is marked sent.
+  try {
+    const fac = await admin.rpc("facilitator_threshold_check", {});
+    if (fac.error) defects.record(`facilitator_threshold_check failed: ${fac.error.message}`);
+    const f = (fac.data ?? null) as { year?: number; total_cents?: number; ops_alert_due?: boolean } | null;
+    if (f?.ops_alert_due === true && typeof f.year === "number") {
+      // Marked sent ONLY when the post was delivered (/code-review of shops-m3-v1 #3):
+      // a post that failed stays due and is tried again on the next run.
+      const delivered = await postSlackOpsAlert({
+        kind: "money_at_risk", severity: "critical", oncePerDayKey: `la-facilitator-threshold-${f.year}`,
+        title: "Louisiana marketplace-facilitator threshold: $80,000 passed",
+        message: `Shops + Declutter sales delivered into Louisiana reached ${dollars(Number(f.total_cents ?? 0))} in ${f.year} (items only, no fees or tax). Registration with the Remote Sellers Commission is required within 30 days of passing $100,000 (R.S. 47:340.1). Start it now.`,
+        fields: { Year: String(f.year), Total: dollars(Number(f.total_cents ?? 0)) },
+      });
+      if (delivered === true) {
+        const { error: sentErr } = await admin.rpc("facilitator_alert_sent", { p_year: f.year });
+        if (sentErr) defects.record(`facilitator_alert_sent failed: ${sentErr.message}`);
+      } else {
+        defects.record(`facilitator alert for ${f.year} not delivered; retried next run`);
+      }
+    }
+  } catch (e) {
+    defects.record(`facilitator step: ${caughtMessage(e, "failed")}`.slice(0, 200));
   }
 
   // 6. SHOP PAYOUTS (M2, migration 20261018211820): the automatic finish, then every

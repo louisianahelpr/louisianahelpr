@@ -43,6 +43,7 @@ import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes"
 const SHOP_GROUPS = ["answer", "make", "earlier"] as const;
 type ShopGroup = (typeof SHOP_GROUPS)[number];
 const SHOP_GROUP_LABEL: Record<ShopGroup, string> = { answer: "Needs you", make: "To make", earlier: "Done" };
+import { ShopCancelOrder } from "./ShopOrderCancel";
 
 const REASON_MAX = 200;
 
@@ -212,6 +213,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
                   {accepted.map((o) => (
                     <ShopOrderCard key={o.id} order={o} side="shop" heading="Accepted order">
                       {user && <ShopHandoverActions order={o} side="shop" userId={user.id} />}
+                      <ShopCancelOrder order={o} />
                     </ShopOrderCard>
                   ))}
                 </ul>

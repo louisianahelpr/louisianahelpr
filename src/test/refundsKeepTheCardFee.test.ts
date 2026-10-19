@@ -104,6 +104,15 @@
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   const answer = data as MarkPaidAnswer \| null; |   const answer = data as MarkPaidAnswer \| null;\n  if (answer && answer.result === "refund") (answer as { refund_cents: number }).refund_cents = amount;
  * @mutate supabase/functions/declutter-money/index.ts |   for (const r of refunds) { |   refunds.forEach((x) => { (x as { refund_cents: number }).refund_cents += 100; });\n  for (const r of refunds) {
  * @mutate supabase/functions/declutter-money/index.ts |   for (const r of refunds) { |   await admin.from("declutter_orders").update({ status: "paid" }).eq("id", "x");\n  for (const r of refunds) {
+ * Shops (lead, shops-m3 run 3: the same reader for every family whose amount SQL decides):
+ * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee' |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'full_platform_absorbs'
+ * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     WHEN p_reason = 'problem_our_mistake' THEN 'full_platform_absorbs' |     WHEN p_reason IN ('problem_our_mistake', 'shop_removed') THEN 'full_platform_absorbs'
+ * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |   CONSTRAINT shop_refunds_policy CHECK (fee_policy = public.shop_refund_fee_policy(reason)), |   CONSTRAINT shop_refunds_policy CHECK (fee_policy IN ('keep_card_fee', 'full_shop_pays_fee', 'full_platform_absorbs')),
+ * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     SELECT o.*, CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept FROM o |     SELECT o.*, 0 AS kept FROM o
+ * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     'buyer_cancelled', 'shop_cancelled', 'no_ready_photo', 'shop_removed', |     'buyer_cancelled', 'shop_cancelled', 'no_ready_photo', 'shop_removed', 'goodwill',
+ * @mutate supabase/functions/_shared/shopRefunds.ts |           amount: row.refund_cents, |           amount: row.refund_cents + 30,
+ * @mutate supabase/functions/declutter-money/index.ts |         const done = await sendShopRefund(stripe, admin, r); |         r.refund_cents = r.refund_cents + 30;\n        const done = await sendShopRefund(stripe, admin, r);
+ * @mutate supabase/functions/shop-checkout/index.ts |     const outcome = await sendShopRefund(await stripeForOrder(admin, o), admin, row); |     const outcome = await sendShopRefund(await stripeForOrder(admin, o), admin, { ...row, refund_cents: row.refund_cents + 30 });
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -130,6 +139,15 @@ interface SqlSite {
   decidedBy: keyof typeof SQL_POLICIES; rpc: string; reader: string; amount: string; row: string; chain: string[];
   /** Functions in the site's file that must be called exactly `count` times (the one call that hands the row on). */
   calls?: Record<string, number>;
+  /** The refund table the reader returns refund_cents from (default declutter_refunds). */
+  table?: string;
+  /**
+   * A site in a SHARED sender that takes its row as a parameter (Shops: _shared/shopRefunds.ts sendShopRefund):
+   * the row is read in each caller instead. Each feeder reads it through `rpc` (whose body returns refund_cents
+   * straight off `table`), declares it by the pinned `chain`, and hands it on unchanged by `call`, called exactly
+   * `calls` times in that file. The site's own `chain` then starts at the parameter.
+   */
+  feeders?: Array<{ file: string; rpc: string; row: string; chain: string[]; call: string; calls: Record<string, number> }>;
   /**
    * Every line of the site's file that names refund_cents (comments blanked, whitespace-collapsed), in order.
    * EXACT: a write to the row's refund_cents anywhere in the file (before the chain, on an alias) adds a line
@@ -155,6 +173,42 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
   { file: "supabase/functions/void-cancelled-payments/index.ts", key: "cancel-refund-", kind: "both", why: "cancelled job settlement; full for a seller-fault Declutter setup job (A10)" },
   { file: "supabase/functions/process-scheduled-payouts/index.ts", key: "crew-dispute-refund-", kind: "keeps-fee", why: "crew unfilled spots / crew dispute" },
   { file: "supabase/functions/charge-recurring-visits/index.ts", key: "refunds.create(params, opts)", kind: "pass-through", why: "createRefundOnce: callers checked below" },
+  {
+    // Shops M3 (20261019071055): the shared sender sends exactly a shop_refunds row's refund_cents. The amount is
+    // decided in SQL (shop_refund_amounts by reason, held by the shop_refunds CHECKs); the row comes from
+    // shop-checkout's tap (shop_refund_to_send) and declutter-money's retry (shop_refunds_due).
+    file: "supabase/functions/_shared/shopRefunds.ts", key: "payment_intent: row.payment_intent_id", kind: "sql-policy",
+    why: "Shops refund row, sent by the tap or the retry",
+    sql: {
+      decidedBy: "shop_refund_amounts", rpc: "shop_refunds_due", reader: "shop_refunds_due", table: "shop_refunds",
+      amount: "row.refund_cents", row: "row",
+      chain: ["export async function sendShopRefund(stripe: Stripe, admin: Db, row: ShopRefundRow): Promise<ShopRefundOutcome> {"],
+      feeders: [
+        {
+          file: "supabase/functions/shop-checkout/index.ts", rpc: "shop_refund_to_send", row: "row",
+          chain: [
+            "const { data, error } = await admin.rpc(\"shop_refund_to_send\", { p_refund_id: refundId });",
+            "const row = ((data ?? []) as ShopRefundRow[])[0];",
+          ],
+          call: "sendShopRefund(await stripeForOrder(admin, o), admin, row)", calls: { sendShopRefund: 1 },
+        },
+        {
+          file: "supabase/functions/declutter-money/index.ts", rpc: "shop_refunds_due", row: "r",
+          chain: [
+            "const dueRefunds = await admin.rpc(\"shop_refunds_due\", { p_limit: BATCH });",
+            "for (const r of (dueRefunds.data ?? []) as ShopRefundRow[]) {",
+          ],
+          call: "sendShopRefund(stripe, admin, r)", calls: { sendShopRefund: 1 },
+        },
+      ],
+      mentions: [
+        "refund_cents: number;",
+        "if (!Number.isInteger(row.refund_cents) || row.refund_cents <= 0) {",
+        "amount: row.refund_cents,",
+        "fields: { Refund: row.refund_id, Order: row.order_id, Cents: String(row.refund_cents) },",
+      ],
+    },
+  },
   { file: "supabase/functions/charge-recurring-visits/index.ts", key: "visitRefundKey(stripe, intent.id)", kind: "own-mistake", why: "a second charge for one visit (our double charge; owner pop-up 2026-10-14 ~3 PM CT)" },
   { file: "supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts", key: "ONBOARDING_FEE_CENTS", kind: "own-mistake", why: "the $2 setup fee charged twice" },
   { file: "supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts", key: "duplicate-funding-refund:", kind: "own-mistake", why: "a second payment for an already-funded job" },
@@ -240,6 +294,8 @@ const MIGRATIONS = join(ROOT, "supabase/migrations");
  * still green (lh-money-escrow re-review of a701ff757, item 3). Today they are reads and the one pinned fee.
  */
 const TS_MONEY_TOUCHES: string[] = [
+  // Shops M4: the admin Shops orders screen's row TYPE names the order's recorded card fee (shown, never written).
+  "src/components/admin/AdminShopsOrders.tsx: card_fee_cents: number | null; handover_mode: string; problem_at: string; problem_note: string; ready_at: string | null; is_seed: boolean;",
   // Q2170: the admin "Bill the Helpr" button READS whether the ruling is billed yet (no write; the bill is server-side).
   'src/components/admin/helprFault/BillHelprFaultButton.tsx: .select("card_fee_cents")',
   "src/components/admin/helprFault/BillHelprFaultButton.tsx: if (live) setUnbilled({ jobId, value: !error && !!data && data.card_fee_cents == null });",
@@ -277,13 +333,44 @@ const TS_MONEY_TOUCHES: string[] = [
  *   keep_buyer_fee         refund = paid - the buyer's fee (premium_cents, 5% + 70c under F1).
  * Proven by the PGlite proofs listed (every reason and policy named there).
  */
-const SQL_POLICIES = {
+/**
+ * One refund family whose amount SQL decides (Declutter, Shops): read the same way for each, so "we never absorb a
+ * fee" is machine-checked per family, not per copy of a reader (lead, shops-m3 run 3).
+ */
+interface SqlPolicy {
+  /** The migration holding the NEWEST definition of the decider, every policy source and the reason CHECK. */
+  migration: string;
+  proofs: string[];
+  /** The table CHECK listing the reasons a refund row may carry: exactly the classified reasons. */
+  reasonCheck: string;
+  /** Every place the reason -> fee policy map is decided, each read as a plain CASE (subject IN (...) THEN '...'). */
+  policySources: Array<{ where: string; kind: "constraint" | "function"; name: string; pattern: RegExp; subject: string }>;
+  reasons: Record<string, string>;
+  /** Our own mistakes, the only reasons the platform refunds the fee on (owner, 2026-10-14). EXACT. */
+  ownMistakes: string[];
+  constraints: Array<{ name: string; file: string; text: string }>;
+  /** Which SQL functions decide, feed or can change this family's refund amount (all pinned in `functions`). */
+  touches: (text: string) => boolean;
+  /** A trigger on this table runs a function that is pinned too. */
+  triggerTable: string;
+  /** Tables whose top-level statements are pinned in `statements` (only: just those naming it). */
+  pinnedTables: Array<{ table: string; only?: RegExp }>;
+  functions: Record<string, string>;
+  statements: Record<string, string[]>;
+  /** Fragments (whitespace-collapsed, comments blanked) each named function's newest body must contain. */
+  bodies: Record<string, string[]>;
+}
+
+const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", SqlPolicy> = {
   declutter_record_refund: {
     migration: "20261017060455_declutter_seller_out_pays_fee.sql",
     proofs: ["src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
       "src/test/pglite/declutterSellerOutPaysFee.pglite.mjs"],
     reasonCheck: "declutter_refunds_reason_check",
-    policyCheck: "declutter_refunds_policy",
+    policySources: [
+      { where: "declutter_refunds_policy", kind: "constraint", name: "declutter_refunds_policy", pattern: /^fee_policy\s*=\s*(CASE\b.*\bEND)$/i, subject: "reason" },
+      { where: "declutter_record_refund v_policy", kind: "function", name: "declutter_record_refund", pattern: /v_policy\s*:=\s*(CASE\b.*?\bEND)\s*;/i, subject: "p_reason" },
+    ],
     reasons: {
       superseded: "full_platform_absorbs",
       order_closed: "full_platform_absorbs",
@@ -375,19 +462,29 @@ const SQL_POLICIES = {
       // Payout readiness (20261019070737, lander33 pin for the lead's review). None of these decides or changes a refund
       // amount; each touches declutter_refunds only by status / time / review columns:
       // the admin page's list of held rows (a read; shows refund_cents as recorded).
-      admin_payouts_held_for_review: "20261019070737_payout_waits_for_payee_setup.sql 6fa6a56325019e33",
+      // Restated in 20261019112103 (shops-m3 run 3) with kind 'shop_refund' added: lists a held Shops refund too.
+      admin_payouts_held_for_review: "20261019112103_shops_held_for_review_admin_tools.sql c1e1ff95266b714b",
       // puts a held refund back to 'pending' with its recorded refund_cents (the fee kept at record time is kept).
-      admin_payout_release: "20261019070737_payout_waits_for_payee_setup.sql 47a7da98fedbb02e",
+      // 20261019112103: + a held Shops refund / payout, refused while a refund made in Stripe stands (refunded_in_stripe)
+      // or when the queue would not send it; a released Shops row starts its tries at 0. No amount changes.
+      admin_payout_release: "20261019112103_shops_held_for_review_admin_tools.sql 486fe38ef3f5f44a",
       // records how a held refund was settled outside the app (Stripe re_/pyr_ id or "other:") and the amount the admin
       // says moved (settled_by_hand_cents, payout_settlements, the hand-refund ledger); it sends no money and never
       // changes refund_cents, so no new fee is returned by the app (owner: hand-settled = no new money movement).
       // A Stripe id (re_ or pyr_) makes the refund 'succeeded' only for at least refund_cents (settle_amount_short:
       // a short refund never closes the row); only "other:" ends 'settled_by_hand'.
-      admin_payout_settle_by_hand: "20261019070737_payout_waits_for_payee_setup.sql 12a49c0991260de6",
+      // 20261019112103: + a held Shops refund, by "other:" only (a Stripe id goes through shop-checkout, checked with
+      // Stripe: stripe_check_required) and only for its whole refund_cents (settle_amount_differs); settle_amount_short kept.
+      admin_payout_settle_by_hand: "20261019112103_shops_held_for_review_admin_tools.sql f65d8088fd3c48d3",
       // pushes next_attempt_at of a pending / failed row; no try used, no amount.
       payout_defer: "20261019070737_payout_waits_for_payee_setup.sql 64f967d0b2d0c9f4",
       // pages ops and tells the payee once per held row; writes only held_notified_at.
-      payout_held_check: "20261019070737_payout_waits_for_payee_setup.sql 8c5847e745f8e5bb",
+      // 20261019112103: + held Shops refunds on the ops ledger (the buyer is not told: refunded in Stripe already).
+      payout_held_check: "20261019112103_shops_held_for_review_admin_tools.sql b489b512cdf15ef7",
+      // Shops M3: the ONE refund formula for a Shops order (quote, write and CHECKs read it): keep_card_fee keeps the
+      // card fee and its tax for buyer_cancelled / problem_no_fault; full otherwise (the shop is billed the fee as debt
+      // for its own faults; the platform carries it only for problem_our_mistake).
+      shop_refund_amounts: "20261019071055_shops_refunds_cancels_strikes.sql e33a946acc47db26",
       // the payout run holds a pending / failed row for review (status + reason); no amount.
       payout_hold_for_review: "20261019070737_payout_waits_for_payee_setup.sql 744e5a8f330d8f6f",
       // deletes wait / send-mark bookkeeping rows of ended payouts; reads declutter_refunds status only.
@@ -414,15 +511,117 @@ const SQL_POLICIES = {
       "declutter_refunds 20261019070737_payout_waits_for_payee_setup.sql": ["8e751398a6ae0f95","c964f08d0e8c041d","064bf163b9bea4fa","af87ef16f6190cb0"],
       "declutter_refunds 20261015042253_declutter_slice4_handover_payout.sql": ["997e0a466b670952", "1192c0e245b11665", "2fd39357580a2cf8", "4cf2e4567f6437bd", "7ba23fa882b28f10", "afb94a44f9fb4011", "97fe1330f0f7f13d", "9eb0bd77676aa5f0", "c63b7d95e91cc6a9", "6ca67d8b1161e8fe", "50ba5fd871e1f2c0", "acc8636c50c78d27"],
     } as Record<string, string[]>,
+    touches: (text) => /\bdeclutter_refunds\b/i.test(text)
+      || /\bdeclutter_record_refund\s*\(/i.test(text)
+      || /\bdeclutter_card_fee_estimate\s*\(/i.test(text)
+      || (/\bcard_fee_cents\b/i.test(text) && /\bdeclutter_orders\b/i.test(text)),
+    triggerTable: "declutter_refunds",
+    pinnedTables: [
+      { table: "declutter_refunds" },
+      { table: "declutter_orders", only: /\bcard_fee_cents\b/i },
+    ],
     /** Fragments of declutter_record_refund's body, whitespace-collapsed, that decide the fee and the amount. */
-    body: [
+    bodies: { declutter_record_refund: [
       "v_fee := least(p_paid_cents, greatest(0, COALESCE(p_card_fee_cents, public.declutter_card_fee_estimate(p_paid_cents))));",
       "IF v_policy = 'keep_card_fee' THEN v_fee := least(v_fee, p_paid_cents - 1);",
       "v_kept := v_order.premium_cents;",
       "CASE WHEN v_policy = 'keep_card_fee' THEN p_paid_cents - v_fee WHEN v_policy = 'keep_buyer_fee' THEN p_paid_cents - v_kept ELSE p_paid_cents END",
       "IF v_policy = 'full_seller_pays_fee' AND v_fee > 0 THEN",
       "INSERT INTO public.declutter_seller_fee_debts (seller_id, refund_id, amount_cents, remaining_cents) VALUES (v_seller, v_id, v_fee, v_fee)",
+    ] },
+  },
+  /**
+   * Shops (M3, 20261019071055; owner 2026-10-14 and 2026-10-18): the reason decides the fee policy in ONE function
+   * (shop_refund_fee_policy) that the table CHECK and shop_refund_amounts both call. Fee outcome per policy:
+   *   full_platform_absorbs  our own mistake (problem_our_mistake): everything back, the ONLY one we pay for;
+   *   full_shop_pays_fee     the shop's fault or removal: everything back, the card fee becomes the shop's
+   *                          declutter_seller_fee_debts row (shop_refund_id), taken from its payouts;
+   *   keep_card_fee          the buyer's free cancel / nobody's fault: refund = paid - the card fee - the tax on it.
+   * Proven by src/test/pglite/shopsRefunds.pglite.mjs (every reason and policy named there).
+   */
+  shop_refund_amounts: {
+    migration: "20261019071055_shops_refunds_cancels_strikes.sql",
+    proofs: ["src/test/pglite/shopsRefunds.pglite.mjs"],
+    reasonCheck: "shop_refunds_reason_check",
+    policySources: [
+      { where: "shop_refund_fee_policy", kind: "function", name: "shop_refund_fee_policy", pattern: /\bSELECT\s+(CASE\b.*?\bEND)\s*;/i, subject: "p_reason" },
     ],
+    reasons: {
+      buyer_cancelled: "keep_card_fee",
+      problem_no_fault: "keep_card_fee",
+      shop_cancelled: "full_shop_pays_fee",
+      no_ready_photo: "full_shop_pays_fee",
+      shop_removed: "full_shop_pays_fee",
+      problem_shop_fault: "full_shop_pays_fee",
+      problem_our_mistake: "full_platform_absorbs",
+    },
+    ownMistakes: ["problem_our_mistake"],
+    constraints: [
+      // The table's policy IS the one function (no second copy of the map).
+      { name: "shop_refunds_policy", file: "20261019071055_shops_refunds_cancels_strikes.sql", text: "fee_policy = public.shop_refund_fee_policy(reason)" },
+      { name: "shop_refunds_fee_policy_check", file: "20261019071055_shops_refunds_cancels_strikes.sql", text: "fee_policy IN ('keep_card_fee', 'full_shop_pays_fee', 'full_platform_absorbs')" },
+      { name: "shop_refunds_kept", file: "20261019071055_shops_refunds_cancels_strikes.sql", text: "kept_cents = CASE WHEN fee_policy = 'keep_card_fee' THEN card_fee_cents ELSE 0 END" },
+      { name: "shop_refunds_tax_kept", file: "20261019071055_shops_refunds_cancels_strikes.sql", text: "tax_kept_cents = public.shop_refund_tax_kept(kept_cents, tax_cents, paid_cents)" },
+      { name: "shop_refunds_amount", file: "20261019071055_shops_refunds_cancels_strikes.sql", text: "refund_cents = paid_cents - kept_cents - tax_kept_cents AND refund_cents > 0" },
+      { name: "shop_refunds_settled_in_full", file: "20261019071055_shops_refunds_cancels_strikes.sql", text: "settled_by_hand_cents IS NULL OR settled_by_hand_cents = refund_cents" },
+    ],
+    touches: (text) => /\bshop_refunds\b/i.test(text)
+      || /\bshop_refund_amounts\s*\(/i.test(text)
+      || /\bshop_refund_fee_policy\s*\(/i.test(text)
+      || /\bshop_refund_tax_kept\s*\(/i.test(text)
+      || (/\bcard_fee_cents\b/i.test(text) && /\bshop_orders\b/i.test(text)),
+    triggerTable: "shop_refunds",
+    pinnedTables: [
+      { table: "shop_refunds" },
+      { table: "shop_orders", only: /\bcard_fee_cents\b/i },
+    ],
+    // Every function that reads or writes a Shops refund row, its amount or its status, read and pinned (run 3, the lead's
+    // /code-review of shops-m3): amounts come only from shop_refund_amounts (held by the shop_refunds CHECKs); the
+    // held-for-review admin tools move status and record what moved, never change refund_cents.
+    functions: {
+      admin_payout_release: "20261019112103_shops_held_for_review_admin_tools.sql 486fe38ef3f5f44a",
+      admin_payout_settle_by_hand: "20261019112103_shops_held_for_review_admin_tools.sql f65d8088fd3c48d3",
+      admin_payouts_held_for_review: "20261019112103_shops_held_for_review_admin_tools.sql c1e1ff95266b714b",
+      payout_held_check: "20261019112103_shops_held_for_review_admin_tools.sql b489b512cdf15ef7",
+      shop_hand_refund_failed: "20261019071055_shops_refunds_cancels_strikes.sql ba27ff33a9f0c110",
+      shop_hold_order_for_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 1e75907ab8fb3269",
+      shop_money_rows_seed: "20261018211820_shops_handover_payout.sql 55e7c11ee19013d2",
+      shop_order_captured: "20261018164442_shops_orders_checkout.sql 3fe4dbb559a29a1f",
+      shop_record_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 57f661acd2c47d64",
+      shop_refund_amounts: "20261019071055_shops_refunds_cancels_strikes.sql e33a946acc47db26",
+      shop_refund_executed: "20261019071055_shops_refunds_cancels_strikes.sql c9dd716154e3d67f",
+      shop_refund_fee_policy: "20261019071055_shops_refunds_cancels_strikes.sql f658275f8b61b0af",
+      shop_refund_reversed: "20261019071055_shops_refunds_cancels_strikes.sql df880e58ddff9ccd",
+      shop_refund_sweep: "20261019071055_shops_refunds_cancels_strikes.sql 8851f4c472395adc",
+      shop_refund_tax_kept: "20261019071055_shops_refunds_cancels_strikes.sql 55fb2a820bce5eca",
+      shop_refund_to_send: "20261019071055_shops_refunds_cancels_strikes.sql b349bdd3f8d3b813",
+      shop_refunds_due: "20261019071055_shops_refunds_cancels_strikes.sql bbfc70978e922056",
+      shop_write_refund: "20261019071055_shops_refunds_cancels_strikes.sql 8e2784ad6a3144e8",
+      shops_admin_queue: "20261019071055_shops_refunds_cancels_strikes.sql 45af68a4538108a7",
+      shops_admin_record_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql e84eb2bcd3a84095",
+      shops_admin_refund_order: "20261019071055_shops_refunds_cancels_strikes.sql a7df4ee33cc5ef18",
+      shops_admin_settle_held_refund: "20261019071055_shops_refunds_cancels_strikes.sql 6d0001f095b1ff76",
+      shops_buyer_cancel_order: "20261019071055_shops_refunds_cancels_strikes.sql 69cdd0dcef74aa6b",
+      shops_order_cancel_quote: "20261019071055_shops_refunds_cancels_strikes.sql fdc45c450183721c",
+      shops_shop_cancel_order: "20261019071055_shops_refunds_cancels_strikes.sql c7cabc81cc0fc3e4",
+    },
+    statements: {
+      "shop_orders 20261018164442_shops_orders_checkout.sql": ["c270fbd5dcbf5fcd"],
+      "shop_refunds 20261019071055_shops_refunds_cancels_strikes.sql": ["75ac5d08aa20b56e", "3b8b9ce1c7e3e63c", "a5b2dee5e1716c6e", "e11df43619a2b9ad"],
+    },
+    bodies: {
+      shop_refund_amounts: [
+        "least(so.total_cents, COALESCE(so.card_fee_cents, public.declutter_card_fee_estimate(so.total_cents))) AS fee,",
+        "public.shop_refund_fee_policy(p_reason) AS policy",
+        "CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept",
+        "k.total_cents - k.kept - public.shop_refund_tax_kept(k.kept, k.tax_cents, k.total_cents)",
+      ],
+      // The one writer of a Shops refund row reads the amounts from shop_refund_amounts and bills the shop's fee.
+      shop_write_refund: [
+        "SELECT * INTO a FROM public.shop_refund_amounts(o.id, p_reason);",
+        "IF a.fee_policy = 'full_shop_pays_fee' AND a.card_fee_cents > 0 AND o.seller_id IS NOT NULL THEN INSERT INTO public.declutter_seller_fee_debts (seller_id, shop_refund_id, amount_cents, remaining_cents) VALUES (o.seller_id, r.id, a.card_fee_cents, a.card_fee_cents)",
+      ],
+    },
   },
 };
 
@@ -654,23 +853,18 @@ function refundSites(): Found[] {
 
 const sha16 = (t: string) => createHash("sha256").update(t).digest("hex").slice(0, 16);
 
-/** See SQL_POLICIES.functions. name -> "file sha16", plus the text for a readable failure. */
-function refundMoneyFunctions(): Map<string, { pin: string; text: string }> {
+/** See SqlPolicy.functions. name -> "file sha16", plus the text for a readable failure. */
+function refundMoneyFunctions(p: SqlPolicy): Map<string, { pin: string; text: string }> {
   const triggerFns = new Set<string>();
   for (const file of migrationFiles(MIGRATIONS)) {
     const code = blankSqlComments(readFileSync(join(MIGRATIONS, file), "utf8"));
-    const trig = /\bcreate\s+(?:or\s+replace\s+)?(?:constraint\s+)?trigger\b[^;]*?\bon\s+(?:only\s+)?(?:public\.)?"?declutter_refunds"?\s[^;]*?\bexecute\s+(?:function|procedure)\s+(?:public\.)?"?(\w+)"?/gi;
+    const trig = new RegExp(String.raw`\bcreate\s+(?:or\s+replace\s+)?(?:constraint\s+)?trigger\b[^;]*?\bon\s+(?:only\s+)?(?:public\.)?"?${p.triggerTable}"?\s[^;]*?\bexecute\s+(?:function|procedure)\s+(?:public\.)?"?(\w+)"?`, "gi");
     for (const m of code.matchAll(trig)) triggerFns.add(m[1].toLowerCase());
   }
   const out = new Map<string, { pin: string; text: string }>();
   for (const [name, def] of effectiveDefs(MIGRATIONS)) {
     const text = norm(blankSqlComments(def.stmt));
-    const touches = triggerFns.has(name)
-      || /\bdeclutter_refunds\b/i.test(text)
-      || /\bdeclutter_record_refund\s*\(/i.test(text)
-      || /\bdeclutter_card_fee_estimate\s*\(/i.test(text)
-      || (/\bcard_fee_cents\b/i.test(text) && /\bdeclutter_orders\b/i.test(text));
-    if (touches) out.set(name, { pin: `${def.file} ${sha16(text)}`, text });
+    if (triggerFns.has(name) || p.touches(text)) out.set(name, { pin: `${def.file} ${sha16(text)}`, text });
   }
   return out;
 }
@@ -678,22 +872,17 @@ function refundMoneyFunctions(): Map<string, { pin: string; text: string }> {
 const tableStmt = (table: string) => new RegExp(String.raw`\b(?:insert\s+into|update|delete\s+from|merge\s+into|alter\s+table(?:\s+if\s+exists)?|truncate(?:\s+table)?|drop\s+table(?:\s+if\s+exists)?|create\s+(?:or\s+replace\s+)?(?:constraint\s+)?trigger\b[^;]*?\bon|create\s+policy\b[^;]*?\bon|alter\s+policy\b[^;]*?\bon|create\s+(?:or\s+replace\s+)?rule\b[^;]*?\bon|create\s+table(?:\s+if\s+not\s+exists)?)\s+(?:only\s+)?(?:public\.)?"?${table}"?(?![\w])`, "gi");
 
 /**
- * Tables whose top-level statements are pinned: every one on declutter_refunds, and those on declutter_orders
- * that name card_fee_cents (the fee every keep_card_fee refund keeps is read from there).
+ * See SqlPolicy.statements: "<table> <migration>" -> each statement, in order. The pinned tables are every one on
+ * the refund table, and those on its order table that name card_fee_cents (the fee every keep_card_fee refund keeps
+ * is read from there).
  */
-const PINNED_TABLES: Array<{ table: string; only?: RegExp }> = [
-  { table: "declutter_refunds" },
-  { table: "declutter_orders", only: /\bcard_fee_cents\b/i },
-];
-
-/** See SQL_POLICIES.statements: "<table> <migration>" -> each statement, in order. */
-function refundTableStatements(): Record<string, Array<{ pin: string; text: string }>> {
+function refundTableStatements(pinnedTables: SqlPolicy["pinnedTables"]): Record<string, Array<{ pin: string; text: string }>> {
   const out: Record<string, Array<{ pin: string; text: string }>> = {};
   for (const file of migrationFiles(MIGRATIONS)) {
     const sql = readFileSync(join(MIGRATIONS, file), "utf8");
     const code = blankSqlComments(sql);
     const bodies = parseDefs(sql).map((d) => [d.index, d.index + d.stmt.length]);
-    for (const { table, only } of PINNED_TABLES) {
+    for (const { table, only } of pinnedTables) {
       for (const m of code.matchAll(tableStmt(table))) {
         const at = m.index ?? 0;
         if (bodies.some(([a, b]) => at >= a && at < b)) continue;
@@ -750,7 +939,9 @@ function readCase(caseText: string, subject: string): { arms: Array<{ values: st
     rest = rest.replace(m[0], "");
   }
   const els = rest.match(/^\s*ELSE\s+'(\w+)'\s*$/i);
-  return els ? { arms, otherwise: els[1] } : null;
+  if (els) return { arms, otherwise: els[1] };
+  // No ELSE: an unlisted reason gets NULL, which a NOT NULL fee_policy refuses (nothing is decided for it).
+  return arms.length > 0 && /^\s*$/.test(rest) ? { arms, otherwise: "NULL (refused)" } : null;
 }
 
 /** reason -> policy for every reason, as a CASE decides it. */
@@ -767,8 +958,13 @@ function checkSqlPolicy(name: keyof typeof SQL_POLICIES): string[] {
   if (def.file !== p.migration) {
     problems.push(`${name} is now defined by ${def.file}, not the pinned ${p.migration}: review that every reason still keeps the fee except our own mistakes, then pin it`);
   }
-  const body = norm(blankSqlComments(def.stmt));
-  for (const frag of p.body) if (!body.includes(frag)) problems.push(`${name}: the body no longer contains "${frag}"`);
+  const defs = effectiveDefs(MIGRATIONS);
+  for (const [fn, frags] of Object.entries(p.bodies)) {
+    const fnDef = defs.get(fn);
+    const fnBody = fnDef ? norm(blankSqlComments(fnDef.stmt)) : "";
+    if (!fnDef) problems.push(`${fn}: no migration defines it`);
+    for (const frag of frags) if (fnDef && !fnBody.includes(frag)) problems.push(`${fn}: the body no longer contains "${frag}"`);
+  }
 
   const pinned = Object.keys(p.reasons).sort();
   // The reasons a refund row may carry (the table CHECK): exactly the classified ones.
@@ -781,23 +977,28 @@ function checkSqlPolicy(name: keyof typeof SQL_POLICIES): string[] {
       problems.push(`${p.reasonCheck} allows ${JSON.stringify(listed)}, classified ${JSON.stringify(pinned)}: classify each new reason in SQL_POLICIES (does it keep the card fee?)`);
     }
   }
-  // reason -> policy, from the table CHECK and from the function, each exactly the pinned map.
-  const fromTable = newestConstraint(p.policyCheck);
-  const tableCase = fromTable?.text.match(/^fee_policy\s*=\s*(CASE\b.*\bEND)$/i)?.[1];
-  const fnCase = body.match(/v_policy\s*:=\s*(CASE\b.*?\bEND)\s*;/i)?.[1];
-  for (const [where, text, subject, file] of [
-    [p.policyCheck, tableCase, "reason", fromTable?.file],
-    [`${name} v_policy`, fnCase, "p_reason", def.file],
-  ] as const) {
-    if (where === p.policyCheck && file !== p.migration) problems.push(`${p.policyCheck} is now defined by ${file ?? "nothing"}, not ${p.migration}`);
-    const c = text ? readCase(text, subject) : null;
+  // reason -> policy, from every place it is decided (a table CHECK, a function), each exactly the pinned map.
+  for (const src of p.policySources) {
+    let text: string | undefined;
+    let file: string | undefined;
+    if (src.kind === "constraint") {
+      const c = newestConstraint(src.name);
+      text = c?.text.match(src.pattern)?.[1];
+      file = c?.file;
+    } else {
+      const d = defs.get(src.name);
+      text = d ? norm(blankSqlComments(d.stmt)).match(src.pattern)?.[1] : undefined;
+      file = d?.file;
+    }
+    if (file !== p.migration) problems.push(`${src.where} is now defined by ${file ?? "nothing"}, not ${p.migration}`);
+    const c = text ? readCase(text, src.subject) : null;
     if (!c) {
-      problems.push(`${where}: the reason -> fee policy CASE cannot be read (${text ?? "missing"})`);
+      problems.push(`${src.where}: the reason -> fee policy CASE cannot be read (${text ?? "missing"})`);
       continue;
     }
     const got = evalCase(c, [...new Set([...pinned, ...c.arms.flatMap((a) => a.values)])].sort());
     if (JSON.stringify(got) !== JSON.stringify(Object.fromEntries(pinned.map((r) => [r, p.reasons[r]])))) {
-      problems.push(`${where} maps ${JSON.stringify(got)}, pinned ${JSON.stringify(p.reasons)}: a reason that is not our own mistake must keep the fee`);
+      problems.push(`${src.where} maps ${JSON.stringify(got)}, pinned ${JSON.stringify(p.reasons)}: a reason that is not our own mistake must keep the fee`);
     }
   }
   // Only our own mistakes refund the fee at our cost.
@@ -812,18 +1013,18 @@ function checkSqlPolicy(name: keyof typeof SQL_POLICIES): string[] {
     }
   }
   // Every function that decides, feeds or can change the amount, and every statement on the table: exactly pinned.
-  const fns = refundMoneyFunctions();
+  const fns = refundMoneyFunctions(p);
   const gotFns = Object.fromEntries([...fns].map(([n, f]) => [n, f.pin]).sort());
   for (const n of new Set([...Object.keys(gotFns), ...Object.keys(p.functions)])) {
     if (gotFns[n] !== p.functions[n]) {
-      problems.push(`${n}: is ${JSON.stringify(gotFns[n] ?? "gone")}, pinned ${JSON.stringify(p.functions[n] ?? "not classified")}: review that every refund it can record keeps the fee except our own mistakes, then pin it. Its definition: ${fns.get(n)?.text.slice(0, 3000) ?? "-"}`);
+      problems.push(`[${name}] ${n}: is ${JSON.stringify(gotFns[n] ?? "gone")}, pinned ${JSON.stringify(p.functions[n] ?? "not classified")}: review that every refund it can record keeps the fee except our own mistakes, then pin it. Its definition: ${fns.get(n)?.text.slice(0, 3000) ?? "-"}`);
     }
   }
-  const stmts = refundTableStatements();
+  const stmts = refundTableStatements(p.pinnedTables);
   for (const f of new Set([...Object.keys(stmts), ...Object.keys(p.statements)])) {
     const got = (stmts[f] ?? []).map((x) => x.pin);
     if (JSON.stringify(got) !== JSON.stringify(p.statements[f] ?? [])) {
-      problems.push(`${f}: pinned statements are ${JSON.stringify(got)}, pinned ${JSON.stringify(p.statements[f] ?? [])}: review each (does it let a refund return the fee?), then pin. They read: ${JSON.stringify((stmts[f] ?? []).map((x) => x.text.slice(0, 400)))}`);
+      problems.push(`[${name}] ${f}: pinned statements are ${JSON.stringify(got)}, pinned ${JSON.stringify(p.statements[f] ?? [])}: review each (does it let a refund return the fee?), then pin. They read: ${JSON.stringify((stmts[f] ?? []).map((x) => x.text.slice(0, 400)))}`);
     }
   }
   // The proofs exist and name every reason and policy.
@@ -877,6 +1078,12 @@ function tsMoneyTouches(): string[] {
   return out;
 }
 
+/** Is `row` (or one of its fields) assigned, redeclared or destructured in `between`? */
+function rowTouched(between: string, rowName: string): boolean {
+  const row = rowName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?<![.\\w$])${row}(?:\\.\\w+|\\[[^\\]]*\\])?\\s*(?:[-+*/]|\\?\\?|\\|\\||&&)?=(?![=>])|\\b(?:const|let|var)\\s+${row}\\b|[{,]\\s*${row}\\s*[,}=]|Object\\.assign\\(\\s*${row}\\b`).test(between);
+}
+
 /** A sql-policy site sends the row's refund_cents, read through the named RPC. */
 function checkSqlSite(file: string, call: string, argExpr: string | null, sql: SqlSite | undefined): string[] {
   if (!sql) return [`${file}: a sql-policy entry must name the SQL that decides it (sql: { decidedBy, rpc, reader })`];
@@ -889,7 +1096,8 @@ function checkSqlSite(file: string, call: string, argExpr: string | null, sql: S
     problems.push(`${file}: ${call.slice(0, 80)} must carry exactly one \`amount:\` and no spread`);
   }
   const code = blankComments(readFileSync(join(ROOT, file), "utf8"));
-  if (!code.includes(`.rpc("${sql.rpc}"`)) problems.push(`${file}: does not read its refund row through ${sql.rpc}`);
+  // A shared sender takes its row as a parameter; each feeder reads it (checked below).
+  if (!sql.feeders && !code.includes(`.rpc("${sql.rpc}"`)) problems.push(`${file}: does not read its refund row through ${sql.rpc}`);
   // The chain from the RPC to the call, in order; the row is not reassigned after it is declared.
   const flat = norm(code);
   let pos = 0;
@@ -904,9 +1112,7 @@ function checkSqlSite(file: string, call: string, argExpr: string | null, sql: S
   const callAt = flat.indexOf(norm(call), pos);
   if (callAt < 0) problems.push(`${file}: the refund call does not follow its pinned source chain`);
   else {
-    const between = flat.slice(pos, callAt);
-    const row = sql.row.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (new RegExp(`(?<![.\\w$])${row}(?:\\.\\w+|\\[[^\\]]*\\])?\\s*(?:[-+*/]|\\?\\?|\\|\\||&&)?=(?![=>])|\\b(?:const|let|var)\\s+${row}\\b|[{,]\\s*${row}\\s*[,}=]|Object\\.assign\\(\\s*${row}\\b`).test(between)) {
+    if (rowTouched(flat.slice(pos, callAt), sql.row)) {
       problems.push(`${file}: ${sql.row} is reassigned or shadowed between its pinned declaration and the refund call`);
     }
   }
@@ -919,10 +1125,39 @@ function checkSqlSite(file: string, call: string, argExpr: string | null, sql: S
     if (count !== n) problems.push(`${file}: ${fn} is called ${count} times, pinned ${n}: a second caller could hand it another row`);
   }
   const defs = effectiveDefs(MIGRATIONS);
-  const reader = defs.get(sql.reader);
-  const readerBody = reader ? norm(blankSqlComments(reader.stmt)) : "";
-  if (!/\br\.refund_cents\b/.test(readerBody) || !/FROM public\.declutter_refunds r\b/.test(readerBody)) {
-    problems.push(`${sql.reader}: does not return refund_cents straight off the declutter_refunds row`);
+  const table = sql.table ?? "declutter_refunds";
+  const readsRow = (fn: string) => {
+    const d = defs.get(fn);
+    const b = d ? norm(blankSqlComments(d.stmt)) : "";
+    return /\br\.refund_cents\b/.test(b) && new RegExp(`FROM public\\.${table} r\\b`).test(b);
+  };
+  if (!readsRow(sql.reader)) problems.push(`${sql.reader}: does not return refund_cents straight off the ${table} row`);
+  // A shared sender's callers: each reads the row through its RPC (straight off the table) and hands it on unchanged.
+  for (const f of sql.feeders ?? []) {
+    const fcode = blankComments(readFileSync(join(ROOT, f.file), "utf8"));
+    const fflat = norm(fcode);
+    if (!fcode.includes(`.rpc("${f.rpc}"`)) problems.push(`${f.file}: does not read the refund row through ${f.rpc}`);
+    if (!readsRow(f.rpc)) problems.push(`${f.rpc}: does not return refund_cents straight off the ${table} row`);
+    let fpos = 0;
+    let lost = false;
+    for (const frag of f.chain) {
+      const at = fflat.indexOf(frag, fpos);
+      if (at < 0) {
+        problems.push(`${f.file}: the refund row's source chain no longer reads "${frag}" (after the previous link): review where the row comes from, then pin it`);
+        lost = true;
+        break;
+      }
+      fpos = at + frag.length;
+    }
+    if (!lost) {
+      const at = fflat.indexOf(norm(f.call), fpos);
+      if (at < 0) problems.push(`${f.file}: ${f.call} does not follow its pinned source chain`);
+      else if (rowTouched(fflat.slice(fpos, at), f.row)) problems.push(`${f.file}: ${f.row} is reassigned or shadowed between its pinned declaration and ${f.call}`);
+    }
+    for (const [fn, n] of Object.entries(f.calls)) {
+      const count = [...fcode.matchAll(new RegExp(`(?<!function\\s)\\b${fn}\\(`, "g"))].length;
+      if (count !== n) problems.push(`${f.file}: ${fn} is called ${count} times, pinned ${n}: a second caller could hand it another row`);
+    }
   }
   if (sql.rpc !== sql.reader) {
     const rpcBody = norm(blankSqlComments(defs.get(sql.rpc)?.stmt ?? ""));

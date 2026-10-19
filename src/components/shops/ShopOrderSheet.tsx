@@ -124,6 +124,8 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
         lines: chosen.map((i) => ({ item_id: i.id, quantity: qty[i.id] ?? 0 })),
         readyDate,
         note,
+        // The cancel terms shown above: shop-checkout refuses (terms_changed) if the shop changed them since.
+        terms: { cancel_policy: t.cancel_policy, ready_tap_cancel: t.ready_tap_cancel },
       });
       await openExternalUrl(url, () => {
         setOpening(false);
@@ -131,6 +133,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
         navigate("/shops/orders");
       });
     } catch (err) {
+      // terms_changed included: the toast says so and the terms above reload before the buyer pays.
       toast.error(shopsErrorMessage(err));
       setOpening(false);
       void qc.invalidateQueries({ queryKey: ["shops", "order-terms", shopId] });

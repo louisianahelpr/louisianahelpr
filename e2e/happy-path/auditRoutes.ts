@@ -439,6 +439,9 @@ export const ADMIN_VIEWS = [
   // "marketing" above, which is the Resend email-campaign sender; they are two
   // separate systems that happen to share a word.
   "social",
+  // shops — Shops orders (M4, 20261019071055): problems, unsent refunds, held payouts, strikes,
+  // and "Record a refund made in Stripe". A money queue, so the sweep renders it.
+  "shops",
 ] as const;
 
 const adminRules = () => [mockTable("user_roles", [{ role: "admin" }])];

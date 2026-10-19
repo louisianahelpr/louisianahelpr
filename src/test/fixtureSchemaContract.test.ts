@@ -340,6 +340,11 @@ describe("every fixture literal could be inserted", () => {
     // storage.objects rows (`{ bucket_id, name, size }`), not public rows: once rental_photo_purge_queue (20261019071203)
     // took bucket_id as the only public table with it, these were graded against its bucket CHECK.
     { file: "src/test/storageBackup.test.ts", keys: ["bucket_id", "name", "size"] },
+    // Shops M3 (20261019071055): shop_hand_refunds shares `livemode` and facilitator_threshold_alerts took `year`, so a
+    // checkout.session.completed event mock with its PaymentIntent mocks (`payer_id` in the session metadata) became
+    // attributable to recurring_visit_payments, and a Stripe Identity `dob: { year, month, day }` to the alerts table.
+    { file: "src/test/edge/shop-checkout.test.ts", keys: ["mode", "payment_intent", "payer_id", "status"] },
+    { file: "src/test/edge/stripe-idv-webhook.test.ts", keys: ["year", "month", "day"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

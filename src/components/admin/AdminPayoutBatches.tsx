@@ -37,6 +37,7 @@ import { fetchSeedUserIds } from "@/components/admin/seedRows";
 import { userFacingError } from "@/lib/userFacingError";
 import { releaseBatchJobs } from "./adminPayoutBatches/releaseBatchJobs";
 import { usePayoutHolds } from "./adminPayoutBatches/usePayoutHolds";
+import { HeldForReview } from "./adminPayoutBatches/HeldForReview";
 import { splitRealAndTest, bulkPayoutDescription, singlePayoutDescription } from "./adminPayoutBatches/adminPayoutBatchesHelpers";
 
 const AdminPayoutBatches = () => {
@@ -560,6 +561,7 @@ const AdminPayoutBatches = () => {
         }}
         secondaryLabel="Cancel"
       />
+      <HeldForReview />
     </AdminViewShell>
   );
 };

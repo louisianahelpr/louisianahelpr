@@ -9,6 +9,8 @@
  * are doubled (Stripe is LIVE on prod: nothing here reaches it).
  *
  * Registered mutations - each turns this file RED on its own:
+ * @mutate supabase/functions/_shared/connectReadiness.ts |const cacheKey = (mode: string, accountId: string) => `${mode}:${accountId}`; |const cacheKey = (_mode: string, accountId: string) => accountId;
+ * @mutate supabase/functions/declutter-money/index.ts |          if (!(await payeeReadyNow(stripe, resolved.mode, "shop", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue; |
  * @mutate supabase/functions/declutter-money/index.ts |             { idempotencyKey: `shop-payout-${p.payout_id}` }, |             {},
  * @mutate supabase/functions/declutter-money/index.ts |           return meta.kind === "shop_payout" && meta.payout_id === p.payout_id && !t.reversed; |           return false;
  * @mutate supabase/functions/declutter-money/index.ts |       if (shopHold.kind === "held") { |       if (false) {
@@ -17,7 +19,6 @@
  * @mutate supabase/functions/declutter-money/index.ts |           const charge = await wholeCharge(stripe, p.payment_intent_id, 0); |           const charge = "ch_any";
  * @mutate supabase/functions/declutter-money/index.ts |     const finished = await admin.rpc("shop_handover_sweep", {}); |     const finished = { error: null, data: null };
  * @mutate supabase/functions/declutter-money/index.ts |         if (p.attempts + 1 >= 12) { |         if (false) {
- * @mutate supabase/functions/declutter-money/index.ts |       if (!p.stripe_account_id) {\n        // Not a failed try: paid the run after the shop sets up payouts | if (false) {\n        // Not a failed try: paid the run after the shop sets up payouts
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -39,7 +40,7 @@ const shopPayoutRow = (over: Record<string, unknown> = {}) => ({
 });
 const rpcs = (name: string) => (scenario.rpcCalls ?? []).filter((c) => c.name === name);
 
-async function run(opts: { shopPayouts?: unknown[] } = {}) {
+async function run(opts: { shopPayouts?: unknown[]; payouts?: unknown[] } = {}) {
   setEnv({
     SUPABASE_URL: "https://x.supabase.co",
     SUPABASE_ANON_KEY: "anon-key",
@@ -47,7 +48,8 @@ async function run(opts: { shopPayouts?: unknown[] } = {}) {
     STRIPE_SECRET_KEY: "sk_live_shops",
     STRIPE_TEST_SECRET_KEY: "sk_test_shops",
   });
-  scenario.rpc.declutter_payouts_due = [];
+  scenario.rpc.declutter_payouts_due = opts.payouts ?? [];
+  scenario.rpc.declutter_payout_executed = (a: { p_succeeded?: boolean }) => (a?.p_succeeded ? "succeeded" : "failed");
   scenario.rpc.declutter_refunds_due = [];
   scenario.rpc.helpr_task_payouts_due = [];
   scenario.rpc.declutter_delivery_refunds_due = [];
@@ -83,6 +85,7 @@ beforeEach(() => {
     id: "pi_shop1", status: "succeeded", latest_charge: { id: "ch_shop1", amount_refunded: 0, disputed: false },
   });
   stripeMock.transfers.create.mockResolvedValue({ id: "tr_shop1", destination: "acct_shop1" });
+  stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_shop1", capabilities: { transfers: "active" }, payouts_enabled: true });
 });
 
 describe("declutter-money: Shops M2 handovers and payouts", () => {
@@ -141,6 +144,8 @@ describe("declutter-money: Shops M2 handovers and payouts", () => {
     expect(body.no_payout_account).toBe(1);
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     expect(rpcs("shop_payout_executed")).toHaveLength(0);
+    // No try used and no send started: no transfer can exist, so no Stripe call at all.
+    expect(stripeMock.transfers.list).not.toHaveBeenCalled();
   });
 
   it("never pays from a charge that was refunded or disputed: nothing moves, the try is recorded as failed", async () => {
@@ -157,6 +162,35 @@ describe("declutter-money: Shops M2 handovers and payouts", () => {
     scenario.reads.test_accounts = { rows: [] };
     await run({ shopPayouts: [shopPayoutRow()] });
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+  });
+
+  it("a shop whose Stripe setup is unfinished is skipped WITHOUT using a try, pushed back and its wait recorded (Q2197)", async () => {
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_shop1", capabilities: { transfers: "inactive" }, payouts_enabled: false });
+    const { body } = await run({ shopPayouts: [shopPayoutRow({ attempts: 11 })] });
+    expect(body.payout_account_not_ready).toBe(1);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(rpcs("shop_payout_executed")).toHaveLength(0);
+    expect(rpcs("payout_defer")[0]?.args).toEqual({ p_kind: "shop", p_payout_id: PAYOUT, p_minutes: 60 });
+    expect(rpcs("payout_payee_wait_seen")[0]?.args).toMatchObject({ p_kind: "shop", p_payee: SHOP });
+  });
+
+  it("the readiness cache is per Stripe MODE: the same account id read on the test key and the live key is two reads", async () => {
+    const REAL_BUYER = "0000000c-0000-4000-8000-0000000000e1";
+    const REAL_SELLER = "0000000c-0000-4000-8000-0000000000e2";
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_shop1", capabilities: { transfers: "inactive" } });
+    await run({
+      shopPayouts: [shopPayoutRow()],
+      payouts: [{ payout_id: "0000000c-0000-4000-8000-0000000000d1", order_id: "0000000c-0000-4000-8000-0000000000d2", buyer_id: REAL_BUYER,
+        seller_id: REAL_SELLER, amount_cents: 500, stripe_account_id: "acct_shop1", payment_intent_id: "pi_shop1", attempts: 0, refunds_recorded_cents: 0 }],
+    });
+    expect(stripeMock.accounts.retrieve).toHaveBeenCalledTimes(2);
+  });
+
+  it("a shop account read that throws uses no try (deferred 15 minutes)", async () => {
+    stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("api_error"), { statusCode: 503 }));
+    await run({ shopPayouts: [shopPayoutRow({ attempts: 11 })] });
+    expect(rpcs("shop_payout_executed")).toHaveLength(0);
+    expect(rpcs("payout_defer")[0]?.args).toEqual({ p_kind: "shop", p_payout_id: PAYOUT, p_minutes: 15 });
   });
 
   it("the 12th failed try pages ops", async () => {

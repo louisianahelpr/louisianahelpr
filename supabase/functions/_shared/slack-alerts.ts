@@ -39,6 +39,9 @@ type SlackAlertKind =
   // ALWAYS_POST_KINDS) but keeps its caller's severity, so it arrives as an
   // ℹ️ note rather than a page.
   | 'support_request'
+  // A payout held on the platform past its bound (declutter-money, payout waits). Its own
+  // kind so the hourly cap of a shared kind can never keep it out of the channel for good.
+  | 'payout_wait'
 
 export interface SlackAlertInput {
   kind: SlackAlertKind
@@ -166,6 +169,22 @@ async function recordSeedAlertRow(input: SlackAlertInput, severity: SlackAlertSe
  * Tags are rewritten wholesale, not merged, because recordAlertRow built them
  * here and their exact shape is known.
  */
+/** Re-tag a recorded alert row (a once-per-day duplicate: never posted, never counted by the cap). */
+async function tagAlertRow(rowId: string, input: SlackAlertInput, extra: Record<string, string>): Promise<void> {
+  const rest = restConfig()
+  if (!rest) return
+  try {
+    await fetch(`${rest.url}/rest/v1/error_logs?id=eq.${rowId}`, {
+      method: 'PATCH',
+      headers: { apikey: rest.key, Authorization: `Bearer ${rest.key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags: { source: 'ops-alert', kind: input.kind, ...extra } }),
+      signal: AbortSignal.timeout(5000),
+    })
+  } catch (err) {
+    console.warn('[postSlackOpsAlert] could not tag alert row:', err instanceof Error ? err.message : err)
+  }
+}
+
 async function releaseAlertKey(rowId: string, input: SlackAlertInput, key: string): Promise<void> {
   const rest = restConfig()
   if (!rest) return
@@ -209,6 +228,11 @@ async function postsThisHour(kind: string): Promise<number> {
       // Rows the cap itself wrote do not count towards it, or one burst would
       // keep the channel closed for an hour after it stopped.
       'tags->>capped': 'is.null',
+      // Only alerts that went out count: never a once-per-day duplicate, a released (undelivered)
+      // once-per-day claim, or a plain row whose post failed.
+      'tags->>deduped': 'is.null',
+      'tags->>undelivered_alert_key': 'is.null',
+      'tags->>undelivered': 'is.null',
       created_at: `gte.${new Date(Date.now() - 3600_000).toISOString()}`,
       limit: String(ALWAYS_POST_HOURLY_CAP + 1),
     })
@@ -265,10 +289,19 @@ const SEVERITY_COLOR: Record<SlackAlertSeverity, string> = {
   info: '#3b82f6',
 }
 
-export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
+/**
+ * Returns whether the alert is OUT: posted to Slack now, already posted today under the same
+ * oncePerDayKey, or a seed alert recorded for the digest. false = not delivered (capped, no
+ * transport, Slack refused, or an error); a caller that marks "paged" waits for true
+ * (declutter-money's payee page, 20261019070737). Existing callers ignore it.
+ */
+export async function postSlackOpsAlert(input: SlackAlertInput): Promise<boolean> {
   // Declared outside the try so the catch below can release it: the once-per-day
   // token must not survive a post that threw.
   let heldKey: { rowId: string; key: string } | null = null
+  // The plain (keyless) row recorded before posting: tagged `undelivered` if the post fails, so
+  // postsThisHour counts only alerts that actually went out.
+  let plainRowId: string | null = null
   try {
     const policySeverity = effectiveSeverity(input.kind, input.severity)
 
@@ -277,7 +310,7 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
     // the seed tag were lost; the tag keeps it out of Slack and the ledger.
     if (input.seed) {
       await recordSeedAlertRow(input, policySeverity)
-      return
+      return true
     }
 
     // Every call is an occurrence in the ops alert ledger (docs/OPEN.md Q1),
@@ -294,6 +327,19 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
       sampleRef: { link: input.link ?? null, oncePerDayKey: input.oncePerDayKey ?? null },
     })
 
+    // The once-per-day token is CLAIMED FIRST (before the hourly cap, so a duplicate never uses
+    // up the cap and a capped alert can be retried) and RELEASED below if the post does not
+    // actually reach Slack. A duplicate's row is tagged `deduped` so postsThisHour skips it.
+    if (input.oncePerDayKey) {
+      const rowId = await recordAlertRow(input, policySeverity, { alert_key: input.oncePerDayKey })
+      if (rowId && !(await isFirstToday(input.oncePerDayKey, rowId))) {
+        await tagAlertRow(rowId, input, { alert_key: input.oncePerDayKey, deduped: input.oncePerDayKey })
+        console.log(`[postSlackOpsAlert] already posted today for ${input.oncePerDayKey}; counted for the digest`)
+        return true
+      }
+      if (rowId) heldKey = { rowId, key: input.oncePerDayKey }
+    }
+
     // A non-critical kind that posts anyway (today: support_request) gets an
     // hourly ceiling. Critical is never capped: a page must never be
     // rate-limited by this project's own code. ('digest' is not a
@@ -302,11 +348,13 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
       const recent = await postsThisHour(input.kind)
       if (recent >= ALWAYS_POST_HOURLY_CAP) {
         await recordAlertRow(input, policySeverity, { capped: 'hourly' })
+        // Not delivered: give the once-per-day key back so the next run tries again.
+        if (heldKey) await releaseAlertKey(heldKey.rowId, input, heldKey.key)
         console.warn(
           `[postSlackOpsAlert] ${input.kind} hourly cap (${ALWAYS_POST_HOURLY_CAP}) reached; ` +
           `"${input.title}" is recorded for the digest instead of posted.`,
         )
-        return
+        return false
       }
     }
 
@@ -333,34 +381,24 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
      * that exists for exactly that reason).
      */
     if (policySeverity !== 'critical' && !input.oncePerDayKey) {
-      await recordAlertRow(input, policySeverity, {})
+      plainRowId = await recordAlertRow(input, policySeverity, {})
     }
     // Placed AFTER the hourly cap on purpose: the capped path writes its own
     // row tagged `capped: 'hourly'`, and recording here as well produced TWO
     // rows for one suppressed alert. A row now means "this was posted", which
     // is also what makes it the right thing for `postsThisHour` to count.
 
-    // The once-per-day token is CLAIMED here and RELEASED below if the post
-    // does not actually reach Slack.
-    if (input.oncePerDayKey) {
-      const rowId = await recordAlertRow(input, policySeverity, { alert_key: input.oncePerDayKey })
-      if (rowId && !(await isFirstToday(input.oncePerDayKey, rowId))) {
-        console.log(`[postSlackOpsAlert] already posted today for ${input.oncePerDayKey}; counted for the digest`)
-        return
-      }
-      if (rowId) heldKey = { rowId, key: input.oncePerDayKey }
-    }
-
     const webhookUrl = Deno.env.get('SLACK_WEBHOOK_URL')
     if (!webhookUrl) {
       if (heldKey) await releaseAlertKey(heldKey.rowId, input, heldKey.key)
+      if (plainRowId) await tagAlertRow(plainRowId, input, { undelivered: '1' })
       // Loud on purpose. The silent version of this line meant a critical
       // "payments are broken" alert produced no Slack message AND no trace.
       console.warn(
         `[postSlackOpsAlert] NOT SENT (no transport configured) — ${input.severity ?? 'warning'}: ${input.title}. ` +
         'Set SLACK_WEBHOOK_URL to enable alerts.',
       )
-      return
+      return false
     }
 
     const severity = policySeverity
@@ -414,9 +452,14 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
     if (!res.ok) {
       console.warn('[postSlackOpsAlert] Slack webhook non-OK', res.status, await res.text())
       if (heldKey) await releaseAlertKey(heldKey.rowId, input, heldKey.key)
+      if (plainRowId) await tagAlertRow(plainRowId, input, { undelivered: '1' })
+      return false
     }
+    return true
   } catch (err) {
     console.warn('[postSlackOpsAlert] suppressed error:', err instanceof Error ? err.message : err)
     if (heldKey) await releaseAlertKey(heldKey.rowId, input, heldKey.key)
+    if (plainRowId) await tagAlertRow(plainRowId, input, { undelivered: '1' })
+    return false
   }
 }

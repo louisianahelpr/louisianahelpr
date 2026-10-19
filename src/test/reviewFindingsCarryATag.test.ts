@@ -56,6 +56,7 @@ const NOT_FROM_A_REVIEW: Record<string, string> = {
   Q2112: "the lead measuring prod analytics_events (robot traffic in the sign-up funnel), salvaged from ready/train-big-1016; not a code reviewer's finding",
   Q2113: "a captcha-switch mismatch found from the 2026-10-15 login timeline, salvaged from ready/train-big-1016; not a code reviewer's finding",
   Q2114: "sec-c measuring prod analytics_events (first_payment_collected), salvaged from ready/train-big-1016; not a code reviewer's finding",
+  Q2197: "filed by the declutter-proof lane from a code read; \"review\" is the held-for-review status and the review rounds of its fix, not a filed finding",
   Q2082: "the owner's jobs-fee feature item; it lists lh-money-escrow review points of slice 3a as before-the-flip conditions, not a filed finding",
 };
 /**

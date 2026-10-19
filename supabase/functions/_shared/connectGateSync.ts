@@ -52,6 +52,9 @@ export async function syncConnectGate(
     await postSlackOpsAlert({
       kind: "fraud_flag",
       severity: "warning",
+      // Once a day per member: the money crons re-sync a waiting payee's gate (declutter-money,
+      // 20261019070737), so a banned payee would otherwise alert on every run.
+      oncePerDayKey: `ban-evasion-connect-${userId}`,
       title: "Ban evasion: a banned person's payout account was attached",
       message: fpCheck.already_banned
         ? "The account was already banned; its ban was left as it was. The fraud console has the details."

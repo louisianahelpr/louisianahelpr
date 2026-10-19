@@ -221,7 +221,9 @@ async function executeRefund(
   refund: Extract<MarkPaidAnswer, { result: "refund" }>,
   orderId: string,
 ): Promise<"sent" | "already" | "failed"> {
-  if (refund.refund_status === "succeeded") return "already";
+  // Already handled: sent, or taken out of the automatic path by an admin (held for review /
+  // settled by hand, 20261019070737), so a webhook redelivery never sends a second refund.
+  if (refund.refund_status === "succeeded" || refund.refund_status === "held_for_review" || refund.refund_status === "settled_by_hand") return "already";
   let stripeRefund: Stripe.Refund;
   try {
     // List-and-adopt first, exactly like declutter-money: Stripe keeps an

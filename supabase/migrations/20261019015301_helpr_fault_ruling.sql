@@ -202,3 +202,12 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.bill_helpr_fault_card_fee(uuid, integer, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.bill_helpr_fault_card_fee(uuid, integer, text) TO service_role;
+
+-- Q807: every public table carries the unconfirmed-email statement gate.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;

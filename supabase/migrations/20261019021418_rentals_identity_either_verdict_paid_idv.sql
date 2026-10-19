@@ -184,3 +184,12 @@ CREATE POLICY idv_fee_payments_select_own ON public.idv_fee_payments
 REVOKE ALL ON TABLE public.idv_fee_payments FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.idv_fee_payments TO authenticated;
 GRANT ALL ON TABLE public.idv_fee_payments TO service_role;
+
+-- Q807: every public table carries the unconfirmed-email statement gate.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;

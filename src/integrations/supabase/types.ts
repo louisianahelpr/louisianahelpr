@@ -4067,6 +4067,38 @@ export type Database = {
           },
         ]
       }
+      job_helpr_fault_fee_deductions: {
+        Row: {
+          created_at: string
+          deducted_cents: number
+          id: string
+          payout_ref: string
+          ruling_id: string
+        }
+        Insert: {
+          created_at?: string
+          deducted_cents: number
+          id?: string
+          payout_ref: string
+          ruling_id: string
+        }
+        Update: {
+          created_at?: string
+          deducted_cents?: number
+          id?: string
+          payout_ref?: string
+          ruling_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_helpr_fault_fee_deductions_ruling_id_fkey"
+            columns: ["ruling_id"]
+            isOneToOne: false
+            referencedRelation: "job_helpr_fault_rulings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_helpr_fault_rulings: {
         Row: {
           admin_id: string | null

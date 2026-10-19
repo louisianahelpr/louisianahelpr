@@ -447,3 +447,122 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_bank_transfer_executed(uuid, text, text, boolean, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rentals_bank_transfer_executed(uuid, text, text, boolean, text) TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- 8. Autopay (D7). The tenant saves a bank once (rent-bank-autopay edge function: a Stripe SetupIntent with
+--    a mandate; rentals_autopay_saved records it, service only), then turns autopay on or off. The daily
+--    autopay run (rentals_autopay_due, service only) opens one bank payment per rent row due today that is
+--    still open, for that row's open amount, and the edge function charges it off-session.
+CREATE OR REPLACE FUNCTION public.rentals_autopay_saved(p_tenancy_id uuid, p_customer_id text, p_payment_method_id text,
+                                                        p_bank_label text, p_livemode boolean)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  IF p_customer_id IS NULL OR p_customer_id !~ '^cus_' OR p_payment_method_id IS NULL OR p_payment_method_id !~ '^pm_' OR p_livemode IS NULL THEN
+    RAISE EXCEPTION 'bad_bank' USING ERRCODE = '22023';
+  END IF;
+  INSERT INTO public.rental_rent_autopay (tenancy_id, enabled, livemode, stripe_customer_id, stripe_payment_method_id, bank_label)
+  VALUES (p_tenancy_id, false, p_livemode, p_customer_id, p_payment_method_id, left(p_bank_label, 60))
+  ON CONFLICT (tenancy_id) DO UPDATE SET livemode = EXCLUDED.livemode, stripe_customer_id = EXCLUDED.stripe_customer_id,
+    stripe_payment_method_id = EXCLUDED.stripe_payment_method_id, bank_label = EXCLUDED.bank_label, updated_at = now();
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_autopay_saved(uuid, text, text, text, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rentals_autopay_saved(uuid, text, text, text, boolean) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.rentals_set_autopay(p_tenancy_id uuid, p_enabled boolean)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid;
+  v_t public.rental_tenancies%ROWTYPE;
+BEGIN
+  PERFORM public.require_feature('rentals');
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.rentals_assert_member();
+  v_uid := (SELECT auth.uid());
+  SELECT * INTO v_t FROM public.rental_tenancies WHERE id = p_tenancy_id;
+  IF NOT FOUND OR v_t.tenant_id IS DISTINCT FROM v_uid OR v_t.status <> 'active' THEN
+    RAISE EXCEPTION 'tenancy_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF p_enabled IS NULL THEN
+    RAISE EXCEPTION 'bad_autopay' USING ERRCODE = '22023';
+  END IF;
+  IF p_enabled AND NOT EXISTS (SELECT 1 FROM public.rental_rent_plans WHERE tenancy_id = p_tenancy_id AND bank_pay) THEN
+    RAISE EXCEPTION 'bank_pay_off' USING ERRCODE = '22023';
+  END IF;
+  UPDATE public.rental_rent_autopay SET enabled = p_enabled, updated_at = now()
+   WHERE tenancy_id = p_tenancy_id AND (NOT p_enabled OR stripe_payment_method_id IS NOT NULL);
+  IF NOT FOUND AND p_enabled THEN
+    RAISE EXCEPTION 'no_saved_bank' USING ERRCODE = '22023';
+  END IF;
+  PERFORM public.rentals_notify(v_t.landlord_id, CASE WHEN p_enabled THEN 'Autopay on' ELSE 'Autopay off' END,
+    CASE WHEN p_enabled THEN 'Your tenant turned on autopay: rent is paid by bank on each due date.'
+         ELSE 'Your tenant turned off autopay.' END, '/rentals', false);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_set_autopay(uuid, boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.rentals_set_autopay(uuid, boolean) TO authenticated, service_role;
+
+-- The rent rows due today (Louisiana date) that autopay should charge: live tenancy, bank pay on, autopay
+-- on, both sides not banned and Homes on for both, the landlord's payouts on, the row still open (what is
+-- open up to and including it, oldest first), no bank payment in flight. One bank payment row each.
+CREATE OR REPLACE FUNCTION public.rentals_autopay_due()
+RETURNS TABLE (bank_payment_id uuid, tenancy_id uuid, tenant_id uuid, landlord_id uuid, charge_cents integer,
+               stripe_customer_id text, stripe_payment_method_id text, livemode boolean)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+#variable_conflict use_column
+DECLARE
+  v record;
+  v_open bigint;
+  v_fee integer;
+  v_row public.rental_rent_bank_payments%ROWTYPE;
+BEGIN
+  FOR v IN
+    SELECT c.id AS charge_id, c.tenancy_id, c.due_on, t.tenant_id, t.landlord_id, p.bank_fee_payer, a.stripe_customer_id, a.stripe_payment_method_id, a.livemode
+      FROM public.rental_rent_charges c
+      JOIN public.rental_tenancies t ON t.id = c.tenancy_id AND t.status = 'active'
+      JOIN public.rental_rent_plans p ON p.tenancy_id = c.tenancy_id AND p.bank_pay
+      JOIN public.rental_rent_autopay a ON a.tenancy_id = c.tenancy_id AND a.enabled
+     WHERE c.kind = 'rent' AND c.waived_at IS NULL AND c.due_on = public.shop_local_today()
+       AND public.feature_enabled_for_user('rentals', t.tenant_id) AND public.feature_enabled_for_user('rentals', t.landlord_id)
+       AND EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id = t.landlord_id AND pr.stripe_account_id IS NOT NULL AND pr.stripe_payouts_enabled)
+       AND NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id IN (t.tenant_id, t.landlord_id)
+                         AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
+                         AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now()))
+       AND NOT EXISTS (SELECT 1 FROM public.rental_rent_bank_payments b WHERE b.tenancy_id = c.tenancy_id AND b.status IN ('open', 'processing'))
+       AND NOT EXISTS (SELECT 1 FROM public.rental_rent_bank_payments b WHERE b.rent_charge_id = c.id AND b.autopay AND b.status NOT IN ('failed', 'expired'))
+     FOR UPDATE OF c SKIP LOCKED
+  LOOP
+    -- What is open up to and including this row (rent rows oldest first; payments already confirmed).
+    v_open := (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_charges
+                WHERE tenancy_id = v.tenancy_id AND kind = 'rent' AND waived_at IS NULL AND due_on <= v.due_on)
+            - (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_payments WHERE tenancy_id = v.tenancy_id AND status = 'confirmed');
+    v_open := least(v_open, (SELECT amount_cents FROM public.rental_rent_charges WHERE id = v.charge_id));
+    CONTINUE WHEN v_open < 100;
+    v_fee := public.rentals_bank_fee_cents(v_open::integer);
+    INSERT INTO public.rental_rent_bank_payments (tenancy_id, rent_cents, fee_cents, fee_payer, charge_cents, transfer_cents, autopay, rent_charge_id, livemode)
+    VALUES (v.tenancy_id, v_open, v_fee, v.bank_fee_payer,
+            v_open + CASE WHEN v.bank_fee_payer = 'tenant' THEN v_fee ELSE 0 END,
+            v_open - CASE WHEN v.bank_fee_payer = 'landlord' THEN v_fee ELSE 0 END, true, v.charge_id, v.livemode)
+    RETURNING * INTO v_row;
+    bank_payment_id := v_row.id; tenancy_id := v.tenancy_id; tenant_id := v.tenant_id; landlord_id := v.landlord_id;
+    charge_cents := v_row.charge_cents; stripe_customer_id := v.stripe_customer_id; stripe_payment_method_id := v.stripe_payment_method_id;
+    livemode := v.livemode;
+    RETURN NEXT;
+  END LOOP;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_autopay_due() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rentals_autopay_due() TO service_role;

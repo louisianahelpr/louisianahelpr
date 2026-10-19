@@ -169,6 +169,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
     <AppPage
       title={it.title}
       backTo="/declutter"
+      // Phone (lead, 2026-10-19): back + share + heart only, the photo is the hero; the full title sits under the price.
+      phoneHidesTitle
       titleActions={
         <>
           <button

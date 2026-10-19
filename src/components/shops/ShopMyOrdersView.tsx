@@ -18,6 +18,7 @@ import { cancelOrderRequest, fetchMyOrders, type ShopOrder } from "@/lib/shops/o
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
 import { ShopOrderCard } from "./ShopOrderCard";
+import { ShopHandoverActions } from "./ShopHandoverActions";
 
 export default function ShopMyOrdersView() {
   const { user } = useCurrentUser();
@@ -74,6 +75,7 @@ export default function ShopMyOrdersView() {
                   Withdraw order
                 </Button>
               )}
+              {(o.status === "accepted" || o.status === "handed_over") && <ShopHandoverActions order={o} side="buyer" userId={user.id} />}
             </ShopOrderCard>
           ))}
         </ul>

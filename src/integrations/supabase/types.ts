@@ -7932,6 +7932,50 @@ export type Database = {
           },
         ]
       }
+      shop_handovers: {
+        Row: {
+          confirmed_at: string | null
+          confirmed_how: string | null
+          created_at: string
+          is_seed: boolean
+          order_id: string
+          problem_at: string | null
+          problem_note: string | null
+          ready_at: string | null
+          ready_photo_path: string | null
+        }
+        Insert: {
+          confirmed_at?: string | null
+          confirmed_how?: string | null
+          created_at?: string
+          is_seed?: boolean
+          order_id: string
+          problem_at?: string | null
+          problem_note?: string | null
+          ready_at?: string | null
+          ready_photo_path?: string | null
+        }
+        Update: {
+          confirmed_at?: string | null
+          confirmed_how?: string | null
+          created_at?: string
+          is_seed?: boolean
+          order_id?: string
+          problem_at?: string | null
+          problem_note?: string | null
+          ready_at?: string | null
+          ready_photo_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_handovers_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "shop_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_hours: {
         Row: {
           closes_local: string
@@ -8237,6 +8281,8 @@ export type Database = {
           closed_at: string | null
           created_at: string
           decline_reason: string | null
+          handed_over_at: string | null
+          handover_mode: string
           held_at: string | null
           hold_release_attempts: number
           hold_release_last_error: string | null
@@ -8270,6 +8316,8 @@ export type Database = {
           closed_at?: string | null
           created_at?: string
           decline_reason?: string | null
+          handed_over_at?: string | null
+          handover_mode?: string
           held_at?: string | null
           hold_release_attempts?: number
           hold_release_last_error?: string | null
@@ -8303,6 +8351,8 @@ export type Database = {
           closed_at?: string | null
           created_at?: string
           decline_reason?: string | null
+          handed_over_at?: string | null
+          handover_mode?: string
           held_at?: string | null
           hold_release_attempts?: number
           hold_release_last_error?: string | null
@@ -8328,6 +8378,62 @@ export type Database = {
             columns: ["shop_id"]
             isOneToOne: false
             referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_payouts: {
+        Row: {
+          amount_cents: number
+          attempts: number
+          created_at: string
+          debt_cents: number
+          executed_at: string | null
+          id: string
+          is_seed: boolean
+          items_cents: number
+          last_error: string | null
+          next_attempt_at: string
+          order_id: string
+          status: string
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          attempts?: number
+          created_at?: string
+          debt_cents: number
+          executed_at?: string | null
+          id?: string
+          is_seed?: boolean
+          items_cents: number
+          last_error?: string | null
+          next_attempt_at?: string
+          order_id: string
+          status: string
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          attempts?: number
+          created_at?: string
+          debt_cents?: number
+          executed_at?: string | null
+          id?: string
+          is_seed?: boolean
+          items_cents?: number
+          last_error?: string | null
+          next_attempt_at?: string
+          order_id?: string
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_payouts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "shop_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -8478,6 +8584,7 @@ export type Database = {
           category: string
           created_at: string
           daily_order_cap: number | null
+          handover_mode: string
           hidden_at: string | null
           hidden_by: string | null
           hidden_reason: string | null
@@ -8504,6 +8611,7 @@ export type Database = {
           category: string
           created_at?: string
           daily_order_cap?: number | null
+          handover_mode?: string
           hidden_at?: string | null
           hidden_by?: string | null
           hidden_reason?: string | null
@@ -8530,6 +8638,7 @@ export type Database = {
           category?: string
           created_at?: string
           daily_order_cap?: number | null
+          handover_mode?: string
           hidden_at?: string | null
           hidden_by?: string | null
           hidden_reason?: string | null
@@ -12884,6 +12993,53 @@ export type Database = {
         Returns: Json
       }
       shops_set_cancel_policy: { Args: { p_policy: string }; Returns: string }
+      shop_complete_handover: {
+        Args: { p_how: string; p_order_id: string }
+        Returns: Json
+      }
+      shop_handover_photo_access: {
+        Args: { p_name: string; p_write: boolean }
+        Returns: boolean
+      }
+      shop_handover_sweep: { Args: never; Returns: Json }
+      shop_order_free_cancel_until: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
+      shop_payout_executed: {
+        Args: {
+          p_error: string
+          p_payout_id: string
+          p_succeeded: boolean
+          p_transfer_id: string
+        }
+        Returns: string
+      }
+      shop_payouts_due: {
+        Args: { p_limit: number }
+        Returns: {
+          amount_cents: number
+          attempts: number
+          buyer_id: string
+          checkout_session_id: string
+          livemode: boolean
+          order_id: string
+          payment_intent_id: string
+          payout_id: string
+          seller_id: string
+          stripe_account_id: string
+        }[]
+      }
+      shops_confirm_pickup: { Args: { p_order_id: string }; Returns: Json }
+      shops_mark_ready: {
+        Args: { p_order_id: string; p_photo_path: string }
+        Returns: Json
+      }
+      shops_report_not_received: {
+        Args: { p_note: string; p_order_id: string }
+        Returns: Json
+      }
+      shops_set_handover_mode: { Args: { p_mode: string }; Returns: string }
       shops_add_item_photo: {
         Args: { p_item_id: string; p_storage_path: string }
         Returns: string

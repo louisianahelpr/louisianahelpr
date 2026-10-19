@@ -36,6 +36,7 @@ import {
 } from "@/lib/shops/orders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
+import { HandoverModeNote } from "./ShopHandoverModePicker";
 
 const MAX_PER_LINE = 20;
 const NOTE_MAX = 500;
@@ -193,6 +194,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
         <p className="text-xs text-muted-foreground">{note.length}/{NOTE_MAX}. No phone numbers, emails or links.</p>
       </div>
 
+      <HandoverModeNote shopId={shopId} />
       <div className="space-y-1 rounded-xl bg-muted/60 p-3" data-testid="shop-order-cancel-policy">
         <p className="text-sm font-semibold">{policy.label}</p>
         <p className="text-xs text-muted-foreground">{policy.detail}</p>

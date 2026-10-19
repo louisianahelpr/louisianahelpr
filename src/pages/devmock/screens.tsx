@@ -2,7 +2,7 @@
 import type { ReactNode } from "react";
 import {
   Briefcase, Sofa, Store, KeyRound, Users, AlertTriangle, CheckCircle2, MessageSquare, Wrench, Package,
-  CalendarDays, Clock, Tag, ShoppingBag, Truck, Search as SearchIcon, Hammer, Home as HomeIcon, Wallet, ChevronRight, Plus,
+  CalendarDays, Clock, Tag, GripVertical, Lock, ShoppingBag, Truck, Search as SearchIcon, Hammer, Home as HomeIcon, Wallet, ChevronRight, Plus,
 } from "lucide-react";
 import { categoryColors } from "@/components/job-card/activityConstants";
 import { Frame, PageTitle, Pill, SectionHead, Card, Row, Stat, SearchEntry, Segmented, SampleBadge, Money } from "./kit";
@@ -10,7 +10,7 @@ import { posted, working, declutter, shopSample, homesSample, money, cents, unre
 
 const jobMeta = (j: MockJob) => [j.date, j.time, j.city].filter(Boolean).join(" · ");
 
-function JobRows({ jobs, noteTone = "muted" }: { jobs: MockJob[]; noteTone?: "accent" | "muted" }) {
+export function JobRows({ jobs, noteTone = "muted" }: { jobs: MockJob[]; noteTone?: "accent" | "muted" }) {
   return (
     <>
       {jobs.map((j, i) => (
@@ -30,7 +30,7 @@ function JobRows({ jobs, noteTone = "muted" }: { jobs: MockJob[]; noteTone?: "ac
   );
 }
 
-function SampleNote({ what = "shops" }: { what?: string }) {
+export function SampleNote({ what = "shops" }: { what?: string }) {
   return <p className="-mt-2 text-[12px] text-muted-foreground flex items-center gap-1.5"><SampleBadge />Prod has no {what} yet</p>;
 }
 
@@ -205,31 +205,80 @@ export function HomeC() {
 }
 
 
-export function HomeD() {
+type SecKey = "jobs" | "declutter" | "shops" | "homes";
+const SECTION_OF_TODO = ["jobs", "jobs", "jobs", "homes", "shops"] as const;
+
+export function HomeD({ hide = [], customize = false }: { hide?: SecKey[]; customize?: boolean }) {
+  const todos = needsYou.filter((_, i) => !hide.includes(SECTION_OF_TODO[i]));
+  const tiles = sections.filter((s) => !hide.includes(s.key as SecKey));
+  const coming = comingUp.filter((r) => !(hide.includes("homes") && r.icon === KeyRound));
   return (
-    <Frame dock="home">
+    <Frame dock="home" hide={hide} overlay={customize ? <CustomizeSheet hide={hide} /> : undefined}>
       <Greeting />
       <Card className="flex divide-x divide-border/70">
-        {[["5", "To do", true], ["2", "This week"], [String(unreadMessages), "Unread"]].map(([n, l, hot]) => (
+        {[[String(todos.length), "To do", true], ["2", "This week"], [String(unreadMessages), "Unread"]].map(([n, l, hot]) => (
           <div key={l as string} className="flex-1 px-4 py-3 text-center">
             <p className={`text-[24px] leading-7 font-bold ${hot ? "text-[hsl(var(--accent-ink))]" : ""}`}>{n}</p>
             <p className="text-[12px] text-muted-foreground">{l}</p>
           </div>
         ))}
       </Card>
-      <SectionHead title="To do" link="See all 5" />
-      <NeedsYouCard limit={3} />
-      <SectionHead title="Your sections" />
+      <SectionHead title="To do" link={`See all ${todos.length}`} />
+      <Card>
+        {todos.slice(0, 3).map((r, i, a) => (
+          <Row key={r.text} icon={r.icon} tone={r.tone} title={r.text} meta={r.meta} tag={r.sample ? "Sample" : undefined} last={i === a.length - 1} />
+        ))}
+      </Card>
+      <SectionHead title="Your sections" link="Customize" />
       <div className="grid grid-cols-2 gap-3">
-        {sections.map((s) => <SectionTile key={s.key} s={s} />)}
+        {tiles.map((s, i) => <div key={s.key} className={tiles.length % 2 === 1 && i === tiles.length - 1 ? "col-span-2" : ""}><SectionTile s={s} /></div>)}
       </div>
       <SectionHead title="Coming up" link="Calendar" />
       <Card>
-        {comingUp.map((r, i) => (
-          <Row key={r.text} icon={r.icon} tone="primary" title={r.text} meta={r.meta} tag={r.sample ? "Sample" : undefined} right={<Money>{r.right}</Money>} last={i === comingUp.length - 1} />
+        {coming.map((r, i) => (
+          <Row key={r.text} icon={r.icon} tone="primary" title={r.text} meta={r.meta} tag={r.sample ? "Sample" : undefined} right={<Money>{r.right}</Money>} last={i === coming.length - 1} />
         ))}
       </Card>
     </Frame>
+  );
+}
+
+function Toggle({ on }: { on: boolean }) {
+  return (
+    <span className={`shrink-0 w-12 h-7 rounded-full p-0.5 flex ${on ? "bg-primary justify-end" : "bg-muted justify-start border border-border"}`}>
+      <span className="w-6 h-6 rounded-full bg-white shadow-sm" />
+    </span>
+  );
+}
+
+function CustomizeSheet({ hide }: { hide: SecKey[] }) {
+  const rows: [SecKey, typeof Briefcase, string][] = [["jobs", Briefcase, "Jobs & Posts"], ["declutter", Sofa, "Declutter"], ["shops", Store, "Shops"], ["homes", KeyRound, "Homes"]];
+  return (
+    <div className="fixed inset-0 z-[60]">
+      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-card border-t border-border px-4 pt-2.5 pb-8 shadow-[0_-8px_30px_-10px_hsl(var(--olivewood)/0.3)]">
+        <div className="mx-auto w-10 h-1.5 rounded-full bg-muted mb-3" />
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-[20px] font-bold">Customize</h2>
+          <span className="text-[15px] font-semibold text-primary">Done</span>
+        </div>
+        <p className="text-[13px] text-muted-foreground mt-1">Turn off sections you don't use. They leave the bottom bar and Home. Drag to reorder.</p>
+        <div className="mt-4 rounded-2xl border border-border overflow-hidden">
+          {rows.map(([k, Icon, name], i) => {
+            const on = !hide.includes(k);
+            return (
+              <div key={k} className={`flex items-center gap-3 px-3 py-3 ${i < rows.length - 1 ? "border-b border-border/70" : ""}`}>
+                <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className={`w-9 h-9 rounded-full flex items-center justify-center ${on ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}><Icon className="w-[18px] h-[18px]" /></span>
+                <p className={`flex-1 text-[15px] font-semibold ${on ? "" : "text-muted-foreground"}`}>{name}</p>
+                <Toggle on={on} />
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[12px] text-muted-foreground mt-3 flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" />Home and Messages always stay. Keep at least one section on.</p>
+      </div>
+    </div>
   );
 }
 
@@ -373,11 +422,11 @@ function PartTile({ icon: Icon, name, big, small, hot }: { icon: typeof Tag; nam
   );
 }
 
-function Thumb() {
+export function Thumb() {
   return <span className="shrink-0 w-12 h-12 rounded-xl bg-muted flex items-center justify-center text-muted-foreground"><Sofa className="w-5 h-5" /></span>;
 }
 
-function ListingRows() {
+export function ListingRows() {
   const rows = declutter.selling.slice(0, 3);
   return (
     <Card>
@@ -559,7 +608,7 @@ export function HomesB() {
 }
 
 export const SCREENS: Record<string, () => JSX.Element> = {
-  "home-a": HomeA, "home-b": () => <HomeB />, "home-b-plus": HomeBPlus, "home-c": HomeC, "home-d": HomeD,
+  "home-a": HomeA, "home-b": () => <HomeB />, "home-b-plus": HomeBPlus, "home-c": HomeC, "home-d": () => <HomeD />, "home-d-customize": () => <HomeD hide={["homes"]} customize />, "home-d-no-homes": () => <HomeD hide={["homes"]} />,
   "jobs-a": JobsA, "jobs-a-working": JobsAWorking, "jobs-b": JobsB, "jobs-c": JobsC,
   "declutter-a": DeclutterA, "declutter-b": DeclutterB,
   "shops-a": ShopsA, "shops-a-buyer": ShopsABuyer,

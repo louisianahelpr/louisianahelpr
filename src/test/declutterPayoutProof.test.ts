@@ -261,10 +261,20 @@ describe("declutter-payout-proof.yml", () => {
   it("is manual only", () => {
     expect(Object.keys(wf.on ?? wf[true as unknown as string])).toEqual(["workflow_dispatch"]);
   });
-  it("fails closed first: E2E_STRIPE_MODE must be test and the key a test key", () => {
-    const gate = steps[0].run ?? "";
-    expect(gate).toMatch(/\[ "\$STRIPE_MODE" != "test" \][\s\S]*exit 1/);
-    expect(gate).toMatch(/sk_test_\*\|rk_test_\*\) ;;\s*\*\)[^\n]*exit 1/);
+  it("fails closed before any write: the key must be a test key", () => {
+    const gateIdx = steps.findIndex((s) => /sk_test_\*\|rk_test_\*\) ;;\s*\*\)[^\n]*exit 1/.test(s.run ?? ""));
+    expect(gateIdx).toBeGreaterThanOrEqual(0);
+    const runIdx = steps.findIndex((s) => (s.run ?? "").includes("declutterPayoutProof.mjs run"));
+    expect(gateIdx).toBeLessThan(runIdx);
+  });
+  it("does not gate on the platform-wide E2E_STRIPE_MODE (live since 2026-09-28; test accounts run on the test key)", () => {
+    // The parsed workflow (comments excluded, where the reason is written down).
+    expect(JSON.stringify(wf)).not.toMatch(/E2E_STRIPE_MODE/);
+  });
+  it("checks out first, and the cleanup step is a no-op when the run never started", () => {
+    expect((steps[0] as { uses?: string }).uses ?? "").toMatch(/^actions\/checkout@/);
+    const cleanup = steps.find((s) => (s.run ?? "").includes("declutterPayoutProof.mjs unlink"));
+    expect(cleanup?.run ?? "").toMatch(/if \[ -f "\$STATE" \]; then\s+node scripts\/e2e\/declutterPayoutProof\.mjs unlink[^\n]*\s+else\s+echo/);
   });
   it("never echoes a secret", () => {
     for (const line of raw.split("\n")) {

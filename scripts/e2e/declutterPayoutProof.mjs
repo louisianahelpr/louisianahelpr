@@ -37,7 +37,10 @@
  *
  * SAFETY (every one fails closed, before the first write):
  *   - STRIPE_TEST_SECRET_KEY must be sk_test_/rk_test_, Stripe must answer
- *     livemode=false, and E2E_STRIPE_MODE must be `test`.
+ *     livemode=false; both parties are TEST ACCOUNTS
+ *     this run enrolled, which stripeMode.ts runs on the test key only. Not
+ *     vars.E2E_STRIPE_MODE: that is the whole platform's mode (live since
+ *     2026-09-28), not a test account's (test since 2026-10-12).
  *   - Only rows this run created are written: a user id the run made, whose
  *     email is this run's address, is_seed, and (after step 1) enrolled; and
  *     only the Stripe account this run made (metadata lh_proof_run = run id).
@@ -49,7 +52,7 @@
  *   node scripts/e2e/declutterPayoutProof.mjs unlink --state <file>
  *
  * Env: SUPABASE_URL (or SUPABASE_PROJECT_REF), SUPABASE_SERVICE_ROLE_KEY,
- * STRIPE_TEST_SECRET_KEY, E2E_STRIPE_MODE. Workflow: declutter-payout-proof.yml.
+ * STRIPE_TEST_SECRET_KEY. Workflow: declutter-payout-proof.yml.
  * Exit: 0 proved; 1 failed (the step it failed at is printed); 3 Custom
  * accounts are not enabled on the platform.
  * Guard: src/test/declutterPayoutProof.test.ts.
@@ -486,7 +489,6 @@ async function run(stateFile, priceCents) {
   const e = env();
   const refused = testKeyRefusal(e.key);
   if (refused) throw new Error(refused);
-  if (process.env.E2E_STRIPE_MODE !== "test") throw new Error(`E2E_STRIPE_MODE is '${process.env.E2E_STRIPE_MODE ?? ""}', not 'test'; refusing`);
   if (!e.service) throw new Error("SUPABASE_SERVICE_ROLE_KEY is required");
   if (!Number.isInteger(priceCents) || priceCents < 100 || priceCents > 100_000) throw new Error(`--price-cents ${priceCents} is not 100..100000`);
   if (!stateFile) throw new Error("--state <file> is required");

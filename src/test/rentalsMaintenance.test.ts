@@ -236,9 +236,9 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
     }
     const live = flat(body("rentals_set_listing_status"));
     // 20261019061241: a sale listing runs the sale list (fair housing + no haggling), a rent listing the fair-housing list.
-    expect(live).toContain("IF v_l.kind = 'sale' THEN v_flags := public.homes_sale_wording_flags(concat_ws(' ', v_l.headline, v_l.description)); ELSE v_flags := public.rentals_listing_wording_flags(concat_ws(' ', v_l.headline, v_l.description, v_l.pet_rules)); END IF; IF cardinality(v_flags) > 0 THEN RAISE EXCEPTION 'wording_flagged'");
+    expect(live).toContain("IF v_l.kind = 'sale' THEN v_flags := public.homes_sale_wording_flags(concat_ws(' ', v_l.headline, v_l.description)); ELSE v_flags := public.rentals_listing_wording_flags(concat_ws(' ', v_l.headline, v_l.description, v_l.pet_rules)); END IF; IF cardinality(v_flags) > 0 THEN IF v_l.kind = 'sale' THEN RAISE EXCEPTION 'sale_wording_flagged'");
     // and a sale listing never goes live while the flat listing fee is above 0 (no payment flow exists).
-    expect(live).toContain("IF COALESCE(v_fee, 0) > 0 THEN RAISE EXCEPTION 'listing_fee_not_ready'");
+    expect(live).toContain("IF v_fee IS NULL OR v_fee > 0 THEN RAISE EXCEPTION 'listing_fee_not_ready'");
     expect(live).toContain("IF v_photos < 5 THEN RAISE EXCEPTION 'too_few_photos'");
     expect(live).toContain("rp.ownership_status = 'approved'");
     // The browse and the page never return the street address (Q12).

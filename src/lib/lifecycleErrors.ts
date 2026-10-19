@@ -1035,6 +1035,7 @@ export const RPC_ERROR_COPY = {
     under_18: RC.under_18,
     listing_not_found: RC.listing_not_found,
     too_few_photos: "A listing that is showing keeps at least 5 photos. Pause it first to remove more.",
+    listing_not_editable: "This listing is sold or removed, so its photos stay as they are.",
   },
   rentals_save_listing: {
     account_restricted: RC.account_restricted,
@@ -1063,6 +1064,7 @@ export const RPC_ERROR_COPY = {
     too_few_photos: RC.too_few_photos,
     wording_flagged: RC.wording_flagged,
     listing_fee_not_ready: RC.listing_fee_not_ready,
+    sale_wording_flagged: RC.sale_wording_flagged,
   },
   rentals_save_sale_listing: {
     account_restricted: RC.account_restricted,
@@ -1076,7 +1078,7 @@ export const RPC_ERROR_COPY = {
     ownership_not_approved: "You can list this home once an admin has checked your ownership proof.",
     property_already_listed: RC.property_already_listed,
     property_not_found: RC.property_not_found,
-    wording_flagged: RC.sale_wording_flagged,
+    sale_wording_flagged: RC.sale_wording_flagged,
   },
   rentals_invite_tenant: {
     account_restricted: RC.account_restricted,

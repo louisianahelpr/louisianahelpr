@@ -59,7 +59,7 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   // Homes -> Rent listings (20261019043000).
   listing_not_found: "This listing isn't available.",
   bad_listing: "Check the listing: every box needs a valid answer (rent, beds, baths, move-in date).",
-  listing_not_editable: "This listing was removed. Start a new one.",
+  listing_not_editable: "This listing was sold or removed. Start a new one.",
   wording_flagged: "Some words say who may live here, which fair housing law doesn't allow. Describe the home instead.",
   unit_already_listed: "This unit already has a listing. Open that one instead.",
   photo_not_uploaded: "A photo didn't upload. Try adding it again.",

@@ -14,7 +14,9 @@
     "seed_hidden_in_discovery()": "reviewed 2026-10-07 (Q552): read inside the open_jobs_browse view, whose callers need EXECUTE (a view's function EXECUTE is checked against the caller); answers only whether the launch switch hides test rows from the CALLER.",
     "shops_public_shop(uuid)": "client",
     "features_open_to_everyone()": "client",
-    "rentals_public_listing(text)": "reviewed 2026-10-19 (Q2188): the public Homes listing link (D12) /r/<slug>, for anyone with the link (signed out too). Returns one listing's coarse facts only while rentals_public_listing_visible holds (live, not expired, ownership approved, owner not banned, not taken down, Homes open to everyone, not a test/seed owner): city + ZIP never the street, no owner or listing id, no storage path (photos by id/ref), and no size/lot/year for a home for sale; a hidden or unknown slug is P0002 listing_not_found. Proof: src/test/pglite/homesPublicLink.pglite.mjs. The /r/ page that calls it comes with the Slice 3 client."
+    "rentals_public_listing(text)": "reviewed 2026-10-19 (Q2188): the public Homes listing link (D12) /r/<slug>, for anyone with the link (signed out too). Returns one listing's coarse facts only while rentals_public_listing_visible holds (live, not expired, ownership approved, owner not banned, not taken down, Homes open to everyone, not a test/seed owner): city + ZIP never the street, no owner or listing id, no storage path (photos by id/ref), and no size/lot/year for a home for sale; a hidden or unknown slug is P0002 listing_not_found. Proof: src/test/pglite/homesPublicLink.pglite.mjs. The /r/ page that calls it comes with the Slice 3 client.",
+    "shops_shop_faqs(uuid)": "client",
+    "shops_shop_policies(uuid)": "client"
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",
@@ -329,7 +331,10 @@
     "rentals_admin_takedown_matches(uuid[])": "client",
     "rentals_my_listing_photos(uuid)": "client",
     "rentals_listing_photo_access(text, text)": "policy",
-    "rentals_listing_photo_deletable(text)": "policy"
+    "rentals_listing_photo_deletable(text)": "policy",
+    "shops_set_my_faqs(jsonb)": "client",
+    "shops_shop_faqs(uuid)": "client",
+    "shops_shop_policies(uuid)": "client"
   },
   "unscoped": {
     "choose_new_social_account(uuid)": "reviewed 2026-10-05 (Q446): the signed-out choice screen marks the pending one-account choice whose random id only the refused sign-in received; it reads and returns nothing about any person, and marking a row only lets that same Apple/Google identity create its account.",
@@ -375,6 +380,9 @@
     "shops_set_handover_mode(text)": "reviewed 2026-10-18 (Q1284): Shops M2 (20261018211820); reads the caller only through public.shops_assert_owner_eligible(), called first after require_feature and the ban check (v_uid := ...), which refuses a NULL caller (42501 not_authenticated); the one row it writes is the caller's own shop (WHERE owner_id = v_uid).",
     "shops_set_ready_tap_cancel(text)": "reviewed 2026-10-19 (Q1284): Shops O2 (20261019015018); reads the caller only through public.shops_assert_owner_eligible(), called first after require_feature and the ban check (v_uid := ...), which refuses a NULL caller (42501 not_authenticated); the one row it writes is the caller's own shop (WHERE owner_id = v_uid).",
     "shops_public_shop(uuid)": "reviewed 2026-10-19 (Q1284): SH2b public shop page (owner: anyone with the link may look; 20261019042744); deliberately reads no caller, it answers the same for anon and members. Returns only what the page shows, for a shop shop_link_visible allows (shop_state_ok: not hidden, no test shop while seeds are hidden, owner in good standing; not paused; Shops not switched off for everyone; never the owner's own switch, which would be a tester oracle); photos by id only; no owner id, person rating, pin, SoS number, hidden reason or pickup address; one NULL for every refusal.",
-    "features_open_to_everyone()": "reviewed 2026-10-19 (Q14): the signed-out landing's one public read (front door, code-review approve). Takes no arguments and touches no person: returns which of the three section switch keys (declutter, shops, rentals; already in the client bundle) are at audience 'everyone', nothing about testers, admins or any other switch, so it has no auth.uid() to scope by."
+    "features_open_to_everyone()": "reviewed 2026-10-19 (Q14): the signed-out landing's one public read (front door, code-review approve). Takes no arguments and touches no person: returns which of the three section switch keys (declutter, shops, rentals; already in the client bundle) are at audience 'everyone', nothing about testers, admins or any other switch, so it has no auth.uid() to scope by.",
+    "shops_set_my_faqs(jsonb)": "reviewed 2026-10-19 (Q1284): SH12 shop FAQs (20261019072541); reads the caller only through public.shops_assert_owner_eligible(), called first after require_feature and the ban check (v_uid := ...), which refuses a NULL caller (42501 not_authenticated); it replaces only the caller's own shop's FAQs (shops.owner_id = v_uid, row-locked), each question and answer contact-leak filtered.",
+    "shops_shop_faqs(uuid)": "reviewed 2026-10-19 (Q1284): SH12 shop FAQs (20261019072541); answers the same as the public shop page for anyone (shop_link_visible: not hidden, no test shop while seeds are hidden, owner in good standing, not paused, Shops not switched off for everyone), and additionally lets a shop's OWNER (auth.uid() = shops.owner_id) read their own FAQs while hidden or paused; a NULL caller gets only the public answer. Returns question and answer text only; NULL for every refusal.",
+    "shops_shop_policies(uuid)": "reviewed 2026-10-19 (Q1284): SH12 shop policies card (20261019072541); answers the same as the public shop page for anyone (shop_link_visible), and lets a shop's OWNER (auth.uid() = shops.owner_id) read their own while hidden or paused; returns only the shop's cancel preset and ready-tap choice (the rules a buyer reads before paying); NULL for every refusal."
   }
 }

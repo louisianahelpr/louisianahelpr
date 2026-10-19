@@ -11,6 +11,7 @@ import { rpcErrorMessage } from "./rpcErrorCopy";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { removeShopObjects } from "./storageCleanup";
+import { squareCropLogo } from "./logoCrop";
 
 /** Shop photos live in job-photos under <owner uid>/shops/ (purged with the account). */
 const SHOP_PHOTO_BUCKET = "job-photos";
@@ -202,7 +203,8 @@ async function removeObjects(paths: string[]): Promise<void> {
  * and is the owner's); when the attach is refused the object is deleted again.
  */
 export async function addShopPhoto(ownerId: string, kind: ShopPhotoKind, file: File): Promise<void> {
-  const cleaned = await cleanListingPhoto(file);
+  // The logo is the shop's avatar everywhere: square-cropped once, before cleaning (SH12).
+  const cleaned = await cleanListingPhoto(kind === "logo" ? await squareCropLogo(file) : file);
   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
   const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
   const path = shopPhotoPath(ownerId, nonce);

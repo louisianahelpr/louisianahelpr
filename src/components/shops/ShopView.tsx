@@ -25,6 +25,8 @@ import { saveShopFlyer } from "@/lib/shops/shopFlyer";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { categoryLabel, ShopsNotice, useShopCategories } from "./shopsUi";
 import { ShopCard, ShopGallery, ShopHero, ShopHoursCard } from "./ShopProfile";
+import ShopFaqs from "./ShopFaqs";
+import ShopPolicies from "./ShopPolicies";
 import ShopItemsList from "./ShopItemsList";
 import ShopOrderSheet from "./ShopOrderSheet";
 
@@ -165,6 +167,8 @@ export default function ShopView() {
           </ShopCard>
         )}
         <ShopGallery photos={s.photos} />
+        {s.offers_selling && <ShopPolicies shopId={s.id} />}
+        <ShopFaqs shopId={s.id} />
         <ShopCard id="shop-offers" title="What this shop offers">
           <p className="text-sm text-muted-foreground">
             {s.offers_selling && s.offers_quotes ? "Sells items and gives quotes." : s.offers_selling ? "Sells items." : "Gives quotes."}

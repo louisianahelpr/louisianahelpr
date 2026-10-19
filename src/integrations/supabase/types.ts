@@ -7656,7 +7656,7 @@ export type Database = {
           decided_at: string | null
           decline_reason: string | null
           id: string
-          method: string
+          pay_method: string
           paid_on: string
           reported_by: string
           status: string
@@ -7668,7 +7668,7 @@ export type Database = {
           decided_at?: string | null
           decline_reason?: string | null
           id?: string
-          method: string
+          pay_method: string
           paid_on: string
           reported_by: string
           status?: string
@@ -7680,7 +7680,7 @@ export type Database = {
           decided_at?: string | null
           decline_reason?: string | null
           id?: string
-          method?: string
+          pay_method?: string
           paid_on?: string
           reported_by?: string
           status?: string

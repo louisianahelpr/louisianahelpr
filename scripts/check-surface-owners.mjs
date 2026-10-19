@@ -88,6 +88,8 @@ const OWNERS = {
 
   // ── settings / profile / long tail ───────────────────────────────────────
   "/profile": ["lh-input-boundary"],
+  // The Jobs rows that left Profile (dashboards build, 2026-10-19).
+  "/jobs/settings": ["lh-input-boundary", "lh-design-holes"],
   "/user/:userId": ["lh-trust-safety"],
   "/admin": ["lh-admin-moderation"],
   // Declutter (hidden switch 'declutter', docs/specs/declutter-auctions.md).

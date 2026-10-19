@@ -10,6 +10,7 @@ import { isSingleHelprFeeTransfer, settleCancellationFeeTransfer } from "./_canc
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { clawbackForTransfer } from "../../_shared/chargebackClawback.ts";
 import { isHeldTipReversal } from "../../_shared/heldTipRepay.ts";
+import { restoreHelprFaultFeeForJob } from "../../_shared/helprFaultFee.ts";
 
 export async function handleTransferReversed(
   event: Stripe.Event,
@@ -113,6 +114,9 @@ export async function handleTransferReversed(
   if (ours.error) {
     logStep("Clawback lookup failed on transfer.reversed; treating as an unexplained reversal", { error: ours.error });
   } else if (ours.disputeId) {
+    // A clawback is NOT given back here: a won dispute repays the reversed
+    // amount, which was already net of the Helpr-fault fee. A LOST dispute
+    // gives it back (chargeDisputeClosed).
     logStep("Transfer reversed by a card-dispute clawback — no freeze", { transferId: transfer.id, disputeId: ours.disputeId });
     await postSlackOpsAlert({
       kind: "payout_reversed",
@@ -137,6 +141,13 @@ export async function handleTransferReversed(
   if (await isHeldTipReversal(supabase, transfer.id)) {
     logStep("Transfer reversed by a held-tip hold-back (Q1222) — re-paid after the hold", { transferId: transfer.id });
     return;
+  }
+
+  // Every cent of a job payout came back (a reversal by hand): the
+  // Helpr-fault card fee it withheld was not collected, so the debt is owed
+  // again. A partial reversal keeps it (money-reconciliation pages it).
+  if (recordedFullyReversed && reversedLedger?.job_id) {
+    await restoreHelprFaultFeeForJob(supabase, String(reversedLedger.job_id), "stripe-webhook transfer.reversed");
   }
 
   // transfer.created optimistically flipped the job to "released". A reversal

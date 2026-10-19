@@ -18,6 +18,7 @@ import {
 import { alertGiftDisputeClosed } from "./_giftCardRefund.ts";
 import { finalizeLostClawback, notifyPayee, repayClawback, wasToldOnHold, type RepayResult } from "../../_shared/chargebackClawback.ts";
 import { reverseVisitTaxForLostDispute } from "./_visitTaxReversal.ts";
+import { restoreHelprFaultFeeForJob } from "../../_shared/helprFaultFee.ts";
 
 export async function handleChargeDisputeClosed(
   event: Stripe.Event,
@@ -364,6 +365,11 @@ export async function handleChargeDisputeClosed(
           { id: closedJob.id, title: closedJob.title, customer_id: closedJob.customer_id, helper_id: closedJob.helper_id },
         );
         const lost = await finalizeLostClawback({ stripe, supabase, logStep }, closedDispute, { id: closedJob.id, title: closedJob.title });
+        // The clawback is final: a payout transfer fully reversed for this lost
+        // dispute collected no Helpr-fault card fee, so its deduction is given
+        // back (restore_helpr_fault_fee_for_job keeps it unless a transfer on
+        // the job is fully reversed and none is live).
+        await restoreHelprFaultFeeForJob(supabase, String(closedJob.id), "stripe-webhook charge.dispute.closed lost");
         // ME-009: a payout that was held (never paid, so nothing to claw back)
         // used to end in silence. finalizeLostClawback tells a clawed-back payee.
         // Not when the decided-dispute close already told the Helpr how it ended.

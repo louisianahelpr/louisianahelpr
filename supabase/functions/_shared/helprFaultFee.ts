@@ -144,3 +144,35 @@ export async function recordHelprFaultFeeWithheld(
   }
   return null;
 }
+
+/**
+ * The job ENDED with no payout that kept the debt (a full refund; a transfer
+ * fully reversed by a lost card dispute or by hand): give every Helpr's
+ * deduction on its payout back, so a fee nothing withheld never reads
+ * collected (owner rule: never absorb a fee). restore_helpr_fault_fee_for_job
+ * (20261019043251) itself refuses unless the job is refunded or holds a fully
+ * reversed transfer, and keeps anything a pending/paid/partly reversed payout
+ * still carries; what it cannot give back is paged by money-reconciliation
+ * (helpr_fault_deduction_not_collected). Never throws: the refund or reversal
+ * already happened in Stripe, so a failure is logged CRITICAL and left to that
+ * check. Not for a reversal a won dispute repays (the repay is net of the fee).
+ */
+export async function restoreHelprFaultFeeForJob(supabaseAdmin: Db, jobId: string, source: string): Promise<number> {
+  try {
+    const { data, error } = await supabaseAdmin.rpc("restore_helpr_fault_fee_for_job", { p_job_id: jobId });
+    if (error) {
+      if (error.code !== "PGRST202") {
+        console.error(
+          `CRITICAL: [${source}] job ${jobId} ended with no payout, and the Helpr-fault card fee its payout attempt withheld could not be given back: the debt reads collected but nothing was withheld; money-reconciliation will page it:`,
+          error,
+        );
+      }
+      return 0;
+    }
+    const cents = Math.round(Number(data ?? 0));
+    return Number.isFinite(cents) && cents > 0 ? cents : 0;
+  } catch (e) {
+    console.error(`CRITICAL: [${source}] restore_helpr_fault_fee_for_job threw for job ${jobId}; money-reconciliation will page it:`, e);
+    return 0;
+  }
+}

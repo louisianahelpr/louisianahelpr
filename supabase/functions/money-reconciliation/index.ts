@@ -318,6 +318,17 @@ serve(async (req) => {
         "critical",
         `Money a payout hold kept back is not moving: a tip_hold_redrives row Stripe refused ('failed' re-pay or 'not_reversed'), or a held tip / won-chargeback re-pay (chargeback_clawbacks.held_repay_owed_at) whose Helpr is no longer on hold and that is still unpaid ${HELD_REDRIVE_STUCK_HOURS}h after the re-drive first tried it (an 'owed' tip: ${HELD_REDRIVE_STUCK_HOURS}h after it was paid) (no payout account, a short balance, or a dead sweep). Read the row's failure_reason. A refused tip row is paid by hand and marked repaid with that transfer id. A row whose failure_reason starts with 'balance_insufficient:' waits on the platform balance (Q1291): top the balance up and do NOT pay it by hand (the re-drive would pay it again).`,
       ),
+      // A Helpr-fault card fee booked as collected (job_helpr_fault_fee_deductions)
+      // that no settled payout withheld: a payout attempt took it and stopped
+      // unclear, and the job then ended (refund, chargeback) or still sits on
+      // a stuck claim. stripe-webhook gives it back on a full refund, a full
+      // reversal and a lost dispute (restore_helpr_fault_fee_for_job); what is
+      // left here is for a person.
+      helprFaultDeductionNotCollected: new Check(
+        "helpr_fault_deduction_not_collected",
+        "critical",
+        `A Helpr-fault card-fee deduction (job_helpr_fault_fee_deductions) older than ${SETTLE_WINDOW_HOURS}h has no paid or reversed payout_transfers row for its job and Helpr that carries metadata.helpr_fault_fee_cents > 0: the debt reads collected but no transfer withheld it, so the fee is absorbed. If no money moved toward the Helpr for the job (read Stripe transfers in transfer_group job_<id>), run restore_helpr_fault_fee(helper, job) as the service role once its live claim row is settled; if a transfer did withhold it, record helpr_fault_fee_cents on that payout row.`,
+      ),
       cancellationFee: new Check(
         "cancellation_fee_mismatch",
         "critical",
@@ -1670,6 +1681,57 @@ serve(async (req) => {
             if (r.helper_id && holdRead.holds.has(r.helper_id)) continue;
             if (!(r.held_repay_first_attempt_at ? stale(r.held_repay_first_attempt_at) : staleUntried(r.held_repay_owed_at, r.updated_at))) continue;
             checks.heldMoneyNotRedriven.add({ clawback_id: r.id, dispute_id: r.dispute_id, status: r.status, amount: money(r.reversed_cents / 100), reason: r.failure_reason });
+          }
+        }
+      }
+    }
+
+    // ── Helpr-fault fee deductions nothing withheld ──────────────────────────
+    // Before 20261019015303 is deployed the table does not exist: a note.
+    {
+      const missing = (code?: string) => code === "42P01" || code === "PGRST205" || code === "42703";
+      const settledBefore = Date.now() - SETTLE_WINDOW_HOURS * 3_600_000;
+      const dedRes = await admin
+        .from("job_helpr_fault_fee_deductions")
+        .select("ruling_id, payout_ref, deducted_cents, created_at")
+        .lt("created_at", new Date(settledBefore).toISOString())
+        .limit(2000);
+      if (dedRes.error && !missing((dedRes.error as { code?: string }).code)) {
+        throw new Error(`money-reconciliation: job_helpr_fault_fee_deductions read failed: ${dedRes.error.message}`);
+      }
+      if (dedRes.error) notes.push("helpr-fault deduction check skipped: not deployed yet");
+      type DedRow = { ruling_id: string; payout_ref: string; deducted_cents: number; created_at: string | null };
+      const dedRows = ((dedRes.error ? [] : dedRes.data ?? []) as DedRow[])
+        .filter((d) => { const t = ts(d.created_at); return t !== null && t < settledBefore && String(d.payout_ref).startsWith("job_payout_"); });
+      if (dedRows.length) {
+        const rulingIds = [...new Set(dedRows.map((d) => d.ruling_id))];
+        const jobIds = [...new Set(dedRows.map((d) => String(d.payout_ref).slice("job_payout_".length)))];
+        const [rulRes, ptRes] = await Promise.all([
+          admin.from("job_helpr_fault_rulings").select("id, helper_id, job_id").in("id", rulingIds),
+          admin.from("payout_transfers").select("job_id, helper_id, status, metadata").in("job_id", jobIds),
+        ]);
+        if (rulRes.error) throw new Error(`money-reconciliation: job_helpr_fault_rulings read failed: ${rulRes.error.message}`);
+        if (ptRes.error) throw new Error(`money-reconciliation: payout_transfers read (helpr-fault deductions) failed: ${ptRes.error.message}`);
+        const helperByRuling = new Map(((rulRes.data ?? []) as Array<{ id: string; helper_id: string | null }>).map((r) => [String(r.id), r.helper_id]));
+        type PtRow = { job_id: string; helper_id: string | null; status: string; metadata: Record<string, unknown> | null };
+        const ptRows = (ptRes.data ?? []) as PtRow[];
+        for (const d of dedRows) {
+          const jobId = String(d.payout_ref).slice("job_payout_".length);
+          const helperId = helperByRuling.get(String(d.ruling_id)) ?? null;
+          const withheld = ptRows.some((p) =>
+            String(p.job_id) === jobId &&
+            (helperId === null || p.helper_id === helperId) &&
+            (p.status === "paid" || p.status === "reversed") &&
+            Number((p.metadata ?? {}).helpr_fault_fee_cents ?? 0) > 0
+          );
+          if (!withheld) {
+            checks.helprFaultDeductionNotCollected.add({
+              job_id: jobId,
+              helper_id: helperId,
+              ruling_id: d.ruling_id,
+              amount: money(Number(d.deducted_cents) / 100),
+              payout_rows: ptRows.filter((p) => String(p.job_id) === jobId).map((p) => p.status).join(",") || "none",
+            });
           }
         }
       }

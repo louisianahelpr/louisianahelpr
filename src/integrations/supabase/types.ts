@@ -12777,6 +12777,10 @@ export type Database = {
         Args: { p_helper_id: string; p_job_id: string }
         Returns: number
       }
+      restore_helpr_fault_fee_for_job: {
+        Args: { p_job_id: string }
+        Returns: number
+      }
       retain_ban_for_user: {
         Args: { p_user_id: string; p_via?: string }
         Returns: number

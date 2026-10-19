@@ -14,6 +14,7 @@ import { alertPartialGiftRefund, revokeGiftCardForRefund } from "./_giftCardRefu
 import { giftAtStake, payoutOnJob, restoreGiftForRefundedJob } from "./_giftCardRestore.ts";
 import { reverseVisitTaxForRefund } from "./_visitTaxReversal.ts";
 import { isDeclutterCharge, recordDeclutterHandRefunds } from "./declutterCheckout.ts";
+import { restoreHelprFaultFeeForJob } from "../../_shared/helprFaultFee.ts";
 import { pathAnnouncesRefund, paymentMethodFromCharge, refundNoticeProblem, releasedCentsAlreadyTold, sendRefundNotice } from "../../_shared/refundNotice.ts";
 
 /**
@@ -240,6 +241,14 @@ export async function handleChargeRefunded(
         // has already returned the funds — a money↔state divergence that can
         // only be detected by manual reconciliation. Throw so Stripe retries.
         throw new Error(`Failed to mark job ${refundedJob.id} as refunded: ${updateErr.message}`);
+      }
+
+      // A Helpr-fault card fee a payout attempt withheld (and then stopped
+      // unclear) is given back now that the job ended refunded with no payout
+      // that kept it. Every full refund (Quick Refund, admin refund, the void
+      // sweep, the Dashboard) lands here; idempotent, never throws.
+      if (nowRefunded) {
+        await restoreHelprFaultFeeForJob(supabase, String(refundedJob.id), "stripe-webhook charge.refunded");
       }
 
       // Q450: a full refund made OUTSIDE the split (the Stripe Dashboard) on a

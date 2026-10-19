@@ -22,9 +22,10 @@
  * @mutate src/components/job-card/JobStepCard.tsx | const isMoreOnly = (_c: ReactNode) => true; | const isMoreOnly = (_c: ReactNode) => false;
  * @mutate e2e/prod-audit/applicantCardNames.ts | export const PRIVATE_NOTE_BUTTON = /^(add a\|edit your) private note on /i; | export const PRIVATE_NOTE_BUTTON = /add private note/i;
  * @mutate e2e/prod-audit/applicantCardNames.ts | export const MORE_PANEL = /^more actions for this job$/i; | export const MORE_PANEL = /^more$/i;
- * @mutate e2e/prod-audit/messy-input.spec.ts | await page.locator("#zipCode").fill("1234"); | await page.locator("#dob").fill("1234");
+ * @mutate e2e/prod-audit/messy-input.spec.ts | name, city and ZIP only)").toHaveCount(0);\n    await page.locator("#zipCode").fill("1234"); | name, city and ZIP only)").toHaveCount(0);\n    await page.locator("#dob").fill("1234");
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";

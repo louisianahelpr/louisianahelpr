@@ -2,7 +2,7 @@
 
 > **Not legal advice; based on the primary sources cited; review before use.**
 
-> **Status 2026-10-18:** the owner approved this template; Homes uses "our LA lease template only". Carried to main from wip/declutter-terms (da86b0125) by salvage-1018; no newer copy existed on any branch.
+> **Status as of 2026-10-18:** the owner approved this template; Homes uses "our LA lease template only". Carried to main from wip/declutter-terms (da86b0125) by salvage-1018; no newer copy existed on any branch.
 
 Draft of 2026-10-14 for a future in-app Rentals feature. It is built from the owner's best lease ("Lease A") plus the protections the other two leases and the law call for. Every blank is in **[BRACKETS]**. "Choose one" options are marked ☐. Each section ends with a short *Legal basis* note citing a law read on its official source (see `lease-comparison.md` for links and what each law says). Where something was not verified it says so.
 

@@ -1,6 +1,6 @@
 # Landlord hub (rentals + maintenance) — prep and owner question list
 
-Prep for the Landlord section, written BEFORE any owner question is asked and before any build
+Prep for the Landlord section (as of 2026-10-14), written BEFORE any owner question is asked and before any build
 (owner, 2026-10-14: every question decided first "so we aren't working backwards"; same process as
 docs/specs/declutter-auctions.md). Built behind a hidden switch, after the open list (standing order
 10-12). Not a docs/OPEN.md item (owner order 10-13: no new to-do items); nothing below is a to-do list.

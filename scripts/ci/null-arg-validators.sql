@@ -112,6 +112,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('user_report_is_open',           'classify', 'labels a reports row still to-do in its admin queue (ledger close rule, Q64); NULL status = pending'),
   ('cron_silent_still_failing',     'classify', 'answers whether a cron-silent ledger item is still failing (ledger close rule, CJ-007); no access decision, and NULL means unknown, which keeps the item open'),
   ('is_fixture_email',              'classify', 'labels an address as a test fixture (is_seed derived at birth, Q65)'),
+  ('backout_notice_applies',        'classify', 'labels a back-out notice still live (keeps its reminders; Q2175); no access decision, and NULL status or kind keeps the notice, the reminder side'),
   ('user_report_is_real',           'classify', 'labels a reporter as real (ledger routing, Q64); NULL reporter = a deleted account = real'),
   ('admin_queue_still_pending',     'classify', 'labels an admin-queue ledger item still pending (close rule, Q355); NULL rule = cannot tell'),
   ('admin_alert_manual_close',      'classify', 'labels an admin alert title as closed only by a person (Q355 part 2); NULL title = not manual'),

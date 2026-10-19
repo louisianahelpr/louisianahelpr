@@ -58,6 +58,8 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   job_not_cancellable: "That job can't be cancelled here now. It may have just been paid. Refresh to see it.",
   // Homes -> Rent listings (20261019043000).
   listing_not_found: "This listing isn't available.",
+  own_listing: "This is your own listing, so there's nothing to save.",
+  too_many_saved_homes: "You can save up to 100 homes. Remove one from Saved homes to save another.",
   bad_listing: "Check the listing: every box needs a valid answer (rent, beds, baths, move-in date).",
   listing_not_editable: "This listing was sold or removed. Start a new one.",
   wording_flagged: "Some words say who may live here, which fair housing law doesn't allow. Describe the home instead.",

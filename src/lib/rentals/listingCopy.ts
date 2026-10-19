@@ -92,6 +92,12 @@ export function bedsBathsLine(beds: number, baths: number): string {
   return `${bedText} · ${ba} bath${ba === 1 ? "" : "s"}`;
 }
 
+/** A card's facts line: "3 beds · 2 baths · 1,450 sq ft" (square feet only when the owner gave them). */
+export function factsLine(beds: number, baths: number, sqFt: number | null | undefined): string {
+  const area = sqFt ? ` · ${Number(sqFt).toLocaleString("en-US")} sq ft` : "";
+  return `${bedsBathsLine(beds, baths)}${area}`;
+}
+
 /** The ISO date (YYYY-MM-DD) as a short Central-time-free date: dates have no time zone. */
 export function availableLine(isoDate: string, today = new Date()): string {
   const [y, m, d] = isoDate.split("-").map(Number);

@@ -11,6 +11,7 @@
  *
  * @mutate src/components/declutter/MovingSaleBanner.tsx | <PhotoPlaceholder icon={categoryIcon(it.category)} seed={it.category} className="h-full w-full" /> | null
  * @mutate src/components/shops/ShopsHomeView.tsx | <PhotoPlaceholder icon={shopGroupIcon(group)} seed={group} className="h-full w-full" /> | <span />
+ * @mutate src/components/rentals/listings/RentBrowse.tsx | <PhotoPlaceholder icon={Home} seed={kind} className="h-full w-full" /> | <Home className="h-8 w-8" />
  * @mutate src/lib/declutter/categoryIcons.ts |   books_media: BookOpen, |   books_mediaz: BookOpen,
  * @mutate src/lib/shops/categoryIcons.ts |   pets: PawPrint, |   petz: PawPrint,
  */
@@ -36,6 +37,7 @@ const CARD_FILES = [
   "src/components/declutter/DeclutterHomeView.tsx",
   "src/components/declutter/MovingSaleBanner.tsx",
   "src/components/shops/ShopsHomeView.tsx",
+  "src/components/rentals/listings/RentBrowse.tsx",
 ];
 
 /**

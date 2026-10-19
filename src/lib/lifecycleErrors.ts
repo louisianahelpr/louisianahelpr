@@ -970,6 +970,15 @@ export const RPC_ERROR_COPY = {
     under_18: RC.under_18,
     unit_exists: RC.unit_exists,
   },
+  // Saved homes (20261019185722): the heart on a Homes card.
+  rentals_set_saved_home: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    listing_not_found: RC.listing_not_found,
+    not_authenticated: RC.not_authenticated,
+    own_listing: RC.own_listing,
+    too_many_saved_homes: RC.too_many_saved_homes,
+  },
   rentals_approve_request: {
     account_restricted: RC.account_restricted,
     feature_disabled: RC.feature_disabled,

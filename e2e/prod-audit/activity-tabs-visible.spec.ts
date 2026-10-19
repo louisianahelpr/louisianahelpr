@@ -468,7 +468,8 @@ for (const vw of INBOX_WIDTHS) {
         const more = page.getByRole("button", { name: "More conversation options" });
         await expect(more, `messages EMPTY@${vw}: no "more" menu on an empty inbox`).toBeVisible();
         await more.click();
-        const items = await page.getByRole("menuitem").allInnerTexts();
+        // Active / All are a radio pair (menuitemradio); the views are plain items.
+        const items = await page.locator('[role="menuitem"], [role="menuitemradio"]').allInnerTexts();
         note(info, `messages EMPTY @${vw} (phone) menu=${JSON.stringify(items)}`);
         for (const w of INBOX_WORDS) {
           expect(items.some((t) => t.trim().startsWith(w)), `messages EMPTY@${vw}: the more menu has no "${w}"`).toBe(true);

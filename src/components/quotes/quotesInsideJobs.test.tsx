@@ -26,15 +26,33 @@ import type { ReactNode } from "react";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
-const state = { feature: true, rpc: {} as Record<string, unknown>, calls: [] as string[] };
+const state = { feature: true, rpc: {} as Record<string, unknown>, calls: [] as string[], myRequests: [] as string[] };
 
-vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => (key === "quotes" ? state.feature : false) }));
+vi.mock("@/hooks/useFeature", () => ({
+  useFeature: (key: string) => (key === "quotes" ? state.feature : false),
+  useFeatureStatus: (key: string) => ({ on: key === "quotes" ? state.feature : false, settled: true }),
+}));
+vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), info: vi.fn() }) }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     rpc: async (fn: string) => {
       state.calls.push(fn);
       return { data: state.rpc[fn] ?? [], error: null };
+    },
+    // QuotesHubRedirect's one-row read: job_quote_requests by id AND poster_id.
+    from: (table: string) => {
+      const eqs: Record<string, unknown> = {};
+      const q = {
+        select: () => q,
+        eq: (col: string, v: unknown) => { eqs[col] = v; return q; },
+        maybeSingle: async () => {
+          state.calls.push(`${table}:${JSON.stringify(eqs)}`);
+          const mine = table === "job_quote_requests" && eqs.poster_id === "u1" && state.myRequests.includes(String(eqs.id));
+          return { data: mine ? { id: eqs.id } : null, error: null };
+        },
+      };
+      return q;
     },
   },
 }));
@@ -59,7 +77,7 @@ function at(path: string, el: ReactNode, route = path.split("?")[0]) {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path={route} element={el} />
-          {["/posts", "/jobs", "/home"].filter((p) => p !== route).map((p) => <Route key={p} path={p} element={<Where />} />)}
+          {["/posts", "/jobs", "/home", "/quotes/request/:id"].filter((p) => p !== route).map((p) => <Route key={p} path={p} element={<Where />} />)}
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -77,6 +95,7 @@ beforeEach(() => {
   state.feature = true;
   state.rpc = {};
   state.calls = [];
+  state.myRequests = [];
 });
 
 describe("old /quotes links redirect to the new homes", () => {
@@ -89,6 +108,27 @@ describe("old /quotes links redirect to the new homes", () => {
   ])("%s -> %s", (from, to) => {
     at(from, <QuotesHubRedirect />, "/quotes");
     expect(screen.getByTestId("where").textContent).toBe(to);
+  });
+
+  // A quote notice links '/quotes?request=<id>' (Q2177): the side is read from that one request when it is opened.
+  const RID = "6b1f9c2e-1111-4222-8333-444455556666";
+  it("a request notice opens the request page for the member who posted it", async () => {
+    state.myRequests = [RID];
+    at(`/quotes?request=${RID}&user=3f0c9a4e-0000-4000-8000-000000000000`, <QuotesHubRedirect />, "/quotes");
+    expect((await screen.findByTestId("where")).textContent).toBe(`/quotes/request/${RID}`);
+    expect(state.calls).toContain(`job_quote_requests:${JSON.stringify({ id: RID, poster_id: "u1" })}`);
+  });
+
+  it("a request notice opens the quoter's own quotes for anyone else", async () => {
+    at(`/quotes?request=${RID}`, <QuotesHubRedirect />, "/quotes");
+    expect((await screen.findByTestId("where")).textContent).toBe(QUOTE_HOMES.myQuotes);
+  });
+
+  it("with the quotes switch off a request link follows the old-link rule (no dead Retry)", async () => {
+    state.feature = false;
+    at(`/quotes?request=${RID}`, <QuotesHubRedirect />, "/quotes");
+    expect((await screen.findByTestId("where")).textContent).toBe("/posts?quotes=1");
+    expect(state.calls).toEqual([]);
   });
 
   it("the quote screens' own links and back buttons go to the new homes", () => {

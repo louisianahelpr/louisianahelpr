@@ -20,20 +20,20 @@
  * 15/15; --before on main's quotes migration: 12 behaviour checks FAIL, the 3
  * controls hold; eleven planted defects each RED, recorded in the lane report).
  *
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql | OR NOT (OLD.payment_status IS NULL OR OLD.payment_status::text IN ('unpaid', 'failed', 'abandoned')) THEN | OR public.job_payment_is_funded(OLD.payment_status::text) THEN
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |       v_done := public.complete_direct_offer_accept(NEW.id, v_quoter); |       v_done := NULL;
+ * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | OR NOT (OLD.payment_status IS NULL OR OLD.payment_status::text IN ('unpaid', 'failed', 'abandoned')) THEN | OR public.job_payment_is_funded(OLD.payment_status::text) THEN
+ * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql |       v_done := public.complete_direct_offer_accept(NEW.id, v_quoter); |       v_done := NULL;
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |   AFTER UPDATE OF payment_status ON public.jobs | AFTER UPDATE OF status ON public.jobs
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |         DELETE FROM public.jobs j\n         WHERE j.id = v_req.job_id | DELETE FROM public.jobs j\n         WHERE false AND j.id = v_req.job_id
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |            AND j.stripe_session_id IS NULL AND j.stripe_payment_intent_id IS NULL; |            AND j.stripe_session_id IS NULL;
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |       AND q.reminder_sent_for IS DISTINCT FROM q.respond_until\n | \n
+ * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql |       AND q.reminder_sent_for IS DISTINCT FROM q.respond_until\n | \n
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql | ' for "' \|\| v_req.title \|\| '".', v_uid, true); | ' for "' \|\| v_req.title \|\| '".', v_uid, false);
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |     v_reason := public.direct_accept_block_reason(NEW.id, v_quoter); |     v_reason := NULL;
+ * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql |     v_reason := public.direct_accept_block_reason(NEW.id, v_quoter); |     v_reason := NULL;
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql | WHERE j.id = v_req.job_id AND j.customer_id = v_uid\n | WHERE j.id = v_req.job_id\n
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |   AFTER INSERT ON public.user_blocks | AFTER INSERT ON public.job_quotes
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |          OR (r.poster_id = NEW.blocked_id AND q.quoter_id = NEW.blocker_id)); |          OR false);
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |   EXCEPTION WHEN OTHERS THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes | EXCEPTION WHEN unique_violation THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |      AND NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id)\n |      AND true\n
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |         IF FOUND AND NOT public.are_users_blocked(v_quoter, NEW.customer_id) THEN | IF FOUND THEN
+ * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql |         IF FOUND AND NOT public.are_users_blocked(v_quoter, NEW.customer_id) THEN | IF FOUND THEN
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |        AND q.quoter_id = p_helper\n |        AND true\n
  * @mutate supabase/migrations/20261019005719_quote_cap_live_requests.sql |   v_close := LEAST(now() + make_interval(hours => v_window), v_start - interval '2 hours'); |   v_close := now() + make_interval(hours => v_window);
  */
@@ -62,7 +62,7 @@ const allSql = readdirSync(DIR)
 describe("quotes: owner answers 8-11", () => {
   it("reads real definitions (cannot pass vacuously)", () => {
     for (const fn of ["create_quote_request", "respond_to_job_quote", "submit_job_quote", "cancel_quote_request",
-      "quote_job_funded_hires_quoter", "quote_notify_about", "sweep_quote_alerts", "notify_helper_on_direct_offer"]) {
+      "quote_job_funded_hires_quoter", "quote_notify_to", "sweep_quote_alerts", "notify_helper_on_direct_offer"]) {
       expect(body(fn).length, fn).toBeGreaterThan(300);
     }
   });
@@ -109,7 +109,7 @@ describe("quotes: owner answers 8-11", () => {
       "AND NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id) THEN",
     );
     expect(b).toMatch(
-      /IF v_err IS NOT NULL AND v_reason IS NULL THEN BEGIN PERFORM 1 FROM public\.jobs j WHERE j\.id = NEW\.id AND j\.status::text = 'open' AND j\.helper_id IS NULL AND j\.offered_to_helper_id = v_quoter AND j\.direct_offer_status = 'pending' .* FOR SHARE; IF FOUND AND NOT public\.are_users_blocked\(v_quoter, NEW\.customer_id\) THEN PERFORM public\.quote_notify_about\(v_quoter, 'Accept to start'/,
+      /IF v_err IS NOT NULL AND v_reason IS NULL THEN BEGIN PERFORM 1 FROM public\.jobs j WHERE j\.id = NEW\.id AND j\.status::text = 'open' AND j\.helper_id IS NULL AND j\.offered_to_helper_id = v_quoter AND j\.direct_offer_status = 'pending' .* FOR SHARE; IF FOUND AND NOT public\.are_users_blocked\(v_quoter, NEW\.customer_id\) THEN PERFORM public\.quote_notify_to\(v_quoter, 'Accept to start', .*, NEW\.customer_id, false, NULL, NEW\.id, false\);/,
     );
     // The existing completion, or the existing wait for payout setup / ID.
     expect(b).toContain("v_done := public.complete_direct_offer_accept(NEW.id, v_quoter);");
@@ -132,9 +132,9 @@ describe("quotes: owner answers 8-11", () => {
   });
 
   it("10: a new quote and a counter are emailed; the sweep claims each send once and is scheduled", () => {
-    expect(body("submit_job_quote")).toMatch(/PERFORM public\.quote_notify_about\(v_req\.poster_id, 'New quote', .*, v_uid, true\);/);
-    expect(body("respond_to_job_quote")).toMatch(/PERFORM public\.quote_notify_about\(v_other, 'New counter-offer', .*, v_uid, true\);/);
-    const n = body("quote_notify_about");
+    expect(body("submit_job_quote")).toMatch(/PERFORM public\.quote_notify_to\(v_req\.poster_id, 'New quote', .*, v_uid, true, v_req\.id, NULL, false\);/);
+    expect(body("respond_to_job_quote")).toMatch(/PERFORM public\.quote_notify_to\(v_other, 'New counter-offer', .*, v_uid, true, v_req\.id, NULL, false\);/);
+    const n = body("quote_notify_to");
     expect(n).toMatch(/RETURNING id, link INTO v_id, v_link; IF v_id IS NULL OR NOT COALESCE\(p_email, false\) THEN RETURN;/);
     expect(n).toContain("'/functions/v1/send-notification-email'");
     const s = body("sweep_quote_alerts");

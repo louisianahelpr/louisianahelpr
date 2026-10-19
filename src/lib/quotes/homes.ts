@@ -31,3 +31,15 @@ export function quotesHubTarget(search: string): string {
   if (view === "mine") return QUOTE_HOMES.myQuotes;
   return QUOTE_HOMES.myRequests;
 }
+
+/**
+ * Where a quote notice about request `requestId` opens, decided when it is
+ * opened (Q2177): the member who posted the request goes to its page (the
+ * quotes on it, to answer), anyone else (the quoter) to the quotes they sent.
+ * Quote notices carry '/quotes?request=<id>' (quote_notify_to, migration
+ * 20261019043546), never a frozen view, so they follow quotes wherever they
+ * live. `isPoster`: the reader posted the request (isMyQuoteRequest).
+ */
+export function quoteRequestTarget(requestId: string, isPoster: boolean): string {
+  return isPoster ? `/quotes/request/${encodeURIComponent(requestId)}` : QUOTE_HOMES.myQuotes;
+}

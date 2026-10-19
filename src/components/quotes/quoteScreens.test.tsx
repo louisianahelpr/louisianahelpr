@@ -31,7 +31,9 @@
  */
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
+import { blankSqlComments } from "@/test/helpers/blankNonCode";
 import { resolve } from "node:path";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -388,11 +390,19 @@ describe("Your quotes on My Jobs (the quoter)", () => {
 
 describe("error copy", () => {
   it("every code the quote migration raises has words (exact), and no code reaches the member", () => {
-    // Every migration that defines a quote RPC: 20261018155222 restates
-    // submit / respond / cancel, so its codes are the live ones.
-    const sql = ["20261015091114_job_quotes.sql", "20261018155222_quote_hire_on_pay_alerts.sql"]
-      .map((f) => readFileSync(resolve(__dirname, "../../../supabase/migrations", f), "utf8"))
-      .join("\n");
+    // The NEWEST definition of every function a quote migration defines
+    // (effectiveDefs: a later restatement replaces an earlier body, any
+    // dollar tag, drops replayed), so a code a restatement removed or added is
+    // read as prod runs it, whichever migration holds the live body.
+    const dir = resolve(__dirname, "../../../supabase/migrations");
+    const defs = effectiveDefs(dir);
+    const quoteFns = new Set(
+      readdirSync(dir)
+        .filter((f) => /quote/.test(f) && f.endsWith(".sql"))
+        .flatMap((f) => [...blankSqlComments(readFileSync(resolve(dir, f), "utf8")).matchAll(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.(\w+)\s*\(/gi)].map((m) => m[1].toLowerCase())),
+    );
+    expect(quoteFns.size).toBeGreaterThan(10);
+    const sql = [...quoteFns].map((fn) => blankSqlComments(defs.get(fn)?.stmt ?? "")).join("\n");
     const raised = [...new Set([...sql.matchAll(/RAISE EXCEPTION '([a-z_0-9]+)'/g)].map((m) => m[1]))].sort();
     expect(raised.length).toBeGreaterThan(20);
     const copied = Object.keys(QUOTE_ERROR_COPY).filter((k) => k !== "feature_disabled").sort();

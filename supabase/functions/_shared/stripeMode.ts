@@ -381,7 +381,7 @@ export async function testEventScope(
 }
 
 /** The metadata.kind of every checkout a mode-routed function creates. */
-const ROUTED_TEST_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "recurring_visit", "declutter_order", "gift_card_purchase", "shop_order"]);
+const ROUTED_TEST_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "recurring_visit", "declutter_order", "gift_card_purchase", "shop_order", "rent_bank_payment"]);
 
 /**
  * True when a Checkout Session came from a function that decides its Stripe

@@ -50,6 +50,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('feature_enabled_for',           'allow',    'hidden feature switch is on for the caller (20261012031120)'),
   ('rentals_caller_is_active_tenant_of','allow', 'is the caller an active tenant of this property (Rentals S1 read policies, 20261017205605)'),
   ('rentals_listing_visible',       'allow',    'may this Homes listing show in the browse (live, not expired, ownership approved, owner not banned; 20261019043000)'),
+  ('rentals_tenancy_party',         'allow',    'is the caller the landlord or tenant of this tenancy (Homes rent tracker read policies, 20261019073106)'),
   ('feature_enabled_for_user',      'allow',    'hidden feature switch is on for this user (service_role, edge functions)'),
   ('has_pre_verification_wipe',     'noarg',    'reads auth.uid() only: was this caller''s unfinished profile wiped (Q1286 notice)'),
   ('has_role',                      'allow',    'user holds role (admin gates)'),
@@ -186,6 +187,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('rentals_caller_is_active_tenant_of', '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000301''::uuid'], ARRAY[1]),
   -- D's listing L on unit U of P is live for 30 days, so the non-NULL call is TRUE.
   ('rentals_listing_visible',       NULL, ARRAY['''00000000-0000-4000-8140-000000000304''::uuid'], ARRAY[1]),
+  -- A is the tenant of tenancy T (the 'rentals' fixture step), so the non-NULL call is TRUE for A.
+  ('rentals_tenancy_party',         '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000303''::uuid'], ARRAY[1]),
   ('feature_enabled_for_user',      NULL, ARRAY['''switch_canary''', '''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1,2]),
   ('has_role',                      NULL, ARRAY['''00000000-0000-4000-8140-00000000000d''::uuid', '''admin''::public.app_role'], ARRAY[1,2]),
   ('helper_credential_document_ok', NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''trade_license''', '''00000000-0000-4000-8140-00000000000a/credentials/trade_license-1757721600000.png'''], ARRAY[1,2,3]),

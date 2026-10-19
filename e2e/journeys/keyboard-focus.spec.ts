@@ -197,7 +197,7 @@ test(authedTitle, async ({ browser, request, journey }) => {
       if (await allTab.isVisible()) await allTab.click();
       else {
         await more.click();
-        await page.getByRole("menuitem", { name: /^All/ }).first().click();
+        await page.getByRole("menuitemradio", { name: /^All/ }).first().click();
       }
     }
     const row = page.locator("button.flex-1.min-w-0.text-left").filter({ hasText: title }).first();

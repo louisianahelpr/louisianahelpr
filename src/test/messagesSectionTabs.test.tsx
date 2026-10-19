@@ -167,7 +167,7 @@ describe("the screen", () => {
     expect(screen.getByText("No Declutter messages yet")).toBeInTheDocument();
     expect(screen.queryByText("No messages yet")).toBeNull();
     expect(screen.queryByRole("button", { name: /conversation filters|filter conversations/i })).toBeNull();
-    expect(screen.queryByRole("menuitem", { name: /^(Active|All)/ })).toBeNull();
+    expect(screen.queryByRole("menuitemradio", { name: /^(Active|All)/ })).toBeNull();
     expect(document.getElementById("inbox-filter-tabs")).toBeNull();
   });
 

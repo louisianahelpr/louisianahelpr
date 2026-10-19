@@ -610,7 +610,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             ONE line, never truncated, at 320 with all six tabs: 10px there,
             11px from 360. No overflow clip, so a word wider than its slot
             spills into the slot gap rather than losing letters; the rendered
-            guard (e2e/happy-path/nav-hide-on-scroll.spec.ts "labels") measures
+            guard (e2e/happy-path/nav-hide-on-scroll.spec.ts "dock labels") measures
             that no two labels touch and none leaves the dock. */}
         <span
           data-dock-label

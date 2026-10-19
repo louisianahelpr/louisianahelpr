@@ -2,7 +2,7 @@
  * The bottom nav shows a small one-word label under each icon (owner,
  * 2026-10-19, Facebook / Airbnb style), on ONE line and never truncated, at
  * 320 with six tabs. The pixel half (no two labels touch, none leaves the
- * dock, at 320 and 375) is e2e/prod-audit/dock-labels.spec.ts.
+ * dock, at 320 and 375) is e2e/happy-path/nav-hide-on-scroll.spec.ts "dock labels".
  *
  * @mutate src/components/MobileNav.tsx |           {label}\n        </span> |           {""}\n        </span>
  * @mutate src/components/MobileNav.tsx | relative z-10 block whitespace-nowrap text-ds-10 | relative z-10 block truncate text-ds-10

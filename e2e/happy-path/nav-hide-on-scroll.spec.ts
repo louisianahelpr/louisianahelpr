@@ -290,7 +290,8 @@ async function wheel(page: Page, dy: number, steps: number) {
 // Seeded jobs are open with no applicants → bucket "waiting". The default
 // Activity tab is "needs_you", so /jobs and /posts land on an empty
 // list without the filter param — nothing to scroll, nothing to hide for.
-const ROUTES = ["/home", "/messages", "/jobs?tab=working&filter=waiting", "/jobs?tab=posted&filter=waiting"] as const;
+// "/jobs" is the feed (Jobs > Browse) since 2026-10-19; /home is the short Home dashboard.
+const ROUTES = ["/jobs", "/messages", "/jobs?tab=working&filter=waiting", "/jobs?tab=posted&filter=waiting"] as const;
 
 for (const route of ROUTES) {
   test(`dock hides on scroll-down and returns on scroll-up @ ${route}`, async ({
@@ -429,14 +430,14 @@ test("a hidden dock is taken out of the tab order, not just out of the a11y tree
   expect(focused, "a hidden dock button must not be focusable").toBe(false);
 });
 
-test("switching Home to map view cannot strand the dock off-screen", async ({
+test("switching Jobs > Browse to map view cannot strand the dock off-screen", async ({
   context,
   page,
   baseURL,
 }) => {
   await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
   await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: listRules });
-  await boot(page, "/home");
+  await boot(page, "/jobs");
 
   await wheel(page, 120, 8);
   await expectDock(page, "hidden", "dock hidden by scrolling the feed");

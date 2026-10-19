@@ -128,13 +128,14 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
     expect(MIG).toMatch(/INSERT INTO public\.feature_switches \(key, audience, description\)\s+VALUES \('shops', 'off',/);
   });
 
-  it("6. SHOPS_ERROR_COPY is exact against the codes the shops migrations raise (slice 1 + slice 2 items + M1 orders + M1b pickup address + M2 handover + the ready-tap choice)", () => {
+  it("6. SHOPS_ERROR_COPY is exact against the codes the shops migrations raise (slice 1 + slice 2 items + M1 orders + M1b pickup address + M2 handover + the ready-tap choice + SH12 FAQs)", () => {
     const ITEMS = blankSqlComments(readFileSync(join(MIG_DIR, "20261017061157_shops_items.sql"), "utf8"));
     const ORDERS = blankSqlComments(readFileSync(join(MIG_DIR, "20261018164442_shops_orders_checkout.sql"), "utf8"));
     const PICKUP = blankSqlComments(readFileSync(join(MIG_DIR, "20261018210400_shops_pickup_address.sql"), "utf8"));
     const HANDOVER = blankSqlComments(readFileSync(join(MIG_DIR, "20261018211820_shops_handover_payout.sql"), "utf8"));
     const READY_TAP = blankSqlComments(readFileSync(join(MIG_DIR, "20261019015018_shop_ready_tap_cancel_choice.sql"), "utf8"));
-    const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
+    const FAQS = blankSqlComments(readFileSync(join(MIG_DIR, "20261019072541_shops_faqs.sql"), "utf8"));
+    const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP + FAQS).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
     raised.add("feature_disabled"); // require_feature's code
     // shop-checkout's own answer when Stripe refuses the pickup address (M1b part 2), not a SQL code.
     const CHECKOUT = readFileSync(join(process.cwd(), "supabase/functions/shop-checkout/index.ts"), "utf8");

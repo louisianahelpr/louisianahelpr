@@ -19,6 +19,8 @@ import { fetchPublicShop, isShopId, shareShop, shopLink, type PublicShop } from 
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
 import { ShopCard, ShopGallery, ShopHero, ShopHoursCard, ShopItemsGrid } from "./ShopProfile";
+import ShopFaqs from "./ShopFaqs";
+import ShopPolicies from "./ShopPolicies";
 
 const SHOP_PAGE_ROBOTS = "noindex, follow";
 
@@ -104,6 +106,8 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
         </ShopCard>
       )}
       <ShopGallery photos={shop.photos} />
+      {shop.offers_selling && <ShopPolicies shopId={shop.id} />}
+      <ShopFaqs shopId={shop.id} />
     </div>
   );
 }

@@ -47,6 +47,7 @@ import { shopsErrorMessage } from "@/lib/shops/errors";
 import { categoryGroups, useShopCategories, WEEKDAYS } from "./shopsUi";
 import ShopItemsSection from "./ShopItemsSection";
 import ShopPickupAddressSection from "./ShopPickupAddressSection";
+import ShopFaqsEditor from "./ShopFaqsEditor";
 
 interface Form {
   name: string;
@@ -380,6 +381,8 @@ export default function ShopEditView() {
       </form>
       {/* The private pickup address (M1b part 2): saves on its own, needed before orders. */}
       {myId.data && <div className="pb-6"><ShopPickupAddressSection /></div>}
+      {/* FAQs (SH12): save on their own, like the pickup address. */}
+      {myId.data && <div className="pb-6"><ShopFaqsEditor shopId={myId.data} /></div>}
       {/* Items (slice 2): outside the shop form, each item saves on its own. */}
       {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} />}
       {/* The app's own confirm, never window.confirm (off-brand and

@@ -65,6 +65,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('shop_publicly_visible',         'allow',    'Shops slice 1: a member other than the owner may see this shop (switch, hidden, seed, standing)'),
   ('shop_state_ok',                 'allow',    'SH2b (20261019042744): the shared shop-state rule (not hidden, no seed shop while seeds hidden, owner in good standing)'),
   ('shop_link_visible',             'allow',    'SH2b (20261019042744): anyone with the link may see this shop (shop_state_ok, not paused, Shops not switched off)'),
+  ('shop_extras_readable',          'allow',    'SH12 (20261019072541): this caller may read the shop FAQs and policies (owner, admin, or shop_link_visible)'),
   ('shop_visible_to',               'allow',    'Shops slice 1: this viewer may see this shop (owner, or publicly visible)'),
   ('job_is_funded',                 'allow',    'job escrow is funded (applications WITH CHECK)'),
   ('job_payment_is_funded',         'allow',    'payment_status counts as funded (award + apply gates)'),
@@ -230,6 +231,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   -- SH2b: S is not hidden, not seed, not paused, A in good standing, and the fixture's 'shops' switch is testers (not off).
   ('shop_state_ok',                 NULL, ARRAY['''00000000-0000-4000-8140-000000000401''::uuid'], ARRAY[1]),
   ('shop_link_visible',             NULL, ARRAY['''00000000-0000-4000-8140-000000000401''::uuid'], ARRAY[1]),
+  -- SH12: S is link-visible (above), so even a caller with no uid reads it.
+  ('shop_extras_readable',          NULL, ARRAY['''00000000-0000-4000-8140-000000000401''::uuid'], ARRAY[1]),
   -- A owns S, so the non-NULL call is TRUE (the owner branch).
   ('shop_visible_to',               NULL, ARRAY['''00000000-0000-4000-8140-000000000401''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]);
 

@@ -13718,11 +13718,14 @@ export type Database = {
         Returns: boolean
       }
       shops_set_hours: { Args: { p_hours: Json }; Returns: number }
+      shops_set_my_faqs: { Args: { p_faqs: Json }; Returns: number }
       shops_set_paused: { Args: { p_paused: boolean }; Returns: boolean }
       shops_set_item_stock: {
         Args: { p_item_id: string; p_lead_time_days: number; p_stock_count: number }
         Returns: number
       }
+      shops_shop_faqs: { Args: { p_shop_id: string }; Returns: Json }
+      shops_shop_policies: { Args: { p_shop_id: string }; Returns: Json }
       shops_shop_items: { Args: { p_shop_id: string }; Returns: Json }
       shops_update_item: {
         Args: {

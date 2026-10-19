@@ -30,7 +30,7 @@ export const StarRow = ({
     <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 rounded-2xl liquid-glass p-3.5 min-w-0">
       <div className="flex-1 min-w-0">
         <p
-          className="font-display italic font-bold leading-tight flex items-center gap-1.5 text-ds-15"
+          className="font-display font-bold leading-tight flex items-center gap-1.5 text-ds-15"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
         >
           {label}

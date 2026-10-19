@@ -39,7 +39,7 @@ export function ReadyTurnovers() {
     <section className="rounded-ds-md overflow-hidden" style={cardStyle} aria-labelledby="ready-turnovers-title">
       <h2
         id="ready-turnovers-title"
-        className="px-4 pt-3.5 pb-1 font-display italic font-semibold text-ds-14"
+        className="px-4 pt-3.5 pb-1 font-display font-semibold text-ds-14"
         style={{ color: "hsl(var(--ink-deep))" }}
       >
         Ready to Post

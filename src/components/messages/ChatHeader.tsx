@@ -183,7 +183,7 @@ export function ChatHeader({
               signals this whole block is a link to the profile. */}
           <span className="flex items-center gap-0.5 w-full min-w-0">
             <span
-              className="font-display italic font-bold leading-tight truncate min-w-0 text-ds-16"
+              className="font-display font-bold leading-tight truncate min-w-0 text-ds-16"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               {activeConvo.otherUserName}

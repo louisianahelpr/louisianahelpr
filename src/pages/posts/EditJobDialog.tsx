@@ -46,7 +46,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2.5">
       <span
-        className="font-display italic font-bold whitespace-nowrap text-ds-15"
+        className="font-display font-bold whitespace-nowrap text-ds-15"
         style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
       >
         {children}

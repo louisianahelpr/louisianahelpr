@@ -129,7 +129,7 @@ export function PhotoNameSection({
           </label>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-display italic font-bold leading-tight truncate text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+          <p className="font-display font-bold leading-tight truncate text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
             {`${firstName} ${lastName}`.trim() || "Your name"}
           </p>
           {/* `aria-live="polite"`: the verdict arrives asynchronously, after

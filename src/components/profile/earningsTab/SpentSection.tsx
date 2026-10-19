@@ -142,7 +142,7 @@ export function SpentSection() {
             <DollarSign className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="font-display italic font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
+            <h2 className="font-display font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
               Spent
             </h2>
             <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -192,13 +192,13 @@ export function SpentSection() {
 
       {!isLoading && !isError && listed.length > 0 && (
         <div className="space-y-3">
-          <h3 className="font-display italic font-bold leading-tight text-ds-17 pt-1" style={{ color: "hsl(var(--ink-deep))" }}>
+          <h3 className="font-display font-bold leading-tight text-ds-17 pt-1" style={{ color: "hsl(var(--ink-deep))" }}>
             Jobs you paid for
           </h3>
           {listed.map((r) => (
             <div key={r.job?.id ?? `tip-${r.tip?.id}`} className="rounded-ds-md liquid-glass p-3.5 flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <h4 className="font-display italic font-bold leading-tight truncate text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                <h4 className="font-display font-bold leading-tight truncate text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   {r.job ? r.job.title ?? "Job" : "Tip"}
                 </h4>
                 <p className="font-sans text-ds-12 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

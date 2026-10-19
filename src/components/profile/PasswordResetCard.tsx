@@ -24,7 +24,7 @@ export function PasswordResetCard({ email }: { email: string | null | undefined 
           <Lock className="w-4 h-4 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+          <h2 className="font-display font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
             Password
           </h2>
           {/* Sits INSIDE the title block, exactly where the email address

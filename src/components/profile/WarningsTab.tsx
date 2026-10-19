@@ -126,7 +126,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                   <div className={`w-14 h-14 rounded-full bg-card mx-auto flex items-center justify-center`}>
                     <Icon className={`w-7 h-7 ${palette.icon}`} />
                   </div>
-                  <h2 className="font-display italic font-bold leading-tight text-headline-hero" style={{ color: palette.title, letterSpacing: "-0.02em" }}>
+                  <h2 className="font-display font-bold leading-tight text-headline-hero" style={{ color: palette.title, letterSpacing: "-0.02em" }}>
                     {title}
                   </h2>
                   <p className="font-sans max-w-sm mx-auto text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

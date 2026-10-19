@@ -101,7 +101,7 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
               autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="font-display italic"
+              className="font-display"
             />
           </div>
           <label htmlFor="w9-consent" className="flex items-start gap-2 text-ds-12 text-muted-foreground cursor-pointer">

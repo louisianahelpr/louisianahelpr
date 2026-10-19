@@ -88,7 +88,7 @@ export function GiftCardPreview({
           {/* ── Who it's from + why ─────────────────────────────────────── */}
           <div className="min-w-0 flex items-start justify-between gap-2">
             <span
-              className={`shrink-0 font-display font-bold italic leading-none ${compact ? "text-ds-13" : "text-ds-16"}`}
+              className={`shrink-0 font-display font-bold leading-none ${compact ? "text-ds-13" : "text-ds-16"}`}
               style={{ color: design.ink, letterSpacing: "-0.02em" }}
             >
               Helpr

@@ -78,7 +78,7 @@ export function WorkRecordReserve() {
             <div data-testid="work-record-reserve-mark" className="min-h-11 flex items-center">
               <Skeleton className="h-6 w-36 rounded" />
             </div>
-            <Ghost className="font-display italic font-bold mt-3 text-ds-20 leading-tight">Employment &amp; Earnings Record</Ghost>
+            <Ghost className="font-display font-bold mt-3 text-ds-20 leading-tight">Employment &amp; Earnings Record</Ghost>
             <Ghost className="font-sans text-ds-12 mt-0.5">Generated September 30, 2026</Ghost>
           </div>
           <Skeleton className="shrink-0 w-14 h-14 rounded-ds-lg" />

@@ -254,7 +254,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           <CheckCircle2 className="w-7 h-7 text-primary" />
         </div>
         <div className="space-y-1">
-          <h1 className="font-display italic font-bold leading-tight text-headline-hero" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+          <h1 className="font-display font-bold leading-tight text-headline-hero" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
             Message sent
           </h1>
           <p className="font-sans max-w-sm" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

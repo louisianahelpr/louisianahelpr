@@ -349,7 +349,7 @@ export function CrewMemberSection({
         header={
           <div className="space-y-1">
             <h3
-              className="font-display italic font-bold leading-tight text-headline-card"
+              className="font-display font-bold leading-tight text-headline-card"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Your part of a crew of {crewSize}

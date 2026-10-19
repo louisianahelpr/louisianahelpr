@@ -35,7 +35,7 @@
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |      AND NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id)\n |      AND true\n
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |         IF FOUND AND NOT public.are_users_blocked(v_quoter, NEW.customer_id) THEN | IF FOUND THEN
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |        AND q.quoter_id = p_helper\n |        AND true\n
- * @mutate supabase/migrations/20261015091114_job_quotes.sql |   v_close := LEAST(now() + make_interval(hours => v_window), v_start - interval '2 hours'); |   v_close := now() + make_interval(hours => v_window);
+ * @mutate supabase/migrations/20261019005719_quote_cap_live_requests.sql |   v_close := LEAST(now() + make_interval(hours => v_window), v_start - interval '2 hours'); |   v_close := now() + make_interval(hours => v_window);
  */
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";

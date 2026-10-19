@@ -82,6 +82,7 @@ import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { unsubscribeListFrom, unsubscribeSigningConfigured, verifyUnsubscribeToken } from '../_shared/unsubscribe.ts'
 import { serve } from "../_shared/buildStamp.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 /**
  * PostgREST turns `*` into `%` and passes `%`/`_` straight into SQL ILIKE, so
@@ -241,7 +242,7 @@ async function setCommercialConsent(
           if (recordError) throw new Error(recordError.message)
         }
       } catch (err) {
-        console.error('[email-unsubscribe] could not record what this unsubscribe turns off:', err instanceof Error ? err.message : String(err))
+        console.error('[email-unsubscribe] could not record what this unsubscribe turns off:', caughtMessage(err))
       }
     }
     const { data: updated, error: profileError } = await supabase

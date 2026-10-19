@@ -48,6 +48,7 @@ import { JobListQuotesSlot } from "@/components/quotes/JobListQuotesSlot";
 import { toast } from "sonner";
 import { recheckUnverifiedArrival } from "@/components/job-card/recheckUnverifiedArrival";
 import SectionBoundary from "@/components/SectionBoundary";
+import { JobsSettingsRow } from "./JobsSettingsRow";
 
 /** Jobs > Posted / Working (owner, 2026-10-19; embeddedActivity.tsx). `embeddedHeader` is the section's top bar +
  *  tabs; the status boxes sit under it. The old standalone My Posts / My Jobs headers (PostsHeader / JobsHeader,
@@ -459,6 +460,8 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
             {/* A job whose bank payment is on its way is not a post (no bucket, no count); with nothing else posted its poster lands here (owner, 2026-10-17). */}
             {tab === "posted" && <PendingBankPayments jobs={postedJobs} className="mx-4 mt-3" />}
             <JobListQuotesSlot tab={tab} className="mx-4 mt-3" />
+            {/* The way into Jobs settings, also on an empty list (above the empty card, which fills the panel). */}
+            <JobsSettingsRow className="mx-4 mt-3" />
             {/* Empty state — a liquid-glass card that fills the panel and bleeds beneath the
                 dock (flat bottom, no hard edge), matching the Dashboard / Messages pattern. */}
             <ActivityEmptyState
@@ -595,6 +598,8 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
             </SectionBoundary>
             </Suspense>
           )}
+          {/* THE FOOT OF THE LIST: Jobs settings (lead decision 2026-10-19, option A). */}
+          <JobsSettingsRow className="mt-4" />
             </div>
           )}
           </PullToRefreshWrapper>

@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 174 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
-| Toast messages | **call site** | 891 (across 221 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 26 |
+| Toast messages | **call site** | 892 (across 222 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Multi-step flows — confirmed | flow | 27 |
 | Multi-step flows — probable | flow | 19 |
 | Back/next navigation only | flow | 43 |
 | Forms (submittable) | form | 72 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 149 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **584** |
-| **Copy surfaces** (strings a person may read) | mixed | **929** |
-| **Total auditable surface** | mixed | **1513** |
+| **Navigable surfaces** (places a person can stand) | mixed | **585** |
+| **Copy surfaces** (strings a person may read) | mixed | **930** |
+| **Total auditable surface** | mixed | **1515** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -72,7 +72,7 @@ they differ, the reason is understood:
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 174 | 130 | agree within method (script counts every menu instance) |
 | Forms | 72 | ~38 | agree |
-| Confirmed multi-step flows | 26 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 27 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -364,6 +364,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/components/job-card/primaryPhotoAsk.ts` | compare |
 | `src/components/profile/SubscriptionTab.tsx` | nav-handler, union-state |
 | `src/components/rentals/LeasePanel.tsx` | compare, nav-handler |
+| `src/components/rentals/listings/SavedHomes.tsx` | compare |
 | `src/components/ReportDialog.tsx` | compare, nav-handler |
 | `src/components/shops/ShopsHomeView.tsx` | compare |
 | `src/lib/awardGate.ts` | step-array |

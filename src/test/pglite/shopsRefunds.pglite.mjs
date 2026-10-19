@@ -29,6 +29,8 @@ const M2 = readFileSync(`${MIG_DIR}20261018211820_shops_handover_payout.sql`, "u
 const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261019071055_shops_refunds_cancels_strikes.sql`, "utf8");
 // The readiness held-for-review admin tools taught the Shops refund (run 3), applied after it.
 const HELD_TOOLS = readFileSync(process.env.HELD_TOOLS_PATH ?? `${MIG_DIR}20261019112103_shops_held_for_review_admin_tools.sql`, "utf8");
+// An admin refunds a disputed no-show from the shop's payout (owner 2026-10-19), applied after both.
+const NO_SHOW = readFileSync(process.env.NO_SHOW_PATH ?? `${MIG_DIR}20261019185756_shops_admin_no_show_refund.sql`, "utf8");
 const FREE_CANCEL = readFileSync(`${MIG_DIR}20261019013802_shop_free_cancel_ready_tap_day_before.sql`, "utf8");
 const READY_TAP = readFileSync(`${MIG_DIR}20261019015018_shop_ready_tap_cancel_choice.sql`, "utf8");
 const SLICE1 = readFileSync(`${MIG_DIR}20261017061155_shops_profiles.sql`, "utf8");
@@ -228,6 +230,9 @@ CREATE TABLE public.error_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), s
   const i = ready.indexOf("CREATE OR REPLACE FUNCTION public.money_ref_in_use(");
   const j = ready.indexOf("$fn$;", ready.indexOf("AS $fn$", i) + 7);
   await db.exec(ready.slice(i, j + 5));
+  // and its send marks, verbatim (the no-show refund never cancels a payout whose send started).
+  const sm = ready.indexOf("CREATE TABLE IF NOT EXISTS public.payout_send_marks (");
+  await db.exec(ready.slice(sm, ready.indexOf(");", sm) + 2));
   // and its settle ledger, verbatim (this migration widens its row_kind CHECK).
   const t = ready.indexOf("CREATE TABLE IF NOT EXISTS public.payout_settlements (");
   await db.exec(ready.slice(t, ready.indexOf(");", t) + 2));
@@ -236,6 +241,7 @@ const skip = process.env.NEW_MIGRATION === "skip";
 if (!skip) {
   for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
   for (let i = 0; i < 3; i++) await db.exec(HELD_TOOLS);
+  for (let i = 0; i < 3; i++) await db.exec(NO_SHOW);
 }
 
 async function as(role, uid, sql) {
@@ -905,6 +911,105 @@ ok(!skip && check?.crossed_now === false && check.ops_alert_due === false, "once
 ok(!skip && one(await member(ADMIN, `SELECT public.shops_admin_queue()`))?.facilitator?.ytd_cents === 8000000, "the admin Shops page shows the year-to-date total");
 ok(!skip && !(await can("authenticated", "facilitated_la_sales_cents(integer)")) && !(await can("authenticated", "facilitator_threshold_check()"))
   && !(await can("authenticated", "facilitator_alert_sent(integer)")), "the counter's functions are service only");
+
+// --- 15. an admin refunds a DISPUTED no-show from the shop's payout (20261019185756; owner 2026-10-19):
+//     the existing refund rules (one per order, fee policy by reason, never our_mistake), the shop gives
+//     back what it was paid (exact cents, through the one debt ledger), the buyer's no-show strike goes.
+{
+  await member(OWNER, `SELECT public.shops_set_handover_mode('in_person')`);
+  const noShow = async (day, tax, fee) => {
+    const id = await chargedTax(BUYER2, lines([itemA, 1]), day, tax, fee);
+    if (!id) return null;
+    await svc(`INSERT INTO public.shop_handovers (order_id, ready_at) VALUES ('${id}', now() - interval '30 hours')
+               ON CONFLICT (order_id) DO UPDATE SET ready_at = EXCLUDED.ready_at`);
+    await pastReady(id, 1);
+    const r = one(await member(OWNER, `SELECT public.shops_report_no_show('${id}') AS r`));
+    return r?.result === "no_show" ? id : null;
+  };
+  const debtFor = async (refundId) => (await svc(`SELECT * FROM public.declutter_seller_fee_debts WHERE shop_refund_id = '${refundId}'`))?.[0];
+  const buyerStrikes = () => strikes(BUYER2);
+  const nsRefund = (uid, id, reason, note = "Buyer showed the pickup chat; support agrees") =>
+    member(uid, `SELECT public.shops_admin_refund_no_show('${id}', '${reason}', '${note}') AS r`);
+
+  // A. The payout has NOT gone out: it is cancelled; the card fee and its tax are kept (no fault).
+  const ytdPre = Number(one(await svc(`SELECT public.facilitated_la_sales_cents(${year})`)));
+  const a = await noShow(D3, 120, 60);
+  ok(!skip && a !== null, "setup: a no-show order whose payout is still pending");
+  const strikesBefore = await buyerStrikes();
+  const pA = await payout(a);
+  const ytdBefore = Number(one(await svc(`SELECT public.facilitated_la_sales_cents(${year})`)));
+  // Owner 2026-10-19: what a shop is paid for a no-show / late cancel counts toward the $80k alert / $100k duty.
+  ok(!skip && ytdBefore - ytdPre === pA?.items_cents && pA.items_cents > 0,
+    "a no-show the shop is paid for counts toward the marketplace-facilitator threshold (its items, exact cents)");
+  const listed = one(await member(ADMIN, `SELECT public.shops_admin_no_shows() AS r`));
+  ok(!skip && Array.isArray(listed) && listed.some((x) => x.order_id === a && x.payout_status === "pending"),
+    "the admin sees the no-show and its payout state");
+  ok(refused(await member(OWNER, `SELECT public.shops_admin_no_shows()`), /admin_only/, "42501")
+    && refused(await nsRefund(OWNER, a, "problem_no_fault"), /admin_only/, "42501")
+    && refused(await nsRefund(BUYER2, a, "problem_no_fault"), /admin_only/, "42501"),
+    "only an admin lists or refunds a no-show (the shop and the buyer are refused)");
+  ok(refused(await nsRefund(ADMIN, a, "problem_our_mistake"), /invalid_reason/, "22023")
+    && refused(await nsRefund(ADMIN, a, "buyer_cancelled"), /invalid_reason/, "22023"),
+    "never a reason where the platform absorbs the fee");
+  ok(refused(await nsRefund(ADMIN, a, "problem_no_fault", ""), /invalid_note/, "22023"), "a note is required");
+  await svc(`INSERT INTO public.payout_send_marks (payout_kind, payout_id) VALUES ('shop', '${pA?.id}')`);
+  ok(refused(await nsRefund(ADMIN, a, "problem_no_fault"), /payout_sending/, "55000") && (await order(a)).status === "cancelled"
+    && (await payout(a)).status === "pending", "a payout whose send has started is never cancelled under it (refused, nothing changed)");
+  await svc(`DELETE FROM public.payout_send_marks WHERE payout_id = '${pA?.id}'`);
+  const ra = one(await nsRefund(ADMIN, a, "problem_no_fault"));
+  const rowA = await refund(a);
+  const oA = await order(a);
+  ok(!skip && ra?.result === "refunded" && ra.payout === "cancelled" && oA.status === "refunded" && oA.close_reason === "admin_refunded",
+    "the order closes refunded");
+  ok(!skip && rowA?.reason === "problem_no_fault" && rowA.fee_policy === "keep_card_fee" && rowA.kept_cents === 60
+    && rowA.tax_kept_cents === Math.ceil((60 * 120) / (oA.total_cents - 120)) && rowA.refund_cents === oA.total_cents - 60 - rowA.tax_kept_cents
+    && rowA.status === "pending", "the refund keeps the card fee and its tax, exact cents, and waits for the money job");
+  ok(!skip && (await payout(a)).status === "cancelled" && !(await svc(`SELECT payout_id FROM public.shop_payouts_due(100)`)).some((x) => x.payout_id === pA.id),
+    "the unsent payout is cancelled and never sent");
+  const dA = await debtFor(rowA?.id);
+  ok(!skip && (pA.debt_cents === 0 ? dA === undefined : dA?.amount_cents === pA.debt_cents && dA.remaining_cents === pA.debt_cents),
+    `the shop owes back only the earlier debts that payout had paid off (${pA?.debt_cents} cents)`);
+  ok(!skip && await buyerStrikes() === strikesBefore - 1, "the buyer's no-show strike is removed");
+  ok(!skip && Number(one(await svc(`SELECT public.facilitated_la_sales_cents(${year})`))) === ytdBefore - oA.items_cents,
+    "a refunded no-show leaves the marketplace-facilitator count");
+  ok(!skip && !(one(await member(ADMIN, `SELECT public.shops_admin_no_shows() AS r`)) ?? []).some((x) => x.order_id === a),
+    "and leaves the admin's no-show list");
+  ok(refused(await nsRefund(ADMIN, a, "problem_no_fault"), /not_a_no_show/, "55000"), "one refund per order: a second is refused");
+  ok(!skip && Number(one(await svc(`SELECT count(*) FROM public.admin_audit_log WHERE action = 'shops_admin_refund_no_show' AND target_id = '${a}'`))) === 1,
+    "audited");
+  // The money job read the payout before the cancel and its transfer went out anyway: recorded, owed back.
+  const late = one(await svc(`SELECT public.shop_payout_executed('${pA?.id}', 'tr_LateAfterCancel', true, NULL) AS r`));
+  const pA2 = await payout(a);
+  const dA2 = await debtFor(rowA?.id);
+  ok(!skip && late === "succeeded" && pA2.status === "succeeded" && pA2.stripe_transfer_id === "tr_LateAfterCancel"
+    && dA2?.amount_cents === pA.items_cents && dA2.remaining_cents === pA.items_cents,
+    "a transfer sent after the cancel is recorded and its amount is owed back: the shop owes exactly its items in all");
+
+  // B. The payout HAS gone out: the shop's fault, a full refund; the shop owes the items AND the card fee.
+  const b = await noShow(D4, 0, 75);
+  ok(!skip && b !== null, "setup: a second no-show order");
+  const pB = await payout(b);
+  await svc(`SELECT public.shop_payout_executed('${pB?.id}', 'tr_NoShowPaid', true, NULL)`);
+  const shopStrikes = await strikes(OWNER);
+  const rb = one(await nsRefund(ADMIN, b, "problem_shop_fault"));
+  const rowB = await refund(b);
+  const oB = await order(b);
+  const dB = await debtFor(rowB?.id);
+  ok(!skip && rb?.payout === "succeeded" && rowB?.fee_policy === "full_shop_pays_fee" && rowB.refund_cents === oB.total_cents && rowB.kept_cents === 0,
+    "the shop's fault: the buyer gets everything back");
+  ok(!skip && dB?.amount_cents === 75 + pB.items_cents && dB.remaining_cents === 75 + pB.items_cents,
+    "the shop owes back its items and the card fee, in one debt taken from its next payouts (exact cents)");
+  ok(!skip && (await payout(b)).status === "succeeded" && await strikes(OWNER) === shopStrikes + 1, "the sent payout stands; the shop gets a strike");
+  ok(!skip && (await notes(BUYER2, "Order refunded")) >= 2 && (await notes(OWNER, "No-show refunded")) === 2, "both sides are told");
+
+  // C. Only a no-show.
+  const c = await chargedTax(BUYER2, lines([itemA, 1]), D5, 0, 50);
+  ok(refused(await nsRefund(ADMIN, c, "problem_no_fault"), /not_a_no_show/, "55000") && (await order(c)).status === "accepted",
+    "an open order is not a no-show (the problem tools decide it)");
+  ok(!(await can("anon", "shops_admin_refund_no_show(uuid, text, text)")) && !(await can("anon", "shops_admin_no_shows()"))
+    && !(await can("authenticated", "shop_payout_executed(uuid, text, boolean, text)")),
+    "anon cannot call the new functions; the payout record stays service only");
+}
 
 console.log(`\n${pass} PASS, ${fail} FAIL${skip ? " (NEW_MIGRATION=skip)" : ""}`);
 process.exit(fail === 0 ? 0 : 1);

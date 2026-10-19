@@ -29,7 +29,7 @@ import { join } from "node:path";
  * INSERT/UPDATE/DELETE in its body.
  */
 export const READ_RPC =
-  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_payouts_held_for_review(\?|$)|shops_admin_queue(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$))/;
+  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_payouts_held_for_review(\?|$)|shops_admin_queue(\?|$)|shops_admin_no_shows(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$))/;
 
 /**
  * Admin RPCs that WRITE. Not an allow-list — the opposite: naming one here is
@@ -49,6 +49,9 @@ export const WRITE_RPC = new Set([
   // (shops_admin_queue) is STABLE and sits in READ_RPC above.
   "shops_admin_pay_shop",
   "shops_admin_refund_order",
+  // 2026-10-19 (shops-s4): a disputed no-show refunded from the shop's payout (20261019185756);
+  // shops_admin_no_shows (STABLE, read only) sits in READ_RPC above.
+  "shops_admin_refund_no_show",
   "shops_admin_remove_strike",
   "shops_admin_give_strike",
   // 2026-10-17 (lander, section A train): admin "End series" (Q417 (c)) ends a

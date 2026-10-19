@@ -63,6 +63,20 @@ export const ADMIN_RPC_ERROR_COPY = {
     problem_open: "A problem is open on this order.",
     refunded_in_stripe: "This order was refunded in Stripe. Decide its held refund or payout in Payouts held for review.",
   },
+  // A disputed no-show refunded from the shop's payout (20261019185756).
+  shops_admin_no_shows: {
+    admin_only: "Only admins can see Shops no-shows.",
+  },
+  shops_admin_refund_no_show: {
+    admin_only: "Only admins can refund a Shops no-show.",
+    invalid_reason: "Pick whose fault it was.",
+    invalid_note: "Add a note of up to 500 characters. Other admins see it.",
+    order_not_found: "This order isn't available any more. Refresh the list.",
+    not_a_no_show: "This order is no longer a no-show (it may already be refunded). Refresh the list.",
+    refunded_in_stripe: "This order was refunded in Stripe. Decide it in Payouts held for review.",
+    payout_sending: "The shop's payout for this order may be going out right now. Try again in 15 minutes.",
+    order_not_charged_yet: "The buyer's card was never charged for this order, so there is nothing to refund.",
+  },
   shops_admin_remove_strike: {
     admin_only: "Only admins can remove a Shops strike.",
     invalid_note: "Add a note of up to 500 characters. Other admins see it.",

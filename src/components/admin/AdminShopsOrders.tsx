@@ -26,6 +26,14 @@
  *   Payout hold       the existing admin_set_payout_hold / admin_release_payout_hold
  *                     (usePayoutHolds, which also freezes Stripe's automatic payouts)
  *
+ *   Disputed no-shows (owner 2026-10-19; migration 20261019185756)
+ *                     shops_admin_no_shows lists the last 60 days' no-shows with their payout
+ *                     state; shops_admin_refund_no_show refunds the buyer by the existing rules
+ *                     (the shop's fault: full; nobody's fault: the card fee kept; never ours),
+ *                     cancels an unsent payout or makes the shop owe back what it was paid
+ *                     (from its next payouts), and removes the buyer's no-show strike. The money
+ *                     job sends the refund within 10 minutes.
+ *
  * Test rows (an order with a test account on either side) wear <TestTag />.
  */
 import { useId, useState } from "react";
@@ -64,6 +72,10 @@ interface StrikeRow {
   strike_id: string; user_id: string; offender_side: "buyer" | "shop"; reason: string; order_id: string | null;
   given_at: string; expires_at: string; active_count: number; is_seed: boolean;
 }
+interface NoShowRow {
+  order_id: string; shop_name: string | null; ready_date: string; closed_at: string; items_cents: number; total_cents: number;
+  payout_status: string | null; payout_cents: number | null; is_seed: boolean;
+}
 interface Queue { problems: Problem[]; refunds: RefundRow[]; payouts: PayoutRow[]; strikes: StrikeRow[]; notDeployed?: boolean }
 
 const NOT_DEPLOYED = "This isn't on the server yet (it is still deploying). Try again in a few minutes.";
@@ -75,8 +87,12 @@ const REFUND_REASONS: { value: AdminRefundReason; label: string; detail: string 
   { value: "shop_removed", label: "Shop removed", detail: "Full refund. The shop pays the card fee." },
 ];
 
+/** A disputed no-show: only the reasons where the platform never carries the fee. */
+const NO_SHOW_REASONS = REFUND_REASONS.filter((r) => r.value === "problem_shop_fault" || r.value === "problem_no_fault");
+
 type Action =
   | { kind: "pay"; orderId: string }
+  | { kind: "no_show_refund"; orderId: string }
   | { kind: "refund"; orderId: string }
   | { kind: "remove_strike"; strikeId: string }
   | { kind: "give_strike"; orderId: string; side: "buyer" | "shop" }
@@ -95,6 +111,21 @@ async function fetchQueue(): Promise<Queue> {
   return { problems: q.problems ?? [], refunds: q.refunds ?? [], payouts: q.payouts ?? [], strikes: q.strikes ?? [] };
 }
 
+async function fetchNoShows(): Promise<{ rows: NoShowRow[]; notDeployed: boolean }> {
+  const { data, error } = await supabase.rpc("shops_admin_no_shows");
+  if (error && isMissingRpcNamed(error, "shops_admin_no_shows")) return { rows: [], notDeployed: true };
+  if (error) adminFail(error, false, rpcErrorMessage("shops_admin_no_shows", error));
+  return { rows: Array.isArray(data) ? (data as unknown as NoShowRow[]) : [], notDeployed: false };
+}
+
+/** What the shop's payout means for a no-show refund, in plain words. */
+function payoutWords(status: string | null): string {
+  if (status === "succeeded" || status === "settled_by_hand") return "The shop was paid: it gives that back from its next payouts.";
+  if (status === "nothing_due") return "The price paid off the shop's card-fee debt: it owes that back from its next payouts.";
+  if (status === null) return "No payout.";
+  return "The shop's payout has not gone out: it is cancelled.";
+}
+
 async function runAction(a: Action, note: string, reason: AdminRefundReason | null): Promise<void> {
   if (a.kind === "pay") {
     const { error } = await supabase.rpc("shops_admin_pay_shop", { p_order_id: a.orderId, p_note: note });
@@ -102,6 +133,10 @@ async function runAction(a: Action, note: string, reason: AdminRefundReason | nu
   } else if (a.kind === "refund") {
     if (!reason) throw new Error("invalid_reason");
     await adminRefundOrder(a.orderId, reason, note);
+  } else if (a.kind === "no_show_refund") {
+    if (!reason) throw new Error("invalid_reason");
+    const { error } = await supabase.rpc("shops_admin_refund_no_show", { p_order_id: a.orderId, p_reason: reason, p_note: note });
+    if (error) adminFail(error, isMissingRpcNamed(error, "shops_admin_refund_no_show"), rpcErrorMessage("shops_admin_refund_no_show", error));
   } else if (a.kind === "remove_strike") {
     const { error } = await supabase.rpc("shops_admin_remove_strike", { p_strike_id: a.strikeId, p_note: note });
     if (error) adminFail(error, isMissingRpcNamed(error, "shops_admin_remove_strike"), rpcErrorMessage("shops_admin_remove_strike", error));
@@ -114,6 +149,7 @@ async function runAction(a: Action, note: string, reason: AdminRefundReason | nu
 const TITLES: Record<Action["kind"], string> = {
   pay: "Pay the shop?",
   refund: "Refund this order?",
+  no_show_refund: "Refund this no-show?",
   remove_strike: "Remove this strike?",
   give_strike: "Give a Shops strike?",
   hold: "Hold this shop's payouts?",
@@ -199,6 +235,7 @@ export default function AdminShopsOrders() {
   const [note, setNote] = useState("");
   const [reason, setReason] = useState<AdminRefundReason | null>(null);
   const queue = useQuery({ queryKey: ["admin-shops-queue"], queryFn: fetchQueue, meta: { persist: false } });
+  const noShows = useQuery({ queryKey: ["admin-shops-queue", "no-shows"], queryFn: fetchNoShows, meta: { persist: false } });
   const open = (a: Action) => { setNote(""); setReason(null); setAction(a); };
   const act = useMutation({
     mutationFn: async () => {
@@ -230,7 +267,8 @@ export default function AdminShopsOrders() {
     );
   }
   const q = queue.data;
-  const needsReason = action?.kind === "refund";
+  const needsReason = action?.kind === "refund" || action?.kind === "no_show_refund";
+  const reasons = action?.kind === "no_show_refund" ? NO_SHOW_REASONS : REFUND_REASONS;
   return (
     <AdminViewShell>
       {q.notDeployed && (
@@ -254,6 +292,26 @@ export default function AdminShopsOrders() {
                   <Button type="button" size="sm" variant="outline" onClick={() => open({ kind: "give_strike", orderId: p.order_id, side: "shop" })}>Strike the shop</Button>
                   <Button type="button" size="sm" variant="outline" onClick={() => open({ kind: "give_strike", orderId: p.order_id, side: "buyer" })}>Strike the buyer</Button>
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </AdminCard>
+
+      <AdminCard title="Disputed no-shows" subtitle="Last 60 days. If the buyer shows they did come, refund them here; the shop gives back what it was paid from its next payouts.">
+        {noShows.isError ? (
+          <ErrorState variant="inline" title="We couldn't load the no-shows." body={shopsErrorMessage(noShows.error)} onRetry={() => void noShows.refetch()} />
+        ) : noShows.isLoading || !noShows.data ? (
+          <Skeleton className="h-16 w-full rounded-xl" />
+        ) : noShows.data.notDeployed ? (
+          <p role="status" className="text-sm text-muted-foreground">{NOT_DEPLOYED}</p>
+        ) : noShows.data.rows.length === 0 ? <p className="text-sm text-muted-foreground">No no-shows in the last 60 days.</p> : (
+          <ul className="space-y-3">
+            {noShows.data.rows.map((n) => (
+              <li key={n.order_id} className="space-y-1 rounded-xl border border-border p-3" data-testid="admin-shops-no-show">
+                <p className="text-sm font-semibold">{n.shop_name ?? "A shop"} · {formatCents(n.total_cents)} · ready {n.ready_date}{n.is_seed && <TestTag />}</p>
+                <p className="text-xs text-muted-foreground">Reported {when(n.closed_at)}. {payoutWords(n.payout_status)}</p>
+                <Button type="button" size="sm" variant="outline" onClick={() => open({ kind: "no_show_refund", orderId: n.order_id })}>Refund the buyer…</Button>
               </li>
             ))}
           </ul>
@@ -319,7 +377,9 @@ export default function AdminShopsOrders() {
         open={!!action}
         onOpenChange={(o) => { if (!o) setAction(null); }}
         title={action ? TITLES[action.kind] : ""}
-        description={action?.kind === "pay" ? "The order finishes and the shop is paid (minus any card-fee debt)." : "Other admins see your note in the audit log."}
+        description={action?.kind === "pay" ? "The order finishes and the shop is paid (minus any card-fee debt)."
+          : action?.kind === "no_show_refund" ? "The buyer is refunded within 10 minutes and their no-show strike is removed. The shop gives back what it was paid for this order. Other admins see your note."
+          : "Other admins see your note in the audit log."}
         primaryLabel={act.isPending ? "Saving…" : "Confirm"}
         primaryDisabled={act.isPending || !note.trim() || note.length > 500 || (needsReason && !reason)}
         onPrimary={(e) => { e.preventDefault(); act.mutate(); }}
@@ -328,7 +388,7 @@ export default function AdminShopsOrders() {
         {needsReason && (
           <fieldset className="space-y-2">
             <legend className="text-sm font-semibold">Whose fault?</legend>
-            {REFUND_REASONS.map((r) => (
+            {reasons.map((r) => (
               <label key={r.value} className="flex items-start gap-2 text-sm">
                 <input type="radio" name="shop-refund-reason" value={r.value} checked={reason === r.value} onChange={() => setReason(r.value)} />
                 <span><span className="font-semibold">{r.label}.</span> {r.detail}</span>

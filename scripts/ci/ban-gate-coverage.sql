@@ -196,6 +196,7 @@ rpc_exempt(fn, why) AS (
   ('admin_payout_release', 'admin-only (body checks has_role admin; held-for-review payouts back to automatic)'),
   ('shops_admin_pay_shop', 'admin-only (body checks has_role admin first; Shops M4 decides a problem by paying the shop, audited)'),
   ('shops_admin_refund_order', 'admin-only (body checks has_role admin first; Shops M4 refunds an order by one of four reasons, audited)'),
+  ('shops_admin_refund_no_show', 'admin-only (body checks has_role admin first; refunds a disputed Shops no-show from the shop''s payout, audited)'),
   ('shops_admin_remove_strike', 'admin-only (body checks has_role admin first; Shops M4 removes one Shops strike, audited)'),
   ('shops_admin_give_strike', 'admin-only (body checks has_role admin first; Shops M4 gives one admin strike per order and side, audited)'),
   ('admin_payout_settle_by_hand', 'admin-only (body checks has_role admin; held-for-review payout recorded as settled by hand)'),

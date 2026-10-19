@@ -29,6 +29,10 @@
  * @mutate src/components/admin/AdminShopsOrders.tsx |         primaryDisabled={act.isPending \|\| !note.trim() \|\| note.length > 500 \|\| (needsReason && !reason)} |         primaryDisabled={act.isPending}
  * @mutate src/components/admin/AdminShopsOrders.tsx |     const { error } = await supabase.rpc("shops_admin_give_strike", { p_order_id: a.orderId, p_side: a.side, p_note: note }); |     const { error } = await supabase.rpc("shops_admin_give_strike", { p_order_id: a.orderId, p_side: "shop", p_note: note });
  * @mutate src/components/admin/AdminShopsOrders.tsx |                 {s.is_seed && <TestTag />} | {null}
+ * @mutate src/components/admin/AdminShopsOrders.tsx |     const { error } = await supabase.rpc("shops_admin_refund_no_show", { p_order_id: a.orderId, p_reason: reason, p_note: note }); |     const { error } = await supabase.rpc("shops_admin_refund_no_show", { p_order_id: a.orderId, p_reason: "problem_our_mistake", p_note: note });
+ * @mutate src/components/admin/AdminShopsOrders.tsx | const NO_SHOW_REASONS = REFUND_REASONS.filter((r) => r.value === "problem_shop_fault" \|\| r.value === "problem_no_fault"); | const NO_SHOW_REASONS = REFUND_REASONS;
+ * @mutate src/components/admin/AdminShopsOrders.tsx |   if (error && isMissingRpcNamed(error, "shops_admin_no_shows")) return { rows: [], notDeployed: true }; |
+ * @mutate src/components/admin/AdminShopsOrders.tsx |   if (status === "succeeded" \|\| status === "settled_by_hand") return | if (false) return
  * @mutate src/pages/admin/Admin.tsx |       case "shops": return <AdminShopsOrders />; |
  */
 import { readFileSync } from "node:fs";
@@ -79,6 +83,13 @@ const QUEUE = {
     given_at: "2026-10-20T00:00:00Z", expires_at: "2027-10-20T00:00:00Z", active_count: 1, is_seed: true }],
 };
 
+const NO_SHOWS = [
+  { order_id: "n1", shop_name: "Bayou Bakes", ready_date: "2026-10-21", closed_at: "2026-10-22T15:00:00Z", items_cents: 1800, total_cents: 1950,
+    payout_status: "succeeded", payout_cents: 1800, is_seed: true },
+  { order_id: "n2", shop_name: "Teche Crafts", ready_date: "2026-10-22", closed_at: "2026-10-23T15:00:00Z", items_cents: 2500, total_cents: 2650,
+    payout_status: "pending", payout_cents: 2500, is_seed: false },
+];
+
 function renderView() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={qc}><AdminShopsOrders /></QueryClientProvider>);
@@ -89,8 +100,49 @@ beforeEach(() => {
   vi.clearAllMocks();
   rpc.mockImplementation(async (name: string, args?: { p_helper_id?: string }) => {
     if (name === "shops_admin_queue") return { data: QUEUE, error: null };
+    if (name === "shops_admin_no_shows") return { data: NO_SHOWS, error: null };
     if (name === "admin_set_payout_hold") return { data: { helper_id: args?.p_helper_id }, error: null };
     return { data: { result: "ok" }, error: null };
+  });
+});
+
+describe("Admin > Shops Orders: disputed no-shows (owner 2026-10-19, 20261019185756)", () => {
+  it("lists each no-show with what happens to the shop's payout", async () => {
+    renderView();
+    const rows = await screen.findAllByTestId("admin-shops-no-show");
+    expect(rows).toHaveLength(2);
+    expect(rows[0].textContent).toMatch(/Bayou Bakes · \$19\.50 · ready 2026-10-21/);
+    expect(rows[0].textContent).toMatch(/The shop was paid: it gives that back from its next payouts\./);
+    expect(rows[1].textContent).toMatch(/has not gone out: it is cancelled\./);
+    expect(within(rows[0]).getByText("Test")).toBeTruthy();
+  });
+
+  it("Refund the buyer offers only the shop's fault or nobody's fault, needs a note, and calls shops_admin_refund_no_show", async () => {
+    renderView();
+    const rows = await screen.findAllByTestId("admin-shops-no-show");
+    fireEvent.click(within(rows[1]).getByRole("button", { name: "Refund the buyer…" }));
+    const dialog = screen.getByRole("dialog", { name: "Refund this no-show?" });
+    expect(within(dialog).queryByLabelText(/Our mistake/)).toBeNull();
+    expect(within(dialog).queryByLabelText(/Shop removed/)).toBeNull();
+    const confirm = within(dialog).getByRole("button", { name: "confirm Confirm" }) as HTMLButtonElement;
+    fireEvent.change(within(dialog).getByLabelText("Note (required)"), { target: { value: "Pickup chat shows the buyer came" } });
+    expect(confirm.disabled).toBe(true); // no reason yet
+    fireEvent.click(within(dialog).getByLabelText(/Nobody's fault/));
+    fireEvent.click(confirm);
+    await waitFor(() => expect(rpcCall("shops_admin_refund_no_show")).toBeTruthy());
+    expect(rpcCall("shops_admin_refund_no_show")![1]).toEqual({ p_order_id: "n2", p_reason: "problem_no_fault", p_note: "Pickup chat shows the buyer came" });
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("before the migration is live it says so instead of an empty list or an error", async () => {
+    rpc.mockImplementation(async (name: string) => {
+      if (name === "shops_admin_queue") return { data: QUEUE, error: null };
+      if (name === "shops_admin_no_shows") return { data: null, error: { code: "PGRST202", message: "Could not find the function public.shops_admin_no_shows without parameters in the schema cache" } };
+      return { data: { result: "ok" }, error: null };
+    });
+    renderView();
+    expect(await screen.findByText(/isn't on the server yet \(it is still deploying\)/)).toBeTruthy();
+    expect(screen.queryAllByTestId("admin-shops-no-show")).toHaveLength(0);
   });
 });
 

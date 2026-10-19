@@ -14762,6 +14762,8 @@ export type Database = {
       shops_set_handover_mode: { Args: { p_mode: string }; Returns: string }
       shops_order_cancel_quote: { Args: { p_order_id: string }; Returns: Json }
       shops_admin_queue: { Args: never; Returns: Json }
+      shops_admin_no_shows: { Args: never; Returns: Json }
+      shops_admin_refund_no_show: { Args: { p_note: string; p_order_id: string; p_reason: string }; Returns: Json }
       shops_admin_pay_shop: { Args: { p_note: string; p_order_id: string }; Returns: Json }
       shops_admin_remove_strike: { Args: { p_note: string; p_strike_id: string }; Returns: Json }
       shops_admin_give_strike: {

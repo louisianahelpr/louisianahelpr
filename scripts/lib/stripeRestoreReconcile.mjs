@@ -18,8 +18,30 @@
  */
 
 /**
- * Where each Stripe object kind is recorded in the database.
- * @type {Record<"payment_intent" | "transfer" | "refund", { table: string, column: string }[]>}
+ * Where each Stripe object kind is recorded in the database. `orderBy`: the
+ * column the script pages a table by when it has no `id` column.
+ *
+ * Declutter and Shops (Q2230, before the Declutter switch goes past testers,
+ * 2026-10-19): what each column holds, read from its writers and pg_constraint
+ * on prod (every one of these tables was empty on prod that day):
+ *   - declutter_orders / shop_orders.stripe_payment_intent_id: the order's
+ *     PaymentIntent (shop_orders CHECK '^pi_'; declutter_orders is written by
+ *     the checkout webhook from the session's payment_intent).
+ *   - declutter_refunds.stripe_payment_intent_id (CHECK '^pi_'): ONE row per
+ *     PAYMENT, including a payment no order holds (reasons superseded,
+ *     duplicate_payment, order_missing), so it is a record of that PI.
+ *   - declutter_hand_refunds.* (CHECK '^pi_' and '^(re|pyr)_'; primary key
+ *     stripe_refund_id, no id column) and declutter_delivery_refunds.*: the
+ *     payment's PI and the refund Stripe made.
+ *   - declutter_refunds / declutter_delivery_refunds.stripe_refund_ref: no
+ *     CHECK, but every writer passes a Stripe refund's own id (declutter-money,
+ *     stripe-webhook declutterCheckout / chargeRefundUpdated, the hand-settle
+ *     RPC) or keeps the old value (COALESCE). Any value that is not a Stripe
+ *     id of its kind is left out by collectDbIds (ID_PREFIX) and listed, so a
+ *     placeholder can never stand in for a missing object.
+ *   - declutter_payouts / helpr_task_payouts / shop_payouts.stripe_transfer_id
+ *     (CHECK '^tr_'): the payout's transfer.
+ * @type {Record<"payment_intent" | "transfer" | "refund", { table: string, column: string, orderBy?: string }[]>}
  */
 export const DB_ID_COLUMNS = {
   payment_intent: [
@@ -27,6 +49,11 @@ export const DB_ID_COLUMNS = {
     { table: "tips", column: "stripe_payment_intent_id" },
     { table: "gift_cards", column: "stripe_payment_intent_id" },
     { table: "recurring_visit_payments", column: "stripe_payment_intent_id" },
+    { table: "declutter_orders", column: "stripe_payment_intent_id" },
+    { table: "declutter_refunds", column: "stripe_payment_intent_id" },
+    { table: "declutter_hand_refunds", column: "stripe_payment_intent_id", orderBy: "stripe_refund_id" },
+    { table: "declutter_delivery_refunds", column: "stripe_payment_intent_id" },
+    { table: "shop_orders", column: "stripe_payment_intent_id" },
   ],
   transfer: [
     { table: "payout_transfers", column: "stripe_transfer_id" },
@@ -40,12 +67,44 @@ export const DB_ID_COLUMNS = {
     { table: "chargeback_clawbacks", column: "repay_transfer_id" },
     { table: "tip_hold_redrives", column: "transfer_id" },
     { table: "tip_hold_redrives", column: "repay_transfer_id" },
+    { table: "declutter_payouts", column: "stripe_transfer_id" },
+    { table: "helpr_task_payouts", column: "stripe_transfer_id" },
+    { table: "shop_payouts", column: "stripe_transfer_id" },
   ],
   refund: [
     { table: "payment_refunds", column: "stripe_refund_id" },
     { table: "disputes", column: "execution_refund_id" },
+    { table: "declutter_refunds", column: "stripe_refund_ref" },
+    { table: "declutter_hand_refunds", column: "stripe_refund_id", orderBy: "stripe_refund_id" },
+    { table: "declutter_delivery_refunds", column: "stripe_refund_ref" },
   ],
 };
+
+/** The id shape of each Stripe object kind (a refund can be re_ or pyr_). */
+export const ID_PREFIX = {
+  payment_intent: /^pi_[A-Za-z0-9]+$/,
+  transfer: /^tr_[A-Za-z0-9]+$/,
+  refund: /^(re|pyr)_[A-Za-z0-9]+$/,
+};
+
+/**
+ * The ids of one kind the database holds, from the values read out of each
+ * DB_ID_COLUMNS column (`valuesByColumn["table.column"]`). A value that is not
+ * a Stripe id of that kind is left out and returned in `rejected`, so a
+ * placeholder in a Stripe-id column can never match, and a human sees it.
+ */
+export function collectDbIds(kind, valuesByColumn) {
+  const ids = new Set();
+  const rejected = [];
+  for (const { table, column } of DB_ID_COLUMNS[kind]) {
+    for (const v of valuesByColumn[`${table}.${column}`] ?? []) {
+      if (v === null || v === undefined || v === "") continue;
+      if (ID_PREFIX[kind].test(String(v))) ids.add(String(v));
+      else rejected.push(`${table}.${column} = ${String(v).slice(0, 60)}`);
+    }
+  }
+  return { ids, rejected };
+}
 
 /**
  * Stripe-id columns that are deliberately NOT matched against a listing, each
@@ -61,22 +120,11 @@ export const NOT_MATCHED = {
   "stripe_customers.stripe_customer_id": "one wallet (20261018090700): the member's Stripe customer per mode; customer linkage, not a money movement, nothing to restore",
   "declutter_orders.stripe_checkout_session_id": "a Checkout Session; its PaymentIntent is declutter_orders.stripe_payment_intent_id",
   "declutter_orders.stripe_paid_at": "a timestamp (the charge's own time, B41), not a Stripe id",
-  "declutter_orders.stripe_payment_intent_id": "Declutter (slices 3/3b, switch OFF, no money taken yet): the restore check does not read Declutter orders; add the order PaymentIntent and refund ids to DB_ID_COLUMNS before the switch goes past testers (spec, open after slice 3b)",
   "shop_orders.stripe_checkout_session_id": "a Checkout Session; its PaymentIntent is shop_orders.stripe_payment_intent_id",
-  "shop_orders.stripe_payment_intent_id": "Shops M1 (switch OFF, testers only): the restore check does not read Shops orders yet; add the order PaymentIntent to DB_ID_COLUMNS before the switch goes past testers, as for Declutter",
-  "declutter_refunds.stripe_payment_intent_id": "Declutter (slices 3/3b, switch OFF, no money taken yet): the restore check does not read Declutter orders; add the order PaymentIntent and refund ids to DB_ID_COLUMNS before the switch goes past testers (spec, open after slice 3b)",
-  "declutter_refunds.stripe_refund_ref": "Declutter (slices 3/3b, switch OFF, no money taken yet): the restore check does not read Declutter orders; add the order PaymentIntent and refund ids to DB_ID_COLUMNS before the switch goes past testers (spec, open after slice 3b)",
   "declutter_refunds.refund_cents": "an amount, not a Stripe id",
   "declutter_order_jobs.seller_fault_refund_id": "a uuid pointing at our own declutter_refunds row (Add a Helpr A10, 20261017073146), not a Stripe id; the Stripe refund it stands for is declutter_refunds.stripe_refund_ref",
-  "declutter_hand_refunds.stripe_payment_intent_id": "Declutter refunds sent by hand (lane J, 20261017055500; switch at testers): the restore check does not read Declutter orders; add with the other Declutter ids before the switch goes past testers (spec, open after slice 3b)",
-  "declutter_hand_refunds.stripe_refund_id": "Declutter refunds sent by hand (lane J, 20261017055500; switch at testers): the restore check does not read Declutter refunds; add with the other Declutter ids before the switch goes past testers (spec, open after slice 3b)",
-  "declutter_payouts.stripe_transfer_id": "Declutter (slice 4, switch OFF, no money moved yet): the restore check does not read Declutter payouts; add the transfer id to DB_ID_COLUMNS before the switch goes past testers (spec, open after slice 4)",
-  "shop_payouts.stripe_transfer_id": "Shops M2 (20261018211820; switch at testers): the restore check does not read Shops payouts yet; add the transfer id to DB_ID_COLUMNS with shop_orders.stripe_payment_intent_id before the switch goes past testers",
   "declutter_seller_fee_debts.refund_id": "our own declutter_refunds row id, not a Stripe id",
-  "declutter_delivery_refunds.stripe_payment_intent_id": "Declutter delivery (slice 5, switch at testers): the restore check does not read Declutter orders; add with the other Declutter ids before the switch goes past testers (spec, open after slice 4)",
-  "declutter_delivery_refunds.stripe_refund_ref": "Declutter delivery (slice 5, switch at testers): the restore check does not read Declutter refunds; add with the other Declutter ids before the switch goes past testers (spec, open after slice 4)",
   "declutter_delivery_refunds.refund_cents": "an amount, not a Stripe id",
-  "helpr_task_payouts.stripe_transfer_id": "Helpr delivery pay (slice 5, switch at testers): the restore check does not read Declutter payouts; add with declutter_payouts.stripe_transfer_id before the switch goes past testers (spec, open after slice 4)",
   "tips.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through tips.stripe_payment_intent_id",
   "gift_cards.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through gift_cards.stripe_payment_intent_id",
   "recurring_visit_payments.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through recurring_visit_payments.stripe_payment_intent_id",

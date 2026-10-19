@@ -306,7 +306,8 @@ BEGIN
     RETURN v_b.status;
   END IF;
   INSERT INTO public.rental_rent_payments (tenancy_id, amount_cents, paid_on, pay_method, reported_by, status, decided_at)
-  VALUES (v_b.tenancy_id, v_b.rent_cents, public.shop_local_today(), 'bank', 'tenant', 'confirmed', now())
+  -- Paid on the day the tenant started it (the debit then took days to confirm).
+  VALUES (v_b.tenancy_id, v_b.rent_cents, (v_b.created_at AT TIME ZONE 'America/Chicago')::date, 'bank', 'tenant', 'confirmed', now())
   RETURNING id INTO v_pay;
   UPDATE public.rental_rent_bank_payments
      SET status = 'succeeded', rent_payment_id = v_pay, transfer_status = 'pending', next_transfer_at = now(), updated_at = now()
@@ -613,3 +614,143 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_bank_state(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rentals_bank_state(uuid) TO authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 10. The rent sweep (restated from 20261019073106 with two changes for bank payments): a bank payment
+--     still being confirmed counts like a waiting report (started by the due + grace date: on time unless
+--     the bank fails or returns it), and a confirmed bank payment counts from the day it was started (its
+--     paid_on), not the day the bank confirmed it.
+CREATE OR REPLACE FUNCTION public.rentals_rent_sweep()
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_plan record;
+  v_due date;
+  v_rent record;
+  v_rents integer := 0;
+  v_fees integer := 0;
+  v_reminders integer := 0;
+  v_skipped integer := 0;
+  v_next date;
+  v_paid bigint;
+  v_through bigint;
+  v_owed bigint;
+  v_today date := public.shop_local_today();
+BEGIN
+  FOR v_plan IN
+    SELECT p.*, t.tenant_id, t.landlord_id, t.status AS tenancy_status
+      FROM public.rental_rent_plans p
+      JOIN public.rental_tenancies t ON t.id = p.tenancy_id
+     WHERE t.status = 'active' OR (t.status = 'ended' AND t.ended_at > now() - interval '90 days')
+  LOOP
+    IF NOT public.feature_enabled_for_user('rentals', v_plan.tenant_id)
+       OR NOT public.feature_enabled_for_user('rentals', v_plan.landlord_id)
+       OR EXISTS (SELECT 1 FROM public.profiles pr
+                   WHERE pr.user_id IN (v_plan.tenant_id, v_plan.landlord_id)
+                     AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
+                     AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now())) THEN
+      -- Remember the skipped day: extend the last period when it ran to yesterday or today, else start one.
+      INSERT INTO public.rental_rent_sweep_skips AS k (tenancy_id, periods)
+      VALUES (v_plan.tenancy_id, jsonb_build_array(jsonb_build_object('from', v_today, 'to', v_today)))
+      ON CONFLICT (tenancy_id) DO UPDATE
+        SET periods = CASE
+              WHEN jsonb_array_length(k.periods) > 0 AND (k.periods -> -1 ->> 'to')::date >= v_today - 1
+                THEN jsonb_set(k.periods, ARRAY[(jsonb_array_length(k.periods) - 1)::text, 'to'], to_jsonb(v_today))
+              ELSE k.periods || jsonb_build_array(jsonb_build_object('from', v_today, 'to', v_today)) END,
+            updated_at = now();
+      v_skipped := v_skipped + 1;
+      CONTINUE;
+    END IF;
+    -- Rent rows that have come due (first due date on, today included), live tenancies only.
+    IF v_plan.tenancy_status = 'active' THEN
+      v_due := v_plan.first_due_on;
+      WHILE v_due <= v_today LOOP
+        INSERT INTO public.rental_rent_charges (tenancy_id, kind, due_on, amount_cents, late_fee_cents, grace_days)
+        VALUES (v_plan.tenancy_id, 'rent', v_due, v_plan.amount_cents, v_plan.late_fee_cents, v_plan.grace_days)
+        ON CONFLICT (tenancy_id, due_on) WHERE kind = 'rent' DO NOTHING;
+        IF FOUND THEN v_rents := v_rents + 1; END IF;
+        v_due := public.rentals_rent_next_due(v_plan.first_due_on, v_plan.frequency, v_due + 1);
+      END LOOP;
+    END IF;
+    -- Late fees, per rent row, on that row's own fee and grace days.
+    FOR v_rent IN
+      SELECT c.* FROM public.rental_rent_charges c
+       WHERE c.tenancy_id = v_plan.tenancy_id AND c.kind = 'rent' AND c.waived_at IS NULL
+         AND c.late_fee_cents > 0
+         AND c.on_time_at IS NULL
+         AND c.due_on + c.grace_days < v_today
+         AND NOT EXISTS (SELECT 1 FROM public.rental_rent_charges f WHERE f.rent_charge_id = c.id)
+         -- No fee when its due + grace date (or the day after, when the fee would have been written)
+         -- fell while the sweep skipped this tenancy.
+         AND NOT EXISTS (SELECT 1 FROM public.rental_rent_sweep_skips ss, jsonb_array_elements(ss.periods) k
+                          WHERE ss.tenancy_id = c.tenancy_id
+                            AND c.due_on + c.grace_days BETWEEN (k ->> 'from')::date - 1 AND (k ->> 'to')::date)
+       ORDER BY c.due_on
+    LOOP
+      SELECT COALESCE(sum(amount_cents), 0) INTO v_through FROM public.rental_rent_charges
+       WHERE tenancy_id = v_plan.tenancy_id AND kind = 'rent' AND waived_at IS NULL AND due_on <= v_rent.due_on;
+      -- Confirmed payments paid by the due + grace date. A payment the TENANT reported counts from the later
+      -- of its paid date and the day it was reported (Louisiana time), so a late report dated back and then
+      -- confirmed never makes a row on time (lead review round 3 #3).
+      SELECT COALESCE(sum(amount_cents), 0) INTO v_paid FROM public.rental_rent_payments
+       WHERE tenancy_id = v_plan.tenancy_id AND status = 'confirmed'
+         -- (a bank payment's paid date is the day the tenant started it; the bank, not the tenant, confirmed it)
+         AND CASE WHEN reported_by = 'tenant' AND pay_method <> 'bank' THEN GREATEST(paid_on, (created_at AT TIME ZONE 'America/Chicago')::date) ELSE paid_on END
+             <= v_rent.due_on + v_rent.grace_days;
+      IF v_paid >= v_through THEN
+        -- On time by confirmed payments alone: final (a later correction never adds a fee).
+        UPDATE public.rental_rent_charges SET on_time_at = now() WHERE id = v_rent.id;
+        CONTINUE;
+      END IF;
+      -- Plus the tenant's reports MADE by that date (Louisiana time) and still waiting: on time until declined.
+      v_paid := v_paid + (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_payments
+                           WHERE tenancy_id = v_plan.tenancy_id AND status = 'reported'
+                             AND GREATEST(paid_on, (created_at AT TIME ZONE 'America/Chicago')::date) <= v_rent.due_on + v_rent.grace_days);
+      -- Plus bank payments the tenant STARTED by that date that the bank is still confirming (an ACH debit
+      -- takes days): on time unless the bank fails or returns it.
+      v_paid := v_paid + (SELECT COALESCE(sum(rent_cents), 0) FROM public.rental_rent_bank_payments
+                           WHERE tenancy_id = v_plan.tenancy_id AND status = 'processing'
+                             AND (created_at AT TIME ZONE 'America/Chicago')::date <= v_rent.due_on + v_rent.grace_days);
+      IF v_paid < v_through THEN
+        INSERT INTO public.rental_rent_charges (tenancy_id, kind, due_on, amount_cents, rent_charge_id)
+        VALUES (v_plan.tenancy_id, 'late_fee', v_today, v_rent.late_fee_cents, v_rent.id)
+        ON CONFLICT (rent_charge_id) WHERE kind = 'late_fee' DO NOTHING;
+        IF FOUND THEN
+          v_fees := v_fees + 1;
+          PERFORM public.rentals_notify(v_plan.tenant_id, 'Late fee added',
+            'Rent due ' || to_char(v_rent.due_on, 'FMMon FMDD') || ' is still open, so the late fee in your rent schedule was added.', '/rentals', false);
+        END IF;
+      END IF;
+    END LOOP;
+    -- Friendly reminders: 3 days before the next due date and on it, at most once a day, live tenancies
+    -- only, and never when what is due by then is already covered by confirmed payments.
+    IF v_plan.tenancy_status = 'active' THEN
+      v_next := public.rentals_rent_next_due(v_plan.first_due_on, v_plan.frequency, v_today);
+      IF v_next IN (v_today, v_today + 3) AND v_plan.reminded_for IS DISTINCT FROM v_today THEN
+        SELECT COALESCE(sum(amount_cents), 0)
+               + CASE WHEN EXISTS (SELECT 1 FROM public.rental_rent_charges
+                                    WHERE tenancy_id = v_plan.tenancy_id AND kind = 'rent' AND due_on = v_next)
+                      THEN 0 ELSE v_plan.amount_cents END
+          INTO v_owed
+          FROM public.rental_rent_charges
+         WHERE tenancy_id = v_plan.tenancy_id AND waived_at IS NULL AND due_on <= v_next;
+        v_owed := v_owed - (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_payments
+                             WHERE tenancy_id = v_plan.tenancy_id AND status = 'confirmed');
+        IF v_owed > 0 THEN
+          UPDATE public.rental_rent_plans SET reminded_for = v_today WHERE tenancy_id = v_plan.tenancy_id;
+          PERFORM public.rentals_notify(v_plan.tenant_id, 'Rent reminder',
+            CASE WHEN v_next = v_today THEN 'Rent is due today.' ELSE 'Rent is due ' || to_char(v_next, 'FMDay, FMMon FMDD') || '.' END,
+            '/rentals', false);
+          v_reminders := v_reminders + 1;
+        END IF;
+      END IF;
+    END IF;
+  END LOOP;
+  RETURN jsonb_build_object('rent_rows', v_rents, 'late_fees', v_fees, 'reminders', v_reminders, 'skipped', v_skipped);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_rent_sweep() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rentals_rent_sweep() TO service_role;

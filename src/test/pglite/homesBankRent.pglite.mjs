@@ -274,6 +274,29 @@ await svc(`SELECT public.rentals_bank_rent_attach('${b2.id}', 'cs_test_2', false
 await svc(`SELECT public.rentals_bank_rent_failed('${b2.id}', false)`);
 ok((await bal()) === 120000 && (await notes(TENANT, "Rent payment did not go through")) === 1, "a failed debit records nothing and tells the tenant");
 
+// --- the sweep: a bank payment started by the due + grace date is on time while the bank confirms it
+{
+  const unitZ = one(await as("authenticated", LANDLORD, `SELECT public.rentals_add_unit('${prop}', 'Unit Z') AS id`));
+  const tZ = await tenancy(unitZ, TENANT2);
+  await svc(`UPDATE public.profiles SET idv_status = 'verified', date_of_birth = '1990-01-01' WHERE user_id = '${TENANT2}'`);
+  ok(Array.isArray(await plan(LANDLORD, tZ, P({ frequency: "weekly", amount_cents: 10000, grace_days: 0, late_fee_cents: 300 }))), "setup: weekly, no grace days");
+  await svc(`UPDATE public.rental_rent_plans SET first_due_on = public.shop_local_today() - 3 WHERE tenancy_id = '${tZ}'`);
+  await svc(`SELECT public.rentals_rent_sweep()`);
+  await svc(`DELETE FROM public.rental_rent_charges WHERE tenancy_id = '${tZ}' AND kind = 'late_fee'`);
+  ok(Array.isArray(await bankPay(LANDLORD, tZ, true, "tenant")), "setup: bank pay on");
+  const bz = rows(await start(TENANT2, tZ, 10000))[0]?.r;
+  await svc(`UPDATE public.rental_rent_bank_payments SET created_at = now() - interval '3 days' WHERE id = '${bz.id}'`); // started on the due date
+  await svc(`SELECT public.rentals_bank_rent_attach('${bz.id}', 'cs_test_z', false)`);
+  await svc(`SELECT public.rentals_bank_rent_processing('${bz.id}', 'pi_test_z')`);
+  await svc(`SELECT public.rentals_rent_sweep()`);
+  const feesZ = async () => one(await svc(`SELECT count(*)::int FROM public.rental_rent_charges WHERE tenancy_id = '${tZ}' AND kind = 'late_fee'`));
+  ok((await feesZ()) === 0, "a bank payment started on the due date is on time while the bank confirms it");
+  await svc(`SELECT public.rentals_bank_rent_succeeded('pi_test_z')`);
+  await svc(`SELECT public.rentals_rent_sweep()`);
+  ok((await feesZ()) === 0 && one(await svc(`SELECT paid_on::text FROM public.rental_rent_payments WHERE tenancy_id = '${tZ}' AND pay_method = 'bank'`)) === one(await svc(`SELECT (public.shop_local_today() - 3)::text`)),
+    "confirmed days later, it counts from the day it was started: still on time");
+}
+
 // --- autopay (D7)
 ok(refused(await as("authenticated", TENANT, `SELECT public.rentals_set_autopay('${tA}', true)`), /no_saved_bank/), "autopay needs a saved bank");
 ok(refused(await as("authenticated", TENANT, `SELECT public.rentals_autopay_saved('${tA}', 'cus_1', 'pm_1', 'Test Bank 6789', false)`), /permission denied/), "only the server saves the bank");

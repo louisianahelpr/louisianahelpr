@@ -47,7 +47,7 @@ import type { CottageStatus, PendingShopItem, ShopItem } from "@/lib/shops/items
 import { HOME_KITCHEN_CARD_LINE, HOME_KITCHEN_NOTICE } from "@/lib/shops/items";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true, lastAnswer: true }) }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
 vi.mock("../admin/AdminViewShell", () => ({

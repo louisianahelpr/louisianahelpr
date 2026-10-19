@@ -8,7 +8,7 @@
  *
  * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && <ShopItemsList shopId={s.id} />} |         {false && <ShopItemsList shopId={s.id} />}
  * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && <ShopItemsList shopId={s.id} />} |         {<ShopItemsList shopId={s.id} />}
- * @mutate src/pages/shops/ShopPage.tsx |   if (on) return <ShopView />; |   if (on) return null;
+ * @mutate src/pages/shops/ShopPage.tsx |   if (lastAnswer === true) return <ShopView />; |   if (lastAnswer === true) return null;
  * @mutate src/pages/shops/ShopEditPage.tsx |       <ShopEditView />\n | \n
  * @mutate src/components/shops/ShopEditView.tsx |       {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} />} |       {null}
  */
@@ -20,7 +20,7 @@ import type { ReactNode } from "react";
 import type { ShopPage as ShopPageData } from "@/lib/shops/api";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true, lastAnswer: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 const account = { user: { id: "u1" }, profile: {}, isLoading: false };
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => account }));

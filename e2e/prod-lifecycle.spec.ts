@@ -423,15 +423,26 @@ async function uploadProofThroughTheApp(
   // JobStepPrimaryButton "Take <label>" — not the outline chip. Scheduled run
   // 39039797666 (2026-10-17) failed here with `button "Take After Photo"` on
   // the card. Either shape opens the same dialog.
-  const askChip = card.getByRole("button", {
-    name: new RegExp(`^(Take ${askLabel}|${askLabel} — add the ${type} photo for this job)$`),
-  });
-  await expect(
-    askChip,
-    `the card never asked for the ${type} photo — the app shows one ask per tracker step, so check ` +
-      `the order, and check the chip label in PhotoProof.tsx has not moved again`,
-  ).toBeVisible({ timeout: 30_000 });
-  await askChip.click();
+  const askName = new RegExp(`^(Take ${askLabel}|${askLabel} — add the ${type} photo for this job)$`);
+  const askChip = card.getByRole("button", { name: askName });
+  /* FOURTH SHAPE (owner, 2026-10-08: "move everything besides the primary
+     button into the more tab"; JobStepCard MORE_ORDER): a photo that is NOT
+     the step's primary is a chip inside the card's More popover. On the
+     working step the AFTER photo is the primary (primaryPhotoAsk.ts); once it
+     is taken the still-owed BEFORE photo is an ordinary chip, so it sits under
+     More, not on the card. e2e-real-backend 39205275061 (2026-10-19) failed
+     here: the card read "Working" with only More and no primary. The popover
+     is portaled to <body>, so it is found by its name, not inside `card`. */
+  const more = card.getByRole("button", { name: /^More — \d+ more actions? for this job$/ });
+  const menu = page.getByRole("dialog", { name: "More actions for this job" });
+  const inMenu = menu.getByRole("button", { name: askName });
+  await expect(async () => {
+    if (await askChip.isVisible()) return;
+    if (!(await menu.isVisible())) await more.click();
+    await expect(inMenu).toBeVisible({ timeout: 2_000 });
+  }, `the card never asked for the ${type} photo, on the card or under More — the app shows one ask per ` +
+    `tracker step, so check the order, and check the chip label in PhotoProof.tsx has not moved again`).toPass({ timeout: 30_000 });
+  await ((await askChip.isVisible()) ? askChip : inMenu).click();
 
   // The dialog is portaled to <body>, so it is NOT inside `card`.
   const dialog = page.getByRole("dialog").filter({ hasText: `${label} photos` });

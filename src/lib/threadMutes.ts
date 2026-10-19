@@ -27,7 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { isTeamThreadKey } from "@/lib/teamThread";
-import { isMissingRpc } from "@/lib/missingRpc";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 const STORAGE_KEY = "helpr_muted_threads_v2";
 // Legacy key from before the snooze TTL existed — migrated lazily on
@@ -120,7 +120,7 @@ export async function toggleThreadMute(
   });
 
   if (error) {
-    if (isMissingRpc(error)) {
+    if (isMissingRpcNamed(error, "toggle_thread_mute")) {
       // Pre-deploy fallback — mirror the toggle into local storage.
       const map = readLocalMap();
       const k = localKey(userId, jobId, otherUserId);
@@ -172,7 +172,7 @@ export async function snoozeThread(
   });
 
   if (error) {
-    if (isMissingRpc(error)) {
+    if (isMissingRpcNamed(error, "set_thread_snooze")) {
       // Pre-deploy fallback — record the snooze locally so it feels real.
       const map = readLocalMap();
       const k = localKey(userId, jobId, otherUserId);
@@ -220,7 +220,7 @@ export async function unmuteThread(
     _job_id: jobId,
     _other_user_id: otherUserId,
   });
-  if (error && !isMissingRpc(error)) throw error;
+  if (error && !isMissingRpcNamed(error, "clear_thread_mute")) throw error;
   const map = readLocalMap();
   const k = localKey(userId, jobId, otherUserId);
   delete map[k];
@@ -263,7 +263,7 @@ export async function getMutedThreadMap(
     // from "nothing is muted": every server-side mute badge silently
     // disappears and muted threads start notifying again. Same fallback, but
     // no longer invisible.
-    if (!isMissingRpc(error)) {
+    if (!isMissingRpcNamed(error, "get_muted_threads")) {
       report(error, {
         severity: "warning",
         tags: { source: "threadMutes.get_muted_threads" },

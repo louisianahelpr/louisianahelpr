@@ -28,7 +28,7 @@
  * The record helper is best-effort; a missing RPC is silently swallowed.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { isMissingRpc } from "@/lib/missingRpc";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 export type RateLimitReason =
   | "rate_limit_minute"
@@ -97,7 +97,7 @@ export async function checkApplicationRate(args: {
   );
 
   if (error) {
-    if (isMissingRpc(error)) {
+    if (isMissingRpcNamed(error, "rpc_check_application_rate")) {
       // RPC not deployed yet — let the apply proceed.
       return { allowed: true };
     }
@@ -143,7 +143,7 @@ export async function recordApplicationAttempt(args: {
       "rpc_record_application_attempt",
       { _applicant_id: args.applicantId },
     );
-    if (error && !isMissingRpc(error)) {
+    if (error && !isMissingRpcNamed(error, "rpc_record_application_attempt")) {
       // Log to console only — the user has already seen success.
       console.warn("[applyRateLimit] record failed:", error.message);
     }

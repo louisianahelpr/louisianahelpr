@@ -134,7 +134,8 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
   });
 
   it("3. the owner rules", () => {
-    expect(flat(body("rentals_create_property"))).toContain("p.user_id = v_uid AND p.idv_status = 'verified'");
+    // Either verdict, through the one helper (20261019021418; src/test/rentalsIdentityGateUsesHelper.test.ts).
+    expect(flat(body("rentals_create_property"))).toContain("IF NOT public.is_identity_verified(v_uid) THEN RAISE EXCEPTION 'identity_not_verified'");
     expect(flat(body("rentals_invite_tenant"))).toContain("IF v_status <> 'approved' THEN RAISE EXCEPTION 'ownership_not_approved'");
     expect(flat(body("rentals_invite_tenant"))).toContain("encode(sha256(convert_to(v_token, 'UTF8')), 'hex')");
     expect(flat(body("rentals_admin_review_property"))).toContain("NOT public.has_role(v_uid, 'admin'::public.app_role)");
@@ -185,7 +186,7 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
     expect(sub).toContain("mp.tenant_id = auth.uid() AND mp.storage_path = p_name");
     expect(sub).toContain("c.document_url = p_name"); // the live credential branches kept
     expect(flat(body("rentals_file_request"))).toContain("pg_advisory_xact_lock(hashtext('rentals_file:' || v_uid::text))");
-    expect(flat(body("rentals_invite_tenant"))).toContain("pr.idv_status = 'verified'");
+    expect(flat(body("rentals_invite_tenant"))).toContain("IF NOT public.is_identity_verified(v_uid) THEN RAISE EXCEPTION 'identity_not_verified'");
     // Filing never creates a job (the noJobRowBeforePayment rule): the landlord posts and pays.
     for (const fn of [...MEMBER_RPCS, ...OTHER_RPCS]) expect(body(fn), fn).not.toMatch(/INSERT\s+INTO\s+public\.jobs\b/i);
   });

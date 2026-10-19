@@ -817,6 +817,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/stripeMode.ts";`,
   );
 
+  // The paid ID check's price (owner 2026-10-19): `_shared/idvFee.ts` has ZERO
+  // imports, so the REAL amount serves and a test asserts the charge itself.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/idvFee\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/idvFee.ts";`,
+  );
+
   // Hidden feature switch (Declutter, slice 3b): `_shared/featureSwitch.ts`
   // imports only caughtMessage, so the REAL fail-closed gate serves; the
   // decision itself is the `feature_enabled_for_user` rpc the scenario answers.

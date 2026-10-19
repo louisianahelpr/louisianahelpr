@@ -9,12 +9,17 @@
  * the rentals migrations and fails on one with no line here, and on a line
  * here no migration raises.
  */
+import { IDV_FEE_TEXT } from "../../../supabase/functions/_shared/idvFee";
+
 export const RENTALS_ERROR_COPY: Record<string, string> = {
   feature_disabled: "Rentals isn't open for your account yet.",
   not_authenticated: "Please sign in again to continue.",
   account_restricted: "Your account is restricted, so Rentals is not available right now.",
   under_18: "You must be 18 or older to use Rentals.",
-  identity_not_verified: "Verify your ID first. Every landlord on Louisiana Helpr is ID-verified.",
+  // Owner 2026-10-19: either check counts (Stripe ID, or the ID check inside
+  // payout setup), and the landlord pays the ID check's own cost. The price is
+  // read from ONE place (supabase/functions/_shared/idvFee.ts).
+  identity_not_verified: `Verify your ID first: photo ID + selfie, ${IDV_FEE_TEXT} (you pay the check's cost), or set up payouts. Every landlord on Louisiana Helpr is ID-verified.`,
   too_many_properties: "You've added the most properties one account can have.",
   property_not_found: "That property isn't available.",
   already_approved: "This property's ownership is already approved.",

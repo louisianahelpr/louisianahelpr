@@ -447,6 +447,7 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
  */
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
+  "idv_fee_payments.user_id": { reason: "paid ID check ledger (20261019021418): export pending (OPEN Q2158); service-role-written, the payment itself is on the member's Stripe receipt" },
   // Quotes slice 1 (20261015091114): NOT exported yet, tracked by docs/OPEN.md
   // Q?quotes-export. ready/rentals-s1 also restates export_my_data, so the quotes
   // sections wait for it to land; the 'quotes' switch stays off until they do.

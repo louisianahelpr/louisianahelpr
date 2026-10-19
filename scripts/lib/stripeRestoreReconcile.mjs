@@ -41,6 +41,22 @@
  *     placeholder can never stand in for a missing object.
  *   - declutter_payouts / helpr_task_payouts / shop_payouts.stripe_transfer_id
  *     (CHECK '^tr_'): the payout's transfer.
+ *
+ * Shops refunds (Q2232, before the Shops switch goes past testers, 2026-10-19;
+ * pg_constraint read on prod that day, both tables empty):
+ *   - shop_refunds.stripe_payment_intent_id (CHECK '^pi_', UNIQUE): the order's
+ *     PaymentIntent, copied from shop_orders by shop_refund_* (one refund per
+ *     order, ever). shop_refunds.stripe_refund_id (CHECK '^(re|pyr)_', UNIQUE):
+ *     the refund Stripe made, written by shop_refund_executed (shopRefunds.ts,
+ *     key shop-refund-<id>) or shops_admin_settle_held_refund; cleared by
+ *     shop_refund_reversed when Stripe fails it (a failed refund is not graded).
+ *   - shop_hand_refunds.* (primary key stripe_refund_id, CHECK
+ *     '^(re|pyr)_[A-Za-z0-9]+$' and '^pi_'; no id column, so it pages by its key):
+ *     a refund made by hand in Stripe, recorded by the webhook
+ *     (shop_record_hand_refund) or an admin, and the payment it came from.
+ *   - An admin's hand settlement of a Shops refund or payout is a
+ *     payout_settlements row (row_kind 'shop' / 'shop_refund', 20261019112103),
+ *     already read above; shop_refunds.settled_by_hand_ref repeats that ref.
  * @type {Record<"payment_intent" | "transfer" | "refund", { table: string, column: string, orderBy?: string }[]>}
  */
 export const DB_ID_COLUMNS = {
@@ -54,6 +70,8 @@ export const DB_ID_COLUMNS = {
     { table: "declutter_hand_refunds", column: "stripe_payment_intent_id", orderBy: "stripe_refund_id" },
     { table: "declutter_delivery_refunds", column: "stripe_payment_intent_id" },
     { table: "shop_orders", column: "stripe_payment_intent_id" },
+    { table: "shop_refunds", column: "stripe_payment_intent_id" },
+    { table: "shop_hand_refunds", column: "stripe_payment_intent_id", orderBy: "stripe_refund_id" },
   ],
   transfer: [
     { table: "payout_transfers", column: "stripe_transfer_id" },
@@ -80,6 +98,8 @@ export const DB_ID_COLUMNS = {
     { table: "declutter_refunds", column: "stripe_refund_ref" },
     { table: "declutter_hand_refunds", column: "stripe_refund_id", orderBy: "stripe_refund_id" },
     { table: "declutter_delivery_refunds", column: "stripe_refund_ref" },
+    { table: "shop_refunds", column: "stripe_refund_id" },
+    { table: "shop_hand_refunds", column: "stripe_refund_id", orderBy: "stripe_refund_id" },
     { table: "payout_settlements", column: "stripe_ref" },
   ],
 };
@@ -134,11 +154,7 @@ export const NOT_MATCHED = {
   "shop_orders.stripe_checkout_session_id": "a Checkout Session; its PaymentIntent is shop_orders.stripe_payment_intent_id",
   "declutter_refunds.refund_cents": "an amount, not a Stripe id",
   "declutter_order_jobs.seller_fault_refund_id": "a uuid pointing at our own declutter_refunds row (Add a Helpr A10, 20261017073146), not a Stripe id; the Stripe refund it stands for is declutter_refunds.stripe_refund_ref",
-  "shop_refunds.stripe_payment_intent_id": "Shops M3 (20261019071055; switch at testers): the restore check does not read Shops orders yet; add the order PaymentIntent and refund ids to DB_ID_COLUMNS with shop_payouts before Shops opens to everyone",
-  "shop_refunds.stripe_refund_id": "Shops M3 (20261019071055; switch at testers): the restore check does not read Shops refunds yet; add with the other Shops ids before Shops opens to everyone",
   "shop_refunds.refund_cents": "an amount, not a Stripe id",
-  "shop_hand_refunds.stripe_payment_intent_id": "Shops refunds made by hand in Stripe (M3, 20261019071055; switch at testers): the restore check does not read Shops orders yet; add with the other Shops ids before Shops opens to everyone",
-  "shop_hand_refunds.stripe_refund_id": "Shops refunds made by hand in Stripe (M3, 20261019071055; switch at testers): the restore check does not read Shops refunds yet; add with the other Shops ids before Shops opens to everyone",
   "shop_hand_refunds.shop_refund_id": "our own shop_refunds row id, not a Stripe id",
   "declutter_seller_fee_debts.shop_refund_id": "our own shop_refunds row id, not a Stripe id",
   "declutter_seller_fee_debts.refund_id": "our own declutter_refunds row id, not a Stripe id",

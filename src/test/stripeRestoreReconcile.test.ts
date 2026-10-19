@@ -21,6 +21,10 @@
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     if (!/^(sk\|rk)_test_/.test(key)) throw | if (false) throw
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |   if (md.kind === "platform_topup" \|\| | if (false &&
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |   if (pi?.id && Object.hasOwn(KNOWN_ONE_OFF_PIS, pi.id)) | if (false)
+ * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "shop_refunds", column: "stripe_refund_id" },\n |
+ * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "shop_hand_refunds", column: "stripe_refund_id", orderBy: "stripe_refund_id" },\n |
+ * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "shop_refunds", column: "stripe_payment_intent_id" },\n |
+ * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "shop_hand_refunds", column: "stripe_payment_intent_id", orderBy: "stripe_refund_id" }, |     { table: "shop_hand_refunds", column: "stripe_payment_intent_id" },
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -174,6 +178,49 @@ describe("Declutter and Shops money is in the restore check (Q2230, before the D
     const src = blankComments(readFileSync(resolve(__dirname, "../../scripts/check-stripe-restore-drift.mjs"), "utf8"));
     expect(src).toContain("const { ids, rejected } = collectDbIds(kind, values);");
     expect(src).toContain("&order=${orderBy ?? \"id\"}.asc&");
+  });
+});
+
+describe("Shops refunds are in the restore check (Q2232, before the Shops switch goes past testers)", () => {
+  // shop_refunds: the app's refund of an order (shop-refund-<id>); shop_hand_refunds: one made by hand in Stripe.
+  const rows: Record<string, unknown[]> = {
+    "shop_orders.stripe_payment_intent_id": ["pi_ShopOrderKept"],
+    "shop_refunds.stripe_payment_intent_id": ["pi_ShopOrderKept"],
+    "shop_refunds.stripe_refund_id": ["re_ShopAppKept"],
+    "shop_hand_refunds.stripe_payment_intent_id": ["pi_ShopOrderKept"],
+    "shop_hand_refunds.stripe_refund_id": ["pyr_ShopHandKept"],
+  };
+  const SHOP_COLUMNS = [
+    "shop_refunds.stripe_payment_intent_id", "shop_refunds.stripe_refund_id",
+    "shop_hand_refunds.stripe_payment_intent_id", "shop_hand_refunds.stripe_refund_id",
+  ];
+
+  it("every Shops refund column is matched, none still excluded, and the hand refund table pages by its key", () => {
+    const matched = Object.values(DB_ID_COLUMNS).flat().map((c) => `${c.table}.${c.column}`);
+    for (const c of SHOP_COLUMNS) {
+      expect(matched, c).toContain(c);
+      expect(c in NOT_MATCHED, `${c} is still excluded`).toBe(false);
+    }
+    expect(DB_ID_COLUMNS.refund.map((c) => `${c.table}.${c.column}`)).toEqual(expect.arrayContaining(["shop_refunds.stripe_refund_id", "shop_hand_refunds.stripe_refund_id"]));
+    expect(DB_ID_COLUMNS.payment_intent.map((c) => `${c.table}.${c.column}`)).toEqual(expect.arrayContaining(["shop_refunds.stripe_payment_intent_id", "shop_hand_refunds.stripe_payment_intent_id"]));
+    expect(Object.values(DB_ID_COLUMNS).flat().filter((c) => c.table === "shop_hand_refunds").map((c) => c.orderBy)).toEqual(["stripe_refund_id", "stripe_refund_id"]);
+  });
+
+  it("a Shops refund Stripe made after T with no row is MISSING; the kept app and hand refunds match", () => {
+    const re = collectDbIds("refund", rows);
+    expect(re.rejected).toEqual([]);
+    const refund = (id: string) => ({ id, status: "succeeded", amount: 1875, created: 1790000000, payment_intent: "pi_ShopOrderKept", metadata: { kind: "shop_refund" } });
+    const g = gradeKind("refund", [refund("re_ShopAppKept"), refund("pyr_ShopHandKept"), refund("re_ShopAppLost"), refund("re_ShopHandLost")], re.ids);
+    expect(g.matched).toBe(2);
+    expect(g.missing.map((m) => m.id)).toEqual(["re_ShopAppLost", "re_ShopHandLost"]);
+    expect(g.missing[0].hint).toContain("payment_intent=pi_ShopOrderKept");
+  });
+
+  it("the hand refund table alone still vouches for its refund (no shop_refunds row: a refund made by hand in Stripe)", () => {
+    const re = collectDbIds("refund", { "shop_hand_refunds.stripe_refund_id": ["re_HandOnly"] });
+    const g = gradeKind("refund", [{ id: "re_HandOnly", status: "succeeded", amount: 500, created: 1 }], re.ids);
+    expect(g.missing).toEqual([]);
+    expect(g.matched).toBe(1);
   });
 });
 

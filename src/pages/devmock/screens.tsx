@@ -30,17 +30,17 @@ function JobRows({ jobs, noteTone = "muted" }: { jobs: MockJob[]; noteTone?: "ac
   );
 }
 
-function SampleNote() {
-  return <p className="-mt-3 text-[12px] text-muted-foreground flex items-center gap-1.5"><SampleBadge />Prod has no shops or homes yet — sample rows in the real shapes.</p>;
+function SampleNote({ what = "shops" }: { what?: string }) {
+  return <p className="-mt-2 text-[12px] text-muted-foreground flex items-center gap-1.5"><SampleBadge />Prod has no {what} yet — sample rows, real data shapes.</p>;
 }
 
 /* ================= HOME ================= */
 const needsYou = [
   { icon: Users, text: "2 people applied to your jobs", meta: "Jobs I posted · pick a helpr", tone: "accent" as const },
-  { icon: CheckCircle2, text: "Mark today's cleaning job done", meta: "Jobs I'm working · Baton Rouge", tone: "accent" as const },
+  { icon: CheckCircle2, text: "Mark today's job done", meta: "Jobs I'm working · Baton Rouge", tone: "accent" as const },
   { icon: AlertTriangle, text: "6 disputes need your side", meta: "3 posted · 3 working", tone: "accent" as const },
-  { icon: Wrench, text: "Sink leaking — Oak St, Unit B", meta: "Homes · urgent repair", tone: "accent" as const, sample: true },
-  { icon: Package, text: "2 shop orders to accept", meta: "Shops · first one by 6 PM", tone: "accent" as const, sample: true },
+  { icon: Wrench, text: "Urgent: sink leaking", meta: "Homes · Oak St duplex, Unit B", tone: "accent" as const, sample: true },
+  { icon: Package, text: "2 shop orders to accept", meta: "Shops · first by 6 PM", tone: "accent" as const, sample: true },
 ];
 
 const comingUp = [
@@ -68,17 +68,19 @@ const sections = [
   { key: "jobs", icon: Briefcase, name: "Jobs & Posts", a: ["6", "need you"], b: ["9", "in progress"], c: ["4", "working"] },
   { key: "declutter", icon: Sofa, name: "Declutter", a: ["2", "live"], b: ["2", "in review"], c: ["0", "buying"] },
   { key: "shops", icon: Store, name: "Shops", a: ["2", "to accept"], b: ["$184.50", "next payout"], c: ["1", "my order"], sample: true },
-  { key: "homes", icon: KeyRound, name: "Homes", a: ["1", "urgent repair"], b: ["1 of 3", "rent late"], c: ["Nov 1", "my rent"], sample: true },
+  { key: "homes", icon: KeyRound, name: "Homes", a: ["1", "urgent repair"], b: ["1", "rent late"], c: ["Nov 1", "my rent"], sample: true },
 ];
 
 function SectionTile({ s }: { s: (typeof sections)[number] }) {
   const Icon = s.icon;
   return (
     <Card className="p-4 flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center"><Icon className="w-[18px] h-[18px]" /></span>
-        <p className="text-[15px] font-bold flex-1 truncate">{s.name}</p>
-        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+      <div>
+        <div className="flex items-center justify-between">
+          <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center"><Icon className="w-[18px] h-[18px]" /></span>
+          {s.sample ? <SampleBadge /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+        </div>
+        <p className="text-[15px] font-bold mt-2">{s.name}</p>
       </div>
       <div>
         <p className={`text-[24px] leading-7 font-bold ${s.a[1].includes("need") || s.a[1].includes("accept") || s.a[1].includes("urgent") ? "text-[hsl(var(--accent-ink))]" : ""}`}>{s.a[0]}</p>
@@ -87,7 +89,6 @@ function SectionTile({ s }: { s: (typeof sections)[number] }) {
       <p className="text-[12px] text-muted-foreground border-t border-border/70 pt-2 truncate">
         <span className="font-semibold text-foreground">{s.b[0]}</span> {s.b[1]}
       </p>
-      {s.sample && <div className="-mt-1"><SampleBadge /></div>}
     </Card>
   );
 }
@@ -135,8 +136,8 @@ function PlusChooser() {
   ];
   return (
     <div className="fixed inset-0 z-[60]">
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="absolute right-4 top-14 w-64 liquid-glass py-1.5">
+      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute right-4 top-16 w-64 liquid-glass py-1.5">
         {items.map(([Icon, t, sec], i) => (
           <div key={t} className={`flex items-center gap-3 px-4 py-2.5 ${i < items.length - 1 ? "border-b border-border/70" : ""}`}>
             <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center"><Icon className="w-[18px] h-[18px]" /></span>
@@ -159,7 +160,7 @@ export function HomeB({ open = false }: { open?: boolean }) {
       <Card className="px-4 py-3 flex items-center gap-3">
         <span className="w-10 h-10 rounded-full bg-accent/10 text-[hsl(var(--accent-ink))] flex items-center justify-center"><AlertTriangle className="w-5 h-5" /></span>
         <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-bold">9 things need you</p>
+          <p className="text-[15px] font-bold">5 things need you</p>
           <p className="text-[13px] text-muted-foreground truncate">{unreadMessages} unread messages · next: Sun, Oct 25</p>
         </div>
       </Card>
@@ -169,10 +170,10 @@ export function HomeB({ open = false }: { open?: boolean }) {
       </SectionBlock>
       <SectionBlock icon={Sofa} name="Declutter" stats={[["2", "live"], ["2", "in review"], ["0", "offers"]]} />
       <SectionBlock icon={Store} name="Shops" sample stats={[["2", "to accept", true], ["$184.50", "payout Fri"], ["1", "my order"]]}>
-        <Row icon={Package} tone="accent" title="King cake (large) — accept by 6 PM" meta="Renee B. · $42" last />
+        <Row icon={Package} tone="accent" title="King cake (large)" meta="Accept by 6 PM · Renee B. · $42" last />
       </SectionBlock>
-      <SectionBlock icon={KeyRound} name="Homes" sample stats={[["1", "urgent repair", true], ["1 of 3", "rent late"], ["Nov 1", "my rent"]]}>
-        <Row icon={Wrench} tone="accent" title="Sink leaking — Oak St, Unit B" meta="Reported 2 h ago" last />
+      <SectionBlock icon={KeyRound} name="Homes" sample stats={[["1", "urgent repair", true], ["1", "rent late"], ["Nov 1", "my rent due"]]}>
+        <Row icon={Wrench} tone="accent" title="Sink leaking" meta="Oak St duplex, Unit B · 2 h ago" last />
       </SectionBlock>
     </Frame>
   );
@@ -190,7 +191,7 @@ export function HomeC() {
           </div>
         ))}
       </Card>
-      <SectionHead title="To do" link="See all 9" />
+      <SectionHead title="To do" link="See all 5" />
       <NeedsYouCard limit={3} />
       <SectionHead title="Sections" />
       <Card>
@@ -375,8 +376,8 @@ export function DeclutterA() {
       <div className="grid grid-cols-2 gap-3">
         <PartTile icon={ShoppingBag} name="Buying" big="0" small="orders · 0 offers out" />
         <PartTile icon={Tag} name="Selling" big="4" small="2 live · 2 in review" />
-        <PartTile icon={SearchIcon} name="Wanted" big="0" small="things you're looking for" />
-        <PartTile icon={Truck} name="Deliver" big="0" small="runs to do · earn on the way" />
+        <PartTile icon={SearchIcon} name="Wanted" big="0" small="things you want" />
+        <PartTile icon={Truck} name="Deliver" big="0" small="delivery runs" />
       </div>
       <SectionHead title="Selling" count={4} link="See all" />
       <ListingRows />
@@ -471,8 +472,8 @@ export function HomesA() {
   const t = homesSample.tenant;
   return (
     <Frame dock="homes" title="Homes" plus="Add a property">
-      <SampleNote />
-      <SectionHead title="Repair requests" count={2} link="All" />
+      <SampleNote what="homes" />
+      <SectionHead title="Repairs to handle" count={2} link="All" />
       <Card>
         {l.repairs.map((r, i) => (
           <Row key={r.description} icon={Wrench} tone={r.urgency === "urgent" ? "accent" : "primary"} title={r.description}
@@ -487,7 +488,7 @@ export function HomesA() {
           <Stat n="1" label="late" tone="accent" />
         </div>
       </Card>
-      <SectionHead title="Properties" count={2} link="Add" />
+      <SectionHead title="My properties" count={2} />
       <Card>
         {l.properties.map((p, i) => <Row key={p.label} icon={HomeIcon} tone="primary" title={p.label} meta={`${p.units} unit${p.units > 1 ? "s" : ""} · rent ${p.rent.toLowerCase()}`} last={i === l.properties.length - 1} />)}
       </Card>
@@ -504,7 +505,7 @@ export function HomesB() {
   const t = homesSample.tenant;
   return (
     <Frame dock="homes" title="Homes">
-      <SampleNote />
+      <SampleNote what="homes" />
       <Segmented items={["I own", "I rent"]} active={1} />
       <Card className="p-4">
         <p className="text-[13px] font-bold uppercase tracking-wide text-muted-foreground">My lease</p>

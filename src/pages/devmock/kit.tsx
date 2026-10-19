@@ -16,9 +16,9 @@ const DOCK: { key: DockKey; icon: LucideIcon; label: string; badge?: number }[] 
 /** Two icons only: messages + profile. Search/filters live in each section's Browse; notifications are the Home "Needs you" list. */
 export function TopBar({ unread = 4, title, plus, extra }: { unread?: number; title?: string; plus?: string; extra?: ReactNode }) {
   return (
-    <div className="flex items-center justify-between h-14 px-4">
-      {title ? <h1 className="text-[26px] leading-8 font-bold tracking-tight truncate">{title}</h1> : <HelprMark size="sm" emblemOnly to="#" />}
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between gap-3 h-16 px-4">
+      {title ? <h1 className="text-[24px] leading-8 font-bold tracking-tight truncate min-w-0">{title}</h1> : <HelprMark size="sm" emblemOnly to="#" />}
+      <div className="flex items-center gap-1.5 shrink-0">
         {extra}
         {plus && (
           <button type="button" aria-label={plus} className="w-10 h-10 rounded-full btn-grad-primary text-primary-foreground flex items-center justify-center">
@@ -63,7 +63,7 @@ export function Frame({ dock, children, topBar = true, title, plus, extra, overl
     <div className="min-h-screen bg-background text-foreground font-sans pb-28">
       <div className="mx-auto max-w-lg">
         {topBar && <TopBar title={title} plus={plus} extra={extra} />}
-        <div className="px-4 flex flex-col gap-5">{children}</div>
+        <div className="px-4 pt-1 flex flex-col gap-5">{children}</div>
       </div>
       <Dock active={dock} />
       {overlay}
@@ -126,11 +126,13 @@ export function Row({
       )}
       {dot && <span className={`shrink-0 w-2.5 h-2.5 rounded-full ${categoryColors[dot]?.dot ?? categoryColors.other.dot}`} />}
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 min-w-0">
-          <p className="text-[15px] font-semibold truncate">{title}</p>
-          {tag && <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{tag}</span>}
-        </div>
-        {meta && <p className="text-[13px] text-muted-foreground truncate mt-0.5">{meta}</p>}
+        <p className="text-[15px] font-semibold truncate">{title}</p>
+        {(meta || tag) && (
+          <p className="text-[13px] text-muted-foreground truncate mt-0.5">
+            {tag && <span className={`mr-1.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-px rounded align-[1px] ${tag === "Sample" ? "border border-dashed border-accent/60 text-[hsl(var(--accent-ink))]" : "bg-accent text-accent-foreground"}`}>{tag}</span>}
+            {meta}
+          </p>
+        )}
       </div>
       {right ?? <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
     </div>

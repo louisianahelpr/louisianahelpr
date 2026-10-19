@@ -7,7 +7,6 @@
  * @mutate src/components/rentals/rentalsUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/components/rentals/MaintenanceRequestForm.tsx |   const showEmergencySteps = urgency === "emergency" && !emergencyAcknowledged; |   const showEmergencySteps = false;
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |                 disabled={!reason \|\| decline.isPending} |                 disabled={decline.isPending}
- * @mutate src/components/rentals/RentalsHomeView.tsx |               !adding && !underAge && ( |               !adding && (
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |         {isLandlord && r.status === "approved" && job.booking === "none" && ( |         {isLandlord && r.status === "approved" && !job.jobId && (
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |               onClick={ageGate("post", () => navigate(`/post-job?maintenance=${r.id}`))} |               onClick={() => navigate(`/post-job?maintenance=${r.id}`)}
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |         {isTenant && r.status === "approved" && workStarted && ( |         {isTenant && r.status === "approved" && !!job.jobId && (
@@ -37,6 +36,7 @@
  * @mutate src/components/rentals/listings/RentBrowse.tsx |     const t = setTimeout(() => setCity(place.trim()), SEARCH_SETTLE_MS); |     const t = setTimeout(() => undefined, SEARCH_SETTLE_MS);
  * @mutate src/components/rentals/listings/RentBrowse.tsx |                       setMinBeds(b.value); |                       setMinBeds(null);
  * @mutate src/components/rentals/RentalsHomeView.tsx |                     <Link to="/rentals">Browse homes for rent</Link> |                     <span>Browse homes for rent</span>
+ * @mutate src/components/rentals/RentalsHomeView.tsx |                action={\n                  !underAge && ( |                action={\n                  (
  * @mutate src/components/rentals/RentalsHomeView.tsx |               !adding && !underAge && data.data.properties.length > 0 && ( |               !adding && !underAge && (
  * @mutate src/components/rentals/LandlordIdReview.tsx |           setName(f?.name ?? null); |           setName(null);
  * @mutate src/components/rentals/LandlordIdReview.tsx |         className="sr-only" |         className=""

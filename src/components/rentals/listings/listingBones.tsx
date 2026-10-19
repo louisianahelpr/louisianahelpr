@@ -11,7 +11,7 @@ export const LISTING_GRID = "grid gap-x-4 gap-y-6 sm:grid-cols-2 xl:grid-cols-3"
 export function ListingCardBone() {
   return (
     <div aria-hidden>
-      <Skeleton className="aspect-[16/10] w-full rounded-2xl" />
+      <Skeleton className="aspect-[4/3] w-full rounded-2xl" />
       <div className="space-y-1.5 px-1 pt-2.5">
         <Skeleton className="h-5 w-28" />
         <Skeleton className="h-4 w-3/4" />

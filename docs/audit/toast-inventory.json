@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 891,
-    "files": 221,
-    "rendering": 776,
+    "calls": 892,
+    "files": 222,
+    "rendering": 777,
     "suppressedByPolicy": 115,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 63,
-      "toast.error": 645,
+      "toast.error": 646,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 423,
       "template": 97,
-      "dynamic": 419,
+      "dynamic": 420,
       "jsx": 0
     }
   },
@@ -7217,6 +7217,16 @@
             "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
           }
         ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/listings/RentBrowse.tsx",
+      "line": 144,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Couldn't save that home. Try again.\")"
       },
       "renders": true
     },

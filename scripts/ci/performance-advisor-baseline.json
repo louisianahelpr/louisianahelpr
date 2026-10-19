@@ -155,6 +155,7 @@
     "public.rental_rent_payments.rental_rent_payments_tenancy_idx",
     "public.rental_leases.rental_leases_tenancy_idx",
     "public.rental_leases.rental_leases_landlord_idx",
-    "public.rental_leases.rental_leases_tenant_idx"
+    "public.rental_leases.rental_leases_tenant_idx",
+    "public.saved_homes.saved_homes_listing_idx"
   ]
 }

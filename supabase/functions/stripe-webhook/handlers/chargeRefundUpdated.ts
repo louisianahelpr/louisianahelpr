@@ -46,6 +46,25 @@ export async function handleChargeRefundUpdated(
   // that (declutter_refund_reversed). A Declutter charge is not a job: nothing
   // below applies.
   const meta = (refund.metadata ?? {}) as Record<string, string>;
+  // Shops (M3, 20261019043209): its refunds live in shop_refunds. The row that
+  // recorded this refund is reopened (failed, due now) so declutter-money sends
+  // a new one under a new key (shop_refund_reversed); a Shops charge is not a
+  // job, so nothing below applies.
+  if (meta.kind === "shop_refund" && meta.shop_refund_id) {
+    const { data: reopened, error: sErr } = await supabase.rpc("shop_refund_reversed", {
+      p_refund_id: meta.shop_refund_id, p_stripe_refund_id: refund.id,
+    });
+    if (sErr) throw new Error(`shop_refund_reversed failed for ${refund.status} refund ${refund.id}: ${sErr.message}`);
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error", severity: "warning", oncePerDayKey: `shop-refund-reversed-${refund.id}`,
+      title: `Shops refund ${refund.status}`,
+      message: reopened === true
+        ? "Stripe failed a Shops refund after it was recorded; the row is reopened and declutter-money sends a new one."
+        : "Stripe failed a Shops refund that no row recorded as sent; check the order.",
+      fields: { Refund: refund.id, ShopRefund: meta.shop_refund_id, Order: meta.order_id ?? "?" },
+    });
+    return;
+  }
   if (meta.kind === "declutter_refund" && meta.delivery_refund_id) {
     // Slice 5: a delivery fee refunded on its own (row 40) lives in
     // declutter_delivery_refunds; the same rule, its own row.

@@ -110,6 +110,23 @@ export async function handleChargeRefunded(
     logStep("Declutter refund: recorded and announced by its own path", { chargeId: charge.id });
     return;
   }
+  // Shops (M3, 20261019043209): its refunds are decided, recorded (shop_refunds)
+  // and announced by their own RPCs; a Shops charge is not a job.
+  if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_refund")) {
+    logStep("Shops refund: recorded and announced by its own path", { chargeId: charge.id });
+    return;
+  }
+  // A Shops charge refunded any other way (by hand in the Dashboard) is never
+  // sent down the jobs path: ops records it against the order.
+  if (((charge as { metadata?: Record<string, string> | null }).metadata ?? {})?.kind === "shop_order") {
+    await postSlackOpsAlert({
+      kind: "money_at_risk", severity: "warning", oncePerDayKey: `shop-hand-refund-${charge.id}`,
+      title: "Shops: a charge was refunded outside the app",
+      message: "A Shops order's charge has a refund the app did not make. Record the outcome on the order (admin Shops orders) so the shop is not paid for it.",
+      fields: { Charge: charge.id, Order: String(((charge as { metadata?: Record<string, string> }).metadata ?? {}).order_id ?? "?") },
+    });
+    return;
+  }
   // A refund made by hand (Stripe Dashboard) on a Declutter charge carries no
   // kind: it is recorded against the order, never sent down the jobs path
   // (lh-money-escrow should-fix (b)).

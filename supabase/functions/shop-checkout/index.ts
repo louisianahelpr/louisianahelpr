@@ -19,6 +19,25 @@
  *   cancel  { order_id }  THE BUYER, before the maker answers. The page is
  *           expired or the hold cancelled; nothing is kept (O2).
  *
+ * M3 (migration 20261019043209_shops_refunds_cancels_strikes): each action
+ * below runs its member RPC FIRST. That RPC locks the order row, decides
+ * (the buyer's cancel reads shop_order_free_cancel_until under the lock),
+ * records the outcome and writes the refund row, and COMMITS; only then does
+ * this send the refund to Stripe (_shared/shopRefunds.ts, key
+ * shop-refund-<refund id>). A refund Stripe did not take stays pending and
+ * declutter-money sends it within 10 minutes, so the answer is still 200.
+ *   buyer_cancel { order_id, expect: 'free' | 'late' }  THE BUYER, after the
+ *           accept (O2). free = the price back less Stripe's card fee and its
+ *           tax (J3); late = nothing back, the shop is paid (no Stripe call).
+ *   shop_cancel  { order_id, reason }  THE SHOP (L42): a full refund, the card
+ *           fee billed to the shop, a Shops strike.
+ *   no_show      { order_id }  THE SHOP (O3): a late cancel + a buyer strike
+ *           (no Stripe call: the shop is paid by the payout step).
+ *   admin_refund { order_id, reason, note }  AN ADMIN (M4, L43/L75).
+ * 'order' also carries the cancel terms the buyer read (terms: {cancel_policy,
+ * ready_tap_cancel}); an order frozen under other terms is closed before any
+ * Stripe page opens (409 terms_changed; money review of the M2 ready-tap choice).
+ *
  * Money: the buyer pays the item prices + Declutter's F1 fee (5% + 70c, the
  * card cost inside it; the shop keeps 100% of its prices) + Stripe Tax, all
  * frozen or checked in SQL. M1b part 2 (tax memo Q3): a pickup sale is taxed
@@ -43,6 +62,7 @@ import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { storedStripeCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { captureShopHold, releaseShopHold, shopOrderMode } from "../_shared/shopHolds.ts";
+import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
 import {
   sessionIdMode,
   stripeModeForParties,
@@ -196,6 +216,12 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   if (!Array.isArray(body.lines)) return json({ error: "invalid_order_lines" }, 400);
   const note = typeof body.note === "string" ? body.note : "";
   const native = isNativeRequest(body);
+  // The cancel terms the buyer's screen showed (shops_order_terms): required, so
+  // nobody pays under terms they never saw.
+  const terms = (body.terms ?? null) as { cancel_policy?: unknown; ready_tap_cancel?: unknown } | null;
+  if (!terms || typeof terms.cancel_policy !== "string" || typeof terms.ready_tap_cancel !== "string") {
+    return json({ error: "terms_required" }, 400);
+  }
 
   // The SQL's own gates first, as the buyer (switch, ban, the shop visible to them,
   // not blocked): nothing is sent to Stripe for a caller the order would refuse,
@@ -231,6 +257,22 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   const frozen = data as { order_id?: string; items_cents?: number; premium_cents?: number; superseded_session_id?: string | null } | null;
   if (!frozen?.order_id) return json({ error: TRY_AGAIN }, 500);
   if (frozen.superseded_session_id) await expirePage(frozen.superseded_session_id);
+
+  // The terms the order froze (the shop row was locked while it was written)
+  // must be the ones the buyer read; else the order closes before any page opens.
+  const { data: frozenTerms, error: termsReadErr } = await admin.from("shop_orders")
+    .select("cancel_policy, ready_tap_cancel").eq("id", frozen.order_id).maybeSingle();
+  const ft = frozenTerms as { cancel_policy?: string; ready_tap_cancel?: string } | null;
+  if (termsReadErr || !ft) {
+    console.error(`[shop-checkout] order ${frozen.order_id} terms read failed: ${termsReadErr?.message ?? "no row"}`);
+    await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  if (ft.cancel_policy !== terms.cancel_policy || ft.ready_tap_cancel !== terms.ready_tap_cancel) {
+    const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });
+    if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after terms changed: ${closeErr.message}`);
+    return json({ error: "terms_changed", terms: { cancel_policy: ft.cancel_policy, ready_tap_cancel: ft.ready_tap_cancel } }, 409);
+  }
 
   const o = await readOrder(admin, frozen.order_id);
   if (!o || o.status !== "awaiting_hold" || !o.seller_id) return json({ error: TRY_AGAIN }, 500);
@@ -383,6 +425,74 @@ async function cancel(body: Record<string, unknown>, asBuyer: Db, admin: Db) {
   return json({ cancelled: true });
 }
 
+/**
+ * After a member RPC committed a refund row: send it now. A failure here is not
+ * the member's: the row is pending and declutter-money sends it within 10 minutes.
+ */
+async function sendRefundNow(admin: Db, orderId: string, refundId: unknown): Promise<"sent" | "pending" | null> {
+  if (typeof refundId !== "string" || !UUID_RE.test(refundId)) return null;
+  try {
+    const { data, error } = await admin.rpc("shop_refund_to_send", { p_refund_id: refundId });
+    if (error) throw new Error(`shop_refund_to_send failed: ${error.message}`);
+    const row = ((data ?? []) as ShopRefundRow[])[0];
+    if (!row) return "sent";
+    const o = await readOrder(admin, orderId);
+    if (!o) throw new Error("order vanished");
+    const outcome = await sendShopRefund(await stripeForOrder(admin, o), admin, row);
+    return outcome === "failed" ? "pending" : "sent";
+  } catch (e) {
+    console.error(JSON.stringify({ event: "shop_refund_deferred", order: orderId, refund: refundId, detail: caughtMessage(e, "send failed").slice(0, 200) }));
+    return "pending";
+  }
+}
+
+type DecidedRow = { result?: string; refund_id?: string | null; refund_cents?: number } | null;
+
+async function buyerCancel(body: Record<string, unknown>, asBuyer: Db, admin: Db) {
+  const orderId = typeof body.order_id === "string" ? body.order_id : "";
+  if (!UUID_RE.test(orderId)) return json({ error: "order_not_found" }, 404);
+  const expect = body.expect === "free" || body.expect === "late" ? body.expect : null;
+  if (!expect) return json({ error: "invalid_expect" }, 400);
+  const { data, error } = await asBuyer.rpc("shops_buyer_cancel_order", { p_order_id: orderId, p_expect: expect });
+  if (error) return rpcRefusal(error);
+  const d = data as DecidedRow;
+  const refund = await sendRefundNow(admin, orderId, d?.refund_id);
+  return json({ cancelled: true, result: d?.result ?? null, refund_cents: d?.refund_cents ?? 0, refund });
+}
+
+async function shopCancel(body: Record<string, unknown>, asShop: Db, admin: Db) {
+  const orderId = typeof body.order_id === "string" ? body.order_id : "";
+  if (!UUID_RE.test(orderId)) return json({ error: "order_not_found" }, 404);
+  const reason = typeof body.reason === "string" ? body.reason : null;
+  const { data, error } = await asShop.rpc("shops_shop_cancel_order", { p_order_id: orderId, p_reason: reason });
+  if (error) return rpcRefusal(error);
+  const d = data as DecidedRow;
+  const refund = await sendRefundNow(admin, orderId, d?.refund_id);
+  return json({ cancelled: true, result: d?.result ?? null, refund_cents: d?.refund_cents ?? 0, refund });
+}
+
+async function noShow(body: Record<string, unknown>, asShop: Db) {
+  const orderId = typeof body.order_id === "string" ? body.order_id : "";
+  if (!UUID_RE.test(orderId)) return json({ error: "order_not_found" }, 404);
+  const { error } = await asShop.rpc("shops_report_no_show", { p_order_id: orderId });
+  if (error) return rpcRefusal(error);
+  // No refund: the shop is paid by declutter-money's payout step.
+  return json({ no_show: true });
+}
+
+async function adminRefund(body: Record<string, unknown>, asAdmin: Db, admin: Db) {
+  const orderId = typeof body.order_id === "string" ? body.order_id : "";
+  if (!UUID_RE.test(orderId)) return json({ error: "order_not_found" }, 404);
+  const reason = typeof body.reason === "string" ? body.reason : "";
+  const note = typeof body.note === "string" ? body.note : "";
+  // has_role(admin) is checked inside the RPC, as the caller.
+  const { data, error } = await asAdmin.rpc("shops_admin_refund_order", { p_order_id: orderId, p_reason: reason, p_note: note });
+  if (error) return rpcRefusal(error);
+  const d = data as DecidedRow;
+  const refund = await sendRefundNow(admin, orderId, d?.refund_id);
+  return json({ refunded: true, refund_cents: d?.refund_cents ?? 0, refund });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -411,6 +521,10 @@ serve(async (req) => {
     if (body.action === "accept") return await accept(body, asMember, admin);
     if (body.action === "decline") return await decline(body, asMember, admin);
     if (body.action === "cancel") return await cancel(body, asMember, admin);
+    if (body.action === "buyer_cancel") return await buyerCancel(body, asMember, admin);
+    if (body.action === "shop_cancel") return await shopCancel(body, asMember, admin);
+    if (body.action === "no_show") return await noShow(body, asMember);
+    if (body.action === "admin_refund") return await adminRefund(body, asMember, admin);
     return json({ error: "invalid_action" }, 400);
   } catch (error) {
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);

@@ -29,6 +29,7 @@ import { partitionBrowseFeed } from "@/pages/home/browseFeedSections";
 import { BrowseMap } from "@/components/dashboard/lazyBrowseMap";
 import { CompactFeedCard, type CompactCardCommonProps, type JobCardCommonProps } from "@/components/dashboard/feedCards";
 import { MainFeedSection } from "@/components/dashboard/MainFeedSection";
+import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { EmptyFeedActions } from "@/components/dashboard/EmptyFeedActions";
 
 type PullToRefresh = ReturnType<typeof usePullToRefresh>;
@@ -548,6 +549,22 @@ export function BrowseTasksFeed({
                 setHoveredJobId={setHoveredJobId}
               />
             )}
+            {/* The end of the list, short lists included (owner, 2026-10-19). */}
+            {!showFullSkeleton && !hasNextPage && combinedVisible.length > 0 && (() => {
+              const nearby = filters.nearbyMiles !== null && filters.locationFilter.startsWith("nearby:");
+              const miles = filters.nearbyMiles ?? 0;
+              // The next round rung, then "any distance" (clears the radius).
+              const next = miles < 5 ? 10 : miles < 10 ? 25 : miles < 25 ? 50 : null;
+              return (
+                <div className="px-1 lg:px-4">
+                  <BrowseEndCard
+                    onWiden={nearby ? () => filters.setLocationFilter(next ? `nearby:${next}` : "") : undefined}
+                    widenLabel={next ? `Widen to ${next} mi` : "Any distance"}
+                    onAlerts={() => void notifyWhenWorkLands()}
+                  />
+                </div>
+              );
+            })()}
             {/* Infinite scroll sentinel + manual fallback */}
             {hasNextPage && (
               <div ref={loadMoreRef} className="px-4 py-4 flex justify-center">

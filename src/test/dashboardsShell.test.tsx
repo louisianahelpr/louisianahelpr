@@ -15,7 +15,10 @@
  * The @mutate lines break each sentence; this file must go red.
  *
  * @mutate src/App.tsx | <ProtectedRoute fallback={<DashboardRouteSkeleton />}><HomeDashboard /></ProtectedRoute> | <ProtectedRoute fallback={<DashboardRouteSkeleton />}><Dashboard /></ProtectedRoute>
- * @mutate src/pages/home/homeDashboard/useTodoOpen.ts |     return window.sessionStorage.getItem(KEY) === "1"; |     return true;
+ * @mutate src/pages/home/HomeDashboard.tsx |   const [todoOpen, setTodoOpen] = useState(false); |   const [todoOpen, setTodoOpen] = useState(true);
+ * @mutate src/pages/home/HomeDashboard.tsx | useState(false);\n  const toggleTodo = () => setTodoOpen((o) => !o); | useState(() => sessionStorage.getItem("t") === "1");\n  const toggleTodo = () => setTodoOpen((o) => { sessionStorage.setItem("t", o ? "0" : "1"); return !o; });
+ * @mutate src/pages/home/HomeDashboard.tsx |   useOnTabReselect("/home", () => setTodoOpen(false)); |   useOnTabReselect("/home", () => undefined);
+ * @mutate src/pages/home/HomeDashboard.tsx |         {todoOpen && ( |         {todoCount > 0 && !todoOpen && <button type="button" onClick={toggleTodo} aria-expanded={false}>To do ({todoCount})</button>}\n        {todoOpen && (
  * @mutate src/components/mobileNav/dockItems.ts |   return [home, ...sections, { path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" }]; |   return [home, ...sections];
  * @mutate src/components/mobileNav/dockItems.ts |   const sections: DockItem[] = visible.map((s) => { |   const sections: DockItem[] = [...visible].reverse().map((s) => {
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
@@ -74,6 +77,7 @@ vi.mock("@/lib/rentals/api", () => ({ fetchMyProperties: async () => [] }));
 
 import MobileNav from "@/components/MobileNav";
 import HomeDashboard from "@/pages/home/HomeDashboard";
+import { announceTabReselect } from "@/components/mobileNav/tabReselect";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
@@ -174,6 +178,35 @@ describe("Home", () => {
     expect(screen.getByTestId("todo-list")).toBeTruthy();
     expect(box.getAttribute("aria-expanded")).toBe("true");
     fireEvent.click(box);
+    expect(screen.queryByTestId("todo-list")).toBeNull();
+  });
+
+  // Owner, 2026-10-19 ("only show To do expanded when it's clicked"): the To do
+  // STAT BOX is the only control for the list (the separate "To do (n)" bar
+  // duplicated it), and nothing remembers the open state.
+  it("the To do box is the ONLY control for the list: no second collapsed bar", () => {
+    wrap(<HomeDashboard />);
+    const controls = [...document.querySelectorAll("[aria-expanded]")];
+    expect(controls.map((e) => e.getAttribute("data-stat"))).toEqual(["todo"]);
+    expect(screen.queryByTestId("todo-collapsed")).toBeNull();
+    expect(screen.queryByText(/^To do \(\d+\)$/)).toBeNull();
+  });
+
+  it("arrives collapsed after a remount even when it was open before (never remembered)", () => {
+    const first = wrap(<HomeDashboard />);
+    fireEvent.click(document.querySelector('[data-stat="todo"]') as HTMLElement);
+    expect(screen.getByTestId("todo-list")).toBeTruthy();
+    first.unmount();
+    wrap(<HomeDashboard />);
+    expect(screen.queryByTestId("todo-list")).toBeNull();
+    expect(document.querySelector('[data-stat="todo"]')!.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("a re-tap of the Home tab folds the open list back up", () => {
+    wrap(<HomeDashboard />);
+    fireEvent.click(document.querySelector('[data-stat="todo"]') as HTMLElement);
+    expect(screen.getByTestId("todo-list")).toBeTruthy();
+    act(() => announceTabReselect("/home"));
     expect(screen.queryByTestId("todo-list")).toBeNull();
   });
 

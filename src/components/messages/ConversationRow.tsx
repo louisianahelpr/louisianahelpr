@@ -362,7 +362,14 @@ const ConversationRowBase = ({
                 one line exactly as before. It wraps at 320 (where it was already
                 cutting the name at the default scale) and at both widths in
                 Senior Mode. */}
-            <div className="flex flex-wrap items-center gap-x-1.5">
+            {/* LINE 1 = name (+ status chip) on the left, pin + time pinned to
+                the TOP-RIGHT corner (owner, 2026-10-19: an IN PROGRESS chip used
+                to push the pin and "30m" down to a second line, unlike every
+                other row). Only the LEFT group wraps: when name + chip do not
+                fit, the chip drops under the name and the time stays on line 1.
+                Guard: src/test/messagesRowTimeStaysTopRight.test.tsx. */}
+            <div className="flex items-start gap-x-1.5" data-testid="row-line-1">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 flex-1">
               {/* The name carries weight too. It is the first thing the eye
                   lands on, and it used to be 600 whether or not the thread had
                   anything in it — so the one cue that DID move (the preview)
@@ -397,12 +404,13 @@ const ConversationRowBase = ({
                   {statusChip.label}
                 </span>
               )}
+            </div>
               {/* Right cluster: the relative timestamp in the row's TOP-RIGHT
                   corner, on the name line (as iOS Messages), still inside the
                   open-thread button. The unread dot used to sit here and was
                   read as punctuation (UNREAD_MARK); it lives on the avatar now,
                   and only the Pinned chip (Q1090) shares this corner. */}
-              <span className="ml-auto shrink-0 flex items-center gap-1.5">
+              <span data-testid="row-time-cluster" className="ml-auto shrink-0 flex items-center gap-1.5 min-h-[1.36rem]">
                 {pinned && !selectMode && <PinnedChip />}
                 <span
                   className="text-ds-11 whitespace-nowrap"

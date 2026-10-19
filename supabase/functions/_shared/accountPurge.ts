@@ -398,9 +398,17 @@ export async function findActiveWork(
   return { ok: true, active: false };
 }
 
-/** An absent table (migration not live yet) owes nothing; any other read error fails closed. */
+/**
+ * An absent TABLE (migration not live yet) owes nothing; any other read error
+ * fails closed. Matched on the error CODE only: a message test for "does not
+ * exist" also matched a missing column or function (42703 / 42883), which
+ * read as "owes nothing" and let the account be deleted (lh-silent-failure
+ * review). Logged whenever it fires.
+ */
 function isMissingTable(e: { code?: string | null; message?: string | null }): boolean {
-  return /does not exist|42P01|PGRST205/i.test(`${e.code ?? ""} ${e.message ?? ""}`);
+  const missing = e.code === "42P01" || e.code === "PGRST205";
+  if (missing) console.warn(`[accountPurge] fee-debt table not deployed yet (${e.code}): treated as no debt`);
+  return missing;
 }
 
 /**

@@ -10,6 +10,7 @@
  * @mutate supabase/functions/_shared/accountPurge.ts |   if (!feeDebt.ok \|\| feeDebt.active) return feeDebt; |   void feeDebt;
  * @mutate supabase/functions/_shared/accountPurge.ts | r.card_fee_cents === null \|\| (r.card_fee_remaining_cents ?? 0) > 0 | (r.card_fee_remaining_cents ?? 0) > 0
  * @mutate supabase/functions/_shared/accountPurge.ts |   if (declutter.error && !isMissingTable(declutter.error)) { |   if (false) {
+ * @mutate supabase/functions/_shared/accountPurge.ts |  const missing = e.code === "42P01" \|\| e.code === "PGRST205"; |  const missing = /does not exist\|42P01\|PGRST205/i.test(`${e.code ?? ""} ${e.message ?? ""}`);
  * @mutate supabase/functions/_shared/accountPurge.ts |     + owedDebts.reduce((n, d) => n + d.remaining_cents, 0); | ;
  * @mutate supabase/functions/delete-own-account/index.ts |             ? feeDebtBlocksDeletionMessage(active.owedCents ?? 0) |             ? feeDebtBlocksDeletionMessage(0)
  */
@@ -90,6 +91,13 @@ describe("a card fee still owed blocks deleting the account (never absorb a fee)
       const r = await del();
       expect(r.status, table).toBe(500);
       expect(r.body.error, table).toContain("Couldn't verify account state");
+      // A missing COLUMN (or function) "does not exist" too, but it is not
+      // an absent table: it must refuse, never read as "owes nothing".
+      resetSupabaseMock();
+      scenario.authUser = USER;
+      scenario.reads[table] = { error: { code: "42703", message: `column "remaining_cents" does not exist` } };
+      const col = await del();
+      expect(col.status, `${table} missing column`).toBe(500);
     }
     resetSupabaseMock();
     scenario.authUser = USER;

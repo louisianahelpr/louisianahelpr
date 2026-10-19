@@ -122,6 +122,24 @@ function UnitListingLink({ unitId, approved, listing }: { unitId: string; approv
   );
 }
 
+/**
+ * Homes -> Buy (20261019061241): the property's own for-sale listing. Only an
+ * approved owner sees it (the server refuses anyone else too).
+ */
+function SaleListingLink({ propertyId, approved, listing }: { propertyId: string; approved: boolean; listing: RentalListing | undefined }) {
+  if (!approved) return null;
+  return listing ? (
+    <Link to={`/rentals/listings/${listing.id}/edit`} className="flex justify-between gap-2 text-sm">
+      <span className="text-muted-foreground">For sale: {listingStatusLabel(listing.status, listing.expires_at)}</span>
+      <span className="font-semibold">Edit</span>
+    </Link>
+  ) : (
+    <Link to={`/rentals/listings/new?sell=${propertyId}`} className="block text-sm font-semibold">
+      Sell this home
+    </Link>
+  );
+}
+
 function PropertyCard({
   p,
   units,
@@ -188,6 +206,11 @@ function PropertyCard({
       </div>
       {/* The ID rides with this property's proof; with no proof to send, the ID form stands alone above. */}
       <SendForReview uid={uid} propertyId={p.id} needsId={needsProof && idPhotoNeeded(identity)} needsProof={needsProof} onSent={onChange} />
+      <SaleListingLink
+        propertyId={p.id}
+        approved={approved}
+        listing={listings.find((l) => l.kind === "sale" && l.property_id === p.id && l.status !== "sold")}
+      />
       <div className="space-y-2">
         <p className="text-sm font-medium">Units</p>
         {units.length === 0 && <p className="text-xs text-muted-foreground">No units yet. A house can be one unit called "Main".</p>}
@@ -199,7 +222,7 @@ function PropertyCard({
                 Invite tenant
               </Button>
             </div>
-            <UnitListingLink unitId={u.id} approved={approved} listing={listings.find((l) => l.unit_id === u.id && l.status !== "leased")} />
+            <UnitListingLink unitId={u.id} approved={approved} listing={listings.find((l) => l.kind === "rent" && l.unit_id === u.id && l.status !== "leased")} />
             {tenancies.filter((t) => t.unit_id === u.id).map((t) => (
               <div key={t.id} className="flex items-center justify-between gap-2 pl-3 text-xs">
                 <span className="text-muted-foreground">

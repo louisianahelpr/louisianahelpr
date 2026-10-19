@@ -54,6 +54,7 @@ const LISTING_STATUS_LABEL: Record<string, string> = {
   live: "Showing",
   paused: "Paused, not showing",
   leased: "Rented",
+  sold: "Sold",
   removed: "Removed",
 };
 
@@ -71,6 +72,18 @@ export function rentLine(cents: number, frequency: string): string {
   const dollars = (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: cents % 100 === 0 ? 0 : 2 });
   return `${dollars} / ${RENT_FREQUENCY_LABEL[frequency] ?? frequency}`;
 }
+
+/** A sale price, whole dollars: "$245,000". */
+export function priceLine(cents: number): string {
+  return (Number(cents) / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+}
+
+/**
+ * Homes -> Buy, said on every for-sale page (owner 2026-10-18): the owner
+ * lists it, nobody takes a commission, and a title company or attorney
+ * handles the closing. Never words about offers or negotiating.
+ */
+export const SALE_HOW_IT_WORKS = "Listed by its verified owner. No commission. A title company or attorney handles the closing.";
 
 export function bedsBathsLine(beds: number, baths: number): string {
   const b = Number(beds);

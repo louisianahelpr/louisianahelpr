@@ -143,7 +143,10 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
     const writers = (re: RegExp) => [...DEFS.entries()].filter(([, d]) => re.test(blankSqlComments(d.stmt))).map(([n]) => n).sort();
     expect(writers(/UPDATE\s+public\.shop_orders\b[^;]*?\bSET\s+status\s*=\s*'handed_over'/i)).toEqual(["shop_complete_handover"]);
     expect(writers(/(UPDATE\s+public\.shop_handovers\b[^;]*?\bconfirmed_at\s*=|INSERT\s+INTO\s+public\.shop_handovers\s*\([^)]*\bconfirmed_at\b)/i)).toEqual(["shop_complete_handover"]);
-    expect(writers(/INSERT\s+INTO\s+public\.shop_payouts\b/i)).toEqual(["shop_complete_handover"]);
+    // The shop is also owed on a late cancel or a no-show (Shops M3, 20261019043209: shop_owe_shop),
+    // reached ONLY from the buyer's late cancel and the shop's no-show report, never a handover.
+    expect(writers(/INSERT\s+INTO\s+public\.shop_payouts\b/i)).toEqual(["shop_complete_handover", "shop_owe_shop"]);
+    expect(writers(/\bshop_owe_shop\s*\(/i).filter((n) => n !== "shop_owe_shop")).toEqual(["shops_buyer_cancel_order", "shops_report_no_show"]);
     expect(MIG).toMatch(/DROP\s+FUNCTION\s+IF\s+EXISTS\s+public\.shops_mark_picked_up\(uuid\)/i);
     // "I got it" acts only for the order's BUYER, and the clock passes 'auto'.
     const got = body("shops_confirm_pickup");

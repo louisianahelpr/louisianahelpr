@@ -45,6 +45,7 @@ import { OfferPanel } from "./DeclutterOfferPanel";
 import PriceHint from "./DeclutterPriceHint";
 import { DeclutterGallery } from "./DeclutterGallery";
 import { DeclutterSellerCard } from "./DeclutterSellerCard";
+import { DeclutterItemRows } from "./DeclutterItemRows";
 import { shareNative } from "@/lib/nativeShare";
 import { getPublicOrigin } from "@/lib/authRedirects";
 
@@ -193,8 +194,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
         </>
       }
     >
-      {/* Room under the last row for the phone's buy bar (OfferPanel). */}
-      <div className={`lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8 ${canAct ? "pb-24 sm:pb-0" : ""}`}>
+      <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8">
         <div className="lg:sticky lg:top-0">
           <DeclutterGallery urls={urls} category={it.category} title={it.title} />
         </div>
@@ -290,6 +290,13 @@ export default function ItemView({ itemId }: { itemId: string }) {
           </section>
         </div>
       </div>
+      {!isSeller && (
+        <div className="mt-8">
+          <DeclutterItemRows item={it} viewerId={user?.id ?? null} from={geo.status === "ready" ? { lat: geo.lat, lng: geo.lng, approximate: geo.approximate } : null} />
+        </div>
+      )}
+      {/* Room under the last row for the phone's buy bar (OfferPanel). */}
+      {canAct && <div className="h-20 sm:hidden" aria-hidden />}
     </AppPage>
   );
 }

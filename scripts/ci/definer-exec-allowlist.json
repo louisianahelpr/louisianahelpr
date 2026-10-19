@@ -325,7 +325,8 @@
     "rentals_admin_listings(text, integer, integer)": "client",
     "rentals_admin_takedown_matches(uuid[])": "client",
     "rentals_my_listing_photos(uuid)": "client",
-    "rentals_listing_photo_access(text, text)": "policy"
+    "rentals_listing_photo_access(text, text)": "policy",
+    "rentals_listing_photo_attached(text)": "policy"
   },
   "unscoped": {
     "choose_new_social_account(uuid)": "reviewed 2026-10-05 (Q446): the signed-out choice screen marks the pending one-account choice whose random id only the refused sign-in received; it reads and returns nothing about any person, and marking a row only lets that same Apple/Google identity create its account.",

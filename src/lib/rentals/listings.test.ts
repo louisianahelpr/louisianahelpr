@@ -13,6 +13,7 @@ vi.mock("@/integrations/supabase/client", () => {
     const c: Record<string, unknown> = {};
     for (const k of ["select", "eq", "neq", "or"]) c[k] = () => c;
     c.order = async () => ({ data: state.tableError ? null : [], error: state.tableError });
+    c.neq = () => c;
     return c;
   };
   return {

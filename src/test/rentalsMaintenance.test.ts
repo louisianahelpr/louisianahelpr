@@ -104,7 +104,7 @@ const SHARED_RESTATED = ["is_submitted_credential_object"];
 const POLICY_HELPERS = ["rentals_caller_is_active_tenant_of"];
 /** Never switch-gated by design (20261019062540): the public link (anyone with it, signed out too; it checks the
  *  switch audience itself) and the admin take-down (moderation works whatever the audience). */
-const UNGATED = ["rentals_public_listing", "rentals_admin_remove_listing"];
+const UNGATED = ["rentals_public_listing", "rentals_admin_remove_listing", "rentals_admin_lift_takedown"];
 const INTERNAL = ["rentals_assert_member", "rentals_notify", "rentals_end_tenancy_on_tenant_delete"];
 const TABLES = ["rental_properties", "rental_units", "rental_tenancies", "maintenance_requests", "maintenance_request_photos"];
 
@@ -262,7 +262,11 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
     expect(granted).not.toContain("ownership_reviewed_by");
     expect(granted).toEqual(expect.arrayContaining(["owner_id", "ownership_status", "ownership_review_note", "ownership_reviewed_at"]));
     // The client names exactly those columns (select("*") would be refused, and the payload carries no reviewer id).
-    expect(RENTAL_PROPERTY_COLUMNS.split(",").map((c) => c.trim())).toEqual(granted);
+    // Later migrations may grant more columns (the take-down banner, 20261019062540), never the reviewer.
+    const later = [...ALL_MIG.slice(MIG.length).matchAll(/GRANT\s+SELECT\s*\(([^)]*)\)\s*ON\s+(?:TABLE\s+)?public\.rental_properties\s+TO\s+([^;]+);/gi)]
+      .flatMap((g) => g[1].split(",").map((c) => c.trim()));
+    expect(later).not.toContain("ownership_reviewed_by");
+    expect(RENTAL_PROPERTY_COLUMNS.split(",").map((c) => c.trim())).toEqual([...granted, ...later]);
     const api = readFileSync(join(ROOT, "src/lib/rentals/api.ts"), "utf8");
     expect(api).not.toMatch(/from\("rental_properties"\)\.select\("\*"\)/);
     // The owner's notice: sent as staff (no actor in the link), the seed boundary judged with the actor instead.

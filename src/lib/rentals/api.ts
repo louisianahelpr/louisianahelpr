@@ -23,7 +23,7 @@ type Tables = Database["public"]["Tables"];
  * would be refused. Pinned against the GRANT by src/test/rentalsMaintenance.test.ts.
  */
 export const RENTAL_PROPERTY_COLUMNS =
-  "id, owner_id, label, street_address, city, zip_code, ownership_status, ownership_proof_path, ownership_submitted_at, ownership_reviewed_at, ownership_review_note, auto_approve_limit_cents, created_at, updated_at";
+  "id, owner_id, label, street_address, city, zip_code, ownership_status, ownership_proof_path, ownership_submitted_at, ownership_reviewed_at, ownership_review_note, auto_approve_limit_cents, created_at, updated_at, listings_taken_down_at, listings_taken_down_reason";
 export type RentalProperty = Omit<Tables["rental_properties"]["Row"], "ownership_reviewed_by">;
 export type RentalUnit = Tables["rental_units"]["Row"];
 export type MaintenanceRequest = Tables["maintenance_requests"]["Row"];

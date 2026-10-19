@@ -14,9 +14,9 @@
  * @mutate src/components/rentals/LeasePanel.tsx |   const signedNow = signing !== null ? r.signed.find((l) => l.id === signing.id) ?? null : null; |   const signedNow = null as SignedLease \| null;
  * @mutate src/components/rentals/LeasePanel.tsx |   const sections = verified.data?.ok ? verified.data.sections : null; |   const sections = verified.data && "sections" in verified.data ? verified.data.sections : leaseSections(lease.template_version, lease.fields);
  * @mutate src/components/rentals/LeasePanel.tsx |       open.sent_at !== signing.sent_at \|\| |       false \|\|
- * @mutate src/components/rentals/LeasePanel.tsx |     if (v.reason === "unknown_version") { |     if (false) {
+ * @mutate src/components/rentals/LeaseSigned.tsx |     if (v.reason === "unknown_version") { |     if (false) {
  * @mutate src/components/rentals/LeasePanel.tsx |       // Any refusal refetches the lease: if it moved, signed or went, the sheet's notice takes over (round 3 M2).\n      refresh(); |       // no refetch
- * @mutate src/components/rentals/LeasePanel.tsx |       {v.data && !v.data.ok && ( |       {false && (
+ * @mutate src/components/rentals/LeaseSigned.tsx |       {v.data && !v.data.ok && ( |       {false && (
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";

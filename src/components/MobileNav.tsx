@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useReducedMotion } from "@/lib/accessibility";
 import {
-  Plus,
   type LucideIcon,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -29,11 +28,12 @@ import {
   noNavPages,
   tabStacks,
 } from "@/components/mobileNav/mobileNavHelpers";
+import { useSectionTabs, comingSoonLabel, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
+import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
+import { dockItems } from "@/components/mobileNav/dockItems";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
-import { useAgeGate } from "@/hooks/useAgeGate";
-import { POST_FAB_STYLE } from "@/components/mobileNav/postFabStyle";
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
@@ -65,7 +65,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const maybeSignedIn = useStoredSessionHint();
   const isGuest = isLoading ? !maybeSignedIn : !user;
   // Q1586(c): a saved birthday under 18 greys the Post button out; a tap says why.
-  const { underAge, explain: explainAgeGate, gatedProps: ageGatedProps } = useAgeGate();
   // Messages badge unread count (durable-cache seeded), its live query +
   // realtime channel + archive listener, the native app-icon badge mirror,
   // and the best-effort mark-all-read action — all owned by this hook.
@@ -74,6 +73,14 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // badges (new applicants on your posts; pending direct offers to you).
   // Count-only queries — deliberately not the heavy useActivityData hook.
   const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
+  // The section tabs (owner, 2026-10-18, option 1A). A signed-in member's
+  // dock is Home, the shown sections, then Messages (owner, 2026-10-19);
+  // Profile is the avatar in every top bar (AppTopBar). A section whose switch is
+  // off for them is GREYED and says "coming soon" instead of navigating
+  // (owner, 2026-10-18). Guests keep the five-tab dock, which locks for them.
+  const sectionTabs = useSectionTabs();
+  const { visible: visibleSections } = useSectionPrefs();
+  const sectionDock = !isGuest;
   // Signed-out visitors get no bottom dock (below), so nothing should reserve
   // space for one. This class zeroes `--bottom-nav-h`, which feeds Tailwind's
   // `safe-nav` token — collapsing the ~112px strip on all 22 `pb-safe-nav`
@@ -113,7 +120,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // pages), so nobody prefetches tabs they can't reach.
   //
   // `/post-job` is in the list even though it is not a tab: it is reached from
-  // the centre FAB, so it was the one authed destination this never warmed,
+  // the Jobs top bar's "+", so it was the one authed destination this never warmed,
   // and its chunk load sat in front of the entry screen's own query.
   useEffect(() => {
     if (dockHidden) return;
@@ -396,7 +403,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     setGateOpen(true);
   };
 
-  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "posts" | "jobs" }) => {
+  const renderItem = ({ path, icon: Icon, label, badgeKey, comingSoon }: { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "posts" | "jobs" | "jobsAndPosts"; comingSoon?: boolean }) => {
+    // A switched-off section: shown, muted, aria-disabled, never navigates.
+    const soon = !!comingSoon && !isGuest;
     // Guest-mode tab remap: Home -> /browse (the read-only home dashboard
     // that mirrors the real /home), Profile -> /login. Other tabs stay
     // visually present but show a lock + open the signup sheet.
@@ -422,6 +431,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       ? 0
       : badgeKey === "messages"
         ? unreadCount
+        : badgeKey === "jobsAndPosts"
+          ? postsCount + jobsCount
         : badgeKey === "posts"
           ? postsCount
           : badgeKey === "jobs"
@@ -430,6 +441,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     const showBadge = badgeCount > 0;
 
     const handleClick = () => {
+      if (soon) {
+        sayComingSoon(label);
+        return;
+      }
       // Swallow the trailing click a completed long-press's touchend
       // produces — see the comment on `justLongPressedRef` above.
       if ((path === "/posts" || path === "/messages") && justLongPressedRef.current) {
@@ -466,7 +481,13 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       }
     };
 
-    const isActive = active || inStack;
+    // A section tab is lit anywhere inside its section; the one Jobs & Posts
+    // tab is lit on both lists.
+    const isActive =
+      !soon && (active ||
+      inStack ||
+      (sectionDock && sectionTabs.some((t) => t.path === path) && location.pathname.startsWith(`${path}/`)) ||
+      (badgeKey === "jobsAndPosts" && location.pathname === "/posts"));
     // Long-press quick menus only wire up for Posts and Messages, and only
     // for a real signed-in account — guests never navigate has-status
     // filters or conversations. handleClick above already double-checks
@@ -482,10 +503,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       <TabButton
         key={path}
         onTap={handleClick}
-        onPrefetch={() => !locked && prefetchRoute(effectivePath)}
-        ariaLabel={locked ? `${label} — locked until your account is approved` : label}
+        onPrefetch={() => !locked && !soon && prefetchRoute(effectivePath)}
+        ariaLabel={soon ? comingSoonLabel(label) : locked ? `${label} — locked until your account is approved` : label}
         ariaCurrent={isActive ? "page" : undefined}
-        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""}`}
+        ariaDisabled={soon}
+        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""} ${soon ? "opacity-40" : ""}`}
         style={{ color: isActive ? "hsl(var(--bark))" : "hsl(48 9% 47%)" }}
         longPress={longPress}
       >
@@ -593,7 +615,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             className="absolute bottom-0.5 w-6 h-[3px] rounded-full pointer-events-none"
             style={{
               background: "hsl(var(--burnt-sienna))",
-              boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.45)",
             }}
             transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
           />
@@ -645,17 +666,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     );
   };
 
-  const handlePostClick = () => {
-    if (isGuest) {
-      triggerGate();
-      return;
-    }
-    if (underAge) {
-      explainAgeGate("post");
-      return;
-    }
-    navigate("/post-job");
-  };
 
   return (
     <>
@@ -730,7 +740,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 container padding the Home chip sat 10px in from the dock's inner
                 edge; at 6px it sits 8px in. Height is untouched (h-14). */}
             <div className="flex items-stretch h-14 px-1.5">
-              {[...leftItems, ...rightItems].map((item) => (
+              {(sectionDock
+                ? dockItems(sectionTabs, visibleSections)
+                : [...leftItems, ...rightItems]).map((item) => (
                 <div key={item.path} className="flex flex-1 items-stretch relative">
                   {renderItem(item)}
                 </div>
@@ -738,46 +750,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </div>
           </div>
 
-          {/* Post FAB — flat deep-olive (bark) puck with a soft static
-              green halo plus a slow pulsing ring behind it to draw the
-              eye to the primary action. Guest gating is handled by the
-              gate sheet on tap, so no lock badge needed on the surface. */}
-          <div className="relative shrink-0 w-14 h-14">
-            {/* Slow pulsing halo — sits behind the button so it draws the
-                eye without competing with the icon. motion-safe gates it
-                for users with reduced-motion preferences. */}
-            <span
-              aria-hidden
-              className="absolute inset-0 rounded-full motion-safe:animate-pulse pointer-events-none"
-              style={{
-                background:
-                  "radial-gradient(circle, hsl(var(--bark) / 0.38) 0%, hsl(var(--bark) / 0) 72%)",
-                filter: "blur(8px)",
-                transform: "scale(1.28)",
-              }}
-            />
-            <button
-              onClick={handlePostClick}
-              {...ageGatedProps("post")}
-              onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
-              onFocus={() => !isGuest && prefetchRoute("/post-job")}
-              aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
-              /* The five tabs say where you are with `aria-current`; the FAB
-                 never did, so on /post-job it announced as an ordinary
-                 action that leads somewhere — and pressing it navigates to
-                 the page it is already on, which is no navigation at all.
-                 Same signal the tabs give, for the same reason. */
-              aria-current={!isGuest && location.pathname === "/post-job" ? "page" : undefined}
-              className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-transform duration-200"
-              style={POST_FAB_STYLE}
-            >
-              <Plus
-                className="w-7 h-7 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:rotate-90 motion-safe:group-active:rotate-180"
-                strokeWidth={2.75}
-                style={{ color: "hsl(var(--parchment))" }}
-              />
-            </button>
-          </div>
+          {/* No Post "+" here any more (owner, 2026-10-19): each section
+              carries its own add action as a pill (SectionActionPill), so
+              the dock is only the tabs. */}
         </div>
       </nav>
 

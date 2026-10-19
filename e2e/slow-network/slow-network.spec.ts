@@ -16,6 +16,7 @@ import { fillBudget, fillJobDetails, fillLogistics, slotAhead, ZONE } from "../j
 import { ensureFundedOpenJob } from "../prod-audit/fundedOpenJob";
 import { COLD_LOAD_BUDGET_MS, HANG_MS, NETWORK_3G, PROGRESS_GRACE_MS, stepTitle } from "./steps";
 import { FORM_PASSWORD, answerPasswordGrantWithMintedSession, mintedSignInAvailable } from "../helpers/mintedPasswordGrant";
+import { searchFeed } from "../feedSearch";
 
 /**
  * Q68 — SLOW AND PATCHY NETWORKS (rural Louisiana).
@@ -404,9 +405,8 @@ async function helperOnFixture(browser: Browser, request: APIRequestContext) {
 }
 
 async function openApplyDialog(page: Page, jobTitleText: string) {
-  await page.goto("/home");
-  await page.getByRole("button", { name: "Search jobs" }).first().click();
-  await page.getByRole("combobox", { name: "Search jobs" }).fill(jobTitleText);
+  await page.goto("/jobs");
+  await searchFeed(page, jobTitleText);
   const esc = jobTitleText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   await page.getByRole("button", { name: new RegExp(`View .*${esc}`) }).first().click();
   const dialog = page.getByRole("dialog").first();

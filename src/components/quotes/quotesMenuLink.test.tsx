@@ -1,47 +1,31 @@
 /**
- * Owner answer 12 (2026-10-17): quote requests are found through a Quotes link
- * in the menu (and the "Wants quotes" browse filter, docs/OPEN.md), only while
- * the hidden 'quotes' switch is on for the member. The phone menu entry is the
- * Profile landing row (as Declutter's), which the design build removes. Since
- * the /quotes hub retired (owner 2026-10-19) the desktop rail has no Quotes
- * destination (asserted on DesktopSidebarNav's source: the rail renders only
- * on the wide desktop website); src/test/quotesHubRetired.test.ts guards links.
+ * Owner answer 12 (2026-10-17) put a Quotes link in the menu (the Profile
+ * landing row on a phone, the desktop rail's Quotes entry). Owner decision
+ * 2026-10-19 superseded it: quotes live INSIDE Post a Job, Jobs, My Jobs and
+ * Posts, and the /quotes hub redirects (src/test/quotesHubRetired.test.ts;
+ * the Wants Quotes lens: src/components/quotes/wantsQuotesFilter.test.tsx).
+ * Re-pointed the same day: the menu link is GONE from both places, and its
+ * component (QuotesEntryRow) with it, so a stray Quotes destination cannot
+ * come back to a menu without failing here.
  *
- * @mutate src/components/profile/profileLanding/QuotesEntryRow.tsx |   if (!on) return null; |   if (false) return null;
- * @mutate src/components/profile/ProfileLanding.tsx |       <QuotesEntryRow />\n | \n
+ * @mutate src/components/DesktopSidebarNav.tsx |     ...sectionTabs.filter( |     { path: "/quotes", icon: Plus, label: "Quotes" },\n    ...sectionTabs.filter(
  */
-import { describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "@/test/helpers/blankNonCode";
-
-const state = vi.hoisted(() => ({ feature: false }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => (key === "quotes" ? state.feature : false) }));
-
-import { QuotesEntryRow } from "@/components/profile/profileLanding/QuotesEntryRow";
 
 const root = resolve(__dirname, "../../..");
 const src = (rel: string) => blankComments(readFileSync(resolve(root, rel), "utf8"));
 
-describe("the Quotes menu link (owner answer 12)", () => {
-  it("renders nothing while the switch is off", () => {
-    state.feature = false;
-    const { container } = render(<MemoryRouter><QuotesEntryRow /></MemoryRouter>);
-    expect(container.innerHTML).toBe("");
+describe("no Quotes menu link (owner 2026-10-19: quotes live inside Jobs)", () => {
+  it("neither the Profile landing nor the desktop rail carries a Quotes entry", () => {
+    expect(src("src/components/profile/ProfileLanding.tsx")).not.toMatch(/QuotesEntryRow|label: "Quotes"/);
+    expect(src("src/components/DesktopSidebarNav.tsx")).not.toMatch(/label: "Quotes"|path: "\/quotes"/);
+    expect(existsSync(resolve(root, "src/components/profile/profileLanding/QuotesEntryRow.tsx"))).toBe(false);
   });
 
-  it("links to /quotes while the switch is on", () => {
-    state.feature = true;
-    render(<MemoryRouter><QuotesEntryRow /></MemoryRouter>);
-    expect(screen.getByRole("link", { name: /Quotes/ }).getAttribute("href")).toBe("/quotes");
-  });
-
-  it("is on the Profile landing (phone menu), behind the switch; the desktop rail has no Quotes (hub retired 2026-10-19)", () => {
-    expect(src("src/components/profile/ProfileLanding.tsx")).toMatch(/<QuotesEntryRow \/>/);
-    expect(src("src/components/DesktopSidebarNav.tsx")).not.toMatch(/label: "Quotes"/);
-    // /quotes keeps the signed-in app chrome on both surfaces (dualSurfaceRoutesGetAppChrome).
+  it("/quotes keeps the signed-in app chrome on both surfaces while it redirects (dualSurfaceRoutesGetAppChrome)", () => {
     expect(src("src/lib/desktopNavRoutes.ts")).toContain('"/quotes"');
     expect(src("src/components/mobileNav/mobileNavHelpers.ts")).toContain('"/quotes"');
   });

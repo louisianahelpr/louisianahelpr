@@ -32,9 +32,6 @@ export const JOB_CARD_FRAME =
 /** Inner clip — rounds the rail, tab and body into one continuous shape. */
 export const JOB_CARD_CLIP = "relative h-full overflow-hidden rounded-2xl";
 
-/** Category rail — the full-height colour stripe down the left edge. */
-export const JOB_CARD_RAIL = "absolute left-0 top-0 bottom-0 w-1.5";
-
 /** The badge rail: category tab + at most one secondary chip, in flow. */
 export const JOB_CARD_BADGE_ROW = "relative z-20 flex items-stretch gap-1";
 

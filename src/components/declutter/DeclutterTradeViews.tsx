@@ -5,7 +5,7 @@
  * the Cart view (what you must check out, by seller, with the one total), and
  * the strike count. Plain words only.
  *
- * Tabs (owner, 2026-10-18; src/lib/declutter/tabs.ts): BuyingView holds the
+ * Tabs (owner, 2026-10-18; src/lib/declutter/tabs.ts): Buying (DeclutterMineViews) holds the
  * cart, "Your offers" and Purchases; the Selling tab (DeclutterHomeView) holds
  * the listings, "Offers on your items" (OffersSection side="seller"),
  * SalesWaiting and the paid sales (PaidOrders side="seller"). Every rule is enforced by the server
@@ -521,17 +521,6 @@ export function FinishSalesView() {
       <SalesWaiting />
       <PaidOrders side="seller" />
     </AppPage>
-  );
-}
-
-/** Buying (owner, 2026-10-18): the cart, the offers you sent, and your purchases. */
-export function BuyingView() {
-  return (
-    <div className="space-y-6">
-      <CartView />
-      <OffersSection side="buyer" />
-      <PaidOrders side="buyer" />
-    </div>
   );
 }
 

@@ -131,3 +131,19 @@ export const BUCKET_SHORT_LABEL: Record<ActivityBucket, string> = {
   done: "Done",
   cancelled: "Cancel",
 };
+
+/** Words the Jobs > Posted / Working status boxes and group headers wear (owner, 2026-10-19). */
+export const POSTED_GROUP_LABEL: Record<ActivityBucket, string> = {
+  needs_you: "Needs you",
+  waiting: "Waiting",
+  scheduled: "Upcoming",
+  done: "Done",
+  cancelled: "Cancelled",
+};
+export const WORKING_GROUP_LABEL: Record<ActivityBucket, string> = {
+  needs_you: "Needs you",
+  waiting: "Applied",
+  scheduled: "Booked",
+  done: "Done",
+  cancelled: "Not picked",
+};

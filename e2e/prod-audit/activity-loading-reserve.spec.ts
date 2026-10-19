@@ -67,7 +67,10 @@
 // moves the real box: 26px -> 96px takes the row 150px -> ~220px, far outside
 // the 8px budget.
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | className="h-[26px] w-16 rounded-ds-md shrink-0 ml-3" | className="h-[96px] w-16 rounded-ds-md shrink-0 ml-3"
-// @mutate src/components/ActivityPageSkeleton.tsx | {!isWebDesktop && tabRowOpens && ( | {false && (
+// Re-pointed 2026-10-19 (Q2205): the old My Posts / My Jobs placeholder (ActivityPageSkeleton) and its folded
+// tab-row reservation went with those screens. Jobs > Posted / Working always show the four status boxes, and the
+// placeholder (JobsSectionSkeleton) must reserve them: without the bones the list starts ~76px high.
+// @mutate src/components/JobsSectionSkeleton.tsx |       {header}\n      <StatusBoxBones />\n | {header}\n
 // The gap assertion, shown able to fail (it was the pitch assertion until
 // 2026-09-26; see "THE GAP WITHIN A LIST" below). `space-y-8` and not the real
 // regression it guards (`space-y-2.5`, the 10px gap this fix replaced with the
@@ -76,7 +79,7 @@
 // that compounds, and the row-height and first-y assertions are what hold the
 // surface. The mutation therefore proves the assertion is live, at a size that
 // is genuinely out of budget.
-// @mutate src/components/ActivityPageSkeleton.tsx | pb-0 space-y-list" aria-hidden | pb-0 space-y-8" aria-hidden
+// @mutate src/components/JobsSectionSkeleton.tsx | pb-0 space-y-list" aria-hidden | pb-0 space-y-8" aria-hidden
 
 import { test, expect, type Browser, type Page, type TestInfo } from "../prodTest";
 import { getSession, type Session } from "./harness";
@@ -153,7 +156,8 @@ interface Surface {
    * (`tabRowOpens`). Asserted on the loaded page, so the surface cannot go
    * quietly vacuous if the header stops opening the row.
    */
-  tabRowOpen?: boolean;
+  /** The loaded page must show the four status boxes (Jobs > Posted / Working, 2026-10-19), whose bones the placeholder reserves. */
+  statusBoxes?: boolean;
   /**
    * A MEASURED row jump this surface is knowingly over ROW_BUDGET by, with the
    * open item that owns it. Not an exemption: the jump must stay within one
@@ -166,9 +170,9 @@ interface Surface {
 const SURFACES: Surface[] = [
   {
     name: "jobs",
-    url: "/jobs",
+    url: "/jobs?tab=working",
     as: "helper",
-    chunk: /\/assets\/(JobsPage|JobListPage)-[^/]+\.js(\?|$)/,
+    chunk: /\/assets\/(JobsSection|JobListPage)-[^/]+\.js(\?|$)/,
     /* Q700 (owner, 2026-09-27): /jobs reserves the ONE-line card shape (130px).
        That matched while helper-e2e's list was mostly one-line cards (131px x8,
        151px x7). On 2026-09-28 00:43Z 18 of its applications became rejected on
@@ -187,10 +191,10 @@ const SURFACES: Surface[] = [
      OFFSET_BUDGET. */
   {
     name: "jobs-done",
-    url: "/jobs?filter=done",
+    url: "/jobs?tab=working&filter=done",
     as: "helper",
-    chunk: /\/assets\/(JobsPage|JobListPage)-[^/]+\.js(\?|$)/,
-    tabRowOpen: true,
+    chunk: /\/assets\/(JobsSection|JobListPage)-[^/]+\.js(\?|$)/,
+    statusBoxes: true,
     /* Added for the tab-row reservation (first-y), not the row height. Its
        row height is Q700's question on a harder list: prod-audit 36298506930
        (2026-09-27, helper-e2e at 375) measured 50 done cards in THREE shapes,
@@ -207,9 +211,9 @@ const SURFACES: Surface[] = [
   },
   {
     name: "posts",
-    url: "/posts",
+    url: "/jobs?tab=posted",
     as: "poster",
-    chunk: /\/assets\/(PostsPage|JobListPage)-[^/]+\.js(\?|$)/,
+    chunk: /\/assets\/(JobsSection|JobListPage)-[^/]+\.js(\?|$)/,
     /* The poster's default bucket renders the GROUPED view, so a section
        heading ("Active", "Completed", …) sits above the first card and the
        placeholder draws none. 64px, measured. */
@@ -414,12 +418,12 @@ for (const surface of SURFACES) {
       const loaded = await rows(page);
       await info.attach(`${surface.name}-loaded.png`, { body: await page.screenshot(), contentType: "image/png" });
 
-      if (surface.tabRowOpen) {
+      if (surface.statusBoxes) {
         await expect(
-          page.getByRole("button", { name: "Hide status filters" }).first(),
-          `${surface.name}: the loaded header did not open the phone status-tab row on ${surface.url} — ` +
-            `this surface exists to measure that row's reservation, and measured nothing`,
-        ).toBeVisible();
+          page.locator("[data-status-box]"),
+          `${surface.name}: the loaded header shows no status boxes on ${surface.url} — ` +
+            `this surface exists to measure their reservation, and measured nothing`,
+        ).toHaveCount(4);
       }
 
       // VACUITY FLOOR, both frames. An empty set passes every comparison

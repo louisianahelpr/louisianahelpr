@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { blankComments } from "./helpers/blankNonCode";
+import { blankComments, blankCssComments } from "./helpers/blankNonCode";
 
 /**
  * ONE SEGMENTED CONTROL.
@@ -60,6 +60,7 @@ import { blankComments } from "./helpers/blankNonCode";
  */
 // @mutate src/components/ui/SegmentedControl.tsx | active && "btn-grad-primary segmented-option-selected" | active && "bg-primary segmented-option-selected"
 // @mutate src/index.css | .segmented-option-selected {\n  color: hsl(var(--parchment)); | .segmented-option-selected {\n  background: hsl(var(--parchment));
+// @mutate src/index.css | background-color: hsl(var(--bark));\n  background-image: none; | background-image: radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-deep)) 100%);
 
 const ROOT = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
@@ -189,16 +190,18 @@ describe("one segmented control, and it is glossy", () => {
     expect(exempt).toEqual(["src/components/profile/SubscriptionTab.tsx"]);
   });
 
-  it("the canonical selected paint resolves to a real gradient", () => {
+  it("the canonical selected paint resolves to the solid olive", () => {
     // The class name is not the evidence. `.btn-grad-primary` has to actually
-    // declare a gradient, or every assertion about "the glossy one" above is
-    // true of a flat control.
-    const css = read("src/index.css");
+    // declare the primary surface, or every assertion about "the primary one"
+    // above is true of an unpainted control. Since 2026-10-18 (owner, option
+    // 3B "nearly flat") that surface is SOLID olive: `--bark` as the colour
+    // and NO gradient image. Proven red on the old radial-gradient rule.
+    const css = blankCssComments(read("src/index.css"));
     const rule = css.slice(css.indexOf(".btn-grad-primary {"));
     const body = rule.slice(0, rule.indexOf("}"));
-    expect(body).toMatch(/background-image:\s*radial-gradient\(/);
-    expect(body).toMatch(/--bark-light/);
-    expect(body).toMatch(/--bark-deep/);
+    expect(body).toMatch(/background-color:\s*hsl\(var\(--bark\)\)\s*;/);
+    expect(body).toMatch(/background-image:\s*none\s*;/);
+    expect(body).not.toMatch(/gradient\(/);
 
     // And the shared paint classes have to exist, or the selected segment is
     // an unstyled button wearing a name.

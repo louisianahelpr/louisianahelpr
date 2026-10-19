@@ -22,6 +22,8 @@
  * the page replaces it).
  */
 import AppPage from "@/components/AppPage";
+import { SectionScreen } from "@/components/sections/SectionScreen";
+import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RentalsCard } from "./rentalsUi";
 import { LISTING_GRID, ListingCardBone } from "./listings/listingBones";
@@ -33,7 +35,8 @@ import { LISTING_GRID, ListingCardBone } from "./listings/listingBones";
  */
 export function RentalsHomeSkeleton() {
   return (
-    <AppPage title="Homes">
+    <SectionScreen title="Homes" add={sectionByKey("homes").add}>
+      <Skeleton className="h-11 w-full rounded-full" aria-hidden />
       <div className="space-y-4" role="status" aria-label="Loading Homes">
         <Skeleton className="h-11 w-full rounded-full" aria-hidden />
         <div className="space-y-4">
@@ -50,7 +53,7 @@ export function RentalsHomeSkeleton() {
           <Skeleton className="h-24 w-full rounded-2xl" aria-hidden />
         </RentalsCard>
       </div>
-    </AppPage>
+    </SectionScreen>
   );
 }
 

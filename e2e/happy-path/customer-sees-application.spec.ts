@@ -92,7 +92,7 @@ test.describe("customer sees helper application", () => {
       ],
     });
 
-    await page.goto("/posts");
+    await page.goto("/jobs?tab=posted");
 
     // 1. Posted job title surfaces.
     await expect(page.getByText(POSTED_JOB.title)).toBeVisible({ timeout: 15_000 });

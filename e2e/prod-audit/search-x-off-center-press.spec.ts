@@ -17,7 +17,7 @@
  * It also asserts the ✕ is centred in its field (|centre offset| < 1px).
  * Inventory: src/test/searchFieldsAllChecked.test.ts derives every search
  * field with a ✕ from source and fails unless each has a surface here at 375
- * and 1440 (BrowseSearchBar twice: the phone /home bar and the desktop strip).
+ * and 1440 (BrowseSearchBar once since Q2205: the desktop feed strip on /jobs).
  *
  * Run: PLAYWRIGHT_WEB_SERVER=1 npx playwright test --project=prod-audit search-x-off-center-press
  */
@@ -53,16 +53,8 @@ const CLEAR = 'button[aria-label="Clear search"]';
 // `as: "admin"` signs in the admin test account; `key` opens a surface that has
 // no trigger element (the Cmd-K palette) by pressing it instead of a click.
 const SURFACES: { name: string; file: string; url: string; trigger: string; field: string; close: string; minWidth?: number; maxWidth?: number; as?: "admin"; key?: string }[] = [
-  {
-    name: "browse-phone", file: "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
-    url: "/home",
-    trigger: "[data-search-trigger]",
-    field: 'input[aria-label="Search jobs"]',
-    close: CLOSE,
-    maxWidth: 899,
-  },
-  { name: "jobs", file: "src/pages/jobs/JobsHeader.tsx", url: "/jobs", trigger: "[data-search-trigger]", field: 'input[aria-label="Search jobs"]', close: CLOSE },
-  { name: "posts", file: "src/pages/posts/PostsHeader.tsx", url: "/posts", trigger: "[data-search-trigger]", field: 'input[aria-label="Search jobs"]', close: CLOSE },
+  // browse-phone (/home), jobs (/jobs) and posts (/posts) left 2026-10-19 (Q2205): the phone Browse bar, My Jobs and
+  // My Posts were retired with the old screens. Jobs > Browse is jobs-browse-row below; Posted / Working carry no search.
   {
     name: "saved-helprs", file: "src/components/profile/SavedHelpersTab.tsx",
     url: "/profile?tab=saved_helpers",
@@ -77,9 +69,26 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="Search conversations"]',
     close: CLOSE,
   },
+  // The section dashboards (owner, 2026-10-19): Jobs > Browse and Declutter >
+  // Browse open on ONE permanent search row, so the field is the trigger and the ✕ clears.
+  {
+    name: "jobs-browse-row", file: "src/components/dashboard/browseTasksToolbar/BrowseCompactSearchRow.tsx",
+    url: "/jobs",
+    trigger: 'input[aria-label="Search jobs"]',
+    field: 'input[aria-label="Search jobs"]',
+    close: CLEAR,
+    maxWidth: 899,
+  },
+  {
+    name: "declutter-browse-row", file: "src/components/declutter/DeclutterBrowseBar.tsx",
+    url: "/declutter",
+    trigger: 'input[aria-label="Search items"]',
+    field: 'input[aria-label="Search items"]',
+    close: CLEAR,
+  },
   {
     name: "browse-desktop-strip", file: "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
-    url: "/home",
+    url: "/jobs",
     trigger: "[data-feed-strip] [data-search-trigger]",
     field: '[data-feed-strip] input[aria-label="Search jobs"]',
     close: `[data-feed-strip] ${CLOSE}`,

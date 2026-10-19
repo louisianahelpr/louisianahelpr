@@ -126,7 +126,7 @@ const FEED_RULES: MockRule[] = [
 //   iPhone 6.9"  430 x 932  @3 = 1290 x 2796
 //   iPad 13"    1032 x 1376 @2 = 2064 x 2752
 const SHOTS = [
-  { slug: "1-browse", url: "/home", wait: "job" },
+  { slug: "1-browse", url: "/jobs", wait: "job" },
   { slug: "2-post", url: "/post-job", wait: "" },
   { slug: "3-messages", url: "/messages", wait: "" },
   { slug: "4-membership", url: "/profile?tab=subscription", wait: "Plus" },
@@ -214,7 +214,7 @@ for (const device of DEVICES) {
             `${shot.slug} never rendered its required content (${JSON.stringify(shot.wait)})`,
           ).toBeVisible({ timeout: 10_000 });
         }
-        if (shot.url === "/home") {
+        if (shot.url === "/jobs") {
           const shown = FEED_JOBS.filter((j) => text.includes(j.title));
           expect(
             shown.length,

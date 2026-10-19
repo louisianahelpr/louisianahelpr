@@ -69,13 +69,13 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
     file: "e2e/prod-audit/search-x-off-center-press.spec.ts",
     match: "does not render at",
     verdict: "justified",
-    why: "BrowseSearchBar renders two different bars: the desktop feed strip only at >=900px and the phone bar only at <=899px; each surface declares that width and the other width has no such ✕ to press (src/test/searchFieldsAllChecked.test.ts requires every ✕ file to be pressed at 375 AND 1440 by some surface)",
+    why: "the Jobs > Browse search is two different renders: the desktop feed strip's BrowseSearchBar only at >=900px and the phone compact row (BrowseCompactSearchRow) only at <=899px; each surface declares that width and the other width has no such ✕ to press (src/test/searchFieldsAllChecked.test.ts holds the exact PHONE_ONLY / DESKTOP_ONLY lists)",
   },
   {
     file: "e2e/prod-audit/search-keeps-title.spec.ts",
     match: "does not render at",
     verdict: "justified",
-    why: "same two BrowseSearchBar renders as the press spec: the desktop strip exists only at >=900px, the phone bar only at <=899px; there is no field to open at the other width",
+    why: "the desktop feed strip's BrowseSearchBar exists only at >=900px (the phone has the permanent compact row, which opens nothing); there is no field to open at the other width",
   },
   {
     file: "e2e/happy-path/zz-recurring-picker.spec.ts",

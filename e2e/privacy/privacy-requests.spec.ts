@@ -388,7 +388,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
     // ownerless jobs by design (CLAUDE.md). The kept row is asserted above.
     const helperCtx = await newUserContext(browser, await getSession(request, "helper"));
     const hp = await helperCtx.newPage();
-    await hp.goto("/jobs");
+    await hp.goto("/jobs?tab=working");
     await assertHealthy(hp, "applicant's Activity with an ownerless job");
     await helperCtx.close();
   });

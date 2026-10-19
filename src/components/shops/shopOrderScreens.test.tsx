@@ -41,10 +41,8 @@
  * @mutate src/components/shops/ShopHandoverActions.tsx |       {side === "shop" ? ( |       {side === "shop" && false ? (
  * @mutate src/components/shops/ShopDashboardView.tsx |           if (declining) decline.mutate({ id: declining.id, why: reason }); |           if (declining) decline.mutate({ id: declining.id, why: "" });
  * @mutate src/components/shops/ShopDashboardView.tsx |           if (accepting) accept.mutate(accepting.id); |           void accepting;
- * @mutate src/pages/shops/ShopOrdersPage.tsx |       <ShopMyOrdersView />\n | \n
- * @mutate src/pages/shops/ShopDashboardPage.tsx |       <ShopDashboardView />\n | \n
- * @mutate src/components/shops/ShopsHomeView.tsx |           {mine.data && ( |           {false && (
- * @mutate src/components/profile/profileLanding/ShopsEntryRow.tsx |     {mine.data && ( |     {false && (
+ * @mutate src/pages/shops/ShopOrdersPage.tsx |         <ShopMyOrdersView embedded />\n | \n
+ * @mutate src/pages/shops/ShopDashboardPage.tsx |         <ShopDashboardView embedded />\n | \n
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -68,6 +66,14 @@ vi.mock("@/components/AppPage", () => ({
     <main>
       <h1>{title}</h1>
       {titleActions}
+      {children}
+    </main>
+  ),
+}));
+vi.mock("@/components/sections/SectionScreen", () => ({
+  SectionScreen: ({ title, children }: { title: string; children: ReactNode }) => (
+    <main>
+      <h1>{title}</h1>
       {children}
     </main>
   ),
@@ -127,7 +133,6 @@ import ShopPage from "@/pages/shops/ShopPage";
 import ShopOrdersPage from "@/pages/shops/ShopOrdersPage";
 import ShopDashboardPage from "@/pages/shops/ShopDashboardPage";
 import ShopsPage from "@/pages/shops/ShopsPage";
-import { ShopsEntryRow } from "@/components/profile/profileLanding/ShopsEntryRow";
 import { readyDateProblem } from "@/lib/shops/orders";
 
 const page = (over: Partial<ShopPageData> = {}): ShopPageData => ({
@@ -361,16 +366,41 @@ describe("the handover: the buyer confirms, the shop never finishes its own orde
 });
 
 describe("the dashboard entries", () => {
-  it("Shops home and the Profile row link it once the member has a shop", async () => {
+  // @mutate src/components/sections/SectionTabs.tsx | { value: BROWSE as string, label: "Browse" }, ...tabs.map | ...tabs.map
+  it("Shops opens on Browse, leftmost, with one-word tabs (owner, 2026-10-19)", async () => {
     api.fetchMyShopId.mockResolvedValue("s1");
     renderAt("/shops", "/shops", <ShopsPage />);
-    expect(await screen.findByRole("button", { name: "Shop dashboard" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "My orders" }).getAttribute("href")).toBe("/shops/orders");
+    const tabs = await screen.findAllByRole("tab");
+    expect(tabs.map((t) => t.textContent)).toEqual(["Browse", "Orders", "Shop"]);
+    expect(tabs[0].getAttribute("aria-selected")).toBe("true");
+    expect(tabs.length).toBeGreaterThan(2);
   });
-  it("the Profile row", async () => {
+  // @mutate src/components/shops/ShopsHomeView.tsx | header={(id) => <MyShopActions shopId={id} />} | header={undefined}
+  it("the Shop tab: See my shop links the shop, Share my shop shares it, Licensed & Insured sits in its settings", async () => {
     api.fetchMyShopId.mockResolvedValue("s1");
-    renderAt("/profile", "/profile", <ShopsEntryRow />);
-    expect((await screen.findByRole("link", { name: /Shop dashboard/ })).getAttribute("href")).toBe("/shops/dashboard");
+    orders.fetchShopOrders.mockResolvedValue([]);
+    renderAt("/shops?tab=shop", "/shops", <ShopsPage />);
+    expect((await screen.findByRole("link", { name: /See my shop/ })).getAttribute("href")).toBe("/shops/s1");
+    expect(screen.getByRole("button", { name: /Share my shop/ })).toBeTruthy();
+    expect(screen.getByTestId("shop-licensed-insured").getAttribute("href")).toBe("/profile?tab=credentials");
+  });
+  it("the Shop tab without a shop: Open a shop", async () => {
+    api.fetchMyShopId.mockResolvedValue(null);
+    renderAt("/shops?tab=shop", "/shops", <ShopsPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Open a shop" }));
+    expect(await screen.findByText("elsewhere")).toBeTruthy();
+  });
+  // @mutate src/components/shops/ShopMyOrdersView.tsx | {BUYER_GROUPS.filter((g) => status === null \|\| status === g) | {BUYER_GROUPS.filter(() => true)
+  it("Orders: a status box shows only its group; a second tap shows every group", async () => {
+    orders.fetchMyOrders.mockResolvedValue([order({ id: "o9", status: "accepted", captured_at: "2026-10-19T12:00:00Z", ready_date: "2026-10-01" })]);
+    renderAt("/shops?tab=orders", "/shops", <ShopsPage />);
+    expect(await screen.findByRole("region", { name: "Accepted" })).toBeTruthy();
+    const waiting = document.querySelector('[data-status-box="waiting"]') as HTMLButtonElement;
+    fireEvent.click(waiting);
+    expect(waiting.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.queryByRole("region", { name: "Accepted" })).toBeNull();
+    fireEvent.click(waiting);
+    expect(screen.getByRole("region", { name: "Accepted" })).toBeTruthy();
   });
   it("App.tsx routes both screens to their pages", () => {
     const app = readFileSync(join(process.cwd(), "src/App.tsx"), "utf8");

@@ -134,13 +134,13 @@ const HeroSection = () => {
             // landscape) the headline swelled ~30% out of proportion and then
             // visibly SHRANK as you widened past 1024. Only `sm` and `md` moved;
             // `lg`/`xl` — the sizes on a normal desktop — are untouched.
-            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[6rem] xl:text-[7.25rem]"
+            className="landing-h1 relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[6rem] xl:text-[7.25rem]"
             style={{
               color: "hsl(var(--olivewood))",
               letterSpacing: "-0.03em",
             }}
           >
-            Louisiana&rsquo;s Local Job{" "}
+            Louisiana&rsquo;s Local{" "}
             <em
               className="relative inline-block"
               style={{
@@ -163,7 +163,7 @@ const HeroSection = () => {
             color: "hsl(var(--stormy-sky))",
           }}
         >
-          Hire a Helpr or find local work. For everyday jobs, big and small.
+          Jobs, Declutter, Shops and Homes: everything local, in one place.
         </p>
 
         {/* Primary CTA sits horizontally next to a demoted Browse Jobs

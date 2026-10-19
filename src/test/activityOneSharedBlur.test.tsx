@@ -25,11 +25,12 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
  */
 
 // Shown able to fail on each layer:
+// @mutate src/index.css | -webkit-backdrop-filter: none !important;\n  backdrop-filter: none !important;\n  box-shadow: 0 1px 2px | -webkit-backdrop-filter: blur(20px) !important;\n  backdrop-filter: blur(20px) !important;\n  box-shadow: 0 1px 2px
 // @mutate src/index.css | .page-panel--one-blur .liquid-glass .ctl-tint.backdrop-blur-md {\n  -webkit-backdrop-filter: none; | .page-panel--one-blur .liquid-glass .ctl-tint.backdrop-blur-md {\n  -webkit-backdrop-filter: blur(4px);
 // @mutate src/index.css | .page-panel--one-blur .liquid-glass .ctl-tint.backdrop-blur-md {\n    backdrop-filter: none; | .page-panel--one-blur .liquid-glass .ctl-tint.backdrop-blur-md {\n    backdrop-filter: blur(4px);
 // @mutate src/components/ui/PageScaffold.tsx | (oneBlur ? " page-panel--one-blur" : "") | ""
-// @mutate src/components/job-card/JobListPage.tsx | titleCardClassName={headerPadding} oneBlur | titleCardClassName={headerPadding}
-// @mutate src/components/ActivityPageSkeleton.tsx | <PageScaffold oneBlur titleCard= | <PageScaffold titleCard=
+// @mutate src/components/job-card/JobListPage.tsx | titleCardClassName="" oneBlur | titleCardClassName=""
+// @mutate src/components/JobsSectionSkeleton.tsx | <PageScaffold animate oneBlur titleCard= | <PageScaffold animate titleCard=
 // @mutate src/components/ui/button.tsx | "ctl-tint border border-border/60 bg-background/70 backdrop-blur-md " + | "ctl-tint border border-border/60 bg-background/70 backdrop-blur-lg " +
 
 const ROOT = process.cwd();
@@ -76,9 +77,13 @@ describe("Q959: one shared blur behind the Activity cards", () => {
   const css = blankCssComments(read("src/index.css"));
   const all = rules(css);
 
-  it("the stylesheet still blurs .liquid-glass (else there is nothing to share)", () => {
+  // Flipped 2026-10-19: the owner approved flat cards (design-small T2 / option 3B), so
+  // .liquid-glass no longer blurs at all; the guard now asserts the flat card stays flat.
+  it("the stylesheet keeps .liquid-glass flat: no blur, and the T2 rule turns any blur off", () => {
     const base = all.filter((r) => r.selectors.includes(".liquid-glass") && !r.inSupports);
-    expect(base.some((r) => /backdrop-filter\s*:\s*blur\(/.test(r.body))).toBe(true);
+    expect(base.length).toBeGreaterThan(0);
+    expect(base.some((r) => /backdrop-filter\s*:\s*blur\(/.test(r.body))).toBe(false);
+    expect(base.some((r) => /(^|[;\s])backdrop-filter\s*:\s*none\s*!important/.test(r.body))).toBe(true);
   });
 
   for (const cls of GLASS_IN_PANEL) {
@@ -129,11 +134,13 @@ describe("Q959: one shared blur behind the Activity cards", () => {
     expect(off.container.querySelector(".page-panel--one-blur")).toBeNull();
   });
 
-  it.each(["src/components/job-card/JobListPage.tsx", "src/components/ActivityPageSkeleton.tsx"])(
+  // JobsSectionSkeleton replaced ActivityPageSkeleton on 2026-10-19 (Q2205): its Posted / Working frame is the list's loading frame.
+  it.each(["src/components/job-card/JobListPage.tsx", "src/components/JobsSectionSkeleton.tsx"])(
     "%s opts its PageScaffold into the one shared blur",
     (file) => {
       const src = blankComments(read(file));
-      const tags = src.match(/<PageScaffold\b[^>]*>/g) ?? [];
+      // The Browse frame (panelElevation="raised") mirrors the job FEED's scaffold (Dashboard.tsx), not an Activity list.
+      const tags = (src.match(/<PageScaffold\b[^>]*>/g) ?? []).filter((t) => !/panelElevation="raised"/.test(t));
       expect(tags.length).toBeGreaterThan(0);
       for (const tag of tags) expect(tag).toMatch(/\boneBlur\b/);
     },

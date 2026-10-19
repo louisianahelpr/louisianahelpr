@@ -7,9 +7,15 @@
  * but on an account with no recent searches, so the floating RECENT list was
  * never on screen; this spec seeds the list first, which is the owner's state.
  *
- * Driven by TAPS (touch context, 375x812) in Chromium AND WebKit, against the
- * real backend as the shared poster. No writes: the recent list is local
- * storage only.
+ * Driven by TAPS in Chromium AND WebKit, against the real backend as the
+ * shared poster. No writes: the recent list is local storage only.
+ *
+ * RE-POINTED 2026-10-19 (Q2205): the phone /home search bar this was found on
+ * left with the old Home feed. The feed is Jobs > Browse; at phone width its
+ * search is a permanent row with no ✕-to-close and no RECENT list, so the one
+ * surface left with this exact shape (expanding field, RECENT under it, ✕ that
+ * closes) is the desktop feed strip's BrowseSearchBar. Driven there at 1440 in
+ * a TOUCH context (a touch laptop / iPad in landscape), keeping the tap.
  *
  * Why the order of events is asserted, not only the end state: Playwright's
  * tap delivers the click even when the press first blurs the field, so on the
@@ -35,15 +41,14 @@ test.beforeAll(async ({ request }) => {
 });
 
 for (const engine of ["chromium", "webkit"] as const) {
-  test(`home search: one tap on the ✕ closes it while RECENT is showing (${engine})`, async ({ browser: defaultBrowser }, info) => {
+  test(`feed search (Jobs > Browse strip): one tap on the ✕ closes it while RECENT is showing (${engine})`, async ({ browser: defaultBrowser }, info) => {
     test.setTimeout(2 * 60_000);
     const browser: Browser = engine === "chromium" ? defaultBrowser : await webkit.launch();
     try {
       const ctx = await browser.newContext({
         baseURL: info.project.use.baseURL,
-        viewport: { width: 375, height: 812 },
+        viewport: { width: 1440, height: 900 },
         hasTouch: true,
-        isMobile: engine === "chromium",
         serviceWorkers: "block",
       });
       await ctx.addInitScript(
@@ -59,13 +64,13 @@ for (const engine of ["chromium", "webkit"] as const) {
         { key: AUTH_STORAGE_KEY, val: JSON.stringify(poster), recent: RECENT },
       );
       const page = await ctx.newPage();
-      await page.goto("/home", { waitUntil: "domcontentloaded" });
-      const trigger = page.locator("[data-search-trigger]").first();
+      await page.goto("/jobs", { waitUntil: "domcontentloaded" });
+      const trigger = page.locator("[data-feed-strip] [data-search-trigger]").first();
       await expect(trigger).toBeVisible({ timeout: 45_000 });
       await page.waitForTimeout(700);
       await trigger.tap();
 
-      const field = page.locator('input[aria-label="Search jobs"]');
+      const field = page.locator('[data-feed-strip] input[aria-label="Search jobs"]');
       const recent = page.getByRole("listbox", { name: "Recent searches" });
       await expect(field).toBeVisible();
       await expect(field).toBeFocused();
@@ -77,12 +82,12 @@ for (const engine of ["chromium", "webkit"] as const) {
       await page.evaluate(() => {
         const w = window as unknown as { __closeOrder: string[] };
         w.__closeOrder = [];
-        const input = document.querySelector('input[aria-label="Search jobs"]');
-        const x = document.querySelector('button[aria-label="Close search"]');
+        const input = document.querySelector('[data-feed-strip] input[aria-label="Search jobs"]');
+        const x = document.querySelector('[data-feed-strip] button[aria-label="Close search"]');
         input?.addEventListener("blur", () => w.__closeOrder.push("blur"));
         x?.addEventListener("click", () => w.__closeOrder.push("click"), { capture: true });
       });
-      await page.locator('button[aria-label="Close search"]').tap();
+      await page.locator('[data-feed-strip] button[aria-label="Close search"]').tap();
       const order = await page.evaluate(() => (window as unknown as { __closeOrder: string[] }).__closeOrder);
       expect(order[0], `${engine}: the ✕ press blurred the field (dropping the keyboard) before its click arrived: ${order.join(" > ")}`).toBe("click");
       // ONE tap. No second press is ever made: if the first did nothing, the

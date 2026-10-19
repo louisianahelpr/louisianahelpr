@@ -1,4 +1,4 @@
-import { CalendarDays, Clock, Heart, ShieldCheck, Home, Gift } from "lucide-react";
+import { CalendarDays, Clock, Heart, LayoutGrid, Home, Gift } from "lucide-react";
 import type { MenuItem } from "./types";
 
 /**
@@ -51,12 +51,17 @@ export const WORK_MENU_GROUP: { title: string; items: MenuItem[] } = {
     { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Your calendar & upcoming jobs", tint: SECTION_TINT.work },
     { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Weekly hours & the available-now signal", tint: SECTION_TINT.work },
     { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: SECTION_TINT.work },
+    // "Licensed & Insured" left this list (owner, 2026-10-19): it lives in
+    // Shops > Shop settings and Jobs > Working now; /profile?tab=credentials
+    // still opens it. Its slot is the Customize entry (the other way in is
+    // Home's "Your sections" header).
     {
-      key: "credentials",
-      label: "Licensed & Insured",
-      icon: <ShieldCheck className="w-5 h-5" />,
-      desc: "Add your license and insurance",
+      key: "sections",
+      label: "Your sections",
+      icon: <LayoutGrid className="w-5 h-5" />,
+      desc: "Show or hide Jobs, Declutter, Shops and Homes",
       tint: SECTION_TINT.work,
+      href: "/home?customize=1",
     },
     {
       key: "str-settings",

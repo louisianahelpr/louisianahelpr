@@ -319,7 +319,7 @@ test.describe("apply", () => {
     // A fresh context has no history, so goBack() from the first page lands on
     // about:blank — which is the harness, not the app. Arrive at the feed the
     // way a person does, then deep-link, so Back has somewhere real to go.
-    await page.goto("/home");
+    await page.goto("/jobs"); // the feed (Jobs > Browse) since 2026-10-19, Q2205
     await settle(page);
     await openApply(page, jobId);
     const writes = watchWrites(page, APPLY_WRITE);

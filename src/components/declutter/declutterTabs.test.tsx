@@ -13,16 +13,19 @@
  * and are stood in for here by one marker per order, so this file checks only
  * which tab each order lands on.
  *
- * @mutate src/components/declutter/DeclutterHomeView.tsx |         : view === "buying" ? <BuyingView /> |         : view === "buying" ? <WantedView />
- * @mutate src/components/declutter/DeclutterHomeView.tsx |       <OffersSection side="seller" />\n      <SalesWaiting /> |       <SalesWaiting />
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |         : view === "buying" ? <BuyingDash todo={todo} /> |         : view === "buying" ? <WantedView />
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" />} |       {show("offers") && null}
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |   const show = (g: SellingGroup) => only === null \|\| only === g; |   const show = (_g: SellingGroup) => true;
+ * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |           { value: "selling", label: "Selling", count: todo?.selling }, |           { value: "selling", label: "Selling", count: todo?.selling },\n          { value: "wanted", label: "Wanted" },
  * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side); |   const lines = cart.data ?? [];
  * @mutate src/lib/declutter/tabs.ts |   if (view === "mine") return "selling"; |   if (view === "mine") return "buying";
  * @mutate src/lib/declutter/tabs.ts |   return sellerWaiting > 0 && buyerWaiting === 0 ? "selling" : "buying"; |   return "buying";
  * @mutate src/lib/declutter/tabs.ts |     selling: sellerOffers + salesOpen, |     selling: sellerOffers,
- * @mutate src/components/declutter/DeclutterHomeView.tsx |     if (!legacy \|\| !tabsReady) return; |     return;
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |     if (!fromView \|\| !tabsReady) return; |     return;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { declutterTodo, oldDeclutterView } from "@/lib/declutter/tabs";
@@ -46,6 +49,14 @@ vi.mock("@/hooks/useUserLocation", () => ({
   useUserLocation: () => ({ status: "idle" }),
   getCachedUserLocation: () => null,
   deriveFallbackLocation: async () => null,
+}));
+vi.mock("@/components/sections/SectionScreen", () => ({
+  SectionScreen: ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <main>
+      <h1>{title}</h1>
+      {children}
+    </main>
+  ),
 }));
 vi.mock("@/components/AppPage", () => ({
   default: ({ title, children, titleActions }: { title: string; children: React.ReactNode; titleActions?: React.ReactNode }) => (
@@ -178,10 +189,33 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     where = "";
   });
 
-  it("the tab row is the five new tabs in the owner's order", async () => {
+  it("owner 10-19: Browse | Buying | Selling, one word each, Browse leftmost and the default; Wanted's entry is hidden even with its switch on", async () => {
     at("/declutter");
     await screen.findByRole("tablist", { name: "Declutter view" });
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling", "Wanted", "Deliver"]);
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling"]);
+    for (const t of tabs) expect(t.textContent).toMatch(/^\S+$/);
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByText(/Wanted/)).toBeNull();
+    expect(tabs.length).toBeGreaterThan(2);
+  });
+
+  it("owner 10-19: a status box shows only its list (highlighted); tapping it again shows every list", async () => {
+    everything();
+    const { container } = at("/declutter?tab=selling");
+    expect(await screen.findByRole("heading", { name: /^Your listings/ })).toBeInTheDocument();
+    const offers = () => container.querySelector('[data-status-box="offers"]') as HTMLElement;
+    expect(offers()).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(offers());
+    expect(await screen.findByRole("region", { name: "Offers on your items" })).toBeInTheDocument();
+    expect(offers()).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("heading", { name: /^Your listings/ })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Sold, waiting for the buyer to pay" })).toBeNull();
+    expect(where).toContain("status=offers");
+    fireEvent.click(offers());
+    expect(await screen.findByRole("heading", { name: /^Your listings/ })).toBeInTheDocument();
+    expect(offers()).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("heading", { name: "Sold, waiting for the buyer to pay" })).toBeInTheDocument();
   });
 
   it("Buying: the cart, the offers you sent and your purchases, every old action still there", async () => {
@@ -223,8 +257,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     at("/declutter");
     await screen.findByRole("tablist", { name: "Declutter view" });
     // Buying: a cart line to check out, a counter to answer and a purchase to pick up. Selling: an offer and a sale to hand over.
-    expect(tab(/^Buying/)).toHaveAccessibleName(/3 need you/);
-    expect(tab(/^Selling/)).toHaveAccessibleName(/2 need you/);
+    expect(tab(/^Buying/)).toHaveAccessibleName(/3/);
+    expect(tab(/^Selling/)).toHaveAccessibleName(/2/);
   });
 
   it("no badge when nothing needs the member", async () => {
@@ -234,12 +268,12 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(tab(/^Selling/).textContent).toBe("Selling");
   });
 
-  it("old link ?view=mine opens Selling and the address becomes ?view=selling", async () => {
+  it("old link ?view=mine opens Selling and the address becomes ?tab=selling", async () => {
     state.mine = [ITEM];
     at("/declutter?view=mine");
     expect(await screen.findByRole("heading", { name: /^Your listings/ })).toBeInTheDocument();
     expect(tab(/^Selling/)).toHaveAttribute("aria-selected", "true");
-    await vi.waitFor(() => expect(where).toBe("/declutter?view=selling"));
+    await vi.waitFor(() => expect(where).toBe("/declutter?tab=selling"));
   });
 
   it("old link ?view=cart sent to a seller (the buyer paid) opens Selling, keeping its other params", async () => {
@@ -247,26 +281,26 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     at("/declutter?view=cart&paid=1");
     expect(await screen.findByText("paid order ord-sold as seller")).toBeInTheDocument();
     expect(tab(/^Selling/)).toHaveAttribute("aria-selected", "true");
-    await vi.waitFor(() => expect(where).toBe("/declutter?view=selling&paid=1"));
+    await vi.waitFor(() => expect(where).toBe("/declutter?paid=1&tab=selling"));
   });
 
   it("old link ?view=cart sent to a buyer opens Buying", async () => {
     state.cart = [LINE];
     at("/declutter?view=cart");
     expect(await screen.findByRole("button", { name: "Pay $3.85" })).toBeInTheDocument();
-    await vi.waitFor(() => expect(where).toBe("/declutter?view=buying"));
+    await vi.waitFor(() => expect(where).toBe("/declutter?tab=buying"));
   });
 
   it("old link ?view=offers opens Selling for a new offer, and Buying when only a counter waits on the buyer", async () => {
     state.offers = [OFFER];
     const first = at("/declutter?view=offers");
     expect(await screen.findByRole("region", { name: "Offers on your items" })).toBeInTheDocument();
-    await vi.waitFor(() => expect(where).toBe("/declutter?view=selling"));
+    await vi.waitFor(() => expect(where).toBe("/declutter?tab=selling"));
     first.unmount();
     state.offers = [{ ...OFFER, my_side: "buyer", awaiting: "buyer" }];
     at("/declutter?view=offers");
     expect(await screen.findByRole("region", { name: "Your offers" })).toBeInTheDocument();
-    await vi.waitFor(() => expect(where).toBe("/declutter?view=buying"));
+    await vi.waitFor(() => expect(where).toBe("/declutter?tab=buying"));
   });
 
   it("every old view value maps to one of the new tabs (none falls back to Browse)", () => {

@@ -151,7 +151,7 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     await countReplaceState(page);
     const { pageErrors, consoleErrors } = collectErrors(page);
 
-    await page.goto("/posts");
+    await page.goto("/jobs?tab=posted");
     await expect(page.getByRole("heading", { name: /my posts/i })).toBeVisible({ timeout: 15_000 });
 
     const rsBefore = await readReplaceStateCount(page);
@@ -230,9 +230,9 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     await seedAuthedSession(helperCtx, FAKE_HELPER, "");
     await installSupabaseMocks(helper, { user: FAKE_HELPER, seed: true });
 
-    await poster.goto("/posts");
+    await poster.goto("/jobs?tab=posted");
     await expect(poster.getByRole("heading", { name: /my posts/i })).toBeVisible({ timeout: 15_000 });
-    await helper.goto("/jobs");
+    await helper.goto("/jobs?tab=working");
     await expect(helper.getByRole("heading", { name: /my jobs/i })).toBeVisible({ timeout: 15_000 });
 
     // Fire both sessions' own rapid churn CONCURRENTLY. This is the closest

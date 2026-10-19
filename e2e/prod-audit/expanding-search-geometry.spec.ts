@@ -64,13 +64,9 @@
 // rest. Un-holding the chevron's box below 360 moves the hamburger on open
 // (measured 187 -> 235, the first run of this clause).
 // @mutate src/components/messages/ConversationList.tsx | <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch" /> | <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch max-[359px]:hidden" />
-// Owner, 2026-10-01: "when you click the search in post and jobs it shouldnt
-// make that top piece bigger it should stay the same size." At 1440 the open
-// row fell back to the 44px phone floor while the closed row is held at
-// COMPACT_HEADER_ROW_MIN_HEIGHT, and the card grew 43 -> 53px. Dropping the
-// open row's floor (either page) brings that back.
-// @mutate src/pages/jobs/JobsHeader.tsx | style={inlineFilters ? { minHeight: COMPACT_HEADER_ROW_MIN_HEIGHT } : undefined}\n          expandingSearch={{ | expandingSearch={{
-// @mutate src/pages/posts/PostsHeader.tsx | style={inlineFilters ? { minHeight: COMPACT_HEADER_ROW_MIN_HEIGHT } : undefined}\n          expandingSearch={{ | expandingSearch={{
+// The posts / jobs surfaces (My Posts / My Jobs headers, and their "open search
+// must not grow the top piece" clause, owner 2026-10-01) left with those screens
+// on 2026-10-19 (Q2205): Jobs > Posted / Working carry no search.
 
 import { test, expect, type Page, type Browser, type TestInfo } from "../prodTest";
 import { mkdirSync } from "node:fs";
@@ -610,12 +606,12 @@ const SURFACES: {
 }[] = [
   {
     name: "browse-desktop-strip",
-    url: "/home",
-    /* Scoped to the feed strip itself. Home's LOADING screen renders a
-       DashboardTitleBar carrying its own `[data-search-trigger]` at every
-       width, so an unscoped wait resolved against the skeleton and measured a
-       row no user ever interacts with (seen: trigger at x49 while the real
-       strip's sits at x463). */
+    // The feed is Jobs > Browse since 2026-10-19 (Q2205); /home is the dashboard.
+    url: "/jobs",
+    /* Scoped to the feed strip itself: an unscoped wait once resolved against
+       a loading screen's own `[data-search-trigger]` and measured a row no
+       user ever interacts with (seen: trigger at x49 while the real strip's
+       sits at x463). */
     ready: "[data-feed-strip] [data-search-trigger]",
     triggerSel: "[data-feed-strip] [data-search-trigger]",
     fieldSel: '[data-feed-strip] input[aria-label="Search jobs"]',
@@ -624,24 +620,6 @@ const SURFACES: {
     // to be named or the walk stops inside the field itself.
     rowSel: "[data-feed-strip]",
     minWidth: 900,
-  },
-  {
-    name: "posts",
-    url: "/posts",
-    ready: "[data-search-trigger]",
-    triggerSel: "[data-search-trigger]",
-    fieldSel: 'input[aria-label="Search jobs"]',
-    closeSel: 'button[aria-label="Close search"]',
-    wrapLine: { belowPx: 500, lineSel: "[data-search-field-line]", clusterSel: 'button[aria-label="Filter by status"]' },
-  },
-  {
-    name: "jobs",
-    url: "/jobs",
-    ready: "[data-search-trigger]",
-    triggerSel: "[data-search-trigger]",
-    fieldSel: 'input[aria-label="Search jobs"]',
-    closeSel: 'button[aria-label="Close search"]',
-    wrapLine: { belowPx: 500, lineSel: "[data-search-field-line]", clusterSel: 'button[aria-label="Filter by status"]' },
   },
   {
     name: "messages",

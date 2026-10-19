@@ -17,8 +17,11 @@
  * opens its own bucket with no notice.
  *
  * @mutate src/components/job-card/JobListPage.tsx |       if (job && !jobIsUnfundedDraft(job)) { |       if (job) {
- * @mutate src/components/job-card/JobListPage.tsx |     if (deepLinkJobId) return;\n    openedOnFirstBucketFor.current = tab; |     openedOnFirstBucketFor.current = tab;\n    if (deepLinkJobId) return;
- * @mutate src/components/job-card/JobListPage.tsx |       toast.info(`That job is no longer on ${tab === "posted" ? "My Posts" : "My Jobs"}.`); |       void tab;
+ * @mutate src/components/job-card/JobListPage.tsx |       toast.info(`That job is no longer in ${tab === "posted" ? "Posted" : "Working"}.`); |       void tab;
+ *
+ * 2026-10-19 (Q2205): My Posts / My Jobs became Jobs > Posted / Working, which open
+ * on EVERY group, so the open-on-the-first-bucket half (and its @mutate on the
+ * effect's order) went with the old screens; the notice now names the tab.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -93,7 +96,7 @@ function renderAt(path: string, tab: "posted" | "applied") {
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[path]}>
-        <Activity defaultTab={tab} />
+        <Activity defaultTab={tab} embeddedHeader={<div />} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -106,22 +109,22 @@ beforeEach(() => {
 });
 
 describe("Q1668: a ?job= link to a job not on the list", () => {
-  it("a never-paid job: My Posts says so and opens Waiting, where the poster's job is", async () => {
+  it("a never-paid job: Posted says so and still lists the poster's job", async () => {
     renderAt("/posts?job=j-gone", "posted");
     expect(await screen.findByTestId("posted-tab")).toHaveTextContent("j-open");
-    expect(toastInfo).toHaveBeenCalledWith("That job is no longer on My Posts.");
+    expect(toastInfo).toHaveBeenCalledWith("That job is no longer in Posted.");
     expect(screen.queryByText(/No jobs in this view/)).toBeNull();
   });
 
   it("a job not in the list at all: the same", async () => {
     renderAt("/posts?job=not-mine", "posted");
     expect(await screen.findByTestId("posted-tab")).toHaveTextContent("j-open");
-    expect(toastInfo).toHaveBeenCalledWith("That job is no longer on My Posts.");
+    expect(toastInfo).toHaveBeenCalledWith("That job is no longer in Posted.");
   });
 
-  it("My Jobs says it with its own name", async () => {
+  it("Working says it with its own name", async () => {
     renderAt("/jobs?job=not-applied", "applied");
-    await waitFor(() => expect(toastInfo).toHaveBeenCalledWith("That job is no longer on My Jobs."));
+    await waitFor(() => expect(toastInfo).toHaveBeenCalledWith("That job is no longer in Working."));
   });
 
   it("a job that IS on the list opens its bucket with no notice", async () => {
@@ -130,7 +133,7 @@ describe("Q1668: a ?job= link to a job not on the list", () => {
     expect(toastInfo).not.toHaveBeenCalled();
   });
 
-  it("a plain open still opens the first bucket with anything", async () => {
+  it("a plain open lists every group, with no notice", async () => {
     renderAt("/posts", "posted");
     expect(await screen.findByTestId("posted-tab")).toHaveTextContent("j-open");
     expect(toastInfo).not.toHaveBeenCalled();

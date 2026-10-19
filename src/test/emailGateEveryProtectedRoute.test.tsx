@@ -25,7 +25,7 @@
 // registered mutation below (skipping the email gate outright) re-opens it.
 // @mutate src/components/ProtectedRoute.tsx | if (!user.email_confirmed_at) { | if (false) {
 // Q205a: re-adding a per-route bypass prop to the route table is red too.
-// @mutate src/App.tsx | <ProtectedRoute fallback={<DashboardRouteSkeleton />}><Dashboard /> | <ProtectedRoute allowPending fallback={<DashboardRouteSkeleton />}><Dashboard />
+// @mutate src/App.tsx | <ProtectedRoute fallback={<DashboardRouteSkeleton />}><HomeDashboard /> | <ProtectedRoute allowPending fallback={<DashboardRouteSkeleton />}><HomeDashboard />
 //
 // Q193 (owner 2026-09-23): the verify-email destination is /signup-pending,
 // the 3-step "Check Your Email" page — the old /account-pending card was

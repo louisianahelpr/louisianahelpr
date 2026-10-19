@@ -32,7 +32,7 @@
  *   NEW_MIGRATION=skip node src/test/pglite/under18CannotApplyOrPost.pglite.mjs  (17 FAIL)
  *
  * @mutate src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx |   const { gate, gatedProps } = useAgeGate(); |   const gate = (_k: string, go: () => void) => go; const gatedProps = (_k: string) => ({});
- * @mutate src/components/MobileNav.tsx |   const { underAge, explain: explainAgeGate, gatedProps: ageGatedProps } = useAgeGate(); |   const underAge = false; const explainAgeGate = (_k: string) => {}; const ageGatedProps = (_k: string) => ({});
+ * @mutate src/components/sections/AppTopBar.tsx |   const gate = useAgeGate(); |   const gate = { gate: (_k: string, f: () => void) => f, gatedProps: (_k: string) => ({}) };
  * @mutate src/pages/post-job/useJobSubmit.ts |           : isUnder18Refusal(error) |           : false
  * @mutate src/lib/seriesDates.ts | ?? (isUnder18Refusal(error) ? UNDER_18_APPLY_COPY : null) | ?? null
  * @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql |   IF public.member_under_18(auth.uid()) THEN\n    RAISE EXCEPTION 'under_18' |   IF false THEN\n    RAISE EXCEPTION 'under_18'
@@ -80,6 +80,8 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/lib/cppRouting.ts": "App Store custom-product-page landing map; lands on the gated form",
   "src/lib/nativeLaunchRoute.ts": "cold-launch route restore; lands on the gated form",
   "src/components/landing/HeroSection.tsx": "the signed-out landing page (hero LOCKED); a signed-in tap lands on the gated form",
+  "src/components/MobileNav.tsx": "idle chunk prefetch only: the dock has no + since 2026-10-19; the entry is AppTopBar's +, which is gated",
+  "src/components/sections/sectionsConfig.ts": "data only: the Jobs section's + path; the entry a member taps is AppTopBar, which reads useAgeGate and greys it",
   "src/pages/post-job/EntryChoice.tsx": "a step INSIDE /post-job; the form it opens is gated",
   "src/pages/post-job/OfferToSavedHelpr.tsx": "a step INSIDE /post-job; the form it opens is gated",
   "src/pages/post-job/usePostJobForm.ts": "the /post-job form's own hook: an unusable ?maintenance= draft goes back to the plain gated form (Rentals S1)",

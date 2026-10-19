@@ -27,7 +27,7 @@ interface EmptyStateProps {
    * states a warmer, hand-drawn feel.
    */
   illustration?: ReactNode;
-  /** Bold display-italic headline. Optional. */
+  /** Bold upright headline (Montserrat). Optional. */
   title?: string;
   /** Supporting sentence under the title. */
   body: string;
@@ -267,11 +267,12 @@ export function EmptyState({
         <div className="w-full min-w-0 space-y-2">
           {title && (
             <p
-              className="font-display italic font-bold leading-tight break-words"
+              // Upright Montserrat, the app's title face (owner, 2026-10-18 new look); was Bodoni display italic.
+              className="font-sans font-bold leading-tight break-words"
               style={{
-                fontSize: "clamp(1.15rem, 1.5vw + 0.45rem, 1.45rem)",
+                fontSize: "clamp(1.1rem, 1.2vw + 0.5rem, 1.3rem)",
                 color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.025em",
+                letterSpacing: "-0.015em",
               }}
             >
               {title}

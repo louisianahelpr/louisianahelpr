@@ -9,8 +9,9 @@ import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllus
 import { type Job, type EnrichedApplication } from "../../components/job-card/activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
 import { ActivitySectionedView } from "@/components/job-card/ActivitySectionedView";
+import { ActivityBucketGroups, POSTED_GROUP_LABEL } from "@/components/job-card/ActivityBucketGroups";
 import { PagedActivityList } from "@/components/job-card/PagedActivityList";
-import { bucketPostedJob } from "@/components/job-card/activityFilters";
+import { bucketPostedJob, postedActivityBucket } from "@/components/job-card/activityFilters";
 import { useBulkDismiss } from "@/pages/posts/useBulkDismiss";
 import { BulkDismissBar } from "@/pages/posts/BulkDismissBar";
 import type { TrackingData } from "@/components/JobTracking";
@@ -87,6 +88,9 @@ interface PostedJobsTabProps {
    *  outer header (PostsHeader) is the sole source of truth for
    *  filter + search in both modes. */
   groupByStatus?: boolean;
+  /** Jobs & Posts > Posted (owner, 2026-10-19): with `groupByStatus`, group by
+   *  whose move it is (Needs you / Upcoming / ...) under headers instead. */
+  bucketGroups?: boolean;
   /** Active status filter key, its per-bucket counts, the filter labels, and
    *  the setter — all four only for the end-of-list block (see ListTail). The
    *  header above still owns the filter itself; this is a read of it. */
@@ -296,7 +300,7 @@ export const PostedJobsTab = ({
   applicationsLoading = false, applicationsError = false,
   onAcceptApplication, onDeclineApplication, onLoadInlineApplicants,
   inlineApplicants, loadingApplicants, applicantErrors,
-  onActionComplete, groupByStatus = false,
+  onActionComplete, groupByStatus = false, bucketGroups = false,
   statusFilter, statusCounts, statusLabels, onSelectStatusFilter,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
@@ -440,7 +444,15 @@ export const PostedJobsTab = ({
   // through the collapsible 3-section grouped shell; a specific status
   // renders a flat list. The applicants full-screen modal renders below
   // as a sibling so it surfaces in either mode.
-  const listView = groupByStatus ? (
+  const listView = groupByStatus && bucketGroups ? (
+    <ActivityBucketGroups
+      items={visibleJobs}
+      getKey={(job) => job.id}
+      bucketOf={(job) => postedActivityBucket(job, pendingApplicantCounts?.[job.id] ?? 0)}
+      renderItem={renderJobCard}
+      labels={POSTED_GROUP_LABEL}
+    />
+  ) : groupByStatus ? (
     <ActivitySectionedView
       tab="posted"
       items={visibleJobs}
@@ -503,6 +515,7 @@ export const PostedJobsTab = ({
        produces the identical rhythm without touching margins. */
     <div className="flex flex-col gap-section flex-1">
       {/* Q210(b): $300+ recurring visits the payer must confirm on-session. */}
+      {/* "Post a job" is the Jobs & Posts top bar's "+" (owner, 2026-10-19); no second pill here. */}
       <RecurringVisitPayments userId={userId} />
       {/* Only with cards on screen to point at — see LocationPressHint. */}
       {!locationHintSeen && visibleJobs.length > 0 && (

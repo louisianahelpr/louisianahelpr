@@ -360,7 +360,7 @@ test.describe("My Posts — card density + header", () => {
       // "all" so every seeded status — open / accepted / in_progress /
       // revision_requested / completed / cancelled / disputed — is on screen at
       // once and the colour system can be judged as a set.
-      await page.goto("/posts?filter=all");
+      await page.goto("/jobs?tab=posted&filter=all");
       await page.waitForSelector("h1");
       await setTheme(page, v.theme);
       await settle(page);
@@ -378,7 +378,7 @@ test.describe("My Posts — card density + header", () => {
       await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");
       await installSupabaseMocks(page, { user: FAKE_HELPER, seed: true });
       await page.setViewportSize({ width: v.width, height: v.height });
-      await page.goto("/jobs?filter=all");
+      await page.goto("/jobs?tab=working&filter=all");
       await page.waitForSelector("h1");
       await setTheme(page, v.theme);
       await settle(page);
@@ -396,7 +396,7 @@ test.describe("My Posts — card density + header", () => {
   test("the description is collapsed by default and expands in place", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
-    await page.goto("/posts?filter=all");
+    await page.goto("/jobs?tab=posted&filter=all");
     await page.waitForSelector("h1");
     await settle(page);
 
@@ -457,7 +457,7 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([inProgressJobStarting(1)])],
     });
-    await page.goto("/posts?filter=all");
+    await page.goto("/jobs?tab=posted&filter=all");
     await page.waitForSelector("h1");
     await settle(page);
 
@@ -486,7 +486,7 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([inProgressJobStarting(-1)])],
     });
-    await page.goto("/posts?filter=all");
+    await page.goto("/jobs?tab=posted&filter=all");
     await page.waitForSelector("h1");
     await settle(page);
 
@@ -593,7 +593,7 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([{ ...inProgressJobStarting(-1), helper_on_the_way_at: new Date().toISOString() }])],
     });
-    await page.goto("/posts?filter=all");
+    await page.goto("/jobs?tab=posted&filter=all");
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
@@ -706,7 +706,7 @@ test.describe("My Posts — card density + header", () => {
         { ...base, id: "job-msg-done", title: "Tracker colour B", helper_completed_at: new Date().toISOString() },
       ])],
     });
-    await page.goto("/posts?filter=all");
+    await page.goto("/jobs?tab=posted&filter=all");
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
@@ -772,7 +772,7 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([inProgressJobStarting(-1)])],
     });
-    await page.goto("/posts?filter=all");
+    await page.goto("/jobs?tab=posted&filter=all");
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
@@ -806,7 +806,7 @@ test.describe("My Posts — card density + header", () => {
     // default seed includes an overdue revision_requested card that sorts first
     // and does not render Edit (only "open" status cards do).
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: [jobsRule([SEED_JOBS[0] as Row])] });
-    await page.goto("/posts?filter=all");
+    await page.goto("/jobs?tab=posted&filter=all");
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
@@ -867,7 +867,7 @@ test.describe("My Posts — card density + header", () => {
   test("the card-level toggle carries aria-expanded and flips on click", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
-    await page.goto("/posts?filter=all");
+    await page.goto("/jobs?tab=posted&filter=all");
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
@@ -909,7 +909,7 @@ test.describe("My Posts — card density + header", () => {
 
     for (const filter of ["needs_you", "scheduled", "waiting", "done"] as const) {
       const label = wordFor(filter);
-      await page.goto(`/posts?filter=${filter}`);
+      await page.goto(`/jobs?tab=posted&filter=${filter}`);
       await page.waitForSelector("h1");
       await settle(page);
       await dismissNudge(page);
@@ -960,7 +960,7 @@ test.describe("My Posts — card density + header", () => {
     // reader was already standing in, all the way down the page.
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
-    await page.goto("/posts?filter=all");
+    await page.goto("/jobs?tab=posted&filter=all");
     await page.waitForSelector("h1");
     await settle(page);
     await expandAllSections(page);
@@ -982,7 +982,7 @@ test.describe("My Posts — card density + header", () => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     const lonely: Row = { ...(SEED_JOBS.find((j) => j.status === "open") as Row), id: "10000000-0000-4000-8000-0000000000ff" };
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: [jobsRule([lonely])] });
-    await page.goto("/posts?filter=waiting");
+    await page.goto("/jobs?tab=posted&filter=waiting");
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
@@ -993,7 +993,7 @@ test.describe("My Posts — card density + header", () => {
   test("My Jobs: the applied card carries the same stripe and one description toggle", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_HELPER, seed: true });
-    await page.goto("/jobs?filter=all");
+    await page.goto("/jobs?tab=working&filter=all");
     await page.waitForSelector("h1");
     await settle(page);
 

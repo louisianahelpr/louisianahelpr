@@ -26,8 +26,8 @@ export function milesLabel(miles: number | null, approximate = false): string | 
   return `${Math.round(miles)} mi away`;
 }
 
-/** The distance-filter choices on Browse; null = any distance. */
-export const DISTANCE_CHOICES: readonly (number | null)[] = [5, 10, 25, 50, null];
+/** The distance-filter choices on Browse; null = any distance, first because it is the default (owner, 2026-10-19). */
+export const DISTANCE_CHOICES: readonly (number | null)[] = [null, 5, 10, 25, 50];
 
 export interface Located {
   area_lat: number;

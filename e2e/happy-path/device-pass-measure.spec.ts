@@ -491,7 +491,7 @@ test.describe("device pass — measured", () => {
       await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
       await page.setViewportSize({ width: v.width, height: v.height });
       await suppressOnboardingTour(page);
-      await page.goto("/posts?filter=all");
+      await page.goto("/jobs?tab=posted&filter=all");
       await page.waitForSelector("h1");
       await setTheme(page, v.theme);
       await settleAnimations(page);
@@ -523,7 +523,7 @@ test.describe("device pass — measured", () => {
       await installSupabaseMocks(page, { user: FAKE_HELPER, seed: true });
       await page.setViewportSize({ width: v.width, height: v.height });
       await suppressOnboardingTour(page);
-      await page.goto("/jobs?filter=all");
+      await page.goto("/jobs?tab=working&filter=all");
       await page.waitForSelector("h1");
       await setTheme(page, v.theme);
       await settleAnimations(page);
@@ -596,7 +596,7 @@ test.describe("device pass — measured", () => {
         ...(listCase.rows ? { rules: [jobsRule(listCase.rows)] } : {}),
       });
       await page.setViewportSize({ width: 375, height: 812 });
-      await page.goto("/posts?filter=all");
+      await page.goto("/jobs?tab=posted&filter=all");
       await page.waitForSelector("h1");
       await settleAnimations(page);
       await dismissNudge(page);
@@ -637,7 +637,7 @@ test.describe("device pass — measured", () => {
       ],
     });
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto("/jobs?filter=all");
+    await page.goto("/jobs?tab=working&filter=all");
     await page.waitForSelector("h1");
     await settleAnimations(page);
     await expandAllSections(page);
@@ -725,7 +725,7 @@ test.describe("device pass — measured", () => {
    * `pt-safe-top` resolved to 0 inside <PageTransition>. Measure that the first
    * painted text starts BELOW the simulated notch.
    */
-  for (const route of ["/posts?filter=all", "/profile?tab=analytics", "/profile"]) {
+  for (const route of ["/jobs?tab=posted&filter=all", "/profile?tab=analytics", "/profile"]) {
     test(`top safe-area inset @ 375 — ${route}`, async ({ page, context, baseURL }, testInfo) => {
       const record = recorder(slugify(testInfo.title));
       await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");

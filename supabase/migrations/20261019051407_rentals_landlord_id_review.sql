@@ -191,7 +191,7 @@ BEGIN
       INSERT INTO public.notifications (user_id, title, message, type, link)
       SELECT ur.user_id,
              'Landlord ID waits for review',
-             'A landlord sent a photo of their ID. Check it in Admin -> Settings -> Rentals: ownership proof.',
+             'A landlord sent a photo of their ID. Check it in Admin -> Settings -> Homes: ownership proof.',
              'admin_alert',
              '/admin?view=settings'
         FROM public.user_roles ur

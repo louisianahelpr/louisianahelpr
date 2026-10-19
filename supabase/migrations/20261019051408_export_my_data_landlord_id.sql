@@ -2,8 +2,9 @@
 -- (landlord_id_reviews from 20261019051407), with the reviewing staff member's
 -- id (reviewed_by) dropped.
 --
--- The body is main's NEWEST export_my_data (20261018210401_export_my_data_shop_pickup_address)
--- VERBATIM with the one section above added before RETURN, and nothing else.
+-- The body is the NEWEST export_my_data before this one (20261019043100_export_my_data_rental_listings,
+-- which carries helpr_fault_rulings from 20261019015302 and rental_listings/rental_listing_photos)
+-- VERBATIM with the one section above added before RETURN, and nothing else (lander30 train merge).
 -- A branch that restates it after this one must start from THIS body.
 
 -- Replay-safe: CREATE OR REPLACE of the one (uuid) overload; the no-argument
@@ -378,6 +379,19 @@ BEGIN
   -- order, but it is the shop owner's personal data, not the buyer's.
   v_out := v_out || jsonb_build_object('shop_pickup_addresses', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'stripe_tax_location_id' - 'stripe_tax_location_mode'), '[]'::jsonb) FROM public.shop_pickup_addresses t
       WHERE t.owner_id = v_uid));
+  -- Homes -> Rent listings (20261019043000): the member's own listings (every
+  -- field they typed, incl. the wording-check result) and their photos.
+  v_out := v_out || jsonb_build_object('rental_listings', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.rental_listings t
+      WHERE t.owner_id = v_uid));
+  v_out := v_out || jsonb_build_object('rental_listing_photos', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.rental_listing_photos t
+      WHERE t.owner_id = v_uid));
+  -- Q2082 (b): the Helpr's own Helpr-fault rulings (20261019015301), without
+  -- the staff member who ruled (admin_id) or the poster's Stripe refund id
+  -- (refund_ref, the other party's payment). The ruling's note IS theirs
+  -- (why they were ruled at fault), so it is exported. The table exists from that
+  -- migration on, which always runs first.
+  v_out := v_out || jsonb_build_object('helpr_fault_rulings', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'admin_id' - 'refund_ref'), '[]'::jsonb) FROM public.job_helpr_fault_rulings t
+    WHERE t.helper_id = v_uid));
   -- Landlord ID (20261019051407): the member's own ID review (status, dates,
   -- the admin's note). Which admin reviewed it (reviewed_by) is staff-only and
   -- dropped. The photo paths stay in the row: the export function signs every

@@ -3,7 +3,7 @@
  * D10 warning (the landlord sets the fee; the app warns above 10% of the rent, never caps).
  *
  * @mutate src/lib/rentals/rent.ts |   if (amountCents <= 0 \|\| lateFeeCents <= amountCents * 0.1) return null; |   return null;
- * @mutate src/lib/rentals/rent.ts |   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { timeZone: "UTC", | return new Date(isoDate).toLocaleDateString("en-US", { timeZone: "America/Chicago",
+ * @mutate src/lib/rentals/rent.ts |   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }); | return new Date(isoDate).toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", year: "numeric" });
  */
 import { describe, expect, it } from "vitest";
 import { centralToday, dayLabel, lateFeeLine, lateFeeWarning, money } from "./rent";

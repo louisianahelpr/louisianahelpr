@@ -340,6 +340,9 @@ describe("every fixture literal could be inserted", () => {
     // storage.objects rows (`{ bucket_id, name, size }`), not public rows: once rental_photo_purge_queue (20261019071203)
     // took bucket_id as the only public table with it, these were graded against its bucket CHECK.
     { file: "src/test/storageBackup.test.ts", keys: ["bucket_id", "name", "size"] },
+    // A slack-ops-alert request body (`{ ...watcherBody(), fields: {...} }`) beside a mocked Slack reply (`{ status: 200 }`):
+    // once rental_leases (20261019110137, lease) took `fields` as the only public table with it, they were graded against its status CHECK.
+    { file: "src/test/edge/slack-ops-alert.test.ts", keys: ["fields", "status"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

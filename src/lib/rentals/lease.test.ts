@@ -3,8 +3,8 @@
  * answers PGRST202, with or without a "Perhaps you meant..." hint (PostgREST 11+). Both read as "not
  * deployed": the card shows nothing (never a guessed side) and Past leases is empty. Any other error throws.
  *
- * @mutate src/lib/rentals/lease.ts |   if (res.error && isMissingRpc(res.error)) return null; |   if (res.error && isMissingRpc(res.error) && !(res.error as { hint?: unknown }).hint) return null;
- * @mutate src/lib/rentals/lease.ts |   if (res.error && isMissingRpc(res.error)) return []; |   if (false) return [];
+ * @mutate src/lib/rentals/lease.ts |   if (res.error && isMissingRpcNamed(res.error, "rentals_lease")) return null; |   if (res.error && isMissingRpcNamed(res.error, "rentals_lease") && !(res.error as { hint?: unknown }).hint) return null;
+ * @mutate src/lib/rentals/lease.ts |   if (res.error && isMissingRpcNamed(res.error, "rentals_my_leases")) return []; |   if (false) return [];
  * @mutate src/lib/rentals/lease.ts |   if (storedHash !== shownHash) throw new RentalsCopyError(LEASE_DID_NOT_SAVE, null); |   if (false) throw new RentalsCopyError(LEASE_DID_NOT_SAVE, null);
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -22,7 +22,12 @@ describe("lease reads before the RPCs are deployed", () => {
   beforeEach(() => rpc.mockReset());
 
   it("PGRST202 with a hint is still 'not deployed': nothing, no guessed side", async () => {
-    rpc.mockResolvedValue({ data: null, error: PGRST202_HINT, status: 404 });
+    // Each read gets the PGRST202 PostgREST gives for ITS name (isMissingRpcNamed judges the RPC it called).
+    rpc.mockImplementation(async (name: string) => ({
+      data: null,
+      error: { ...PGRST202_HINT, message: `Could not find the function public.${name} in the schema cache` },
+      status: 404,
+    }));
     expect(await fetchLease("t1")).toBeNull();
     expect(await fetchMyLeases()).toEqual([]);
   });

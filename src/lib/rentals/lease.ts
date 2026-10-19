@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { unwrap } from "@/lib/supabaseResult";
-import { isMissingRpc } from "@/lib/missingRpc";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { RentalsCopyError } from "./copy";
 import {
   LEASE_TEMPLATES,
@@ -71,8 +71,8 @@ export function isOpenLease(o: LeaseRecord["open"]): o is OpenLease {
 /** null = the lease RPCs are not deployed yet (PGRST202): the card shows nothing, never a guessed side. */
 export async function fetchLease(tenancyId: string): Promise<LeaseRecord | null> {
   const res = await supabase.rpc("rentals_lease", { p_tenancy_id: tenancyId });
-  // Not deployed yet (lead review #10; the shared helper, any hint): nothing, never the card's load error.
-  if (res.error && isMissingRpc(res.error)) return null;
+  // Not deployed yet (lead review #10; the shared helper, named: a hint naming another function still means not deployed): nothing, never the card's load error.
+  if (res.error && isMissingRpcNamed(res.error, "rentals_lease")) return null;
   const d = (unwrap(res) ?? {}) as unknown as Partial<LeaseRecord>;
   return {
     side: d.side === "landlord" ? "landlord" : "tenant",
@@ -86,7 +86,7 @@ export async function fetchLease(tenancyId: string): Promise<LeaseRecord | null>
 /** Every signed lease the member is a party to, whatever happened to the tenancy since (lead review #2). */
 export async function fetchMyLeases(): Promise<SignedLease[]> {
   const res = await supabase.rpc("rentals_my_leases");
-  if (res.error && isMissingRpc(res.error)) return [];
+  if (res.error && isMissingRpcNamed(res.error, "rentals_my_leases")) return [];
   const d = unwrap(res) as unknown;
   return Array.isArray(d) ? (d as SignedLease[]) : [];
 }

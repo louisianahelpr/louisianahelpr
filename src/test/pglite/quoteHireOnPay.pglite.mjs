@@ -39,11 +39,23 @@
  *   Q1864 a block (a user_blocks row) closes the pair's pending quotes, both
  *       ways round, and leaves other quoters' quotes pending; a failure there
  *       never undoes the block, it is logged in error_logs
+ *   links (20261019043546_quote_notices_link_the_quoter_view.sql, applied
+ *       after this one, interleaved 3x with --replay): every quote notice
+ *       about a request links '/quotes?request=<id>' (no job_id) and its
+ *       reader is that request's poster or a quoter on it, on the side the
+ *       title is for (QuotesHubRedirect decides the place at open time);
+ *       "You're booked" / "Accept to start" carry job_id and '/jobs?job=<id>',
+ *       "Finish setup to start" job_id and '/profile?tab=payment', each to the
+ *       job's offered quoter; each email carries its row's link; the old two
+ *       helpers are dropped. --links-before applies this migration but not that
+ *       one: exactly the link checks FAIL and every other check holds. A
+ *       planted QUOTES2_MIGRATION run leaves LINKS out too (it would overwrite
+ *       the planted bodies) unless QUOTE_LINKS_MIGRATION is given.
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
 import { effectiveDefs } from "../helpers/effectiveFunctionDefs.ts";
-import { installClock, newestFunction, onFixedClock, setClock } from "./lib/fixedClock.mjs";
+import { installClock, onFixedClock, setClock } from "./lib/fixedClock.mjs";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
@@ -54,6 +66,15 @@ const THIS = "20261018155222_quote_hire_on_pay_alerts.sql";
 const MIGRATION = readFileSync(process.env.QUOTES2_MIGRATION ?? DIR + THIS, "utf8");
 const REPLAY = process.argv.includes("--replay");
 const BEFORE = process.argv.includes("--before");
+// The quoter's own link (applied after THIS): --links-before leaves it out.
+const LINKS = "20261019043546_quote_notices_link_the_quoter_view.sql";
+const LINKS_SQL = readFileSync(process.env.QUOTE_LINKS_MIGRATION ?? DIR + LINKS, "utf8");
+// A planted copy of THIS migration (QUOTES2_MIGRATION) is NOT followed by the
+// real LINKS migration: LINKS restates four of its functions and would replace
+// the planted defect with a clean body (lead review 2026-10-19). Such a run
+// leaves LINKS out unless a planted LINKS copy (QUOTE_LINKS_MIGRATION) is given.
+const LINKS_BEFORE = process.argv.includes("--links-before") ||
+  (!!process.env.QUOTES2_MIGRATION && !process.env.QUOTE_LINKS_MIGRATION);
 
 const DEFS = effectiveDefs(DIR, { before: BASE });
 // Main's newest bodies BEFORE this migration (train J's direct-offer funding
@@ -167,14 +188,18 @@ await db.exec(`CREATE TRIGGER trg_notify_helper_on_direct_offer AFTER INSERT OR 
 CREATE TRIGGER trg_restart_direct_offer_clock_on_funding BEFORE UPDATE OF payment_status ON public.jobs
   FOR EACH ROW EXECUTE FUNCTION public.restart_direct_offer_clock_on_funding();`);
 if (!BEFORE) {
-  for (let i = 0; i < (REPLAY ? 3 : 1); i++) await db.exec(MIGRATION);
+  for (let i = 0; i < (REPLAY ? 3 : 1); i++) {
+    await db.exec(MIGRATION);
+    if (!LINKS_BEFORE) await db.exec(LINKS_SQL);
+  }
 }
 await db.exec("UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'quotes'");
 
 const results = [];
 // control: holds on main too (no FAIL-before); it pins what the change must NOT do.
-const check = (name, ok, detail = "", control = false) => {
-  results.push({ name, ok, control });
+// links: a check of the quoter's own link (LINKS); --links-before must fail exactly these.
+const check = (name, ok, detail = "", control = false, links = false) => {
+  results.push({ name, ok, control, links });
   console.log(`${ok ? "PASS" : "FAIL"} ${name}${detail ? `  (${detail})` : ""}`);
 };
 const as = async (uid, sql) => {
@@ -540,6 +565,23 @@ await step("Q1864 a failure closing the quotes never undoes the block; it is log
   );
 });
 
+// ---- links: each quote notice opens the view of the side it is addressed to.
+await step("links: decline and counter, both ways round", async () => {
+  // Earlier steps leave requests open; the 5-open-request cap is not under test.
+  await svc("UPDATE public.job_quote_requests SET status = 'cancelled' WHERE status = 'open'");
+  // The poster counters, the quoter counters back, the poster declines.
+  const r1 = await newRequest();
+  const q1 = (await one(QB, `SELECT public.submit_job_quote('${r1}', 26000, 'Two coats', 'Friday') AS id`)).id;
+  await as(POSTER, `SELECT public.respond_to_job_quote('${q1}', 'counter', 21000)`);
+  await as(QB, `SELECT public.respond_to_job_quote('${q1}', 'counter', 24000)`);
+  await as(POSTER, `SELECT public.respond_to_job_quote('${q1}', 'decline')`);
+  // The poster counters; the quoter declines the counter.
+  const r2 = await newRequest();
+  const q2 = (await one(QC, `SELECT public.submit_job_quote('${r2}', 27000, 'Two coats', 'Monday') AS id`)).id;
+  await as(POSTER, `SELECT public.respond_to_job_quote('${q2}', 'counter', 20000)`);
+  await as(QC, `SELECT public.respond_to_job_quote('${q2}', 'decline')`);
+});
+
 // Q1357: the sweep's clock edges on a FIXED clock (fixedClock.mjs). The newest
 // "sweep_quote_alerts" body is reloaded with every now() pointed at
 // _probe_now(), so each boundary is exact: a reply window ending exactly 4 h out
@@ -551,10 +593,10 @@ await step("Q1864 a failure closing the quotes never undoes the block; it is log
 await step("10 the sweep's 4 h reminder and 1-day close-notice edges, on a fixed clock", async () => {
   if (BEFORE) throw new Error("sweep_quote_alerts is not on main");
   await installClock(db);
-  // The newest body prod runs; a planted-defect copy (QUOTES2_MIGRATION) supplies its own.
-  const sweepStmt = process.env.QUOTES2_MIGRATION
-    ? /CREATE OR REPLACE FUNCTION public\.sweep_quote_alerts\(\)[\s\S]*?\$fn\$[\s\S]*?\$fn\$;/.exec(MIGRATION)[0]
-    : newestFunction("sweep_quote_alerts").stmt;
+  // Whichever migration defined it last in THIS run: LINKS (real or planted)
+  // when it was applied, else THIS one (real or planted).
+  const SWEEP = /CREATE OR REPLACE FUNCTION public\.sweep_quote_alerts\(\)[\s\S]*?\$fn\$[\s\S]*?\$fn\$;/;
+  const sweepStmt = LINKS_BEFORE ? SWEEP.exec(MIGRATION)[0] : SWEEP.exec(LINKS_SQL)[0];
   await db.exec(onFixedClock(sweepStmt));
   const T = "2030-06-01T12:00:00Z";
   await setClock(db, T);
@@ -587,17 +629,97 @@ await step("10 the sweep's 4 h reminder and 1-day close-notice edges, on a fixed
   );
 });
 
+await step("links: every quote notice carries a reference its reader's side is read from (request), or the job", async () => {
+  const QUOTE_TITLES = ["New quote", "New counter-offer", "Quote accepted", "Quote declined", "A quote is waiting on you",
+    "Quotes are closed", "A counter-offer is waiting on you", "You're booked", "Finish setup to start", "Accept to start"];
+  const rows = await svc(`SELECT n.id, n.user_id, n.title, n.link, n.job_id FROM public.notifications n
+    WHERE n.type = 'new_offers' AND n.title = ANY($1::text[]) ORDER BY n.title`.replace("$1::text[]",
+    `ARRAY[${QUOTE_TITLES.map((t) => `'${t.replace(/'/g, "''")}'`).join(",")}]::text[]`));
+  const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+  const requestRe = new RegExp(`^/quotes\\?request=(${UUID})&user=${UUID}$`);
+  const jobRe = new RegExp(`^/jobs\\?job=(${UUID})&user=${UUID}$`);
+  const payoutRe = new RegExp(`^/profile\\?tab=payment&user=${UUID}$`);
+  const JOB_TITLES = new Set(["You're booked", "Accept to start"]);
+  const POSTER_TITLES = new Set(["New quote", "A quote is waiting on you", "Quotes are closed"]);
+  const QUOTER_TITLES = new Set(["A counter-offer is waiting on you", "You're booked", "Finish setup to start", "Accept to start"]);
+  const reqs = new Map((await svc(`SELECT id, poster_id FROM public.job_quote_requests`)).map((r) => [r.id, r.poster_id]));
+  const quoters = new Set((await svc(`SELECT request_id || ':' || quoter_id AS k FROM public.job_quotes`)).map((r) => r.k));
+  const offered = new Map((await svc(`SELECT id, offered_to_helper_id FROM public.jobs`)).map((r) => [r.id, r.offered_to_helper_id]));
+  const bad = [];
+  let posterSide = 0;
+  let quoterSide = 0;
+  for (const r of rows) {
+    if (r.title === "Finish setup to start") {
+      if (!payoutRe.test(r.link) || !r.job_id || offered.get(r.job_id) !== r.user_id) bad.push(r);
+      else quoterSide++;
+      continue;
+    }
+    if (JOB_TITLES.has(r.title)) {
+      const m = jobRe.exec(r.link);
+      if (!m || m[1] !== r.job_id || offered.get(r.job_id) !== r.user_id) bad.push(r);
+      else quoterSide++;
+      continue;
+    }
+    const m = requestRe.exec(r.link);
+    if (!m || r.job_id !== null || !reqs.has(m[1])) { bad.push(r); continue; }
+    // What QuotesHubRedirect will decide at open time (quoteRequestTarget): the
+    // request's poster gets its page, a quoter on it their quotes. The reader
+    // must be one of the two, and on the side its title is meant for.
+    const isPoster = reqs.get(m[1]) === r.user_id;
+    const isQuoter = quoters.has(`${m[1]}:${r.user_id}`);
+    if (!isPoster && !isQuoter) bad.push(r);
+    else if (POSTER_TITLES.has(r.title) && !isPoster) bad.push(r);
+    else if (QUOTER_TITLES.has(r.title) && !isQuoter) bad.push(r);
+    else if (isPoster) posterSide++;
+    else quoterSide++;
+  }
+  const seen = new Set(rows.map((r) => r.title));
+  const missing = QUOTE_TITLES.filter((t) => !seen.has(t));
+  check(
+    "links: every quote notice carries a reference its reader's side is read from (request), or the job",
+    rows.length > 20 && bad.length === 0 && missing.length === 0 && posterSide > 3 && quoterSide > 3,
+    `rows=${rows.length} poster=${posterSide} quoter=${quoterSide} bad=${bad.length} ${bad.slice(0, 4).map((r) => `${r.title}->${r.link} job=${r.job_id}`).join(" | ")} missing=[${missing.join(", ")}]`,
+    false,
+    true,
+  );
+  const mails = await emails();
+  const byId = new Map(rows.map((r) => [r.id, r.link]));
+  const mailBad = mails.filter((b) => b.link !== byId.get(b.notification_id) ||
+    !(requestRe.test(b.link) || jobRe.test(b.link) || payoutRe.test(b.link)));
+  const quoterMails = mails.filter((b) => !POSTER_TITLES.has(b.title) && reqs.get(requestRe.exec(b.link ?? "")?.[1]) !== b.user_id);
+  check(
+    "links: each quote email carries its row's link (the quoter's included)",
+    mails.length > 2 && quoterMails.length > 0 && mailBad.length === 0,
+    `mails=${mails.length} toQuoter=${quoterMails.length} mismatched=${mailBad.length} ${quoterMails.slice(0, 2).map((b) => b.link).join(" | ")}`,
+    false,
+    true,
+  );
+  const acl = await svc(`SELECT p.proname, has_function_privilege('anon', p.oid, 'EXECUTE') AS a, has_function_privilege('authenticated', p.oid, 'EXECUTE') AS u
+    FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace AND p.proname IN ('quote_notify_to', 'quote_notify_about', 'quote_notify')`);
+  check(
+    "links: quote_notify_to is the one notice helper and is not client-callable (the old two are dropped)",
+    acl.length === 1 && acl[0].proname === "quote_notify_to" && !acl[0].a && !acl[0].u,
+    JSON.stringify(acl),
+    false,
+    true,
+  );
+});
+
 await step("grants: the new helpers and the sweep are not client-callable", async () => {
   const rows = await svc(`SELECT p.proname, has_function_privilege('anon', p.oid, 'EXECUTE') AS a,
       has_function_privilege('authenticated', p.oid, 'EXECUTE') AS u
     FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace
       AND p.proname IN ('quote_notify_about', 'quote_job_funded_hires_quoter', 'sweep_quote_alerts', 'quote_notify',
-                        'quote_close_pending_across_block')`);
-  check("grants: the new helpers and the sweep are not client-callable", rows.length === 5 && rows.every((r) => !r.a && !r.u), JSON.stringify(rows));
+                        'quote_close_pending_across_block', 'quote_notify_to')`);
+  // With LINKS applied, quote_notify_to replaces quote_notify_about and quote_notify (dropped).
+  const want = LINKS_BEFORE ? 5 : 4;
+  check("grants: the new helpers and the sweep are not client-callable", rows.length === want && rows.every((r) => !r.a && !r.u), JSON.stringify(rows));
 });
 
 const failed = results.filter((r) => !r.ok).length;
-console.log(`\n${BEFORE ? "BEFORE (main only)" : REPLAY ? "AFTER (migration x3)" : "AFTER (migration x1)"}: ${results.length - failed}/${results.length} pass`);
+console.log(`\n${BEFORE ? "BEFORE (main only)" : LINKS_BEFORE ? "LINKS BEFORE (without " + LINKS + ")" : REPLAY ? "AFTER (migrations x3)" : "AFTER (migrations x1)"}: ${results.length - failed}/${results.length} pass`);
+// Links before: exactly the link checks fail; everything else holds.
+if (LINKS_BEFORE && !BEFORE) process.exit(results.every((r) => r.ok === !r.links) ? 0 : 1);
 // Before: every behaviour check fails; the controls hold on main too.
 if (BEFORE) process.exit(results.filter((r) => !r.control).every((r) => !r.ok) && results.filter((r) => r.control).every((r) => r.ok) ? 0 : 1);
 process.exit(failed === 0 ? 0 : 1);

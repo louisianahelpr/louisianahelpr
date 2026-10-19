@@ -381,7 +381,7 @@ describe("Q137: a seed subject never notifies a real person", () => {
       "deliver_parish_match_alert",
       "deliver_saved_search_alert",
       "notify_on_application",
-      "quote_notify_about",
+      "quote_notify_to",
       "rentals_notify",
       "send_backout_email",
     ]);

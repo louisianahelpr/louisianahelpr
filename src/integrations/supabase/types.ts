@@ -13049,15 +13049,14 @@ export type Database = {
         Args: { p_helper: string; p_job_id: string }
         Returns: boolean
       }
-      quote_notify: {
-        Args: { p_message: string; p_title: string; p_user: string }
-        Returns: undefined
-      }
-      quote_notify_about: {
+      quote_notify_to: {
         Args: {
           p_actor: string
           p_email: boolean
+          p_job_id: string
           p_message: string
+          p_payout_setup: boolean
+          p_request_id: string
           p_title: string
           p_user: string
         }

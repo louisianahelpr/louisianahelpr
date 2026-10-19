@@ -70,6 +70,20 @@ export async function fetchMyQuoteRequests(): Promise<MyQuoteRequest[]> {
   return quoteRpc(await supabase.rpc("get_my_quote_requests"), (e) => rpcErrorMessage("get_my_quote_requests", e)) ?? [];
 }
 
+/**
+ * Is quote request `requestId` one `userId` posted? One row read by id (the
+ * poster-only RLS policy job_quote_requests_poster_reads also limits it to
+ * the caller), so it does not depend on a list's length. Not a uuid -> false
+ * (an old or hand-typed link is nobody's request). Errors throw (unwrap).
+ */
+export async function isMyQuoteRequest(requestId: string, userId: string): Promise<boolean> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId)) return false;
+  const row = unwrap(
+    await supabase.from("job_quote_requests").select("id").eq("id", requestId).eq("poster_id", userId).maybeSingle(),
+  );
+  return row !== null;
+}
+
 export async function fetchOpenQuoteRequests(): Promise<OpenQuoteRequest[]> {
   return quoteRpc(await supabase.rpc("list_open_quote_requests"), (e) => rpcErrorMessage("list_open_quote_requests", e)) ?? [];
 }

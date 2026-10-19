@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useSectionTabs, comingSoonLabel, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { dockItems, type DockItem } from "@/components/mobileNav/dockItems";
+import { announceTabReselect } from "@/components/mobileNav/tabReselect";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { useAdminBadges } from "@/components/admin/adminBadgeStore";
@@ -239,7 +240,7 @@ const DesktopSidebarRail = () => {
           return (
             <li key={path}>
               <button
-                onClick={() => (soon ? sayComingSoon(label) : navigate(path))}
+                onClick={() => { if (soon) return sayComingSoon(label); if (location.pathname === path) announceTabReselect(path); navigate(path); }}
                 onMouseEnter={() => !soon && prefetchRoute(path)}
                 aria-current={active ? "page" : undefined}
                 aria-disabled={soon ? true : undefined}

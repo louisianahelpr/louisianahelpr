@@ -29,6 +29,7 @@ import { browseShops, shopPhotoUrl, type ShopCard } from "@/lib/shops/api";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { useDeclutterOrigin } from "@/components/declutter/useDeclutterOrigin";
 import { categoryGroups, categoryLabel, ShopBadgeList, ShopRating, ShopsNotice, useShopCategories } from "./shopsUi";
+import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 
 function milesText(miles: number | null): string | null {
   if (miles == null) return null;
@@ -194,6 +195,8 @@ function ShopsBrowse() {
           ))}
         </ul>
       )}
+      {/* No distance filter in Shops and no shop alerts yet: just the friendly end. */}
+      {!shops.isError && !loading && (shops.data ?? []).length > 0 && <BrowseEndCard />}
       {!from && origin.status !== "pending" && (
         <p className="text-xs text-muted-foreground">Add your ZIP code in your profile to see the nearest shops first.</p>
       )}

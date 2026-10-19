@@ -6,12 +6,19 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { Button } from "@/components/ui/button";
+
+/** The top bar's icon controls, one size and weight: the section "+" and the bell. */
+const TOP_BAR_ICON_CLASS = "h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px]";
 
 /**
  * The phone top bar (owner final decisions, 2026-10-19). Right side, in this
  * order: the section's own "+" (sections only), the NOTIFICATIONS bell, the
  * PROFILE avatar at the far right. Left: the logo on Home, the section title
  * elsewhere. Home has no "+". Messages lives in the bottom nav, not here.
+ * The "+" is a plain icon button the same size and weight as the bell (owner,
+ * 2026-10-19: no longer the loudest thing in the bar; it was a filled olive
+ * circle). Guard: src/test/topBarAddMatchesBell.test.ts.
  *
  * ON THE DESKTOP WEBSITE the app's own header already carries the logo and the
  * bell, and the rail carries Profile, so the bar keeps only the section title
@@ -42,20 +49,24 @@ export function AppTopBar({
       )}
       <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
         {add && (
-          <button
+          // The SAME control as the bell beside it: ghost icon Button, 44px,
+          // 22px glyph (NotificationPanel's triggerClassName below).
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             aria-label={add.label}
             data-testid="section-add"
             onClick={isPost ? gate.gate("post", go) : go}
             {...(isPost ? gate.gatedProps("post") : {})}
-            className="btn-press w-10 h-10 rounded-full btn-grad-primary !text-[hsl(var(--parchment))] flex items-center justify-center"
+            className={TOP_BAR_ICON_CLASS}
           >
-            <Plus className="w-[22px] h-[22px]" strokeWidth={2.4} aria-hidden />
-          </button>
+            <Plus aria-hidden />
+          </Button>
         )}
         {!isWebDesktop && (
         <span data-testid="top-bar-bell">
-          <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
+          <NotificationPanel triggerClassName={`${TOP_BAR_ICON_CLASS} [&>span]:top-0.5 [&>span]:-right-0.5`} />
         </span>
         )}
         {user && !isWebDesktop && (

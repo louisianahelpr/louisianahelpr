@@ -14,6 +14,7 @@ import { fetchBrowseListings, fetchBrowseSaleListings, listingPhotoUrl } from "@
 import { useRefreshOnExpiredRef } from "./useRefreshOnExpiredRef";
 import { availableLine, bedsBathsLine, priceLine, rentLine } from "@/lib/rentals/listingCopy";
 import { dollarsToCents } from "@/lib/rentals/copy";
+import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 
 /**
  * Homes -> Rent: homes for rent (RL1a). Live listings, filtered by FACTS about
@@ -272,6 +273,8 @@ function ListingsBrowse({ kind }: { kind: BrowseKind }) {
           ))}
         </div>
       )}
+      {/* No distance filter in Homes and no listing alerts yet: just the friendly end. */}
+      {!q.isError && q.data && q.data.length > 0 && <BrowseEndCard />}
     </section>
   );
 }

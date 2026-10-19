@@ -1017,6 +1017,8 @@ export const PRESS_SIDE_EFFECT_WRITES = {
   "/rest/v1/error_logs": "the app's own error reporter (src/lib/errorLogger.ts); the sweep reads console errors itself",
   "/rest/v1/rpc/record_job_view": "INSERT job_views ON CONFLICT DO NOTHING when a job's detail opens",
   "/rest/v1/rpc/record_profile_view": "INSERT profile_views (hourly bucket) when a profile opens",
+  "/functions/v1/check-pro-subscription":
+    "the Home dashboard's background Pro-tier revalidation (src/hooks/useDashboardData.ts): it writes profiles only when Stripe's subscription state differs from the column; press-every-control 39225521269 leg 1 aborted it on 4 presses that landed on /home",
 };
 
 /** A storage LIST is a POST that reads (`/object/list/<bucket>`). */

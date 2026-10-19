@@ -162,7 +162,9 @@ describe("the press sweep's network gate aborts every write an ungated press set
     for (const path of Object.keys(safety.PRESS_SIDE_EFFECT_WRITES)) {
       const rpc = /^\/rest\/v1\/rpc\/([a-z0-9_]+)$/.exec(path)?.[1];
       const table = /^\/rest\/v1\/([a-z0-9_]+)$/.exec(path)?.[1];
+      const fn = /^\/functions\/v1\/([a-z0-9-]+)$/.exec(path)?.[1];
       if (rpc) expect(rpcs.has(rpc), `side effect ${path} is called nowhere`).toBe(true);
+      else if (fn) expect(functions.has(fn), `side effect ${path} is invoked nowhere in src/`).toBe(true);
       else if (table === "error_logs") expect(readFileSync(resolve(ROOT, "src/lib/errorLogger.ts"), "utf8")).toMatch(/from\("error_logs"\)\.insert/);
       else expect(table && tables.has(table), `side effect ${path} is written nowhere`).toBe(true);
     }

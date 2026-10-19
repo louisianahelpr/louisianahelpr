@@ -12,7 +12,9 @@
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |           open: (url, target) => window.open(url, target), |           open: () => null,
  * Landlord ID beside the proof (owner 2026-10-19):
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |         <Button size="sm" variant="outline" disabled={decide.isPending} onClick={() => decide.mutate(false)}> |         <Button size="sm" variant="outline" disabled={decide.isPending} onClick={() => decide.mutate(true)}>
- * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |   return [...groups.values()].filter((g) => g.id?.status === "pending_review" \|\| g.properties.length > 0); |   return [...groups.values()].filter((g) => g.properties.length > 0);
+ * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |   const open = [...groups.values()].filter((g) => g.id?.status === "pending_review" \|\| g.properties.length > 0); |   const open = [...groups.values()].filter((g) => g.properties.length > 0);
+ * Take-down history (lead review round 3, must-fix 3):
+ * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |               {g.takenDown.length > 0 && ( |               {false && (
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |         {r.back_path && <OpenFile path={r.back_path} label="Open ID (back)" />} |         {null}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -24,6 +26,7 @@ const state = {
   pending: [] as unknown[] | Error,
   pendingIds: [] as unknown[],
   ownerIds: [] as unknown[],
+  takenDown: [] as unknown[],
 };
 const reviewOwnership = vi.fn(async () => undefined);
 const reviewLandlordId = vi.fn(async () => undefined);
@@ -40,6 +43,7 @@ vi.mock("@/lib/rentals/api", () => ({
   fetchLandlordIds: async (ids: string[]) => (state.ownerIds as { user_id: string }[]).filter((r) => ids.includes(r.user_id)),
   reviewLandlordId: (...args: unknown[]) => reviewLandlordId(...(args as [])),
   signedFileUrl: async () => "https://signed/x",
+  fetchTakenDownProperties: async (ids: string[]) => (state.takenDown as { owner_id: string }[]).filter((p) => ids.includes(p.owner_id)),
 }));
 
 import { RentalsOwnershipCard } from "./RentalsOwnershipCard";
@@ -69,8 +73,17 @@ describe("RentalsOwnershipCard", () => {
     state.pending = [];
     state.pendingIds = [];
     state.ownerIds = [];
+    state.takenDown = [];
     reviewOwnership.mockClear();
     reviewLandlordId.mockClear();
+  });
+
+  it("shows the owner's earlier Homes take-down beside a new proof (Q2187)", async () => {
+    state.pending = [PROPERTY];
+    state.takenDown = [{ ...PROPERTY, id: "p0", label: "Elm house", listings_taken_down_reason: "Fake photos." }];
+    renderCard();
+    expect(await screen.findByText("Earlier take-down:")).toBeTruthy();
+    expect(screen.getByText(/Elm house \(Fake photos\.\)/)).toBeTruthy();
   });
 
   it("renders nothing while the 'rentals' switch is off", () => {

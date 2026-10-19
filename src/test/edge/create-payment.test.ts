@@ -3655,6 +3655,49 @@ describe("create-payment edge function", () => {
         expect(restores[0].args).toEqual({ p_helper_id: HELPER.id, p_job_id: "job-1" });
       });
 
+      // A refused Quick Release is recorded, and the next attempt takes a new
+      // Stripe key, so a retry whose Helpr-fault deduction changed meets no
+      // idempotency error (which reads as money may have moved and sticks the
+      // claim with the deduction never given back). lh-money-escrow re-review of b1730c932 #6.
+      // @mutate supabase/functions/create-payment/index.ts |  return failedAttemptCount > 0 ? `dispute-release-${jobId}-r${failedAttemptCount}` : `dispute-release-${jobId}`; |  return `dispute-release-${jobId}`;
+      // @mutate supabase/functions/create-payment/index.ts |        await recordRefusedQuickRelease(supabaseAdmin, { |        if (Math.random() > 2) await recordRefusedQuickRelease(supabaseAdmin, {
+      it("Quick Release salts its transfer key with the refused attempts before it, and records a refusal", async () => {
+        seedReleasable();
+        const fn = await load();
+        // Attempt 1: no refused attempt yet, the plain key; Stripe refuses.
+        scenario.rpc.take_helpr_fault_fee = 369;
+        stripeMock.transfers.create.mockRejectedValueOnce(Object.assign(new Error("No such destination"), { type: "StripeInvalidRequestError" }));
+        await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }));
+        expect(stripeMock.transfers.create.mock.calls[0][1]).toEqual({ idempotencyKey: "dispute-release-job-1" });
+        const failedRow = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "insert" && (w.payload as Record<string, unknown>).status === "failed");
+        expect(failedRow?.payload).toEqual(expect.objectContaining({ job_id: "job-1", stripe_transfer_id: null, status: "failed" }));
+        // Attempt 2: one refused attempt on the ledger, the debt is now 0, a NEW key.
+        seedReleasable();
+        scenario.reads.payout_transfers = {
+          selectOverrides: [
+            { includes: "failed_at", result: { rows: [{ id: "pt_failed", failed_at: "2026-10-19T00:00:00Z", status: "failed" }] } },
+            { includes: "amount_cents", result: { rows: [{ stripe_transfer_id: "tr_d", amount_cents: 8800, status: "paid" }] } },
+            { includes: "status", result: { rows: [] } },
+          ],
+        };
+        scenario.rpc.take_helpr_fault_fee = 0;
+        const fn2 = await load();
+        const res = await fn2.fetch(fn2.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }));
+        expect(res.status).toBe(200);
+        const last = stripeMock.transfers.create.mock.calls[stripeMock.transfers.create.mock.calls.length - 1];
+        expect(last[1]).toEqual({ idempotencyKey: "dispute-release-job-1-r1" });
+        expect(last[0].amount).toBe(8800);
+      });
+
+      it("Quick Release does not salt its key after a timeout (only a definite refusal is recorded)", async () => {
+        seedReleasable();
+        stripeMock.transfers.create.mockRejectedValueOnce(Object.assign(new Error("timeout"), { type: "StripeConnectionError" }));
+        const fn = await load();
+        await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }));
+        const failedRow = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "insert" && (w.payload as Record<string, unknown>).status === "failed");
+        expect(failedRow).toBeUndefined();
+      });
+
       it("Quick Release leaves the job REVIEWABLE", async () => {
         seedReleasable();
         const fn = await load();

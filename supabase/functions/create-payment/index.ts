@@ -5535,6 +5535,41 @@ async function alreadyResolvedDispute(
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
 }
 
+/** Quick Release's transfer key: salted by the definitely refused attempts before it. */
+function quickReleaseTransferKey(jobId: string, failedAttemptCount: number): string {
+  return failedAttemptCount > 0 ? `dispute-release-${jobId}-r${failedAttemptCount}` : `dispute-release-${jobId}`;
+}
+
+/**
+ * Record a Quick Release transfer Stripe definitely refused, as a 'failed'
+ * payout_transfers row with no transfer id (release-payout's failClaim leaves
+ * the same shape). It is what salts the next attempt's idempotency key. A
+ * failed write is logged loudly: the next attempt then reuses this key, and an
+ * unchanged amount just meets Stripe's cached refusal again (no money moves).
+ */
+async function recordRefusedQuickRelease(
+  supabaseAdmin: any,
+  a: { jobId: string; helperId: string; initiatedByUserId: string | null; stripeAccountId: string | null; amountCents: number; platformFeeCents: number; reason: string; stripeType: string },
+): Promise<void> {
+  const { error } = await supabaseAdmin.from("payout_transfers").insert({
+    job_id: a.jobId,
+    helper_id: a.helperId,
+    stripe_transfer_id: null,
+    stripe_account_id: a.stripeAccountId,
+    amount_cents: a.amountCents,
+    platform_fee_cents: a.platformFeeCents,
+    status: "failed",
+    failed_at: new Date().toISOString(),
+    failure_reason: a.reason.slice(0, 500),
+    initiated_by: "admin",
+    initiated_by_user_id: a.initiatedByUserId,
+    metadata: { source: "admin_release_dispute", refused_attempt: true, stripe_type: a.stripeType },
+  });
+  if (error) {
+    console.error(`CRITICAL: [create-payment] transferToHelper — job ${a.jobId}'s refused transfer could not be recorded (${error.message}); the next Quick Release reuses the same idempotency key.`);
+  }
+}
+
 async function transferToHelper(
   stripe: any,
   supabaseAdmin: any,
@@ -5609,6 +5644,26 @@ async function transferToHelper(
     console.log(`Payout already exists for job ${jobId} (${existingTransfer.stripe_transfer_id}); skipping duplicate transfer.`);
     return;
   }
+
+  // The idempotency key is salted with the count of this job's DEFINITELY
+  // refused attempts (a 'failed' ledger row, written only below on a definite
+  // Stripe refusal, so no transfer exists for any of them), as release-payout
+  // does. Unsalted, a retry whose amount changed (a Helpr-fault debt billed or
+  // given back in between) met Stripe's idempotency error inside 24 h, which
+  // reads as "money may have moved": the claim stuck and the deduction was
+  // never given back (lh-money-escrow re-review of b1730c932 #6). A failed
+  // read fails closed, before any money moves.
+  const { data: failedRows, error: failedRowsErr } = await supabaseAdmin
+    .from("payout_transfers")
+    .select("id, failed_at, status")
+    .eq("job_id", jobId)
+    .eq("helper_id", helperId)
+    .eq("status", "failed");
+  if (failedRowsErr) {
+    console.error(`[create-payment] transferToHelper — failed-attempt count read failed for job ${jobId}:`, failedRowsErr);
+    throw new PublicError("Could not verify payout status — please try again");
+  }
+  const failedAttemptCount = ((failedRows ?? []) as Array<{ status?: string }>).filter((r) => r.status === "failed").length;
 
   // Q2082 (b), owner 2026-10-18 ("J4"): a card fee this Helpr owes from a
   // Helpr-at-fault refund comes out of this payout too (what keeps it at $1 or
@@ -5685,7 +5740,7 @@ async function transferToHelper(
     let transfer;
     try {
       transfer = await stripe.transfers.create(transferParams, {
-        idempotencyKey: `dispute-release-${jobId}`,
+        idempotencyKey: quickReleaseTransferKey(jobId, failedAttemptCount),
       });
     } catch (stripeErr) {
       // Only a DEFINITE refusal proves no transfer exists. A timeout, a dropped
@@ -5704,8 +5759,18 @@ async function transferToHelper(
         "StripeAuthenticationError",
       ].includes(type);
       if (!definite) (stripeErr as { moneyMoved?: boolean }).moneyMoved = true;
-      // A definite refusal sent nothing: the withheld card fee goes back.
-      else await restoreHelprFault();
+      else {
+        // A definite refusal sent nothing: the withheld card fee goes back,
+        // and the attempt is recorded so the next one takes a new key.
+        await restoreHelprFault();
+        await recordRefusedQuickRelease(supabaseAdmin, {
+          jobId, helperId, initiatedByUserId,
+          stripeAccountId: helperProfile.stripe_account_id,
+          amountCents, platformFeeCents: Math.round(platformFeeAmount * 100),
+          reason: String((stripeErr as Error | null)?.message ?? type),
+          stripeType: type,
+        });
+      }
       throw stripeErr;
     }
     console.log(`Transferred $${(amountCents / 100).toFixed(2)} to helper ${helperId} (transfer: ${transfer.id})`);

@@ -9,6 +9,8 @@
 // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |   if (isIdvFeeSession(session)) { |   if (false) {
 // @mutate supabase/functions/stripe-webhook/handlers/settleIdvFee.ts |   if (session.payment_status !== "paid") { |   if (false) {
 // @mutate supabase/functions/stripe-webhook/handlers/settleIdvFee.ts |   if (!verified && !duplicate) return; |   return;
+// @mutate supabase/functions/stripe-webhook/handlers/settleIdvFee.ts |   if (claimErr \|\| !Array.isArray(claimed) \|\| claimed.length === 0) { |   if (claimErr) {
+// @mutate supabase/functions/stripe-webhook/handlers/settleIdvFee.ts |     (o) => o.status !== "paid" \|\| (o.created_at ? Date.parse(o.created_at) : 0) < mine, |     (o) => true,
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -80,6 +82,49 @@ describe("stripe-webhook: paid ID check", () => {
     expect(args.payment_intent).toBe("pi_idv_1");
     expect(args.amount).toBeUndefined();
     expect(opts.idempotencyKey).toBe("idv-fee-refund:pay-9");
+  });
+
+  // lh-money-escrow review of the landlord-idv train, must-fix #1: the surplus row is claimed
+  // (paid -> refunded) BEFORE Stripe is called, so a "start" tap in between cannot run a check
+  // on refunded money; and of two paid rows only the NEWER one is surplus.
+  it("claims the surplus row (paid -> refunded) before calling Stripe", async () => {
+    scenario.writeSelectRows["idv_fee_payments:update"] = [{ id: "pay-9", user_id: "landlord-1" }];
+    scenario.reads.profiles = { rows: [{ idv_status: "verified", stripe_identity_verified: false }] };
+    scenario.reads.idv_fee_payments = { rows: [] };
+    let claimedBeforeRefund = false;
+    stripeMock.refunds.create.mockImplementation(async () => {
+      claimedBeforeRefund = idvWrites().some((w) => w.op === "update" && w.payload.status === "refunded"
+        && w.filters.some((f) => f.op === "eq" && f.column === "status" && f.value === "paid"));
+      return { id: "re_9" };
+    });
+    await deliver({ ...SESSION, id: "cs_idv_10" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(claimedBeforeRefund).toBe(true);
+  });
+
+  it("no refund when the claim finds the row no longer paid (a check started on it)", async () => {
+    scenario.writeSelectRows["idv_fee_payments:update"] = [{ id: "pay-9", user_id: "landlord-1" }];
+    scenario.writeOverrides = [{ table: "idv_fee_payments", op: "update", when: (payload) => payload.status === "refunded", rows: [] }];
+    scenario.reads.profiles = { rows: [{ idv_status: "verified", stripe_identity_verified: false }] };
+    scenario.reads.idv_fee_payments = { rows: [] };
+    const res = await deliver({ ...SESSION, id: "cs_idv_11" });
+    expect(res.status).toBe(200);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+  });
+
+  it("of two paid checks only the newer is refunded", async () => {
+    scenario.writeSelectRows["idv_fee_payments:update"] = [{ id: "pay-new", user_id: "landlord-1", created_at: "2026-10-19T01:00:00Z" }];
+    scenario.reads.profiles = { rows: [{ idv_status: "pending", stripe_identity_verified: false }] };
+    scenario.reads.idv_fee_payments = { rows: [{ id: "pay-old", status: "paid", created_at: "2026-10-19T00:00:00Z" }] };
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_new" });
+    await deliver({ ...SESSION, id: "cs_idv_12" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+
+    resetStripeMock();
+    scenario.writeSelectRows["idv_fee_payments:update"] = [{ id: "pay-old", user_id: "landlord-1", created_at: "2026-10-19T00:00:00Z" }];
+    scenario.reads.idv_fee_payments = { rows: [{ id: "pay-new", status: "paid", created_at: "2026-10-19T01:00:00Z" }] };
+    await deliver({ ...SESSION, id: "cs_idv_13" });
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
   });
 
   it("an unpaid completion (delayed method) unlocks nothing", async () => {

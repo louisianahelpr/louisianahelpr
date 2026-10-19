@@ -21,19 +21,26 @@ export function isIdvFeeSession(session: Stripe.Checkout.Session): boolean {
 /**
  * A payment that buys nothing is given back IN FULL (we never keep money for a
  * check that will not run): the payer is already ID-verified (either verdict),
- * or already holds a paid check (two checkouts paid from two devices). A read
- * that fails keeps the payment as a usable credit and pages; a refund that
- * fails pages too. Never throws: the payment itself is already recorded.
+ * or already holds a check (another row already starting / started, or an
+ * OLDER paid row: of two checkouts paid from two devices only the newer one is
+ * surplus, so two concurrent webhooks never refund both). A read that fails
+ * keeps the payment as a usable credit and pages; a refund that fails pages
+ * too. Never throws: the payment itself is already recorded.
+ *
+ * The row is CLAIMED (paid -> refunded) BEFORE Stripe is called, the same
+ * conditional move stripe-idv-start uses (paid -> starting), so a "start" tap
+ * landing in between can never run a check on money we give back
+ * (lh-money-escrow review of the landlord-idv train, must-fix #1).
  */
 async function refundIfSurplus(
   { stripe, supabase, logStep }: Pick<WebhookContext, "stripe" | "supabase" | "logStep">,
-  row: { id: string; user_id: string },
+  row: { id: string; user_id: string; created_at?: string | null },
   paymentIntentId: string | null,
 ): Promise<void> {
   const [prof, others] = await Promise.all([
     supabase.from("profiles").select("idv_status, stripe_identity_verified").eq("user_id", row.user_id).maybeSingle(),
-    supabase.from("idv_fee_payments").select("id").eq("user_id", row.user_id)
-      .in("status", ["paid", "starting", "session_started"]).neq("id", row.id).limit(1),
+    supabase.from("idv_fee_payments").select("id, status, created_at").eq("user_id", row.user_id)
+      .in("status", ["paid", "starting", "session_started"]).neq("id", row.id),
   ]);
   if (prof.error || others.error) {
     await postSlackOpsAlert({
@@ -47,8 +54,33 @@ async function refundIfSurplus(
   }
   const p = prof.data as { idv_status?: string | null; stripe_identity_verified?: boolean | null } | null;
   const verified = p?.idv_status === "verified" || p?.stripe_identity_verified === true;
-  const duplicate = Array.isArray(others.data) && others.data.length > 0;
+  const mine = row.created_at ? Date.parse(row.created_at) : Number.POSITIVE_INFINITY;
+  const duplicate = Array.isArray(others.data) && (others.data as Array<{ status: string; created_at?: string | null }>).some(
+    (o) => o.status !== "paid" || (o.created_at ? Date.parse(o.created_at) : 0) < mine,
+  );
   if (!verified && !duplicate) return;
+  // Claim first: only a row still 'paid' (nobody started a check on it) is refunded.
+  const { data: claimed, error: claimErr } = await supabase
+    .from("idv_fee_payments")
+    .update({ status: "refunded", updated_at: new Date().toISOString() })
+    .eq("id", row.id)
+    .eq("status", "paid")
+    .select("id");
+  if (claimErr || !Array.isArray(claimed) || claimed.length === 0) {
+    logStep("idv_fee surplus not refunded: the row is no longer paid (a check started on it) or the claim failed", {
+      paymentId: row.id, error: claimErr?.message ?? null,
+    });
+    if (claimErr) {
+      await postSlackOpsAlert({
+        kind: "stripe_webhook_error",
+        severity: "warning",
+        title: "Paid ID check: surplus refund could not be claimed",
+        message: "A surplus ID-check payment could not be marked refunded, so no refund was sent. It stays a usable credit; check it by hand.",
+        fields: { payment_id: row.id, error: String(claimErr.message).slice(0, 200) },
+      });
+    }
+    return;
+  }
   try {
     if (!paymentIntentId) throw new Error("no payment_intent on the session");
     // own-mistake full refund (owner, 2026-10-14): we took a payment for a check they did not need (already verified, or already holding a paid check), so the whole fee goes back.
@@ -56,19 +88,18 @@ async function refundIfSurplus(
       { payment_intent: paymentIntentId, metadata: { kind: "idv_fee_refund", idv_fee_payment_id: row.id, why: verified ? "already_verified" : "duplicate" } },
       { idempotencyKey: `idv-fee-refund:${row.id}` },
     );
-    const { data: done, error: updErr } = await supabase
+    const { error: updErr } = await supabase
       .from("idv_fee_payments")
-      .update({ status: "refunded", stripe_refund_id: refund.id, updated_at: new Date().toISOString() })
+      .update({ stripe_refund_id: refund.id, updated_at: new Date().toISOString() })
       .eq("id", row.id)
-      .eq("status", "paid")
-      .select("id");
-    if (updErr || !Array.isArray(done) || done.length === 0) {
+      .eq("status", "refunded");
+    if (updErr) {
       await postSlackOpsAlert({
         kind: "stripe_webhook_error",
         severity: "warning",
-        title: "ID-check refund not recorded",
-        message: "A surplus ID-check payment was refunded in Stripe but idv_fee_payments did not move to refunded. Set it by hand.",
-        fields: { payment_id: row.id, stripe_refund_id: refund.id, error: String(updErr?.message ?? "0 rows").slice(0, 200) },
+        title: "ID-check refund id not recorded",
+        message: "A surplus ID-check payment was refunded in Stripe and marked refunded, but its stripe_refund_id was not saved. Add it by hand.",
+        fields: { payment_id: row.id, stripe_refund_id: refund.id, error: String(updErr.message).slice(0, 200) },
       });
     }
     logStep("idv_fee surplus refunded in full", { paymentId: row.id, verified, duplicate });
@@ -77,7 +108,7 @@ async function refundIfSurplus(
       kind: "stripe_webhook_error",
       severity: "critical",
       title: "Surplus ID-check payment not refunded",
-      message: `A landlord paid for an ID check they cannot use (${verified ? "already verified" : "already holds a paid check"}) and the automatic full refund failed. Refund it by hand.`,
+      message: `A landlord paid for an ID check they cannot use (${verified ? "already verified" : "already holds a paid check"}). The row is marked refunded but the automatic full refund failed. Refund it in Stripe by hand.`,
       fields: { payment_id: row.id, payment_intent: paymentIntentId ?? "(none)", error: String((err as Error)?.message ?? err).slice(0, 200) },
     });
   }
@@ -101,7 +132,7 @@ export async function settleIdvFee(
     .update({ status: "paid", paid_at: now, stripe_payment_intent_id: paymentIntentId, updated_at: now })
     .eq("stripe_checkout_session_id", session.id)
     .eq("status", "awaiting_payment")
-    .select("id, user_id");
+    .select("id, user_id, created_at");
   if (moveErr) throw new Error(`idv_fee_payments paid update failed: ${moveErr.message}`);
   if (Array.isArray(moved) && moved.length > 0) {
     logStep("idv_fee paid", { sessionId: session.id, paymentId: moved[0].id });
@@ -144,7 +175,7 @@ export async function settleIdvFee(
       status: "paid",
       paid_at: now,
     })
-    .select("id, user_id");
+    .select("id, user_id, created_at");
   // 23505: a concurrent delivery inserted it first, which is the outcome we want.
   if (insErr && (insErr as { code?: string }).code !== "23505") {
     throw new Error(`idv_fee_payments insert failed: ${insErr.message}`);

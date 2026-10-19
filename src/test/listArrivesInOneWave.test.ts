@@ -235,7 +235,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     }
     expect(src).toMatch(/\n {2}if \(!tabsReady\) return <DeclutterHomeSkeleton \/>;/);
     // Browse: one gate for where-you-are AND the items; no half-painted list.
-    expect(src).toMatch(/const listLoading = items\.isLoading \|\| photos\.isLoading \|\| origin\.status === "pending";/);
+    expect(src).toMatch(/const listLoading = items\.isLoading \|\| photos\.isLoading \|\| ratings\.isLoading \|\| origin\.status === "pending";/);
     expect(src).toMatch(/\n {2}if \(listLoading\) return <DeclutterBrowseBones \/>;/);
     expect(src).not.toContain("Loading items…");
   });

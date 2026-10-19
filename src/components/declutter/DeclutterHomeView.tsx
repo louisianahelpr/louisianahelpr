@@ -94,7 +94,7 @@ function ItemCard({ item, photoPath, miles, approximate, rating }: { item: Declu
         {/* Two lines reserved, so every card in a row is one height. */}
         <p data-card-title className="font-semibold text-sm leading-snug line-clamp-2 min-h-[2.75em] break-words" title={item.title}>{item.title}</p>
         <div className="flex items-baseline justify-between gap-2 min-w-0">
-          <p data-card-price className="text-lg font-bold leading-tight tabular-nums truncate">
+          <p data-card-price className="min-w-0 text-lg font-bold leading-tight tabular-nums">
             {formatPrice(item.current_price_cents)}
             {item.current_price_cents < item.price_cents && (
               <span className="ml-1.5 text-xs font-medium text-muted-foreground">

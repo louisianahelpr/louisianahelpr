@@ -844,6 +844,8 @@ export const GAPS: Record<string, string> = {
   // Declutter slice 3/3b (2026-10-14): the offer, buy-now and cart screens (DeclutterTradeViews) are behind the same
   // OFF switch; offer amounts, floor/price bounds and the one-open-offer rule are pinned by declutterSlice3.pglite.mjs.
   "src/components/declutter/DeclutterTradeViews.tsx": "behind the OFF 'declutter' switch (404 on prod); offer/buy-now rules pinned by declutterSlice3.pglite.mjs; FORMS sweep owed at testers",
+  // The offer form moved out of DeclutterTradeViews into DeclutterOfferPanel (reds-1019-18, a pure move); same switch, same pins.
+  "src/components/declutter/DeclutterOfferPanel.tsx": "behind the OFF 'declutter' switch (404 on prod); offer/buy-now rules pinned by declutterSlice3.pglite.mjs; FORMS sweep owed at testers",
   // Declutter wanted posts (2026-10-16): behind the 'declutter' AND 'declutter_wanted' switches; the post form's
   // text (3-60 ASCII, no link or phone, contact-leak scan), whole-dollar price, radius and caps are pinned by
   // src/test/pglite/declutterWantedPriceHint.pglite.mjs and src/lib/declutter/wanted.test.ts. FORMS sweep owed at testers.

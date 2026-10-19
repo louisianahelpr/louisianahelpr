@@ -30,7 +30,7 @@
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql | ownership_review_note, auto_approve_limit_cents, created_at, updated_at)\n  ON TABLE public.rental_properties TO authenticated; | ownership_review_note, auto_approve_limit_cents, created_at, updated_at, ownership_reviewed_by)\n  ON TABLE public.rental_properties TO authenticated;
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql |     '/rentals', false, true); |     '/rentals', false);
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql |   IF p_staff THEN\n    IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN |   IF false THEN\n    IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN
-// @mutate src/lib/rentals/api.ts | ownership_review_note, auto_approve_limit_cents, created_at, updated_at"; | ownership_review_note, auto_approve_limit_cents, created_at, updated_at, ownership_reviewed_by";
+// @mutate src/lib/rentals/api.ts | listings_taken_down_at, listings_taken_down_reason"; | listings_taken_down_at, listings_taken_down_reason, ownership_reviewed_by";
 // @mutate src/lib/rentals/copy.ts |   approved: "Approved by Louisiana Helpr", |   approved: "Owner verified",
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |    WHERE j.id = p_job_id AND j.helper_id = v_uid | WHERE j.id = p_job_id
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |                                   WHERE r.id = p_request_id AND r.visit_proposed_for = p_at) THEN |                                   WHERE r.id = p_request_id) THEN

@@ -116,7 +116,7 @@ async function fetchQueue(): Promise<LandlordGroup[]> {
   const groups = new Map<string, LandlordGroup>();
   for (const r of [...pendingIds, ...ownerIds]) groups.set(r.user_id, { userId: r.user_id, id: r, properties: [], takenDown: [], matches: new Map() });
   for (const p of properties) {
-    const g = groups.get(p.owner_id) ?? { userId: p.owner_id, id: undefined, properties: [], takenDown: [], matches: new Map() };
+    const g: LandlordGroup = groups.get(p.owner_id) ?? { userId: p.owner_id, id: undefined, properties: [], takenDown: [], matches: new Map() };
     g.properties.push(p);
     groups.set(p.owner_id, g);
   }

@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 831,
-    "files": 205,
-    "rendering": 727,
-    "suppressedByPolicy": 104,
+    "calls": 837,
+    "files": 208,
+    "rendering": 730,
+    "suppressedByPolicy": 107,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 46,
-      "toast.error": 613,
+      "toast.error": 616,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 108,
+      "toast.success": 111,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 399,
+      "literal": 402,
       "template": 95,
-      "dynamic": 383,
+      "dynamic": 386,
       "jsx": 0
     }
   },
@@ -3683,7 +3683,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 76,
+      "line": 77,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -3693,7 +3693,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 79,
+      "line": 80,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3702,18 +3702,49 @@
       "renders": true
     },
     {
-      "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
-      "line": 44,
+      "file": "src/components/admin/settings/HomesListingsCard.tsx",
+      "line": 29,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Taken down. The owner was told why."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/settings/HomesListingsCard.tsx",
+      "line": 32,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "msg"
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
       },
       "renders": true
     },
     {
-      "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
-      "line": 64,
+      "file": "src/components/admin/settings/HomesListingsCard.tsx",
+      "line": 59,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Lifted. The owner can publish again."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/settings/HomesListingsCard.tsx",
+      "line": 62,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3734,7 +3765,38 @@
     },
     {
       "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
-      "line": 125,
+      "line": 47,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
+      "line": 67,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
+      "line": 141,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6326,7 +6388,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 145,
+      "line": 176,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6347,7 +6409,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 150,
+      "line": 181,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6367,7 +6429,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 153,
+      "line": 184,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6388,7 +6450,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 159,
+      "line": 190,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6409,7 +6471,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 218,
+      "line": 257,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6419,7 +6481,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 218,
+      "line": 257,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6429,7 +6491,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 254,
+      "line": 293,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6470,7 +6532,17 @@
     },
     {
       "file": "src/components/rentals/listings/ListingEditor.tsx",
-      "line": 155,
+      "line": 121,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/rentals/listings/ListingEditor.tsx",
+      "line": 124,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6490,8 +6562,18 @@
       "renders": true
     },
     {
-      "file": "src/components/rentals/listings/ListingEditor.tsx",
-      "line": 157,
+      "file": "src/components/rentals/listings/SaleListingEditor.tsx",
+      "line": 89,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/rentals/listings/SaleListingEditor.tsx",
+      "line": 92,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6511,12 +6593,54 @@
       "renders": true
     },
     {
-      "file": "src/components/rentals/listings/ListingEditor.tsx",
-      "line": 218,
+      "file": "src/components/rentals/listings/editorParts.tsx",
+      "line": 63,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/listings/editorParts.tsx",
+      "line": 65,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/listings/editorParts.tsx",
+      "line": 127,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
-        "text": "s === \"live\" ? \"Your listing is showing for 30 days.\" : s === \"paused\" ? \"Paused.\" : s === \"leased\" ? \"Marked as rented.\" : \"Listing removed.\"",
+        "text": "s === \"live\" ? \"Your listing is showing for 30 days.\" : s === \"paused\" ? \"Paused.\" : s === \"leased\" ? \"Marked as rented.\" : s === \"sold\" ? \"Marked as sold.\" : \"Listing removed.\"",
         "branches": [
           {
             "form": "literal",
@@ -6524,7 +6648,7 @@
           },
           {
             "form": "dynamic",
-            "text": "s === \"paused\" ? \"Paused.\" : s === \"leased\" ? \"Marked as rented.\" : \"Listing removed.\"",
+            "text": "s === \"paused\" ? \"Paused.\" : s === \"leased\" ? \"Marked as rented.\" : s === \"sold\" ? \"Marked as sold.\" : \"Listing removed.\"",
             "branches": [
               {
                 "form": "literal",
@@ -6532,15 +6656,25 @@
               },
               {
                 "form": "dynamic",
-                "text": "s === \"leased\" ? \"Marked as rented.\" : \"Listing removed.\"",
+                "text": "s === \"leased\" ? \"Marked as rented.\" : s === \"sold\" ? \"Marked as sold.\" : \"Listing removed.\"",
                 "branches": [
                   {
                     "form": "literal",
                     "text": "Marked as rented."
                   },
                   {
-                    "form": "literal",
-                    "text": "Listing removed."
+                    "form": "dynamic",
+                    "text": "s === \"sold\" ? \"Marked as sold.\" : \"Listing removed.\"",
+                    "branches": [
+                      {
+                        "form": "literal",
+                        "text": "Marked as sold."
+                      },
+                      {
+                        "form": "literal",
+                        "text": "Listing removed."
+                      }
+                    ]
                   }
                 ]
               }
@@ -6551,39 +6685,8 @@
       "renders": false
     },
     {
-      "file": "src/components/rentals/listings/ListingEditor.tsx",
-      "line": 221,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "rentalsErrorMessage(e)",
-        "from": "src/lib/rentals/copy.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "err.words"
-          },
-          {
-            "form": "dynamic",
-            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/rentals/listings/ListingEditor.tsx",
-      "line": 265,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Saved."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/rentals/listings/ListingEditor.tsx",
-      "line": 268,
+      "file": "src/components/rentals/listings/editorParts.tsx",
+      "line": 132,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

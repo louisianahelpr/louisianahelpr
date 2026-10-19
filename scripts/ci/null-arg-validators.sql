@@ -78,6 +78,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_slot_in_windows',     'allow',    'TRUE = a 30-minute pickup slot at this time fits one of this seller''s windows: the booking is valid (20261015042253)'),
   ('declutter_handover_photo_access', 'allow',  'TRUE = the caller may write (own folder, paid order) or read (a party or an admin) this declutter-handover object (20261017055502)'),
   ('shop_handover_photo_access',    'allow',    'TRUE = the caller may write (the shop, own folder, charged accepted order) or read (a party or an admin) this shop-handover object (20261018211820)'),
+  ('rentals_public_listing_visible','allow',    'may anyone with the link see this Homes listing (visible, Homes open to everyone, not a test or seed owner; 20261019062540)'),
   ('declutter_refund_set_mode',     'action',   'VOLATILE: records a Declutter refund''s Stripe mode once and returns it (service only; 20261015042253)'),
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
   ('declutter_set_porch_ok',        'action',   'VOLATILE: the seller sets porch pickup on their own draft and gets the stored value back; a NULL choice raises invalid_porch_choice (row 101; 20261017055504)'),
@@ -210,6 +211,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('declutter_handover_photo_access', '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/declutter/handover/00000000-0000-4000-8140-000000000401/x.jpg''', 'false'], ARRAY[1,2]),
   -- D is an admin, so reading a well-formed shop-handover path is TRUE for D (no order row needed).
   ('shop_handover_photo_access',    '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/shops/handover/00000000-0000-4000-8140-000000000401/x.jpg''', 'false'], ARRAY[1,2]),
+  -- D's listing L (live; the 'rentals' step opens Homes to everyone; D is no test or seed account), so TRUE for anyone.
+  ('rentals_public_listing_visible', NULL, ARRAY['''00000000-0000-4000-8140-000000000304''::uuid'], ARRAY[1]),
   -- Slice 5 (the 'delivery' fixture step): O is B's paid delivery order from seller A, whose windows cover
   -- every day 09:00-18:00 Louisiana time, so tomorrow 10:00 there is a valid pickup time.
   ('declutter_delivery_slot_ok',    NULL, ARRAY['''00000000-0000-4000-8140-000000000501''::uuid', '((((now() AT TIME ZONE ''America/Chicago'')::date + 1) + time ''10:00'') AT TIME ZONE ''America/Chicago'')'], ARRAY[1,2]),
@@ -344,6 +347,11 @@ BEGIN
                    VALUES ('00000000-0000-4000-8140-000000000304', '00000000-0000-4000-8140-000000000302',
                            '00000000-0000-4000-8140-000000000301', '00000000-0000-4000-8140-00000000000d', 'live',
                            'q140 listing', 100000, 1, 1, current_date, now(), now() + interval '30 days')$q$;
+        END IF;
+        -- Homes public link (20261019062540): visible to anyone only once Homes is open to everyone.
+        IF to_regclass('public.feature_switches') IS NOT NULL THEN
+          EXECUTE $q$INSERT INTO public.feature_switches (key, audience, description) VALUES ('rentals', 'everyone', 'q140 Homes')
+                   ON CONFLICT (key) DO UPDATE SET audience = 'everyone'$q$;
         END IF;
       WHEN 'bucket' THEN
         INSERT INTO storage.buckets (id, name) VALUES ('user-documents', 'user-documents') ON CONFLICT (id) DO NOTHING;

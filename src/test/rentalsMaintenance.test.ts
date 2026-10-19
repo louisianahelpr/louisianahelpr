@@ -40,11 +40,11 @@
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |   IF p_at <= now() THEN |   IF false THEN
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |   IF v_last IS NULL OR v_was_ok OR v_other_job OR | IF v_last IS NULL OR
 // @mutate supabase/migrations/20261019044500_rentals_ownership_alert_homes_words.sql |          AND NOT public.notification_crosses_seed_boundary(ur.user_id, NULL, NULL, v_uid); |          ;
-// @mutate supabase/migrations/20261017223352_rentals_ownership_review_alert.sql |                     WHERE rp.ownership_status = 'pending_review' AND p.is_seed IS NOT TRUE); |                     WHERE rp.ownership_status = 'pending_review');
+// @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql |                     WHERE rp.ownership_status = 'pending_review' AND p.is_seed IS NOT TRUE); |                     WHERE rp.ownership_status = 'pending_review');
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                        AND (cur.stripe_session_id IS NULL OR cur.payment_status = 'abandoned'))) |                        )) 
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                    OR (cur.status = 'cancelled' |                    OR (true
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |     AND COALESCE(j.payment_status, 'unpaid') IN ('unpaid', 'failed', 'abandoned')\n     AND (j.stripe_session_id IS NULL OR j.payment_status = 'abandoned')\n   FOR UPDATE; |     FOR UPDATE;
-// @mutate supabase/migrations/20261019043000_rentals_listings.sql |     IF v_photos < 5 THEN |     IF v_photos < 0 THEN
+// @mutate supabase/migrations/20261019061019_rentals_listing_identity_helper.sql |     IF v_photos < 5 THEN |     IF v_photos < 0 THEN
 // @mutate supabase/migrations/20261019043000_rentals_listings.sql | REVOKE ALL ON FUNCTION public.rentals_listing_visible(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.rentals_listing_visible(uuid) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261019043000_rentals_listings.sql |          rp.city, rp.zip_code,\n         ARRAY(SELECT ph.storage_path FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5), |          rp.street_address, rp.zip_code,\n         ARRAY(SELECT ph.storage_path FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5),
 import { describe, expect, it } from "vitest";

@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 import {
   ACCESSIBILITY_LABEL,
   PARKING_LABEL,
@@ -24,7 +25,16 @@ import {
   rentLine,
 } from "@/lib/rentals/listingCopy";
 
-const SQL = blankSqlComments(readFileSync(join(process.cwd(), "supabase/migrations/20261019043000_rentals_listings.sql"), "utf8"));
+/** The newest migration that creates public.rental_listings (its CHECKs are the inventory), found by
+ *  content rather than pinned by name: a later migration restating the listing RPCs does not move it. */
+const MIG_DIR = join(process.cwd(), "supabase/migrations");
+const SQL =
+  readdirSync(MIG_DIR)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .map((f) => blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8")))
+    .filter((s) => /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?public\.rental_listings\s*\(/i.test(s))
+    .pop() ?? "";
 
 /** The quoted values of a CHECK on `col` (IN (...) or ARRAY[...]). */
 function checkValues(col: string): string[] {

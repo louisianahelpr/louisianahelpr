@@ -29,11 +29,11 @@
  * @mutate src/components/rentals/RentalsHomeView.tsx |           <HomesBrowse />\n |           {null}\n
  * @mutate src/components/rentals/listings/RentBrowse.tsx |       to={`/rentals/listings/${l.id}`} |       to="/rentals"
  * Landlord ID by admin review (owner 2026-10-19, replacing the paid Stripe check):
- * @mutate src/components/rentals/LandlordIdReview.tsx |       if (needsId && front) await submitLandlordId(uid, front, back); |       if (needsId && front) await submitLandlordId(uid, front, null);
+ * @mutate src/components/rentals/LandlordIdReview.tsx |         await submitLandlordId(uid, front, back); |         await submitLandlordId(uid, front, null);
  * @mutate src/components/rentals/LandlordIdReview.tsx |   const ready = (!needsId \|\| front !== null) && (!needsProof \|\| proof !== null); |   const ready = !needsProof \|\| proof !== null;
  * @mutate src/components/rentals/LandlordIdReview.tsx |           {id.reviewNote && <p className="text-muted-foreground">Reason: {id.reviewNote}</p>} |           {null}
  * @mutate src/components/rentals/LandlordIdReview.tsx | => !!id && !id.verified && id.idStatus !== "pending_review"; | => !!id && id.idStatus !== "pending_review" && id.idStatus !== "approved";
- * @mutate src/components/rentals/LandlordIdReview.tsx |         toast.error(`Your ID was sent for review. The ownership proof didn't go through: ${words}`); |         toast.error(words);
+ * @mutate src/components/rentals/LandlordIdReview.tsx |         toast.error(`${words} Your ID was sent for review; only the ownership proof didn't go through.`); |         toast.error(words);
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -376,7 +376,7 @@ describe("Rentals screens", () => {
       fireEvent.change(screen.getByLabelText(/Photo of your ID, front/), { target: { files: [file("front.jpg")] } });
       fireEvent.change(screen.getByLabelText(/Ownership proof/), { target: { files: [file("deed.pdf", "application/pdf")] } });
       fireEvent.click(send);
-      await waitFor(() => expect(toastError).toHaveBeenCalledWith("Your ID was sent for review. The ownership proof didn't go through: That file didn't upload. Try adding it again."));
+      await waitFor(() => expect(toastError).toHaveBeenCalledWith("That file didn't upload. Try adding it again. Your ID was sent for review; only the ownership proof didn't go through."));
       toastError.mockRestore();
     });
 

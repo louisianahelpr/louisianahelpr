@@ -29,6 +29,8 @@ import {
   fetchMyItems,
   fetchPhotos,
   fetchSellerRatings,
+  fetchWatching,
+  setWatch,
   withdrawItem,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -117,6 +119,14 @@ function BrowseView({ userId }: { userId: string }) {
     queryFn: () => fetchSellerRatings(sellers),
     enabled: sellers.length > 0,
   });
+  // The hearts on the cards: the same watchlist read and write as the item page's heart (row 46).
+  const qc = useQueryClient();
+  const watching = useQuery({ queryKey: ["declutter", "watching", userId], queryFn: () => fetchWatching(userId) });
+  const toggleWatch = useMutation({
+    mutationFn: ({ id, on }: { id: string; on: boolean }) => setWatch(id, on),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["declutter", "watching"] }),
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
   const [query, setQuery] = useState("");
   // One category at a time from the tiles; null = every category.
   const [category, setCategory] = useState<string | null>(null);
@@ -128,7 +138,7 @@ function BrowseView({ userId }: { userId: string }) {
   // paint instead of the list first and its photos in a second wave
   // (oneLoadingGatePerScreen.test.ts). The photos query is disabled (never
   // loading) when there is nothing to show.
-  const listLoading = items.isLoading || photos.isLoading || ratings.isLoading || origin.status === "pending";
+  const listLoading = items.isLoading || photos.isLoading || ratings.isLoading || watching.isLoading || origin.status === "pending";
   // Offline with nothing loaded is never "Nothing for sale yet" (Q571).
   const itemsPhase = useFeedPhase(items);
 
@@ -164,7 +174,13 @@ function BrowseView({ userId }: { userId: string }) {
         <ul className={DECLUTTER_GRID}>
           {rows.map(({ item, miles }) => (
             <li key={item.id} className="min-w-0">
-              <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate} rating={ratings.data?.get(item.seller_id)} />
+              <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate} rating={ratings.data?.get(item.seller_id)}
+                save={{
+                  on: watching.data?.has(item.id) ?? false,
+                  toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }),
+                  pending: toggleWatch.isPending && toggleWatch.variables?.id === item.id,
+                }}
+              />
             </li>
           ))}
         </ul>

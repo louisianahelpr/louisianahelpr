@@ -20,7 +20,7 @@ import { blankComments } from "./helpers/blankNonCode";
 
 // Built from parts on purpose: a literal "min-" or "max-" glued to a bracketed
 // interpolation in ANY scanned file poisons Tailwind's whole arbitrary-variant
-// family (src/test/arbitraryWidthVariantsCompile.test.ts; 47 of 63 rules lost).
+// family (src/test/arbitraryWidthVariantsCompile.test.ts; measured 2026-10-19: 47 of 63 rules lost).
 const variant = (edge: "min" | "max", px: number, util: string) => [edge, "-", "[", String(px), "px]:", util].join("");
 
 const code = (p: string) => blankComments(readFileSync(join(process.cwd(), p), "utf8"));

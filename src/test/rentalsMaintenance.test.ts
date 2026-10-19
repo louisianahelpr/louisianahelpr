@@ -101,7 +101,7 @@ const LISTING_INTERNAL = ["rentals_listing_wording_flags", "rentals_lock_own_lis
 const VISIT_RPCS = ["rentals_propose_visit", "rentals_confirm_visit", "rentals_cancel_request_job"];
 /** Shared helpers this migration restates with their live grants (authenticated keeps EXECUTE). */
 const SHARED_RESTATED = ["is_submitted_credential_object"];
-const POLICY_HELPERS = ["rentals_caller_is_active_tenant_of", "rentals_listing_photo_access"];
+const POLICY_HELPERS = ["rentals_caller_is_active_tenant_of", "rentals_listing_photo_access", "rentals_listing_photo_attached"];
 /** Never switch-gated by design (20261019062540): the public link (anyone with it, signed out too; it checks the
  *  switch audience itself) and the admin take-down (moderation works whatever the audience). */
 const UNGATED = ["rentals_public_listing", "rentals_admin_remove_listing", "rentals_admin_lift_takedown", "rentals_admin_listings",

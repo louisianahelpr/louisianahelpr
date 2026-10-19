@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import AppPage from "@/components/AppPage";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchListing, listingPhotoUrl } from "@/lib/rentals/listings";
+import { useRefreshOnExpiredRef } from "./useRefreshOnExpiredRef";
 import {
   ACCESSIBILITY_LABEL,
   ASSISTANCE_ANIMALS_LINE,
@@ -65,8 +66,9 @@ function Fact({ label, value }: { label: string; value: string }) {
  * yet) shows the same frame with a house mark, so the page never starts with
  * a hole.
  */
-function Gallery({ refs }: { refs: string[] }) {
+function Gallery({ refs, listingId }: { refs: string[]; listingId: string }) {
   const [at, setAt] = useState(0);
+  const refresh = useRefreshOnExpiredRef([["rentals-listing", listingId]]);
   if (refs.length === 0) {
     return (
       <div className="flex aspect-[16/10] w-full items-center justify-center rounded-2xl bg-muted text-muted-foreground" aria-hidden>
@@ -89,6 +91,7 @@ function Gallery({ refs }: { refs: string[] }) {
           <img
             key={p}
             src={listingPhotoUrl(p, 1200)}
+            onError={() => refresh(p)}
             alt={`Photo ${i + 1} of ${refs.length}`}
             className="aspect-[16/10] w-full shrink-0 snap-center bg-muted object-cover"
             loading={i === 0 ? "eager" : "lazy"}
@@ -131,7 +134,7 @@ export default function ListingView() {
   return (
     <AppPage title={sale ? "Home for sale" : "Home for rent"} backTo={sale ? "/rentals?kind=buy" : "/rentals"}>
       <div className="max-w-3xl space-y-6">
-        <Gallery refs={l.photo_refs} />
+        <Gallery refs={l.photo_refs} listingId={l.id} />
         {l.is_mine && (
           <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted px-4 py-3 text-ds-14">
             <span>Your listing: {listingStatusLabel(l.status, l.expires_at)}</span>

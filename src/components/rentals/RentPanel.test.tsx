@@ -5,10 +5,13 @@
  *
  * @mutate src/components/rentals/RentPanel.tsx |       return addRentPayment(tenancyId, cents, paidOn, method); |       return addRentPayment(tenancyId, 0, paidOn, method);
  * @mutate src/components/rentals/RentPanel.tsx |     mutationFn: (received: boolean) => decideRentPayment(p.id, received, received ? undefined : reason.trim()), |     mutationFn: (received: boolean) => decideRentPayment(p.id, true, undefined),
- * @mutate src/components/rentals/RentPanel.tsx |             {p.status === "confirmed" && ( |             {p.status !== "declined" && (
- * @mutate src/components/rentals/RentPanel.tsx |             {l.side === "landlord" && !c.waived && ( |             {!c.waived && (
+ * @mutate src/components/rentals/RentPanel.tsx |           {p.status === "confirmed" && ( |           {p.status !== "declined" && (
+ * @mutate src/components/rentals/RentPanel.tsx |             {l.side === "landlord" && l.open && !c.waived && ( |             {!c.waived && (
  * @mutate src/components/rentals/RentPanel.tsx |       {warning && ( |       {false && (
- * @mutate src/components/rentals/RentPanel.tsx |       {l.side === "landlord" && (editing \|\| !l.plan) && <PlanForm |       {(editing \|\| !l.plan) && <PlanForm
+ * @mutate src/components/rentals/RentPanel.tsx |       {l.side === "landlord" && l.tenancy_status === "active" && (editing \|\| !l.plan) && ( |       {(editing \|\| !l.plan) && (
+ * @mutate src/components/rentals/RentPanel.tsx |   const mayFix = l.open && l.side === "landlord" && p.correctable_until != null; |   const mayFix = l.side === "landlord";
+ * @mutate src/components/rentals/RentPanel.tsx |   const mayDispute = l.open && l.side === "tenant" && canDispute(p); |   const mayDispute = l.side === "tenant";
+ * @mutate src/components/rentals/RentPanel.tsx |         {l.plan && l.open && !paying && ( |         {l.plan && !paying && (
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -20,6 +23,8 @@ const setRentPlan = vi.fn(async (..._a: unknown[]) => undefined);
 const addRentPayment = vi.fn(async (..._a: unknown[]) => "pay1");
 const decideRentPayment = vi.fn(async (..._a: unknown[]) => undefined);
 const waiveRentCharge = vi.fn(async (..._a: unknown[]) => undefined);
+const correctRentPayment = vi.fn(async (..._a: unknown[]) => undefined);
+const disputeRentPayment = vi.fn(async (..._a: unknown[]) => undefined);
 const saveRentReceipt = vi.fn(async (..._a: unknown[]) => undefined);
 
 vi.mock("@/lib/rentals/rent", async (orig) => ({
@@ -32,14 +37,21 @@ vi.mock("@/lib/rentals/rent", async (orig) => ({
   addRentPayment: (...a: unknown[]) => addRentPayment(...a),
   decideRentPayment: (...a: unknown[]) => decideRentPayment(...a),
   waiveRentCharge: (...a: unknown[]) => waiveRentCharge(...a),
+  correctRentPayment: (...a: unknown[]) => correctRentPayment(...a),
+  disputeRentPayment: (...a: unknown[]) => disputeRentPayment(...a),
 }));
 vi.mock("@/lib/rentals/rentReceipt", () => ({ saveRentReceipt: (...a: unknown[]) => saveRentReceipt(...a) }));
 
 import { RentPanel } from "./RentPanel";
 
 const PLAN = { amount_cents: 120000, frequency: "monthly" as const, first_due_on: "2026-10-01", grace_days: 3, late_fee_cents: 5000, pay_methods: ["zelle" as const, "check" as const], next_due_on: "2026-11-01" };
+const PAY = { corrections: [], correctable_until: null, disputed_at: null, dispute_reason: null };
 const L = (o: Partial<RentLedger> = {}): RentLedger => ({
   side: "tenant",
+  tenancy_status: "active",
+  lease_ends_on: null,
+  open: true,
+  open_until: null,
   home: { label: "Oak house", unit_label: "Main", city: "Lafayette", zip_code: "70501" },
   plan: PLAN,
   balance_cents: 120000,
@@ -86,8 +98,8 @@ describe("RentPanel (D2 pay direct)", () => {
   it("tenant: a waiting payment is named; a declined one shows why; no waive control", async () => {
     state.ledger = L({
       payments: [
-        { id: "p1", amount_cents: 50000, paid_on: "2026-10-02", method: "zelle", reported_by: "tenant", status: "reported", decline_reason: null, decided_at: null },
-        { id: "p2", amount_cents: 70000, paid_on: "2026-10-03", method: "check", reported_by: "tenant", status: "declined", decline_reason: "The check bounced.", decided_at: "2026-10-04T15:00:00Z" },
+        { id: "p1", amount_cents: 50000, paid_on: "2026-10-02", method: "zelle", reported_by: "tenant", status: "reported", decline_reason: null, decided_at: null, ...PAY },
+        { id: "p2", amount_cents: 70000, paid_on: "2026-10-03", method: "check", reported_by: "tenant", status: "declined", decline_reason: "The check bounced.", decided_at: "2026-10-04T15:00:00Z", ...PAY },
       ],
     });
     renderPanel();
@@ -95,13 +107,15 @@ describe("RentPanel (D2 pay direct)", () => {
     expect(screen.getByText("Not received: The check bounced.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Waive/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Rent received" })).toBeNull();
+    // a waiting payment cannot be disputed (only one turned down, taken back or changed); the declined one can
+    expect(screen.getAllByRole("button", { name: "Dispute" })).toHaveLength(1);
   });
 
   it("R5: a receipt for each CONFIRMED payment only, naming the home and the amount", async () => {
     state.ledger = L({
       payments: [
-        { id: "abcdef12-0000-0000-0000-000000000000", amount_cents: 120000, paid_on: "2026-10-01", method: "zelle", reported_by: "tenant", status: "confirmed", decline_reason: null, decided_at: "2026-10-01T18:00:00Z" },
-        { id: "p2", amount_cents: 10000, paid_on: "2026-10-03", method: "cash", reported_by: "tenant", status: "reported", decline_reason: null, decided_at: null },
+        { id: "abcdef12-0000-0000-0000-000000000000", amount_cents: 120000, paid_on: "2026-10-01", method: "zelle", reported_by: "tenant", status: "confirmed", decline_reason: null, decided_at: "2026-10-01T18:00:00Z", ...PAY },
+        { id: "p2", amount_cents: 10000, paid_on: "2026-10-03", method: "cash", reported_by: "tenant", status: "reported", decline_reason: null, decided_at: null, ...PAY },
       ],
     });
     renderPanel();
@@ -133,14 +147,14 @@ describe("RentPanel (D2 pay direct)", () => {
     fireEvent.click(within(form).getByLabelText("Cash"));
     fireEvent.click(save);
     await waitFor(() =>
-      expect(setRentPlan).toHaveBeenCalledWith("t1", { amount_cents: 100000, frequency: "biweekly", first_due_on: "2099-01-05", grace_days: 2, late_fee_cents: 15000, pay_methods: ["zelle", "cash"] }),
+      expect(setRentPlan).toHaveBeenCalledWith("t1", { amount_cents: 100000, frequency: "biweekly", first_due_on: "2099-01-05", grace_days: 2, late_fee_cents: 15000, pay_methods: ["zelle", "cash"], lease_ends_on: null }),
     );
   });
 
   it("landlord: Rent received confirms; Not received needs a reason the tenant sees", async () => {
     state.ledger = L({
       side: "landlord",
-      payments: [{ id: "p1", amount_cents: 50000, paid_on: "2026-10-02", method: "zelle", reported_by: "tenant", status: "reported", decline_reason: null, decided_at: null }],
+      payments: [{ id: "p1", amount_cents: 50000, paid_on: "2026-10-02", method: "zelle", reported_by: "tenant", status: "reported", decline_reason: null, decided_at: null, ...PAY }],
     });
     renderPanel();
     expect(await screen.findByText("Owed to you: $1,200.00")).toBeTruthy();
@@ -152,6 +166,8 @@ describe("RentPanel (D2 pay direct)", () => {
     fireEvent.change(screen.getByLabelText("Why it wasn't received"), { target: { value: "Nothing arrived." } });
     fireEvent.click(send);
     await waitFor(() => expect(decideRentPayment).toHaveBeenLastCalledWith("p1", false, "Nothing arrived."));
+    // a payment still waiting (not received) has nothing to fix
+    expect(screen.queryByRole("button", { name: "Fix" })).toBeNull();
   });
 
   it("landlord: records a payment and waives a charge (kept on the record)", async () => {
@@ -164,6 +180,51 @@ describe("RentPanel (D2 pay direct)", () => {
     await waitFor(() => expect(addRentPayment).toHaveBeenCalledWith("t1", 120000, expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), "zelle"));
     fireEvent.click(screen.getByRole("button", { name: "Waive rent due Oct 1, 2026" }));
     await waitFor(() => expect(waiveRentCharge).toHaveBeenCalledWith("c1"));
+  });
+
+  it("lead review #7: the landlord fixes or takes back a received payment with a reason; the tenant disputes one", async () => {
+    const recent = new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString();
+    const until = new Date(Date.now() + 28 * 24 * 3600 * 1000).toISOString();
+    state.ledger = L({
+      side: "landlord",
+      payments: [{ id: "p9", amount_cents: 40000, paid_on: "2026-10-02", method: "zelle", reported_by: "tenant", status: "confirmed", decline_reason: null, decided_at: recent, ...PAY, correctable_until: until }],
+    });
+    const { unmount } = renderPanel();
+    fireEvent.click(await screen.findByText("History and receipts"));
+    fireEvent.click(screen.getByRole("button", { name: "Fix" }));
+    fireEvent.change(screen.getByLabelText("Correct amount in dollars"), { target: { value: "300" } });
+    const save = screen.getByRole("button", { name: "Save correction" }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Why it changes"), { target: { value: "It was $300." } });
+    fireEvent.click(save);
+    await waitFor(() => expect(correctRentPayment).toHaveBeenCalledWith("p9", { action: "edit", amountCents: 30000, paidOn: "2026-10-02" }, "It was $300."));
+    unmount();
+    state.ledger = L({
+      side: "tenant",
+      payments: [{ id: "p9", amount_cents: 40000, paid_on: "2026-10-02", method: "zelle", reported_by: "tenant", status: "reversed", decline_reason: null, decided_at: recent, ...PAY,
+        corrections: [{ at: recent, action: "reverse", reason: "Transfer returned.", from: { amount_cents: 40000, paid_on: "2026-10-02" } }] }],
+    });
+    renderPanel();
+    fireEvent.click(await screen.findByText("History and receipts"));
+    expect(screen.getByText("Taken back by the landlord: Transfer returned.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Fix" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Dispute" }));
+    fireEvent.change(screen.getByLabelText("Why you dispute it"), { target: { value: "My bank shows it went through." } });
+    fireEvent.click(screen.getByRole("button", { name: "Send dispute" }));
+    await waitFor(() => expect(disputeRentPayment).toHaveBeenCalledWith("p9", "My bank shows it went through."));
+  });
+
+  it("lead review #3: an ended tenancy stays open until a date, then is read-only (no I paid, no schedule)", async () => {
+    state.ledger = L({ tenancy_status: "ended", open: true, open_until: "2027-01-10" });
+    const { unmount } = renderPanel();
+    expect(await screen.findByText(/You can both still record, confirm and dispute payments until Jan 10, 2027/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "I paid" })).toBeTruthy();
+    unmount();
+    state.ledger = L({ side: "landlord", tenancy_status: "ended", open: false });
+    renderPanel();
+    expect(await screen.findByText("This tenancy ended. The rent record is kept, read-only.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Record a payment" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Change schedule" })).toBeNull();
   });
 
   it("a failed load says so", async () => {

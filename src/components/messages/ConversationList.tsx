@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { navIconFor } from "@/components/mobileNav/mobileNavHelpers";
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { coerceInboxView, defaultInboxTab, INBOX_TAB_LABEL, INBOX_TAB_ORDER, UNFILTERED_INBOX_TAB } from "@/lib/inboxDefault";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { CheckSquare, ChevronDown, Menu, MessageSquare, Pin, Search, Trash2, X } from "lucide-react";
+import { CheckSquare, ChevronDown, Menu, MessageSquare, Pin, Search, Trash2, X, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -97,6 +97,13 @@ interface ConversationListProps {
   /** Bumped by the parent after a batch archive resolves — clears the
    *  in-list selection and exits select mode. */
   resetSelectionNonce?: number;
+  /** Messages' section tabs (Jobs | Declutter | Shops | Homes), drawn under
+   *  the title on every width. Absent renders no strip. */
+  sectionTabs?: ReactNode;
+  /** Set on a section tab whose conversations do not exist yet: replaces the
+   *  Jobs empty state and drops the Active / All filter (it filters job
+   *  states, which that tab has none of). */
+  sectionEmpty?: { icon: LucideIcon; title: string; body: string; action?: { label: string; to: string } } | null;
 }
 
 // Sort comparator (descending by lastAt) — pulled out so the pinned /
@@ -232,6 +239,8 @@ export function ConversationList({
   activeKey = null,
   onBatchArchive,
   resetSelectionNonce = 0,
+  sectionTabs,
+  sectionEmpty = null,
 }: ConversationListProps) {
   const navigate = useNavigate();
   /* Same gate Activity uses (Activity.tsx:410). On the desktop WEBSITE the
@@ -913,7 +922,7 @@ export function ConversationList({
      ruling, see the note on `hasThreads`. Still conditional on the desktop
      website, because on a phone this slot has no room for anything at all
      (the widths are measured in the note above). */
-  const headerMeta = isWebDesktop ? <div id={INBOX_TABS_ID}>{inboxTabs}</div> : undefined;
+  const headerMeta = isWebDesktop && !sectionEmpty ? <div id={INBOX_TABS_ID}>{inboxTabs}</div> : undefined;
 
   /* The trailing icon cluster.
      Search · hamburger · chevron, in that order (owner, 2026-09-14, VN-35:
@@ -1080,7 +1089,8 @@ export function ConversationList({
       {!isWebDesktop && searchOpen && (
         <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch" />
       )}
-      {!isWebDesktop && !searchOpen && (
+      {/* No Active / All on a section tab with no conversations yet (sectionEmpty). */}
+      {!isWebDesktop && !searchOpen && !sectionEmpty && (
         <button
           type="button"
           onClick={() => { hapticLight(); setTabsOpenPhone((v) => !v); }}
@@ -1235,7 +1245,16 @@ export function ConversationList({
               outcomes is what makes the empty inbox's thread area start at the
               same y as the populated one's (127 either way, measured; it used
               to be 83 against 127). */}
-          {!isWebDesktop && tabsOpen && !searchOpen && !selectMode && (
+          {/* THE SECTION TABS (owner, 2026-10-19: "Messages: one screen with
+              section tabs, never mixed"). First under the title, on every
+              width, and stepped aside while search or select mode has the row,
+              like the filter strip below. */}
+          {sectionTabs && !searchOpen && !selectMode && (
+            <div className="shrink-0 pt-1 pb-1.5" data-testid="messages-section-tabs">
+              {sectionTabs}
+            </div>
+          )}
+          {!isWebDesktop && tabsOpen && !sectionEmpty && !searchOpen && !selectMode && (
             /* `-mx-1 px-1 pb-0.5` are PostsHeader's / JobsHeader's exact classes, so this
                card matches My Posts / My Jobs. The negative margin keeps the
                tabs' focus rings inside the scroller rather than clipped by it;
@@ -1289,6 +1308,21 @@ export function ConversationList({
               canTrigger={canTrigger}
               className="flex-1 min-h-0 flex flex-col"
             >
+              {sectionEmpty ? (
+                <EmptyState
+                  icon={sectionEmpty.icon}
+                  title={sectionEmpty.title}
+                  body={sectionEmpty.body}
+                  bodyLines={MAIN_TAB_EMPTY_BODY_LINES}
+                  action={
+                    sectionEmpty.action ? (
+                      <BarkPillButton onClick={() => navigate(sectionEmpty.action!.to)}>
+                        {sectionEmpty.action.label}
+                      </BarkPillButton>
+                    ) : undefined
+                  }
+                />
+              ) : (
               <EmptyState
                 // The same circle-and-icon as My Posts / My Jobs (owner, 2026-10-08,
                 // Q1558: "nearly identical"); the icon is the Messages tab's own.
@@ -1297,11 +1331,13 @@ export function ConversationList({
                 body="Apply to a job or accept a Helpr's offer — conversations appear here once they start."
                 bodyLines={MAIN_TAB_EMPTY_BODY_LINES}
                 action={
-                  <BarkPillButton onClick={() => navigate("/home")}>
+                  // Jobs > Browse: /home is the dashboard now, not the feed.
+                  <BarkPillButton onClick={() => navigate("/jobs")}>
                     Browse Jobs
                   </BarkPillButton>
                 }
               />
+              )}
             </PullToRefreshWrapper>
           ) : (
           <PullToRefreshWrapper

@@ -143,14 +143,15 @@ export const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-pass
 // Map each tab root to sub-routes that belong to its stack.
 // Tapping the tab while inside one of these returns the user to the tab root.
 export const tabStacks: Record<string, string[]> = {
-  "/home": ["/jobs/"],
+  // /jobs/<id> and /jobs/settings belong to Jobs since the feed moved to Jobs > Browse (2026-10-19); they lit Home.
+  "/home": [],
   // NOTE: /post-job is deliberately NOT in this stack. Posting is reached from
   // the floating "+" FAB, not from the Posts tab, so lighting Posts up while
   // the user is mid-post claimed they were somewhere they hadn't navigated to —
   // and it competed with the FAB, which is the control they actually pressed.
   // The tab highlights for the Posts LIST only.
   "/posts": [],
-  "/jobs": [],
+  "/jobs": ["/jobs/"],
   "/messages": [],
   "/profile": ["/support", "/user", "/admin", "/declutter", "/shops", "/rentals"],
 };

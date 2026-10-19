@@ -22,6 +22,7 @@
  * @mutate src/components/sections/StatusBoxes.tsx |           if (p.get("status") === k) p.delete("status"); |           if (false) p.delete("status");
  * @mutate src/components/sections/useSectionPrefs.ts |   const visible = prefs.order.filter((k) => !prefs.hidden.includes(k)) |   const visible = prefs.order.filter(() => true)
  * @mutate src/components/sections/useSectionPrefs.ts |       if (hidden.length >= ALL.length) return false; |       if (hidden.length > ALL.length) return false;
+ * @mutate src/components/mobileNav/mobileNavHelpers.ts |   "/jobs": ["/jobs/"], |   "/jobs": [],
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
@@ -123,6 +124,12 @@ describe("the bottom nav", () => {
     expect(labels.some((l) => /post a|^\+$|new job/i.test(l ?? ""))).toBe(false);
     const msgs = screen.getByRole("button", { name: "Messages" });
     expect(msgs.textContent).toContain("3");
+  });
+
+  it.each(["/jobs/settings", "/jobs/00000000-0000-4000-8000-000000000001"])("%s lights Jobs, not Home (the feed is Jobs > Browse)", (at) => {
+    wrap(<MobileNav />, at);
+    expect(screen.getByRole("button", { name: "Jobs" }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBeNull();
   });
 
   it("Customize: a hidden section leaves the bottom nav; Home and Messages stay", () => {

@@ -76,4 +76,6 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   property_taken_down: "Louisiana Helpr removed the listings for this address, so it can't be added again. Contact support if you think that was a mistake.",
   bad_query: "Search with 100 characters or fewer.",
   too_many: "Too many at once. Try again with fewer.",
+  // The lift while the photo purge runs (20261019071203).
+  photos_purging: "This home's photos are being deleted right now. Try again in 15 minutes.",
 };

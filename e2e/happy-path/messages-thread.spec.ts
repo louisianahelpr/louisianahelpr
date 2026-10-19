@@ -126,8 +126,9 @@ test.describe("Messages — the bottom nav can never strand the user", () => {
     // whereas "the back button is hidden" is equally satisfied by a pane that
     // has not rendered yet, which is how an absence check passes for the wrong
     // reason in the other direction.
+    // Phone: the slim search row's field (Q2231); desktop: the row's magnifier.
     await expect(
-      page.getByRole("button", { name: "Search conversations" }),
+      page.getByRole("searchbox", { name: "Search conversations" }).or(page.getByRole("button", { name: "Search conversations" })).first(),
     ).toBeVisible();
     await expect(page.locator(NAV)).toBeVisible();
     await expect(

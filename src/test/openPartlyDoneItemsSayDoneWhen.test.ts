@@ -69,6 +69,7 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 2026-10-18 (salvage of ready/train-big-1016): Q2112 (robot analytics tagging, built) waits on its deploy.
 // 2026-10-19 (dashboards-build run 4): Q2205 (old Jobs/Home search surfaces deleted) waits on the nightly search specs on prod.
 const MARKERLESS_PARTLY_DONE: Record<string, string> = {
+  Q2155: "(c) the finish time + a reminder on the buyer's order card (ShopHandoverActions) is a screen still to build and check at 375, and the early-ready-tap report question (#5) waits on an owner decision; no marker kind reads either",
   Q2205: "after deploy: the nightly prod-audit search specs (search-x-off-center-press, search-keeps-title, expanding-search-geometry, search-close-one-press) green on the section screens; a nightly run's per-spec verdict, which no marker kind reads",
   Q1661: "one look on the iOS simulator at accessibility-XXXL, the item's own surface (the fix was measured in Chromium with the senior-mode class); no marker kind reads a simulator screenshot",
   Q1803: "owner 2026-10-14: closed, no birthday asked on main; ticked once the next App Store build (without PhotoPrompt's wheels) is live, which no marker kind reads",

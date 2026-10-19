@@ -69,7 +69,7 @@ export function ShopOrderCard({
         <p className="min-w-0 font-semibold [overflow-wrap:anywhere]">{heading}</p>
         <p className="shrink-0 text-sm font-semibold">{formatCents(side === "buyer" ? order.total_cents : shopGets)}</p>
       </div>
-      <p className="text-xs text-muted-foreground">{orderStatusLabel(order)}</p>
+      <p className="text-xs text-muted-foreground">{orderStatusLabel(order, side)}</p>
       <p className="text-sm">Ready {readyDateText(order.ready_date)}</p>
       <ul className="text-sm text-muted-foreground">
         {order.shop_order_lines.map((l) => (

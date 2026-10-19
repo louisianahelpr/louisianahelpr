@@ -35,6 +35,68 @@ const REFUND_CLOSABLE_PAYMENT_STATES = [
   "escrow", "payout_pending", "cancelling", "unpaid", "abandoned", "failed", "cancelled",
 ] as const;
 
+/** What each answer of shop_record_hand_refund means for a person (no entry: nothing to check). */
+const SHOP_HAND_REFUND_PAGES: Record<string, string> = {
+  recorded_refund_held: "The order's own refund had not gone out: it is HELD (never sent on top of this). Settle or release it in admin > Payouts held for review.",
+  recorded_other_order: "This refund id is already recorded on a DIFFERENT order's payment: nothing was changed. Check both orders.",
+  closed_refunded: "The order is closed as refunded and the shop is not paid for it.",
+  closed_partially_refunded: "Part of the payment was refunded: the order is closed as partly refunded and the shop's payout (if any) is held for review. Decide in admin > Payouts held for review.",
+  recorded_row_already_settled: "The app's own refund for this order had ALREADY gone out: the buyer may have been refunded twice.",
+  recorded_after_payout: "The shop's payout for this order had ALREADY been sent: recover it from the shop by hand.",
+  recorded_not_charged: "The app never recorded this order's charge as captured: the order is held (no refund or payout goes out on its own). Check the order.",
+  not_shops: "No Shops order has this payment, so nothing was recorded. Record it in admin > Shops orders > Record a refund made in Stripe.",
+};
+
+/**
+ * charge.refunded on a Shops charge: every live refund the app did not make (no
+ * kind "shop_refund") is recorded once with shop_record_hand_refund. Not yet
+ * deployed (PGRST202): ops is paged to record it by hand in admin Shops orders.
+ * Any other failure THROWS, so Stripe redelivers.
+ */
+async function recordShopHandRefunds(
+  event: Stripe.Event,
+  charge: Stripe.Charge,
+  paymentIntentId: string | undefined,
+  refunds: Stripe.Refund[],
+  orderId: string | null,
+  supabase: WebhookContext["supabase"],
+  logStep: WebhookContext["logStep"],
+): Promise<void> {
+  const hand = refunds.filter((r) => Boolean(r?.id) && r.status !== "failed" && r.status !== "canceled"
+    && (r.metadata as Record<string, string> | null)?.kind !== "shop_refund");
+  if (hand.length === 0) {
+    logStep("Shops refund: recorded and announced by its own path", { chargeId: charge.id });
+    return;
+  }
+  if (!paymentIntentId) throw new Error(`Shops charge ${charge.id} was refunded but names no PaymentIntent`);
+  // The whole refund history of the charge goes on the page, so the person deciding sees every refund at once.
+  const history = refunds.filter((x) => !!x?.id).map((x) => `${x.id} $${formatExactDollars(Number(x.amount ?? 0) / 100)} ${x.status}`
+    + ((x.metadata as Record<string, string> | null)?.kind === "shop_refund" ? " (app)" : " (by hand)")).join("; ");
+  for (const r of hand) {
+    const { data, error } = await supabase.rpc("shop_record_hand_refund", {
+      p_payment_intent_id: paymentIntentId, p_stripe_refund_id: r.id, p_amount_cents: Number(r.amount ?? 0),
+      p_livemode: event.livemode ? true : false, p_how: "webhook", p_admin: null, p_note: null,
+    });
+    let why: string | undefined;
+    if (error) {
+      if ((error as { code?: string }).code !== "PGRST202") throw new Error(`shop_record_hand_refund failed for ${r.id}: ${error.message}`);
+      why = "The app could not record it yet. Record it in admin > Shops orders > Record a refund made in Stripe, so the shop is not paid for it.";
+    } else {
+      logStep("Shops refund made outside the app", { refund: r.id, result: data });
+      why = SHOP_HAND_REFUND_PAGES[String(data)];
+    }
+    if (why) {
+      await postSlackOpsAlert({
+        // Once per order (rule A of the v2 review): the order is held as a whole; one page carries its history.
+        kind: "money_at_risk", severity: "critical", oncePerDayKey: `shop-hand-refund-${orderId ?? paymentIntentId}`,
+        title: "Shops: a charge was refunded outside the app",
+        message: `Refund ${r.id} ($${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${paymentIntentId} was made in Stripe, not by the app. ${why} Refunds on this charge: ${history}.`,
+        fields: { Charge: charge.id, Order: orderId ?? "?", Outcome: error ? "not recorded" : String(data) },
+      });
+    }
+  }
+}
+
 export async function handleChargeRefunded(
   event: Stripe.Event,
   { stripe, supabase, logStep }: WebhookContext,
@@ -108,6 +170,23 @@ export async function handleChargeRefunded(
   // lh-money-escrow review 3b #3).
   if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> | null)?.kind === "declutter_refund")) {
     logStep("Declutter refund: recorded and announced by its own path", { chargeId: charge.id });
+    return;
+  }
+  // Shops (M3, 20261019071055): its refunds are decided, recorded (shop_refunds)
+  // and announced by their own RPCs; a Shops charge is not a job.
+  if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_refund")) {
+    logStep("Shops refund: recorded and announced by its own path", { chargeId: charge.id });
+    return;
+  }
+  // A Shops charge refunded any other way (by hand in the Dashboard) is never
+  // sent down the jobs path. Each such refund is RECORDED against the order
+  // (shop_record_hand_refund, /code-review of shops-m3-v1 #1): an unsent app
+  // refund it covers is settled, an order not yet refunded closes, and the
+  // shop's payout is held, so no clock pays the shop for it.
+  const chargeMeta = ((charge as { metadata?: Record<string, string> | null }).metadata ?? {}) as Record<string, string>;
+  if (chargeMeta.kind === "shop_order"
+      || allRefunds.some((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_refund")) {
+    await recordShopHandRefunds(event, charge, refundPiId, allRefunds, chargeMeta.order_id ?? null, supabase, logStep);
     return;
   }
   // A refund made by hand (Stripe Dashboard) on a Declutter charge carries no
@@ -554,7 +633,7 @@ export async function handleChargeRefunded(
           kind: "custom",
           severity: "warning",
           title: "Refund made, but the card holder was not fully told",
-          message: `Refund ${r.id} (${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${refundPiId ?? charge.id} went back: ${problem}. Tell them by hand.`,
+          message: `Refund ${r.id} ($${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${refundPiId ?? charge.id} went back: ${problem}. Tell them by hand.`,
           fields: { "Refund": r.id, "Payment Intent": refundPiId ?? "—", "Status": result.status },
           oncePerDayKey: `refund-notice:${r.id}`,
         });

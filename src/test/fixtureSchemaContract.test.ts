@@ -343,6 +343,11 @@ describe("every fixture literal could be inserted", () => {
     // A slack-ops-alert request body (`{ ...watcherBody(), fields: {...} }`) beside a mocked Slack reply (`{ status: 200 }`):
     // once rental_leases (20261019110137, lease) took `fields` as the only public table with it, they were graded against its status CHECK.
     { file: "src/test/edge/slack-ops-alert.test.ts", keys: ["fields", "status"] },
+    // Shops M3 (20261019071055): shop_hand_refunds shares `livemode` and facilitator_threshold_alerts took `year`, so a
+    // checkout.session.completed event mock with its PaymentIntent mocks (`payer_id` in the session metadata) became
+    // attributable to recurring_visit_payments, and a Stripe Identity `dob: { year, month, day }` to the alerts table.
+    { file: "src/test/edge/shop-checkout.test.ts", keys: ["mode", "payment_intent", "payer_id", "status"] },
+    { file: "src/test/edge/stripe-idv-webhook.test.ts", keys: ["year", "month", "day"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

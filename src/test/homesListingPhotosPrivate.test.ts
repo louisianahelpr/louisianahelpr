@@ -56,10 +56,15 @@ describe("listing photos: private bucket, refs only", () => {
     expect(add).not.toMatch(/'job-photos'/);
   });
 
-  it("the take-down detaches the photos of every listing it removes and deletes their objects server-side", () => {
+  it("the take-down holds the photos for a lift and queues them for the Storage-API purge; no SQL ever deletes a storage.objects row", () => {
     const body = blankSqlComments(defs.get("rentals_admin_remove_listing")!.stmt);
-    expect(body).toMatch(/DELETE\s+FROM\s+public\.rental_listing_photos\s+WHERE\s+listing_id\s*=\s*ANY\s*\(v_ids\)/i);
-    expect(body).toMatch(/DELETE\s+FROM\s+storage\.objects\s+WHERE\s+bucket_id\s*=\s*'listing-photos'/i);
+    expect(body).toMatch(/INSERT\s+INTO\s+public\.rental_photo_purge_queue/i);
+    expect(body).not.toMatch(/DELETE\s+FROM\s+public\.rental_listing_photos/i);
+    // Round 3 #2: a storage.objects row deleted in SQL orphans its bytes; every migration is scanned.
+    const offenders = readdirSync(MIG).filter((f) => f.endsWith(".sql") && f >= "20261019")
+      .filter((f) => /DELETE\s+FROM\s+storage\.objects/i.test(blankSqlComments(readFileSync(join(MIG, f), "utf8"))));
+    expect(offenders).toEqual([]);
+    expect(readdirSync(MIG).length).toBeGreaterThan(100);
   });
 
   it("the newest declaration of the listing-photos bucket is private", () => {

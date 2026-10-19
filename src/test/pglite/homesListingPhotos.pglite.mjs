@@ -207,8 +207,10 @@ ok(bucket?.public === false && JSON.stringify(bucket.allowed_mime_types) === '["
 
 // --- 2. existing job-photos photos are kept server-side, never lost, and their live listing waits for its owner
 ok(one(await svc(`SELECT count(*)::int FROM public.rental_listing_photos WHERE listing_id = '${legacyId}'`)) === 0, "legacy: the job-photos rows are detached from the listing");
-ok(one(await svc(`SELECT count(*)::int FROM storage.objects WHERE bucket_id = 'job-photos' AND name LIKE '%/rental-listings/${legacyId}/%'`)) === 0,
-  "legacy (review #5): the photos are taken OUT of the public job-photos bucket (their object rows go, so the public URL is a 404)");
+ok(one(await svc(`SELECT count(*)::int FROM public.rental_photo_purge_queue WHERE bucket_id = 'job-photos' AND storage_path LIKE '%/rental-listings/${legacyId}/%' AND due_at <= now()`)) === 5,
+  "legacy (round 3 #2/#5): the 5 public objects are queued for the purge cron (Storage API), due at once (3 replays, no duplicates)");
+ok(one(await svc(`SELECT count(*)::int FROM storage.objects WHERE bucket_id = 'job-photos' AND name LIKE '%/rental-listings/${legacyId}/%'`)) === 5,
+  "and no storage.objects row is deleted in SQL (that would orphan the bytes)");
 ok(one(await svc(`SELECT status FROM public.rental_listings WHERE id = '${legacyId}'`)) === "paused", "legacy: the live listing, now short of photos, is paused");
 
 // --- 3. uploads: own folder, own listing, private bucket
@@ -249,7 +251,12 @@ await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'rent
 ok(empty(await as("authenticated", LANDLORD, `DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(0)}' RETURNING id`)),
   "review #4: with the Homes switch OFF an attached photo still cannot be deleted (the attach check is not switch-gated RLS)");
 ok(empty(await as("authenticated", ADMIN, `DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(0)}' RETURNING id`)),
-  "review #4: nor by an admin, whose view of other people's photo rows IS switch-gated");
+  "review #4: nor by an admin (admins delete nothing here; the purge cron does, as the server)");
+ok(one(await as("authenticated", STRANGER, `SELECT public.rentals_listing_photo_deletable('${P(0)}')`)) === false
+  && one(await as("authenticated", STRANGER, `SELECT public.rentals_listing_photo_deletable('${LANDLORD}/rental-listings/${rentId}/nope.jpg')`)) === false,
+  "round 3 #4: the delete check says the same 'no' for another member's attached and missing photo (no oracle)");
+ok(one(await as("authenticated", ADMIN, `SELECT public.rentals_listing_photo_deletable('${LANDLORD}/rental-listings/${rentId}/nope.jpg')`)) === false,
+  "round 3 #4: even for an admin, another member's folder is never 'deletable' (scoped to the caller's own folder)");
 await svc(`UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'rentals'`);
 ok(rows(await as("authenticated", LANDLORD, `DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(7)}' RETURNING id`)).length === 1, "an unattached one can");
 
@@ -335,17 +342,40 @@ ok(one(await obj(bRef)) === P(0, bId), "setup: a draft's owner ref resolves");
 await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${bId}', 'removed')`);
 ok(one(await obj(bRef)) === null, "an owner-removed listing's refs resolve to nothing");
 
-// --- 7. Q2211: the admin take-down detaches the photos; every ref and the old URL stop working
+// --- 7. Q2211 + round 3: the take-down HIDES the photos (every ref dead, the owner cannot sign them), keeps
+//        them for a lift, and queues them for the purge 30 days on
 ok(Array.isArray(await as("authenticated", ADMIN, `SELECT public.rentals_admin_remove_listing('${rentId}', 'Photos do not show this home.')`)), "an admin takes the listing down");
-ok(one(await svc(`SELECT count(*)::int FROM public.rental_listing_photos WHERE listing_id IN ('${rentId}', '${saleId}')`)) === 0,
-  "the photos of every listing it removed (the rent and the sale listing on the property) are detached");
-ok(one(await svc(`SELECT count(*)::int FROM storage.objects WHERE bucket_id = 'listing-photos' AND (name LIKE '%/${rentId}/%' OR name LIKE '%/${saleId}/%')`)) === 0,
-  "review #3: their objects are deleted server-side (nothing left for the landlord to sign)");
 ok(one(await obj(mRef)) === null && one(await obj(oRef)) === null, "Q2211: the member and owner refs of a taken-down listing resolve to nothing (proxy 404)");
+ok(empty(await as("authenticated", LANDLORD, `SELECT name FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(0)}'`)),
+  "round 3 #1: the owner can no longer read (sign) a taken-down listing's photos");
+ok(one(await svc(`SELECT count(*)::int FROM public.rental_listing_photos WHERE listing_id IN ('${rentId}', '${saleId}')`)) === 10
+  && one(await svc(`SELECT count(*)::int FROM storage.objects WHERE bucket_id = 'listing-photos' AND (name LIKE '%/${rentId}/%' OR name LIKE '%/${saleId}/%')`)) === 10,
+  "round 3 #1: the photos of both listings on the property are KEPT (attached, objects in place) for a lift");
+const queued = one(await svc(`SELECT count(*)::int FROM public.rental_photo_purge_queue WHERE bucket_id = 'listing-photos' AND due_at > now() + interval '29 days'`));
+ok(queued === 10, "and queued for the purge 30 days on");
 const audit = rows(await svc(`SELECT details FROM public.admin_audit_log WHERE action = 'rentals_listing_removed' AND target_id = '${rentId}'`))[0]?.details;
-ok(audit?.photos_deleted?.length === 10 && audit.photos_deleted.every((x) => x.startsWith(`${LANDLORD}/rental-listings/`)), "the audit log names every photo it deleted (10)");
+ok(audit?.photos_held?.length === 10 && audit.photos_held.every((x) => x.startsWith(`${LANDLORD}/rental-listings/`)), "the audit log names every photo it holds (10)");
 ok(refused(await up(LANDLORD, P(5)), /row-level security/), "no uploads into a taken-down listing's folder");
 ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_admin_remove_listing('${saleId}', 'Not allowed here.')`), /not_authorized/), "a member cannot take down");
+const due1 = rows(await svc(`SELECT * FROM public.rentals_photo_purge_due(500)`));
+ok(due1.length === 5 && due1.every((r) => r.bucket_id === "job-photos"), "the purge's due list holds only the legacy objects today (the take-down's wait 30 days)");
+ok(refused(await as("authenticated", ADMIN, `SELECT * FROM public.rentals_photo_purge_due(10)`), /permission denied/), "the purge RPCs are server-only");
+// a lift restores everything, and its queue entries are dropped, never purged
+const propId = one(await svc(`SELECT property_id FROM public.rental_listings WHERE id = '${rentId}'`));
+ok(Array.isArray(await as("authenticated", ADMIN, `SELECT public.rentals_admin_lift_takedown('${propId}', 'Removed by mistake.')`)), "an admin lifts the take-down");
+await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${rentId}', 'live')`);
+ok(one(await obj(mRef)) === P(0), "round 3 #1: after the lift the same photos show again (nothing was lost)");
+await svc(`UPDATE public.rental_photo_purge_queue SET due_at = now() - interval '1 minute' WHERE bucket_id = 'listing-photos'`); // as if 30 days passed
+ok(rows(await svc(`SELECT * FROM public.rentals_photo_purge_due(500)`)).every((r) => r.bucket_id === "job-photos")
+  && one(await svc(`SELECT count(*)::int FROM public.rental_photo_purge_queue WHERE bucket_id = 'listing-photos'`)) === 0,
+  "a lifted take-down's queue entries are dropped, never returned for purging");
+// a take-down that is NOT lifted: due after 30 days; once Storage removed them, the rows go
+ok(Array.isArray(await as("authenticated", ADMIN, `SELECT public.rentals_admin_remove_listing('${rentId}', 'Photos do not show this home.')`)), "taken down again");
+await svc(`UPDATE public.rental_photo_purge_queue SET due_at = now() - interval '1 minute' WHERE bucket_id = 'listing-photos'`);
+const due2 = rows(await svc(`SELECT * FROM public.rentals_photo_purge_due(500)`)).filter((r) => r.bucket_id === "listing-photos").map((r) => r.storage_path);
+ok(due2.length === 10, "30 days on, the purge gets the 10 held photos");
+ok(one(await svc(`SELECT public.rentals_photo_purge_done('listing-photos', ARRAY[${due2.map((x) => `'${x}'`).join(",")}]::text[])`)) === 10, "after Storage removed them, purge_done clears the queue");
+ok(one(await svc(`SELECT count(*)::int FROM public.rental_listing_photos WHERE listing_id IN ('${rentId}', '${saleId}')`)) === 0, "and the photo rows go");
 
 // --- 8. the key and the signer are out of every client's reach
 for (const role of ["anon", "authenticated", "service_role"]) {
@@ -355,7 +385,11 @@ for (const role of ["anon", "authenticated", "service_role"]) {
 const acl = async (sig) => one(await svc(`SELECT coalesce(proacl::text, '') FROM pg_proc WHERE oid = '${sig}'::regprocedure`)) ?? "";
 const la = await acl("public.rentals_listing_photo_object(text)");
 ok(/service_role=X/.test(la) && !/(^|[{,])(anon|authenticated)?=X/.test(la), `rentals_listing_photo_object: server-only (${la})`);
-for (const sig of ["public.rentals_my_listing_photos(uuid)", "public.rentals_admin_remove_listing(uuid,text)", "public.rentals_listing_photo_access(text,text)"]) {
+for (const sig of ["public.rentals_photo_purge_due(integer)", "public.rentals_photo_purge_done(text,text[])"]) {
+  const a = await acl(sig);
+  ok(/service_role=X/.test(a) && !/(^|[{,])(anon|authenticated)?=X/.test(a), `${sig}: server-only (${a})`);
+}
+for (const sig of ["public.rentals_my_listing_photos(uuid)", "public.rentals_admin_remove_listing(uuid,text)", "public.rentals_listing_photo_access(text,text)", "public.rentals_listing_photo_deletable(text)"]) {
   const a = await acl(sig);
   ok(/authenticated=X/.test(a) && !/(^|[{,])(anon)?=X/.test(a), `${sig}: authenticated, not anon/PUBLIC (${a})`);
 }

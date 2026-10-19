@@ -221,6 +221,9 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.stuck-payment-check]
     verify_jwt = false
+  # listing-photo-purge (Q2211): pg_cron posts `Bearer <service_role_key>`; verifyCronSecret checks it.
+  [functions.listing-photo-purge]
+    verify_jwt = false
   # declutter-money: pg_cron posts `Bearer <service_role_key>`; the function
   # checks it itself with verifyCronSecret.
   [functions.declutter-money]

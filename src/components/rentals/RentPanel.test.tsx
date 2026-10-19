@@ -40,6 +40,11 @@ vi.mock("@/lib/rentals/rent", async (orig) => ({
   correctRentPayment: (...a: unknown[]) => correctRentPayment(...a),
   disputeRentPayment: (...a: unknown[]) => disputeRentPayment(...a),
 }));
+// Bank pay (20261019103751) has its own test; here it is off.
+vi.mock("@/lib/rentals/rentBank", async (orig) => ({
+  ...(await orig<typeof import("@/lib/rentals/rentBank")>()),
+  fetchBankState: async () => ({ bank_pay: false, fee_payer: "tenant", payouts_ready: false, autopay: { enabled: false }, in_flight: null }),
+}));
 vi.mock("@/lib/rentals/rentReceipt", () => ({ saveRentReceipt: (...a: unknown[]) => saveRentReceipt(...a) }));
 
 import { RentPanel } from "./RentPanel";

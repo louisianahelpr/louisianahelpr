@@ -18,7 +18,7 @@
  * @mutate supabase/functions/release-payout/index.ts |     stripeKey = stripeSecretKeyFor(stripeMode); |     stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |     const stripes = createStripeModeResolver(supabaseAdmin, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" })); |     const stripes = createStripeModeResolver(supabaseAdmin, (key) => new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? key, { apiVersion: "2025-08-27.basil" }));
  * @mutate supabase/functions/create-gift-card-checkout/index.ts |     const stripe = new Stripe(stripeSecretKeyFor(stripeMode), { |     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") \|\| "", {
- * @mutate supabase/functions/stripe-connect/index.ts |     const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), { |     const stripe = new Stripe(Deno.env.get("STRIPE_TEST_SECRET_KEY") ?? "", {
+ * @mutate supabase/functions/stripe-connect/index.ts |     const stripe = new Stripe(stripeSecretKeyFor(callerMode), { |     const stripe = new Stripe(Deno.env.get("STRIPE_TEST_SECRET_KEY") ?? "", {
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";

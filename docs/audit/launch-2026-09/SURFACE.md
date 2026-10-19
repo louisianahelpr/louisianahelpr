@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 173 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
-| Toast messages | **call site** | 891 (across 220 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 891 (across 221 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 25 |
 | Multi-step flows — probable | flow | 19 |
 | Back/next navigation only | flow | 43 |
-| Forms (submittable) | form | 70 |
+| Forms (submittable) | form | 71 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 149 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **580** |
+| **Navigable surfaces** (places a person can stand) | mixed | **581** |
 | **Copy surfaces** (strings a person may read) | mixed | **929** |
-| **Total auditable surface** | mixed | **1509** |
+| **Total auditable surface** | mixed | **1510** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 173 | 130 | agree within method (script counts every menu instance) |
-| Forms | 70 | ~38 | agree |
+| Forms | 71 | ~38 | agree |
 | Confirmed multi-step flows | 25 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -483,6 +483,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/CompletionPrompts.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterItemView.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterMoveView.tsx` (dialog/mutation)
+- [ ] `src/components/declutter/DeclutterOfferPanel.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterTradeViews.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterWantedViews.tsx` (form tag)
 - [ ] `src/components/DisputeDialog.tsx` (dialog/mutation)

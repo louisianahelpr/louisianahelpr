@@ -126,7 +126,7 @@ export async function sendSavedLease(tenancyId: string, fields: LeaseFields, sig
   if (!shownHash) throw new RentalsCopyError(NEEDS_NEW_APP, null);
   const id = await saveLeaseDraft(tenancyId, shown);
   const rec = await fetchLease(tenancyId);
-  const open = rec?.open;
+  const open = rec?.open ?? null;
   if (!isOpenLease(open) || open.id !== id || open.status !== "draft") throw new RentalsCopyError(LEASE_DID_NOT_SAVE, null);
   const storedHash = await leaseHash(open.template_version, open.fields);
   if (storedHash !== shownHash) throw new RentalsCopyError(LEASE_DID_NOT_SAVE, null);

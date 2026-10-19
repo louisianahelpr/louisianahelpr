@@ -278,7 +278,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/rentals/LandlordIdReview.tsx` | input×1 | file |  |  |
-| `src/components/rentals/listings/RentBrowse.tsx` | input×2, select×1 | text |  | Search homes for rent · City or ZIP · Bedrooms · Most rent per month, in dollars · Max rent $ · Loading homes for rent |
+| `src/components/rentals/listings/RentBrowse.tsx` | input×2 | search, text |  | Homes for rent · Search homes for rent · City or ZIP · Clear search · Bedrooms · Most rent per month, in dollars · Any amount · Loading homes for rent |
 | `src/components/rentals/MaintenanceRequestForm.tsx` | input×4, textarea×1, select×2, checkbox/switch/radio×2 | radio, file, text | 2000, 300, 500 | Repair request · e.g. weekdays after 5pm |
 | `src/components/rentals/RentalsHomeView.tsx` | input×6 | text |  | Property name · Name (e.g. Oak Street duplex) · Street address · City · ZIP code · ZIP · New unit name · Unit name (e.g. Apt 2) |
 

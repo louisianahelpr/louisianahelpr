@@ -152,16 +152,43 @@ $fn$;
 REVOKE ALL ON FUNCTION public.rentals_admin_lift_takedown(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rentals_admin_lift_takedown(uuid, text) TO authenticated, service_role;
 
--- 2e. The take-down cannot be dodged by adding the same home again (lead review round 3, must-fix 3): the
---     owner cannot add (or edit a property into) an address, normalised, that matches one of their
---     properties under a take-down. The ownership review shows the owner's take-down history too.
+-- 2e. The take-down cannot be dodged by adding the same home again (lead review round 3, must-fix 3, and
+--     round 4 #2). The address key is normalised: case, spacing and punctuation ignored, street suffixes and
+--     directions shortened (street/st, avenue/ave, road/rd, north/n ...), a unit or apartment part dropped
+--     (apt, unit, suite, #, ...: the take-down is on the building), ZIP+4 cut to the ZIP.
+--       The SAME owner cannot add (or edit a property into) an address under one of their take-downs.
+--       ANY OTHER owner's matching property is flagged to the ownership reviewer, who sees the matched
+--       taken-down address (rentals_admin_takedown_matches, admin only). The ownership review also shows
+--       the owner's own take-down history.
 CREATE OR REPLACE FUNCTION public.rentals_address_key(p_street text, p_zip text)
 RETURNS text
 LANGUAGE sql
 IMMUTABLE
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
-  SELECT btrim(regexp_replace(lower(coalesce(p_street, '')), '[^a-z0-9]+', ' ', 'g')) || '|' || btrim(coalesce(p_zip, ''));
+  WITH s AS (
+    -- '#4' is a unit too; then everything but letters and digits becomes one space, padded for the word match.
+    SELECT ' ' || btrim(regexp_replace(replace(lower(coalesce(p_street, '')), '#', ' unit '), '[^a-z0-9]+', ' ', 'g')) || ' ' AS t
+  ), h AS (
+    SELECT t, substring(t from '^ [^ ]*') AS head FROM s
+  ), u AS (
+    -- The unit part goes, from its first designator on (never the first word: that is the house number).
+    SELECT btrim(head || regexp_replace(substr(t, char_length(head) + 1),
+                 ' (apt|apartment|unit|suite|ste|bldg|building|rm|room|trlr|trailer|spc|space)( .*)?$', ' ')) AS t FROM h
+  )
+  SELECT coalesce((SELECT string_agg(coalesce(m.short, w.tok), ' ' ORDER BY w.ord)
+                     FROM unnest(string_to_array(u.t, ' ')) WITH ORDINALITY AS w(tok, ord)
+                     LEFT JOIN (VALUES ('street', 'st'), ('str', 'st'), ('avenue', 'ave'), ('av', 'ave'), ('road', 'rd'),
+                                       ('drive', 'dr'), ('drv', 'dr'), ('lane', 'ln'), ('boulevard', 'blvd'), ('blv', 'blvd'),
+                                       ('court', 'ct'), ('place', 'pl'), ('highway', 'hwy'), ('hiway', 'hwy'), ('parkway', 'pkwy'),
+                                       ('pky', 'pkwy'), ('circle', 'cir'), ('terrace', 'ter'), ('trail', 'trl'), ('square', 'sq'),
+                                       ('expressway', 'expy'), ('freeway', 'fwy'), ('crossing', 'xing'), ('cove', 'cv'),
+                                       ('point', 'pt'), ('loop', 'lp'), ('route', 'rte'), ('north', 'n'), ('south', 's'),
+                                       ('east', 'e'), ('west', 'w'), ('northeast', 'ne'), ('northwest', 'nw'),
+                                       ('southeast', 'se'), ('southwest', 'sw')) AS m(word, short) ON m.word = w.tok
+                    WHERE w.tok <> ''), '')
+         || '|' || left(regexp_replace(coalesce(p_zip, ''), '[^0-9]', '', 'g'), 5)
+    FROM u;
 $fn$;
 REVOKE ALL ON FUNCTION public.rentals_address_key(text, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rentals_address_key(text, text) TO service_role;
@@ -173,6 +200,7 @@ SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
 BEGIN
+  -- The same owner is refused; another owner's match is flagged to the reviewer (rentals_admin_takedown_matches).
   IF EXISTS (SELECT 1 FROM public.rental_properties rp
               WHERE rp.owner_id = NEW.owner_id
                 AND rp.id <> NEW.id
@@ -188,9 +216,10 @@ DROP TRIGGER IF EXISTS rentals_property_takedown_guard ON public.rental_properti
 CREATE TRIGGER rentals_property_takedown_guard BEFORE INSERT OR UPDATE OF street_address, zip_code ON public.rental_properties
   FOR EACH ROW EXECUTE FUNCTION public.rentals_property_takedown_guard();
 
--- 2d. What the admin card lists (admin only, never switch-gated): live and paused listings to take down,
---     and properties under a take-down to lift. City + ZIP and the property label, never the street.
-CREATE OR REPLACE FUNCTION public.rentals_admin_listings()
+-- 2f. The ownership reviewer's flag (round 4 #2): for each property asked about, the taken-down properties
+--     (ANY owner's) at the same normalised address, with the matched address. Admin only; the street is
+--     shown here and nowhere outside the admin review.
+CREATE OR REPLACE FUNCTION public.rentals_admin_takedown_matches(p_property_ids uuid[])
 RETURNS jsonb
 LANGUAGE plpgsql
 STABLE
@@ -203,26 +232,82 @@ BEGIN
   IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin'::public.app_role) THEN
     RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
   END IF;
-  RETURN jsonb_build_object(
-    'open', COALESCE((SELECT jsonb_agg(to_jsonb(x) ORDER BY x.published_at DESC NULLS LAST, x.id)
-                        FROM (SELECT l.id, l.kind, l.status, l.headline, l.slug, l.published_at, rp.label AS property_label,
-                                     rp.city, rp.zip_code
-                                FROM public.rental_listings l
-                                JOIN public.rental_properties rp ON rp.id = l.property_id
-                               WHERE l.status IN ('live', 'paused')
-                               ORDER BY l.published_at DESC NULLS LAST, l.id
-                               LIMIT 200) x), '[]'::jsonb),
-    'taken_down', COALESCE((SELECT jsonb_agg(to_jsonb(y) ORDER BY y.taken_down_at DESC, y.property_id)
-                              FROM (SELECT rp.id AS property_id, rp.label AS property_label, rp.city, rp.zip_code,
-                                           rp.listings_taken_down_reason AS reason, rp.listings_taken_down_at AS taken_down_at
-                                      FROM public.rental_properties rp
-                                     WHERE rp.listings_taken_down_at IS NOT NULL
-                                     ORDER BY rp.listings_taken_down_at DESC
-                                     LIMIT 200) y), '[]'::jsonb));
+  IF cardinality(coalesce(p_property_ids, '{}'::uuid[])) > 200 THEN
+    RAISE EXCEPTION 'too_many' USING ERRCODE = '22023';
+  END IF;
+  RETURN COALESCE((
+    SELECT jsonb_agg(jsonb_build_object(
+             'property_id', p.id, 'matched_property_id', t.id, 'matched_label', t.label,
+             'matched_street', t.street_address, 'matched_city', t.city, 'matched_zip', t.zip_code,
+             'reason', t.listings_taken_down_reason, 'taken_down_at', t.listings_taken_down_at,
+             'same_owner', t.owner_id = p.owner_id)
+           ORDER BY p.id, t.listings_taken_down_at DESC)
+      FROM public.rental_properties p
+      JOIN public.rental_properties t
+        ON t.id <> p.id
+       AND t.listings_taken_down_at IS NOT NULL
+       AND public.rentals_address_key(t.street_address, t.zip_code) = public.rentals_address_key(p.street_address, p.zip_code)
+     WHERE p.id = ANY (coalesce(p_property_ids, '{}'::uuid[]))), '[]'::jsonb);
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.rentals_admin_listings() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rentals_admin_listings() TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.rentals_admin_takedown_matches(uuid[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.rentals_admin_takedown_matches(uuid[]) TO authenticated, service_role;
+
+-- 2d. What the admin card lists (admin only, never switch-gated): live and paused listings to take down,
+--     and properties under a take-down to lift. City + ZIP and the property label, never the street.
+--     Round 4 #5: a search (a listing's link code, words of its headline or the property label, a ZIP) and
+--     25 a page with totals, so no listing is out of reach.
+CREATE OR REPLACE FUNCTION public.rentals_admin_listings(p_query text DEFAULT NULL, p_open_offset integer DEFAULT 0,
+                                                         p_taken_offset integer DEFAULT 0)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  v_q text := lower(btrim(coalesce(p_query, '')));
+  v_open_off integer := greatest(coalesce(p_open_offset, 0), 0);
+  v_taken_off integer := greatest(coalesce(p_taken_offset, 0), 0);
+BEGIN
+  IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin'::public.app_role) THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  IF char_length(v_q) > 100 THEN
+    RAISE EXCEPTION 'bad_query' USING ERRCODE = '22023';
+  END IF;
+  RETURN (
+    WITH open_rows AS (
+      SELECT l.id, l.kind, l.status, l.headline, l.slug, l.published_at, rp.label AS property_label, rp.city, rp.zip_code
+        FROM public.rental_listings l
+        JOIN public.rental_properties rp ON rp.id = l.property_id
+       WHERE l.status IN ('live', 'paused')
+         AND (v_q = '' OR l.slug = v_q OR rp.zip_code = v_q
+              OR strpos(lower(l.headline), v_q) > 0 OR strpos(lower(rp.label), v_q) > 0)
+    ), taken_rows AS (
+      SELECT rp.id AS property_id, rp.label AS property_label, rp.city, rp.zip_code,
+             rp.listings_taken_down_reason AS reason, rp.listings_taken_down_at AS taken_down_at
+        FROM public.rental_properties rp
+       WHERE rp.listings_taken_down_at IS NOT NULL
+         AND (v_q = '' OR rp.zip_code = v_q OR strpos(lower(rp.label), v_q) > 0
+              OR EXISTS (SELECT 1 FROM public.rental_listings l
+                          WHERE l.property_id = rp.id AND (l.slug = v_q OR strpos(lower(l.headline), v_q) > 0)))
+    )
+    SELECT jsonb_build_object(
+      'page_size', 25,
+      'open_total', (SELECT count(*) FROM open_rows),
+      'open', COALESCE((SELECT jsonb_agg(to_jsonb(x) ORDER BY x.published_at DESC NULLS LAST, x.id)
+                          FROM (SELECT * FROM open_rows ORDER BY published_at DESC NULLS LAST, id
+                                 OFFSET v_open_off LIMIT 25) x), '[]'::jsonb),
+      'taken_down_total', (SELECT count(*) FROM taken_rows),
+      'taken_down', COALESCE((SELECT jsonb_agg(to_jsonb(y) ORDER BY y.taken_down_at DESC, y.property_id)
+                                FROM (SELECT * FROM taken_rows ORDER BY taken_down_at DESC, property_id
+                                       OFFSET v_taken_off LIMIT 25) y), '[]'::jsonb)));
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_admin_listings(text, integer, integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.rentals_admin_listings(text, integer, integer) TO authenticated, service_role;
 
 -- 2c. Nothing on a taken-down property is saved, given photos or published (must-fix 1, 7): one trigger
 --     per table, so every writer (draft save, sale save, status, photo attach) is refused up front.

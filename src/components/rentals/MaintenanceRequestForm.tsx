@@ -69,7 +69,7 @@ export function MaintenanceRequestForm({ tenancyId, uid, onFiled }: { tenancyId:
 
   return (
     <form
-      className="space-y-3"
+      className="basis-full space-y-3"
       aria-label="Repair request"
       onSubmit={(e) => {
         e.preventDefault();

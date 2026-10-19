@@ -474,8 +474,12 @@ export default function RentalsHomeView() {
                   <RentPanel tenancyId={h.tenancy_id} />
                   <DepositPanel tenancyId={h.tenancy_id} />
                   <LeasePanel tenancyId={h.tenancy_id} homeLabel={h.label} />
-                  {!underAge && <MaintenanceRequestForm tenancyId={h.tenancy_id} uid={uid} onFiled={refresh} />}
-                  <EndTenancyButton tenancyId={h.tenancy_id} kind="leave" onDone={refresh} />
+                  {/* The main action and the quiet "Leave this home" share one row with a real gap (375 shots, 10-19);
+                      the open repair form takes the whole row (basis-full) and the leave action wraps under it. */}
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                    {!underAge && <MaintenanceRequestForm tenancyId={h.tenancy_id} uid={uid} onFiled={refresh} />}
+                    <EndTenancyButton tenancyId={h.tenancy_id} kind="leave" onDone={refresh} />
+                  </div>
                 </div>
               ))
             )}

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261019061241_homes_sale_listings (Homes -> BUY: homes for
+ * PGlite proof for 20261019061241_rentals_sale_listings (Homes -> BUY: homes for
  * sale by their verified owners, Slice 2; owner 2026-10-18: verified owners,
  * no commission, no negotiating, a title company or attorney closes, a FLAT
  * listing fee whose amount the owner sets later).
@@ -21,7 +21,7 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const SELF = "20261019061241";
 const LISTINGS = readFileSync(`${MIG_DIR}20261019043000_rentals_listings.sql`, "utf8");
-const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}${SELF}_homes_sale_listings.sql`, "utf8");
+const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}${SELF}_rentals_sale_listings.sql`, "utf8");
 const IDENTITY = readFileSync(`${MIG_DIR}20261019061019_rentals_listing_identity_helper.sql`, "utf8");
 const EXPORT_FILE = "20261019043100_export_my_data_rental_listings.sql";
 const EXPORT = readFileSync(`${MIG_DIR}${EXPORT_FILE}`, "utf8");

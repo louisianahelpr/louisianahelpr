@@ -303,6 +303,14 @@ ok((await bal()) === 120000 && (await notes(TENANT, "Rent payment did not go thr
   await svc(`SELECT public.rentals_rent_sweep()`);
   ok((await feesZ()) === 0 && one(await svc(`SELECT paid_on::text FROM public.rental_rent_payments WHERE tenancy_id = '${tZ}' AND pay_method = 'bank'`)) === one(await svc(`SELECT (public.shop_local_today() - 3)::text`)),
     "confirmed days later, it counts from the day it was started: still on time");
+  // Lead review #10: a return clears the on-time mark it made, so the next sweep finds the row late.
+  ok(one(await svc(`SELECT count(*)::int FROM public.rental_rent_charges WHERE tenancy_id = '${tZ}' AND kind = 'rent' AND on_time_at IS NOT NULL`)) >= 1,
+    "setup: the row was marked on time by the bank payment");
+  await svc(`SELECT public.rentals_bank_rent_returned('pi_test_z', 'R01 insufficient funds')`);
+  ok(one(await svc(`SELECT count(*)::int FROM public.rental_rent_charges WHERE tenancy_id = '${tZ}' AND kind = 'rent' AND on_time_at IS NOT NULL`)) === 0,
+    "lead #10: a returned bank payment clears the on-time mark of the rows it covered");
+  await svc(`SELECT public.rentals_rent_sweep()`);
+  ok((await feesZ()) === 1, "lead #10: and the next sweep adds the late fee");
 }
 
 // --- autopay (D7)
@@ -312,8 +320,11 @@ ok(refused(await svc(`SELECT public.rentals_autopay_saved('${tA}', '${STRANGER}'
 await svc(`SELECT public.rentals_autopay_saved('${tA}', '${TENANT}', 'cus_1', 'pm_1', 'Test Bank 6789', false)`);
 ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_set_autopay('${tA}', true)`), /tenancy_not_found/), "only the tenant turns autopay on");
 ok(Array.isArray(await as("authenticated", TENANT, `SELECT public.rentals_set_autopay('${tA}', true)`)) && (await notes(LANDLORD, "Autopay on")) === 1, "the tenant turns it on; the landlord is told");
+// Lead review #8: what the tenant reports paying directly (still waiting for the landlord) is not debited again.
+await svc(`INSERT INTO public.rental_rent_payments (tenancy_id, amount_cents, paid_on, pay_method, reported_by, status)
+           VALUES ('${tA}', 20000, public.shop_local_today(), 'zelle', 'tenant', 'reported')`);
 const apR = await svc(`SELECT * FROM public.rentals_autopay_due()`); const ap = rows(apR);
-ok(ap.length === 1 && ap[0].charge_cents === 120000 && ap[0].stripe_payment_method_id === "pm_1", "today's open rent row is queued once for an off-session bank charge (landlord pays the cost)");
+ok(ap.length === 1 && ap[0].charge_cents === 100000 && ap[0].stripe_payment_method_id === "pm_1", "today's open rent row, less the $200 the tenant reported paying directly (lead #8), is queued once for an off-session bank charge (landlord pays the cost)");
 ok(rows(await svc(`SELECT * FROM public.rentals_autopay_due()`)).length === 0, "never twice");
 await svc(`SELECT public.rentals_bank_rent_failed('${ap[0].bank_payment_id}', false)`);
 ok(rows(await svc(`SELECT * FROM public.rentals_autopay_due()`)).length === 0, "a failed autopay debit is not retried (the tenant is told)");

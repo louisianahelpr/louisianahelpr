@@ -379,6 +379,12 @@ BEGIN
          corrections = corrections || jsonb_build_array(jsonb_build_object('at', clock_timestamp(), 'action', 'bank_return', 'reason', v_reason,
            'from', jsonb_build_object('amount_cents', amount_cents, 'paid_on', paid_on)))
    WHERE id = v_b.rent_payment_id AND status = 'confirmed';
+  -- Lead review #10: rows found on time since this payment was recorded may have counted it. They are
+  -- found again by the next sweep without it (on time by other payments, or the late fee applies).
+  UPDATE public.rental_rent_charges c
+     SET on_time_at = NULL
+   WHERE c.tenancy_id = v_b.tenancy_id AND c.kind = 'rent' AND c.on_time_at IS NOT NULL
+     AND c.on_time_at >= (SELECT p.created_at FROM public.rental_rent_payments p WHERE p.id = v_b.rent_payment_id);
   UPDATE public.rental_rent_bank_payments
      SET status = 'returned',
          transfer_status = CASE WHEN transfer_status = 'succeeded' THEN 'reverse_due' WHEN transfer_status IN ('pending', 'failed') THEN 'none' ELSE transfer_status END,
@@ -560,7 +566,9 @@ BEGIN
     -- What is open up to and including this row (rent rows oldest first; payments already confirmed).
     v_open := (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_charges
                 WHERE tenancy_id = v.tenancy_id AND kind = 'rent' AND waived_at IS NULL AND due_on <= v.due_on)
-            - (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_payments WHERE tenancy_id = v.tenancy_id AND status = 'confirmed');
+            -- Confirmed payments, and the tenant's reports still waiting (lead review #8: never debit what the
+            -- tenant says they already paid directly).
+            - (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_payments WHERE tenancy_id = v.tenancy_id AND status IN ('confirmed', 'reported'));
     v_open := least(v_open, (SELECT amount_cents FROM public.rental_rent_charges WHERE id = v.charge_id));
     CONTINUE WHEN v_open < 100;
     v_fee := public.rentals_bank_fee_cents(v_open::integer, v.bank_fee_payer);

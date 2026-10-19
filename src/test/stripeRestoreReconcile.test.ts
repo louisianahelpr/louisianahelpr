@@ -12,6 +12,9 @@
  *   3. Read-only and test-mode by default.
  *
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "payout_transfers", column: "stripe_transfer_id" },\n |
+ * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "declutter_orders", column: "stripe_payment_intent_id" },\n |
+ * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "declutter_refunds", column: "stripe_refund_ref" },\n |
+ * @mutate scripts/lib/stripeRestoreReconcile.mjs |       if (ID_PREFIX[kind].test(String(v))) ids.add(String(v)); |       if (true) ids.add(String(v));
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     if (dbIds.has(o.id)) { |     if (true) {
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     if (!/^(sk\|rk)_test_/.test(key)) throw | if (false) throw
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |   if (md.kind === "platform_topup" \|\| | if (false &&
@@ -23,6 +26,7 @@ import { resolve } from "node:path";
 import {
   CANDIDATE_COLUMN,
   DB_ID_COLUMNS,
+  collectDbIds,
   NOT_MATCHED,
   gradeKind,
   isStripeList,
@@ -90,6 +94,71 @@ describe("gradeKind", () => {
     ], new Set());
     expect(g.ignored).toBe(1);
     expect(g.missing.map((m) => m.id)).toEqual(["re_ok"]);
+  });
+});
+
+describe("Declutter and Shops money is in the restore check (Q2230, before the Declutter switch goes past testers)", () => {
+  // What the database holds after the restore, column by column (the script reads these same columns).
+  const rows: Record<string, unknown[]> = {
+    "declutter_orders.stripe_payment_intent_id": ["pi_DclOrderKept"],
+    "declutter_refunds.stripe_payment_intent_id": ["pi_DclSupersededKept"],
+    "declutter_refunds.stripe_refund_ref": ["re_DclKept", "manual-placeholder"],
+    "declutter_hand_refunds.stripe_refund_id": ["pyr_DclHandKept"],
+    "declutter_payouts.stripe_transfer_id": ["tr_DclSellerKept"],
+    "helpr_task_payouts.stripe_transfer_id": ["tr_DclHelprKept"],
+    "shop_orders.stripe_payment_intent_id": ["pi_ShopKept"],
+    "shop_payouts.stripe_transfer_id": ["tr_ShopKept"],
+  };
+  const pi = (id: string) => ({ id, status: "succeeded", amount: 2500, created: 1790000000, metadata: { kind: "declutter_order" } });
+
+  it("every Declutter / Shops money column is matched, and a hand refund table without an id column pages by its key", () => {
+    const matched = Object.values(DB_ID_COLUMNS).flat().map((c) => `${c.table}.${c.column}`);
+    for (const c of [
+      "declutter_orders.stripe_payment_intent_id", "declutter_refunds.stripe_payment_intent_id", "declutter_refunds.stripe_refund_ref",
+      "declutter_hand_refunds.stripe_payment_intent_id", "declutter_hand_refunds.stripe_refund_id",
+      "declutter_delivery_refunds.stripe_payment_intent_id", "declutter_delivery_refunds.stripe_refund_ref",
+      "declutter_payouts.stripe_transfer_id", "helpr_task_payouts.stripe_transfer_id",
+      "shop_orders.stripe_payment_intent_id", "shop_payouts.stripe_transfer_id",
+    ]) {
+      expect(matched, c).toContain(c);
+      expect(c in NOT_MATCHED, `${c} is still excluded`).toBe(false);
+    }
+    expect(Object.values(DB_ID_COLUMNS).flat().filter((c) => c.table === "declutter_hand_refunds").map((c) => c.orderBy)).toEqual(["stripe_refund_id", "stripe_refund_id"]);
+  });
+
+  it("a Declutter PaymentIntent, refund or payout Stripe made after T with no row is MISSING; the kept ones match", () => {
+    const pis = collectDbIds("payment_intent", rows).ids;
+    const g = gradeKind("payment_intent", [pi("pi_DclOrderKept"), pi("pi_DclSupersededKept"), pi("pi_ShopKept"), pi("pi_DclLost")], pis);
+    expect(g.matched).toBe(3);
+    expect(g.missing.map((m) => m.id)).toEqual(["pi_DclLost"]);
+
+    const re = collectDbIds("refund", rows);
+    const refund = (id: string) => ({ id, status: "succeeded", amount: 2500, created: 1790000000, payment_intent: "pi_DclOrderKept" });
+    const gr = gradeKind("refund", [refund("re_DclKept"), refund("pyr_DclHandKept"), refund("re_DclLost")], re.ids);
+    expect(gr.matched).toBe(2);
+    expect(gr.missing.map((m) => m.id)).toEqual(["re_DclLost"]);
+
+    const tr = collectDbIds("transfer", rows).ids;
+    const transfer = (id: string) => ({ id, amount: 2000, created: 1790000000, reversed: false, destination: "acct_seller" });
+    const gt = gradeKind("transfer", [transfer("tr_DclSellerKept"), transfer("tr_DclHelprKept"), transfer("tr_ShopKept"), transfer("tr_DclLost")], tr);
+    expect(gt.missing.map((m) => m.id)).toEqual(["tr_DclLost"]);
+  });
+
+  it("a value that is not a Stripe id of its kind never matches and is listed", () => {
+    const re = collectDbIds("refund", rows);
+    expect(re.ids.has("manual-placeholder")).toBe(false);
+    expect(re.rejected).toEqual(["declutter_refunds.stripe_refund_ref = manual-placeholder"]);
+    // A refund id is never taken for a PaymentIntent, nor the other way round,
+    // and a Stripe id of another kind is not "rejected" (mixed columns).
+    const wrongKind = collectDbIds("payment_intent", { "declutter_orders.stripe_payment_intent_id": ["re_x"] });
+    expect(wrongKind.ids.size).toBe(0);
+    expect(wrongKind.rejected).toEqual([]);
+  });
+
+  it("the script reads the columns through collectDbIds and pages by orderBy", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../../scripts/check-stripe-restore-drift.mjs"), "utf8"));
+    expect(src).toContain("const { ids, rejected } = collectDbIds(kind, values);");
+    expect(src).toContain("&order=${orderBy ?? \"id\"}.asc&");
   });
 });
 

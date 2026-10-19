@@ -69,6 +69,7 @@ export const STORAGE_REFERENCE_COLUMNS = [
  * object, each with the reason. Two-way with types.ts in the test.
  */
 export const NOT_STORAGE_COLUMNS = {
+  "rental_photo_purge_queue.storage_path": "a queued object the listing-photo-purge cron DELETES (server-only queue, 20261019071203): a path waiting to stop existing, never one the app serves",
   "analytics_events.url": "the page URL an event fired on",
   "error_logs.url": "the page URL an error happened on",
   "marketing_content.external_url": "the published post's URL on Instagram/Facebook",

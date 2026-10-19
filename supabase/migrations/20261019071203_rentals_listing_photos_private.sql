@@ -242,6 +242,8 @@ GRANT SELECT ON TABLE public.rentals_photo_serve_keys TO service_role;
 INSERT INTO public.rentals_photo_serve_keys (id, secret)
 VALUES (1, decode(replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', ''), 'hex'))
 ON CONFLICT (id) DO NOTHING;
+-- Q807: both new tables refuse a write from a session whose email is not confirmed (only the server writes them).
+SELECT public.attach_unconfirmed_email_gate();
 COMMENT ON TABLE public.rentals_photo_serve_keys IS
   'The secret that signs listing photo refs (20261019071203). No policy, no client grant: rentals_photo_ref / rentals_listing_photo_object read it.';
 
@@ -741,7 +743,9 @@ BEGIN
           SELECT o.name FROM storage.objects o
             JOIN public.rental_listings l ON l.id = ANY (v_ids)
            WHERE o.bucket_id = 'listing-photos'
-             AND o.name LIKE l.owner_id::text || '/rental-listings/' || l.id::text || '/%') x;
+             AND split_part(o.name, '/', 1) = l.owner_id::text
+             AND split_part(o.name, '/', 2) = 'rental-listings'
+             AND split_part(o.name, '/', 3) = l.id::text) x;
   IF v_paths IS NOT NULL THEN
     INSERT INTO public.rental_photo_purge_queue (bucket_id, storage_path, due_at, reason)
     SELECT 'listing-photos', x, now() + interval '30 days', 'take-down of listing ' || p_listing_id::text FROM unnest(v_paths) x

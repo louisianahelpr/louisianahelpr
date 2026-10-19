@@ -44,7 +44,8 @@ vi.mock("@/hooks/useFeature", () => ({
 }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
-vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
+// The whole hook shape: Sell it for me (on Selling) reads explain + gatedProps too.
+vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, explain: () => {}, gatedProps: () => ({}) }) }));
 vi.mock("@/hooks/useUserLocation", () => ({
   useUserLocation: () => ({ status: "idle" }),
   getCachedUserLocation: () => null,

@@ -15187,6 +15187,7 @@ export type Database = {
         | "concrete_masonry"
         | "fencing"
         | "pressure_washing"
+        | "declutter_help"
       job_status:
         | "open"
         | "accepted"
@@ -15359,6 +15360,7 @@ export const Constants = {
         "concrete_masonry",
         "fencing",
         "pressure_washing",
+        "declutter_help",
       ],
       job_status: [
         "open",

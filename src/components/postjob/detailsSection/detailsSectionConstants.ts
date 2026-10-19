@@ -157,6 +157,7 @@ export const titlePlaceholders: Record<string, string> = {
   concrete_masonry: "e.g. Pour a small concrete pad",
   fencing: "e.g. Repair a wood privacy fence",
   pressure_washing: "e.g. Pressure wash the driveway",
+  declutter_help: "e.g. Photograph and list my items",
   other: "e.g. Help me with a quick job",
 };
 

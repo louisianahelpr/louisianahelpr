@@ -50,6 +50,7 @@ export const categoryHues: Record<string, string> = {
   concrete_masonry: "25 8% 46%",
   fencing: "95 26% 46%",
   pressure_washing: "188 44% 46%",
+  declutter_help: "120 22% 42%",
   other: "40 10% 55%",
 };
 

@@ -55,6 +55,7 @@ import {
   BrickWall,
   Fence,
   Droplets,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 
@@ -87,6 +88,7 @@ import {
  *   concrete_masonry → BrickWall
  *   fencing     → Fence
  *   pressure_washing → Droplets   (spray)
+ *   declutter_help → Tag   (price tag: photographed and listed for sale)
  *   other       → MoreHorizontal  (catch-all neutral glyph)
  */
 export const CATEGORY_ICONS: Record<string, LucideIcon> = {
@@ -113,6 +115,7 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   concrete_masonry: BrickWall,
   fencing: Fence,
   pressure_washing: Droplets,
+  declutter_help: Tag,
   other: MoreHorizontal,
 };
 

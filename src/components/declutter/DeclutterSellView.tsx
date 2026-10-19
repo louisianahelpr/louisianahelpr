@@ -51,6 +51,7 @@ import { PickupTimesEditor } from "./DeclutterPickupTimes";
 import PriceHint from "./DeclutterPriceHint";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
+import { SellItForMeEntry } from "./SellItForMe";
 
 interface FormState {
   title: string;
@@ -349,6 +350,9 @@ export default function SellFlow() {
           <Link to="/profile?tab=payment" className="underline font-semibold">Set up payouts</Link>
         </DeclutterNotice>
       )}
+
+      {/* "Sell it for me" (owner 2026-10-19): a new listing only, never on a draft already started. */}
+      {!itemId && <SellItForMeEntry />}
 
       <SellPhotos
         uploaded={photos.data ?? []}

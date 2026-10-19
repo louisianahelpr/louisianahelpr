@@ -14,6 +14,7 @@ import { useJobDerived } from "./useJobDerived";
 import { useJobFormEffects } from "./useJobFormEffects";
 import { usePostJobGiftCard } from "./usePostJobGiftCard";
 import { useHaulAwayPrefill } from "./useHaulAwayPrefill";
+import { SELL_FOR_ME_PARAM } from "@/lib/declutter/sellForMe";
 
 export type { Step } from "./postJobFormTypes";
 
@@ -49,8 +50,9 @@ export function usePostJobForm() {
   // Q768: an imported STR turnover (`turnover`) arrives pre-filled the same way.
   // A Declutter haul-away (`haulAway`, docs/specs/declutter-haul-away.md) too,
   // and so does a Declutter "Add a Helpr" tap (`declutterOrder`, setupHelpr.ts).
-  // Rentals S1: an approved maintenance request (`maintenance`) too.
-  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("declutterOrder") || searchParams.get("maintenance") || searchParams.get("turnover") || searchParams.get("haulAway"));
+  // Rentals S1: an approved maintenance request (`maintenance`) too, and
+  // Declutter's "Sell it for me" (`sellForMe`, src/lib/declutter/sellForMe.ts).
+  const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) || searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("declutterOrder") || searchParams.get("maintenance") || searchParams.get("turnover") || searchParams.get("haulAway"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
 
   // Gift card — the gift card this post is being funded with, if any.

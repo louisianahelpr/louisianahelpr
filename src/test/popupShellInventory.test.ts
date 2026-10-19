@@ -361,6 +361,7 @@ describe("one footer convention", () => {
     "src/components/messages/MuteSheet.tsx": "each row IS the action; picking one closes",
     "src/components/messages/MessageActionSheet.tsx": "each row IS the action",
     "src/pages/posts/CompletionChoiceSheet.tsx": "each choice IS the action",
+    "src/components/declutter/SellItForMe.tsx": "each choice IS the action (Hire a Helpr, a shop card); the sheet's close is the exit",
 
     // ── Added 2026-08-31, after the lexer fix below stopped this test
     // accusing files that DO have a footer. Each of these was read before

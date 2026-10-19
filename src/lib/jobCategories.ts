@@ -26,6 +26,9 @@ export const JOB_CATEGORY_LABELS: Record<JobCategory, string> = {
   handyman: "Handyman",
   moving: "Moving",
   errands: "Errands",
+  // "Sell it for me" (owner 2026-10-19): a Helpr photographs and lists a
+  // seller's Declutter items with them, in person. Untaxed like errands.
+  declutter_help: "Declutter Help",
   delivery: "Delivery",
   pet_care: "Pet Care",
   assembly: "Assembly",

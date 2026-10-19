@@ -651,6 +651,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/money.ts";`,
   );
 
+  // Helpr-fault card fee (Q2082 (b)): `_shared/helprFaultFee.ts` has ZERO
+  // imports (it takes the supabase client as an argument), so the generated
+  // file points at the REAL module: the cap and the fail-closed read are the
+  // money rule under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/helprFaultFee\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/helprFaultFee.ts";`,
+  );
+
   // Admin-id fan-out for ops alerts: `_shared/adminIds.ts` takes the supabase
   // client as an argument and has no module-scope Deno imports, so the
   // generated file points at the REAL module. That keeps the "did we actually

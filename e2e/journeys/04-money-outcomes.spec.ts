@@ -86,7 +86,7 @@ const titleFor = (journey: string, outcome: "cancelled" | "refunded" | "smooth")
  */
 
 /** Every admin-only create-payment action a NON-admin must be refused. */
-const NON_ADMIN_REFUSED = ["admin_refund_general", "admin_refund_dispute", "admin_release_dispute"] as const;
+const NON_ADMIN_REFUSED = ["admin_refund_general", "admin_refund_dispute", "admin_release_dispute", "admin_bill_helpr_fault"] as const;
 
 async function readJson<T>(r: { ok(): boolean; status(): number; text(): Promise<string> }, what: string): Promise<T> {
   const body = await r.text();

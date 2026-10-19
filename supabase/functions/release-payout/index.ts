@@ -53,6 +53,7 @@ import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
+import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { checkPayoutHold, checkJobPayoutHold, isPayoutHeldRefusal, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { jobMoneyMode, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor, type StripeMode } from "../_shared/stripeMode.ts";
 
@@ -889,7 +890,11 @@ serve(async (req) => {
    * silently lost forever. The atomic claim guarantees we are the sole owner,
    * so this rollback is safe.
    */
+  // Q2082 (b): what this payout withheld for a Helpr-fault card fee (below).
+  let helprFaultFeeCents = 0;
   const rollBackOnboardingFeeClaim = async () => {
+    // The Helpr-fault card fee taken below goes back on the same exits.
+    if (helprFaultFeeCents > 0) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout");
     if (onboardingFeeDeductedCents <= 0) return;
     const { error: unclaimErr } = await supabaseAdmin
       .from("profiles")
@@ -902,6 +907,28 @@ serve(async (req) => {
       );
     }
   };
+
+  // Q2082 (b), owner 2026-10-18 ("J4"): the card cost of a full refund this
+  // Helpr was ruled at fault for comes out of this payout (what keeps it at
+  // $1 or more; the rest waits for the next one). Taken once per job, shared
+  // with process-scheduled-payouts (_shared/helprFaultFee.ts). Fails closed.
+  {
+    const take = await takeHelprFaultFee(
+      supabaseAdmin, job.helper_id, job.id,
+      helprFaultFeeCapCents(unroundedPayoutCents - onboardingFeeDeductedCents),
+    );
+    if (take.error !== undefined) {
+      console.error(`[release-payout] Helpr-fault card fee read failed for job ${job.id}: ${take.error}`);
+      await rollBackOnboardingFeeClaim();
+      return jsonResponse({ error: "could not read the Helpr's card-fee debt — retry. Nothing was moved." }, 500);
+    }
+    if (take.cents > 0) {
+      helprFaultFeeCents = take.cents;
+      // Q2165 (owner 2026-10-19): whole dollars first, then the debt off in
+      // exact cents, so what is withheld is exactly what is booked.
+      payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents) - helprFaultFeeCents;
+    }
+  }
 
   if (payoutCents <= 0) {
     // Reachable only with NO active fee claim: a successful claim above already
@@ -1014,7 +1041,7 @@ serve(async (req) => {
     initiatedBy,
     initiatedByUserId,
     // Q1520: what this payout withholds (onboarding fee, round-down remainder).
-    metadata: { source: "release-payout", ...payoutWithheldMetadata(unroundedPayoutCents, onboardingFeeDeductedCents, payoutCents) },
+    metadata: { source: "release-payout", ...payoutWithheldMetadata(unroundedPayoutCents, onboardingFeeDeductedCents, payoutCents, helprFaultFeeCents) },
     // Q1211: a refund or cancel that landed after this job was read stops it.
     expectPaymentStatus: "payout_pending",
   });
@@ -1088,6 +1115,8 @@ serve(async (req) => {
           helper_id: job.helper_id,
           customer_id: job.customer_id ?? "",
           initiated_by: initiatedBy,
+          // Always written ("0" when none): a creator never spreads metadata (Q343).
+          helpr_fault_fee_cents: String(helprFaultFeeCents),
         },
       },
       // Idempotency: same job + same trigger pattern = same transfer. Stripe
@@ -1154,7 +1183,7 @@ serve(async (req) => {
     metadata: {
       source: "release-payout",
       transfer_group: transfer.transfer_group ?? null,
-      ...payoutWithheldMetadata(unroundedPayoutCents, onboardingFeeDeductedCents, payoutCents),
+      ...payoutWithheldMetadata(unroundedPayoutCents, onboardingFeeDeductedCents, payoutCents, helprFaultFeeCents),
     },
   });
   if (!settled.ok) {

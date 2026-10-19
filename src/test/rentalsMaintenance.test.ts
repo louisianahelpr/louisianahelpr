@@ -40,11 +40,11 @@
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |   IF p_at <= now() THEN |   IF false THEN
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |   IF v_last IS NULL OR v_was_ok OR v_other_job OR | IF v_last IS NULL OR
 // @mutate supabase/migrations/20261019044500_rentals_ownership_alert_homes_words.sql |          AND NOT public.notification_crosses_seed_boundary(ur.user_id, NULL, NULL, v_uid); |          ;
-// @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql |                     WHERE rp.ownership_status = 'pending_review' AND p.is_seed IS NOT TRUE); |                     WHERE rp.ownership_status = 'pending_review');
+// @mutate supabase/migrations/20261019185022_rentals_first_listing_review.sql |                     WHERE rp.ownership_status = 'pending_review' AND p.is_seed IS NOT TRUE); |                     WHERE rp.ownership_status = 'pending_review');
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                        AND (cur.stripe_session_id IS NULL OR cur.payment_status = 'abandoned'))) |                        )) 
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                    OR (cur.status = 'cancelled' |                    OR (true
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |     AND COALESCE(j.payment_status, 'unpaid') IN ('unpaid', 'failed', 'abandoned')\n     AND (j.stripe_session_id IS NULL OR j.payment_status = 'abandoned')\n   FOR UPDATE; |     FOR UPDATE;
-// @mutate supabase/migrations/20261019062540_rentals_public_link_takedown.sql |     IF v_photos < 5 THEN |     IF v_photos < 0 THEN
+// @mutate supabase/migrations/20261019185022_rentals_first_listing_review.sql |   IF v_photos < 5 THEN |   IF v_photos < 0 THEN
 // @mutate supabase/migrations/20261019061241_rentals_sale_listings.sql | REVOKE ALL ON FUNCTION public.rentals_listing_visible(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.rentals_listing_visible(uuid) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261019071203_rentals_listing_photos_private.sql | l.available_on, l.pets,\n         rp.city, rp.zip_code,\n         ARRAY(SELECT public.rentals_photo_ref(ph.id, 'm') FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5), | l.available_on, l.pets,\n         rp.street_address, rp.zip_code,\n         ARRAY(SELECT public.rentals_photo_ref(ph.id, 'm') FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5),
 import { describe, expect, it } from "vitest";
@@ -108,12 +108,16 @@ const LEASE_ACTION_RPCS = ["rentals_lease_send", "rentals_lease_sign", "rentals_
   "rentals_lease_discard"];
 /** RPCs that only take access away or link a job (banned / under-18 may still leave). */
 const OTHER_RPCS = ["rentals_end_tenancy", "rentals_withdraw_request", "link_maintenance_request_job", "rentals_admin_review_property",
-  "rentals_admin_review_landlord_id"];
+  "rentals_admin_review_landlord_id",
+  // A lister's first listing waits for an admin (20261019185022): admin-only inside (has_role), switch-gated like the ID review.
+  "rentals_admin_first_listings", "rentals_admin_review_first_listing"];
 const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes", "rentals_visit_for_job", "rentals_browse_listings", "rentals_listing", "rentals_my_identity",
   "rentals_browse_sale_listings", "rentals_my_listing_photos", "rentals_rent_ledger", "rentals_deposit", "rentals_my_ended_deposits",
   "rentals_lease", "rentals_my_leases"];
 /** Listings helpers (20261019043000): server-only. */
-const LISTING_INTERNAL = ["rentals_listing_wording_flags", "rentals_lock_own_listing", "rentals_listing_visible", "homes_sale_wording_flags"];
+const LISTING_INTERNAL = ["rentals_listing_wording_flags", "rentals_lock_own_listing", "rentals_listing_visible", "homes_sale_wording_flags",
+  // 20261019185022: the trust lookup and the publish checks shared by Publish and the admin's approval.
+  "rentals_lister_trusted", "rentals_listing_publish_check"];
 /** Slice 3 writes: visit time (the Helpr, not a Rentals member, proposes; the tenant confirms through
  *  rentals_assert_member) and the landlord's cancel of an unpaid repair job. */
 const VISIT_RPCS = ["rentals_propose_visit", "rentals_confirm_visit", "rentals_cancel_request_job"];
@@ -261,7 +265,16 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
       expect(callable.has(fn), `${fn} must not be client-callable`).toBe(false);
       expect(ALL_MIG, fn).toMatch(new RegExp(String.raw`REVOKE ALL ON FUNCTION public\.${fn}\([^)]*\) FROM PUBLIC, anon, authenticated;`));
     }
-    const live = flat(body("rentals_set_listing_status"));
+    // 20261019185022: the publish checks live in rentals_listing_publish_check (run for the OWNER by Publish and by the
+    // admin's first-listing approval); the status RPC runs them, then sends an untrusted lister's listing to review.
+    const status = flat(body("rentals_set_listing_status"));
+    expect(status).toContain("PERFORM public.rentals_listing_publish_check(v_l, v_uid); IF NOT public.rentals_lister_trusted(v_uid) THEN");
+    expect(flat(body("rentals_admin_review_first_listing"))).toContain("PERFORM public.rentals_listing_publish_check(v_l, v_l.owner_id);");
+    expect(flat(body("rentals_admin_review_first_listing"))).toContain("NOT public.has_role(v_uid, 'admin'::public.app_role)");
+    expect(flat(body("rentals_admin_review_first_listing"))).toContain("INSERT INTO public.admin_audit_log");
+    expect(flat(body("rentals_listing_review_guard"))).toContain("AND NEW.first_review IS DISTINCT FROM 'approved' AND NOT public.rentals_lister_trusted(NEW.owner_id) THEN RAISE EXCEPTION 'listing_needs_review'");
+    expect(readFileSync(join(ROOT, "src/test/pglite/homesFirstListingReview.pglite.mjs"), "utf8")).toContain("20261019185022");
+    const live = flat(body("rentals_listing_publish_check")).replace(/\bp_l\./g, "v_l.");
     // 20261019061241: a sale listing runs the sale list (fair housing + no haggling), a rent listing the fair-housing list.
     expect(live).toContain("IF v_l.kind = 'sale' THEN v_flags := public.homes_sale_wording_flags(concat_ws(' ', v_l.headline, v_l.description)); ELSE v_flags := public.rentals_listing_wording_flags(concat_ws(' ', v_l.headline, v_l.description, v_l.pet_rules)); END IF; IF cardinality(v_flags) > 0 THEN IF v_l.kind = 'sale' THEN RAISE EXCEPTION 'sale_wording_flagged'");
     // and a sale listing never goes live while the flat listing fee is above 0 (no payment flow exists).

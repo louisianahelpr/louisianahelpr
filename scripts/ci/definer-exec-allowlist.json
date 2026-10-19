@@ -328,6 +328,8 @@
     "rentals_admin_remove_listing(uuid, text)": "client",
     "rentals_admin_lift_takedown(uuid, text)": "client",
     "rentals_admin_listings(text, integer, integer)": "client",
+    "rentals_admin_first_listings()": "client",
+    "rentals_admin_review_first_listing(uuid, boolean, text, timestamp with time zone)": "client",
     "rentals_admin_takedown_matches(uuid[])": "client",
     "rentals_my_listing_photos(uuid)": "client",
     "rentals_listing_photo_access(text, text)": "policy",

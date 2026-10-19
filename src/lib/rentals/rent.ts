@@ -53,12 +53,30 @@ export interface RentPayment {
   paid_on: string;
   method: PaymentMethod;
   reported_by: "tenant" | "landlord";
-  status: "reported" | "confirmed" | "declined";
+  status: "reported" | "confirmed" | "declined" | "reversed";
   decline_reason: string | null;
   decided_at: string | null;
+  /** The landlord's changes within 30 days of confirming, oldest first (lead review #7). */
+  corrections: RentCorrection[];
+  /** Set while the landlord may still correct or reverse it. */
+  correctable_until: string | null;
+  disputed_at: string | null;
+  dispute_reason: string | null;
+}
+export interface RentCorrection {
+  at: string;
+  action: "edit" | "reverse";
+  reason: string;
+  from: { amount_cents: number; paid_on: string };
+  to?: { amount_cents: number; paid_on: string };
 }
 export interface RentLedger {
   side: "tenant" | "landlord";
+  tenancy_status: "active" | "ended";
+  lease_ends_on: string | null;
+  /** Writes stay open while live and for 90 days after the end (then read-only). */
+  open: boolean;
+  open_until: string | null;
   home: { label: string; unit_label: string; city: string; zip_code: string } | null;
   plan: RentPlan | null;
   balance_cents: number;
@@ -72,11 +90,16 @@ export async function fetchRentLedger(tenancyId: string): Promise<RentLedger> {
   const l = (data ?? {}) as unknown as Partial<RentLedger>;
   return {
     side: l.side === "landlord" ? "landlord" : "tenant",
+    tenancy_status: l.tenancy_status === "ended" ? "ended" : "active",
+    lease_ends_on: l.lease_ends_on ?? null,
+    open: l.open ?? false,
+    open_until: l.open_until ?? null,
     home: l.home ?? null,
     plan: l.plan ?? null,
     balance_cents: l.balance_cents ?? 0,
     charges: l.charges ?? [],
-    payments: l.payments ?? [],
+    payments: (l.payments ?? []).map((p) => ({ ...p, corrections: p.corrections ?? [], correctable_until: p.correctable_until ?? null,
+      disputed_at: p.disputed_at ?? null, dispute_reason: p.dispute_reason ?? null })),
   };
 }
 
@@ -87,6 +110,8 @@ export interface RentPlanInput {
   grace_days: number;
   late_fee_cents: number;
   pay_methods: PayMethod[];
+  /** Optional; a new one is at least 30 days out (the landlord sees a moved-out tenant's address only after it). */
+  lease_ends_on: string | null;
 }
 
 export async function setRentPlan(tenancyId: string, plan: RentPlanInput): Promise<void> {
@@ -111,6 +136,42 @@ export async function addRentPayment(tenancyId: string, amountCents: number, pai
 export async function decideRentPayment(paymentId: string, received: boolean, reason?: string): Promise<void> {
   const { error } = await supabase.rpc("rentals_decide_rent_payment", { p_payment_id: paymentId, p_received: received, p_reason: reason });
   if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_decide_rent_payment", error), error);
+}
+
+/** The landlord takes back or corrects a received payment, within 30 days, with a reason the tenant sees. */
+export async function correctRentPayment(
+  paymentId: string,
+  change: { action: "reverse" } | { action: "edit"; amountCents: number; paidOn: string },
+  reason: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("rentals_correct_rent_payment", {
+    p_payment_id: paymentId,
+    p_action: change.action,
+    p_amount_cents: change.action === "edit" ? change.amountCents : null,
+    p_paid_on: change.action === "edit" ? change.paidOn : null,
+    p_reason: reason,
+  });
+  if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_correct_rent_payment", error), error);
+}
+
+/** The tenant disputes a payment that was turned down, taken back or changed (the app records it, never decides it). */
+export async function disputeRentPayment(paymentId: string, reason: string): Promise<void> {
+  const { error } = await supabase.rpc("rentals_dispute_rent_payment", { p_payment_id: paymentId, p_reason: reason });
+  if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_dispute_rent_payment", error), error);
+}
+
+/** May the tenant still dispute this payment (declined, reversed or changed; once; within 30 days of the last of those)? */
+export function canDispute(p: RentPayment, now = Date.now()): boolean {
+  if (p.disputed_at) return false;
+  if (!(p.status === "declined" || p.status === "reversed" || p.corrections.length > 0)) return false;
+  const times = [p.decided_at, ...p.corrections.map((c) => c.at)].filter((t): t is string => !!t).map((t) => Date.parse(t));
+  return times.length > 0 && now - Math.max(...times) <= 30 * 24 * 3600 * 1000;
+}
+
+export function correctionLine(c: RentCorrection): string {
+  return c.action === "reverse"
+    ? `Taken back by the landlord: ${c.reason}`
+    : `Changed from ${money(c.from.amount_cents)} on ${dayLabel(c.from.paid_on)}: ${c.reason}`;
 }
 
 export async function waiveRentCharge(chargeId: string): Promise<void> {
@@ -160,6 +221,7 @@ export const PAYMENT_STATUS_LABEL: Record<RentPayment["status"], string> = {
   reported: "Waiting for the landlord",
   confirmed: "Received",
   declined: "Not received",
+  reversed: "Taken back by the landlord",
 };
 
 // --- receipts (R5) ----------------------------------------------------------

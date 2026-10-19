@@ -474,6 +474,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "declutter_problems.decided_by": { reason: "the staff member who decided a Declutter problem report; the report is the member's (exported by declutter_problems.reporter_id, 20261015042253, with this staff id dropped)", stripped: true },
   "landlord_id_reviews.reviewed_by": { reason: "the admin who reviewed a landlord's ID photo (owner 2026-10-19); the review is the landlord's (exported by landlord_id_reviews.user_id with this staff id dropped)", stripped: true },
   "rental_rent_payments.reported_by": { reason: "which side entered a rent payment ('tenant' or 'landlord'), not a person id; the table is keyed by tenancy_id and holds no person column (20261019073106)" },
+  "rental_tenancies.ended_by": { reason: "which side ended the tenancy ('tenant' or 'landlord'), not a person id; the tenancy is exported by its landlord_id and tenant_id (20261019073106)" },
   "rental_properties.ownership_reviewed_by": { reason: "the admin who checked a landlord's ownership proof; the property is the landlord's (exported by rental_properties.owner_id, 20261017205605, with this staff id dropped)", stripped: true },
   "declutter_seller_flags.set_by": { reason: "the staff member (or NULL for the server) who flagged a seller as business-like; the flag is the member's (the flag is exported by declutter_seller_flags.user_id, 20261014200728, with this staff id dropped)" },
   // Q552: the service-role-only enrolment of the platform's OWN test accounts

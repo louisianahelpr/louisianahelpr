@@ -207,9 +207,9 @@ ok(bucket?.public === false && JSON.stringify(bucket.allowed_mime_types) === '["
 
 // --- 2. existing job-photos photos are kept server-side, never lost, and their live listing waits for its owner
 ok(one(await svc(`SELECT count(*)::int FROM public.rental_listing_photos WHERE listing_id = '${legacyId}'`)) === 0, "legacy: the job-photos rows are detached from the listing");
-ok(one(await svc(`SELECT count(*)::int FROM public.rental_listing_photo_legacy WHERE storage_path LIKE '%/rental-listings/${legacyId}/%'`)) === 5, "legacy: all 5 kept in rental_listing_photo_legacy (3 replays, no duplicates)");
+ok(one(await svc(`SELECT count(*)::int FROM storage.objects WHERE bucket_id = 'job-photos' AND name LIKE '%/rental-listings/${legacyId}/%'`)) === 0,
+  "legacy (review #5): the photos are taken OUT of the public job-photos bucket (their object rows go, so the public URL is a 404)");
 ok(one(await svc(`SELECT status FROM public.rental_listings WHERE id = '${legacyId}'`)) === "paused", "legacy: the live listing, now short of photos, is paused");
-ok(refused(await as("authenticated", LANDLORD, `SELECT * FROM public.rental_listing_photo_legacy`), /permission denied/), "legacy table: no member read");
 
 // --- 3. uploads: own folder, own listing, private bucket
 const rentId = await newRent(unitA, "Bright 2 bed near downtown");
@@ -245,6 +245,12 @@ ok(empty(await as("authenticated", STRANGER, `SELECT name FROM storage.objects W
 ok(rows(await as("authenticated", LANDLORD, `SELECT name FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(0)}'`)).length === 1, "the owner sees their own object");
 ok(empty(await as("authenticated", LANDLORD, `DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(0)}' RETURNING id`)), "an ATTACHED photo cannot be deleted by its owner");
 ok(empty(await as("authenticated", ADMIN, `DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(0)}' RETURNING id`)), "nor by an admin");
+await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'rentals'`);
+ok(empty(await as("authenticated", LANDLORD, `DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(0)}' RETURNING id`)),
+  "review #4: with the Homes switch OFF an attached photo still cannot be deleted (the attach check is not switch-gated RLS)");
+ok(empty(await as("authenticated", ADMIN, `DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(0)}' RETURNING id`)),
+  "review #4: nor by an admin, whose view of other people's photo rows IS switch-gated");
+await svc(`UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'rentals'`);
 ok(rows(await as("authenticated", LANDLORD, `DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(7)}' RETURNING id`)).length === 1, "an unattached one can");
 
 // --- 5. Q2213: reads carry refs, never a path or a member id
@@ -301,6 +307,9 @@ ok(one(await obj(mRef)) === null, "paused: a member's ref stops resolving at onc
 ok(one(await obj(oRef)) === P(0), "while the owner's own ref still shows it in their editor");
 await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${rentId}', 'live')`);
 ok(one(await obj(mRef)) === P(0), "live again: the member ref resolves again");
+await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'rentals'`);
+ok(one(await obj(mRef)) === null && one(await obj(oRef)) === null, "review #2: the Homes switch OFF stops every member and owner ref at once (kill switch)");
+await svc(`UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'rentals'`);
 // p scope: only through the public link, only while public
 const slug = one(await svc(`SELECT slug FROM public.rental_listings WHERE id = '${rentId}'`));
 await svc(`UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'rentals'`);
@@ -317,23 +326,26 @@ ok(one(await obj(mRef)) === P(0), "while a member's still does");
 await svc(`INSERT INTO public.test_accounts (user_id) VALUES ('${LANDLORD}')`);
 ok(one(await svc(`SELECT to_regprocedure('public.rentals_public_listing_photo_path(uuid)') IS NULL`)) === true, "the old id-only lookup is gone (one ref rule for every read)");
 
+// owner removal stops every ref, the owner's own included
+const bId = await newRent(unitB, "Upstairs one bedroom");
+await up(LANDLORD, P(0, bId));
+await attach(LANDLORD, bId, P(0, bId));
+const bRef = rows(await as("authenticated", LANDLORD, `SELECT * FROM public.rentals_my_listing_photos('${bId}')`))[0]?.ref;
+ok(one(await obj(bRef)) === P(0, bId), "setup: a draft's owner ref resolves");
+await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${bId}', 'removed')`);
+ok(one(await obj(bRef)) === null, "an owner-removed listing's refs resolve to nothing");
+
 // --- 7. Q2211: the admin take-down detaches the photos; every ref and the old URL stop working
-const takedown = rows(await as("authenticated", ADMIN, `SELECT public.rentals_admin_remove_listing('${rentId}', 'Photos do not show this home.') AS paths`))[0];
-ok(Array.isArray(takedown?.paths) && takedown.paths.length === 5 && takedown.paths.every((p) => p.startsWith(`${LANDLORD}/rental-listings/${rentId}/`)),
-  "the take-down returns the 5 object paths for the admin screen to delete");
-ok(one(await svc(`SELECT count(*)::int FROM public.rental_listing_photos WHERE listing_id = '${rentId}'`)) === 0, "the photos are detached");
+ok(Array.isArray(await as("authenticated", ADMIN, `SELECT public.rentals_admin_remove_listing('${rentId}', 'Photos do not show this home.')`)), "an admin takes the listing down");
+ok(one(await svc(`SELECT count(*)::int FROM public.rental_listing_photos WHERE listing_id IN ('${rentId}', '${saleId}')`)) === 0,
+  "the photos of every listing it removed (the rent and the sale listing on the property) are detached");
+ok(one(await svc(`SELECT count(*)::int FROM storage.objects WHERE bucket_id = 'listing-photos' AND (name LIKE '%/${rentId}/%' OR name LIKE '%/${saleId}/%')`)) === 0,
+  "review #3: their objects are deleted server-side (nothing left for the landlord to sign)");
 ok(one(await obj(mRef)) === null && one(await obj(oRef)) === null, "Q2211: the member and owner refs of a taken-down listing resolve to nothing (proxy 404)");
-ok(rows(await as("authenticated", ADMIN, `DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(0)}' RETURNING id`)).length === 1,
-  "the admin deletes the detached objects");
-ok(empty(await as("authenticated", STRANGER, `DELETE FROM storage.objects WHERE bucket_id = 'listing-photos' AND name = '${P(1)}' RETURNING id`)), "a stranger cannot");
-ok(one(await svc(`SELECT (details->>'photos_detached')::int FROM public.admin_audit_log WHERE action = 'rentals_listing_removed' AND target_id = '${rentId}'`)) === 5,
-  "the audit log records the photos detached");
+const audit = rows(await svc(`SELECT details FROM public.admin_audit_log WHERE action = 'rentals_listing_removed' AND target_id = '${rentId}'`))[0]?.details;
+ok(audit?.photos_deleted?.length === 10 && audit.photos_deleted.every((x) => x.startsWith(`${LANDLORD}/rental-listings/`)), "the audit log names every photo it deleted (10)");
 ok(refused(await up(LANDLORD, P(5)), /row-level security/), "no uploads into a taken-down listing's folder");
 ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_admin_remove_listing('${saleId}', 'Not allowed here.')`), /not_authorized/), "a member cannot take down");
-// owner removal also stops every ref
-const sRef = sale[0]?.photo_refs?.[0];
-await as("authenticated", LANDLORD, `SELECT public.rentals_set_listing_status('${saleId}', 'removed')`);
-ok(one(await obj(sRef)) === null, "an owner-removed listing's refs resolve to nothing");
 
 // --- 8. the key and the signer are out of every client's reach
 for (const role of ["anon", "authenticated", "service_role"]) {

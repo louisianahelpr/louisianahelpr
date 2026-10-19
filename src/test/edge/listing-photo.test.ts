@@ -21,8 +21,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
-import { resetSharedMocks, rateLimitState, rateLimitCalls } from "./mocks/shared";
-import { isJpeg, stripJpegMetadata } from "../../../supabase/functions/_shared/jpegStripMetadata";
+import { resetSharedMocks, rateLimitState, rateLimitCalls, rateLimitAuthSeen } from "./mocks/shared";
+import { isJpeg, stripJpegMetadata, ICC_MAX_BYTES } from "../../../supabase/functions/_shared/jpegStripMetadata";
 
 const enc = new TextEncoder();
 const bytesOf = (s: string) => enc.encode(s);
@@ -97,6 +97,22 @@ describe("jpegStripMetadata (Q2212, the server-side strip)", () => {
     expect(clean![clean!.length - 1]).toBe(0xd9);
   });
 
+  it("keeps the colour blocks only in their minimal form: bare JFIF, Adobe transform, one small ICC chunk", () => {
+    const at = (seg: Uint8Array) => cat(REAL.subarray(0, 2), seg, REAL.subarray(2));
+    const kept = (seg: Uint8Array) => includes(stripJpegMetadata(at(seg))!, seg);
+    const jfxx = segment(0xe0, cat(bytesOf("JFXX\0"), new Uint8Array([0x10]), bytesOf("LH-JFXX-THUMB")));
+    const jfifThumb = segment(0xe0, cat(bytesOf("JFIF\0"), new Uint8Array([1, 2, 0, 0, 1, 0, 1, 1, 1]), new Uint8Array([9, 9, 9])));
+    const adobe = segment(0xee, cat(bytesOf("Adobe"), new Uint8Array([0, 100, 0, 0, 0, 0, 1])));
+    const adobeLong = segment(0xee, cat(bytesOf("Adobe"), new Uint8Array([0, 100, 0, 0, 0, 0, 1]), bytesOf("LH-EXTRA")));
+    const iccBig = segment(0xe2, cat(bytesOf("ICC_PROFILE\0"), new Uint8Array([1, 1]), new Uint8Array(ICC_MAX_BYTES)));
+    const iccChunked = segment(0xe2, cat(bytesOf("ICC_PROFILE\0"), new Uint8Array([1, 2]), bytesOf("part-one")));
+    const checks = [
+      [jfxx, false], [jfifThumb, false], [adobe, true], [adobeLong, false], [segment(0xe2, ICC), true], [iccBig, false], [iccChunked, false],
+    ] as const;
+    for (const [seg, want] of checks) expect(kept(seg)).toBe(want);
+    expect(checks.length).toBeGreaterThan(5);
+  });
+
   it("refuses bytes that are not a well-formed JPEG (never 'serve it as is')", () => {
     expect(stripJpegMetadata(bytesOf("\x89PNG\r\n\x1a\n not a jpeg"))).toBeNull();
     expect(stripJpegMetadata(REAL.subarray(0, REAL.length - 200))).toBeNull(); // truncated: no EOI
@@ -162,6 +178,14 @@ describe("listing-photo handler", () => {
     expect(calls[1].url).toBe(`https://x.supabase.co/storage/v1/object/authenticated/listing-photos/${PATH}`);
   });
 
+  it("a public-link ref is served re-encoded only: no original fallback for strangers", async () => {
+    scenario.rpc.rentals_listing_photo_object = PATH;
+    storage(() => new Response("transform off", { status: 400 }), () => jpegResponse(REAL));
+    const fn = await load();
+    expect((await get(fn, `r=${REF.replace(".m.", ".p.")}`)).status).toBe(502);
+    expect(calls).toHaveLength(1);
+  });
+
   it("never serves an original over 2 MB un-resized", async () => {
     scenario.rpc.rentals_listing_photo_object = PATH;
     const big = new Uint8Array(2 * 1024 * 1024 + 1);
@@ -206,7 +230,9 @@ describe("listing-photo handler", () => {
     rateLimitState.allowed = false;
     storage(() => jpegResponse(REAL));
     const fn = await load();
-    const res = await get(fn, `r=${REF}`);
+    // By address only: a bearer (unverified, any sub) never picks the bucket.
+    const res = await fn.fetch(fn.request({ method: "GET", url: `https://edge.test/listing-photo?r=${REF}`, headers: { Authorization: "Bearer forged" } }));
+    expect(rateLimitAuthSeen).toEqual([false]);
     expect(res.status).toBe(429);
     expect(rateLimitCalls[0]).toMatchObject({ windowMs: 60_000, keyPrefix: "listing-photo" });
     expect((rateLimitCalls[0] as { ipMaxRequests?: number }).ipMaxRequests).toBeGreaterThan(rateLimitCalls[0].maxRequests ?? 0);

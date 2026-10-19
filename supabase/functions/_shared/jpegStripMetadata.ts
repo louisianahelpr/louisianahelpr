@@ -11,9 +11,12 @@
 // segments that are not an ICC colour profile (MPF: the extra pictures a phone
 // appends, each with its own EXIF), APP3-APP13 (APP13 = Photoshop/IPTC, which
 // can name a place), APP15, COM, and anything after the end-of-image marker
-// (where MPF puts those extra pictures). What is KEPT: APP0 (JFIF), the ICC
-// profile (colour only) and APP14 (Adobe colour transform), without which the
-// picture's colours would be wrong, plus every table and the image data.
+// (where MPF puts those extra pictures). What is KEPT, and only in its minimal
+// form (lead review of Q2211 #7): APP0 only as a bare JFIF header (no
+// thumbnail, no JFXX extension), APP14 only as the 12-byte Adobe colour-
+// transform block, and the ICC colour profile only as ONE chunk under
+// ICC_MAX_BYTES; without those the picture's colours could be wrong. Every
+// table and the image data are kept as they are.
 //
 // Zero imports, pure: unit-tested in src/test/edge/listing-photo.test.ts.
 
@@ -22,6 +25,10 @@ export function isJpeg(b: Uint8Array): boolean {
   return b.length >= 4 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
 }
 
+const JFIF_ID = [0x4a, 0x46, 0x49, 0x46, 0x00]; // "JFIF\0"
+const ADOBE_ID = [0x41, 0x64, 0x6f, 0x62, 0x65]; // "Adobe"
+/** A real colour profile is a few KB (sRGB ~3 KB, Display P3 ~0.5 KB); anything bigger is not kept. */
+export const ICC_MAX_BYTES = 24 * 1024;
 const ICC_ID = [0x49, 0x43, 0x43, 0x5f, 0x50, 0x52, 0x4f, 0x46, 0x49, 0x4c, 0x45, 0x00]; // "ICC_PROFILE\0"
 
 function startsWith(b: Uint8Array, at: number, id: number[]): boolean {
@@ -30,9 +37,15 @@ function startsWith(b: Uint8Array, at: number, id: number[]): boolean {
   return true;
 }
 
-function dropSegment(marker: number, b: Uint8Array, dataAt: number): boolean {
+function dropSegment(marker: number, b: Uint8Array, dataAt: number, len: number): boolean {
+  // APP0: a bare JFIF header only (length 16: identifier, version, units, density, a 0x0 thumbnail).
+  if (marker === 0xe0) return !(len === 16 && startsWith(b, dataAt, JFIF_ID) && b[dataAt + 12] === 0 && b[dataAt + 13] === 0);
   if (marker === 0xe1) return true; // APP1: EXIF (GPS) / XMP
-  if (marker === 0xe2) return !startsWith(b, dataAt, ICC_ID); // APP2: keep the ICC profile only
+  // APP2: one ICC chunk (sequence 1 of 1), under the cap; MPF and everything else go.
+  if (marker === 0xe2) {
+    return !(startsWith(b, dataAt, ICC_ID) && b[dataAt + 12] === 1 && b[dataAt + 13] === 1 && len - 2 <= ICC_MAX_BYTES);
+  }
+  if (marker === 0xee) return !(len === 14 && startsWith(b, dataAt, ADOBE_ID)); // APP14: the Adobe transform block only
   if (marker >= 0xe3 && marker <= 0xed) return true; // APP3-APP13 (APP13 = IPTC)
   if (marker === 0xef) return true; // APP15
   if (marker === 0xfe) return true; // COM
@@ -72,7 +85,7 @@ export function stripJpegMetadata(b: Uint8Array): Uint8Array | null {
     const len = (b[m + 1] << 8) | b[m + 2];
     if (len < 2 || m + 1 + len > n) return null;
     const segEnd = m + 1 + len;
-    if (!dropSegment(marker, b, m + 3)) out.push(b.subarray(segStart, segEnd));
+    if (!dropSegment(marker, b, m + 3, len)) out.push(b.subarray(segStart, segEnd));
     pos = segEnd;
     if (marker === 0xda) {
       // Start of scan: entropy-coded data follows until the next real marker

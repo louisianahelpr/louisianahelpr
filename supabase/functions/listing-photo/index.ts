@@ -125,7 +125,11 @@ serve(async (req: Request) => {
   const width = WIDTHS.find((w) => w >= asked) ?? 1200;
   if (!REF_RE.test(ref)) return notFound();
 
-  const rl = await checkRateLimit(req, RATE);
+  // Rate limited by ADDRESS only: an unverified bearer must not pick its own bucket (lead review of Q2211 #1,
+  // the instant-job-match pattern). An <img> sends none anyway.
+  const addressOnly = new Headers(req.headers);
+  addressOnly.delete("authorization");
+  const rl = await checkRateLimit(new Request(req.url, { method: req.method, headers: addressOnly }), RATE);
   if (!rl.allowed) {
     return new Response("Too many requests", { status: 429, headers: { "Retry-After": String(rl.retryAfter ?? 60) } });
   }
@@ -154,6 +158,11 @@ serve(async (req: Request) => {
     } else {
       console.error("listing-photo: render answered", rendered.status);
       await rendered.body?.cancel();
+    }
+    // A public-link ref (scope p) is served RE-ENCODED only, never the original (lead review of Q2211 #7).
+    if (!bytes && ref.split(".")[1] === "p") {
+      alertStorage(rendered.status, "render refused a public-link photo (no original fallback for strangers)");
+      return unavailable();
     }
     if (!bytes) {
       const original = await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/${BUCKET}/${encoded}`, {

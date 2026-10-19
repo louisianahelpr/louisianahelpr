@@ -8,7 +8,7 @@
  * Behaviour proven in PGlite: ~/.lh-pglite/shops-s4b-faqs.mjs (99 asserts, migration applied 3x; a case for
  * each lead /code-review must-fix: joined text, links/handles, table triggers, admin read, hidden write, Cf strip).
  */
-// @mutate src/lib/shops/faqs.ts |   if ((error as { code?: string } \| null)?.code === "PGRST202") return [];\n |
+// @mutate src/lib/shops/faqs.ts |   if (isMissingRpcNamed(error, "shops_shop_faqs")) return [];\n |
 // @mutate src/lib/shops/faqs.ts |   if (typeof data !== "number") throw | if (false) throw
 // @mutate src/lib/shops/errors.ts |   shop_hidden: "This shop is hidden by Louisiana Helpr right now, so it can't be changed. Contact support.", |   shop_hidden: "Louisiana Helpr hid your shop, so it can't be closed here. Contact support.",
 // @mutate src/components/shops/PublicShopView.tsx |       <ShopFaqs shopId={shop.id} />\n |

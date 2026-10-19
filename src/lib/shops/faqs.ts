@@ -5,6 +5,7 @@
  * the limits here only shape the form.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 import { cancelPolicyText, ORDER_HOLD_TEXT, type CancelPolicy, type ReadyTapCancel } from "./orders";
 
@@ -29,7 +30,7 @@ function rpcFail(error: { message: string }, words: string | null | undefined): 
  */
 export async function fetchShopFaqs(shopId: string): Promise<ShopFaq[]> {
   const { data, error } = await supabase.rpc("shops_shop_faqs", { p_shop_id: shopId });
-  if ((error as { code?: string } | null)?.code === "PGRST202") return [];
+  if (isMissingRpcNamed(error, "shops_shop_faqs")) return [];
   if (error) rpcFail(error, rpcErrorMessage("shops_shop_faqs", error));
   return Array.isArray(data) ? (data as unknown as ShopFaq[]) : [];
 }
@@ -55,7 +56,7 @@ export interface ShopPolicies {
 /** null when the shop isn't visible, or the function isn't deployed yet (PGRST202): no card. */
 export async function fetchShopPolicies(shopId: string): Promise<ShopPolicies | null> {
   const { data, error } = await supabase.rpc("shops_shop_policies", { p_shop_id: shopId });
-  if ((error as { code?: string } | null)?.code === "PGRST202") return null;
+  if (isMissingRpcNamed(error, "shops_shop_policies")) return null;
   if (error) rpcFail(error, rpcErrorMessage("shops_shop_policies", error));
   return (data as unknown as ShopPolicies | null) ?? null;
 }

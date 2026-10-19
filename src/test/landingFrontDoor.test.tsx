@@ -23,7 +23,7 @@
  *      a section key, so it stays private), [] with none open, same as anon.
  */
 // @mutate src/components/landing/useSectionsOpen.ts |   return open === null \|\| !open.has(feature); |   return open !== null && !open.has(feature);
-// @mutate src/lib/missingRpc.ts |   return (error as { code?: string }).code === "PGRST202"; |   return false;
+// @mutate src/lib/missingRpc.ts |   if (e.code !== "PGRST202") return false; |   return false;
 // @mutate src/components/landing/SectionsShowcase.tsx |   return { to: `/signup?redirect=${encodeURIComponent(path)}`, | return { to: path,
 // @mutate src/lib/queryClient.ts |       if (query.meta?.reportsItself === true) return; |
 // @mutate src/components/landing/useSectionsOpen.ts |     meta: { persist: false, reportsItself: true }, |     meta: { reportsItself: true },

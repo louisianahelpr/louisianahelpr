@@ -55,7 +55,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 // @mutate src/components/PhotoProof.tsx |   if (crew) {\n    const { data, error } = await supabase.rpc( |   if (false) {\n    const { data, error } = await supabase.rpc(
 // @mutate src/pages/jobs/appliedJobCard/steps/HelperPhotoAsk.tsx |       label="Before Photo"\n      crew={crew} |       label="Before Photo"
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   ON public.tips (job_id, helper_id)\n  WHERE source = 'auto'; |   ON public.tips (job_id)\n  WHERE source = 'auto';
-// @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   JOIN public.group_job_helpers g ON g.job_id = j.id AND g.helper_id IS NOT NULL\n  WHERE j.status = 'completed'::job_status\n    AND j.is_group_job IS TRUE |   JOIN public.group_job_helpers g ON g.job_id = j.id AND g.helper_id IS NOT NULL\n  WHERE j.status = 'completed'::job_status\n    AND j.is_group_job IS NOT TRUE
+// @mutate supabase/migrations/20261019043709_auto_tip_skips_closed_payment.sql |   JOIN public.group_job_helpers g ON g.job_id = j.id AND g.helper_id IS NOT NULL\n  WHERE j.status = 'completed'::job_status\n    AND j.is_group_job IS TRUE |   JOIN public.group_job_helpers g ON g.job_id = j.id AND g.helper_id IS NOT NULL\n  WHERE j.status = 'completed'::job_status\n    AND j.is_group_job IS NOT TRUE
 // @mutate supabase/functions/create-payment/index.ts |             await postSlackOpsAlert({\n              kind: "money_at_risk",\n              severity: "critical",\n              title: "Crew job stuck in 'cancelling' | console.log({\n              kind: "money_at_risk",\n              severity: "critical",\n              title: "Crew job stuck in 'cancelling'
 
 const root = resolve(__dirname, "../..");

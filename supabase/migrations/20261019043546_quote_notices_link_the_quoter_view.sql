@@ -86,6 +86,8 @@ BEGIN
   IF v_url IS NULL OR v_key IS NULL THEN
     -- The same skip fan_out_push_on_notification makes; the in-app row and its
     -- push still stand. Recorded, not silent.
+    -- seed-policy: no seed branch: missing vault secrets are a platform fault, the same for a
+    -- seed or a real recipient, and the row names only the notification (no member data).
     INSERT INTO public.error_logs (severity, message, tags, context)
     VALUES ('error', 'Quote email not sent: vault secrets missing',
             jsonb_build_object('source', 'quote_notify_to', 'origin', 'server'),

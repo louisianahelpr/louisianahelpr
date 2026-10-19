@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-19T07:06Z",
+  "measured_at": "2026-10-19T07:40Z",
   "issues": {
     "readable": true,
     "open": [
@@ -57,7 +57,7 @@
         "number": 2894,
         "title": "nightly-red: vacuity",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39193592436",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39213294086",
         "runTruncated": false
       },
       {
@@ -79,6 +79,13 @@
         "title": "nightly-red: e2e-real-backend",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39178783199",
+        "runTruncated": false
+      },
+      {
+        "number": 3409,
+        "title": "nightly-red: main: Vitest",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39213293902",
         "runTruncated": false
       }
     ]
@@ -406,6 +413,7 @@
     "issue #2937": "Q1816",
     "issue #3307": "Q1816",
     "issue #3311": "Q1816",
+    "issue #3409": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",

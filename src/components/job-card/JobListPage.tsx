@@ -444,13 +444,8 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
             refreshing={refreshing}
             isPulling={isPulling}
             canTrigger={canTrigger}
-            // The list needs side padding so cards clear the panel edge. The
-            // EMPTY state must not have it: EmptyState renders its own
-            // `dock` card, so 16px of inset put that card inside the
-            // PageScaffold panel card and you saw TWO nested rounded frames
-            // a few px apart (visible on device, My Jobs / My Posts). The
-            // comment below already said this card "fills the panel" — the
-            // padding was what stopped it.
+            // Side padding for the list only: the EMPTY state's own `dock` card inset 16px drew TWO
+            // nested rounded frames a few px apart (on device, My Jobs / My Posts).
             className={showEmptyState ? "flex-1 min-h-0 pb-0" : "flex-1 min-h-0 px-4 pt-3 pb-0"}
           >
           {showEmptyState ? (
@@ -460,7 +455,6 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
             {/* A job whose bank payment is on its way is not a post (no bucket, no count); with nothing else posted its poster lands here (owner, 2026-10-17). */}
             {tab === "posted" && <PendingBankPayments jobs={postedJobs} className="mx-4 mt-3" />}
             <JobListQuotesSlot tab={tab} className="mx-4 mt-3" />
-            {/* The way into Jobs settings, also on an empty list (above the empty card, which fills the panel). */}
             <JobsSettingsRow className="mx-4 mt-3" />
             {/* Empty state — a liquid-glass card that fills the panel and bleeds beneath the
                 dock (flat bottom, no hard edge), matching the Dashboard / Messages pattern. */}
@@ -598,7 +592,6 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
             </SectionBoundary>
             </Suspense>
           )}
-          {/* THE FOOT OF THE LIST: Jobs settings (lead decision 2026-10-19, option A). */}
           <JobsSettingsRow className="mt-4" />
             </div>
           )}

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { navIconFor } from "@/components/mobileNav/mobileNavHelpers";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { SectionInboxEmpty, type SectionEmpty } from "./SectionInboxEmpty";
 import { useNavigate } from "react-router-dom";
 import { coerceInboxView, defaultInboxTab, INBOX_TAB_LABEL, INBOX_TAB_ORDER, UNFILTERED_INBOX_TAB } from "@/lib/inboxDefault";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { CheckSquare, ChevronDown, Menu, MessageSquare, Pin, Search, Trash2, X, type LucideIcon } from "lucide-react";
+import { CheckSquare, ChevronDown, Menu, MessageSquare, Pin, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -97,28 +98,10 @@ interface ConversationListProps {
   /** Bumped by the parent after a batch archive resolves — clears the
    *  in-list selection and exits select mode. */
   resetSelectionNonce?: number;
-  /** Messages' section tabs (Jobs | Declutter | Shops | Homes), drawn under
-   *  the title on every width. Absent renders no strip. */
+  /** Messages' section tabs (Jobs | Declutter | Shops | Homes) under the title; absent = no strip. */
   sectionTabs?: ReactNode;
-  /** Set on a section tab whose conversations do not exist yet: replaces the
-   *  Jobs empty state and drops the Active / All filter (it filters job
-   *  states, which that tab has none of). */
-  sectionEmpty?: { icon: LucideIcon; title: string; body: string; action?: { label: string; to: string } } | null;
-}
-
-type SectionEmpty = NonNullable<ConversationListProps["sectionEmpty"]>;
-
-/** A Declutter / Shops / Homes tab with no threads yet: the same EmptyState
- *  box as the Jobs inbox's, with the section's own icon and words. */
-function SectionInboxEmpty({ empty, onGo }: { empty: SectionEmpty; onGo: (to: string) => void }) {
-  return (
-    <EmptyState
-      icon={empty.icon}
-      title={empty.title}
-      bodyLines={MAIN_TAB_EMPTY_BODY_LINES} body={empty.body}
-      action={empty.action ? <BarkPillButton onClick={() => onGo(empty.action!.to)}>{empty.action.label}</BarkPillButton> : undefined}
-    />
-  );
+  /** A section tab with no conversations yet: its own empty state, and no Active / All (job states). */
+  sectionEmpty?: SectionEmpty | null;
 }
 
 // Sort comparator (descending by lastAt) — pulled out so the pinned /
@@ -1104,7 +1087,6 @@ export function ConversationList({
       {!isWebDesktop && searchOpen && (
         <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch" />
       )}
-      {/* No Active / All on a section tab with no conversations yet (sectionEmpty). */}
       {!isWebDesktop && !searchOpen && !sectionEmpty && (
         <button
           type="button"
@@ -1135,18 +1117,8 @@ export function ConversationList({
     </>
   );
 
-  /* THE TITLE CARD, on phone and native (owner, 2026-08-27).
-     Messages used to render its name INSIDE the content panel, under a
-     hairline, so the whole screen was one tall box while Home, My Posts and
-     My Jobs beside it were a floating title card, a gap, then the panel. One
-     screen out of four wearing a different shell is the kind of difference a
-     reader feels without being able to name.
-
-     Same split Activity makes, and for the same reason: on the DESKTOP website
-     this stays the panel's first child under a hairline (owner: "merge into
-     1"), because there the app bar and the side rail already say where you
-     are. Phone and native get the two-card stack. `embedded` is exactly that
-     desktop mode here — see the prop's docs. */
+  /* THE TITLE CARD on phone and native (owner, 2026-08-27): Messages wears the same floating title card,
+     gap, then panel as its siblings; on the desktop website it stays the panel's first child (`embedded`). */
   const headerEl = (
     <>
           <ScreenHeaderRow
@@ -1246,24 +1218,9 @@ export function ConversationList({
           >
             {rowTakeover}
           </ScreenHeaderRow>
-          {/* PHONE / NATIVE: the same strip, on its own line under the
-              toolbar, and ALWAYS — no chevron, no collapsed state, nothing to
-              discover. The header row beside a visible "Messages" and the
-              action cluster has 20px to spare at 320 and 75 at 375 against a
-              title that needs 88, measured; this line is the placement that
-              has room. Still hidden while search or select mode has taken the
-              row over: one control at a time.
-
-              AND ALWAYS means always: not gated on `hasThreads` any more
-              (owner, 2026-09-20). This is the row whose height the ruling
-              reserves — at 375 it is the 42px strip, and its presence in both
-              outcomes is what makes the empty inbox's thread area start at the
-              same y as the populated one's (127 either way, measured; it used
-              to be 83 against 127). */}
-          {/* THE SECTION TABS (owner, 2026-10-19: "Messages: one screen with
-              section tabs, never mixed"). First under the title, on every
-              width, and stepped aside while search or select mode has the row,
-              like the filter strip below. */}
+          {/* PHONE / NATIVE: the Active / All strip on its own line under the toolbar, ALWAYS (owner,
+              2026-09-20), so an empty inbox's thread area starts at the same y as a full one's (127 at 375). */}
+          {/* Section tabs (owner, 2026-10-19: one screen, never mixed); they step aside for search / select. */}
           {sectionTabs && !searchOpen && !selectMode && (
             <div className="shrink-0 pt-1 pb-1.5" data-testid="messages-section-tabs">
               {sectionTabs}
@@ -1334,7 +1291,6 @@ export function ConversationList({
                 body="Apply to a job or accept a Helpr's offer — conversations appear here once they start."
                 bodyLines={MAIN_TAB_EMPTY_BODY_LINES}
                 action={
-                  // Jobs > Browse: /home is the dashboard now, not the feed.
                   <BarkPillButton onClick={() => navigate("/jobs")}>
                     Browse Jobs
                   </BarkPillButton>

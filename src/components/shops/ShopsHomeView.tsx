@@ -29,7 +29,10 @@ import ShopMyOrdersView from "./ShopMyOrdersView";
 import ShopDashboardView from "./ShopDashboardView";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { browseShops, shopPhotoUrl, type ShopCard } from "@/lib/shops/api";
+import { browseShops, fetchShopCardExtras, shopPhotoUrl, type ShopCard, type ShopCardExtras } from "@/lib/shops/api";
+import { openStatus } from "@/lib/shops/hours";
+import { shopGroupIcon } from "@/lib/shops/categoryIcons";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { useDeclutterOrigin } from "@/components/declutter/useDeclutterOrigin";
 import { categoryGroups, categoryLabel, ShopBadgeList, ShopRating, useShopCategories } from "./shopsUi";
@@ -40,35 +43,77 @@ function milesText(miles: number | null): string | null {
   return miles < 1 ? "under 1 mi" : `${Math.round(Number(miles))} mi`;
 }
 
-function ShopRow({ shop, category }: { shop: ShopCard; category: string }) {
+/**
+ * A Browse card (owner-approved design, 2026-10-19 14:55Z: Etsy): the cover
+ * photo (or the category's icon on a soft tint, never a blank box), the round
+ * logo overlapping it, then the name, the rating ONLY when the shop has
+ * reviews, the category, and "Open now" / when it opens. No box around it:
+ * the photo's rounded corners are the card, as on Declutter and Homes.
+ */
+function ShopBrowseCard({ shop, category, group, extras }: { shop: ShopCard; category: string; group: string | null; extras?: ShopCardExtras }) {
   const away = milesText(shop.miles);
+  const reviewed = shop.review_count > 0 && shop.rating != null;
+  const status = shop.paused ? { open: false, label: "Paused for now" } : openStatus(extras?.hours ?? []);
+  const cover = extras?.cover_path ?? null;
   return (
     <Link
       to={`/shops/${shop.id}`}
-      className="flex items-start gap-3 rounded-2xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      data-shop-card=""
+      className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted flex items-center justify-center">
-        {shop.logo_path ? (
-          <img src={shopPhotoUrl(shop.logo_path)} alt="" loading="lazy" className="h-full w-full object-cover" />
-        ) : (
-          <Store className="h-6 w-6 text-muted-foreground" aria-hidden />
+      <span className="relative block">
+        <span className="block aspect-[2/1] overflow-hidden rounded-2xl bg-muted">
+          {cover ? (
+            <img src={shopPhotoUrl(cover)} alt="" loading="lazy" className="h-full w-full object-cover" />
+          ) : (
+            <PhotoPlaceholder icon={shopGroupIcon(group)} seed={group} className="h-full w-full" />
+          )}
+        </span>
+        <span
+          data-shop-logo=""
+          className="absolute -bottom-6 left-3 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-[3px] border-card bg-card text-lg font-bold text-foreground shadow-sm"
+          aria-hidden
+        >
+          {shop.logo_path ? (
+            <img src={shopPhotoUrl(shop.logo_path)} alt="" loading="lazy" className="h-full w-full object-cover" />
+          ) : (
+            shop.name.trim().charAt(0).toUpperCase() || <Store className="h-6 w-6 text-muted-foreground" />
+          )}
+        </span>
+      </span>
+      <span className="block min-w-0 space-y-0.5 px-0.5 pt-8">
+        <span data-card-title className="block truncate text-ds-15 font-semibold" title={shop.name}>{shop.name}</span>
+        <span className="flex min-w-0 items-center gap-1.5 text-ds-13 text-muted-foreground">
+          {reviewed && (
+            <>
+              <span data-card-rating className="shrink-0">
+                <ShopRating rating={shop.rating} count={shop.review_count} />
+              </span>
+              <span aria-hidden>·</span>
+            </>
+          )}
+          <span className="min-w-0 truncate" title={category}>{category}</span>
+        </span>
+        {status && (
+          <span
+            data-card-hours
+            className={`block truncate text-ds-13 ${status.open ? "font-semibold text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}
+          >
+            {status.label}
+          </span>
         )}
-      </div>
-      <div className="min-w-0 flex-1 space-y-1">
-        <p className="font-semibold text-sm truncate" title={shop.name}>{shop.name}</p>
-        <p className="text-xs text-muted-foreground truncate" title={`${category} · ${shop.area_label}${away ? ` · ${away}` : ""}`}>
-          {category} · {shop.area_label}
+        <span data-card-place className="block truncate text-ds-13 text-muted-foreground" title={`${shop.area_label}${away ? ` · ${away}` : ""}`}>
+          {shop.area_label}
           {away ? ` · ${away}` : ""}
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <ShopRating rating={shop.rating} count={shop.review_count} />
-          {shop.paused && <span className="text-xs text-muted-foreground">Paused for now</span>}
-        </div>
+        </span>
         <ShopBadgeList badges={shop.badges} compact />
-      </div>
+      </span>
     </Link>
   );
 }
+
+/** The Browse grid: one card across on a phone, 2 on a tablet, 3-4 on a desktop. */
+const SHOP_GRID = "grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
 
 /** One word each, Browse always first (owner, 2026-10-19). */
 const SHOPS_TABS = [
@@ -164,7 +209,15 @@ function ShopsBrowse() {
     queryFn: () => browseShops({ lat: from?.lat ?? null, lng: from?.lng ?? null, group }),
     enabled: origin.status !== "pending",
   });
-  const loading = origin.status === "pending" || shops.isLoading || categories.isLoading;
+  // Cover photos and hours for the cards, inside the same loading gate so the
+  // cards arrive in one paint (oneLoadingGatePerScreen.test.ts).
+  const ids = (shops.data ?? []).map((s) => s.id);
+  const extras = useQuery({
+    queryKey: ["shops", "browse-extras", ids.join(",")],
+    queryFn: () => fetchShopCardExtras(ids),
+    enabled: shops.isSuccess && ids.length > 0,
+  });
+  const loading = origin.status === "pending" || shops.isLoading || categories.isLoading || (ids.length > 0 && extras.isLoading);
   // Search filters the shops already loaded, by name, category and area (the list is one page).
   const [query, setQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -198,10 +251,15 @@ function ShopsBrowse() {
       {shops.isError ? (
         <ErrorState variant="inline" title="We couldn't load shops." body={shopsErrorMessage(shops.error)} onRetry={() => void shops.refetch()} />
       ) : loading ? (
-        <ul className="space-y-3" role="status" aria-label="Loading shops">
+        <ul className={SHOP_GRID} role="status" aria-label="Loading shops">
           {[0, 1, 2].map((i) => (
-            <li key={i}>
-              <Skeleton className="h-[104px] w-full rounded-2xl" />
+            <li key={i} aria-hidden>
+              <Skeleton className="aspect-[2/1] w-full rounded-2xl" />
+              <div className="space-y-1.5 px-0.5 pt-8">
+                <Skeleton className="h-4 w-2/5" />
+                <Skeleton className="h-3.5 w-3/5" />
+                <Skeleton className="h-3.5 w-1/3" />
+              </div>
             </li>
           ))}
         </ul>
@@ -216,10 +274,15 @@ function ShopsBrowse() {
           body={words && (shops.data ?? []).length > 0 ? "Try another word." : "Be the first: open a free shop for your business or the things you make."}
         />
       ) : (
-        <ul className="space-y-3">
+        <ul className={SHOP_GRID}>
           {shown.map((s) => (
             <li key={s.id} className="min-w-0">
-              <ShopRow shop={s} category={categoryLabel(categories.data, s.category)} />
+              <ShopBrowseCard
+                shop={s}
+                category={categoryLabel(categories.data, s.category)}
+                group={categories.data?.find((c) => c.slug === s.category)?.group_slug ?? null}
+                extras={extras.data?.get(s.id)}
+              />
             </li>
           ))}
         </ul>

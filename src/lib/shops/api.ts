@@ -138,6 +138,35 @@ export async function browseShops(args: { lat: number | null; lng: number | null
   return (rows ?? []) as unknown as ShopCard[];
 }
 
+/** What the Browse card shows beyond shops_browse's row: the cover photo and the hours ("Open now"). */
+export interface ShopCardExtras {
+  cover_path: string | null;
+  hours: ShopHour[];
+}
+
+/**
+ * The cover and hours of the shops on one Browse page, in two parallel reads
+ * (both tables are readable with their shop: RLS "readable with their shop").
+ * A shop with neither gets an empty entry, never a missing one.
+ */
+export async function fetchShopCardExtras(shopIds: string[]): Promise<Map<string, ShopCardExtras>> {
+  const out = new Map<string, ShopCardExtras>(shopIds.map((id) => [id, { cover_path: null, hours: [] }]));
+  if (shopIds.length === 0) return out;
+  const [covers, hours] = await Promise.all([
+    supabase.from("shop_photos").select("shop_id, storage_path").eq("photo_kind", "cover").in("shop_id", shopIds),
+    supabase.from("shop_hours").select("shop_id, weekday, opens_local, closes_local").in("shop_id", shopIds),
+  ]);
+  for (const r of unwrap(covers) ?? []) {
+    const e = out.get(r.shop_id);
+    if (e) e.cover_path = r.storage_path;
+  }
+  for (const r of unwrap(hours) ?? []) {
+    // "09:00:00" -> "09:00": openStatus compares HH:MM strings.
+    out.get(r.shop_id)?.hours.push({ weekday: r.weekday, opens: r.opens_local.slice(0, 5), closes: r.closes_local.slice(0, 5) });
+  }
+  return out;
+}
+
 export async function fetchShop(shopId: string): Promise<ShopPage> {
   return rpcData(await supabase.rpc("shops_get_shop", { p_shop_id: shopId }), (e) => rpcErrorMessage("shops_get_shop", e)) as unknown as ShopPage;
 }

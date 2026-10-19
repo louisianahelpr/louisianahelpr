@@ -87,4 +87,12 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   payment_not_correctable: "Only a received payment can be changed, within 30 days of confirming it.",
   payment_over_balance: "That's more than is owed now plus one rent. Check the amount.",
   payment_not_disputable: "Only a payment that was turned down, taken back or changed can be disputed: once for each, within 30 days.",
+  payment_not_disputable: "Only a payment that was turned down, taken back or changed can be disputed, once, within 30 days.",
+  // The deposit tracker, track only (20261019082216).
+  bad_deposit: "Check the deposit: an amount of at least $1 and the day you received it (not in the future).",
+  deposit_settled: "This deposit was already settled. The statement your tenant got is final.",
+  bad_address: "Enter the full forwarding address (street, city, ZIP).",
+  deposit_not_found: "No deposit is recorded for this home.",
+  tenancy_not_ended: "Settle the deposit after the tenancy ends.",
+  bad_settlement: "What you return plus what you keep must equal the deposit, and each amount kept needs a reason. The date can't be in the future.",
 };

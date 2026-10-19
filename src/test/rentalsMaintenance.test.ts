@@ -95,12 +95,16 @@ const MEMBER_RPCS = [
   "rentals_waive_rent_charge",
   "rentals_correct_rent_payment",
   "rentals_dispute_rent_payment",
+  // Deposit tracker, track only (20261019082216).
+  "rentals_set_deposit",
+  "rentals_set_forwarding_address",
+  "rentals_settle_deposit",
 ];
 /** RPCs that only take access away or link a job (banned / under-18 may still leave). */
 const OTHER_RPCS = ["rentals_end_tenancy", "rentals_withdraw_request", "link_maintenance_request_job", "rentals_admin_review_property",
   "rentals_admin_review_landlord_id"];
 const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes", "rentals_visit_for_job", "rentals_browse_listings", "rentals_listing", "rentals_my_identity",
-  "rentals_browse_sale_listings", "rentals_my_listing_photos", "rentals_rent_ledger"];
+  "rentals_browse_sale_listings", "rentals_my_listing_photos", "rentals_rent_ledger", "rentals_deposit"];
 /** Listings helpers (20261019043000): server-only. */
 const LISTING_INTERNAL = ["rentals_listing_wording_flags", "rentals_lock_own_listing", "rentals_listing_visible", "homes_sale_wording_flags"];
 /** Slice 3 writes: visit time (the Helpr, not a Rentals member, proposes; the tenant confirms through

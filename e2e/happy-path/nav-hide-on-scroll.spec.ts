@@ -310,13 +310,17 @@ for (const route of ROUTES) {
     // no rows, this switches to a tab that has some instead of failing on a
     // premise it only assumed.
     if (route === "/messages" && defaultInboxTab(0) !== "all") {
-      // On a phone the inbox strip opens folded on the default tab; the
-      // chevron shows it.
-      const chevron = page.locator('button[aria-expanded="false"][aria-label="Filter conversations"]');
-      if (await chevron.count()) await chevron.first().click();
-      await page.getByRole("tab", { name: /^All/ }).or(
-        page.getByRole("button", { name: /^All/ }),
-      ).first().click();
+      // On a phone Active/All live in the search row's "more" menu (Q2231);
+      // on the desktop website the strip is inline.
+      const more = page.getByRole("button", { name: "More conversation options" });
+      if (await more.count()) {
+        await more.first().click();
+        await page.getByRole("menuitem", { name: /^All/ }).first().click();
+      } else {
+        await page.getByRole("tab", { name: /^All/ }).or(
+          page.getByRole("button", { name: /^All/ }),
+        ).first().click();
+      }
       await page.waitForTimeout(600);
     }
 

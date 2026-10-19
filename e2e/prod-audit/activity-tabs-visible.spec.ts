@@ -365,22 +365,6 @@ test("every box on Posted and Working keeps the boxes up, empty or full @375", a
 });
 
 /**
- * OWNER, 2026-09-25 (iPhone screenshots of My Posts, My Jobs, Messages; the
- * inbox keeps it): "This
- * should open with the chevrons collapsed. Not expanded." On a phone the row
- * now arrives FOLDED and one press on the chevron opens it. Since 2026-10-08
- * ("Post and job at the top should open collapsed") that holds for EVERY
- * filter, not only the default one. This presses it open.
- */
-async function unfold(page: Page, closedLabel: string) {
-  const chevron = page.locator(`button[aria-expanded="false"][aria-label="${closedLabel}"]`);
-  if (await chevron.count()) {
-    await chevron.first().click();
-    await page.waitForTimeout(250);
-  }
-}
-
-/**
  * THE CLAIM, at one width on one screen: the row is there and every one of
  * its labels has been painted.
  */
@@ -473,8 +457,25 @@ for (const vw of INBOX_WIDTHS) {
     const page = await ctx.newPage();
     try {
       await openInbox(page);
-      // The inbox strip arrives folded on a phone (owner, 2026-09-25).
-      if (vw < 900) await unfold(page, "Filter conversations");
+      // PHONE (Q2231, owner 2026-10-19): Active/All moved off the screen into
+      // the slim search row's one "more" menu; the search field is always on
+      // the screen. The claim on a phone is that both are reachable on an
+      // EMPTY inbox: the field is painted, and the menu lists the inbox's own
+      // words. The desktop website keeps the inline strip asserted below.
+      if (vw < 900) {
+        const field = page.getByRole("searchbox", { name: "Search conversations" });
+        await expect(field, `messages EMPTY@${vw}: no search field on an empty inbox`).toBeVisible();
+        const more = page.getByRole("button", { name: "More conversation options" });
+        await expect(more, `messages EMPTY@${vw}: no "more" menu on an empty inbox`).toBeVisible();
+        await more.click();
+        const items = await page.getByRole("menuitem").allInnerTexts();
+        note(info, `messages EMPTY @${vw} (phone) menu=${JSON.stringify(items)}`);
+        for (const w of INBOX_WORDS) {
+          expect(items.some((t) => t.trim().startsWith(w)), `messages EMPTY@${vw}: the more menu has no "${w}"`).toBe(true);
+        }
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, `messages-empty-${vw}-${SCHEME}.png`) });
+        return;
+      }
       const inbox = await readInbox(page);
       const shot = await readTabs(page, INBOX_GROUP);
       note(

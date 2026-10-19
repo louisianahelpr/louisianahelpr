@@ -148,8 +148,11 @@ describe("Declutter and Shops money is in the restore check (Q2230, before the D
     const re = collectDbIds("refund", rows);
     expect(re.ids.has("manual-placeholder")).toBe(false);
     expect(re.rejected).toEqual(["declutter_refunds.stripe_refund_ref = manual-placeholder"]);
-    // A refund id is never taken for a PaymentIntent, nor the other way round.
-    expect(collectDbIds("payment_intent", { "declutter_orders.stripe_payment_intent_id": ["re_x"] }).ids.size).toBe(0);
+    // A refund id is never taken for a PaymentIntent, nor the other way round,
+    // and a Stripe id of another kind is not "rejected" (mixed columns).
+    const wrongKind = collectDbIds("payment_intent", { "declutter_orders.stripe_payment_intent_id": ["re_x"] });
+    expect(wrongKind.ids.size).toBe(0);
+    expect(wrongKind.rejected).toEqual([]);
   });
 
   it("the script reads the columns through collectDbIds and pages by orderBy", () => {

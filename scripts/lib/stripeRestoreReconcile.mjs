@@ -87,11 +87,16 @@ export const ID_PREFIX = {
   refund: /^(re|pyr)_[A-Za-z0-9]+$/,
 };
 
+/** Any Stripe object id this check can meet in a column (po_: a connected-account payout). */
+const ANY_STRIPE_ID = /^(pi|tr|re|pyr|po)_[A-Za-z0-9]+$/;
+
 /**
  * The ids of one kind the database holds, from the values read out of each
- * DB_ID_COLUMNS column (`valuesByColumn["table.column"]`). A value that is not
- * a Stripe id of that kind is left out and returned in `rejected`, so a
- * placeholder in a Stripe-id column can never match, and a human sees it.
+ * DB_ID_COLUMNS column (`valuesByColumn["table.column"]`). Only a Stripe id of
+ * THAT kind counts. A Stripe id of another kind is skipped quietly (a column
+ * such as payout_settlements.stripe_ref holds tr_ / po_ / re_ / pyr_ and is
+ * listed under each kind it can hold); a value that is no Stripe id at all is
+ * returned in `rejected`, so a placeholder can never match and a human sees it.
  */
 export function collectDbIds(kind, valuesByColumn) {
   const ids = new Set();
@@ -99,8 +104,9 @@ export function collectDbIds(kind, valuesByColumn) {
   for (const { table, column } of DB_ID_COLUMNS[kind]) {
     for (const v of valuesByColumn[`${table}.${column}`] ?? []) {
       if (v === null || v === undefined || v === "") continue;
-      if (ID_PREFIX[kind].test(String(v))) ids.add(String(v));
-      else rejected.push(`${table}.${column} = ${String(v).slice(0, 60)}`);
+      const s = String(v);
+      if (ID_PREFIX[kind].test(s)) ids.add(s);
+      else if (!ANY_STRIPE_ID.test(s)) rejected.push(`${table}.${column} = ${s.slice(0, 60)}`);
     }
   }
   return { ids, rejected };

@@ -193,6 +193,20 @@ export async function fetchSellerRating(sellerId: string): Promise<{ avg: number
   return row ? { avg: Number(row.avg_rating ?? 0), count: row.review_count ?? 0 } : null;
 }
 
+/**
+ * Every listed seller's shared star rating in ONE call (the Browse cards; same
+ * aggregate as fetchSellerRating). Sellers with no row are simply absent.
+ */
+export async function fetchSellerRatings(sellerIds: string[]): Promise<Map<string, { avg: number; count: number }>> {
+  const out = new Map<string, { avg: number; count: number }>();
+  if (sellerIds.length === 0) return out;
+  const rows = unwrap(await supabase.rpc("get_public_profile_stats", { p_user_ids: sellerIds })) ?? [];
+  for (const r of rows as { user_id: string; avg_rating: number | null; review_count: number | null }[]) {
+    out.set(r.user_id, { avg: Number(r.avg_rating ?? 0), count: r.review_count ?? 0 });
+  }
+  return out;
+}
+
 export async function setWatch(itemId: string, watch: boolean): Promise<string> {
   return rpcData(await supabase.rpc("declutter_set_watch", { p_item_id: itemId, p_watch: watch }), (e) => rpcErrorMessage("declutter_set_watch", e)) as string;
 }

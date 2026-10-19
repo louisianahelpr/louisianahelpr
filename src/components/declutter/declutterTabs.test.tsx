@@ -88,6 +88,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
   fetchMyItems: async () => state.mine,
   fetchPhotos: async () => [],
+  fetchSellerRatings: async () => new Map(),
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
   withdrawItem: async () => undefined,
   fetchMyCard: async () => ({ brand: "visa", last4: "4242" }),

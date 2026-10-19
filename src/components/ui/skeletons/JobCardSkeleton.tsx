@@ -87,7 +87,7 @@ export function JobCardSkeleton() {
           {/* Meta — location · date on one line, in the card's own meta block
               so the `mt-1.5` and the line height are not restated here. */}
           <div className={JOB_CARD_META}>
-            <div className="flex items-center gap-x-2">
+            <div className="flex items-center gap-x-2 max-[359px]:flex-wrap">
               {/* A zero-width character gives this row the meta block's real
                   line box (text-ds-11 leading-tight), not the 12px bone's. */}
               <span className="invisible w-0">{"​"}</span>
@@ -95,6 +95,10 @@ export function JobCardSkeleton() {
                 className="h-3 w-24 rounded"
                 style={{ background: "hsl(var(--olivewood) / 0.10)" }}
               />
+              {/* The card's own break below 360px (Q2222): two lines there,
+                  each with its line box, so the bone is the card's height. */}
+              <span aria-hidden className="hidden max-[359px]:block basis-full h-0.5" />
+              <span className="invisible w-0 hidden max-[359px]:inline">{"​"}</span>
               <Skeleton
                 className="h-3 w-20 rounded"
                 style={{ background: "hsl(var(--olivewood) / 0.10)" }}

@@ -252,6 +252,7 @@ serve(async (req) => {
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
     shop_handed_over: 0, shop_payouts_sent: 0, shop_payouts_reconciled: 0, shop_payouts_failed: 0,
     rent_transfers_sent: 0, rent_transfers_reconciled: 0, rent_transfers_reversed: 0, rent_transfers_failed: 0,
+    rent_autopay_started: 0, rent_autopay_failed: 0,
   };
 
   // 5. SHOPS M1 (migration 20261018164442): the order clock, then every hold to
@@ -483,6 +484,42 @@ serve(async (req) => {
     }
   } catch (e) {
     defects.record(`rent bank step: ${caughtMessage(e, "failed")}`.slice(0, 200));
+  }
+
+  // 8. HOMES RENT AUTOPAY (D7; migration 20261019103751, DRAFT; TEST mode only): rentals_autopay_due opens one
+  //    bank payment per rent row due today that is still open (every rule in SQL), and each is charged here
+  //    off-session from the tenant's saved bank (its mandate). The bank confirms days later through the
+  //    webhook like any bank payment; a charge Stripe refuses at once is recorded failed (the tenant is told).
+  try {
+    const due = await admin.rpc("rentals_autopay_due", {});
+    if (due.error) defects.record(`rentals_autopay_due failed: ${due.error.message}`);
+    type AutopayDue = { bank_payment_id: string; tenancy_id: string; tenant_id: string; landlord_id: string; charge_cents: number;
+      stripe_customer_id: string; stripe_payment_method_id: string; livemode: boolean };
+    for (const a of (due.data ?? []) as AutopayDue[]) {
+      try {
+        if (a.livemode !== false) throw new Error("not a TEST-mode bank; live bank rent is not open");
+        const byParties = await modes.modeForParties([a.tenant_id, a.landlord_id]);
+        if (byParties !== "test") throw new Error(`autopay parties are ${byParties}, not test`);
+        const stripe = modes.clientFor("test");
+        const meta = { kind: "rent_bank_payment", bank_payment_id: a.bank_payment_id, tenancy_id: a.tenancy_id, payer_id: a.tenant_id, landlord_id: a.landlord_id, autopay: "1" };
+        const pi = await stripe.paymentIntents.create(
+          { amount: a.charge_cents, currency: "usd", customer: a.stripe_customer_id, payment_method: a.stripe_payment_method_id,
+            payment_method_types: ["us_bank_account"], confirm: true, off_session: true, metadata: meta, transfer_group: `rent_bank_${a.bank_payment_id}` },
+          { idempotencyKey: `rent-bank-autopay-${a.bank_payment_id}` },
+        );
+        const { error } = await admin.rpc("rentals_bank_rent_processing", { p_id: a.bank_payment_id, p_payment_intent_id: pi.id });
+        if (error) defects.record(`rent autopay ${a.bank_payment_id}: intent ${pi.id} not recorded: ${error.message}`);
+        else out.rent_autopay_started++;
+      } catch (e) {
+        const msg = caughtMessage(e, "autopay charge failed");
+        defects.record(`rent autopay ${a.bank_payment_id}: ${msg}`.slice(0, 200));
+        const { error } = await admin.rpc("rentals_bank_rent_failed", { p_id: a.bank_payment_id, p_expired: false });
+        if (error) defects.record(`rent autopay ${a.bank_payment_id}: failure not recorded: ${error.message}`);
+        out.rent_autopay_failed++;
+      }
+    }
+  } catch (e) {
+    defects.record(`rent autopay step: ${caughtMessage(e, "failed")}`.slice(0, 200));
   }
 
   const [refundsRes, payoutsRes, helprRes, deliveryRes] = await Promise.all([

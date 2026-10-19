@@ -13,6 +13,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 
 const KIND = "rent_bank_payment";
+const AUTOPAY_KIND = "rent_bank_autopay";
 
 function meta(o: { metadata?: unknown } | null | undefined): Record<string, string> {
   return ((o?.metadata ?? {}) as Record<string, string>);
@@ -21,6 +22,38 @@ function meta(o: { metadata?: unknown } | null | undefined): Record<string, stri
 /** True for a Checkout Session or PaymentIntent rent-bank-checkout created. */
 export function isRentBank(o: { metadata?: unknown } | null | undefined): boolean {
   return meta(o).kind === KIND;
+}
+
+/** True for the SETUP-mode page rent-bank-autopay opens (the tenant saves the bank autopay charges). */
+export function isRentBankAutopay(o: { metadata?: unknown } | null | undefined): boolean {
+  return meta(o).kind === AUTOPAY_KIND;
+}
+
+export async function saveRentBankAutopay(event: Stripe.Event, session: Stripe.Checkout.Session, { stripe, supabase, logStep }: Pick<WebhookContext, "stripe" | "supabase" | "logStep">): Promise<void> {
+  const m = meta(session);
+  if (session.mode !== "setup" || !m.tenancy_id || !m.payer_id || session.client_reference_id !== m.tenancy_id) {
+    logStep("Rent autopay session ignored (shape)", { id: session.id });
+    return;
+  }
+  const siId = typeof session.setup_intent === "string" ? session.setup_intent : session.setup_intent?.id;
+  if (!siId) throw new Error(`rent autopay session ${session.id} has no setup_intent`);
+  const si = await stripe.setupIntents.retrieve(siId, { expand: ["payment_method"] });
+  if (si.status !== "succeeded") {
+    logStep("Rent autopay setup not succeeded", { id: si.id, status: si.status });
+    return;
+  }
+  const pm = si.payment_method as Stripe.PaymentMethod | string | null;
+  const pmId = typeof pm === "string" ? pm : pm?.id;
+  const customer = typeof session.customer === "string" ? session.customer : session.customer?.id;
+  if (!pmId || !customer) throw new Error(`rent autopay setup ${si.id} is missing its bank`);
+  const bank = typeof pm === "object" && pm ? pm.us_bank_account : null;
+  const label = bank ? `${bank.bank_name ?? "Bank"} ending ${bank.last4 ?? ""}`.trim() : "Bank";
+  const { error } = await supabase.rpc("rentals_autopay_saved", {
+    p_tenancy_id: m.tenancy_id, p_tenant_id: m.payer_id, p_customer_id: customer, p_payment_method_id: pmId,
+    p_bank_label: label.slice(0, 60), p_livemode: event.livemode === true,
+  });
+  if (error) throw new Error(`rentals_autopay_saved failed: ${error.message}`);
+  logStep("Rent autopay bank saved", { tenancy: m.tenancy_id });
 }
 
 export async function settleRentBankSession(session: Stripe.Checkout.Session, { supabase, logStep }: Pick<WebhookContext, "supabase" | "logStep">): Promise<void> {

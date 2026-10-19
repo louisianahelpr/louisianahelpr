@@ -455,7 +455,7 @@ GRANT EXECUTE ON FUNCTION public.rentals_bank_transfer_executed(uuid, text, text
 --    a mandate; rentals_autopay_saved records it, service only), then turns autopay on or off. The daily
 --    autopay run (rentals_autopay_due, service only) opens one bank payment per rent row due today that is
 --    still open, for that row's open amount, and the edge function charges it off-session.
-CREATE OR REPLACE FUNCTION public.rentals_autopay_saved(p_tenancy_id uuid, p_customer_id text, p_payment_method_id text,
+CREATE OR REPLACE FUNCTION public.rentals_autopay_saved(p_tenancy_id uuid, p_tenant_id uuid, p_customer_id text, p_payment_method_id text,
                                                         p_bank_label text, p_livemode boolean)
 RETURNS void
 LANGUAGE plpgsql
@@ -466,14 +466,18 @@ BEGIN
   IF p_customer_id IS NULL OR p_customer_id !~ '^cus_' OR p_payment_method_id IS NULL OR p_payment_method_id !~ '^pm_' OR p_livemode IS NULL THEN
     RAISE EXCEPTION 'bad_bank' USING ERRCODE = '22023';
   END IF;
+  -- Only the live tenancy's own tenant's bank (the webhook passes who saved it).
+  IF NOT EXISTS (SELECT 1 FROM public.rental_tenancies WHERE id = p_tenancy_id AND tenant_id = p_tenant_id AND status = 'active') THEN
+    RAISE EXCEPTION 'tenancy_not_found' USING ERRCODE = 'P0002';
+  END IF;
   INSERT INTO public.rental_rent_autopay (tenancy_id, enabled, livemode, stripe_customer_id, stripe_payment_method_id, bank_label)
   VALUES (p_tenancy_id, false, p_livemode, p_customer_id, p_payment_method_id, left(p_bank_label, 60))
   ON CONFLICT (tenancy_id) DO UPDATE SET livemode = EXCLUDED.livemode, stripe_customer_id = EXCLUDED.stripe_customer_id,
     stripe_payment_method_id = EXCLUDED.stripe_payment_method_id, bank_label = EXCLUDED.bank_label, updated_at = now();
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.rentals_autopay_saved(uuid, text, text, text, boolean) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.rentals_autopay_saved(uuid, text, text, text, boolean) TO service_role;
+REVOKE ALL ON FUNCTION public.rentals_autopay_saved(uuid, uuid, text, text, text, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rentals_autopay_saved(uuid, uuid, text, text, text, boolean) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.rentals_set_autopay(p_tenancy_id uuid, p_enabled boolean)
 RETURNS void
@@ -544,7 +548,8 @@ BEGIN
                          AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
                          AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now()))
        AND NOT EXISTS (SELECT 1 FROM public.rental_rent_bank_payments b WHERE b.tenancy_id = c.tenancy_id AND b.status IN ('open', 'processing'))
-       AND NOT EXISTS (SELECT 1 FROM public.rental_rent_bank_payments b WHERE b.rent_charge_id = c.id AND b.autopay AND b.status NOT IN ('failed', 'expired'))
+       -- One try per rent row: a failed autopay debit is not retried (the tenant is told and pays by hand).
+       AND NOT EXISTS (SELECT 1 FROM public.rental_rent_bank_payments b WHERE b.rent_charge_id = c.id AND b.autopay)
      FOR UPDATE OF c SKIP LOCKED
   LOOP
     -- What is open up to and including this row (rent rows oldest first; payments already confirmed).

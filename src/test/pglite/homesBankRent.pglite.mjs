@@ -299,14 +299,17 @@ ok((await bal()) === 120000 && (await notes(TENANT, "Rent payment did not go thr
 
 // --- autopay (D7)
 ok(refused(await as("authenticated", TENANT, `SELECT public.rentals_set_autopay('${tA}', true)`), /no_saved_bank/), "autopay needs a saved bank");
-ok(refused(await as("authenticated", TENANT, `SELECT public.rentals_autopay_saved('${tA}', 'cus_1', 'pm_1', 'Test Bank 6789', false)`), /permission denied/), "only the server saves the bank");
-await svc(`SELECT public.rentals_autopay_saved('${tA}', 'cus_1', 'pm_1', 'Test Bank 6789', false)`);
+ok(refused(await as("authenticated", TENANT, `SELECT public.rentals_autopay_saved('${tA}', '${TENANT}', 'cus_1', 'pm_1', 'Test Bank 6789', false)`), /permission denied/), "only the server saves the bank");
+ok(refused(await svc(`SELECT public.rentals_autopay_saved('${tA}', '${STRANGER}', 'cus_x', 'pm_x', 'Other', false)`), /tenancy_not_found/), "a bank saved by someone who is not the tenant is refused");
+await svc(`SELECT public.rentals_autopay_saved('${tA}', '${TENANT}', 'cus_1', 'pm_1', 'Test Bank 6789', false)`);
 ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_set_autopay('${tA}', true)`), /tenancy_not_found/), "only the tenant turns autopay on");
 ok(Array.isArray(await as("authenticated", TENANT, `SELECT public.rentals_set_autopay('${tA}', true)`)) && (await notes(LANDLORD, "Autopay on")) === 1, "the tenant turns it on; the landlord is told");
 const apR = await svc(`SELECT * FROM public.rentals_autopay_due()`); const ap = rows(apR);
 ok(ap.length === 1 && ap[0].charge_cents === 120000 && ap[0].stripe_payment_method_id === "pm_1", "today's open rent row is queued once for an off-session bank charge (landlord pays the cost)");
 ok(rows(await svc(`SELECT * FROM public.rentals_autopay_due()`)).length === 0, "never twice");
 await svc(`SELECT public.rentals_bank_rent_failed('${ap[0].bank_payment_id}', false)`);
+ok(rows(await svc(`SELECT * FROM public.rentals_autopay_due()`)).length === 0, "a failed autopay debit is not retried (the tenant is told)");
+await svc(`DELETE FROM public.rental_rent_bank_payments WHERE id = '${ap[0].bank_payment_id}'`);
 await svc(`UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = '${TENANT}'`);
 ok(rows(await svc(`SELECT * FROM public.rentals_autopay_due()`)).length === 0, "a banned side: autopay does not charge");
 await svc(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${TENANT}'`);
@@ -345,7 +348,7 @@ await svc(`UPDATE public.feature_switches SET audience = 'testers' WHERE key = '
 const acl = async (sig) => one(await svc(`SELECT coalesce(proacl::text, '') FROM pg_proc WHERE oid = '${sig}'::regprocedure`)) ?? "";
 for (const sig of ["public.rentals_bank_rent_attach(uuid,text,boolean)", "public.rentals_bank_rent_processing(uuid,text)", "public.rentals_bank_rent_succeeded(text)",
   "public.rentals_bank_rent_failed(uuid,boolean)", "public.rentals_bank_rent_returned(text,text)", "public.rentals_bank_transfers_due(integer)",
-  "public.rentals_bank_transfer_executed(uuid,text,text,boolean,text)", "public.rentals_autopay_saved(uuid,text,text,text,boolean)", "public.rentals_autopay_due()"]) {
+  "public.rentals_bank_transfer_executed(uuid,text,text,boolean,text)", "public.rentals_autopay_saved(uuid,uuid,text,text,text,boolean)", "public.rentals_autopay_due()"]) {
   const a = await acl(sig);
   ok(/service_role=X/.test(a) && !/(^|[{,])(anon|authenticated)?=X/.test(a), `${sig}: server only (${a})`);
 }

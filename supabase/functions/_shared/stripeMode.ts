@@ -397,7 +397,7 @@ export function isRoutedTestCheckout(session: any): boolean {
   const meta = (session.metadata && typeof session.metadata === "object" ? session.metadata : {}) as Record<string, unknown>;
   // Declutter's card-saving page (declutter-card) is the one SETUP-mode
   // checkout a mode-routed function creates; it moves no money.
-  if (session.mode === "setup") return meta.kind === "declutter_card";
+  if (session.mode === "setup") return meta.kind === "declutter_card" || meta.kind === "rent_bank_autopay";
   if (session.mode !== "payment") return false;
   if (meta.tier !== undefined || meta.billing_cycle !== undefined) return false;
   if (meta.type === "tip") return true;

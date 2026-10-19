@@ -13296,6 +13296,7 @@ export type Database = {
           p_livemode: boolean
           p_payment_method_id: string
           p_tenancy_id: string
+          p_tenant_id: string
         }
         Returns: undefined
       }

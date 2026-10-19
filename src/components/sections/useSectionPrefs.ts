@@ -33,7 +33,7 @@ const ALL = SECTIONS.map((s) => s.key);
 const listeners = new Set<() => void>();
 const cache = new Map<string, { raw: string | null; prefs: SectionPrefs }>();
 
-export function normalizePrefs(input: unknown): SectionPrefs {
+function normalizePrefs(input: unknown): SectionPrefs {
   const obj = (input && typeof input === "object" ? input : {}) as Partial<SectionPrefs>;
   const isKey = (k: unknown): k is SectionKey => typeof k === "string" && (ALL as string[]).includes(k);
   const order = Array.isArray(obj.order) ? obj.order.filter(isKey) : [];

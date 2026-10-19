@@ -5,7 +5,8 @@
  * where people order, book or rent and pick up or get served, not delivery-app
  * food service. 20261017224153_shop_categories_v2 states the whole v2.2 list (final) from
  * the lead's draft ~/.lh-wt/shop-categories-proposal-1017.md, made final by
- * the owner ~23:37Z).
+ * the owner ~23:37Z). 20261019185210_shop_categories_mobile states v2.3: the
+ * same list plus eight mobile services (owner 2026-10-19).
  *
  * Read from EVERY migration in order, comments blanked (blankSqlComments):
  *   INSERT INTO public.shop_categories ... VALUES rows add a slug (ON CONFLICT
@@ -16,9 +17,11 @@
  * Behaviour (shops on a removed slug move; 3x replay):
  * src/test/pglite/shopCategoriesV2.pglite.mjs.
  */
-// @mutate supabase/migrations/20261017224153_shop_categories_v2.sql |   DELETE FROM public.shop_categories WHERE slug <> ALL (v_keep); | 
-// @mutate supabase/migrations/20261017224153_shop_categories_v2.sql |     ('equipment_rental', 'trades', 'Trades', 'Equipment rental', 313),\n | 
-// @mutate supabase/migrations/20261017224153_shop_categories_v2.sql | 'events_party', 'Events and party', 'Party rentals' | 'events_party', 'Rentals', 'Party rentals'
+// @mutate supabase/migrations/20261019185210_shop_categories_mobile.sql |   DELETE FROM public.shop_categories WHERE slug <> ALL (v_keep); | 
+// @mutate supabase/migrations/20261019185210_shop_categories_mobile.sql |     ('mobile_vet', 'pets', 'Pets', 'Mobile vet', 805),\n | 
+// @mutate supabase/migrations/20261019185210_shop_categories_mobile.sql | 'Locksmith and car keys', 507 | 'Locksmith and car keys', 9998
+// @mutate supabase/migrations/20261019185210_shop_categories_mobile.sql |     ('equipment_rental', 'trades', 'Trades', 'Equipment rental', 313),\n | 
+// @mutate supabase/migrations/20261019185210_shop_categories_mobile.sql | 'events_party', 'Events and party', 'Party rentals' | 'events_party', 'Rentals', 'Party rentals'
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -28,9 +31,10 @@ const MIG_DIR = join(process.cwd(), "supabase/migrations");
 
 type Row = { slug: string; group: string; groupLabel: string; label: string; position: number };
 
-function effectiveCategories(): { rows: Map<string, Row>; files: string[] } {
+function effectiveCategories(): { rows: Map<string, Row>; files: string[]; prunes: string[] } {
   const rows = new Map<string, Row>();
   const files: string[] = [];
+  const prunes: string[] = [];
   for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql")).sort()) {
     const sql = blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"));
     const upsertedHere = new Set<string>();
@@ -46,23 +50,24 @@ function effectiveCategories(): { rows: Map<string, Row>; files: string[] } {
       } else if (m[4] !== undefined) {
         for (const x of m[4].matchAll(/'([a-z0-9_]+)'/g)) rows.delete(x[1]);
       } else {
+        prunes.push(f);
         for (const slug of [...rows.keys()]) if (!upsertedHere.has(slug)) rows.delete(slug);
       }
     }
   }
-  return { rows, files };
+  return { rows, files, prunes };
 }
 
-/** The v2.2 list (final), group by group, in order. */
+/** The v2.3 list (v2.2 final + the mobile services, 2026-10-19), group by group, in order. */
 const V2 = [
   "Food to order: Bakery and cakes, Catering, Crawfish and seafood, BBQ and smoked meats, Meal prep, Home kitchen",
-  "Home services: Cleaning, Lawn and landscaping, Pressure washing, Pest control, Pool, Moving, Junk removal, Organizing, Tree service, Gutters, Window washing",
+  "Home services: Cleaning, Lawn and landscaping, Pressure washing, Pest control, Pool, Moving, Junk removal, Organizing, Tree service, Gutters, Window washing, Smart home and TV mounting",
   "Trades: Electrical, Plumbing, HVAC, Roofing, Welding, Carpentry, Flooring, Concrete and masonry, Fencing, Painting, Remodeling, Appliance repair, Handyman, Equipment rental",
-  "Events and party: DJ, Photography, Videography, Venues, Decor, Florist, Party rentals, Bounce houses, Tables, chairs and tents",
-  "Auto and marine: Mechanic, Mobile mechanic, Detailing, Towing, Tires, Boat repair",
-  "Beauty: Hair, Barber, Nails, Lashes and brows, Makeup, Spa, Tattoo",
+  "Events and party: DJ, Photography, Videography, Venues, Decor, Florist, Party rentals, Bounce houses, Tables, chairs and tents, Mobile bartending, Photo booth",
+  "Auto and marine: Mechanic, Mobile mechanic, Detailing, Towing, Tires, Boat repair, Dent and windshield, Locksmith and car keys",
+  "Beauty: Hair, Barber, Nails, Lashes and brows, Makeup, Spa, Tattoo, Spray tan",
   "Health and fitness: Personal trainer, Yoga, Massage, Nutrition",
-  "Pets: Grooming, Sitting and walking, Training, Boarding",
+  "Pets: Grooming, Sitting and walking, Training, Boarding, Pet waste removal, Mobile vet",
   "Made locally: Boutique, Crafts and gifts, Home decor, Plants and garden, Custom shirts and printing, Jewelry, Candles and soap",
   "Lessons: Tutoring, Music lessons, Classes",
   "Local pros: Tax and bookkeeping, Notary, Printing, IT and phone repair",
@@ -71,13 +76,18 @@ const V2 = [
 ];
 
 describe("Shops categories v2: local businesses people order, book or rent from (owner 2026-10-17)", () => {
-  const { rows, files } = effectiveCategories();
+  const { rows, files, prunes } = effectiveCategories();
   const sorted = [...rows.values()].sort((a, b) => a.position - b.position);
 
   it("reads a real list (floors)", () => {
     expect(files).toContain("20261017061155_shops_profiles.sql");
     expect(files).toContain("20261017224153_shop_categories_v2.sql");
+    expect(files).toContain("20261019185210_shop_categories_mobile.sql");
     expect(rows.size).toBeGreaterThan(60);
+  });
+
+  it("the newest whole-list file also removes every slug it does not list", () => {
+    expect(prunes[prunes.length - 1]).toBe(files[files.length - 1]);
   });
 
   it("walk-in food service, farmers market, driving school, real estate, insurance and gym are gone", () => {
@@ -86,7 +96,7 @@ describe("Shops categories v2: local businesses people order, book or rent from 
     }
   });
 
-  it("the whole list is exactly v2, group by group, in order (80 categories)", () => {
+  it("the whole list is exactly v2.3, group by group, in order (88 categories)", () => {
     const groups: string[] = [];
     for (const r of sorted) {
       const last = groups[groups.length - 1];
@@ -94,7 +104,7 @@ describe("Shops categories v2: local businesses people order, book or rent from 
       else groups.push(`${r.groupLabel}: ${r.label}`);
     }
     expect(groups).toEqual(V2);
-    expect(rows.size).toBe(80);
+    expect(rows.size).toBe(88);
   });
 
   it("no group is called just 'Rentals' (that is the homes section); equipment rental sits in Trades", () => {

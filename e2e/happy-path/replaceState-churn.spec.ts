@@ -69,9 +69,11 @@ function collectErrors(page: Page): { pageErrors: string[]; consoleErrors: strin
  * real user-observable interaction (typing), not by calling internals.
  */
 async function churnSearchInput(page: Page, count: number, prefix: string): Promise<void> {
+  // Since 2026-10-19 the search lives on Jobs > Browse (the feed's own mirror,
+  // useDashboardFilters); Posted / Working have status boxes and no search box.
   const openSearch = page.getByRole("button", { name: "Search jobs" });
-  await openSearch.click();
-  const input = page.locator('input[type="search"][aria-label="Search jobs"]');
+  if (await openSearch.count()) await openSearch.click();
+  const input = page.locator('input[type="search"]').first();
   await expect(input).toBeVisible();
 
   await input.evaluate(
@@ -151,7 +153,7 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     await countReplaceState(page);
     const { pageErrors, consoleErrors } = collectErrors(page);
 
-    await page.goto("/jobs?tab=posted");
+    await page.goto("/jobs");
     await expect(page.getByRole("heading", { name: /^jobs$/i, level: 1 })).toBeVisible({ timeout: 15_000 });
 
     const rsBefore = await readReplaceStateCount(page);
@@ -182,11 +184,13 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
       `circuit breaker capped the burst at WRITE_HARD_STOP (${WRITE_HARD_STOP}) + router overhead`,
     ).toBeLessThanOrEqual(WRITE_HARD_STOP + 10);
 
-    // Burst #2, immediately after: hammer the status-filter chips too, so the
+    // Burst #2, immediately after, on Jobs > Posted: hammer the status boxes too, so the
     // mirror is fighting on BOTH state entries it owns (filter AND q) in the
     // same window, which is closer to what a user frantically re-filtering
     // while typing would actually produce than either alone.
+    await page.goto("/jobs?tab=posted");
     const filterGroup = page.getByRole("group", { name: "Filter by status" });
+    await filterGroup.waitFor({ timeout: 15_000 });
     if (await filterGroup.count()) {
       const chips = filterGroup.getByRole("button");
       const chipCount = await chips.count();
@@ -230,9 +234,9 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     await seedAuthedSession(helperCtx, FAKE_HELPER, "");
     await installSupabaseMocks(helper, { user: FAKE_HELPER, seed: true });
 
-    await poster.goto("/jobs?tab=posted");
+    await poster.goto("/jobs"); // the search burst runs on Jobs > Browse
     await expect(poster.getByRole("heading", { name: /^jobs$/i, level: 1 })).toBeVisible({ timeout: 15_000 });
-    await helper.goto("/jobs?tab=working");
+    await helper.goto("/jobs");
     await expect(helper.getByRole("heading", { name: /^jobs$/i, level: 1 })).toBeVisible({ timeout: 15_000 });
 
     // Fire both sessions' own rapid churn CONCURRENTLY. This is the closest

@@ -2682,7 +2682,7 @@ button,
     hsl(var(--bark)) 46%,
     hsl(var(--bark-deep)) 100%
   );
-  /* THE INK COMES WITH THE SURFACE (Q2154). The class used
+  /* THE INK COMES WITH THE SURFACE (Q2162). The class used
      to paint only the gradient and leave the text colour to each call site;
      <Button> pins parchment, and a hand-rolled <button> that stated nothing
      inherited the page's --foreground (olivewood), the same family as the

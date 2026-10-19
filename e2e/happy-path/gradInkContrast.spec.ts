@@ -1,6 +1,6 @@
 /**
  * TEXT ON THE PRIMARY GRADIENT IS READABLE, IN BOTH THEMES, AT EVERY SITE
- * (Q2154).
+ * (Q2162).
  *
  * `.btn-grad-primary` paints the surface and, until this guard, nothing else:
  * the ink was each call site's job. `<Button>` pins it (button.tsx), and the

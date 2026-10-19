@@ -35,6 +35,7 @@
 
 // @mutate scripts/check-identity-linking.mjs | if (!usePsql && verdict.identities_table !== true) { | if (false) {
 // @mutate scripts/check-identity-linking.mjs | if (!cover) failed = true; | if (false) failed = true;
+// @mutate scripts/check-identity-linking.mjs | ["hook_before_user_created_enabled", true, | ["hook_before_user_created_enabled", false,
 // @mutate scripts/check-unvalidated-constraints.mjs | if (n === 0) { | if (n === -1) {
 // @mutate scripts/check-unvalidated-constraints.mjs | failed = true; // stale entry | // stale entry
 // @mutate scripts/check-anon-table-grants.mjs | if (!tablesChecked \|\| !Array.isArray(offenders)) { | if (false) {
@@ -307,6 +308,9 @@ const HERMETIC: Record<string, Case[]> = {
     // Q445a: every scenario passes, but GoTrue would not return a refused social
     // sign-in to /home (neither site_url's host nor uri_allow_list covers it).
     { label: "redirect not allow-listed", env: MGMT("noallow"), says: /FAIL config redirect allow-list covers https:\/\/www\.louisianahelpr\.com\/home/ },
+    // Q446: every scenario passes, but the Before User Created hook is off, so
+    // a no-match Apple/Google sign-in silently makes a second account.
+    { label: "one-account hook off", env: MGMT("nohook"), says: /FAIL config hook_before_user_created_enabled = false/ },
   ],
   // Q1323 (db-drift-detect.yml nightly): GET /config/auth (LH_SUPABASE_API_BASE),
   // compared with the Apple/Google client ids derived from the source.
@@ -426,7 +430,7 @@ beforeAll(async () => {
     }
     // check-identity-linking: a clean auth config, and a scenario verdict whose
     // checks all pass with identities_table false.
-    if (mode === "noident" || mode === "noallow") {
+    if (mode === "noident" || mode === "noallow" || mode === "nohook") {
       if (req.url?.endsWith("/config/auth")) {
         return void res.end(JSON.stringify({
           mailer_autoconfirm: false, external_email_enabled: true, external_apple_enabled: true, external_google_enabled: true,
@@ -435,15 +439,16 @@ beforeAll(async () => {
           site_url: mode === "noallow" ? "https://helpr.example.com" : "https://www.louisianahelpr.com",
           uri_allow_list: "https://louisianahelpr-*-louisianahelprs-projects.vercel.app/**",
           // Apple + Google on, as SOCIAL_SIGN_IN_ENABLED says (owner, 2026-10-09).
-          // Q446 one-account-per-person settings, all as prod has them.
-          hook_before_user_created_enabled: true,
+          // Q446 one account per person, on as on prod (read 2026-10-05); nohook
+          // turns the hook off so it is the ONLY failing line.
+          hook_before_user_created_enabled: mode !== "nohook",
           hook_before_user_created_uri: "pg-functions://postgres/public/hook_one_account_per_person",
           security_manual_linking_enabled: true,
         }));
       }
       const checks = ["A", "A", "A", "A", "B", "B", "B", "B", "C", "C", "C", "D"].map((c, i) => ({ case: c, check: `c${i}`, ok: true, got: 1 }));
       res.statusCode = 400;
-      return void res.end(JSON.stringify({ message: `Failed to run sql query: ERROR:  P0001: OA018_RESULT:${JSON.stringify({ identities_table: mode === "noallow", checks })}\nCONTEXT:  PL/pgSQL function inline_code_block line 131 at RAISE` }));
+      return void res.end(JSON.stringify({ message: `Failed to run sql query: ERROR:  P0001: OA018_RESULT:${JSON.stringify({ identities_table: mode !== "noident", checks })}\nCONTEXT:  PL/pgSQL function inline_code_block line 131 at RAISE` }));
     }
     // check-native-sign-in-config: a config that is right except for the one
     // field each mode removes, built from the ids the source derives.

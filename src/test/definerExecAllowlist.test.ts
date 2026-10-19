@@ -30,6 +30,7 @@
 // @mutate scripts/ci/definer-exec-allowlist.json | "is_caller_banned()": "policy" | "is_caller_banned()": "client"
 // (Re-pointed 2026-10-05: rpc_group_member_confirm gained a client caller with Q1382, so calling it "client" became TRUE and this survived.)
 // @mutate scripts/ci/definer-exec-allowlist.json | "rpc_decide_crew_dispute(uuid, text, uuid[])": "reviewed | "rpc_decide_crew_dispute(uuid, text, uuid[])": "client", "zz": "reviewed
+// @mutate scripts/ci/definer-exec-allowlist.json | "rpc_group_member_confirm(uuid)": "client" | "rpc_group_member_confirm(uuid)": "reviewed 2026-10-05 (Q14): crew member acts on their own slot (auth.uid()); no client caller yet (group jobs blocked at launch)."
 // @mutate scripts/ci/definer-exec-allowlist.json | "get_job_pets(uuid)": "client" | "get_job_pets(uuid)": "policy"
 // @mutate scripts/ci/definer-exec-allowlist.json | "get_parish_for_zip(text)": "reviewed 2026-10-05 (Q1284): | "get_parish_for_zip(text)": "fine:
 // @mutate scripts/ci/definer-exec-allowlist.json | "authenticated": { | "authenticated": {\n    "resolve_auto_tip(uuid, numeric)": "client",
@@ -84,6 +85,14 @@ describe("Q14: every client-executable SECURITY DEFINER function says why", () =
   it('"policy" entries are called inside a CREATE/ALTER POLICY', () => {
     const wrong = entries.filter((e) => e.why === "policy" && !calledByPolicy(nameOf(e.sig)));
     expect(wrong.map((e) => `${e.role} ${e.sig}`)).toEqual([]);
+  });
+
+  // 2026-10-06: five crew functions kept "no client caller yet" after the crew
+  // UI started calling them; a reason that says nobody calls it must stay true,
+  // and one the app does call is a "client" entry.
+  it('a reason saying "no client caller" is true: the app does not call it', () => {
+    const wrong = entries.filter((e) => /no client caller/i.test(e.why) && calledByClient(nameOf(e.sig)));
+    expect(wrong.map((e) => `${e.role} ${e.sig}`), 'the app calls it now: make the entry "client"').toEqual([]);
   });
 
   it("every other entry carries a dated, reviewed reason", () => {

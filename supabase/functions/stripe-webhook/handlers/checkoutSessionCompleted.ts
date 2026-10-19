@@ -28,6 +28,7 @@ import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
 import { recordWalletDefaultCard } from "./_walletDefaultCard.ts";
 import { isDeclutterSession, settleDeclutterSession } from "./declutterCheckout.ts";
 import { isShopSession, settleShopSession } from "./shopCheckout.ts";
+import { isIdvFeeSession, settleIdvFee } from "./settleIdvFee.ts";
 
 export async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
@@ -57,6 +58,12 @@ async function settleCheckoutSession(
   // charged here; the maker's acceptance captures it (shop-checkout).
   if (isShopSession(session)) {
     await settleShopSession(event, session, { stripe, supabase, logStep });
+    return;
+  }
+  // A landlord paying for their own Stripe Identity check (owner 2026-10-19).
+  // Marks the idv_fee_payments row paid; stripe-idv-start creates the session.
+  if (isIdvFeeSession(session)) {
+    await settleIdvFee(session, { stripe, supabase, logStep });
     return;
   }
   // Q210(b): a $300+ recurring visit paid on-session. Settled before the
@@ -371,7 +378,7 @@ async function settleCheckoutSession(
   // create-payment action "recurring_visit", settled at the top). A paid
   // session carrying any other kind matches no branch below and would be
   // skipped silently — money in, nothing delivered. Alert instead.
-  const KNOWN_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "gift_card_purchase", "recurring_visit"]);
+  const KNOWN_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "gift_card_purchase", "recurring_visit", "idv_fee"]);
   if (typeof kind === "string" && kind !== "" && !KNOWN_CHECKOUT_KINDS.has(kind)) {
     logStep("ERROR: checkout session with unknown metadata.kind — no handler", { kind, sessionId: session.id });
     await postSlackOpsAlert({

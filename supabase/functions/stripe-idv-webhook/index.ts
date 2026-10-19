@@ -14,6 +14,28 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
+/**
+ * A paid ID check (stripe-idv-start action "start") reached a verdict: its
+ * payment is used up. Any not-yet-used state moves (a lagging 'paid'/'starting'
+ * row too, so a finished check can never be replayed for free). Throws on a DB
+ * error so Stripe retries; 0 rows (already used, or refunded) pages instead.
+ */
+// deno-lint-ignore no-explicit-any
+async function markPaidCheckUsed(supabase: any, paymentId: string, userId: string, sessionId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("idv_fee_payments")
+    .update({ status: "used", stripe_verification_session_id: sessionId, updated_at: new Date().toISOString() })
+    .eq("id", paymentId)
+    .eq("user_id", userId)
+    .in("status", ["paid", "starting", "session_started"])
+    .select("id");
+  if (error) throw error;
+  if (!Array.isArray(data) || data.length === 0) {
+    // Repeat verdicts land here harmlessly (already 'used'); a REFUNDED row means a check ran on money we gave back.
+    console.warn("[stripe-idv-webhook] paid check not moved to used (already used, or refunded):", paymentId);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -355,6 +377,10 @@ serve(async (req) => {
               })
               .eq("user_id", userId);
             if (refuseErr) throw refuseErr;
+            // A paid check that ended here is used up like any other verdict.
+            if (session.metadata?.idv_fee_payment_id) {
+              await markPaidCheckUsed(supabase, session.metadata.idv_fee_payment_id, userId, session.id);
+            }
 
             await postSlackOpsAlert({
               kind: "stripe_webhook_error",
@@ -463,6 +489,19 @@ serve(async (req) => {
         updateData.legacy_manual_review = true;
       }
 
+      // A session the landlord PAID for (stripe-idv-start action "start",
+      // owner 2026-10-19): a completed failed or canceled check spends that
+      // payment and the retry is a new paid check, so the account is NOT parked
+      // in manual review; 'failed' lets the Homes pill sell the next check.
+      const paidPaymentId = session.metadata?.idv_fee_payment_id || null;
+      if (paidPaymentId && (
+        event.type === "identity.verification_session.requires_input" ||
+        event.type === "identity.verification_session.canceled"
+      )) {
+        updateData.idv_status = "failed";
+        updateData.legacy_manual_review = false;
+      }
+
       const { error: updErr } = await supabase
         .from("profiles")
         .update(updateData)
@@ -472,6 +511,11 @@ serve(async (req) => {
         // Throwing here routes into the outer catch which fires postSlackOpsAlert.
         // A silent log would permanently lose the IDV status update with no operator alert.
         throw updErr;
+      }
+
+      // The paid check is used up once it reaches a verdict (processing is not one).
+      if (paidPaymentId && event.type !== "identity.verification_session.processing") {
+        await markPaidCheckUsed(supabase, paidPaymentId, userId, session.id);
       }
 
       // Notify user + admins

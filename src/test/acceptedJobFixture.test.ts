@@ -20,7 +20,7 @@
  *
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (accepted) return { kind: "reuse", row: accepted, retire, ...extra }; | if (accepted && false) return { kind: "reuse", row: accepted, retire, ...extra };
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS, | r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow",
- * @mutate .github/workflows/a11y-webkit-prod.yml | needs: [preflight, wait-accounts, fixtures] | needs: [preflight, wait-accounts]
+ * @mutate .github/workflows/a11y-webkit-prod.yml | needs: [preflight, wait-accounts, fixtures, wait-accounts-sweep] | needs: [preflight, wait-accounts, wait-accounts-sweep]
  * @mutate .github/workflows/a11y-webkit-prod.yml | run: npx playwright test --project=job-status-fixtures | run: echo skipped
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | const open = openAll.filter((r) => !isDeadFor(opts.applications, r.id)); | const open = openAll;
  * @mutate e2e/prod-audit/fundedOpenJob.ts |   await helperConfirmsOffer(api, helper, id, log); |   // confirm removed
@@ -137,7 +137,7 @@ describe("a11y-webkit-prod.yml mints the fixture before the sweep reads it", () 
     expect(job("fixtures")).toMatch(/run: npx playwright test --project=job-status-fixtures\b/);
   });
   it("the sweep (both engines) waits for it", () => {
-    expect(job("sweep")).toMatch(/needs: \[preflight, wait-accounts, fixtures\]/);
+    expect(job("sweep")).toMatch(/needs: \[preflight, wait-accounts, fixtures, wait-accounts-sweep\]/);
   });
   it("the nightly issue counts it: a red fixtures job is a red run", () => {
     expect(job("notify")).toMatch(/needs\.fixtures\.result == 'success'/);

@@ -13509,6 +13509,7 @@ export type Database = {
         Args: { p_tenancy_id: string }
         Returns: Json
       }
+      rentals_deposit_sweep: { Args: never; Returns: Json }
       rentals_end_tenancy: {
         Args: { p_tenancy_id: string }
         Returns: undefined

@@ -32,10 +32,14 @@
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | REVOKE ALL ON FUNCTION public.shops_confirm_pickup(uuid) FROM PUBLIC, anon; | CREATE OR REPLACE FUNCTION public.shops_mark_picked_up(p uuid) RETURNS jsonb LANGUAGE sql AS $m$ SELECT public.shop_complete_handover(p, 'auto') $m$; REVOKE ALL ON FUNCTION public.shops_confirm_pickup(uuid) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql |   IF NOT FOUND OR o.buyer_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'handed_over' THEN\n    RETURN jsonb_build_object('result', 'already_handed_over', 'order_id', o.id);\n  END IF;\n  RETURN public.shop_complete_handover(o.id, 'buyer'); |   IF NOT FOUND OR o.seller_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'handed_over' THEN\n    RETURN jsonb_build_object('result', 'already_handed_over', 'order_id', o.id);\n  END IF;\n  RETURN public.shop_complete_handover(o.id, 'buyer');
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | CREATE OR REPLACE FUNCTION public.shops_confirm_pickup(p_order_id uuid)\nRETURNS jsonb\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_uid uuid := (SELECT auth.uid());\n  o public.shop_orders;\nBEGIN\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF; | CREATE OR REPLACE FUNCTION public.shops_confirm_pickup(p_order_id uuid)\nRETURNS jsonb\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_uid uuid := (SELECT auth.uid());\n  o public.shop_orders;\nBEGIN\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;
-// @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | COALESCE(h.ready_at, 'infinity'::timestamptz)) | COALESCE(o.handed_over_at, 'infinity'::timestamptz))
+// @mutate supabase/migrations/20261019013802_shop_free_cancel_ready_tap_day_before.sql | greatest(COALESCE(h.ready_at, 'infinity'::timestamptz), | greatest(COALESCE(o.handed_over_at, 'infinity'::timestamptz),
+// @mutate supabase/migrations/20261019013802_shop_free_cancel_ready_tap_day_before.sql | ((o.ready_date - 1)::timestamp AT TIME ZONE 'America/Chicago'))) | '-infinity'::timestamptz))
 // @mutate src/lib/shops/orders.ts | label: "Free to cancel until your order is ready", | label: "Free to cancel any time before you pick it up",
-// @mutate src/lib/shops/orders.ts | until your ready date begins, or until the shop marks your order ready if that comes first. | until pickup.
-// @mutate supabase/migrations/20261018211820_shops_handover_payout.sql |            WHEN o.status IS DISTINCT FROM 'accepted' OR o.handed_over_at IS NOT NULL THEN '-infinity'::timestamptz |            WHEN o.status IS DISTINCT FROM 'accepted' THEN '-infinity'::timestamptz
+// @mutate src/lib/shops/orders.ts | until your ready date begins. If the shop marks your order ready, free cancel ends then, but never before the day before your ready date. | until pickup.
+// @mutate src/lib/shops/orders.ts | , but never before the day before your ready date. | .
+// @mutate supabase/migrations/20261019013802_shop_free_cancel_ready_tap_day_before.sql |            WHEN o.status IS DISTINCT FROM 'accepted' OR o.handed_over_at IS NOT NULL THEN '-infinity'::timestamptz |            WHEN o.status IS DISTINCT FROM 'accepted' THEN '-infinity'::timestamptz
+// @mutate supabase/migrations/20261019013802_shop_free_cancel_ready_tap_day_before.sql | REVOKE ALL ON FUNCTION public.shop_order_free_cancel_until(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shop_order_free_cancel_until(uuid) FROM PUBLIC, anon;
+// @mutate supabase/migrations/20261019013802_shop_free_cancel_ready_tap_day_before.sql | row lock (FOR UPDATE) before refunding, and record | before refunding, and record
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | REVOKE ALL ON FUNCTION public.shop_order_free_cancel_until(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shop_order_free_cancel_until(uuid) FROM PUBLIC, anon;\nGRANT EXECUTE ON FUNCTION public.shop_order_free_cancel_until(uuid) TO authenticated;
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -134,13 +138,16 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
     expect(body("shops_report_not_received")).toMatch(/ur\.role\s*=\s*'admin'/i);
   });
 
-  it("7. 'cancel any time before pickup' closes free cancel when the ready date begins or at the shop's ready tap, never at the handover (owner 2026-10-18 ~22:30Z, Q2155)", () => {
+  it("7. 'cancel any time before pickup' closes free cancel when the ready date begins or at the shop's ready tap counted only from the day before, never at the handover (owner 2026-10-18 ~22:30Z + 2026-10-19 ~01:30Z, Q2155)", () => {
     const fn = body("shop_order_free_cancel_until");
     expect(fn.length).toBeGreaterThan(200);
     const branch = /WHEN\s+'until_handover'\s+THEN([\s\S]*?)(?=\bWHEN\b|\bEND\b)/i.exec(fn)?.[1] ?? "";
     expect(branch).toMatch(/\bleast\s*\(/i);
     expect(branch).toMatch(/o\.ready_date\b/);
     expect(branch).toMatch(/h\.ready_at\b/);
+    // Owner 2026-10-19 ~01:30Z: a ready tap counts only from the start of the day before the ready date
+    // (Louisiana time), so an early tap never cuts the window short.
+    expect(branch).toMatch(/\bgreatest\s*\(\s*COALESCE\s*\(\s*h\.ready_at\s*,\s*'infinity'::timestamptz\s*\)\s*,\s*\(\(o\.ready_date\s*-\s*1\)::timestamp\s+AT\s+TIME\s+ZONE\s+'America\/Chicago'\)\s*\)/i);
     // The old window ran until the handover, which only the buyer (or the clock) records now.
     expect(branch).not.toMatch(/handed_over|confirmed_at|confirmed_how|status/i);
     // Only an accepted order not yet handed over has a window (an early "I got it" closes it under every
@@ -150,6 +157,11 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
     // except the preset's own validator (M3's cancel of an accepted order must call this one).
     const SQL = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.shop_order_free_cancel_until[\s\S]*?REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.shop_order_free_cancel_until\(uuid\)\s+FROM\s+([^;]+);/i.exec(MIG);
     expect(SQL?.[1] ?? "").toMatch(/\bauthenticated\b/);
+    // The newest definition restates the grants (service_role only) and tells M3 to read it under the row lock.
+    const NEWEST = blankSqlComments(readFileSync(join(MIG_DIR, DEFS.get("shop_order_free_cancel_until")?.file ?? FILE), "utf8"));
+    expect(NEWEST).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.shop_order_free_cancel_until\(uuid\)\s+FROM\s+PUBLIC,\s*anon,\s*authenticated;\s*GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.shop_order_free_cancel_until\(uuid\)\s+TO\s+service_role;/i);
+    expect(NEWEST).not.toMatch(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.shop_order_free_cancel_until\(uuid\)\s+TO\s+[^;]*\b(authenticated|anon|PUBLIC)\b/i);
+    expect(NEWEST).toMatch(/COMMENT\s+ON\s+FUNCTION\s+public\.shop_order_free_cancel_until\(uuid\)\s+IS\s+'[^;]*row lock \(FOR UPDATE\) before refunding, and record free\/late on the order[^']*before that commit; call Stripe only after it/i);
     expect(MIG).not.toMatch(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.shop_order_free_cancel_until\(uuid\)\s+TO\s+[^;]*\b(authenticated|anon|PUBLIC)\b/i);
     const readers = [...DEFS.entries()].filter(([, d]) => /'until_handover'/.test(blankSqlComments(d.stmt))).map(([n]) => n).sort();
     expect(readers).toEqual(["shop_order_free_cancel_until", "shops_set_cancel_policy"]);
@@ -157,7 +169,7 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
     const ts = blankComments(readFileSync(join(ROOT, "src/lib/shops/orders.ts"), "utf8"));
     const words = /until_handover:\s*\{([\s\S]*?)\}/.exec(ts)?.[1] ?? "";
     expect(words).toMatch(/label:\s*"[^"]*\bready\b[^"]*"/i);
-    expect(words).toMatch(/detail:\s*"[^"]*ready date begins[^"]*marks your order ready[^"]*"/i);
+    expect(words).toMatch(/detail:\s*"[^"]*ready date begins[^"]*marks your order ready[^"]*never before the day before your ready date[^"]*"/i);
     expect(words).not.toMatch(/pick\s*(it\s*)?up|pickup|handover|hand(ed)?\s+over/i);
   });
 

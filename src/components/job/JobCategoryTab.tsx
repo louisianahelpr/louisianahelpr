@@ -1,6 +1,7 @@
 import { categoryColors, categoryLabels } from "@/components/job-card/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { formatCategory } from "@/lib/format";
+import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
 
 /**
  * JobCategoryTab — the corner tab that names a job's category.
@@ -46,16 +47,14 @@ export function JobCategoryTab({
   className?: string;
 }) {
   const catStyle = categoryColors[category] ?? categoryColors.other;
-  // Owner 2026-10-18 (tweak 3, "simpler job cards"): a small coloured icon +
-  // plain label, no coloured tab. `flexible` still lets the label truncate.
   return (
     <span
-      className={`job-cat-label inline-flex items-center gap-1.5 min-w-0 text-ds-11 font-semibold text-muted-foreground${flexible ? " max-w-[52%]" : ""}${className ? ` ${className}` : ""}`}
+      className={`${JOB_CATEGORY_TAB_FRAME}${flexible ? " min-w-0 max-w-[52%]" : ""} ${catStyle.badge}${className ? ` ${className}` : ""}`}
     >
       <CategoryIcon
         category={category}
         aria-hidden
-        className={`w-3.5 h-3.5 shrink-0 ${catStyle.title}`}
+        className="w-2.5 h-2.5 shrink-0"
         strokeWidth={2.25}
       />
       <span className="font-sans truncate">

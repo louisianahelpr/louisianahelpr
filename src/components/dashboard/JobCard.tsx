@@ -3,6 +3,7 @@ import { MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat } from "lucid
 import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
 
+import { categoryColors } from "@/components/job-card/activityConstants";
 import { JobHelprsChip } from "@/components/job-card/JobCardMetaRow";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
@@ -25,6 +26,7 @@ import {
   JOB_CARD_BODY,
   JOB_CARD_CLIP,
   JOB_CARD_META,
+  JOB_CARD_RAIL,
   JOB_CARD_TITLE_ROW,
 } from "@/components/job/cardGeometry";
 
@@ -123,6 +125,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // heard "$57.66" where a sighted one read "$57". The chip is the authority.
   const netAria = formatPriceFloor(computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpersCount, firstPayoutFee, job).netEarnings);
   const priceAria = showBudget ? `$${formatPrice(job.budget)}` : `$${netAria}`;
+  const catStyle = categoryColors[job.category] || categoryColors.other;
 
   // Freshness signal — ONE chip, "Just in", living on the badge rail below.
   //
@@ -322,8 +325,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           rounded, and the category rail/tab need SOME edge to align to) but
           carries no paint of its own. */}
       <div className={bare ? "relative h-full overflow-hidden rounded-lg" : JOB_CARD_CLIP}>
-        {/* No category rail: owner 2026-10-18 (tweak 3) dropped the coloured
-            stripe; the category reads from the icon + label instead. */}
+        {/* Category rail — vertical color stripe down the left edge. The
+            tab below sits flush on top of it (same left edge) so the tab's
+            flat left side flows straight into the rail with no gap. */}
+        <span
+          aria-hidden
+          className={`${JOB_CARD_RAIL} ${catStyle.dot}`}
+        />
         {/* ── BADGE RAIL ───────────────────────────────────────────────
             ONE row holding EVERY badge this card can render, sharing one
             top edge, one bottom edge and one baseline BY CONSTRUCTION —

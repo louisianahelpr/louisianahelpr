@@ -5,6 +5,7 @@ import {
   JOB_CARD_CLIP,
   JOB_CARD_FRAME,
   JOB_CARD_META,
+  JOB_CARD_RAIL,
   JOB_CARD_TITLE_ROW,
   JOB_CATEGORY_TAB_FRAME,
 } from "@/components/job/cardGeometry";
@@ -13,7 +14,7 @@ import {
  * JobCardSkeleton — the placeholder for the browse-feed job card
  * (`src/components/dashboard/JobCard.tsx`).
  *
- * It does not re-draw that card's frame; it IMPORTS it. Frame, clip,
+ * It does not re-draw that card's frame; it IMPORTS it. Frame, clip, rail,
  * badge row, body padding, title row and meta block all come from JobCard's
  * own exported geometry, and the category tab's box comes from
  * `JobCategoryTab`. The reserved space is therefore the real space by
@@ -42,8 +43,12 @@ export function JobCardSkeleton() {
   return (
     <div className={JOB_CARD_FRAME} aria-hidden>
       <div className={JOB_CARD_CLIP}>
-        {/* No category rail: the cards dropped it (owner design tweak T3,
-            2026-10-18), so the bone draws none either. */}
+        {/* Category rail — neutral olivewood while loading; the real card
+            recolours it per category. */}
+        <span
+          className={JOB_CARD_RAIL}
+          style={{ background: "hsl(var(--olivewood) / 0.18)" }}
+        />
         {/* Badge rail. An empty tab in the real tab's own box, so the ~20px
             this row occupies is reserved rather than guessed — omitting it
             left every bone a tab shorter than the card it stood in for. */}

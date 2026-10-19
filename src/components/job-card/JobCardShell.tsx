@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { categoryColors } from "./activityConstants";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 
 /**
@@ -55,6 +56,8 @@ export function JobCardShell({
   category,
   children,
 }: JobCardShellProps) {
+  const catStyle = categoryColors[category ?? ""] ?? categoryColors.other;
+  const railClass = catStyle.dot;
   const interactiveClass = expandable
     ? "cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-primary"
     : "";
@@ -64,8 +67,15 @@ export function JobCardShell({
       className={`${JOB_CARD_SHELL_FRAME} hover:shadow-md transition-all duration-200 ${interactiveClass} ${className ?? ""}`.trim()}
       onClick={expandable ? onToggle : undefined}
     >
-      {/* No category rail: owner 2026-10-18 (tweak 3) dropped the coloured
-          stripe; the category reads from the icon + label below. */}
+      {/* Category rail — the full-height colour stripe down the left edge,
+          identical in width and colour to Browse's JobCard rail so My Posts /
+          My Jobs and the feed agree about what colour a job is. It sits inside
+          the existing `overflow-hidden rounded-2xl` clip, so it takes the
+          card's rounded corners; `relative` was added above to anchor it.
+          Purely decorative, hence aria-hidden — the category is announced by
+          the text chip in JobCardTitleBar, not by this. The card body is
+          padded px-4 (16px) against this 6px rail, so nothing shifts. */}
+      <span aria-hidden className={`${JOB_CARD_SHELL_RAIL} ${railClass}`} />
       {/* Category tab — top-left, exactly as Browse / Home render it (owner:
           "for post and jobs the category should be in the top left just like
           home dashboard is"). Squared on the left so it continues the rail with

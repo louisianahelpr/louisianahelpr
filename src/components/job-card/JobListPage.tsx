@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState, useCallback, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, useCallback, lazy, Suspense, type ReactNode } from "react";
+import { StatusBoxes } from "@/components/sections/StatusBoxes";
+import { POSTED_GROUP_LABEL, WORKING_GROUP_LABEL } from "@/components/job-card/ActivityBucketGroups";
 import { deepLinkReady, useActivitySettled } from "./deepLinkWait";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -51,7 +53,23 @@ import { recheckUnverifiedArrival } from "@/components/job-card/recheckUnverifie
 import SectionBoundary from "@/components/SectionBoundary";
 import { defaultStatusFilterFor, firstBucketWithItems } from "@/components/job-card/activityConstants";
 
-const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
+/** The four status boxes over Jobs & Posts > Posted / Working (owner, 2026-10-19). */
+export const BOX_BUCKETS = ["needs_you", "waiting", "scheduled", "done"] as const;
+
+/** Tap a status box = only that group; tap the lit box again = every group ("all"). */
+export function nextBoxFilter(current: string, tapped: string): string {
+  return current === tapped ? "all" : tapped;
+}
+
+/**
+ * `embeddedHeader`: this list rendered as Jobs & Posts > Posted / Working
+ * (owner, 2026-10-19). The section's top bar + tabs sit on top, then four
+ * status boxes that filter (tap = only that group, tap again = all groups),
+ * then the SAME cards grouped by whose move it is. It opens on all groups, not
+ * on the first non-empty bucket. Without it the page is unchanged.
+ */
+const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "posted" | "applied"; embeddedHeader?: ReactNode }) => {
+  const embedded = !!embeddedHeader;
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -81,7 +99,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // "All" is the only broad option on this tab (there is no "active" bucket
   // for applications), and its grouped view already puts live applications in
   // the ACTIVE section above the settled ones — so pending work still leads.
-  const defaultFilter = defaultStatusFilterFor(defaultTab);
+  const defaultFilter = embedded ? "all" : defaultStatusFilterFor(defaultTab);
   // Filter + search seed from URL params so a deep link (or browser
   // back/forward) lands the user on the exact view they had. We keep the
   // local-state mirror because the dropdown/search inputs need a
@@ -417,6 +435,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     if (loading || openedOnFirstBucketFor.current === tab) return;
     if (deepLinkJobId) return;
     openedOnFirstBucketFor.current = tab;
+    if (embedded) return; // Jobs & Posts opens on every group, not one bucket
     if (deepLinkHadFilter || statusFilter !== defaultFilter) return;
     const next = firstBucketWithItems(activeStatusFilters.map((f) => f.key), activeCounts, defaultFilter);
     if (next !== statusFilter) setStatusFilter(next);
@@ -436,6 +455,16 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // After a skeleton it replayed as a fade-to-empty + 8px rise between the
   // skeleton and the cards — one more visible jump (VN-32).
   if (loading) skeletonShownRef.current = true;
+  if (loading && embedded) {
+    // The section's top bar + tabs stay put while the list loads.
+    return (
+      <PageScaffold animate titleCard={<div className="pb-1">{embeddedHeader}</div>} titleCardClassName="" oneBlur>
+        <div className="px-4 pt-3 space-y-list" aria-busy="true">
+          {[1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
+        </div>
+      </PageScaffold>
+    );
+  }
   if (loading) {
     // One silhouette shared with the route fallback — see ActivityPageSkeleton
     // for why the two loading frames must match the loaded layout (VN-32).
@@ -464,7 +493,18 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // should be there own headers"). Each header carries its own title.
   const PageHeader = tab === "posted" ? PostsHeader : JobsHeader;
   const headerPadding = tab === "posted" ? POSTS_HEADER_PADDING : JOBS_HEADER_PADDING;
-  const headerEl = (
+  const groupLabels = tab === "posted" ? POSTED_GROUP_LABEL : WORKING_GROUP_LABEL;
+  const boxValue = (BOX_BUCKETS as readonly string[]).includes(statusFilter) ? (statusFilter as (typeof BOX_BUCKETS)[number]) : null;
+  const headerEl = embedded ? (
+    <div className="flex flex-col gap-3 pb-1">
+      {embeddedHeader}
+      <StatusBoxes
+        boxes={BOX_BUCKETS.map((k) => ({ key: k, label: groupLabels[k], count: activeCounts[k] ?? 0, hot: k === "needs_you" }))}
+        value={boxValue}
+        onToggle={(k) => setStatusFilter(nextBoxFilter(statusFilter, k))}
+      />
+    </div>
+  ) : (
     <PageHeader
       // Desktop: the app bar and the right rail already say which page you
       // are on, so the page name is sr-only here and the row is just its
@@ -524,7 +564,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       <PageScaffold
         animate={!skeletonShownRef.current}
         titleCard={isWebDesktop ? undefined : headerEl}
-        titleCardClassName={headerPadding} oneBlur
+        titleCardClassName={embedded ? "" : headerPadding} oneBlur
       >
           {isWebDesktop && headerEl && (
             <div
@@ -607,6 +647,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             <SectionBoundary label="your posts">
             <PostedJobsTab
               groupByStatus={statusFilter === "all"}
+              bucketGroups={embedded}
               jobs={filteredPostedJobs}
               highlightJobId={highlightJobId}
               applicantCounts={applicantCounts}
@@ -674,6 +715,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             <SectionBoundary label="your jobs">
             <AppliedJobsTab
               groupByStatus={statusFilter === "all"}
+              bucketGroups={embedded}
               apps={filteredAppliedApps}
               highlightAppId={highlightAppId}
               expandedJobIds={actions.expandedJobIds}

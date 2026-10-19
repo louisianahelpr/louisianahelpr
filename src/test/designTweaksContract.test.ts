@@ -7,9 +7,7 @@
  * @mutate src/index.css |   font-family: Montserrat, "Montserrat Fallback", system-ui, -apple-system, sans-serif !important;\n  font-style: normal !important;\n  font-weight: 650 !important;\n  font-size: var(--headline-hero) !important; |   font-family: "Bodoni Moda", Georgia, serif !important;\n  font-style: italic !important;\n  font-weight: 700 !important;\n  font-size: var(--headline-hero) !important;
  * @mutate src/index.css | .font-display:not(.landing-h1, .landing-h1 *) { | .font-display-off {
  * @mutate src/components/landing/HeroSection.tsx | className="landing-h1 relative | className="relative
- * @mutate src/components/dashboard/JobCard.tsx |         {/* No category rail: |         <span aria-hidden className={`${JOB_CARD_RAIL}`} />\n        {/* No category rail:
- * @mutate src/components/ui/skeletons/JobCardSkeleton.tsx |         {/* No category rail: |         <span className={JOB_CARD_RAIL} />\n        {/* No category rail:
- * @mutate src/components/job/JobCategoryTab.tsx | className={`job-cat-label inline-flex | className={`job-cat-label bg-primary inline-flex
+ * @mutate src/components/dashboard/JobCard.tsx | className={`${JOB_CARD_RAIL} ${catStyle.dot}`} | className="hidden"
  * @mutate src/main.tsx | installLargeTitles();\n |
  * @mutate src/components/dashboard/FilterSheet.tsx |         side="bottom"\n        floor\n |         side="bottom"\n
  * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |       <CategoryChipRow\n |       {filters.selectedCategory && <CategoryChipRow\n
@@ -52,18 +50,15 @@ describe("design tweaks (owner 2026-10-18)", () => {
     expect(card).toMatch(/backdrop-filter:\s*none/);
   });
 
-  it("T3: job cards carry no colour rail and the category is an icon + label", () => {
+  it("T3: job cards are main's card again (owner 2026-10-19: keep the same style): colour rail, coloured category tab, price chip", () => {
+    // Superseded owner 2026-10-19 ("keep the SAME style and setup as the job
+    // card on origin/main today"): the rail T3 removed is back on the cards.
     for (const f of ["src/components/dashboard/JobCard.tsx", "src/components/job-card/JobCardShell.tsx"]) {
-      expect(code(f), f).not.toMatch(/\$\{JOB_CARD(_SHELL)?_RAIL\}/);
+      expect(code(f), f).toMatch(/\$\{JOB_CARD(_SHELL)?_RAIL\}/);
     }
-    // ...and neither do their loading bones (the stripe outlived the cards once).
-    for (const f of ["src/components/ui/skeletons/JobCardSkeleton.tsx", "src/components/ui/skeletons/ApplicationCardSkeleton.tsx"]) {
-      expect(code(f), f).not.toMatch(/\bJOB_CARD(_SHELL)?_RAIL\b/);
-    }
-    const tab = code("src/components/job/JobCategoryTab.tsx");
-    expect(tab).toMatch(/job-cat-label inline-flex/);
-    expect(tab).not.toMatch(/catStyle\.badge/);
-    expect(rule(".money-chip")).toMatch(/background:\s*transparent/);
+    // ...with main's coloured category tab and price chip.
+    expect(code("src/components/job/JobCategoryTab.tsx")).toMatch(/catStyle\.badge/);
+    expect(code("src/components/job/MoneyChip.tsx")).not.toMatch(/money-chip/);
   });
 
   it("T4: large titles are installed once at boot and shrink on scroll", () => {

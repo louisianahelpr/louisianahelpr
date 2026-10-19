@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense, type ReactNode } from "react";
 import { ApplicationSentDialog } from "@/components/dashboard/ApplicationSentDialog";
 import { readStoredFeedDensity, type FeedDensity } from "@/components/dashboard/feedDensity";
 
@@ -20,6 +20,7 @@ import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/Das
 import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
+import { BrowseCompactSearchRow } from "@/components/dashboard/browseTasksToolbar/BrowseCompactSearchRow";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { useWantsQuotes } from "@/pages/home/useWantsQuotes";
 import { WantsQuotesSlot, JobsHeaderCount } from "@/components/quotes/WantsQuotesSlot";
@@ -62,7 +63,12 @@ import { useLoadMoreSentinel } from "./useLoadMoreSentinel";
 import { useSavedOnlyPaging } from "./useSavedOnlyPaging";
 
 
-const Dashboard = () => {
+/**
+ * `embeddedHeader`: the feed rendered as Jobs & Posts > Browse (owner,
+ * 2026-10-19). The section's top bar + tabs replace the brand row, and search +
+ * filter become ONE compact row under them. Without it, the page is unchanged.
+ */
+const Dashboard = ({ embeddedHeader }: { embeddedHeader?: ReactNode } = {}) => {
   const navigate = useNavigate();
   // Matches the h1 this page renders ("Home" — LoadingHeading and
   // BrowseTasksToolbar both), not the route name. "Dashboard — Helpr" named a
@@ -359,6 +365,13 @@ const Dashboard = () => {
   // stays — ScheduleTab imports `inProgressBadgeTarget` from it.
 
 
+  const embeddedTitle = embeddedHeader ? (
+    <div className="flex flex-col gap-3 pb-1">
+      {embeddedHeader}
+      {!isWebDesktop && <BrowseCompactSearchRow filters={filters} filtersButtonRef={filtersButtonRef} />}
+    </div>
+  ) : undefined;
+
   if (loading) {
     // Loading state mirrors the *exact* loaded layout: the same
     // PageScaffold two-card shell (brand title card over a raised panel)
@@ -384,11 +397,11 @@ const Dashboard = () => {
         // at 1440 the whole panel jumped 42px up when the feed landed (CLS
         // 0.045) and four full-width bars became a narrow column beside a
         // map. It now draws the columns the loaded page draws.
-        titleCard={isWebDesktop ? undefined : <DashboardTitleBar
+        titleCard={embeddedTitle ?? (isWebDesktop ? undefined : <DashboardTitleBar
             actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
-          />}
-        titleCardClassName={TITLE_BAR_PADDING}
+          />)}
+        titleCardClassName={embeddedHeader ? "" : TITLE_BAR_PADDING}
       >
         {/* The loaded screen's only <h1> lives in BrowseTasksToolbar, which
             doesn't exist yet here — so the pending screen had no heading at
@@ -460,7 +473,7 @@ const Dashboard = () => {
       // Phone and native keep the card exactly as it was: they have no app bar, so this is the only thing carrying
       // the emblem and the live in-progress pill.
       titleCard={
-        isWebDesktop ? undefined : (
+        embeddedTitle ?? (isWebDesktop ? undefined : (
           <DashboardTitleBar
             actions={
               <BrowseTasksActions
@@ -479,9 +492,9 @@ const Dashboard = () => {
             }
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
           />
-        )
+        ))
       }
-      titleCardClassName={TITLE_BAR_PADDING}
+      titleCardClassName={embeddedHeader ? "" : TITLE_BAR_PADDING}
       beforePanel={
         <>
           {/* The "Your Helprs" quick-rebook strip used to render here,

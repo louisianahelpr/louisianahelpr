@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 25 |
 | Overlay surfaces | **instance** | 167 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
-| Toast messages | **call site** | 836 (across 208 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 846 (across 213 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 24 |
 | Multi-step flows — probable | flow | 17 |
 | Back/next navigation only | flow | 43 |
-| Forms (submittable) | form | 62 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 146 |
+| Forms (submittable) | form | 65 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 148 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **558** |
-| **Copy surfaces** (strings a person may read) | mixed | **874** |
-| **Total auditable surface** | mixed | **1432** |
+| **Navigable surfaces** (places a person can stand) | mixed | **563** |
+| **Copy surfaces** (strings a person may read) | mixed | **884** |
+| **Total auditable surface** | mixed | **1447** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 25 | 24 | agree |
 | Overlay surfaces | 167 | 130 | agree within method (script counts every menu instance) |
-| Forms | 62 | ~38 | agree |
+| Forms | 65 | ~38 | agree |
 | Confirmed multi-step flows | 24 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -463,6 +463,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/admin/AdminMessageUserDialog.tsx` (dialog/mutation)
 - [ ] `src/components/admin/AdminNotifications.tsx` (dialog/mutation)
 - [ ] `src/components/admin/AdminPayoutBatches.tsx` (dialog/mutation)
+- [ ] `src/components/admin/adminPayoutBatches/HeldForReview.tsx` (dialog/mutation)
 - [ ] `src/components/admin/AdminReports.tsx` (dialog/mutation)
 - [ ] `src/components/admin/AdminSettings.tsx` (dialog/mutation)
 - [ ] `src/components/admin/AdminUserNotes.tsx` (dialog/mutation)
@@ -487,6 +488,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/rentals/LandlordIdReview.tsx` (form tag)
 - [ ] `src/components/rentals/listings/ListingEditor.tsx` (form tag)
 - [ ] `src/components/rentals/listings/RentBrowse.tsx` (form tag)
+- [ ] `src/components/rentals/listings/SaleListingEditor.tsx` (form tag)
 - [ ] `src/components/rentals/MaintenanceRequestForm.tsx` (form tag)
 - [ ] `src/components/rentals/MaintenanceRequestView.tsx` (dialog/mutation)
 - [ ] `src/components/rentals/RentalsHomeView.tsx` (form tag)
@@ -497,6 +499,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/shops/ShopDailyCap.tsx` (dialog/mutation)
 - [ ] `src/components/shops/ShopDashboardView.tsx` (dialog/mutation)
 - [ ] `src/components/shops/ShopEditView.tsx` (form tag)
+- [ ] `src/components/shops/ShopFaqsEditor.tsx` (form tag)
 - [ ] `src/components/shops/ShopHandoverActions.tsx` (dialog/mutation)
 - [ ] `src/components/shops/ShopItemEditor.tsx` (dialog/mutation)
 - [ ] `src/components/shops/ShopPickupAddressSection.tsx` (form tag)

@@ -41,7 +41,7 @@ export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdB
       </span>
       <div className="flex-1 min-w-0">
         <h3
-          className="font-display italic font-bold leading-tight text-ds-16"
+          className="font-display font-bold leading-tight text-ds-16"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
         >
           You've crossed the {form1099kGrossLabel()} mark for {ytdYear}.

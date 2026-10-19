@@ -57,7 +57,7 @@ export function SectionCard({
           </div>
           <div className="leading-none min-w-0">
             <h2
-              className="font-display italic font-bold text-ds-18"
+              className="font-display font-bold text-ds-18"
               style={{
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.018em",

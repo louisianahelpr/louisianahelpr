@@ -149,7 +149,7 @@ export function DisputedSection({
           {awaitingAdmin ? "Admin reviewing" : "Dispute open"}
         </span>
         <p
-          className="font-display italic font-bold leading-tight mt-2 text-ds-16"
+          className="font-display font-bold leading-tight mt-2 text-ds-16"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
         >
           {headline}

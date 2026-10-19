@@ -577,7 +577,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                         every style class is unchanged (`text-ds-16` sets the
                         size, not the browser's h-default) so nothing shifts. */}
                     <h2
-                      className="font-display italic font-bold leading-none text-ds-16"
+                      className="font-display font-bold leading-none text-ds-16"
                       style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
                     >
                       {tier.name}

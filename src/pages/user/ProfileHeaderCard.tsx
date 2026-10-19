@@ -247,7 +247,7 @@ export const ProfileHeaderCard = ({
                 is too narrow for both, never truncating either. */}
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mb-1">
               <h2
-                className="font-display italic font-bold text-ds-22 leading-tight break-words min-w-0"
+                className="font-display font-bold text-ds-22 leading-tight break-words min-w-0"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 {displayName}

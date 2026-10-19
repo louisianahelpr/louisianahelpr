@@ -438,7 +438,7 @@ export function ApplicantsPanel({
                               <a
                                 href={`/user/${app.helper_id}`}
                                 title={helperName}
-                                className="font-display italic font-bold truncate hover:underline text-ds-15"
+                                className="font-display font-bold truncate hover:underline text-ds-15"
                                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
                               >
                                 {helperName}

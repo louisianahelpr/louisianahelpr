@@ -444,7 +444,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
                 neutral on purpose: it has to read correctly under both "Your
                 {YEAR} Wrapped" (December) and "Your {YEAR} so far". */}
             <h2
-              className="text-ds-28 font-display italic font-bold leading-tight"
+              className="text-ds-28 font-display font-bold leading-tight"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               Here's how it added up.

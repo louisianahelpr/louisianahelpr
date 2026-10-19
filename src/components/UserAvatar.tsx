@@ -301,7 +301,7 @@ const UserAvatar = React.forwardRef<
           // opacity separates the gradient circle from light backgrounds
           // (cards, parchment page) and gives it a finished edge without
           // a hard border. `drop-shadow-sm` adds depth on the lighter
-          // variants. font-display italic matches the brand voice used
+          // variants. font-display matches the brand voice used
           // elsewhere for initials and avatar text.
           //
           // The ink is the LITERAL light-mode `--ink-deep` (64 16% 12%), not

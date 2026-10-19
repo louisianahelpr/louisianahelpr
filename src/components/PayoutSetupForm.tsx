@@ -292,7 +292,7 @@ export function PayoutSetupForm({ onSettled }: {
         <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} />
         <div className="flex-1 min-w-0">
           <p
-            className="font-display italic font-bold leading-tight text-ds-16"
+            className="font-display font-bold leading-tight text-ds-16"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
           >
             We couldn't check your payout status
@@ -337,7 +337,7 @@ export function PayoutSetupForm({ onSettled }: {
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} />
           <div>
             <p
-              className="font-display italic font-bold leading-tight text-ds-16"
+              className="font-display font-bold leading-tight text-ds-16"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Connect to start earning
@@ -354,7 +354,7 @@ export function PayoutSetupForm({ onSettled }: {
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--amber-solid))" }} />
           <div>
             <p
-              className="font-display italic font-bold leading-tight text-ds-16"
+              className="font-display font-bold leading-tight text-ds-16"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               One more step

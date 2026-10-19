@@ -348,7 +348,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                   <div>
                     <HelprMark size="md" />
                     <h2
-                      className="font-display italic font-bold mt-3 text-ds-20 leading-tight"
+                      className="font-display font-bold mt-3 text-ds-20 leading-tight"
                       style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
                     >
                       Employment &amp; Earnings Record

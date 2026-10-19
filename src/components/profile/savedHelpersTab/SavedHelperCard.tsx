@@ -125,7 +125,7 @@ export function SavedHelperCard({
         />
         <div className="flex-1 min-w-0">
           <p
-            className="font-display italic font-bold leading-tight truncate text-ds-16"
+            className="font-display font-bold leading-tight truncate text-ds-16"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
           >
             {formatName(h.full_name)}

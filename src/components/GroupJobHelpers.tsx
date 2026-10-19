@@ -282,7 +282,7 @@ export function GroupJobHelpers({
     <div className="space-y-3">
       <div>
         <h3
-          className="font-display italic font-bold leading-tight text-headline-card"
+          className="font-display font-bold leading-tight text-headline-card"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
         >
           Group job

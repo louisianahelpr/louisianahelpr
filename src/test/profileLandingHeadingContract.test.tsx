@@ -14,7 +14,7 @@
  * proves against the rendered components, and a source check pins that the
  * spec keeps reading them (a literal `level: 1` beside the name comes back red).
  *
- * @mutate src/components/profile/profileLanding/IdentityHeader.tsx | <h2 className="font-display italic font-bold text-ds-20 leading-tight break-words" style={{ color: "hsl(var(--ink-deep))" }}> | <h3 className="font-display italic font-bold text-ds-20 leading-tight break-words" style={{ color: "hsl(var(--ink-deep))" }}>
+ * @mutate src/components/profile/profileLanding/IdentityHeader.tsx | <h2 className="font-display font-bold text-ds-20 leading-tight break-words" style={{ color: "hsl(var(--ink-deep))" }}> | <h3 className="font-display font-bold text-ds-20 leading-tight break-words" style={{ color: "hsl(var(--ink-deep))" }}>
  * @mutate src/components/profile/profileLanding/headingContract.ts | export const PROFILE_NAME_HEADING_LEVEL = 2; | export const PROFILE_NAME_HEADING_LEVEL = 1;
  * @mutate e2e/journeys/03-account.spec.ts | { name, exact: true, level: PROFILE_NAME_HEADING_LEVEL } | { name, exact: true, level: 1 }
  */

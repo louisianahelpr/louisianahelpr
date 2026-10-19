@@ -251,7 +251,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
             </Popover>
           </p>
           <h3
-            className="font-display italic font-bold leading-tight text-ds-17"
+            className="font-display font-bold leading-tight text-ds-17"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             By Sunday

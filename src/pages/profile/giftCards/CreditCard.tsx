@@ -95,7 +95,7 @@ export function CreditCard({
       <div className="flex items-start justify-between gap-2 mb-2">
         <div>
           <p
-            className="font-display italic font-bold leading-tight text-ds-22"
+            className="font-display font-bold leading-tight text-ds-22"
             style={{ color: "hsl(var(--gift-ink))", letterSpacing: "-0.02em" }}
           >
             ${formatPrice(Number(credit.amount))}

@@ -123,7 +123,7 @@ class ErrorBoundary extends React.Component<Props, State> {
           </div>
           <div className="space-y-1.5">
             <h3
-              className="font-display italic font-bold leading-tight"
+              className="font-display font-bold leading-tight"
               style={{ fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
             >
               {offline ? "You're offline." : "Something went sideways."}

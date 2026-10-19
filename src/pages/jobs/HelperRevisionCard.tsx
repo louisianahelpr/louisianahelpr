@@ -224,7 +224,7 @@ export function HelperRevisionCard({
           Revision requested
         </span>
         <p
-          className="font-display italic font-bold leading-snug mt-0.5 text-ds-15"
+          className="font-display font-bold leading-snug mt-0.5 text-ds-15"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
         >
           A small fix was requested

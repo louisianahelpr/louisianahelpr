@@ -223,7 +223,7 @@ describe("Popups share one shell", () => {
     const dialog = blankComments(read("src/components/ui/dialog.tsx"));
     expect(dialog).toMatch(/"glass-modal [^"]*\bgrid grid-cols-\[minmax\(0,1fr\)\]/);
     for (const f of ["src/components/ui/dialog.tsx", "src/components/ui/sheetHeroTitle.ts"]) {
-      const titles = blankComments(read(f)).match(/"font-display italic font-bold leading-tight[^"]*"/g) ?? [];
+      const titles = blankComments(read(f)).match(/"font-display font-bold leading-tight[^"]*"/g) ?? [];
       expect(titles.length, `${f}: the hero title class was not found — the check has rotted`).toBeGreaterThan(0);
       for (const t of titles) expect(t, `${f}: a hero title that cannot wrap an unbroken word`).toContain("[overflow-wrap:anywhere]");
     }

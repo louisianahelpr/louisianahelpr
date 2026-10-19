@@ -356,7 +356,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
                         style={{ color: "hsl(var(--bark))" }}
                       />
                       <span
-                        className="font-display italic font-semibold text-ds-14"
+                        className="font-display font-semibold text-ds-14"
                         style={{ color: "hsl(var(--ink-deep))" }}
                       >
                         Add a Calendar

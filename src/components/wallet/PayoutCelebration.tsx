@@ -255,7 +255,7 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
                   order (axe heading-order on /profile?tab=earnings). The
                   role="status" wrapper already announces it. */}
               <p
-                className="font-display italic font-bold leading-tight text-ds-18"
+                className="font-display font-bold leading-tight text-ds-18"
                 style={{
                   color: "hsl(var(--ink-deep))",
                   letterSpacing: "-0.02em",

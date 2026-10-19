@@ -1,11 +1,12 @@
 /**
- * Q2222 (dashboards build run 4, 320 + 375 shots): the Jobs lists sat 16px
+ * Q2222 (dashboards build run 4, 2026-10-19, 320 + 375 shots): the Jobs lists sat 16px
  * inside the section header (cards at x=37 under a search row at x=25), and at
  * 320 a feed card cut its start time to "⏱ 1". Every Jobs list (the Browse
  * feed, its loading bones, Posted / Working and their bones) now uses the
  * header's own phone inset (px-1; the desktop strip keeps lg:px-4). The card's
  * start time is owner-protected (browseCardKeepsPlaceAndTime: never hidden by a
- * width rule), so the 320 meta row is still open in Q2222.
+ * width rule); the meta row's two-line layout below 360px is
+ * browseCardMetaTwoLinesBelow360.test.ts.
  *
  * @mutate src/components/dashboard/MainFeedSection.tsx |       className="px-1 lg:px-4 pt-3" |       className="px-4 pt-3"
  * @mutate src/components/job-card/JobListPage.tsx | "flex-1 min-h-0 px-1 lg:px-4 pt-3 pb-0" | "flex-1 min-h-0 px-4 pt-3 pb-0"

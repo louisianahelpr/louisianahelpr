@@ -99,6 +99,7 @@ import DeclutterItemPage from "@/pages/declutter/DeclutterItemPage";
 import { PermissionRationaleDialog } from "@/components/PermissionRationaleDialog";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { __resolveRationale } from "@/hooks/usePermissionRationale";
+import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
 const getCurrentPosition = vi.fn();
 
@@ -111,7 +112,7 @@ function at(path: string, el: React.ReactNode, route = path.split("?")[0]) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   // Settled: what useFeature's own query holds once the server answered.
   // Not settled: the query has not answered yet (the loading frame).
-  if (state.featureSettled) qc.setQueryData(["feature-enabled", "declutter", "u1"], state.feature);
+  if (state.featureSettled) qc.setQueryData(featureSwitchBatchKey("u1"), { declutter: state.feature });
   const tree = () => (
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[path]}>

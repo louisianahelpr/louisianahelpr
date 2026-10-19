@@ -7,6 +7,7 @@ import { Star } from "lucide-react";
 import { useFeature } from "@/hooks/useFeature";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
 import NotFound from "@/pages/info/NotFound";
 import { fetchHasAgreedSales, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
 import type { ReactNode } from "react";
@@ -115,8 +116,7 @@ export function DeclutterGate({ children, skeleton, agreedSales }: { children: R
   const enabled = useFeature("declutter");
   const { user, isReady } = useAuthReady();
   const qc = useQueryClient();
-  const state = qc.getQueryState(["feature-enabled", "declutter", user?.id ?? null]);
-  const settled = isReady && (!user || state?.status === "success" || state?.status === "error");
+  const settled = isReady && (!user || featureSwitchSettled(qc, "declutter", user.id));
   // Row 62 (B44): with the switch off, a member with a sale in flight still
   // gets `agreedSales` (the cart and their sales) to finish it.
   const agreed = useQuery({

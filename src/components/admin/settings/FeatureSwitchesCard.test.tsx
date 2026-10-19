@@ -29,7 +29,7 @@ vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a)
 let audience = "testers";
 let withDeclutter = false;
 let declutterOn = false;
-const rpc = vi.fn(async (fn: string, args?: { p_key?: string; p_audience?: string }) => {
+const rpc = vi.fn(async (fn: string, args?: { p_key?: string; p_audience?: string; p_keys?: string[] }) => {
   if (fn === "admin_list_feature_switches") {
     const rows = [{ key: "switch_canary", audience, description: "Gates no feature.", created_at: "", updated_at: "" }];
     if (withDeclutter) rows.push({ key: "declutter", audience: "off", description: "Declutter.", created_at: "", updated_at: "" });
@@ -39,8 +39,10 @@ const rpc = vi.fn(async (fn: string, args?: { p_key?: string; p_audience?: strin
     audience = args!.p_audience!;
     return { data: audience, error: null };
   }
-  if (fn === "feature_enabled_for") {
-    return { data: args?.p_key === "declutter" ? declutterOn : audience !== "off", error: null };
+  if (fn === "feature_switches_for_me") {
+    // useFeature reads every switch in one call (nightly-red #2601).
+    const on = (k: string) => (k === "declutter" ? declutterOn : audience !== "off");
+    return { data: Object.fromEntries((args?.p_keys ?? []).map((k) => [k, on(k)])), error: null };
   }
   return { data: null, error: { message: `unexpected ${fn}` } };
 });
@@ -88,7 +90,7 @@ describe("FeatureSwitchesCard", () => {
     const canaryItem = screen.getByText("switch_canary").closest("li")!;
     await waitFor(() => expect(canaryItem.textContent).toContain("On for this account."));
     expect(declutterItem.textContent).toContain("Off for this account.");
-    expect(rpc.mock.calls.some(([fn, a]) => fn === "feature_enabled_for" && a?.p_key === "declutter")).toBe(true);
+    expect(rpc.mock.calls.some(([fn, a]) => fn === "feature_switches_for_me" && a?.p_keys?.includes("declutter"))).toBe(true);
   });
 
   it("lists each switch with its audience; the current one is pressed and disabled", async () => {

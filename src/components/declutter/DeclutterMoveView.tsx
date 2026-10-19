@@ -29,6 +29,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
 import { useFeature } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
 import NotFound from "@/pages/info/NotFound";
 import { geocodeAddress } from "@/lib/geocode";
 import { fetchMyItemPrivate, fetchMyPickupWindows, fetchPhotos, setPickupWindows, type PickupWindow } from "@/lib/declutter/api";
@@ -62,8 +63,7 @@ export function MovingOutGate({ children, skeleton }: { children: ReactNode; ske
   const on = useFeature("declutter_moving_out");
   const { user, isReady } = useAuthReady();
   const qc = useQueryClient();
-  const state = qc.getQueryState(["feature-enabled", "declutter_moving_out", user?.id ?? null]);
-  const settled = isReady && (!user || state?.status === "success" || state?.status === "error");
+  const settled = isReady && (!user || featureSwitchSettled(qc, "declutter_moving_out", user.id));
   if (on) return <>{children}</>;
   if (!settled) return <>{skeleton}</>;
   return <NotFound />;

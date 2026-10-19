@@ -22,6 +22,7 @@ import { CategorySuggestionsCard } from "./CategorySuggestionsCard";
 import { DeclutterProblemsCard } from "./DeclutterProblemsCard";
 import { RentalsOwnershipCard } from "./RentalsOwnershipCard";
 import { HomesListingsCard } from "./HomesListingsCard";
+import { FEATURE_SWITCH_PREFIX } from "@/lib/featureSwitchQuery";
 
 type SwitchRow = { key: string; audience: string; description: string; updated_at: string };
 type PendingChange = { key: string; from: string; to: FeatureAudience };
@@ -75,7 +76,7 @@ export function FeatureSwitchesCard() {
       // The RPC returns the audience it stored; anything else is not a write.
       if (stored !== change.to) throw new Error(`Switch ${change.key} reads ${String(stored)} after the change`);
       toast.success(`${change.key} is now ${FEATURE_AUDIENCE_LABEL[change.to]}.`);
-      await queryClient.invalidateQueries({ queryKey: ["feature-enabled"] });
+      await queryClient.invalidateQueries({ queryKey: [FEATURE_SWITCH_PREFIX] });
     } catch (err) {
       toast.error(
         rpcErrorMessage("admin_set_feature_switch", err) ??

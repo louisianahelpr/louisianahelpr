@@ -95,11 +95,12 @@ import DeclutterPage from "@/pages/declutter/DeclutterPage";
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
 import DeclutterItemPage from "@/pages/declutter/DeclutterItemPage";
 import { dollarsToCents, formProblem } from "./DeclutterSellView";
+import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
 function at(path: string, el: React.ReactNode, route = path.split("?")[0]) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   // What useFeature's own query would hold once the server answered.
-  qc.setQueryData(["feature-enabled", "declutter", "u1"], state.feature);
+  qc.setQueryData(featureSwitchBatchKey("u1"), { declutter: state.feature });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[path]}>

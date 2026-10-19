@@ -106,10 +106,11 @@ import QuoteRequestPage from "@/pages/quotes/QuoteRequestPage";
 import SendQuotePage from "@/pages/quotes/SendQuotePage";
 import { QUOTE_ERROR_COPY, quoteErrorMessage } from "@/lib/quotes/errors";
 import { parseWholeDollars } from "./QuoteAnswerControls";
+import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
 function at(path: string, el: React.ReactNode, route = path.split("?")[0]) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  if (state.switchSettled) qc.setQueryData(["feature-enabled", "quotes", "u1"], state.feature);
+  if (state.switchSettled) qc.setQueryData(featureSwitchBatchKey("u1"), { quotes: state.feature });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[path]}>

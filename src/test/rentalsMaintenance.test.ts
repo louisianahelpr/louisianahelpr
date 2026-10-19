@@ -46,7 +46,7 @@
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |     AND COALESCE(j.payment_status, 'unpaid') IN ('unpaid', 'failed', 'abandoned')\n     AND (j.stripe_session_id IS NULL OR j.payment_status = 'abandoned')\n   FOR UPDATE; |     FOR UPDATE;
 // @mutate supabase/migrations/20261019062540_rentals_public_link_takedown.sql |     IF v_photos < 5 THEN |     IF v_photos < 0 THEN
 // @mutate supabase/migrations/20261019061241_rentals_sale_listings.sql | REVOKE ALL ON FUNCTION public.rentals_listing_visible(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.rentals_listing_visible(uuid) FROM PUBLIC, anon;
-// @mutate supabase/migrations/20261019061241_rentals_sale_listings.sql | l.available_on, l.pets,\n         rp.city, rp.zip_code,\n         ARRAY(SELECT ph.storage_path FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5), | l.available_on, l.pets,\n         rp.street_address, rp.zip_code,\n         ARRAY(SELECT ph.storage_path FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5),
+// @mutate supabase/migrations/20261019071203_rentals_listing_photos_private.sql |          rp.city, rp.zip_code,\n         ARRAY(SELECT public.rentals_photo_ref(ph.id, 'm') FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5), |          rp.street_address, rp.zip_code,\n         ARRAY(SELECT public.rentals_photo_ref(ph.id, 'm') FROM public.rental_listing_photos ph WHERE ph.listing_id = l.id ORDER BY ph.position LIMIT 5),
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -93,7 +93,7 @@ const MEMBER_RPCS = [
 const OTHER_RPCS = ["rentals_end_tenancy", "rentals_withdraw_request", "link_maintenance_request_job", "rentals_admin_review_property",
   "rentals_admin_review_landlord_id"];
 const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes", "rentals_visit_for_job", "rentals_browse_listings", "rentals_listing", "rentals_my_identity",
-  "rentals_browse_sale_listings"];
+  "rentals_browse_sale_listings", "rentals_my_listing_photos"];
 /** Listings helpers (20261019043000): server-only. */
 const LISTING_INTERNAL = ["rentals_listing_wording_flags", "rentals_lock_own_listing", "rentals_listing_visible", "homes_sale_wording_flags"];
 /** Slice 3 writes: visit time (the Helpr, not a Rentals member, proposes; the tenant confirms through
@@ -101,7 +101,7 @@ const LISTING_INTERNAL = ["rentals_listing_wording_flags", "rentals_lock_own_lis
 const VISIT_RPCS = ["rentals_propose_visit", "rentals_confirm_visit", "rentals_cancel_request_job"];
 /** Shared helpers this migration restates with their live grants (authenticated keeps EXECUTE). */
 const SHARED_RESTATED = ["is_submitted_credential_object"];
-const POLICY_HELPERS = ["rentals_caller_is_active_tenant_of"];
+const POLICY_HELPERS = ["rentals_caller_is_active_tenant_of", "rentals_listing_photo_access"];
 /** Never switch-gated by design (20261019062540): the public link (anyone with it, signed out too; it checks the
  *  switch audience itself) and the admin take-down (moderation works whatever the audience). */
 const UNGATED = ["rentals_public_listing", "rentals_admin_remove_listing", "rentals_admin_lift_takedown", "rentals_admin_listings",

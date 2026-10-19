@@ -164,6 +164,13 @@ const UNREACHABLE: Allowlist = {
     not_authorized: { reason: "no code's words at this site: admin-only Settings page; a failed read shows the ownership queue's fixed load-error state." },
     too_many: { reason: "no code's words at this site: the client asks in chunks of at most 200 properties (fetchTakedownMatches), so the server cap is never reached." },
   },
+  // Q2211: the owner's editor photo list (refs, no paths). A failed read leaves the Photos card on its
+  // skeleton/load state; the editor itself is only reachable for the caller's own listing.
+  rentals_my_listing_photos: {
+    feature_disabled: { reason: RENTALS_READ },
+    listing_not_found: { reason: "no code's words at this site: the Photos card sits inside the owner's own editor (fetchMyListing already found the listing), so a not-found here is a listing removed mid-edit; the card shows its load state, never the code." },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+  },
   rentals_request_job_state: {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },

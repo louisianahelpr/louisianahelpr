@@ -279,6 +279,32 @@ ok(refused(await fwd(TENANT, tA, "9 Other Street, Lafayette LA 70501"), /deposit
 await svc(`UPDATE public.rental_deposits SET reminded_stage = 0 WHERE tenancy_id = '${tA}'`);
 ok((await sw())?.reminders === 0, "a settled deposit is never reminded");
 
+// --- Download My Data (20261019083350): the four new sections, their real text, run for each person
+const EXPORT_SQL = readFileSync(`${MIG_DIR}20261019083350_export_my_data_rent_deposit.sql`, "utf8");
+const secStart = EXPORT_SQL.indexOf("  -- Homes rent tracker (20261019073106) and deposit tracker");
+const secEnd = EXPORT_SQL.indexOf("  RETURN v_out;", secStart);
+ok(secStart > 0 && secEnd > secStart, "setup: the export's rent/deposit sections found in the migration");
+await svc(`CREATE OR REPLACE FUNCTION public.export_sections_probe(p_user_id uuid) RETURNS jsonb LANGUAGE plpgsql AS $probe$
+DECLARE v_uid uuid := p_user_id; v_out jsonb := '{}'::jsonb;
+BEGIN
+${EXPORT_SQL.slice(secStart, secEnd)}  RETURN v_out;
+END $probe$`);
+const ex = async (u) => one(await svc(`SELECT public.export_sections_probe('${u}')`));
+const exT = await ex(TENANT), exL = await ex(LANDLORD), exS = await ex(STRANGER);
+ok(exT?.rental_deposits?.length === 1 && exT.rental_deposits[0].forwarding_address === "500 New Home Rd, Baton Rouge LA 70801"
+  && exT.rental_rent_plans.length === 0 && Array.isArray(exT.rental_rent_charges) && Array.isArray(exT.rental_rent_payments),
+  "export: the tenant gets their deposit record with their own forwarding address");
+ok(exL?.rental_deposits?.length === 1 && exL.rental_deposits[0].forwarding_address === "500 New Home Rd, Baton Rouge LA 70801",
+  "export: the landlord gets it too, the address included once the tenancy has ended");
+ok(exS?.rental_deposits?.length === 0 && exS.rental_rent_plans.length === 0 && exS.rental_rent_charges.length === 0 && exS.rental_rent_payments.length === 0,
+  "export: a stranger gets none of it");
+await svc(`INSERT INTO public.rental_deposits (tenancy_id, amount_cents, received_on, forwarding_address) VALUES ('${tB}', 50000, current_date, '12 Live Street, Lafayette LA 70501')`);
+const exL2 = await ex(LANDLORD);
+ok(exL2?.rental_deposits?.find((d) => d.tenancy_id === tB) && !("forwarding_address" in exL2.rental_deposits.find((d) => d.tenancy_id === tB)),
+  "export: the landlord of a LIVE tenancy never gets the tenant's forwarding address");
+ok((await ex(TENANT2))?.rental_deposits?.[0]?.forwarding_address === "12 Live Street, Lafayette LA 70501", "export: that tenant does");
+await svc(`DELETE FROM public.rental_deposits WHERE tenancy_id = '${tB}'`);
+
 // --- gates
 await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'rentals'`);
 ok(refused(await setDep(LANDLORD, tB, 50000), /feature_disabled/), "Homes off: no writes");

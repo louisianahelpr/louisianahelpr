@@ -8,10 +8,16 @@ name: Declutter payout proof
 # here, manual only.
 #
 # Fail-closed before anything is written:
-#   1. the repo variable E2E_STRIPE_MODE must be `test` (stripe-sandbox-off.sh
-#      sets it to `live` first, so this never runs after launch);
-#   2. STRIPE_TEST_SECRET_KEY must be a test-mode key (sk_test_/rk_test_), and
-#      the script asks Stripe again (livemode=false) before its first write.
+#   1. STRIPE_TEST_SECRET_KEY must be a test-mode key (sk_test_/rk_test_), and
+#      the script asks Stripe again (livemode=false) before its first write;
+#   2. every party is a TEST ACCOUNT the run made and enrolled (test_accounts +
+#      is_seed), which _shared/stripeMode.ts runs on the test key and nothing
+#      else, on a live platform too (owner 2026-10-12, "Test mode for test
+#      accounts").
+# It does NOT read vars.E2E_STRIPE_MODE: that says whether the WHOLE platform
+# is in sandbox, and it has been `live` since 2026-09-28, while test accounts
+# have run on the test key since 2026-10-12 (first dispatch, run 39335354376,
+# was refused on it before anything ran).
 # The key is only ever handed to node through env; nothing echoes it.
 # The unlink step runs whatever happens (if: always()), so the throwaway
 # seller never keeps the run's Stripe account (seatStripeAccounts.mjs checks
@@ -47,16 +53,14 @@ jobs:
     # must run (unlink 5) and the restore check (10), with margin.
     timeout-minutes: 75
     steps:
-      - name: Refuse unless Stripe is in test mode and the key is a test key
+      # First, so the always() cleanup step below has the script even when the gate refuses.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Refuse unless the key is a Stripe test key
         env:
-          STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
           STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -euo pipefail
-          if [ "$STRIPE_MODE" != "test" ]; then
-            echo "::error::E2E_STRIPE_MODE is '$STRIPE_MODE', not 'test'; refusing to run a payout proof"; exit 1
-          fi
           case "$STRIPE_TEST_SECRET_KEY" in
             sk_test_*|rk_test_*) ;;
             *) echo "::error::STRIPE_TEST_SECRET_KEY is not a test-mode key; refusing"; exit 1 ;;
@@ -65,7 +69,6 @@ jobs:
             echo "::error::SUPABASE_SERVICE_ROLE_KEY secret is empty"; exit 1
           fi
 
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
@@ -81,7 +84,6 @@ jobs:
         id: proof
         timeout-minutes: 40
         env:
-          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
           STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -97,7 +99,15 @@ jobs:
           STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/e2e/declutterPayoutProof.mjs unlink --state "$RUNNER_TEMP/declutter-payout-proof.json"
+        run: |
+          set -euo pipefail
+          STATE="$RUNNER_TEMP/declutter-payout-proof.json"
+          # No state file: the run never started (a refused gate, a failed install), so nothing was created.
+          if [ -f "$STATE" ]; then
+            node scripts/e2e/declutterPayoutProof.mjs unlink --state "$STATE"
+          else
+            echo "no proof state: nothing was created, nothing to close or unlink"
+          fi
 
       # The restore check (DR-006) must read the new transfer as recorded:
       # every test-mode PaymentIntent and transfer since the run started has

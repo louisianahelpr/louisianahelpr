@@ -378,6 +378,12 @@ BEGIN
    WHERE tenancy_id = p_tenancy_id AND status = 'confirmed';
   RETURN jsonb_build_object(
     'side', v_side,
+    -- Which home (for the receipts, R5): the property label, unit, city and ZIP; never the other side's id.
+    'home', (SELECT jsonb_build_object('label', rp.label, 'unit_label', u.label, 'city', rp.city, 'zip_code', rp.zip_code)
+               FROM public.rental_tenancies t
+               JOIN public.rental_properties rp ON rp.id = t.property_id
+               JOIN public.rental_units u ON u.id = t.unit_id
+              WHERE t.id = p_tenancy_id),
     'plan', CASE WHEN v_plan.tenancy_id IS NULL THEN NULL ELSE jsonb_build_object(
       'amount_cents', v_plan.amount_cents, 'frequency', v_plan.frequency, 'first_due_on', v_plan.first_due_on,
       'grace_days', v_plan.grace_days, 'late_fee_cents', v_plan.late_fee_cents, 'pay_methods', to_jsonb(v_plan.pay_methods),
@@ -389,7 +395,8 @@ BEGIN
                           'amount_cents', c.amount_cents, 'waived', c.waived_at IS NOT NULL) ORDER BY c.due_on, c.kind)
                           FROM public.rental_rent_charges c WHERE c.tenancy_id = p_tenancy_id), '[]'::jsonb),
     'payments', COALESCE((SELECT jsonb_agg(jsonb_build_object('id', p.id, 'amount_cents', p.amount_cents, 'paid_on', p.paid_on,
-                          'method', p.method, 'reported_by', p.reported_by, 'status', p.status, 'decline_reason', p.decline_reason)
+                          'method', p.method, 'reported_by', p.reported_by, 'status', p.status, 'decline_reason', p.decline_reason,
+                          'decided_at', p.decided_at)
                           ORDER BY p.paid_on, p.created_at)
                           FROM public.rental_rent_payments p WHERE p.tenancy_id = p_tenancy_id), '[]'::jsonb));
 END;

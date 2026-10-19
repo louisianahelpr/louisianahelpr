@@ -144,6 +144,10 @@
     "public.shop_strikes.shop_strikes_removed_by_idx",
     "public.shop_payouts.shop_payouts_due_idx",
     "public.job_helpr_fault_fee_deductions.job_helpr_fault_fee_deductions_ruling_idx",
-    "public.job_helpr_fault_rulings.job_helpr_fault_rulings_helper_idx"
+    "public.job_helpr_fault_rulings.job_helpr_fault_rulings_helper_idx",
+    "public.rental_listing_photos.rental_listing_photos_owner_idx",
+    "public.rental_listings.rental_listings_live_idx",
+    "public.rental_listings.rental_listings_owner_idx",
+    "public.rental_listings.rental_listings_property_idx"
   ]
 }

@@ -9,7 +9,8 @@
  * run (~/.lh-shots/design-polish/chips-after: no label's longest word wider
  * than its box at 320 or 375).
  *
- * @mutate src/components/postjob/detailsSection/CategoryPicker.tsx | line-clamp-2 break-normal hyphens-none text-ds-12 | line-clamp-2 break-words text-ds-12
+ * @mutate src/components/postjob/detailsSection/CategoryPicker.tsx | line-clamp-2 max-[359px]:line-clamp-3 break-normal hyphens-none text-ds-12 | line-clamp-2 max-[359px]:line-clamp-3 break-words text-ds-12
+ * @mutate src/components/postjob/detailsSection/CategoryPicker.tsx | line-clamp-2 max-[359px]:line-clamp-3 break-normal | line-clamp-2 break-normal
  * @mutate src/components/postjob/detailsSection/CategoryPicker.tsx | gap-2.5 max-[359px]:gap-2 p-2 max-[359px]:px-1.5 text-left | gap-2.5 p-2 text-left
  */
 import { readFileSync } from "node:fs";
@@ -25,6 +26,9 @@ describe("category chip labels never break inside a word", () => {
     expect(label.length, "the chip label span was not found").toBeGreaterThan(40);
     expect(label).toContain("break-normal");
     expect(label).not.toMatch(/break-words|break-all|overflow-wrap:anywhere|\bhyphens-auto\b/);
+  });
+  it("below 360px the label may take a third line (Auto & Small Engine is never cut)", () => {
+    expect(label).toContain("max-[359px]:line-clamp-3");
   });
   it("below 360px the chip gives the label room (gap, side padding, icon)", () => {
     expect(SRC).toContain("gap-2.5 max-[359px]:gap-2 p-2 max-[359px]:px-1.5");

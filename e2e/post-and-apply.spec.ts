@@ -38,7 +38,7 @@ async function expectClean(page: import("@playwright/test").Page) {
 // third test names it: the CTA used to route to /signup, and "not /signup,
 // which was the pre-fix bug today" is the whole reason that test exists.
 // Sending the hero's Browse CTA back to /signup reproduces it exactly.
-// @mutate src/components/landing/HeroSection.tsx | <Link to={loggedIn ? "/home" : "/browse"}> | <Link to={loggedIn ? "/home" : "/signup"}>
+// @mutate src/components/landing/HeroSection.tsx | to={loggedIn ? "/jobs" : "/browse"} | to={loggedIn ? "/jobs" : "/signup"}
 
 test.describe("post + apply baseline", () => {
   test("/post-job redirects anonymous to a valid surface (no crash)", async ({ page }) => {
@@ -81,7 +81,8 @@ test.describe("post + apply baseline", () => {
     // it names. It went unnoticed because NOTHING RUNS THIS SPEC: the chromium
     // project is only ever invoked with an explicit file list
     // (e2e-real-backend.yml) and this file is in none of them.
-    const cta = page.getByRole("link", { name: /browse jobs/i }).first();
+    // 2026-10-19: the hero's quiet text link says "Browse local jobs" again.
+    const cta = page.getByRole("link", { name: /browse local jobs/i }).first();
     await cta.waitFor({ timeout: 10_000 });
 
     // Click and verify we land on /browse (not /signup, which was the

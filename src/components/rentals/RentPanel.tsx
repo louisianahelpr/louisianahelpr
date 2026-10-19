@@ -17,6 +17,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { rentalsErrorMessage, dollarsToCents } from "@/lib/rentals/copy";
@@ -31,6 +32,7 @@ import {
   correctRentPayment,
   correctionLine,
   dayLabel,
+  shortDayLabel,
   decideRentPayment,
   disputeRentPayment,
   fetchRentLedger,
@@ -322,14 +324,17 @@ function PaymentRow({ l, p, onDone }: { l: RentLedger; p: RentPayment; onDone: (
       <div className="flex items-center justify-between gap-2">
         <span className="min-w-0">
           <span className="block">
-            Paid {money(p.amount_cents)} · {PAY_METHOD_LABEL[p.method]} · {dayLabel(p.paid_on)}
+            Paid {money(p.amount_cents)} · {shortDayLabel(p.paid_on)}
           </span>
           {/* A reversal's own line says "Taken back by the landlord: <reason>", so the bare status would repeat it. */}
           {!(p.status === "reversed" && p.corrections.some((c) => c.action === "reverse")) && (
             <span className="block text-xs text-muted-foreground">
-              {PAYMENT_STATUS_LABEL[p.status]}
+              {PAY_METHOD_LABEL[p.method]} · {PAYMENT_STATUS_LABEL[p.status]}
               {p.status === "declined" && p.decline_reason ? `: ${p.decline_reason}` : ""}
             </span>
+          )}
+          {p.status === "reversed" && p.corrections.some((c) => c.action === "reverse") && (
+            <span className="block text-xs text-muted-foreground">{PAY_METHOD_LABEL[p.method]}</span>
           )}
           {p.corrections.map((c) => (
             <span key={c.at} className="block text-xs text-muted-foreground">
@@ -367,6 +372,7 @@ function PaymentRow({ l, p, onDone }: { l: RentLedger; p: RentPayment; onDone: (
 }
 
 function History({ l, onDone }: { l: RentLedger; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
   const waive = useMutation({
     mutationFn: (chargeId: string) => waiveRentCharge(chargeId),
     onSuccess: () => {
@@ -380,16 +386,25 @@ function History({ l, onDone }: { l: RentLedger; onDone: () => void }) {
   const payments = l.payments.slice().reverse();
   if (charges.length === 0 && payments.length === 0) return null;
   return (
-    <details className="text-sm">
-      <summary className="cursor-pointer font-medium">History and receipts</summary>
-      <ul className="mt-2 space-y-1.5" aria-label="Rent history">
+    <div className="text-sm">
+      <button
+        type="button"
+        className="flex min-h-[44px] w-full items-center justify-between gap-2 text-left font-medium"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span>History and receipts</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
+      </button>
+      {open && (
+      <ul className="mt-1 space-y-1.5" aria-label="Rent history">
         {payments.map((p) => (
           <PaymentRow key={p.id} l={l} p={p} onDone={onDone} />
         ))}
         {charges.map((c) => (
           <li key={c.id} className="flex items-center justify-between gap-2">
             <span className={c.waived ? "text-muted-foreground line-through" : ""}>
-              {c.kind === "rent" ? "Rent" : "Late fee"} {money(c.amount_cents)} · due {dayLabel(c.due_on)}
+              {c.kind === "rent" ? "Rent" : "Late fee"} {money(c.amount_cents)} · due {shortDayLabel(c.due_on)}
               {c.waived ? " (waived)" : ""}
             </span>
             {l.side === "landlord" && l.open && !c.waived && (
@@ -400,7 +415,8 @@ function History({ l, onDone }: { l: RentLedger; onDone: () => void }) {
           </li>
         ))}
       </ul>
-    </details>
+      )}
+    </div>
   );
 }
 

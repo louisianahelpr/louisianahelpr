@@ -12868,7 +12868,7 @@ export type Database = {
           headline: string
           id: string
           is_mine: boolean
-          photo_paths: string[]
+          photo_refs: string[]
           published_at: string
           sale_price_cents: number
           sq_ft: number
@@ -12896,7 +12896,7 @@ export type Database = {
           id: string
           is_mine: boolean
           pets: string
-          photo_paths: string[]
+          photo_refs: string[]
           published_at: string
           rent_cents: number
           rent_frequency: string
@@ -12965,7 +12965,7 @@ export type Database = {
           parking: string
           pet_rules: string
           pets: string
-          photo_paths: string[]
+          photo_refs: string[]
           published_at: string
           rent_cents: number
           rent_frequency: string
@@ -12977,6 +12977,11 @@ export type Database = {
           zip_code: string
         }[]
       }
+      rentals_listing_photo_access: {
+        Args: { p_action: string; p_name: string }
+        Returns: boolean
+      }
+      rentals_listing_photo_object: { Args: { p_ref: string }; Returns: string }
       rentals_listing_visible: {
         Args: { p_listing_id: string }
         Returns: boolean
@@ -13039,6 +13044,14 @@ export type Database = {
           unit_id: string
           unit_label: string
           zip_code: string
+        }[]
+      }
+      rentals_my_listing_photos: {
+        Args: { p_listing_id: string }
+        Returns: {
+          id: string
+          position: number
+          ref: string
         }[]
       }
       rentals_my_identity: {

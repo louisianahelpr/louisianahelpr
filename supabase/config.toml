@@ -32,6 +32,12 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # nothing — see the function header for why emails cannot use the website.
   [functions.brand-asset]
     verify_jwt = false
+  # Public by necessity (Q2211): an <img> sends no Authorization header and the
+  # /r/<slug> page is for signed-out visitors. It serves one Homes listing photo
+  # by a SIGNED, expiring photo ref (never a path), re-checking on every fetch
+  # that the listing may still be seen; 404 otherwise. Rate limited.
+  [functions.listing-photo]
+    verify_jwt = false
 
   [functions.auth-email-hook]
     verify_jwt = false

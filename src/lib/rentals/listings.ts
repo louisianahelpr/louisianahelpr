@@ -15,13 +15,20 @@ import { RentalsCopyError } from "./copy";
 
 type Fns = Database["public"]["Functions"];
 export type RentalListing = Database["public"]["Tables"]["rental_listings"]["Row"];
-export type RentalListingPhoto = Database["public"]["Tables"]["rental_listing_photos"]["Row"];
+/** The owner's editor list (rentals_my_listing_photos): id, order and an owner photo ref. Never a path. */
+export type RentalListingPhoto = Fns["rentals_my_listing_photos"]["Returns"][number];
 export type BrowseListing = Fns["rentals_browse_listings"]["Returns"][number];
 export type BrowseSaleListing = Fns["rentals_browse_sale_listings"]["Returns"][number];
 export type ListingDetail = Fns["rentals_listing"]["Returns"][number];
 
-/** Listing photos live in job-photos under <owner uid>/rental-listings/<listing id>/ (purged with the account). */
-const LISTING_PHOTO_BUCKET = "job-photos";
+/**
+ * Listing photos live in the PRIVATE listing-photos bucket under
+ * <owner uid>/rental-listings/<listing id>/ (20261019071203; purged with the
+ * account). Nobody reads them from Storage: every read returns signed photo
+ * refs and the listing-photo edge function serves the re-encoded, metadata-free
+ * image (Q2211-Q2213). Only the owner's upload and clean-up name the path.
+ */
+const LISTING_PHOTO_BUCKET = "listing-photos";
 
 /** The fields a landlord types; the server refuses any other key (no "who may live here" field exists). */
 export interface ListingFields {
@@ -107,14 +114,21 @@ export async function fetchMyListings(uid: string): Promise<RentalListing[]> {
   return (unwrap(res) ?? []) as RentalListing[];
 }
 
+/** The owner's own listing photos, in order, as owner refs (no path). */
 export async function fetchListingPhotos(listingId: string): Promise<RentalListingPhoto[]> {
-  return (unwrap(
-    await supabase.from("rental_listing_photos").select("*").eq("listing_id", listingId).order("position"),
-  ) ?? []) as RentalListingPhoto[];
+  const res = await supabase.rpc("rentals_my_listing_photos", { p_listing_id: listingId });
+  if (res.error && listingsNotDeployed(res.error)) return [];
+  return (unwrap(res) ?? []) as RentalListingPhoto[];
 }
 
-export function listingPhotoUrl(path: string): string {
-  return supabase.storage.from(LISTING_PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
+/**
+ * One listing photo by its signed ref (from any listing read), through the
+ * listing-photo edge function: re-encoded, stripped of location metadata, and
+ * served only while the ref's rule still holds (Q2211, Q2212).
+ */
+export function listingPhotoUrl(ref: string, width = 640): string {
+  const base = String(import.meta.env.VITE_SUPABASE_URL ?? "").replace(/\/$/, "");
+  return `${base}/functions/v1/listing-photo?r=${encodeURIComponent(ref)}&w=${width}`;
 }
 
 /** Create a draft (listingId null, unitId set) or save an edit. Returns the listing id. */

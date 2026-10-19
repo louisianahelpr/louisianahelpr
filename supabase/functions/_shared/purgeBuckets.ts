@@ -78,6 +78,10 @@ export const IDENTITY_SUBFOLDERS = [
   // <uid>/rental-listings/<listing>/): the listings CASCADE away with the
   // account, so nothing survives that would need them.
   { bucket: "job-photos", folder: "rental-listings" },
+  // Since 20261019071203 listing photos live in the PRIVATE listing-photos
+  // bucket, same <uid>/rental-listings/<listing>/ folder (Q2211). The job-photos
+  // entry above stays for any photo uploaded before the move.
+  { bucket: "listing-photos", folder: "rental-listings" },
 ] as const;
 
 /**
@@ -101,7 +105,7 @@ export const IDENTITY_SUBFOLDERS = [
  * empty this list and set the EXACT check in
  * src/test/declutterPhotosPurged.test.ts to [] in the same commit.
  */
-export const SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET: readonly string[] = ["declutter-handover", "helpr-tasks"];
+export const SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET: readonly string[] = ["declutter-handover", "helpr-tasks", "listing-photos"];
 
 /**
  * Splits the subfolder buckets Storage does not have into the ones whose

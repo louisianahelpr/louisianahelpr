@@ -37,6 +37,13 @@
  * The sweeper (prod-lifecycle-sweeper.mjs) checks the two seats it holds on
  * every pre and teardown sweep, with the seats' own tokens; this script is the
  * whole-roster check and the one sanctioned way to put a seat back.
+ *
+ * PREVENTION (2026-10-19, after it happened again: eli.test.helper 5af6ce6d was
+ * given acct_1URzEe3CI9eFJjCC at 2026-10-18 18:55Z by a lane's local
+ * `onboard` call during a money proof): stripe-connect now refuses to CREATE a
+ * Connect account for any test account, and refuses `reset` for one (403
+ * test_seat_no_new_connect_account). Guard:
+ * src/test/edge/stripeConnectNoNewAccountForTestSeat.test.ts.
  * Guard: src/test/seatStripeAccounts.test.ts.
  */
 import { pathToFileURL } from "node:url";

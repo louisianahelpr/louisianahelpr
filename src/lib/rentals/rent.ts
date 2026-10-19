@@ -60,8 +60,8 @@ export interface RentPayment {
   corrections: RentCorrection[];
   /** Set while the landlord may still correct or reverse it. */
   correctable_until: string | null;
-  disputed_at: string | null;
-  dispute_reason: string | null;
+  /** The tenant's disputes, oldest first: one per decline and one per later change. */
+  disputes: Array<{ at: string; reason: string }>;
 }
 export interface RentCorrection {
   at: string;
@@ -99,7 +99,7 @@ export async function fetchRentLedger(tenancyId: string): Promise<RentLedger> {
     balance_cents: l.balance_cents ?? 0,
     charges: l.charges ?? [],
     payments: (l.payments ?? []).map((p) => ({ ...p, corrections: p.corrections ?? [], correctable_until: p.correctable_until ?? null,
-      disputed_at: p.disputed_at ?? null, dispute_reason: p.dispute_reason ?? null })),
+      disputes: p.disputes ?? [] })),
   };
 }
 
@@ -160,12 +160,16 @@ export async function disputeRentPayment(paymentId: string, reason: string): Pro
   if (error) throw new RentalsCopyError(rpcErrorMessage("rentals_dispute_rent_payment", error), error);
 }
 
-/** May the tenant still dispute this payment (declined, reversed or changed; once; within 30 days of the last of those)? */
+/**
+ * May the tenant dispute this payment now? Declined, reversed or changed; each landlord decision or change
+ * once; within 30 days of the last one (the server's rule in rentals_dispute_rent_payment).
+ */
 export function canDispute(p: RentPayment, now = Date.now()): boolean {
-  if (p.disputed_at) return false;
   if (!(p.status === "declined" || p.status === "reversed" || p.corrections.length > 0)) return false;
   const times = [p.decided_at, ...p.corrections.map((c) => c.at)].filter((t): t is string => !!t).map((t) => Date.parse(t));
-  return times.length > 0 && now - Math.max(...times) <= 30 * 24 * 3600 * 1000;
+  if (times.length === 0) return false;
+  const last = Math.max(...times);
+  return now - last <= 30 * 24 * 3600 * 1000 && !p.disputes.some((d) => Date.parse(d.at) >= last);
 }
 
 export function correctionLine(c: RentCorrection): string {

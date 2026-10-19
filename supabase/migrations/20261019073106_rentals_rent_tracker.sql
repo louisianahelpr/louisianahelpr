@@ -26,15 +26,17 @@
 -- Lead review (2026-10-19) rules:
 --   * each rent row carries its own late fee and grace days (snapshot when written); a plan edit
 --     changes only rows written after it;
---   * a rent row is late only if the payments made by its own due + grace date (confirmed, or
---     reported by the tenant and not yet decided) do not cover it, paid to rent rows oldest first
---     (fees never make a later rent late: no fee on a fee), one fee per rent row at most; a decline
---     later lets the next sweep add the fee;
+--   * a rent row is late only if the payments made by its own due + grace date (confirmed with that
+--     paid date, or reported by the tenant BY that date and not yet decided) do not cover it, paid to
+--     rent rows oldest first (fees never make a later rent late: no fee on a fee), one fee per rent
+--     row at most; a decline later lets the next sweep add the fee; a row once found on time by
+--     confirmed payments alone is final (a later correction never adds a fee); a row whose due + grace
+--     date fell while the sweep skipped the tenancy (a side banned or Homes off) gets no fee;
 --   * after a tenancy ends both sides can still record, decide and waive on its record for 90 days
 --     (read-only after);
 --   * the landlord can reverse or correct a confirmed payment within 30 days with a reason (kept on
---     the payment as an audit trail, tenant told); the tenant can dispute a declined, reversed or
---     corrected payment (the app never decides it, Q35 (a)).
+--     the payment as an audit trail, tenant told); the tenant can dispute a declined payment once and
+--     each later correction or reversal once (the app never decides it, Q35 (a)).
 --
 -- Rules: the 'rentals' switch, a member who is not banned or under 18
 -- (rentals_assert_member), the tenancy's own landlord or its tenant only. The
@@ -57,6 +59,9 @@ CREATE TABLE IF NOT EXISTS public.rental_rent_plans (
   pay_methods text[] NOT NULL DEFAULT '{}'::text[]
     CHECK (pay_methods <@ ARRAY['zelle', 'venmo', 'cashapp', 'cash', 'check', 'money_order']::text[]),
   reminded_for date,
+  -- Louisiana days the sweep skipped this tenancy (a side banned or Homes off), as [{from, to}] periods:
+  -- no late fee for a rent row whose due + grace date fell in one (lead review round 2 #4).
+  skipped jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(skipped) = 'array'),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT rental_rent_plans_monthly_day CHECK (frequency <> 'monthly' OR extract(day FROM first_due_on) <= 28)
@@ -72,6 +77,8 @@ CREATE TABLE IF NOT EXISTS public.rental_rent_charges (
   -- Snapshot of the plan when a rent row is written (0 on fee rows): plan edits never reach back.
   late_fee_cents integer NOT NULL DEFAULT 0 CHECK (late_fee_cents BETWEEN 0 AND 10000000),
   grace_days smallint NOT NULL DEFAULT 0 CHECK (grace_days BETWEEN 0 AND 30),
+  -- Set when the sweep found this rent row on time by confirmed payments alone: final, never judged again.
+  on_time_at timestamptz,
   waived_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT rental_rent_charges_fee_has_rent CHECK ((kind = 'late_fee') = (rent_charge_id IS NOT NULL))
@@ -91,12 +98,12 @@ CREATE TABLE IF NOT EXISTS public.rental_rent_payments (
   decline_reason text CHECK (decline_reason IS NULL OR char_length(decline_reason) BETWEEN 3 AND 300),
   -- The landlord's corrections within 30 days of the decision, newest last: {at, action, reason, from, to}.
   corrections jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(corrections) = 'array'),
-  disputed_at timestamptz,
-  dispute_reason text CHECK (dispute_reason IS NULL OR char_length(dispute_reason) BETWEEN 3 AND 300),
+  -- The tenant's disputes, oldest first: {at, reason}. One per decline and one per later correction.
+  -- (named tenant_disputes: a bare 'disputes' key made Stripe mock literals look like rent payments to fixtureSchemaContract)
+  tenant_disputes jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(tenant_disputes) = 'array'),
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT rental_rent_payments_decided CHECK ((status = 'reported') = (decided_at IS NULL)),
-  CONSTRAINT rental_rent_payments_declined_reason CHECK ((status = 'declined') = (decline_reason IS NOT NULL)),
-  CONSTRAINT rental_rent_payments_dispute CHECK ((disputed_at IS NULL) = (dispute_reason IS NULL))
+  CONSTRAINT rental_rent_payments_declined_reason CHECK ((status = 'declined') = (decline_reason IS NOT NULL))
 );
 
 -- Who ended a tenancy, and the lease end date (lead review #4: the landlord sees the tenant's forwarding
@@ -241,7 +248,8 @@ BEGIN
     v_grace := COALESCE((p_fields ->> 'grace_days')::integer, 0);
     v_fee := COALESCE((p_fields ->> 'late_fee_cents')::integer, 0);
     v_methods := COALESCE(ARRAY(SELECT jsonb_array_elements_text(p_fields -> 'pay_methods')), '{}'::text[]);
-    v_lease := (p_fields ->> 'lease_ends_on')::date;
+    -- Omitted = keep the stored date; an explicit null clears it (lead review round 2 #7).
+    v_lease := CASE WHEN p_fields ? 'lease_ends_on' THEN (p_fields ->> 'lease_ends_on')::date ELSE v_t.lease_ends_on END;
   EXCEPTION WHEN OTHERS THEN
     RAISE EXCEPTION 'bad_rent_plan' USING ERRCODE = '22023';
   END;
@@ -307,6 +315,16 @@ BEGIN
     RAISE EXCEPTION 'bad_rent_payment' USING ERRCODE = '22023';
   END IF;
   SELECT * INTO v_t FROM public.rental_tenancies WHERE id = p_tenancy_id;
+  -- A tenant's report is at most what is open now plus one rent (lead review round 2 #3): a made-up
+  -- large report cannot hold off late fees on rows not yet due.
+  IF v_side = 'tenant' AND p_amount_cents >
+       GREATEST(0, (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_charges
+                     WHERE tenancy_id = p_tenancy_id AND waived_at IS NULL AND due_on <= public.shop_local_today())
+                   - (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_payments
+                       WHERE tenancy_id = p_tenancy_id AND status = 'confirmed'))
+       + COALESCE((SELECT amount_cents FROM public.rental_rent_plans WHERE tenancy_id = p_tenancy_id), 0) THEN
+    RAISE EXCEPTION 'payment_over_balance' USING ERRCODE = '22023';
+  END IF;
   INSERT INTO public.rental_rent_payments (tenancy_id, amount_cents, paid_on, pay_method, reported_by, status, decided_at)
   VALUES (p_tenancy_id, p_amount_cents, p_paid_on, p_method, v_side,
           CASE WHEN v_side = 'landlord' THEN 'confirmed' ELSE 'reported' END,
@@ -436,7 +454,7 @@ BEGIN
   IF p_action = 'reverse' THEN
     UPDATE public.rental_rent_payments
        SET status = 'reversed',
-           corrections = corrections || jsonb_build_array(jsonb_build_object('at', now(), 'action', 'reverse', 'reason', v_reason,
+           corrections = corrections || jsonb_build_array(jsonb_build_object('at', clock_timestamp(), 'action', 'reverse', 'reason', v_reason,
              'from', jsonb_build_object('amount_cents', v_p.amount_cents, 'paid_on', v_p.paid_on)))
      WHERE id = p_payment_id;
     v_money := to_char(v_p.amount_cents / 100.0, 'FM$999,999,990.00');
@@ -448,7 +466,7 @@ BEGIN
     END IF;
     UPDATE public.rental_rent_payments
        SET amount_cents = p_amount_cents, paid_on = p_paid_on,
-           corrections = corrections || jsonb_build_array(jsonb_build_object('at', now(), 'action', 'edit', 'reason', v_reason,
+           corrections = corrections || jsonb_build_array(jsonb_build_object('at', clock_timestamp(), 'action', 'edit', 'reason', v_reason,
              'from', jsonb_build_object('amount_cents', v_p.amount_cents, 'paid_on', v_p.paid_on),
              'to', jsonb_build_object('amount_cents', p_amount_cents, 'paid_on', p_paid_on)))
      WHERE id = p_payment_id;
@@ -493,15 +511,20 @@ BEGIN
   IF NOT FOUND OR public.rentals_rent_side(v_p.tenancy_id, v_uid) IS DISTINCT FROM 'tenant' THEN
     RAISE EXCEPTION 'payment_not_found' USING ERRCODE = 'P0002';
   END IF;
+  -- The last landlord decision or change; each one may be disputed once, within 30 days (lead review
+  -- round 2 #1): a dispute dated at or after it means that one was already disputed.
   v_last := GREATEST(v_p.decided_at, (SELECT max((c ->> 'at')::timestamptz) FROM jsonb_array_elements(v_p.corrections) c));
   IF NOT (v_p.status IN ('declined', 'reversed') OR jsonb_array_length(v_p.corrections) > 0)
-     OR v_p.disputed_at IS NOT NULL OR v_last IS NULL OR v_last < now() - interval '30 days' THEN
+     OR v_last IS NULL OR v_last < now() - interval '30 days'
+     OR EXISTS (SELECT 1 FROM jsonb_array_elements(v_p.tenant_disputes) x WHERE (x ->> 'at')::timestamptz >= v_last) THEN
     RAISE EXCEPTION 'payment_not_disputable' USING ERRCODE = '22023';
   END IF;
   IF char_length(v_reason) NOT BETWEEN 3 AND 300 THEN
     RAISE EXCEPTION 'reason_required' USING ERRCODE = '22023';
   END IF;
-  UPDATE public.rental_rent_payments SET disputed_at = now(), dispute_reason = v_reason WHERE id = p_payment_id;
+  UPDATE public.rental_rent_payments
+     SET tenant_disputes = tenant_disputes || jsonb_build_array(jsonb_build_object('at', clock_timestamp(), 'reason', v_reason))
+   WHERE id = p_payment_id;
   SELECT * INTO v_t FROM public.rental_tenancies WHERE id = v_p.tenancy_id;
   PERFORM public.rentals_notify(v_t.landlord_id, 'Rent payment disputed',
     'Your tenant disputes the payment of ' || to_char(v_p.amount_cents / 100.0, 'FM$999,999,990.00') || ': ' || v_reason
@@ -594,7 +617,7 @@ BEGIN
                           'decided_at', p.decided_at, 'corrections', p.corrections,
                           'correctable_until', CASE WHEN p.status = 'confirmed' AND p.decided_at > now() - interval '30 days'
                                                     THEN p.decided_at + interval '30 days' END,
-                          'disputed_at', p.disputed_at, 'dispute_reason', p.dispute_reason)
+                          'disputes', p.tenant_disputes)
                           ORDER BY p.paid_on, p.created_at)
                           FROM public.rental_rent_payments p WHERE p.tenancy_id = p_tenancy_id), '[]'::jsonb));
 END;
@@ -647,6 +670,13 @@ BEGIN
                    WHERE pr.user_id IN (v_plan.tenant_id, v_plan.landlord_id)
                      AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
                      AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now())) THEN
+      -- Remember the skipped day: extend the last period when it ran to yesterday or today, else start one.
+      UPDATE public.rental_rent_plans
+         SET skipped = CASE
+               WHEN jsonb_array_length(skipped) > 0 AND (skipped -> -1 ->> 'to')::date >= v_today - 1
+                 THEN jsonb_set(skipped, ARRAY[(jsonb_array_length(skipped) - 1)::text, 'to'], to_jsonb(v_today))
+               ELSE skipped || jsonb_build_array(jsonb_build_object('from', v_today, 'to', v_today)) END
+       WHERE tenancy_id = v_plan.tenancy_id;
       v_skipped := v_skipped + 1;
       CONTINUE;
     END IF;
@@ -666,15 +696,31 @@ BEGIN
       SELECT c.* FROM public.rental_rent_charges c
        WHERE c.tenancy_id = v_plan.tenancy_id AND c.kind = 'rent' AND c.waived_at IS NULL
          AND c.late_fee_cents > 0
+         AND c.on_time_at IS NULL
          AND c.due_on + c.grace_days < v_today
          AND NOT EXISTS (SELECT 1 FROM public.rental_rent_charges f WHERE f.rent_charge_id = c.id)
+         -- No fee when its due + grace date (or the day after, when the fee would have been written)
+         -- fell while the sweep skipped this tenancy.
+         AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_plan.skipped) k
+                          WHERE c.due_on + c.grace_days BETWEEN (k ->> 'from')::date - 1 AND (k ->> 'to')::date)
        ORDER BY c.due_on
     LOOP
-      SELECT COALESCE(sum(amount_cents), 0) INTO v_paid FROM public.rental_rent_payments
-       WHERE tenancy_id = v_plan.tenancy_id AND status IN ('confirmed', 'reported')
-         AND paid_on <= v_rent.due_on + v_rent.grace_days;
       SELECT COALESCE(sum(amount_cents), 0) INTO v_through FROM public.rental_rent_charges
        WHERE tenancy_id = v_plan.tenancy_id AND kind = 'rent' AND waived_at IS NULL AND due_on <= v_rent.due_on;
+      -- Confirmed payments paid by the due + grace date.
+      SELECT COALESCE(sum(amount_cents), 0) INTO v_paid FROM public.rental_rent_payments
+       WHERE tenancy_id = v_plan.tenancy_id AND status = 'confirmed'
+         AND paid_on <= v_rent.due_on + v_rent.grace_days;
+      IF v_paid >= v_through THEN
+        -- On time by confirmed payments alone: final (a later correction never adds a fee).
+        UPDATE public.rental_rent_charges SET on_time_at = now() WHERE id = v_rent.id;
+        CONTINUE;
+      END IF;
+      -- Plus the tenant's reports MADE by that date (Louisiana time) and still waiting: on time until declined.
+      v_paid := v_paid + (SELECT COALESCE(sum(amount_cents), 0) FROM public.rental_rent_payments
+                           WHERE tenancy_id = v_plan.tenancy_id AND status = 'reported'
+                             AND paid_on <= v_rent.due_on + v_rent.grace_days
+                             AND (created_at AT TIME ZONE 'America/Chicago')::date <= v_rent.due_on + v_rent.grace_days);
       IF v_paid < v_through THEN
         INSERT INTO public.rental_rent_charges (tenancy_id, kind, due_on, amount_cents, rent_charge_id)
         VALUES (v_plan.tenancy_id, 'late_fee', v_today, v_rent.late_fee_cents, v_rent.id)

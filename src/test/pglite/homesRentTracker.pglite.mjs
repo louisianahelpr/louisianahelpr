@@ -281,12 +281,15 @@ ok((await ledger(TENANT2, tB)).balance_cents === 30000 && (await ledger(TENANT2,
 
 // --- lead review #2 #5 #1: each rent row snapshots its fee and grace days; a payment the tenant REPORTED by the
 // due + grace date counts as on time until declined; payments go to rent rows oldest first; no fee on a fee
+const correct = (uid, id, action, amt, on, reason) => as("authenticated", uid,
+  `SELECT public.rentals_correct_rent_payment('${id}', '${action}', ${amt ?? "NULL"}, ${on ? `'${on}'` : "NULL"}, ${reason ? `'${reason}'` : "NULL"})`);
 const unitC = one(await as("authenticated", LANDLORD, `SELECT public.rentals_add_unit('${prop}', 'Unit C') AS id`));
 const tC = await tenancy(unitC, TENANT);
 const daysAgo = async (n) => one(await svc(`SELECT (public.shop_local_today() - ${n})::text`));
 ok(Array.isArray(await plan(LANDLORD, tC, P({ frequency: "weekly", amount_cents: 10000, grace_days: 1, late_fee_cents: 1000 }))), "setup: a weekly schedule (fee $10, 1 grace day)");
 await svc(`UPDATE public.rental_rent_plans SET first_due_on = public.shop_local_today() - 16 WHERE tenancy_id = '${tC}'`); // rows 16, 9 and 2 days ago
 const rep1 = one(await pay(TENANT, tC, 10000, "zelle", await daysAgo(16)));
+await svc(`UPDATE public.rental_rent_payments SET created_at = now() - interval '16 days' WHERE id = '${rep1}'`); // reported on the day
 await pay(LANDLORD, tC, 10000, "cash", await daysAgo(9));
 await sweep();
 ok(Array.isArray(await plan(LANDLORD, tC, P({ frequency: "weekly", amount_cents: 10000, first_due_on: await daysAgo(-30), grace_days: 5, late_fee_cents: 7777 }))),
@@ -298,6 +301,7 @@ const feesC = async () => rows(await svc(`SELECT f.amount_cents, r.due_on::text 
 let fc = await feesC();
 ok(fc.length === 1 && fc[0].rent_due === await daysAgo(2) && fc[0].amount_cents === 1000,
   "#5/#1: the reported (undecided) payment keeps the first week on time, the recorded one the second; only the unpaid third week gets its own $10 fee");
+ok(refused(await pay(TENANT, tC, 10000000), /payment_over_balance/), "round 2 #3: a tenant's report is capped at what is open plus one rent");
 ok(Array.isArray(await decide(LANDLORD, rep1, false, "It never arrived.")), "the landlord declines the first week's reported payment");
 await sweep(); await sweep();
 fc = await feesC();
@@ -321,6 +325,24 @@ await pay(LANDLORD, tE, 10000, "cash", await daysAgo(7));
 await sweep();
 ok(one(await svc(`SELECT count(*)::int FROM public.rental_rent_charges WHERE tenancy_id = '${tE}' AND kind = 'late_fee'`)) === 1,
   "#1: week one's unpaid $5 fee (written the day after) does not make week two late when week two's rent was paid on time");
+const wk2 = one(await svc(`SELECT id FROM public.rental_rent_payments WHERE tenancy_id = '${tE}' AND paid_on = public.shop_local_today() - 7`));
+ok(one(await svc(`SELECT count(*)::int FROM public.rental_rent_charges WHERE tenancy_id = '${tE}' AND kind = 'rent' AND on_time_at IS NOT NULL`)) >= 1,
+  "round 2 #5: a week found on time by confirmed payments is marked so (final)");
+ok(Array.isArray(await correct(LANDLORD, wk2, "edit", 10000, today, "It actually came today.")), "the landlord later moves that payment's date to today");
+await sweep();
+ok(one(await svc(`SELECT count(*)::int FROM public.rental_rent_charges WHERE tenancy_id = '${tE}' AND kind = 'late_fee'`)) === 1,
+  "round 2 #5: a correction never adds a fee to a week already found on time");
+// a report made AFTER the due + grace date does not hold off the fee (round 2 #3)
+const unitF = one(await as("authenticated", LANDLORD, `SELECT public.rentals_add_unit('${prop}', 'Unit F') AS id`));
+const tF = await tenancy(unitF, TENANT);
+ok(Array.isArray(await plan(LANDLORD, tF, P({ frequency: "weekly", amount_cents: 10000, grace_days: 0, late_fee_cents: 300 }))), "setup: weekly, no grace days");
+await svc(`UPDATE public.rental_rent_plans SET first_due_on = public.shop_local_today() - 11,
+  skipped = jsonb_build_array(jsonb_build_object('from', public.shop_local_today() - 5, 'to', public.shop_local_today() - 3)) WHERE tenancy_id = '${tF}'`);
+await pay(TENANT, tF, 10000, "zelle", await daysAgo(11)); // reported today, for the week due 11 days ago
+await sweep();
+const feesF = rows(await svc(`SELECT r.due_on::text AS d FROM public.rental_rent_charges f JOIN public.rental_rent_charges r ON r.id = f.rent_charge_id WHERE f.tenancy_id = '${tF}'`));
+ok(feesF.length === 1 && feesF[0].d === await daysAgo(11),
+  "round 2 #3/#4: a report made today does not make the week due 11 days ago on time; the week whose due date fell while the sweep skipped the tenancy gets no fee");
 
 // --- lead review #9: reminders skip a prepaid due date; a same-day plan edit never sends a second one
 const unitD = one(await as("authenticated", LANDLORD, `SELECT public.rentals_add_unit('${prop}', 'Unit D') AS id`));
@@ -334,6 +356,10 @@ ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id =
 ok(refused(await plan(LANDLORD, tD, P({ amount_cents: 50000, first_due_on: await daysAgo(-3), lease_ends_on: await daysAgo(-10) })), /bad_rent_plan/), "a new lease end date under 30 days out is refused");
 ok(Array.isArray(await plan(LANDLORD, tD, P({ amount_cents: 50000, first_due_on: await daysAgo(-3), lease_ends_on: await daysAgo(-40) }))), "40 days out is fine");
 ok(one(await svc(`SELECT lease_ends_on::text FROM public.rental_tenancies WHERE id = '${tD}'`)) === await daysAgo(-40), "it is kept on the tenancy");
+await plan(LANDLORD, tD, P({ amount_cents: 60000, first_due_on: await daysAgo(-3) }));
+ok(one(await svc(`SELECT lease_ends_on::text FROM public.rental_tenancies WHERE id = '${tD}'`)) === await daysAgo(-40), "round 2 #7: a save that leaves the lease end out keeps it");
+await plan(LANDLORD, tD, P({ amount_cents: 60000, first_due_on: await daysAgo(-3), lease_ends_on: null }));
+ok(one(await svc(`SELECT lease_ends_on FROM public.rental_tenancies WHERE id = '${tD}'`)) === null, "an explicit empty one clears it");
 
 // --- lead review #8: the sweep skips a tenancy while a side is banned or Homes is off for them
 await svc(`DELETE FROM public.test_accounts WHERE user_id = '${TENANT2}'`);
@@ -341,6 +367,7 @@ await svc(`UPDATE public.rental_rent_plans SET first_due_on = public.shop_local_
 const beforeB = one(await svc(`SELECT count(*)::int FROM public.rental_rent_charges WHERE tenancy_id = '${tB}'`));
 await sweep();
 ok(one(await svc(`SELECT count(*)::int FROM public.rental_rent_charges WHERE tenancy_id = '${tB}'`)) === beforeB, "#8: Homes off for the tenant: nothing written for that tenancy");
+{ const sk = one(await svc(`SELECT skipped FROM public.rental_rent_plans WHERE tenancy_id = '${tB}'`)); ok(Array.isArray(sk) && sk.length === 1 && sk[0].from === today && sk[0].to === today, "round 2 #4: the skipped day is remembered"); }
 await svc(`INSERT INTO public.test_accounts (user_id) VALUES ('${TENANT2}')`);
 await svc(`UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = '${LANDLORD}'`);
 await sweep();
@@ -368,8 +395,6 @@ const lA = await ledger(TENANT, tA);
 ok(lA.open === true && lA.tenancy_status === "ended" && typeof lA.open_until === "string" && lA.plan?.next_due_on === null, "the record says it is open until a date, with no next due date");
 
 // --- lead review #7: the landlord corrects or reverses a confirmed payment within 30 days, with a reason; the tenant may dispute
-const correct = (uid, id, action, amt, on, reason) => as("authenticated", uid,
-  `SELECT public.rentals_correct_rent_payment('${id}', '${action}', ${amt ?? "NULL"}, ${on ? `'${on}'` : "NULL"}, ${reason ? `'${reason}'` : "NULL"})`);
 const balBefore = (await ledger(TENANT, tA)).balance_cents;
 ok(refused(await correct(TENANT, late, "edit", 3000, today, "typo"), /payment_not_found/), "the tenant cannot correct a payment");
 ok(refused(await correct(LANDLORD, late, "edit", 3000, today, null), /reason_required/), "a correction needs a reason");
@@ -378,15 +403,18 @@ const pc = (await ledger(TENANT, tA)).payments.find((x) => x.id === late);
 ok(pc.amount_cents === 3000 && pc.corrections.length === 1 && pc.corrections[0].from.amount_cents === 4000 && pc.corrections[0].reason === "It was $30, not $40."
   && (await ledger(TENANT, tA)).balance_cents === balBefore + 1000, "kept on the payment (before, after, why) and the balance follows");
 ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${TENANT}' AND title = 'Rent payment changed'`)) === 1, "the tenant is told");
+const dispute = (uid, id, reason) => as("authenticated", uid, `SELECT public.rentals_dispute_rent_payment('${id}', ${reason ? `'${reason}'` : "NULL"})`);
+ok(refused(await dispute(LANDLORD, late, "no"), /payment_not_found/), "the landlord cannot dispute");
+ok(Array.isArray(await dispute(TENANT, late, "It was $40.")), "the tenant disputes the correction");
+ok(refused(await dispute(TENANT, late, "again"), /payment_not_disputable/), "once per change");
+ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${LANDLORD}' AND title = 'Rent payment disputed'`)) === 1, "the landlord is told");
 ok(Array.isArray(await correct(LANDLORD, late, "reverse", null, null, "That transfer was returned.")), "the landlord reverses it");
 ok((await ledger(TENANT, tA)).payments.find((x) => x.id === late).status === "reversed" && (await ledger(TENANT, tA)).balance_cents === balBefore + 4000, "reversed: it no longer counts");
 ok(refused(await correct(LANDLORD, late, "reverse", null, null, "again"), /payment_not_correctable/), "only a confirmed payment can be corrected");
-const dispute = (uid, id, reason) => as("authenticated", uid, `SELECT public.rentals_dispute_rent_payment('${id}', ${reason ? `'${reason}'` : "NULL"})`);
-ok(refused(await dispute(LANDLORD, late, "no"), /payment_not_found/), "the landlord cannot dispute");
-ok(Array.isArray(await dispute(TENANT, late, "My bank shows it went through.")), "the tenant disputes the reversal");
-ok((await ledger(LANDLORD, tA)).payments.find((x) => x.id === late).dispute_reason === "My bank shows it went through."
-  && one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${LANDLORD}' AND title = 'Rent payment disputed'`)) === 1, "both see it and the landlord is told");
-ok(refused(await dispute(TENANT, late, "again"), /payment_not_disputable/), "once");
+ok(Array.isArray(await dispute(TENANT, late, "My bank shows it went through.")), "round 2 #1: the tenant can dispute the new change too");
+const pd = (await ledger(LANDLORD, tA)).payments.find((x) => x.id === late);
+ok(pd.disputes.length === 2 && pd.disputes[1].reason === "My bank shows it went through.", "both see each dispute");
+ok(refused(await dispute(TENANT, late, "again"), /payment_not_disputable/), "and again only once");
 const old = one(await pay(LANDLORD, tA, 1000, "cash"));
 await svc(`UPDATE public.rental_rent_payments SET decided_at = now() - interval '31 days' WHERE id = '${old}'`);
 ok(refused(await correct(LANDLORD, old, "reverse", null, null, "too late"), /payment_not_correctable/), "#7: not after 30 days");

@@ -3150,6 +3150,228 @@
       "sha": "f695d8fbd70e0749ffc1adee7cd9cd01214e32a4",
       "reason": "SUPERSEDED: its CLAUDE.md/AGENT-BRIEF lines point at .claude/OPERATING.md, which was never committed anywhere (git log --all is empty); the 'nothing stranded, land only with land.sh' rules on main cover it. Its OPEN.md lines: the 10-17 landing queue is stale; Post a Job's stale-cleanup photo order is fixed on main (useJobSubmit cleanupOrphanJob checks the job is deletable before removeJobPhotos); the /messages contrast UNRESOLVED node is a red robot check under Q1816. Its sensitive-review row is replaced by main's lh-money-escrow row for 971207fb9.",
       "checked": "2026-10-18 (stranded-review-b: each code commit matched to origin/main 8bef6e512 by subject with Q numbers ignored, and the behaviour checked on main by file, function, test name or migration object)"
+    },
+    {
+      "id": "pr:2676",
+      "sha": "9f6e4cb3a56cc1130fac434745e6b990885ecdd5",
+      "reason": "Closed PR. LANDED: fix/no-false-signout (a network blip during a token refresh never sends a signed-in member to Log In) is on main as 60de96aeb with its review follow-ups 63dc73e2a and 24bed73f1. Its 3 leftover lines are the first form of the 'idle sign-out stays unmounted' test, which main rewrote when SessionManager moved out of App.tsx (a3b2125aa, Q806): src/test/involuntarySignOutConfirmsLoss.test.ts now checks App.tsx and SessionManager.tsx for useSessionTimeout(.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:2696",
+      "sha": "9f6e4cb3a56cc1130fac434745e6b990885ecdd5",
+      "reason": "Closed PR, same head as the other fix/no-false-signout auto-land PRs. LANDED: fix/no-false-signout (a network blip during a token refresh never sends a signed-in member to Log In) is on main as 60de96aeb with its review follow-ups 63dc73e2a and 24bed73f1. Its 3 leftover lines are the first form of the 'idle sign-out stays unmounted' test, which main rewrote when SessionManager moved out of App.tsx (a3b2125aa, Q806): src/test/involuntarySignOutConfirmsLoss.test.ts now checks App.tsx and SessionManager.tsx for useSessionTimeout(.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:2707",
+      "sha": "9f6e4cb3a56cc1130fac434745e6b990885ecdd5",
+      "reason": "Closed PR, same head as the other fix/no-false-signout auto-land PRs. LANDED: fix/no-false-signout (a network blip during a token refresh never sends a signed-in member to Log In) is on main as 60de96aeb with its review follow-ups 63dc73e2a and 24bed73f1. Its 3 leftover lines are the first form of the 'idle sign-out stays unmounted' test, which main rewrote when SessionManager moved out of App.tsx (a3b2125aa, Q806): src/test/involuntarySignOutConfirmsLoss.test.ts now checks App.tsx and SessionManager.tsx for useSessionTimeout(.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:2712",
+      "sha": "9f6e4cb3a56cc1130fac434745e6b990885ecdd5",
+      "reason": "Closed PR, same head as the other fix/no-false-signout auto-land PRs. LANDED: fix/no-false-signout (a network blip during a token refresh never sends a signed-in member to Log In) is on main as 60de96aeb with its review follow-ups 63dc73e2a and 24bed73f1. Its 3 leftover lines are the first form of the 'idle sign-out stays unmounted' test, which main rewrote when SessionManager moved out of App.tsx (a3b2125aa, Q806): src/test/involuntarySignOutConfirmsLoss.test.ts now checks App.tsx and SessionManager.tsx for useSessionTimeout(.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:2718",
+      "sha": "9f6e4cb3a56cc1130fac434745e6b990885ecdd5",
+      "reason": "Closed PR, same head as the other fix/no-false-signout auto-land PRs. LANDED: fix/no-false-signout (a network blip during a token refresh never sends a signed-in member to Log In) is on main as 60de96aeb with its review follow-ups 63dc73e2a and 24bed73f1. Its 3 leftover lines are the first form of the 'idle sign-out stays unmounted' test, which main rewrote when SessionManager moved out of App.tsx (a3b2125aa, Q806): src/test/involuntarySignOutConfirmsLoss.test.ts now checks App.tsx and SessionManager.tsx for useSessionTimeout(.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:2723",
+      "sha": "9f6e4cb3a56cc1130fac434745e6b990885ecdd5",
+      "reason": "Closed PR, same head as the other fix/no-false-signout auto-land PRs. LANDED: fix/no-false-signout (a network blip during a token refresh never sends a signed-in member to Log In) is on main as 60de96aeb with its review follow-ups 63dc73e2a and 24bed73f1. Its 3 leftover lines are the first form of the 'idle sign-out stays unmounted' test, which main rewrote when SessionManager moved out of App.tsx (a3b2125aa, Q806): src/test/involuntarySignOutConfirmsLoss.test.ts now checks App.tsx and SessionManager.tsx for useSessionTimeout(.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:2730",
+      "sha": "9f6e4cb3a56cc1130fac434745e6b990885ecdd5",
+      "reason": "Closed PR, same head as the other fix/no-false-signout auto-land PRs. LANDED: fix/no-false-signout (a network blip during a token refresh never sends a signed-in member to Log In) is on main as 60de96aeb with its review follow-ups 63dc73e2a and 24bed73f1. Its 3 leftover lines are the first form of the 'idle sign-out stays unmounted' test, which main rewrote when SessionManager moved out of App.tsx (a3b2125aa, Q806): src/test/involuntarySignOutConfirmsLoss.test.ts now checks App.tsx and SessionManager.tsx for useSessionTimeout(.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:2732",
+      "sha": "44e0c2486db377b914ebf3aeac1ac75311e32e6b",
+      "reason": "LANDED: Q1523 (a crew member accepts their spot, never confirms it) is on main as 3b42386e4 plus 5e81d70aa. Its one leftover line is the old loop over RPC_ERROR_COPY alone; main's src/test/acceptStepNeverSaysConfirm.test.ts loops over { ...RPC_ERROR_COPY, ...ADMIN_RPC_ERROR_COPY } since the admin copy moved out (73647b440).",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:2742",
+      "sha": "03ce47cb3b8a6fa2f5a944e16e82b62101d08996",
+      "reason": "LANDED, then SUPERSEDED in part: the retained-ban phone ban (Q1586, Q1495) landed as a9ae42f95 and the doubt-check mark (Q1497) as dc6c2845a. The owner then reversed the phone rule on 2026-10-15 ('JUST FLAG IT', Q1714, e957d6bda: a matching phone flags for an admin, never bans), so main's src/test/firstPhoneAutoBan.test.ts and the ban-evasion @mutate lines now pin 20261015051417_phone_match_flags_not_bans.sql instead of the 108 old lines.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:2745",
+      "sha": "78d60bf3c9f4c4be5ec8587ff0464788e334b2ff",
+      "reason": "LANDED: Q1071 (Stuck Jobs shows its open count on the admin rail) is on main as 8eff28f39; main's adminRailBadges.ts/Admin.tsx have since grown useOpenQueueCounts for every queue, so KNOWN_NO_BADGE is now empty. The 12 leftover lines are the older single-queue wording.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:2776",
+      "sha": "fa54a53f22c4c36b48f9f2eaa1438e53e49a6c23",
+      "reason": "LANDED: Q1558 (My Posts, My Jobs and Messages put their empty circle, title and button in one place) is on main as c7aa453f2 and b2c9a4f62; src/test/mainTabEmptyPagesAlign.test.tsx is on main. Its 2 leftover lines are an older import/comment wording of that test.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:2777",
+      "sha": "b7569923c6c9da43ab2cb28cd266d66de3123bf9",
+      "reason": "LANDED: Q1660 (a time wheel never picks a time nobody chose) is on main as b2e511987. Its 2 leftover lines are the old 'a scroll the person makes still picks' case, which main rewrote when AM/PM became the poster's own choice (3b9550121, Q1733): the case now expects an empty value until PM is tapped.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:2794",
+      "sha": "ec839d28d8d6f23ef675c9e272fe5ec39aa08f13",
+      "reason": "Replacement PR for #2777, same change. LANDED: Q1660 (a time wheel never picks a time nobody chose) is on main as b2e511987. Its 2 leftover lines are the old 'a scroll the person makes still picks' case, which main rewrote when AM/PM became the poster's own choice (3b9550121, Q1733): the case now expects an empty value until PM is tapped.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:2780",
+      "sha": "cdf8df7cc4fd02fce5563c5656553c159ec4c8cd",
+      "reason": "LANDED: Q1578 (LA sales tax collected) as 67e08af6a and Q1655/Q1658 (a refunded visit's Stripe Tax transaction reversed; 3DS counts tax) as b1dea9e4b; supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts is on main. Its 70 leftover lines are the first wording, which main rewrote under Q1782 (reverseVisitTaxForRefund now takes refunds/listedAnyRefund).",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:3150",
+      "sha": "765f819d353cd3eac14370a1dd951bb4779db443",
+      "reason": "LANDED: the advisor index on category_suggestions.reviewed_by was re-created from this PR with a generated timestamp as ba567a98f (supabase/migrations/20261017203441_category_suggestions_reviewed_by_index.sql, CREATE INDEX IF NOT EXISTS idx_category_suggestions_reviewed_by). The leftover is this PR's hand-picked 20261015120000 file's comment line.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "remote:origin/db/add-missing-indexes-advisor-20261015",
+      "sha": "765f819d353cd3eac14370a1dd951bb4779db443",
+      "reason": "Head of closed PR #3150 (same sha). LANDED as ba567a98f: supabase/migrations/20261017203441_category_suggestions_reviewed_by_index.sql creates idx_category_suggestions_reviewed_by.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:3319",
+      "sha": "8791f56adf59febddbe76200643a3b3bd7a1469a",
+      "reason": "LANDED: lander10 batch D landing PR, closed unmerged; every one of its 100 commits is on main under the same subject (e.g. 7e3707038, a8a9605e6, c9dba5fc5 Q1891, 8ccaf358d Q237, a3b2125aa Q806, 0f72e3741, 9ce705709, ba567a98f). Its leftover lines are older wording main rewrote later (Profile's landing gate now waits on shops/rentals/quotes too, DeclutterHomeView's MovingOutEntry takes `on`, request-budgets recalibrated).",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:3176",
+      "sha": "2dc48ce529e5b73651215ea31d3dc5023da091e5",
+      "reason": "LANDED: ME-046 (ACH checkout must not set escrow until the PaymentIntent succeeds). All 6 commits are on main by patch-id (git cherry all '-'), landed as 41c7848c9 and follow-ups. Its 59 leftover lines are the first wording of the stripe-webhook handlers checkoutSessionCompleted/paymentIntentPaymentFailed/paymentIntentSucceeded and their tests, rewritten on main afterwards (d3506446b Q1970, e246d8137 Q1971, 9b18844dd one wallet). Found by the reds lane (wip/reds-1018-3 @ba267e595, unlanded) and re-verified here.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:3285",
+      "sha": "7d071f4b8dc0256dc2acf95d9bc4c8876183802e",
+      "reason": "LANDED: Declutter moving-out mode. Its feature commit is on main as 79f20ac25 (same subject); 3e0a961dc and 09da47b2a are on main by patch-id; 7d071f4b8 is a generated refresh. Its leftover lines are older forms main rewrote (MovingOutEntry now takes an `on` prop in DeclutterHomeView.tsx). Found by the reds lane (wip/reds-1018-3 @ba267e595, unlanded) and re-verified here.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "pr:3288",
+      "sha": "851a76a72f66461701b38acd61abb6250c65993a",
+      "reason": "LANDED: /posts trim, admin-only RPC refusal copy out of RPC_ERROR_COPY. 6984d0251 is on main by patch-id as 73647b440 (src/components/admin/adminRpcErrorCopy.ts); its review notes Q1900/Q1901 are on main renumbered as Q1883/Q1884 (docs/OPEN.md, same text); 851a76a72 is a generated refresh. The 14 'removed but still on main' lines are identical member-RPC lines that legitimately remain. Found by the reds lane (wip/reds-1018-3 @ba267e595, unlanded) and re-verified here.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "branch:ready/reds-1017-1",
+      "sha": "b34109c5b8e96d04a326565439178a174d3b1b3b",
+      "reason": "LANDED: all 15 commits are on main under the same subjects (e.g. bf6b3248e, ec541997d, 240ea59d8, 69eacd05b, b4085888e). Leftovers: the 2 'removed' prod-audit.yml lines are leg 1's identical messy-input commands (main moved rail-inset to leg 2 exactly as this branch did); the ciSessionsSurviveWorkerRestart regex line was rewritten on main as a global `uses:` scan.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "branch:ready/reds-1017-8",
+      "sha": "08b6de7f7886e420c6d3c794597248f7685a123d",
+      "reason": "SUPERSEDED: Q1894 (the /profile landing paints once with its switch-gated rows) was solved on main another way: useFeatureStatus(...).settled + useArrivalGate in Profile.tsx (f560d28d3, 967034ebf), now waiting on declutter, memberships, shops, rentals and quotes; Q1894 is ticked in docs/archive/OPEN-done-2026-10.md. This branch's useFeatureSettled/featureQuery hooks were not needed.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "branch:reds-1017-7",
+      "sha": "eac1d204851e6d7b54ae9c813596a598e2e122e0",
+      "reason": "LANDED: every code commit is on main under the same subject (f560d28d3, c957a873c, 565be1d2d, a5c059c21, and 967034ebf for the Q1894 tip). Leftovers are older wording: Profile's landing gate now also waits for shops/rentals/quotes, DeclutterHomeView's gate includes haulAway and movingOut, and the IDV review name line kept main's 240ea59d8 layout (badge as its own line below sm), which shows the Helpr's name at 375.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "branch:reds-1017-8b",
+      "sha": "26aff3972ec4b9a7d79f386d2db19041922e1b10",
+      "reason": "Child of reds-1017-7. LANDED: every code commit is on main under the same subject (f560d28d3, c957a873c, 565be1d2d, a5c059c21, and 967034ebf for the Q1894 tip). Leftovers are older wording: Profile's landing gate now also waits for shops/rentals/quotes, DeclutterHomeView's gate includes haulAway and movingOut, and the IDV review name line kept main's 240ea59d8 layout (badge as its own line below sm), which shows the Helpr's name at 375.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "branch:reds-1017-9",
+      "sha": "baa7b483e8b2b484be930ce4a525a35e5473eabe",
+      "reason": "LANDED: its commits are on main under the same subjects (0f72e3741 press lands on the record its gate approved / a skeleton is never content). Leftovers are older forms: main's DESTRUCTIVE_RX keeps 'got it' and adds end/leave/give up/turn down/take down (66128314f), pressTargetRecord and LIVE_ROW_TEXT are in scripts/audit/press-every-control.mjs, and the test helpers were rewritten.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "branch:reds-1017-10",
+      "sha": "3c6537014d9ed857a97236049ea54d2a7ca36ccf",
+      "reason": "LANDED: its commits are on main under the same subjects (0f72e3741 press lands on the record its gate approved / a skeleton is never content; 9ce705709 the gate-approved write path runs, a close-only 'Got it' is pressed). Leftovers are older forms: main's DESTRUCTIVE_RX keeps 'got it' and adds end/leave/give up/turn down/take down (66128314f), pressTargetRecord and LIVE_ROW_TEXT are in scripts/audit/press-every-control.mjs, and the test helpers were rewritten.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "branch:reds-1018w",
+      "sha": "7e80ae1e7a0660f66fbf20d9df44ce1146920524",
+      "reason": "LANDED: its one commit (the press request budget is per PRESS, 25.8 measured, nightly-red #2353) is on main as d0ccca525 via #3373. The leftover is the request-budgets.json _calibrated note, which main extended afterwards (chromium-gift-card 3.5 -> 38.5, nightly-red #3311).",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "branch:ready/reds-1017-12",
+      "sha": "68a6d086616c2a7c5ae9927a8de38fb25538632f",
+      "reason": "SUPERSEDED by origin/wip/reds-1017-12-save (100c7f805), the press shard plan's tracked home, which stays listed (not accepted) until it lands: every code commit here is in -save by patch-id (git cherry '-'); the rest are wip(open)/numbering/generated commits that -save re-made.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "remote:origin/ready/reds-1017-12",
+      "sha": "ecc6ada03f819d5f2f347dd10c4f4e1b17a17e54",
+      "reason": "SUPERSEDED by origin/wip/reds-1017-12-save (100c7f805), the press shard plan's tracked home, which stays listed (not accepted) until it lands: every code commit here is in -save by patch-id (git cherry '-'); the rest are wip(open)/numbering/generated commits that -save re-made.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "branch:ready/declutter-tabs-1018",
+      "sha": "d2a8c29519db625d43ab5b0f5740176037e7bac5",
+      "reason": "LANDED as #3375 (2403e96e0 'tabs become Browse · Buying · Selling · Wanted · Deliver' plus 1933f2c6a). Leftover is only the lander's in-landing change: the badge test's comment and @mutate were rewritten in #3375 itself; the 'removed' <SalesWaiting /> is the second, kept occurrence (DeclutterTradeViews.tsx line 521 on main).",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-tabs-1018",
+      "sha": "d2a8c29519db625d43ab5b0f5740176037e7bac5",
+      "reason": "Same sha as branch:ready/declutter-tabs-1018. LANDED as #3375 (2403e96e0); the leftover is the lander's in-landing test-comment change.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "branch:ready/reds-1018-4",
+      "sha": "f5fffb5885517a81502d0aad0beee0afa9280b4b",
+      "reason": "LANDED as #3373 (d0ccca525, 24c30e1d8). Leftover is only the lander's in-landing change: e2ccf9a90 in #3373 made the Pay retry check the hostname, not a URL substring (CodeQL); the 'removed' perTest 3.5 is another label's identical line.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "remote:origin/ready/reds-1018-4",
+      "sha": "f5fffb5885517a81502d0aad0beee0afa9280b4b",
+      "reason": "Same sha as branch:ready/reds-1018-4. LANDED as #3373; the leftover is the lander's CodeQL hostname change (e2ccf9a90).",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "branch:shops-m1b-addr-1018b",
+      "sha": "61dae566105ae92fbc08f9942e58ba7466d91f09",
+      "reason": "LANDED as #3376 (c7c41dd53 'M1b part 2: private pickup address'). Leftover is only the lander's in-landing change: the migrations were renamed 20261018180859/20261018180900 -> 20261018210400_shops_pickup_address.sql/20261018210401_export_my_data_shop_pickup_address.sql, so every comment, allowlist entry and @mutate naming the old timestamps differs; main's definer-exec-allowlist has the same four entries under 20261018210400.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "remote:origin/wip/shops-m1b-addr-1018",
+      "sha": "61dae566105ae92fbc08f9942e58ba7466d91f09",
+      "reason": "Same sha as branch:shops-m1b-addr-1018b. LANDED as #3376 (c7c41dd53 'M1b part 2: private pickup address'). Leftover is only the lander's in-landing change: the migrations were renamed 20261018180859/20261018180900 -> 20261018210400_shops_pickup_address.sql/20261018210401_export_my_data_shop_pickup_address.sql, so every comment, allowlist entry and @mutate naming the old timestamps differs; main's definer-exec-allowlist has the same four entries under 20261018210400.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "branch:shops-m1b-tax-1018",
+      "sha": "308f310aabe047713da159634ed8cc72b9b56783",
+      "reason": "LANDED as #3367 (cbd89cbeb tax part 1, 858f89afc, c30ce5b49). Its 3 leftover lines (product_data with tax_code, the test reading product_data.tax_code) were rewritten by the pickup-address landing #3376 (c7c41dd53), which moved the code into taxed(...) -> tax_details.tax_code.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
+    },
+    {
+      "id": "remote:origin/ready/shops-m1b-tax-1018",
+      "sha": "308f310aabe047713da159634ed8cc72b9b56783",
+      "reason": "Same sha as branch:shops-m1b-tax-1018. LANDED as #3367 (cbd89cbeb tax part 1, 858f89afc, c30ce5b49). Its 3 leftover lines (product_data with tax_code, the test reading product_data.tax_code) were rewritten by the pickup-address landing #3376 (c7c41dd53), which moved the code into taxed(...) -> tax_details.tax_code.",
+      "checked": "2026-10-18 (stranded-finish: content-checked against origin/main b2d6483a9 with scripts/lib/strandedContent.mjs unlandedContent; commits matched by subject or git cherry patch-id; each leftover line compared with main's copy of the same file)"
     }
   ]
 }

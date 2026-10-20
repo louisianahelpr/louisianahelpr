@@ -254,3 +254,31 @@ export function setupFeeReceiptNote(
   const otherKeptCents = adminRefunded ? cardCostFeeCents(job) : job.dispute_status ? stripeCents : Math.max(cents(job.customer_fee_amount ?? 0), stripeCents);
   return chargedCents - refundedCents + 1 >= feeCents + otherKeptCents ? ` · ${amount} one-time setup fee kept (not refundable)` : "";
 }
+
+/**
+ * HELD FOR YOU (spec v2 §5.3, board 51): money the poster paid that waits on
+ * THEIR confirmation. A hired job (accepted, in progress, or sent back for a
+ * revision) whose charge sits in escrow. A disputed job's money waits on the
+ * dispute, an open job's on a hire or a cancel, so neither counts.
+ */
+const HELD_UNTIL_CONFIRM_STATUSES = ["accepted", "in_progress", "revision_requested"] as const;
+
+/**
+ * What the card was charged for each such job (board 29: "$103.04 held until
+ * the job is done"), read off spentRows(): the job's own charge less refunds
+ * and gift-card cover. A tip is its own charge, paid straight to the Helpr, so
+ * it is never held. Jobs that held nothing on the card are not counted.
+ */
+export function heldForYou<J extends PosterSpendJob & { status: string }>(rows: readonly SpentRow<J>[]): { cents: number; jobs: number } {
+  let cents = 0;
+  let jobs = 0;
+  for (const r of rows) {
+    if (!r.job || r.job.payment_status !== "escrow") continue;
+    if (!(HELD_UNTIL_CONFIRM_STATUSES as readonly string[]).includes(r.job.status)) continue;
+    const held = r.cents - r.tipCents;
+    if (held <= 0) continue;
+    cents += held;
+    jobs += 1;
+  }
+  return { cents, jobs };
+}

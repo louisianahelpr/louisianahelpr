@@ -237,3 +237,34 @@ export function earnedDollarsWithLedger(
   const paidOut = jobs.reduce((s, j) => s + (transferred.get(j.id) ?? 0), 0) / 100;
   return paidOut + sumHelperTakeHomeDollars(rest, feeFallbackPercent, firstPayoutFeeDueFrom(rest, firstPayoutFeeDollars));
 }
+
+/**
+ * COMING TO YOU: approved jobs whose transfer has not fired yet
+ * (isAwaitingTransfer), at what will land: the Helpr's take-home, less the
+ * one-time setup fee while it is still owed (Q753). The Money tab's "Approved —
+ * reaches your wallet" line and Home's "Coming to you" tile both read this, so
+ * they cannot disagree.
+ *
+ * `at` is the soonest `payout_scheduled_at` STILL AHEAD of `now` (when the
+ * money reaches the Stripe wallet), never a passed one: a row stays
+ * payout_pending past its date when the Helpr has no payout account or is on a
+ * payout hold (process-scheduled-payouts), and "reaches your wallet Sat, Oct
+ * 17" on the 20th is false (lh-money-escrow review, 2026-10-20). `overdue` says
+ * some row's date has passed; `severalDates` that the rows arrive on more than
+ * one day, so the date is the FIRST arrival, not all of it.
+ */
+export function comingToYou(
+  jobs: readonly (HelperEarningsJob & MoneyJob & { payout_scheduled_at?: string | null })[],
+  feeFallbackPercent: number,
+  firstPayoutFeeDollars: number,
+  now: number = Date.now(),
+): { cents: number; at: string | null; overdue: boolean; severalDates: boolean } {
+  const releasing = jobs.filter(isAwaitingTransfer);
+  const cents = Math.round(
+    sumHelperTakeHomeDollars(releasing, feeFallbackPercent, firstPayoutFeeDueFrom(releasing, firstPayoutFeeDollars)) * 100,
+  );
+  const dated = releasing.map((j) => j.payout_scheduled_at).filter((d): d is string => !!d && Number.isFinite(Date.parse(d)));
+  const ahead = dated.filter((d) => Date.parse(d) > now).sort((x, y) => Date.parse(x) - Date.parse(y));
+  const days = new Set(dated.map((d) => new Date(d).toDateString()));
+  return { cents, at: ahead[0] ?? null, overdue: dated.length > ahead.length, severalDates: days.size > 1 || (dated.length > 0 && dated.length < releasing.length) };
+}

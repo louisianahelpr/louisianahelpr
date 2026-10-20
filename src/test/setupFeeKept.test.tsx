@@ -81,7 +81,9 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
     const spent = code("src/components/profile/earningsTab/SpentSection.tsx");
     expect(spent.length).toBeGreaterThan(1000);
     expect(spent).toContain("setupFeeReceiptNote(r.job, r.refundedCents, r.adminRefunded)");
-    expect(spent).toContain('.select("job_id, amount_cents, stripe_payment_intent_id, source")');
+    // The reads moved to usePosterSpendData (shared with Home's "Held for you" tile).
+    const reads = code("src/components/profile/earningsTab/usePosterSpendData.ts");
+    expect(reads).toContain('.select("job_id, amount_cents, stripe_payment_intent_id, source")');
     // An admin's full refund of a LEGACY job (the old 12% service fee) keeps
     // the setup fee and Stripe's card fee, never the 12% (owner pop-up,
     // 2026-10-14): 1320 charged, 1120 back (the client cannot read Stripe's
@@ -104,8 +106,8 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
     // receipt does not claim the $2 was kept (the old "an admin refund keeps
     // only the setup fee" reading would).
     expect(setupFeeReceiptNote(cardCostFirst, 2606, true)).toBe("");
-    // The Spent screen reads the column the rule needs.
-    expect(spent).toContain("customer_fee_amount, platform_fee_percent, urgent_fee");
+    // The Spent screen reads the column the rule needs (its reads live in usePosterSpendData).
+    expect(code("src/components/profile/earningsTab/usePosterSpendData.ts")).toContain("customer_fee_amount, platform_fee_percent, urgent_fee");
     // The Spent rows carry which refunds were the admin's, from the ledger's source.
     const job = { id: "j1", ...tenDollar, payment_status: "refunded", stripe_payment_intent_id: "pi_1" };
     const [adminRow] = spentRows([job], [{ job_id: "j1", amount_cents: 1120, stripe_payment_intent_id: "pi_1", source: "admin_refund_general" }], []);
@@ -166,5 +168,5 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
 // @mutate supabase/functions/money-reconciliation/index.ts |             + setupFeeKeptCents(job as { onboarding_fee_amount?: number \| string \| null }); |             + 0;
 // @mutate src/lib/posterSpend.ts |   const otherKeptCents = adminRefunded ? cardCostFeeCents(job) : job.dispute_status ? stripeCents : Math.max(cents(job.customer_fee_amount ?? 0), stripeCents); |   const otherKeptCents = 0;
 // @mutate src/lib/posterSpend.ts |   const otherKeptCents = adminRefunded ? cardCostFeeCents(job) : |   const otherKeptCents = adminRefunded ? 0 :
-// @mutate src/components/profile/earningsTab/SpentSection.tsx | customer_fee_amount, platform_fee_percent, urgent_fee, | customer_fee_amount, urgent_fee,
+// @mutate src/components/profile/earningsTab/usePosterSpendData.ts | customer_fee_amount, platform_fee_percent, urgent_fee, | customer_fee_amount, urgent_fee,
 // @mutate src/lib/posterSpend.ts |     if (r.source === "admin_refund_general") adminRefundedJobs.add(r.job_id); |

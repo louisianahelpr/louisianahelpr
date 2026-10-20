@@ -58,7 +58,7 @@ export function ApplicationSentDialog({
           state: "later",
         },
       ]}
-      primary={{ label: "Got it", onClick: onClose }}
+      primary={{ label: "Got it", acknowledge: true }}
       secondary={{ label: "See the job", onClick: () => { if (sent) onView(sent.jobId); onClose(); } }}
     >
       {sent?.noteWithheld ? (

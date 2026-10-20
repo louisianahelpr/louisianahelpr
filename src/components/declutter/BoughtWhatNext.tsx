@@ -47,7 +47,7 @@ export function BoughtWhatNext() {
         handoverStep,
         { key: "got", label: "You confirm you got it", detail: "Then the seller is paid", state: "later" },
       ]}
-      primary={{ label: "Got it", onClick: close }}
+      primary={{ label: "Got it", acknowledge: true }}
     />
   );
 }

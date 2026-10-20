@@ -12,11 +12,14 @@
 // Facebook and Instagram are NOT on the list: they are our own channels
 // (footer links, the admin social-post console). "Marketplace" alone is a
 // generic word; "Facebook Marketplace" is listed.
+//
+// @mutate src/components/landing/SectionsShowcase.tsx | what: "Hire local help, or find work nearby.", | what: "Hire local help, like on Thumbtack.",
+// @mutate index.html | "areaServed": { "@type": "State", "name": "Louisiana" }, | "areaServed": { "@type": "State", "name": "Louisiana" }, "description": "Like Craigslist",
 import { describe, expect, it } from "vitest";
-import { readdirSync as readdirDisk, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
-import { trackedFiles } from "./helpers/trackedFiles";
+import { readdirSync as readdirDisk, trackedFiles } from "./helpers/trackedFiles";
 
 const ROOT = path.resolve(__dirname, "../..");
 
@@ -75,7 +78,7 @@ describe("no competitor names in user-facing copy", () => {
   });
 
   it("index.html and public/*.html name no competitor", () => {
-    // public/ is outside src/, so the plain directory listing is the right one (trackedFiles covers src/ only).
+    // public/ is outside src/, so trackedFiles' readdirSync passes through to the real listing (Q1142 guard).
     const pages = ["index.html", ...readdirDisk(path.join(ROOT, "public")).filter((f) => f.endsWith(".html")).map((f) => `public/${f}`)];
     const hits = pages.flatMap((f) => {
       const text = readFileSync(path.join(ROOT, f), "utf8").replace(/<!--[\s\S]*?-->/g, "");

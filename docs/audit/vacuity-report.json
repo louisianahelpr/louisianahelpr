@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-20T03:55:03.576Z",
-  "guards": 2113,
-  "registered": 2108,
+  "generated": "2026-10-20T04:23:16.768Z",
+  "guards": 2125,
+  "registered": 2120,
   "unregistered": [
     "src/lib/declutter/sellForMe.test.ts",
     "src/lib/rentals/savedHomes.test.ts",
@@ -278,6 +278,7 @@
       "module": "src/pages/post-job/CheckoutStepView.tsx",
       "tests": [
         "src/test/applyAndPostAskNoProfileDetails.test.tsx",
+        "src/pages/post-job/checkoutTaxNote.test.tsx",
         "src/pages/post-job/orderSummaryGlance.test.tsx"
       ],
       "parents": [

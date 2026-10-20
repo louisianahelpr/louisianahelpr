@@ -139,7 +139,7 @@ describe("PaymentSuccess", () => {
     it("does not offer Share / Post another for a job it can't confirm is funded", async () => {
       renderAt();
       await screen.findByText(/we couldn't confirm your payment/i);
-      expect(screen.queryByRole("button", { name: /^share$/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /^share job$/i })).toBeNull();
       expect(screen.queryByRole("button", { name: /post another/i })).toBeNull();
     });
   });
@@ -221,7 +221,7 @@ describe("PaymentSuccess", () => {
       expectNoSuccessClaim();
       expect(screen.queryByText(/\$10/)).toBeNull();
       expect(screen.queryByRole("button", { name: /view applicants/i })).toBeNull();
-      expect(screen.queryByRole("button", { name: /^share$/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /^share job$/i })).toBeNull();
       expect(screen.queryByRole("button", { name: /post another/i })).toBeNull();
       expect(screen.queryByRole("button", { name: /open my posts/i })).toBeNull();
       // …and a way back.
@@ -311,7 +311,7 @@ describe("PaymentSuccess", () => {
       renderAt();
       await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
       expect(screen.getByRole("button", { name: /view applicants/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /^share$/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /^share job$/i })).toBeInTheDocument();
     });
 
     it("accepts payout_pending — the money is still in escrow", async () => {

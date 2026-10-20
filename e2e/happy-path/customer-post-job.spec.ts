@@ -49,12 +49,11 @@ test.describe("customer post-job happy path", () => {
       disableRules: ["aria-hidden-focus", "color-contrast"],
     });
 
-    // The hero's ONE sign-up action (owner, 2026-10-19: "Join Helpr free")
-    // links to /signup for anonymous visitors (and /home for authed users —
-    // `goToAccount` in HeroSection.tsx routes by session state). On mobile,
-    // the Navbar's "Get started" desktop CTA is hidden behind a hamburger
-    // sheet, so we drive the always-visible hero CTA instead.
-    const postRequest = page.getByRole("link", { name: /join helpr free/i }).first();
+    // The landing's sign-up action (owner-approved redesign, 2026-10-20:
+    // "Create your free account", the close's primary) links to /signup for
+    // anonymous visitors (and /home for authed users — `goToAccount` in
+    // SectionsShowcase.tsx routes by session state).
+    const postRequest = page.getByRole("link", { name: /create your free account/i }).first();
     await postRequest.waitFor({ timeout: 10_000 });
     await postRequest.click();
 

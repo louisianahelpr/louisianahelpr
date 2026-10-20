@@ -4712,3 +4712,132 @@ html body .app-top-bar h1.text-page-title {
 .page-title-card:has(.app-top-bar) { padding: 0 !important; border-width: 0 !important; }
 .container:has(> div > .page-title-card .app-top-bar) .page-panel { border-width: 0 !important; }
 .container:has(> div > .page-title-card .app-top-bar) { padding-top: 0 !important; }
+
+/* ── LANDING PAGE (owner-approved redesign, 2026-10-20; tokens from the owner's
+   design spec, ~/.lh-wt/HELPR-DESIGN-SPEC.md §2). Scoped to `.landing-page`
+   (PublicLayout's `landing` prop) and prefixed `--lp-` so they cannot collide
+   with the app's HSL tokens of the same name (`--muted` is an HSL triplet that
+   bg-muted reads). Light, then the warm dark (#1C1A17), never cool grey. ── */
+.landing-page {
+  --lp-ground: #F4F2EE;
+  --lp-surface: #FFFFFF;
+  --lp-subtle: #EFEDE6;
+  --lp-line: #E6E2DA;
+  --lp-line-strong: #D9D3C7;
+  --lp-ink: #2B2A26;
+  --lp-body: #4F4C45;
+  --lp-muted: #6B675F;
+  --lp-action: #6B6E4E;
+  --lp-action-strong: #55583D;
+  --lp-on-action: #FFFFFF;
+  --lp-money: #A1502C;
+  --lp-money-tint: #F6E9E2;
+  --lp-photo-empty: #DCD5C7;
+  /* The money band: warm charcoal in light, one step up from the ground in dark. */
+  --lp-band: #2B2A26;
+  --lp-band-tile: #383631;
+  --lp-band-ink: #F1EEE7;
+  --lp-band-body: #D6D2C8;
+  --lp-band-money: #E2A585;
+  --lp-shadow: 0 4px 18px rgba(32, 30, 26, 0.06);
+  /* The app's olive primary reads these; on the landing it wears the spec's action olive. */
+  --bark: 63 17% 37%;
+  --parchment: 0 0% 100%;
+  background-color: var(--lp-ground) !important;
+  background-image: none !important;
+  color: var(--lp-body);
+}
+[data-theme="dark"] .landing-page {
+  --lp-ground: #1C1A17;
+  --lp-surface: #262420;
+  --lp-subtle: #3A3731;
+  --lp-line: #3A3731;
+  --lp-line-strong: #4A4842;
+  --lp-ink: #F1EEE7;
+  --lp-body: #D6D2C8;
+  --lp-muted: #B8B2A6;
+  --lp-action: #A9AD86;
+  --lp-action-strong: #A9AD86;
+  --lp-on-action: #1C1A17;
+  --lp-money: #E2A585;
+  --lp-money-tint: #3B2A22;
+  --lp-photo-empty: #3A3731;
+  --lp-band: #262420;
+  --lp-band-tile: #2F2C27;
+  --lp-band-ink: #F1EEE7;
+  --lp-band-body: #D6D2C8;
+  --lp-band-money: #E2A585;
+  --lp-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
+  --bark: 66 20% 60%;
+  --parchment: 36 16% 10%;
+}
+.landing-page .mesh-gradient-global { display: none; }
+
+/* Landing headlines in Bodoni Moda (spec §1.2: landing headlines are a Bodoni
+   moment). Three classes deep so it outranks T1's upright-Montserrat rule above;
+   the stack is the Tailwind `display` stack, Georgia's fallback first. */
+:root .font-display.landing-serif,
+.landing-serif-text {
+  font-family: "Bodoni Moda", "Bodoni Moda Fallback", "Bodoni Moda Fallback Liberation", Georgia, serif !important;
+  font-style: normal !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.landing-card {
+  background: var(--lp-surface);
+  border-radius: 20px;
+  box-shadow: var(--lp-shadow);
+}
+/* The search: on a phone the field is the pill and Search sits under it,
+   full width; from 640px the whole form is one pill with the button inside. */
+.landing-search-field {
+  background: var(--lp-surface);
+  box-shadow: var(--lp-shadow);
+  border-radius: 999px;
+}
+.landing-search-field:focus-within { outline: 2px solid var(--lp-action); outline-offset: 0; }
+@media (min-width: 640px) {
+  .landing-search {
+    background: var(--lp-surface);
+    box-shadow: var(--lp-shadow);
+    border-radius: 999px;
+  }
+  .landing-search .landing-search-field { background: transparent; box-shadow: none; }
+  .landing-search .landing-search-field:focus-within { outline: none; }
+  .landing-search:focus-within { outline: 2px solid var(--lp-action); outline-offset: 0; }
+}
+.landing-chip {
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-line-strong);
+  color: var(--lp-ink);
+}
+.landing-chip:hover { border-color: var(--lp-action); }
+.landing-money-chip {
+  background: var(--lp-money-tint);
+  color: var(--lp-money);
+  border-radius: 999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.landing-phone {
+  background: #2B2A26;
+  box-shadow: var(--lp-shadow);
+}
+[data-theme="dark"] .landing-phone { background: #0F0E0C; box-shadow: 0 0 0 1px var(--lp-line-strong); }
+.landing-phone-screen { background: var(--lp-subtle); }
+[data-theme="dark"] .landing-phone-screen { background: #2F2C27; }
+.landing-phone-photo, .landing-phone-thumb { background: var(--lp-photo-empty); }
+.landing-callout {
+  background: var(--lp-surface);
+  box-shadow: var(--lp-shadow);
+}
+/* The landing's bar is the page's own warm ground, slightly see-through; the
+   opaque form of that same colour under reduced transparency (CLAUDE.md: each
+   surface's OWN colour, per theme). */
+.landing-page .glass-nav { background-color: color-mix(in srgb, var(--lp-ground) 84%, transparent); }
+@media (prefers-reduced-transparency: reduce) {
+  .landing-page .glass-nav,
+  [data-theme="dark"] .landing-page .glass-nav { background-color: var(--lp-ground) !important; }
+}

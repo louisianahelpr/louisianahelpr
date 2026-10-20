@@ -79,7 +79,6 @@ const ACCEPTED = new Map<string, number>([
   // Reclassified 2026-09-20 — each was on the "21 failing text declarations"
   // list, and each turned out to be a glyph, not a word.
   ["src/pages/profile/HelprWrapped.tsx --burnt-sienna/0.75", 1], //               3.11:1 — <Gift className="w-10 h-10">, ornament above its own <h2>
-  ["src/components/landing/HeroSection.tsx --olivewood/0.55", 1], //      3.23:1 — <ChevronDown>, aria-hidden scroll hint that fades out by 160px
   ["src/pages/profile/giftCards/RecipientPicker.tsx --olivewood/0.6", 1], //      3.70:1 — <Search> inside the field, pointer-events-none; the placeholder says it
   ["src/components/ui/sonner.tsx --olivewood/0.65", 1], //                4.24:1 — sonner's close is an <svg aria-hidden stroke="currentColor">, button labelled "Close toast"
   // Found 2026-09-27 when the scanner learned Tailwind slash opacity (Q765).
@@ -110,13 +109,6 @@ const ACCEPTED = new Map<string, number>([
   // The same exemption: "Get quotes / Coming soon" on Post a Job is an option that cannot be chosen (tapping it only
   // shows the coming-soon note; aria-label "Get quotes, coming soon"). Greyed on purpose (owner, 10-19; lead approved the shots).
   ["src/components/quotes/PostJobQuoteChoice.tsx --muted-foreground/0.6", 1], // 2.54:1 — the inactive "Get quotes / Coming soon" option
-  //
-  // The step numerals: `clamp(2.125rem, 6.5vw, 6rem)` font-black is never below
-  // 34px, so 1.4.3's LARGE SCALE floor of 3:1 governs, not 4.5:1. They were
-  // 0.35 = 1.62:1, which missed even that, and are now the lowest alpha that
-  // clears 3:1 on every surface. Not taken further on purpose: full-strength
-  // sienna would make "01" louder than the Bodoni title under it.
-  ["src/components/landing/HowItWorksSection.tsx --burnt-sienna/0.75", 1], // 3.11:1 worst surface, 3.61:1 on its real light ground
 ]);
 
 type Row = { file: string; line: number; token: string; alpha: number; worst: [string, number]; source: string };
@@ -183,10 +175,11 @@ describe("low-alpha foreground contrast", () => {
   // The mutation used to darken TrustRow's separator, which was the stalest
   // candidate in the list. TrustRow has no tint at all any more (2026-09-20),
   // so the mutation moved to the one remaining (c) entry that names an alpha:
-  // taking the step numerals to full sienna deletes
-  // `HowItWorksSection --burnt-sienna/0.75` from the world and the entry below
-  // must then be reported stale.
-  // @mutate src/components/landing/HowItWorksSection.tsx | hsl(var(--burnt-sienna) / 0.75) | hsl(var(--burnt-sienna))
+  // taking HelprWrapped's gift ornament to full sienna deletes
+  // `HelprWrapped --burnt-sienna/0.75` from the world and its entry above must
+  // then be reported stale. (It was the landing's step numerals until the
+  // 2026-10-20 landing redesign gave them full-strength olive.)
+  // @mutate src/pages/profile/HelprWrapped.tsx | hsl(var(--burnt-sienna) / 0.75) | hsl(var(--burnt-sienna))
   it("the accepted list does not rot", () => {
     const counts = new Map<string, number>();
     for (const r of failing) counts.set(keyOf(r), (counts.get(keyOf(r)) ?? 0) + 1);

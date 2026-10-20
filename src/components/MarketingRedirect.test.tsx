@@ -20,7 +20,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => useCurrentUserMock(),
 }));
 
-const LANDING = "Louisiana's Local Partner.";
+const LANDING = "Louisiana's local partner.";
 const AUTH_KEY = "sb-fncmgoasalhdgfwzhsqa-auth-token";
 
 /** Load MarketingRedirect fresh with `isNativePlatform` pinned. */

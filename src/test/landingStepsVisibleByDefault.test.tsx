@@ -18,7 +18,7 @@ import { join } from "node:path";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 
 const SRC = readFileSync(join(process.cwd(), "src/components/landing/HowItWorksSection.tsx"), "utf8");
-const card = () => screen.getByText("Post the job").closest("div[style]") as HTMLElement;
+const card = () => screen.getByText("Post what you need").closest("div[style]") as HTMLElement;
 
 type Cb = (entries: { isIntersecting: boolean }[]) => void;
 let observed: { cb: Cb; opts?: IntersectionObserverInit }[] = [];

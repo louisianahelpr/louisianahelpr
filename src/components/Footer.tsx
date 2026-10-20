@@ -56,7 +56,12 @@ const INSTAGRAM_URL = "https://www.instagram.com/louisianahelpr/";
  * here (relocated from the nav) — Google Play shows a "Coming soon"
  * state until the Android app ships.
  */
-const Footer = () => {
+/**
+ * `landing` (owner-approved landing redesign, 2026-10-20): the footer's column
+ * lines up with the landing's 72rem measure and wears its warm tokens. Every
+ * other page keeps the full-width footer.
+ */
+const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
   // The footer renders on public AND authed surfaces (App.tsx, PageHeader,
   // AuthShell, PublicLayout), so its "Jobs" link cannot be a constant.
   const { user } = useAuthReady();
@@ -96,7 +101,7 @@ const Footer = () => {
       color: "hsl(var(--olivewood))",
     }}
   >
-    <div className="page-measure pt-6 md:pt-8 pb-2">
+    <div className={`page-measure pt-6 md:pt-8 pb-2${landing ? " max-w-6xl" : ""}`}>
       {/* Columns go side-by-side from sm (640px), not md (768px). At tablet
           widths the old md-only grid stacked brand + Company + Legal + Follow
           into ONE tall column, which made the footer dominate the page. From
@@ -116,9 +121,9 @@ const Footer = () => {
               into two short lines instead of one long one that pushes the
               link columns around. */}
           <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-xs leading-relaxed">
-            Hire a Helpr or find local work.
+            Jobs, Declutter, Shops and Homes
             <br />
-            For everyday jobs, big and small.
+            for Louisiana.
           </p>
         </div>
 
@@ -135,7 +140,7 @@ const Footer = () => {
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--accent-ink))" }}
           >
-            Company
+            Explore
           </h2>
           {/* The footer is the site's full index, so it carries the top nav's
               destinations PLUS the secondary ones the nav has no room for.

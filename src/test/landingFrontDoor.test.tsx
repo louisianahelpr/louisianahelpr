@@ -6,8 +6,9 @@
  * No mocked Supabase (CLAUDE.md: no new mocked-Supabase specs; lead review
  * 2026-10-19). Layers checked here:
  *   1. the page: Index renders the section blocks and the trust + close; the
- *      page has exactly ONE filled button, the hero's, and it goes to /signup;
- *      the close repeats it as a text link with the same signed-in routing;
+ *      hero's one filled button is Search (owner-approved redesign,
+ *      2026-10-20) and the close's is "Create your free account" (/signup,
+ *      signed-in visitors to /home);
  *   2. the decision: the pure "coming soon" rule fails CLOSED (pending or
  *      failed = coming soon; Jobs never), and a missing RPC (PGRST202) is a
  *      quiet empty answer, not an error per visit; any other failure is
@@ -31,7 +32,8 @@
 // @mutate src/components/landing/goSignedInOr.ts |     navigate(signedOut); |
 // @mutate src/components/landing/SectionsShowcase.tsx |               const soon = sectionIsComingSoon(s.feature, open); |               const soon = false;
 // @mutate src/pages/info/Index.tsx |       <SectionsShowcase />\n |
-// @mutate src/components/landing/HeroSection.tsx |             <Link to="/signup" onClick={goToAccount} data-testid="landing-signup"> |             <Link to="/browse" onClick={goToAccount} data-testid="landing-signup">
+// @mutate src/components/landing/SectionsShowcase.tsx |     void goSignedInOr(navigate, "/home", "/signup"); |     void goSignedInOr(navigate, "/home", "/browse");
+// @mutate src/components/landing/HeroSection.tsx |     void goSignedInOr(navigate, t.signedIn, t.signedOut); |     void goSignedInOr(navigate, t.signedIn, "/login");
 // @mutate supabase/migrations/20261019051933_features_open_to_everyone.sql |     AND key = ANY (ARRAY['declutter', 'shops', 'rentals']); | ;
 // @mutate supabase/migrations/20261019051933_features_open_to_everyone.sql | GRANT EXECUTE ON FUNCTION public.features_open_to_everyone() TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.features_open_to_everyone() TO authenticated, service_role;
 import { readFileSync } from "node:fs";
@@ -55,15 +57,21 @@ describe("landing: the front door for all four sections", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it("ONE filled button on the page (the hero's, to /signup); the close is a text link with the same signed-in routing", () => {
+  it("one primary per block: the hero's Search and the close's Create your free account (to /signup, same signed-in routing)", () => {
     const hero = read("src/components/landing/HeroSection.tsx");
     const blocks = read("src/components/landing/SectionsShowcase.tsx");
+    const steps = read("src/components/landing/HowItWorksSection.tsx");
+    // Owner-approved redesign (2026-10-20): the hero's one filled button is Search...
     expect(hero.match(/btn-grad-primary/g)?.length).toBe(1);
-    expect(blocks).not.toMatch(/btn-grad-primary/);
-    expect(hero).toMatch(/<Link to="\/signup" onClick=\{goToAccount\} data-testid="landing-signup">/);
-    expect(blocks).toMatch(/to="\/signup"\s+onClick=\{goToAccount\}/);
+    expect(hero).toMatch(/<form\s+onSubmit=\{search\}/);
+    expect(hero).toMatch(/type="submit"\s+className="btn-grad-primary/);
+    // ...the close's is the account, and nothing between them is filled.
+    expect(blocks.match(/btn-grad-primary/g)?.length).toBe(1);
+    expect(steps).not.toMatch(/btn-grad-primary/);
+    expect(blocks).toMatch(/to="\/signup"\s+onClick=\{goToAccount\}\s+className="btn-grad-primary[^"]*"\s+data-testid="landing-signup"/);
     expect(blocks).toMatch(/goSignedInOr\(navigate, "\/home", "\/signup"\)/);
-    expect(hero).toMatch(/goSignedInOr\(navigate, "\/home", "\/signup"\)/);
+    // Search: signed in -> Jobs > Browse, signed out -> the public board (heroSearch.ts).
+    expect(hero).toMatch(/goSignedInOr\(navigate, t\.signedIn, t\.signedOut\)/);
   });
 
   it("one block per section (inventory from sectionsConfig); an open card never sends a signed-out visitor to a sign-in-only page", () => {
@@ -78,7 +86,7 @@ describe("landing: the front door for all four sections", () => {
       const link = cardLinkFor(s.key, s.path, s.navLabel);
       expect(link.signedIn, s.key).toBe(s.path);
       if (s.key === "jobs") {
-        expect(link).toMatchObject({ to: "/browse", text: "Browse Jobs" }); // the public guest board
+        expect(link).toMatchObject({ to: "/browse", text: "Browse jobs" }); // the public guest board
       } else {
         // Declutter/Shops/Homes are ProtectedRoute pages: sign-up, returning to the section.
         expect(link.to, s.key).toBe(`/signup?redirect=${encodeURIComponent(s.path)}`);

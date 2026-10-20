@@ -142,7 +142,6 @@ export const SCENARIOS = {
       { type: "#password", text: "Not-a-real-pass-1" },
       { tap: "button[aria-label='Show password']" },
       { tap: "#policies" },
-      { tap: "#age-confirm" },
       { tap: "#marketing-consent" },
     ],
   },

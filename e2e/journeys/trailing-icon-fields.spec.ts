@@ -87,7 +87,8 @@ test(guestTitle, async ({ browser, journey }) => {
     await page.goto("/signup");
     await page.locator("#email").fill(`trailing-icon-${Date.now()}@example.com`);
     await page.locator("#password").fill("Ti!journey12345");
-    for (const id of ["#policies", "#age-confirm"]) await page.locator(id).click();
+    // ONE consent box (board 55) records the agreement and the 18+ attestation.
+    await page.locator("#policies").click();
     await page.getByRole("button", { name: /continue/i }).first().click();
     await expect(page.locator("#firstName")).toBeVisible({ timeout: 30_000 });
     await page.locator("#firstName").fill("Marguerite");

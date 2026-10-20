@@ -351,7 +351,7 @@ if (legHas("targeted")) test.describe("targeted rules", () => {
   });
 
   // Step 2 asks name, city and ZIP only since 2026-10-09 (owner; c34c5fee5): no
-  // phone, no birthday. Step 1's 18+ box (#age-confirm, ticked in this form's
+  // phone, no birthday. Step 1's 18+ box (#policies, ticked in this form's
   // prepare) is the age gate complete-signup accepts. Pinned on the app side by
   // src/test/signupStepTwoIsShort.test.ts; every `#id` this file drives must
   // exist in src/ (src/test/messyInputApplicantNames.test.ts).

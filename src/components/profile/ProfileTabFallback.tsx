@@ -127,7 +127,8 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   ],
   reviews: [{ h: 307 }],
   subscription: [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],
-  support: [{ h: 469 }, { h: 43 }],
+  // + "Take the tour again" (2026-10-20, FirstRun replay).
+  support: [{ h: 469 }, { h: 43 }, { h: 43 }],
   warnings: [{ h: 243, media: 1 }],
   credentials: [{ h: 92 }, { h: 152 }, { h: 169 }, { h: 70 }],
   accessibility: [{ h: 99 }, { h: 76 }],
@@ -138,6 +139,9 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   saved_helpers: [{ h: 344, media: 1 }],
   analytics: [{ h: 481 }],
   wrapped: [{ h: 333 }],
+  // You › Settings (board 52): Look, Your sections, Alerts, Your account, More, Log out
+  // (375, poster-e2e, 2026-10-20).
+  settings: [{ h: 166 }, { h: 295 }, { h: 101 }, { h: 295 }, { h: 378 }, { h: 58 }],
 };
 
 /** Avatar circles a screenful-reserve tab draws in its first card. */

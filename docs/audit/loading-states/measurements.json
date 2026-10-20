@@ -7934,13 +7934,13 @@
       "url": "/profile?tab=support",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2119,
+      "capturedAt": 2394,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=support",
-      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_support.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/builder1f-shell/ls/customer_profile_tab_support.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -7952,13 +7952,17 @@
           "div#root > nav": {
             "y": 748,
             "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
           }
         },
         "shifts": [],
         "clusters": [
           {
             "path": "main#main-content > div > div > div",
-            "placeholderCount": 4,
+            "placeholderCount": 5,
             "probe": {
               "px": 187.5,
               "py": 20,
@@ -7968,7 +7972,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 592
+              "h": 647
             },
             "containerRect": {
               "x": 0,
@@ -7976,7 +7980,7 @@
               "w": 375,
               "h": 812
             },
-            "rows": 3,
+            "rows": 4,
             "rowH": 68,
             "rect": {
               "x": 0,
@@ -7985,68 +7989,38 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 15,
+            "elements": 16,
             "textLeaves": 1,
             "media": 0,
             "controls": 1,
-            "placeholders": 4,
-            "text": "Help & Support"
-          },
-          {
-            "path": "div#root > nav > div:nth-of-type(3)",
-            "placeholderCount": 1,
-            "probe": {
-              "px": 335,
-              "py": 770,
-              "containerW": 56
-            },
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 36,
-            "textLeaves": 1,
-            "media": 2,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "?"
+            "placeholders": 5,
+            "text": "Help"
           }
         ]
       },
       "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_support.loaded.png",
+      "placeholdersLeft": [],
+      "placeholdersLeftCount": 0,
+      "loadedPng": "/Users/lexilombas/.lh-shots/builder1f-shell/ls/customer_profile_tab_support.loaded.png",
       "loaded": {
-        "found": 1,
+        "found": 0,
         "docH": 812,
         "landmarks": {
           "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
             "y": 21.7,
             "h": 24.6
           },
+          "testid:take-the-tour-again": {
+            "y": 615.4,
+            "h": 42.5
+          },
           "div#root > nav": {
             "y": 748,
             "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
           }
         },
         "shifts": [],
@@ -8057,7 +8031,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 603.4
+              "h": 657.9
             },
             "containerRect": {
               "x": 8,
@@ -8065,7 +8039,7 @@
               "w": 359,
               "h": 812
             },
-            "rows": 3,
+            "rows": 4,
             "rowH": 68,
             "rect": {
               "x": 8,
@@ -8074,42 +8048,12 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 42,
-            "textLeaves": 7,
+            "elements": 49,
+            "textLeaves": 8,
             "media": 0,
-            "controls": 4,
+            "controls": 5,
             "placeholders": 0,
-            "text": "Help & SupportWhat's this about?Message AdminMessage AdminSuggestionSomething's not workingOtherSend a message or ask the admin team a questionSubject (optional"
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 39,
-            "textLeaves": 3,
-            "media": 3,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "21PP"
+            "text": "HelpWhat's this about?Talk to a real personTalk to a real personSuggestionSomething's not workingOtherAsk our team anything. A person reads every message.Subjec"
           }
         ]
       },
@@ -8122,13 +8066,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 592
+            "h": 647
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 603.4
+            "h": 657.9
           },
           "skeletonContainer": {
             "x": 0,
@@ -8142,11 +8086,11 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": 11.4,
+          "deltaRowPx": 10.9,
           "deltaContainerPx": 0,
           "rows": [
-            3,
-            3
+            4,
+            4
           ],
           "rowH": [
             68,
@@ -8159,95 +8103,43 @@
           ],
           "controls": [
             1,
-            4
+            5
           ],
           "textLeaves": [
             1,
-            7
+            8
           ],
-          "placeholderCount": 4,
-          "shapeMatch": true
-        },
-        {
-          "path": "div#root > nav > div:nth-of-type(3)",
-          "skeletonBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "realBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            58,
-            58
-          ],
-          "deltaRowH": 0,
-          "media": [
-            2,
-            3
-          ],
-          "controls": [
-            6,
-            6
-          ],
-          "textLeaves": [
-            1,
-            3
-          ],
-          "placeholderCount": 1,
+          "placeholderCount": 5,
           "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": 11.4,
+      "worstDeltaRowPx": 10.9,
       "worstDeltaRowH": null,
       "worstDeltaRows": 0,
       "shapeMismatches": 0,
-      "clustersMeasured": 2,
+      "clustersMeasured": 1,
       "maxLandmarkShiftPx": 0,
       "landmarkMoves": [],
-      "landmarksCompared": 1,
+      "landmarksCompared": 2,
       "docHDelta": 0,
       "status": "measured",
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 404 (Not Found)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
-      "requests": 20
+      "requests": 29
     },
     {
       "url": "/profile?tab=support",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2201,
+      "capturedAt": 2394,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=support",
-      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/helper_profile_tab_support.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/builder1f-shell/ls/helper_profile_tab_support.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -8259,13 +8151,17 @@
           "div#root > nav": {
             "y": 748,
             "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
           }
         },
         "shifts": [],
         "clusters": [
           {
             "path": "main#main-content > div > div > div",
-            "placeholderCount": 4,
+            "placeholderCount": 5,
             "probe": {
               "px": 187.5,
               "py": 20,
@@ -8275,7 +8171,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 592
+              "h": 647
             },
             "containerRect": {
               "x": 0,
@@ -8283,7 +8179,7 @@
               "w": 375,
               "h": 812
             },
-            "rows": 3,
+            "rows": 4,
             "rowH": 68,
             "rect": {
               "x": 0,
@@ -8292,68 +8188,38 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 15,
+            "elements": 16,
             "textLeaves": 1,
             "media": 0,
             "controls": 1,
-            "placeholders": 4,
-            "text": "Help & Support"
-          },
-          {
-            "path": "div#root > nav > div:nth-of-type(3)",
-            "placeholderCount": 1,
-            "probe": {
-              "px": 335,
-              "py": 770,
-              "containerW": 56
-            },
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 36,
-            "textLeaves": 1,
-            "media": 2,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "?"
+            "placeholders": 5,
+            "text": "Help"
           }
         ]
       },
       "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/helper_profile_tab_support.loaded.png",
+      "placeholdersLeft": [],
+      "placeholdersLeftCount": 0,
+      "loadedPng": "/Users/lexilombas/.lh-shots/builder1f-shell/ls/helper_profile_tab_support.loaded.png",
       "loaded": {
-        "found": 1,
+        "found": 0,
         "docH": 812,
         "landmarks": {
           "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
             "y": 21.7,
             "h": 24.6
           },
+          "testid:take-the-tour-again": {
+            "y": 615.4,
+            "h": 42.5
+          },
           "div#root > nav": {
             "y": 748,
             "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
           }
         },
         "shifts": [],
@@ -8364,7 +8230,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 603.4
+              "h": 657.9
             },
             "containerRect": {
               "x": 8,
@@ -8372,7 +8238,7 @@
               "w": 359,
               "h": 812
             },
-            "rows": 3,
+            "rows": 4,
             "rowH": 68,
             "rect": {
               "x": 8,
@@ -8381,42 +8247,12 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 42,
-            "textLeaves": 7,
+            "elements": 49,
+            "textLeaves": 8,
             "media": 0,
-            "controls": 4,
+            "controls": 5,
             "placeholders": 0,
-            "text": "Help & SupportWhat's this about?Message AdminMessage AdminSuggestionSomething's not workingOtherSend a message or ask the admin team a questionSubject (optional"
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 38,
-            "textLeaves": 2,
-            "media": 3,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "1HH"
+            "text": "HelpWhat's this about?Talk to a real personTalk to a real personSuggestionSomething's not workingOtherAsk our team anything. A person reads every message.Subjec"
           }
         ]
       },
@@ -8429,13 +8265,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 592
+            "h": 647
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 603.4
+            "h": 657.9
           },
           "skeletonContainer": {
             "x": 0,
@@ -8449,11 +8285,11 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": 11.4,
+          "deltaRowPx": 10.9,
           "deltaContainerPx": 0,
           "rows": [
-            3,
-            3
+            4,
+            4
           ],
           "rowH": [
             68,
@@ -8466,83 +8302,31 @@
           ],
           "controls": [
             1,
-            4
+            5
           ],
           "textLeaves": [
             1,
-            7
+            8
           ],
-          "placeholderCount": 4,
-          "shapeMatch": true
-        },
-        {
-          "path": "div#root > nav > div:nth-of-type(3)",
-          "skeletonBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "realBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            58,
-            58
-          ],
-          "deltaRowH": 0,
-          "media": [
-            2,
-            3
-          ],
-          "controls": [
-            6,
-            6
-          ],
-          "textLeaves": [
-            1,
-            2
-          ],
-          "placeholderCount": 1,
+          "placeholderCount": 5,
           "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": 11.4,
+      "worstDeltaRowPx": 10.9,
       "worstDeltaRowH": null,
       "worstDeltaRows": 0,
       "shapeMismatches": 0,
-      "clustersMeasured": 2,
+      "clustersMeasured": 1,
       "maxLandmarkShiftPx": 0,
       "landmarkMoves": [],
-      "landmarksCompared": 1,
+      "landmarksCompared": 2,
       "docHDelta": 0,
       "status": "measured",
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 404 (Not Found)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
-      "requests": 20
+      "requests": 29
     },
     {
       "url": "/profile?tab=support",
@@ -27650,6 +27434,1380 @@
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
       "requests": 18
+    },
+    {
+      "url": "/profile?tab=settings",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 3970,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=settings",
+      "loadingPng": "/Users/lexilombas/.lh-shots/builder1f-shell/ls/customer_profile_tab_settings.loading.png",
+      "loading": {
+        "found": 12,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 5,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1421
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 1437,
+            "elements": 27,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 12,
+            "text": "Settings"
+          },
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 2,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1421
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 1437,
+            "elements": 27,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 12,
+            "text": "Settings"
+          },
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 2,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1421
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 1437,
+            "elements": 27,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 12,
+            "text": "Settings"
+          },
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 2,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1421
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 1437,
+            "elements": 27,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 12,
+            "text": "Settings"
+          },
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1421
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 1437,
+            "elements": 27,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 12,
+            "text": "Settings"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [],
+      "placeholdersLeftCount": 0,
+      "loadedPng": "/Users/lexilombas/.lh-shots/builder1f-shell/ls/customer_profile_tab_settings.loaded.png",
+      "loaded": {
+        "found": 0,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "main#main-content > div > div > div > div > div > div > section:nth-of-type(1) > h2": {
+            "y": 69,
+            "h": 35.4
+          },
+          "main#main-content > div > div > div > div > div > div > section:nth-of-type(2) > h2": {
+            "y": 246.6,
+            "h": 35.4
+          },
+          "main#main-content > div > div > div > div > div > div > section:nth-of-type(3) > h2": {
+            "y": 553.3,
+            "h": 35.4
+          },
+          "main#main-content > div > div > div > div > div > div > section:nth-of-type(4) > h2": {
+            "y": 666.3,
+            "h": 35.4
+          },
+          "main#main-content > div > div > div > div > div > div > section:nth-of-type(5) > h2": {
+            "y": 973.1,
+            "h": 35.4
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1420.3
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1532,
+            "elements": 126,
+            "textLeaves": 39,
+            "media": 0,
+            "controls": 18,
+            "placeholders": 0,
+            "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1420.3
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1532,
+            "elements": 126,
+            "textLeaves": 39,
+            "media": 0,
+            "controls": 18,
+            "placeholders": 0,
+            "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1420.3
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1532,
+            "elements": 126,
+            "textLeaves": 39,
+            "media": 0,
+            "controls": 18,
+            "placeholders": 0,
+            "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1420.3
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1532,
+            "elements": 126,
+            "textLeaves": 39,
+            "media": 0,
+            "controls": 18,
+            "placeholders": 0,
+            "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1420.3
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1532,
+            "elements": 126,
+            "textLeaves": 39,
+            "media": 0,
+            "controls": 18,
+            "placeholders": 0,
+            "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1421
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1420.3
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -0.7,
+          "deltaContainerPx": 0,
+          "rows": [
+            7,
+            7
+          ],
+          "rowH": [
+            166,
+            166
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            18
+          ],
+          "textLeaves": [
+            1,
+            39
+          ],
+          "placeholderCount": 5,
+          "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1421
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1420.3
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -0.7,
+          "deltaContainerPx": 0,
+          "rows": [
+            7,
+            7
+          ],
+          "rowH": [
+            166,
+            166
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            18
+          ],
+          "textLeaves": [
+            1,
+            39
+          ],
+          "placeholderCount": 2,
+          "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1421
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1420.3
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -0.7,
+          "deltaContainerPx": 0,
+          "rows": [
+            7,
+            7
+          ],
+          "rowH": [
+            166,
+            166
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            18
+          ],
+          "textLeaves": [
+            1,
+            39
+          ],
+          "placeholderCount": 2,
+          "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1421
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1420.3
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -0.7,
+          "deltaContainerPx": 0,
+          "rows": [
+            7,
+            7
+          ],
+          "rowH": [
+            166,
+            166
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            18
+          ],
+          "textLeaves": [
+            1,
+            39
+          ],
+          "placeholderCount": 2,
+          "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1421
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1420.3
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -0.7,
+          "deltaContainerPx": 0,
+          "rows": [
+            7,
+            7
+          ],
+          "rowH": [
+            166,
+            166
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            18
+          ],
+          "textLeaves": [
+            1,
+            39
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": -0.7,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 5,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 2,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 29
+    },
+    {
+      "url": "/profile?tab=settings",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 2322,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=settings",
+      "loadingPng": "/Users/lexilombas/.lh-shots/builder1f-shell/ls/helper_profile_tab_settings.loading.png",
+      "loading": {
+        "found": 12,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 5,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1421
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 1437,
+            "elements": 27,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 12,
+            "text": "Settings"
+          },
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 2,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1421
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 1437,
+            "elements": 27,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 12,
+            "text": "Settings"
+          },
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 2,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1421
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 1437,
+            "elements": 27,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 12,
+            "text": "Settings"
+          },
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 2,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1421
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 1437,
+            "elements": 27,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 12,
+            "text": "Settings"
+          },
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1421
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 1437,
+            "elements": 27,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 12,
+            "text": "Settings"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [],
+      "placeholdersLeftCount": 0,
+      "loadedPng": "/Users/lexilombas/.lh-shots/builder1f-shell/ls/helper_profile_tab_settings.loaded.png",
+      "loaded": {
+        "found": 0,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "main#main-content > div > div > div > div > div > div > section:nth-of-type(1) > h2": {
+            "y": 69,
+            "h": 35.4
+          },
+          "main#main-content > div > div > div > div > div > div > section:nth-of-type(2) > h2": {
+            "y": 246.6,
+            "h": 35.4
+          },
+          "main#main-content > div > div > div > div > div > div > section:nth-of-type(3) > h2": {
+            "y": 553.3,
+            "h": 35.4
+          },
+          "main#main-content > div > div > div > div > div > div > section:nth-of-type(4) > h2": {
+            "y": 666.3,
+            "h": 35.4
+          },
+          "main#main-content > div > div > div > div > div > div > section:nth-of-type(5) > h2": {
+            "y": 973.1,
+            "h": 35.4
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1420.3
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1532,
+            "elements": 126,
+            "textLeaves": 39,
+            "media": 0,
+            "controls": 18,
+            "placeholders": 0,
+            "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1420.3
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1532,
+            "elements": 126,
+            "textLeaves": 39,
+            "media": 0,
+            "controls": 18,
+            "placeholders": 0,
+            "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1420.3
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1532,
+            "elements": 126,
+            "textLeaves": 39,
+            "media": 0,
+            "controls": 18,
+            "placeholders": 0,
+            "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1420.3
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1532,
+            "elements": 126,
+            "textLeaves": 39,
+            "media": 0,
+            "controls": 18,
+            "placeholders": 0,
+            "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1420.3
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 7,
+            "rowH": 166,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1532,
+            "elements": 126,
+            "textLeaves": 39,
+            "media": 0,
+            "controls": 18,
+            "placeholders": 0,
+            "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1421
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1420.3
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -0.7,
+          "deltaContainerPx": 0,
+          "rows": [
+            7,
+            7
+          ],
+          "rowH": [
+            166,
+            166
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            18
+          ],
+          "textLeaves": [
+            1,
+            39
+          ],
+          "placeholderCount": 5,
+          "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1421
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1420.3
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -0.7,
+          "deltaContainerPx": 0,
+          "rows": [
+            7,
+            7
+          ],
+          "rowH": [
+            166,
+            166
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            18
+          ],
+          "textLeaves": [
+            1,
+            39
+          ],
+          "placeholderCount": 2,
+          "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1421
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1420.3
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -0.7,
+          "deltaContainerPx": 0,
+          "rows": [
+            7,
+            7
+          ],
+          "rowH": [
+            166,
+            166
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            18
+          ],
+          "textLeaves": [
+            1,
+            39
+          ],
+          "placeholderCount": 2,
+          "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1421
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1420.3
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -0.7,
+          "deltaContainerPx": 0,
+          "rows": [
+            7,
+            7
+          ],
+          "rowH": [
+            166,
+            166
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            18
+          ],
+          "textLeaves": [
+            1,
+            39
+          ],
+          "placeholderCount": 2,
+          "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1421
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1420.3
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -0.7,
+          "deltaContainerPx": 0,
+          "rows": [
+            7,
+            7
+          ],
+          "rowH": [
+            166,
+            166
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            18
+          ],
+          "textLeaves": [
+            1,
+            39
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": -0.7,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 5,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 2,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 29
     }
   ],
   "merged": [
@@ -27796,6 +28954,20 @@
       "replaced": [
         "helper /rentals",
         "anon /rentals"
+      ]
+    },
+    {
+      "at": "2026-10-20T23:55:48.808Z",
+      "base": "http://127.0.0.1:4173",
+      "surfaces": [
+        "customer /profile?tab=settings",
+        "helper /profile?tab=support",
+        "customer /profile?tab=support",
+        "helper /profile?tab=settings"
+      ],
+      "replaced": [
+        "customer /profile?tab=support",
+        "helper /profile?tab=support"
       ]
     }
   ]

@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { goSignedInOr } from "./goSignedInOr";
 import { seasonalPill } from "./seasonalPill";
 import { heroSearchTargets, TASK_CHIPS } from "./heroSearch";
-import PhoneMock from "./PhoneMock";
 
 /**
  * Hero (owner-approved landing redesign, 2026-10-20): seasonal pill, Bodoni H1
  * with the rust italic "partner.", subhead, one search for all four sections
- * with a "Search" pill, example chips that fill the search, and an HTML/CSS
- * phone mock (no image). Two columns from lg, one stacked column below.
+ * with a "Search" pill, example chips that fill the search, and the Browse
+ * link: ONE centered column (max 760px) at every width. No phone mock (owner,
+ * 2026-10-20, after seeing it live: removed on desktop and phone alike).
  *
  * Honesty rules (LANDING-APPROVED.md): the chips carry no prices (no real
  * completed-job price data behind them yet); the pill follows the month
@@ -68,8 +68,8 @@ const HeroSection = () => {
 
   return (
     <section className="relative px-5 sm:px-8 lg:px-12 pt-24 sm:pt-28 lg:pt-36 pb-16 sm:pb-20 lg:pb-28">
-      <div className="landing-hero-grid relative mx-auto w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] items-center gap-12 lg:gap-16">
-        <div className="flex flex-col items-start gap-5 sm:gap-6 min-w-0">
+      <div className="relative mx-auto w-full max-w-[760px]">
+        <div data-testid="landing-hero-column" className="flex flex-col items-center text-center gap-5 sm:gap-6 min-w-0">
           <p
             className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-ds-12 sm:text-ds-13 font-semibold max-w-full"
             style={{ background: "var(--lp-surface)", color: "var(--lp-ink)", border: "1px solid var(--lp-line)" }}
@@ -90,7 +90,7 @@ const HeroSection = () => {
           </h1>
 
           <p
-            className="max-w-xl text-ds-15 sm:text-ds-17 leading-relaxed"
+            className="max-w-2xl text-ds-15 sm:text-ds-17 leading-relaxed"
             style={{ fontFamily: "Montserrat, system-ui, sans-serif", fontWeight: 400, color: "var(--lp-body)" }}
           >
             Hire help or find work. Sell or find a deal. Shop local or open a shop. Find a place or list one. One account, one verified ID, real neighbors.
@@ -100,7 +100,7 @@ const HeroSection = () => {
             onSubmit={search}
             role="search"
             aria-label="Search Helpr"
-            className="landing-search w-full max-w-xl flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-1.5 sm:p-1.5"
+            className="landing-search w-full max-w-xl text-left flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-1.5 sm:p-1.5"
             data-testid="landing-search"
           >
             <label htmlFor={inputId} className="sr-only">Search jobs, items, shops and homes</label>
@@ -129,7 +129,7 @@ const HeroSection = () => {
             </Button>
           </form>
 
-          <ul className="flex flex-wrap gap-2 max-w-xl" aria-label="Popular searches">
+          <ul className="flex flex-wrap justify-center gap-2 max-w-xl" aria-label="Popular searches">
             {TASK_CHIPS.map((chip) => (
               <li key={chip}>
                 <button
@@ -156,8 +156,6 @@ const HeroSection = () => {
             <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" strokeWidth={1.75} aria-hidden />
           </Link>
         </div>
-
-        <PhoneMock />
       </div>
     </section>
   );

@@ -93,7 +93,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   const navigate = useNavigate();
   const afterSignOutEverywhere = (result: { error: unknown } | undefined) => {
     if (result?.error) {
-      toast.error("Signed out on this device. We couldn't confirm your other devices. Sign in and use Sign Out Everywhere again.");
+      toast.error("Signed out on this device. We couldn't confirm your other devices. Sign in and use Sign out everywhere again.");
       navigate("/login", { replace: true });
       return;
     }
@@ -252,7 +252,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               className="border-[hsl(var(--border)/0.6)] focus-visible:border-primary/40"
             />
             {emailError && (
-              <p className="text-ds-11 font-sans" role="alert" style={{ color: "hsl(var(--burnt-sienna))" }}>
+              <p className="text-ds-11 font-sans" role="alert" style={{ color: "hsl(var(--alert))" }}>
                 {emailError}
               </p>
             )}
@@ -293,7 +293,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         onOpenChange={setSignOutDialogOpen}
         title="Sign Out Everywhere?"
         description="This signs out every device, including this one. You'll need to sign back in here."
-        label="Sign Out Everywhere"
+        label="Sign out everywhere"
         primaryTone="sienna"
         primaryHaptic="warning"
         scope="global"
@@ -566,12 +566,8 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             size="sm"
             onClick={() => setSignOutDialogOpen(true)}
             className="w-full"
-            style={{
-              borderColor: "hsl(var(--burnt-sienna) / 0.32)",
-              color: "hsl(var(--burnt-sienna))",
-            }}
           >
-            <LogOut className="w-3.5 h-3.5 mr-1.5" /> Sign Out Everywhere
+            <LogOut className="w-3.5 h-3.5 mr-1.5" /> Sign out everywhere
           </Button>
         )}
       </div>

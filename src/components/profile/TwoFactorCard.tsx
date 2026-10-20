@@ -143,10 +143,6 @@ export function TwoFactorCard() {
             size="sm"
             variant="outline"
             className="shrink-0"
-            style={{
-              borderColor: "hsl(var(--burnt-sienna) / 0.32)",
-              color: "hsl(var(--burnt-sienna))",
-            }}
             aria-label="Turn off two-step verification"
             onClick={() => setDisableOpen(true)}
           >
@@ -160,7 +156,7 @@ export function TwoFactorCard() {
             aria-label="Turn on two-step verification"
             onClick={() => setEnrollOpen(true)}
           >
-            Turn On
+            Turn on
           </Button>
         ))}
       </div>
@@ -282,7 +278,7 @@ function EnrollDialog({
         ) : error || !data ? (
           <p
             className="font-sans text-ds-11 py-4 text-center"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
+            style={{ color: "hsl(var(--alert))" }}
           >
             Couldn't start setup. Please close and try again.
           </p>
@@ -352,7 +348,7 @@ function EnrollDialog({
             onClick={handleVerify}
             disabled={verifying || code.length !== 6 || !data}
           >
-            {verifying ? "Verifying…" : "Verify & Turn On"}
+            {verifying ? "Verifying…" : "Verify and turn on"}
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>

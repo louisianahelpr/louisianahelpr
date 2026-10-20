@@ -258,12 +258,12 @@ describe("Sign Out Everywhere: an unconfirmed sign-out sends the person to sign 
         </QueryClientProvider>
       </MemoryRouter>,
     );
-    fireEvent.click(await screen.findByRole("button", { name: /Sign Out Everywhere/ }));
-    fireEvent.click(await screen.findByRole("button", { name: "Sign Out Everywhere" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Sign out everywhere/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Sign out everywhere" }));
     expect(await screen.findByText("login page")).toBeInTheDocument();
     expect(signOutWithPushCleanup).toHaveBeenCalledWith({ scope: "global" });
     expect(toastError).toHaveBeenCalledWith(
-      "Signed out on this device. We couldn't confirm your other devices. Sign in and use Sign Out Everywhere again.",
+      "Signed out on this device. We couldn't confirm your other devices. Sign in and use Sign out everywhere again.",
     );
   });
 });

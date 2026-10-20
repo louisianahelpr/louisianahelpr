@@ -221,7 +221,10 @@ export function useActivityActions({
     w9DialogOpen, setW9DialogOpen,
     w9Context,
     paymentHeldSide, setPaymentHeldSide,
-    paymentHeldWho,
+    // Board 60: a Helpr's accept names only the job; the poster's name and date come from the Working list.
+    paymentHeldWho: paymentHeldWho?.jobId
+      ? (() => { const a = appliedApps.find((x) => x.job_id === paymentHeldWho.jobId); return { ...paymentHeldWho, name: a?.posterName ?? null, dateNeeded: a?.job?.date_needed ?? null }; })()
+      : paymentHeldWho,
     respondingHelperAppId,
     confirmingArrivalJobId,
     confirmingWorkingJobId,

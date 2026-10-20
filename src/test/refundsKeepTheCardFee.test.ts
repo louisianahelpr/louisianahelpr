@@ -91,7 +91,7 @@
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
  * @mutate supabase/migrations/20261017055505_declutter_helpr_delivery.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
- * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
+ * @mutate supabase/migrations/20261020064354_declutter_manage_listing.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -432,7 +432,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_hand_refund_failed: "20261017055500_declutter_refund_hand_settle.sql df3bdc676a1d434c",
       // Owner answer 7 (20261017060455): the three seller-out paths record
       // 'seller_out' (full refund, the card fee is the seller's debt) instead of order_closed / sold_elsewhere.
-      declutter_mark_order_paid: "20261017060455_declutter_seller_out_pays_fee.sql 25677976af75c7a5",
+      // Board 158 (20261020064354): the same body, a 'paused' listing sells like a 'live' one (two status
+      // lists only; diffed line by line by lander42, TRAIN25); the refund reasons and fee are unchanged.
+      declutter_mark_order_paid: "20261020064354_declutter_manage_listing.sql 6628bdc8c4d63e60",
       declutter_money_rows_seed: "20261014224914_declutter_slice3b_payments.sql eb41800cf45bee87",
       declutter_order_refunds_recorded_cents: "20261017055505_declutter_helpr_delivery.sql 180fd5a89917ba6d",
       declutter_record_hand_refund: "20261017055500_declutter_refund_hand_settle.sql e91bafe49bc1f340",

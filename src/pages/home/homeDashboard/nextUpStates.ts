@@ -89,7 +89,7 @@ export function deriveWaiting(
     return {
       id: `wa-${a.id}`,
       jobId: a.job.id,
-      label: who ? `Waiting on ${who}` : "Waiting on the poster",
+      label: who ? `Waiting on ${who}` : "Waiting on the person who posted it",
       title: `You applied · ${a.job.title}`,
       detail: helperStatusLine(a).detail,
     };

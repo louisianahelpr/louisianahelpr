@@ -12,8 +12,8 @@
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |     v_id := public.declutter_create_item( |     v_id := public.declutter_create_item_fast(
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |   v_uid := public.declutter_assert_member(true);\n\n  IF public.declutter_move_out_date_problem | v_uid := (SELECT auth.uid());\n\n  IF public.declutter_move_out_date_problem
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql | REVOKE ALL ON FUNCTION public.declutter_create_move_drafts(date, text, text, numeric, numeric, jsonb) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_create_move_drafts(date, text, text, numeric, numeric, jsonb) FROM PUBLIC;
- * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |    WHERE seller_id = v_uid\n     AND in_moving_sale\n     AND status IN | WHERE in_moving_sale\n     AND status IN
- * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |        AND i.seller_id = v_uid AND p.seller_id = v_uid\n       AND i.in_moving_sale\n       AND i.status IN ('draft' |        AND i.in_moving_sale\n       AND i.status IN ('draft'
+ * @mutate supabase/migrations/20261020064354_declutter_manage_listing.sql |    WHERE seller_id = v_uid\n     AND in_moving_sale\n     AND status IN | WHERE in_moving_sale\n     AND status IN
+ * @mutate supabase/migrations/20261020064354_declutter_manage_listing.sql |        AND i.seller_id = v_uid AND p.seller_id = v_uid\n       AND i.in_moving_sale\n       AND i.status IN ('draft' |        AND i.in_moving_sale\n       AND i.status IN ('draft'
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |   IF v_date IS NULL OR v_date < v_today THEN |   IF v_date IS NULL THEN
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql | VALUES ('declutter_moving_out', 'testers', | VALUES ('declutter_moving_out', 'everyone',
  * @mutate supabase/functions/declutter-ai-draft/index.ts |   const refused = await requireFeature(admin, "declutter_moving_out", user, corsHeaders); |   const refused = null;
@@ -69,8 +69,8 @@ describe("Declutter moving-out mode (20261016053625)", () => {
 
   it("the date RPC changes only the caller's own items still in play", () => {
     const b = flat(body("declutter_set_move_out_date"));
-    expect(b).toContain("AND i.seller_id = v_uid AND p.seller_id = v_uid AND i.in_moving_sale AND i.status IN ('draft', 'pending_review', 'live', 'reserved')");
-    expect(b).toContain("WHERE seller_id = v_uid AND in_moving_sale AND status IN ('draft', 'pending_review', 'live', 'reserved')");
+    expect(b).toContain("AND i.seller_id = v_uid AND p.seller_id = v_uid AND i.in_moving_sale AND i.status IN ('draft', 'pending_review', 'live', 'paused', 'reserved')");
+    expect(b).toContain("WHERE seller_id = v_uid AND in_moving_sale AND status IN ('draft', 'pending_review', 'live', 'paused', 'reserved')");
     // Setting a date takes the selling gates (review nit 3).
     expect(b).toMatch(/IF p_move_out_on IS NOT NULL THEN PERFORM public\.declutter_assert_member\(true\);/);
   });

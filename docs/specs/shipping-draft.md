@@ -160,7 +160,8 @@ verified; step S0 measures it with one live rate call each (a rate quote buys no
 ## 5. Money analysis
 ### 5.1 The card fee can exceed our fee (finding)
 Stripe: 2.9% + 30¢ for a domestic card, +1.5% for an international card (stripe.com/pricing, read
-2026-10-20); the same constants are in `supabase/functions/_shared/stripeFees.ts`. Both checkouts are
+2026-10-20); the 2.9% + 30¢ card constants are in `supabase/functions/_shared/stripeFees.ts` (the
++1.5% international rate is in neither that file nor `src/lib/stripeFees.ts`). Both checkouts are
 card only. The charge is USD, so Stripe's currency-conversion +1% does not apply.
 
 With the fee on items only (I = items, S = shipping, cents):
@@ -195,7 +196,7 @@ rounding, so the rule "the fee always covers the card" holds for every shipped o
 ### 5.2 Where every dollar goes
 - Buyer pays: items + fee + shipping (+ tax on Shops). Shipping = the exact postage quoted
   + the provider's label fee (EasyPost $0) + optional insurance. Rate shown, rate charged, rate bought.
-- **Buy the label at payment time, not later** (recommended design): the `checkout.session.completed`
+- **Buy the label at payment time, not later** (SUPERSEDED by section 11 fix 2: authorise, buy the label, then capture): the `checkout.session.completed`
   handler buys the exact rate the buyer paid for (the rate id frozen on the order). No rate drift, no
   "label costs more now" case, no surplus. The seller then just prints it. If the rate is gone
   (provider error), the order falls to "seller backs out" style handling with a full refund and NO
@@ -322,8 +323,73 @@ Source: usps.com/ship/shipping-restrictions.htm (read 2026-10-20) and USPS PO-13
   **$9.93-$10.86** (the earlier $6-8 estimate was wrong).
 - The owner pays this (the stated exception). It is booked as a marketing cost, never charged to a seller.
 
-## 11. Reviews
-- lh-money-escrow: PENDING (not run; this lane could not spawn a reviewer). Must cover R1, R2, the fee
-  base change, the label-at-payment design and the refund table before any build.
+## 11. Money review result (lh-money-escrow, review only, of c7962d43e, 2026-10-20 ~02:38Z)
+Verdict: **approve with fixes**. Findings 1-8 must be written into the design before S1 starts.
+The reviewer read code only (no prod, Stripe or EasyPost calls) and recomputed the 5.1 math in node over
+every fee base from $0 to $10,000: the formulas, both break-even points and all five table rows match the
+real rounding; with option A the smallest margin is 38¢ (US card) and 37¢ (international card).
+I spot-checked findings 1 and 4 and the stripeFees claim against the cited lines (all three confirmed).
+These change the design above; where they conflict with sections 5-9, this section wins.
+
+MUST-FIX before S1:
+1. **Existing Declutter sweeps and bookings would catch `'ship'` orders.** The auto-pay and no-booking
+   sweeps exclude only `handover <> 'delivery'` (20261018183715 lines 236, 262): a shipped order would be
+   closed as `buyer_no_show` 7 days after payment, and `declutter_book_pickup` plus the
+   `declutter_bookings_not_delivery` trigger (20261017055505 ~2000-2016) would let a buyer book a slot and
+   trigger the 24 h auto-pay. Design: both loops use `handover NOT IN ('delivery','ship')`; the trigger
+   refuses `'ship'`; a separate sweep pays only when the shipment is delivered, the window has passed and
+   no problem is open; every handover-generic RPC lists its ship behaviour; a guard fails when a new
+   handover value is not handled.
+2. **R1 (label purchase fails after payment) as written makes the platform pay the card fee.** Design:
+   ship orders use a MANUAL-CAPTURE checkout: authorise, buy the label, then capture; a failed label
+   cancels the hold (a cancelled hold costs nothing, as Shops already relies on). This needs a new paid
+   path (`declutterCheckout.ts:146` treats only `paid` as paid). An empty EasyPost balance is a retry
+   state with an ops page while the hold is valid, never a refund. This replaces "label bought at
+   payment" in 5.2.
+3. **Existing refund policies would refund a spent label and debit only the card fee.** Design: a
+   `declutter_shipping_reserved_cents(order)` like `declutter_delivery_reserved_cents`; ship refund reasons
+   (`ship_lost`, `ship_never_shipped`, `ship_damaged`) each with its policy; the refund-amount CHECK and
+   `declutter_record_refund` keep the label on buyer-fault and book it as the seller's debt on seller-fault
+   and lost; the admin outcomes (no-fault, buyer-fault) get rows in the 5.3 table; Shops too.
+4. **The debt table cannot hold a shipping debt.** `declutter_seller_fee_debts.refund_id` is
+   `NOT NULL UNIQUE` (20261014224914 line 141), the insert is `ON CONFLICT (refund_id) DO NOTHING`, and the
+   seller column cascades on delete. Design: `source_kind` + `source_ref` with UNIQUE on the pair; RESTRICT
+   (or block account deletion while a debt is open); before booking a debt, try reversing that order's own
+   Stripe transfer (pattern: `_shared/chargebackClawback.ts`; not verified for Declutter transfers); no new
+   shipped sales while a shipping debt is open.
+5. **Buyer-caused cancel: the refund cannot wait on a 15+ day void.** Design: buyer-fault = refund
+   everything except shipping now, shipping only when the void refund succeeds; seller-fault = refund in
+   full now, a rejected void becomes seller debt (needs 4).
+6. **Shops sweeps and payouts would catch a ship mode.** `shop_handover_sweep` (20261018211820 ~552) and
+   `shop_payouts_due` on a late cancel (20261019071055 ~872). Design: ship orders excluded from that sweep
+   and the ready-photo clock, finished only on delivered + window; define a late cancel once a label
+   exists; buy the label BEFORE capture (failed label = release the hold; capture lost after the label =
+   void it); a label now dearer than the held shipping = decline at no cost.
+7. **A retry could buy a second label.** Design: store the provider shipment id and claim the purchase in
+   a committed row before buying; on resume read that shipment back first and use its label if any;
+   compare rate vs `shipping_cents` BEFORE buying, always record the real cost after, page if higher. S0
+   proves whether EasyPost refuses a second buy of the same shipment (not verified).
+8. **Test-mode payments could buy real postage.** Design: `stripeModeForParties` also picks the EasyPost
+   key; a test-mode order never touches the production EasyPost key; the label row records its mode.
+
+SHOULD-FIX (into the build plan): (9) option A covers the card fee on tax for US cards only: an
+international card on a Shops order with tax on the fee loses money above about $447 at 10% tax / $210 at
+12% (lower if Stripe Tax is 0.5% of the charge, price not verified). This gap exists today; block non-US
+cards on Shops or file it separately. (10) hide "I got it" until the delivered scan; return-to-sender,
+pickup-at-post-office and failures go to a problem state; define the lost-parcel N. (11) S0 measures what
+address checks, rate quotes and trackers cost on unpaid carts; cache and rate-limit if above $0. (12)
+chargebacks ("item not received"): tracking as evidence; a loss comes back by transfer reversal, then
+seller debt (the dispute handler today touches only `jobs`). (13) buy labels from a queue row written in
+the same transaction as `paid`, retried by `declutter-money`, with a give-up alert. (14) the
+amounts-frozen trigger and the checkout sum include `shipping_cents`; `ship_rate_id`, `ship_to`, `parcel`
+freeze too. (15) one parcel per order, built from the items' preset weights plus the box. (16) a claim
+payout pays that order's debt first, then the rest to the seller (say which balance funds it). (17)
+shipping-only refunds count in `declutter_order_refunds_recorded_cents`, or later payouts fail.
+NOTES: option A needs a new `fee_rule` value (frozen orders keep `f1`), the two premium CHECKs
+(`declutter_orders_premium_rule`, `shop_orders_premium_rule`), `src/lib/declutter/money.ts` and the fee line
+copy; reconciliation is per order, mailer labels tagged separately; "never top up by card" is an EasyPost
+dashboard setting the owner confirms.
+
+## 12. Other reviews and sources
 - lh-authz-rls: at S1 (ship_to address privacy, shipments writes).
 - Mercari's 3-day window figure is from third-party blogs (vendoo, closo), not Mercari's help pages.

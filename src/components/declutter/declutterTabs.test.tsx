@@ -13,6 +13,7 @@
  * and are stood in for here by one marker per order, so this file checks only
  * which tab each order lands on.
  *
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |           { key: "offers", label: "To answer", count: todo?.buyerOffers ?? 0, hot: true }, |           { key: "offers", label: "Offers", count: todo?.buyerOffers ?? 0, hot: true },
  * @mutate src/components/declutter/DeclutterHomeView.tsx |         : view === "buying" ? <BuyingDash todo={todo} /> |         : view === "buying" ? <WantedView />
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" />} |       {show("offers") && null}
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const show = (g: SellingGroup) => only === null \|\| only === g; |   const show = (_g: SellingGroup) => true;
@@ -304,6 +305,28 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     at("/declutter?view=offers");
     expect(await screen.findByRole("region", { name: "Your offers" })).toBeInTheDocument();
     await vi.waitFor(() => expect(where).toBe("/declutter?tab=buying"));
+  });
+
+  // D2 (Cowork audit 2026-10-20): the Buying "Offers" box read 0 above a listed
+  // offer (it counted only offers waiting for the buyer's answer). The class:
+  // a status box either counts exactly the rows its list shows, or its label
+  // says it counts what needs you (To pay / To answer / Pick up / Hand over / To be paid).
+  it.each([
+    ["buying", "Your offers", { ...OFFER, my_side: "buyer", awaiting: "seller" }],
+    ["selling", "Offers on your items", { ...OFFER, my_side: "seller", awaiting: "buyer" }],
+  ] as const)("D2: %s: a box never shows a count its list contradicts", async (side, region, offer) => {
+    state.offers = [offer];
+    const { container } = at(`/declutter?tab=${side}`);
+    const list = await screen.findByRole("region", { name: region });
+    const rows = list.querySelectorAll("li").length;
+    expect(rows).toBe(1);
+    const boxes = Array.from(container.querySelectorAll("[data-status-box]")) as HTMLElement[];
+    expect(boxes.length).toBeGreaterThan(2);
+    const box = container.querySelector('[data-status-box="offers"]') as HTMLElement;
+    const count = Number(/\d+/.exec(box.textContent ?? "")?.[0]);
+    const label = (box.textContent ?? "").replace(/\d+/, "").trim();
+    const needsYouLabel = /^(To |Pick up|Hand over)/.test(label);
+    expect(count === rows || needsYouLabel, `box "${label}" shows ${count} above ${rows} listed`).toBe(true);
   });
 
   it("every old view value maps to one of the new tabs (none falls back to Browse)", () => {

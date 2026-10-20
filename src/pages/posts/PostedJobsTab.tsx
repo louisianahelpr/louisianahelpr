@@ -84,13 +84,6 @@ interface PostedJobsTabProps {
   /** Jobs > Posted, "All" filter (owner, 2026-10-19): group by whose move it
    *  is (Needs you / Upcoming / ...) under headers instead of a flat list. */
   groupByStatus?: boolean;
-  /** Active status filter key, its per-bucket counts, the filter labels, and
-   *  the setter — all four only for the end-of-list block (see ListTail). The
-   *  header above still owns the filter itself; this is a read of it. */
-  statusFilter?: string;
-  statusCounts?: Record<string, number>;
-  statusLabels?: { key: string; label: string }[];
-  onSelectStatusFilter?: (key: string) => void;
 }
 
 /**
@@ -165,122 +158,17 @@ function LocationPressHint({ onDismiss }: { onDismiss: () => void }) {
 }
 
 /**
- * The end of a SHORT list — the thing that stops half a screen reading as a bug.
- *
- * PageScaffold's panel is a fixed-height liquid-glass card, so the panel is
- * always as tall as the viewport whether the list has one card or twenty. With
- * one card the remaining ~426px at 375 (measured) was blank card stock running
- * down to the bottom nav: the owner's "roughly half the screen empty", and the
- * same complaint they had already raised on another screen — so it is treated
- * as a standing expectation, not a one-off.
- *
- * What fills it is deliberately NOT a second "Post a Task" button: the nav's
- * floating + is already that action, and a second glossy CTA a thumb-width away
- * is the two-competing-primaries defect. What a poster standing in a short
- * filtered view actually wants is the answer to "where are the rest of my
- * posts?" — so the tail says exactly that, and takes them there.
- *
- * The sentence and the jump-target are lifted from ActivityEmptyState's own
- * `filteredElsewhere` / `jumpTo` logic, so the short-list tail and the
- * empty-list state make the same claim in the same words rather than being two
- * people's idea of the same message.
- *
- * Renders NOTHING when there is nowhere to point (an "all" view, or every other
- * bucket empty) — an end-of-list block with no content is the void with a
- * border around it. In that case the tail is a plain flex spacer, which still
- * lets the list sit at the top of the panel rather than the middle.
+ * The end of the Posted list: a spacer that lets a short list sit at the top of
+ * the panel. It used to carry "That's everything under this view. You also have
+ * 14 in Needs You, 2 in Waiting, 1 in Scheduled, 22 in Done and 136 in
+ * Cancelled" and a "Show Cancelled" button (Cowork design audit 2026-10-20,
+ * J6): every one of those counts is already a status box at the top of the
+ * screen and the Done / Cancelled rows right above it, it named "Upcoming"
+ * "Scheduled", and it called the current filter "this view". Guard:
+ * src/test/postedListNoDuplicateTail.test.tsx.
  */
-function ListTail({
-  moreHidden,
-  statusFilter,
-  statusCounts,
-  statusLabels,
-  onSelectStatusFilter,
-}: {
-  /** Q372: older cards are still behind "Show older", so "That's everything
-   *  under X" would be false. */
-  moreHidden?: boolean;
-  statusFilter?: string;
-  statusCounts?: Record<string, number>;
-  statusLabels?: { key: string; label: string }[];
-  onSelectStatusFilter?: (key: string) => void;
-}) {
-  const others = (statusLabels ?? []).filter(
-    (f) =>
-      f.key !== statusFilter && f.key !== "all" && (statusCounts?.[f.key] ?? 0) > 0,
-  );
-  // `mt-auto` on the spacer, not `flex-1` on the content: the copy stays a
-  // normal-height block anchored to the BOTTOM of the panel, so a short list
-  // reads as "list, then the footer of the screen" rather than as one card
-  // floating in the middle of a box.
-  if (moreHidden || !onSelectStatusFilter || others.length === 0) {
-    return <div aria-hidden className="mt-auto" />;
-  }
-  const fullest = [...others].sort(
-    (a, b) => (statusCounts?.[b.key] ?? 0) - (statusCounts?.[a.key] ?? 0),
-  )[0];
-  const activeLabel =
-    (statusLabels ?? []).find((f) => f.key === statusFilter)?.label ?? "this view";
-  const parts = others.map((f) => `${statusCounts?.[f.key]} in ${f.label}`);
-  const elsewhere =
-    parts.length === 1
-      ? parts[0]
-      : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
-
-  return (
-    /* `flex-1` on BOTH the region and its panel, so the leftover height is
-       CLAIMED rather than merely bounded. Bottom-anchoring the block alone (the
-       first attempt) fixed the "the page just stops" reading but left an
-       obvious blank band between the last card and the tail — the same void,
-       now with a box under it. Letting the panel grow and centring its copy
-       means there is no unclaimed pixel at any height: on a short list it is a
-       calm end-of-list region, and on a list that fills the panel the free
-       space is zero, so it collapses back to its content height and scrolls
-       past like any other block.
-
-       BUT THE CLAIM IS NOW CAPPED. Unbounded, "claim the leftover" turns into
-       "inflate one sentence and one button to whatever is left": measured at
-       500×900 with two short posts, the bordered box stood 363px tall around
-       ~106px of content, and the thinner the bucket the worse it got — a
-       single post gives it the better part of 500px. A bordered slab that size
-       does not read as a calm region, it reads as the dead band it was meant
-       to cure, only now outlined. `max-h-[9rem]` is the content's own ceiling
-       (a three-line paragraph at 320px + the 44px button + the py-3 padding is
-       121px), and `justify-end` on the wrapper hands the surplus BACK to the
-       panel's own surface, where an unfilled panel is quiet, rather than
-       painting a border around it. On a list that fills the panel nothing
-       changes: there is no surplus to cap. */
-    <div className="mt-auto flex-1 flex flex-col justify-end pt-6 min-h-0">
-      <div
-        className="rounded-ds-md px-3 py-3 text-center flex-1 max-h-[9rem] flex flex-col items-center justify-center"
-        style={{
-          background: "hsl(var(--olivewood) / 0.05)",
-          border: "0.5px solid hsl(var(--olivewood) / 0.16)",
-        }}
-      >
-        <p
-          className="font-sans leading-snug text-ds-11 text-balance"
-          style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-        >
-          That's everything under{" "}
-          <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-            {activeLabel}
-          </span>
-          . You also have {elsewhere}.
-        </p>
-        {/* Outline, never glossy — the nav's floating + owns this screen's one
-            primary action, and a filled button here would compete with it. */}
-        <Button
-          size="sm"
-          variant="outline"
-          className="mt-2 rounded-ds-md btn-press min-h-[44px]"
-          onClick={() => { hapticLight(); onSelectStatusFilter(fullest.key); }}
-        >
-          Show {fullest.label}
-        </Button>
-      </div>
-    </div>
-  );
+function ListTail() {
+  return <div aria-hidden className="mt-auto" />;
 }
 
 export const PostedJobsTab = ({
@@ -294,7 +182,6 @@ export const PostedJobsTab = ({
   onAcceptApplication, onDeclineApplication, onLoadInlineApplicants,
   inlineApplicants, loadingApplicants, applicantErrors,
   onActionComplete, groupByStatus = false,
-  statusFilter, statusCounts, statusLabels, onSelectStatusFilter,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
   // Q1586(c): a saved birthday under 18 greys this Post entry out; a tap says why.
@@ -309,8 +196,6 @@ export const PostedJobsTab = ({
   // Read ONCE, on mount, from a lazy initializer — safeStorage is synchronous
   // and hydrated before React mounts, so the first paint already knows whether
   // the hint has been seen and it never flashes in and back out.
-  // Q372: cards still behind "Show older", reported by PagedActivityList.
-  const [hiddenCount, setHiddenCount] = useState(0);
   const [locationHintSeen, setLocationHintSeen] = useState(
     () => safeStorage.getItem(LOCATION_PRESS_HINT_KEY) === "1",
   );
@@ -463,7 +348,7 @@ export const PostedJobsTab = ({
     // "All" ↔ a single status visibly jump. Normal flow keeps the two views
     // structurally identical, so toggling between them stays stable.
     <>
-      <PagedActivityList items={visibleJobs} getKey={(job) => job.id} renderItem={renderJobCard} onHiddenChange={setHiddenCount} />
+      <PagedActivityList items={visibleJobs} getKey={(job) => job.id} renderItem={renderJobCard} />
       {/* The "That's everything here." trailing line (which used to fill the
           blank space a 1-2 card bucket leaves in the fixed-height AppShell
           panel) was removed (owner, 2026-08-30). */}
@@ -507,13 +392,7 @@ export const PostedJobsTab = ({
       {listView}
 
       {/* Fills the panel's leftover height on a short list. */}
-      <ListTail
-        moreHidden={hiddenCount > 0}
-        statusFilter={statusFilter}
-        statusCounts={statusCounts}
-        statusLabels={statusLabels}
-        onSelectStatusFilter={onSelectStatusFilter}
-      />
+      <ListTail />
 
       {/* Sticky bottom bulk-dismiss bar — surfaces only in selection
           mode. Long-pressing a Cancelled card enters this mode. */}

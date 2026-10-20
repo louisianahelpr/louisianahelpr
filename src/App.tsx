@@ -111,7 +111,8 @@ const PaymentSuccess = lazyWithPreload(() => import("./pages/post-job/PaymentSuc
 const UserProfile = lazyWithPreload(() => import("./pages/user/UserProfile"));
 const Admin = lazyWithPreload(() => import("./pages/admin/Admin"));
 const PostsPage = lazyWithPreload(() => import("./pages/posts/PostsPage"));
-const ExplorePage = lazyWithPreload(() => import("./pages/explore/Explore"));
+// A redirect (to the last or first open section): no screen of its own.
+const ExploreRedirect = lazyWithPreload(() => import("./pages/explore/Explore"));
 // Jobs & Posts (owner, 2026-10-19): Browse | Posted | Working; /posts redirects to ?tab=posted.
 const JobsPage = lazyWithPreload(() => import("./pages/jobs/JobsSection"));
 const Messages = lazyWithPreload(() => import("./pages/messages/Messages"));
@@ -247,7 +248,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<JobsSectionSkeleton />}><JobsPage /></ProtectedRoute>, <JobsSectionSkeleton />)}</RouteErrorBoundary>} />
-      <Route path="/explore" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ExplorePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/explore" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ExploreRedirect /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<JobsSectionSkeleton />}><PostsPage /></ProtectedRoute>, <JobsSectionSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />

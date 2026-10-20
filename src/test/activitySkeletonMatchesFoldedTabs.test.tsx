@@ -67,14 +67,16 @@ describe("the /jobs placeholder draws the tab the URL opens on", () => {
 });
 
 describe("the placeholder's header is the loaded header's shape", () => {
-  it.each(["/jobs", "/jobs?tab=posted"])("%s: top bar with three controls, the tab toggle, and a single h1", (url) => {
+  it.each(["/jobs", "/jobs?tab=posted"])("%s: top bar with three controls, the switcher, the tab toggle, and a single h1", (url) => {
     const { container } = at(url);
     const bar = container.querySelector(".app-top-bar.h-16");
     expect(bar, "the top bar's own h-16 box").not.toBeNull();
     // title bone + one cluster holding +, bell, profile
     expect(bar!.children).toHaveLength(2);
     expect(bar!.lastElementChild!.children).toHaveLength(3);
-    expect(container.querySelectorAll(".h-12.w-full.rounded-full"), "the 48px tab toggle").toHaveLength(1);
+    // Explore's section switcher (2026-10-20) sits above the tab toggle on the page, so it has its own bone.
+    expect(container.querySelectorAll(".h-12.w-full.rounded-full.explore-switcher-bone"), "the Explore switcher bone").toHaveLength(1);
+    expect(container.querySelectorAll(".h-12.w-full.rounded-full:not(.explore-switcher-bone)"), "the 48px tab toggle").toHaveLength(1);
     expect(container.querySelectorAll("h1")).toHaveLength(1);
   });
 });

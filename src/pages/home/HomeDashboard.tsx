@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { GroupSection, GroupRow } from "@/components/sections/StatusBoxes";
 import { CustomizeSheet } from "@/components/sections/CustomizeSheet";
@@ -8,7 +7,7 @@ import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatJobDate } from "@/lib/dateUtils";
-import { useHomeSummary, type ComingUpItem } from "./homeDashboard/useHomeSummary";
+import { useHomeSummary, SECTION_INVITE, type ComingUpItem } from "./homeDashboard/useHomeSummary";
 import { useOnTabReselect } from "@/components/mobileNav/tabReselect";
 import { feedLinkTarget } from "./homeDashboard/feedLinkForward";
 
@@ -69,12 +68,12 @@ function HomeDashboardScreen() {
   const rest = Math.max(0, todoCount - 1);
 
   return (
-    <SectionScreen>
+    <SectionScreen
+      heading={<h1 data-testid="home-greeting" className="home-greeting font-moment text-foreground line-clamp-2">{first ? `${greeting()}, ${first}` : greeting()}</h1>}
+    >
       <div data-testid="home-dashboard" className="flex flex-col gap-section">
-        <div>
-          <h1 className="font-moment text-page-title text-foreground">{first ? `${greeting()}, ${first}` : greeting()}</h1>
-          <p className="text-ds-14 text-muted-foreground mt-0.5">{today}</p>
-        </div>
+        {/* The greeting is the top bar (AppTopBar `heading`, boards 7/19); the date sits right under it. */}
+        <p className="text-ds-14 text-muted-foreground -mt-3">{today}</p>
 
         {/* NEXT UP (owner, 2026-10-20; HELPR-DESIGN-SPEC §4 Home): the single most urgent
             to-do from every section and both sides, with its one action. Replaces the three
@@ -155,28 +154,25 @@ function HomeDashboardScreen() {
           <div className="grid grid-cols-2 gap-3">
             {visible.map((s) => {
               const on = s.feature === null || live.find((t) => t.path === s.path)?.on;
-              const tile = summary.tiles[s.key];
+              // One real line, or the both-sides invitation: never a "0" (spec v2 §1.5, §5.5; board 19).
+              const line = summary.tiles[s.key] ?? SECTION_INVITE[s.key];
               const Icon = s.icon;
               return (
                 <button
                   key={s.key}
                   type="button"
                   data-section-tile={s.key}
-                  aria-label={on ? s.label : `${s.label}, coming soon`}
+                  aria-label={on ? `${s.label}: ${line}` : `${s.label}, opening soon`}
                   aria-disabled={on ? undefined : true}
                   onClick={() => (on ? navigate(s.path) : sayComingSoon(s.label))}
-                  className={`btn-press liquid-glass text-left p-card flex flex-col gap-1 min-w-0 ${on ? "" : "text-muted-foreground"}`}
+                  className="btn-press liquid-glass text-left p-card flex flex-col gap-1 min-w-0"
                 >
-                  <span className="flex items-center justify-between">
-                    <span className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                      <Icon className="w-[18px] h-[18px]" aria-hidden />
-                    </span>
-                    {on ? <ChevronRight className="w-4 h-4 text-muted-foreground" aria-hidden /> : <span className="text-ds-11 font-semibold text-muted-foreground">Coming soon</span>}
-                  </span>
-                  <span className="text-ds-14 min-[360px]:text-ds-16 font-bold mt-2 truncate">{s.label}</span>
-                  <span className={`text-ds-24 leading-7 font-bold ${on && tile.n > 0 && s.key === "jobs" ? "text-[hsl(var(--accent-ink))]" : ""}`}>{on ? tile.n : "–"}</span>
-                  <span className="text-ds-13 text-muted-foreground truncate">{on ? tile.label : "Not open yet"}</span>
-                  <span className="text-ds-13 pt-2 mt-1 border-t border-border/70 truncate">{on ? tile.second : "We'll tell you when"}</span>
+                  <Icon className="w-6 h-6 text-primary" strokeWidth={1.75} aria-hidden />
+                  <span className="text-ds-16 font-bold mt-2 truncate text-foreground">{s.label}</span>
+                  <span data-tile-line className="text-ds-14 text-muted-foreground leading-snug">{line}</span>
+                  {!on && (
+                    <span className="self-start mt-1.5 rounded-full border border-border px-2.5 py-0.5 text-ds-12 font-semibold text-muted-foreground">Opening soon</span>
+                  )}
                 </button>
               );
             })}

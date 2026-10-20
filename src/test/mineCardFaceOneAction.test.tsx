@@ -18,7 +18,7 @@
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | confirmArrival: () => a.onConfirmArrival(job.id), | confirmArrival: () => toggle(job.id),
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | if (!a.isExpanded) toggle(job.id); | void 0;
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | return { label: "Leave a review", onClick: h.review, tone: "primary" }; | return { label: "Manage job", onClick: h.manage, tone: "secondary" };
- * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "primary" }; | return { label: "Manage job", onClick: h.manage, tone: "secondary" };
+ * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "secondary" }; | return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "primary" };
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts | if (s.isMinimalCard \|\| s.isOffered) return null; | if (s.isMinimalCard) return null;
  * @mutate src/pages/posts/PostedJobCard.tsx | expandable={false}\n            expanded={isExpanded} | expandable\n            expanded={isExpanded}
  */
@@ -198,6 +198,7 @@ describe("every poster state has a face button", () => {
   it("a stalled job (Needs you) offers Message, never a release the poster cannot make", () => {
     const a = posterFaceAction("stalled", { is_group_job: false }, h);
     expect(a.label).toBe("Message Hallie");
+    expect(a.tone, "a long Needs-you list must not stack filled primaries").toBe("secondary");
     a.onClick();
     expect(h.message).toHaveBeenCalledTimes(1);
   });

@@ -102,13 +102,9 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
         {/* emblemOnly (owner): the crest alone, no "Helpr · LA" wordmark. The
             emblem keeps alt="Helpr", so the link's accessible name is unchanged
             — dropping the words must not drop the name. */}
-        {landing ? (
-          <span className="shrink-0 whitespace-nowrap">
-            <HelprMark to="/" size="md" hideEmblem />
-          </span>
-        ) : (
-          <HelprMark to="/" size="md" emblemOnly />
-        )}
+        {/* The H logo on every bar, the landing's included (owner, 2026-10-20 08:30Z:
+            never the "Helpr" wordmark). */}
+        <HelprMark to="/" size="md" emblemOnly />
         {/* Smooth-scroll-to-top behavior on the marketing root used to
             live inline on this Link; HelprMark handles routing but if
             we want the same behavior in the future, replace with a

@@ -156,6 +156,9 @@
     "public.rental_leases.rental_leases_tenancy_idx",
     "public.rental_leases.rental_leases_landlord_idx",
     "public.rental_leases.rental_leases_tenant_idx",
-    "public.saved_homes.saved_homes_listing_idx"
+    "public.saved_homes.saved_homes_listing_idx",
+    "public.shipments.shipments_declutter_order_idx",
+    "public.shipments.shipments_shop_order_idx",
+    "public.shipments.shipments_worker_idx"
   ]
 }

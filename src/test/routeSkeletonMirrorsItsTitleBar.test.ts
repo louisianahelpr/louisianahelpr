@@ -73,7 +73,7 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(bar).toMatch(/className="btn-press h-10 w-10 rounded-full/);
   });
 
-  it("then Home's body: greeting, the Next up card, the 2x2 section tiles, Coming up", () => {
+  it("then Home's body: greeting, the Next up card, Coming up, the 2x2 section tiles (board 7)", () => {
     // Home: the Next up card (2026-10-20, it replaced the three stat boxes); the skeleton draws the same card.
     expect(home).toContain('<section data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1.5">');
     expect(skeleton).toContain('<div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton="next-up">');
@@ -82,9 +82,11 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(home).toContain('<div className="grid grid-cols-2 gap-3">');
     expect(skeleton).toContain('<div className="grid grid-cols-2 gap-3" data-skeleton="tiles">');
     expect(skeleton).toMatch(/\[0, 1, 2, 3\]\.map\(\(i\) => \(\s*<div key=\{i\} className="liquid-glass p-card/);
-    // Coming up is last in both.
-    expect(home.lastIndexOf('title="Coming up"')).toBeGreaterThan(home.indexOf('aria-label="Your sections"'));
-    expect(skeleton.indexOf('data-skeleton="coming-up"')).toBeGreaterThan(skeleton.indexOf('data-skeleton="tiles"'));
+    // Board 7: Coming up sits ABOVE the sections in both.
+    expect(home.lastIndexOf('title="Coming up"')).toBeGreaterThan(0);
+    expect(home.lastIndexOf('title="Coming up"')).toBeLessThan(home.indexOf('aria-label="Your sections"'));
+    expect(skeleton.indexOf('data-skeleton="coming-up"')).toBeGreaterThan(0);
+    expect(skeleton.indexOf('data-skeleton="coming-up"')).toBeLessThan(skeleton.indexOf('data-skeleton="tiles"'));
     // Same column gap as Home's stack.
     expect(home).toContain('className="flex flex-col gap-section"');
     expect(skeleton).toContain('<div className="flex flex-col gap-section">');

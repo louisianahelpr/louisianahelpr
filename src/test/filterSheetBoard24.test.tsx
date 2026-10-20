@@ -21,6 +21,7 @@
  * @mutate src/components/dashboard/FilterSheet.tsx |         floor={!webDesktop} |         floor
  * @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx |           style={minBudget \|\| maxBudget ? { color: "hsl(var(--burnt-sienna))" } : undefined} |           style={{ color: "hsl(var(--burnt-sienna))" }}
  * @mutate src/components/dashboard/JobFilters.tsx | btn-press border min-h-10"; | btn-press border h-11";
+ * @mutate src/components/dashboard/JobFilters.tsx | const radiusChip = chipBase.replace("px-4", "px-3"); | const radiusChip = chipBase;
  * @mutate src/components/dashboard/browseTasksToolbar/BrowseViewToggle.tsx |     <SegmentedControl | <SegmentedControl semantics="tab"
  */
 import { describe, expect, it, vi } from "vitest";
@@ -134,7 +135,10 @@ describe("board 24: sections and defaults", () => {
     render(<MemoryRouter>{sections.find((s) => s.key === "nearby")!.content}</MemoryRouter>);
     expect(screen.getByRole("button", { name: "Any" }).getAttribute("aria-pressed")).toBe("true");
     for (const mi of [5, 10, 25, 50]) {
-      expect(screen.getByRole("button", { name: `${mi} mi` }).getAttribute("aria-pressed")).toBe("false");
+      const chip = screen.getByRole("button", { name: `${mi} mi` });
+      expect(chip.getAttribute("aria-pressed")).toBe("false");
+      // Five chips on one line at 375 (lead, board 24 r2): px-3, not the default px-4.
+      expect(chip.className.split(/\s+/)).toContain("px-3");
     }
     expect(code("src/hooks/useDashboardFilters.ts")).toMatch(/const \[locationFilter, setLocationFilter\] = useState\(\(\) => param\("loc"\)\);/);
   });

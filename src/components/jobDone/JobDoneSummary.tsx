@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Check } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatPriceExact } from "@/lib/format";
@@ -38,6 +39,7 @@ const MONEY_TINT = "hsl(var(--burnt-sienna) / 0.08)";
 
 interface JobDoneRow {
   title: string;
+  helper_id: string | null;
   budget: number | null;
   status: string;
   payment_status: string | null;
@@ -73,7 +75,7 @@ export function JobDoneSummary({
       unwrap(
         await supabase
           .from("jobs")
-          .select("title, budget, status, payment_status, is_group_job, helpers_needed, urgent_fee, helper_fee_flat_cents, helper_fee_percent, platform_fee_amount, disputed_at, dispute_status, payout_scheduled_at, proof_before_urls, proof_after_urls")
+          .select("title, helper_id, budget, status, payment_status, is_group_job, helpers_needed, urgent_fee, helper_fee_flat_cents, helper_fee_percent, platform_fee_amount, disputed_at, dispute_status, payout_scheduled_at, proof_before_urls, proof_after_urls")
           .eq("id", jobId)
           .maybeSingle(),
       ) as JobDoneRow | null,
@@ -160,6 +162,34 @@ export function JobDoneSummary({
                 ? `${job.is_group_job ? "Your crew's" : `${firstName}'s`} pay goes out ${formatPayoutTime(job.payout_scheduled_at)}.`
                 : `${job.is_group_job ? "Your crew's" : `${firstName}'s`} pay goes out with the next payout.`}
           </p>
+        </div>
+      )}
+
+      {side === "poster" && !job.is_group_job && job.helper_id && (
+        // Board 185: hire the same Helpr again. The existing rebook path
+        // (CompletedStep's "Hire again" chip): PostJob prefilled from this
+        // job (title, details, place, price) and sent to this Helpr first as
+        // a direct offer; the poster picks the day there.
+        <div className="rounded-ds-lg p-4 flex flex-wrap items-center gap-x-3 gap-y-3" style={{ background: "hsl(var(--card))", boxShadow: "0 4px 18px rgba(32,30,26,0.06)" }}>
+          <span
+            aria-hidden="true"
+            className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center font-sans font-bold text-ds-14"
+            style={{ background: "hsl(var(--photo-empty, 40 23% 82%))", color: "hsl(var(--ink-deep))" }}
+          >
+            {initials(otherName)}
+          </span>
+          <div className="flex-1 min-w-[60%]">
+            <p className="font-sans font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>Hire {firstName} again?</p>
+            <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Same job, same price, you pick the day.</p>
+          </div>
+          <Link
+            to={`/post-job?rebook=${jobId}&offerTo=${job.helper_id}`}
+            // Secondary: "Send review" is this screen's one primary (spec §3).
+            className="shrink-0 ml-14 min-h-11 px-5 rounded-full inline-flex items-center font-sans font-bold text-ds-14"
+            style={{ background: "hsl(var(--card))", color: "hsl(var(--ink-deep))", border: "1px solid hsl(var(--olivewood) / 0.22)" }}
+          >
+            Hire again
+          </Link>
         </div>
       )}
 
@@ -254,4 +284,9 @@ function formatPayoutTime(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime()) || d.getTime() < Date.now()) return "with the next payout";
   return `on ${d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} at ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+}
+
+/** "Andre L." -> "AL". */
+function initials(name: string): string {
+  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
 }

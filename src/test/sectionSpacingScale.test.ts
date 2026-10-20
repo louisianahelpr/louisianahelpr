@@ -83,6 +83,7 @@ const ALLOWED: Record<string, { n: number; why: string }> = {
   // Horizontal gaps inside a row, not a vertical rhythm.
   "src/components/NotificationPreferences.tsx": { n: 5, why: "gap between the per-channel toggle columns of a row (horizontal)" },
   "src/pages/info/HelpCenter.tsx": { n: 1, why: "gap between an FAQ question and its chevron (horizontal)" },
+  "src/pages/home/HomeDashboard.tsx": { n: 1, why: "board 11's two-column gutter at xl (one grid row, so horizontal)" },
   "src/components/profile/ScheduleTab.tsx": { n: 1, why: "min-[1024px]:gap-6 — the desktop two-column gap between calendar and list, not the phone stack" },
   // AuthShell card forms: one form rhythm shared by every auth card, inside the card.
   "src/pages/auth/Login.tsx": { n: 4, why: "AuthShell card form rhythm (one column since board 37, 2026-10-20)" },

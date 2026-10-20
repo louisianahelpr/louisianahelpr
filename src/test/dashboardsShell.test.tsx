@@ -24,6 +24,9 @@
  * @mutate src/pages/home/HomeDashboard.tsx |   const next = summary.todos[at]; |   const next = summary.todos[summary.todos.length - 1];
  * @mutate src/pages/home/HomeDashboard.tsx |                       onClick={() => setShown(i)} |                       onClick={() => setShown(0)}
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |     ...shopWaiting.map((o) => ({ |     ...shopWaiting.filter(() => false).map((o) => ({
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         title: n > 0 ? (n === 1 ? "Review 1 applicant" |         title: j.title, _t: n > 0 ? (n === 1 ? "Review 1 applicant"
+ * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       liveNow: deriveLiveNow(pj, aa), |       liveNow: null,
+ * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       waiting: todos.length ? null : deriveWaiting( |       waiting: true ? null : deriveWaiting(
  * @mutate src/components/mobileNav/dockItems.ts |     right: [{ path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" }, youItem], |     right: [youItem],
  * @mutate src/components/sections/ExploreSwitcher.tsx |   const options = visible.map((s) => { |   const options = [...visible].reverse().map((s) => {
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
@@ -42,6 +45,8 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const switches = vi.hoisted(() => ({ on: new Set<string>() }));
 const noTodos = vi.hoisted(() => ({ on: false }));
+// Boards 83/165: what Home's posted jobs are instead of the two to-dos.
+const homeJobs = vi.hoisted(() => ({ mode: "todos" as "todos" | "waiting" | "live" }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (key: string) => switches.on.has(key),
   useFeatureStatus: (key: string) => ({ on: switches.on.has(key), settled: true }),
@@ -72,13 +77,18 @@ vi.mock("@/hooks/useActivityData", () => ({
   fetchAppliedActivity: async () => ({ appliedApps: [], declinedJobIds: new Set(), helperReviewedJobIds: new Set() }),
   useActivityData: (_u: unknown, tab: string) => ({
     loading: false,
-    postedJobs: tab === "posted" && !noTodos.on ? [job("a", "open"), job("b", "open")] : [],
+    postedJobs:
+      tab !== "posted" ? []
+      : homeJobs.mode === "waiting" ? [job("w", "open")]
+      : homeJobs.mode === "live" ? [{ ...job("l", "in_progress"), helper_id: "h-1", helper_arrived_at: "2099-01-02T14:04:00" }]
+      : !noTodos.on ? [job("a", "open"), job("b", "open")] : [],
     appliedApps: [],
     pendingApplicantCounts: { a: 1, b: 2 },
   }),
 }));
-vi.mock("@/components/job-card/activityFilters", () => ({
-  postedActivityBucket: () => "needs_you",
+vi.mock("@/components/job-card/activityFilters", async (orig) => ({
+  ...(await orig<object>()),
+  postedActivityBucket: (j: { status: string }) => (homeJobs.mode === "waiting" ? "waiting" : j.status === "in_progress" ? "scheduled" : "needs_you"),
   appliedActivityBucket: () => "waiting",
   jobIsUnfundedDraft: () => false,
 }));
@@ -209,6 +219,58 @@ describe("Home", () => {
     fireEvent.click(document.querySelector('[data-next-up-dot="1"]') as HTMLElement);
     expect(screen.getByTestId("next-up-title").textContent).toBe("Answer an order for Later order");
     expect(screen.getByTestId("next-up-label").textContent).toBe("Next up · 2 of 4");
+  });
+
+  it("a job's to-do is titled by its TASK, with your side and the job under it (spec v2 §5.2, board 165)", async () => {
+    switches.on = new Set();
+    wrap(<HomeDashboard />);
+    expect(await screen.findByText("Review 1 applicant")).toBeTruthy();
+    expect(screen.getByTestId("next-up-title").textContent).toBe("Review 1 applicant");
+    expect(screen.getByTestId("next-up").textContent).toContain("You posted · Job a");
+    expect(screen.getByTestId("next-up-action").textContent).toBe("See applicants");
+  });
+
+  it("with nothing to do but someone else's move, Next up says who is up and links the job (board 83)", async () => {
+    switches.on = new Set();
+    noTodos.on = true;
+    homeJobs.mode = "waiting";
+    try {
+      wrap(<HomeDashboard />);
+      expect(screen.getByTestId("next-up-label").textContent).toBe("Waiting on Helprs");
+      expect(screen.getByTestId("next-up-title").textContent).toBe("Job w");
+      expect(screen.queryByText("You're all caught up")).toBeNull();
+      expect(screen.queryByTestId("next-up-action")).toBeNull();
+      fireEvent.click(screen.getByTestId("next-up-see-job"));
+      expect(screen.getByTestId("where").textContent).toBe("/jobs/w");
+    } finally {
+      noTodos.on = false;
+      homeJobs.mode = "todos";
+    }
+  });
+
+  it("a job happening now sits ABOVE Next up as Live now, with the tracker on Working (board 165)", () => {
+    switches.on = new Set();
+    noTodos.on = true;
+    homeJobs.mode = "live";
+    try {
+      wrap(<HomeDashboard />);
+      const live = screen.getByTestId("live-now");
+      expect(screen.getByTestId("live-now-title").textContent).toBe("Job l");
+      expect(live.textContent).toContain("You hired");
+      expect(live.textContent).toContain("Started 2:04 PM");
+      expect(live.querySelector("[data-progress-segments]")?.getAttribute("aria-label")).toBe("Job progress: step 3 of 4, Working");
+      expect(live.compareDocumentPosition(screen.getByTestId("next-up")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      fireEvent.click(screen.getByTestId("live-now-action"));
+      expect(screen.getByTestId("where").textContent).toBe("/jobs/l");
+    } finally {
+      noTodos.on = false;
+      homeJobs.mode = "todos";
+    }
+  });
+
+  it("no Live now card when nothing is happening", () => {
+    wrap(<HomeDashboard />);
+    expect(screen.queryByTestId("live-now")).toBeNull();
   });
 
   it("with nothing to do, Next up says so and shows no task, no button and no number", () => {

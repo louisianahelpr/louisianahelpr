@@ -8,7 +8,7 @@
  * "Already have an account? Log in". Sentence case throughout.
  *
  * @mutate src/pages/auth/signup/SignupStep1.tsx | <h1 className="text-page-title text-foreground">Create your account</h1> | <h1 className="text-page-title text-foreground">Create Account</h1>
- * @mutate src/pages/auth/signup/SignupStep1.tsx | className="w-16 h-16 rounded-full ring-1 | className="w-16 h-16 rounded-ds-md ring-1
+ * @mutate src/pages/auth/signup/SignupStep1.tsx | <HelprMark to="/" size="lg" emblemOnly /> | <img src="/apple-touch-icon.png" alt="" className="w-16 h-16 rounded-full" />
  * @mutate src/pages/auth/signup/SignupStep1.tsx |           <OrRule />\n |           <div className="uppercase tracking-[0.2em]" style={{ color: "hsl(var(--accent-ink))" }}>or</div>\n
  * @mutate src/pages/auth/signup/SignupStep1.tsx |             setAgeConfirmed(checked === true);\n |             void 0;\n
  * @mutate src/pages/auth/signup/SignupStep1.tsx |           Log in\n        </Link> |           Log In\n        </Link>
@@ -38,7 +38,9 @@ describe("Create account matches board 55", () => {
   });
 
   it("the card opens with the ROUND H icon, the sentence-case heading and one line; the shell row has no title on step 1", () => {
-    expect(step1).toMatch(/<img src="\/apple-touch-icon\.png"[^>]*className="[^"]*\brounded-full\b/);
+    // Owner 2026-10-20: the H mark used everywhere, never the round app icon in a circle.
+    expect(step1).toMatch(/<HelprMark to="\/" size="lg" emblemOnly \/>/);
+    expect(step1).not.toMatch(/apple-touch-icon/);
     expect(step1).toContain(">Create your account</h1>");
     expect(step1).toContain('"One account to hire, help, buy and sell."');
     expect(signup).toContain("title={step === 1 ? undefined : stepHeading.title}");

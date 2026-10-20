@@ -212,6 +212,7 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
       "src/components/admin/adminusers/useOpenProfile.ts",
       "src/components/admin/useAdminUserSummaries.ts",
       "src/components/browseMap/fetchJobForPin.ts",
+      "src/components/jobDone/JobDoneSummary.tsx",
       "src/components/profile/EarningsForecastCard.tsx",
       "src/hooks/useDashboardData.ts",
       "src/lib/guestJobsQuery.ts",

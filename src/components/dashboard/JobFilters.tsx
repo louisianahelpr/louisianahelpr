@@ -13,6 +13,8 @@ import {
 } from "@/components/job-card/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { hapticLight } from "@/lib/haptics";
+import { X } from "lucide-react";
+import { JOB_WHEN_OPTIONS } from "@/lib/jobWhenFilter";
 
 export { categoryLabels };
 
@@ -224,21 +226,35 @@ export const NearbyContent = ({
   );
 };
 
-export const ExpiresContent = ({
-  expiresWithin, setExpiresWithin, onSelect,
-}: { expiresWithin: string; setExpiresWithin: (v: string) => void; onSelect?: () => void }) => (
-  <div role="group" aria-label="Filter by expiry window" className={chipRow}>
-    {expiresOptions.map((opt) => (
+/** Board 24 "When": which day the job is on. The legacy listing-expiry window
+ *  (`?exp=`, no longer offered) shows here as one lit chip while it is still
+ *  applied from an old link, so an active filter is never invisible. */
+export const WhenContent = ({
+  jobWhen, setJobWhen, expiresWithin, setExpiresWithin,
+}: { jobWhen: string; setJobWhen: (v: string) => void; expiresWithin: string; setExpiresWithin: (v: string) => void }) => (
+  <div role="group" aria-label="Filter by job day" className={chipRow}>
+    {JOB_WHEN_OPTIONS.map((opt) => (
       <button
         key={opt.value}
         type="button"
-        aria-pressed={expiresWithin === opt.value}
-        onClick={() => { hapticLight(); setExpiresWithin(expiresWithin === opt.value ? "" : opt.value); onSelect?.(); }}
-        className={`${chipBase} ${expiresWithin === opt.value ? chipActive : chipIdle}`}
+        aria-pressed={jobWhen === opt.value}
+        onClick={() => { hapticLight(); setJobWhen(jobWhen === opt.value ? "" : opt.value); }}
+        className={`${chipBase} ${jobWhen === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
       </button>
     ))}
+    {expiresWithin && (
+      <button
+        type="button"
+        aria-pressed
+        onClick={() => { hapticLight(); setExpiresWithin(""); }}
+        className={`${chipBase} ${chipActive}`}
+      >
+        Closes within {expiresOptions.find((o) => o.value === expiresWithin)?.label ?? expiresWithin}
+        <X className="w-3.5 h-3.5" aria-hidden />
+        <span className="sr-only">, remove</span>
+      </button>
+    )}
   </div>
 );
-

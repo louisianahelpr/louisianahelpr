@@ -9,6 +9,7 @@ import { sortJobsSmart, compareJobsBySortMode } from "@/lib/smartSort";
 import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
 import type { MapJobFilterInput } from "@/components/browseMap/mapFilter";
 import { useDashboardJobsCount } from "@/hooks/useDashboardJobsCount";
+import { jobMatchesWhen, jobWhenRange } from "@/lib/jobWhenFilter";
 import { isJobExcludedForViewer, type ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
 
 // Persisted browse-feed sort key. Stored in localStorage so a helper's
@@ -133,6 +134,8 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
   // restored search is visible and editable rather than silently applied.
   const [searchOpen, setSearchOpen] = useState(() => !!param("q"));
   const [expiresWithin, setExpiresWithin] = useState(() => param("exp"));
+  // Board 24 "When": which day the job is on (jobWhenFilter.ts).
+  const [jobWhen, setJobWhen] = useState(() => param("when"));
   const [matchAvailability, setMatchAvailability] = useState(() => param("avail") === "1");
   const [boostedOnly, setBoostedOnly] = useState(() => param("boost") === "1");
   const [urgentOnly, setUrgentOnly] = useState(() => param("urgent") === "1");
@@ -148,6 +151,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
       max: maxBudget,
       loc: locationFilter,
       exp: expiresWithin,
+      when: jobWhen,
       avail: matchAvailability ? "1" : "",
       boost: boostedOnly ? "1" : "",
       urgent: urgentOnly ? "1" : "",
@@ -160,6 +164,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
       setMaxBudget(read("max"));
       setLocationFilter(read("loc"));
       setExpiresWithin(read("exp"));
+      setJobWhen(read("when"));
       setMatchAvailability(read("avail") === "1");
       setBoostedOnly(read("boost") === "1");
       setUrgentOnly(read("urgent") === "1");
@@ -217,7 +222,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
   // control. The chip stays visibly selected inside the sheet, beside the
   // message saying why it is not applied; that is the one place the user can
   // still see what they picked.
-  const activeFilterCount = [selectedCategory, minBudget || maxBudget, nearbyUnavailable ? "" : locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : "", urgentOnly ? "on" : "", searchQuery ? "on" : ""].filter(Boolean).length;
+  const activeFilterCount = [selectedCategory, minBudget || maxBudget, nearbyUnavailable ? "" : locationFilter, expiresWithin, jobWhen, matchAvailability ? "on" : "", boostedOnly ? "on" : "", urgentOnly ? "on" : "", searchQuery ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
   const clearFilters = () => {
@@ -227,6 +232,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     setMaxBudget("");
     setLocationFilter("");
     setExpiresWithin("");
+    setJobWhen("");
     setMatchAvailability(false);
     setBoostedOnly(false);
     setUrgentOnly(false);
@@ -289,6 +295,8 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     const day = String(d.getDate()).padStart(2, "0");
     return `${d.getFullYear()}-${m}-${day}`;
   }, []);
+
+  const whenRange = useMemo(() => jobWhenRange(jobWhen), [jobWhen]);
 
   const filteredJobs = useMemo(() => browsableJobs
     .filter((job) => {
@@ -363,6 +371,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
         if (expiresWithin === "7d" && hoursLeft > 168) return false;
       }
       if (expiresWithin && !job.expires_at) return false;
+      if (!jobMatchesWhen(job.date_needed, whenRange)) return false;
       // Subscription-tier "early access" perk — applies to ALL viewers
       // equally, signed-in or not. Free/no-tier users (and guests) see
       // brand-new jobs after a 20-minute delay; Basic shaves 5 min off, Pro
@@ -440,7 +449,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
         }
         default: return compareJobsBySortMode(a, b, sortBy, effectiveFee);
       }
-    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate, effectiveFee, viewerExclusions]);
+    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, whenRange, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate, effectiveFee, viewerExclusions]);
 
   // The same filter state, shaped for the Browse map. The map runs its own
   // (unpaginated) fetch against a narrow PII-safe row, so it can't reuse
@@ -457,6 +466,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
       urgentOnly,
       boostedOnly,
       expiresWithin,
+      whenRange,
       matchAvailability,
       nearbyMiles,
       userLoc: userLoc.status === "ready" ? { lat: userLoc.lat, lng: userLoc.lng } : null,
@@ -472,7 +482,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     }),
     [
       selectedCategory, searchQuery, minBudget, maxBudget, urgentOnly, boostedOnly,
-      expiresWithin, matchAvailability, nearbyMiles, userLoc, earlyAccessTier,
+      expiresWithin, whenRange, matchAvailability, nearbyMiles, userLoc, earlyAccessTier,
       helperAvailability,
     ],
   );
@@ -504,6 +514,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     urgentOnly,
     boostedOnly,
     expiresWithin,
+    jobWhen,
     earlyAccessTier,
     appliedJobIds: appliedIdsKey,
     blockedUserIds: blockedIdsKey,
@@ -528,6 +539,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     urgentOnly: false,
     boostedOnly: false,
     expiresWithin: "",
+    jobWhen: "",
     earlyAccessTier,
     appliedJobIds: appliedIdsKey,
     blockedUserIds: blockedIdsKey,
@@ -562,6 +574,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     filtersOpen, setFiltersOpen,
     searchOpen, setSearchOpen,
     expiresWithin, setExpiresWithin,
+    jobWhen, setJobWhen,
     matchAvailability, setMatchAvailability,
     boostedOnly, setBoostedOnly,
     urgentOnly, setUrgentOnly,

@@ -34,6 +34,12 @@ export interface BrowseTasksToolbarProps {
    *  hidden 'quotes' switch is on; the sheet shows no row without it. */
   wantsQuotes?: boolean;
   onToggleWantsQuotes?: () => void;
+  /**
+   * Exact size of the whole filtered set, for the filter sheet's "Show N jobs"
+   * (board 24). Pass a number ONLY when it is exact (every page loaded, the
+   * list itself on screen); omit or null and the button reads "Show jobs".
+   */
+  resultCount?: number | null;
   /** Called when the user clears all filters via the "Clear all" chip —
    *  Dashboard uses this to scroll the feed back to the top so the user
    *  doesn't end up mid-list in a freshly unfiltered feed. */

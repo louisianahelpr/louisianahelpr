@@ -8,7 +8,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { buildJobFilterSections } from "@/components/dashboard/FilterSheet";
+import { buildJobFilterSections } from "@/components/dashboard/filterSheet/jobFilterSections";
 
 vi.mock("@/lib/haptics", () => ({ hapticLight: vi.fn() }));
 
@@ -38,8 +38,8 @@ function renderShowOnly(overrides: Partial<Args>) {
 describe("FilterSheet 'Show only' rows", () => {
   it("a toggle row reports its new value and names itself with its visible label", () => {
     const args = renderShowOnly({});
-    const boosted = screen.getByRole("switch", { name: /^Boosted Jobs/ });
-    expect(boosted.getAttribute("aria-label")).toBe("Boosted Jobs — Show boosted jobs only");
+    const boosted = screen.getByRole("switch", { name: /^Boosted jobs/ });
+    expect(boosted.getAttribute("aria-label")).toBe("Boosted jobs — Show boosted jobs only");
     fireEvent.click(boosted);
     expect(args.setBoostedOnly).toHaveBeenCalledWith(true);
     expect(screen.getAllByRole("switch").length).toBeGreaterThanOrEqual(2);
@@ -50,12 +50,12 @@ describe("FilterSheet 'Show only' rows", () => {
     const links = screen.getAllByRole("link");
     expect(links.length).toBe(3);
     for (const a of links) expect(a.getAttribute("href")).toBe("/signup?redirect=/browse");
-    expect(screen.getByText("Saved Searches")).toBeTruthy();
+    expect(screen.getByText("Saved searches")).toBeTruthy();
   });
 
   it("the availability row is inert until hours exist, and live once they do", () => {
     renderShowOnly({ setMatchAvailability: vi.fn(), hasAvailability: false });
-    const off = screen.getByRole("switch", { name: /^Jobs During My Hours/ });
+    const off = screen.getByRole("switch", { name: /^During my hours/ });
     expect(off.hasAttribute("disabled")).toBe(true);
     expect(screen.getByRole("button", { name: /set hours/ })).toBeTruthy();
   });
@@ -63,7 +63,7 @@ describe("FilterSheet 'Show only' rows", () => {
   it("with saved hours the availability row can be switched on", () => {
     const setMatchAvailability = vi.fn();
     renderShowOnly({ setMatchAvailability, hasAvailability: true });
-    const on = screen.getByRole("switch", { name: /^Jobs During My Hours/ });
+    const on = screen.getByRole("switch", { name: /^During my hours/ });
     expect(on.hasAttribute("disabled")).toBe(false);
     fireEvent.click(on);
     expect(setMatchAvailability).toHaveBeenCalledWith(true);

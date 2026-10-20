@@ -63,6 +63,8 @@ export function useHomeSummary(user: SupaUser | null) {
     const pj = posted.postedJobs ?? [];
     const aa = applied.appliedApps ?? [];
     const postedUpcoming = pj.filter((j) => postedActivityBucket(j, posted.pendingApplicantCounts?.[j.id] ?? 0) === "scheduled");
+    // You tab's Posted tile (board 18) counts every live post: waiting for applicants or booked.
+    const postedLive = pj.filter((j) => ["waiting", "scheduled"].includes(postedActivityBucket(j, posted.pendingApplicantCounts?.[j.id] ?? 0)));
     const appliedLive = aa.filter((a) => a.job && appliedActivityBucket(a) === "scheduled");
     const jobTodos = todos.filter((t) => t.section === "jobs").length;
     const shopTodos = todos.filter((t) => t.section === "shops").length;

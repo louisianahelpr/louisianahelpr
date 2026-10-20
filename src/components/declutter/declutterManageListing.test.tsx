@@ -12,16 +12,18 @@
  * @mutate src/components/declutter/DeclutterManageListing.tsx |                   <RowText title="Pause listing">Hide it without losing it. Open offers close.</RowText> |                   <RowText title="Pause listing">Hide it without losing it.</RowText>
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const calls: unknown[][] = [];
 const manage = { floor_price_cents: 3000, drops_stopped: false };
 let deployed = true;
+const stateReads = vi.hoisted(() => ({ n: 0 }));
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/lib/declutter/api", () => ({
-  fetchManageState: async () => (deployed ? manage : "not_deployed"),
+  // Records that the manage-state read RESOLVED, so a test can wait for the data before asserting an absence.
+  fetchManageState: async () => { const r = deployed ? manage : "not_deployed"; stateReads.n++; return r; },
   setListingPrice: async (...a: unknown[]) => { calls.push(["price", ...a]); return a[1]; },
   setListingDrops: async (...a: unknown[]) => { calls.push(["drops", ...a]); return a[1]; },
   pauseListing: async (...a: unknown[]) => { calls.push(["pause", ...a]); return "paused"; },
@@ -64,7 +66,10 @@ describe("Manage a listing (board 158)", () => {
     deployed = false;
     sheet();
     expect(await screen.findByText("Mark sold elsewhere")).toBeTruthy();
-    await waitFor(() => expect(screen.queryByText("Change price or lowest price")).toBeNull());
+    // Wait for the DATA (the manage-state read resolved and React settled), then assert the absence.
+    await waitFor(() => expect(stateReads.n).toBeGreaterThan(0));
+    await act(async () => {});
+    expect(screen.queryByText("Change price or lowest price")).toBeNull();
     expect(screen.queryByText("Stop price drops")).toBeNull();
     expect(screen.queryByText("Pause listing")).toBeNull();
     expect(screen.getByText("Delete listing")).toBeTruthy();

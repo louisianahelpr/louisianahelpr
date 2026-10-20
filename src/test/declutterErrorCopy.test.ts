@@ -40,10 +40,15 @@ const DECLUTTER_FILES = [
   "20261017073146_declutter_add_a_helpr.sql",
   // No QR, no code (owner 2026-10-18): the seller's "Picked up" adds before_pickup_time and not_a_door_pickup.
   "20261018183715_declutter_handover_no_qr_no_code.sql",
+  // Board 158, manage a listing: invalid_price, price_above_listed, invalid_input (and the paused status).
+  "20261020064354_declutter_manage_listing.sql",
 ];
 // require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
 // other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.
 const SHARED = ["feature_disabled", "invalid_payout"];
+// 20261020064354 restates declutter_mark_order_paid (service_role only, never a member's call) for the
+// paused status; its invalid_payment is a webhook-side code with no member-facing words.
+const SERVICE_ONLY = ["invalid_payment"];
 
 function raisedCodes(): Set<string> {
   const out = new Set<string>(SHARED);
@@ -53,6 +58,7 @@ function raisedCodes(): Set<string> {
     // follow-ups migration, raises not_authenticated, which is mapped anyway).
     for (const m of sql.matchAll(/RAISE\s+EXCEPTION\s+'([a-z_0-9]+)'/g)) out.add(m[1]);
   }
+  for (const c of SERVICE_ONLY) out.delete(c);
   return out;
 }
 
@@ -60,7 +66,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(11);
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(12);
     expect(codes.size).toBeGreaterThan(25);
   });
 

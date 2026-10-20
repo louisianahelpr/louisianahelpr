@@ -523,7 +523,7 @@ const Support = () => {
                   ) : (
                     <>
                       <Send className="w-4 h-4 mr-2" />
-                      {selectedTopic?.submitLabel ?? "Send Message"}
+                      {selectedTopic?.submitLabel ?? "Send message"}
                     </>
                   )}
                 </Button>

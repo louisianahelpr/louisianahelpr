@@ -33,7 +33,7 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation } from "@/lib/mutationResult";
 import type { Notification, Filter } from "@/components/notificationPanel/types";
-import { typeIcons, groupByDay, timeAgo } from "@/components/notificationPanel/notificationPanelHelpers";
+import { typeIcons, groupByDay, timeAgo, MONEY_TYPES } from "@/components/notificationPanel/notificationPanelHelpers";
 import {
   subscribeNotifications,
   getNotificationSnapshot,
@@ -569,12 +569,11 @@ const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } =
               <button
                 type="button"
                 onClick={markAllRead}
-                aria-label="Mark all as read"
-                title="Mark all as read"
-                className="shrink-0 w-11 h-11 inline-flex items-center justify-center rounded-full ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] focus-visible:ring-offset-2"
+                data-testid="mark-all-read"
+                className="shrink-0 min-h-11 px-2 inline-flex items-center justify-center rounded-full text-ds-14 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] focus-visible:ring-offset-2"
                 style={{ color: "hsl(var(--bark))" }}
               >
-                <CheckCheck className="w-[18px] h-[18px]" strokeWidth={2.25} />
+                Mark all read
               </button>
             ) : undefined
           }
@@ -724,7 +723,7 @@ const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } =
                   <div
                     className="sticky top-0 z-10 px-4 py-1.5 flex items-center justify-between font-sans uppercase tracking-[0.18em] text-ds-10"
                     style={{
-                      color: "hsl(var(--burnt-sienna))",
+                      color: "hsl(var(--muted-foreground))",
                       background:
                         "linear-gradient(to bottom, hsl(var(--surface-band) / 0.92), hsl(var(--surface-band) / 0.78))",
                       backdropFilter: "blur(8px) saturate(140%)",
@@ -776,25 +775,26 @@ const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } =
                           actionable ? " active:opacity-80 cursor-pointer" : ""
                         }`,
                         style: {
-                          background: !n.read ? "hsl(var(--burnt-sienna) / 0.06)" : undefined,
                           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
                         },
                       };
                       const body = (
                         <div className="flex gap-3">
                           <div
-                            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-                            style={{
-                              background: !n.read ? "hsl(var(--burnt-sienna) / 0.12)" : "hsl(var(--bark) / 0.08)",
-                              color: !n.read ? "hsl(var(--burnt-sienna))" : "hsl(var(--bark))",
-                            }}
+                            className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                            data-notif-tint={MONEY_TYPES.has(n.type) ? "money" : "plain"}
+                            style={
+                              MONEY_TYPES.has(n.type)
+                                ? { background: "hsl(var(--burnt-sienna) / 0.12)", color: "hsl(var(--burnt-sienna))" }
+                                : { background: "hsl(var(--muted))", color: "hsl(var(--bark))" }
+                            }
                           >
                             {typeIcons[n.type] || typeIcons.info}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p
-                                className="min-w-0 flex-1 font-display font-bold leading-tight truncate text-ds-15"
+                                className="min-w-0 flex-1 font-sans font-bold leading-tight truncate text-ds-15"
                                 style={{
                                   color: !n.read ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",
                                   letterSpacing: "-0.012em",
@@ -809,12 +809,12 @@ const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } =
                                   role="status"
                                   aria-label="Unread"
                                   className="w-2 h-2 rounded-full flex-shrink-0"
-                                  style={{ background: "hsl(var(--burnt-sienna))" }}
+                                  style={{ background: "hsl(var(--bark))" }}
                                 />
                               )}
                             </div>
                             <p
-                              className="font-sans mt-0.5 line-clamp-2 text-ds-12"
+                              className="font-sans mt-0.5 line-clamp-2 text-ds-13"
                               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                             >
                               {n.message}

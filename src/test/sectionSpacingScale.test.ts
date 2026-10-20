@@ -85,7 +85,6 @@ const ALLOWED: Record<string, { n: number; why: string }> = {
   "src/pages/info/HelpCenter.tsx": { n: 1, why: "gap between an FAQ question and its chevron (horizontal)" },
   "src/pages/home/HomeDashboard.tsx": { n: 1, why: "board 11's two-column gutter at xl (one grid row, so horizontal)" },
   "src/components/profile/ScheduleTab.tsx": { n: 1, why: "min-[1024px]:gap-6 — the desktop two-column gap between calendar and list, not the phone stack" },
-  "src/pages/home/HomeDashboard.tsx": { n: 1, why: "xl:gap-6 — board 11's desktop two-column gap (feed | sections), horizontal; the phone stack uses gap-section" },
   // AuthShell card forms: one form rhythm shared by every auth card, inside the card.
   "src/pages/auth/Login.tsx": { n: 4, why: "AuthShell card form rhythm (one column since board 37, 2026-10-20)" },
   "src/pages/auth/signup/SignupStep1.tsx": { n: 1, why: "the AuthShell card's own form rhythm (one column since board 55, 2026-10-20)" },

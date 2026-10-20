@@ -50,8 +50,8 @@
  *
  * @mutate src/components/job-card/jobStatusLine.ts | on_the_way: { detail: "Your Helpr is on the way", eyebrow: BUCKET_LABEL.waiting, tone: "them" }, | on_the_way: { detail: "Your Helpr is on the way" },
  * @mutate src/components/job-card/jobStatusLine.ts | confirm_arrival: { detail: "Confirm they arrived", eyebrow: BUCKET_LABEL.needs_you, tone: "you" }, | confirm_arrival: { detail: "Confirm they have arrived at the job and started work", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
- * @mutate src/components/job-card/JobStatusStrip.tsx | className="px-4 py-2 flex items-center gap-1.5 flex-wrap" | className="px-4 py-2 flex items-center gap-1.5 flex-nowrap"
- * @mutate src/pages/posts/PostedJobCard.tsx | {!isExpanded && (\n              <PosterStatusStrip | {(true) && (\n              <PosterStatusStrip
+ * @mutate src/components/job-card/JobStatusStrip.tsx | className={variant === "line" ? "flex items-center gap-1.5 flex-wrap" : "px-4 py-2 flex items-center gap-1.5 flex-wrap"} | className={variant === "line" ? "flex items-center gap-1.5 flex-nowrap" : "px-4 py-2 flex items-center gap-1.5 flex-nowrap"}
+ * @mutate src/pages/posts/PostedJobCard.tsx | status={isExpanded ? null : (\n                <PosterStatusStrip | status={false ? null : (\n                <PosterStatusStrip
  * @mutate src/components/job-card/jobStatusLine.ts | return "done_both_open";\n      }\n      return payoutNotSettled(job) ? "done_payout_pending" : "done_paid"; | return "done_both_open";\n      }\n      return "done_paid";
  * @mutate src/pages/jobs/AppliedJobCard.tsx | reviewed={isFullyDone} tracking={initialTracking} /> | reviewed={isFullyDone} />
  * @mutate src/components/job-card/jobStatusLine.ts | return job.status === "completed" && job.payment_status === "refunded"; | return false;

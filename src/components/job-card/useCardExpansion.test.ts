@@ -1,10 +1,9 @@
 /**
- * VN-29 (owner, 2026-09-14): "if they have a tip or review still needing to be
- * done on a done job, leave it expanded until tip and review are both done,
- * when they're done then collapse".
- *
- * Before: expansion was purely user-toggled — every posted card opened
- * collapsed, so the first and third tests below fail on the old hook.
+ * Board 14 (lead 2026-10-20): NO posted card opens by default. VN-29 (owner,
+ * 2026-09-14) opened a completed job with a tip or review outstanding; the card
+ * face now asks for that as its one button ("Leave a review" / "Tip <name>"),
+ * so the card stays shut. What VN-29 also asked survives: a card the poster
+ * opened closes itself once the second of tip/review lands.
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -13,7 +12,6 @@ import {
   useCardExpansion,
   awaitsTipOrReview,
   COLLAPSED_AWAITING_KEY,
-  MAX_DEFAULT_EXPANDED,
   type CompletedJobMeta,
 } from "./useCardExpansion";
 
@@ -45,31 +43,28 @@ describe("awaitsTipOrReview", () => {
   });
 });
 
-describe("useCardExpansion (VN-29)", () => {
-  it("opens a completed job with a tip or review outstanding, and nothing else", () => {
+describe("useCardExpansion (board 14)", () => {
+  it("opens nothing by default, not even a completed job with a tip or review outstanding", () => {
     const { result } = setup({
       "done-1": { tipped: true, reviewed: false },
       "done-2": { tipped: true, reviewed: true },
     });
-    expect(result.current.expandedJobIds.has("done-1")).toBe(true);
-    expect(result.current.expandedJobIds.has("done-2")).toBe(false);
-    expect(result.current.expandedJobIds.has("open-1")).toBe(false);
+    expect(result.current.expandedJobIds.size).toBe(0);
   });
 
   it("still toggles by hand, in both directions", () => {
     const { result } = setup({ "done-1": { tipped: false, reviewed: false } });
     act(() => result.current.toggleExpandedJobId("done-1"));
-    expect(result.current.expandedJobIds.has("done-1")).toBe(false);
+    expect(result.current.expandedJobIds.has("done-1")).toBe(true);
     act(() => result.current.toggleExpandedJobId("open-1"));
     expect(result.current.expandedJobIds.has("open-1")).toBe(true);
     act(() => result.current.toggleExpandedJobId("done-1"));
-    expect(result.current.expandedJobIds.has("done-1")).toBe(true);
+    expect(result.current.expandedJobIds.has("done-1")).toBe(false);
   });
 
   it("collapses the moment the second of tip/review lands, even if the user had re-opened it", () => {
     const { result, rerender } = setup({ "done-1": { tipped: false, reviewed: false } });
-    // Collapse then re-open by hand, so an override is in play.
-    act(() => result.current.toggleExpandedJobId("done-1"));
+    // Opened by hand, so an override is in play.
     act(() => result.current.toggleExpandedJobId("done-1"));
     rerender({ meta: { "done-1": { tipped: true, reviewed: false } } });
     expect(result.current.expandedJobIds.has("done-1")).toBe(true);
@@ -85,6 +80,7 @@ describe("useCardExpansion (VN-29)", () => {
     const meta = { "done-1": { tipped: false, reviewed: false } };
     const first = setup(meta);
     act(() => first.result.current.toggleExpandedJobId("done-1"));
+    act(() => first.result.current.toggleExpandedJobId("done-1"));
     expect(first.result.current.expandedJobIds.has("done-1")).toBe(false);
     // Refetch: meta briefly empty, then back with the same answer.
     first.rerender({ meta: {} });
@@ -98,38 +94,27 @@ describe("useCardExpansion (VN-29)", () => {
   });
 });
 
-// VN-29 in one line: the hook must actually SEED its open set from
-// awaitsTipOrReview. Unwiring it (rather than breaking the predicate the
-// first describe block tests directly) is what proves the wiring.
-// @mutate src/components/job-card/useCardExpansion.ts | () => postedJobs.filter((job) => awaitsTipOrReview(job, completedJobMeta)), | () => postedJobs.filter(() => false),
+// The default stays empty: seeding it again (from the awaiting list) fails the first test of the board-14 block.
+// @mutate src/components/job-card/useCardExpansion.ts | const defaultOpen = NONE_OPEN; | const defaultOpen = new Set(awaiting.map((j) => j.id));
 // @mutate src/components/job-card/useCardExpansion.ts | return !(m.tipped && m.reviewed); | return false;
+// @mutate src/components/job-card/useCardExpansion.ts | for (const job of awaiting) seenAwaiting.current.add(job.id); | for (const id of defaultOpen) seenAwaiting.current.add(id);
 
-// Q430 (owner, 2026-09-27): "cap default-expanded completed cards at the
-// newest 3". Each expanded card mounts a JobTracking query, a realtime channel
-// and an avatar, so the number of cards open by default IS the per-card request
-// count of /posts?filter=done. The test poster's 69 untipped completed jobs all
-// opened (a 330-request burst on WebKit, nightly-red #1794); this pins the
-// default to MAX_DEFAULT_EXPANDED whatever N is, and to the NEWEST ones.
-describe("useCardExpansion default-open cap (Q430)", () => {
+describe("useCardExpansion auto-collapse over many done jobs", () => {
   const N = 69;
   const many = Array.from({ length: N }, (_, i) => ({
     id: `c${i}`,
     status: "completed",
-    // c0 completed first, c68 most recently.
     completed_at: new Date(Date.UTC(2026, 8, 1) + i * 3_600_000).toISOString(),
     created_at: "2026-08-01T00:00:00Z",
   })) as unknown as Job[];
   const meta: CompletedJobMeta = Object.fromEntries(many.map((j) => [j.id, { tipped: false, reviewed: false }]));
 
-  it(`opens only the newest ${MAX_DEFAULT_EXPANDED} of ${N} awaiting cards`, () => {
-    expect(MAX_DEFAULT_EXPANDED).toBe(3);
-    // Shuffled input: the order the list arrives in must not decide which open.
-    const shuffled = [...many].reverse().sort((a, b) => (a.id.length - b.id.length) || a.id.localeCompare(b.id));
-    const { result } = renderHook(() => useCardExpansion(shuffled, meta));
-    expect([...result.current.expandedJobIds].sort()).toEqual(["c66", "c67", "c68"]);
+  it(`opens none of ${N} awaiting cards (each open card mounts a tracker query, Q430)`, () => {
+    const { result } = renderHook(() => useCardExpansion(many, meta));
+    expect(result.current.expandedJobIds.size).toBe(0);
   });
 
-  it("still auto-collapses a capped card the user opened once its tip and review land", () => {
+  it("still auto-collapses a card the user opened once its tip and review land", () => {
     const { result, rerender } = renderHook(({ m }: { m: CompletedJobMeta }) => useCardExpansion(many, m), {
       initialProps: { m: meta },
     });
@@ -139,6 +124,3 @@ describe("useCardExpansion default-open cap (Q430)", () => {
     expect(result.current.expandedJobIds.has("c0")).toBe(false);
   });
 });
-// @mutate src/components/job-card/useCardExpansion.ts | .slice(0, MAX_DEFAULT_EXPANDED) | .slice(0)
-// @mutate src/components/job-card/useCardExpansion.ts | .sort((a, b) => recency(b) - recency(a)) | .sort(() => 0)
-// @mutate src/components/job-card/useCardExpansion.ts | for (const job of awaiting) seenAwaiting.current.add(job.id); | for (const id of defaultOpen) seenAwaiting.current.add(id);

@@ -4,19 +4,15 @@ import type { Job } from "@/components/job-card/activityConstants";
 export type CompletedJobMeta = Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }> }>;
 
 /**
- * At most this many cards open by default: the newest completed jobs still
- * awaiting a tip or review (owner, 2026-09-27, Q430). Every expanded card
- * mounts its own JobTracking query, realtime channel and avatar, so an uncapped
- * default made /posts?filter=done N+1 in the poster's completed jobs (69
- * untipped cards = a 330-request page burst on WebKit, nightly-red #1794).
+ * NOTHING OPENS BY DEFAULT ANY MORE (board 14, lead 2026-10-20). VN-29
+ * (owner, 2026-09-14) opened a completed job with a tip or review outstanding,
+ * capped at the newest 3 (Q430), so the loose end was in front of the poster
+ * instead of behind a tap. The card face now carries that loose end as its ONE
+ * button ("Leave a review" / "Tip <name>", posterFaceAction.ts), so an open
+ * card would only stack its step row under the same ask. The auto-collapse
+ * below stays: a card the poster opens by hand still closes once both land.
  */
-export const MAX_DEFAULT_EXPANDED = 3;
-
-/** Newest first: when the job completed, else when it last changed, else posted. */
-function recency(job: Pick<Job, "completed_at" | "updated_at" | "created_at">): number {
-  const t = Date.parse(job.completed_at ?? job.updated_at ?? job.created_at ?? "");
-  return Number.isNaN(t) ? 0 : t;
-}
+const NONE_OPEN: ReadonlySet<string> = new Set();
 
 /** sessionStorage key for the default-open cards the user collapsed by hand. */
 export const COLLAPSED_AWAITING_KEY = "activity:collapsed-awaiting-tip-review";
@@ -90,16 +86,7 @@ export function useCardExpansion(postedJobs: Job[], completedJobMeta: CompletedJ
     [postedJobs, completedJobMeta],
   );
 
-  const defaultOpen = useMemo(
-    () =>
-      new Set(
-        [...awaiting]
-          .sort((a, b) => recency(b) - recency(a))
-          .slice(0, MAX_DEFAULT_EXPANDED)
-          .map((job) => job.id),
-      ),
-    [awaiting],
-  );
+  const defaultOpen = NONE_OPEN;
 
   const expandedJobIds = useMemo(() => {
     const s = new Set(defaultOpen);

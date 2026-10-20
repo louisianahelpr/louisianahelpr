@@ -7,9 +7,12 @@
  * through handleLogin, and Log in and Create account stay separate flows.
  *
  * @mutate src/pages/auth/Login.tsx | <img src="/apple-touch-icon.png" alt="Helpr" width={64} height={64} className="w-16 h-16 rounded-full | <img src="/apple-touch-icon.png" alt="Helpr" width={64} height={64} className="w-16 h-16 rounded-ds-md
- * @mutate src/pages/auth/Login.tsx |         <div className="grid gap-6 w-full"> |         <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full"}>
+ * @mutate src/pages/auth/Login.tsx |         <div className="grid gap-6 w-full [&>*]:min-w-0"> |         <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full"}>
  * @mutate src/pages/auth/Login.tsx | <h1 className="text-ds-24 font-bold leading-tight text-foreground">Log in</h1> | <h1 className="text-ds-24 font-bold leading-tight text-foreground">Log In</h1>
  * @mutate src/pages/auth/Login.tsx |                 Forgot password?\n |                 Forgot Password?\n
+ * @mutate src/components/auth/SocialAuthButtons.tsx |   const label = `Continue with ${providerName}`; |   const label = providerName;
+ * @mutate src/pages/auth/Login.tsx |             className="w-full rounded-full"\n            size="lg" |             className="w-full rounded-ds-md"\n            size="lg"
+ * @mutate src/pages/auth/Login.tsx | <div className="grid gap-6 w-full [&>*]:min-w-0"> | <div className="grid gap-6 w-full">
  * @mutate src/components/auth/OrRule.tsx |     <div className="flex items-center gap-3"> |     <div className="flex items-center gap-3 lg:hidden">
  */
 import { describe, it, expect } from "vitest";
@@ -51,8 +54,17 @@ describe("Log in matches board 37", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
+  it("primary Log in is a full pill; the providers read 'Continue with Apple / Google' (audit L11)", () => {
+    expect(src).toMatch(/type="submit"\s+className="w-full rounded-full"/);
+    const social = blankComments(readFileSync(resolve(__dirname, "../components/auth/SocialAuthButtons.tsx"), "utf8"));
+    expect(social).toContain("const label = `Continue with ${providerName}`;");
+    expect(social).toMatch(/<span aria-hidden[^>]*>\s*\{label\}\s*<\/span>/);
+  });
+
   it("one column at every width, sentence case", () => {
     expect(src).not.toMatch(/lg:grid-cols-\[1fr_auto_1fr\]/);
+    // At 320 the form overflowed the card by 21px (looked, 2026-10-20): the grid's children must be able to shrink.
+    expect(src).toContain('<div className="grid gap-6 w-full [&>*]:min-w-0">');
     // The "or" rule shows at every width and is never rust (rust is money only).
     const rule = blankComments(readFileSync(resolve(__dirname, "../components/auth/OrRule.tsx"), "utf8"));
     expect(rule).not.toMatch(/lg:hidden|accent-ink|burnt-sienna/);

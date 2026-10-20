@@ -117,3 +117,6 @@ describe("countsTowardRating", () => {
     expect(countsTowardRating({ ...base, jobs: { status: "cancelled" } }, now)).toBe(false);
   });
 });
+
+// @mutate src/lib/reviewStats.ts | existing.avg = (existing.avg * (existing.count - 1) + r.rating) / existing.count; | existing.avg = (existing.avg * (existing.count - 1) + r.rating) / (existing.count + 1);
+// @mutate src/lib/reviewStats.ts | r.jobs.status !== "cancelled" | r.jobs.status !== "cancelledX"

@@ -77,3 +77,6 @@ describe("saved homes", () => {
     await expect(fetchSavedListings()).rejects.toBeTruthy();
   });
 });
+
+// @mutate src/lib/rentals/savedHomes.ts | (error as { code: unknown }).code === "PGRST205" | (error as { code: unknown }).code === "PGRST999"
+// @mutate src/lib/rentals/savedHomes.ts | return data === true; | return true;

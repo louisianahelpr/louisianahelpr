@@ -34,3 +34,6 @@ describe("sell it for me", () => {
     expect(SELL_FOR_ME_SHOP_CATEGORY).toBe("declutter_estate_sales");
   });
 });
+
+// @mutate src/lib/declutter/sellForMe.ts | return `/post-job?${SELL_FOR_ME_PARAM}=1`; | return `/post-job?${SELL_FOR_ME_PARAM}=0`;
+// @mutate src/lib/declutter/sellForMe.ts | const SELL_FOR_ME_TITLE = "Photograph and list my items"; | const SELL_FOR_ME_TITLE = "Photograph and list my items for sale";

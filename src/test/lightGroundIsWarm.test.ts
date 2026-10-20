@@ -12,6 +12,10 @@
  * @mutate capacitor.config.ts |       backgroundColor: '#F4F2EE',\n |       backgroundColor: '#F1F2F4',\n
  * @mutate src/index.css |   --sand:         40 19% 87.8%; |   --sand:         220 14% 90%;
  * @mutate src/index.css |   --sand:         40 8% 21%; |   --sand:         220 8% 21%;
+ * @mutate src/index.css |   --border:               40 19% 81.6%; |   --border:               220 14% 82%;
+ * @mutate src/index.css |   --input:                40 19% 87.8%; |   --input:                220 13% 90%;
+ * @mutate src/index.css |   --stormy-sky:   40 6% 36%; |   --stormy-sky:   198 12% 36%;
+ * @mutate src/index.css |   --stormy-sky:   40 6% 36%; |   --stormy-sky:   40 6% 39.6%;
  * @mutate ios/App/App/AppDelegate.swift | UIColor(red: 0.9569, green: 0.9490, blue: 0.9333, alpha: 1) | UIColor(red: 0.9451, green: 0.9490, blue: 0.9569, alpha: 1)
  */
 import { describe, it, expect } from "vitest";
@@ -55,6 +59,28 @@ describe("the light ground is warm #F4F2EE everywhere the canvas is painted", ()
     expect(hslHex(+dh, +ds, +dl)).toBe("#3A3731");
     expect(css.match(/--muted:\s*var\(--sand\);/g)?.length).toBe(2);
     expect(css.match(/--secondary:\s*var\(--sand\);/g)?.length).toBe(2);
+  });
+
+  it("light --border, --input and --stormy-sky (muted text) are warm (spec v2 §2, 2026-10-20)", () => {
+    // The light :root block is the first definition of each; dark redefines them later.
+    const first = (name: string) => {
+      const m = css.match(new RegExp(`--${name}:\\s*([\\d.]+) ([\\d.]+)% ([\\d.]+)%;`));
+      expect(m, `--${name}`).not.toBeNull();
+      return hslHex(+m![1], +m![2], +m![3]);
+    };
+    expect(first("border")).toBe("#D9D3C7"); // spec --line-strong
+    expect(first("input")).toBe("#E6E2DA"); // spec --line
+    // Muted text: the spec's warm hue at a lightness that keeps small text AA
+    // on the bg-muted fill it sits on (#6B675F itself is 4.36:1 on #E6E2DA).
+    const muted = first("stormy-sky");
+    expect(muted).toBe("#615E56");
+    const lum = (hex: string) => {
+      const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    const ratio = (a: string, b: string) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
+    for (const bg of ["#FFFFFF", "#F4F2EE", "#EFEDE6", "#E6E2DA"]) expect(ratio(muted, bg), `muted on ${bg}`).toBeGreaterThanOrEqual(4.5);
+    expect(css).toMatch(/--muted-foreground:\s*var\(--stormy-sky\);/);
   });
 
   it("the boot shell, theme-color, splash, StatusBar and iOS covers paint the same warm ground", () => {

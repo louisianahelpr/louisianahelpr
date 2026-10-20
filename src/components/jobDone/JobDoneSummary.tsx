@@ -125,7 +125,7 @@ export function JobDoneSummary({
       {photos.length > 0 && (
         <div className={`grid gap-2 ${photos.length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
           {photos.map((p) => (
-            <div key={p.label} className="relative aspect-[4/3] rounded-ds-lg overflow-hidden" style={{ background: "hsl(var(--muted))" }}>
+            <div key={p.label} className="relative aspect-[16/10] rounded-ds-lg overflow-hidden" style={{ background: "hsl(var(--muted))" }}>
               <img
                 src={p.src ?? PENDING_PHOTO_SRC}
                 alt={`${p.label} photo of ${job.title}`}
@@ -188,7 +188,8 @@ function HelprPayNote({ transfers, posterFirstName }: { transfers: readonly Tran
           : "Your pay is on its way"}
       </p>
       <p className="font-sans text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
-        {posterFirstName} confirmed the job.
+        {/* Not "<name> confirmed": a job can also complete on the auto-release timer. */}
+        The job with {posterFirstName} is confirmed.
       </p>
       <ol className="grid grid-cols-3 gap-2" aria-label="Payout progress">
         {steps.map((s) => (

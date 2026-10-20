@@ -293,6 +293,24 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getAllByText(/under your lowest price/)).toHaveLength(1);
   });
 
+  it("boards 68-70: an offer card's money lines use what accepting really charges, least(offer, price now)", async () => {
+    state.offers = [
+      // The seller dropped the price to $22 below the buyer's $25 offer: accepting sells for $22.
+      { ...OFFER, offer_id: "s1", current_price_cents: 2200, floor_price_cents: 1000, item_title: "Desk" },
+      // The seller countered $30 to this buyer: their price $30, fee $2.20, $32.20 with pickup.
+      { ...OFFER, offer_id: "b1", my_side: "buyer", awaiting: "buyer", amount_cents: 3000, floor_price_cents: null, item_title: "Lamp" },
+    ];
+    show(<><OffersSection side="seller" /><OffersSection side="buyer" /></>);
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const takeCents = Math.min(o.amount_cents, o.current_price_cents); |   const takeCents = o.amount_cents;
+    expect((await screen.findByText(/If you accept and the buyer pays/)).textContent).toMatch(/you keep the whole \$22\./);
+    expect(screen.getByText("their offer")).toBeInTheDocument();
+    expect(screen.getByText("their counter")).toBeInTheDocument();
+    const bill = document.querySelector("[data-offer-bill]")!;
+    expect(bill.textContent).toMatch(/Their price\$30/);
+    expect(bill.textContent).toMatch(/Buyer's fee \(5% \+ 70¢\)\$2\.20/);
+    expect(bill.textContent).toMatch(/You pay with pickup\$32\.20/);
+  });
+
   it("cart: one checkout per seller with one 5% + 70c fee (F1), delivery later, and a Pay button for the total (rows 22, 24, 38)", async () => {
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };

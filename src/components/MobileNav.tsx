@@ -13,7 +13,6 @@ import { prefetchRoute, prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { TabButton } from "@/components/mobileNav/TabButton";
 import { announceTabReselect } from "@/components/mobileNav/tabReselect";
-import { UserAvatar } from "@/components/UserAvatar";
 import { GateSheet } from "@/components/mobileNav/GateSheet";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -151,27 +150,19 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     return () => window.clearTimeout(t);
   }, [dockHidden, user?.id, queryClient]);
 
-  // Warm the profile photo the INSTANT `useCurrentUser` produces a URL, rather
-  // than when the dock's <UserAvatar> happens to mount and issue the request
-  // itself. Measured cold at 375/slow-3G the dock avatar sat on its monogram
-  // for up to 12s: the request could not even be ISSUED until the nav chunk
-  // had loaded, mounted, and laid the (lazily-loaded) <img> out. This puts the
-  // fetch in flight as soon as the URL exists, so by the time the element
-  // mounts the bitmap is usually already in the memory cache — where
-  // UserAvatar's ref-callback path shows it at full opacity in its first
-  // frame, with no cross-fade at all.
-  //
-  // Same `pixelSize` as the dock's own <UserAvatar> (48) so this warms the
-  // EXACT URL that element will request; a different size is a different CDN
-  // transform and would warm nothing. Fire-and-forget: the Image is not
-  // retained, errors are irrelevant (UserAvatar has its own error path), and
-  // nothing here decides anything.
+  // Warm the profile photo the INSTANT `useCurrentUser` produces a URL, so the
+  // top bar's avatar (AppTopBar, pixelSize 72) paints from the memory cache in
+  // its first frame instead of sitting on its monogram (measured cold at
+  // 375/slow-3G: up to 12s when the dock still drew it). The dock's "You" tab is
+  // a person icon now (2026-10-20), so this warms the TOP BAR's exact URL; a
+  // different size is a different CDN transform and would warm nothing.
+  // Fire-and-forget: the Image is not retained and nothing here decides anything.
   const avatarUrl = profile?.avatar_url;
   useEffect(() => {
     if (!avatarUrl || typeof Image === "undefined") return;
     const img = new Image();
     img.decoding = "async";
-    img.src = transformedImageUrl(avatarUrl, { width: 48, height: 48 });
+    img.src = transformedImageUrl(avatarUrl, { width: 72, height: 72 });
   }, [avatarUrl]);
 
   const [gateOpen, setGateOpen] = useState(false);
@@ -541,38 +532,15 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           />
         )}
         <div className="relative z-10">
-          {/* Profile tab shows the signed-in user's avatar (like Instagram /
-              Facebook) instead of a generic person glyph. UserAvatar falls
-              back to a deterministic initials-gradient when there's no photo,
-              so it's never a broken image. The active state is signalled by a
-              bark-green ring (matching the active icon color) rather than the
-              icon-fill treatment the other tabs use. Guests have no user, so
-              they keep the plain person icon (their Profile tab routes to
-              /login). */}
-          {path === "/profile" && !isGuest ? (
-            <UserAvatar
-              userId={user?.id}
-              src={profile?.avatar_url}
-              name={profile?.full_name}
-              pixelSize={48}
-              alt=""
-              className="w-[24px] h-[24px] transition-all duration-200"
-              // The monogram at 24px: the default type size spilled "AW" past the circle (looked, 2026-10-20).
-              fallbackClassName="text-ds-9 tracking-[-0.02em]"
-              style={{
-                boxShadow: isActive
-                  ? "0 0 0 2px hsl(var(--bark)), 0 0 0 3.5px hsl(var(--bark) / 0.18)"
-                  : "0 0 0 1.5px hsl(var(--olivewood) / 0.18)",
-              }}
-            />
-          ) : (
-            <Icon
-              className="w-[22px] h-[22px] transition-all duration-200"
-              strokeWidth={isActive ? (path === "/explore" ? 2.4 : 2) : 1.6}
-              // A filled Compass is a solid disc with no needle (looked, 2026-10-20): Explore goes bold, not filled.
-              fill={isActive && path !== "/explore" ? "currentColor" : "none"}
-            />
-          )}
+          {/* "You" is a PERSON ICON, filled when active, like every other tab
+              (lead review 2026-10-20, boards 7/18/19): the top bar already shows
+              the member's photo, so a second avatar here was a duplicate. */}
+          <Icon
+            className="w-[22px] h-[22px] transition-all duration-200"
+            strokeWidth={isActive ? (path === "/explore" ? 2.4 : 2) : 1.6}
+            // A filled Compass is a solid disc with no needle (looked, 2026-10-20): Explore goes bold, not filled.
+            fill={isActive && path !== "/explore" ? "currentColor" : "none"}
+          />
           {/* No per-tab padlock for guests — three padlocks in a row read
               as a barrier wall on a first-time guest's home screen. The tab
               is gently dimmed (opacity-50) and a tap routes to sign-up, so
@@ -582,8 +550,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             <span
               className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full text-ds-10 flex items-center justify-center font-bold px-1"
               style={{
-                background: "hsl(var(--burnt-sienna))",
-                color: "hsl(var(--parchment))",
+                // Count badges are --alert, never rust (rust is money only; spec v2 §1.1).
+                background: "hsl(var(--alert))",
+                color: "#fff",
               }}
             >
               {badgeCount > 9 ? "9+" : badgeCount}
@@ -595,17 +564,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         <span data-dock-label className={`relative z-10 block whitespace-nowrap text-ds-10 min-[360px]:text-ds-11 leading-[13px] tracking-[-0.01em] ${isActive ? "font-bold" : "font-medium"}`}>
           {label}
         </span>
-        {/* Burnt-Sienna underline accent below the active label only, so the non-active tabs stay clean. */}
-        {isActive && (
-          <DockPill
-            layoutId="mobile-nav-underline"
-            className="absolute bottom-0.5 w-6 h-[3px] rounded-full pointer-events-none"
-            style={{
-              background: "hsl(var(--burnt-sienna))",
-            }}
-            transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
-          />
-        )}
+        {/* No underline: the active tab is its filled icon + bold olive label (spec v2 §3;
+            the rust underline broke "rust is money only", lead review 2026-10-20). */}
       </TabButton>
       {path === "/posts" && dockMotion && (
         <dockMotion.NavQuickMenu open={quickMenuTab === "posts"} onClose={closeQuickMenu} title="Quick filter">

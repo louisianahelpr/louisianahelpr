@@ -88,6 +88,8 @@ vi.mock("@/lib/shops/orders", () => ({
   formatCents: (c: number) => `$${(c / 100).toFixed(2)}`,
 }));
 vi.mock("@/lib/rentals/api", () => ({ fetchMyProperties: async () => [] }));
+// The dock mounts the + sheet, which reads whether the member has a shop (CreateSheet).
+vi.mock("@/lib/shops/api", () => ({ fetchMyShopId: async () => null }));
 
 import MobileNav from "@/components/MobileNav";
 import { ExploreSwitcher } from "@/components/sections/ExploreSwitcher";

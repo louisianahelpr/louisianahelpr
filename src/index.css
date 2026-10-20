@@ -705,6 +705,10 @@
      needs. Destructive dialogs differ from every other confirm in COLOUR ONLY
      — same layout, same spacing, same buttons. */
   --destructive: 19 74% 40%;
+  /* --alert (HELPR-DESIGN-SPEC v2 §2, #B3261E): unread and notification COUNT
+     badges only (rust is money, olive is action, so a count is neither). White
+     text on it measures 6.5:1; the same value serves dark mode. */
+  --alert: 4 71% 41%;
   /* --destructive AS TEXT. The same split as --accent-ink, --sage-ink and
      --gold-ink, and minted for the same measured reason: --destructive is a
      FILL (JobTracking.tsx:1475 paints a solid button with it), so it cannot be
@@ -4519,6 +4523,12 @@ html.senior-mode *::after {
   font-weight: 600 !important;
   letter-spacing: -0.01em !important;
 }
+
+/* Home's greeting IS its top bar (AppTopBar `heading`, boards 7/19): Bodoni,
+   scaled so "Good afternoon, <name>" fits beside the bell and avatar at 320
+   (22px) and reads like the board at 390+ (up to 30px); a long name wraps to a
+   second line inside the 64px bar instead of being cut. */
+.home-greeting { font-size: clamp(1.375rem, 6.4vw, 1.875rem); line-height: 1.08; }
 
 /* Explore's switcher is phone-only (ExploreSwitcher returns null on the desktop website), so its bone is too. */
 html.web-desktop .explore-switcher-bone { display: none; }

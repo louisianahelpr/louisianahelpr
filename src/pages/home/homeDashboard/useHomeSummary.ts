@@ -29,6 +29,27 @@ export interface ComingUpItem {
 const DAY = 86_400_000;
 
 /**
+ * The both-sides invitation a Home section card shows when nothing real is
+ * there yet (HELPR-DESIGN-SPEC v2 §1.5 + §5.5, board 19): never a "0".
+ */
+export const SECTION_INVITE = {
+  jobs: "Hire help or find work",
+  declutter: "Sell or find a deal",
+  shops: "Shop local or open a shop",
+  homes: "Find a place or list one",
+} as const;
+
+/**
+ * A section card's one line from REAL counts: only the non-zero ones, joined
+ * ("2 need you · 1 in progress"). All zero -> null, and the card shows its
+ * SECTION_INVITE instead (lead review 2026-10-20: no big "0 need you").
+ */
+export function countLine(parts: ReadonlyArray<readonly [number, string, string?]>): string | null {
+  const shown = parts.filter(([n]) => n > 0).map(([n, one, many]) => `${n} ${n === 1 ? one : (many ?? one)}`);
+  return shown.length ? shown.join(" · ") : null;
+}
+
+/**
  * Home's numbers, all from data the section screens already read (no new
  * query shape): the poster's and helper's activity (the same buckets Jobs
  * uses), the member's Declutter listings, Shops orders and Homes properties.
@@ -96,10 +117,10 @@ export function useHomeSummary(user: SupaUser | null) {
       thisWeek,
       upcoming: upcoming.slice(0, 3),
       tiles: {
-        jobs: { n: postedNeeds.length + appliedNeeds.length, label: "need you", second: `${postedLive.length + appliedLive.length} in progress` },
-        declutter: { n: items.filter((i) => i.status === "live").length, label: "live", second: `${items.filter((i) => i.status === "pending_review").length} in review` },
-        shops: { n: myOrders.length, label: myOrders.length === 1 ? "open order" : "open orders", second: "Browse shops" },
-        homes: { n: props.length, label: props.length === 1 ? "property" : "properties", second: props.length ? "Repairs, tenants" : "Add a property" },
+        jobs: countLine([[postedNeeds.length + appliedNeeds.length, "need you"], [postedLive.length + appliedLive.length, "in progress"]]),
+        declutter: countLine([[items.filter((i) => i.status === "live").length, "listed"], [items.filter((i) => i.status === "pending_review").length, "in review"]]),
+        shops: countLine([[shopWaiting.length, "to answer"], [myOrders.length, "open order", "open orders"]]),
+        homes: countLine([[props.length, "property", "properties"]]),
       },
     };
   }, [posted.postedJobs, posted.pendingApplicantCounts, posted.loading, applied.appliedApps, applied.loading, declutter.data, orders.data, shopOrders.data, homes.data]);

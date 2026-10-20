@@ -159,7 +159,7 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
     expect([...document.querySelectorAll("[data-create-row]")].map((e) => e.getAttribute("data-create-row"))).toEqual(["jobs", "declutter", "shops", "homes"]);
     expect(actionLabels("jobs")).toEqual(["Post a job"]);
     expect(actionLabels("declutter")).toEqual(["Sell an item", "Moving out sale"]);
-    expect(actionLabels("homes")).toEqual(["List a home"]);
+    expect(actionLabels("homes")).toEqual(["List for rent"]);
     expect(await screen.findByText("No shop yet")).toBeTruthy();
     expect(actionLabels("shops")).toEqual(["Open a shop"]);
   });

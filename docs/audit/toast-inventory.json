@@ -314,7 +314,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 123,
+      "line": 130,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -324,7 +324,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 155,
+      "line": 154,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -334,7 +334,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 186,
+      "line": 185,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -344,7 +344,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 187,
+      "line": 186,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -354,7 +354,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 188,
+      "line": 187,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -364,7 +364,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 261,
+      "line": 260,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -374,7 +374,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 279,
+      "line": 278,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7446,7 +7446,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 59,
+      "line": 57,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7463,7 +7463,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 87,
+      "line": 85,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7473,17 +7473,17 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 115,
+      "line": 107,
       "kind": "toast.error",
       "title": {
         "form": "literal",
-        "text": "Tap an Overall star rating to leave your review."
+        "text": "Tap a star rating to leave your review."
       },
       "renders": true
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 120,
+      "line": 112,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7493,7 +7493,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 171,
+      "line": 163,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7513,7 +7513,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 202,
+      "line": 194,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7523,7 +7523,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 209,
+      "line": 201,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7533,7 +7533,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 211,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7543,7 +7543,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 215,
+      "line": 207,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7553,7 +7553,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 272,
+      "line": 264,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",

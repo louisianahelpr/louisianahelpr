@@ -58,7 +58,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 describe("prefs screen renders a control for every row", () => {
   it("renders a push and an email switch for every mapped category", async () => {
     render(<NotificationPreferences />);
-    await waitFor(() => expect(screen.getByLabelText("Job Offers push")).toBeTruthy());
+    await waitFor(() => expect(screen.getByLabelText("Job offers push")).toBeTruthy());
     for (const r of rows) {
       expect(screen.getByLabelText(`${r.label} push`), `${r.key} push`).toBeTruthy();
       expect(screen.getByLabelText(`${r.label} email`), `${r.key} email`).toBeTruthy();
@@ -76,12 +76,12 @@ describe("prefs screen renders a control for every row", () => {
   it("renders the Job Matches switch, push and email", async () => {
     PREFS_ROW = { user_id: "u1", push_enabled: true, quiet_start: null, quiet_end: null };
     render(<NotificationPreferences />);
-    await waitFor(() => expect(screen.getByLabelText("Job Matches push")).toBeTruthy());
-    expect(screen.getByLabelText("Job Matches email")).toBeTruthy();
+    await waitFor(() => expect(screen.getByLabelText("Job matches push")).toBeTruthy());
+    expect(screen.getByLabelText("Job matches email")).toBeTruthy();
     // Unset in the row means ON — an existing account must not silently lose
     // matches the moment the column ships.
-    expect((screen.getByLabelText("Job Matches push") as HTMLButtonElement).getAttribute("aria-checked")).toBe("true");
-    expect((screen.getByLabelText("Job Matches email") as HTMLButtonElement).getAttribute("aria-checked")).toBe("true");
+    expect((screen.getByLabelText("Job matches push") as HTMLButtonElement).getAttribute("aria-checked")).toBe("true");
+    expect((screen.getByLabelText("Job matches email") as HTMLButtonElement).getAttribute("aria-checked")).toBe("true");
   });
 
   // Q1585 (owner, 2026-10-12): no "Daily Match Digest" choice. Every member
@@ -90,7 +90,7 @@ describe("prefs screen renders a control for every row", () => {
   it("offers no daily-list choice for job matches, even with an old row that had it on", async () => {
     PREFS_ROW = { user_id: "u1", push_enabled: true, match_digest_mode: true, quiet_start: null, quiet_end: null };
     render(<NotificationPreferences />);
-    await waitFor(() => expect(screen.getByLabelText("Job Matches push")).toBeTruthy());
+    await waitFor(() => expect(screen.getByLabelText("Job matches push")).toBeTruthy());
     expect(screen.queryByLabelText("Daily match digest")).toBeNull();
     expect(screen.queryByText("Daily Match Digest")).toBeNull();
   });

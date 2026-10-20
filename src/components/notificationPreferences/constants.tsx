@@ -38,7 +38,7 @@ export const trimTime = (v: string | null | undefined): string | null => {
 // 28px glyph − the two 51px switch slots and their gap), so a label has to
 // measure under that at 14px/600. "Transit (On the Way / Arrived)" was 213px
 // and truncated; every other label is a short Title Case pair well inside the
-// budget ("Payments & Tips", the widest survivor, is 119px).
+// budget ("Payments and tips", the widest survivor, is 119px).
 //
 // That budget is for 375 at the default scale, and it is not the tight case.
 // At 320 the same arithmetic leaves 50px, and in Senior Mode these labels
@@ -70,19 +70,19 @@ export const trimTime = (v: string | null | undefined): string | null => {
 // received, payout sent, instant payout) routes to its own column. The labels
 // have to carry that distinction because nothing else on the screen does.
 export const rows: Row[] = [
-  { key: "new_offers", emailKey: "email_new_offers", label: "Job Offers", icon: <Briefcase className="w-3.5 h-3.5" /> },
+  { key: "new_offers", emailKey: "email_new_offers", label: "Job offers", icon: <Briefcase className="w-3.5 h-3.5" /> },
   { key: "job_applications", emailKey: "email_job_applications", label: "Applications", icon: <Users className="w-3.5 h-3.5" /> },
-  { key: "job_updates", emailKey: "email_job_updates", label: "Job Updates", icon: <RefreshCw className="w-3.5 h-3.5" /> },
+  { key: "job_updates", emailKey: "email_job_updates", label: "Job updates", icon: <RefreshCw className="w-3.5 h-3.5" /> },
   // The Daily Match Digest row renders directly beneath this one (see
   // NotificationPreferences.tsx) — it is a delivery mode FOR this category,
   // and it greys out when this switch is off.
-  { key: "job_matches", emailKey: "email_job_matches", label: "Job Matches", icon: <Sparkles className="w-3.5 h-3.5" /> },
+  { key: "job_matches", emailKey: "email_job_matches", label: "Job matches", icon: <Sparkles className="w-3.5 h-3.5" /> },
   { key: "messages", emailKey: "email_messages", label: "Messages", icon: <MessageSquare className="w-3.5 h-3.5" /> },
-  { key: "transit_updates", emailKey: "email_transit_updates", label: "Transit Updates", icon: <Navigation className="w-3.5 h-3.5" /> },
-  { key: "work_status", emailKey: "email_work_status", label: "Work Status", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-  { key: "payments", emailKey: "email_payments", label: "Job Payments", icon: <Receipt className="w-3.5 h-3.5" /> },
-  { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payments & Tips", icon: <DollarSign className="w-3.5 h-3.5" /> },
+  { key: "transit_updates", emailKey: "email_transit_updates", label: "Transit updates", icon: <Navigation className="w-3.5 h-3.5" /> },
+  { key: "work_status", emailKey: "email_work_status", label: "Work status", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
+  { key: "payments", emailKey: "email_payments", label: "Job payments", icon: <Receipt className="w-3.5 h-3.5" /> },
+  { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payments and tips", icon: <DollarSign className="w-3.5 h-3.5" /> },
   { key: "reviews", emailKey: "email_reviews", label: "Reviews", icon: <Star className="w-3.5 h-3.5" /> },
-  { key: "system_alerts", emailKey: "email_system_alerts", label: "System Alerts", icon: <ShieldAlert className="w-3.5 h-3.5" /> },
+  { key: "system_alerts", emailKey: "email_system_alerts", label: "System alerts", icon: <ShieldAlert className="w-3.5 h-3.5" /> },
   { key: "promotions", emailKey: "email_promotions", label: "Promotions", icon: <Megaphone className="w-3.5 h-3.5" /> },
 ];

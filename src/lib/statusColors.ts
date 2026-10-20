@@ -21,11 +21,17 @@
  * red-alarm or fluorescent):
  *   open               → olivewood          (neutral, helpful — available)
  *   accepted           → bark               (confident forward motion)
- *   in_progress        → burnt-sienna       (active warmth — work is on)
+ *   in_progress        → bark               (olive: work is on; was sienna)
  *   completed          → bark, deeper       (earned, settled)
  *   cancelled          → low-opacity olive  (muted, no judgment)
  *   revision_requested → gold-warm          (gentle attention — needs you)
- *   disputed           → burnt-sienna deep  (serious but warm, not alarm-red)
+ *   disputed           → olivewood, deeper  (neutral: serious, not alarm-red;
+ *                                            was sienna)
+ *
+ * RUST IS MONEY ONLY (spec v2 §1.1, lead 2026-10-20). No job status paints
+ * in --burnt-sienna / --sienna-ink: rust marks prices, payouts and held
+ * money, so a rust "In progress" chip read as a money state. Guarded in
+ * statusColors.test.ts ("no status paints in rust").
  *
  * CRITICAL — brand-token plumbing: the warm-palette HSL channels are
  * declared as CSS custom properties on `:root` in `src/index.css` and are
@@ -70,14 +76,11 @@ export const JOB_STATUS_COLORS: Record<JobStatus, StatusColor> = {
   // audited to the second decimal. Light mode is unchanged (--sage-ink's light
   // value IS --bark).
   accepted:           { bg: "hsl(var(--bark) / 0.12)",      text: "hsl(var(--sage-ink))" },
-  // Active warmth — work is happening right now.
-  // --sienna-ink, not raw --burnt-sienna. Same defect as `completed` and
-  // `disputed` below — the brand accent's dark value is tuned for accents, not
-  // for 9px text on its own tint, and this chip measured 3.83:1 on dark.
-  // --sienna-ink is the sienna family's adaptive LABEL pair (its light value is
-  // byte-identical to --burnt-sienna, so light mode does not move) and it keeps
-  // the hue, which --danger-ink would not: "in progress" is not danger.
-  in_progress:        { bg: "hsl(var(--burnt-sienna) / 0.12)", text: "hsl(var(--sienna-ink))" },
+  // Work is happening right now. OLIVE, the action colour (spec v2 §1.1:
+  // rust is money only; this was sienna until 2026-10-20). Same pair as
+  // `accepted`: both are the live, hired side of a job, and the LABEL tells
+  // them apart. --sage-ink, not raw --bark, for the AA reason under `completed`.
+  in_progress:        { bg: "hsl(var(--bark) / 0.12)",      text: "hsl(var(--sage-ink))" },
   // Earned, settled — slightly more saturation than `accepted` to mark
   // the difference between "agreed" and "done".
   // --sage-ink, not raw --bark. --bark has no dark sibling tuned for label
@@ -92,11 +95,10 @@ export const JOB_STATUS_COLORS: Record<JobStatus, StatusColor> = {
   // pending/revision pair (amber-ink is 4.5:1+ on the tint); plain gold-warm
   // text was only 2.53:1 and failed WCAG AA.
   revision_requested: { bg: "hsl(var(--amber-tint) / 0.14)", text: "hsl(var(--amber-ink))" },
-  // Serious but warm, NOT red-alarm — kept in the brand sienna family.
-  // Same defect as `completed` above, caught by the same sweep: raw
-  // --burnt-sienna as ink measured 3.52:1 on dark. --sienna-ink keeps the
-  // family (this state is deliberately NOT alarm-red) while clearing AA.
-  disputed:           { bg: "hsl(var(--burnt-sienna) / 0.18)", text: "hsl(var(--sienna-ink))" },
+  // Serious, NOT red-alarm, and NOT rust (rust is money only, spec v2 §1.1;
+  // this was sienna until 2026-10-20). The neutral olivewood family, on a
+  // deeper tint than `open` so the two never read as one state at a glance.
+  disputed:           { bg: "hsl(var(--olivewood) / 0.18)", text: "hsl(var(--olivewood))" },
   // Awaiting business-poster approval on a member-created posting that
   // exceeds the org's threshold. Gentle attention — same gold-warm as
   // revision_requested since it's "waiting on a person" not "in flight."
@@ -145,11 +147,11 @@ const STATUS_COLOR_CLASSES: Record<JobStatus, string> = {
   // measured 4.28:1 on dark, under the 4.5:1 AA floor for text this size.
   // Found 2026-09-21 by the burn-down, by a guard comparing the two maps.
   accepted:           "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--sage-ink))]",
-  in_progress:        "bg-[hsl(var(--burnt-sienna)/0.12)] text-[hsl(var(--sienna-ink))]",
+  in_progress:        "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--sage-ink))]",
   completed:          "bg-[hsl(var(--bark)/0.18)] text-[hsl(var(--sage-ink))]",
   cancelled:          "bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.8)]",
   revision_requested: "bg-[hsl(var(--amber-tint)/0.14)] text-[hsl(var(--amber-ink))]",
-  disputed:           "bg-[hsl(var(--burnt-sienna)/0.18)] text-[hsl(var(--sienna-ink))]",
+  disputed:           "bg-[hsl(var(--olivewood)/0.18)] text-[hsl(var(--olivewood))]",
   pending_approval:   "bg-[hsl(var(--amber-tint)/0.14)] text-[hsl(var(--amber-ink))]",
 };
 

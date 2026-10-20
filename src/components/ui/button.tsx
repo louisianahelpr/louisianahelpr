@@ -108,7 +108,7 @@ const buttonVariants = cva(
         // Destructive: shadow + highlight + press, NO gradient — keep red
         // flat-looking so it doesn't get accidentally pressed.
         destructive:
-          "bg-destructive !text-[hsl(var(--destructive-foreground))] [&_*]:!text-[hsl(var(--destructive-foreground))] hover:brightness-110 " + ELEV_FILLED,
+          "bg-[hsl(var(--alert))] !text-[hsl(var(--destructive-foreground))] [&_*]:!text-[hsl(var(--destructive-foreground))] hover:brightness-110 " + ELEV_FILLED,
         // Outline: shadow #1 ONLY — outlines stay clean and minimal, no
         // inner highlight, no gradient.
         //

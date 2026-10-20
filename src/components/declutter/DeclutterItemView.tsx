@@ -262,10 +262,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
 
           <section className="space-y-1" aria-labelledby="declutter-pickup">
             <h2 id="declutter-pickup" className="text-base font-semibold">Pickup</h2>
-            <p className="text-sm">
-              Pickup in {it.area_label}
-              {away ? ` · ${away}` : ""}
-            </p>
+            {/* The miles sit once, under the title (board 4). */}
+            <p className="text-sm">Pickup in {it.area_label}</p>
             <p className="text-sm" data-testid="declutter-porch-line">
               {it.porch_ok !== false ? "Porch pickup available" : "Meet at the seller's home only"}
             </p>

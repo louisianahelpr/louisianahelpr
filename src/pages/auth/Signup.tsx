@@ -510,7 +510,7 @@ const Signup = () => {
       // typed. Both render through the SAME shell row, so the two steps no
       // longer differ in title size (step 2 used to be a hand-rolled row inside
       // the card at clamp(1.6rem,2.4vw+0.5rem,2.1rem) against step 1's ds-24).
-      {...(step === 1 ? { backTo: "/" } : { backOnClick: () => { setStep2Errors({}); setStep(1); } })}
+      {...(step === 1 ? { hideBack: true } : { backOnClick: () => { setStep2Errors({}); setStep(1); } })}
       // Step 1's heading is inside the card (board 55), as Log in's is; step 2 keeps the row title.
       title={step === 1 ? undefined : stepHeading.title}
     >

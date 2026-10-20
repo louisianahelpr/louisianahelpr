@@ -13,8 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, ArrowBigUp, Eye, EyeOff, Check, Circle, X, Mail, Lock } from "lucide-react";
+import { ArrowBigUp, Eye, EyeOff, Check, Circle, X, Mail, Lock } from "lucide-react";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
+import { OrRule } from "@/components/auth/OrRule";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import {
   suggestEmailCorrection,
@@ -44,6 +45,11 @@ export interface SignupStep1Props {
   labelCls: string;
   /** Called when the user clicks Continue — parent runs validation, then advances step. */
   onContinue: () => void | Promise<void>;
+  /** Board 55's First name, the same value step 2 asks for (prefilled there). */
+  firstName?: string;
+  setFirstName?: (v: string) => void;
+  /** A reason line (e.g. "Create an account to get alerts") in place of the default. */
+  subtitle?: string;
 }
 
 // One password-rule chip of the live checklist. Module-level, not declared
@@ -73,6 +79,9 @@ export function SignupStep1({
   inputCls,
   labelCls,
   onContinue,
+  firstName,
+  setFirstName,
+  subtitle,
 }: SignupStep1Props) {
   // The Continue button stays visually active even before the policies box is
   // checked — a disabled grey button is a dead end the user can't learn from.
@@ -146,24 +155,33 @@ export function SignupStep1({
 
   return (
     <div className="space-y-5">
-      {/* Two columns at lg+, mirroring the Sign in screen (Login.tsx):
-          credentials left, social right, with the OR rule as its own middle
-          column. Same class strings as Login on purpose — the two auth screens
-          are one set, so a value invented here would drift them apart. Stacks
-          below lg exactly as before. */}
-      <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full"}>
-      {/* The credentials column keeps this step's own `space-y-5` rather than
-          Login's form rhythm: the fields, the three consent rows and Continue
-          are spaced as they already were — only the column around them is new. */}
-      <div className="space-y-5">
-      <section className="space-y-5">
+      {/* Board 55 (2026-10-20): the same card as Log in (board 37): the ROUND H
+          app icon, "Create your account" and one line, the fields (labels
+          above, no placeholder text: the owner's 2026-08-22 label-only rule),
+          the olive pill, ONE consent line, then "or" and the providers.
+          Behaviour unchanged: Continue still runs the parent's validation and
+          opens step 2 (About you), where the account is created.
+          Guard: src/test/signupBoard55.test.ts. */}
+      <div className="flex flex-col items-center text-center gap-1.5" data-testid="signup-card-head">
+        <img src="/apple-touch-icon.png" alt="Helpr" width={64} height={64} className="w-16 h-16 rounded-full ring-1 ring-border object-cover mb-2" />
+        <h1 className="text-ds-24 font-bold leading-tight text-foreground">Create your account</h1>
+        <p className="text-ds-14 text-muted-foreground">{subtitle ?? "One account to hire, help, buy and sell."}</p>
+      </div>
 
+      <section className="space-y-3.5">
+        {setFirstName && (
+          <div className="space-y-2">
+            {/* The same first name step 2 asks for (prefilled there). */}
+            <Label htmlFor="signup-first-name" className={labelCls}>First name</Label>
+            <Input id="signup-first-name" value={firstName ?? ""} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" autoCapitalize="words" enterKeyHint="next" className={inputCls} />
+          </div>
+        )}
         <div className="space-y-2">
           {/* Single email field — confirm-email was removed since
               email-verification (the click-the-link step after signup)
               already catches typos. The double field was 2014-era
               friction that costs activations without preventing errors. */}
-          <Label htmlFor="email" className={labelCls}>Email <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
+          <Label htmlFor="email" className={labelCls}>Email</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
             <Input ref={emailRef} id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEmailKeyDown} required autoComplete="email" aria-invalid={emailError} aria-describedby={emailError ? "signup-email-error" : undefined}
@@ -172,9 +190,8 @@ export function SignupStep1({
               <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
             )}
           </div>
-          {/* No "Email is required" line — the red asterisk on the label and
-              the red field border already say it. The FORMAT error is kept:
-              a typo'd address is not self-evident from a border alone. */}
+          {/* No asterisks (board 55, the same as Log in): every field on this
+              card is needed, and a missed one is named below it on Continue. */}
           {/* The message accompanies the red border in BOTH failure shapes —
               a malformed address AND an untouched field after Continue. The
               empty case used to paint the border with no words at all, which
@@ -192,12 +209,12 @@ export function SignupStep1({
               className="block text-left text-ds-11 font-sans"
               style={{ color: "hsl(var(--bark))" }}
             >
-              Did You Mean <span className="font-semibold underline">{emailSuggestion}</span>?
+              Did you mean <span className="font-semibold underline">{emailSuggestion}</span>?
             </button>
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password" className={labelCls}>Password <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
+          <Label htmlFor="password" className={labelCls}>Password</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
             <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} enterKeyHint="next" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={PASSWORD_MIN_LENGTH} aria-invalid={passwordError} aria-describedby={passwordError ? "signup-password-error" : undefined}
@@ -212,7 +229,7 @@ export function SignupStep1({
             </button>
           </div>
           {capsLockOn && (
-            <p className="inline-flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+            <p className="inline-flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--alert))" }}>
               <ArrowBigUp className="w-3.5 h-3.5" strokeWidth={2} aria-hidden /> Caps Lock is on
             </p>
           )}
@@ -242,7 +259,7 @@ export function SignupStep1({
             // always said "green"; the token simply was not one.
             const { score, label } = passwordStrength(password);
             const barColor =
-              score >= 4 ? "hsl(var(--success-ink))" : score === 3 ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))";
+              score >= 4 ? "hsl(var(--success-ink))" : score === 3 ? "hsl(var(--bark))" : "hsl(var(--alert))";
             return (
               <div className="flex items-center gap-2">
                 <div className="flex gap-1 flex-1">
@@ -278,117 +295,53 @@ export function SignupStep1({
         </div>
       </section>
 
-      {/* The three consent rows, tightened (owner: "make 3 check boxes tighter
-          together"). `space-y-0`, not a smaller one: each row keeps
-          `min-h-[44px]` on touch, which is the HIG tap-target minimum and the
-          only thing actually setting the row height there — shrinking the rows'
-          own `py` would change nothing on a phone because the content centres
-          inside that 44px box either way. The gap BETWEEN rows is the one lever
-          that doesn't cost a tap target, so that is the one used. On a pointer
-          device `[@media(pointer:fine)]:min-h-0` already lets them collapse to
-          their content. */}
-      <div className="space-y-0 mt-1">
+      <Button
+        variant="primary"
+        className="w-full rounded-full"
+        size="lg"
+        onClick={handleContinue}
+      >
+        Continue
+      </Button>
+
+      {/* ONE consent line (board 55): the 18+ attestation and the Terms, Rules
+          and Privacy agreement are one box that records BOTH (acceptedPolicies
+          and ageConfirmed, exactly as the two boxes did). Continue stays
+          active while it is unticked: a tap shakes the line instead of a dead
+          grey button. New tabs, not in-app links: /signup keeps no draft. */}
+      <div className="space-y-0">
       <label
         key={nudgeKey}
         htmlFor="policies"
-        className={`flex items-center gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !acceptedPolicies ? "animate-attention-nudge" : ""}`}
+        className={`flex items-start gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !(acceptedPolicies && ageConfirmed) ? "animate-attention-nudge" : ""}`}
         style={{
-          // Transparent default border keeps the layout stable when the
-          // burnt-sienna nudge border appears (no jump on the shake).
-          border:
-            nudgeKey > 0 && !acceptedPolicies
-              ? "1px solid hsl(var(--burnt-sienna) / 0.55)"
-              : "1px solid transparent",
+          border: nudgeKey > 0 && !(acceptedPolicies && ageConfirmed) ? "1px solid hsl(var(--alert) / 0.55)" : "1px solid transparent",
         }}
       >
-        {/* aria-labelledby, NOT the wrapping <label htmlFor>. Radix renders
-            Checkbox as <button role="checkbox"> with empty content, and
-            Chrome's accessible-name computation returns nothing for it — the
-            accessibility tree showed all three consent boxes as an unnamed
-            `checkbox`, so a screen-reader user was agreeing to the Terms while
-            hearing only "checkbox, not checked". Pointing at the description
-            span names them from the same copy sighted users read, links
-            included. */}
         <Checkbox
           id="policies"
           aria-labelledby="policies-label"
-          // The nudge is a shake plus a burnt-sienna border — both PURELY
-          // VISUAL. Without aria-invalid a screen-reader user tapped Continue
-          // and perceived nothing at all, while the email and password fields
-          // next to it announce their errors properly.
-          aria-invalid={nudgeKey > 0 && !acceptedPolicies}
-          checked={acceptedPolicies}
-          onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
+          aria-invalid={nudgeKey > 0 && !(acceptedPolicies && ageConfirmed)}
+          checked={acceptedPolicies && ageConfirmed}
+          onCheckedChange={(checked) => {
+            setAcceptedPolicies(checked === true);
+            setAgeConfirmed(checked === true);
+          }}
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
-        <span
-          id="policies-label"
-          className="text-ds-11 leading-relaxed font-sans"
-          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-        >
-          {/* ONE line (owner, 2026-08-22). At text-ds-11 the label column fits
-              roughly 48 characters; "I agree to the Terms, Platform Rules, and
-              Privacy Policy." is 57 and wrapped, while the age line beside it
-              did not — so the three consents read as three different shapes.
-
-              Shortened to 37 by trimming the visible link WORDS only. Every
-              destination, and the consent actually recorded, is unchanged.
-              "Platform Rules" was also the odd one out: the other three places
-              in the app that link /rules call it "Community Rules". */}
-          {/* New TAB, not an in-app <Link>. These policies open mid-signup, and
-              /signup keeps no draft of the typed email, password, or checkbox
-              state — an in-app navigation to /terms therefore threw the form
-              away and dropped the user back on an empty step 1. CompleteProfile's
-              identical consent row already opens its three policy links in a new
-              tab for exactly this reason; this matches it. */}
-          I agree to the{" "}
-          <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Terms</a>,{" "}
-          <a href="/rules" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Rules</a>{" & "}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Privacy</a>
+        <span id="policies-label" className="text-ds-13 leading-snug font-sans text-muted-foreground">
+          I'm 18 or older and agree to the{" "}
+          <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">Terms</a>,{" "}
+          <a href="/rules" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">Rules</a> and{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">Privacy</a>.
         </span>
       </label>
 
-      {/* 18+ attestation — a HARD requirement (legal age gate), UNCHECKED by
-          default. DOB is deferred to first post/apply, so this checkbox is what
-          confirms age at account creation. Mirrors the policies box, including
-          the shake nudge on a Continue tap while unchecked. */}
-      <label
-        key={`age-${nudgeKey}`}
-        htmlFor="age-confirm"
-        className={`flex items-center gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !ageConfirmed ? "animate-attention-nudge" : ""}`}
-        style={{
-          border:
-            nudgeKey > 0 && !ageConfirmed
-              ? "1px solid hsl(var(--burnt-sienna) / 0.55)"
-              : "1px solid transparent",
-        }}
-      >
-        <Checkbox
-          id="age-confirm"
-          aria-labelledby="age-confirm-label"
-          // Same reason as the policies box above — the nudge is visual only.
-          aria-invalid={nudgeKey > 0 && !ageConfirmed}
-          checked={ageConfirmed}
-          onCheckedChange={(checked) => setAgeConfirmed(checked === true)}
-          className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
-        />
-        <span
-          id="age-confirm-label"
-          className="text-ds-11 leading-relaxed font-sans"
-          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-        >
-          I confirm I am 18 years of age or older.
-        </span>
-      </label>
-
-      {/* Marketing email opt-in — SEPARATE checkbox, UNCHECKED by default.
-          Legal + agreements bundle above is a hard requirement to sign up;
-          this second box is optional and persists to profiles.marketing_consent
-          so send-marketing-blast can filter recipients honestly. Transactional
-          mail (auth, receipts, disputes) is exempt and always sends. */}
+      {/* Marketing email opt-in: optional, UNCHECKED by default, persisted to
+          profiles.marketing_consent so send-marketing-blast filters honestly. */}
       <label
         htmlFor="marketing-consent"
-        className="flex items-center gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer"
+        className="flex items-start gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer"
       >
         <Checkbox
           id="marketing-consent"
@@ -397,127 +350,39 @@ export function SignupStep1({
           onCheckedChange={(checked) => setMarketingConsent(checked === true)}
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
-        <span
-          id="marketing-consent-label"
-          className="text-ds-11 leading-relaxed font-sans"
-          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-        >
-          {/* ONE line, same reason as the policies label above — this was 95
-              characters over two lines. "I can unsubscribe any time" is not
-              lost: every marketing email carries an unsubscribe link (required
-              by CAN-SPAM regardless), and the Privacy Policy linked two rows up
-              states it. The checkbox itself stays unchecked by default, which
-              is the part that actually has to be true. */}
+        <span id="marketing-consent-label" className="text-ds-13 leading-snug font-sans text-muted-foreground">
           Email me occasional Helpr news and offers.
         </span>
       </label>
 
-      {/* SCREEN-READER PARITY FOR THE CONSENT GATE.
-          Tapping Continue with a required box unchecked shakes it and paints a
-          burnt-sienna border. Both are purely visual, so a screen-reader user
-          got NOTHING — no alert, no aria-invalid, nothing — while an empty
-          email announces "Add your email address" and a malformed one
-          announces "Enter a valid email address" through a real role=alert.
-          The gate was the one blocker on this screen you could not perceive.
-
-          Deliberately sr-only: the shake + border ARE the sighted design and
-          this must not add a second, visible error to a screen the owner has
-          already tuned. It names the specific box(es) still unticked, so the
-          announcement is as actionable as the visual nudge.
-
-          Keyed on nudgeKey so a repeat tap re-announces — an aria-live region
-          whose text is unchanged between taps is silent on every screen
-          reader, which would reproduce the original defect for anyone who
-          taps twice. */}
+      {/* Screen-reader parity for the consent gate: the shake is visual only.
+          Keyed on nudgeKey so a repeat tap re-announces. */}
       <p key={`consent-alert-${nudgeKey}`} role="alert" className="sr-only">
-        {nudgeKey > 0 && (!acceptedPolicies || !ageConfirmed)
-          ? !acceptedPolicies && !ageConfirmed
-            ? "To continue, agree to the Terms, Rules and Privacy, and confirm you are 18 or older."
-            : !acceptedPolicies
-              ? "To continue, agree to the Terms, Rules and Privacy."
-              : "To continue, confirm you are 18 years of age or older."
+        {nudgeKey > 0 && !(acceptedPolicies && ageConfirmed)
+          ? "To continue, confirm you are 18 or older and agree to the Terms, Rules and Privacy."
           : ""}
       </p>
       </div>
 
-      <Button
-        variant="primary"
-        className="w-full rounded-ds-md"
-        size="lg"
-        onClick={handleContinue}
-      >
-        Continue <ArrowRight className="w-4 h-4 ml-1" />
-      </Button>
       {/* Continue saves the email for ONE reminder if sign-up is not finished
-          (owner 2026-10-09; src/lib/signupLead.ts). Said here, before it
-          happens, in the same muted style as the consent rows. */}
-      <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          (owner 2026-10-09; src/lib/signupLead.ts). Said before it happens. */}
+      <p className="text-center text-ds-12 font-sans text-muted-foreground">
         We may email you once if you don't finish signing up.
       </p>
-      </div>
 
-      {/* Vertical OR rule, lg+ only — the horizontal one inside the right
-          column still handles the stacked layout below lg. Its own grid
-          column so it sits between the two methods rather than inside
-          either. */}
       {SOCIAL_SIGN_IN_ENABLED && (
-      <div className="hidden lg:flex flex-col items-center gap-3" aria-hidden>
-        <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
-        <span
-          className="text-ds-11 tracking-[0.2em] uppercase font-sans"
-          style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
-        >
-          or
-        </span>
-        <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
-      </div>
+        <>
+          <OrRule />
+          <SocialAuthButtons />
+        </>
       )}
 
-      {/* Vertically centred against the taller credentials column, so the
-          social buttons sit level with the form rather than hugging the top
-          with dead space beneath them. */}
-      <div className="space-y-6 lg:flex lg:flex-col lg:justify-center lg:gap-8 lg:space-y-0">
-      {/* The OR rule only makes sense when the two methods are stacked. At
-          lg+ they sit side by side, so the columns themselves do the
-          separating. */}
-      {SOCIAL_SIGN_IN_ENABLED && (
-      <>
-      <div className="flex items-center gap-3 lg:hidden">
-        <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
-        <span
-          className="text-ds-11 tracking-[0.2em] uppercase font-sans"
-          style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
-        >
-          or
-        </span>
-        <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
-      </div>
-
-      <SocialAuthButtons />
-      </>
-      )}
-
-      {/* Signing in is the alternative to BOTH create-account methods, so it
-          closes the social column — the mirror of Login's "New to Helpr?".
-          It used to render from Signup.tsx after this component, guarded by
-          `step === 1`; living inside SignupStep1 makes that guard structural
-          (step 2 never mounts this file) instead of a condition someone has to
-          remember. No `mt-5` any more: it was already dead under the card's
-          `space-y-6`, and at lg+ — where `lg:space-y-0` zeroes that out — it
-          would have become a live 20px on top of `lg:gap-8`. */}
-      <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+      <p className="text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         Already have an account?{" "}
-        <Link
-          to="/login"
-          className="font-semibold hover:underline whitespace-nowrap"
-          style={{ color: "hsl(var(--bark))" }}
-        >
-          Log In
+        <Link to="/login" className="font-semibold hover:underline whitespace-nowrap" style={{ color: "hsl(var(--bark))" }}>
+          Log in
         </Link>
       </p>
-      </div>
-      </div>
-
     </div>
   );
 }

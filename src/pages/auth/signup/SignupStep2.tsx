@@ -361,7 +361,7 @@ export function SignupStep2(props: SignupStep2Props) {
           // itself instead of a wordless disabled button + red asterisks).
           disabled={loading}
         >
-          {loading ? "Creating Account…" : "Create Account"}
+          {loading ? "Creating account…" : "Create account"}
         </Button>
       </div>
     </div>

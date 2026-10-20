@@ -384,14 +384,14 @@ export const FORMS: FormSpec[] = [
       // Step 2 is gated on a well-formed step 1; nothing is sent until the final step.
       await page.locator("#email").fill("messy.prodaudit@example.com");
       await page.locator("#password").fill("Sturdy-passw0rd-123");
-      // TWO HARD GATES, not one field pair (SignupStep1.handleContinue): the
-      // policies agreement (#policies) and the 18+ attestation (#age-confirm).
+      // A HARD GATE (SignupStep1.handleContinue): ONE box (#policies, board 55)
+      // records both the policies agreement and the 18+ attestation.
       // Continue deliberately stays ENABLED while either is unchecked — it
       // shakes the offending box instead of greying out, which is better for a
       // person and invisible to a driver that only presses it. Leaving them
       // unchecked is why step 2 never opened and every spec that starts here
       // failed with "#firstName not found" (measured 2026-09-20).
-      for (const id of ["#policies", "#age-confirm"]) {
+      for (const id of ["#policies"]) {
         const box = page.locator(id);
         await box.waitFor({ timeout: 10_000 });
         if ((await box.getAttribute("data-state")) !== "checked") await box.click();

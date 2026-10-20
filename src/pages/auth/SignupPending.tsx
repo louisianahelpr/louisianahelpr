@@ -163,7 +163,7 @@ const SignupPending = () => {
     // Without it the resent link fell back to the project's Site URL.
     const { error } = await supabase.auth.resend({
       type: "signup",
-      email: prefillEmail,
+      email: prefillEmail.trim(),
       options: { emailRedirectTo: getSignupConfirmRedirect(), captchaToken: captchaToken ?? undefined },
     });
     // Turnstile tokens are single-use (Q1314): arm a fresh one.

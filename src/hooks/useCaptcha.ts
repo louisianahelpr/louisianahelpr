@@ -9,7 +9,7 @@ import type { TurnstileHandle } from "@/components/auth/TurnstileField";
  *
  *   const captcha = useCaptcha();
  *   const { error } = await captcha.run((captchaToken) =>
- *     supabase.auth.resetPasswordForEmail(email, { redirectTo, captchaToken }));
+ *     supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo, captchaToken }));
  *   <TurnstileField ref={captcha.ref} action="password_reset" />
  */
 export function useCaptcha() {

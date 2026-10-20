@@ -50,6 +50,18 @@ const EXPLANATION: Record<DetectedViolation["type"], string> = {
     "This reads as moving the job off Helpr. Keeping it here is what makes the work covered, the payment held in escrow, and a dispute answerable.",
 };
 
+/**
+ * Board 85 (2026-10-20): a calm, specific title instead of "This Violates
+ * Platform Rules". The rule that fired is still named, in the list below.
+ * Copy only claims what the scanner does: it blocks before sending, at every
+ * job stage, so nothing here promises numbers "unlock" later.
+ */
+export function violationTitle(types: readonly DetectedViolation["type"][]): string {
+  if (types.some((t) => t === "phone_number" || t === "email")) return "Kept private for now";
+  if (types.includes("payment_app")) return "Let's keep payment on Helpr";
+  return "Let's keep it on Helpr";
+}
+
 interface ViolationDialogProps {
   /**
    * Every rule the composed message tripped, in the order `scanMessage` found
@@ -77,11 +89,7 @@ export const ViolationDialog = ({
     <Dialog open={unique.length > 0} onOpenChange={onOpenChange}>
       <DialogContent role="alertdialog">
         <DialogHero
-          title={
-            unique.length === 1
-              ? unique[0].label
-              : "This Violates Platform Rules"
-          }
+          title={violationTitle(unique.map((v) => v.type))}
         />
 
         <DialogBody>
@@ -93,6 +101,7 @@ export const ViolationDialog = ({
           <ul className="list-disc pl-5 space-y-1">
             {unique.map((v) => (
               <li key={`${v.type}:${v.match}`}>
+                <span className="font-semibold">{v.label}: </span>
                 <span
                   className="not-italic font-semibold"
                   style={{ color: "hsl(var(--ink-deep))" }}
@@ -100,7 +109,7 @@ export const ViolationDialog = ({
                   “{excerpt(v.match)}”
                 </span>
                 {" — "}
-                {unique.length === 1 ? EXPLANATION[v.type] : v.label}
+                {unique.length === 1 ? EXPLANATION[v.type] : null}
               </li>
             ))}
           </ul>
@@ -127,7 +136,7 @@ export const ViolationDialog = ({
             remains the true gate. */}
         <DialogFooter>
           <DialogPrimaryAction onClick={() => onOpenChange(false)}>
-            Edit Message
+            Edit message
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>

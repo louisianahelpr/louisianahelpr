@@ -26,17 +26,29 @@ const TOP_BAR_ICON_CLASS = "h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px]";
  * two bells at 1440). Guard: src/test/desktopTopBarNoDuplicates.test.tsx.
  */
 export function AppTopBar({
-  title,
-  add,
+  title: sectionTitle,
+  add: sectionAdd,
+  explore = false,
 }: {
   /** Omit on Home: the logo shows instead. */
   title?: string;
   add?: { label: string; path: string };
+  /**
+   * One of Explore's four sections (2026-10-20, mock-up 6 + HELPR-DESIGN-SPEC
+   * §3): on a PHONE the bar reads "Explore" (the switcher under it names the
+   * section) and carries no "+", because the bottom bar's center "+" creates.
+   * The desktop website has no center "+", so there it keeps the section's
+   * title and "+". Guard: src/test/centerCreateNav.test.tsx.
+   */
+  explore?: boolean;
 }) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const gate = useAgeGate();
   const isWebDesktop = useIsWebDesktop();
+  const phoneExplore = explore && !isWebDesktop;
+  const title = phoneExplore ? "Explore" : sectionTitle;
+  const add = phoneExplore ? undefined : sectionAdd;
   const isPost = add?.path === "/post-job";
   const go = () => add && navigate(add.path);
   if (isWebDesktop && !title && !add) return null;

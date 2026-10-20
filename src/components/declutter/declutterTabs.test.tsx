@@ -15,7 +15,7 @@
  *
  * @mutate src/components/declutter/DeclutterMineViews.tsx |           { key: "offers", label: "To answer", count: todo?.buyerOffers ?? 0, hot: true }, |           { key: "offers", label: "Offers", count: todo?.buyerOffers ?? 0, hot: true },
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3 hidden" aria-hidden onClick={() => navigate(sectionByKey("declutter").add.path)}>
- * @mutate src/components/declutter/DeclutterHomeView.tsx |         : view === "buying" ? <BuyingDash todo={todo} /> |         : view === "buying" ? <WantedView />
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |         : view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></> |         : view === "buying" ? <WantedView />
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" />} |       {show("offers") && null}
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const show = (g: SellingGroup) => only === null \|\| only === g; |   const show = (_g: SellingGroup) => true;
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(

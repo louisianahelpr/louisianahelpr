@@ -23,6 +23,7 @@ import { useFeatureStatus } from "@/hooks/useFeature";
 import { ChevronRight, Sofa, Truck } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { ListedWhatNext } from "./ListedWhatNext";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import {
   fetchLiveItems,
@@ -359,9 +360,11 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
  * your items, sales waiting for the buyer to pay, and paid sales (pickup,
  * handover, payout), under SellingDash's status boxes.
  */
+// Board 80: opens once after a publish (router state from DeclutterSellView).
 function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; haulOn: boolean; movingOutOn: boolean; todo: DeclutterTodo | null }) {
   return (
     <div className="space-y-6">
+      <ListedWhatNext />
       <SellingDash
         todo={todo}
         userId={userId}

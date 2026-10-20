@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 export function ChoicePill({
   selected,
   className,
+  children,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { selected: boolean }) {
   return (
@@ -31,6 +32,9 @@ export function ChoicePill({
         selected ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground",
         className,
       )}
-    />
+    >
+      {/* Written out, not left in the props spread, so the gradInkContrast resolver sees the label it scores. */}
+      {children}
+    </button>
   );
 }

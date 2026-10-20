@@ -17,22 +17,29 @@ import { report } from "@/lib/errorLogger";
  * readable by a member.
  */
 export function useOnboardingFeeCents(): number | null {
-  const { data } = useQuery({
+  return useOnboardingFeeQuery().data ?? null;
+}
+
+/** The read behind {@link useOnboardingFeeCents}; `isPending` says the answer is not in yet. */
+export function useOnboardingFeeQuery() {
+  return useQuery({
     queryKey: ["platform-settings", "onboarding-fee-cents"],
+    meta: { reportsItself: true },
     // An admin-edited price does not need to be fresh to the second, but it
     // must not be pinned for the life of the session either.
     staleTime: 10 * 60_000,
     queryFn: async (): Promise<number | null> => {
       const { data, error } = await supabase.rpc("get_public_platform_settings");
-      // Deliberately NOT thrown: this drives a single word inside a sentence
-      // that reads fine without it, and a failed price lookup must not take
-      // the whole verification prompt off the screen.
-      // It is reported, though (Q753): this number now also feeds every payout
-      // preview (useFirstPayoutFeeCents), and a failure here used to leave all
-      // of them quietly missing the fee with nothing in the logs.
+      // Reported here (Q753: every payout preview reads this number) AND
+      // THROWN (lh-money-escrow review of the Home money tiles, 2026-10-20):
+      // a swallowed failure read as an ANSWER, so useFirstPayoutFeeKnown took
+      // "no fee" for known and Home showed a take-home $2 high. Every caller
+      // still gets null (useOnboardingFeeCents is `data ?? null`), so no
+      // screen loses anything. `reportsItself` keeps the shared QueryCache
+      // reporter from logging it twice.
       if (error) {
         report(error, { severity: "warning", tags: { source: "useOnboardingFeeCents" } });
-        return null;
+        throw error;
       }
       const cents = (Array.isArray(data) ? data[0] : null)?.onboarding_fee_cents;
       // A zero or negative fee means the platform is not charging one, which
@@ -40,7 +47,6 @@ export function useOnboardingFeeCents(): number | null {
       return typeof cents === "number" && cents > 0 ? cents : null;
     },
   });
-  return data ?? null;
 }
 
 /** "$2" for a whole number of dollars, "$2.50" otherwise. `null` passes through. */

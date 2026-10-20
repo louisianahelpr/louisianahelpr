@@ -8,6 +8,8 @@ import { useSectionTabs, sayComingSoon } from "@/components/mobileNav/useSection
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHomeSummary, SECTION_INVITE } from "./homeDashboard/useHomeSummary";
 import { COMING_UP_ROLE, type ComingUpItem } from "./homeDashboard/comingUp";
+import { useHomeMoney } from "./homeDashboard/homeMoney";
+import { HomeMoneyTiles } from "./homeDashboard/HomeMoneyTiles";
 import { useOnTabReselect } from "@/components/mobileNav/tabReselect";
 import { feedLinkTarget } from "./homeDashboard/feedLinkForward";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
@@ -52,6 +54,7 @@ function HomeDashboardScreen() {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const summary = useHomeSummary(user);
+  const money = useHomeMoney(user);
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
   const isWebDesktop = useIsWebDesktop();
@@ -87,8 +90,7 @@ function HomeDashboardScreen() {
 
         {/* Board 11 (desktop): TWO columns under the greeting from 1280px (below that the left column is
             too narrow for the Coming up table). Left (~60%): Next up, To do, Coming up (a table from
-            900px). Right (~40%): YOUR SECTIONS as a compact 2x2 (the money tiles go above it once they
-            exist). The phone keeps one column in the same order. */}
+            900px). Right (~40%): the money tiles, then YOUR SECTIONS as a compact 2x2. The phone keeps one column in the same order. */}
         <div data-home-columns className="flex flex-col gap-section xl:grid xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:gap-6 xl:items-start">
           <div data-home-main className="flex flex-col gap-section min-w-0">
 
@@ -212,6 +214,10 @@ function HomeDashboardScreen() {
               </div>
             )}
 
+            {/* MONEY STRIP (spec v2 §5.3): on phone right after Next up (board 7); from 1280 it moves to
+                the top of the right column (board 11). Hidden when there is nothing real to show. */}
+            <HomeMoneyTiles money={money} placement="main" />
+
             {/* Board 7 / spec v2 §5.4: Coming up is ONE agenda from every section and both sides (jobs,
                 Declutter pickups, shop orders), sorted by when. Each row is its section's icon in a tinted
                 circle, the title, and "<your side> · <when>". No price on a row (rust is money, and the
@@ -266,6 +272,7 @@ function HomeDashboardScreen() {
           </div>
 
           <section data-home-side className="flex flex-col gap-2 min-w-0" aria-label="Your sections">
+            <HomeMoneyTiles money={money} placement="side" />
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">Your sections</h2>
               <button type="button" data-testid="open-customize" onClick={() => setCustomize(true)} className="text-ds-13 font-semibold text-primary">

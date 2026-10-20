@@ -11,7 +11,10 @@ export const signInWithTimeout = async (email: string, password: string, captcha
   let timeoutId: number | undefined;
   try {
     return await Promise.race([
-      supabase.auth.signInWithPassword({ email, password, options: { captchaToken } }),
+      // The address is trimmed HERE, at the one call: the form's own check trims, so a
+      // trailing space (keyboard suggestion, autofill, paste) showed a green tick and
+      // then got "invalid credentials" from the server (owner, 2026-10-20).
+      supabase.auth.signInWithPassword({ email: email.trim(), password, options: { captchaToken } }),
       new Promise<never>((_, reject) => {
         timeoutId = window.setTimeout(() => reject(
           Object.assign(new Error("Login timed out. Please check your connection and try again."), { isTransport: true }),

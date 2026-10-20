@@ -353,7 +353,7 @@ const Signup = () => {
       safeStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
 
       const { data: authData, error: authError } = await captcha.run((captchaToken) => supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: { emailRedirectTo: getSignupConfirmRedirect(), data: { full_name: fullName }, captchaToken },
       }));

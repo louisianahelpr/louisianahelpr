@@ -59,7 +59,7 @@ const ForgotPassword = () => {
     hapticMedium();
     setLoading(true);
     const captchaToken = await turnstileRef.current?.getToken() ?? null;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: getPublicResetPasswordUrl(),
       captchaToken: captchaToken ?? undefined,
     });

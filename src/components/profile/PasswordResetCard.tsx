@@ -50,7 +50,7 @@ export function PasswordResetCard({ email }: { email: string | null | undefined 
             if (!email || resettingPassword) return;
             setResettingPassword(true);
             const { error } = await captcha.run((captchaToken) =>
-              supabase.auth.resetPasswordForEmail(email, { redirectTo: getPublicResetPasswordUrl(), captchaToken }),
+              supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: getPublicResetPasswordUrl(), captchaToken }),
             );
             setResettingPassword(false);
             if (error) toast.error(captchaRefusal(error.message) ?? "Couldn't send the reset link — try again?");

@@ -9,12 +9,15 @@ import { fetchShopOrders, formatCents, type ShopOrder } from "@/lib/shops/orders
 import { queryKeys } from "@/lib/queryKeys";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { useFeature } from "@/hooks/useFeature";
+import { posterStatusLine, helperStatusLine } from "@/components/job-card/jobStatusLine";
 
 export interface TodoItem {
   id: string;
   /** Which section the to-do belongs to: the nav counts are per section. */
   section: "jobs" | "shops";
+  /** The TASK (spec v2 §5.2: "title = the task"), never just the job's name. */
   title: string;
+  /** Which side you are on, then the job or order it is about ("You hired · Mow the lawn"). */
   meta: string;
   to: string;
   /** The Next up card's one button (sentence case). */
@@ -62,27 +65,29 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs): TodoItem[] {
       id: `s-${o.id}`,
       section: "shops" as const,
       title: `Answer an order for ${o.shop_order_lines?.[0]?.title ?? "your shop"}`,
-      meta: "My shop · waiting for your answer",
+      meta: "Your shop · waiting for your answer",
       to: "/shops/dashboard",
       action: "Answer order",
       money: formatCents(o.total_cents),
     })),
+    // The task is the job card's own status sentence (jobStatusLine), so Home and the
+    // card never name a different step of one job (boards 7, 83, 165).
     ...postedNeeds.map((j) => {
       const n = i.pendingApplicantCounts[j.id] ?? 0;
       return {
         id: `p-${j.id}`,
         section: "jobs" as const,
-        title: j.title,
-        meta: n > 0 ? `Jobs I posted · ${n} to review` : "Jobs I posted · needs you",
+        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : posterStatusLine(j, n).detail,
+        meta: `${j.helper_id ? "You hired" : "You posted"} · ${j.title}`,
         to: `/jobs?tab=posted&filter=needs_you`,
-        action: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : "Open job",
+        action: n > 0 ? "See applicants" : "Open job",
       };
     }),
     ...appliedNeeds.map((a) => ({
       id: `a-${a.id}`,
       section: "jobs" as const,
-      title: a.job!.title,
-      meta: "Jobs I'm working · needs you",
+      title: helperStatusLine(a).detail,
+      meta: `${a.job!.helper_id ? "You're working" : "You applied"} · ${a.job!.title}`,
       to: `/jobs?tab=working&filter=needs_you`,
       action: "Open job",
     })),

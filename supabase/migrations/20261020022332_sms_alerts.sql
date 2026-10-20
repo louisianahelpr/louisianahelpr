@@ -53,13 +53,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS sms_consent_one_opted_in_phone
 CREATE TABLE IF NOT EXISTS public.sms_consent_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   -- SET NULL, not CASCADE: the consent record outlives a deleted account
-  -- (retention window: docs/OPEN.md Q2239).
+  -- for 4 years (owner, 2026-10-20, Q2239; section 10 below).
   user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   event text NOT NULL CHECK (event IN ('opt_in_requested', 'opt_in', 'opt_out')),
   phone_e164 text NOT NULL,
   source text NOT NULL,
   consent_text_version text,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  -- When the account was deleted (set by sms_consent_events_mark_account_deleted
+  -- as the FK nulls user_id). The 4-year window runs from here, not from
+  -- created_at: a text sent the day before deletion can be challenged for 4
+  -- years after it, and its proof of consent may be years older.
+  account_deleted_at timestamptz
 );
 ALTER TABLE public.sms_consent_events ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.sms_consent_events FROM PUBLIC, anon, authenticated;
@@ -671,3 +676,114 @@ BEGIN
   END IF;
 END
 $do$;
+
+-- 10. Retention (owner, 2026-10-20, Q2239) ------------------------------------------
+-- A deleted member's consent record (number, YES/STOP times, source, wording
+-- version) is kept for 4 YEARS after the account is deleted (the TCPA
+-- limitation period), then deleted automatically. Rows of live accounts are
+-- never age-pruned: they are the proof for texts we are still sending.
+--
+-- The FK's ON DELETE SET NULL runs as an UPDATE on this table, so a BEFORE
+-- UPDATE row trigger sees user_id go from a value to NULL and stamps the time.
+CREATE OR REPLACE FUNCTION public.sms_consent_events_mark_account_deleted()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO ''
+AS $fn$
+BEGIN
+  IF OLD.user_id IS NOT NULL AND NEW.user_id IS NULL AND NEW.account_deleted_at IS NULL THEN
+    NEW.account_deleted_at := now();
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.sms_consent_events_mark_account_deleted() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS sms_consent_events_mark_account_deleted ON public.sms_consent_events;
+CREATE TRIGGER sms_consent_events_mark_account_deleted
+  BEFORE UPDATE OF user_id ON public.sms_consent_events
+  FOR EACH ROW
+  EXECUTE FUNCTION public.sms_consent_events_mark_account_deleted();
+
+-- The daily 'prune-retention-tables' cron (20260925052618, live and running:
+-- 3 succeeded runs in the 3 days to 2026-10-20 03:30Z, cron.job_run_details)
+-- gains the sms_consent_events block. The rest of the body is restated
+-- verbatim from 20260925052618 (its only definition; prod's prosrc md5 was
+-- measured equal to that body's, 8821ea4e, on 2026-10-20). A row with
+-- no user and no deletion stamp (none is written today: every insert above
+-- names a user) falls back to created_at.
+CREATE OR REPLACE FUNCTION public.prune_retention_tables()
+RETURNS jsonb
+LANGUAGE plpgsql
+SET search_path TO ''
+AS $fn$
+DECLARE
+  v_out jsonb := '{}'::jsonb;
+  v_n   bigint;
+BEGIN
+  IF to_regclass('public.login_history') IS NOT NULL THEN
+    DELETE FROM public.login_history lh
+     WHERE lh.created_at < now() - interval '365 days'
+       AND (lh.user_id IS NULL
+            OR EXISTS (SELECT 1 FROM public.login_history n
+                        WHERE n.user_id = lh.user_id
+                          AND n.created_at > lh.created_at));
+    GET DIAGNOSTICS v_n = ROW_COUNT;
+    v_out := v_out || jsonb_build_object('login_history', v_n);
+  END IF;
+
+  IF to_regclass('public.notification_logs') IS NOT NULL THEN
+    DELETE FROM public.notification_logs
+     WHERE created_at < now() - interval '180 days';
+    GET DIAGNOSTICS v_n = ROW_COUNT;
+    v_out := v_out || jsonb_build_object('notification_logs', v_n);
+  END IF;
+
+  IF to_regclass('public.profile_views') IS NOT NULL THEN
+    DELETE FROM public.profile_views
+     WHERE viewed_at < LOCALTIMESTAMP - interval '180 days';
+    GET DIAGNOSTICS v_n = ROW_COUNT;
+    v_out := v_out || jsonb_build_object('profile_views', v_n);
+  END IF;
+
+  IF to_regclass('public.job_views') IS NOT NULL THEN
+    DELETE FROM public.job_views
+     WHERE first_viewed_at < now() - interval '365 days';
+    GET DIAGNOSTICS v_n = ROW_COUNT;
+    v_out := v_out || jsonb_build_object('job_views', v_n);
+  END IF;
+
+  IF to_regclass('public.application_rate_log') IS NOT NULL THEN
+    DELETE FROM public.application_rate_log
+     WHERE created_at < now() - interval '7 days';
+    GET DIAGNOSTICS v_n = ROW_COUNT;
+    v_out := v_out || jsonb_build_object('application_rate_log', v_n);
+  END IF;
+
+  IF to_regclass('public.profile_search_rate_log') IS NOT NULL THEN
+    DELETE FROM public.profile_search_rate_log
+     WHERE created_at < now() - interval '7 days';
+    GET DIAGNOSTICS v_n = ROW_COUNT;
+    v_out := v_out || jsonb_build_object('profile_search_rate_log', v_n);
+  END IF;
+
+  IF to_regclass('public.helper_w9_records') IS NOT NULL THEN
+    DELETE FROM public.helper_w9_records
+     WHERE signed_at < now() - interval '4 years';
+    GET DIAGNOSTICS v_n = ROW_COUNT;
+    v_out := v_out || jsonb_build_object('helper_w9_records', v_n);
+  END IF;
+
+  IF to_regclass('public.sms_consent_events') IS NOT NULL THEN
+    DELETE FROM public.sms_consent_events
+     WHERE user_id IS NULL
+       AND COALESCE(account_deleted_at, created_at) < now() - interval '4 years';
+    GET DIAGNOSTICS v_n = ROW_COUNT;
+    v_out := v_out || jsonb_build_object('sms_consent_events', v_n);
+  END IF;
+
+  RETURN v_out;
+END;
+$fn$;
+
+REVOKE ALL ON FUNCTION public.prune_retention_tables() FROM PUBLIC, anon, authenticated;

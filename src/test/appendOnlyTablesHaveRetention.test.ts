@@ -18,20 +18,37 @@
  * Two-way: a NO_AGE_PRUNE entry that is pruned, or no longer a table, fails.
  * That the pruning functions actually run is prunersAreScheduled.test.ts.
  *
- * @mutate supabase/migrations/20260925052618_prune_retention_tables.sql | DELETE FROM public.notification_logs | DELETE FROM public.notification_logs_x
- * @mutate supabase/migrations/20260925052618_prune_retention_tables.sql | WHERE signed_at < now() - interval '4 years'; | WHERE signed_at < now() - interval '40 years';
+ * @mutate supabase/migrations/20261020022332_sms_alerts.sql | DELETE FROM public.notification_logs | DELETE FROM public.notification_logs_x
+ * @mutate supabase/migrations/20261020022332_sms_alerts.sql | WHERE signed_at < now() - interval '4 years'; | WHERE signed_at < now() - interval '40 years';
+ * @mutate supabase/migrations/20261020022332_sms_alerts.sql | COALESCE(account_deleted_at, created_at) < now() - interval '4 years'; | COALESCE(account_deleted_at, created_at) < now() - interval '400 years';
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { effectiveDefs, parseDefs } from "./helpers/effectiveFunctionDefs";
 
 const MIG = join(process.cwd(), "supabase", "migrations");
-const sql = readdirSync(MIG)
+// A DELETE inside a function counts only in the definition the database runs
+// now (effectiveDefs: the newest CREATE, after rewrites). Reading every copy
+// would let a later restatement drop a prune and stay green (2026-10-20: the
+// SMS migration restates prune_retention_tables). Text outside function bodies
+// (DO blocks, plain statements) is read from every migration as before.
+const blankSpans = (code: string, spans: { index: number; stmt: string }[]) => {
+  let out = code;
+  for (const d of spans) out = out.slice(0, d.index) + " ".repeat(d.stmt.length) + out.slice(d.index + d.stmt.length);
+  return out;
+};
+const outsideFunctions = readdirSync(MIG)
   .filter((f) => f.endsWith(".sql"))
   .sort()
-  .map((f) => blankSqlComments(readFileSync(join(MIG, f), "utf8")))
+  .map((f) => {
+    const raw = readFileSync(join(MIG, f), "utf8");
+    return blankSpans(blankSqlComments(raw), parseDefs(raw));
+  })
   .join("\n");
+const liveFunctionBodies = [...effectiveDefs(MIG).values()].map((d) => blankSqlComments(d.stmt)).join("\n");
+const sql = `${outsideFunctions}\n${liveFunctionBodies}`;
 
 /** Log-shaped tables deliberately never pruned by age, each with why. */
 const NO_AGE_PRUNE: Record<string, string> = {
@@ -39,13 +56,15 @@ const NO_AGE_PRUNE: Record<string, string> = {
   declutter_offer_events: "The step history of a Declutter offer (offer, counters, accept/decline): the record of a money agreement between two members; rows go with their offer (ON DELETE CASCADE), 20261014210518.",
   admin_audit_log: "The record of what admins did to accounts and money; kept for the life of the platform.",
   str_processed_events: "Dedupe ledger for imported iCal events: deleting a row makes str-ical-sync import the checkout (and notify the host) again. Rows go with their connection (ON DELETE CASCADE).",
-  sms_consent_events: "The record of each SMS opt-in and opt-out (when, which number, from where, which consent wording): the proof of consent texting law and Twilio's toll-free verification ask us to keep; the record outlives a deleted account (user_id ON DELETE SET NULL); its age limit is the owner's call, docs/OPEN.md Q2239. 20261020022332.",
   cron_catchup_runs: "One claim row per missed cron slot that was re-run or alerted (5 rows on 2026-09-25); run_missed_cron_catch_up reads it to never act on a slot twice.",
 };
 
 /** Owner-decided windows: table -> the interval its DELETE must use. */
 const RETENTION_BY_DECISION: Record<string, string> = {
   helper_w9_records: "4 years",
+  // Owner, 2026-10-20 (Q2239): a deleted member's SMS consent record is kept
+  // 4 years (the TCPA limitation period) after the account is deleted.
+  sms_consent_events: "4 years",
 };
 
 const SHAPE = /_(?:log|logs|history|views|events|runs|samples)$/;

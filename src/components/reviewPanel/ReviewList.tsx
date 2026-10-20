@@ -7,6 +7,7 @@ import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import { safeImageSrc, type Review, type ReviewListProps } from "./types";
 import { formatShortDate } from "@/lib/format";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
+import { STAR_ON_CLS } from "@/lib/starColor";
 
 export const ReviewList = ({ userId }: ReviewListProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -99,7 +100,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
             {[1, 2, 3, 4, 5].map((s) => (
               <Star
                 key={s}
-                className={`w-5 h-5 ${s <= Math.round(overallAvg) ? "fill-accent text-accent" : "text-muted-foreground/30"}`}
+                className={`w-5 h-5 ${s <= Math.round(overallAvg) ? STAR_ON_CLS : "text-muted-foreground/30"}`}
               />
             ))}
           </div>
@@ -115,7 +116,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
               <div className="flex items-center gap-2">
                 <div role="img" aria-label={`${r.rating} out of 5 stars`} className="flex">
                   {[1, 2, 3, 4, 5].map((s) => (
-                    <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
+                    <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? STAR_ON_CLS : "text-muted-foreground/30"}`} />
                   ))}
                 </div>
                 <span className="text-ds-11 text-muted-foreground">by {r.reviewerName || "a neighbor"}</span>

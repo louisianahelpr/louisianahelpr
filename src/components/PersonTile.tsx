@@ -2,6 +2,7 @@ import type { MouseEvent, ReactNode } from "react";
 import { Star, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import UserAvatar from "@/components/UserAvatar";
+import { STAR_ON_CLS } from "@/lib/starColor";
 
 export interface PersonTileProps {
   /** Avatar hash seed and the person the tile is about. */
@@ -122,7 +123,7 @@ export function PersonTile({
                 renders once there's one to show. */}
             {(reviewCount ?? 0) > 0 && (
               <span className="flex items-center gap-0.5 text-ds-11 shrink-0">
-                <Star className="w-3.5 h-3.5 fill-accent text-accent" />
+                <Star className={`w-3.5 h-3.5 ${STAR_ON_CLS}`} />
                 <span className="font-display font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                   {rating?.toFixed(1)}
                 </span>

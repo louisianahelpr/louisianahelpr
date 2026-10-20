@@ -1,27 +1,28 @@
 import { Check, Info, AlertTriangle, DollarSign, Users, Star, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, ShieldAlert, Megaphone } from "lucide-react";
 import type { Notification } from "./types";
 
+// Icons take their colour from the circle they sit in (board 28: olive, or the money tint for money kinds).
 export const typeIcons: Record<string, React.ReactNode> = {
-  info: <Info className="w-4 h-4 text-muted-foreground" />,
-  success: <Check className="w-4 h-4 text-primary" />,
-  warning: <AlertTriangle className="w-4 h-4 text-accent" />,
-  application: <Users className="w-4 h-4 text-primary" />,
-  payment: <DollarSign className="w-4 h-4 text-primary" />,
-  review: <Star className="w-4 h-4 text-accent" />,
-  job_update: <Info className="w-4 h-4 text-primary" />,
-  job_updates: <Info className="w-4 h-4 text-primary" />,
-  message: <MessageCircle className="w-4 h-4 text-primary" />,
-  transit_updates: <Truck className="w-4 h-4 text-primary" />,
-  work_status: <Wrench className="w-4 h-4 text-primary" />,
-  new_offers: <Sparkles className="w-4 h-4 text-accent" />,
-  system_alert: <Megaphone className="w-4 h-4 text-accent" />,
-  financial_alerts: <DollarSign className="w-4 h-4 text-primary" />,
-  verified: <ShieldCheck className="w-4 h-4 text-primary" />,
-  job_match: <Sparkles className="w-4 h-4 text-primary" />,
-  expired: <AlertTriangle className="w-4 h-4 text-muted-foreground" />,
+  info: <Info className="w-4 h-4" />,
+  success: <Check className="w-4 h-4" />,
+  warning: <AlertTriangle className="w-4 h-4" />,
+  application: <Users className="w-4 h-4" />,
+  payment: <DollarSign className="w-4 h-4" />,
+  review: <Star className="w-4 h-4" />,
+  job_update: <Info className="w-4 h-4" />,
+  job_updates: <Info className="w-4 h-4" />,
+  message: <MessageCircle className="w-4 h-4" />,
+  transit_updates: <Truck className="w-4 h-4" />,
+  work_status: <Wrench className="w-4 h-4" />,
+  new_offers: <Sparkles className="w-4 h-4" />,
+  system_alert: <Megaphone className="w-4 h-4" />,
+  financial_alerts: <DollarSign className="w-4 h-4" />,
+  verified: <ShieldCheck className="w-4 h-4" />,
+  job_match: <Sparkles className="w-4 h-4" />,
+  expired: <AlertTriangle className="w-4 h-4" />,
   // Operator mail — only admins ever receive it, but it renders in the same
   // notification centre as everything else, so it needs its own glyph.
-  admin_alert: <ShieldAlert className="w-4 h-4 text-accent" />,
+  admin_alert: <ShieldAlert className="w-4 h-4" />,
 };
 
 const startOfDay = (d: Date) => {
@@ -66,3 +67,6 @@ export const timeAgo = (date: string) => {
   const days = Math.floor(hrs / 24);
   return `${days}d ago`;
 };
+
+/** Board 28 (2026-10-20): the notice kinds about money wear the money tint (rust = money only). */
+export const MONEY_TYPES: ReadonlySet<string> = new Set(["payment", "financial_alerts"]);

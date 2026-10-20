@@ -106,7 +106,7 @@ export const TEST_POSTER_IDS = [POSTER_ID, HELPER_ID];
  * The Declutter fixture items e2e/prod-audit/declutterFixture.ts mints as helper-e2e
  * ("Fixture rocking chair <MARKER>", "Fixture side table <MARKER>"). Its own undo
  * runs from test.afterAll, which the FINAL attempt of a timed-out or cancelled leg
- * never reaches: four runs (10-17 to 10-19) left 8 items on prod this way. Only the
+ * never reaches: four runs (2026-10-17 to 2026-10-19) left 8 items on prod this way (counted 2026-10-20). Only the
  * helper account ever sells in this suite, so only it is named.
  */
 export const DECLUTTER_SELLER_IDS = [HELPER_ID];

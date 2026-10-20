@@ -31,16 +31,27 @@ function heldCaption(jobs: number): string {
  * the one thing rust means). A tile with nothing real is not drawn; with both
  * gone the strip is gone. Each opens You › Money on the half it is about.
  */
-export function HomeMoneyTiles({ money, placement }: { money: HomeMoney; placement: "main" | "side" }) {
+export function HomeMoneyTiles({
+  money,
+  placement,
+  onOpen,
+}: {
+  money: HomeMoney;
+  /** "main"/"side": Home's phone flow and desktop column. "money": the head of You › Money (board 51), every width. */
+  placement: "main" | "side" | "money";
+  /** You › Money opens its own halves instead of navigating to itself. */
+  onOpen?: (kind: "coming" | "held") => void;
+}) {
   const navigate = useNavigate();
   if (!money.coming && !money.held) return null;
   // A lone tile on the phone takes the row (half a row of empty ground reads as a missing tile);
   // in the desktop column it keeps its half so it lines up with the section tiles under it.
-  const span = money.coming && money.held ? "" : placement === "main" ? "col-span-2" : "";
+  const span = money.coming && money.held ? "" : placement === "side" ? "" : "col-span-2";
+  const where = placement === "main" ? "xl:hidden" : placement === "side" ? "hidden xl:grid xl:mb-2" : "";
   return (
     <div
       data-home-money={placement}
-      className={`grid grid-cols-2 gap-3 ${placement === "main" ? "xl:hidden" : "hidden xl:grid xl:mb-2"}`}
+      className={`grid grid-cols-2 gap-3 ${where}`}
     >
       {money.coming && (
         <MoneyTile
@@ -50,7 +61,7 @@ export function HomeMoneyTiles({ money, placement }: { money: HomeMoney; placeme
           cents={money.coming.cents}
           caption={comingCaption(money.coming)}
           // No payout account: open the screen that sets one up (the cron's own notification links there).
-          onClick={() => navigate(money.coming!.hasPayoutAccount ? "/profile?tab=earnings" : "/profile?tab=payment")}
+          onClick={() => (onOpen ? onOpen("coming") : navigate(money.coming!.hasPayoutAccount ? "/profile?tab=earnings" : "/profile?tab=payment"))}
         />
       )}
       {money.held && (
@@ -60,7 +71,7 @@ export function HomeMoneyTiles({ money, placement }: { money: HomeMoney; placeme
           label="Held for you"
           cents={money.held.cents}
           caption={heldCaption(money.held.jobs)}
-          onClick={() => navigate("/profile?tab=earnings&view=spent")}
+          onClick={() => (onOpen ? onOpen("held") : navigate("/profile?tab=earnings&view=spent"))}
         />
       )}
     </div>

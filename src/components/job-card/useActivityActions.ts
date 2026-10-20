@@ -14,7 +14,7 @@ import { useApplicantsState } from "./activityActions/useApplicantsState";
 import { createOfferHandlers } from "./activityActions/useOfferHandlers";
 import { createLifecycleHandlers } from "./activityActions/useLifecycleHandlers";
 import { useCardExpansion } from "./useCardExpansion";
-import type { PaymentHeldSide } from "./PaymentHeldDialog";
+import type { PaymentHeldSide, PaymentHeldWho } from "./PaymentHeldDialog";
 
 export type { UseActivityActionsArgs } from "./activityActions/types";
 
@@ -120,6 +120,8 @@ export function useActivityActions({
   const [w9Context, setW9Context] = useState<{ jobId: string; businessId: string | null } | null>(null);
   // Q997: the "payment is held" pop-up after an offer is sent or an accept completes.
   const [paymentHeldSide, setPaymentHeldSide] = useState<PaymentHeldSide | null>(null);
+  // Board 78: who was offered the job and when, for the poster's what-next sheet.
+  const [paymentHeldWho, setPaymentHeldWho] = useState<PaymentHeldWho | null>(null);
 
   // Optimistic cache helpers shared by every money-path handler.
   const { optimisticallyPatchJob, rollbackActivity } = useOptimisticJobCache(user);
@@ -151,6 +153,7 @@ export function useActivityActions({
     setW9Context,
     setW9DialogOpen,
     setPaymentHeldSide,
+    setPaymentHeldWho,
     setRespondingHelperAppId,
     respondingInFlight,
   });
@@ -218,6 +221,7 @@ export function useActivityActions({
     w9DialogOpen, setW9DialogOpen,
     w9Context,
     paymentHeldSide, setPaymentHeldSide,
+    paymentHeldWho,
     respondingHelperAppId,
     confirmingArrivalJobId,
     confirmingWorkingJobId,

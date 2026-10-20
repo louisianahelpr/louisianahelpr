@@ -407,11 +407,13 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
         file: "20261015042253_declutter_slice4_handover_payout.sql",
         text: "refund_cents = CASE WHEN fee_policy = 'keep_card_fee' THEN paid_cents - card_fee_cents WHEN fee_policy = 'keep_buyer_fee' THEN paid_cents - kept_cents ELSE paid_cents END AND refund_cents > 0 AND kept_cents >= 0 AND (fee_policy = 'keep_buyer_fee' OR kept_cents = 0) AND (fee_policy <> 'keep_buyer_fee' OR kept_cents > 0)",
       },
-      // The buyer's fee keep_buyer_fee keeps (F1: 5% + 70c, at least 70c).
+      // The buyer's fee keep_buyer_fee keeps (F1: 5% + 70c, at least 70c). Shipping S1 (2026-10-20,
+      // reviewed: still keeps the fee): f1/premium15 pinned to shipping = 0, and f1_ship = 5% of
+      // (items + shipping) + 70c, so a shipped order's kept fee also covers its card fee.
       {
         name: "declutter_orders_premium_rule",
-        file: "20261015023613_declutter_buyer_fee_f1.sql",
-        text: "(fee_rule = 'f1' AND premium_cents = round(items_cents * 0.05)::integer + 70) OR (fee_rule = 'premium15' AND premium_cents = greatest(round(items_cents * 0.15)::integer, 100))",
+        file: "20261020024605_shipping_s1_data_model.sql",
+        text: "(fee_rule = 'f1' AND shipping_cents = 0 AND premium_cents = round(items_cents * 0.05)::integer + 70) OR (fee_rule = 'f1_ship' AND shipping_cents > 0 AND premium_cents = round((items_cents + shipping_cents) * 0.05)::integer + 70) OR (fee_rule = 'premium15' AND shipping_cents = 0 AND premium_cents = greatest(round(items_cents * 0.15)::integer, 100))",
       },
       { name: "declutter_orders_premium_cents_check", file: "20261015023613_declutter_buyer_fee_f1.sql", text: "premium_cents >= 70" },
     ],

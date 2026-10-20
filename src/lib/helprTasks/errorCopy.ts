@@ -31,6 +31,8 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
     delivery_not_done: DC.delivery_not_done,
     feature_disabled: DC.feature_disabled,
+    // ID once (20261020044552): taking a delivery is the Helpr's accept.
+    helper_identity_unverified: "Verify your ID to take this delivery. You only do it once, in Settings under Payments.",
     invalid_method: DC.invalid_method,
     invalid_payout: DC.invalid_payout,
     invalid_slot: DC.invalid_slot,

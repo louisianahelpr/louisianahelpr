@@ -72,7 +72,7 @@ describe("landing redesign: the honesty fixes hold", () => {
 
   it("the phone mock names nobody: a generic greeting, no member name", () => {
     render(<MemoryRouter><PhoneMock /></MemoryRouter>);
-    expect(screen.getByText("Good morning, neighbor")).toBeInTheDocument();
+    expect(screen.getByText("Good morning")).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/Marie/);
   });
 

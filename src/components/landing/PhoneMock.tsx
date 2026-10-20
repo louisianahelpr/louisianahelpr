@@ -4,7 +4,7 @@ import { BadgeCheck, Briefcase, Sofa, Wrench } from "lucide-react";
  * The hero's phone: an HTML/CSS product illustration, not an image (no new
  * heavy asset on the landing). Every row is a generic example inside the frame,
  * never a real member, a real listing or a person's name (owner: "leave Marie
- * off the phone"; lead: "Good morning, neighbor"). Decorative: aria-hidden, so a
+ * off the phone"; the board: "Good morning"). Decorative: aria-hidden, so a
  * screen reader never reads sample prices as real offers.
  */
 const ROWS = [
@@ -18,7 +18,7 @@ const PhoneMock = () => (
     <div className="landing-phone relative rounded-[2.75rem] p-2.5">
       <div className="landing-phone-screen rounded-[2.25rem] px-4 pt-6 pb-20 flex flex-col gap-3 overflow-hidden">
         <p className="landing-serif-text text-ds-20 leading-tight whitespace-nowrap" style={{ color: "var(--lp-ink)" }}>
-          Good morning, neighbor
+          Good morning
         </p>
         <div className="flex gap-1.5 text-ds-11 font-semibold">
           {["Jobs", "Declutter", "Shops", "Homes"].map((t, i) => (

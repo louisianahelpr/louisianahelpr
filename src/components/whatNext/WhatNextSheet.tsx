@@ -8,6 +8,7 @@ import {
   SheetPrimaryAction,
   SheetSecondaryAction,
 } from "@/components/ui/sheet";
+import { DialogAcknowledgeAction } from "@/components/ui/dialog";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
 /** One row of the "What happens next" list. `done` = already happened, `now` = the step
@@ -40,7 +41,10 @@ export function WhatNextSheet({
   steps: WhatNextStep[];
   /** Anything the member must read that is not a step (a held-back note, say). */
   children?: ReactNode;
-  primary: { label: string; onClick: () => void };
+  /** The one filled action. `acknowledge` = it only closes the sheet ("Got it"): drawn as the
+   *  close-only DialogAcknowledgeAction (a Radix Close with no handler, data-popup-dismiss),
+   *  so the press-every-control audit can press it as a read (pressDrivesTheRealPressPath). */
+  primary: { label: string; onClick: () => void } | { label: string; acknowledge: true };
   secondary?: { label: string; onClick: () => void };
 }) {
   const webDesktop = useIsWebDesktop();
@@ -92,7 +96,9 @@ export function WhatNextSheet({
         {children}
         <SheetFooter className="mt-4 pb-4">
           {secondary ? <SheetSecondaryAction onClick={secondary.onClick}>{secondary.label}</SheetSecondaryAction> : null}
-          <SheetPrimaryAction onClick={primary.onClick}>{primary.label}</SheetPrimaryAction>
+          {"acknowledge" in primary
+            ? <DialogAcknowledgeAction>{primary.label}</DialogAcknowledgeAction>
+            : <SheetPrimaryAction onClick={primary.onClick}>{primary.label}</SheetPrimaryAction>}
         </SheetFooter>
       </SheetContent>
     </Sheet>

@@ -565,6 +565,7 @@ export function BrowseTasksFeed({
                 containerRef={containerRef}
                 setHoveredJobId={setHoveredJobId}
                 footer={endCard}
+                splitFarther={filters.sortBy === "smart" && filters.nearbyMiles === null}
               />
             )}
             {/* Infinite scroll sentinel + manual fallback */}

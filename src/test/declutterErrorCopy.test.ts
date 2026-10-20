@@ -6,7 +6,7 @@
  * code some declutter migration raises. App/edge-only codes live in
  * DECLUTTER_CLIENT_ERROR_COPY and must NOT be raised by a migration.
  *
- * @mutate src/lib/declutter/errors.ts |   photos_required: "Add at least 3 photos of the item (up to 12).",\n | \n
+ * @mutate src/lib/declutter/errors.ts |   photos_required: "Add at least 1 photo of the item (up to 12).",\n | \n
  * @mutate src/lib/declutter/errors.ts |   ai_check_stale: "The listing changed while it was being checked. Try again.",\n | \n
  * @mutate src/lib/declutter/errors.ts |   if (err instanceof ListingPhotoError && err.message) return err.message;\n | \n
  */

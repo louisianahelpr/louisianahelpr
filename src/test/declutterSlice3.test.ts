@@ -9,8 +9,8 @@
  * Concurrency (two real sessions, 6 races x 20 rounds, red on a planted
  * unlocked copy): scripts/declutter/race-accept.mjs.
  *
- * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql |    WHERE id = p_item_id AND status = 'live'\n  RETURNING seller_id, title INTO v_seller, v_title; |    WHERE id = p_item_id\n  RETURNING seller_id, title INTO v_seller, v_title;
- * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql |    WHERE i.id = p_item_id\n   FOR UPDATE; |    WHERE i.id = p_item_id;
+ * @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |    WHERE id = p_item_id AND status = 'live'\n  RETURNING seller_id, title INTO v_seller, v_title; |    WHERE id = p_item_id\n  RETURNING seller_id, title INTO v_seller, v_title;
+ * @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |    WHERE i.id = p_item_id\n   FOR UPDATE; |    WHERE i.id = p_item_id;
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_offers_one_accepted | CREATE INDEX IF NOT EXISTS declutter_offers_one_accepted
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_cart_one_active | CREATE INDEX IF NOT EXISTS declutter_cart_one_active
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE;\n  v_found := FOUND; |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;\n  v_found := FOUND;
@@ -126,7 +126,7 @@ describe("Declutter slice 3: offers, price drops, checkout records, strikes (202
 
   it("B36: a banned or 3-strike seller's listings are hidden from buyers", () => {
     expect(flat(MIG)).toContain("AND NOT public.declutter_seller_hidden(seller_id))");
-    expect(flat(body("declutter_lock_buyable_item"))).toContain("OR public.declutter_seller_out(o_seller_id) THEN RAISE EXCEPTION 'item_not_found'");
+    expect(flat(body("declutter_lock_buyable_item"))).toContain("OR public.declutter_seller_out(o_seller_id) OR (v_seed AND public.seed_hidden_for(p_buyer)) THEN RAISE EXCEPTION 'item_not_found'");
     // The policy helper answers only for a member with a live listing (no ban/strike oracle for any id).
     expect(flat(body("declutter_seller_hidden"))).toContain("WHERE i.seller_id = p_seller AND i.status IN ('live', 'reserved')) AND public.declutter_seller_out(p_seller);");
     // B32/B33: an under-18 or business-like seller cannot sell.

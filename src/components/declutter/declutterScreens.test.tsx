@@ -287,7 +287,7 @@ describe("Declutter controls are the shared ones", () => {
     await screen.findByRole("button", { name: "Finish listing" });
     check();
     home.unmount();
-    // Sell: Save, and List this item once there are 3 photos.
+    // Sell: Save, and List this item once there is a photo.
     state.item = { ...ITEM, status: "draft" };
     state.photos = [1, 2, 3].map((n) => ({ id: `p${n}`, item_id: "i1", storage_path: `u1/declutter/i1/${n}.jpg`, position: n }));
     const sell = at("/declutter/sell?item=i1", <DeclutterSellPage />, "/declutter/sell");

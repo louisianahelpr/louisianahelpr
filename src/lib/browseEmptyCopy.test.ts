@@ -10,7 +10,7 @@
  * presume a history the person may not have.
  *
  * @mutate src/lib/browseEmptyCopy.ts |   const searchOnly = !!q && i.activeFilterCount <= 1; |   const searchOnly = false;
- * @mutate src/components/dashboard/EmptyFeedActions.tsx |         Post a job | Post Your First Job
+ * @mutate src/components/dashboard/EmptyFeedActions.tsx | strokeWidth={2.25} />\n        Post a job | strokeWidth={2.25} />\n        Post Your First Job
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   Database, Eye, Shield, Lock, Trash2, Cookie, Users, Wallet, Scale,
-  CheckCircle, FileText, ShieldCheck,
+  CheckCircle, FileText, ShieldCheck, MessageSquareText,
 } from "lucide-react";
 import { useContext, type ReactNode } from "react";
 import {
@@ -154,6 +154,12 @@ export const PrivacyContent = () => (
         icon={CheckCircle}
         title="What we never do"
         body={<p>We never sell your personal information to third parties for advertising or marketing purposes.</p>}
+      />
+      {/* Owner-approved wording, 2026-10-20 (SMS alerts; Twilio toll-free verification). */}
+      <PolicyRowItem
+        icon={MessageSquareText}
+        title="Text messages"
+        body={<p>If you choose to get text alerts, we use your mobile number only to send the alerts you asked for. We do not sell or share your mobile number or your text opt-in with third parties or affiliates for marketing. Our texting provider (Twilio) processes the number only to deliver our texts. Reply STOP to stop at any time.</p>}
       />
     </PolicySection>
 

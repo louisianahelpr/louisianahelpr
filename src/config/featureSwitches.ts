@@ -72,6 +72,7 @@ export const FEATURE_SWITCH_KEYS = [
   // prices an escrow checkout on it only when the switch is on for the poster,
   // and the Post a Job checkout shows the fee line from the same switch.
   "jobs_poster_fee",
+  "sms_alerts",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

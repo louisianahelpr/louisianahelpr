@@ -11233,6 +11233,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_sms_status: { Args: never; Returns: Json }
       admin_stalled_job_queue: {
         Args: { p_include_resolved?: boolean }
         Returns: {
@@ -12133,6 +12134,7 @@ export type Database = {
           window_hours: number
         }[]
       }
+      get_my_sms_consent: { Args: never; Returns: Json }
       get_quotes_for_request: {
         Args: { p_request_id: string }
         Returns: {
@@ -14466,6 +14468,10 @@ export type Database = {
       }
       session_email_unconfirmed: { Args: never; Returns: boolean }
       set_available_now: { Args: { p_hours?: number }; Returns: string }
+      set_sms_consent: {
+        Args: { p_opt_in: boolean; p_phone: string }
+        Returns: Json
+      }
       set_thread_snooze: {
         Args: { _job_id: string; _other_user_id: string; _until: string }
         Returns: string

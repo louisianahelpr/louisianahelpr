@@ -49,6 +49,7 @@ const WrappedTab = lazy(() => import("@/pages/profile/HelprWrapped"));
 const AnalyticsTab = lazy(() => import("@/pages/profile/HelperAnalytics"));
 const GiftCardTab = lazy(() => import("@/pages/profile/GiftCard"));
 const NotificationPreferences = lazy(() => import("@/components/NotificationPreferences"));
+const SmsAlertsCard = lazy(() => import("@/components/notificationPreferences/SmsAlertsCard"));
 const AccessibilityTab = lazy(() => import("@/components/profile/AccessibilityTab").then(m => ({ default: m.AccessibilityTab })));
 const ReferralSection = lazy(() => import("@/components/ReferralSection"));
 
@@ -346,6 +347,7 @@ export const ProfileTabPanels = ({
               onBack={onBackFromTab}
             />
             <NotificationPreferences />
+            <SmsAlertsCard />
           </ProfileTabBody>
         </Suspense>
       )}

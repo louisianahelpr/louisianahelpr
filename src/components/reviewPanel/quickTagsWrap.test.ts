@@ -14,9 +14,11 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const src = readFileSync(resolve(__dirname, "ReviewForm.tsx"), "utf8");
+// The chips live in the shared review card (boards 35/36), which both
+// ReviewForm and the Job done screen (CompletionPrompts) render.
+const src = readFileSync(resolve(__dirname, "ReviewQuestionCard.tsx"), "utf8");
 
-describe("ReviewForm quick review tags (VN-30)", () => {
+describe("review card quick review tags (VN-30)", () => {
   it("wrap onto rows rather than hiding in a scroll strip", () => {
     const m = /aria-label="Quick review tags"\s*className="([^"]*)"/.exec(src);
     expect(m, "could not find the Quick review tags group").not.toBeNull();
@@ -49,4 +51,4 @@ describe("ReviewForm quick review tags (VN-30)", () => {
 
 // VN-30 reverting: the chips back on one clipped line, where a desktop mouse
 // wheel scrolls vertically and "Highly recommend" cannot be reached at all.
-// @mutate src/components/reviewPanel/ReviewForm.tsx | className="flex flex-wrap gap-2 pt-1 pb-1" | className="flex gap-2 pt-1 pb-1 overflow-x-auto scrollbar-none"
+// @mutate src/components/reviewPanel/ReviewQuestionCard.tsx | className="flex flex-wrap justify-center gap-2" | className="flex justify-center gap-2 overflow-x-auto scrollbar-none"

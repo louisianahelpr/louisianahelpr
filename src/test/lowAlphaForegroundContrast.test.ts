@@ -72,7 +72,6 @@ const ACCEPTED = new Map<string, number>([
   ["src/components/BrowseMap.tsx --bark/0.6", 2], //                     2.47:1 — two Loader2 spinners
   ["src/components/analytics/AnalyticsUpgradePanel.tsx --bark/0.6", 1], // 2.47:1 — TrendingUp, beside its own heading
   ["src/components/postjob/detailsSection/VideoScope.tsx --bark/0.5", 1], // 2.08:1 — Video glyph above its label
-  ["src/components/reviewPanel/ReviewForm.tsx --burnt-sienna/0.7", 1], //  2.87:1 — ImagePlus inside a labelled button
   ["src/pages/auth/CompleteProfile.tsx --burnt-sienna/0.7", 1], //             2.87:1 — Circle bullet, aria-hidden, decorative
   ["src/components/messages/ChatHeader.tsx --olivewood/0.65", 1], //      4.24:1 — ChevronRight affordance
   ["src/components/dashboard/jobDetailDialog/JobStatTiles.tsx --burnt-sienna/0.7", 1], // 2.87:1 — tile icon
@@ -83,7 +82,6 @@ const ACCEPTED = new Map<string, number>([
   ["src/components/ui/sonner.tsx --olivewood/0.65", 1], //                4.24:1 — sonner's close is an <svg aria-hidden stroke="currentColor">, button labelled "Close toast"
   // Found 2026-09-27 when the scanner learned Tailwind slash opacity (Q765).
   // The text declarations on that list were fixed; these are the glyphs.
-  ["src/components/CompletionPrompts.tsx --muted-foreground/0.3", 1], //  1.53:1 — unfilled <Star> in a button labelled "Rate N stars"
   ["src/components/admin/userDetail/ReviewsTab.tsx --muted-foreground/0.3", 2], // 1.53:1 — unfilled <Star> outlines in each review row; the filled stars carry the rating
   ["src/components/profile/reviewCard.tsx --muted-foreground/0.3", 1], //  1.53:1 — unfilled <Star aria-hidden> inside role="img" aria-label="N of 5 stars"
   ["src/components/reviewPanel/ReviewList.tsx --muted-foreground/0.3", 2], // 1.53:1 — unfilled <Star> outlines; the filled stars carry the rating

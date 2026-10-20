@@ -216,6 +216,8 @@ const KINDS: { value: HomesKind; label: string }[] = [
  * Buy is on, the search row says so ("Homes for sale: City or ZIP") and the
  * filter button counts it. `intro` is Buy's verified-owners line.
  */
+const HOME_NOUN = ["home", "homes"] as const;
+
 export function HomesListings({ homes, onKind, intro }: { homes: HomesKind; onKind: (k: HomesKind) => void; intro?: ReactNode }) {
   return <ListingsBrowse key={homes} kind={homes === "buy" ? SALE : RENT} onKind={onKind} intro={intro} />;
 }
@@ -280,6 +282,8 @@ function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k:
         open={filtersOpen}
         onOpenChange={setFiltersOpen}
         anchorRef={filtersButtonRef}
+        title="Filter homes"
+        resultNoun={HOME_NOUN}
         activeFilterCount={activeFilters}
         onClearAll={clearFilters}
         sections={[

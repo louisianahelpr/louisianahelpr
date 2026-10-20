@@ -11,7 +11,7 @@
  * @mutate src/pages/home/Dashboard.tsx |                     onToggleWantsQuotes={quotesOn ? toggleWantsQuotes : undefined} |                     onToggleWantsQuotes={toggleWantsQuotes}
  * @mutate src/pages/home/useWantsQuotes.ts |   const wantsQuotes = quotesOn && wantsQuotesPicked; |   const wantsQuotes = wantsQuotesPicked;
  * @mutate src/pages/home/Dashboard.tsx | {isWebDesktop && mapVisible && !feedShowingLoadError && !wantsQuotes && ( | {isWebDesktop && mapVisible && !feedShowingLoadError && (
- * @mutate src/components/dashboard/FilterSheet.tsx | {onToggleWantsQuotes && <WantsQuotesRow | {false && <WantsQuotesRow
+ * @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx | {onToggleWantsQuotes && <WantsQuotesRow | {false && <WantsQuotesRow
  * @mutate src/components/quotes/WantsQuotesFeed.tsx |             <OpenQuoteRequestRow key={r.id} r={r} /> |             null
  */
 import { describe, expect, it, vi } from "vitest";
@@ -26,7 +26,7 @@ const state = vi.hoisted(() => ({ rows: [] as unknown[] }));
 vi.mock("@/lib/quotes/api", () => ({ fetchOpenQuoteRequests: async () => state.rows }));
 
 import { WantsQuotesFeed } from "@/components/quotes/WantsQuotesFeed";
-import { buildJobFilterSections } from "@/components/dashboard/FilterSheet";
+import { buildJobFilterSections } from "@/components/dashboard/filterSheet/jobFilterSections";
 
 const root = resolve(__dirname, "../../..");
 const src = (rel: string) => blankComments(readFileSync(resolve(root, rel), "utf8"));
@@ -58,11 +58,11 @@ const showOnly = (args: Partial<Parameters<typeof buildJobFilterSections>[0]>) =
 describe('the "Wants Quotes" filter in Jobs browse (owner answer 12)', () => {
   it("the filter sheet shows the row only when the page passes its toggle", () => {
     const off = showOnly({});
-    expect(off.queryByRole("switch", { name: /Wants Quotes/ })).toBeNull();
+    expect(off.queryByRole("switch", { name: /Quotes wanted/ })).toBeNull();
     off.unmount();
     const toggle = vi.fn();
     showOnly({ wantsQuotes: false, onToggleWantsQuotes: toggle });
-    fireEvent.click(screen.getByRole("switch", { name: /Wants Quotes/ }));
+    fireEvent.click(screen.getByRole("switch", { name: /Quotes wanted/ }));
     expect(toggle).toHaveBeenCalledTimes(1);
   });
 

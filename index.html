@@ -27,7 +27,7 @@
     <meta name="robots" content="index, follow" />
     <!-- === CANVAS === Must equal --parchment in src/index.css so the native
          status-bar / browser chrome band blends into the top of the page with
-         no seam (LH-18). Currently hsl(220 14% 95%) = #F1F2F4.
+         no seam (LH-18). Currently hsl(40 21% 94.5%) = #F4F2EE (warm ground, spec v2 §2).
          The SAME value must appear in capacitor.config.ts (splash +
          StatusBar), manifest.webmanifest (theme_color + background_color),
          the #root/#boot-loader inline styles BELOW, and — the one that keeps
@@ -37,7 +37,7 @@
          (This previously claimed to match "#FAF9F5" while the manifest was
          teal and Capacitor was warm #ECE9E4; three comments each asserted
          agreement that did not exist.) -->
-    <meta name="theme-color" content="#F1F2F4" />
+    <meta name="theme-color" content="#F4F2EE" />
     <meta name="application-name" content="Helpr" />
     <!-- Read by the inline boot watchdog (Q229), which runs before the bundle and so cannot see import.meta.env. Public values: the same URL and publishable key ship in every bundle. -->
     <meta name="lh-supabase-url" content="%VITE_SUPABASE_URL%" />
@@ -197,7 +197,7 @@
     <meta property="og:description" content="Hire a Helpr or find local work. For everyday jobs, big and small — Louisiana's trusted marketplace." />
     <!-- === SOCIAL PREVIEW IMAGES — the centring is load-bearing ===
          og-image.png is 1200×630 (1.91:1, the Open Graph standard) with the
-         wrought-iron H mark DEAD CENTRE on the #F1F2F4 canvas. Centre placement is
+         wrought-iron H mark DEAD CENTRE on the #F4F2EE canvas. Centre placement is
          not styling: every consumer crops this file to its own aspect ratio from
          the centre, so the mark survives all of them — 1.91:1 (Facebook/LinkedIn,
          no crop at all), 2:1 (Twitter/X summary_large_image, trims 15px top and
@@ -846,12 +846,12 @@
       React's createRoot().render() clears #root's children on its first
       commit, so this markup is removed the instant the app paints.
     -->
-    <div id="root" style="background:linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);background-color:#F0F2F4;min-height:100vh;">
+    <div id="root" style="background:linear-gradient(135deg, #F7F5F1 0%, #F0EDE7 100%);background-color:#F4F2EE;min-height:100vh;">
       <div
         id="boot-loader"
         role="status"
         aria-label="Loading Helpr"
-        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);background-color:#F0F2F4;"
+        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg, #F7F5F1 0%, #F0EDE7 100%);background-color:#F4F2EE;"
       >
         <!-- Owner, 2026-09-23: nothing but the page background while the
              bundle loads (no H mark then: on iPhone its filter shadow rendered

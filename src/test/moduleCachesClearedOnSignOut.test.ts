@@ -37,6 +37,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/hooks/useCurrentUser.ts:orphanedProfileReads": { kind: "keyed-by-user-id" },
   "src/lib/needsYouStore.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks (the counts carry their account id; a reader for another id gets zero)" },
   "src/components/mobileNav/useNavUnreadCount.ts:stores": { kind: "keyed-by-user-id" },
+  "src/components/job-card/useCardExpansion.ts:NONE_OPEN": { kind: "not-user-data", why: "an empty ReadonlySet, the default 'no card open' value; nothing writes to it" },
   "src/components/sections/useSectionPrefs.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks" },
   "src/components/sections/useSectionPrefs.ts:cache": { kind: "keyed-by-user-id" },
   "src/components/notificationPanel/notificationFeed.ts:feeds": { kind: "keyed-by-user-id" },

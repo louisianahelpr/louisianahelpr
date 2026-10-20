@@ -334,10 +334,8 @@ export default function SellFlow() {
       }
       const status = await publishItem(itemId);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
-      toast.success(
-        status === "live" ? "Your item is for sale." : "Sent for a review. We'll let you know when it's up for sale.",
-      );
-      navigate("/declutter?view=selling");
+      // Board 80: the Selling tab opens the "What next" sheet (ListedWhatNext) instead of a toast.
+      navigate("/declutter?view=selling", { state: { justListed: { itemId, status } } });
     } catch (err) {
       toast.error(declutterErrorMessage(err));
     } finally {

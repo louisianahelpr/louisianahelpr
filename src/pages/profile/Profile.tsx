@@ -125,11 +125,23 @@ const ProfilePage = () => {
    * in-app history to go back to (a cold open on the deep link) — the same
    * has-history test `BackButton` already uses.
    */
+  // A tab opened from You › Settings (board 52) backs out to Settings, not to the landing.
+  const returnTo = useRef<Tab | null>(null);
   const cameFromLanding = useRef(initialTab === "landing");
   useEffect(() => {
-    if (tab === "landing") cameFromLanding.current = true;
+    if (tab === "landing") { cameFromLanding.current = true; returnTo.current = null; }
   }, [tab]);
+  const openFromSettings = useCallback((key: string) => {
+    returnTo.current = "settings";
+    setTab(key as Tab);
+  }, []);
   const backFromTab = useCallback(() => {
+    if (returnTo.current) {
+      const parent = returnTo.current;
+      returnTo.current = null;
+      setTab(parent);
+      return;
+    }
     if (cameFromLanding.current) {
       setTab("landing");
       return;
@@ -814,6 +826,8 @@ const ProfilePage = () => {
             reviewCount={reviewCount}
             seniorMode={seniorMode}
             onToggleSeniorMode={handleToggleSeniorMode}
+            onSelectTab={openFromSettings}
+            onRequestLogout={() => setShowLogoutDialog(true)}
           />
           </div>
           </SectionBoundary>

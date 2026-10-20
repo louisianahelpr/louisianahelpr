@@ -78,10 +78,12 @@ const perColumn = [];
 for (const col of STORAGE_REFERENCE_COLUMNS) {
   let rows = 0;
   const before = refs.length;
+  // Page by the table's real key: four of these tables have no id column.
+  const key = col.orderBy ?? "id";
   for (let offset = 0; ; offset += 1000) {
     let page;
     try {
-      page = await req("GET", `/rest/v1/${col.table}?select=id,${col.column}&${col.column}=not.is.null&order=id.asc&limit=1000&offset=${offset}`);
+      page = await req("GET", `/rest/v1/${col.table}?select=${key},${col.column}&${col.column}=not.is.null&order=${key}.asc&limit=1000&offset=${offset}`);
     } catch (e) {
       unmeasured(`could not read ${col.table}.${col.column}: ${e.message}`);
     }

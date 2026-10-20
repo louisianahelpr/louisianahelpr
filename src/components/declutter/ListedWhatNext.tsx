@@ -42,13 +42,13 @@ export function ListedWhatNext() {
         ...(drop
           ? [{ key: "drop", label: `Price can drop ${dropWhenLabel(drop.at)}`, detail: <>As low as <Money cents={drop.lowestCents} />, then 5% less each evening, never below your lowest price</>, state: "now" as const }]
           : []),
-        { key: "buyers", label: "Buyers message or buy", detail: "We'll tell you each time", state: drop ? "later" : "now" },
+        { key: "buyers", label: "Buyers ask questions or buy", detail: "We'll tell you each time", state: drop ? "later" : "now" },
         { key: "sold", label: "When it sells", detail: "We show you how to hand it off", state: "later" },
       ]
     : [
         { key: "sent", label: "Sent for a review", detail: "Today", state: "done" },
         { key: "review", label: "Someone from Louisiana Helpr checks it", detail: "We'll let you know when it's up for sale", state: "now" },
-        { key: "buyers", label: "Buyers message or buy", detail: "We'll tell you each time", state: "later" },
+        { key: "buyers", label: "Buyers ask questions or buy", detail: "We'll tell you each time", state: "later" },
       ];
   return (
     <WhatNextSheet

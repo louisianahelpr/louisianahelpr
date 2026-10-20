@@ -97,21 +97,12 @@ test.describe("customer sees helper application", () => {
     // 1. Posted job title surfaces.
     await expect(page.getByText(POSTED_JOB.title)).toBeVisible({ timeout: 15_000 });
 
-    // 1b. Open the card. A posted card arrives COLLAPSED (owner, 2026-08-27):
-    //     title, price and the meta line, with the tracker, the Applicants
-    //     button and the action row behind the tap. The count is one tap in,
-    //     which is where a poster acts on it. `force: true` because the
-    //     affordance is JobCardShell's sr-only button, which can never satisfy
-    //     Playwright's "element is on top" check.
-    await page
-      .getByRole("button", { name: "Expand Job Details" })
-      .first()
-      .click({ force: true });
-
     // 2. Applicant-count surface — the "customer sees that a helper has
-    //    applied" contract. The count lives on the primary button, which is
-    //    also the control that acts on it.
-    const applicantsButton = page.getByRole("button", { name: /^Applicants \(1\)$/ });
+    //    applied" contract. Since board 14 (2026-10-20) the card arrives as a
+    //    FACE whose ONE button is the real next step (posterFaceAction,
+    //    "applicants"): the count lives on that button, which is also the
+    //    control that acts on it, with no tap in first.
+    const applicantsButton = page.getByRole("button", { name: /^Review 1 applicant$/ });
     await expect(applicantsButton).toBeVisible({ timeout: 10_000 });
 
     // ...and it appears EXACTLY once on the card. An open job with applicants
@@ -121,8 +112,11 @@ test.describe("customer sees helper application", () => {
     // chip, then the pill (the per-card status band came off entirely when the
     // filter tabs took over saying what state a job is in), and most recently a
     // "1 applied" caption under the tracker's Posted step. The count lives on
-    // the control that acts on it, and nowhere else.
-    await expect(page.getByText(/\d+\s+applicants?\b/i)).toHaveCount(0);
+    // the control that acts on it, and nowhere else: the one text match is
+    // that button's own label.
+    const counted = page.getByText(/\d+\s+applicants?\b/i);
+    await expect(counted).toHaveCount(1);
+    expect(await counted.evaluate((el) => el.closest("button")?.textContent?.trim() ?? null), "the count is not the button's").toBe("Review 1 applicant");
     await expect(page.getByText(/\d+\s+applied\b/i)).toHaveCount(0);
     await expect(page.locator("[data-status-stripe]")).toHaveCount(0);
 

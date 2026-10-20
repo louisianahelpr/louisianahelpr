@@ -24,7 +24,6 @@ import { trackedFiles } from "./helpers/trackedFiles";
 
 // Shown able to fail:
 // @mutate src/index.css | font-size: calc(var(--headline-card) * 1.25); | font-size: var(--headline-card);
-// @mutate src/components/job-card/JobCardTitleBar.tsx | className="job-card-title senior-clamp-2 font-display | className="font-display
 // @mutate src/components/dashboard/JobCard.tsx | className="job-card-title senior-clamp-2 text-headline-card | className="job-card-title text-headline-card
 // @mutate src/index.css | html.senior-mode .job-category-tab {\n  line-height: 1 !important; | html.senior-mode .job-category-tab {\n  line-height: 1.45 !important;
 // @mutate src/components/job/cardGeometry.ts | "job-category-tab inline-flex | "inline-flex

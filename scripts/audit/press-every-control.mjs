@@ -126,7 +126,15 @@ export function parseAppRoutes(appSrc = readFileSync(resolve(REPO, "src/App.tsx"
     if (guard && flagValue(guard) === false) continue;
     const path = m[3];
     const el = m[4].trim();
-    const redirect = /^<Navigate\b/.test(el) || /^<\w*Redirect\s*\/>$/.test(el);
+    // The page itself, out of its route wrappers (error boundary, routeEl, sign-in gate):
+    // `<RouteErrorBoundary>{routeEl(<ProtectedRoute><ExploreRedirect /></ProtectedRoute>)}</RouteErrorBoundary>`
+    // is a redirect as much as a bare `<QuotesHubRedirect />` is (2026-10-20, /explore).
+    const page = el
+      .replace(/^<RouteErrorBoundary>\{([\s\S]*)\}<\/RouteErrorBoundary>$/, "$1")
+      .replace(/^routeEl\(([\s\S]*)\)$/, "$1")
+      .replace(/^<ProtectedRoute>([\s\S]*)<\/ProtectedRoute>$/, "$1")
+      .trim();
+    const redirect = /^<Navigate\b/.test(el) || /^<\w*Redirect\s*\/>$/.test(page);
     out.push({
       path,
       redirect,

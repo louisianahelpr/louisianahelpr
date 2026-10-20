@@ -183,6 +183,7 @@ const DesktopSidebarRail = () => {
     <nav
       aria-label="Primary"
       aria-hidden={!sidePanelOpen}
+      // @ts-expect-error — `inert` is valid HTML; React's types lag it.
       inert={!sidePanelOpen ? "" : undefined}
       data-desktop-sidebar="left"
       className={`fixed left-0 top-0 bottom-0 z-40 hidden lg:flex lg:flex-col ${sidePanelOpen ? "visible" : "invisible"}`}

@@ -41,7 +41,7 @@ export function HelperDoneWhatNextHost() {
       open={!!moment}
       onClose={() => setMoment(null)}
       title="Nice work"
-      lead="The person who posted this job has your update and is checking now."
+      lead="The person who posted it can now approve the work."
       steps={[
         { key: "done", label: "You marked it done", detail: moment ? `Today · ${timeOf(moment.at)}` : "Today", state: "done" },
         {

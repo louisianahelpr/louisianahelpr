@@ -4528,14 +4528,15 @@ html.senior-mode *::after {
 }
 :root[data-theme="dark"] .page-panel { background-color: transparent !important; }
 
-/* T3 — simpler job cards: price is plain bold ink, the category an icon + label. */
+/* T3 — simpler job cards: price is bold money ink (HELPR-DESIGN-SPEC v2 §1.1: rust is for money;
+   guard src/test/jobPriceIsMoneyInk.test.tsx), the category an icon + label. */
 .money-chip {
   background: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
   padding: 0 !important;
 }
-.money-chip, .money-chip * { color: hsl(var(--foreground)) !important; }
+.money-chip, .money-chip * { color: hsl(var(--burnt-sienna)) !important; }
 .money-chip > :first-child { font-size: 1.25rem !important; font-weight: 800 !important; }
 .job-card-title { font-size: 1.0625rem !important; }
 .job-cat-label { padding-left: 1rem; padding-top: 0.75rem; }

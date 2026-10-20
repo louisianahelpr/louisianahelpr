@@ -1110,12 +1110,13 @@ export function ConversationList({
   const headerEl = phoneTopBar && !selectMode ? (
     <>
       <div className="shrink-0 -mt-1"><AppTopBar title="Messages" /></div>
+      {/* Board 13: the search pill, then the filter chips. */}
+      {phoneSearchRow}
       {sectionTabs && (
         <div className="shrink-0 pt-1 pb-1.5" data-testid="messages-section-tabs">
           {sectionTabs}
         </div>
       )}
-      {phoneSearchRow}
     </>
   ) : (
     <>
@@ -1218,7 +1219,7 @@ export function ConversationList({
           </ScreenHeaderRow>
           {/* PHONE / NATIVE: the Active / All strip on its own line under the toolbar, ALWAYS (owner,
               2026-09-20), so an empty inbox's thread area starts at the same y as a full one's (127 at 375). */}
-          {/* Section tabs (owner, 2026-10-19: one screen, never mixed); they step aside for search / select. */}
+          {/* The filter chips (board 13: one inbox, owner 2026-10-20); they step aside for search / select. */}
           {sectionTabs && !searchOpen && !selectMode && (
             <div className="shrink-0 pt-1 pb-1.5" data-testid="messages-section-tabs">
               {sectionTabs}

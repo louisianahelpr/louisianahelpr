@@ -16,7 +16,6 @@ import { CONDITION_LABEL } from "./declutterUi";
 import type { OriginAsk } from "./DeclutterBrowseBar";
 
 const CHIP = "flex h-10 items-center rounded-full px-4 text-ds-13 font-semibold whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const look = (on: boolean) => (on ? "btn-grad-primary text-primary-foreground" : "border border-border bg-card text-foreground");
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -29,7 +28,8 @@ function Block({ title, children }: { title: string; children: ReactNode }) {
 
 function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <button type="button" aria-pressed={on} onClick={onClick} className={`${CHIP} ${look(on)}`}>
+    // The selected look inline, with its declared ink, so the gradInkContrast resolver can rebuild it.
+    <button type="button" aria-pressed={on} onClick={onClick} className={`${CHIP} ${on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>
       {children}
     </button>
   );

@@ -14,9 +14,7 @@ import { NO_FILTERS, type DeclutterFilters } from "@/lib/declutter/browseFilters
 
 const CHIP = "flex h-10 shrink-0 items-center rounded-full px-4 text-ds-13 font-semibold whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-function chipLook(on: boolean): string {
-  return on ? "btn-grad-primary text-primary-foreground" : "border border-border bg-card text-foreground";
-}
+const OFF = "border border-border bg-card text-foreground";
 
 export function DeclutterChipRow({
   filters,
@@ -30,19 +28,19 @@ export function DeclutterChipRow({
   const allOn = !filters.category && !filters.porchOnly && !filters.dropsOnly;
   return (
     <div data-chip-row="" className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <button type="button" aria-pressed={allOn} className={`${CHIP} ${chipLook(allOn)}`}
+      <button type="button" aria-pressed={allOn} className={`${CHIP} ${allOn ? "btn-grad-primary !text-[hsl(var(--parchment))]" : OFF}`}
         onClick={() => onChange({ ...filters, category: NO_FILTERS.category, porchOnly: false, dropsOnly: false })}
       >
         All
       </button>
       {showDrops && (
-        <button type="button" aria-pressed={filters.dropsOnly} className={`${CHIP} ${chipLook(filters.dropsOnly)}`}
+        <button type="button" aria-pressed={filters.dropsOnly} className={`${CHIP} ${filters.dropsOnly ? "btn-grad-primary !text-[hsl(var(--parchment))]" : OFF}`}
           onClick={() => onChange({ ...filters, dropsOnly: !filters.dropsOnly })}
         >
           Price drops
         </button>
       )}
-      <button type="button" aria-pressed={filters.porchOnly} className={`${CHIP} ${chipLook(filters.porchOnly)}`}
+      <button type="button" aria-pressed={filters.porchOnly} className={`${CHIP} ${filters.porchOnly ? "btn-grad-primary !text-[hsl(var(--parchment))]" : OFF}`}
         onClick={() => onChange({ ...filters, porchOnly: !filters.porchOnly })}
       >
         Porch pickup
@@ -57,7 +55,7 @@ export function DeclutterChipRow({
                 aria-pressed={on}
                 data-category-tile={key}
                 onClick={() => onChange({ ...filters, category: on ? null : key })}
-                className={`${CHIP} ${chipLook(on)}`}
+                className={`${CHIP} ${on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : OFF}`}
               >
                 {CATEGORY_WORD[key]}
               </button>

@@ -17,6 +17,7 @@
  * @mutate src/hooks/useDashboardJobsCount.ts |       if (whenRange) query = query.gte | if (false) query = query.gte
  * @mutate src/hooks/useDashboardFilters.ts |   const [locationFilter, setLocationFilter] = useState(() => param("loc")); |   const [locationFilter, setLocationFilter] = useState(() => param("loc") \|\| "nearby:25");
  * @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx |       key: "price", |       key: "price-x",
+ * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |         title="Filter jobs" |         title="Filters"
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -45,6 +46,8 @@ import { buildJobFilterSections } from "@/components/dashboard/filterSheet/jobFi
 import { sheetResultCount } from "@/pages/home/headerJobCount";
 import { jobMatchesWhen, jobWhenRange } from "@/lib/jobWhenFilter";
 import { useDashboardJobsCount } from "@/hooks/useDashboardJobsCount";
+import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
+import type { BrowseTasksToolbarProps } from "@/components/dashboard/browseTasksToolbar/types";
 
 const REPO = resolve(__dirname, "..", "..");
 const code = (f: string) => blankComments(readFileSync(resolve(REPO, f), "utf8"));
@@ -163,5 +166,30 @@ describe("board 24: When is the job's day on every layer", () => {
     const range = jobWhenRange("today")!;
     expect(calls.list).toContainEqual(["gte", "date_needed", range.from]);
     expect(calls.list).toContainEqual(["lte", "date_needed", range.to]);
+  });
+});
+
+describe("board 24: the Jobs toolbar mounts the sheet with its title and the page's exact count", () => {
+  const noop = () => {};
+  const filters = {
+    filtersOpen: true, setFiltersOpen: vi.fn(), activeFilterCount: 0, clearFilters: noop,
+    selectedCategory: null, setSelectedCategory: noop, locationFilter: "", setLocationFilter: noop,
+    sortBy: "smart", setSortBy: noop, expiresWithin: "", setExpiresWithin: noop, jobWhen: "", setJobWhen: noop,
+    minBudget: "", setMinBudget: noop, maxBudget: "", setMaxBudget: noop,
+    matchAvailability: false, setMatchAvailability: noop, boostedOnly: false, setBoostedOnly: noop,
+    urgentOnly: false, setUrgentOnly: noop, userLoc: { status: "idle" }, nearbyApproximate: false, nearbyUnavailable: false,
+  } as unknown as BrowseTasksToolbarProps["filters"];
+
+  it("renders 'Filter jobs' with Price and When, and 'Show 4 jobs' from resultCount", () => {
+    render(
+      <MemoryRouter>
+        <BrowseTasksToolbar filters={filters} user={null} helperAvailability={[]} view="list" setView={noop} resultCount={4} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("heading", { name: "Filter jobs" })).toBeTruthy();
+    expect(screen.getByRole("slider", { name: "Lowest price" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Next 7 days" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show 4 jobs" }));
+    expect(filters.setFiltersOpen).toHaveBeenCalledWith(false);
   });
 });

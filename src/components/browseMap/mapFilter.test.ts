@@ -15,6 +15,7 @@ const NONE: MapJobFilterInput = {
   urgentOnly: false,
   boostedOnly: false,
   expiresWithin: "",
+  whenRange: null,
   matchAvailability: false,
   nearbyMiles: null,
   userLoc: null,
@@ -176,7 +177,7 @@ describe("unsupportedMapFilters", () => {
 describe("the map applies the filters it used to only name (owner 2026-09-21)", () => {
   const base = {
     selectedCategory: null, searchQuery: "", minBudget: "", maxBudget: "",
-    urgentOnly: false, boostedOnly: false, expiresWithin: "",
+    urgentOnly: false, boostedOnly: false, expiresWithin: "", whenRange: null,
     matchAvailability: false, nearbyMiles: null, userLoc: null,
     earlyAccessDelayMs: 0,
   } as const;
@@ -253,5 +254,16 @@ describe("the map applies the filters it used to only name (owner 2026-09-21)", 
       ),
       "the map claimed it could not apply a filter it can now apply",
     ).toEqual([]);
+  });
+});
+
+// Board 24 "When": the map keeps exactly the days the list keeps (jobWhenFilter.ts).
+describe("the map applies the When day filter like the list", () => {
+  it("keeps a job inside the range, culls one outside it and one with no day", () => {
+    const f = buildMapJobFilter({ ...NONE, whenRange: { from: "2099-01-01", to: "2099-01-07" } });
+    expect(f(job({ date_needed: "2099-01-07" } as Partial<MapJob>))).toBe(true);
+    expect(f(job({ date_needed: "2099-01-08" } as Partial<MapJob>))).toBe(false);
+    expect(f(job({ date_needed: null } as Partial<MapJob>))).toBe(false);
+    expect(isAnyFilterActive({ ...NONE, whenRange: { from: "2099-01-01", to: "2099-01-01" } })).toBe(true);
   });
 });

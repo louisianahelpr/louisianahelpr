@@ -86,7 +86,7 @@ describe("design tweaks (owner 2026-10-18)", () => {
   it("T7, as amended 10-19: no category pill row on any Browse; categories live in the filter sheet", () => {
     const toolbar = code("src/components/dashboard/BrowseTasksToolbar.tsx");
     expect(toolbar).not.toMatch(/<CategoryChipRow\b/);
-    expect(code("src/components/dashboard/FilterSheet.tsx")).toMatch(/key: "category",/);
+    expect(code("src/components/dashboard/filterSheet/jobFilterSections.tsx")).toMatch(/key: "category",/);
     // Shops: the shared search row, its category choices in the filter sheet behind it (owner 2026-10-19).
     expect(code("src/components/shops/ShopsHomeView.tsx")).toMatch(/<SectionSearchRow\b[\s\S]*<ChoiceSheet\b/);
     expect(code("src/components/shops/ShopsHomeView.tsx")).not.toMatch(/chip-row/);

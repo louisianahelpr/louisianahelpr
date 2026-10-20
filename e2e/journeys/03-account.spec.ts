@@ -424,11 +424,11 @@ test(j7, async ({ browser, request, journey }) => {
     await pp.getByRole("button", { name: "Filters" }).first().click();
     // A saved search is a saved FILTER SET; with none active the dialog says "set filters first".
     await clickOrSayWhatMoves(pp.getByRole("dialog").getByRole("group", { name: "Filter by category" }).getByRole("button", { name: /cleaning/i }).first());
-    if (!(await pp.getByRole("dialog").getByRole("button", { name: /Saved Searches/ }).isVisible().catch(() => false))) {
+    if (!(await pp.getByRole("dialog").getByRole("button", { name: /Saved searches/i }).isVisible().catch(() => false))) {
       await pp.getByRole("button", { name: "Filters" }).first().click();
     }
-    await pp.getByRole("dialog").getByRole("button", { name: /Saved Searches/ }).click();
-    const dialog = pp.getByRole("dialog").filter({ hasText: "Saved Searches" });
+    await pp.getByRole("dialog").getByRole("button", { name: /Saved searches/i }).click();
+    const dialog = pp.getByRole("dialog").filter({ hasText: /Saved searches/i });
     await expect(dialog).toBeVisible({ timeout: 20_000 });
     const name = `Journey ${RUN}`;
     await dialog.getByPlaceholder("e.g. Lawn care under $200").fill(name);

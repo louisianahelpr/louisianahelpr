@@ -141,7 +141,7 @@ export function AvailabilityRow({
   return (
     <ToggleRow
       icon={Clock}
-      label="Jobs During My Hours"
+      label="During my hours"
       hint={
         hasAvailability ? (
           <p className="text-ds-11 text-muted-foreground leading-snug">
@@ -176,7 +176,7 @@ export function WantsQuotesRow({ checked, onToggle }: { checked: boolean; onTogg
   return (
     <ToggleRow
       icon={FileText}
-      label="Wants Quotes"
+      label="Quotes wanted"
       hint={<p className="text-ds-11 text-muted-foreground leading-snug">Jobs where people ask for your price</p>}
       checked={checked}
       onChange={() => onToggle()}

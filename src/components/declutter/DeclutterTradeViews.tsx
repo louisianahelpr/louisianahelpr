@@ -336,7 +336,7 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
           <label key={h}
             className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-[20px] border bg-card px-4 py-3.5 ${chosen === h ? "border-2 border-primary" : "border-border"}`}
           >
-            <input type="radio" className="mt-1 h-4 w-4 shrink-0" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setHandover(h)} style={{ accentColor: "hsl(var(--primary))" }} />
+            <input type="radio" className="mt-1 h-4 w-4 min-h-0 min-w-0 shrink-0" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setHandover(h)} style={{ accentColor: "hsl(var(--primary))" }} />
             <span className="min-w-0 flex-1">
               <span className="block text-ds-15 font-semibold text-foreground">{HANDOVER_TITLE[h]}</span>
               <span className="block text-ds-13 text-muted-foreground">{HANDOVER_WORDS[h]}</span>

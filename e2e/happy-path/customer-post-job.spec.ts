@@ -86,7 +86,8 @@ test.describe("customer post-job happy path", () => {
 
     // "Start fresh" transitions into the multi-step form.
     await page.getByRole("button", { name: /start fresh/i }).click();
-    await expect(page.getByRole("heading", { name: /job details/i })).toBeVisible({
+    // J1 (2026-10-20): the form is five screens, one question each; screen 1 asks "What do you need?".
+    await expect(page.getByRole("heading", { name: /what do you need/i })).toBeVisible({
       timeout: 10_000,
     });
 

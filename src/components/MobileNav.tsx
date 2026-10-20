@@ -485,7 +485,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         ariaLabel={locked ? `${label} — locked until your account is approved` : label}
         ariaCurrent={isActive ? "page" : undefined}
         className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""}`}
-        style={{ color: isActive ? "hsl(var(--bark))" : "hsl(48 9% 47%)" }}
+        style={{ color: isActive ? "hsl(var(--bark))" : "hsl(var(--muted-foreground))" }}
         longPress={longPress}
       >
         {/* Sliding active pill — single shared layoutId across all items
@@ -586,11 +586,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       {path === "/messages" && dockMotion && (
         <dockMotion.NavQuickMenu open={quickMenuTab === "messages"} onClose={closeQuickMenu} title="Recent chats">
           {recentConversationsLoading && recentConversations.length === 0 ? (
-            <p className="px-3.5 py-2 text-ds-12" style={{ color: "hsl(48 9% 47%)" }}>
+            <p className="px-3.5 py-2 text-ds-12" style={{ color: "hsl(var(--muted-foreground))" }}>
               Loading…
             </p>
           ) : recentConversations.length === 0 ? (
-            <p className="px-3.5 py-2 text-ds-12" style={{ color: "hsl(48 9% 47%)" }}>
+            <p className="px-3.5 py-2 text-ds-12" style={{ color: "hsl(var(--muted-foreground))" }}>
               No conversations yet
             </p>
           ) : (

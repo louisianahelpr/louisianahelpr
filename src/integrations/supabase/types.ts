@@ -8733,6 +8733,7 @@ export type Database = {
       shipments: {
         Row: {
           accepted_at: string | null
+          buyer_id: string | null
           attempts: number
           created_at: string
           declutter_order_id: string | null
@@ -8761,6 +8762,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          buyer_id?: string | null
           attempts?: number
           created_at?: string
           declutter_order_id?: string | null
@@ -8789,6 +8791,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          buyer_id?: string | null
           attempts?: number
           created_at?: string
           declutter_order_id?: string | null

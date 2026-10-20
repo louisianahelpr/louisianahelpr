@@ -111,6 +111,9 @@ CREATE TABLE IF NOT EXISTS public.shipments (
   -- (the key below keeps which order it was); not RESTRICT, so deletion never blocks.
   declutter_order_id uuid REFERENCES public.declutter_orders(id) ON DELETE SET NULL,
   shop_order_id uuid,
+  -- The buyer whose address ship_to is (copied from the order at insert). SET NULL on account
+  -- deletion, which redacts ship_to (trigger below, lh-authz-rls review of S1, finding 3).
+  buyer_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   -- One label per order, ever (money review fix 7): the claim row is written before any
   -- purchase, and every resume reads this row first.
   idempotency_key text NOT NULL UNIQUE CHECK (idempotency_key ~ '^(declutter|shop):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'),
@@ -134,13 +137,19 @@ CREATE TABLE IF NOT EXISTS public.shipments (
     'available_for_pickup', 'return_to_sender', 'failure', 'unknown')),
   accepted_at timestamptz,
   delivered_at timestamptz,
-  -- Private. Louisiana only (decision 3): ZIP 700-701, 703-708, 710-714.
-  ship_to jsonb NOT NULL CHECK (ship_to ->> 'zip' ~ '^(70[013-8]|71[0-4])[0-9]{2}(-[0-9]{4})?$'),
-  -- Weight in ounces and box inches (decision 8: small only; at most 20 lb, 22 in long).
-  parcel jsonb NOT NULL CHECK (
-    jsonb_typeof(parcel -> 'weight_oz') = 'number'
-    AND (parcel ->> 'weight_oz')::numeric > 0 AND (parcel ->> 'weight_oz')::numeric <= 320
-    AND COALESCE((parcel ->> 'length_in')::numeric, 0) <= 22),
+  -- Private. Louisiana only (decision 3): ZIP 700-701, 703-708, 710-714. COALESCE(.., false)
+  -- because a CHECK that evaluates to NULL passes (a missing zip must be refused; lh-authz-rls
+  -- review of S1, finding 2). Size-capped: the buyer types it.
+  ship_to jsonb NOT NULL CHECK (jsonb_typeof(ship_to) = 'object'
+    AND (COALESCE(ship_to ->> 'zip' ~ '^(70[013-8]|71[0-4])[0-9]{2}(-[0-9]{4})?$', false)
+         OR COALESCE(ship_to -> 'redacted' = 'true'::jsonb, false))
+    AND pg_column_size(ship_to) <= 2048),
+  -- Weight in ounces and box inches (decision 8: small only; at most 20 lb, no side over 22 in).
+  parcel jsonb NOT NULL CHECK (jsonb_typeof(parcel) = 'object'
+    AND COALESCE(jsonb_typeof(parcel -> 'weight_oz') = 'number'
+      AND (parcel ->> 'weight_oz')::numeric > 0 AND (parcel ->> 'weight_oz')::numeric <= 320, false)
+    AND greatest(COALESCE((parcel ->> 'length_in')::numeric, 0), COALESCE((parcel ->> 'width_in')::numeric, 0),
+                 COALESCE((parcel ->> 'height_in')::numeric, 0)) <= 22),
   attempts integer NOT NULL DEFAULT 0 CHECK (attempts BETWEEN 0 AND 100),
   next_attempt_at timestamptz NOT NULL DEFAULT now(),
   last_error text CHECK (last_error IS NULL OR length(last_error) <= 500),
@@ -171,7 +180,84 @@ END
 $do$;
 CREATE INDEX IF NOT EXISTS shipments_declutter_order_idx ON public.shipments (declutter_order_id);
 CREATE INDEX IF NOT EXISTS shipments_shop_order_idx ON public.shipments (shop_order_id);
+CREATE INDEX IF NOT EXISTS shipments_buyer_idx ON public.shipments (buyer_id);
 CREATE INDEX IF NOT EXISTS shipments_worker_idx ON public.shipments (next_attempt_at) WHERE label_state = 'claimed';
+
+-- At birth (lh-authz-rls review of S1, findings 3 and 9): exactly one order; the buyer and the
+-- seed flag come from that order (seed cleanup then removes seed shipments with their orders'
+-- test data, the way declutter_order_rows_seed / shop_money_rows_seed already do).
+CREATE OR REPLACE FUNCTION public.shipments_from_order()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_buyer uuid;
+  v_seed boolean;
+BEGIN
+  IF num_nonnulls(NEW.declutter_order_id, NEW.shop_order_id) <> 1 THEN
+    RAISE EXCEPTION 'shipment_needs_one_order' USING ERRCODE = '23514';
+  END IF;
+  IF NEW.declutter_order_id IS NOT NULL THEN
+    SELECT o.buyer_id, o.is_seed INTO v_buyer, v_seed FROM public.declutter_orders o WHERE o.id = NEW.declutter_order_id;
+  ELSIF to_regclass('public.shop_orders') IS NOT NULL THEN
+    EXECUTE 'SELECT o.buyer_id, o.is_seed FROM public.shop_orders o WHERE o.id = $1' INTO v_buyer, v_seed USING NEW.shop_order_id;
+  END IF;
+  IF v_seed IS NULL THEN
+    RAISE EXCEPTION 'shipment_order_not_found' USING ERRCODE = '23503';
+  END IF;
+  NEW.buyer_id := v_buyer;
+  NEW.is_seed := v_seed;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shipments_from_order() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_shipments_from_order ON public.shipments;
+CREATE TRIGGER trg_shipments_from_order BEFORE INSERT ON public.shipments
+  FOR EACH ROW EXECUTE FUNCTION public.shipments_from_order();
+
+-- After birth (findings 3 and 4): what the buyer paid for and where it goes is frozen; the
+-- label state only moves forward (a bought label can never go back to 'claimed' and be
+-- bought again); and when the buyer or the order goes (account deletion: the FK actions are
+-- UPDATEs, so this fires), the address is redacted to its ZIP.
+CREATE OR REPLACE FUNCTION public.shipments_guard_update()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  IF NEW.idempotency_key IS DISTINCT FROM OLD.idempotency_key OR NEW.label_mode IS DISTINCT FROM OLD.label_mode
+     OR NEW.service IS DISTINCT FROM OLD.service OR NEW.quoted_cents IS DISTINCT FROM OLD.quoted_cents
+     OR NEW.extra_insurance_cents IS DISTINCT FROM OLD.extra_insurance_cents OR NEW.parcel IS DISTINCT FROM OLD.parcel
+     OR NEW.is_seed IS DISTINCT FROM OLD.is_seed
+     OR (NEW.declutter_order_id IS NOT NULL AND NEW.declutter_order_id IS DISTINCT FROM OLD.declutter_order_id)
+     OR (NEW.shop_order_id IS NOT NULL AND NEW.shop_order_id IS DISTINCT FROM OLD.shop_order_id)
+     OR (NEW.buyer_id IS NOT NULL AND NEW.buyer_id IS DISTINCT FROM OLD.buyer_id)
+     OR (NEW.provider_shipment_id IS DISTINCT FROM OLD.provider_shipment_id AND OLD.provider_shipment_id IS NOT NULL)
+     OR (NEW.label_cost_cents IS DISTINCT FROM OLD.label_cost_cents AND OLD.label_cost_cents IS NOT NULL) THEN
+    RAISE EXCEPTION 'shipment_frozen' USING ERRCODE = '55000';
+  END IF;
+  IF NEW.label_state IS DISTINCT FROM OLD.label_state AND NOT (
+       (OLD.label_state = 'claimed' AND NEW.label_state IN ('bought', 'failed'))
+    OR (OLD.label_state = 'failed' AND NEW.label_state = 'claimed' AND OLD.provider_shipment_id IS NULL)
+    OR (OLD.label_state = 'bought' AND NEW.label_state = 'void_requested')
+    OR (OLD.label_state = 'void_requested' AND NEW.label_state IN ('voided', 'void_rejected'))) THEN
+    RAISE EXCEPTION 'shipment_state_backwards' USING ERRCODE = '55000';
+  END IF;
+  -- The address may change only by redaction, and is redacted once its buyer or order is gone.
+  IF NEW.buyer_id IS NULL OR num_nonnulls(NEW.declutter_order_id, NEW.shop_order_id) = 0 THEN
+    NEW.ship_to := jsonb_build_object('zip', OLD.ship_to ->> 'zip', 'redacted', true);
+  ELSIF NEW.ship_to IS DISTINCT FROM OLD.ship_to THEN
+    RAISE EXCEPTION 'shipment_frozen' USING ERRCODE = '55000';
+  END IF;
+  NEW.updated_at := now();
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shipments_guard_update() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_shipments_guard_update ON public.shipments;
+CREATE TRIGGER trg_shipments_guard_update BEFORE UPDATE ON public.shipments
+  FOR EACH ROW EXECUTE FUNCTION public.shipments_guard_update();
 
 ALTER TABLE public.shipments ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.shipments FROM PUBLIC, anon, authenticated;

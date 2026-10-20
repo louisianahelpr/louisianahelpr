@@ -159,6 +159,7 @@
     "public.saved_homes.saved_homes_listing_idx",
     "public.shipments.shipments_declutter_order_idx",
     "public.shipments.shipments_shop_order_idx",
+    "public.shipments.shipments_buyer_idx",
     "public.shipments.shipments_worker_idx"
   ]
 }

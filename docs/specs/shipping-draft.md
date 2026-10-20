@@ -302,13 +302,20 @@ Source: usps.com/ship/shipping-restrictions.htm (read 2026-10-20) and USPS PO-13
   shipping = 0; table `shipments` (service-role only: claim key, mode, rate, label cost, tracking,
   private ship-to and parcel); pure TS module `src/lib/shipping/policy.ts` (fee, Louisiana ZIP, small
   only, label budget check, idempotency key, who pays per refund reason) with vitest. NO `'ship'`
-  handover yet and no EasyPost calls.
+  handover yet and no EasyPost calls. lh-authz-rls review of S1 (972c5bb06, 2026-10-20): approve with
+  fixes, all taken in the same migration: `shipments` joins the seed-table scan; the Louisiana and
+  parcel CHECKs refuse MISSING keys (a NULL CHECK passes); `buyer_id` (SET NULL) + `is_seed` copied from
+  the order at birth; a guard trigger freezes what the buyer paid for and the address, only lets the
+  label state move forward (a bought label can never return to `claimed`), and redacts `ship_to` to its
+  ZIP when the buyer or the order is deleted. PGlite 42/42, 41 red without the migration.
 - **S2 checkout:** `'ship'` handover + the sweep/booking exclusions (fix 1) in one migration; `ship-rates`
   edge function (Louisiana, small, verify address, cache, rate-limit); manual-capture Checkout with the
   shipping line; fee rule trigger picks `f1_ship` for `'ship'`.
 - **S3 label worker:** claim row in the hold transaction, buy-then-capture, resume-safe, mode-keyed.
 - **S4 tracking webhook:** `easypost-webhook` (HMAC, replay-safe), status machine, ship-by and lost sweeps.
 - **S5 handover and payout:** delivered -> 48 h -> final -> payout; "I got it" after delivered.
+  Also: the buyer's own `shipments` rows (ship_to) join `export_my_data` (S1 marks `shipments.buyer_id`
+  EXEMPT in src/test/helpers/dataExportInventory.ts until then).
 - **S6 refunds, debts, claims, chargebacks:** the 5.3 table, the debt key change, transfer reversal.
 - **S7 Shops** (9.1). **S8 copy** (Terms row 24, terms draft line 76, Help, "how to ship").
 - **Later (paused by the owner):** the mailer program (section 10).

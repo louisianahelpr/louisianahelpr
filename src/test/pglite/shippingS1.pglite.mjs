@@ -111,18 +111,30 @@ await svc(`ALTER TABLE public.declutter_orders ENABLE TRIGGER trg_declutter_orde
 // 7. Shipments: service role only, one label per order, Louisiana only.
 const ship = (over = {}) => {
   const v = { key: `'declutter:${o?.order_id}'`, order: `'${o?.order_id}'`, mode: "'test'", zip: "70112", state: "'claimed'", weight: 16, extra: "", ...over };
+  const shipTo = over.shipTo ?? `'{"zip":"${v.zip}","line1":"1 Main St"}'`;
+  const parcel = over.parcel ?? `'{"weight_oz":${v.weight}}'`;
   return svc(`INSERT INTO public.shipments (declutter_order_id, idempotency_key, label_mode, service, quoted_cents, ship_to, parcel, label_state${v.extra ? ", provider_shipment_id, label_cost_cents, tracking_code" : ""})
-    VALUES (${v.order}, ${v.key}, ${v.mode}, 'usps_ground_advantage', 733, '{"zip":"${v.zip}"}', '{"weight_oz":${v.weight}}', ${v.state}${v.extra}) RETURNING id`);
+    VALUES (${v.order}, ${v.key}, ${v.mode}, 'usps_ground_advantage', 733, ${shipTo}, ${parcel}, ${v.state}${v.extra}) RETURNING id`);
 };
 ok(refused(await ship({ zip: "75201" }), /shipments_ship_to_check|ship_to/), "a Texas address is refused (Louisiana only)");
 ok(refused(await ship({ zip: "70912" }), /ship_to/), "709xx is not Louisiana and is refused");
 ok(refused(await ship({ weight: 321 }), /parcel/), "a parcel over 20 lb is refused");
+// A CHECK that evaluates to NULL passes: missing keys must still be refused (lh-authz-rls review of S1, finding 2).
+ok(refused(await ship({ shipTo: "'{}'" }), /ship_to/), "an address with no ZIP is refused");
+ok(refused(await ship({ shipTo: `'["a"]'` }), /ship_to/), "an address that is not an object is refused");
+ok(refused(await ship({ parcel: "'{}'" }), /parcel/), "a parcel with no weight is refused");
+ok(refused(await ship({ parcel: `'{"weight_oz":5,"width_in":200}'` }), /parcel/), "a box with any side over 22 in is refused");
+ok(refused(await ship({ order: "NULL" }), /shipment_needs_one_order/), "a shipment with no order is refused at birth");
 ok(refused(await ship({ mode: "'sandbox'" }), /label_mode/), "mode is test or live only");
 ok(refused(await ship({ key: `'declutter:${I(9)}'` }), /shipments_key_matches_order/), "the key must name its own order");
 ok(refused(await ship({ state: "'bought'" }), /shipments_bought_has_label/), "a bought label must record its shipment, cost and tracking");
 const first = await ship();
 ok(Array.isArray(first) && first.length === 1, "a claim row for the order is accepted");
 ok(refused(await ship(), /duplicate key|unique/i), "a second claim for the same order is refused (one label per order, ever)");
+const born = (await svc(`SELECT buyer_id, is_seed FROM public.shipments WHERE id = '${first?.[0]?.id}'`))[0];
+ok(born?.buyer_id === BUYER && born.is_seed === false, "the buyer and seed flag are copied from the order at birth");
+ok(refused(await svc(`UPDATE public.shipments SET quoted_cents = 999 WHERE id = '${first?.[0]?.id}'`), /shipment_frozen/), "what the buyer paid for is frozen");
+ok(refused(await svc(`UPDATE public.shipments SET ship_to = '{"zip":"70801"}' WHERE id = '${first?.[0]?.id}'`), /shipment_frozen/), "the address cannot be changed");
 ok(refused(await me(BUYER, `SELECT id FROM public.shipments`), /permission denied/), "the buyer cannot read shipments (private address)");
 ok(refused(await me(SELLER, `SELECT id FROM public.shipments`), /permission denied/), "the seller cannot read shipments directly");
 ok(refused(await me(BUYER, `INSERT INTO public.shipments (idempotency_key, label_mode, service, quoted_cents, ship_to, parcel)
@@ -133,6 +145,9 @@ ok(Array.isArray(await svc(`UPDATE public.shipments SET label_state = 'bought', 
   "the worker can record a bought label");
 ok(refused(await svc(`UPDATE public.shipments SET tracking_status = 'delivered' WHERE id = '${first?.[0]?.id}'`), /shipments_delivered_has_time/),
   "delivered needs its delivery time");
+ok(refused(await svc(`UPDATE public.shipments SET label_state = 'claimed' WHERE id = '${first?.[0]?.id}'`), /shipment_state_backwards/),
+  "a bought label never goes back to claimed (so it can never be bought twice; finding 4)");
+ok(refused(await svc(`UPDATE public.shipments SET label_cost_cents = 1 WHERE id = '${first?.[0]?.id}'`), /shipment_frozen/), "a recorded label cost cannot be rewritten");
 
 // 8. A money record outlives the order: deleting the order keeps the shipment (order id cleared, key kept).
 await svc(`ALTER TABLE public.declutter_orders DISABLE TRIGGER USER`);
@@ -141,6 +156,8 @@ await svc(`ALTER TABLE public.declutter_orders ENABLE TRIGGER USER`);
 const kept = (await svc(`SELECT declutter_order_id, idempotency_key FROM public.shipments WHERE id = '${first?.[0]?.id}'`))[0];
 ok(Array.isArray(del) && kept?.declutter_order_id === null && kept.idempotency_key === `declutter:${o?.order_id}`,
   "deleting the order keeps the shipment row (SET NULL, key still names the order)");
+const after = one(await svc(`SELECT ship_to FROM public.shipments WHERE id = '${first?.[0]?.id}'`));
+ok(after?.zip === "70112" && after.redacted === true && after.line1 === undefined, "and its address is redacted to the ZIP (finding 3)");
 
 console.log(`\n${pass} passed, ${fail} failed${skip ? " (NEW_MIGRATION=skip: RED baseline)" : ""}`);
 process.exit(fail ? 1 : 0);

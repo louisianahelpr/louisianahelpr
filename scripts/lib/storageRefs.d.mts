@@ -4,6 +4,7 @@ export interface RefColumn {
   array: boolean;
   bucket: string | null;
   writer: string;
+  orderBy?: string;
 }
 export type StorageRef =
   | { kind: "object"; bucket: string; path: string; host: string | null }

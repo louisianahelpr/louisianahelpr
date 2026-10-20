@@ -20,7 +20,8 @@
  * in it are checked and a bare value is reported as unresolved.
  */
 
-/** @typedef {{ table: string, column: string, array: boolean, bucket: string | null, writer: string }} RefColumn */
+/** @typedef {{ table: string, column: string, array: boolean, bucket: string | null, writer: string, orderBy?: string }} RefColumn */
+// orderBy: the table's real key, when it has no `id` column (the check pages and labels rows by it).
 
 /** @type {RefColumn[]} */
 export const STORAGE_REFERENCE_COLUMNS = [
@@ -46,22 +47,22 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "declutter_item_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "declutter_add_item_photo RPC (path <uid>/declutter/<item>/<file>; Declutter slice 2 uploads it)" },
   { table: "declutter_strikes", column: "appeal_photo_path", array: false, bucket: "job-photos", writer: "none yet: the Declutter strike-appeal RPC (a later slice) writes a job-photos path" },
   // Declutter slice 4 (20261015042253): porch and problem photos, in the PRIVATE declutter-handover bucket (20261017055502), paths under <uid>/declutter/<handover|problem>/<order>/.
-  { table: "declutter_handovers", column: "set_out_photo_path", array: false, bucket: "declutter-handover", writer: "declutter_porch_photo RPC, seller's set-out photo (src/lib/declutter/handover.ts uploads it; path)" },
-  { table: "declutter_handovers", column: "picked_up_photo_path", array: false, bucket: "declutter-handover", writer: "declutter_porch_photo RPC, buyer's picked-up photo (src/lib/declutter/handover.ts uploads it; path)" },
-  { table: "shop_handovers", column: "ready_photo_path", array: false, bucket: "shop-handover", writer: "shops_mark_ready RPC, the shop's ready photo (src/lib/shops/handover.ts uploads it; path <uid>/shops/handover/<order>/<file>)" },
+  { table: "declutter_handovers", column: "set_out_photo_path", array: false, orderBy: "order_id", bucket: "declutter-handover", writer: "declutter_porch_photo RPC, seller's set-out photo (src/lib/declutter/handover.ts uploads it; path)" },
+  { table: "declutter_handovers", column: "picked_up_photo_path", array: false, orderBy: "order_id", bucket: "declutter-handover", writer: "declutter_porch_photo RPC, buyer's picked-up photo (src/lib/declutter/handover.ts uploads it; path)" },
+  { table: "shop_handovers", column: "ready_photo_path", array: false, orderBy: "order_id", bucket: "shop-handover", writer: "shops_mark_ready RPC, the shop's ready photo (src/lib/shops/handover.ts uploads it; path <uid>/shops/handover/<order>/<file>)" },
   { table: "declutter_problems", column: "photo_paths", array: true, bucket: "declutter-handover", writer: "declutter_report_problem RPC (up to 6 paths; the screens offer no problem photos yet)" },
   { table: "job_quotes", column: "photo_paths", array: true, bucket: "job-photos", writer: "src/lib/quotes/api.ts uploadQuotePhoto (path <uid>/quotes/<file>; submit_job_quote refuses a path outside the quoter's own folder)" },
   // Declutter slice 5 (20261017055505): Helpr delivery photos and truck photos, in the PRIVATE helpr-tasks bucket.
   { table: "helpr_tasks", column: "pickup_photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_task_picked_up RPC, the Helpr's photo at the pickup (src/lib/helprTasks/api.ts uploads it; path <uid>/task/<task>/<file>)" },
   { table: "helpr_tasks", column: "dropoff_photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_task_delivered RPC, the Helpr's photo at the drop-off (src/lib/helprTasks/api.ts uploads it; path <uid>/task/<task>/<file>)" },
-  { table: "helpr_vehicles", column: "photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_set_vehicle RPC, the Helpr's truck photo (src/lib/helprTasks/api.ts uploads it; path <uid>/vehicle/<file>)" },
+  { table: "helpr_vehicles", column: "photo_path", array: false, orderBy: "user_id", bucket: "helpr-tasks", writer: "helpr_set_vehicle RPC, the Helpr's truck photo (src/lib/helprTasks/api.ts uploads it; path <uid>/vehicle/<file>)" },
   { table: "shop_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "src/lib/shops/api.ts addShopPhoto -> shops_attach_photo RPC (path <uid>/shops/<file>)" },
   { table: "shop_item_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "src/lib/shops/items.ts addShopItemPhoto -> shops_add_item_photo RPC (path <uid>/shop-items/<item id>/<file>)" },
   { table: "maintenance_request_photos", column: "storage_path", array: false, bucket: "user-documents", writer: "rentals_file_request RPC (path <uid>/rentals/requests/<batch>/<file>; src/lib/rentals/api.ts uploads it)" },
   { table: "rental_properties", column: "ownership_proof_path", array: false, bucket: "user-documents", writer: "rentals_submit_ownership_proof RPC (path <uid>/rentals/<property>/<file>; src/lib/rentals/api.ts uploads it)" },
   { table: "rental_listing_photos", column: "storage_path", array: false, bucket: "listing-photos", writer: "rentals_add_listing_photo RPC (PRIVATE bucket since 20261019071203, path <uid>/rental-listings/<listing>/<file>; src/lib/rentals/listings.ts uploads it)" },
-  { table: "landlord_id_reviews", column: "front_path", array: false, bucket: "user-documents", writer: "rentals_submit_landlord_id RPC, the landlord's ID photo (path <uid>/landlord-id/<file>; src/lib/rentals/api.ts uploads it; nulled once the photo is deleted after review)" },
-  { table: "landlord_id_reviews", column: "back_path", array: false, bucket: "user-documents", writer: "rentals_submit_landlord_id RPC, the optional back of the ID (path <uid>/landlord-id/<file>; src/lib/rentals/api.ts uploads it; nulled once the photo is deleted after review)" },
+  { table: "landlord_id_reviews", column: "front_path", array: false, orderBy: "user_id", bucket: "user-documents", writer: "rentals_submit_landlord_id RPC, the landlord's ID photo (path <uid>/landlord-id/<file>; src/lib/rentals/api.ts uploads it; nulled once the photo is deleted after review)" },
+  { table: "landlord_id_reviews", column: "back_path", array: false, orderBy: "user_id", bucket: "user-documents", writer: "rentals_submit_landlord_id RPC, the optional back of the ID (path <uid>/landlord-id/<file>; src/lib/rentals/api.ts uploads it; nulled once the photo is deleted after review)" },
 ];
 
 /**
@@ -142,7 +143,7 @@ export function referencesFromRows(col, rows) {
     if (raw === null || raw === undefined) continue;
     const values = col.array ? (Array.isArray(raw) ? raw : [raw]) : [raw];
     for (const value of values) {
-      out.push({ table: col.table, column: col.column, id: row.id, value, ref: resolveStorageRef(value, col.bucket) });
+      out.push({ table: col.table, column: col.column, id: row[col.orderBy ?? "id"], value, ref: resolveStorageRef(value, col.bucket) });
     }
   }
   return out;

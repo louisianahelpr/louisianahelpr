@@ -12,6 +12,8 @@
  *      (bare paths, public URLs, signed URLs, a foreign project after a
  *      restore into a new one, data: URLs, Google avatars).
  *
+ * @mutate scripts/check-storage-refs.mjs | const key = col.orderBy ?? "id"; | const key = "id";
+ * @mutate scripts/lib/storageRefs.mjs | id: row[col.orderBy ?? "id"], | id: row.id,
  * @mutate scripts/lib/storageRefs.mjs |   { table: "messages", column: "attachment_url", array: false, bucket: "message-attachments", writer: "src/lib/messageAttachments.ts (path)" },\n |
  * @mutate scripts/lib/storageRefs.mjs |     if (ref.host && projectHost && ref.host !== projectHost) {\n      result.foreign.push(r); |     if (false) {\n      result.foreign.push(r);
  * @mutate scripts/lib/storageRefs.mjs |     if (names.has(name)) result.present++; |     if (true) result.present++;
@@ -26,6 +28,9 @@ import {
   referencesFromRows,
   resolveStorageRef,
 } from "../../scripts/lib/storageRefs.mjs";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 import { declaredBuckets } from "./helpers/declaredBuckets";
 import { publicTableColumns } from "./helpers/publicTableColumns";
 
@@ -57,6 +62,45 @@ describe("storage reference inventory (class, from types.ts)", () => {
     const buckets = declaredBuckets();
     const named = STORAGE_REFERENCE_COLUMNS.map((c) => c.bucket).filter((b): b is string => !!b);
     expect(named.filter((b) => !buckets.includes(b))).toEqual([]);
+  });
+});
+
+describe("the scripts page every table by a column it has (class, from types.ts)", () => {
+  // declutter_handovers, shop_handovers (key order_id), helpr_vehicles and
+  // landlord_id_reviews (key user_id) have no id column, but check-storage-refs
+  // paged every table by id: PostgREST answered 42703 "column ... id does not
+  // exist", the script exited 2 (could not measure) and restore-reconcile.yml's
+  // storage step was red on every run (2026-10-20).
+  const columns = new Set(publicTableColumns());
+  const read = (rel: string) => blankComments(readFileSync(resolve(__dirname, "../../scripts", rel), "utf8"));
+
+  it("read the schema (cannot pass vacuously)", () => {
+    expect(columns.size).toBeGreaterThan(500);
+    expect(STORAGE_REFERENCE_COLUMNS.length).toBeGreaterThan(30);
+  });
+
+  it("check-storage-refs: each registered table has the column it selects and orders by (its orderBy, else id)", () => {
+    const bad = STORAGE_REFERENCE_COLUMNS.flatMap((c) =>
+      [c.orderBy ?? "id", c.column].filter((k) => !columns.has(`${c.table}.${k}`)).map((k) => `${c.table}.${k}`),
+    );
+    expect([...new Set(bad)]).toEqual([]);
+  });
+
+  it("check-storage-refs: the request selects and orders by that key, not a hard-coded id", () => {
+    const src = read("check-storage-refs.mjs");
+    expect(src).toContain("const key = col.orderBy ?? \"id\";");
+    expect(src).toContain("select=${key},${col.column}");
+    expect(src).toContain("order=${key}.asc");
+    expect(src).not.toMatch(/select=id,/);
+    expect(src).not.toMatch(/order=id\./);
+  });
+
+  it("storage-orphan-sweep: every restAll(table, select) names columns the table has (it orders by the first)", () => {
+    const src = read("storage-orphan-sweep.mjs");
+    const calls = [...src.matchAll(/restAll\("([a-z_0-9]+)", "([a-z_0-9,]+)"/g)];
+    expect(calls.length).toBeGreaterThan(2);
+    const bad = calls.flatMap((m) => m[2].split(",").filter((k) => !columns.has(`${m[1]}.${k}`)).map((k) => `${m[1]}.${k}`));
+    expect(bad).toEqual([]);
   });
 });
 
@@ -117,6 +161,13 @@ describe("gradeReferences", () => {
     expect(g.checked).toBe(4);
     expect(g.present).toBe(2);
     expect(g.missing.map((m) => `${m.table}.${m.column}:${m.id}`)).toEqual(["profiles.avatar_url:p2", "jobs.proof_after_urls:j1"]);
+  });
+
+  it("labels a row of a table with no id column by its real key", () => {
+    const handover = STORAGE_REFERENCE_COLUMNS.find((c) => c.table === "declutter_handovers" && c.column === "set_out_photo_path")!;
+    expect(handover.orderBy).toBe("order_id");
+    const refs = referencesFromRows(handover, [{ order_id: "o1", set_out_photo_path: "u1/declutter/handover/o1/a.png" }]);
+    expect(refs.map((r) => r.id)).toEqual(["o1"]);
   });
 
   it("flags every URL on another project after a restore into a new one", () => {

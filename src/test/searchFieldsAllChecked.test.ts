@@ -56,7 +56,12 @@ const TITLE_SPEC = "e2e/prod-audit/search-keeps-title.spec.ts";
  * a stale entry fails, and so does a new ✕-less field missing from here. */
 const NO_X: Record<string, string> = {
   // Q913 (owner, 2026-10-07): the six admin fields listed here got a clear ✕
-  // and joined the press spec; nothing is ✕-less now.
+  // and joined the press spec.
+  // Landing redesign (2026-10-20): the hero search is signed-out only (a signed-in
+  // visitor is sent to /home) and both browser specs drive signed in, so it has
+  // no ✕ to press yet; it filters nothing in place, it navigates on submit.
+  // Q2242 decides: a guest-mode surface in both specs plus a ✕, or this entry stays.
+  "src/components/landing/HeroSection.tsx": "landing hero search: signed-out only, navigates on submit (Q2242)",
 };
 
 /** ✕ files that render ONLY below the desktop breakpoint, so the press spec
@@ -176,7 +181,8 @@ describe("every search field is driven in a real browser (inventory minus checke
     // 2026-10-19 (Q2205): -2, PostsHeader / JobsHeader left with the old My Posts / My Jobs pages.
     // 2026-10-19 (shared section shell): -2, the Jobs, Declutter and Homes Browse rows became ONE
     // shared SectionSearchRow (Shops' new search uses it too): 3 files out, 1 in.
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(11);
+    // 2026-10-20: +1, the landing's hero search (HeroSection, on NO_X).
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(12);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",

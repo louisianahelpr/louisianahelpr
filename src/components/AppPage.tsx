@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import AppShell from "@/components/AppShell";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
@@ -68,6 +69,9 @@ interface AppPageProps {
 }
 
 function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, children }: AppPageProps) {
+  // D12 (Cowork audit 2026-10-20): the browser tab names the page (an item, Sell an
+  // item, ...), not the landing page. A page's own usePageTitle / usePageMeta wins.
+  usePageTitle(`${title} — Helpr`);
   return (
     <AppShell
       scrollable={false}

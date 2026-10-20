@@ -39,7 +39,7 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   // then said "Legal & Policies" in the same box. The browser tab was wrong
   // too, for as long as it had drifted.
   legal: "Legal & Policies",
-  reviews: "My Reviews",
+  reviews: "Reviews about you",
   referral: "Referrals",
   subscription: "Membership",
   support: "Help & Support",

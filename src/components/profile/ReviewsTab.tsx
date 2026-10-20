@@ -28,6 +28,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { TAB_TITLES } from "@/pages/profile/types";
 
 interface Review {
   rating: number;
@@ -78,7 +79,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
   return (
     <ProfileTabBody>
       <ProfileTabHeader
-        title="My Reviews"
+        title={TAB_TITLES.reviews}
         onBack={onBack}
       />
 

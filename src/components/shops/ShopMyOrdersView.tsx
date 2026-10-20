@@ -106,6 +106,8 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
               boxes={BUYER_GROUPS.map((g) => ({ key: g, label: BUYER_GROUP_LABEL[g], count: (orders.data ?? []).filter((o) => buyerGroup(o) === g).length, hot: g === "accepted" }))}
               value={status}
               onToggle={toggleStatus}
+              // Every order falls in exactly one buyer group, so All is the whole list.
+              allCount={(orders.data ?? []).length}
             />
             {BUYER_GROUPS.filter((g) => status === null || status === g).map((g) => {
               const rows = (orders.data ?? []).filter((o) => buyerGroup(o) === g);

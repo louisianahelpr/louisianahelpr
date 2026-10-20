@@ -23,7 +23,7 @@
  * @mutate src/pages/home/HomeDashboard.tsx |         {todoOpen && ( |         {todoCount > 0 && !todoOpen && <button type="button" onClick={toggleTodo} aria-expanded={false}>To do ({todoCount})</button>}\n        {todoOpen && (
  * @mutate src/pages/home/HomeDashboard.tsx |   const next = summary.todos[at]; |   const next = summary.todos[summary.todos.length - 1];
  * @mutate src/pages/home/HomeDashboard.tsx |                       onClick={() => setShown(i)} |                       onClick={() => setShown(0)}
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |     ...shopWaiting.map((o) => ({ |     ...shopWaiting.filter(() => false).map((o) => ({
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const o of shopWaiting) { |   for (const o of shopWaiting.filter(() => false)) {
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         title: n > 0 ? (n === 1 ? "Review 1 applicant" |         title: j.title, _t: n > 0 ? (n === 1 ? "Review 1 applicant"
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       liveNow: deriveLiveNow(pj, aa), |       liveNow: null,
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       waiting: todos.length ? null : deriveWaiting( |       waiting: true ? null : deriveWaiting(
@@ -218,8 +218,10 @@ describe("Home", () => {
     expect(screen.getByTestId("next-up-see-all").textContent).toBe("See all (4)");
     // A carousel over all four (mock-up 7): "1 of 4", and a dot shows the next one.
     expect(screen.getByTestId("next-up-label").textContent).toBe("Next up · 1 of 4");
+    // Spec v2 §5.2: these orders' clocks are years out, so they rank with the other "someone is
+    // waiting on you" to-dos, by date: the applicants on Job a (Jan 2) come before the Jan 3 order.
     fireEvent.click(document.querySelector('[data-next-up-dot="1"]') as HTMLElement);
-    expect(screen.getByTestId("next-up-title").textContent).toBe("Answer an order for Later order");
+    expect(screen.getByTestId("next-up-title").textContent).toBe("Review 1 applicant");
     expect(screen.getByTestId("next-up-label").textContent).toBe("Next up · 2 of 4");
   });
 

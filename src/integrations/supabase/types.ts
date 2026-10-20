@@ -1828,6 +1828,7 @@ export type Database = {
       declutter_orders: {
         Row: {
           delivery_cents: number
+          shipping_cents: number
           buyer_id: string
           card_fee_cents: number | null
           close_reason: string | null
@@ -1851,6 +1852,7 @@ export type Database = {
         }
         Insert: {
           delivery_cents?: number
+          shipping_cents?: number
           buyer_id: string
           card_fee_cents?: number | null
           close_reason?: string | null
@@ -1874,6 +1876,7 @@ export type Database = {
         }
         Update: {
           delivery_cents?: number
+          shipping_cents?: number
           buyer_id?: string
           card_fee_cents?: number | null
           close_reason?: string | null
@@ -8727,6 +8730,111 @@ export type Database = {
           },
         ]
       }
+      shipments: {
+        Row: {
+          accepted_at: string | null
+          buyer_id: string | null
+          attempts: number
+          created_at: string
+          declutter_order_id: string | null
+          delivered_at: string | null
+          extra_insurance_cents: number
+          id: string
+          idempotency_key: string
+          is_seed: boolean
+          label_cost_cents: number | null
+          label_path: string | null
+          last_error: string | null
+          label_mode: string
+          next_attempt_at: string
+          parcel: Json
+          label_provider: string
+          provider_rate_id: string | null
+          provider_shipment_id: string | null
+          quoted_cents: number
+          service: string
+          ship_to: Json
+          shop_order_id: string | null
+          label_state: string
+          tracking_code: string | null
+          tracking_status: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          buyer_id?: string | null
+          attempts?: number
+          created_at?: string
+          declutter_order_id?: string | null
+          delivered_at?: string | null
+          extra_insurance_cents?: number
+          id?: string
+          idempotency_key: string
+          is_seed?: boolean
+          label_cost_cents?: number | null
+          label_path?: string | null
+          last_error?: string | null
+          label_mode: string
+          next_attempt_at?: string
+          parcel: Json
+          label_provider?: string
+          provider_rate_id?: string | null
+          provider_shipment_id?: string | null
+          quoted_cents: number
+          service: string
+          ship_to: Json
+          shop_order_id?: string | null
+          label_state?: string
+          tracking_code?: string | null
+          tracking_status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          buyer_id?: string | null
+          attempts?: number
+          created_at?: string
+          declutter_order_id?: string | null
+          delivered_at?: string | null
+          extra_insurance_cents?: number
+          id?: string
+          idempotency_key?: string
+          is_seed?: boolean
+          label_cost_cents?: number | null
+          label_path?: string | null
+          last_error?: string | null
+          label_mode?: string
+          next_attempt_at?: string
+          parcel?: Json
+          label_provider?: string
+          provider_rate_id?: string | null
+          provider_shipment_id?: string | null
+          quoted_cents?: number
+          service?: string
+          ship_to?: Json
+          shop_order_id?: string | null
+          label_state?: string
+          tracking_code?: string | null
+          tracking_status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_declutter_order_id_fkey"
+            columns: ["declutter_order_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_shop_order_id_fkey"
+            columns: ["shop_order_id"]
+            isOneToOne: false
+            referencedRelation: "shop_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_categories: {
         Row: {
           group_label: string
@@ -11529,6 +11637,10 @@ export type Database = {
         Returns: string
       }
       declutter_buyer_fee_cents: { Args: { p_items_cents: number }; Returns: number }
+      declutter_buyer_fee_cents_ship: {
+        Args: { p_items_cents: number; p_shipping_cents: number }
+        Returns: number
+      }
       declutter_cancel_haul_away: {
         Args: { p_item_id: string; p_job_id?: string }
         Returns: string

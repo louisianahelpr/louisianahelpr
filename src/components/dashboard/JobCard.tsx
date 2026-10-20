@@ -102,14 +102,12 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
     onSelect(job);
   }, [job, onSelect]);
 
-  // Show the gross posted budget (vs the helper's net take-home) whenever
-  // the full guest variant is active OR the lighter guestPricing flag is set.
+  // Show the gross posted budget (vs the helper's net take-home) for guestPricing or the poster's own job.
   // Net "You earn" take-home is the default for guests too (they're shown an
   // assumed fee tier via effectiveFee). Only the explicit `guestPricing` flag
   // forces the gross "Budget" figure — `variant="guest"` no longer does, so a
   // guest card can show take-home AND the "Sign up to apply" CTA together.
-  // J1 (audit 2026-10-20): a poster's own job shows the price they set, as on Posted (was take-home).
-  const isOwnJob = !!_currentUserId && job.customer_id === _currentUserId;
+  const isOwnJob = !!_currentUserId && job.customer_id === _currentUserId; // J1: own job = the price set, as on Posted
   const showBudget = guestPricing || isOwnJob;
   // Per-helpr split count for JobPrice, the single money component (card and detail never disagree).
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;

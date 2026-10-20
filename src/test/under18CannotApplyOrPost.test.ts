@@ -91,6 +91,7 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/components/NotificationPanel.tsx": "the Repost pill on an expired/cancelled job's notification; opens the gated form",
   "src/components/profile/ScheduleTab.tsx": "Post a Job beside Browse on an empty calendar; opens the gated form",
   "src/pages/posts/PostedJobCard.tsx": "Re-Post This Job on an expired card; opens the gated form",
+  "src/pages/posts/postedJobCard/posterFaceAction.ts": "Post again on a cancelled card's face (board 14); opens the gated form",
   "src/pages/profile/GiftCard.tsx": "Use a received gift on a new job; opens the gated form",
   "src/pages/user/UserProfile.tsx": "Offer a Job Directly in a profile's menu; opens the gated form",
 };

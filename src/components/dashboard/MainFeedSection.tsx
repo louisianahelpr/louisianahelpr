@@ -1,8 +1,9 @@
-import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { useMemo, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { VirtualizedJobList } from "@/components/dashboard/VirtualizedJobList";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { JobFeedCard, type JobCardCommonProps } from "@/components/dashboard/feedCards";
+import { splitFartherAway } from "@/pages/home/fartherAwaySplit";
 
 // Moved out of BrowseTasksFeed.tsx unchanged (component-size ratchet, Q806).
 type PullToRefresh = ReturnType<typeof usePullToRefresh>;
@@ -30,6 +31,7 @@ export function MainFeedSection({
   containerRef,
   setHoveredJobId,
   footer,
+  splitFarther = false,
 }: {
   jobs: EnrichedJob[];
   recommendedBadgeId: string | null;
@@ -38,14 +40,25 @@ export function MainFeedSection({
   setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
   /** Under the last card, above the dock clearance (the Browse end card). */
   footer?: ReactNode;
+  /**
+   * Board 6: move jobs beyond 25 mi under a "Farther away" divider. Only
+   * under the default order with no distance filter: an explicit sort or a
+   * radius is the viewer's own order, and the split would override it.
+   */
+  splitFarther?: boolean;
 }) {
+  const { userLat, userLng } = common;
+  const split = useMemo(
+    () => (splitFarther ? splitFartherAway(jobs, userLat, userLng) : { ordered: jobs, fartherFrom: null, label: null }),
+    [jobs, splitFarther, userLat, userLng],
+  );
   return (
     <div
       className="px-0 lg:px-4 pt-1 lg:pt-3"
       style={{ paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))" }}
     >
       <VirtualizedJobList
-        items={jobs}
+        items={split.ordered}
         scrollElementRef={containerRef}
         getKey={(job) => job.id}
         // Card renders ~83px tall (single-line title + one meta row) plus
@@ -63,11 +76,25 @@ export function MainFeedSection({
             onMouseEnter={() => setHoveredJobId?.(job.id)}
             onMouseLeave={() => setHoveredJobId?.(null)}
           >
-            <JobFeedCard job={job} index={i} recommended={job.id === recommendedBadgeId} common={common} />
+            {i === split.fartherFrom && split.label && <FartherAwayDivider label={split.label} />}
+            <JobFeedCard job={job} index={i} hero={i === 0} recommended={job.id === recommendedBadgeId} common={common} />
           </div>
         )}
       />
       {footer}
+    </div>
+  );
+}
+
+/** "Farther away · 25–60 mi": a hairline rule either side of a small caps caption (board 6). */
+function FartherAwayDivider({ label }: { label: string }) {
+  return (
+    <div role="separator" aria-label={label} className="flex items-center gap-3 pt-2 pb-list">
+      <span className="h-px flex-1 bg-border" aria-hidden />
+      <span className="text-ds-11 font-semibold uppercase tracking-wide text-muted-foreground" aria-hidden>
+        {label}
+      </span>
+      <span className="h-px flex-1 bg-border" aria-hidden />
     </div>
   );
 }

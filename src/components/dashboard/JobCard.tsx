@@ -20,6 +20,7 @@ import { formatDistanceLabel, formatDrivingLabel } from "./jobCardDistance";
 import { JobPrice, computeNet } from "./JobPrice";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import type { EnrichedJob } from "./types";
+import { JobCardHeroBand } from "./JobCardHeroBand";
 import {
   JOB_CARD_BADGE_ROW,
   JOB_CARD_BODY,
@@ -74,16 +75,14 @@ interface JobCardProps {
    */
   recommended?: boolean;
   /**
-   * Drops the card's own outer chrome (rounded corners, border, shadow,
-   * background, hover lift) so it can sit directly inside another
-   * container that already provides that shape — the map pin's callout
-   * bubble, e.g. (owner, 2026-08-30: "should be 1 component not
-   * multiple" — MapKit's `.mk-bubble` and this card were each drawing
-   * their own rounded rect, so the popup read as a card nested inside a
-   * second card). Everything below the outer wrapper — rail, badges,
-   * title, meta — is unchanged; only the wrapper's own paint is dropped.
+   * Drops the card's own outer chrome (corners, border, shadow, background, hover lift) so it can sit
+   * inside a container that already draws that shape — the map pin's callout bubble (owner, 2026-08-30:
+   * "should be 1 component not multiple": `.mk-bubble` and this card each drew a rounded rect, so the
+   * popup read as a card in a card). Everything below the wrapper is unchanged; only its paint is dropped.
    */
   bare?: boolean;
+  /** Board 6: the feed's first card, with the 16:10 picture band on top. */
+  hero?: boolean;
 }
 
 // Category colors apply ONLY to the category badge pill at the top of
@@ -91,7 +90,7 @@ interface JobCardProps {
 // charcoal) across all categories so the brand reads consistently and
 // the colored badge stays the single accent in the row. The `accent`
 // gradient tints are kept for the boosted/recommended highlight strip.
-const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index: _index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, recommended = false, bare = false }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index: _index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, recommended = false, bare = false, hero = false }: JobCardProps) => {
   const isGuest = variant === "guest";
 
   // A tap always opens the job detail view. Saving lives behind the
@@ -320,8 +319,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           rounded, and the category rail/tab need SOME edge to align to) but
           carries no paint of its own. */}
       <div className={bare ? "relative h-full overflow-hidden rounded-lg" : JOB_CARD_CLIP}>
-        {/* No category rail: owner 2026-10-18 (tweak 3) dropped the coloured
-            stripe; the category reads from the icon + label instead. */}
+        {/* No category rail (owner 2026-10-18); the category reads from the icon + label. */}
+        {hero && !bare && <JobCardHeroBand photo={job.photos?.[0]} category={job.category} />}
         {/* ── BADGE RAIL ───────────────────────────────────────────────
             ONE row holding EVERY badge this card can render, sharing one
             top edge, one bottom edge and one baseline BY CONSTRUCTION —

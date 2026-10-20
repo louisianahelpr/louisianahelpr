@@ -24,6 +24,8 @@ interface SwipeableJobCardProps {
   userLng?: number | null;
   /** Marks this as a top recommended pick — forwarded to JobCard's pill. */
   recommended?: boolean;
+  /** Board 6: the feed's first card, with the picture band (JobCard). */
+  hero?: boolean;
 }
 
 /**
@@ -70,6 +72,7 @@ const SwipeableJobCard = ({
   userLat = null,
   userLng = null,
   recommended = false,
+  hero = false,
 }: SwipeableJobCardProps) => {
   const Layer = swipeLayer.use();
   const [swiping, setSwiping] = useState(false);
@@ -134,6 +137,7 @@ const SwipeableJobCard = ({
             userLat={userLat}
             userLng={userLng}
             recommended={recommended}
+            hero={hero}
           />
         </div>,
         slot,

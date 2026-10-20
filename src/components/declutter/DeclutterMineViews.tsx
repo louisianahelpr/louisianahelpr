@@ -11,17 +11,18 @@
  */
 
 const CHIP = "flex h-10 shrink-0 items-center gap-1 rounded-full px-4 text-ds-13 font-semibold whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const look = (on: boolean) => (on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground");
+// Selected chips: the look inline at each site, with its declared ink, so the gradInkContrast resolver can rebuild it.
+const OFF = "border border-border bg-card text-foreground";
 
 function StatusChips<K extends string>({ chips, value, onPick, trailing }: { chips: readonly StatusBoxDef<K>[]; value: K | null; onPick: (k: K | null) => void; trailing?: ReactNode }) {
   const all = chips.reduce((n, c) => n + c.count, 0);
   return (
     <div role="group" aria-label="Filter by status" data-status-chips="" className="-mx-3 flex items-center gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <button type="button" aria-pressed={value === null} onClick={() => onPick(null)} className={`${CHIP} ${look(value === null)}`}>
+      <button type="button" aria-pressed={value === null} onClick={() => onPick(null)} className={`${CHIP} ${value === null ? "btn-grad-primary !text-[hsl(var(--parchment))]" : OFF}`}>
         All{all > 0 ? ` · ${all}` : ""}
       </button>
       {chips.map((c) => (
-        <button key={c.key} type="button" aria-pressed={value === c.key} data-status-box={c.key} onClick={() => onPick(value === c.key ? null : c.key)} className={`${CHIP} ${look(value === c.key)}`}>
+        <button key={c.key} type="button" aria-pressed={value === c.key} data-status-box={c.key} onClick={() => onPick(value === c.key ? null : c.key)} className={`${CHIP} ${value === c.key ? "btn-grad-primary !text-[hsl(var(--parchment))]" : OFF}`}>
           {c.label}
           {c.count > 0 && <span className={value === c.key || !c.hot ? "" : "text-[hsl(var(--accent-ink))]"}> · {c.count}</span>}
         </button>

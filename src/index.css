@@ -4522,6 +4522,8 @@ html.senior-mode *::after {
 
 /* Explore's switcher is phone-only (ExploreSwitcher returns null on the desktop website), so its bone is too. */
 html.web-desktop .explore-switcher-bone { display: none; }
+/* ...and the section "+" lives in the top bar on the desktop website only (AppTopBar `explore`). */
+html:not(.web-desktop) .top-bar-add-bone { display: none; }
 
 /* T2 — cleaner cards: no outline, no inner rim, no blur; a faint soft shadow. */
 .liquid-glass,

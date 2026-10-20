@@ -139,11 +139,17 @@ for (const variant of [
 
     const isDesktopWeb = variant.width >= 900;
 
-    // --- the top bar: title, then "+" · bell · profile, profile far right ---
+    // --- the top bar: title, then bell · profile on a phone ("+" · title on the desktop website) ---
     const bar = page.getByTestId("app-top-bar");
     await expect(bar).toBeVisible();
-    await expect(bar.getByRole("heading", { level: 1, name: "Jobs" })).toBeVisible();
-    const add = (await bar.getByTestId("section-add").boundingBox())!;
+    // Phone (2026-10-20, mock-up 6): the bar reads "Explore" and has no "+" (the bottom bar's
+    // center "+" creates); the switcher under it names the section. Desktop keeps "Jobs" and its "+".
+    await expect(bar.getByRole("heading", { level: 1, name: isDesktopWeb ? "Jobs" : "Explore" })).toBeVisible();
+    if (!isDesktopWeb) {
+      await expect(bar.getByTestId("section-add"), `no + in the phone bar @ ${variant.tag}`).toHaveCount(0);
+      await expect(page.getByTestId("explore-switcher").getByRole("radio", { name: "Jobs" })).toHaveAttribute("aria-checked", "true");
+    }
+    const add = isDesktopWeb ? (await bar.getByTestId("section-add").boundingBox())! : (await bar.getByTestId("top-bar-bell").boundingBox())!;
     // Desktop website (Q2221): the bar keeps the title and "+" only; the bell lives in the desktop
     // header and Profile in the rail, so neither repeats here.
     let barBottom = add.y + add.height;
@@ -153,9 +159,8 @@ for (const variant of [
     } else {
       const bellBox = (await bar.getByTestId("top-bar-bell").boundingBox())!;
       const profile = (await bar.getByTestId("top-bar-profile").boundingBox())!;
-      expect(add.x + add.width, `"+" sits left of the bell @ ${variant.tag}`).toBeLessThanOrEqual(bellBox.x + 1);
       expect(bellBox.x + bellBox.width, `the bell sits just left of the profile @ ${variant.tag}`).toBeLessThanOrEqual(profile.x + 1);
-      for (const [name, box] of [["+", add], ["profile", profile]] as const) {
+      for (const [name, box] of [["profile", profile]] as const) {
         expect(Math.abs(box.y + box.height / 2 - (bellBox.y + bellBox.height / 2)), `${name} shares the bar with the bell`).toBeLessThan(6);
       }
       barBottom = bellBox.y + bellBox.height;

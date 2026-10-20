@@ -26,7 +26,7 @@
  * @mutate src/lib/helperEarnings.ts | sum + (Number.isFinite(t.amount) ? t.amount : 0) | sum + (Number.isFinite(t.amount) ? t.amount - 0.88 : 0)
  * @mutate supabase/functions/auto-tip-charge/index.ts | amount: tipQuote.chargeCents, | amount: tipCents,
  * @mutate supabase/functions/_shared/tipFees.ts | helperCents: tip }; | helperCents: tip - feeCents };
- * @mutate src/components/TipDialog.tsx | import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdown"; | import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdownCopy";
+ * @mutate src/components/TipDialog.tsx | import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdown"; | import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdownCopy";
  */
 import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";

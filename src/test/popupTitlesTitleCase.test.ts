@@ -20,8 +20,12 @@ const files = execFileSync("git", ["grep", "-l", "<DialogHero", "--", "src"], { 
 /** Every literal title= on a DialogHero, as written. */
 function titles(src: string): string[] {
   const out: string[] = [];
-  for (const m of src.matchAll(/<DialogHero\b[\s\S]*?\btitle=(\{`([^`]*)`\}|"([^"]*)"|\{"([^"]*)"\})/g)) {
-    const raw = m[2] ?? m[3] ?? m[4] ?? "";
+  for (const m of src.matchAll(/<DialogHero\b([\s\S]*?)\btitle=(\{`([^`]*)`\}|"([^"]*)"|\{"([^"]*)"\})/g)) {
+    // A MOMENT title (`<DialogHero moment …>`: "Job done", "Add a tip for
+    // Andre?") is sentence case by the 2026-10-20 design spec (§1.2 moments,
+    // §2 "Sentence case everywhere"), so this older Title Case rule skips it.
+    if (/\bmoment\b/.test(m[1])) continue;
+    const raw = m[3] ?? m[4] ?? m[5] ?? "";
     out.push(raw.replace(/\$\{[^}]*\}/g, " "));
   }
   return out;

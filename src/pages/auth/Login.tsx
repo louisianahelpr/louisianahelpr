@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, Mail, Lock, Check, ShieldCheck, X } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, ShieldCheck, X } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useQueryClient } from "@tanstack/react-query";
@@ -305,17 +305,11 @@ const Login = () => {
   };
 
   return (
-    <AuthShell hideHeader centerColumn backTo="/" maxWidth="sm" noWebChrome>
-      {/* The [back] [Log In] row now comes from AuthShell's `title` prop —
-          it was hand-rolled here, then hand-copied (and drifted) into
-          ForgotPassword, Signup and SignupPending. One implementation, in the
-          shell, so all ten auth screens carry the identical row.
-
-          `backTo="/"` — NOT bare history-back. Without an explicit target
-          BackButton falls through to history.back(), so arriving at /login
-          FROM /forgot-password made Back bounce you straight back into
-          password reset. Sign-in is a top-level destination reached from all
-          over; it needs one predictable parent. */}
+    <AuthShell hideHeader hideBack centerColumn maxWidth="sm" noWebChrome>
+      {/* Board 37 (owner, 2026-10-20): no back arrow above the card. The
+          round H icon at the top of the card links home ("/"), the one
+          predictable parent; history-back is never used (arriving from
+          /forgot-password must not bounce back into password reset). */}
       {notice && (
         <div
           className="flex items-start gap-3 px-4 py-3 mb-4 rounded-2xl"
@@ -339,7 +333,10 @@ const Login = () => {
             Guard: src/test/loginBoard37.test.tsx. */}
         {!mfaChallenge && (
           <div className="flex flex-col items-center text-center gap-1.5" data-testid="login-card-head">
-            <img src="/apple-touch-icon.png" alt="Helpr" width={64} height={64} className="w-16 h-16 rounded-full ring-1 ring-border object-cover mb-2" />
+            {/* Board 37/55: no back arrow; the round H icon is the way home. */}
+            <Link to="/" aria-label="Helpr home" className="rounded-full mb-2 min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <img src="/apple-touch-icon.png" alt="" width={64} height={64} className="w-16 h-16 rounded-full ring-1 ring-border object-cover" />
+            </Link>
             <h1 className="text-page-title text-foreground">Log in</h1>
             <p className="text-ds-14 text-muted-foreground">Welcome back, neighbor.</p>
           </div>
@@ -424,11 +421,6 @@ const Login = () => {
           <div className="space-y-2">
             <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
             <div className="relative">
-              <Mail
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none z-10"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                strokeWidth={1.75}
-              />
               <Input
                 ref={emailRef}
                 id="email"
@@ -444,7 +436,7 @@ const Login = () => {
                 autoComplete="email"
                 aria-invalid={emailError}
                 aria-describedby={emailError ? "login-email-error" : undefined}
-                className={`pl-10 ${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)] ${emailError ? "!border-destructive focus-visible:!border-destructive" : ""}`}
+                className={`${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)] ${emailError ? "!border-destructive focus-visible:!border-destructive" : ""}`}
               />
               {emailValid && (
                 <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
@@ -470,11 +462,6 @@ const Login = () => {
               </Link>
             </div>
             <div className="relative">
-              <Lock
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none z-10"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                strokeWidth={1.75}
-              />
               <Input
                 ref={passwordRef}
                 id="password"
@@ -495,7 +482,7 @@ const Login = () => {
                 autoComplete="current-password"
                 aria-invalid={passwordError}
                 aria-describedby={passwordError ? "login-password-error" : undefined}
-                className={`pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)] ${passwordError ? "!border-destructive focus-visible:!border-destructive" : ""}`}
+                className={`pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)] ${passwordError ? "!border-destructive focus-visible:!border-destructive" : ""}`}
               />
               <button
                 type="button"

@@ -43,6 +43,8 @@ import { type EarningsRange } from "@/components/profile/earningsTab/EarningsRan
 import { EarningsSummaryCard } from "@/components/profile/earningsTab/EarningsSummaryCard";
 import { ThresholdBanner } from "@/components/profile/earningsTab/ThresholdBanner";
 import { WalletCard } from "@/components/profile/earningsTab/WalletCard";
+import { HomeMoneyTiles } from "@/pages/home/homeDashboard/HomeMoneyTiles";
+import { useHomeMoney } from "@/pages/home/homeDashboard/homeMoney";
 import { MoneyViewSwitcher, moneyViewFromSearch, type MoneyView } from "@/components/profile/earningsTab/MoneyViewSwitcher";
 import { SpentSection } from "@/components/profile/earningsTab/SpentSection";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
@@ -87,7 +89,8 @@ function SectionRule() {
 
 export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
   const navigate = useNavigate();
-  const { profile } = useCurrentUser();
+  const { user, profile } = useCurrentUser();
+  const money = useHomeMoney(user);
   const streakState = useHelperStreak(helperId);
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -306,6 +309,21 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <PayoutCelebration payouts={payoutLedger} />
         </div>
       </div>
+
+      {/* BOARD 51's head (spec v2 §9.17): "Coming to you" and "Held for you",
+          the same tiles and the same reads as Home's money strip
+          (useHomeMoney), amounts in rust, each hidden at $0, while loading and
+          on a failed read. A tile opens its own half of this page: Held opens
+          Spent; Coming opens Earned, or the payout account when there is none. */}
+      <HomeMoneyTiles
+        money={money}
+        placement="money"
+        onOpen={(kind) => {
+          if (kind === "held") setView("spent");
+          else if (money.coming && !money.coming.hasPayoutAccount) scrollToPayoutAccount();
+          else setView("earned");
+        }}
+      />
 
       {/* NOT CONNECTED YET: the connect card sits at the top of both halves,
           because it is the one thing a helpr can act on. `!stripeError`

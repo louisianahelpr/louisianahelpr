@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-20T06:51:01.008Z",
-  "guards": 2138,
-  "registered": 2133,
+  "generated": "2026-10-20T07:17:34.961Z",
+  "guards": 2140,
+  "registered": 2135,
   "unregistered": [
     "src/lib/declutter/sellForMe.test.ts",
     "src/lib/rentals/savedHomes.test.ts",

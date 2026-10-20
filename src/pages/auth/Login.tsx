@@ -305,7 +305,7 @@ const Login = () => {
   };
 
   return (
-    <AuthShell hideHeader centerColumn backTo="/" maxWidth="2xl" title="Log In" noWebChrome>
+    <AuthShell hideHeader centerColumn backTo="/" maxWidth="sm" noWebChrome>
       {/* The [back] [Log In] row now comes from AuthShell's `title` prop —
           it was hand-rolled here, then hand-copied (and drifted) into
           ForgotPassword, Signup and SignupPending. One implementation, in the
@@ -332,7 +332,18 @@ const Login = () => {
           </p>
         </div>
       )}
-      <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6 lg:space-y-6">
+      <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6">
+        {/* Board 37 (owner 2026-10-20): the ROUND H app icon, "Log in" and one
+            welcome line head the card; email + password come first, then "or"
+            and the providers. Restyle only: every handler below is unchanged.
+            Guard: src/test/loginBoard37.test.tsx. */}
+        {!mfaChallenge && (
+          <div className="flex flex-col items-center text-center gap-1.5" data-testid="login-card-head">
+            <img src="/apple-touch-icon.png" alt="Helpr" width={64} height={64} className="w-16 h-16 rounded-full ring-1 ring-border object-cover mb-2" />
+            <h1 className="text-ds-24 font-bold leading-tight text-foreground">Log in</h1>
+            <p className="text-ds-14 text-muted-foreground">Welcome back, neighbor.</p>
+          </div>
+        )}
         {/* No heading inside the card. The H emblem and the in-card heading
             are both gone: the emblem used to stack above a heading that sat
             above the card — three separate bands of vertical space before the
@@ -403,13 +414,13 @@ const Login = () => {
             what read as wrong. Splitting the two sign-in METHODS uses the width
             for something real instead of inflating one field. Stacks below lg,
             unchanged. */}
-        <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full"}>
+        <div className="grid gap-6 w-full">
         {/* noValidate: `required` stays on both inputs for semantics, but the
             browser's own validation bubble would intercept the submit and
             replace our inline messages with a native tooltip — so the "name
             what's missing" path in handleLogin could never run. React owns
             the validation on this form. */}
-        <form onSubmit={handleLogin} noValidate className="space-y-3.5 lg:space-y-6">
+        <form onSubmit={handleLogin} noValidate className="space-y-3.5">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
             <div className="relative">
@@ -447,7 +458,17 @@ const Login = () => {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
+              {/* Board 37: the recovery link sits on the Password label's row. */}
+              <Link
+                to="/forgot-password"
+                className="min-h-[44px] -my-3 inline-flex items-center text-ds-13 font-sans font-bold hover:underline active:opacity-60 transition-opacity"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <Lock
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none z-10"
@@ -491,33 +512,6 @@ const Login = () => {
                 Add your password
               </p>
             )}
-            {/* Recovery link, under the field it belongs to and above the CTA.
-
-                The gaps are controlled on the LINK (`-my-2`), not on this
-                wrapper's top margin. That distinction is the whole fix: the
-                wrapper is a `space-y-2` sibling, and `.space-y-2 > * ~ *`
-                outranks `.-mt-*` on specificity, so every negative top margin
-                put here was silently discarded — which is why the link sat in
-                ~27pt above / ~32pt below, the two largest gaps in the card.
-                Shrinking the 44px box from the inside works because nothing
-                competes for the link's own margins, and `-mb-4` on the wrapper
-                collapses against the card's `space-y-6` to bring the button up.
-                Touch target stays 44px; only the whitespace around it moves. */}
-            <div className="flex justify-end -mb-4">
-              <Link
-                to="/forgot-password"
-                // Muted olivewood, NOT --bark. Bark (#5E6544) is the same deep
-                // olive the Log In button is built from, so a bold bark link
-                // sitting directly above that button read as a second green
-                // control competing with the primary one. The screen gets ONE
-                // strong green. Dropped to medium weight for the same reason —
-                // this is the escape hatch, not the action.
-                className="min-h-[44px] -my-2 inline-flex items-center text-ds-12 font-sans font-semibold hover:underline active:opacity-60 transition-opacity"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                Forgot Password?
-              </Link>
-            </div>
           </div>
           <TurnstileField ref={captcha.ref} action="login" />
           <Button
@@ -532,7 +526,7 @@ const Login = () => {
             // (and focuses it) instead of firing signInWithPassword.
             disabled={loading}
           >
-            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Logging In…</> : "Log In"}
+            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Logging in…</> : "Log in"}
           </Button>
           {/* No "By signing in you agree to our Terms · Rules · Privacy" here.
               Consent is CAPTURED on signup — Signup.tsx has real, recorded
@@ -548,19 +542,18 @@ const Login = () => {
             column still handles the stacked layout below lg. Its own grid
             column so it sits between the two methods rather than inside
             either. */}
-        {SOCIAL_SIGN_IN_ENABLED && <OrRule orientation="vertical" />}
 
         {/* Vertically centred against the taller credentials column, so the
             social buttons sit level with the form rather than hugging the top
             with dead space beneath them. */}
-        <div className="space-y-6 lg:flex lg:flex-col lg:justify-center lg:gap-8 lg:space-y-0">
+        <div className="space-y-6">
         {/* The OR rule only makes sense when the two methods are stacked. At
             lg+ they sit side by side, so the columns themselves do the
             separating. */}
         {/* The rule's colour and its two contrast measurements: OrRule.tsx. */}
         {SOCIAL_SIGN_IN_ENABLED && (
           <>
-            <OrRule orientation="horizontal" />
+            <OrRule />
             <SocialAuthButtons mode="signin" initialChoice={accountChoice} />
           </>
         )}
@@ -581,7 +574,7 @@ const Login = () => {
             className="font-semibold hover:underline whitespace-nowrap"
             style={{ color: "hsl(var(--bark))" }}
           >
-            Create an Account
+            Create an account
           </Link>
         </p>
         {/* Creating an account is the alternative to BOTH sign-in methods, so

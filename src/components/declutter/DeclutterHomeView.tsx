@@ -461,7 +461,7 @@ export default function DeclutterHome() {
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
   return (
-    <SectionScreen title="Declutter" add={sectionByKey("declutter").add}>
+    <SectionScreen section="declutter" title="Declutter" add={sectionByKey("declutter").add}>
       <SectionTabs
         label="Declutter view"
         value={(view === "buying" || view === "selling" || view === "browse" ? view : null) as "buying" | "selling"}

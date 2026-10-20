@@ -29,7 +29,7 @@ interface CreateAction {
  *   is on for the viewer (/declutter/move is the 404 otherwise).
  * - Shops: Open a shop, or, once the member has one, Add a product or service
  *   (both /shops/mine, whose items section adds them).
- * - Homes: List a home (Owning's add, the first step of a listing). "List for
+ * - Homes: List for rent (Owning's add property, the first step of a rent listing). "List for
  *   sale" needs a property id (/rentals/listings/new?sell=<id>), so not here yet.
  */
 function useCreateRows() {
@@ -42,7 +42,7 @@ function useCreateRows() {
     jobs: [{ label: "Post a job", path: "/post-job", gated: true }],
     declutter: [{ label: "Sell an item", path: "/declutter/sell" }, ...(movingOut ? [{ label: "Moving out sale", path: "/declutter/move" }] : [])],
     shops: [{ label: hasShop ? "Add a product or service" : "Open a shop", path: "/shops/mine" }],
-    homes: [{ label: "List a home", path: "/rentals?tab=own&add=1" }],
+    homes: [{ label: "List for rent", path: "/rentals?tab=own&add=1" }],
   };
   return { isOn, actions, note: (s: SectionDef) => (s.key === "shops" && shopsOn && myShop.isSuccess && !hasShop ? "No shop yet" : null) };
 }
@@ -130,7 +130,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
           className="btn-press mt-3 w-full flex items-center gap-3 rounded-full px-4 min-h-11 py-3 text-left bg-muted"
         >
           <Sparkles className="w-4 h-4 shrink-0" aria-hidden style={{ color: "hsl(var(--bark))" }} />
-          <span className="text-ds-14 text-foreground">Or just describe the job you need done</span>
+          <span className="text-ds-14 text-foreground">Or describe a job: "gutters cleaned Saturday"</span>
         </button>
       </SheetContent>
     </Sheet>

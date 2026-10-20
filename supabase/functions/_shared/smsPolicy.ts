@@ -9,14 +9,23 @@
 // ZERO imports, so the edge harness and vitest load the real module.
 
 /** What sms_claim() decided the text is about. */
-export type SmsKind = "message" | "job_match" | "job_offer" | "job_update";
+export type SmsKind = "message" | "job_match" | "job_offer" | "job_update" | "confirm";
 
 const PHRASES: Record<SmsKind, string> = {
   message: "You have a new message.",
   job_match: "A new job was posted near you.",
   job_offer: "You have a new job offer.",
   job_update: "There is an update on one of your jobs.",
+  confirm: "",
 };
+
+/**
+ * The double opt-in text, sent once when a member ticks the box. Alerts start
+ * only after the phone replies YES. Carries the CTIA disclosures (program,
+ * frequency, rates, HELP, STOP); no link, so it cannot be mistaken for phishing.
+ */
+export const SMS_CONFIRM_TEXT =
+  "Louisiana Helpr: Reply YES to get alerts about your jobs and messages. Msg frequency varies. Msg&data rates may apply. HELP for help, STOP to cancel.";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -42,6 +51,7 @@ export function buildSmsBody(input: {
   firstText: boolean;
   appUrl: string;
 }): string {
+  if (input.kind === "confirm") return SMS_CONFIRM_TEXT;
   const base = input.appUrl.replace(/\/+$/, "");
   const parts = ["Louisiana Helpr:", PHRASES[input.kind], `${base}${smsLinkPath(input.kind, input.jobId)}`];
   if (input.firstText) parts.push("Reply STOP to stop.");

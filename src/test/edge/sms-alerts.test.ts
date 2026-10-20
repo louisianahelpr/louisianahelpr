@@ -15,7 +15,7 @@
 //   The service-role gate: without it anyone could make us text a member.
 // @mutate supabase/functions/send-sms-notification/index.ts | if (!serviceRoleKey \|\| !timingSafeEqual(presented, serviceRoleKey)) { | if (false) {
 //   Missing secrets must be reported to sms_claim, never treated as ready.
-// @mutate supabase/functions/send-sms-notification/index.ts | p_provider_ready: twilio !== null, | p_provider_ready: true,
+// @mutate supabase/functions/send-sms-notification/index.ts | { p_notification_id: notificationId, p_provider_ready: twilio !== null } | { p_notification_id: notificationId, p_provider_ready: true }
 //   STOP must reach the database.
 // @mutate supabase/functions/twilio-inbound/index.ts | if (action === 'stop' \|\| action === 'start') { | if (action === 'start') {
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -23,7 +23,7 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
-import { twilioSignature } from "../../../supabase/functions/_shared/smsPolicy";
+import { SMS_CONFIRM_TEXT, twilioSignature } from "../../../supabase/functions/_shared/smsPolicy";
 
 const SID = "AC" + "0".repeat(32);
 const MG = "MG" + "1".repeat(32);
@@ -115,6 +115,18 @@ describe("send-sms-notification", () => {
     });
   });
 
+  it("the double opt-in job sends the fixed confirmation text to the pending number", async () => {
+    scenario.rpc.sms_claim_confirmation = { action: "send", sms_id: "sms-c", phone: "+12255550123", kind: "confirm", job_id: null, first_text: false };
+    scenario.rpc.sms_record_result = true;
+    const fn = await loadSend(TWILIO_ENV);
+    const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer service-key" }, body: { confirm_user_id: NOTIF } }));
+    expect(res.status).toBe(200);
+    expect(scenario.rpcCalls?.[0]).toMatchObject({ name: "sms_claim_confirmation", args: { p_user_id: NOTIF, p_provider_ready: true } });
+    const form = new URLSearchParams(String(fetchCalls[0].init?.body));
+    expect(form.get("Body")).toBe(SMS_CONFIRM_TEXT);
+    expect(form.get("Body")).toMatch(/Reply YES/);
+  });
+
   it("rejects a body that is not a uuid", async () => {
     const fn = await loadSend(TWILIO_ENV);
     const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer service-key" }, body: { notification_id: "x'; drop" } }));
@@ -194,5 +206,57 @@ describe("twilio-inbound", () => {
     const res = await fn.fetch(fn.request({ rawBody: "From=%2B12255550123&Body=STOP", headers: { "X-Twilio-Signature": "x" } }));
     expect(res.status).toBe(503);
     expect(scenario.rpcCalls).toEqual([]);
+  });
+});
+
+describe("sms-provider-check (read-only)", () => {
+  // @mutate supabase/functions/sms-provider-check/index.ts | if (isAdmin !== true) return json(403, { error: 'Forbidden: admin only' }) |
+  beforeEach(() => {
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetEnv();
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  async function call(isAdmin: boolean, env: Record<string, string> = TWILIO_ENV) {
+    scenario.authUser = { id: "admin-1", email: "a@test.dev" };
+    scenario.rpc.has_role = isAdmin;
+    fetchCalls = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      fetchCalls.push({ url: String(url), init });
+      const u = String(url);
+      const body = u.includes("/PhoneNumbers") ? { phone_numbers: [{ sid: "PN1" }] }
+        : u.includes("Tollfree/Verifications") ? { verifications: [{ tollfree_phone_number_sid: "PN1", status: "PENDING_REVIEW" }] }
+        : { friendly_name: "Louisiana Helpr alerts", inbound_request_url: "https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/twilio-inbound" };
+      return new Response(JSON.stringify(body), { status: 200 });
+    }));
+    setEnv({ ...BASE_ENV, SUPABASE_ANON_KEY: "anon", ...env });
+    const fn = await loadEdgeFunction("sms-provider-check");
+    return fn.fetch(fn.request({ headers: { Authorization: "Bearer user-jwt" }, body: {} }));
+  }
+
+  it("refuses a non-admin before touching Twilio", async () => {
+    const res = await call(false);
+    expect(res.status).toBe(403);
+    expect(fetchCalls).toEqual([]);
+  });
+
+  it("only GETs (never the Messages endpoint) and reports verification status", async () => {
+    const res = await call(true);
+    expect(res.status).toBe(200);
+    const out = await res.json();
+    expect(out).toMatchObject({ configured: true, credentials_ok: true, sender_count: 1, inbound_webhook_set: true, tollfree_verification: [{ status: "PENDING_REVIEW" }] });
+    expect(fetchCalls.length).toBe(3);
+    for (const c of fetchCalls) {
+      expect(c.init?.method).toBe("GET");
+      expect(c.url).not.toMatch(/Messages/);
+    }
+    expect(JSON.stringify(out)).not.toContain(TOKEN);
+  });
+
+  it("names the missing secrets without reading Twilio", async () => {
+    const res = await call(true, {});
+    expect(await res.json()).toMatchObject({ configured: false, secrets: { TWILIO_ACCOUNT_SID: false } });
+    expect(fetchCalls).toEqual([]);
   });
 });

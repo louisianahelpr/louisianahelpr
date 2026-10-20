@@ -19,6 +19,9 @@ export interface SmsConsent {
   opted_in_at: string | null;
   opted_out_at: string | null;
   opt_out_source: string | null;
+  /** Asked for in the last 24 h and waiting for the phone to reply YES. */
+  pending_phone: string | null;
+  pending_since: string | null;
 }
 
 /** US numbers only, mirroring public.sms_normalize_phone. Null when invalid. */
@@ -43,5 +46,7 @@ export function parseSmsConsent(data: unknown): SmsConsent {
     opted_in_at: str(o.opted_in_at),
     opted_out_at: str(o.opted_out_at),
     opt_out_source: str(o.opt_out_source),
+    pending_phone: str(o.pending_phone),
+    pending_since: str(o.pending_since),
   };
 }

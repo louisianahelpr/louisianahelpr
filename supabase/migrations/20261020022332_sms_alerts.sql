@@ -4,10 +4,13 @@
 -- returns before any network call, so this migration changes nothing a member
 -- can see or receive.
 --
--- Consent: a phone number on `profiles` is NOT consent. A member opts in only
--- by ticking an unticked box (set_sms_consent(true, phone)), and the consent
--- row records when, from where and under which wording version. STOP replies
--- (twilio-inbound -> sms_inbound_keyword) and Twilio error 21610 opt out.
+-- Consent: a phone number on `profiles` is NOT consent. A member asks for
+-- texts only by ticking an unticked box (set_sms_consent(true, phone)); that
+-- makes the number PENDING and sends ONE confirmation text. Texts start only
+-- when the phone itself replies YES (twilio-inbound -> sms_inbound_keyword),
+-- which proves the member holds that number (double opt-in, code review
+-- 2026-10-20). Each step is kept in sms_consent_events. STOP replies and
+-- Twilio error 21610 opt out.
 --
 -- Privacy: texts carry FIXED phrases chosen by category (supabase/functions/
 -- _shared/smsPolicy.ts). Notification titles and bodies are never sent: they
@@ -27,28 +30,32 @@ ON CONFLICT (key) DO NOTHING;
 -- 2. Consent ------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.sms_consent (
   user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  phone_e164 text NOT NULL CHECK (phone_e164 ~ '^\+1[2-9][0-9]{2}[2-9][0-9]{6}$'),
+  phone_e164 text CHECK (phone_e164 ~ '^\+1[2-9][0-9]{2}[2-9][0-9]{6}$'),
   sms_opt_in boolean NOT NULL DEFAULT false,
   opted_in_at timestamptz,
   opt_in_source text,
   consent_text_version text,
   opted_out_at timestamptz,
   opt_out_source text,
+  -- Asked for, not yet confirmed by a YES from the phone.
+  pending_phone text CHECK (pending_phone ~ '^\+1[2-9][0-9]{2}[2-9][0-9]{6}$'),
+  pending_since timestamptz,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.sms_consent ENABLE ROW LEVEL SECURITY;
 -- No policies: clients read and write only through the RPCs below.
 REVOKE ALL ON public.sms_consent FROM PUBLIC, anon, authenticated;
 
--- One phone can be opted in on one account at a time, so a second account
--- cannot sign someone else's already-subscribed number up again.
+-- One phone is opted in on one account at a time.
 CREATE UNIQUE INDEX IF NOT EXISTS sms_consent_one_opted_in_phone
   ON public.sms_consent (phone_e164) WHERE sms_opt_in;
 
 CREATE TABLE IF NOT EXISTS public.sms_consent_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  event text NOT NULL CHECK (event IN ('opt_in', 'opt_out')),
+  -- SET NULL, not CASCADE: the consent record outlives a deleted account
+  -- (retention window: docs/OPEN.md Q2239).
+  user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  event text NOT NULL CHECK (event IN ('opt_in_requested', 'opt_in', 'opt_out')),
   phone_e164 text NOT NULL,
   source text NOT NULL,
   consent_text_version text,
@@ -62,7 +69,8 @@ CREATE INDEX IF NOT EXISTS sms_consent_events_user_idx
 -- 3. One row per notification considered for a text -----------------------------
 CREATE TABLE IF NOT EXISTS public.sms_messages (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  notification_id uuid NOT NULL UNIQUE,
+  -- NULL for a consent confirmation text (kind 'confirm').
+  notification_id uuid UNIQUE,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   category text,
   kind text,
@@ -130,6 +138,45 @@ REVOKE ALL ON FUNCTION public.sms_normalize_phone(text) FROM PUBLIC, anon, authe
 GRANT EXECUTE ON FUNCTION public.sms_normalize_phone(text) TO service_role;
 
 -- 5. Member RPCs -----------------------------------------------------------------
+-- Posts one job to send-sms-notification through pg_net. Never raises: a
+-- missing vault secret or a pg_net error is written to error_logs (no member
+-- data, only the ids) so it is seen, and the caller carries on.
+CREATE OR REPLACE FUNCTION public.sms_post_to_edge(p_body jsonb)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$
+DECLARE
+  v_url text;
+  v_key text;
+BEGIN
+  v_url := public.get_supabase_url();
+  v_key := public.get_service_role_key();
+  IF v_url IS NULL OR v_key IS NULL THEN
+    INSERT INTO public.error_logs (severity, message, tags, context)
+    VALUES ('error', 'SMS not sent: vault secrets missing',
+            jsonb_build_object('source', 'sms_post_to_edge', 'origin', 'server'), p_body);
+    RETURN;
+  END IF;
+  PERFORM net.http_post(
+    url := v_url || '/functions/v1/send-sms-notification',
+    headers := jsonb_build_object('Authorization', 'Bearer ' || v_key, 'Content-Type', 'application/json'),
+    body := p_body
+  );
+EXCEPTION WHEN OTHERS THEN
+  BEGIN
+    INSERT INTO public.error_logs (severity, message, tags, context)
+    VALUES ('error', 'SMS not sent: could not queue the request',
+            jsonb_build_object('source', 'sms_post_to_edge', 'origin', 'server'),
+            p_body || jsonb_build_object('sqlstate', SQLSTATE, 'error', SQLERRM));
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'sms_post_to_edge failed (%) and error_logs failed too: %', p_body, SQLERRM;
+  END;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.sms_post_to_edge(jsonb) FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.get_my_sms_consent()
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -140,23 +187,31 @@ AS $fn$
 DECLARE
   v_uid uuid := auth.uid();
   c public.sms_consent;
+  v_pending boolean;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;
   SELECT * INTO c FROM public.sms_consent WHERE user_id = v_uid;
+  v_pending := c.pending_phone IS NOT NULL AND c.pending_since > now() - interval '24 hours';
   RETURN jsonb_build_object(
     'phone_e164', c.phone_e164,
     'sms_opt_in', COALESCE(c.sms_opt_in, false),
     'opted_in_at', c.opted_in_at,
     'opted_out_at', c.opted_out_at,
-    'opt_out_source', c.opt_out_source
+    'opt_out_source', c.opt_out_source,
+    'pending_phone', CASE WHEN v_pending THEN c.pending_phone END,
+    'pending_since', CASE WHEN v_pending THEN c.pending_since END
   );
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.get_my_sms_consent() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_my_sms_consent() TO authenticated;
 
+-- Ticking the box asks for texts: the number becomes PENDING and one
+-- confirmation text is queued. Nothing else is ever texted to it until the
+-- phone replies YES. The answer never says whether the number is used by
+-- another account (no lookup oracle); in that case no confirmation is sent.
 -- The consent wording version is stamped by the SERVER, not passed in by the
 -- client: src/lib/smsConsent.ts SMS_CONSENT_TEXT_VERSION must equal it
 -- (src/test/smsAlerts.test.ts).
@@ -178,7 +233,7 @@ BEGIN
   SELECT * INTO v_existing FROM public.sms_consent WHERE user_id = v_uid FOR UPDATE;
 
   IF p_opt_in IS TRUE THEN
-    -- Opting IN is behind the switch; opting OUT never is.
+    -- Asking for texts is behind the switch; turning them off never is.
     IF NOT public.feature_enabled_for_user('sms_alerts', v_uid) THEN
       RAISE EXCEPTION 'feature_disabled' USING ERRCODE = '42501';
     END IF;
@@ -186,35 +241,32 @@ BEGIN
     IF v_phone IS NULL THEN
       RAISE EXCEPTION 'invalid_phone' USING ERRCODE = '22023';
     END IF;
-    IF EXISTS (SELECT 1 FROM public.sms_consent
-                WHERE phone_e164 = v_phone AND sms_opt_in AND user_id <> v_uid) THEN
-      RAISE EXCEPTION 'phone_in_use' USING ERRCODE = '23505';
+    IF v_existing.sms_opt_in AND v_existing.phone_e164 = v_phone THEN
+      RETURN public.get_my_sms_consent();
     END IF;
 
-    INSERT INTO public.sms_consent AS s
-      (user_id, phone_e164, sms_opt_in, opted_in_at, opt_in_source, consent_text_version,
-       opted_out_at, opt_out_source, updated_at)
-    VALUES (v_uid, v_phone, true, now(), 'settings', 'sms-v1', NULL, NULL, now())
+    INSERT INTO public.sms_consent AS s (user_id, pending_phone, pending_since, updated_at)
+    VALUES (v_uid, v_phone, now(), now())
     ON CONFLICT (user_id) DO UPDATE
-      SET phone_e164 = EXCLUDED.phone_e164,
-          sms_opt_in = true,
-          opted_in_at = now(),
-          opt_in_source = 'settings',
-          consent_text_version = 'sms-v1',
-          opted_out_at = NULL,
-          opt_out_source = NULL,
+      SET pending_phone = EXCLUDED.pending_phone,
+          pending_since = now(),
           updated_at = now();
 
     INSERT INTO public.sms_consent_events (user_id, event, phone_e164, source, consent_text_version)
-    VALUES (v_uid, 'opt_in', v_phone, 'settings', 'sms-v1');
+    VALUES (v_uid, 'opt_in_requested', v_phone, 'settings', 'sms-v1');
+
+    PERFORM public.sms_post_to_edge(jsonb_build_object('confirm_user_id', v_uid));
   ELSE
     IF v_existing.user_id IS NOT NULL AND v_existing.sms_opt_in THEN
-      UPDATE public.sms_consent
-         SET sms_opt_in = false, opted_out_at = now(), opt_out_source = 'settings', updated_at = now()
-       WHERE user_id = v_uid;
       INSERT INTO public.sms_consent_events (user_id, event, phone_e164, source)
       VALUES (v_uid, 'opt_out', v_existing.phone_e164, 'settings');
     END IF;
+    UPDATE public.sms_consent
+       SET sms_opt_in = false,
+           opted_out_at = CASE WHEN sms_opt_in THEN now() ELSE opted_out_at END,
+           opt_out_source = CASE WHEN sms_opt_in THEN 'settings' ELSE opt_out_source END,
+           pending_phone = NULL, pending_since = NULL, updated_at = now()
+     WHERE user_id = v_uid;
   END IF;
 
   RETURN public.get_my_sms_consent();
@@ -222,6 +274,58 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.set_sms_consent(boolean, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.set_sms_consent(boolean, text) TO authenticated;
+
+-- The confirmation text's send decision (service_role only). At most 3 a day
+-- per account, only for a pending number no other account has opted in, and
+-- never to seed/test accounts or with the switch off or Twilio unconfigured.
+CREATE OR REPLACE FUNCTION public.sms_claim_confirmation(p_user_id uuid, p_provider_ready boolean)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$
+DECLARE
+  c public.sms_consent;
+  v_reason text;
+  v_id uuid;
+BEGIN
+  PERFORM pg_advisory_xact_lock(hashtextextended('sms:' || p_user_id::text, 0));
+  SELECT * INTO c FROM public.sms_consent WHERE user_id = p_user_id;
+  IF c.pending_phone IS NULL OR c.pending_since < now() - interval '1 hour' THEN
+    RETURN jsonb_build_object('action', 'skip', 'reason', 'no_pending');
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = p_user_id AND p.is_seed IS TRUE)
+     OR EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p_user_id) THEN
+    v_reason := 'suppressed_seed';
+  ELSIF NOT public.feature_enabled_for_user('sms_alerts', p_user_id) THEN
+    v_reason := 'switch_off';
+  ELSIF p_provider_ready IS NOT TRUE THEN
+    v_reason := 'twilio_not_configured';
+  ELSIF EXISTS (SELECT 1 FROM public.sms_consent o
+                 WHERE o.phone_e164 = c.pending_phone AND o.sms_opt_in AND o.user_id <> p_user_id) THEN
+    v_reason := 'phone_in_use';
+  ELSIF (SELECT count(*) FROM public.sms_messages m
+          WHERE m.user_id = p_user_id AND m.kind = 'confirm'
+            AND m.status IN ('queued', 'sent') AND m.created_at > now() - interval '24 hours') >= 3 THEN
+    v_reason := 'cap_confirm';
+  END IF;
+
+  IF v_reason IS NOT NULL THEN
+    INSERT INTO public.sms_messages (user_id, category, kind, status, reason)
+    VALUES (p_user_id, 'consent', 'confirm', 'skipped', v_reason);
+    RETURN jsonb_build_object('action', 'skip', 'reason', v_reason);
+  END IF;
+
+  INSERT INTO public.sms_messages (user_id, category, kind, status)
+  VALUES (p_user_id, 'consent', 'confirm', 'queued')
+  RETURNING id INTO v_id;
+  RETURN jsonb_build_object('action', 'send', 'sms_id', v_id, 'phone', c.pending_phone,
+                            'kind', 'confirm', 'job_id', NULL, 'first_text', false);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.sms_claim_confirmation(uuid, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.sms_claim_confirmation(uuid, boolean) TO service_role;
 
 -- 6. The send decision (service_role only) -------------------------------------------
 -- Called by send-sms-notification with the notification id. Idempotent: the
@@ -245,6 +349,7 @@ DECLARE
   v_hour int;
   v_first boolean;
   v_id uuid;
+  v_now_local time;
   prefs public.notification_preferences;
 BEGIN
   SELECT * INTO n FROM public.notifications WHERE id = p_notification_id;
@@ -271,6 +376,7 @@ BEGIN
   END;
 
   SELECT * INTO c FROM public.sms_consent WHERE user_id = n.user_id;
+  SELECT * INTO prefs FROM public.notification_preferences WHERE user_id = n.user_id;
 
   IF v_category IS NULL THEN
     v_reason := 'not_eligible';
@@ -289,7 +395,6 @@ BEGIN
     -- The member's own category toggle (the push toggles in Notification
     -- settings; there is no separate SMS toggle per category).
     SELECT pref_column INTO v_pref_col FROM public.notification_type_pref_map WHERE type = n.type;
-    SELECT * INTO prefs FROM public.notification_preferences WHERE user_id = n.user_id;
     IF v_pref_col IS NOT NULL AND prefs.user_id IS NOT NULL THEN
       EXECUTE format('SELECT ($1).%I', v_pref_col) INTO v_pref USING prefs;
       IF v_pref IS NOT TRUE THEN
@@ -302,6 +407,18 @@ BEGIN
     v_hour := extract(hour FROM (now() AT TIME ZONE 'America/Chicago'))::int;
     IF v_hour >= 21 OR v_hour < 8 THEN
       v_reason := 'quiet_hours';
+    END IF;
+  END IF;
+
+  -- The member's own quiet hours (Notification settings, the same window
+  -- push honours), for every category. Wall-clock in America/Chicago, like
+  -- send-push-notification/quietHours.ts; a window may cross midnight.
+  IF v_reason IS NULL AND prefs.quiet_start IS NOT NULL AND prefs.quiet_end IS NOT NULL
+     AND prefs.quiet_start <> prefs.quiet_end THEN
+    v_now_local := (now() AT TIME ZONE 'America/Chicago')::time;
+    IF (prefs.quiet_start < prefs.quiet_end AND v_now_local >= prefs.quiet_start AND v_now_local < prefs.quiet_end)
+       OR (prefs.quiet_start > prefs.quiet_end AND (v_now_local >= prefs.quiet_start OR v_now_local < prefs.quiet_end)) THEN
+      v_reason := 'member_quiet_hours';
     END IF;
   END IF;
 
@@ -404,7 +521,11 @@ $fn$;
 REVOKE ALL ON FUNCTION public.sms_record_result(uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.sms_record_result(uuid, text, text, text) TO service_role;
 
--- STOP / START replies from twilio-inbound. Returns the number of accounts changed.
+-- STOP / START(YES) replies from twilio-inbound. Returns the number of
+-- accounts changed. START/YES first CONFIRMS a pending request for this
+-- number (the double opt-in); otherwise it re-subscribes the account that
+-- left this number by STOP or a carrier block within the last 30 days (after
+-- that the number may have been given to someone else).
 CREATE OR REPLACE FUNCTION public.sms_inbound_keyword(p_phone text, p_action text)
 RETURNS integer
 LANGUAGE plpgsql
@@ -427,23 +548,43 @@ BEGIN
        SET sms_opt_in = false, opted_out_at = now(), opt_out_source = 'sms_stop', updated_at = now()
      WHERE phone_e164 = v_phone AND sms_opt_in;
     GET DIAGNOSTICS v_count = ROW_COUNT;
+    -- A STOP also cancels any pending request for this number.
+    UPDATE public.sms_consent SET pending_phone = NULL, pending_since = NULL, updated_at = now()
+     WHERE pending_phone = v_phone;
   ELSIF p_action = 'start' THEN
-    -- Re-subscribe only the account that this number last left by STOP (or a
-    -- carrier block), and only if no account holds the number opted in now.
-    IF NOT EXISTS (SELECT 1 FROM public.sms_consent WHERE phone_e164 = v_phone AND sms_opt_in) THEN
-      SELECT user_id INTO v_user FROM public.sms_consent
-       WHERE phone_e164 = v_phone AND opt_out_source IN ('sms_stop', 'carrier_21610')
-       ORDER BY opted_out_at DESC NULLS LAST LIMIT 1;
-      IF v_user IS NOT NULL THEN
-        UPDATE public.sms_consent
-           SET sms_opt_in = true, opted_in_at = now(), opt_in_source = 'sms_start',
-               opted_out_at = NULL, opt_out_source = NULL, updated_at = now()
-         WHERE user_id = v_user;
-        INSERT INTO public.sms_consent_events (user_id, event, phone_e164, source, consent_text_version)
-        SELECT user_id, 'opt_in', phone_e164, 'sms_start', consent_text_version
-          FROM public.sms_consent WHERE user_id = v_user;
-        v_count := 1;
-      END IF;
+    IF EXISTS (SELECT 1 FROM public.sms_consent WHERE phone_e164 = v_phone AND sms_opt_in) THEN
+      RETURN 0;
+    END IF;
+    SELECT user_id INTO v_user FROM public.sms_consent
+     WHERE pending_phone = v_phone AND pending_since > now() - interval '24 hours'
+     ORDER BY pending_since DESC LIMIT 1;
+    IF v_user IS NOT NULL THEN
+      UPDATE public.sms_consent
+         SET phone_e164 = v_phone, sms_opt_in = true, opted_in_at = now(),
+             opt_in_source = 'sms_confirm', consent_text_version = 'sms-v1',
+             opted_out_at = NULL, opt_out_source = NULL,
+             pending_phone = NULL, pending_since = NULL, updated_at = now()
+       WHERE user_id = v_user;
+      INSERT INTO public.sms_consent_events (user_id, event, phone_e164, source, consent_text_version)
+      VALUES (v_user, 'opt_in', v_phone, 'sms_confirm', 'sms-v1');
+      -- Other accounts that asked for the same number lose their request.
+      UPDATE public.sms_consent SET pending_phone = NULL, pending_since = NULL, updated_at = now()
+       WHERE pending_phone = v_phone;
+      RETURN 1;
+    END IF;
+    SELECT user_id INTO v_user FROM public.sms_consent
+     WHERE phone_e164 = v_phone AND opt_out_source IN ('sms_stop', 'carrier_21610')
+       AND opted_out_at > now() - interval '30 days'
+     ORDER BY opted_out_at DESC LIMIT 1;
+    IF v_user IS NOT NULL THEN
+      UPDATE public.sms_consent
+         SET sms_opt_in = true, opted_in_at = now(), opt_in_source = 'sms_start',
+             opted_out_at = NULL, opt_out_source = NULL, updated_at = now()
+       WHERE user_id = v_user;
+      INSERT INTO public.sms_consent_events (user_id, event, phone_e164, source, consent_text_version)
+      SELECT user_id, 'opt_in', phone_e164, 'sms_start', consent_text_version
+        FROM public.sms_consent WHERE user_id = v_user;
+      v_count := 1;
     END IF;
   ELSE
     RAISE EXCEPTION 'invalid_action %', p_action USING ERRCODE = '22023';
@@ -469,6 +610,7 @@ BEGIN
   RETURN jsonb_build_object(
     'audience', (SELECT audience FROM public.feature_switches WHERE key = 'sms_alerts'),
     'opted_in', (SELECT count(*) FROM public.sms_consent WHERE sms_opt_in),
+    'pending', (SELECT count(*) FROM public.sms_consent WHERE pending_phone IS NOT NULL AND pending_since > now() - interval '24 hours'),
     'sent_24h', (SELECT count(*) FROM public.sms_messages WHERE status = 'sent' AND created_at > now() - interval '24 hours'),
     'failed_24h', (SELECT count(*) FROM public.sms_messages WHERE status = 'failed' AND created_at > now() - interval '24 hours'),
     'recent', COALESCE((
@@ -492,9 +634,6 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
 AS $fn$
-DECLARE
-  v_url text;
-  v_key text;
 BEGIN
   IF public.sms_category_for(NEW.type, NEW.job_id) IS NULL THEN
     RETURN NEW;
@@ -505,19 +644,9 @@ BEGIN
   IF NOT public.feature_enabled_for_user('sms_alerts', NEW.user_id) THEN
     RETURN NEW;
   END IF;
-
-  v_url := public.get_supabase_url();
-  v_key := public.get_service_role_key();
-  IF v_url IS NULL OR v_key IS NULL THEN
-    RAISE WARNING 'sms_fan_out_on_notification: vault secrets missing, text skipped for notification %', NEW.id;
-    RETURN NEW;
-  END IF;
-
-  PERFORM net.http_post(
-    url := v_url || '/functions/v1/send-sms-notification',
-    headers := jsonb_build_object('Authorization', 'Bearer ' || v_key, 'Content-Type', 'application/json'),
-    body := jsonb_build_object('notification_id', NEW.id)
-  );
+  -- Never raises (failures go to error_logs inside), so it can never fail
+  -- the notification insert.
+  PERFORM public.sms_post_to_edge(jsonb_build_object('notification_id', NEW.id));
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
   RAISE WARNING 'sms_fan_out_on_notification failed for notification %: %', NEW.id, SQLERRM;

@@ -1322,7 +1322,6 @@ export const RPC_ERROR_COPY = {
     feature_disabled: "Text alerts aren't available on your account yet.",
     invalid_phone: "Enter a 10-digit US mobile number.",
     not_authenticated: "Sign in again to change text alerts.",
-    phone_in_use: "That number can't be used for text alerts. Try another number.",
   },
   get_my_sms_consent: {
     not_authenticated: "Sign in again to see your text alert settings.",

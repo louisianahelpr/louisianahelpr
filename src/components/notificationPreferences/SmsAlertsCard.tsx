@@ -26,10 +26,13 @@ const QUERY_KEY = ["sms-consent"] as const;
  * Text alerts (owner, 2026-10-20), behind the `sms_alerts` switch.
  *
  * Consent is ONLY the unticked box below, ticked by the member, for the
- * number typed here. A phone saved on the profile is never treated as consent
- * and is not pre-filled. The server (set_sms_consent) normalises the number,
- * stamps the time and the wording version, and refuses while the switch is
- * off for this account; turning texts off always works.
+ * number typed here, AND a YES the phone itself sends back (double opt-in:
+ * ticking sends one confirmation text; alerts start on the reply). A phone
+ * saved on the profile is never treated as consent and is not pre-filled.
+ * The server (set_sms_consent) refuses a NEW request while the switch is off
+ * for this account; turning texts off always works, so a member who is opted
+ * in or pending still sees this card (with only "turn off") if the switch is
+ * narrowed later.
  */
 export default function SmsAlertsCard() {
   const enabled = useFeature("sms_alerts");
@@ -40,7 +43,10 @@ export default function SmsAlertsCard() {
 
   const { data: consent, isPending, isError, error: loadError, refetch } = useQuery({
     queryKey: [...QUERY_KEY, user?.id],
-    enabled: enabled && !!user,
+    // Read even with the switch off: an opted-in member must always be able
+    // to turn texts off here. Before the migration is live the RPC is missing
+    // and the card simply stays hidden (error + switch off renders nothing).
+    enabled: !!user,
     queryFn: async (): Promise<SmsConsent> => parseSmsConsent(unwrap(await supabase.rpc("get_my_sms_consent"))),
   });
 
@@ -52,10 +58,16 @@ export default function SmsAlertsCard() {
     if (consent?.phone_e164) setPhone(formatUsPhone(consent.phone_e164));
   }, [consent?.phone_e164]);
 
-  if (!enabled || !user) return null;
-
   const optedIn = consent?.sms_opt_in === true;
+  const pendingPhone = consent?.pending_phone ?? null;
+  if (!user) return null;
+  // Switch off: only someone with texts on (or a request waiting) sees the card.
+  if (!enabled && !optedIn && !pendingPhone) return null;
+
   const stoppedByReply = !optedIn && (consent?.opt_out_source === "sms_stop" || consent?.opt_out_source === "carrier_21610");
+  // A STOPped number is blocked at the carrier until the phone texts START,
+  // so ticking the box again for the SAME number could never work.
+  const sameStoppedNumber = stoppedByReply && normalizeUsPhone(phone) === consent?.phone_e164;
   const validPhone = normalizeUsPhone(phone);
 
   const save = async (optIn: boolean) => {
@@ -67,14 +79,16 @@ export default function SmsAlertsCard() {
         return;
       }
       const next = parseSmsConsent(res.data);
-      // The RPC returns the stored state; anything else is not a write.
-      if (next.sms_opt_in !== optIn) {
+      // The RPC returns the stored state; anything else is not a write. A
+      // request is stored as PENDING (texts start on the phone's YES).
+      const stored = optIn ? next.pending_phone !== null || next.sms_opt_in : !next.sms_opt_in && next.pending_phone === null;
+      if (!stored) {
         toast.error("We couldn't save that. Try again.");
         return;
       }
       queryClient.setQueryData([...QUERY_KEY, user.id], next);
       setAgreed(false);
-      toast.success(optIn ? "Text alerts are on." : "Text alerts are off.");
+      toast.success(optIn ? "Check your phone: reply YES to the text we just sent." : "Text alerts are off.");
     } finally {
       setSaving(false);
     }
@@ -106,7 +120,7 @@ export default function SmsAlertsCard() {
               ? { background: "hsl(var(--primary) / 0.12)", color: "hsl(var(--primary))" }
               : { background: "hsl(var(--ink-deep) / 0.06)", color: "hsl(var(--ink-deep) / 0.7)" }}
           >
-            {optedIn ? "On" : "Off"}
+            {optedIn ? "On" : pendingPhone ? "Waiting" : "Off"}
           </span>
         )}
       </div>
@@ -121,6 +135,19 @@ export default function SmsAlertsCard() {
           </div>
         ) : isPending ? (
           <div className="h-24 rounded-xl animate-pulse" style={{ background: "hsl(var(--ink-deep) / 0.05)" }} aria-label="Loading text alert settings" />
+        ) : pendingPhone && !optedIn ? (
+          <>
+            <p className="text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
+              We texted <span className="font-semibold whitespace-nowrap">{formatUsPhone(pendingPhone)}</span>.
+              Reply <span className="font-semibold">YES</span> to that text to turn on alerts.
+            </p>
+            <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
+              Nothing else is sent to this number until it replies YES. No text after a few minutes? Check the number and try again.
+            </p>
+            <Button variant="outline" className="w-full" disabled={saving} onClick={() => { void save(false); }}>
+              Cancel
+            </Button>
+          </>
         ) : optedIn ? (
           <>
             <p className="text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -138,7 +165,7 @@ export default function SmsAlertsCard() {
           <>
             {stoppedByReply && (
               <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep) / 0.75)" }}>
-                Texts are off because you replied STOP. Tick the box below to turn them back on.
+                Texts are off because you replied STOP. To turn them back on, reply START to any text from us.
               </p>
             )}
             <div className="space-y-1.5">
@@ -171,7 +198,7 @@ export default function SmsAlertsCard() {
             <Button
               variant="primary"
               className="w-full"
-              disabled={!agreed || !validPhone || saving}
+              disabled={!agreed || !validPhone || saving || sameStoppedNumber || !enabled}
               onClick={() => { void save(true); }}
             >
               Turn on text alerts

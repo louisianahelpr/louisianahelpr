@@ -46,9 +46,11 @@ function newestTrigger(name: string): string {
 }
 
 describe("SMS alerts source rules", () => {
-  it("the client's consent wording version is the one set_sms_consent stamps", () => {
-    const body = newestFunctionBody("set_sms_consent");
-    expect(body.length).toBeGreaterThan(200);
+  it("the client's consent wording version is the one the server stamps", () => {
+    // Stamped on the request (set_sms_consent) and on the confirming YES
+    // (sms_inbound_keyword).
+    const body = newestFunctionBody("set_sms_consent") + newestFunctionBody("sms_inbound_keyword");
+    expect(body.length).toBeGreaterThan(400);
     const stamped = [...body.matchAll(/consent_text_version\s*=\s*'([^']+)'|'(sms-v\d+)'/g)].map((m) => m[1] ?? m[2]);
     expect(stamped.length).toBeGreaterThan(1);
     expect(new Set(stamped)).toEqual(new Set([SMS_CONSENT_TEXT_VERSION]));

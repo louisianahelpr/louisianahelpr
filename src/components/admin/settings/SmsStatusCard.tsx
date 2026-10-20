@@ -11,7 +11,33 @@ import { FEATURE_AUDIENCE_LABEL, type FeatureAudience } from "@/config/featureSw
 import { AdminCard } from "../AdminViewShell";
 
 type Row = { created_at: string; category: string | null; kind: string | null; status: string; reason: string | null; error_code: string | null };
-type Status = { audience: string | null; opted_in: number; sent_24h: number; failed_24h: number; recent: Row[] };
+type ProviderCheck = {
+  configured: boolean;
+  secrets?: Record<string, boolean>;
+  credentials_ok?: boolean;
+  http_status?: number;
+  error_code?: number | null;
+  service_name?: string | null;
+  inbound_webhook_set?: boolean;
+  sender_count?: number;
+  tollfree_verification?: Array<{ status: string }> | null;
+};
+
+/** One line, in plain words, for the read-only Twilio check (sms-provider-check). */
+function providerLine(p: ProviderCheck): string {
+  if (!p.configured) {
+    const missing = Object.entries(p.secrets ?? {}).filter(([, v]) => !v).map(([k]) => k);
+    return missing.length ? `Twilio secrets missing: ${missing.join(", ")}.` : "Twilio secrets are set but not in the expected format (AC… / MG…).";
+  }
+  if (!p.credentials_ok) {
+    return p.http_status === 401 ? "Twilio refused the Account SID / Auth Token." : p.http_status === 404 ? "No Messaging Service with that SID on this Twilio account." : `Twilio check failed (HTTP ${p.http_status ?? "?"}).`;
+  }
+  const tf = p.tollfree_verification;
+  const verification = tf == null ? "toll-free verification: couldn't read" : tf.length === 0 ? "toll-free verification: not submitted" : `toll-free verification: ${tf.map((v) => v.status).join(", ")}`;
+  return `Twilio OK: "${p.service_name ?? "service"}", ${p.sender_count ?? 0} sender number(s), inbound webhook ${p.inbound_webhook_set ? "set" : "NOT set"}, ${verification}.`;
+}
+
+type Status = { audience: string | null; opted_in: number; pending?: number; sent_24h: number; failed_24h: number; recent: Row[] };
 
 /** Plain words for sms_claim's skip reasons (public.sms_claim). */
 const REASON: Record<string, string> = {
@@ -26,6 +52,10 @@ const REASON: Record<string, string> = {
   cap_job_matches: "nearby-jobs limit",
   coalesced_messages: "message texted < 10 min ago",
   cap_work_status: "job-status limit",
+  member_quiet_hours: "member's quiet hours",
+  no_pending: "no request waiting",
+  phone_in_use: "number used by another account",
+  cap_confirm: "confirmation limit",
 };
 
 const KIND: Record<string, string> = {
@@ -33,6 +63,7 @@ const KIND: Record<string, string> = {
   job_match: "Nearby job",
   job_offer: "Job offer",
   job_update: "Job update",
+  confirm: "Confirmation (reply YES)",
 };
 
 /**
@@ -46,6 +77,15 @@ export function SmsStatusCard() {
     queryKey: ["admin-sms-status"],
     enabled,
     queryFn: async (): Promise<Status> => unwrap(await supabase.rpc("admin_sms_status")) as unknown as Status,
+  });
+  const provider = useQuery({
+    queryKey: ["admin-sms-provider-check"],
+    enabled: false,
+    queryFn: async (): Promise<ProviderCheck> => {
+      const { data, error } = await supabase.functions.invoke("sms-provider-check", { method: "POST" });
+      if (error) throw error;
+      return data as ProviderCheck;
+    },
   });
   if (!enabled) return null;
 
@@ -62,9 +102,10 @@ export function SmsStatusCard() {
         <div className="h-20 rounded-xl animate-pulse" style={{ background: "hsl(var(--ink-deep) / 0.05)" }} aria-label="Loading text alert log" />
       ) : (
         <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="grid grid-cols-2 gap-2 text-center">
             {[
               ["Opted in", data.opted_in],
+              ["Waiting YES", data.pending ?? 0],
               ["Sent 24h", data.sent_24h],
               ["Failed 24h", data.failed_24h],
             ].map(([label, n]) => (
@@ -73,6 +114,17 @@ export function SmsStatusCard() {
                 <div className="text-ds-12" style={{ color: "hsl(var(--ink-deep) / 0.65)" }}>{label}</div>
               </div>
             ))}
+          </div>
+          <div className="flex items-start justify-between gap-3 rounded-xl px-3 py-2" style={{ background: "hsl(var(--ink-deep) / 0.04)" }}>
+            <p className="text-ds-13 min-w-0" role="status">
+              {provider.isFetching ? "Checking Twilio (read-only, no text is sent)…"
+                : provider.isError ? "Couldn't run the Twilio check. Try again."
+                : provider.data ? providerLine(provider.data)
+                : "Check that the Twilio secrets work. Read-only: no text is sent."}
+            </p>
+            <Button variant="outline" size="sm" className="shrink-0" disabled={provider.isFetching} onClick={() => { void provider.refetch(); }}>
+              Check Twilio
+            </Button>
           </div>
           {data.recent.length === 0 ? (
             <EmptyState icon={MessageSquareText} title="No texts yet" body="Texts and skips show here once someone opts in." />

@@ -17,7 +17,7 @@ import {
   type SmsKind,
 } from "../../supabase/functions/_shared/smsPolicy";
 
-const KINDS: SmsKind[] = ["message", "job_match", "job_offer", "job_update"];
+const KINDS: SmsKind[] = ["message", "job_match", "job_offer", "job_update", "confirm"];
 const JOB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const APP = "https://www.louisianahelpr.com";
 
@@ -48,6 +48,19 @@ describe("buildSmsBody", () => {
     // A compile-time property, checked at run time too: extra fields are ignored.
     const body = buildSmsBody({ kind: "job_update", jobId: JOB, firstText: false, appUrl: APP, ...({ title: "Lexi Lombas is on the way", message: "123 Main St" } as object) } as Parameters<typeof buildSmsBody>[0]);
     expect(body).not.toMatch(/Lexi|Main St/);
+  });
+});
+
+describe("the double opt-in text", () => {
+  it("asks for YES and carries the disclosures, with no link", () => {
+    const t = buildSmsBody({ kind: "confirm", firstText: false, appUrl: APP });
+    expect(t).toMatch(/Reply YES/);
+    expect(t).toMatch(/Msg frequency varies/);
+    expect(t).toMatch(/Msg&data rates may apply/);
+    expect(t).toMatch(/HELP/);
+    expect(t).toMatch(/STOP/);
+    expect(t).not.toMatch(/https?:/);
+    expect(classifyInboundKeyword("Yes")).toBe("start");
   });
 });
 

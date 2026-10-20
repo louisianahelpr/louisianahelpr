@@ -47,15 +47,21 @@ serve(async (req) => {
     return json(401, { error: 'Unauthorized' })
   }
 
-  let notificationId: unknown
+  // Two jobs: { notification_id } from the notifications trigger, or
+  // { confirm_user_id } from set_sms_consent (the double opt-in text).
+  let payload: { notification_id?: unknown; confirm_user_id?: unknown }
   try {
-    notificationId = ((await req.json()) as { notification_id?: unknown })?.notification_id
+    payload = ((await req.json()) ?? {}) as typeof payload
   } catch {
     return json(400, { error: 'Invalid JSON body' })
   }
-  if (typeof notificationId !== 'string' || !UUID_RE.test(notificationId)) {
-    return json(400, { error: 'notification_id must be a uuid' })
+  const notificationId = payload.notification_id
+  const confirmUserId = payload.confirm_user_id
+  const isConfirm = typeof confirmUserId === 'string' && UUID_RE.test(confirmUserId)
+  if (!isConfirm && (typeof notificationId !== 'string' || !UUID_RE.test(notificationId))) {
+    return json(400, { error: 'notification_id or confirm_user_id must be a uuid' })
   }
+  const jobRef = String(isConfirm ? confirmUserId : notificationId)
 
   const twilio = twilioConfig((k) => Deno.env.get(k))
   const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceRoleKey)
@@ -83,12 +89,11 @@ serve(async (req) => {
     return true
   }
 
-  const { data: claimData, error: claimError } = await supabase.rpc('sms_claim', {
-    p_notification_id: notificationId,
-    p_provider_ready: twilio !== null,
-  })
+  const { data: claimData, error: claimError } = isConfirm
+    ? await supabase.rpc('sms_claim_confirmation', { p_user_id: confirmUserId, p_provider_ready: twilio !== null })
+    : await supabase.rpc('sms_claim', { p_notification_id: notificationId, p_provider_ready: twilio !== null })
   if (claimError) {
-    console.error(`[send-sms-notification] sms_claim failed for ${notificationId}: ${claimError.message}`)
+    console.error(`[send-sms-notification] claim failed for ${jobRef}: ${claimError.message}`)
     return json(500, { error: 'claim_failed' })
   }
   const claim = (claimData ?? {}) as Claim
@@ -97,7 +102,7 @@ serve(async (req) => {
   }
   if (!twilio || !claim.sms_id || !claim.phone || !isSmsKind(claim.kind)) {
     // sms_claim only says 'send' with all of these; anything else is a bug.
-    console.error(`[send-sms-notification] malformed claim for ${notificationId}`)
+    console.error(`[send-sms-notification] malformed claim for ${jobRef}`)
     if (claim.sms_id) await recordResult(claim.sms_id, 'failed', null, 'malformed_claim')
     return json(500, { error: 'malformed_claim' })
   }

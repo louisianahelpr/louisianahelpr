@@ -173,7 +173,7 @@ const BEFORE_ACTIONS = {
     { role: "button", name: "Finish listing" },
     { role: "button", name: "Delete" },
     { role: "button", name: "Take down" },
-    { role: "link", name: /Moving out\?/ },
+    { role: "link", name: /Moving out sale/ },
     { role: "button", name: "Cancel sale" },
   ],
   buying: [

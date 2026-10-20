@@ -1,6 +1,6 @@
 // @mutate supabase/migrations/20261012031120_hidden_feature_switches.sql | VALUES ('switch_canary', 'testers', | VALUES ('switch_canary', 'everyone',
 // @mutate supabase/migrations/20261012031120_hidden_feature_switches.sql | ON CONFLICT (key) DO NOTHING; | ON CONFLICT (key) DO UPDATE SET audience = EXCLUDED.audience;
-// @mutate src/config/featureSwitches.ts |   "jobs_poster_fee",\n] as const; |   "jobs_poster_fee",\n  "orphan_switch",\n] as const;
+// @mutate src/config/featureSwitches.ts |   "sms_alerts",\n] as const; |   "sms_alerts",\n  "orphan_switch",\n] as const;
 // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx | useFeature("switch_canary") | useFeature("switch_canarx")
 /**
  * Hidden feature switches (owner decision 2026-10-11; migration

@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS public.sms_consent (
 ALTER TABLE public.sms_consent ENABLE ROW LEVEL SECURITY;
 -- No policies: clients read and write only through the RPCs below.
 REVOKE ALL ON public.sms_consent FROM PUBLIC, anon, authenticated;
+-- Server-only: members reach it through the definer RPCs below, never directly.
+GRANT ALL ON public.sms_consent TO service_role;
 
 -- One phone is opted in on one account at a time.
 CREATE UNIQUE INDEX IF NOT EXISTS sms_consent_one_opted_in_phone
@@ -68,6 +70,8 @@ CREATE TABLE IF NOT EXISTS public.sms_consent_events (
 );
 ALTER TABLE public.sms_consent_events ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.sms_consent_events FROM PUBLIC, anon, authenticated;
+-- Server-only: members reach it through the definer RPCs below, never directly.
+GRANT ALL ON public.sms_consent_events TO service_role;
 CREATE INDEX IF NOT EXISTS sms_consent_events_user_idx
   ON public.sms_consent_events (user_id, created_at DESC);
 
@@ -88,6 +92,8 @@ CREATE TABLE IF NOT EXISTS public.sms_messages (
 );
 ALTER TABLE public.sms_messages ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.sms_messages FROM PUBLIC, anon, authenticated;
+-- Server-only: members reach it through the definer RPCs below, never directly.
+GRANT ALL ON public.sms_messages TO service_role;
 CREATE INDEX IF NOT EXISTS sms_messages_user_recent_idx
   ON public.sms_messages (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS sms_messages_recent_idx

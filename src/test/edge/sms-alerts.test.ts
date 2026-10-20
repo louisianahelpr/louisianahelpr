@@ -190,7 +190,7 @@ describe("twilio-inbound", () => {
     const res = await post({ From: "+12255550123", Body: "help" });
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("text/xml");
-    expect(await res.text()).toContain("<Message>Louisiana Helpr alerts: help at admin@louisianahelpr.com");
+    expect(await res.text()).toContain("<Message>Louisiana Helpr alerts: help at louisianahelpr.com/support or admin@louisianahelpr.com.");
     expect(scenario.rpcCalls).toEqual([]);
   });
 

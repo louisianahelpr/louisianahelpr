@@ -134,7 +134,7 @@ export default function SmsAlertsCard() {
             <Button variant="outline" size="sm" onClick={() => { void refetch(); }}>Try again</Button>
           </div>
         ) : isPending ? (
-          <div className="h-24 rounded-xl animate-pulse" style={{ background: "hsl(var(--ink-deep) / 0.05)" }} aria-label="Loading text alert settings" />
+          <div className="h-24 rounded-xl animate-pulse" style={{ background: "hsl(var(--ink-deep) / 0.05)" }} role="status" aria-label="Loading text alert settings" />
         ) : pendingPhone && !optedIn ? (
           <>
             <p className="text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>

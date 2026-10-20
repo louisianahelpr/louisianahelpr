@@ -6,6 +6,8 @@ import { useFeature } from "@/hooks/useFeature";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { FEATURE_AUDIENCE_LABEL, type FeatureAudience } from "@/config/featureSwitches";
 import { AdminCard } from "../AdminViewShell";
@@ -73,7 +75,7 @@ const KIND: Record<string, string> = {
  */
 export function SmsStatusCard() {
   const enabled = useFeature("sms_alerts");
-  const { data, isPending, isError, error, refetch } = useQuery({
+  const { data, status, fetchStatus, error, refetch } = useQuery({
     queryKey: ["admin-sms-status"],
     enabled,
     queryFn: async (): Promise<Status> => unwrap(await supabase.rpc("admin_sms_status")) as unknown as Status,
@@ -87,6 +89,8 @@ export function SmsStatusCard() {
       return data as ProviderCheck;
     },
   });
+  // Offline with nothing loaded is not "No texts yet" (Q571).
+  const phase = useFeedPhase({ status, fetchStatus });
   if (!enabled) return null;
 
   const audience = data?.audience as FeatureAudience | null | undefined;
@@ -96,10 +100,12 @@ export function SmsStatusCard() {
       subtitle={audience ? `Switch: ${FEATURE_AUDIENCE_LABEL[audience] ?? audience}` : undefined}
       action={<Button variant="outline" size="sm" onClick={() => { void refetch(); }}>Refresh</Button>}
     >
-      {isError ? (
+      {phase === "offline-empty" ? (
+        <OfflineEmptyState body="The text alert log will show here once you're back online." onRetry={() => { void refetch(); }} />
+      ) : phase === "error" ? (
         <p className="text-ds-13" role="alert">{rpcErrorMessage("admin_sms_status", error) ?? "Couldn't load the text alert log."}</p>
-      ) : isPending ? (
-        <div className="h-20 rounded-xl animate-pulse" style={{ background: "hsl(var(--ink-deep) / 0.05)" }} aria-label="Loading text alert log" />
+      ) : phase === "loading" || !data ? (
+        <div className="h-20 rounded-xl animate-pulse" style={{ background: "hsl(var(--ink-deep) / 0.05)" }} role="status" aria-label="Loading text alert log" />
       ) : (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2 text-center">
@@ -134,7 +140,7 @@ export function SmsStatusCard() {
                 <li key={`${r.created_at}-${i}`} className="flex items-center justify-between gap-2 py-2 text-ds-13">
                   <span className="min-w-0">
                     <span className="font-medium block">{KIND[r.kind ?? ""] ?? r.category ?? "Notification"}</span>
-                    <span className="block text-ds-12" style={{ color: "hsl(var(--ink-deep) / 0.6)" }}>
+                    <span className="block text-ds-12" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
                       {new Date(r.created_at).toLocaleString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                     </span>
                   </span>

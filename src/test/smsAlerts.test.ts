@@ -6,17 +6,22 @@
  *   2. send-sms-notification never reads a notification's title or message:
  *      the text comes only from sms_claim's `kind` (+ job uuid).
  *   3. 'warning' and the admin/system/payment types never reach the SMS trigger.
- * Behaviour (consent, caps, quiet hours, seed suppression, STOP) is proved in
- * PGlite: ~/.lh-pglite/pgl-sms-1020.mjs (38 checks) and in
- * src/test/edge/sms-alerts.test.ts.
+ *   4. Messy phone input (the Text alerts card's only typed field) is read
+ *      the same way by the client (normalizeUsPhone) and the server
+ *      (sms_normalize_phone): only a 10-digit US number, or 11 with a leading
+ *      1, with a valid area code and exchange; anything else is refused.
+ * Behaviour (consent, caps, quiet hours, seed suppression, STOP, ban gate,
+ * 4-year retention) is proved in PGlite: src/test/pglite/smsAlerts.pglite.mjs
+ * (59 checks) and in src/test/edge/sms-alerts.test.ts.
  */
+// @mutate src/lib/smsConsent.ts |   const e = d.length === 10 ? `+1${d}` : d.length === 11 && d.startsWith("1") ? `+${d}` : null; |   const e = d.length >= 10 ? `+1${d.slice(-10)}` : null;
 // @mutate src/lib/smsConsent.ts | export const SMS_CONSENT_TEXT_VERSION = "sms-v1"; | export const SMS_CONSENT_TEXT_VERSION = "sms-v2";
 // @mutate supabase/functions/send-sms-notification/index.ts | jobId: claim.job_id, | jobId: claim.job_id, title: (claim as { title?: string }).title,
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
-import { SMS_CONSENT_TEXT_VERSION } from "@/lib/smsConsent";
+import { SMS_CONSENT_TEXT_VERSION, normalizeUsPhone } from "@/lib/smsConsent";
 
 const ROOT = resolve(__dirname, "../..");
 const MIG_DIR = resolve(ROOT, "supabase/migrations");
@@ -79,4 +84,30 @@ describe("SMS alerts source rules", () => {
     const cat = newestFunctionBody("sms_category_for");
     expect(cat).not.toMatch(/'warning'/);
   });
+
+  it("messy phone input: the client accepts exactly what the server accepts", () => {
+    const accepted: [string, string][] = [
+      ["2255550123", "+12255550123"],
+      ["(225) 555-0123", "+12255550123"],
+      ["  225.555.0123  ", "+12255550123"],
+      ["+1 225 555 0123", "+12255550123"],
+      ["1-225-555-0123", "+12255550123"],
+    ];
+    for (const [input, e164] of accepted) expect(normalizeUsPhone(input), input).toBe(e164);
+    const refused = [
+      "", "   ", "555-0123", "225555012", "225555012345", "22555501234",
+      "0255550123", "1255550123", "2250550123", "2251550123", "+44 20 7946 0958",
+      "phone", "\u0662\u0662\u0665\u0665\u0665\u0665\u0660\u0661\u0662\u0663", "\u00a0".repeat(4),
+    ];
+    for (const input of refused) expect(normalizeUsPhone(input), JSON.stringify(input)).toBeNull();
+    // An emoji or a stray letter around a real number is stripped, as the server's [^0-9] strip does.
+    expect(normalizeUsPhone("225-555-0123 \u{1F4F1}x")).toBe("+12255550123");
+    // The server's rule is the same regex, after the same strip and the same length cases.
+    const sql = newestFunctionBody("sms_normalize_phone");
+    expect(sql).toMatch(/regexp_replace\(COALESCE\(p_phone, ''\), '\[\^0-9\]', '', 'g'\)/);
+    expect(sql).toMatch(/length\(d\) = 10 THEN\s+e := '\+1' \|\| d;/);
+    expect(sql).toMatch(/length\(d\) = 11 AND left\(d, 1\) = '1' THEN/);
+    expect(sql).toContain("'^\\+1[2-9][0-9]{2}[2-9][0-9]{6}$'");
+  });
 });
+

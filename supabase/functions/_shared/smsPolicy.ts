@@ -60,7 +60,7 @@ export function buildSmsBody(input: {
 
 /** The reply to HELP (sent as TwiML by twilio-inbound). */
 export const SMS_HELP_REPLY =
-  "Louisiana Helpr alerts: help at admin@louisianahelpr.com or louisianahelpr.com/support. Msg & data rates may apply. Reply STOP to cancel.";
+  "Louisiana Helpr alerts: help at louisianahelpr.com/support or admin@louisianahelpr.com. Msg & data rates may apply. Reply STOP to cancel.";
 
 export type InboundAction = "stop" | "start" | "help" | null;
 

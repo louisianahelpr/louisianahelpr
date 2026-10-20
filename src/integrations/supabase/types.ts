@@ -9807,6 +9807,123 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_consent: {
+        Row: {
+          consent_text_version: string | null
+          opt_in_source: string | null
+          opt_out_source: string | null
+          opted_in_at: string | null
+          opted_out_at: string | null
+          pending_phone: string | null
+          pending_since: string | null
+          phone_e164: string | null
+          sms_opt_in: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consent_text_version?: string | null
+          opt_in_source?: string | null
+          opt_out_source?: string | null
+          opted_in_at?: string | null
+          opted_out_at?: string | null
+          pending_phone?: string | null
+          pending_since?: string | null
+          phone_e164?: string | null
+          sms_opt_in?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consent_text_version?: string | null
+          opt_in_source?: string | null
+          opt_out_source?: string | null
+          opted_in_at?: string | null
+          opted_out_at?: string | null
+          pending_phone?: string | null
+          pending_since?: string | null
+          phone_e164?: string | null
+          sms_opt_in?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sms_consent_events: {
+        Row: {
+          account_deleted_at: string | null
+          consent_text_version: string | null
+          created_at: string
+          event: string
+          id: string
+          phone_e164: string
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          account_deleted_at?: string | null
+          consent_text_version?: string | null
+          created_at?: string
+          event: string
+          id?: string
+          phone_e164: string
+          source: string
+          user_id?: string | null
+        }
+        Update: {
+          account_deleted_at?: string | null
+          consent_text_version?: string | null
+          created_at?: string
+          event?: string
+          id?: string
+          phone_e164?: string
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      sms_messages: {
+        Row: {
+          category: string | null
+          created_at: string
+          error_code: string | null
+          id: string
+          kind: string | null
+          notification_id: string | null
+          provider_sid: string | null
+          reason: string | null
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          kind?: string | null
+          notification_id?: string | null
+          provider_sid?: string | null
+          reason?: string | null
+          sent_at?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          kind?: string | null
+          notification_id?: string | null
+          provider_sid?: string | null
+          reason?: string | null
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       social_signup_choices: {
         Row: {
           chose_new_at: string | null
@@ -14471,6 +14588,33 @@ export type Database = {
       set_sms_consent: {
         Args: { p_opt_in: boolean; p_phone: string }
         Returns: Json
+      }
+      sms_category_for: {
+        Args: { p_job_id: string; p_type: string }
+        Returns: string
+      }
+      sms_claim: {
+        Args: { p_notification_id: string; p_provider_ready: boolean }
+        Returns: Json
+      }
+      sms_claim_confirmation: {
+        Args: { p_provider_ready: boolean; p_user_id: string }
+        Returns: Json
+      }
+      sms_inbound_keyword: {
+        Args: { p_action: string; p_phone: string }
+        Returns: number
+      }
+      sms_normalize_phone: { Args: { p_phone: string }; Returns: string }
+      sms_post_to_edge: { Args: { p_body: Json }; Returns: undefined }
+      sms_record_result: {
+        Args: {
+          p_error_code: string
+          p_provider_sid: string
+          p_sms_id: string
+          p_status: string
+        }
+        Returns: boolean
       }
       set_thread_snooze: {
         Args: { _job_id: string; _other_user_id: string; _until: string }

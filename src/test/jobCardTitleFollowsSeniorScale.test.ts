@@ -62,7 +62,8 @@ describe("Q1661: job-card titles follow the senior text scale", () => {
   });
 
   it("finds the job-card titles (inventory floor)", () => {
-    expect(titles.length).toBeGreaterThan(2);
+    // 2 since 2026-10-20: JobCardTitleBar went when Posted/Working cards became MineJobFace (boards 14/21).
+    expect(titles.length).toBeGreaterThan(1);
   });
 
   it("every single-line card title carries job-card-title and senior-clamp-2", () => {

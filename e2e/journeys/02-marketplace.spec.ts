@@ -642,7 +642,7 @@ test.describe.serial("marketplace chain", () => {
       await expect(row.getByText("Pin", { exact: true }), "the conversation started out pinned").toHaveCount(1);
       await swipeRight(pp, title);
       await expect(row.getByText("Unpin", { exact: true }), "a right swipe past the threshold did not pin the conversation").toHaveCount(1, { timeout: 10_000 });
-      await expect(pp.getByRole("heading", { name: /Hide This Conversation/ }), "the pin swipe opened the archive dialog").toHaveCount(0);
+      await expect(pp.getByRole("heading", { name: /Hide this conversation/i }), "the pin swipe opened the archive dialog").toHaveCount(0);
       await assertHealthy(pp, "inbox after pin");
       await journey.milestone(pp, "pinned");
       // Pins are per-device (src/lib/pinnedConversations); swipe back so the shared account is left as found.

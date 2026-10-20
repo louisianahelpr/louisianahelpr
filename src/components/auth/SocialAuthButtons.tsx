@@ -212,7 +212,12 @@ function SocialAuthButton({ provider, redirectTo, onChoose }: SocialAuthButtonPr
       size="lg"
       // w-full inside a half-width grid cell. h-12 keeps the 44pt minimum
       // target with room to spare.
-      className="w-full h-12 rounded-full border-border/70 hover:bg-muted/40 gap-2"
+      className={`w-full h-12 rounded-full gap-2 ${provider === "apple" ? "border-transparent" : "border-border/70 hover:bg-muted/40"}`}
+      // Board 37/55 (owner, 2026-10-20): Apple is the solid button (ink fill,
+      // white mark and text; it inverts to a light fill in dark mode, as
+      // Apple's own black/white button pair does). Google stays outline.
+      style={provider === "apple" ? { backgroundColor: "hsl(var(--foreground))", color: "hsl(var(--background))" } : undefined}
+      data-provider={provider}
       onClick={handleClick}
       disabled={loading}
       // Still carries the FULL label ("Sign in with Apple"), not just the

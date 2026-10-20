@@ -706,8 +706,12 @@
       }
       [data-theme="dark"] #root,
       [data-theme="dark"] #boot-loader {
-        background: linear-gradient(160deg, hsl(220 15% 8%) 0%, hsl(220 12% 11%) 40%, hsl(200 15% 10%) 100%) !important;
-        background-color: hsl(220 15% 8%) !important;
+        /* Warm charcoal, the same stops as the dark --page-gradient in
+           src/index.css (spec v2 §2, 2026-10-20). The old cool hue-220 stops
+           outlived the warm tokens and showed as a cool grey band wherever
+           #root was not covered (below a fixed page background). */
+        background: linear-gradient(160deg, hsl(36 10% 9%) 0%, hsl(36 10% 10%) 40%, hsl(38 9% 11%) 100%) !important;
+        background-color: hsl(36 10% 9%) !important;
       }
       /* Q651 (owner decisions 2026-10-04: "a CSS-only, filter-free loading
          hint", then "ship it but add the h on top"). For slow cold loads, where

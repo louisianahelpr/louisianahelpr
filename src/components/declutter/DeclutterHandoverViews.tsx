@@ -154,11 +154,17 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
   const done = order.status === "handed_over";
   return (
-    <article className="rounded-2xl border border-border bg-card p-4 space-y-3">
-      <p className="font-semibold">{title} · {formatPrice(items)}</p>
-      <p className="text-sm text-muted-foreground">
-        {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : "Pickup at the seller's home"} · you are the {order.side}
-      </p>
+    <article className="rounded-[20px] border border-border bg-card p-4 space-y-3">
+      {/* Board 47 / 26 mine card: title, the price in money ink, ONE line saying how it's coming and which side you are. */}
+      <div className="flex items-start justify-between gap-3 min-w-0" data-order-head="">
+        <div className="min-w-0">
+          <p className="truncate text-ds-15 font-semibold" title={title}>{title}</p>
+          <p className="text-ds-13 text-muted-foreground">
+            {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : "Pickup at the seller's home"} · {order.side === "buyer" ? "You're buying" : "You're selling"}
+          </p>
+        </div>
+        <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(items)}</span>
+      </div>
       {done ? (
         <>
           <p className="text-sm font-medium">Handed over. The sale is final.</p>

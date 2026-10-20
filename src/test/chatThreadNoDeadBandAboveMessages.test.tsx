@@ -36,7 +36,7 @@
  * ChatView.layout.test.tsx.
  *
  * @mutate src/components/messages/ChatView.tsx | overflow-x-clip ${timeline.length === 0 ? "my-auto" : "mt-auto"} | overflow-x-clip
- * @mutate src/components/messages/ChatView.tsx | <div className="w-full mt-3 shrink-0 rounded-md bg-accent/10 | <div className="w-full mt-auto shrink-0 rounded-md bg-accent/10
+ * @mutate src/components/messages/ChatView.tsx | <div data-off-platform-note className="w-full mt-3 shrink-0 rounded-md bg-muted | <div data-off-platform-note className="w-full mt-auto shrink-0 rounded-md bg-muted
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";

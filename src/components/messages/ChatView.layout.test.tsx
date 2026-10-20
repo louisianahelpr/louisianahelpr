@@ -160,4 +160,4 @@ describe.each([
 // which is the regression the owner reported.
 // @mutate src/components/messages/ChatView.tsx | className="flex flex-col flex-1 min-h-0 w-full transition-[padding] duration-150" | className="flex flex-col flex-1 min-h-0 w-full max-w-[780px] mx-auto transition-[padding] duration-150"
 // …and the banner, which spans the column like the composer notices.
-// @mutate src/components/messages/ChatView.tsx | <div className="w-full mt-3 shrink-0 rounded-md | <div className="w-full max-w-[780px] mx-auto mt-3 shrink-0 rounded-md
+// @mutate src/components/messages/ChatView.tsx | <div data-off-platform-note className="w-full mt-3 shrink-0 rounded-md | <div data-off-platform-note className="w-full max-w-[780px] mx-auto mt-3 shrink-0 rounded-md

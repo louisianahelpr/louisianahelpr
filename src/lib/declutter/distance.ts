@@ -55,8 +55,3 @@ export function formatPrice(cents: number): string {
   const dollars = cents / 100;
   return Number.isInteger(dollars) ? `$${dollars}` : `$${dollars.toFixed(2)}`;
 }
-
-/** Exact cents, always two decimals ("$5.95", "$21.00"): a total someone is about to pay. */
-export function formatPriceCents(cents: number): string {
-  return `$${(Math.round(cents) / 100).toFixed(2)}`;
-}

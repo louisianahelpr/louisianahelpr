@@ -182,7 +182,7 @@ describe("Declutter slice 3 screens", () => {
     await waitFor(() => expect(buy).toBeEnabled());
     fireEvent.click(buy);
     fireEvent.click(await screen.findByRole("button", { name: "Add a card" }));
-    await waitFor(() => expect(window.confirm).toHaveBeenCalledWith(expect.stringMatching(/^Buy "Oak rocking chair" for \$42\.70 \(\$40 \+ \$2\.70 buyer.s fee\)\?/)));
+    await waitFor(() => expect(window.confirm).toHaveBeenCalledWith(expect.stringMatching(/^Buy "Oak rocking chair" for \$42\.70 \(\$40 \+ \$2\.70 buyer.s fee\)\? Delivery, if you choose it, is added at checkout\./)));
     await waitFor(() => expect(state.bought).toBe(1));
     expect(screen.queryByText("Add a card to finish.")).toBeNull();
   });

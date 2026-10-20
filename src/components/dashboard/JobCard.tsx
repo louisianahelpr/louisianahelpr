@@ -108,15 +108,10 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // assumed fee tier via effectiveFee). Only the explicit `guestPricing` flag
   // forces the gross "Budget" figure — `variant="guest"` no longer does, so a
   // guest card can show take-home AND the "Sign up to apply" CTA together.
-  // J1 (Cowork audit 2026-10-20): the POSTER looking at their own job sees
-  // the price they set, the same figure their Posted card shows, never a
-  // Helpr's take-home. Measured on the owner's job 11f8b084: Posted said $60,
-  // her own Browse card said $52 (60 less the 12% fee, floored).
+  // J1 (audit 2026-10-20): a poster's own job shows the price they set, as on Posted (was take-home).
   const isOwnJob = !!_currentUserId && job.customer_id === _currentUserId;
   const showBudget = guestPricing || isOwnJob;
-  // Per-helpr split count for the shared JobPrice element. The net-take-home
-  // math itself now lives in JobPrice (the single money component), so the
-  // card and detail view can never disagree.
+  // Per-helpr split count for JobPrice, the single money component (card and detail never disagree).
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const firstPayoutFee = useFirstPayoutFeeDollars();
   // Announce the SAME figure the visible JobPrice chip shows: net take-home by

@@ -1571,7 +1571,7 @@ describe("charge-recurring-visits edge function", () => {
   // @mutate supabase/functions/charge-recurring-visits/index.ts | if (ageErr) { | if (false) {
   // @mutate supabase/functions/charge-recurring-visits/index.ts | if (under18Holders.has(holderId)) { | if (false) {
   // @mutate supabase/functions/charge-recurring-visits/index.ts | if (relErr) fail( | if (false) fail(
-  // @mutate supabase/functions/charge-recurring-visits/index.ts | p_reason: "holder_ineligible", | p_reason: "under_18",
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | names no age.\n            p_reason: "holder_ineligible", | names no age.\n            p_reason: "under_18",
   // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (!dryRun) {\n        for (const helperId of under18Holders) { |       if (true) {\n        for (const helperId of under18Holders) {
   const releaseCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "series_release_dates");
 

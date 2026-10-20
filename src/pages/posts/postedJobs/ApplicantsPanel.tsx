@@ -97,10 +97,7 @@ export function ApplicantsPanel({
   onBoost,
   onEdit,
 }: ApplicantsPanelProps) {
-  // The counter-offer state (bid input, optimistic negotiation status, the
-  // counter_application_bid RPC call) lived here until bidding was removed —
-  // it was never used in production. Applicants are now hired or declined
-  // outright; there is no price to negotiate.
+  // Bidding was removed (never used in production): applicants are hired or declined outright.
 
   // Decline confirmation sheet — open when poster taps "Decline" on an applicant.
   // `declineTarget` holds the app being declined; the sheet collects an optional
@@ -406,13 +403,8 @@ export function ApplicantsPanel({
                               only edge. */}
                           <a
                             href={`/user/${app.helper_id}`}
-                            // The avatar inside is `aria-hidden` (the name link
-                            // beside it already names this person), so without
-                            // an explicit label this link would have no
-                            // accessible name at all. It had none before either
-                            // whenever a photo was present — `alt=""` on the
-                            // image and nothing else in the anchor — so this is
-                            // a fix, not a consequence of the migration.
+                            // The avatar inside is `aria-hidden`, so this label is the
+                            // link's only accessible name (it had none with a photo before).
                             aria-label={`View ${helperName}'s profile`}
                             className="shrink-0 w-11 h-11 rounded-full overflow-hidden inline-flex items-center justify-center"
                             style={{
@@ -543,15 +535,9 @@ export function ApplicantsPanel({
                                 </span>
                               )}
                             </span>
-                            {/* ID once (owner, 2026-10-20): the offer stays open to
-                                anyone; the Helpr's accept waits on the ID. Said by
-                                name, never a refusal and never a pronoun. */}
+                            {/* ID once (owner, 2026-10-20): the offer stays open; the Helpr's accept waits on the ID. */}
                             {app.profiles && app.profiles.is_id_verified !== true && (
-                              <span
-                                className="block mt-0.5 text-ds-11 font-sans"
-                                style={{ color: "hsl(var(--olivewood))" }}
-                                data-applicant-id-note=""
-                              >
+                              <span className="block mt-0.5 text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood))" }} data-applicant-id-note="">
                                 {applicantIdNote(formatName(app.profiles.full_name, ""))}
                               </span>
                             )}

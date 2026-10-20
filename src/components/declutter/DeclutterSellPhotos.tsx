@@ -15,6 +15,15 @@ import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/phot
 export const MAX_PHOTOS = DECLUTTER_MAX_PHOTOS;
 const MIN_PHOTOS = DECLUTTER_MIN_PHOTOS;
 
+/** Board 31a: the first photo is the listing's cover (the gallery and Browse card show photos by position). */
+function CoverChip() {
+  return (
+    <span data-cover-chip="" className="pointer-events-none absolute bottom-1.5 left-1.5 rounded-full bg-background/95 px-2 py-0.5 text-ds-12 font-semibold text-foreground">
+      Cover
+    </span>
+  );
+}
+
 function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button type="button" className="absolute top-0 right-0 w-11 h-11 flex items-center justify-center" onClick={onClick} aria-label={label}>
@@ -69,12 +78,14 @@ export function SellPhotos({
         {uploaded.map((p, i) => (
           <li key={p.id} className="relative">
             <img src={photoPublicUrl(p.storage_path)} alt={`Photo ${i + 1}`} className="aspect-square w-full object-cover rounded-xl bg-muted" />
+            {i === 0 && <CoverChip />}
             <RemoveButton label={`Remove photo ${i + 1}`} onClick={() => onRemoveUploaded(p.id)} />
           </li>
         ))}
         {previews.map((url, i) => (
           <li key={url} className="relative" data-held-photo="">
             <img src={url} alt={`Photo ${uploaded.length + i + 1}`} className="aspect-square w-full object-cover rounded-xl bg-muted" />
+            {uploaded.length === 0 && i === 0 && <CoverChip />}
             <RemoveButton label={`Remove photo ${uploaded.length + i + 1}`} onClick={() => onRemoveHeld(i)} />
           </li>
         ))}

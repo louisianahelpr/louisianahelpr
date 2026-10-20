@@ -82,7 +82,10 @@ export function SellPhotos({
         ))}
         {previews.map((url, i) => (
           <li key={url} className="relative" data-held-photo="">
-            <img src={url} alt={`Photo ${uploaded.length + i + 1}`} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
+            {/* Only a local blob: preview is drawn (CodeQL js/xss-through-dom; the PhotoProof pattern). */}
+            {url.startsWith("blob:") && (
+              <img src={url} alt={`Photo ${uploaded.length + i + 1}`} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
+            )}
             {uploaded.length === 0 && i === 0 && <CoverChip />}
             <RemoveButton label={`Remove photo ${uploaded.length + i + 1}`} onClick={() => onRemoveHeld(i)} />
           </li>

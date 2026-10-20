@@ -63,7 +63,7 @@ function DollarBox({ label, value, onCommit }: { label: string; value: number | 
           setText(t);
           onCommit(t === "" ? null : Number(t));
         }}
-        className="w-full min-w-0 bg-transparent text-ds-15 text-foreground outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground/70"
+        className="w-full min-w-0 bg-transparent text-ds-15 text-foreground outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground"
       />
     </label>
   );

@@ -352,7 +352,7 @@ export default function SellFlow() {
     }
   }
 
-  const input = "w-full h-[52px] rounded-[14px] border border-border bg-card px-4 text-ds-15 text-foreground focus:border-primary focus:outline-none placeholder:text-muted-foreground/70";
+  const input = "w-full h-[52px] rounded-[14px] border border-border bg-card px-4 text-ds-15 text-foreground focus:border-primary focus:outline-none placeholder:text-muted-foreground";
   const photoTotal = photoCount + held.length;
   const priceCents = dollarsToCents(form.price);
   const floorCents = dollarsToCents(form.floor);
@@ -447,7 +447,7 @@ export default function SellFlow() {
                 onChange={(e) => set("price", e.target.value.replace(/[^0-9.]/g, ""))}
                 placeholder="0"
                 style={{ width: `${Math.max(1, form.price.length || 1) + 0.5}ch` }}
-                className="max-w-[7ch] bg-transparent text-left text-ds-40 font-bold tabular-nums outline-none focus-visible:outline-none placeholder:text-[hsl(var(--burnt-sienna)/0.4)]"
+                className="max-w-[7ch] bg-transparent text-left text-ds-40 font-bold tabular-nums outline-none focus-visible:outline-none placeholder:text-muted-foreground"
               />
             </div>
             <StepperButton label="Raise the price by $1" disabled={(priceCents ?? 0) >= 100_000} onClick={() => set("price", centsToDollars(Math.min(100_000, (priceCents ?? 0) + 100)))}>+</StepperButton>
@@ -457,7 +457,7 @@ export default function SellFlow() {
             <div className="flex h-[52px] items-center gap-1 rounded-[14px] border border-border bg-card px-4 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
               <span className="text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))]" aria-hidden>$</span>
               <input id="sell-floor" inputMode="decimal" value={form.floor} onChange={(e) => set("floor", e.target.value.replace(/[^0-9.]/g, ""))} placeholder="e.g. 30"
-                className="w-full bg-transparent text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))] outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:font-normal placeholder:text-muted-foreground/70" />
+                className="w-full bg-transparent text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))] outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:font-normal placeholder:text-muted-foreground" />
             </div>
             <p className="text-ds-13 text-muted-foreground">
               Only you see this.{priceCents ? ` Set it to ${formatPrice(priceCents)} for no drops.` : " Set it the same as your price for no drops."}

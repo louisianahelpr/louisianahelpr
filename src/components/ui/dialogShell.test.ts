@@ -1058,6 +1058,9 @@ describe("Popup grammar — footer", () => {
     // Opt-out prompts, not confirms. Adding a name here is a deliberate
     // statement that the surface is an invitation being declined.
     const DECLINE_LABELS = new Set([
+      // Declutter Browse filter sheet (board 39): its footer's secondary resets
+      // every filter; it is an action, not a dismissal.
+      "Clear all",
       "Maybe Later",
       "Not Now",
       "Skip",

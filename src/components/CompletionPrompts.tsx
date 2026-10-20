@@ -84,7 +84,7 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
   const [customTip, setCustomTip] = useState<number | undefined>(undefined);
   // Board 180: the tip step's base price and the job title under the question.
   const tipJob = useTipJob(jobId);
-  const tipValid = customTip !== undefined && customTip * 100 >= TIP_MIN_CENTS && customTip * 100 <= TIP_MAX_CENTS;
+  const tipValid = customTip !== undefined && Math.round(customTip * 100) >= TIP_MIN_CENTS && Math.round(customTip * 100) <= TIP_MAX_CENTS; // whole cents, as sent
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
   // The shared, direction-aware tags (reviewPanel/types): the same words the

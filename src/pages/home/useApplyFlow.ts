@@ -387,10 +387,13 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
 
       // A POP-UP, NOT A TOAST (owner, 2026-10-08, Q1550). Its View goes to
       // `/jobs?job=` for the reason above.
+      const sentJob = allJobs.find((j) => j.id === vars.jobId) ?? (confirmApplyJob?.id === vars.jobId ? confirmApplyJob : null);
       setApplicationSent({
         jobId: vars.jobId,
-        title: allJobs.find((j) => j.id === vars.jobId)?.title ?? confirmApplyJob?.title ?? null,
+        title: sentJob?.title ?? confirmApplyJob?.title ?? null,
         noteWithheld,
+        posterName: sentJob?.posterName ?? null,
+        dateNeeded: sentJob?.date_needed ?? null,
       });
       // First-application funnel event — strictly best-effort analytics, so
       // it must never break (or block) the apply flow. Isolated in its own

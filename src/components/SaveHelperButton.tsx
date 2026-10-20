@@ -132,7 +132,7 @@ const SaveHelperButton = ({
           <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
         ) : (
           <Heart
-            className={`w-4 h-4 mr-1.5 ${saved ? "fill-destructive text-destructive" : ""}`}
+            className={`w-4 h-4 mr-1.5 ${saved ? "fill-primary text-primary" : ""}`}
           />
         )}
         {saved ? "Saved" : "Save Helpr"}
@@ -155,7 +155,7 @@ const SaveHelperButton = ({
         <Loader2 className="w-4 h-4 animate-spin" />
       ) : (
         <Heart
-          className={`w-4 h-4 ${saved ? "fill-destructive text-destructive" : "text-muted-foreground"}`}
+          className={`w-4 h-4 ${saved ? "fill-primary text-primary" : "text-muted-foreground"}`}
         />
       )}
     </Button>

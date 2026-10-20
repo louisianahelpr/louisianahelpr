@@ -105,7 +105,8 @@ import DeclutterPage from "@/pages/declutter/DeclutterPage";
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
 import DeclutterItemPage from "@/pages/declutter/DeclutterItemPage";
 import { rememberAfterCard } from "@/lib/declutter/afterCard";
-import { dollarsToCents, formProblem } from "./DeclutterSellView";
+import { formProblem } from "./DeclutterSellView";
+import { dollarsToCents } from "@/lib/declutter/money";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
 function at(path: string, el: React.ReactNode, route = path.split("?")[0]) {

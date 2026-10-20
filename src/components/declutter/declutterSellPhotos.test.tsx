@@ -9,6 +9,7 @@
  * @mutate src/components/declutter/DeclutterSellView.tsx |     if (!itemId) {\n      setHeld((h) => [...h, ...list]);\n      return;\n    } |     if (!itemId) return;
  * @mutate src/components/declutter/DeclutterSellPhotos.tsx |   const count = uploaded.length + held.length; |   const count = uploaded.length;
  * @mutate src/components/declutter/DeclutterSellView.tsx |       <SellPhotos\n |       <span hidden />{false && <SellPhotos\n
+ * @mutate src/components/declutter/DeclutterSellPhotos.tsx |             {uploaded.length === 0 && i === 0 && <CoverChip />} |             {<CoverChip />}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -94,6 +95,10 @@ describe("photo-first selling", () => {
     fireEvent.change(document.getElementById("sell-files")!, { target: { files: [jpg("a.jpg"), jpg("b.jpg"), jpg("c.jpg")] } });
     expect(await screen.findByRole("heading", { name: "1. Photos (3 of 12)" })).toBeInTheDocument();
     expect(document.querySelectorAll("[data-held-photo]")).toHaveLength(3);
+    // Board 31a: the first photo, and only the first, is marked as the cover.
+    const covers = document.querySelectorAll("[data-cover-chip]");
+    expect(covers).toHaveLength(1);
+    expect(covers[0].closest("[data-held-photo]")).toBe(document.querySelectorAll("[data-held-photo]")[0]);
     expect(calls).toEqual([]); // nothing uploaded before there is a draft
 
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Oak rocking chair" } });

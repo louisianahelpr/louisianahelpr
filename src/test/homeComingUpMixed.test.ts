@@ -22,17 +22,18 @@ import { deriveComingUp, COMING_UP_ROLE } from "@/pages/home/homeDashboard/comin
 
 type ComingUpInputs = Parameters<typeof deriveComingUp>[0];
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
+import { jobLocalDateISO } from "./helpers/jobLocalDate";
 import type { CartLine } from "@/lib/declutter/api";
 import type { ShopOrder } from "@/lib/shops/orders";
 
 // Noon on Tue Oct 20 2026, device time; every row below is later this week.
-const NOW = new Date(2020, 9, 20, 12, 0, 0).getTime(); // 2020: Oct 20 2020 is a Tuesday like Oct 20 2026, so every weekday label holds; a past literal never ages (jobDayFixtureTimezone).
-const iso = (d: number, h: number, m = 0) => new Date(2020, 9, d, h, m).toISOString();
+const NOW = new Date(2026, 9, 20, 12, 0, 0).getTime();
+const iso = (d: number, h: number, m = 0) => new Date(2026, 9, d, h, m).toISOString();
 
 const job = (over: Partial<Job>): Job =>
   ({
     id: "j", title: "Mow the lawn", status: "accepted", payment_status: "escrow", helper_id: "h", customer_id: "me",
-    date_needed: "2020-10-23", start_time: "14:00:00", updated_at: "2020-10-01T00:00:00Z", helper_confirmed_at: "2020-10-02T00:00:00Z", ...over,
+    date_needed: jobLocalDateISO(3, new Date(NOW)), start_time: "14:00:00", updated_at: "2026-10-01T00:00:00Z", helper_confirmed_at: "2026-10-02T00:00:00Z", ...over,
   }) as Job;
 const line = (over: Partial<CartLine>): CartLine =>
   ({
@@ -42,7 +43,7 @@ const line = (over: Partial<CartLine>): CartLine =>
   }) as CartLine;
 const order = (over: Partial<ShopOrder>): ShopOrder =>
   ({
-    id: "so", buyer_id: "me", seller_id: "s", shop_id: "sh", status: "accepted", close_reason: null, ready_date: "2020-10-22",
+    id: "so", buyer_id: "me", seller_id: "s", shop_id: "sh", status: "accepted", close_reason: null, ready_date: "2026-10-22",
     items_cents: 1200, total_cents: 1300, shop_order_lines: [{ id: "x", item_id: "y", title: "Pecan pralines", kind: "made", unit_cents: 600, quantity: 2, line_cents: 1200 }],
     ...over,
   }) as ShopOrder;
@@ -111,7 +112,7 @@ describe("Coming up mixes every section and both sides (spec v2 §5.4)", () => {
     const rows = deriveComingUp({
       ...none,
       myOrders: [order({ id: "mine" }), order({ id: "held", status: "held" })],
-      shopOrders: [order({ id: "fill", buyer_id: "b", seller_id: "me", ready_date: "2020-10-24" })],
+      shopOrders: [order({ id: "fill", buyer_id: "b", seller_id: "me", ready_date: "2026-10-24" })],
     }, NOW);
     expect(rows.map((r) => [r.id, r.role, r.title, r.day, r.time, r.to])).toEqual([
       ["o-mine", "ordered", "Pick up Pecan pralines", "Thu", null, "/shops/orders"],
@@ -122,10 +123,10 @@ describe("Coming up mixes every section and both sides (spec v2 §5.4)", () => {
   it("everything sorts into one agenda by when, and yesterday drops off", () => {
     const rows = deriveComingUp({
       ...none,
-      postedJobs: [job({ id: "sat", title: "Assemble a bookshelf", date_needed: "2020-10-24", start_time: "13:00:00" })],
+      postedJobs: [job({ id: "sat", title: "Assemble a bookshelf", date_needed: jobLocalDateISO(4, new Date(NOW)), start_time: "13:00:00" })],
       cart: [line({})],
       bookings: [{ order_id: "o1", slot_start: iso(21, 18), slot_end: null, porch_mode: null, porch_until: null }],
-      myOrders: [order({ id: "thu" }), order({ id: "old", ready_date: "2020-10-19" })],
+      myOrders: [order({ id: "thu" }), order({ id: "old", ready_date: "2026-10-19" })],
     }, NOW);
     expect(rows.map((r) => r.id)).toEqual(["d-o1", "o-thu", "p-sat"]);
     expect(rows[2].role).toBe("posted");
@@ -133,7 +134,7 @@ describe("Coming up mixes every section and both sides (spec v2 §5.4)", () => {
   });
 
   it("the day reads as boards 7 and 11 do: Today, Tomorrow, the weekday this week, then the date", () => {
-    const at = (d: number, mo = 9) => ({ order_id: `o${mo}-${d}`, slot_start: new Date(2020, mo, d, 18).toISOString(), slot_end: null, porch_mode: null, porch_until: null });
+    const at = (d: number, mo = 9) => ({ order_id: `o${mo}-${d}`, slot_start: new Date(2026, mo, d, 18).toISOString(), slot_end: null, porch_mode: null, porch_until: null });
     const days = [20, 21, 26, 27].map((d) => at(d)).concat([at(1, 10)]);
     const rows = deriveComingUp({
       ...none,

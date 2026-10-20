@@ -6,9 +6,8 @@ import { CustomizeSheet } from "@/components/sections/CustomizeSheet";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { formatJobDate } from "@/lib/dateUtils";
-import { jobStartTimeLabel } from "@/lib/jobDate";
-import { useHomeSummary, SECTION_INVITE, type ComingUpItem } from "./homeDashboard/useHomeSummary";
+import { useHomeSummary, SECTION_INVITE } from "./homeDashboard/useHomeSummary";
+import { COMING_UP_ROLE, type ComingUpItem } from "./homeDashboard/comingUp";
 import { useOnTabReselect } from "@/components/mobileNav/tabReselect";
 import { feedLinkTarget } from "./homeDashboard/feedLinkForward";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
@@ -21,21 +20,10 @@ function greeting(d = new Date()) {
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
-/** The day and the time of a Coming up row (board 7 joins them; board 11's table gives each a column). */
-function whenParts(job: ComingUpItem["job"]) {
-  // The shared rule (jobStartTimeClass): a malformed or "flexible" column value never prints raw.
-  const time = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
-  return { day: job.date_needed ? formatJobDate(job.date_needed) : null, time };
-}
-
 /** "Sat, Oct 24 2:00 PM": when, for a phone Coming up row (board 7). */
-function whenLine(job: ComingUpItem["job"]) {
-  const { day, time } = whenParts(job);
-  return [day, time].filter(Boolean).join(" ");
+function whenLine(c: ComingUpItem) {
+  return [c.day, c.time].filter(Boolean).join(" ");
 }
-
-/** Board 7: each Coming up row says which side you are on ("You hired" / "You're working"). */
-export const COMING_UP_ROLE: Record<ComingUpItem["role"], string> = { posted: "You hired", working: "You're working" };
 
 const sectionDef = (key: string) => SECTIONS.find((d) => d.key === key) ?? SECTIONS[0];
 
@@ -224,32 +212,36 @@ function HomeDashboardScreen() {
               </div>
             )}
 
-            {/* Board 7: Coming up mixes both sides; each row is the section's icon in a tinted
-                circle, the title, and "<your side> · <when>". No price on a job row (rust is money,
-                and the board shows none); the job page has the money. */}
+            {/* Board 7 / spec v2 §5.4: Coming up is ONE agenda from every section and both sides (jobs,
+                Declutter pickups, shop orders), sorted by when. Each row is its section's icon in a tinted
+                circle, the title, and "<your side> · <when>". No price on a row (rust is money, and the
+                board shows none); the item it opens has the money. */}
             <GroupSection title="Coming up">
               {summary.upcoming.length === 0 ? (
-                <p className="px-4 py-4 text-ds-14 text-muted-foreground">Nothing booked yet.</p>
+                <p data-testid="coming-up-empty" className="px-4 py-4 text-ds-14 text-muted-foreground">
+                  {summary.upcomingFailed ? "We couldn't load what's coming up. Try again in a moment." : "Nothing booked yet."}
+                </p>
               ) : (
                 summary.upcoming.map((c, i) => {
-                  const Icon = sectionDef("jobs").icon;
+                  const d = sectionDef(c.section);
+                  const Icon = d.icon;
                   const last = i === summary.upcoming.length - 1;
                   if (isWebDesktop) {
                     // Board 11: a table row: day · time · title · "<Section> · <your side>".
-                    const { day, time } = whenParts(c.job);
                     return (
                       <button
                         key={c.id}
                         type="button"
                         data-coming-up-table-row
-                        onClick={() => navigate(`/jobs/${c.job.id}`)}
+                        data-coming-up-section={c.section}
+                        onClick={() => navigate(c.to)}
                         className={`btn-press w-full text-left grid grid-cols-[6.5rem_4.5rem_minmax(0,1fr)_auto] items-center gap-4 px-5 py-3.5 ${last ? "" : "border-b border-border/70"}`}
                       >
-                        <span className="text-ds-14 font-bold text-foreground truncate" title={day ?? undefined}>{day}</span>
-                        <span className="text-ds-14 text-muted-foreground">{time}</span>
-                        <span className="text-ds-15 font-semibold text-foreground leading-snug line-clamp-2 [overflow-wrap:anywhere]" title={c.job.title}>{c.job.title}</span>
+                        <span className="text-ds-14 font-bold text-foreground truncate" title={c.day}>{c.day}</span>
+                        <span className="text-ds-14 text-muted-foreground">{c.time}</span>
+                        <span className="text-ds-15 font-semibold text-foreground leading-snug line-clamp-2 [overflow-wrap:anywhere]" title={c.title}>{c.title}</span>
                         <span data-coming-up-role={c.role} className="text-ds-13 text-muted-foreground whitespace-nowrap">
-                          {sectionDef("jobs").label} · {COMING_UP_ROLE[c.role]}
+                          {d.label} · {COMING_UP_ROLE[c.role]}
                         </span>
                       </button>
                     );
@@ -258,13 +250,13 @@ function HomeDashboardScreen() {
                     <GroupRow
                       key={c.id}
                       leading={
-                        <span aria-hidden className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-muted">
+                        <span aria-hidden data-coming-up-section={c.section} className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-muted">
                           <Icon className="w-5 h-5 text-primary" strokeWidth={1.75} />
                         </span>
                       }
-                      title={c.job.title}
-                      meta={<span data-coming-up-role={c.role}>{[COMING_UP_ROLE[c.role], whenLine(c.job)].filter(Boolean).join(" · ")}</span>}
-                      onClick={() => navigate(`/jobs/${c.job.id}`)}
+                      title={c.title}
+                      meta={<span data-coming-up-role={c.role}>{[COMING_UP_ROLE[c.role], whenLine(c)].filter(Boolean).join(" · ")}</span>}
+                      onClick={() => navigate(c.to)}
                       last={last}
                     />
                   );

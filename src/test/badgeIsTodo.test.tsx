@@ -73,7 +73,7 @@ vi.mock("@/lib/shops/orders", () => ({
   formatCents: (c: number) => `$${(c / 100).toFixed(2)}`,
 }));
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
-vi.mock("@/lib/declutter/api", () => ({ fetchMyItems: async () => [] }));
+vi.mock("@/lib/declutter/api", () => ({ fetchMyItems: async () => [], fetchMyCart: async () => [] }));
 vi.mock("@/lib/rentals/api", () => ({ fetchMyProperties: async () => [] }));
 vi.mock("@/lib/shops/api", () => ({ fetchMyShopId: async () => null }));
 vi.mock("@/components/mobileNav/useNavUnreadCount", () => ({ useNavUnreadCount: () => ({ unreadCount: 0, markAllRead: () => {} }) }));

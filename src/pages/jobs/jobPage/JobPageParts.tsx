@@ -6,6 +6,7 @@
  */
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { computeNet } from "@/components/dashboard/JobPrice";
+import { helperShareCount } from "@/lib/helperEarnings";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { flatFeePercentOf, helprPaysNoFee, isFlatFeeJob } from "@/lib/helprFlatFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -96,16 +97,17 @@ export function PosterMoney({ job, total, loading }: { job: JobPageRow; total: n
 }
 
 export function HelprMoney({ job }: { job: JobPageRow }) {
-  const owed = useFirstPayoutFeeDollars();
+  const firstPayoutFee = useFirstPayoutFeeDollars();
   const { profile } = useCurrentUser();
-  const helpers = job.helpers_needed && job.helpers_needed > 0 ? job.helpers_needed : 1;
+  // Split only on a group job (helperShareCount; helpersNeededSplitIsGroupGated).
+  const helpers = helperShareCount(job);
   const flat = isFlatFeeJob(job);
   const keepsAll = helprPaysNoFee(job);
   // A fee-stamped job pays by its stamp (5% + 70c); an older unstamped job is
   // charged the viewer's own tier rate at payout, the same rate the feed's
   // "You earn" figure uses (useDashboardData: tierFeePercent of the profile).
   const tierPct = tierFeePercent(profile?.subscription_tier, profile?.subscription_expires_at);
-  const net = computeNet(job.budget, tierPct, job.urgent_fee ?? 0, helpers, job.status === "disputed" ? 0 : owed, job).netEarnings;
+  const net = computeNet(job.budget, tierPct, job.urgent_fee ?? 0, helpers, job.status === "disputed" ? 0 : firstPayoutFee, job).netEarnings;
   const pct = flatFeePercentOf(job);
   const flatCents = Number(job.helper_fee_flat_cents ?? 0);
   const feeLine = !flat
@@ -121,7 +123,7 @@ export function HelprMoney({ job }: { job: JobPageRow }) {
       </div>
       <p className="mt-1.5 text-ds-13 text-muted-foreground">
         {[`$${formatPrice(job.budget)} job${helpers > 1 ? ` for ${helpers} Helprs` : ""}`, feeLine].join(" · ")}
-        {owed > 0 && job.status !== "disputed" ? ` After the one-time $${formatPrice(owed)} setup fee, taken from your first payout.` : ""}
+        {firstPayoutFee > 0 && job.status !== "disputed" ? ` After the one-time $${formatPrice(firstPayoutFee)} setup fee, taken from your first payout.` : ""}
       </p>
     </div>
   );

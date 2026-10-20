@@ -326,7 +326,8 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
   /* Owner, 2026-10-01: say WHO is being waited on. "Waiting on your Helpr to
      mark the work done" was asked for; at 215.4px it breaks the 194px budget
      at 320, so this is the same sentence with "it" for "the work". */
-  stalled: { detail: "Waiting on your Helpr to mark it done" },
+  // Needs you, so it names the fact, not a wait (lead 2026-10-20); the face offers Message.
+  stalled: { detail: "Your Helpr hasn't marked it done" },
   /* PAST THE DAY, NAMED BY THE STEP THAT IS ACTUALLY NEXT (owner, 2026-10-01).
      "Day passed — mark it done or cancel" offered the poster a "mark it done"
      their tracker never has before the Helpr submits. Each of these names the
@@ -957,7 +958,7 @@ const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => strin
   working: (n) => `${firstName(n)} is working`,
   revision_out: (n) => `${firstName(n)} is making the fix`,
   revision_fixed: (n) => `${firstName(n)} sent the fix — check it`,
-  stalled: (n) => `Waiting on ${firstName(n)} to mark it done`,
+  stalled: (n) => `${firstName(n)} hasn't marked it done`,
   approve: (n) => `${firstName(n)} marked it done — approve & release pay`,
   overdue_unconfirmed: (n) => `${firstName(n)} never accepted — cancel?`,
   overdue_not_started: (n) => `${firstName(n)} never started — cancel?`,

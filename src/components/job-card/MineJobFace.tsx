@@ -74,9 +74,9 @@ export function MineJobFace({
   const navigate = useNavigate();
   const onOpen = () => navigate(`/jobs/${encodeURIComponent(jobId)}`);
   return (
-    <div data-mine-face="" className="p-4 lg:flex lg:items-center lg:gap-6">
-      {/* Desktop: the one button sits to the right of the face, not across a 1500px card. */}
-      <div className="min-w-0 lg:flex-1">
+    <div data-mine-face="" className="p-4 md:flex md:items-center md:gap-6">
+      {/* From 768px the one button sits to the right of the face, not across a 1500px card. */}
+      <div className="min-w-0 md:flex-1">
         <Link
           to={`/jobs/${encodeURIComponent(jobId)}`}
           data-mine-face-open=""
@@ -154,7 +154,7 @@ export function MineJobFace({
           disabled={action.disabled}
           data-mine-face-action={action.tone}
           size="sm"
-          className="mt-3 w-full rounded-full font-semibold lg:mt-0 lg:w-56 lg:shrink-0"
+          className="mt-3 w-full rounded-full font-semibold md:mt-0 md:w-auto md:min-w-40 md:px-6 md:shrink-0"
           onClick={(e) => {
             e.stopPropagation();
             action.onClick();

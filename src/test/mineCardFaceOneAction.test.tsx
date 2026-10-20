@@ -18,6 +18,7 @@
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | confirmArrival: () => a.onConfirmArrival(job.id), | confirmArrival: () => toggle(job.id),
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | if (!a.isExpanded) toggle(job.id); | void 0;
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | return { label: "Leave a review", onClick: h.review, tone: "primary" }; | return { label: "Manage job", onClick: h.manage, tone: "secondary" };
+ * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "primary" }; | return { label: "Manage job", onClick: h.manage, tone: "secondary" };
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts | if (s.isMinimalCard \|\| s.isOffered) return null; | if (s.isMinimalCard) return null;
  * @mutate src/pages/posts/PostedJobCard.tsx | expandable={false}\n            expanded={isExpanded} | expandable\n            expanded={isExpanded}
  */
@@ -28,6 +29,7 @@ import type { Job } from "@/components/job-card/activityConstants";
 import { POSTER_WAIT_IDS } from "@/components/job-card/jobStatusLine";
 import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
 import { helperFaceAction } from "@/pages/jobs/appliedJobCard/helperFaceAction";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("@/hooks/useUnsettledDisputeJobIds", () => ({ useUnsettledDisputeJobIds: () => undefined }));
@@ -65,7 +67,7 @@ const base = {
   customer_id: "poster-1",
   helper_id: "helper-1",
   location: "Lafayette, LA",
-  date_needed: "2026-11-02",
+  date_needed: jobLocalDateISO(0),
   payment_status: "escrow",
   status: "in_progress",
   helper_confirmed_at: "2026-09-19T12:00:00Z",
@@ -189,10 +191,16 @@ describe("the Posted card face (board 14)", () => {
 
 describe("every poster state has a face button", () => {
   const h = {
-    pendingApplicants: 2, helperName: "Hallie", confirmingArrival: false, completing: false,
-    openApplicants: vi.fn(), confirmArrival: vi.fn(), approve: vi.fn(), review: vi.fn(), tip: vi.fn(), postAgain: vi.fn(), manage: vi.fn(),
+    pendingApplicants: 2, helperName: "Hallie H.", confirmingArrival: false, completing: false,
+    openApplicants: vi.fn(), confirmArrival: vi.fn(), approve: vi.fn(), review: vi.fn(), tip: vi.fn(), postAgain: vi.fn(), message: vi.fn(), manage: vi.fn(),
   };
   it("the inventory is real", () => expect(POSTER_WAIT_IDS.length).toBeGreaterThan(20));
+  it("a stalled job (Needs you) offers Message, never a release the poster cannot make", () => {
+    const a = posterFaceAction("stalled", { is_group_job: false }, h);
+    expect(a.label).toBe("Message Hallie");
+    a.onClick();
+    expect(h.message).toHaveBeenCalledTimes(1);
+  });
   it.each(POSTER_WAIT_IDS)("%s", (id) => {
     const a = posterFaceAction(id, { is_group_job: false }, h);
     expect(a.label.trim().length).toBeGreaterThan(0);

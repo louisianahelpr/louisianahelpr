@@ -1,4 +1,4 @@
-// @mutate src/components/postjob/CheckoutStep.tsx | ? `$${formatPriceExact(taxedAmount)} (the job budget and service fee)` | ? `$${formatPriceExact(budgetNum)} job budget`
+// @mutate src/components/postjob/CheckoutStep.tsx | customerFeeAmount > 0 ? "(the job budget and service fee)" : "job budget"} | customerFeeAmount > 0 ? "job budget" : "job budget"}
 /**
  * Cowork design audit 2026-10-20, J3: the Post a Job order summary said tax
  * applies "never to the fees" on a screen that listed no fee, and the same

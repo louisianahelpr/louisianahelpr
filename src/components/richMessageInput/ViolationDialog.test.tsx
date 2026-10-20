@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { ViolationDialog } from "./ViolationDialog";
+import { ViolationDialog, violationTitle } from "./ViolationDialog";
 import { scanMessage } from "@/lib/messageScanner";
 
 /**
@@ -38,6 +38,15 @@ describe("ViolationDialog", () => {
     expect(screen.getByText(/Phone number detected/i)).toBeInTheDocument();
     // …and what to do about it.
     expect(screen.getByText(/Remove or reword the quoted text/i)).toBeInTheDocument();
+    // Board 85: a calm title, never "This Violates Platform Rules".
+    expect(screen.getByRole("heading", { name: "Kept private for now" })).toBeInTheDocument();
+  });
+
+  it("board 85 titles: contact -> kept private; a payment app -> keep payment on Helpr; other off-app talk -> keep it on Helpr", () => {
+    expect(violationTitle(["phone_number"])).toBe("Kept private for now");
+    expect(violationTitle(["email", "payment_app"])).toBe("Kept private for now");
+    expect(violationTitle(["payment_app", "direct_pay"])).toBe("Let's keep payment on Helpr");
+    expect(violationTitle(["direct_pay"])).toBe("Let's keep it on Helpr");
   });
 
   it("explains the rule for the case that reads as a false positive", () => {
@@ -87,3 +96,5 @@ describe("ViolationDialog", () => {
 // the one thing a label alone can never carry. Replace it with the rule key
 // and the sender is back to guess-and-retry.
 // @mutate src/components/richMessageInput/ViolationDialog.tsx | {excerpt(v.match)} | {v.type}
+// @mutate src/components/richMessageInput/ViolationDialog.tsx |           title={violationTitle(unique.map((v) => v.type))} |           title={unique.length === 1 ? unique[0].label : "This Violates Platform Rules"}
+// @mutate src/components/richMessageInput/ViolationDialog.tsx |   if (types.includes("payment_app")) return "Let's keep payment on Helpr"; |   if (types.includes("payment_app")) return "Kept private for now";

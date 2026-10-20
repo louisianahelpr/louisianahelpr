@@ -205,11 +205,11 @@ export function ChatHeader({
             )}
             {activeConvo.jobStatus && !inboxVisible && (() => {
               const status = activeConvo.jobStatus;
-              // Colors come from the canonical `jobStatusColor` map so the chat
-              // header pill paints identically to every other status chip.
+              // Colour: MESSAGE_STATUS_CHIP, one neutral ink for every status here
+              // (board 38 review), shared with the inbox row; not jobStatusColor.
               // `assigned` isn't in the job_status enum — it's a legacy alias for
-              // the offered-not-yet-confirmed window, routed through the
-              // sienna-tinted `in_progress` slot so it reads as "in motion".
+              // the offered-not-yet-confirmed window; it takes the same neutral
+              // chip as every other status.
               const palette = MESSAGE_STATUS_CHIP; // neutral: rust is money only (board 38 review)
               // No "Awarded" special-case. statusLabels.ts is the single source of
               // truth and its own docs say: do NOT introduce synonyms ("Awarded",

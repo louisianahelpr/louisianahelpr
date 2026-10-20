@@ -54,6 +54,7 @@ import { currentPosition } from "@/lib/declutter/position";
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
 // from two Declutter screens, the shared Helpr task module rode in
 // signed-in-shared and put /posts over its critical-path budget.
+import { HandoverTracker, PorchOutPhoto } from "./DeclutterPorchHandover";
 const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
 // Add a Helpr loads with the buyer's order card only (Q178: off /posts' critical path).
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
@@ -165,6 +166,8 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
         </div>
         <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(items)}</span>
       </div>
+      {/* Boards 71/72: one tracker from the real handover row (delivery has its own, in OrderDeliveryPanel). */}
+      <HandoverTracker orderId={order.orderId} handover={order.handover} booked={!!booking?.slot_start} />
       {done ? (
         <>
           <p className="text-sm font-medium">Handed over. The sale is final.</p>
@@ -189,6 +192,7 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
           {order.side === "buyer" && <PickupAddresses lines={order.lines} />}
           <BookingPanel order={order} booking={booking} />
           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
+          {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} />}
           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} />}
           {booking?.slot_start && <NoShowButton order={order} slotStart={booking.slot_start} />}

@@ -1,6 +1,7 @@
 // @mutate src/components/OfflineBanner.tsx | data-rail-inset | data-rail-off
 /**
- * THE RIGHT RAIL MUST NOT SIT ON TOP OF A FIXED PAGE SURFACE.
+ * THE RAIL MUST NOT SIT ON TOP OF A FIXED PAGE SURFACE. (The rail is on the
+ * LEFT since 2026-10-20: the insets below are `left:` and `padding-left:` now.)
  *
  * Owner, 2026-09-22: "in webpage, the messages go behind the right panel. fix
  * this and any other occurances this happens with" — the ask is the CLASS, not
@@ -32,12 +33,12 @@ import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC = join(process.cwd(), "src");
 
-/** Full-width on purpose: the hamburger that TOGGLES the rail lives in their
- *  right edge, so insetting them would hide the control under the panel it
- *  opens. MobileNav/Navbar are the phone surface and never coexist with the
- *  rail (`web-desktop` gates it). */
+/** Full-width on purpose. MobileNav/Navbar are the phone surface and never
+ *  coexist with the rail (`web-desktop` gates it). DesktopTopNav insets now
+ *  (data-rail-inset; no hamburger since the rail is always open, 2026-10-20).
+ *  AdminTopBar renders only below `lg` (AdminFrame: "no second top bar on the
+ *  desktop website"), so it never coexists with the rail either. */
 const DELIBERATELY_FULL_WIDTH = new Set([
-  "src/components/DesktopTopNav.tsx",
   "src/components/admin/AdminTopBar.tsx",
   "src/components/MobileNav.tsx",
   "src/components/Navbar.tsx",
@@ -101,7 +102,7 @@ describe("desktop rail never overlaps a fixed page surface", () => {
   it("the shared rule exists and is gated on the same three classes as the insets", () => {
     const css = readFileSync(join(SRC, "index.css"), "utf8");
     expect(css).toMatch(
-      /html\.web-desktop\.desktop-rail\.side-panel-open \[data-rail-inset\]\s*\{\s*right:\s*var\(--desktop-sidebar-w\);/,
+      /html\.web-desktop\.desktop-rail\.side-panel-open \[data-rail-inset\]\s*\{\s*left:\s*var\(--desktop-sidebar-w\);/,
     );
   });
 
@@ -111,7 +112,7 @@ describe("desktop rail never overlaps a fixed page surface", () => {
       const text = readFileSync(file, "utf8");
       // A per-page hard-coded rail width is the forbidden fix (CLAUDE.md).
       for (const line of text.split("\n")) {
-        if (/(pr|padding-right|margin-right|mr)[-:\s]*\[?248px\]?/.test(line) && !line.trim().startsWith("*") && !line.trim().startsWith("//")) {
+        if (/(pr|padding-right|margin-right|mr|pl|padding-left|margin-left|ml)[-:\s]*\[?248px\]?/.test(line) && !line.trim().startsWith("*") && !line.trim().startsWith("//")) {
           offenders.push(`${file.slice(process.cwd().length + 1)}: ${line.trim()}`);
         }
       }

@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/NotificationPanel";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -14,10 +14,8 @@ const TOP_BAR_ICON_CLASS = "h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px]";
 /**
  * The phone top bar (owner final decisions, 2026-10-19). Right side, in this
  * order: the section's own "+" (sections only), the NOTIFICATIONS bell, the
- * PROFILE avatar at the far right. Left: the section title, or on Home the
- * GREETING (Bodoni, a moment): the greeting IS Home's top bar, and Home draws
- * no logo (lead review 2026-10-20, boards 7/11/19; the logo lives in the
- * desktop sidebar). Guard: src/test/homeDesignLeadReview.test.tsx. Home has no "+". Messages lives in the bottom nav, not here.
+ * PROFILE avatar at the far right. Left: the logo on Home, the section title
+ * elsewhere. Home has no "+". Messages lives in the bottom nav, not here.
  * The "+" is a plain icon button the same size and weight as the bell (owner,
  * 2026-10-19: no longer the loudest thing in the bar; it was a filled olive
  * circle). Guard: src/test/topBarAddMatchesBell.test.ts.
@@ -29,14 +27,11 @@ const TOP_BAR_ICON_CLASS = "h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px]";
  */
 export function AppTopBar({
   title: sectionTitle,
-  heading,
   add: sectionAdd,
   explore = false,
 }: {
-  /** A section's title (Montserrat). */
+  /** Omit on Home: the logo shows instead. */
   title?: string;
-  /** Home only: the greeting, in the title's slot (boards 7/19). */
-  heading?: ReactNode;
   add?: { label: string; path: string };
   /**
    * One of Explore's four sections (2026-10-20, mock-up 6 + HELPR-DESIGN-SPEC
@@ -56,13 +51,13 @@ export function AppTopBar({
   const add = phoneExplore ? undefined : sectionAdd;
   const isPost = add?.path === "/post-job";
   const go = () => add && navigate(add.path);
-  if (isWebDesktop && !title && !add && !heading) return null;
+  if (isWebDesktop && !title && !add) return null;
   return (
     <header className="app-top-bar flex items-center justify-between gap-2 h-16" data-testid="app-top-bar">
       {title ? (
         <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1>
       ) : (
-        <div className="min-w-0">{heading}</div>
+        <HelprMark size="sm" emblemOnly to="/home" />
       )}
       <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
         {add && (

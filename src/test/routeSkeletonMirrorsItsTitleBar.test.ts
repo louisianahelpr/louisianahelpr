@@ -46,7 +46,7 @@ const classOf = (el: string) => el.match(/className="([^"]*)"/)?.[1] ?? "";
 describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
   it("is not vacuous: every file was read", () => {
     for (const s of [skeleton, bar, frame, home]) expect(s.length).toBeGreaterThan(500);
-    expect(home).toMatch(/<SectionScreen\b/);
+    expect(home).toMatch(/<SectionScreen>/);
   });
 
   it("wears SectionScreen's frame: the same AppShell props and column classes", () => {
@@ -57,14 +57,12 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(skeleton).toContain('<div className="flex flex-col gap-4 pt-1 pb-6">');
   });
 
-  it("draws Home's top bar: the same box, the GREETING on the left (no logo), bell + avatar and no '+'", () => {
+  it("draws Home's top bar: the same box, the same emblem size, bell + avatar and no '+'", () => {
     expect(classOf(call(skeleton, "div className=\"app-top-bar"))).toBe(classOf(call(bar, "header")));
-    // 2026-10-20 (lead review, boards 7/19): the greeting IS Home's top bar; neither file draws a logo there.
-    expect(home).toMatch(/<SectionScreen\s+heading=\{<h1 data-testid="home-greeting"/);
-    expect(bar).toContain("<div className=\"min-w-0\">{heading}</div>");
-    expect(skeleton).toMatch(/<div className="app-top-bar[^"]*">\s*<Skeleton [^>]*data-skeleton="greeting"/);
-    expect(bar).not.toMatch(/<HelprMark/);
-    expect(skeleton).not.toMatch(/<HelprMark/);
+    const size = (s: string) => call(s, "HelprMark").match(/size="(\w+)"/)?.[1];
+    expect(size(bar)).toBeTruthy();
+    expect(size(skeleton)).toBe(size(bar));
+    expect(call(skeleton, "HelprMark")).toContain("emblemOnly");
     // The right cluster: the bar's gap classes, and on Home exactly two controls (bell h-11, avatar h-10).
     expect(bar).toContain('className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0"');
     const cluster = skeleton.slice(skeleton.indexOf('className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0"'));
@@ -98,7 +96,7 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
 });
 
 // Proof this is able to fail: each restores a real way the two drift.
-// @mutate src/components/DashboardRouteSkeleton.tsx | <Skeleton className="h-7 w-52 max-w-[60%] rounded-ds-md" data-skeleton="greeting" /> | <HelprMark to={null} size="sm" emblemOnly className="shrink-0" />
+// @mutate src/components/DashboardRouteSkeleton.tsx | <HelprMark to={null} size="sm" emblemOnly className="shrink-0" /> | <HelprMark to={null} size="md" emblemOnly className="shrink-0" />
 // @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton="next-up"> | data-skeleton="stats">
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="h-11 w-36 mt-2 rounded-full" /> |
 // @mutate src/components/DashboardRouteSkeleton.tsx |               <span className="h-10 w-10 flex items-center justify-center"> |               <span className="h-11 w-11 flex items-center justify-center">

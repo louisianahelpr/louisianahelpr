@@ -1,5 +1,6 @@
 import AppShell from "@/components/AppShell";
 import { Skeleton } from "@/components/ui/skeleton";
+import HelprMark from "@/components/HelprMark";
 
 /**
  * Suspense / auth-pending fallback for the `/home` route, which is the Home
@@ -8,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  * It mirrors src/pages/home/HomeDashboard.tsx the way JobsSectionSkeleton
  * mirrors Jobs (Q2214): the same SectionScreen frame (AppShell, the container,
  * the page-measure scroll column), the same top bar on Home (AppTopBar: the
- * greeting on the left, no logo since 2026-10-20; the bell, the profile avatar at the far right; no "+"),
+ * emblem on the left, the bell, the profile avatar at the far right; no "+"),
  * then the greeting, the Next up card, the "Your sections" 2x2 tiles and
  * Coming up, so a cold /home goes bones -> content with nothing moving. The
  * old version drew the retired feed's title bar (emblem + search, filters,
@@ -29,9 +30,9 @@ const DashboardRouteSkeleton = () => (
     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top">
       <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden" aria-hidden>
         <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-hidden px-3 -mx-3 pb-safe-nav">
-          {/* AppTopBar on Home: the greeting left (no logo); bell (h-11) + avatar (h-10) right. */}
+          {/* AppTopBar on Home: emblem left; bell (h-11) + avatar (h-10) right. */}
           <div className="app-top-bar flex items-center justify-between gap-2 h-16">
-            <Skeleton className="h-7 w-52 max-w-[60%] rounded-ds-md" data-skeleton="greeting" />
+            <HelprMark to={null} size="sm" emblemOnly className="shrink-0" />
             <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
               <span className="h-11 w-11 flex items-center justify-center">
                 <Skeleton className="h-6 w-6 rounded-full" />
@@ -43,8 +44,11 @@ const DashboardRouteSkeleton = () => (
           </div>
           <div className="flex flex-col gap-4 pt-1 pb-6">
             <div className="flex flex-col gap-section">
-              {/* The date line under the greeting (Home's <p className="... -mt-3">). */}
-              <Skeleton className="h-4 w-32 -mt-3 rounded-ds-md" />
+              {/* Greeting (text-page-title) + the date line. */}
+              <div>
+                <Skeleton className="h-8 w-56 max-w-full rounded-ds-md" />
+                <Skeleton className="h-4 w-32 mt-1.5 rounded-ds-md" />
+              </div>
               {/* The Next up card: label, title, one line, the action pill. */}
               <div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton="next-up">
                 <Skeleton className="h-3.5 w-16 rounded-ds-md" />

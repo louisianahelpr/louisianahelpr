@@ -13,6 +13,8 @@ import { useOnTabReselect } from "@/components/mobileNav/tabReselect";
 import { feedLinkTarget } from "./homeDashboard/feedLinkForward";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { ProgressSegments } from "@/components/ui/ProgressSegments";
+import { LIVE_STEPS } from "./homeDashboard/nextUpStates";
 
 function greeting(d = new Date()) {
   const h = d.getHours();
@@ -102,6 +104,26 @@ function HomeDashboardScreen() {
         <div data-home-columns className="flex flex-col gap-section xl:grid xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:gap-6 xl:items-start">
           <div data-home-main className="flex flex-col gap-section min-w-0">
 
+            {/* LIVE NOW (board 165, spec v2 §5.1): only while a job of mine, either side, is happening. */}
+            {summary.liveNow && (() => {
+              const l = summary.liveNow;
+              const started = l.startedAt ? new Date(l.startedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : null;
+              return (
+                <section data-testid="live-now" aria-label="Live now" className="liquid-glass p-card flex flex-col gap-1.5 border-2 border-primary">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Live now</h2>
+                    {started && <span className="text-ds-13 font-semibold text-primary">Started {started}</span>}
+                  </div>
+                  <p data-testid="live-now-title" className="text-ds-18 font-bold leading-snug text-foreground line-clamp-2 [overflow-wrap:anywhere]">{l.title}</p>
+                  <p className="text-ds-14 text-muted-foreground">{l.side} · {l.detail}</p>
+                  <div className="mt-1.5"><ProgressSegments steps={LIVE_STEPS} current={l.step} label="Job progress" /></div>
+                  <button type="button" data-testid="live-now-action" onClick={() => navigate(`/jobs/${l.jobId}`)} className="btn-grad-primary btn-press self-start rounded-full min-h-11 px-5 mt-2 text-ds-15 font-semibold">
+                    Open job
+                  </button>
+                </section>
+              );
+            })()}
+
             {/* NEXT UP (owner, 2026-10-20; HELPR-DESIGN-SPEC §4 Home): the single most urgent
                 to-do from every section and both sides, with its one action. Replaces the three
                 stat boxes. Nothing invented: no to-do, no task; the money line only when the
@@ -109,8 +131,13 @@ function HomeDashboardScreen() {
             <section data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1.5">
               <div className="flex items-center justify-between gap-3">
                 <h2 data-testid="next-up-label" className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                  {todoCount > 1 ? `Next up · ${at + 1} of ${todoCount}` : "Next up"}
+                  {!next && summary.waiting ? summary.waiting.label : todoCount > 1 ? `Next up · ${at + 1} of ${todoCount}` : "Next up"}
                 </h2>
+                {!next && summary.waiting && (
+                  <button type="button" data-testid="next-up-see-job" onClick={() => navigate(`/jobs/${summary.waiting!.jobId}`)} className="min-h-11 px-1 -my-2 -mr-1 text-ds-13 font-bold text-primary whitespace-nowrap">
+                    See job
+                  </button>
+                )}
                 {next && (() => {
                   // Board 7: the to-do's section, by icon and name, top right.
                   const d = sectionDef(next.section);
@@ -173,6 +200,12 @@ function HomeDashboardScreen() {
                     </div>
                   </div>
                 </>
+              ) : summary.waiting ? (
+                /* Board 83: nothing is mine to do, so Next up says who is up; never blank. */
+                <div data-testid="next-up-waiting" className="flex flex-col gap-1.5">
+                  <p data-testid="next-up-title" className="text-ds-18 font-bold leading-snug text-foreground line-clamp-2 [overflow-wrap:anywhere]">{summary.waiting.title}</p>
+                  <p className="text-ds-14 text-muted-foreground">{summary.waiting.detail}</p>
+                </div>
               ) : (
                 <>
                   <p className="font-moment text-ds-22 leading-tight text-foreground">You're all caught up</p>

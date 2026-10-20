@@ -9,6 +9,7 @@ import { fetchMyOrders } from "@/lib/shops/orders";
 import { fetchMyProperties } from "@/lib/rentals/api";
 import { useFeature } from "@/hooks/useFeature";
 import { useNeedsYouTodos } from "./needsYouTodos";
+import { deriveLiveNow, deriveWaiting } from "./nextUpStates";
 
 export interface ComingUpItem {
   id: string;
@@ -84,6 +85,9 @@ export function useHomeSummary(user: SupaUser | null) {
     return {
       loading: posted.loading && applied.loading,
       todos,
+      // Board 165: a job happening now sits above Next up. Board 83: with nothing to do, who is up.
+      liveNow: deriveLiveNow(pj, aa),
+      waiting: todos.length ? null : deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa),
       thisWeek,
       upcoming: upcoming.slice(0, 3),
       // You tab's activity tiles (board 18): real counts, 0 = no number shown.

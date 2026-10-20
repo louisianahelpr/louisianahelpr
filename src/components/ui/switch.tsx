@@ -42,8 +42,9 @@ const Switch = React.forwardRef<
         // border, height or box-sizing ever change again.
         "relative after:absolute after:content-[''] after:inset-x-0",
         "after:top-1/2 after:h-11 after:-translate-y-1/2",
-        // Checked → olivewood tint; unchecked → muted neutral.
-        "data-[state=checked]:bg-[hsl(var(--olivewood))]",
+        // Checked → the olive ACTION colour (spec v2 §1.1: every toggle that is on
+        // is olive, board 90, 2026-10-20). It was --olivewood, the near-black ink.
+        "data-[state=checked]:bg-[hsl(var(--bark))]",
         // Dark mode swaps --olivewood to a warm near-white, so the ON track
         // turned cream under a white thumb: the two read as one pale lozenge
         // and ON was hard to tell from OFF at a glance (Availability day rows,

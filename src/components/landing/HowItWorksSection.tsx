@@ -5,17 +5,15 @@ import {
 } from "@/components/ui/SegmentedControl";
 
 /**
- * How It Works — editorial magazine layout. Title lives in the left
- * column as a masthead; the three numbered steps flow across the right.
- * Steps are always visible; they slide up 16px (120ms stagger) only when
- * the section starts below the fold. No cards, no glass panel, no icons — giant
- * Bodoni numerals anchor each step. Sits directly on parchment to match
- * the hero's editorial poster feel. Honors prefers-reduced-motion.
+ * How a job works (owner-approved landing redesign, 2026-10-20): heading and
+ * the "I need help | I want to work" toggle on one row, three white step cards
+ * with a Bodoni ordinal. Steps are always visible; they slide up 16px (120ms
+ * stagger) only when the section starts below the fold. Honors
+ * prefers-reduced-motion.
  *
  * Two-sided: Helpr is a marketplace where the SAME account both posts
  * jobs and works them, so the steps switch between the poster journey
  * and the helpr journey via the segmented control above the cards.
- * Without it the page read as "this is only for hiring."
  */
 type Side = "hire" | "work";
 
@@ -24,44 +22,31 @@ const SIDE_OPTIONS: SegmentedOption<Side>[] = [
   { value: "work", label: "I want to work" },
 ];
 
+// Copy true TODAY (lead, LANDING-APPROVED.md, 2026-10-20). Poster side:
+//   1. the poster names the price (BudgetSection), no "typical prices" claim;
+//   2. the poster may message an applicant before hiring (ChatView: only the
+//      poster may open that thread), and a Helpr verifies their ID before
+//      working (the ID gate fires on accepting a first job);
+//   3. escrow is held until the poster approves (or the AUTO_COMPLETE_HOURS
+//      window passes, stated in the money band below).
+// Helpr side is anchored to the real flow, not aspiration:
+//   1. Browse is radius-filtered in miles (JobFilters.tsx `radiusOptions`)
+//      and applying never triggers the ID gate (useApplyFlow.ts), with the
+//      take-home breakdown shown in the apply dialog before you commit.
+//   2. The ID-verification gate fires when a helpr ACCEPTS their first job.
+//   3. The poster funds escrow up front; release-payout transfers to the
+//      helpr's Stripe Connect account once the job is completed and clear
+//      of disputes. No payout speed or fee % is claimed here on purpose.
 const STEPS: Record<Side, { title: string; desc: string }[]> = {
   hire: [
-    {
-      title: "Post the job",
-      desc: "Tell us what you need, set a budget, and pick a date.",
-    },
-    {
-      title: "Pick your Helpr",
-      desc: "Local applicants come to you. Compare profiles and reviews.",
-    },
-    {
-      title: "Pay when it's done",
-      desc: "Funds are held securely — released when you confirm the work.",
-    },
+    { title: "Post what you need", desc: "Describe the job and set your price." },
+    { title: "Pick your Helpr", desc: "See who applied and chat before you hire. Every Helpr verifies their ID before they work." },
+    { title: "Pay when it's done", desc: "Your money is held safely until you approve the work." },
   ],
-  // Helpr-side copy is anchored to the real flow, not aspiration:
-  //   1. Browse is radius-filtered in miles (JobFilters.tsx `radiusOptions`)
-  //      and applying never triggers the ID gate (useApplyFlow.ts), with the
-  //      take-home breakdown shown in the apply dialog before you commit.
-  //   2. The ID-verification gate fires when a helpr ACCEPTS their first job
-  //      (useOfferHandlers.ts `handleHelperResponse`).
-  //   3. The poster funds escrow up front; release-payout transfers to the
-  //      helpr's Stripe Connect account once the job is completed and clear
-  //      of disputes. No payout speed or fee % is claimed here on purpose —
-  //      both are variable (tiered commission, 24h hold) and would date fast.
   work: [
-    {
-      title: "Find work nearby",
-      desc: "Browse jobs near you, see your take-home, then apply.",
-    },
-    {
-      title: "Get picked",
-      desc: "The person who posted the job picks you. Verify your ID once, then work.",
-    },
-    {
-      title: "Get paid when it's done",
-      desc: "Their payment is held securely — released to you once you're done.",
-    },
+    { title: "Find work nearby", desc: "Browse jobs near you, see your take-home, then apply." },
+    { title: "Get picked", desc: "The person who posted the job picks you. Verify your ID once, then work." },
+    { title: "Get paid when it's done", desc: "Their payment is held safely, then released to you once the work is approved." },
   ],
 };
 
@@ -107,80 +92,22 @@ const HowItWorksSection = () => {
     <section
       id="how-it-works"
       ref={sectionRef}
-      className="px-5 sm:px-8 lg:px-12 pt-8 sm:pt-16 lg:pt-24 pb-8 sm:pb-24 lg:pb-32 scroll-mt-24"
+      className="px-5 sm:px-8 lg:px-12 py-16 sm:py-20 lg:py-28 scroll-mt-24"
     >
-      {/* ONE layout at every width: heading block on top, three steps below.
-          This section used to carry TWO independent responsive ladders that
-          fought each other — an outer 12-column grid that moved the heading
-          into a sticky 4/12 left rail from md up, and an inner card grid with
-          its own breakpoints. The result was three different designs: stacked
-          and centred on a phone, three cards under a centred heading at sm,
-          then at md a left rail with the cards crushed into the remaining
-          8/12 — about 150px each, narrow enough that "Post the job" set one
-          word per line. Scaling a layout with width is fine; swapping which
-          layout it is, twice, is not. The rail is gone, so the steps always
-          get the full measure. */}
-        <div className="mx-auto page-measure flex flex-col gap-6 md:gap-10">
-        {/* Left column — masthead. Sticky at md+ so it stays anchored
-            while the reader scrolls through the numbered steps. */}
-        {/* Heading and the side toggle share ONE row (owner: "move to the
-            right of how it works"); the subhead drops beneath both via
-            `w-full`. Ordered with `order-*` rather than by moving the JSX, so
-            the toggle stays where it reads in source — right after the line
-            that introduces it. `flex-wrap` means a narrow phone lets the
-            toggle fall under the heading on its own; that is the same rule
-            bending, not a second layout. */}
-        {/* ONE full-width row: heading hard left, side toggle hard right, the two
-            vertically centred against each other. Centring both left a short
-            heading floating in the middle of a wide measure with dead space on
-            either flank, directly above three cards that DO span the full width
-            — so the block above read as narrower than the block below, which is
-            what made it look wrong rather than airy. `flex-wrap` lets the toggle
-            drop under the heading on a phone, where there is no room for both. */}
-        {/* Centered stacked on phone, flush left/right from `sm` (owner: "center
-            how it works and toggle on phone view"). Below `sm` the heading and
-            toggle wrap onto separate lines — matching the desktop flush-left
-            justification there left both hugging the left edge with the whole
-            right half of the screen empty, which reads as off-centre rather than
-            deliberate. */}
-        <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-6 gap-y-3 text-center sm:text-left">
-          {/* No eyebrow. `.text-display-eyebrow` was `display:none` app-wide
-              after the eyebrow-removal decision (rule deleted 2026-10-12,
-              Q1288), so the "How it works" label
-              that used to sit here was rendering as nothing — leaving the
-              section headed only "Three steps.", which never says what the
-              three steps are FOR. The heading below carries it instead, which
-              is also what the nav link pointing at #how-it-works is called. */}
+      {/* ONE layout at every width: heading + toggle on one row (the toggle drops
+          under the heading on a phone), three step cards below, three across
+          from `sm`. Same measure as every other landing block. */}
+      <div className="mx-auto w-full max-w-6xl flex flex-col gap-8 md:gap-10">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
           <h2
-            className="font-display font-bold text-balance leading-[1.05] max-w-none"
-            style={{
-              // Matches the other section headings exactly (Help Center's "Quick
-                // answers" is clamp(2.25rem, 3.4vw, 3.25rem)). Only the floor differed.
-                fontSize: "clamp(2.25rem, 3.4vw, 3.25rem)",
-              letterSpacing: "-0.025em",
-              color: "hsl(var(--ink-deep))",
-            }}
+            className="font-display landing-serif text-balance leading-[1.05] text-ds-32 sm:text-[44px] lg:text-[52px]"
+            style={{ color: "var(--lp-ink)" }}
           >
-            How it works.
+            How a job works
           </h2>
-
-          {/* No subhead (owner). "The basics, whether you're hiring or
-              working." sat between the heading and the toggle, restating what
-              the toggle already shows: the two sides are literally labelled "I
-              need help" and "I want to work". The heading and the control now
-              share one row with nothing between them. */}
-          {/* The app's shared control. This used to be a hand-rolled tablist
-              carrying `@segmented-control-exempt`: a frosted track matched to
-              the hero's "Browse Jobs" button, with a FLAT bark fill on the
-              selected segment — the one place in the app where selected was not
-              the olive gloss. It now renders <SegmentedControl /> like the
-              other fifteen call sites, so the marketing page and the app agree
-              on what "selected" looks like.
-
-              `semantics="tab"` because the control swaps the three step cards
-              below it, not a setting. No `panelIdPrefix`: the steps are a grid
-              of three cards rather than one labelled panel, so there is no
-              single element for `aria-controls` to point at. */}
+          {/* The app's shared control (selected = the olive primary), so the
+              marketing page and the app agree on what "selected" looks like.
+              `semantics="tab"`: it swaps the three step cards below. */}
           <SegmentedControl
             semantics="tab"
             ariaLabel="Which side of Helpr are you on"
@@ -190,116 +117,45 @@ const HowItWorksSection = () => {
           />
         </div>
 
-        {/* Right column — 3 steps with sequential fade-in. */}
-        <div>
-          {/* Three across from `sm` up — one row, always. The old ladder was
-              `sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3`, so the 768-1023px
-              band dropped to two columns and wrapped step 03 onto a line of its
-              own: a numbered 01/02/03 sequence broken across rows, which reads
-              as two things and then an afterthought rather than one process. */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 items-stretch gap-3 sm:gap-8 lg:gap-10">
-            {/* Keyed by index, not title: switching sides swaps the copy in
-                the SAME three nodes instead of remounting them, so the
-                observer's staggered fade-in isn't re-armed (or skipped) on
-                every toggle. */}
-            {STEPS[side].map((step, i) => (
-              <div
-                key={i}
-                // md lays the card out as a ROW — numeral on the left, title and copy
-                // to its right. That only makes sense at md, which is the one
-                // breakpoint where these are full-width stacked cards with a lot
-                // of horizontal room going spare beside a 6rem numeral. sm and lg
-                // are 3-up and narrow, so they stay stacked. The md min-height
-                // No md min-height. Every `desc` in STEPS is trimmed to set as
-                // exactly TWO lines at this width, so the three cards come out
-                // the same height on their own — in both toggle states. That is
-                // strictly better than a floor, which equalised them by padding
-                // the short ones with dead space.
-                //
-                // `md:min-h-0` is required, not redundant: Tailwind breakpoints
-                // are min-width, so `sm:min-h-[19rem]` keeps applying at md and
-                // was inflating a two-line row card to 304px. sm/lg keep their
-                // floors because those are the 3-up stacked layouts, where the
-                // cards genuinely need matching height.
-                // The number stays ABOVE the copy at every width. It used to go
-                // `md:flex-row` — number beside text — which only worked while md
-                // was a TWO-column band. At three columns each card is a third of
-                // the row, and a side-by-side number left the copy about ten
-                // characters wide.
-                // No `min-h`. The floor was 19rem/21rem, set back when each card
-                // was its own row at md and the three drifted to different
-                // heights. They share one row at every width now, so
-                // `items-stretch` on the grid equalises them for free — and the
-                // floor was leaving each card about half empty, roughly 150px of
-                // blank below three lines of copy.
-                className="h-full flex flex-col text-center rounded-2xl p-5 sm:p-7 lg:p-8"
-                style={{
-                  // Never an opacity of 0 (Q2228): the steps are readable in every state.
+        <div className="grid grid-cols-1 sm:grid-cols-3 items-stretch gap-3 sm:gap-4 lg:gap-5">
+          {/* Keyed by index, not title: switching sides swaps the copy in the
+              SAME three nodes instead of remounting them, so the reveal is not
+              re-armed on every toggle. */}
+          {STEPS[side].map((step, i) => (
+            <div
+              key={i}
+              className="landing-card h-full flex flex-col p-6 lg:p-7"
+              style={{
+                // Never an opacity of 0 (Q2228): the steps are readable in every state.
                   opacity: 1,
-                  transform: lowered ? "translateY(16px)" : "translateY(0)",
-                  // Short and lightly staggered, so a fast scroll never lands on blank cards.
-                  transition: reveal === "revealed" ? `transform 600ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 120}ms` : undefined,
-                  background: "hsl(var(--burnt-sienna) / 0.04)",
-                  border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
-                  boxShadow: "var(--elev-inset-hairline)",
-                }}
+                transform: lowered ? "translateY(16px)" : "translateY(0)",
+                // Short and lightly staggered, so a fast scroll never lands on blank cards.
+                transition: reveal === "revealed" ? `transform 600ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 120}ms` : undefined,
+              }}
+            >
+              {/* The ordinal in Bodoni, olive (rust is for money only). */}
+              <span
+                aria-hidden
+                className="landing-serif-text block shrink-0 leading-none text-ds-40"
+                style={{ color: "var(--lp-action)" }}
               >
-                <span
-                  aria-hidden
-                  className="block shrink-0 font-display font-black leading-none"
-                  style={{
-                    fontSize: "clamp(2.125rem, 6.5vw, 6rem)",
-                    // 0.75, was 0.35 (1.62:1). THE FLOOR HERE IS 3:1, NOT 4.5:1
-                    // — this numeral is never smaller than 2.125rem = 34px and
-                    // is font-black, which is WCAG 1.4.3 "large scale" by a wide
-                    // margin — but 1.62:1 missed even that, so the step numbers
-                    // were washing out rather than reading as quiet.
-                    // 0.75 is the LOWEST alpha that clears 3:1 on every surface
-                    // (ladder, worst surface: 0.35 → 1.62, 0.6 → 2.44, 0.7 →
-                    // 2.87, 0.75 → 3.11; on this card's real light ground,
-                    // 3.61:1). It is deliberately NOT taken to the 4.5:1 that
-                    // would need full-strength sienna: the numeral is the
-                    // ordinal, the Bodoni title under it is the message, and a
-                    // solid terracotta "01" would out-shout "Post the job".
-                    // Pinned in src/test/lowAlphaForegroundContrast.test.ts,
-                    // which applies a flat 4.5 because a static scan cannot read
-                    // a font size out of a clamp().
-                    color: "hsl(var(--burnt-sienna) / 0.75)",
-                    letterSpacing: "-0.04em",
-                  }}
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                {/* `key={side}` remounts ONLY this text block when the toggle
-                    flips, so the new copy fades in instead of snapping. The card
-                    itself deliberately keeps `key={i}` (see the note above) —
-                    remounting the card would re-arm its staggered
-                    IntersectionObserver fade and make all three replay on every
-                    toggle. Scoping the remount to the text keeps that intact.
-                    `motion-safe:` so it's silent under prefers-reduced-motion.
-
-                    min-w-0 so the copy wraps inside the row rather than forcing
-                    the card wider than its grid cell. */}
-                <div
-                  key={side}
-                  className="min-w-0 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300"
-                >
-                <h3
-                  className="mt-2 md:mt-0 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
-                  style={{ color: "hsl(var(--ink-deep))" }}
-                >
+                {i + 1}
+              </span>
+              {/* `key={side}` remounts ONLY this text block when the toggle
+                  flips, so the new copy fades in instead of snapping. */}
+              <div
+                key={side}
+                className="min-w-0 mt-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300"
+              >
+                <h3 className="font-sans font-bold text-ds-17 lg:text-ds-20 tracking-tight leading-snug" style={{ color: "var(--lp-ink)" }}>
                   {step.title}
                 </h3>
-                <p
-                  className="mt-2 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-sm mx-auto"
-                  style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-                >
+                <p className="mt-2 font-sans text-ds-15 leading-relaxed" style={{ color: "var(--lp-body)" }}>
                   {step.desc}
                 </p>
-                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>

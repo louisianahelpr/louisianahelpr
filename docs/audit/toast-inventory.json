@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 893,
-    "files": 222,
-    "rendering": 778,
+    "calls": 895,
+    "files": 223,
+    "rendering": 780,
     "suppressedByPolicy": 115,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 63,
-      "toast.error": 647,
+      "toast.error": 649,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,7 +18,7 @@
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 422,
+      "literal": 424,
       "template": 97,
       "dynamic": 422,
       "jsx": 0
@@ -5505,6 +5505,26 @@
         "text": "GPS confirmed you were at the job."
       },
       "renders": false
+    },
+    {
+      "file": "src/components/landing/LandingAppleButton.tsx",
+      "line": 29,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Apple sign-in didn't finish. Try again, or create an account with your email."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/landing/LandingAppleButton.tsx",
+      "line": 34,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Apple sign-in didn't finish. Try again, or create an account with your email."
+      },
+      "renders": true
     },
     {
       "file": "src/components/messages/ChatView.tsx",

@@ -1,58 +1,34 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Search, ChevronDown } from "lucide-react";
+import { ArrowRight, CloudSun, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import HelprMark from "@/components/HelprMark";
 import { goSignedInOr } from "./goSignedInOr";
+import { seasonalPill } from "./seasonalPill";
+import { heroSearchTargets, TASK_CHIPS } from "./heroSearch";
+import PhoneMock from "./PhoneMock";
 
 /**
- * Hero — Louisiana Helpr 2026 brand system.
+ * Hero (owner-approved landing redesign, 2026-10-20): seasonal pill, Bodoni H1
+ * with the rust italic "partner.", subhead, one search for all four sections
+ * with a "Search" pill, example chips that fill the search, and an HTML/CSS
+ * phone mock (no image). Two columns from lg, one stacked column below.
  *
- * Single centered editorial composition: eyebrow + Bodoni Moda H1 +
- * Montserrat subhead + two action buttons, all stacked in one flow
- * column that is centered in the section and fits every viewport (no
- * absolutely-positioned art to overflow at half-screen). The category rail
- * anchors the bottom of the hero.
+ * Honesty rules (LANDING-APPROVED.md): the chips carry no prices (no real
+ * completed-job price data behind them yet); the pill follows the month
+ * (seasonalPill); the search really searches (heroSearch.ts); no parish select
+ * (owner, 2026-10-20).
  */
 const HeroSection = () => {
   const navigate = useNavigate();
   const [loggedIn, setLoggedIn] = useState(false);
-  const [scrollHintOpacity, setScrollHintOpacity] = useState(1);
-  const headlineRef = useRef<HTMLHeadingElement>(null);
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const inputId = useId();
+  const pill = seasonalPill(new Date().getMonth());
 
-  // Fade the scroll hint out over the first 160 px of scroll — fully
-  // visible at rest, fully invisible by the time the user has committed
-  // to scrolling. rAF-throttled for smoothness.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    let raf = 0;
-    const update = () => {
-      const y = window.scrollY;
-      const next = Math.max(0, 1 - y / 160);
-      setScrollHintOpacity(next);
-    };
-    const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(update);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    update();
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  // NO variable kerning on scroll. An effect here used to tighten the H1's
-  // letter-spacing from -0.025em to -0.06em as you scrolled the first 600px.
-  // On a display headline sitting exactly at its wrap point that is not a
-  // decorative flourish, it is a relayout: measured at 668px, the headline went
-  // from 212px tall on three lines to 141px on two, so scrolling re-wrapped the
-  // hero and shifted everything under it by 71px. Tracking is also a layout
-  // property, so it was doing that work on every animation frame.
-  // Defer auth check until after first interaction (or 25 s) so the supabase
-  // chunk doesn't block LCP. CTA handlers re-fetch session inline, so this
-  // only changes optimistic logged-in routing for the first click.
+  // Defer the auth check until the first interaction (or 25 s) so the Supabase
+  // chunk never joins the landing's first paint. Every action re-checks the
+  // session itself (goSignedInOr), so this only picks the Browse link's target.
   useEffect(() => {
     let kicked = false;
     const kick = () => {
@@ -82,124 +58,106 @@ const HeroSection = () => {
     };
   }, []);
 
-  // The CTA renders as a real <Link> (crawlable href = the anonymous-visitor
-  // destination). The onClick intercepts client-side so a signed-in visitor
-  // lands on Home instead of the sign-up form.
-  const goToAccount = async (e?: React.MouseEvent) => {
-    e?.preventDefault();
-    if (loggedIn) {
-      navigate("/home");
-      return;
-    }
-    await goSignedInOr(navigate, "/home", "/signup");
+  // Search: a signed-out visitor gets the public Jobs board with the words;
+  // a signed-in one gets Jobs > Browse with them (heroSearch.ts).
+  const search = (e: React.FormEvent) => {
+    e.preventDefault();
+    const t = heroSearchTargets(query);
+    void goSignedInOr(navigate, t.signedIn, t.signedOut);
   };
 
   return (
-    <section className="relative overflow-hidden min-h-lvh flex flex-col justify-center items-center px-5 sm:px-8 lg:px-12 pt-28 sm:pt-32 lg:pt-20 pb-3 sm:pb-4 lg:pb-6">
-      {/* Editorial poster: ONE centered column. No boxes. The parchment
-          is the paper; the type is the show. Confidence over complexity. */}
-      <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16">
-        {/* Warm ambient halo behind the title — subtle gold light source
-            on the parchment. No box, no border. */}
-        {/* Wordmark above the headline (owner). The top nav now carries the
-            crest alone, so this is where the brand actually says its name on
-            the landing page. It sits ABOVE the h1 and does not touch it — the
-            hero headline's font, colour and copy are locked. `to={null}`
-            because a link back to "/" from the top of "/" is a no-op. */}
-        <div className="relative z-10 -mb-6 sm:-mb-8 lg:-mb-10">
-          <HelprMark to={null} size="md" hideEmblem />
-        </div>
-
-        <div className="relative flex items-center justify-center w-full">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -inset-16 sm:-inset-24 lg:-inset-32 -z-0"
-            style={{
-              background:
-                "radial-gradient(50% 50% at 50% 50%, hsl(var(--gold-warm) / 0.24) 0%, hsl(var(--burnt-sienna) / 0.10) 40%, transparent 75%)",
-              filter: "blur(32px)",
-            }}
-          />
-          <h1
-            ref={headlineRef}
-            // Strictly increasing: 56 → 72 → 88 → 96 → 116px. It used to run
-            // 56 → 80 → 104 → 96 → 116, i.e. `md` was BIGGER than `lg`, so the
-            // 768–1023px band rendered the hero larger than a full desktop
-            // does — 12.4vw there against 9.4vw at `lg` and 9.1vw at `xl`. On a
-            // ~840px window (a half-screen browser, a small laptop, an iPad
-            // landscape) the headline swelled ~30% out of proportion and then
-            // visibly SHRANK as you widened past 1024. Only `sm` and `md` moved;
-            // `lg`/`xl` — the sizes on a normal desktop — are untouched.
-            className="landing-h1 relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[6rem] xl:text-[7.25rem]"
-            style={{
-              color: "hsl(var(--olivewood))",
-              letterSpacing: "-0.03em",
-            }}
+    <section className="relative px-5 sm:px-8 lg:px-12 pt-24 sm:pt-28 lg:pt-36 pb-16 sm:pb-20 lg:pb-28">
+      <div className="landing-hero-grid relative mx-auto w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] items-center gap-12 lg:gap-16">
+        <div className="flex flex-col items-start gap-5 sm:gap-6 min-w-0">
+          <p
+            className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-ds-12 sm:text-ds-13 font-semibold max-w-full"
+            style={{ background: "var(--lp-surface)", color: "var(--lp-ink)", border: "1px solid var(--lp-line)" }}
+            data-testid="landing-season"
           >
-            Louisiana&rsquo;s Local{" "}
-            <em
-              className="relative inline-block"
-              style={{
-                fontStyle: "italic",
-                color: "hsl(var(--burnt-sienna))",
-              }}
-            >
-              Partner.
+            <CloudSun className="w-4 h-4 shrink-0" strokeWidth={1.75} aria-hidden style={{ color: "var(--lp-action-strong)" }} />
+            <span className="min-w-0">{pill}</span>
+          </p>
+
+          <h1
+            className="landing-h1 relative z-10 font-display font-bold leading-[0.98] text-balance break-words text-[3.25rem] min-[400px]:text-[3.75rem] sm:text-[4.5rem] lg:text-[5rem] xl:text-[5.75rem]"
+            style={{ color: "var(--lp-ink)", letterSpacing: "-0.03em" }}
+          >
+            Louisiana&rsquo;s local{" "}
+            <em className="relative inline-block" style={{ fontStyle: "italic", color: "var(--lp-money)" }}>
+              partner.
             </em>
           </h1>
-        </div>
 
-        {/* Subhead — one flowing line (natural wrap at narrow widths). */}
-        <p
-          className="max-w-xl lg:max-w-3xl text-ds-15 sm:text-ds-17 lg:text-ds-24 leading-relaxed text-balance"
-          style={{
-            fontFamily: "Montserrat, system-ui, sans-serif",
-            fontWeight: 400,
-            letterSpacing: "-0.005em",
-            color: "hsl(var(--stormy-sky))",
-          }}
-        >
-          Jobs, Declutter, Shops and Homes: everything local, in one place.
-        </p>
-
-        {/* ONE obvious sign-up action (owner, 2026-10-19: the landing is the
-            front door for all four sections, so the CTA is the account, not
-            one section's form), with Browse as a quiet text link beside it. */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-7">
-          <Button
-            asChild
-            size="xl"
-            className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-full tracking-tight text-ds-17"
-            style={{ fontFamily: "Montserrat, system-ui, sans-serif", fontWeight: 600, lineHeight: 1, color: "hsl(var(--parchment))" }}
+          <p
+            className="max-w-xl text-ds-15 sm:text-ds-17 leading-relaxed"
+            style={{ fontFamily: "Montserrat, system-ui, sans-serif", fontWeight: 400, color: "var(--lp-body)" }}
           >
-            <Link to="/signup" onClick={goToAccount} data-testid="landing-signup">
-              Join Helpr free
-              <ArrowRight className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.5} />
-            </Link>
-          </Button>
+            Hire help, sell what you don&rsquo;t need, shop local makers and find a place to rent. One account, one verified ID, real neighbors.
+          </p>
+
+          <form
+            onSubmit={search}
+            role="search"
+            aria-label="Search Helpr"
+            className="landing-search w-full max-w-xl flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-1.5 sm:p-1.5"
+            data-testid="landing-search"
+          >
+            <label htmlFor={inputId} className="sr-only">Search jobs, items, shops and homes</label>
+            <div className="landing-search-field w-full sm:w-auto sm:flex-1 min-w-0 shrink-0 flex items-center gap-2 sm:gap-2.5 px-4 sm:pl-4 sm:pr-2 h-14 sm:h-12">
+              <Search className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} aria-hidden style={{ color: "var(--lp-muted)" }} />
+              <input
+                ref={inputRef}
+                id={inputId}
+                type="search"
+                enterKeyHint="search"
+                autoComplete="off"
+                maxLength={80}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search jobs, items, shops and homes"
+                className="w-full min-w-0 bg-transparent outline-none text-ds-16 placeholder:text-[color:var(--lp-muted)] placeholder:opacity-70 placeholder:text-ds-14 max-[399px]:placeholder:text-ds-13 max-[349px]:placeholder:text-ds-12"
+                style={{ color: "var(--lp-ink)" }}
+              />
+            </div>
+            <Button
+              type="submit"
+              className="btn-grad-primary h-14 sm:h-12 w-full sm:w-auto rounded-full px-7 text-ds-15 font-semibold shrink-0"
+              data-testid="landing-search-submit"
+            >
+              Search
+            </Button>
+          </form>
+
+          <ul className="flex flex-wrap gap-2 max-w-xl" aria-label="Popular searches">
+            {TASK_CHIPS.map((chip) => (
+              <li key={chip}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery(chip);
+                    inputRef.current?.focus();
+                  }}
+                  className="landing-chip min-h-11 rounded-full px-4 text-ds-13 font-medium transition-colors"
+                >
+                  {chip}
+                </button>
+              </li>
+            ))}
+          </ul>
+
           {/* The feed this visitor can use: the guest board, or Jobs > Browse once signed in. */}
           <Link
             to={loggedIn ? "/jobs" : "/browse"}
-            className="group inline-flex items-center gap-1.5 text-ds-17 font-semibold text-[hsl(var(--bark))] underline-offset-4 hover:underline"
+            className="group inline-flex items-center gap-1.5 min-h-11 text-ds-15 font-bold underline-offset-4 hover:underline"
+            style={{ color: "var(--lp-action-strong)" }}
           >
-            <Search className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />
             Browse local jobs
+            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" strokeWidth={1.75} aria-hidden />
           </Link>
         </div>
-      </div>
 
-      {/* Scroll hint — bouncing chevron only. Fades to 0 opacity over
-          the first 160 px of scroll. */}
-      <div
-        aria-hidden="true"
-        className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 pointer-events-none transition-opacity duration-150"
-        style={{ opacity: scrollHintOpacity }}
-      >
-        <ChevronDown
-          className="w-5 h-5 motion-safe:animate-bounce"
-          strokeWidth={1.75}
-          style={{ color: "hsl(var(--olivewood) / 0.55)" }}
-        />
+        <PhoneMock />
       </div>
     </section>
   );

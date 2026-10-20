@@ -8,6 +8,7 @@ import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { sectionIsComingSoon, useSectionsOpen } from "@/components/landing/useSectionsOpen";
 
 interface NavbarProps {
   /**
@@ -19,9 +20,16 @@ interface NavbarProps {
    * floats over the photo until the user scrolls.
    */
   solid?: boolean;
+  /**
+   * The landing page's bar (owner-approved redesign, 2026-10-20): the wordmark,
+   * Jobs / Declutter (only once its switch is open to everyone) / How it works
+   * from md, then Log in and "Join free". Every other public page keeps the
+   * default bar.
+   */
+  landing?: boolean;
 }
 
-const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => {
+const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = false }, ref) => {
   // Session-only auth (no profile DB round-trip) so the marketing nav can
   // reflect logged-in state: an authenticated visitor landing on a public
   // page (/legal, /) should see an "Open app" CTA instead of
@@ -77,10 +85,13 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
       }}
     >
       <div
-        className="w-full flex items-center justify-between h-[var(--public-nav-h)]
+        className={cn(
+          `w-full flex items-center justify-between h-[var(--public-nav-h)]
           pl-[max(1.25rem,var(--safe-area-left,0px))] pr-[max(1.25rem,var(--safe-area-right,0px))]
           sm:pl-[max(2rem,var(--safe-area-left,0px))] sm:pr-[max(2rem,var(--safe-area-right,0px))]
-          lg:pl-[max(3rem,var(--safe-area-left,0px))] lg:pr-[max(3rem,var(--safe-area-right,0px))]"
+          lg:pl-[max(3rem,var(--safe-area-left,0px))] lg:pr-[max(3rem,var(--safe-area-right,0px))]`,
+          landing && "max-w-[78rem] mx-auto",
+        )}
       >
         {/* Emblem + wordmark on the MARKETING nav. This is the public,
             first-impression surface, and the wrought-iron H is the most
@@ -91,7 +102,13 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
         {/* emblemOnly (owner): the crest alone, no "Helpr · LA" wordmark. The
             emblem keeps alt="Helpr", so the link's accessible name is unchanged
             — dropping the words must not drop the name. */}
-        <HelprMark to="/" size="md" emblemOnly />
+        {landing ? (
+          <span className="shrink-0 whitespace-nowrap">
+            <HelprMark to="/" size="md" hideEmblem />
+          </span>
+        ) : (
+          <HelprMark to="/" size="md" emblemOnly />
+        )}
         {/* Smooth-scroll-to-top behavior on the marketing root used to
             live inline on this Link; HelprMark handles routing but if
             we want the same behavior in the future, replace with a
@@ -103,7 +120,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
             links the footer already carries in full — a second copy of the site
             index behind an extra tap. The three things that matter fit the bar
             on a phone, so they sit in it. */}
-        <div className="flex items-center gap-4 sm:gap-6 lg:gap-10">
+        <div className={cn("flex items-center gap-4 sm:gap-6 lg:gap-10", landing && "gap-2 sm:gap-6")}>
           {/* "How it works" removed (owner). It pointed at /#how-it-works — an
               ANCHOR on the landing page, not a page. From /login or /jobs it
               threw you off the page you were on and onto the homepage before
@@ -121,10 +138,11 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               there ARE auth actions beside it: a signed-in visitor now gets
               nothing in this group (see below), so an unconditional rule left
               a hairline floating alone at the end of the bar. */}
+          {landing && <LandingNavLinks />}
           {!user && (
             <span
               aria-hidden
-              className="w-px h-5"
+              className={cn("w-px h-5", landing && "hidden md:block")}
               style={{ background: "hsl(var(--olivewood) / 0.18)" }}
             />
           )}
@@ -143,14 +161,14 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                   asChild
                   variant="ghost"
                   size="sm"
-                  className="rounded-2xl btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+                  className={cn("rounded-2xl btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]", landing && "rounded-full")}
                 >
                   <Link
                     to="/login"
                     onMouseEnter={() => prefetchRoute("/login")}
                     onFocus={() => prefetchRoute("/login")}
                   >
-                    Log In
+                    {landing ? "Log in" : "Log In"}
                   </Link>
                 </Button>
                 {/* "Get Started" — explicit light-cream text. The `default`
@@ -163,7 +181,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                 <Button
                   asChild
                   size="sm"
-                  className="rounded-2xl btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                  className={cn("rounded-2xl btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]", landing && "rounded-full px-5")}
                   style={{ color: "hsl(var(--parchment))" }}
                 >
                   {/* Browse first (owner, 2026-10-09): Get Started opens the
@@ -171,11 +189,11 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                       Apply or Post. ON the job list it is the sign-up, so it
                       never links to the page already open. */}
                   <Link
-                    to={getStartedTo}
-                    onMouseEnter={() => prefetchRoute(getStartedTo)}
-                    onFocus={() => prefetchRoute(getStartedTo)}
+                    to={landing ? "/signup" : getStartedTo}
+                    onMouseEnter={() => prefetchRoute(landing ? "/signup" : getStartedTo)}
+                    onFocus={() => prefetchRoute(landing ? "/signup" : getStartedTo)}
                   >
-                    Get Started
+                    {landing ? "Join free" : "Get Started"}
                   </Link>
                 </Button>
               </>
@@ -189,5 +207,26 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
   );
 });
 Navbar.displayName = "Navbar";
+
+/**
+ * The landing bar's text links, from md. Its own component so only the landing
+ * reads the sections answer (React Query): every other public page's bar stays
+ * free of it. Cache-only (never fetches): the sections block asks once it is on
+ * screen; until that answer is in, Declutter stays out of the bar (fails closed).
+ */
+function LandingNavLinks() {
+  const { open } = useSectionsOpen(false);
+  const declutterOpen = !sectionIsComingSoon("declutter", open);
+  const cls = "inline-flex items-center min-h-11 transition-opacity hover:opacity-70";
+  return (
+    <div className="hidden md:flex items-center gap-7 text-ds-15 font-semibold" style={{ color: "var(--lp-ink)" }}>
+      <Link to="/browse" className={cls}>Jobs</Link>
+      {declutterOpen && (
+        <Link to="/signup?redirect=%2Fdeclutter" className={cls}>Declutter</Link>
+      )}
+      <a href="#how-it-works" className={cls}>How it works</a>
+    </div>
+  );
+}
 
 export default Navbar;

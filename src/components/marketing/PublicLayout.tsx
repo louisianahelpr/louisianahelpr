@@ -42,12 +42,19 @@ interface PublicLayoutProps {
    * not a shift, so no reserve is needed.
    */
   footer?: boolean;
+  /**
+   * The landing page (owner-approved redesign, 2026-10-20): wraps the page in
+   * `.landing-page` (its warm spec tokens, light and dark, in index.css) and
+   * gives the Navbar and Footer their landing look. Only Index passes it.
+   */
+  landing?: boolean;
 }
 
 const PublicLayout = ({
   children,
   noNavSpacer = false,
   footer = true,
+  landing = false,
 }: PublicLayoutProps) => {
   const location = useLocation();
   const { user } = useAuthReady();
@@ -120,7 +127,7 @@ const PublicLayout = ({
        Still expressed in terms of `--bottom-nav-h` rather than hardcoded to
        zero: if a PublicLayout route ever does show the dock, the footer must
        not slide underneath it. */
-    <div className="min-h-screen page-warmth pb-[calc(var(--safe-area-bottom,0px)_+_var(--bottom-nav-h,96px))] relative flex flex-col overflow-x-clip">
+    <div className={`min-h-screen page-warmth pb-[calc(var(--safe-area-bottom,0px)_+_var(--bottom-nav-h,96px))] relative flex flex-col overflow-x-clip${landing ? " landing-page" : ""}`}>
       {/* Global mesh behind every section — matches the landing surface. */}
       <div aria-hidden className="mesh-gradient-global" />
 
@@ -133,7 +140,7 @@ const PublicLayout = ({
           legal). Previously interior pages used `solid=true` which added
           a bordered olive surface — that made every non-landing page's
           top nav look different from the landing. Uniform now. */}
-      <Navbar solid={false} />
+      <Navbar solid={false} landing={landing} />
       {/* Spacer clears the fixed Navbar EXACTLY: its bar (`--public-nav-h`,
           h-14 / lg h-16) plus the same `max(inset, 0.25rem)` top padding the
           Navbar itself wears. It adds NO breathing band of its own any more
@@ -160,7 +167,7 @@ const PublicLayout = ({
 
       <div className="flex-1">{children}</div>
 
-      {footer && <Footer />}
+      {footer && <Footer landing={landing} />}
     </div>
   );
 };

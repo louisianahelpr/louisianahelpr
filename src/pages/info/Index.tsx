@@ -13,8 +13,6 @@ import { useScrollFadeUp } from "@/hooks/useScrollFadeUp";
 // Supabase before paint.
 const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 
-// Minimal landing — Hero → How it works → Footer. Live-jobs strip
-// removed per user request; the hero is the only thing above the fold.
 import HeroSection from "@/components/landing/HeroSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import { SectionsShowcase, TrustAndJoin } from "@/components/landing/SectionsShowcase";
@@ -128,7 +126,7 @@ const Index = () => {
 
 
   return (
-    <PublicLayout noNavSpacer>
+    <PublicLayout noNavSpacer landing>
       {/* LocalBusiness + Organization JSON-LD is in index.html (static,
           crawlable without JS). These page-specific schemas stay here. */}
       <script
@@ -139,18 +137,11 @@ const Index = () => {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      {/* Hero is the only thing on the fold — title, subhead, CTAs,
-          nothing else. Live-jobs strip and 3-dot divider removed per
-          user request. Hero fills exactly one viewport; HIW sits below
-          the fold naturally. */}
+      {/* Owner-approved redesign (2026-10-20, mock-up "5 · Landing page"):
+          hero with the search and the phone, the four sections, how a job
+          works, the money band, then the join block. */}
       <HeroSection />
 
-      {/* Scroll hint removed — was getting cut off at the bottom of the
-          first viewport, and the moving marquee itself is enough of an
-          invitation to keep scrolling. */}
-
-      {/* Below the fold (owner, 2026-10-19): the four sections, how Jobs
-          works, then trust and the one sign-up action. */}
       <SectionsShowcase />
 
       <HowItWorksSection />

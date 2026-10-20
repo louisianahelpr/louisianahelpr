@@ -245,7 +245,7 @@ for (const screen of SCREENS) {
 // scroll, which every version of this file could MEASURE and none could
 // REPORT. The old `status === "failed"` assertion survives this mutation
 // untouched — no exception is thrown, the page simply does not fit.
-// @mutate src/components/landing/HeroSection.tsx | <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16"> | <div style={{ minWidth: 900 }} className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16">
+// @mutate src/components/landing/HeroSection.tsx | <div className="flex flex-col items-start gap-5 sm:gap-6 min-w-0"> | <div style={{ minWidth: 900 }} className="flex flex-col items-start gap-5 sm:gap-6 min-w-0">
 // ─────────────────────────────────────────────────────────────────────────────
 // THE ASSERTION THIS FILE SPENT ITS LIFE WITHOUT.
 //

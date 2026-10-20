@@ -39,7 +39,7 @@
 // @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | invisible font-sans leading-none tabular-nums text-ds-17 | invisible h-9 w-16
 // @mutate src/pages/home/DashboardGuest.tsx | const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS; | const FEED_GRID_CLASS = "grid grid-cols-1 gap-3";
 // @mutate src/pages/home/DashboardGuest.tsx | footer={feedSettled} | footer={true}
-// @mutate src/components/marketing/PublicLayout.tsx | {footer && <Footer />} | <Footer />
+// @mutate src/components/marketing/PublicLayout.tsx | {footer && <Footer landing={landing} />} | <Footer landing={landing} />
 // @mutate src/components/profile/SecurityTab.tsx | useArrivalGate(!sessionsLoading, !factorLoading) | useArrivalGate(true, true)
 // @mutate src/components/SaveHelperButton.tsx | variant === "icon" ? "h-10 w-10 shrink-0 " : "" | ""
 // @mutate src/components/GuestBrowseSkeleton.tsx | 0.25rem) + var(--public-nav-h))" }} /> | 1.5rem) + 3rem)" }} />
@@ -301,7 +301,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     const grids = dg.match(/className=\{`\$\{FEED_GRID_CLASS\}[^`]*`\}/g) ?? [];
     expect(grids.length).toBeGreaterThanOrEqual(2);
     expect(grids.filter((g) => g.includes("${GUEST_FEED_RESERVE_CLASS}"))).toHaveLength(1);
-    expect(read("components/marketing/PublicLayout.tsx")).toMatch(/\{footer && <Footer \/>\}/);
+    expect(read("components/marketing/PublicLayout.tsx")).toMatch(/\{footer && <Footer landing=\{landing\} \/>\}/);
     expect(read("components/marketing/PublicHeaderPage.tsx")).toMatch(/<PublicLayout footer=\{footer\}>/);
   });
 

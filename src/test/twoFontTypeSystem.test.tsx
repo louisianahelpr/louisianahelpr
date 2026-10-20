@@ -11,7 +11,7 @@ import { blankCssComments, blankComments as blankTsComments } from "./helpers/bl
 // from the LOCKED hero H1 reds the last test, and putting a real `font-serif`
 // call site back reds the second one (at the right line number) while the same
 // token inside a COMMENT correctly stays green.
-// @mutate src/components/landing/HeroSection.tsx | relative z-10 font-display font-black | relative z-10 font-black
+// @mutate src/components/landing/HeroSection.tsx | relative z-10 font-display font-bold | relative z-10 font-bold
 
 /**
  * TWO TYPEFACES, NOT THREE — owner decision 2026-09-07.
@@ -148,11 +148,11 @@ describe("two-font type system", () => {
       </MemoryRouter>,
     );
     const h1 = screen.getByRole("heading", { level: 1 });
-    expect(h1.textContent).toBe("Louisiana’s Local Partner.");
+    expect(h1.textContent).toBe("Louisiana’s local partner.");
     // jsdom has no stylesheet, so the class list is the contract here: the
     // `font-display` token is the only route to Bodoni Moda in the app.
     expect(h1.className.split(/\s+/)).toContain("font-display");
-    const subhead = screen.getByText("Jobs, Declutter, Shops and Homes: everything local, in one place.");
+    const subhead = screen.getByText("Hire help, sell what you don’t need, shop local makers and find a place to rent. One account, one verified ID, real neighbors.");
     expect(subhead.style.fontFamily).toMatch(/^Montserrat/);
     expect(subhead.className.split(/\s+/)).not.toContain("font-display");
   });

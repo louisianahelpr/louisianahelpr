@@ -19,7 +19,7 @@ import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { useAdminBadges } from "@/components/admin/adminBadgeStore";
 import { useSidePanel } from "@/components/sidePanelOpen";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
-import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
+import { useNeedsYouCounts } from "@/lib/needsYouStore";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 
@@ -117,8 +117,9 @@ const DesktopSidebarRail = () => {
     exploreItem,
     ...visibleSections.map((sec) => {
       const t = sectionTabs.find((x) => x.path === sec.path);
-      // Jobs carries the same needs-you count as the Explore badge's source; the other sections have no real count yet, so none is shown.
-      return { path: sec.path, icon: sec.icon, label: sec.label, nested: true, comingSoon: t ? !t.on : false, badgeKey: sec.key === "jobs" ? ("jobsAndPosts" as const) : undefined };
+      // Jobs and Shops carry their share of the To-do count (Explore's badge is the total); Declutter and Homes have no to-dos yet, so none is shown.
+      const badgeKey = sec.key === "jobs" ? ("todoJobs" as const) : sec.key === "shops" ? ("todoShops" as const) : undefined;
+      return { path: sec.path, icon: sec.icon, label: sec.label, nested: true, comingSoon: t ? !t.on : false, badgeKey };
     }),
     { path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" },
     youItem,
@@ -132,7 +133,8 @@ const DesktopSidebarRail = () => {
   useEffect(() => {
     if (adminActive) setAdminOpen(true);
   }, [adminActive]);
-  const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
+  // BADGE = TO-DO (owner, 2026-10-20): the counts NeedsYouBridge publishes from Home's list.
+  const todo = useNeedsYouCounts(user?.id);
   // The SAME shared store MobileNav reads (Q103): one unread query and one
   // realtime channel per user, however many navs are mounted.
   const { unreadCount } = useNavUnreadCount(user);
@@ -166,9 +168,9 @@ const DesktopSidebarRail = () => {
 
   const badgeFor = (key?: DockItem["badgeKey"]) => {
     if (key === "messages") return unreadCount;
-    if (key === "posts") return postsCount;
-    if (key === "jobs") return jobsCount;
-    if (key === "jobsAndPosts") return postsCount + jobsCount;
+    if (key === "todo") return todo.total;
+    if (key === "todoJobs") return todo.jobs;
+    if (key === "todoShops") return todo.shops;
     return 0;
   };
 

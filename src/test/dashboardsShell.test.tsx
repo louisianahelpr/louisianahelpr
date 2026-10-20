@@ -53,7 +53,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "u-shell", email_confirmed_at: "2026-01-01T00:00:00Z" }, profile: { avatar_url: null, full_name: "Test Person" }, isLoading: false, isAdmin: false }),
 }));
 vi.mock("@/components/mobileNav/useNavUnreadCount", () => ({ useNavUnreadCount: () => ({ unreadCount: 3, markAllRead: () => {} }) }));
-vi.mock("@/hooks/useActivityBadgeCounts", () => ({ useActivityBadgeCounts: () => ({ postsCount: 1, jobsCount: 2 }) }));
+vi.mock("@/lib/needsYouStore", () => ({ useNeedsYouCounts: () => ({ total: 3, jobs: 3, shops: 0 }) }));
 vi.mock("@/hooks/useRecentPostedJobs", () => ({ prefetchRecentPostedJobs: () => {} }));
 vi.mock("@/lib/routePrefetch", () => ({ prefetchRoute: () => {}, prefetchRoutesWhenIdle: () => () => {} }));
 vi.mock("@/lib/haptics", () => ({ hapticLight: () => {}, hapticMedium: () => {} }));
@@ -66,6 +66,10 @@ vi.mock("@/hooks/useAgeGate", () => ({
 vi.mock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
 const job = (id: string, status: string) => ({ id, title: `Job ${id}`, status, date_needed: "2099-01-02", start_time: "09:00:00", location: "Baton Rouge, LA", budget: 50, helper_id: null });
 vi.mock("@/hooks/useActivityData", () => ({
+  // Home's to-do list (badge = To-do) reads the same posted core.
+  CORE_STALE: 60_000,
+  fetchPostedActivity: async () => ({ postedJobs: noTodos.on ? [] : [job("a", "open"), job("b", "open")], applicantCounts: {}, pendingApplicantCounts: { a: 1, b: 2 }, closedApplicantSummaries: {} }),
+  fetchAppliedActivity: async () => ({ appliedApps: [], declinedJobIds: new Set(), helperReviewedJobIds: new Set() }),
   useActivityData: (_u: unknown, tab: string) => ({
     loading: false,
     postedJobs: tab === "posted" && !noTodos.on ? [job("a", "open"), job("b", "open")] : [],
@@ -76,6 +80,12 @@ vi.mock("@/hooks/useActivityData", () => ({
 vi.mock("@/components/job-card/activityFilters", () => ({
   postedActivityBucket: () => "needs_you",
   appliedActivityBucket: () => "waiting",
+  jobIsUnfundedDraft: () => false,
+}));
+vi.mock("@/lib/backoutNotices", () => ({
+  backoutNoticeApplies: () => false,
+  backoutNoticesKey: (u: string) => ["activity", "backout", u],
+  useBackoutNotices: () => new Map(),
 }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyItems: async () => [] }));
 vi.mock("@/lib/shops/orders", () => ({
@@ -220,10 +230,11 @@ describe("Home", () => {
     expect(document.querySelector(".category-chip-row, [data-category-pill], [aria-label='Categories']")).toBeNull();
   });
 
-  it("the To do list is COLLAPSED on load and Next up's See all opens and closes it", () => {
+  // The to-dos arrive from the query cache (badge = To-do), so each test waits for them.
+  it("the To do list is COLLAPSED on load and Next up's See all opens and closes it", async () => {
     wrap(<HomeDashboard />);
+    const box = await screen.findByTestId("next-up-see-all");
     expect(screen.queryByTestId("todo-list")).toBeNull();
-    const box = screen.getByTestId("next-up-see-all");
     expect(box.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(box);
     expect(screen.getByTestId("todo-list")).toBeTruthy();
@@ -235,27 +246,29 @@ describe("Home", () => {
   // Owner, 2026-10-19 ("only show To do expanded when it's clicked"): the To do
   // STAT BOX is the only control for the list (the separate "To do (n)" bar
   // duplicated it), and nothing remembers the open state.
-  it("Next up's See all is the ONLY control for the list: no second collapsed bar", () => {
+  it("Next up's See all is the ONLY control for the list: no second collapsed bar", async () => {
     wrap(<HomeDashboard />);
+    await screen.findByTestId("next-up-see-all");
     const controls = [...document.querySelectorAll("[aria-expanded]")];
     expect(controls.map((e) => e.getAttribute("data-testid"))).toEqual(["next-up-see-all"]);
     expect(screen.queryByTestId("todo-collapsed")).toBeNull();
     expect(screen.queryByText(/^To do \(\d+\)$/)).toBeNull();
   });
 
-  it("arrives collapsed after a remount even when it was open before (never remembered)", () => {
+  it("arrives collapsed after a remount even when it was open before (never remembered)", async () => {
     const first = wrap(<HomeDashboard />);
-    fireEvent.click(screen.getByTestId("next-up-see-all"));
+    fireEvent.click(await screen.findByTestId("next-up-see-all"));
     expect(screen.getByTestId("todo-list")).toBeTruthy();
     first.unmount();
     wrap(<HomeDashboard />);
+    const again = await screen.findByTestId("next-up-see-all");
     expect(screen.queryByTestId("todo-list")).toBeNull();
-    expect(screen.getByTestId("next-up-see-all").getAttribute("aria-expanded")).toBe("false");
+    expect(again.getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("a re-tap of the Home tab folds the open list back up", () => {
+  it("a re-tap of the Home tab folds the open list back up", async () => {
     wrap(<HomeDashboard />);
-    fireEvent.click(screen.getByTestId("next-up-see-all"));
+    fireEvent.click(await screen.findByTestId("next-up-see-all"));
     expect(screen.getByTestId("todo-list")).toBeTruthy();
     act(() => announceTabReselect("/home"));
     expect(screen.queryByTestId("todo-list")).toBeNull();

@@ -29,7 +29,7 @@ vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => true }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k !== "rentals" }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, isAdmin: false }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, gate: (_k: string, fn: () => void) => fn, gatedProps: () => ({}) }) }));
-vi.mock("@/hooks/useActivityBadgeCounts", () => ({ useActivityBadgeCounts: () => ({ postsCount: state.jobs, jobsCount: 0 }) }));
+vi.mock("@/lib/needsYouStore", () => ({ useNeedsYouCounts: () => ({ total: state.jobs, jobs: state.jobs, shops: 0 }) }));
 vi.mock("@/components/mobileNav/useNavUnreadCount", () => ({ useNavUnreadCount: () => ({ unreadCount: state.unread }) }));
 vi.mock("@/components/admin/adminBadgeStore", () => ({ useAdminBadges: () => ({}) }));
 vi.mock("@/lib/routePrefetch", () => ({ prefetchRoute: () => {} }));

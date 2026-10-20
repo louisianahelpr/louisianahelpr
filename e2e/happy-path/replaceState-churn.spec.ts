@@ -155,7 +155,7 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     const { pageErrors, consoleErrors } = collectErrors(page);
 
     await page.goto("/jobs");
-    await expect(page.getByRole("heading", { name: /^jobs$/i, level: 1 })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: /^explore$/i, level: 1 })).toBeVisible({ timeout: 15_000 });
 
     const rsBefore = await readReplaceStateCount(page);
 
@@ -205,7 +205,7 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     // The regression contract: the screen is still the Activity screen, not
     // the error boundary — and nothing was thrown along the way.
     await expect(page.getByText(ERROR_BOUNDARY_TEXT)).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: /^jobs$/i, level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^explore$/i, level: 1 })).toBeVisible();
     expect(pageErrors, "uncaught page errors during the churn burst").toEqual([]);
     expect(
       consoleErrors.filter((m) => /SecurityError|replaceState|history/i.test(m)),
@@ -236,9 +236,9 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     await installSupabaseMocks(helper, { user: FAKE_HELPER, seed: true });
 
     await poster.goto("/jobs"); // the search burst runs on Jobs > Browse
-    await expect(poster.getByRole("heading", { name: /^jobs$/i, level: 1 })).toBeVisible({ timeout: 15_000 });
+    await expect(poster.getByRole("heading", { name: /^explore$/i, level: 1 })).toBeVisible({ timeout: 15_000 });
     await helper.goto("/jobs");
-    await expect(helper.getByRole("heading", { name: /^jobs$/i, level: 1 })).toBeVisible({ timeout: 15_000 });
+    await expect(helper.getByRole("heading", { name: /^explore$/i, level: 1 })).toBeVisible({ timeout: 15_000 });
 
     // Fire both sessions' own rapid churn CONCURRENTLY. This is the closest
     // this suite can get to "two sessions interacting" without a shared
@@ -255,8 +255,8 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
 
     await expect(poster.getByText(ERROR_BOUNDARY_TEXT)).toHaveCount(0);
     await expect(helper.getByText(ERROR_BOUNDARY_TEXT)).toHaveCount(0);
-    await expect(poster.getByRole("heading", { name: /^jobs$/i, level: 1 })).toBeVisible();
-    await expect(helper.getByRole("heading", { name: /^jobs$/i, level: 1 })).toBeVisible();
+    await expect(poster.getByRole("heading", { name: /^explore$/i, level: 1 })).toBeVisible();
+    await expect(helper.getByRole("heading", { name: /^explore$/i, level: 1 })).toBeVisible();
     expect(posterErrors, "uncaught page errors on the poster session during concurrent churn").toEqual([]);
 
     await posterCtx.close();

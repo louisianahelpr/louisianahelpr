@@ -157,10 +157,12 @@ describe("Declutter screens", () => {
     expect(screen.queryByRole("button", { name: "Sell an item" })).toBeNull();
   });
 
-  it("switch on: Browse with a Sell button, and an empty state in plain words", async () => {
+  it("switch on: Browse (on a phone, selling starts from the bottom bar's center +), and an empty state in plain words", async () => {
     at("/declutter", <DeclutterPage />);
-    expect(screen.getByRole("heading", { name: "Declutter" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Sell an item" })).toBeInTheDocument();
+    // A phone's bar reads "Explore" (2026-10-20); the switcher under it names the section.
+    expect(screen.getByRole("heading", { name: "Explore" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Declutter" }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.queryByRole("button", { name: "Sell an item" })).toBeNull();
     expect(await screen.findByText("Nothing for sale yet.")).toBeInTheDocument();
   });
 

@@ -34,7 +34,7 @@ export function SectionScreen({
     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top">
       <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
         <div data-app-page-scroll="" className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-safe-nav">
-          <AppTopBar title={title} add={add} />
+          <AppTopBar title={title} add={add} explore={!!section} />
           {section && <ExploreSwitcher current={section} />}
           <div className="flex flex-col gap-4 pt-1 pb-6">{children}</div>
         </div>

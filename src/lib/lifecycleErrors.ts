@@ -1319,6 +1319,7 @@ export const RPC_ERROR_COPY = {
   },
   // SMS alerts (20261020022332): SmsAlertsCard in Notification settings.
   set_sms_consent: {
+    account_restricted: "Your account is restricted right now, so you can't turn on text alerts. You can still turn them off.",
     feature_disabled: "Text alerts aren't available on your account yet.",
     invalid_phone: "Enter a 10-digit US mobile number.",
     not_authenticated: "Sign in again to change text alerts.",

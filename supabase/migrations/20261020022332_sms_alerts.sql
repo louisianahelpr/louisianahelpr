@@ -242,6 +242,12 @@ BEGIN
     IF NOT public.feature_enabled_for_user('sms_alerts', v_uid) THEN
       RAISE EXCEPTION 'feature_disabled' USING ERRCODE = '42501';
     END IF;
+    -- Q281: a banned account cannot START texts. Turning them OFF (the ELSE
+    -- branch) stays open to every account, banned or not: an opt-out must
+    -- always work.
+    IF public.is_caller_banned() THEN
+      RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+    END IF;
     v_phone := public.sms_normalize_phone(p_phone);
     IF v_phone IS NULL THEN
       RAISE EXCEPTION 'invalid_phone' USING ERRCODE = '22023';

@@ -138,6 +138,7 @@ export const PrivacyContent = () => (
               <li><strong className="text-foreground">OpenStreetMap (Nominatim)</strong> — turning an address or your current location into map coordinates.</li>
               <li><strong className="text-foreground">Google Gemini</strong> — the job details you give the AI job builder, to draft your post.</li>
               <li><strong className="text-foreground">Resend</strong> — email delivery: your email address and the content of the emails we send you.</li>
+              <li><strong className="text-foreground">Twilio</strong> — text-message delivery, only if you turn on text alerts: your mobile number and the alert text.</li>
               <li><strong className="text-foreground">PostHog</strong> — privacy-respecting product analytics.</li>
               <li><strong className="text-foreground">Sentry</strong> — crash and error monitoring.</li>
               <li><strong className="text-foreground">Cloudflare (Turnstile)</strong> — bot protection on sign-up, sign-in and password reset; sees browser and IP signals.</li>

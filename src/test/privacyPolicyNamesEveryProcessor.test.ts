@@ -14,6 +14,12 @@
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Resend</strong> | <strong className="text-foreground">Mailer</strong>
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Google Gemini</strong> | <strong className="text-foreground">An AI model</strong>
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Cloudflare (Turnstile)</strong> | <strong className="text-foreground">A bot check</strong>
+ * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Twilio</strong> | <strong className="text-foreground">Our texting provider</strong>
+ *
+ * Q2240 (owner, 2026-10-20): Twilio (SMS alerts) is named in the vendor list.
+ * The name must appear IN the "Service providers we rely on" list, not merely
+ * somewhere on the page: the "Text messages" paragraph also says "Twilio", and
+ * a whole-page match let the list omit it.
  */
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -41,6 +47,9 @@ const DISCLOSED: Record<string, string> = {
   "api.resend.com": "Resend",
   // Q1314 (owner, 2026-10-05): Turnstile disclosed, NO legal version bump.
   "challenges.cloudflare.com": "Cloudflare (Turnstile)",
+  // Q2240 (owner, 2026-10-20): SMS alerts send through Twilio.
+  "api.twilio.com": "Twilio",
+  "messaging.twilio.com": "Twilio",
 };
 // Hosts that are links, our own domains, test fixtures, or calls that carry no
 // personal data (HIBP gets a 5-char hash prefix only).
@@ -58,12 +67,17 @@ const NOT_PROCESSORS = [
   "vercel.live",
   // A link only: the Homes lease shows the EPA lead pamphlet (40 CFR 745.107) to a tenant of a pre-1978 home.
   "epa.gov",
+  // A docs link in a comment (supabase/functions/_shared/smsPolicy.ts, Twilio's
+  // request-signing docs); the hosts that receive data are DISCLOSED above.
+  "www.twilio.com",
 ];
 
 const files = [...walk("src"), ...walk("supabase/functions")];
 const hosts = new Set<string>();
 for (const f of files) for (const m of readFileSync(f, "utf8").matchAll(/https:\/\/([a-z0-9.-]+\.[a-z]{2,})/g)) hosts.add(m[1]);
 const policy = readFileSync("src/pages/info/legal/PrivacySection.tsx", "utf8");
+// The vendor list itself: the <ul> under "Service providers we rely on".
+const vendorList = policy.slice(policy.indexOf('title="Service providers we rely on"')).match(/<ul[\s\S]*?<\/ul>/)?.[0] ?? "";
 
 describe("the privacy policy names every data processor (CS-002)", () => {
   it("the inventory is real", () => {
@@ -77,8 +91,9 @@ describe("the privacy policy names every data processor (CS-002)", () => {
     expect(policy).not.toMatch(/\bFCM\b/);
     expect([...hosts].filter((h) => h === "fcm.googleapis.com")).toEqual([]);
   });
-  it("each processor's name appears in the policy", () => {
-    const missing = [...new Set(Object.values(DISCLOSED))].filter((n) => !policy.includes(n));
+  it("each processor's name appears in the policy's vendor list", () => {
+    expect(vendorList.match(/<li>/g)?.length ?? 0).toBeGreaterThan(8);
+    const missing = [...new Set(Object.values(DISCLOSED))].filter((n) => !vendorList.includes(n));
     expect(missing).toEqual([]);
   });
 });

@@ -253,11 +253,19 @@ describe("the photo-first Declutter item page", () => {
     );
     open();
     await screen.findAllByRole("button", { name: "Buy now · $42.70 total with fee" });
-    const bar = document.body.querySelector("[data-declutter-buybar]") as HTMLElement;
-    expect(bar).not.toBeNull();
+    // The bar mounts from the observer's callback, in the panel's passive
+    // effect, which can flush AFTER the in-page buttons are found: Vitest run
+    // 39464962938 (main, 2026-10-20, CI's threads pool) read null here while a
+    // local run saw it. Wait for it rather than read it on the same tick; the
+    // mutation (barShown = false) still fails, since it never mounts.
+    const bar = await waitFor(() => {
+      const el = document.body.querySelector("[data-declutter-buybar]") as HTMLElement | null;
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
     expect(bar.className).toContain("bottom-0");
     // The dock yields the strip to the bar (fixedBottomBarsClearTheDock, Q1646).
-    expect(document.documentElement.classList.contains("dock-yield")).toBe(true);
+    await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
     expect(within(bar).getByRole("button", { name: "Buy now · $42.70 total with fee" })).toBeInTheDocument();
     expect(within(bar).getByRole("button", { name: "Make offer" })).toBeInTheDocument();
   });

@@ -30,7 +30,7 @@ export interface PriceDropFields {
 }
 
 /** The Louisiana calendar day (YYYY-MM-DD) an instant falls on. */
-export function chicagoDay(at: Date): string {
+function chicagoDay(at: Date): string {
   return at.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
 }
 

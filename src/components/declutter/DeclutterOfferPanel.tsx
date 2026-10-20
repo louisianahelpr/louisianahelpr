@@ -316,19 +316,20 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
                 type="button"
                 variant="outline"
                 size="wrap"
-                className="h-14 flex-1 min-w-0 rounded-full px-3 font-semibold"
+                className="h-14 flex-1 min-w-0 whitespace-nowrap rounded-full px-3 font-semibold"
                 disabled={card.isLoading}
                 onClick={() => {
                   tap("offer");
                   panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
                 }}
               >
-                Make an offer
+                {/* Board 4: the short label, so it stays one line at 320. */}
+                Make offer
               </Button>
               <Button
                 type="button"
                 size="wrap"
-                className="h-14 flex-[1.5] min-w-0 rounded-full px-3"
+                className="h-14 flex-[1.3] min-w-0 rounded-full px-3"
                 disabled={buy.isPending || card.isLoading}
                 onClick={() => {
                   tap("buy");

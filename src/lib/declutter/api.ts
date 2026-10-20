@@ -182,6 +182,20 @@ export async function fetchItem(itemId: string): Promise<DeclutterItem | null> {
   return (row ?? null) as DeclutterItem | null;
 }
 
+/**
+ * The columns the price-drop rule reads (src/lib/declutter/priceDrop.ts), read
+ * apart from ITEM_COLUMNS so Browse's reads are untouched. RLS decides; null
+ * when the member can't read the item.
+ */
+export async function fetchItemDropState(
+  itemId: string,
+): Promise<{ sale_mode: string | null; last_price_drop_on: string | null } | null> {
+  const row = unwrap(
+    await supabase.from("declutter_items").select("sale_mode, last_price_drop_on").eq("id", itemId).maybeSingle(),
+  );
+  return (row ?? null) as { sale_mode: string | null; last_price_drop_on: string | null } | null;
+}
+
 export async function fetchPhotos(itemIds: string[]): Promise<DeclutterPhoto[]> {
   if (itemIds.length === 0) return [];
   const rows = unwrap(

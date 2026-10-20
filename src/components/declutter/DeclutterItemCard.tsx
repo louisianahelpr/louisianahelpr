@@ -57,6 +57,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag }: { i
           <span data-card-tag={tag} className="absolute bottom-2 left-2 max-w-[calc(100%-1rem)] rounded-full bg-card shadow-sm">
             <span
               className={`block rounded-full truncate px-2.5 py-1 text-ds-11 font-semibold leading-none ${tag === "drop" ? "bg-[hsl(var(--burnt-sienna)/0.14)] text-[hsl(var(--sienna-ink))]" : "border border-border text-foreground"}`}
+              title={tag === "drop" ? "May drop tonight" : "Helpr delivery"}
             >
               {tag === "drop" ? "May drop tonight" : "Helpr delivery"}
             </span>

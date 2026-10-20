@@ -14,6 +14,7 @@
  * @mutate src/components/DesktopSidebarNav.tsx |                         background: "hsl(var(--alert))", |                         background: "hsl(var(--burnt-sienna))",
  * @mutate src/components/sidePanelOpen.tsx |   return true;\n}; |   return safeStorage.getItem(STORAGE_KEY) !== "0";\n};
  * @mutate src/components/DesktopTopNav.tsx |       data-rail-inset="" |       data-rail-off=""
+ * @mutate src/components/DesktopTopNav.tsx |             aria-label="Profile"\n            data-testid="desktop-top-profile" |             aria-label="Settings"\n            data-testid="desktop-top-profile"
  * @mutate src/index.css |     padding-left: var(--desktop-sidebar-w); |     padding-right: var(--desktop-sidebar-w);
  */
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
@@ -106,6 +107,8 @@ describe("the LEFT sidebar (board 11)", () => {
     const header = document.querySelector("header") as HTMLElement;
     expect(header.hasAttribute("data-rail-inset")).toBe(true);
     expect(header.querySelector('[aria-label*="navigation panel"]')).toBeNull();
+    // Board 11: bell, then the member's photo.
+    expect([...header.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Notifications", "Profile"]);
   });
 
   it("the shared insets move the page RIGHT of the sidebar (never a right-edge rail inset)", () => {

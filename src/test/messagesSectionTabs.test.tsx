@@ -1,25 +1,30 @@
 /**
- * MESSAGES: ONE SCREEN WITH SECTION TABS, NEVER MIXED (owner, 2026-10-19,
- * PROMPT-LEAD "Global organization"). Layers checked:
- *   1. the rule (messageSections.ts): a tab lists only its own section's
- *      threads plus support ("Louisiana Helpr Team") threads; the tabs follow
- *      the member's Customize order and hidden sections, but Jobs stays while
- *      it has a thread (hiding a section never makes a conversation
- *      unreachable); `?section=` falls back to Jobs;
- *   2. the hook (useMessageSections): the strip lists those tabs, the URL picks
- *      the tab, a Declutter/Shops/Homes tab with no threads gets its friendly
- *      empty state ("coming soon" while its switch is off), Jobs gets none;
+ * MESSAGES: ONE INBOX WITH FILTER CHIPS (board 13, owner 2026-10-20; it
+ * replaced the 10-19 "section tabs, never mixed" rule). Layers checked:
+ *   1. the rule (messageSections.ts): All shows every thread, Unread the
+ *      unread ones, a section chip its own section's threads plus support
+ *      ("Louisiana Helpr Team"); the section chips follow the member's
+ *      Customize order and hidden sections, but Jobs stays while it has a
+ *      thread; `?section=` falls back to All; the row caption names only a
+ *      side the thread knows for certain;
+ *   2. the hook (useMessageSections): the chips read All / Unread · n /
+ *      sections, the URL picks the chip, a Declutter/Shops/Homes chip with no
+ *      threads gets its friendly empty state ("coming soon" while its switch
+ *      is off);
  *   3. the screen (ConversationList): the strip renders under the title, the
  *      section empty state replaces "No messages yet" and the Active / All
  *      filter (job states) leaves that tab; Messages.tsx passes the hook's
  *      threads, not the raw inbox.
  *
  * @mutate src/components/messages/messageSections.ts |     return s === "support" \|\| s === section; |     return true;
- * @mutate src/components/messages/messageSections.ts |   if (jobThreads > 0) keep.add("jobs"); |
- * @mutate src/components/messages/messageSections.ts |   return tabs.includes("jobs") ? "jobs" : tabs[0]; |   return tabs[0];
+ * @mutate src/components/messages/messageSections.ts |   if (jobThreads > 0) keep.add("jobs"); |   void 0;
+ * @mutate src/components/messages/messageSections.ts |   if (filter === "all") return [...list]; |   if (filter === "all") return list.filter((c) => !!c.teamThread);
+ * @mutate src/components/messages/messageSections.ts |   if (filter === "unread") return list.filter((c) => c.unread > 0); |   if (filter === "unread") return [...list];
+ * @mutate src/components/messages/messageSections.ts |   return "all";\n} |   return "jobs";\n}
+ * @mutate src/components/messages/messageSections.ts |   if (c.viewerIsAssignedHelper) return "You're working"; |   if (!c.viewerIsPoster) return "You're working";
+ * @mutate src/pages/messages/useMessageSections.tsx |     { value: "unread", label: unread > 0 ? `Unread · ${unread}` : "Unread" }, |     { value: "unread", label: `Unread · ${unread}` },
  * @mutate src/pages/messages/Messages.tsx |       conversations={inbox.conversations} |       conversations={conversations}
- * @mutate src/components/messages/ConversationList.tsx |           {sectionTabs && !searchOpen && !selectMode && ( |           {false && (
- * @mutate src/components/messages/ConversationList.tsx |           {!isWebDesktop && tabsOpen && !sectionEmpty && !searchOpen && !selectMode && ( |           {!isWebDesktop && tabsOpen && !searchOpen && !selectMode && (
+ * @mutate src/components/messages/ConversationList.tsx |       {phoneSearchRow}\n      {sectionTabs && ( |       {phoneSearchRow}\n      {false && (
  * @mutate src/pages/messages/useMessageSections.tsx |     empty = live[section] |     empty = true
  */
 import { readFileSync } from "node:fs";
@@ -58,7 +63,7 @@ vi.mock("@/components/sections/useSectionPrefs", async () => {
   };
 });
 
-import { coerceMessageSection, messageSectionTabs, threadsForSection } from "@/components/messages/messageSections";
+import { coerceInboxFilter, messageSectionTabs, threadRoleCaption, threadsForFilter, threadsForSection } from "@/components/messages/messageSections";
 import { useMessageSections } from "@/pages/messages/useMessageSections";
 import { ConversationList } from "@/components/messages/ConversationList";
 // The phone header is the shared AppTopBar since Q2231; its bell and avatar
@@ -90,23 +95,34 @@ const JOB = convo({ jobId: "job-1", unread: 2 });
 const TEAM = convo({ jobId: "team:me", otherUserName: "Louisiana Helpr Team", teamThread: { userId: "me", viewerIsStaff: false } });
 const KEYS = SECTIONS.map((s) => s.key);
 
-describe("the rule: never mixed", () => {
-  it("each tab lists its own threads plus support; Jobs threads appear on no other tab", () => {
+describe("the rule: one inbox, filtered by chips", () => {
+  it("All = every thread; Unread = unread threads; a section chip = its own threads plus support", () => {
     expect(KEYS.length).toBeGreaterThan(3);
+    expect(threadsForFilter([JOB, TEAM], "all")).toEqual([JOB, TEAM]);
+    expect(threadsForFilter([JOB, TEAM], "unread")).toEqual([JOB]);
     for (const k of KEYS) {
       const shown = threadsForSection([JOB, TEAM], k);
       expect(shown, k).toContain(TEAM);
       expect(shown.includes(JOB), k).toBe(k === "jobs");
+      expect(threadsForFilter([JOB, TEAM], k)).toEqual(shown);
     }
   });
 
-  it("tabs follow Customize order and hidden sections; Jobs stays while it has a thread; ?section= falls back to Jobs", () => {
+  it("section chips follow Customize order and hidden sections; Jobs stays while it has a thread; ?section= falls back to All", () => {
     expect(messageSectionTabs(["shops", "jobs"], ["shops", "jobs", "declutter", "homes"], 0)).toEqual(["shops", "jobs"]);
     expect(messageSectionTabs(["shops"], ["jobs", "declutter", "shops", "homes"], 0)).toEqual(["shops"]);
     expect(messageSectionTabs(["shops"], ["jobs", "declutter", "shops", "homes"], 3)).toEqual(["jobs", "shops"]);
-    expect(coerceMessageSection(null, ["shops", "jobs"])).toBe("jobs");
-    expect(coerceMessageSection("nope", ["shops", "jobs"])).toBe("jobs");
-    expect(coerceMessageSection("shops", ["shops", "jobs"])).toBe("shops");
+    expect(coerceInboxFilter(null, ["shops", "jobs"])).toBe("all");
+    expect(coerceInboxFilter("nope", ["shops", "jobs"])).toBe("all");
+    expect(coerceInboxFilter("unread", ["shops", "jobs"])).toBe("unread");
+    expect(coerceInboxFilter("shops", ["shops", "jobs"])).toBe("shops");
+  });
+
+  it("the row caption names only a side the thread knows: your job, or the job you were hired for", () => {
+    expect(threadRoleCaption({ viewerIsPoster: true })).toBe("Your job");
+    expect(threadRoleCaption({ viewerIsAssignedHelper: true })).toBe("You're working");
+    expect(threadRoleCaption({})).toBeNull();
+    expect(threadRoleCaption({ teamThread: { userId: "me", viewerIsStaff: false } })).toBeNull();
   });
 });
 
@@ -116,13 +132,21 @@ const wrap = (entry: string) =>
   };
 
 describe("the hook", () => {
-  it("Jobs (default): the job + support threads, a strip of the four tabs, no section empty state", () => {
+  it("All (default): every thread, chips All / Unread · n / the four sections, no section empty state", () => {
     const { result } = renderHook(() => useMessageSections([JOB, TEAM], [JOB, TEAM]), { wrapper: wrap("/messages") });
-    expect(result.current.section).toBe("jobs");
+    expect(result.current.section).toBe("all");
     expect(result.current.conversations).toEqual([JOB, TEAM]);
     expect(result.current.sectionEmpty).toBeNull();
     render(<MemoryRouter>{result.current.strip}</MemoryRouter>);
-    expect(screen.getAllByRole("tab").map((t) => t.textContent?.replace(/\d+$/, ""))).toEqual(["Jobs", "Declutter", "Shops", "Homes"]);
+    const chips = screen.getAllByRole("button").map((b) => b.textContent);
+    expect(chips).toEqual(["All", "Unread · 1", "Jobs", "Declutter", "Shops", "Homes"]);
+    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("with nothing unread the chip reads just 'Unread' (never '· 0')", () => {
+    const { result } = renderHook(() => useMessageSections([TEAM], [TEAM]), { wrapper: wrap("/messages") });
+    render(<MemoryRouter>{result.current.strip}</MemoryRouter>);
+    expect(screen.getByRole("button", { name: "Unread" })).toBeInTheDocument();
   });
 
   it("an open section with no threads says so and offers Browse; a switched-off one says coming soon", () => {
@@ -134,10 +158,10 @@ describe("the hook", () => {
     expect(declutter.result.current.sectionEmpty?.action).toBeUndefined();
   });
 
-  it("a hidden section has no tab, and its URL falls back to Jobs", () => {
+  it("a hidden section has no chip, and its URL falls back to All", () => {
     prefs.hidden = ["homes"];
     const { result } = renderHook(() => useMessageSections([JOB], [JOB]), { wrapper: wrap("/messages?section=homes") });
-    expect(result.current.section).toBe("jobs");
+    expect(result.current.section).toBe("all");
   });
 });
 

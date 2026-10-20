@@ -6,9 +6,9 @@
  *     tinted circle + "<your side> · <when>" ("You hired" / "You're working");
  *   - no price on a Coming up job row (rust is money only; the board shows none).
  *
- * @mutate src/pages/home/HomeDashboard.tsx | export const COMING_UP_ROLE: Record<ComingUpItem["role"], string> = { posted: "You hired", working: "You're working" }; | export const COMING_UP_ROLE: Record<ComingUpItem["role"], string> = { posted: "Posted", working: "Applied" };
- * @mutate src/pages/home/HomeDashboard.tsx | meta={<span data-coming-up-role={c.role}>{[COMING_UP_ROLE[c.role], whenLine(c.job)].filter(Boolean).join(" · ")}</span>} | meta={whenLine(c.job)}
- * @mutate src/pages/home/HomeDashboard.tsx |                       onClick={() => navigate(`/jobs/${c.job.id}`)}\n                      last={last} |                       onClick={() => navigate(`/jobs/${c.job.id}`)}\n                      right={<span className="text-ds-15 font-bold shrink-0">${c.job.budget}</span>}\n                      last={last}
+ * @mutate src/pages/home/homeDashboard/comingUp.ts |   posted: "You hired", |   posted: "Posted",
+ * @mutate src/pages/home/HomeDashboard.tsx | meta={<span data-coming-up-role={c.role}>{[COMING_UP_ROLE[c.role], whenLine(c)].filter(Boolean).join(" · ")}</span>} | meta={whenLine(c)}
+ * @mutate src/pages/home/HomeDashboard.tsx |                       onClick={() => navigate(c.to)}\n                      last={last} |                       onClick={() => navigate(c.to)}\n                      right={<span className="text-ds-15 font-bold shrink-0">$1</span>}\n                      last={last}
  * @mutate src/pages/home/HomeDashboard.tsx | <span data-testid="next-up-section" | <span data-testid="next-up-section" hidden
  * @mutate src/pages/home/HomeDashboard.tsx | <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1"> | <div className="flex items-center gap-x-3 gap-y-1 mt-1">
  * @mutate src/pages/home/HomeDashboard.tsx | const NEXT_UP_MAX_DOTS = 5; | const NEXT_UP_MAX_DOTS = 8;
@@ -20,7 +20,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-import { COMING_UP_ROLE } from "@/pages/home/HomeDashboard";
+import { COMING_UP_ROLE } from "@/pages/home/homeDashboard/comingUp";
 
 const src = blankComments(readFileSync(resolve(__dirname, "../pages/home/HomeDashboard.tsx"), "utf8"));
 
@@ -31,14 +31,23 @@ describe("Home matches board 7", () => {
   });
 
   it("each Coming up row says which side you are on, with the section icon, and no price", () => {
-    expect(COMING_UP_ROLE).toEqual({ posted: "You hired", working: "You're working" });
+    expect(COMING_UP_ROLE).toEqual({
+      posted: "You hired",
+      working: "You're working",
+      buying: "You're buying",
+      selling: "You're selling",
+      ordered: "You ordered",
+      shop: "Your shop",
+    });
     const block = src.slice(src.indexOf('<GroupSection title="Coming up">'), src.indexOf('aria-label="Your sections"'));
     expect(block.length).toBeGreaterThan(300);
     expect(block).toContain("data-coming-up-role={c.role}");
     expect(block).toContain("COMING_UP_ROLE[c.role]");
     // The phone row's caption: "<your side> · <when>".
-    expect(block).toMatch(/meta=\{<span data-coming-up-role=\{c\.role\}>\{\[COMING_UP_ROLE\[c\.role\], whenLine\(c\.job\)\]/);
-    expect(block).toMatch(/leading=\{\s*<span aria-hidden className="w-10 h-10 shrink-0 rounded-full/);
+    expect(block).toMatch(/meta=\{<span data-coming-up-role=\{c\.role\}>\{\[COMING_UP_ROLE\[c\.role\], whenLine\(c\)\]/);
+    expect(block).toMatch(/leading=\{\s*<span aria-hidden data-coming-up-section=\{c\.section\} className="w-10 h-10 shrink-0 rounded-full/);
+    // The row's icon is ITS section's (spec v2 §5.4: Declutter and Shops rows sit beside jobs).
+    expect(block).toMatch(/const d = sectionDef\(c\.section\);\s*const Icon = d\.icon;/);
     expect(block).not.toMatch(/budget|right=\{/);
   });
 
@@ -72,9 +81,9 @@ describe("Home matches board 7", () => {
     expect(side).toBeGreaterThan(src.indexOf('<GroupSection title="Coming up">'));
     expect(src.indexOf('data-testid="next-up"')).toBeGreaterThan(main);
     // Coming up on desktop: day · time · title · "<Section> · <your side>" columns.
-    const table = src.slice(src.indexOf("if (isWebDesktop) {"), src.indexOf("data-coming-up-table-row") + 900);
+    const table = src.slice(src.indexOf("if (isWebDesktop) {"), src.indexOf("data-coming-up-table-row") + 1100);
     expect(table).toContain("grid-cols-[6.5rem_4.5rem_minmax(0,1fr)_auto]");
-    expect(table).toMatch(/\{sectionDef\("jobs"\)\.label\} · \{COMING_UP_ROLE\[c\.role\]\}/);
+    expect(table).toMatch(/\{d\.label\} · \{COMING_UP_ROLE\[c\.role\]\}/);
     expect(table).not.toMatch(/budget|price|money/);
     // Next up on desktop: the action, then See all; no dots (board 11).
     expect(src).toMatch(/<div className="flex items-center -ml-2 lg:hidden" role="group" aria-label="Your to-dos">/);

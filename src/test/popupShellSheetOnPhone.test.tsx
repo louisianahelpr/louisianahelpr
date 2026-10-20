@@ -1,0 +1,72 @@
+/**
+ * THE SHARED POPUP SHELL (spec v2 §3 "Sheets and menus"; lead 2026-10-20):
+ * on the phone every popup is a bottom sheet (full width, pinned to the bottom,
+ * 28px top corners, square bottom corners, a drag handle); from sm it is a
+ * centred 480px dialog; its primary and secondary actions are pills.
+ *
+ * ONE place: DialogContent wears POPUP_SHEET_CLS + POPUP_DIALOG_CLS
+ * (popupFooter.ts), and every Dialog-family action reads POPUP_ACTION_RADIUS,
+ * so no popup can opt out by accident.
+ *
+ * @mutate src/components/ui/popupFooter.ts |   "fixed inset-x-0 bottom-0 w-full max-w-full max-h-[92dvh] !rounded-b-none " + |   "fixed left-1/2 top-1/2 w-full max-w-full max-h-[92dvh] " +
+ * @mutate src/components/ui/popupFooter.ts | sm:w-full sm:max-w-[480px] | sm:w-full sm:max-w-lg
+ * @mutate src/components/ui/popupFooter.ts | export const POPUP_ACTION_RADIUS = "rounded-full"; | export const POPUP_ACTION_RADIUS = "rounded-ds-md";
+ * @mutate src/components/ui/dialog.tsx |       <span data-sheet-handle aria-hidden className={POPUP_HANDLE_CLS} /> |       {null}
+ */
+import { describe, it, expect, afterEach } from "vitest";
+import { render, screen, cleanup } from "@testing-library/react";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogFooter,
+  DialogPrimaryAction,
+  DialogSecondaryAction,
+} from "@/components/ui/dialog";
+import { POPUP_DIALOG_CLS, POPUP_SHEET_CLS } from "@/components/ui/popupFooter";
+
+afterEach(cleanup);
+
+function open() {
+  render(
+    <Dialog open>
+      <DialogContent>
+        <DialogTitle>Log out?</DialogTitle>
+        <DialogFooter>
+          <DialogSecondaryAction>Cancel</DialogSecondaryAction>
+          <DialogPrimaryAction>Log out</DialogPrimaryAction>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>,
+  );
+  return screen.getByRole("dialog");
+}
+
+describe("every popup: a sheet on the phone, a 480px dialog on desktop, pill actions", () => {
+  it("the phone half is a bottom sheet", () => {
+    for (const c of ["fixed", "inset-x-0", "bottom-0", "w-full", "!rounded-b-none", "data-[state=open]:slide-in-from-bottom"]) {
+      expect(POPUP_SHEET_CLS.split(/\s+/)).toContain(c);
+    }
+  });
+
+  it("the desktop half is the centred 480px dialog", () => {
+    for (const c of ["sm:left-1/2", "sm:top-1/2", "sm:[translate:-50%_-50%]", "sm:max-w-[480px]", "sm:bottom-auto", "sm:!rounded-b-[28px]"]) {
+      expect(POPUP_DIALOG_CLS.split(/\s+/)).toContain(c);
+    }
+  });
+
+  it("a rendered dialog wears both halves, a phone-only handle, and pill actions", () => {
+    const d = open();
+    const cls = d.className.split(/\s+/);
+    for (const c of ["bottom-0", "inset-x-0", "!rounded-b-none", "sm:max-w-[480px]", "sm:top-1/2"]) expect(cls).toContain(c);
+    // The old centred-on-phone card is gone.
+    expect(cls).not.toContain("top-1/2");
+    expect(cls).not.toContain("w-[calc(100vw-2rem)]");
+    const handle = d.querySelector("[data-sheet-handle]") as HTMLElement;
+    expect(handle.getAttribute("aria-hidden")).not.toBeNull();
+    expect(handle.className).toMatch(/\bsm:hidden\b/);
+    for (const name of ["Cancel", "Log out"]) {
+      expect(screen.getByRole("button", { name }).className).toMatch(/\brounded-full\b/);
+    }
+  });
+});

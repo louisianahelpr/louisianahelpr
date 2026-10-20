@@ -38,7 +38,7 @@ import {
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
-import { checkoutAmounts } from "@/lib/declutter/money";
+import { buyNowTotalCents, checkoutAmounts } from "@/lib/declutter/money";
 import { fetchDeliveryQuote, type DeliveryQuote } from "@/lib/declutter/delivery";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { DeclutterNotice } from "./declutterUi";
@@ -112,24 +112,48 @@ function OfferRow({ o }: { o: MyOffer }) {
   });
   const myTurn = o.status === "open" && o.awaiting === o.my_side;
   const underFloor = o.my_side === "seller" && o.floor_price_cents !== null && o.amount_cents < o.floor_price_cents;
+  // What accepting really sells for: least(offer, price now) (live declutter_respond_offer -> declutter_take_item).
+  const takeCents = Math.min(o.amount_cents, o.current_price_cents);
   return (
-    <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
+    // Boards 68-70: the offer as a card (Declutter has no pre-purchase chat): the amount in money ink with who set it,
+    // the asking price, whose turn it is, and what the answer means in money, from the real rules.
+    <li className="rounded-[20px] border border-border bg-card p-4 space-y-2.5" data-offer-row="">
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div className="min-w-0">
-          <Link to={`/declutter/item/${o.item_id}`} className="font-semibold truncate block" title={o.item_title}>{o.item_title}</Link>
-          <p className="text-sm">
-            {/* Spec v2 §1.1: amounts wear the money ink. */}
-            <span className="font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(o.amount_cents)}</span>
-            <span className="text-muted-foreground"> · price now {formatPrice(o.current_price_cents)}</span>
+          <Link to={`/declutter/item/${o.item_id}`} className="text-ds-15 font-semibold truncate block" title={o.item_title}>{o.item_title}</Link>
+          <p className="text-ds-13 text-muted-foreground">Price now {formatPrice(o.current_price_cents)}</p>
+        </div>
+        <div className="shrink-0 text-right">
+          {/* Spec v2 §1.1: amounts wear the money ink. */}
+          <p className="text-ds-20 font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(o.amount_cents)}</p>
+          <p className="text-ds-12 text-muted-foreground">
+            {o.awaiting === o.my_side ? (o.my_side === "seller" ? "their offer" : "their counter") : o.my_side === "buyer" ? "your offer" : "your price"}
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{OFFER_STATUS_WORDS[o.status]}</span>
       </div>
+      {o.status !== "open" && (
+        <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{OFFER_STATUS_WORDS[o.status]}</span>
+      )}
       {underFloor && <p className="text-xs text-amber-700 dark:text-amber-300">This is under your lowest price ({formatPrice(o.floor_price_cents as number)}). Only you can see that.</p>}
       {o.status === "open" && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-ds-13 font-semibold text-[hsl(var(--sage-ink))]">
           {myTurn ? `Your turn to answer · ${timeLeft(o.respond_by)}` : `Waiting for the ${o.my_side === "buyer" ? "seller" : "buyer"} · ${timeLeft(o.respond_by)}`}
         </p>
+      )}
+      {myTurn && o.my_side === "seller" && (
+        // Sellers keep the whole price; the buyer's fee is on top (spec v2 §9.11).
+        <p className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.10)] px-3 py-2 text-ds-13 text-[hsl(var(--sienna-ink))]" data-offer-note="">
+          If you accept and the buyer pays, you keep the whole {formatPrice(takeCents)}. The buyer pays the buyer's fee on top.
+        </p>
+      )}
+      {myTurn && o.my_side === "buyer" && (
+        // Board 70: what accepting the counter costs at checkout (pickup), from the same rule as Buy now.
+        <dl className="space-y-1 rounded-xl border border-border p-3 text-ds-13" data-offer-bill="">
+          <div className="flex justify-between gap-3"><dt>Their price</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(takeCents)}</dd></div>
+          <div className="flex justify-between gap-3"><dt>Buyer's fee (5% + 70¢)</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(buyNowTotalCents(takeCents) - takeCents)}</dd></div>
+          <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1"><dt className="font-bold">You pay with pickup</dt><dd className="text-ds-16 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(buyNowTotalCents(takeCents))}</dd></div>
+          <p className="text-ds-12 text-muted-foreground">At most. More items from this seller make it less.</p>
+        </dl>
       )}
       {myTurn && (
         <div className="flex flex-wrap gap-2">

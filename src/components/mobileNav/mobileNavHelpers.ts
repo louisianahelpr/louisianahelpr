@@ -75,15 +75,6 @@ export const sectionItems = [
   { path: "/rentals", icon: KeyRound, label: "Homes", feature: "rentals" as const },
 ];
 
-/** One tab for both lists while the section tabs are on: it opens Jobs and is
- *  lit on Posts too. Its badge is the Posts and Jobs badges added together. */
-export const jobsAndPostsItem = {
-  path: "/jobs",
-  icon: Briefcase,
-  label: "Jobs & Posts",
-  badgeKey: "jobsAndPosts" as const,
-};
-
 /**
  * THE PHONE BOTTOM BAR (owner-approved mock-up, 2026-10-20): Home, Explore,
  * the center "+", Messages, You. Explore holds the four sections (its badge is

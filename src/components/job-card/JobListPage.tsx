@@ -546,15 +546,6 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
               loadingApplicants={actions.loadingApplicants}
               applicantErrors={actions.applicantErrors}
               onActionComplete={refresh}
-              // Context for the END-OF-LIST block, which fills the panel's
-              // leftover height on a short list (owner: three cards and then
-              // "roughly half the screen empty"). Same four values
-              // ActivityEmptyState already takes, so the two surfaces say the
-              // same sentence about where the rest of your posts are.
-              statusFilter={statusFilter}
-              statusCounts={activeCounts}
-              statusLabels={activeStatusFilters}
-              onSelectStatusFilter={setStatusFilter}
             />
             </SectionBoundary>
             </Suspense>

@@ -11,11 +11,11 @@
 // @mutate src/pages/jobs/AppliedJobsTab.tsx | <PagedActivityList items={apps} | <PagedActivityList items={apps.slice(0)}
 // @mutate src/components/job-card/PagedActivityList.tsx | onHiddenChange?.(hidden); | onHiddenChange?.(0);
 // @mutate src/components/job-card/ActivitySectionedView.tsx | onHiddenChange?.(totalHidden); | onHiddenChange?.(0);
-// @mutate src/pages/posts/PostedJobsTab.tsx | if (moreHidden \|\| !onSelectStatusFilter | if (!onSelectStatusFilter
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { blankComments } from "@/test/helpers/blankNonCode";
 import { ActivitySectionedView } from "./ActivitySectionedView";
 import { ACTIVITY_PAGE_SIZE } from "./PagedActivityList";
 
@@ -83,12 +83,12 @@ describe("Activity lists page at 50 with Show older", () => {
     unmount();
   });
 
-  it("the Posted tab's end-of-list line never says \"that's everything\" while cards are hidden", () => {
+  it("the Posted tab's end-of-list line never says \"that's everything\" (it is gone: J6, src/test/postedListNoDuplicateTail.test.tsx)", () => {
+    // Q372 kept the line from claiming "everything" while cards were behind
+    // "Show older". J6 (Cowork audit 2026-10-20) removed the line altogether:
+    // it restated the status boxes. Nothing in the tab says it any more.
     const src = readFileSync(join(__dirname, "..", "..", "pages", "posts", "PostedJobsTab.tsx"), "utf8");
-    expect(src).toContain("moreHidden={hiddenCount > 0}");
-    expect(src).toContain("if (moreHidden || !onSelectStatusFilter || others.length === 0) {");
-    // One list reports hidden cards: the flat list. The "All" view is
-    // ActivityBucketGroups (Q2205), which shows its own counts + "See all".
-    expect(src.match(/onHiddenChange=\{setHiddenCount\}/g)).toHaveLength(1);
+    expect(src.length).toBeGreaterThan(5000);
+    expect(blankComments(src)).not.toMatch(/That's everything under/);
   });
 });

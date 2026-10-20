@@ -5,12 +5,12 @@
  *
  * - The phone bar is Home, Explore, the center "+", Messages, You. You is
  *   Profile (the member's photo); Explore holds the four sections.
- * - "+" opens "What are we doing?": Post a job, Sell an item, Open a shop,
- *   List a home, each going where that section's own "+" goes. A section whose
- *   switch is off for the viewer shows "Coming soon" on its tile and a tap
- *   never routes into it.
- * - Tile copy is true today: Sell an item is "Photos, price, done" (no
- *   auto-fill claim), List a home makes no "verified neighbors" claim.
+ * - "+" opens "What are we doing?" (mock-up 20, superseding board 1's 2x2):
+ *   ONE ROW PER SECTION in Customize order, a main action and a second one
+ *   only where its path exists (Moving out sale only while that switch is on;
+ *   "Open a shop" becomes "Add a product or service" once the member has a
+ *   shop). A section closed to the viewer is a greyed "Opening soon" row with
+ *   no actions; it never routes into a closed section.
  * - Post a job keeps the under-18 gate. "Or just describe it" opens the AI job
  *   builder (/post-job?start=ai, which EntryChoice opens on).
  *
@@ -27,11 +27,12 @@
  *
  * @mutate src/components/mobileNav/dockItems.ts |     left: [home, exploreItem], |     left: [home],
  * @mutate src/components/MobileNav.tsx |                    setCreateOpen((o) => !o); |                    navigate("/post-job");
- * @mutate src/components/create/CreateSheet.tsx |             const onClick = !on\n              ? () => sayComingSoon(s.label) |             const onClick = false\n              ? () => sayComingSoon(s.label)
- * @mutate src/components/create/CreateSheet.tsx |                 ? gate.gate("post", () => go(createPath(s))) |                 ? () => go(createPath(s))
+ * @mutate src/components/create/CreateSheet.tsx |                 {on && ( |                 {true && (
+ * @mutate src/components/create/CreateSheet.tsx |                         onClick={a.gated ? gate.gate("post", () => go(a.path)) : () => go(a.path)} |                         onClick={() => go(a.path)}
+ * @mutate src/components/create/CreateSheet.tsx | ...(movingOut ? [{ label: "Moving out sale", path: "/declutter/move" }] : []) | { label: "Moving out sale", path: "/declutter/move" }
+ * @mutate src/components/create/CreateSheet.tsx | label: hasShop ? "Add a product or service" : "Open a shop" | label: "Open a shop"
  * @mutate src/components/create/CreateSheet.tsx | export const DESCRIBE_IT_PATH = "/post-job?start=ai"; | export const DESCRIBE_IT_PATH = "/post-job";
  * @mutate src/pages/post-job/EntryChoice.tsx |     searchParams.get("start") === "ai" ? "ai" : null, |     null,
- * @mutate src/components/sections/sectionsConfig.ts | create: { title: "Sell an item", blurb: "Photos, price, done" } | create: { title: "Sell an item", blurb: "Snap one photo, we fill the rest" }
  * @mutate src/pages/explore/Explore.tsx |   const target = open.find((s) => s.key === last) ?? open[0] ?? sectionByKey("jobs"); |   const target = sectionByKey("jobs");
  * @mutate src/components/sections/ExploreSwitcher.tsx |   useEffect(() => writeLastSection(user?.id, current), [user?.id, current]); |
  * @mutate src/components/create/CreateSheet.tsx | <SheetHero moment title="What are we doing?" /> | <SheetHero title="What are we doing?" />
@@ -80,7 +81,8 @@ vi.mock("@/hooks/useAgeGate", () => ({
 import MobileNav from "@/components/MobileNav";
 import Explore from "@/pages/explore/Explore";
 import { ExploreSwitcher } from "@/components/sections/ExploreSwitcher";
-import { SECTIONS } from "@/components/sections/sectionsConfig";
+const shop = vi.hoisted(() => ({ id: null as string | null }));
+vi.mock("@/lib/shops/api", () => ({ fetchMyShopId: async () => shop.id }));
 
 const ROOT = resolve(__dirname, "../..");
 const code = (rel: string) => blankComments(readFileSync(resolve(ROOT, rel), "utf8"));
@@ -103,7 +105,9 @@ function renderDock(at = "/home") {
 const dockLabels = () =>
   [...document.querySelectorAll('nav[aria-label="Bottom navigation"] button[aria-label]')].map((b) => b.getAttribute("aria-label"));
 const openSheet = () => fireEvent.click(screen.getByTestId("dock-create"));
-const tile = (key: string) => document.querySelector(`[data-create-tile="${key}"]`) as HTMLElement;
+const row = (key: string) => document.querySelector(`[data-create-row="${key}"]`) as HTMLElement;
+const actionLabels = (key: string) => [...row(key).querySelectorAll("[data-create-action]")].map((b) => b.textContent);
+const action = (key: string, i = 0) => document.querySelector(`[data-create-action="${key}:${i}"]`) as HTMLElement;
 const where = () => screen.getByTestId("where").textContent;
 
 beforeEach(() => {
@@ -111,6 +115,7 @@ beforeEach(() => {
   toasts.length = 0;
   age.under = false;
   age.explained.length = 0;
+  shop.id = null;
 });
 afterEach(cleanup);
 
@@ -146,50 +151,76 @@ describe("the phone bottom bar (2026-10-20)", () => {
   });
 });
 
-describe("the create sheet", () => {
-  it("has the four tiles in order: Post a job, Sell an item, Open a shop, List a home", () => {
+describe("the create sheet (mock-up 20: one row per section)", () => {
+  it("lists one row per shown section in Customize order, each with its real actions", async () => {
+    switches.on = new Set(["declutter", "shops", "rentals", "declutter_moving_out"]);
     renderDock();
     openSheet();
-    expect([...document.querySelectorAll("[data-create-tile]")].map((e) => e.getAttribute("aria-label"))).toEqual([
-      "Post a job",
-      "Sell an item",
-      "Open a shop",
-      "List a home",
-    ]);
+    expect([...document.querySelectorAll("[data-create-row]")].map((e) => e.getAttribute("data-create-row"))).toEqual(["jobs", "declutter", "shops", "homes"]);
+    expect(actionLabels("jobs")).toEqual(["Post a job"]);
+    expect(actionLabels("declutter")).toEqual(["Sell an item", "Moving out sale"]);
+    expect(actionLabels("homes")).toEqual(["List a home"]);
+    expect(await screen.findByText("No shop yet")).toBeTruthy();
+    expect(actionLabels("shops")).toEqual(["Open a shop"]);
   });
 
-  it.each(SECTIONS.map((s) => [s.key, s.add.path] as const))("a live %s tile goes where that section's own + goes (%s)", (key, path) => {
+  it("Moving out sale only while its switch is on", () => {
     renderDock();
     openSheet();
-    fireEvent.click(tile(key));
+    expect(actionLabels("declutter")).toEqual(["Sell an item"]);
+  });
+
+  it("a member with a shop gets 'Add a product or service' and no 'No shop yet'", async () => {
+    shop.id = "shop-1";
+    renderDock();
+    openSheet();
+    expect(await screen.findByText("Add a product or service")).toBeTruthy();
+    expect(screen.queryByText("No shop yet")).toBeNull();
+  });
+
+  it.each([
+    ["jobs", "/post-job"],
+    ["declutter", "/declutter/sell"],
+    ["shops", "/shops/mine"],
+    ["homes", "/rentals?tab=own&add=1"],
+  ])("the %s main action goes to %s", (key, path) => {
+    renderDock();
+    openSheet();
+    fireEvent.click(action(key));
     expect(where()).toBe(path);
     expect(toasts).toEqual([]);
   });
 
-  it("a section switched OFF for the viewer says Coming soon and never routes into it", () => {
+  it("a section switched OFF for the viewer is a greyed 'Opening soon' row with no actions", () => {
     switches.on = new Set(["shops"]);
     renderDock();
     openSheet();
-    for (const [key, name] of [["declutter", "Sell an item"], ["homes", "List a home"]] as const) {
-      const t = tile(key);
-      expect(t.getAttribute("aria-label")).toBe(`${name}, coming soon`);
-      expect(t.getAttribute("aria-disabled")).toBe("true");
-      expect(t.textContent).toContain("Coming soon");
-      fireEvent.click(t);
-      expect(where()).toBe("/home");
+    for (const key of ["declutter", "homes"]) {
+      expect(row(key).getAttribute("aria-disabled")).toBe("true");
+      expect(row(key).textContent).toContain("Opening soon");
+      expect(row(key).querySelectorAll("[data-create-action]").length).toBe(0);
     }
-    expect(toasts).toEqual(["Declutter is coming soon", "Homes is coming soon"]);
-    // A live one still goes.
-    fireEvent.click(tile("shops"));
+    fireEvent.click(document.querySelector('[data-create-soon="homes"]') as HTMLElement);
+    expect(where()).toBe("/home");
+    expect(toasts).toEqual(["Homes is coming soon"]);
+    fireEvent.click(action("shops"));
     expect(where()).toBe("/shops/mine");
+  });
+
+  it("Customize: a hidden section has no row", () => {
+    localStorage.setItem("helpr_section_prefs:u-create", JSON.stringify({ hidden: ["shops"] }));
+    renderDock();
+    openSheet();
+    expect([...document.querySelectorAll("[data-create-row]")].map((e) => e.getAttribute("data-create-row"))).toEqual(["jobs", "declutter", "homes"]);
+    localStorage.clear();
   });
 
   it("Post a job keeps the under-18 gate (and so does 'describe it')", () => {
     age.under = true;
     renderDock();
     openSheet();
-    expect(tile("jobs").getAttribute("data-age-gated")).toBe("post");
-    fireEvent.click(tile("jobs"));
+    expect(action("jobs").getAttribute("data-age-gated")).toBe("post");
+    fireEvent.click(action("jobs"));
     fireEvent.click(screen.getByTestId("create-describe"));
     expect(where()).toBe("/home");
     expect(age.explained).toEqual(["post", "post"]);
@@ -201,13 +232,6 @@ describe("the create sheet", () => {
     fireEvent.click(screen.getByTestId("create-describe"));
     expect(where()).toBe("/post-job?start=ai");
     expect(code("src/pages/post-job/EntryChoice.tsx")).toContain('searchParams.get("start") === "ai" ? "ai" : null');
-  });
-
-  it("tile copy is true today: no auto-fill claim, no 'verified neighbors' claim", () => {
-    const copy = SECTIONS.map((s) => `${s.create.title} ${s.create.blurb}`).join(" | ");
-    expect(copy).not.toMatch(/we fill|snap one photo|verified/i);
-    expect(SECTIONS.find((s) => s.key === "declutter")!.create.blurb).toBe("Photos, price, done");
-    expect(SECTIONS.length).toBeGreaterThan(3);
   });
 });
 

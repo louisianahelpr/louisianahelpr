@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-20T04:22:10.341Z",
+  "generated": "2026-10-20T04:30:49.185Z",
   "guards": 2112,
   "registered": 2107,
   "unregistered": [
@@ -11,7 +11,8 @@
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/test/browseEndCard.test.tsx"
+    "src/test/browseEndCard.test.tsx",
+    "src/test/centerCreateNav.test.tsx"
   ],
   "classD_selfReferential": [
     {

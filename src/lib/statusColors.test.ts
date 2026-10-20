@@ -42,7 +42,8 @@ describe("JOB_STATUS_COLORS", () => {
 
 describe("jobStatusColor()", () => {
   it("returns the canonical color for known statuses", () => {
-    expect(jobStatusColor("in_progress").text).toBe("hsl(var(--sienna-ink))");
+    expect(jobStatusColor("in_progress").text).toBe("hsl(var(--sage-ink))");
+    expect(jobStatusColor("disputed").text).toBe("hsl(var(--olivewood))");
     expect(jobStatusColor("completed").text).toBe("hsl(var(--sage-ink))");
     expect(jobStatusColor("revision_requested").text).toBe("hsl(var(--amber-ink))");
   });
@@ -63,6 +64,20 @@ describe("jobStatusColor()", () => {
     }
   });
 
+  it("no status paints in rust: rust is money only (spec v2 §1.1, 2026-10-20)", () => {
+    // in_progress and disputed were sienna until 2026-10-20, which read as a
+    // money state on every activity card, earnings row and profile list. The
+    // CLASS: any status, in either map, either half.
+    const RUST = /--burnt-sienna|--sienna-ink|--money|--rust/;
+    const statuses = Constants.public.Enums.job_status;
+    expect(statuses.length).toBeGreaterThan(6);
+    const style = statuses.filter((v) => RUST.test(`${JOB_STATUS_COLORS[v].bg} ${JOB_STATUS_COLORS[v].text}`));
+    const cls = statuses.filter((v) => RUST.test(jobStatusColorClasses(v)));
+    expect(style, "style map").toEqual([]);
+    expect(cls, "className map").toEqual([]);
+    expect(RUST.test(`${FALLBACK_STATUS_COLOR.bg} ${FALLBACK_STATUS_COLOR.text}`)).toBe(false);
+  });
+
   it("falls back gracefully for unknown / null / undefined / empty", () => {
     // Defensive: a fresh enum value rolled out server-side before the
     // client deploys must NOT crash the chip render.
@@ -75,7 +90,7 @@ describe("jobStatusColor()", () => {
 
 describe("jobStatusColorClasses()", () => {
   it("returns a className string keyed off the brand CSS vars", () => {
-    expect(jobStatusColorClasses("in_progress")).toContain("--burnt-sienna");
+    expect(jobStatusColorClasses("in_progress")).toContain("--bark");
     expect(jobStatusColorClasses("revision_requested")).toContain("--amber-ink");
     expect(jobStatusColorClasses("open")).toContain("--olivewood");
   });
@@ -134,5 +149,7 @@ describe("STATUS_COLOR_CLASSES (the className mirror)", () => {
   });
 });
 
-// @mutate src/lib/statusColors.ts | in_progress:        { bg: "hsl(var(--burnt-sienna) / 0.12)", text: "hsl(var(--sienna-ink))" }, | in_progress:        { bg: "hsl(var(--burnt-sienna) / 0.12)", text: "hsl(var(--burnt-sienna))" },
+// @mutate src/lib/statusColors.ts | in_progress:        { bg: "hsl(var(--bark) / 0.12)",      text: "hsl(var(--sage-ink))" }, | in_progress:        { bg: "hsl(var(--bark) / 0.12)",      text: "hsl(var(--bark))" },
+// @mutate src/lib/statusColors.ts | in_progress:        { bg: "hsl(var(--bark) / 0.12)",      text: "hsl(var(--sage-ink))" }, | in_progress:        { bg: "hsl(var(--burnt-sienna) / 0.12)", text: "hsl(var(--sienna-ink))" },
+// @mutate src/lib/statusColors.ts | disputed:           "bg-[hsl(var(--olivewood)/0.18)] text-[hsl(var(--olivewood))]", | disputed:           "bg-[hsl(var(--burnt-sienna)/0.18)] text-[hsl(var(--sienna-ink))]",
 // @mutate src/lib/statusColors.ts | pending_approval:   "bg-[hsl(var(--amber-tint)/0.14)] text-[hsl(var(--amber-ink))]", | pending_approvalX:  "bg-[hsl(var(--amber-tint)/0.14)] text-[hsl(var(--amber-ink))]",

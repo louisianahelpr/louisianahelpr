@@ -61,8 +61,8 @@ interface ConversationRowProps {
 
    COLOUR. Every job-status chip ink in this row comes from `jobStatusColor`,
    and between them they use the whole warm half of the palette: olivewood
-   (open, cancelled), --sage-ink (accepted, completed), --sienna-ink
-   (in_progress, disputed), --amber-ink (revision_requested,
+   (open, cancelled, disputed), --sage-ink (accepted, in_progress,
+   completed; no rust since 2026-10-20), --amber-ink (revision_requested,
    pending_approval). Unread is not a job STATUS — it is a property of the
    reader — so it deliberately does not live in that family. --info-tint is
    the one hue in the token set no status chip uses, it is the universal inbox
@@ -143,9 +143,9 @@ const ConversationRowBase = ({
   // header and this row share it.
   //
   // `assigned` isn't in the job_status enum — it's a legacy
-  // conversation-row alias for the offered-not-yet-confirmed window. Its
-  // colour still routes through the sienna-tinted `in_progress` slot so it
-  // reads as "in motion"; its label no longer says "Awarded".
+  // conversation-row alias for the offered-not-yet-confirmed window. It
+  // takes the same neutral MESSAGE_STATUS_CHIP as every status here; its
+  // label no longer says "Awarded".
   const statusChip = c.jobStatus && (() => {
     const s = c.jobStatus;
     const allowed: Record<string, true> = {

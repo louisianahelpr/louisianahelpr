@@ -47,6 +47,7 @@ import {
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, TAX_STATEMENTS } from "./declutterUi";
+import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 import PriceHint from "./DeclutterPriceHint";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
@@ -458,9 +459,9 @@ export default function SellFlow() {
 
           <section className="space-y-2" aria-labelledby="sell-publish">
             <h2 id="sell-publish" className="text-base font-semibold">5. List it</h2>
-            {photoCount < 3 && <p className="text-sm text-muted-foreground">Add at least 3 photos to list this item.</p>}
+            {photoCount < DECLUTTER_MIN_PHOTOS && <p className="text-sm text-muted-foreground">Add at least {photosWord(DECLUTTER_MIN_PHOTOS)} to list this item.</p>}
             {payoutBlock && <p className="text-sm text-muted-foreground">Set up payouts first (see the note at the top).</p>}
-            {photoCount >= 3 && !payoutBlock && (
+            {photoCount >= DECLUTTER_MIN_PHOTOS && !payoutBlock && (
               <Button type="button" disabled={publishing} onClick={() => void onPublish()}>
                 {publishing ? "Listing…" : "List this item"}
               </Button>

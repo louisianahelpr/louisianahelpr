@@ -53,6 +53,7 @@ import {
   type MoveRow,
 } from "@/lib/declutter/moves";
 import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, STATUS_LABEL, TAX_STATEMENTS } from "./declutterUi";
+import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { AREA_ADDRESS_RE } from "./DeclutterSellView";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 
@@ -115,7 +116,7 @@ export default function MoveFlow() {
     for (const p of photos.data ?? []) m.set(p.item_id, (m.get(p.item_id) ?? 0) + 1);
     return m;
   }, [photos.data]);
-  const ready = drafts.filter((d) => (photoCount.get(d.id) ?? 0) >= 3);
+  const ready = drafts.filter((d) => (photoCount.get(d.id) ?? 0) >= DECLUTTER_MIN_PHOTOS);
   const chosen = ready.filter((d) => (picked ? picked.has(d.id) : true));
   const savedWindows = useQuery({ queryKey: ["declutter", "windows", user?.id], queryFn: () => fetchMyPickupWindows(user!.id), enabled: !!user });
   const myDate = useQuery({ queryKey: ["declutter", "my-move-date", user?.id], queryFn: fetchMyMoveOutDate, enabled: !!user });
@@ -382,7 +383,7 @@ export default function MoveFlow() {
                 const isDraft = it.status === "draft";
                 return (
                   <li key={it.id} className="py-2 flex items-center gap-3 min-w-0">
-                    {isDraft && n >= 3 ? (
+                    {isDraft && n >= DECLUTTER_MIN_PHOTOS ? (
                       <Checkbox
                         id={`pick-${it.id}`}
                         checked={picked ? picked.has(it.id) : true}
@@ -402,11 +403,11 @@ export default function MoveFlow() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate" title={it.title}>{it.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatPrice(it.current_price_cents)} · {isDraft ? `${n} of 3 photos` : STATUS_LABEL[it.status]}
+                        {formatPrice(it.current_price_cents)} · {isDraft ? (n >= DECLUTTER_MIN_PHOTOS ? photosWord(n) : `${n} of ${photosWord(DECLUTTER_MIN_PHOTOS)}`) : STATUS_LABEL[it.status]}
                       </p>
                     </div>
                     <Button asChild variant="outline" size="sm" className="shrink-0">
-                      <Link to={isDraft ? `/declutter/sell?item=${it.id}` : `/declutter/item/${it.id}`}>{isDraft ? (n >= 3 ? "Edit" : "Add photos") : "View"}</Link>
+                      <Link to={isDraft ? `/declutter/sell?item=${it.id}` : `/declutter/item/${it.id}`}>{isDraft ? (n >= DECLUTTER_MIN_PHOTOS ? "Edit" : "Add photos") : "View"}</Link>
                     </Button>
                   </li>
                 );

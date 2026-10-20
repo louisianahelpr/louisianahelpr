@@ -92,7 +92,7 @@ describe("photo-first selling", () => {
     expect(document.querySelector("[data-add-photos]")).not.toBeNull();
 
     fireEvent.change(document.getElementById("sell-files")!, { target: { files: [jpg("a.jpg"), jpg("b.jpg"), jpg("c.jpg")] } });
-    expect(await screen.findByRole("heading", { name: "1. Photos (3 of 3 to 12)" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "1. Photos (3 of 12)" })).toBeInTheDocument();
     expect(document.querySelectorAll("[data-held-photo]")).toHaveLength(3);
     expect(calls).toEqual([]); // nothing uploaded before there is a draft
 
@@ -113,6 +113,6 @@ describe("photo-first selling", () => {
     fireEvent.change(document.getElementById("sell-files")!, { target: { files: [jpg("a.jpg"), jpg("b.jpg")] } });
     fireEvent.click(await screen.findByRole("button", { name: "Remove photo 1" }));
     expect(document.querySelectorAll("[data-held-photo]")).toHaveLength(1);
-    expect(screen.getByRole("heading", { name: "1. Photos (1 of 3 to 12)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "1. Photos (1 of 12)" })).toBeInTheDocument();
   });
 });

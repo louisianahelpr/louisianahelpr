@@ -19,7 +19,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
     "You have 3 Declutter strikes, so Declutter is paused for you. It opens again when one of them expires.",
   under_18: "You must be 18 or older to buy or sell on Declutter.",
   payout_setup_incomplete: "Set up your payouts first, so we can pay you when your item sells.",
-  photos_required: "Add at least 3 photos of the item (up to 12).",
+  photos_required: "Add at least 1 photo of the item (up to 12).",
   attestation_required: "Confirm the four statements about this item before you list it.",
   attestation_incomplete: "All four statements need a check before you can list this item.",
   pickup_windows_required: "Add at least one pickup time so buyers know when they can come.",

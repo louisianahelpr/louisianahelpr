@@ -10478,7 +10478,7 @@
     },
     {
       "file": "src/pages/profile/AutoTip.tsx",
-      "line": 135,
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10488,7 +10488,7 @@
     },
     {
       "file": "src/pages/profile/AutoTip.tsx",
-      "line": 139,
+      "line": 144,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10498,7 +10498,7 @@
     },
     {
       "file": "src/pages/profile/AutoTip.tsx",
-      "line": 165,
+      "line": 170,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10508,7 +10508,7 @@
     },
     {
       "file": "src/pages/profile/AutoTip.tsx",
-      "line": 176,
+      "line": 181,
       "kind": "toast.error",
       "title": {
         "form": "literal",

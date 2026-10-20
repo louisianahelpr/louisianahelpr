@@ -1,15 +1,13 @@
 import { useLocation } from "react-router-dom";
-import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/NotificationPanel";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
-import { useSidePanel } from "@/components/sidePanelOpen";
-import { Menu } from "lucide-react";
 
 /**
- * The signed-in app bar for the DESKTOP WEBSITE — emblem left, notification
- * bell right, spanning the full viewport above the RIGHT sidebar rail.
+ * The signed-in app bar for the DESKTOP WEBSITE: the notification bell at the
+ * right, spanning the content area beside the LEFT sidebar (which carries the
+ * logo since 2026-10-20, board 11).
  *
  * Rendered ONCE, globally, from App.tsx beside {@link DesktopSidebarNav}, and
  * gated on the identical three conditions that component uses:
@@ -39,7 +37,6 @@ const DesktopTopNav = () => {
   const isWebDesktop = useIsWebDesktop();
   const location = useLocation();
   const { user } = useCurrentUser();
-  const { open, toggle } = useSidePanel();
 
   if (!isWebDesktop) return null;
   if (!isDesktopRailRoute(location.pathname)) return null;
@@ -47,6 +44,10 @@ const DesktopTopNav = () => {
 
   return (
     <header
+      // data-rail-inset: the LEFT sidebar is always open and carries the logo
+      // (board 11, 2026-10-20), so this bar spans only the content beside it
+      // and holds the bell. No hamburger: the sidebar never closes.
+      data-rail-inset=""
       className="fixed top-0 left-0 right-0 z-50 glass-nav"
       style={{
         // Blur only, no saturate() — saturate on a backdrop filter amplifies
@@ -56,29 +57,9 @@ const DesktopTopNav = () => {
         WebkitBackdropFilter: "blur(20px)",
       }}
     >
-      <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-6 xl:px-6">
-        <HelprMark to="/home" size="sm" emblemOnly />
-        {/* `[&_button]:h-11 [&_button]:w-11` — the bell renders at the Button
-            component's `size="icon"` default (h-14) while the hamburger below
-            is h-11, so the two sat at different sizes and their hover and
-            focus outlines opened to different rectangles side by side (owner).
-            Normalised here, on the row, rather than by threading a size prop
-            through NotificationPanel to its trigger. */}
+      <div className="w-full flex h-14 items-center justify-end gap-2 px-5 lg:px-6 xl:px-6">
         <div className="flex items-center gap-1.5 -mr-1 [&_button]:h-11 [&_button]:w-11">
           <NotificationPanel />
-          {/* The hamburger OPENS AND CLOSES the side panel — it does not open a
-              menu sheet. It sits on the RIGHT (owner) because that is the edge
-              the panel itself is on, so the control and the thing it controls
-              are together rather than at opposite ends of the bar. */}
-          <button
-            type="button"
-            onClick={toggle}
-            aria-label={open ? "Close navigation panel" : "Open navigation panel"}
-            aria-expanded={open}
-            className="h-11 w-11 rounded-ds-md inline-flex items-center justify-center btn-press transition-colors text-[hsl(var(--olivewood))] hover:bg-[hsl(var(--olivewood)/0.08)]"
-          >
-            <Menu className="w-5 h-5" strokeWidth={2.25} />
-          </button>
         </div>
       </div>
     </header>

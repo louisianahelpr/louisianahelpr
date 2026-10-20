@@ -1,26 +1,22 @@
 /**
- * DESKTOP RIGHT RAIL — nothing under it, one shared inset, every signed-in
- * route, every desktop width (Q151, owner 2026-09-23: "you audit it and
- * check"; carried from Q10's "right-panel overlap").
+ * DESKTOP LEFT RAIL (since 2026-10-20; it was the right rail when Q151 was
+ * written) — nothing under it, one shared inset, every signed-in route, every
+ * desktop width (Q151, owner 2026-09-23: "you audit it and check").
  *
  * ─── THE CLAIM ─────────────────────────────────────────────────────────────
- * Signed in as poster-e2e, right panel OPEN, at 1024, 1280, 1440 and 1920, for
- * every signed-in route in the audit catalog (spacingScreens(), which
- * auditCatalogRoutes.test.ts proves is every route in src/App.tsx):
+ * Signed in as poster-e2e, sidebar open (always, since 2026-10-20), at 1024,
+ * 1280, 1440 and 1920, for every signed-in route in the audit catalog
+ * (spacingScreens(), which auditCatalogRoutes.test.ts proves is every route in
+ * src/App.tsx):
  *   1. the rail is actually there (<html> carries desktop-rail side-panel-open
- *      and nav[aria-label="Primary"] occupies the reserved 248px strip: its
- *      left edge at innerWidth - 248, its right edge INSET px in from the
- *      viewport edge, so 248 - INSET wide), so a route that lost its rail
- *      cannot pass by having nothing to overlap. The rail is a floating card,
- *      not a flush panel: owner design f293d8d18 (2026-08-23) insets it 0.75rem
- *      from the right and starts it below the header. INSET is read from
- *      DesktopSidebarNav.tsx, so a change there moves this check with it;
+ *      and nav[aria-label="Primary"] fills the reserved 248px strip flush from
+ *      x=0, full height, board 11), so a route that lost its rail cannot pass
+ *      by having nothing to overlap;
  *   2. the ONE shared inset is exactly --desktop-sidebar-w: `.app-shell-frame`
- *      ends 248px from the right on fixed-shell pages, `#root` carries
- *      padding-right 248 on document-scroll pages (CLAUDE.md "desktop rail");
- *   3. nothing visible outside the rail extends past innerWidth - 248 AT THE
- *      RAIL'S HEIGHT (the full-width fixed header above the rail's top is not
- *      under it); an element carrying the inset as padding-right (#root on
+ *      starts at x=248 on fixed-shell pages, `#root` carries padding-left 248
+ *      on document-scroll pages (CLAUDE.md "desktop rail");
+ *   3. nothing visible outside the rail starts left of x=248 AT THE RAIL'S
+ *      HEIGHT; an element carrying the inset as padding-left (#root on
  *      document-scroll pages) is measured by its content box, since that
  *      padding IS the inset;
  *   4. zero horizontal overflow;
@@ -44,17 +40,16 @@ import { getSession, type Session } from "./harness";
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
 import { spacingScreens } from "./shellSpacing";
 
-// @mutate src/index.css | right edge now (owner). No max-width cap, no centered phone frame. */\n    right: var(--desktop-sidebar-w); | right edge now (owner). No max-width cap, no centered phone frame. */\n    right: 0;
-// @mutate src/index.css | padding-right: var(--desktop-sidebar-w); | padding-right: 0;
+// The rail is on the LEFT since 2026-10-20 (owner 10-19, board 11): every claim below is measured from the left edge.
+// @mutate src/index.css | centered phone frame. */\n    left: var(--desktop-sidebar-w); | centered phone frame. */\n    left: 0;
+// @mutate src/index.css |     padding-left: var(--desktop-sidebar-w); |     padding-left: 0;
 
 const RAIL = 248;
 const WIDTHS = [1024, 1280, 1440, 1920] as const;
 const TOL = 2;
-// The rail card's right inset, taken from the component that sets it. The width
-// must be the strip minus the same inset, or the card no longer fills the strip.
+// The sidebar fills its whole strip from x=0 (no card inset since 2026-10-20); read the width from the component.
 const RAIL_SRC = readFileSync("src/components/DesktopSidebarNav.tsx", "utf8");
-const INSET_M = RAIL_SRC.match(/right:\s*"([\d.]+)rem",\s*\n\s*width:\s*"calc\(var\(--desktop-sidebar-w, 248px\) - ([\d.]+)rem\)"/);
-const INSET = INSET_M && INSET_M[1] === INSET_M[2] ? parseFloat(INSET_M[1]) * 16 : NaN;
+const FILLS_STRIP = /width:\s*"var\(--desktop-sidebar-w, 248px\)"/.test(RAIL_SRC) && /fixed left-0 top-0 bottom-0/.test(RAIL_SRC);
 const SCREENS = spacingScreens().filter((s) => s.auth === "poster");
 const SHOTS = process.env.LH_RAIL_SHOTS;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
@@ -69,8 +64,8 @@ interface RailRow {
   path: string;
   railOn: boolean;
   railRect: { left: number; right: number; width: number } | null;
-  frameRight: number | null;
-  rootPadRight: number;
+  frameLeft: number | null;
+  rootPadLeft: number;
   overflow: number;
   under: string[];
   col: { left: number; right: number; area: number; what: string } | null;
@@ -83,7 +78,7 @@ function readRail([rail, tol]: [number, number]): RailRow {
   const railVisible = !!nav && getComputedStyle(nav).visibility !== "hidden";
   const nr = nav?.getBoundingClientRect();
   const frame = document.querySelector<HTMLElement>(".app-shell-frame");
-  const limit = vw - rail;
+  const limit = rail;
   const under: string[] = [];
   const seen: Element[] = [];
   for (const el of Array.from(document.querySelectorAll("body *"))) {
@@ -96,15 +91,15 @@ function readRail([rail, tol]: [number, number]): RailRow {
     // Only what shares the rail's rows can sit under it.
     if (nr && (r.bottom <= nr.top + 0.5 || r.top >= nr.bottom - 0.5)) continue;
     // The inset carrier's padding strip is the inset itself, not content.
-    const padR = parseFloat(cs.paddingRight) || 0;
-    const right = padR >= rail - 0.5 ? r.right - padR : r.right;
-    if (right <= limit + 0.5) continue;
+    const padL = parseFloat(cs.paddingLeft) || 0;
+    const left = padL >= rail - 0.5 ? r.left + padL : r.left;
+    if (left >= limit - 0.5) continue;
     // A layout box that paints nothing (no background, border, shadow, text,
     // or replaced content) is not "under" the rail in any way a user sees.
     const paints =
       (cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent") ||
       cs.backgroundImage !== "none" ||
-      parseFloat(cs.borderRightWidth) > 0 ||
+      parseFloat(cs.borderLeftWidth) > 0 ||
       cs.boxShadow !== "none" ||
       /^(IMG|SVG|INPUT|BUTTON|TEXTAREA|SELECT|VIDEO|CANVAS|IFRAME|A)$/i.test(el.tagName) ||
       Array.from(el.childNodes).some((n) => n.nodeType === 3 && (n.textContent || "").trim());
@@ -112,11 +107,13 @@ function readRail([rail, tol]: [number, number]): RailRow {
     seen.push(el);
     const id = el.id ? `#${el.id}` : "";
     const cls = typeof el.className === "string" ? el.className.split(/\s+/).slice(0, 3).join(".") : "";
-    under.push(`${el.tagName.toLowerCase()}${id}${cls ? "." + cls : ""} right=${Math.round(r.right)} pos=${cs.position}`);
+    under.push(`${el.tagName.toLowerCase()}${id}${cls ? "." + cls : ""} left=${Math.round(r.left)} pos=${cs.position}`);
   }
   let col: RailRow["col"] = null;
   const h1 = Array.from(document.querySelectorAll("h1")).find((h) => (h.textContent || "").trim() && h.getBoundingClientRect().width > 0);
-  const areaW = document.documentElement.classList.contains("desktop-rail") ? vw - rail : vw;
+  const railed = document.documentElement.classList.contains("desktop-rail");
+  const areaW = railed ? vw - rail : vw;
+  const areaX = railed ? rail : 0;
   if (h1) {
     let c: HTMLElement | null = h1;
     // The column is the widest ancestor of the title that is still narrower
@@ -130,15 +127,15 @@ function readRail([rail, tol]: [number, number]): RailRow {
     }
     const r = (best ?? h1).getBoundingClientRect();
     col = best
-      ? { left: Math.round(r.left), right: Math.round(areaW - r.right), area: areaW, what: best.tagName.toLowerCase() + "." + String(best.className).split(/\s+/).slice(0, 3).join(".") }
+      ? { left: Math.round(r.left - areaX), right: Math.round(areaX + areaW - r.right), area: areaW, what: best.tagName.toLowerCase() + "." + String(best.className).split(/\s+/).slice(0, 3).join(".") }
       : { left: 0, right: 0, area: areaW, what: "fills the area" };
   }
   return {
     path: location.pathname + location.search,
     railOn: /\bdesktop-rail\b/.test(html) && /\bside-panel-open\b/.test(html) && railVisible,
     railRect: nr ? { left: Math.round(nr.left), right: Math.round(nr.right), width: Math.round(nr.width) } : null,
-    frameRight: frame ? Math.round(vw - frame.getBoundingClientRect().right) : null,
-    rootPadRight: parseFloat(getComputedStyle(document.getElementById("root")!).paddingRight) || 0,
+    frameLeft: frame ? Math.round(frame.getBoundingClientRect().left) : null,
+    rootPadLeft: parseFloat(getComputedStyle(document.getElementById("root")!).paddingLeft) || 0,
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     under,
     col,
@@ -157,12 +154,12 @@ async function shot(page: Page, name: string) {
 }
 
 test("the signed-in route inventory is the app's own, and is not empty", () => {
-  expect(INSET, "DesktopSidebarNav's right inset / width pair no longer parses; re-read the rail's geometry").toBeGreaterThanOrEqual(0);
+  expect(FILLS_STRIP, "DesktopSidebarNav no longer fills its strip from the left edge; re-read the rail's geometry").toBe(true);
   expect(SCREENS.length, "spacingScreens() poster half came back short").toBeGreaterThan(25);
   expect(SCREENS.map((s) => s.name)).toContain("profile-gift-card");
 });
 
-test("rail inset: nothing under the open right rail on any signed-in route at 1024/1280/1440/1920", async ({ browser }, info) => {
+test("rail inset: nothing under the left rail on any signed-in route at 1024/1280/1440/1920", async ({ browser }, info) => {
   test.setTimeout(60 * 60_000);
   const wrong: string[] = [];
   const noRail: string[] = [];
@@ -193,14 +190,14 @@ test("rail inset: nothing under the open right rail on any signed-in route at 10
       }
       measured++;
       const bad: string[] = [];
-      if (!r.railRect || Math.abs(r.railRect.left - (vw - RAIL)) > TOL || Math.abs(r.railRect.right - (vw - INSET)) > TOL || Math.abs(r.railRect.width - (RAIL - INSET)) > TOL)
-        bad.push(`rail does not fill its ${RAIL}px strip (want left ${vw - RAIL}, right ${vw - INSET}, width ${RAIL - INSET}): ${JSON.stringify(r.railRect)}`);
-      if (r.frameRight !== null && Math.abs(r.frameRight - RAIL) > 0.5) bad.push(`.app-shell-frame ends ${r.frameRight}px from the right, want ${RAIL}`);
-      if (r.frameRight === null && Math.abs(r.rootPadRight - RAIL) > 0.5) bad.push(`#root padding-right ${r.rootPadRight}, want ${RAIL}`);
+      if (!r.railRect || Math.abs(r.railRect.left) > TOL || Math.abs(r.railRect.right - RAIL) > TOL || Math.abs(r.railRect.width - RAIL) > TOL)
+        bad.push(`rail does not fill its ${RAIL}px strip (want left 0, right ${RAIL}, width ${RAIL}): ${JSON.stringify(r.railRect)}`);
+      if (r.frameLeft !== null && Math.abs(r.frameLeft - RAIL) > 0.5) bad.push(`.app-shell-frame starts at ${r.frameLeft}px, want ${RAIL}`);
+      if (r.frameLeft === null && Math.abs(r.rootPadLeft - RAIL) > 0.5) bad.push(`#root padding-left ${r.rootPadLeft}, want ${RAIL}`);
       if (r.overflow > 0) bad.push(`scrolls sideways by ${r.overflow}px`);
       if (r.under.length) bad.push(`under the rail: ${r.under.slice(0, 4).join(" | ")}`);
       if (r.col && Math.abs(r.col.left - r.col.right) > TOL) bad.push(`column off-centre: left ${r.col.left} vs right ${r.col.right} in ${r.col.area} (${r.col.what})`);
-      console.log(`RAIL ${at} frameRight=${r.frameRight} rootPad=${r.rootPadRight} overflow=${r.overflow} under=${r.under.length} col=${r.col ? `${r.col.left}/${r.col.right}` : "none"}`);
+      console.log(`RAIL ${at} frameLeft=${r.frameLeft} rootPad=${r.rootPadLeft} overflow=${r.overflow} under=${r.under.length} col=${r.col ? `${r.col.left}/${r.col.right}` : "none"}`);
       if (bad.length) {
         wrong.push(`${at}: ${bad.join("; ")}`);
         await shot(page, `${s.name}-${vw}`);

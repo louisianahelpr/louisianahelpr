@@ -68,12 +68,13 @@ function HomeDashboardScreen() {
   const rest = Math.max(0, todoCount - 1);
 
   return (
-    <SectionScreen
-      heading={<h1 data-testid="home-greeting" className="home-greeting font-moment text-foreground line-clamp-2">{first ? `${greeting()}, ${first}` : greeting()}</h1>}
-    >
+    <SectionScreen>
       <div data-testid="home-dashboard" className="flex flex-col gap-section">
-        {/* The greeting is the top bar (AppTopBar `heading`, boards 7/19); the date sits right under it. */}
-        <p className="text-ds-14 text-muted-foreground -mt-3">{today}</p>
+        {/* The H logo sits in the top bar above this (owner, 2026-10-20 08:30Z: keep it on phone Home). */}
+        <div>
+          <h1 className="font-moment text-page-title text-foreground">{first ? `${greeting()}, ${first}` : greeting()}</h1>
+          <p className="text-ds-14 text-muted-foreground mt-0.5">{today}</p>
+        </div>
 
         {/* NEXT UP (owner, 2026-10-20; HELPR-DESIGN-SPEC §4 Home): the single most urgent
             to-do from every section and both sides, with its one action. Replaces the three

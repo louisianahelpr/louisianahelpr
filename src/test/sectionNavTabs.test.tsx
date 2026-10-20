@@ -144,11 +144,12 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(avatar).toBeGreaterThan(bell);
   });
 
-  it("the rail IS the dock's list plus Profile: no separate Posts row, no Post a Job button, off sections greyed (Q2220)", () => {
+  it("the LEFT sidebar (board 11): Home, Explore with the member's sections nested, Messages, You; no Posts row, no Post a Job button, off sections greyed (Q2220)", () => {
     const rail = code("src/components/DesktopSidebarNav.tsx");
     expect(rail).toContain("const sectionTabs = useSectionTabs();");
-    // One list for the dock and the rail (dockItems), so Posts lives inside Jobs on both.
-    expect(rail).toMatch(/\.\.\.dockItems\(sectionTabs, visibleSections\),\s*PROFILE_ITEM,/);
+    // The phone bar's own items (Home, Explore, Messages, You) with the Customize-ordered sections under Explore.
+    expect(rail).toMatch(/leftItems\[0\],\s*exploreItem,\s*\.\.\.visibleSections\.map\(/);
+    expect(rail).toMatch(/badgeKey: "messages" \},\s*youItem,/);
     expect(rail).not.toMatch(/path: "\/posts"/);
     expect(rail).not.toMatch(/Post a Job/);
     expect(rail).toContain("onClick={() => { if (soon) return sayComingSoon(label); if (location.pathname === path) announceTabReselect(path); navigate(path); }}");

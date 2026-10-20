@@ -1,10 +1,11 @@
 /**
  * RAIL OVERLAP PROBE — the owner's class: "in webpage, the messages go behind
  * the right panel. fix this and any other occurances this happens with".
+ * The rail is on the LEFT since 2026-10-20 (owner 10-19, board 11).
  *
- * Signed in, desktop 1440, right panel OPEN: nothing a user can see or click
- * may extend past `innerWidth - 248px`. The two shared inset rules
- * (`.app-shell-frame { right }`, `#root { padding-right }`) cannot reach a
+ * Signed in, desktop 1440, sidebar open: nothing a user can see or click may
+ * start left of x=248. The two shared inset rules
+ * (`.app-shell-frame { left }`, `#root { padding-left }`) cannot reach a
  * `position: fixed` element, so those are what this measures.
  */
 import { chromium } from "@playwright/test";
@@ -48,14 +49,18 @@ for (const route of ROUTES) {
   await page.waitForTimeout(2500);
   const state = await page.evaluate(() => document.documentElement.className);
   const over = await page.evaluate((rail) => {
-    const limit = window.innerWidth - rail;
+    const limit = rail;
+    const nav = document.querySelector('nav[aria-label="Primary"]');
     const out = [];
     for (const el of Array.from(document.querySelectorAll("body *"))) {
       const cs = getComputedStyle(el);
       if (cs.visibility === "hidden" || cs.display === "none" || cs.opacity === "0") continue;
       const r = el.getBoundingClientRect();
       if (r.width < 2 || r.height < 2) continue;
-      if (r.right <= limit + 0.5) continue;
+      if (nav && (nav === el || nav.contains(el))) continue;
+      // The inset carrier's padding strip IS the inset (#root on document-scroll pages).
+      const padL = parseFloat(cs.paddingLeft) || 0;
+      if ((padL >= rail - 0.5 ? r.left + padL : r.left) >= limit - 0.5) continue;
       // only report the OUTERMOST offender per subtree
       if (out.some((o) => o.el.contains(el))) continue;
       out.push({ el, r });

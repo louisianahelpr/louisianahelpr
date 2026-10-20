@@ -5,8 +5,10 @@
  *    Spec v2 §1.5 + §5.5 and board 19: never "0" when the honest answer is
  *    "nothing yet"; a card shows its real non-zero counts in ONE line, or the
  *    both-sides invitation ("Hire help or find work").
- * 2. Home drew the old "H" logo above the greeting. Boards 7/19: the greeting
- *    IS the top bar (Bodoni greeting left, bell + avatar right), no logo.
+ * 2. (REVERSED by the owner, 2026-10-20 08:30Z: keep the H logo top-left on
+ *    phone Home, greeting under it; never the "Helpr" wordmark.) Pinned below:
+ *    the phone bar draws the H emblem, bell and avatar; the desktop bar draws
+ *    nothing on Home (the left sidebar carries the H logo).
  * 3. The bottom bar's "You" was the member's avatar while the top bar also
  *    showed it. Boards: "You" is a person icon, filled when active.
  * 4. The active tab had a RUST underline and the count badges were rust.
@@ -15,8 +17,7 @@
  *
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |   const shown = parts.filter(([n]) => n > 0) |   const shown = parts.filter(() => true)
  * @mutate src/pages/home/HomeDashboard.tsx |               const line = summary.tiles[s.key] ?? SECTION_INVITE[s.key]; |               const line = summary.tiles[s.key] ?? "0";
- * @mutate src/components/sections/AppTopBar.tsx |         <div className="min-w-0">{heading}</div> |         <HelprMark size="sm" emblemOnly to="/home" />
- * @mutate src/components/sections/AppTopBar.tsx |   if (isWebDesktop && !title && !add && !heading) return null; |   if (isWebDesktop && !title && !add) return null;
+ * @mutate src/components/sections/AppTopBar.tsx |         <HelprMark size="sm" emblemOnly to="/home" /> |         <HelprMark size="sm" to="/home" />
  * @mutate src/components/MobileNav.tsx |                 background: "hsl(var(--alert))", |                 background: "hsl(var(--burnt-sienna))",
  * @mutate src/components/notificationPanel/NotificationTrigger.tsx | style={{ background: "hsl(var(--alert))", color: "#fff" }} | style={{ background: "hsl(var(--burnt-sienna))", color: "#fff" }}
  * @mutate src/components/MobileNav.tsx |           <Icon\n            className="w-[22px] h-[22px] transition-all duration-200" |           {path === "/profile" && <img alt="" src="avatar.png" />}\n          <Icon\n            className="w-[22px] h-[22px] transition-all duration-200"
@@ -92,22 +93,20 @@ describe("1. Home section cards never show a 0 (spec v2 §1.5/§5.5, board 19)",
   });
 });
 
-describe("2. the greeting IS Home's top bar; no logo (boards 7/11/19)", () => {
-  const GREETING = <h1 data-testid="home-greeting">Good evening, Test</h1>;
-
-  it("phone: greeting left, bell + avatar right, no logo link", () => {
-    render(<MemoryRouter><AppTopBar heading={GREETING} /></MemoryRouter>);
+describe("2. phone Home keeps the H logo (owner 2026-10-20 08:30Z), never the wordmark", () => {
+  it("phone: H emblem left, bell + avatar right", () => {
+    render(<MemoryRouter><AppTopBar /></MemoryRouter>);
     const bar = screen.getByTestId("app-top-bar");
-    expect(bar.firstElementChild?.textContent).toBe("Good evening, Test");
-    expect(bar.querySelector("a[href='/home'], img")).toBeNull();
+    const logo = bar.firstElementChild as HTMLElement;
+    expect(logo.querySelector("img")).not.toBeNull();
+    expect(logo.textContent ?? "").not.toMatch(/Helpr/);
     expect([...bar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Notifications", "Profile"]);
   });
 
-  it("desktop: the greeting still shows (board 11), without a second bell or avatar", () => {
+  it("desktop Home: no bar (the left sidebar carries the H logo)", () => {
     desktop.on = true;
-    render(<MemoryRouter><AppTopBar heading={GREETING} /></MemoryRouter>);
-    expect(screen.getByTestId("home-greeting")).toBeTruthy();
-    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    render(<MemoryRouter><AppTopBar /></MemoryRouter>);
+    expect(screen.queryByTestId("app-top-bar")).toBeNull();
   });
 });
 

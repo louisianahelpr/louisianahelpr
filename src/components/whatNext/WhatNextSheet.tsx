@@ -49,7 +49,7 @@ export function WhatNextSheet({
       <SheetContent
         side="bottom"
         floor={!webDesktop}
-        className={`focus:outline-none ${webDesktop ? "sm:max-w-[440px]" : ""}`}
+        className={`bg-premium-page focus:outline-none ${webDesktop ? "sm:max-w-[440px]" : ""}`}
         data-testid="what-next-sheet"
         // Focus lands on the sheet itself, not its first button: Radix's default put the
         // focus ring on the outline action at open, so it read as selected (lead, board 77).

@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, useCallback, type CSSProperties } from "react";
 import { useDoneFloorActive } from "@/components/job-card/useDoneFloor";
-import type { CSSProperties } from "react";
+import { announceTransition } from "@/components/whatNext/HelperDoneWhatNext";
 import { useStepTooltip } from "@/hooks/useStepTooltip";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
@@ -1419,7 +1419,7 @@ export function JobTracking({
     } else {
       // `arrived` has no entry in the map on purpose — see TRANSITION_TOAST.
       const message = TRANSITION_TOAST[newStatus];
-      if (message) toast.success(message);
+      if (message) announceTransition(newStatus, message, { jobId, at: now });
     }
     setUpdating(false);
     loadTracking();

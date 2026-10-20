@@ -33,3 +33,13 @@ export function buyNowTotalCents(priceCents: number): number {
 export function minOfferCents(currentPriceCents: number): number {
   return Math.max(100, Math.ceil(currentPriceCents / 2));
 }
+
+/** Dollars as typed -> whole cents, or null. */
+export function dollarsToCents(v: string): number | null {
+  const n = Number(v.replace(/[$,\s]/g, ""));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n * 100);
+}
+
+/** Cents -> dollars for an input ("38", "38.50"). */
+export const centsToDollars = (c: number) => (c / 100).toFixed(2).replace(/\.00$/, "");

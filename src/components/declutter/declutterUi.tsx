@@ -15,6 +15,7 @@ export const STATUS_LABEL: Record<DeclutterStatus, string> = {
   draft: "Not listed yet",
   pending_review: "Waiting for a review",
   live: "For sale",
+  paused: "Paused",
   reserved: "Someone is buying it",
   sold: "Sold",
   completed: "Handed over",
@@ -29,6 +30,7 @@ export const STATUS_HELP: Partial<Record<DeclutterStatus, string>> = {
   pending_review:
     "Someone from Louisiana Helpr checks a new seller's first 3 listings, and any listing the photo check flags. You'll get a notice when it's done.",
   rejected: "This listing wasn't approved. The reason is below.",
+  paused: "Hidden from buyers. Relist it any time.",
 };
 
 export const SIZE_LABEL: Record<DeliverySize, string> = {

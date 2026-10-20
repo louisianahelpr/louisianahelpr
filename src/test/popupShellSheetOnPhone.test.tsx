@@ -19,7 +19,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 import {
   Dialog,
   DialogContent,
-  DialogTitle,
+  DialogHero,
   DialogFooter,
   DialogPrimaryAction,
   DialogSecondaryAction,
@@ -32,7 +32,7 @@ function open() {
   render(
     <Dialog open>
       <DialogContent>
-        <DialogTitle>Log out?</DialogTitle>
+        <DialogHero title="Log out?" />
         <DialogFooter>
           <DialogSecondaryAction>Cancel</DialogSecondaryAction>
           <DialogPrimaryAction>Log out</DialogPrimaryAction>

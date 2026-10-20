@@ -414,9 +414,9 @@ export function ChatView({
               src/test/chatThreadNoDeadBandAboveMessages.test.tsx and
               ChatView.layout.test.tsx. */}
           {!bannerDismissed && !isTeam && (
-            <div className="w-full mt-3 shrink-0 rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 relative flex items-start gap-1.5 pr-11">
-              <AlertTriangle className="w-3 h-3 text-accent mt-[3px] shrink-0" />
-              <p className="text-ds-11 leading-snug text-[hsl(var(--sienna-ink))]">
+            <div data-off-platform-note className="w-full mt-3 shrink-0 rounded-md bg-muted border border-border px-2.5 py-1.5 relative flex items-start gap-1.5 pr-11">
+              <AlertTriangle className="w-3 h-3 text-foreground mt-[3px] shrink-0" />
+              <p className="text-ds-11 leading-snug text-foreground">
                 Keep chats &amp; payments on Helpr — going off-platform risks an account restriction.
               </p>
               {/* Absolutely positioned so the 44px hit target doesn't force the
@@ -425,7 +425,7 @@ export function ChatView({
                   default) means any slight bleed above/below is fine. */}
               <button
                 onClick={dismissBanner}
-                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-[44px] min-w-[44px] ctl-exit ctl-tint text-accent/60 hover:text-accent"
+                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-[44px] min-w-[44px] ctl-exit ctl-tint text-muted-foreground hover:text-foreground"
                 aria-label="Dismiss safety reminder"
               >
                 <X className="w-3 h-3" />

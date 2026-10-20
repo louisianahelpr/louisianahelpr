@@ -5,7 +5,7 @@ import { PinnedChip } from "./PinnedChip";
 import { isImageMime } from "@/lib/messageAttachments";
 import { LastMessageImageThumb } from "./LastMessageImageThumb";
 import { jobStatusLabel } from "@/lib/statusLabels";
-import { jobStatusColor } from "@/lib/statusColors";
+import { MESSAGE_STATUS_CHIP } from "./messageStatusChip";
 import UserAvatar from "@/components/UserAvatar";
 import type { Conversation } from "./types";
 import { rowAge } from "./rowAge";
@@ -138,10 +138,9 @@ const ConversationRowBase = ({
 }: ConversationRowProps) => {
   const when = rowAge(c.lastAt);
   // Status chip — inline next to the job title. Labels come from the
-  // canonical `jobStatusLabel` (#46); colors come from the canonical
-  // `jobStatusColor` map (`src/lib/statusColors.ts`). Same state, same
-  // chip everywhere it appears — chat header, this row, activity card,
-  // earnings list. No bespoke per-surface palette.
+  // canonical `jobStatusLabel` (#46); the colour is MESSAGE_STATUS_CHIP (neutral; it was the
+  // `jobStatusColor` map, whose in_progress sienna broke rust = money only). The chat
+  // header and this row share it.
   //
   // `assigned` isn't in the job_status enum — it's a legacy
   // conversation-row alias for the offered-not-yet-confirmed window. Its
@@ -160,8 +159,7 @@ const ConversationRowBase = ({
       pending_approval: true,
     };
     if (!allowed[s]) return null;
-    const palette =
-      s === "accepted" ? jobStatusColor("in_progress") : jobStatusColor(s);
+    const palette = MESSAGE_STATUS_CHIP; // neutral: rust is money only (board 38 review)
     // No "Awarded" special-case. statusLabels.ts is the single source of
     // truth and its own docs say: do NOT introduce synonyms ("Awarded",
     // "Done", "Selected") for an existing enum value. This file and

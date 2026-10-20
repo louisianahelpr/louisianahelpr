@@ -997,6 +997,7 @@ export const EXPLORE_CREDITED: readonly string[] = [
   "src/components/admin/marketing/MarketingSettingsCard.tsx",
   "src/components/dashboard/applyConfirmDialog/ApplyBody.tsx",
   "src/components/reviewPanel/ReviewForm.tsx",
+  "src/components/reviewPanel/ReviewQuestionCard.tsx",
   "src/components/postjob/AddressAutocomplete.tsx",
   "src/components/postjob/BudgetSection.tsx",
   "src/components/postjob/LogisticsSection.tsx",

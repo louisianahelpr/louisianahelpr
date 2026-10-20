@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Star } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
+import { STAR_ON } from "@/lib/starColor";
 
 /**
  * The one star input (boards 35/36): five stars centred under the question,
@@ -43,8 +44,8 @@ export const StarRow = ({
               className="w-8 h-8 transition-colors"
               strokeWidth={1.5}
               style={{
-                color: lit ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.25)",
-                fill: lit ? "hsl(var(--bark))" : "transparent",
+                color: lit ? STAR_ON : "hsl(var(--olivewood) / 0.25)",
+                fill: lit ? STAR_ON : "transparent",
               }}
             />
           </button>

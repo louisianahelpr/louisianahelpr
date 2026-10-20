@@ -333,7 +333,7 @@ const AdminAnalytics = () => {
       {/* Tips */}
       {totalTips > 0 && (
         <AdminCard contentClassName="flex items-center gap-3">
-          <Star className="w-4 h-4 shrink-0 text-accent" />
+          <Star className="w-4 h-4 shrink-0 text-primary" />
           <div className="min-w-0">
             <p className="text-ds-13 font-semibold text-foreground">Tips Collected: ${totalTips.toFixed(2)}</p>
             <p className="text-ds-11 text-muted-foreground">{tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").length} paid tips</p>

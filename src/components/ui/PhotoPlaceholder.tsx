@@ -25,6 +25,8 @@ const TONES = [
 ] as const;
 
 export const PHOTO_PLACEHOLDER_TONES = TONES.length;
+/** The warm sand tint (the gold tone): the job page photo banner wears it for every category. */
+const WARM_TONE = 2;
 
 /** A stable tone for a category key: the same key always gets the same tint. */
 export function placeholderTone(seed: string | null | undefined): number {
@@ -38,6 +40,7 @@ export function PhotoPlaceholder({
   seed,
   className = "",
   iconClassName = "h-1/4 w-1/4 min-h-6 min-w-6 max-h-14 max-w-14",
+  warm = false,
 }: {
   /** The category's icon. */
   icon: LucideIcon;
@@ -46,8 +49,10 @@ export function PhotoPlaceholder({
   /** Size and shape: the photo box it stands in for (e.g. "aspect-square w-full"). */
   className?: string;
   iconClassName?: string;
+  /** One warm tint whatever the seed (the job page's photo banner; lead review 2026-10-20). */
+  warm?: boolean;
 }) {
-  const tone = TONES[placeholderTone(seed)];
+  const tone = TONES[warm ? WARM_TONE : placeholderTone(seed)];
   return (
     <span
       data-photo-placeholder=""

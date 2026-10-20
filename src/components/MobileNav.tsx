@@ -568,8 +568,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           ) : (
             <Icon
               className="w-[22px] h-[22px] transition-all duration-200"
-              strokeWidth={isActive ? 2 : 1.6}
-              fill={isActive ? "currentColor" : "none"}
+              strokeWidth={isActive ? (path === "/explore" ? 2.4 : 2) : 1.6}
+              // A filled Compass is a solid disc with no needle (looked, 2026-10-20): Explore goes bold, not filled.
+              fill={isActive && path !== "/explore" ? "currentColor" : "none"}
             />
           )}
           {/* No per-tab padlock for guests — three padlocks in a row read

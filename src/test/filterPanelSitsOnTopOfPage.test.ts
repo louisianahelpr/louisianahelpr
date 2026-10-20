@@ -45,8 +45,9 @@ describe("the Filters / Notifications panels sit on top of the page", () => {
     expect(desktopSurface).toMatch(/background:\s*"hsl\(var\(--popover\)\)"/);
   });
 
-  it("both panels are built on these surfaces", () => {
-    for (const f of ["src/components/dashboard/FilterSheet.tsx", "src/components/NotificationPanel.tsx"]) {
+  // Filters is a Sheet on every width since board 24 (lead review 2026-10-20); the panel left is Notifications.
+  it("the notifications panel is built on these surfaces", () => {
+    for (const f of ["src/components/NotificationPanel.tsx"]) {
       expect(readFileSync(resolve(ROOT, f), "utf8"), `${f} no longer uses screenPanelContentProps`).toMatch(/screenPanelContentProps\(band[,)]/);
     }
   });

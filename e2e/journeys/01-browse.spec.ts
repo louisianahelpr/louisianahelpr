@@ -242,14 +242,14 @@ test(authedTitle, async ({ browser, request, journey }) => {
 
   await test.step("switch to the map and back", async () => {
     await page.getByRole("button", { name: "Filters" }).first().click();
-    const view = page.getByRole("dialog").getByRole("group", { name: "Feed view" });
-    await view.getByRole("button", { name: "Map" }).click();
+    const view = page.getByRole("dialog").getByRole("radiogroup", { name: "Feed view" });
+    await view.getByRole("radio", { name: "Map" }).click();
     await closeFilterSheet(page);
     await expect(page.locator("[class*='mapkit'], canvas, [aria-label*='map' i]").first(), "the map view never rendered").toBeVisible({ timeout: 45_000 });
     await assertHealthy(page, "map view", { settleMs: 30_000 });
     await journey.milestone(page, "map-view");
     await page.getByRole("button", { name: "Filters" }).first().click();
-    await page.getByRole("dialog").getByRole("group", { name: "Feed view" }).getByRole("button", { name: "List" }).click();
+    await page.getByRole("dialog").getByRole("radiogroup", { name: "Feed view" }).getByRole("radio", { name: "List" }).click();
     // Picking a view closes the sheet (see closeFilterSheet), so Clear All is
     // one more trip in — it used to be reachable in the same sheet visit.
     await closeFilterSheet(page);

@@ -5588,7 +5588,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 66,
+      "line": 78,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5598,7 +5598,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 72,
+      "line": 86,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5608,15 +5608,15 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 77,
+      "line": 91,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
-        "text": "optIn ? \"Text alerts are on.\" : \"Text alerts are off.\"",
+        "text": "optIn ? \"Check your phone: reply YES to the text we just sent.\" : \"Text alerts are off.\"",
         "branches": [
           {
             "form": "literal",
-            "text": "Text alerts are on."
+            "text": "Check your phone: reply YES to the text we just sent."
           },
           {
             "form": "literal",

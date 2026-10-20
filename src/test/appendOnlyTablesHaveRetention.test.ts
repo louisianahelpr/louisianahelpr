@@ -39,7 +39,7 @@ const NO_AGE_PRUNE: Record<string, string> = {
   declutter_offer_events: "The step history of a Declutter offer (offer, counters, accept/decline): the record of a money agreement between two members; rows go with their offer (ON DELETE CASCADE), 20261014210518.",
   admin_audit_log: "The record of what admins did to accounts and money; kept for the life of the platform.",
   str_processed_events: "Dedupe ledger for imported iCal events: deleting a row makes str-ical-sync import the checkout (and notify the host) again. Rows go with their connection (ON DELETE CASCADE).",
-  sms_consent_events: "The record of each SMS opt-in and opt-out (when, which number, from where, which consent wording): the proof of consent texting law and Twilio's toll-free verification ask us to keep; rows go with the account (ON DELETE CASCADE), 20261020022332.",
+  sms_consent_events: "The record of each SMS opt-in and opt-out (when, which number, from where, which consent wording): the proof of consent texting law and Twilio's toll-free verification ask us to keep; the record outlives a deleted account (user_id ON DELETE SET NULL); its age limit is the owner's call, docs/OPEN.md Q2239. 20261020022332.",
   cron_catchup_runs: "One claim row per missed cron slot that was re-run or alerted (5 rows on 2026-09-25); run_missed_cron_catch_up reads it to never act on a slot twice.",
 };
 

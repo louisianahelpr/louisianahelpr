@@ -8,6 +8,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -370,9 +371,17 @@ export async function withdrawItem(itemId: string): Promise<void> {
   await removeObjects((paths ?? []) as string[]);
 }
 
-/** Board 158: what the Manage sheet shows (the seller's floor; whether THEY stopped the drops). */
-export async function fetchManageState(itemId: string): Promise<{ floor_price_cents: number; drops_stopped: boolean } | null> {
-  const rows = rpcData(await supabase.rpc("declutter_listing_manage_state", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_listing_manage_state", e));
+/**
+ * Board 158: what the Manage sheet shows (the seller's floor; whether THEY
+ * stopped the drops). "not_deployed" while migration 20261020064354 has not
+ * reached prod: the sheet then offers only what already works (take it down).
+ */
+export async function fetchManageState(
+  itemId: string,
+): Promise<{ floor_price_cents: number; drops_stopped: boolean } | null | "not_deployed"> {
+  const res = await supabase.rpc("declutter_listing_manage_state", { p_item_id: itemId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_listing_manage_state")) return "not_deployed";
+  const rows = rpcData(res, (e) => rpcErrorMessage("declutter_listing_manage_state", e));
   return (rows ?? [])[0] ?? null;
 }
 

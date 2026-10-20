@@ -143,7 +143,7 @@ export function DataExportCard() {
             // Auth still settling: a neutral, disabled control in the shape of
             // the signed-in one — never a Sign In link someone may not need.
             <Button variant="primary" size="sm" className="shrink-0" disabled aria-busy>
-              Download My Data
+              Download my data
             </Button>
           ) : userId ? (
             <Button
@@ -154,7 +154,7 @@ export function DataExportCard() {
               size="sm"
               className="shrink-0"
             >
-              {exporting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />Preparing…</> : "Download My Data"}
+              {exporting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />Preparing…</> : "Download my data"}
             </Button>
           ) : (
             <Button variant="primary" size="sm" className="shrink-0" asChild>

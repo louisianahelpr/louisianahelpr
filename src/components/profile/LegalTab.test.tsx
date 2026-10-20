@@ -91,7 +91,7 @@ describe("Legal & policies — data rights (inside the Privacy Policy)", () => {
   it("offers the data export in the Privacy document", () => {
     renderPrivacy();
     expect(screen.getByRole("heading", { name: "Download your data" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Download My Data" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Download my data" })).toBeEnabled();
   });
 
   it("keeps the GDPR/CCPA footnote with the control", () => {
@@ -102,7 +102,7 @@ describe("Legal & policies — data rights (inside the Privacy Policy)", () => {
   it("saves everything export-my-data returns as one JSON file", async () => {
     renderPrivacy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Download My Data" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download my data" }));
     await waitFor(() => expect(createdBlobs).toHaveLength(1));
 
     expect(createdBlobs[0].type).toBe("application/json");
@@ -121,7 +121,7 @@ describe("Legal & policies — data rights (inside the Privacy Policy)", () => {
     vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: null, error: { message: "permission denied" } } as never);
     renderPrivacy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Download My Data" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download my data" }));
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
 
     expect(createdBlobs).toHaveLength(0);
@@ -131,7 +131,7 @@ describe("Legal & policies — data rights (inside the Privacy Policy)", () => {
     );
     // The button must come back, not stay stuck in "Preparing…".
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Download My Data" })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Download my data" })).toBeEnabled(),
     );
   });
 
@@ -139,7 +139,7 @@ describe("Legal & policies — data rights (inside the Privacy Policy)", () => {
     renderTab();
     for (const tab of ["Terms", "Rules"]) {
       selectDoc(tab);
-      expect(screen.queryByRole("button", { name: "Download My Data" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Download my data" })).toBeNull();
       expect(screen.queryByRole("heading", { name: "Download your data" })).toBeNull();
     }
   });

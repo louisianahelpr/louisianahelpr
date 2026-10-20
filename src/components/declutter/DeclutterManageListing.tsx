@@ -152,7 +152,7 @@ export function ManageListingSheet({
               </li>
               <li>
                 <button type="button" className={ROW} onClick={() => setView("delete")} disabled={busy}>
-                  <span className="flex-1 min-w-0 text-ds-15 font-semibold text-[hsl(var(--destructive-ink))]">Delete listing</span>
+                  <span className="flex-1 min-w-0 text-ds-15 font-semibold text-[hsl(var(--alert,4_71%_41%))]">Delete listing</span>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 </button>
               </li>
@@ -161,7 +161,7 @@ export function ManageListingSheet({
         )}
         {view === "price" && !manage && (
           state.isError ? (
-            <p role="alert" className="text-ds-13 text-[hsl(var(--destructive-ink))]">{declutterErrorMessage(state.error)}</p>
+            <p role="alert" className="text-ds-13 text-[hsl(var(--alert,4_71%_41%))]">{declutterErrorMessage(state.error)}</p>
           ) : (
             <Skeleton className="h-40 w-full rounded-[20px]" />
           )
@@ -288,7 +288,7 @@ function PriceEditor({
         <p className="text-ds-13 text-muted-foreground">Only you see this. Prices never drop below it. You keep the whole price.</p>
       </div>
       {touched && problem && (
-        <p role="alert" className="text-ds-13 text-[hsl(var(--destructive-ink))]">{problem}</p>
+        <p role="alert" className="text-ds-13 text-[hsl(var(--alert,4_71%_41%))]">{problem}</p>
       )}
       <SheetFooter>
         <SheetSecondaryAction type="button" onClick={onBack} disabled={save.isPending}>

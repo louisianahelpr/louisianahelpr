@@ -24,28 +24,33 @@ const SIDE_OPTIONS: SegmentedOption<Side>[] = [
 
 // Copy true TODAY (lead, LANDING-APPROVED.md, 2026-10-20). Poster side:
 //   1. the poster names the price (BudgetSection), no "typical prices" claim;
-//   2. the poster may message an applicant before hiring (ChatView: only the
-//      poster may open that thread), and a Helpr verifies their ID before
-//      working (the ID gate fires on accepting a first job);
+//   2. the poster may message a pending applicant before hiring: the Message
+//      button on every pending applicant's Hire row (ApplicantHireRow.tsx) and
+//      the live send gate can_send_message_to_in_job (poster -> applicant),
+//      read on prod 2026-10-20. No "every Helpr is ID-verified" claim:
+//      accept_job_offer checks ID (helper_accept_block_reason), but the bodies
+//      of accept_application, accept_group_application,
+//      complete_direct_offer_accept, direct_accept_block_reason and
+//      book_accepted_quote name no identity check (prod, 2026-10-20);
 //   3. escrow is held until the poster approves (or the AUTO_COMPLETE_HOURS
 //      window passes, stated in the money band below).
 // Helpr side is anchored to the real flow, not aspiration:
 //   1. Browse is radius-filtered in miles (JobFilters.tsx `radiusOptions`)
 //      and applying never triggers the ID gate (useApplyFlow.ts), with the
 //      take-home breakdown shown in the apply dialog before you commit.
-//   2. The ID-verification gate fires when a helpr ACCEPTS their first job.
+//   2. The poster picks; the Helpr accepts (no ID claim, see above).
 //   3. The poster funds escrow up front; release-payout transfers to the
 //      helpr's Stripe Connect account once the job is completed and clear
 //      of disputes. No payout speed or fee % is claimed here on purpose.
 const STEPS: Record<Side, { title: string; desc: string }[]> = {
   hire: [
     { title: "Post what you need", desc: "Describe the job and set your price." },
-    { title: "Pick your Helpr", desc: "See who applied and chat before you hire. Every Helpr verifies their ID before they work." },
+    { title: "Pick your Helpr", desc: "See who applied and chat before you hire." },
     { title: "Pay when it's done", desc: "Your money is held safely until you approve the work." },
   ],
   work: [
     { title: "Find work nearby", desc: "Browse jobs near you, see your take-home, then apply." },
-    { title: "Get picked", desc: "The person who posted the job picks you. Verify your ID once, then work." },
+    { title: "Get picked", desc: "The person who posted the job picks you, and you accept." },
     { title: "Get paid when it's done", desc: "Their payment is held safely, then released to you once the work is approved." },
   ],
 };

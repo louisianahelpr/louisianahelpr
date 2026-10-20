@@ -150,7 +150,7 @@ const MONEY_STEPS: { icon: LucideIcon; title: string; body: string; done?: boole
   {
     icon: Check,
     title: "Approved, then released",
-    body: `The person hiring gets ${AUTO_COMPLETE_HOURS} hours to approve the work or ask for a change. If something goes wrong, a real person on our team steps in.`,
+    body: `The person hiring has up to ${AUTO_COMPLETE_HOURS} hours to approve the work or ask for a change. If something goes wrong, a real person on our team steps in.`,
     done: true,
   },
 ];

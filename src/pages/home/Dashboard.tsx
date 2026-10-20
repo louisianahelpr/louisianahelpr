@@ -41,7 +41,7 @@ import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
 import { usePrefetchUserData } from "@/hooks/usePrefetchUserData";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
-import { headerJobCount } from "@/pages/home/headerJobCount";
+import { headerJobCount, sheetResultCount } from "@/pages/home/headerJobCount";
 import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useJobRef } from "@/hooks/useJobRef";
@@ -172,9 +172,8 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
     savedOnlyJobIds: exclusions.savedOnlyJobIds,
   });
 
-  // The header's "N jobs". Once every page is loaded the list IS the set, so
-  // the header prints its length — never a server total that can disagree
-  // with an empty list below it (owner, 2026-10-05). See headerJobCount.ts.
+  // The header's "N jobs": with every page loaded the list IS the set, never a server total (owner, 2026-10-05; headerJobCount.ts).
+  // The filter sheet's "Show N jobs" uses sheetResultCount (board 24): no number unless it is exact.
   const headerCount = headerJobCount({
     serverCount: filters.totalMatchingCount,
     listedCount: filters.filteredJobs.length,
@@ -620,6 +619,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
                     savedCount={filters.savedShownCount ?? 0}
                     wantsQuotes={wantsQuotes}
                     onToggleWantsQuotes={quotesOn ? toggleWantsQuotes : undefined}
+                    resultCount={sheetResultCount({ listedCount: filters.filteredJobs.length, listComplete: !hasNextPage, listOnScreen: !wantsQuotes && !feedShowingLoadError && (isWebDesktop || view === "list") })}
                     onClearAllFilters={() => scrollFeedToTop(containerRef.current)}
                   />
 

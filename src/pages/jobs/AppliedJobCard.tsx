@@ -9,7 +9,7 @@ import { PhotoProofDialog } from "@/components/PhotoProof";
 import type { AppliedApp } from "../../components/job-card/activityConstants";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
 import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace";
-import { helperFaceAction } from "./appliedJobCard/helperFaceAction";
+import { helperFaceAction, helperFaceNextStep } from "./appliedJobCard/helperFaceAction";
 import { PersonTile } from "@/components/PersonTile";
 import { JobActionRow, JobActionChip, JobStepPrimaryButton } from "../../components/job-card/JobActionRow";
 import { JobCardMetaRow } from "../../components/job-card/JobCardMetaRow";
@@ -321,11 +321,11 @@ function AppliedJobCardInner({
   const addressOnFace = !isMinimalCard && (isOffered || isConfirmed || isActive || isDisputed);
   // The face's ONE button (board 21; helperFaceAction.ts).
   const faceAction = helperFaceAction({
-    isMinimalCard,
-    isOffered,
+    isMinimalCard, isOffered,
     owesReview: isCompleted && !isFullyDone && canLeaveReview && !helperReviewedJobIds.has(app.job_id),
     review: () => onHelperReview(app.job_id, posterId!, app.posterName || "the person who posted this job"),
-    manage: () => toggleExpandedJobId(app.job_id),
+    manage: () => toggleExpandedJobId(app.job_id), open: () => { if (!isExpanded) toggleExpandedJobId(app.job_id); },
+    step: (isConfirmed || isActive) && !isCrewLive && !job.is_group_job ? helperFaceNextStep(job, initialTracking) : null,
   });
 
   return (

@@ -304,7 +304,7 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getByText("$8.05")).toBeInTheDocument();
     // Board 30: the breakdown ends in "You pay" = the real checkout total, the seller keeps the whole item price,
     // and no vendor is named (spec §1.7).
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx | <dd className="text-ds-24 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(payCents)}</dd> | <dd className="text-ds-24 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(itemsTotalCents)}</dd>
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx |             {formatPrice(payCents)}\n |             {formatPrice(itemsTotalCents)}\n
     const bill = document.querySelector("[data-checkout-breakdown]")!;
     expect(bill.textContent).toMatch(/You pay\$8\.05/);
     const note = document.querySelector("[data-checkout-note]")!;

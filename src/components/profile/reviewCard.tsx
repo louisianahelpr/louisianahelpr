@@ -1,6 +1,6 @@
 import { Star } from "lucide-react";
 import { formatCategory } from "@/lib/format";
-import { HELPER_QUICK_TAGS, POSTER_QUICK_TAGS } from "@/components/reviewPanel/types";
+import { HELPER_QUICK_TAGS, POSTER_QUICK_TAGS, RETIRED_QUICK_TAGS } from "@/components/reviewPanel/types";
 
 /**
  * THE REVIEW CARD'S SHARED PARTS — one design, one file.
@@ -28,7 +28,7 @@ import { HELPER_QUICK_TAGS, POSTER_QUICK_TAGS } from "@/components/reviewPanel/t
  */
 
 /** Every one-tap tag the review form can write, both directions. */
-const ALL_QUICK_TAGS: readonly string[] = [...HELPER_QUICK_TAGS, ...POSTER_QUICK_TAGS];
+const ALL_QUICK_TAGS: readonly string[] = [...HELPER_QUICK_TAGS, ...POSTER_QUICK_TAGS, ...RETIRED_QUICK_TAGS];
 
 /**
  * Pull the one-tap tags back out of the free-text comment.

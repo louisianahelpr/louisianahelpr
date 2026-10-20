@@ -1062,6 +1062,9 @@ describe("Popup grammar — footer", () => {
       // every filter; it is an action, not a dismissal.
       "Clear all",
       "Maybe Later",
+      // Boards 35/36 (Job done + review): the review can still be left later
+      // from the completed card, so the dismiss names that.
+      "Skip for now",
       "Not Now",
       "Skip",
       "No Thanks",

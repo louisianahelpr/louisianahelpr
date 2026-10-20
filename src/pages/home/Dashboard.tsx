@@ -858,7 +858,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
           (`?apply=<jobId>`), where no detail sheet is open to host the step.
           When the detail sheet IS open it renders the apply step itself, and
           mounting this too would stack a second surface over it. */}
-      <ApplicationSentDialog sent={applicationSent} onClose={closeApplicationSent} onView={viewApplication} />
+      <ApplicationSentDialog sent={applicationSent} onClose={closeApplicationSent} onView={viewApplication} platformFee={platformFee} />
       {confirmApplyJobId && confirmApplyJobId !== detailJob?.id && (
         <Suspense fallback={null}>
           <ApplyConfirmDialog

@@ -86,7 +86,9 @@ CREATE TABLE IF NOT EXISTS public.sms_messages (
   status text NOT NULL CHECK (status IN ('queued', 'sent', 'failed', 'skipped')),
   reason text,
   provider_sid text,
-  error_code text,
+  -- Twilio's error code. Named provider_error_code, not error_code: no other
+  -- table has error_code, and fixtures' HTTP error bodies carry that key.
+  provider_error_code text,
   created_at timestamptz NOT NULL DEFAULT now(),
   sent_at timestamptz
 );
@@ -517,7 +519,7 @@ BEGIN
   UPDATE public.sms_messages
      SET status = p_status,
          provider_sid = left(p_provider_sid, 64),
-         error_code = left(p_error_code, 32),
+         provider_error_code = left(p_error_code, 32),
          sent_at = CASE WHEN p_status = 'sent' THEN now() ELSE NULL END
    WHERE id = p_sms_id AND status = 'queued'
   RETURNING user_id INTO v_user;
@@ -632,7 +634,7 @@ BEGIN
     'failed_24h', (SELECT count(*) FROM public.sms_messages WHERE status = 'failed' AND created_at > now() - interval '24 hours'),
     'recent', COALESCE((
       SELECT jsonb_agg(r ORDER BY r.created_at DESC) FROM (
-        SELECT created_at, category, kind, status, reason, error_code
+        SELECT created_at, category, kind, status, reason, provider_error_code AS error_code
           FROM public.sms_messages ORDER BY created_at DESC LIMIT 20) r), '[]'::jsonb)
   );
 END;

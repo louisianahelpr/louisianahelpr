@@ -9886,7 +9886,7 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string
-          error_code: string | null
+          provider_error_code: string | null
           id: string
           kind: string | null
           notification_id: string | null
@@ -9899,7 +9899,7 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string
-          error_code?: string | null
+          provider_error_code?: string | null
           id?: string
           kind?: string | null
           notification_id?: string | null
@@ -9912,7 +9912,7 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string
-          error_code?: string | null
+          provider_error_code?: string | null
           id?: string
           kind?: string | null
           notification_id?: string | null

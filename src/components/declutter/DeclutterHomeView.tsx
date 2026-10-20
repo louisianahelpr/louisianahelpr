@@ -30,6 +30,7 @@ import {
   fetchPhotos,
   fetchDropStates,
   fetchWatching,
+  photoPublicUrl,
   setWatch,
   withdrawItem,
 } from "@/lib/declutter/api";
@@ -259,6 +260,11 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   const qc = useQueryClient();
   const navigate = useNavigate();
   const mine = useQuery({ queryKey: ["declutter", "mine", userId], queryFn: () => fetchMyItems(userId) });
+  // Board 26's thumbs and "May drop tonight" line: the same batched reads Browse uses.
+  const mineIds = (mine.data ?? []).filter((i) => i.status !== "withdrawn").map((i) => i.id);
+  const myPhotos = useQuery({ queryKey: ["declutter", "photos", mineIds.join(",")], queryFn: () => fetchPhotos(mineIds), enabled: mineIds.length > 0 });
+  const myCover = useMemo(() => firstPhotos(myPhotos.data ?? []), [myPhotos.data]);
+  const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
   // Haul-away (docs/specs/declutter-haul-away.md): hidden behind its own switch,
   // read by DeclutterHome so the page lands once (Q?declutter-settle).
   const haul = useQuery({
@@ -350,17 +356,28 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
     {haulOn && haul.isError && (
       <ErrorState variant="inline" title="We couldn't check your haul-aways." body={declutterErrorMessage(haul.error)} onRetry={() => void haul.refetch()} />
     )}
-      <ul className="space-y-3">
-        {list.map((item) => (
-          <li key={item.id} className="rounded-2xl border border-border bg-card p-4 space-y-2">
-            <div className="flex items-start justify-between gap-3 min-w-0">
-              <div className="min-w-0">
-                <p className="font-semibold truncate">{item.title}</p>
-                <p className="text-sm text-muted-foreground">{formatPrice(item.current_price_cents)}</p>
-              </div>
-              <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium" data-status={item.status}>
-                {STATUS_LABEL[item.status]}
+      {/* Board 26: one card of rows; each row = thumb, title, ONE status line, the price in money ink. */}
+      <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card" data-selling-list="">
+        {list.map((item) => {
+          const drop = item.status === "live" && dropOutlook(item, myDrops.data?.get(item.id)).tonight;
+          const thumb = myCover.get(item.id);
+          return (
+          <li key={item.id} className="space-y-2 px-4 py-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
+                {thumb && <img src={photoPublicUrl(thumb)} alt="" loading="lazy" className="h-full w-full object-cover" />}
               </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-ds-15 font-semibold">{item.title}</p>
+                {drop ? (
+                  <p className="text-ds-13 font-medium text-[hsl(var(--sienna-ink))]">May drop tonight</p>
+                ) : (
+                  <p className="text-ds-13 text-muted-foreground" data-status={item.status}>
+                    {item.status === "live" && item.porch_ok ? "For sale · Porch pickup" : STATUS_LABEL[item.status]}
+                  </p>
+                )}
+              </div>
+              <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(item.current_price_cents)}</span>
             </div>
             {STATUS_HELP[item.status] && <p className="text-xs text-muted-foreground">{STATUS_HELP[item.status]}</p>}
             {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} />}
@@ -399,7 +416,8 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
               )}
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </section>
   );
@@ -418,10 +436,12 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
         userId={userId}
         listings={
           <div className="space-y-3">
-            <MovingOutEntry on={movingOutOn} />
-            {/* "Sell it for me" sits with the listings, so the empty state shows it too (owner 2026-10-19). */}
-            <SellItForMeEntry />
             <MyListingsView userId={userId} haulOn={haulOn} />
+            {/* Board 26: the extra ways to sell, as chips under the list (each only while open to the member). */}
+            <div className="flex flex-wrap gap-2" data-sell-more="">
+              <SellItForMeEntry compact />
+              <MovingOutEntry on={movingOutOn} />
+            </div>
           </div>
         }
       />
@@ -453,14 +473,10 @@ function MovingOutEntry({ on }: { on: boolean }) {
   return (
     <Link
       to="/declutter/move"
-      className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      aria-label="Moving out sale: photograph each room and list everything at once"
+      className="flex min-h-10 items-center rounded-full bg-[hsl(var(--sand))] px-4 text-ds-13 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <Truck className="h-5 w-5 shrink-0" aria-hidden />
-      <span className="flex-1 min-w-0">
-        <span className="block font-semibold text-sm">Moving out?</span>
-        <span className="block text-xs text-muted-foreground">Photograph each room and list everything at once</span>
-      </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+      Moving out sale
     </Link>
   );
 }

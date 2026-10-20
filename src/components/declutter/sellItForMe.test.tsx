@@ -20,7 +20,7 @@
  * @mutate src/components/declutter/SellItForMe.tsx |           <SectionActionPill className="mt-3" onClick={onHireHelpr} {...hireProps}> |           <SectionActionPill className="mt-3" {...hireProps}>
  * @mutate src/components/declutter/SellItForMe.tsx |     if (underAge) {\n      explain("post");\n      return;\n    } | 
  * @mutate src/components/declutter/SellItForMe.tsx |     navigate(sellForMePostJobPath()); |     navigate("/post-job");
- * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SellItForMeEntry />\n | \n
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |               <SellItForMeEntry compact />\n | \n
  * @mutate src/components/declutter/DeclutterSellView.tsx |       {!itemId && <SellItForMeEntry />} |
  * @mutate src/pages/post-job/useJobFormEffects.ts |     setCategory(p.category);\n    setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]); |     setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]);
  * @mutate src/pages/post-job/usePostJobForm.ts |   const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) \|\| | const skipEntry = !!(
@@ -118,7 +118,8 @@ describe("Sell it for me: the entry", () => {
 
   it("sits on the Selling tab (with the listings, so the empty state shows it) and on Sell an item for a new listing", () => {
     const home = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterHomeView.tsx"), "utf8"));
-    expect(home).toMatch(/<MovingOutEntry on=\{movingOutOn\} \/>\s*(?:\{\s*\}\s*)?<SellItForMeEntry \/>\s*<MyListingsView /);
+    // Board 26: under the listings, as a chip beside Moving out sale (so the empty state shows it too).
+    expect(home).toMatch(/<MyListingsView userId=\{userId\} haulOn=\{haulOn\} \/>[\s\S]{0,400}?<SellItForMeEntry compact \/>\s*<MovingOutEntry on=\{movingOutOn\} \/>/);
     const sell = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterSellView.tsx"), "utf8"));
     expect(sell).toMatch(/\{!itemId && <SellItForMeEntry \/>\}/);
   });

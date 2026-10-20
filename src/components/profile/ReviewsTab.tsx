@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/popover";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { TAB_TITLES } from "@/pages/profile/types";
+import { STAR_ON } from "@/lib/starColor";
 
 interface Review {
   rating: number;
@@ -120,8 +121,8 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                   key={n}
                   className="w-4 h-4"
                   style={{
-                    color: n <= Math.round(avgRating) ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
-                    fill: n <= Math.round(avgRating) ? "hsl(var(--burnt-sienna))" : "transparent",
+                    color: n <= Math.round(avgRating) ? STAR_ON : "hsl(var(--olivewood) / 0.25)",
+                    fill: n <= Math.round(avgRating) ? STAR_ON : "transparent",
                   }}
                 />
               ))}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Star } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
+import { STAR_ON } from "@/lib/starColor";
 
 export const StarRow = ({
   value,
@@ -70,8 +71,8 @@ export const StarRow = ({
             <Star
               className="w-6 h-6 transition-colors"
               style={{
-                color: s <= (hover || value) ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
-                fill: s <= (hover || value) ? "hsl(var(--burnt-sienna))" : "transparent",
+                color: s <= (hover || value) ? STAR_ON : "hsl(var(--olivewood) / 0.25)",
+                fill: s <= (hover || value) ? STAR_ON : "transparent",
               }}
             />
           </button>

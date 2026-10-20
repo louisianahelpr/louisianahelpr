@@ -1,6 +1,7 @@
 import { Star } from "lucide-react";
 import { formatCategory } from "@/lib/format";
 import { HELPER_QUICK_TAGS, POSTER_QUICK_TAGS } from "@/components/reviewPanel/types";
+import { STAR_ON_CLS } from "@/lib/starColor";
 
 /**
  * THE REVIEW CARD'S SHARED PARTS — one design, one file.
@@ -79,7 +80,7 @@ export function ReviewStars({ rating }: { rating: number }) {
           key={n}
           aria-hidden="true"
           className={`w-3.5 h-3.5 ${
-            n <= rating ? "fill-accent text-accent" : "text-muted-foreground/30"
+            n <= rating ? STAR_ON_CLS : "text-muted-foreground/30"
           }`}
         />
       ))}

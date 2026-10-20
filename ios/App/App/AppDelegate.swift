@@ -101,7 +101,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         cover.image = UIImage(named: "Splash")
         cover.contentMode = .scaleAspectFill
         cover.clipsToBounds = true
-        cover.backgroundColor = UIColor(red: 0.9451, green: 0.9490, blue: 0.9569, alpha: 1)
+        cover.backgroundColor = UIColor(red: 0.9569, green: 0.9490, blue: 0.9333, alpha: 1)
         cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         cover.isUserInteractionEnabled = false
         cover.accessibilityElementsHidden = true

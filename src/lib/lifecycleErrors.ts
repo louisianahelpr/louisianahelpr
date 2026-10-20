@@ -789,6 +789,8 @@ export const RPC_ERROR_COPY = {
     item_not_editable: DC.item_not_editable,
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
+    payout_setup_incomplete: DC.payout_setup_incomplete,
+    pickup_windows_required: DC.pickup_windows_required,
     under_18: DC.under_18,
   },
   declutter_seller_item_private: {
@@ -816,6 +818,7 @@ export const RPC_ERROR_COPY = {
     invalid_floor_price: DC.invalid_floor_price,
     invalid_price: DC.invalid_price,
     item_not_editable: DC.item_not_editable,
+    price_above_listed: DC.price_above_listed,
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
     under_18: DC.under_18,

@@ -250,7 +250,9 @@ function PriceEditor({
   const problem =
     priceCents == null || priceCents < 100 || priceCents > 100_000
       ? "The price must be between $1 and $1,000."
-      : floorC == null || floorC < 100 || floorC > priceCents
+      : priceCents > item.price_cents
+        ? `You can lower the price, or raise it back up to ${formatPrice(item.price_cents)}, the price you listed it at.`
+        : floorC == null || floorC < 100 || floorC > priceCents
         ? "Your lowest price must be at least $1 and no more than your price."
         : null;
   const save = useListingAction(
@@ -285,7 +287,7 @@ function PriceEditor({
           <span className="text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))]" aria-hidden>$</span>
           <input id="manage-floor" inputMode="decimal" value={floor} onChange={(e) => setFloor(e.target.value.replace(/[^0-9.]/g, ""))} className={inputCls} />
         </div>
-        <p className="text-ds-13 text-muted-foreground">Only you see this. Prices never drop below it. You keep the whole price.</p>
+        <p className="text-ds-13 text-muted-foreground">Only you see this. Prices never drop below it.</p>
       </div>
       {touched && problem && (
         <p role="alert" className="text-ds-13 text-[hsl(var(--alert,4_71%_41%))]">{problem}</p>
@@ -337,7 +339,7 @@ export function SellerListingPanel({ item, coverUrl }: { item: DeclutterItem; co
         </div>
       </div>
       {paused && (
-        <p className="px-1 text-ds-13 text-muted-foreground">Relisting brings it back with its photos, price and drops.</p>
+        <p className="px-1 text-ds-13 text-muted-foreground">Relisting brings it back with its photos and price.</p>
       )}
       {open && (
         <ManageListingSheet

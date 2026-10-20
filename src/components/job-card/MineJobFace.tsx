@@ -114,7 +114,7 @@ export function MineJobFace({
               </span>
               {money && (
                 <span className="shrink-0 text-right" data-mine-face-money="">
-                  <span className="block text-ds-17 font-bold leading-snug tabular-nums text-[hsl(var(--burnt-sienna))]">
+                  <span className="block text-ds-17 font-bold leading-snug tabular-nums text-[hsl(var(--accent-ink))]">
                     {money}
                   </span>
                   {moneyCaption && (

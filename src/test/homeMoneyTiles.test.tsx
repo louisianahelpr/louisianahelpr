@@ -17,7 +17,8 @@
  * @mutate src/components/profile/earningsTab/earningsTabHelpers.ts |     sumHelperTakeHomeDollars(releasing, feeFallbackPercent, firstPayoutFeeDueFrom(releasing, firstPayoutFeeDollars)) * 100, |     sumHelperTakeHomeDollars(releasing, feeFallbackPercent, 0) * 100,
  * @mutate src/lib/posterSpend.ts |     if (!r.job \|\| r.job.payment_status !== "escrow") continue; |     if (!r.job) continue;
  * @mutate src/lib/posterSpend.ts | const HELD_UNTIL_CONFIRM_STATUSES = ["accepted", "in_progress", "revision_requested"] as const; | const HELD_UNTIL_CONFIRM_STATUSES = ["accepted", "in_progress", "revision_requested", "disputed", "open"] as const;
- * @mutate src/lib/posterSpend.ts |     const held = r.cents - r.tipCents; |     const held = r.cents;
+ * @mutate src/lib/posterSpend.ts |     const held = r.cents - r.tipCents - setupFeeCents; |     const held = r.cents - setupFeeCents;
+ * @mutate src/lib/posterSpend.ts |     const held = r.cents - r.tipCents - setupFeeCents; |     const held = r.cents - r.tipCents;
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!c.hasPayoutAccount) return "Add your payout account to get it"; | 
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (c.overdue) return "Approved, not sent yet"; | 
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   return `Sent ${STANDARD_PAYOUT_PHRASE}`; |   return `Payout ${walletDay(new Date().toISOString())}`;
@@ -110,6 +111,13 @@ describe("Held for you = what the card paid for hired jobs that wait on my confi
     const tips = [{ id: "t", job_id: "g", amount: 5, payment_status: "paid", stripe_payment_intent_id: "pi_tip" }];
     // $41.50 charged, $10 of the work paid by gift card, $5 refunded: $26.50 held.
     expect(heldForYou(spentRows(jobs, refunds, gifts, tips))).toEqual({ cents: 2650, jobs: 1 });
+  });
+
+  it("the one-time setup fee is never held: it is kept at checkout and no refund returns it (Q1674; lead 2026-10-20)", () => {
+    // $40 + $1.50 card fee + $2 setup fee charged; $41.50 waits on the confirm.
+    const rows = spentRows([posted({ id: "f", onboarding_fee_amount: 2 })], [], []);
+    expect(rows[0].cents).toBe(4350);
+    expect(heldForYou(rows)).toEqual({ cents: 4150, jobs: 1 });
   });
 
   it("Home reads the Spent half's own rows (one read, one key)", () => {

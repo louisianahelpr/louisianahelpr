@@ -16,7 +16,7 @@ export function boxLabelledFilters<F extends { key: string; label: string }>(tab
   return filters.map((f) => ({ ...f, label: words[f.key] ?? f.label }));
 }
 
-/** Tap a status box = only that group; tap the lit box again = every group ("all"). */
+/** Tap a status chip = only that group; tap the lit chip again (or All) = every group ("all"). */
 export function nextBoxFilter(current: string, tapped: string): string {
   return current === tapped ? "all" : tapped;
 }
@@ -44,6 +44,8 @@ export function EmbeddedActivityHeader({
         boxes={BOX_BUCKETS.map((k) => ({ key: k, label: labels[k], count: counts[k] ?? 0, hot: k === "needs_you" }))}
         value={value}
         onToggle={(k) => onFilter(nextBoxFilter(statusFilter, k))}
+        // `all` is the length of the very list "All" shows (activityFilters: postedJobs.length / appliedApps.length).
+        allCount={counts.all}
       />
     </div>
   );

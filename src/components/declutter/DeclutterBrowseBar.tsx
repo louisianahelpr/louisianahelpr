@@ -1,14 +1,13 @@
 /**
  * Browse's ONE compact row (owner, 2026-10-19): a slim search field with the
- * filter button inside its right edge (the shared SectionSearchRow every Browse wears). The distance choices and where the miles are
- * counted from moved into the slide-up filter sheet, so Browse opens straight
- * onto the items. Any distance is the default (owner, 2026-10-19).
+ * filter button inside its right edge (the shared SectionSearchRow every Browse
+ * wears). The filter button opens the slide-up sheet holding the ONE filter
+ * panel (DeclutterFilterPanel; board 39 shows the same panel as a column on
+ * desktop), with "Clear all" and a live "Show N items" footer. Any distance is
+ * the default (owner, 2026-10-19).
  */
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
-import { DISTANCE_CHOICES } from "@/lib/declutter/distance";
+import { useState, type ReactNode } from "react";
+import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { SectionSearchRow } from "@/components/sections/SectionSearchRow";
 import type { DeclutterOrigin } from "./useDeclutterOrigin";
 
@@ -21,33 +20,22 @@ export interface OriginAsk {
   askDevice: () => void;
 }
 
-function originWords(o: OriginAsk): string {
-  const { origin } = o;
-  if (origin.status === "ready") {
-    if (origin.source === "device") return "Miles are counted from where you are.";
-    const from = origin.source === "profile" ? "your saved location" : origin.source === "zip" ? "your ZIP code's area" : "your parish's center";
-    return `Miles are counted from ${from}.`;
-  }
-  if (origin.status === "none" && origin.zipOnFile) return "We couldn't find the area for the ZIP code on your profile, so items show without miles for now.";
-  return o.asked ? "Add your ZIP code in your profile to see how far each item is." : "Use your location, or add your ZIP code in your profile, to see how far each item is.";
-}
-
 export function DeclutterBrowseBar({
   query,
   onQuery,
-  maxMiles,
-  onMaxMiles,
-  ask,
+  filterCount,
+  panel,
+  shown,
+  onClearAll,
 }: {
   query: string;
   onQuery: (q: string) => void;
-  maxMiles: number | null;
-  onMaxMiles: (m: number | null) => void;
-  ask: OriginAsk;
+  filterCount: number;
+  panel: ReactNode;
+  shown: number;
+  onClearAll: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const located = ask.origin.status === "ready";
-  const filtered = located && maxMiles !== null;
   return (
     <>
       <SectionSearchRow
@@ -55,35 +43,20 @@ export function DeclutterBrowseBar({
         value={query}
         onChange={onQuery}
         placeholder="Search items"
-        filterCount={filtered ? 1 : 0}
+        filterCount={filterCount}
         filtersOpen={open}
         onFilters={() => setOpen(true)}
-        filtersLabel={filtered ? `Filters, within ${maxMiles} miles` : "Filters"}
+        filtersLabel={filterCount > 0 ? `Filters, ${filterCount} on` : "Filters"}
       />
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" floor className="max-h-[85dvh] overflow-y-auto overscroll-contain bg-premium-page">
-          <SheetHero title="How far away" />
-          <div className="mt-2 space-y-3">
-            <p className="text-sm text-muted-foreground">{originWords(ask)}</p>
-            {located && (
-              <SegmentedControl
-                ariaLabel="How far away"
-                layout="wrap"
-                value={maxMiles === null ? "any" : String(maxMiles)}
-                onChange={(v) => onMaxMiles(v === "any" ? null : Number(v))}
-                options={DISTANCE_CHOICES.map((m) => ({ value: m === null ? "any" : String(m), label: m === null ? "Any distance" : `${m} mi` }))}
-              />
-            )}
-            {ask.asking && <p className="text-xs text-muted-foreground" role="status">Finding you…</p>}
-            {ask.deviceNote && <p className="text-xs text-muted-foreground" role="status">{ask.deviceNote}</p>}
-            {!(ask.origin.status === "ready" && ask.origin.source === "device") && (!ask.asked || ask.canAskAgain) && (
-              <Button type="button" variant="outline" size="sm" onClick={ask.askDevice}>
-                {ask.asked ? "Try my location again" : "Use my location"}
-              </Button>
-            )}
-          </div>
-          <SheetFooter className="pt-4 pb-4">
-            <SheetPrimaryAction onClick={() => setOpen(false)}>Show items</SheetPrimaryAction>
+          <SheetHero title="Filters" />
+          <div className="mt-2">{panel}</div>
+          <SheetFooter className="sticky bottom-0 bg-premium-page pt-4 pb-4">
+            <SheetSecondaryAction onClick={onClearAll}>Clear all</SheetSecondaryAction>
+            <SheetPrimaryAction onClick={() => setOpen(false)}>
+              {shown === 1 ? "Show 1 item" : `Show ${shown} items`}
+            </SheetPrimaryAction>
           </SheetFooter>
         </SheetContent>
       </Sheet>

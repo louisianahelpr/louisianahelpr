@@ -38,13 +38,17 @@ export function DeclutterHomeSkeleton() {
  * painted "Loading items…" line and push it 238px down at 375).
  */
 /** The Browse grid: 2 across on a phone, 3 on a small tablet, 4-5 on a desktop (owner, 2026-10-19 14:55Z). */
-export const DECLUTTER_GRID = "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
+// Board 39: three columns beside the desktop filter column (four on very wide screens).
+export const DECLUTTER_GRID = "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 2xl:grid-cols-4";
 
 export function DeclutterBrowseBones() {
   return (
-    <div className="space-y-4" role="status" aria-label="Loading items">
-      {/* The one compact search + filter row (the distance choices live in its sheet). */}
+    // Same frame as Browse (board 39): the list, and on desktop the filter column beside it.
+    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-8" role="status" aria-label="Loading items">
+    <div className="min-w-0 space-y-4">
+      {/* The one compact search + filter row, then the chip row (phone). */}
       <Skeleton className="h-10 w-full rounded-full" />
+      <Skeleton className="h-10 w-full rounded-full lg:hidden" />
       <ul className={DECLUTTER_GRID} aria-hidden>
         {[0, 1, 2, 3].map((i) => (
           <li key={i} className="min-w-0">
@@ -57,6 +61,8 @@ export function DeclutterBrowseBones() {
           </li>
         ))}
       </ul>
+    </div>
+    <Skeleton className="hidden h-96 rounded-[20px] lg:block" />
     </div>
   );
 }

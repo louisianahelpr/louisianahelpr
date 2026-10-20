@@ -199,6 +199,14 @@ export function BudgetSection({
               <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
                 The minimum budget is {formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}.
               </p>
+              {/* Board 171: offer the fix, not only the rule. */}
+              <button
+                type="button"
+                onClick={() => setBudget(String(MIN_JOB_BUDGET_DOLLARS))}
+                className="ml-auto shrink-0 rounded-full border border-input bg-transparent px-3 py-1.5 text-ds-12 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Set it to {formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}
+              </button>
             </div>
           )}
 

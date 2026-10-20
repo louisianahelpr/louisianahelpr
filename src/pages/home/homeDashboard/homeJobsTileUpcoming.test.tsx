@@ -39,8 +39,9 @@ describe("H5: Home's Jobs tile counts upcoming jobs, never waiting posts", () =>
     const qc = new QueryClient();
     const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
     const { result } = renderHook(() => useHomeSummary({ id: "u1" } as never), { wrapper });
-    expect(result.current.tiles.jobs.second).toBe("2 upcoming");
-    expect(result.current.tiles.jobs.second).not.toMatch(/in progress/);
-    expect(result.current.tiles.jobs.n).toBe(1);
+    // The tile is one count line since the design-build lead review (056d4dba80,
+    // countLine: zero counts dropped): "1 need you · 2 upcoming".
+    expect(result.current.tiles.jobs).toBe("1 need you · 2 upcoming");
+    expect(result.current.tiles.jobs).not.toMatch(/in progress/);
   });
 });

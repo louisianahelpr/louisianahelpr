@@ -4,7 +4,8 @@
  * its bottom ones. The class: every `screenPanelContentProps(` call in src/
  * passes `roundTopCorners: true`.
  *
- * @mutate src/components/dashboard/FilterSheet.tsx | {...screenPanelContentProps(band, { roundTopCorners: true })} | {...screenPanelContentProps(band)}
+ * (Filters left this class 2026-10-20: board 24 made it a Sheet on every width.)
+ * @mutate src/components/NotificationPanel.tsx | screenPanelContentProps(band, { roundTopCorners: true, contentMaxWidth | screenPanelContentProps(band, { contentMaxWidth
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -15,7 +16,7 @@ const files = execFileSync("git", ["grep", "-l", "screenPanelContentProps(", "--
 
 describe("every phone screen panel rounds its top corners", () => {
   it("finds the panels (inventory floor)", () => {
-    expect(files.length).toBeGreaterThanOrEqual(2);
+    expect(files.length).toBeGreaterThanOrEqual(1);
   });
   it.each(files)("%s passes roundTopCorners: true", (f) => {
     const calls = readFileSync(f, "utf8").match(/screenPanelContentProps\([^)]*\)/g) ?? [];

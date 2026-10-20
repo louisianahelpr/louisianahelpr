@@ -18,6 +18,10 @@
  * @mutate src/hooks/useDashboardFilters.ts |   const [locationFilter, setLocationFilter] = useState(() => param("loc")); |   const [locationFilter, setLocationFilter] = useState(() => param("loc") \|\| "nearby:25");
  * @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx |       key: "price", |       key: "price-x",
  * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |         title="Filter jobs" |         title="Filters"
+ * @mutate src/components/dashboard/FilterSheet.tsx |         floor={!webDesktop} |         floor
+ * @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx |           style={minBudget \|\| maxBudget ? { color: "hsl(var(--burnt-sienna))" } : undefined} |           style={{ color: "hsl(var(--burnt-sienna))" }}
+ * @mutate src/components/dashboard/JobFilters.tsx | btn-press border min-h-10"; | btn-press border h-11";
+ * @mutate src/components/dashboard/browseTasksToolbar/BrowseViewToggle.tsx |     <SegmentedControl | <SegmentedControl semantics="tab"
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -28,7 +32,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
-const calls = vi.hoisted(() => ({ list: [] as Array<[string, string, unknown]> }));
+const calls = vi.hoisted(() => ({ list: [] as Array<[string, string, unknown]>, desktop: false }));
+vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => calls.desktop }));
 vi.mock("@/integrations/supabase/client", () => {
   const builder: Record<string, unknown> = {};
   for (const m of ["select", "neq", "or", "lte", "eq", "gte", "gt", "not", "in"]) {
@@ -191,5 +196,58 @@ describe("board 24: the Jobs toolbar mounts the sheet with its title and the pag
     expect(screen.getByRole("button", { name: "Next 7 days" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Show 4 jobs" }));
     expect(filters.setFiltersOpen).toHaveBeenCalledWith(false);
+  });
+});
+
+describe("board 24, lead review 2026-10-20: lighter chips, a segmented View, muted 'Any price', a desktop modal", () => {
+  const noop = () => {};
+  const build = (minBudget: string) => buildJobFilterSections({
+    selectedCategory: null, setSelectedCategory: noop, sortBy: "smart", setSortBy: noop,
+    minBudget, setMinBudget: noop, maxBudget: "", setMaxBudget: noop,
+    jobWhen: "", setJobWhen: noop, expiresWithin: "", setExpiresWithin: noop,
+    boostedOnly: false, setBoostedOnly: noop, urgentOnly: false, setUrgentOnly: noop,
+  });
+
+  it("chips are the Declutter ChipGroup size (min-h-10, px-4, text-ds-13)", () => {
+    render(<MemoryRouter>{build("").find((x) => x.key === "sort")!.content}</MemoryRouter>);
+    const chip = screen.getByRole("button", { name: "Newest" });
+    for (const c of ["min-h-10", "px-4", "text-ds-13"]) expect(chip.className.split(/\s+/)).toContain(c);
+    expect(chip.className).not.toMatch(/\bh-11\b/);
+  });
+
+  it("'Any price' is muted ink; a real range is rust", () => {
+    const { unmount } = render(<MemoryRouter>{build("").find((x) => x.key === "price")!.trailing}</MemoryRouter>);
+    expect(screen.getByTestId("pay-range-value").textContent).toBe("Any price");
+    expect(screen.getByTestId("pay-range-value").getAttribute("style") ?? "").not.toMatch(/burnt-sienna/);
+    unmount();
+    render(<MemoryRouter>{build("40").find((x) => x.key === "price")!.trailing}</MemoryRouter>);
+    expect(screen.getByTestId("pay-range-value").textContent).toBe("$40+");
+    expect(screen.getByTestId("pay-range-value").getAttribute("style") ?? "").toMatch(/burnt-sienna/);
+  });
+
+  it("View is the shared segmented control (a 'Feed view' radiogroup)", () => {
+    const filters = {
+      filtersOpen: true, setFiltersOpen: vi.fn(), activeFilterCount: 0, clearFilters: noop,
+      selectedCategory: null, setSelectedCategory: noop, locationFilter: "", setLocationFilter: noop,
+      sortBy: "smart", setSortBy: noop, expiresWithin: "", setExpiresWithin: noop, jobWhen: "", setJobWhen: noop,
+      minBudget: "", setMinBudget: noop, maxBudget: "", setMaxBudget: noop,
+      matchAvailability: false, setMatchAvailability: noop, boostedOnly: false, setBoostedOnly: noop,
+      urgentOnly: false, setUrgentOnly: noop, userLoc: { status: "idle" }, nearbyApproximate: false, nearbyUnavailable: false,
+    } as unknown as BrowseTasksToolbarProps["filters"];
+    render(<MemoryRouter><BrowseTasksToolbar filters={filters} user={null} helperAvailability={[]} view="list" setView={noop} /></MemoryRouter>);
+    const group = screen.getByRole("radiogroup", { name: "Feed view" });
+    expect(group.querySelectorAll('[role="radio"]').length).toBe(2);
+  });
+
+  it("desktop web opens the centred 520px modal, phone the floor sheet", () => {
+    calls.desktop = true;
+    const { unmount } = sheet(null);
+    const desk = screen.getByRole("dialog");
+    expect(desk.className).toContain("sm:max-w-[520px]");
+    expect(desk.className).not.toContain("sheet-floor");
+    unmount();
+    calls.desktop = false;
+    sheet(null);
+    expect(screen.getByRole("dialog").className).toContain("sheet-floor");
   });
 });

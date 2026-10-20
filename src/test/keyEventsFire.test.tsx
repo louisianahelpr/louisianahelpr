@@ -327,13 +327,18 @@ async function driveJobCompleted(): Promise<string> {
 
 async function driveReviewLeft(): Promise<string> {
   const JOB = "job-reviewed-1";
+  // ReviewForm reads the job for its Job done header (JobDoneSummary), so it
+  // needs the QueryClient every app mount has.
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
-    <MemoryRouter>
-      <ReviewForm open onClose={vi.fn()} jobId={JOB} revieweeId="helper-1" revieweeName="Hallie H." />
-    </MemoryRouter>,
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>
+        <ReviewForm open onClose={vi.fn()} jobId={JOB} revieweeId="helper-1" revieweeName="Hallie H." />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
-  fireEvent.click(await screen.findByRole("radio", { name: "Overall 4 stars" }));
-  fireEvent.click(screen.getByRole("button", { name: /submit review/i }));
+  fireEvent.click(await screen.findByRole("radio", { name: "4 stars" }));
+  fireEvent.click(screen.getByRole("button", { name: /send review/i }));
   await waitFor(() => expect(h.state.fromCalls.some((c) => c.table === "reviews" && c.ops.some((o) => o.m === "insert"))).toBe(true));
   return JOB;
 }

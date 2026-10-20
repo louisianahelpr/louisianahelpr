@@ -14,9 +14,8 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Star, Copy, Check } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS } from "../../supabase/functions/_shared/tipFees";
 import { fetchReferralData } from "@/hooks/useReferralData";
@@ -29,6 +28,9 @@ import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdown";
 import { recordReviewInActivityCache } from "@/lib/reviewActivityCache";
 import { unwrapMutation, WriteRejectedError } from "@/lib/mutationResult";
 import { userFacingError } from "@/lib/userFacingError";
+import { ReviewQuestionCard } from "@/components/reviewPanel/ReviewQuestionCard";
+import { quickTagsFor } from "@/components/reviewPanel/types";
+import { JobDoneSummary } from "@/components/jobDone/JobDoneSummary";
 
 // NpsPrompt is mounted as the final step in the post-completion sequence —
 // after review/tip/share. It self-gates on eligibility (2nd qualifying job
@@ -50,7 +52,7 @@ type CompletionPromptsProps = {
   jobCategory?: Database["public"]["Enums"]["job_category"] | null;
 };
 
-export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, userId, onDone, isHelper = false, jobCategory }: CompletionPromptsProps) => {
+export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onDone, isHelper = false, jobCategory }: CompletionPromptsProps) => {
   const [step, setStep] = useState<"review" | "tip" | "share" | "nps" | null>("review");
 
   // "More work nearby" — only useful when the viewer is the helper.
@@ -76,14 +78,16 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     enabled: isHelper && step === "share" && !!jobCategory,
   });
   const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
   const [, setAlreadyReviewed] = useState(false);
   const [customTip, setCustomTip] = useState<number | undefined>(undefined);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
-  const quickOptions = ["Great communicator", "On time", "Quality work", "Very professional", "Highly recommend", "Friendly & helpful"];
+  // The shared, direction-aware tags (reviewPanel/types): the same words the
+  // completed card's Review offers.
+  const quickOptions = quickTagsFor(isHelper ? "poster" : "helper");
+  const firstName = revieweeName.trim().split(/\s+/)[0] || revieweeName;
 
   // Lazy-fetch referral code only when we hit the share step. Job-completion
   // is the highest-affinity moment — both parties just had a good experience.
@@ -122,14 +126,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     } catch {
       toast.error("Couldn't copy. Try long-pressing the link.");
     }
-  };
-
-  const toggleQuickOption = (option: string) => {
-    setFeedback(prev => {
-      const parts = prev.split(", ").filter(Boolean);
-      if (parts.includes(option)) return parts.filter(p => p !== option).join(", ");
-      return [...parts, option].join(", ");
-    });
   };
 
   useEffect(() => {
@@ -287,44 +283,33 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
 
   return (
     <>
-      {/* Review Prompt */}
+      {/* Review Prompt: boards 35/36, the Job done moment. Same layout as
+          the completed card's Review (ReviewForm): moment title, the job and
+          money note (JobDoneSummary), then the one review card. */}
       <Dialog open={step === "review"} onOpenChange={() => { setStep("tip"); }}>
         <DialogContent
           stepped>
-          <DialogHero
-            title={`Rate ${revieweeName}`}
-          />
-          <div className="space-y-4">
-            <DialogBody><p>How was your experience with {revieweeName} on "{jobTitle}"?</p></DialogBody>
-            <div className="flex gap-1 justify-center">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <button key={s} onClick={() => setRating(s)} onMouseEnter={() => setHoverRating(s)} onMouseLeave={() => setHoverRating(0)} aria-label={`Rate ${s} star${s === 1 ? "" : "s"}`}>
-                  <Star className={`w-8 h-8 transition-colors ${s <= (hoverRating || rating) ? "fill-primary text-primary" : "text-muted-foreground/30"}`} />
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {quickOptions.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => toggleQuickOption(opt)}
-                  className={`text-ds-11 px-3 py-1.5 rounded-full border transition-colors ${
-                    feedback.includes(opt)
-                      ? "btn-grad-primary text-[hsl(var(--parchment))] border-transparent"
-                      : "bg-secondary text-secondary-foreground border-border hover:bg-accent"
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-            <Textarea aria-label="Comment (optional)" value={feedback} onChange={(e) => setFeedback(e.target.value)} rows={2} />
+          <DialogHero moment title="Job done" />
+          <div className="space-y-3 min-w-0">
+            <JobDoneSummary
+              jobId={jobId}
+              side={isHelper ? "helper" : "poster"}
+              otherName={revieweeName}
+              viewerId={userId}
+            />
+            <ReviewQuestionCard
+              question={isHelper ? `How was working for ${firstName}?` : `How did ${firstName} do?`}
+              rating={rating}
+              onRating={setRating}
+              tags={quickOptions}
+              feedback={feedback}
+              onFeedback={setFeedback}
+            />
           </div>
           <DialogFooter>
-            <DialogSecondaryAction onClick={() => setStep("tip")}>Skip</DialogSecondaryAction>
+            <DialogSecondaryAction onClick={() => setStep("tip")}>Skip for now</DialogSecondaryAction>
             <DialogPrimaryAction onClick={submitReview} disabled={saving || rating === 0}>
-              {saving ? "Submitting…" : "Submit Review"}
+              {saving ? "Sending…" : "Send review"}
             </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>

@@ -27,8 +27,7 @@
  * @mutate src/lib/nps.ts | export type NpsRole = "customer" \| "helper"; | export type NpsRole = "poster" \| "helper";
  * @mutate src/components/feedback/NpsPrompt.tsx | {Array.from({ length: 5 }, (_, i) => i + 1).map((n) => { | {Array.from({ length: 11 }, (_, i) => i + 1).map((n) => {
  * @mutate src/lib/errorLogger.ts | type Severity = "info" \| "warning" \| "error" \| "fatal"; | type Severity = "info" \| "warning" \| "error" \| "fatal" \| "debug";
- * @mutate src/components/reviewPanel/StarRow.tsx | {[1, 2, 3, 4, 5].map((s) => ( | {[1, 2, 3, 4, 5, 6].map((s) => (
- * @mutate src/components/CompletionPrompts.tsx | {[1, 2, 3, 4, 5].map((s) => ( | {[1, 2, 3, 4].map((s) => (
+ * @mutate src/components/reviewPanel/StarRow.tsx | {[1, 2, 3, 4, 5].map((s) => { | {[1, 2, 3, 4, 5, 6].map((s) => {
  * @mutate supabase/migrations/20260311000404_f8e7eb29-742a-409a-a3a3-a493232415e6.sql | rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5), | rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 10),
  * @mutate src/components/postjob/detailsSection/detailsSectionConstants.ts | { value: 3, label: "Licensed + Insured" | { value: 4, label: "Licensed + Insured"
  * @mutate src/lib/nativePush.ts | async function persistPushToken(userId: string, token: string, platform: "ios" \| "android") | async function persistPushToken(userId: string, token: string, platform: "ios" \| "android" \| "macos")
@@ -125,15 +124,9 @@ const ROWS: Row[] = [
     server: () => dbEnum("error_logs", "severity"),
   },
   {
-    id: "review stars, ReviewForm/StarRow (vs reviews rating CHECK)",
+    id: "review stars, StarRow (both review surfaces, via ReviewQuestionCard) vs reviews rating CHECK",
     relation: "equal",
     client: () => starScale("src/components/reviewPanel/StarRow.tsx"),
-    server: () => range(dbRange("reviews", "rating")),
-  },
-  {
-    id: "review stars, CompletionPrompts (vs reviews rating CHECK)",
-    relation: "equal",
-    client: () => starScale("src/components/CompletionPrompts.tsx"),
     server: () => range(dbRange("reviews", "rating")),
   },
   {
@@ -159,7 +152,8 @@ const ROWS: Row[] = [
 
 describe("closed value sets agree between client and DB CHECK (Q54)", () => {
   it("inventory floor: every row resolves on both sides", () => {
-    expect(ROWS.length).toBeGreaterThan(10);
+    // 10 rows: CompletionPrompts no longer has its own star input (boards 35/36 render StarRow through ReviewQuestionCard).
+    expect(ROWS.length).toBeGreaterThan(9);
     for (const r of ROWS) {
       expect(r.client().length, `${r.id}: client side empty`).toBeGreaterThan(0);
       expect(r.server().length, `${r.id}: server side empty`).toBeGreaterThan(0);

@@ -64,7 +64,7 @@ describe("/profile landing heading contract (journeys read it)", () => {
   it("the name is not the page's h1 (the h1 is the PageHeader title)", () => {
     renderIdentity("E2E Helper");
     expect(screen.queryByRole("heading", { name: "E2E Helper", level: 1 })).toBeNull();
-    expect(PROFILE_PAGE_TITLE).toBe("Profile");
+    expect(PROFILE_PAGE_TITLE).toBe("You"); // board 18 (2026-10-20)
     expect(blankComments(read("src/components/profile/ProfileLanding.tsx"))).toMatch(/title=\{PROFILE_PAGE_TITLE\}/);
   });
 

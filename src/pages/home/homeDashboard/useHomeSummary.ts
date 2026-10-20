@@ -84,6 +84,13 @@ export function useHomeSummary(user: SupaUser | null) {
       todos,
       thisWeek,
       upcoming: upcoming.slice(0, 3),
+      // You tab's activity tiles (board 18): real counts, 0 = no number shown.
+      counts: {
+        posted: postedLive.length,
+        working: appliedLive.length,
+        selling: items.filter((i) => i.status === "live").length,
+        shopOrders: myOrders.length,
+      },
       tiles: {
         jobs: countLine([[jobTodos, "need you"], [postedLive.length + appliedLive.length, "in progress"]]),
         declutter: countLine([[items.filter((i) => i.status === "live").length, "listed"], [items.filter((i) => i.status === "pending_review").length, "in review"]]),

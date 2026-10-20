@@ -3,13 +3,16 @@ import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  User,
   ShieldAlert,
   ChevronDown,
+  Plus,
   type LucideIcon,
 } from "lucide-react";
+import HelprMark from "@/components/HelprMark";
+import { CreateSheet } from "@/components/create/CreateSheet";
+import { leftItems, rightItems, exploreItem, youItem } from "@/components/mobileNav/mobileNavHelpers";
 import { useSectionTabs, comingSoonLabel, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
-import { dockItems, type DockItem } from "@/components/mobileNav/dockItems";
+import type { DockItem } from "@/components/mobileNav/dockItems";
 import { announceTabReselect } from "@/components/mobileNav/tabReselect";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
@@ -21,7 +24,8 @@ import { prefetchRoute } from "@/lib/routePrefetch";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 
 /**
- * DesktopSidebarNav — the persistent RIGHT-rail navigation shown ONLY on the
+ * DesktopSidebarNav — the persistent LEFT sidebar (owner 2026-10-19: left and
+ * always open; board 11, HELPR-DESIGN-SPEC v2 §4.4) shown ONLY on the
  * wide desktop *website* (web-desktop). It is the desktop counterpart to the
  * floating bottom {@link MobileNav} dock; the two are mutually exclusive:
  *
@@ -34,12 +38,14 @@ import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
  * `web-desktop` class, so the rail can never appear in the native app:
  *   !isNativePlatform && matchMedia('(min-width: 900px)')
  *
- * The destinations are the dock's own list (Home, the member's sections,
- * Messages) plus Profile (Q2220). It reuses the same badge sources MobileNav uses so the
+ * Top to bottom (board 11): the logo, an olive "Create" pill that opens the
+ * same create sheet as the phone's center +, Home, Explore with the member's
+ * sections nested under it (Customize order; a closed section reads "Soon"),
+ * Messages, You. No hamburger: it never closes. It reuses the same badge sources MobileNav uses so the
  * unread/activity counts stay consistent across the two navs.
  */
 
-const PROFILE_ITEM = { path: "/profile", icon: User, label: "Profile" };
+type NavRow = { path: string; icon: LucideIcon; label: string; badgeKey?: DockItem["badgeKey"]; comingSoon?: boolean; nested?: boolean };
 
 /**
  * Admin — the SAME five destinations for everyone, plus one expandable group
@@ -104,9 +110,18 @@ const DesktopSidebarRail = () => {
   // Posts living inside Jobs, then Messages) plus Profile. No separate Posts row
   // and no "Post a Job" button: Jobs' "+" is in its top bar. A section switched
   // off for this viewer is listed greyed and says "coming soon".
-  const navItems: Array<{ path: string; icon: LucideIcon; label: string; badgeKey?: DockItem["badgeKey"]; comingSoon?: boolean }> = [
-    ...dockItems(sectionTabs, visibleSections),
-    PROFILE_ITEM,
+  const [createOpen, setCreateOpen] = useState(false);
+  const messages = rightItems.find((i) => i.path === "/messages")!;
+  const navItems: NavRow[] = [
+    leftItems[0],
+    exploreItem,
+    ...visibleSections.map((sec) => {
+      const t = sectionTabs.find((x) => x.path === sec.path);
+      // Jobs carries the same needs-you count as the Explore badge's source; the other sections have no real count yet, so none is shown.
+      return { path: sec.path, icon: sec.icon, label: sec.label, nested: true, comingSoon: t ? !t.on : false, badgeKey: sec.key === "jobs" ? ("jobsAndPosts" as const) : undefined };
+    }),
+    { path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" },
+    youItem,
   ];
   // Admin's own sections, collapsed by default so an admin's panel is the same
   // shape as everyone else's until they open it. Auto-opens while you are
@@ -158,78 +173,43 @@ const DesktopSidebarRail = () => {
   };
 
   // Jobs is active on /jobs and on /posts (which forwards to Jobs > Posted).
-  const isActive = (path: string) => location.pathname === path || (path === "/jobs" && location.pathname === "/posts");
+  const inSection = (path: string) => location.pathname === path || location.pathname.startsWith(`${path}/`) || (path === "/jobs" && location.pathname.startsWith("/posts"));
+  const isActive = (path: string) =>
+    path === "/explore"
+      ? location.pathname === "/explore" || visibleSections.some((sec) => inSection(sec.path))
+      : inSection(path);
 
   return (
     <nav
       aria-label="Primary"
       aria-hidden={!sidePanelOpen}
-      // @ts-expect-error — `inert` is valid HTML; React's types lag it.
       inert={!sidePanelOpen ? "" : undefined}
-      className={`fixed right-0 bottom-0 z-40 hidden lg:flex lg:flex-col motion-safe:transition-[transform,visibility] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)] ${
-        sidePanelOpen ? "visible" : "invisible"
-      }`}
+      data-desktop-sidebar="left"
+      className={`fixed left-0 top-0 bottom-0 z-40 hidden lg:flex lg:flex-col ${sidePanelOpen ? "visible" : "invisible"}`}
       style={{
-        // Start the rail BELOW the full-width top header (h-14 = 3.5rem plus
-        // any safe-area inset the header reserves) so the header — which spans
-        // the entire viewport width and paints in a separate stacking context
-        // — is never covered by the rail's top band.
-        // A CARD, like the content beside it (owner: "should we do round edge
-        // at the top and some space too, similar to the box on the left").
-        // It ran edge-to-edge with square corners and a hairline border while
-        // every panel it sits next to is an inset, rounded, shadowed card — so
-        // it read as chrome bolted to the window rather than part of the same
-        // surface family.
-        //
-        // Inset from the header and the right edge, then rounded on the TOP
-        // corners only: the bottom runs to the viewport floor, so rounding
-        // there would leave two lit notches against the page behind it.
-        // Aligns with the TOP OF THE LEFT CARD, not with the header.
-        // Measured at 908x994: the frame starts at y=56 and carries lg:pt-5,
-        // so the content card starts at y=76 — the panel was at y=64 and stood
-        // 12px taller than the thing beside it (owner: "the right panel and
-        // left panel should be the same height"). 3.5rem clears the header,
-        // 1.25rem is that same lg:pt-5.
-        // TRAVEL THE SAME DISTANCE AS THE CONTENT EDGE, so the two read as one
-        // movement (owner: "left panel opens faster than right panel moves
-        // out"). Duration and curve already matched at 300ms; the DISTANCE did
-        // not. Tailwind's `translate-x-full` moves the panel by its OWN width —
-        // 236px after the 12px inset — while the frame's `right` changes by the
-        // full 248px rail width. Same time, different distance, so they drifted
-        // apart mid-slide; and the 12px shortfall also left a sliver of panel
-        // parked on screen when closed.
-        transform: sidePanelOpen
-          ? "translateX(0)"
-          : "translateX(var(--desktop-sidebar-w, 248px))",
-        top: "calc(var(--safe-area-top, 0px) + 3.5rem + 1.25rem)",
-        right: "0.75rem",
-        width: "calc(var(--desktop-sidebar-w, 248px) - 0.75rem)",
-        background: "var(--glass-bg-crisp, hsl(0 0% 100% / 0.97))",
-        border: "1px solid hsl(var(--olivewood) / 0.12)",
-        borderBottom: "none",
-        borderTopLeftRadius: "1rem",
-        borderTopRightRadius: "1rem",
-        // Lifted off the page on all sides now that it is not flush to the
-        // edge — the old shadow only cast leftward because that was its only
-        // exposed side.
-        boxShadow: "0 1px 3px hsl(var(--olivewood) / 0.06), 0 8px 24px -12px hsl(var(--olivewood) / 0.18)",
+        width: "var(--desktop-sidebar-w, 248px)",
+        paddingTop: "var(--safe-area-top, 0px)",
+        background: "hsl(var(--card))",
+        borderRight: "1px solid hsl(var(--border))",
       }}
     >
-      {/* The rail now starts beneath the header, so add a little breathing room
-          at the top rather than a full header-height spacer. */}
-      <div className="h-3 shrink-0" aria-hidden="true" />
+      <div className="px-5 pt-5 pb-4 shrink-0">
+        <HelprMark to="/home" size="md" emblemOnly />
+      </div>
+      <div className="px-3 pb-3 shrink-0">
+        <button
+          type="button"
+          data-testid="sidebar-create"
+          aria-haspopup="dialog"
+          aria-expanded={createOpen}
+          onClick={() => setCreateOpen(true)}
+          className="btn-grad-primary btn-press w-full h-12 rounded-full inline-flex items-center justify-center gap-2 text-ds-15 font-semibold"
+        >
+          <Plus className="h-5 w-5" strokeWidth={2.4} aria-hidden />
+          Create
+        </button>
+      </div>
 
-
-      {/* Destinations */}
-      {/* SCROLLS. The panel had no overflow handling at all, which was fine
-          while it held six fixed rows — and stopped being fine the moment
-          Admin nested twenty-four sections under itself: everything past the
-          fold was simply unreachable (owner: "right panel doesn't allow scroll
-          for admin").
-          `min-h-0` is the load-bearing half. A flex child defaults to
-          min-height:auto, so it refuses to shrink below its content and
-          `overflow-y-auto` never has anything to scroll — the list just grows
-          past the bottom of the panel instead. */}
       <ul className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-3 py-2">
         {navItems.map((item) => {
           const { path, icon: Icon, label } = item;
@@ -245,9 +225,11 @@ const DesktopSidebarRail = () => {
                 aria-current={active ? "page" : undefined}
                 aria-disabled={soon ? true : undefined}
                 aria-label={soon ? comingSoonLabel(label) : undefined}
-                className={`group relative flex w-full items-center gap-3 rounded-ds-md px-3 py-2.5 text-left transition-colors${soon ? " cursor-not-allowed" : ""}`}
+                data-sidebar-item={path}
+                className={`group relative flex w-full items-center gap-3 rounded-full ${item.nested ? "pl-9 pr-3 py-2" : "px-3 py-2.5"} text-left transition-colors${soon ? " cursor-not-allowed" : ""}`}
                 style={{
-                  background: active ? "hsl(var(--bark) / 0.08)" : "transparent",
+                  // Only the current page gets the pill; Explore is bold when one of its sections is open.
+                  background: active && (item.nested || path !== "/explore" || location.pathname === "/explore") ? "hsl(var(--bark) / 0.10)" : "transparent",
                   color: active ? "hsl(var(--bark))" : soon ? "hsl(var(--muted-foreground))" : "hsl(var(--ink-deep))",
                 }}
               >
@@ -259,10 +241,12 @@ const DesktopSidebarRail = () => {
                   />
                   {count > 0 && (
                     <span
+                      data-sidebar-badge
                       className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-ds-10 font-bold"
                       style={{
-                        background: "hsl(var(--burnt-sienna))",
-                        color: "hsl(var(--parchment))",
+                        // Count badges are --alert, never rust (spec v2 §1.1).
+                        background: "hsl(var(--alert))",
+                        color: "#fff",
                       }}
                     >
                       {count > 9 ? "9+" : count}
@@ -303,7 +287,7 @@ const DesktopSidebarRail = () => {
                 {!adminOpen && adminTotal > 0 && (
                   <span
                     className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-ds-10 font-bold"
-                    style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
+                    style={{ background: "hsl(var(--alert))", color: "#fff" }}
                   >
                     {adminTotal > 9 ? "9+" : adminTotal}
                   </span>
@@ -359,7 +343,7 @@ const DesktopSidebarRail = () => {
                                 <>
                                   <span
                                     className="ml-auto flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full px-1 text-ds-10 font-bold"
-                                    style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
+                                    style={{ background: "hsl(var(--alert))", color: "#fff" }}
                                     aria-hidden="true"
                                   >
                                     {adminBadges[id] > 99 ? "99+" : adminBadges[id]}
@@ -380,6 +364,8 @@ const DesktopSidebarRail = () => {
         )}
       </ul>
 
+      {/* Mounted only once asked for: the sheet reads whether the member has a shop, and a page load should not. */}
+      {createOpen && <CreateSheet open={createOpen} onOpenChange={setCreateOpen} />}
     </nav>
   );
 };

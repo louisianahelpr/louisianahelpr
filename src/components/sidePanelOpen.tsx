@@ -22,8 +22,10 @@ const STORAGE_KEY = "helpr.sidePanelOpen";
  * next default change would not notice.
  */
 export const readSidePanelOpen = (): boolean => {
-  const stored = safeStorage.getItem(STORAGE_KEY);
-  return stored === null ? true : stored === "1";
+  // ALWAYS OPEN (owner, 2026-10-19: "DESKTOP side menu LEFT + always open";
+  // board 11). The hamburger that closed it is gone, so a "0" a member stored
+  // under the old toggle must not strand them without navigation.
+  return true;
 };
 
 /**

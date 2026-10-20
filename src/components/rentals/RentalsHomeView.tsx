@@ -409,7 +409,7 @@ export default function RentalsHomeView() {
   const tabs = <SectionTabs label="Homes" tabs={HOMES_TABS} value={tab} onChange={setTab} />;
   if (tab === "browse") {
     return (
-      <SectionScreen title="Homes" add={sectionByKey("homes").add}>
+      <SectionScreen section="homes" title="Homes" add={sectionByKey("homes").add}>
         {tabs}
         <HomesBrowse />
       </SectionScreen>
@@ -422,7 +422,7 @@ export default function RentalsHomeView() {
   const landlordOther = mineAsLandlord.filter((r) => r.status !== "submitted");
   const showOwn = (g: (typeof OWN_GROUPS)[number]) => ownStatus === null || ownStatus === g;
   return (
-    <SectionScreen title="Homes" add={sectionByKey("homes").add}>
+    <SectionScreen section="homes" title="Homes" add={sectionByKey("homes").add}>
       {tabs}
       {data.isError || !data.data ? (
         <ErrorState onRetry={() => data.refetch()} />

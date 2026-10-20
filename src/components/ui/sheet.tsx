@@ -253,7 +253,14 @@ SheetTitle.displayName = SheetPrimitive.Title.displayName;
  */
 const SheetHero = ({
   title,
+  moment = false,
 }: {
+  /**
+   * A MOMENT title (owner, 2026-10-20): Bodoni via `.font-moment`, for a
+   * step-flow question such as the create sheet's "What are we doing?". A
+   * boolean, not a class hatch: the size, colour and lane stay this hero's.
+   */
+  moment?: boolean;
   // TITLE ONLY. `eyebrow` and `subtitle` used to be ACCEPTED-BUT-DISCARDED, on
   // the reasoning that keeping them in the type made a stray usage "a no-op
   // rather than a build break". That is the wrong way round: a no-op is
@@ -298,7 +305,7 @@ const SheetHero = ({
         // removed on 2026-08-29 ("the container's own padding already clears
         // the X") and SheetHero kept it, so every sheet title in the app sat
         // 8px lower in its card than every dialog title.
-        className={SHEET_HERO_TITLE_CLASS}
+        className={moment ? `${SHEET_HERO_TITLE_CLASS} font-moment` : SHEET_HERO_TITLE_CLASS}
         style={SHEET_HERO_TITLE_STYLE}
       >
         {title}

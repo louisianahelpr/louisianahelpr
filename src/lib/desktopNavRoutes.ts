@@ -13,6 +13,8 @@ const AUTH_PREFIXES = [
   // is the pair that actually turns it on.
   "/admin",
   "/home", "/posts", "/jobs", "/post-job", "/profile",
+  // Explore: the bottom bar's sections tab (owner-approved mock-up, 2026-10-20).
+  "/explore",
   "/messages", "/user",
   // Declutter (hidden switch; each page is the 404 while it is off).
   "/declutter",

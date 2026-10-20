@@ -5,12 +5,13 @@
  * - Home: greeting, three stat boxes (To do / This week / Unread), the To do
  *   list COLLAPSED on load and opened by a tap on the To do box, the member's
  *   sections as boxes, Coming up. No "+" and no row of category pills.
- * - Bottom nav: Home, Jobs, Declutter, Shops, Homes, MESSAGES (unread badge),
- *   no "+".
+ * - Bottom nav (owner-approved mock-up, 2026-10-20, superseding 10-19's six
+ *   tabs): Home, Explore, the center "+", MESSAGES (unread badge), You. The
+ *   sections live in Explore (src/test/centerCreateNav.test.tsx).
  * - Every section opens on Browse, and Browse is the leftmost segment.
  * - Status boxes filter: tap = only that group (pressed), tap again = all.
- * - Customize hides a section from the bottom nav AND Home; the last one
- *   cannot be hidden.
+ * - Customize hides a section from Explore AND Home; the last one cannot be
+ *   hidden.
  *
  * The @mutate lines break each sentence; this file must go red.
  *
@@ -19,13 +20,13 @@
  * @mutate src/pages/home/HomeDashboard.tsx | useState(false);\n  const toggleTodo = () => setTodoOpen((o) => !o); | useState(() => sessionStorage.getItem("t") === "1");\n  const toggleTodo = () => setTodoOpen((o) => { sessionStorage.setItem("t", o ? "0" : "1"); return !o; });
  * @mutate src/pages/home/HomeDashboard.tsx |   useOnTabReselect("/home", () => setTodoOpen(false)); |   useOnTabReselect("/home", () => undefined);
  * @mutate src/pages/home/HomeDashboard.tsx |         {todoOpen && ( |         {todoCount > 0 && !todoOpen && <button type="button" onClick={toggleTodo} aria-expanded={false}>To do ({todoCount})</button>}\n        {todoOpen && (
- * @mutate src/components/mobileNav/dockItems.ts |   return [home, ...sections, { path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" }]; |   return [home, ...sections];
- * @mutate src/components/mobileNav/dockItems.ts |   const sections: DockItem[] = visible.map((s) => { |   const sections: DockItem[] = [...visible].reverse().map((s) => {
+ * @mutate src/components/mobileNav/dockItems.ts |     right: [{ path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" }, youItem], |     right: [youItem],
+ * @mutate src/components/sections/ExploreSwitcher.tsx |   const options = visible.map((s) => { |   const options = [...visible].reverse().map((s) => {
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
  * @mutate src/components/sections/StatusBoxes.tsx |           if (p.get("status") === k) p.delete("status"); |           if (false) p.delete("status");
  * @mutate src/components/sections/useSectionPrefs.ts |   const visible = prefs.order.filter((k) => !prefs.hidden.includes(k)) |   const visible = prefs.order.filter(() => true)
  * @mutate src/components/sections/useSectionPrefs.ts |       if (hidden.length >= ALL.length) return false; |       if (hidden.length > ALL.length) return false;
- * @mutate src/components/mobileNav/mobileNavHelpers.ts |   "/jobs": ["/jobs/"], |   "/jobs": [],
+ * @mutate src/components/mobileNav/mobileNavHelpers.ts |   "/explore": ["/jobs", "/posts", "/declutter", "/shops", "/rentals", "/quotes"], |   "/explore": [],
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
@@ -76,6 +77,7 @@ vi.mock("@/lib/shops/orders", () => ({ fetchMyOrders: async () => [] }));
 vi.mock("@/lib/rentals/api", () => ({ fetchMyProperties: async () => [] }));
 
 import MobileNav from "@/components/MobileNav";
+import { ExploreSwitcher } from "@/components/sections/ExploreSwitcher";
 import HomeDashboard from "@/pages/home/HomeDashboard";
 import { announceTabReselect } from "@/components/mobileNav/tabReselect";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
@@ -120,26 +122,30 @@ describe("the app opens on Home (owner 2026-10-19)", () => {
   });
 });
 
+const exploreLabels = () =>
+  [...document.querySelectorAll('[data-testid="explore-switcher"] [role="radio"]')].map((b) => b.getAttribute("aria-label") || b.textContent);
+
 describe("the bottom nav", () => {
-  it("is Home, Jobs, Declutter, Shops, Homes, Messages (with its unread badge) and has no +", () => {
+  it("is Home, Explore, the center +, Messages (with its unread badge), You", () => {
     wrap(<MobileNav />);
-    const labels = dockLabels();
-    expect(labels).toEqual(["Home", "Jobs", "Declutter", "Shops", "Homes", "Messages"]);
-    expect(labels.some((l) => /post a|^\+$|new job/i.test(l ?? ""))).toBe(false);
+    expect(dockLabels()).toEqual(["Home", "Explore", "Create", "Messages", "You"]);
     const msgs = screen.getByRole("button", { name: "Messages" });
     expect(msgs.textContent).toContain("3");
   });
 
-  it.each(["/jobs/settings", "/jobs/00000000-0000-4000-8000-000000000001"])("%s lights Jobs, not Home (the feed is Jobs > Browse)", (at) => {
-    wrap(<MobileNav />, at);
-    expect(screen.getByRole("button", { name: "Jobs" }).getAttribute("aria-current")).toBe("page");
-    expect(screen.getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBeNull();
-  });
+  it.each(["/jobs", "/jobs/settings", "/jobs/00000000-0000-4000-8000-000000000001", "/posts", "/declutter", "/shops/mine", "/rentals"])(
+    "%s lights Explore, not Home (every section lives in Explore)",
+    (at) => {
+      wrap(<MobileNav />, at);
+      expect(screen.getByRole("button", { name: "Explore" }).getAttribute("aria-current")).toBe("page");
+      expect(screen.getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBeNull();
+    },
+  );
 
-  it("Customize: a hidden section leaves the bottom nav; Home and Messages stay", () => {
+  it("Customize: a hidden section leaves Explore; the rest keep their order", () => {
     localStorage.setItem(PREFS, JSON.stringify({ hidden: ["declutter", "shops"] }));
-    wrap(<MobileNav />);
-    expect(dockLabels()).toEqual(["Home", "Jobs", "Homes", "Messages"]);
+    wrap(<ExploreSwitcher current="jobs" />, "/jobs");
+    expect(exploreLabels()).toEqual(["Jobs", "Homes"]);
   });
 
   it("Customize's switch refuses to hide the LAST section (setHidden answers false, nothing saved)", async () => {
@@ -156,8 +162,8 @@ describe("the bottom nav", () => {
 
   it("the last section can never be hidden", () => {
     localStorage.setItem(PREFS, JSON.stringify({ hidden: SECTIONS.map((s) => s.key) }));
-    wrap(<MobileNav />);
-    expect(dockLabels()).toEqual(["Home", "Jobs", "Declutter", "Shops", "Homes", "Messages"]);
+    wrap(<ExploreSwitcher current="jobs" />, "/jobs");
+    expect(exploreLabels()).toEqual(["Jobs", "Declutter", "Shops", "Homes"]);
   });
 });
 

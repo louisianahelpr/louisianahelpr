@@ -4507,6 +4507,22 @@ html.senior-mode *::after {
   letter-spacing: -0.02em !important;
 }
 
+/* MOMENTS (owner, 2026-10-20, HELPR-DESIGN-SPEC.md §1.2 with the lead's
+   override): Bodoni Moda 600, upright, ONLY for greetings, step-flow
+   questions ("What are we doing?"), empty-state titles and celebrations
+   ("Job done"). Never item, job or listing titles, buttons, labels or prices.
+   Guard: src/test/centerCreateNav.test.tsx. The class is repeated to outrank
+   T1's `.font-display:not(...)` (0,2,0) when both sit on one title (SheetHero). */
+.font-moment.font-moment.font-moment {
+  font-family: "Bodoni Moda", "Bodoni Moda Fallback", Georgia, serif !important;
+  font-style: normal !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Explore's switcher is phone-only (ExploreSwitcher returns null on the desktop website), so its bone is too. */
+html.web-desktop .explore-switcher-bone { display: none; }
+
 /* T2 — cleaner cards: no outline, no inner rim, no blur; a faint soft shadow. */
 .liquid-glass,
 :where(.bg-card),

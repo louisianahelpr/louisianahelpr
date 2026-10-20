@@ -16,7 +16,7 @@ import { ApplyEarningsBreakdown } from "./ApplyEarningsBreakdown";
  * platform's fee setting), so the real predicate that decides whether a fee is
  * due runs here, not a stub of it.
  */
-// @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx | const payout = netAfterFirstPayoutFee(beforeFirstPayoutFee, firstPayoutFee); | const payout = beforeFirstPayoutFee;
+// @mutate src/components/dashboard/applyConfirmDialog/applyTakeHome.ts | const payout = netAfterFirstPayoutFee(beforeFirstPayoutFee, firstPayoutFee); | const payout = beforeFirstPayoutFee;
 
 const profileMock = vi.fn<() => { onboarding_fee_paid: boolean | null } | null>();
 vi.mock("@/hooks/useCurrentUser", () => ({
@@ -83,7 +83,7 @@ describe("ApplyEarningsBreakdown — one-time first-payout fee (ME-008)", () => 
 // apply-step take-home is the job price minus 5% + 70c, the transfer every
 // payout path makes, never the viewer's tier. $100 at 10% read $90; the
 // Helpr is paid $94 ($100 - $5.70, floored).
-// @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |   const flat = isFlatFeeJob(confirmApplyJob); |   const flat = false;
+// @mutate src/components/dashboard/applyConfirmDialog/applyTakeHome.ts |   const flat = isFlatFeeJob(confirmApplyJob); |   const flat = false;
 describe("ApplyEarningsBreakdown — flat-model jobs (Q1839)", () => {
   it("prices a stamped job at 5% + 70c, not the viewer's tier", () => {
     profileMock.mockReturnValue({ onboarding_fee_paid: true });

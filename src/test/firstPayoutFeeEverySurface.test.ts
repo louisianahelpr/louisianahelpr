@@ -102,7 +102,7 @@ describe("every payout surface takes the first-payout fee off (Q753)", () => {
   });
 
   it("the apply sheet and the shared sums use the one shared function", () => {
-    const apply = readFileSync(resolve(ROOT, "src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx"), "utf8");
+    const apply = readFileSync(resolve(ROOT, "src/components/dashboard/applyConfirmDialog/applyTakeHome.ts"), "utf8");
     expect(apply).toMatch(/netAfterFirstPayoutFee\(/);
     const earnings = readFileSync(resolve(ROOT, "src/lib/helperEarnings.ts"), "utf8");
     expect(earnings).toMatch(/netAfterFirstPayoutFee\(/);

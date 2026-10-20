@@ -16,7 +16,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (mine.isLoading) return <ListingsSkeleton />; |   if (mine.isLoading) return <p role="status">Loading your listings…</p>;
  * @mutate src/index.css |   [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); |   [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: none;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   const [maxMiles, setMaxMiles] = useState<number \| null>(null); |   const [maxMiles, setMaxMiles] = useState<number \| null>(25);
- * @mutate src/components/MobileNav.tsx |       </nav> |           <button aria-label="Post a new job"><Plus /></button>\n      </nav>
+ * @mutate src/components/MobileNav.tsx |               {/* The center "+" (owner-approved mock-up, 2026-10-20): one raised |               <button aria-label="Post a new job"><Plus /></button>\n              {/* The center "+" (owner-approved mock-up, 2026-10-20): one raised
  * @mutate src/components/shops/ShopDashboardView.tsx | <SectionActionPill className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</SectionActionPill> | <Button className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</Button>
  * @mutate src/pages/jobs/JobsSection.tsx |       <AppTopBar title={section.label} add={section.add} explore /> |       <AppTopBar title={section.label} explore />
  */

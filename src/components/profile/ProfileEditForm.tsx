@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Check, MapPin } from "lucide-react";
 import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { JOB_CATEGORY_LABELS, skillChipLabel, type JobCategory } from "@/lib/jobCategories";
-import { categoryColors } from "@/components/job-card/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
@@ -309,7 +308,6 @@ export function ProfileEditForm({
           <div className="flex flex-wrap gap-1.5">
             {SKILL_PRESETS.map(({ value, label }) => {
               const active = skillList.some((s) => s.toLowerCase() === label.toLowerCase());
-              const catStyle = categoryColors[value] || categoryColors.other;
               return (
                 <button
                   key={value}
@@ -321,8 +319,10 @@ export function ProfileEditForm({
                      AA-tuned badge tokens and dropped every unselected label to ~1.85:1 — a
                      WCAG AA failure on all 11 presets. Filled-vs-outline carries the
                      selected state without touching the text colour. */
+                  /* Board 41 / spec v2 §1.1: one chip style, olive when selected,
+                     never a per-category colour (a rust "Handyman" chip read as money). */
                   className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-ds-11 font-semibold transition-colors active:scale-95 ${
-                    active ? catStyle.badge : `bg-transparent border-border ${catStyle.title}`
+                    active ? "bg-primary border-primary text-primary-foreground" : "bg-transparent border-border text-foreground"
                   }`}
                 >
                   {active ? (

@@ -31,7 +31,7 @@
  * @mutate src/components/create/CreateSheet.tsx |                         onClick={a.gated ? gate.gate("post", () => go(a.path)) : () => go(a.path)} |                         onClick={() => go(a.path)}
  * @mutate src/components/create/CreateSheet.tsx | ...(movingOut ? [{ label: "Moving out sale", path: "/declutter/move" }] : []) | { label: "Moving out sale", path: "/declutter/move" }
  * @mutate src/components/create/CreateSheet.tsx | label: hasShop ? "Add a product or service" : "Open a shop" | label: "Open a shop"
- * @mutate src/components/create/CreateSheet.tsx | export const DESCRIBE_IT_PATH = "/post-job?start=ai"; | export const DESCRIBE_IT_PATH = "/post-job";
+ * @mutate src/components/create/CreateSheet.tsx | const DESCRIBE_IT_PATH = "/post-job?start=ai"; | const DESCRIBE_IT_PATH = "/post-job";
  * @mutate src/pages/post-job/EntryChoice.tsx |     searchParams.get("start") === "ai" ? "ai" : null, |     null,
  * @mutate src/pages/explore/Explore.tsx |   const target = open.find((s) => s.key === last) ?? open[0] ?? sectionByKey("jobs"); |   const target = sectionByKey("jobs");
  * @mutate src/components/sections/ExploreSwitcher.tsx |   useEffect(() => writeLastSection(user?.id, current), [user?.id, current]); |

@@ -9,7 +9,7 @@ import { fetchMyOrders, fetchShopOrders, formatCents } from "@/lib/shops/orders"
 import { fetchMyProperties } from "@/lib/rentals/api";
 import { useFeature } from "@/hooks/useFeature";
 
-export interface TodoItem {
+interface TodoItem {
   id: string;
   title: string;
   meta: string;

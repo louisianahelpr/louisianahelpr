@@ -12,7 +12,7 @@ import { fetchMyShopId } from "@/lib/shops/api";
 import { hapticLight } from "@/lib/haptics";
 
 /** The AI post-a-job path (EntryChoice opens its builder on `?start=ai`). */
-export const DESCRIBE_IT_PATH = "/post-job?start=ai";
+const DESCRIBE_IT_PATH = "/post-job?start=ai";
 
 interface CreateAction {
   label: string;

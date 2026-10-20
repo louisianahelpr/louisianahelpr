@@ -28,7 +28,7 @@
  * @mutate src/components/mobileNav/useSectionTabs.ts |   return sectionItems.map((s) => ({ ...s, on: on[s.feature] })); |   return sectionItems.map((s) => ({ ...s, on: true }));
  * @mutate src/components/sections/ExploreSwitcher.tsx |           if (!isOn(s)) return sayComingSoon(s.label); |
  * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: on ? s.navLabel : comingSoonLabel(s.navLabel), |       ariaLabel: s.navLabel,
- * @mutate src/components/DesktopSidebarNav.tsx |     ...dockItems(sectionTabs, visibleSections), |     ...dockItems(sectionTabs, visibleSections), { path: "/posts", icon: User, label: "Posts" },
+ * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     youItem,\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
  * @mutate src/components/DesktopSidebarNav.tsx | onClick={() => { if (soon) return sayComingSoon(label); if | onClick={() => { if (false) return sayComingSoon(label); if
  * @mutate src/components/sections/AppTopBar.tsx |         <span data-testid="top-bar-bell"> |         <span data-testid="top-bar-bell-x">
  * @mutate src/components/profile/ProfileLanding.tsx |       <SettingsSection\n |       <Link to="/declutter">Declutter</Link>\n      <SettingsSection\n

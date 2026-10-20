@@ -413,4 +413,4 @@ describe("PaymentSuccess follows the job's stage (Q1788)", () => {
 // both — the exact claim this file exists to forbid.
 // @mutate src/pages/post-job/PaymentSuccess.tsx | const HELD_STATUSES = new Set(["escrow", "payout_pending", "released"]); | const HELD_STATUSES = new Set(["escrow", "payout_pending", "released", "unpaid", "refunded"]);
 // @mutate src/components/postjob/PaymentLifecycleSteps.tsx |         const isFirst = i === current; |         const isFirst = i === 0;
-// @mutate src/pages/post-job/PaymentSuccess.tsx |                 {lifecycleStep === 0 ? "View Applicants" : "View Job"} |                 View Applicants
+// @mutate src/pages/post-job/PaymentSuccess.tsx |                 {lifecycleStep === 0 ? "View applicants" : "View job"} |                 View applicants

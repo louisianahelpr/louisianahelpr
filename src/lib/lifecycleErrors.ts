@@ -205,6 +205,7 @@ export const RPC_ERROR_COPY = {
     not_authenticated: "Sign in again to accept your spot.",
     not_on_this_crew: "You're not on this job's crew any more.",
     job_not_confirmable: "This job isn't live any more, so your spot can't be accepted. Pull to refresh.",
+    helper_unknown: "We couldn't read your account right now. Try again in a moment.",
   },
   rpc_group_member_on_the_way: {
     not_authenticated: "Sign in again to update your status.",
@@ -327,6 +328,7 @@ export const RPC_ERROR_COPY = {
     account_restricted: "Your account is restricted, so you can't pick up dates right now.",
     job_not_found: JOB_GONE,
     not_authenticated: "Please sign in again to pick dates.",
+    helper_unknown: "We couldn't read your account right now. Try again in a moment.",
   },
   // SeriesDatesPanel — handing dates back (Q407 6).
   give_up_series_dates: {

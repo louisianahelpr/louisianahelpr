@@ -1700,6 +1700,138 @@ describe("charge-recurring-visits edge function", () => {
     expect(releaseCalls()).toHaveLength(0);
   });
 
+  // ID once (owner 2026-10-20, 20261020043346): a claimed future date is
+  // accept-first, so the booking is where the Helpr's accept completes, and it
+  // is judged by the one helper every accept reads. An unready holder's due
+  // dates are released through the give-up path (the poster is told) and the
+  // holder is told why, never a silent skip; an unknown answer books nothing.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | if (notReady != null) notReadyHolders.set(helperId, String(notReady)); | if (false) notReadyHolders.set(helperId, String(notReady));
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | if (notReadyHolders.has(holderId)) { | if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | if (readyErr) { | if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |               p_reason: "holder_ineligible",\n              p_title: parent.title ?? null,\n              p_customer: parent.customer_id,\n            });\n            if (relErr) {\n              fail(`series ${parent.id}: releasing ${toRelease | p_reason: "helper_identity_unverified",\n              p_title: parent.title ?? null,\n              p_customer: parent.customer_id,\n            });\n            if (relErr) {\n              fail(`series ${parent.id}: releasing ${toRelease
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | const toRelease = dates.filter((d) => !visitPayments.has(d)); | const toRelease = dates;
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | if (kept.length > 0 && parent.customer_id) { | if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           const { data: n, error: nErr } = await supabase.from("notifications").insert({\n            user_id: helperId, |           const { data: n, error: nErr } = await supabase.from("notifications").insert({\n            user_id: parent.customer_id,
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | if (liveNotReady.data != null) { | if (false) {
+  it("ID once: a date held by a Helpr whose ID is not verified is never charged or booked; it is released, and the holder is told to verify", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.rpc.helper_accept_block_reason = (a?: unknown) =>
+      (a as { p_user_id: string }).p_user_id === HELPER_ID ? "helper_identity_unverified" : null;
+    scenario.rpc.series_release_dates = [VISIT_DATE];
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    // Nothing charged or booked; the one notification is the holder's own notice below.
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
+    expect(scenario.writes.filter((w) => w.table === "applications")).toHaveLength(0);
+    expect(b.funded).toBe(0);
+    expect(b.skippedNotReady).toBe(1);
+    expect(res.status).toBe(200);
+    expect((scenario.rpcCalls ?? []).filter((c) => c.name === "helper_accept_block_reason").map((c) => c.args))
+      .toEqual([{ p_user_id: HELPER_ID }]);
+    expect(releaseCalls()).toHaveLength(1);
+    expect(releaseCalls()[0].args).toMatchObject({
+      p_parent: PARENT_ID, p_helper: HELPER_ID, p_dates: [VISIT_DATE], p_customer: POSTER_ID,
+    });
+    // Series parties can read the stored reason: it names nothing about the Helpr.
+    expect(String((releaseCalls()[0].args as Record<string, unknown>).p_reason)).not.toMatch(/id|verif|setup|payout|ready/i);
+    const told = scenario.writes
+      .filter((w) => w.table === "notifications" && w.op === "insert")
+      .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload])) as Array<Record<string, unknown>>;
+    const toHolder = told.filter((n) => n.user_id === HELPER_ID);
+    expect(toHolder).toHaveLength(1);
+    expect(String(toHolder[0].message)).toMatch(/^Verify your ID to keep your visit dates/);
+    // Dates read like every other series notice (FMDy FMMon FMDD), never ISO.
+    expect(String(toHolder[0].message)).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+  });
+
+  it("ID once: a due date with an OPEN visit payment is never released (its Checkout could still take money); it stays unbooked and the holder is told", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.reads.recurring_visit_payments = {
+      rows: [],
+      selectOverrides: [{
+        includes: "budget_cents",
+        result: { rows: [{ id: "vp-1", visit_date: VISIT_DATE, status: "pending", budget_cents: 30000, fee_cents: 1500, tax_cents: 0, amount_cents: 31500, fee_percent: 5, tax_calculation_id: null, stripe_payment_intent_id: null }] },
+      }],
+    };
+    scenario.rpc.helper_accept_block_reason = "helper_identity_unverified";
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
+    expect(b.funded).toBe(0);
+    expect(releaseCalls()).toHaveLength(0);
+    const toHolder = scenario.writes
+      .filter((w) => w.table === "notifications" && w.op === "insert")
+      .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload]))
+      .filter((n) => (n as Record<string, unknown>).user_id === HELPER_ID) as Array<Record<string, unknown>>;
+    expect(toHolder).toHaveLength(1);
+    expect(String(toHolder[0].message)).toMatch(/isn't booked until it is/);
+    // The poster is told now, never only on the visit date.
+    const toPoster = scenario.writes
+      .filter((w) => w.table === "notifications" && w.op === "insert")
+      .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload]))
+      .filter((n) => (n as Record<string, unknown>).user_id === POSTER_ID) as Array<Record<string, unknown>>;
+    expect(toPoster).toHaveLength(1);
+    expect(String(toPoster[0].message)).toMatch(/still has to finish their account setup/);
+  });
+
+  it("ID once: a ready holder is still funded, and nothing is released", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.rpc.helper_accept_block_reason = null;
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(b.funded).toBe(1);
+    expect(b.skippedNotReady).toBe(0);
+    expect(releaseCalls()).toHaveLength(0);
+  });
+
+  it("ID once: the readiness check failing books nothing for the series — an unknown answer never books", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.rpcErrors = { helper_accept_block_reason: { message: "connection reset", code: "08006" } };
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expectNothingBooked(b);
+    expect(releaseCalls()).toHaveLength(0);
+    expect(res.status).toBe(500);
+    expect(reasons(b)).toContain("readiness check failed");
+  });
+
+  it("ID once: setup undone between the check and the charge still stops the charge (the pre-charge re-read asks again)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    let asked = 0;
+    scenario.rpc.helper_accept_block_reason = () => (++asked > 1 ? "helper_payout_setup_incomplete" : null);
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(asked).toBe(2);
+    expectNothingBooked(b);
+    expect(b.skippedNotReady).toBe(1);
+  });
+
+  it("ID once: a dry run releases nothing and tells nobody", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.rpc.helper_accept_block_reason = "helper_identity_unverified";
+
+    const b = await body(await runOn(fn, "2026-09-01", { dryRun: true }));
+
+    expect(b.funded).toBe(0);
+    expect(b.skippedNotReady).toBe(1);
+    expect(releaseCalls()).toHaveLength(0);
+  });
+
   it("dry run reports what it would charge and touches neither Stripe nor the database", async () => {
     const fn = await loadConfigured();
     seedHappyPath();

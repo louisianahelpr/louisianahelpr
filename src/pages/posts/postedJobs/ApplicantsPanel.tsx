@@ -2,6 +2,7 @@ import { ID_VERIFIED_LABEL, ID_VERIFIED_PILL_STYLE, IdVerifiedShield } from "@/c
 import { Fragment, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
+import { applicantIdNote } from "@/lib/awardGate";
 import UserAvatar from "@/components/UserAvatar";
 import { ApplicantHireRow } from "./applicantsPanel/ApplicantHireRow";
 import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Pencil, ShieldAlert, Sparkles, Star } from "lucide-react";
@@ -542,6 +543,18 @@ export function ApplicantsPanel({
                                 </span>
                               )}
                             </span>
+                            {/* ID once (owner, 2026-10-20): the offer stays open to
+                                anyone; the Helpr's accept waits on the ID. Said by
+                                name, never a refusal and never a pronoun. */}
+                            {app.profiles && app.profiles.is_id_verified !== true && (
+                              <span
+                                className="block mt-0.5 text-ds-11 font-sans"
+                                style={{ color: "hsl(var(--olivewood))" }}
+                                data-applicant-id-note=""
+                              >
+                                {applicantIdNote(formatName(app.profiles.full_name, ""))}
+                              </span>
+                            )}
                             {neighborCount > 0 && (
                               <span
                                 className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"

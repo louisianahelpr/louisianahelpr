@@ -147,7 +147,7 @@ function stampOrThrow(data: unknown, key: string, rpc: string): string {
 }
 
 /**
- * A member's Confirm. Payouts not set up yet: the server RECORDS the Confirm
+ * A member's Confirm. Payouts or ID not done yet: the server RECORDS the Confirm
  * and completes it when Stripe reports payouts ready (20261007011530, owner
  * 2026-10-06: anyone can be hired, they set payouts up after accepting), and
  * answers `pending_setup` with what is missing, like a single job's Accept.

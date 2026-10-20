@@ -11,6 +11,7 @@ import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
 import { useProfileLandingDerived } from "@/components/profile/profileLanding/useProfileLandingDerived";
 import type { MenuItem, Profile } from "@/components/profile/profileLanding/types";
+import { TAB_TITLES } from "@/pages/profile/types";
 
 /** Both sides of each section, the spec v2 §11 wording. */
 export const SECTION_BLURB: Record<SectionKey, string> = {
@@ -134,13 +135,13 @@ export function SettingsTab({
       </Group>
 
       <Group title="Alerts">
-        <Row testId="notifications" label="Notifications" sub="What we tell you, and how" onClick={() => onSelectTab("notifications")} />
+        <Row testId="notifications" label={TAB_TITLES.notifications} sub="What we tell you, and how" onClick={() => onSelectTab("notifications")} />
       </Group>
 
       <Group title="Your account">
-        <Row testId="profile" label="Edit profile" sub="Photo, name, about you" onClick={() => onSelectTab("profile")} />
-        <Row testId="security" label="Account and security" sub="Email, password, sign-in" onClick={() => onSelectTab("security")} />
-        <Row testId="warnings" label="Warnings and strikes" sub="Your account standing" onClick={() => onSelectTab("warnings")} />
+        <Row testId="profile" label={TAB_TITLES.profile} sub="Photo, name, about you" onClick={() => onSelectTab("profile")} />
+        <Row testId="security" label={TAB_TITLES.security} sub="Email, password, sign-in" onClick={() => onSelectTab("security")} />
+        <Row testId="warnings" label={TAB_TITLES.warnings} sub="Your account standing" onClick={() => onSelectTab("warnings")} />
       </Group>
 
       {more.length > 0 && (

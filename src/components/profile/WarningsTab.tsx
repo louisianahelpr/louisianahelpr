@@ -25,6 +25,7 @@ interface WarningsTabProps {
 //   3rd strike — 7-day account restriction while an admin reviews it
 import { CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { TAB_TITLES } from "@/pages/profile/types";
 
 const STRIKE_LABELS = ["Written warning", "Final warning", "7-day restriction"] as const;
 
@@ -68,7 +69,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
   return (
     <ProfileTabBody>
       <ProfileTabHeader
-        title="Warnings &amp; Strikes"
+        title={TAB_TITLES.warnings}
         onBack={onBack}
       />
 

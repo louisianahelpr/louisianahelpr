@@ -42,7 +42,7 @@ import { useProfileTabQueries } from "./useProfileTabQueries";
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
 import SectionBoundary from "@/components/SectionBoundary";
 import { ProfileTabPanels } from "./ProfileTabPanels";
-import { TAB_TITLES, profileTabTitle, resolveTab, type Profile, type Tab } from "./types";
+import { PROFILE_COLUMN, TAB_TITLES, profileTabTitle, resolveTab, type Profile, type Tab } from "./types";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { queryKeys } from "@/lib/queryKeys";
@@ -125,11 +125,23 @@ const ProfilePage = () => {
    * in-app history to go back to (a cold open on the deep link) — the same
    * has-history test `BackButton` already uses.
    */
+  // A tab opened from You › Settings (board 52) backs out to Settings, not to the landing.
+  const returnTo = useRef<Tab | null>(null);
   const cameFromLanding = useRef(initialTab === "landing");
   useEffect(() => {
-    if (tab === "landing") cameFromLanding.current = true;
+    if (tab === "landing") { cameFromLanding.current = true; returnTo.current = null; }
   }, [tab]);
+  const openFromSettings = useCallback((key: string) => {
+    returnTo.current = "settings";
+    setTab(key as Tab);
+  }, []);
   const backFromTab = useCallback(() => {
+    if (returnTo.current) {
+      const parent = returnTo.current;
+      returnTo.current = null;
+      setTab(parent);
+      return;
+    }
     if (cameFromLanding.current) {
       setTab("landing");
       return;
@@ -562,7 +574,7 @@ const ProfilePage = () => {
             arriving. Without it the landing's wait for its switch answers
             (Q?profile-declutter-shift) read as a second content wave. */}
         <div aria-busy="true" className="container mx-auto px-5 lg:px-6 xl:px-6 pb-4 flex-1 min-h-0 overflow-y-auto">
-          <div className="page-measure mx-auto">
+          <div className={`page-measure ${PROFILE_COLUMN}`}>
             {/* THE PLACEHOLDER MUST BE THE SCREEN YOU ASKED FOR. This line
                 used to read `isEarningsTabUrl() ? <EarningsPageSkeleton /> :
                 <ProfilePageSkeleton />`, which special-cased exactly ONE tab
@@ -672,6 +684,7 @@ const ProfilePage = () => {
             canTrigger={canTrigger}
             className="w-full page-measure mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pb-safe-nav"
           >
+            <div className={`${PROFILE_COLUMN} shrink-0 flex flex-col gap-3 lg:gap-4`}>
             <ProfileLanding
               profile={profile}
               userId={userId}
@@ -694,6 +707,7 @@ const ProfilePage = () => {
               onRetryStats={() => { statsQuery.refetch(); }}
 
             />
+            </div>
           </PullToRefreshWrapper>
         ) : (
           /* Non-landing tabs — own inner scroll surface. The
@@ -772,7 +786,7 @@ const ProfilePage = () => {
           <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
           {/* No entrance animation (owner, 2026-10-08: pages appear in
               place, like Messages; see PageScaffold). */}
-          <div>
+          <div className={PROFILE_COLUMN}>
           <ProfileTabPanels
             tab={tab}
             onBackFromTab={backFromTab}
@@ -812,6 +826,8 @@ const ProfilePage = () => {
             reviewCount={reviewCount}
             seniorMode={seniorMode}
             onToggleSeniorMode={handleToggleSeniorMode}
+            onSelectTab={openFromSettings}
+            onRequestLogout={() => setShowLogoutDialog(true)}
           />
           </div>
           </SectionBoundary>

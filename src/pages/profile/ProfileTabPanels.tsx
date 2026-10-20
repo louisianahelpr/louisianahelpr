@@ -50,6 +50,7 @@ const AnalyticsTab = lazy(() => import("@/pages/profile/HelperAnalytics"));
 const GiftCardTab = lazy(() => import("@/pages/profile/GiftCard"));
 const NotificationPreferences = lazy(() => import("@/components/NotificationPreferences"));
 const AccessibilityTab = lazy(() => import("@/components/profile/AccessibilityTab").then(m => ({ default: m.AccessibilityTab })));
+const SettingsTab = lazy(() => import("@/components/profile/SettingsTab").then(m => ({ default: m.SettingsTab })));
 const ReferralSection = lazy(() => import("@/components/ReferralSection"));
 
 /**
@@ -115,6 +116,9 @@ export interface ProfileTabPanelsProps {
   reviewCount: number;
   seniorMode: boolean;
   onToggleSeniorMode?: (enabled: boolean) => void;
+  /** You › Settings (board 52) opens other tabs and asks to log out. */
+  onSelectTab?: (key: string) => void;
+  onRequestLogout?: () => void;
 }
 
 /**
@@ -167,6 +171,8 @@ export const ProfileTabPanels = ({
   reviewCount,
   seniorMode,
   onToggleSeniorMode,
+  onSelectTab,
+  onRequestLogout,
 }: ProfileTabPanelsProps) => {
   return (
     <>
@@ -319,6 +325,19 @@ export const ProfileTabPanels = ({
       {tab === "pets" && (
         <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <PetsTab onBack={onBackFromTab} />
+        </Suspense>
+      )}
+
+      {tab === "settings" && (
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
+          <SettingsTab
+            profile={profile}
+            seniorMode={seniorMode}
+            onToggleSeniorMode={onToggleSeniorMode}
+            onSelectTab={onSelectTab ?? (() => {})}
+            onRequestLogout={onRequestLogout ?? (() => {})}
+            onBack={onBackFromTab}
+          />
         </Suspense>
       )}
 

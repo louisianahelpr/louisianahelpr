@@ -11,7 +11,6 @@
  *
  * @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx | label: ID_VERIFIED_LABEL, | label: "ID verified by Stripe",
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {ID_VERIFIED_LABEL} | ID verified by Stripe
- * @mutate src/components/profile/profileLanding/IdentityHeader.tsx | style={ID_VERIFIED_PILL_STYLE} | style={{}}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -54,10 +53,9 @@ describe("ID verification has one form (Q987)", () => {
     expect(Object.keys(EXEMPT).filter((f) => !hits.includes(f))).toEqual([]);
   });
 
-  it("the profile header and the applicant card draw the gold pill", () => {
-    const header = blankComments(readFileSync(join(ROOT, "src/components/profile/profileLanding/IdentityHeader.tsx"), "utf8"));
-    expect(header).toMatch(/style=\{ID_VERIFIED_PILL_STYLE\}[\s\S]{0,120}<IdVerifiedShield/);
-    expect(header).not.toMatch(/aria-label="ID verified/);
+  // The You tab's own header became board 18's slim card (2026-10-20): it says
+  // "Verified neighbor" with the seal (spec v2 §9.8), not this pill.
+  it("the applicant card draws the gold pill", () => {
     const applicants = blankComments(readFileSync(join(ROOT, "src/pages/posts/postedJobs/ApplicantsPanel.tsx"), "utf8"));
     expect(applicants).toMatch(/style=\{ID_VERIFIED_PILL_STYLE\}[\s\S]{0,120}<IdVerifiedShield[\s\S]{0,80}\{ID_VERIFIED_LABEL\}/);
   });

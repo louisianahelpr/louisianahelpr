@@ -19,7 +19,7 @@
     "src/components/profile/CredentialsTab.tsx": 911,
     "src/components/profile/ScheduleTab.tsx": 854,
     "src/components/profile/SubscriptionTab.tsx": 871,
-    "src/components/ui/dialog.tsx": 795,
+    "src/components/ui/dialog.tsx": 790,
     "src/pages/auth/CompleteProfile.tsx": 919,
     "src/pages/auth/Signup.tsx": 617,
     "src/pages/home/Dashboard.tsx": 926,
@@ -30,7 +30,7 @@
     "src/pages/posts/postedJobs/ApplicantsPanel.tsx": 770,
     "src/pages/profile/GiftCard.tsx": 847,
     "src/pages/profile/petProfiles/PetForm.tsx": 648,
-    "src/pages/profile/Profile.tsx": 845,
+    "src/pages/profile/Profile.tsx": 842,
     "src/pages/profile/WorkRecord.tsx": 732,
     "src/pages/user/UserProfile.tsx": 822
   }

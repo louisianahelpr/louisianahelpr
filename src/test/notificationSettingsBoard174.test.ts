@@ -10,8 +10,8 @@
  * preference columns the notification_preferences table does not have.
  *
  * @mutate src/components/notificationPreferences/constants.tsx | label: "Job offers" | label: "Job Offers"
- * @mutate src/components/NotificationPreferences.tsx |               Master switch |               Master Switch
- * @mutate src/components/NotificationPreferences.tsx | style={{ color: "hsl(var(--muted-foreground))", letterSpacing: "0.08em" }} | style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.08em" }}
+ * @mutate src/components/NotificationPreferences.tsx |               Master switch\n            </Label> |               Master Switch\n            </Label>
+ * @mutate src/components/NotificationPreferences.tsx | letterSpacing: "0.08em" }}\n          >\n            <Smartphone | letterSpacing: "0.08em", color: "hsl(var(--burnt-sienna))" }}\n          >\n            <Smartphone
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";

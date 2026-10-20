@@ -217,7 +217,7 @@ describe("Popups share one shell", () => {
   // field the dialog echoes as its title (EditJobDialog) widened the column to
   // 2202px inside a 341px card at 375: every field ran past the right edge.
   // The rendered check is readDialogOverflow in e2e/prod-audit/harness.ts.
-  // @mutate src/components/ui/dialog.tsx | z-50 grid grid-cols-[minmax(0,1fr)] w-[calc(100vw-2rem)] | z-50 grid w-[calc(100vw-2rem)]
+  // @mutate src/components/ui/dialog.tsx | z-50 grid grid-cols-[minmax(0,1fr)] overflow-y-auto | z-50 grid overflow-y-auto
   // @mutate src/components/ui/sheetHeroTitle.ts | font-bold leading-tight [overflow-wrap:anywhere]" | font-bold leading-tight"
   it("no child can widen a popup: a 0-floor grid column, and hero titles that wrap anywhere", () => {
     const dialog = blankComments(read("src/components/ui/dialog.tsx"));

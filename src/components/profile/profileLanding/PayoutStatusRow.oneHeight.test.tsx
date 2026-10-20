@@ -18,12 +18,15 @@
  * @mutate src/components/profile/profileLanding/PayoutStatusRow.tsx | const cell = (s: Shown) => `[grid-area:1/1] ${shown === s ? "" : "invisible"}`.trim(); | const cell = (s: Shown) => (shown === s ? "" : "hidden");
  * @mutate src/components/profile/ProfilePageSkeleton.tsx | <PayoutStatusRow prompt={RESERVE} onSetUp={noop} onRetry={noop} /> | <Skeleton className="h-[52px] rounded-ds-md" />
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { PayoutStatusRow } from "./PayoutStatusRow";
 import { ProfilePageSkeleton } from "@/components/profile/ProfilePageSkeleton";
 import type { PayoutPrompt } from "@/hooks/useStripeConnectStatus";
+
+// The skeleton's top bar reads the session; this test is about the payout slot.
+vi.mock("@/components/sections/AppTopBar", () => ({ AppTopBar: () => <header /> }));
 
 const noop = () => {};
 const STATES: PayoutPrompt[] = [{ kind: "reserve" }, { kind: "setup" }, { kind: "error" }];

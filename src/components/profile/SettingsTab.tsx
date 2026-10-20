@@ -54,7 +54,7 @@ function Row({ label, sub, onClick, right, testId }: { label: string; sub?: stri
   );
   const cls = "w-full min-h-[56px] flex items-center gap-3 px-4 py-3 text-left";
   return onClick ? (
-    <button type="button" data-settings-row={testId} onClick={onClick} className={`glass-press ${cls} hover:bg-secondary/40 active:bg-secondary/60 transition-colors`}>
+    <button type="button" data-settings-row={testId} onClick={onClick} className={`glass-press ${cls} ctl-tint transition-colors`}>
       {body}
     </button>
   ) : (

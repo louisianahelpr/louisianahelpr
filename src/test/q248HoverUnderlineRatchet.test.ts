@@ -35,7 +35,7 @@ function tsxFiles(): string[] {
     .filter((f) => existsSync(resolve(ROOT, f)));
 }
 
-const HOVER_UNDERLINE_SITE_COUNT = 39; // 39 on 2026-10-19: +1, Homes "Leave this home" quiet text action (EndTenancyButton, homes rent/deposit polish); 38 earlier that day: +4, the new landing page's text links (SectionsShowcase x3, HeroSection "Log in"), dashboards-landing-1019
+const HOVER_UNDERLINE_SITE_COUNT = 38; // 38 on 2026-10-20: -1, IdentityHeader deleted (board 18 YouCard, builder1f); 39 on 2026-10-19: +1, Homes "Leave this home" quiet text action (EndTenancyButton, homes rent/deposit polish); 38 earlier that day: +4, the new landing page's text links (SectionsShowcase x3, HeroSection "Log in"), dashboards-landing-1019
 const LINK_STANDARD_FILE_COUNT = 10; // 10 on 2026-10-19 (declutter-design): the Declutter item page's "See the seller" text link became the seller card, so it no longer uses the standard (11 earlier on 2026-10-19: the public shop page's "Sign in" link uses the standard, not a raw hover:underline (10 on 2026-10-16: the Declutter Wanted view's match links use the standard (9 on 2026-10-15: "Suggest a category" (SuggestCategory.tsx) uses the standard, not a raw hover:underline (8 on 2026-10-14: the Declutter item page's "See the seller" link uses the standard, not a raw hover:underline) (7 on 2026-10-12: the admin Sign-up leads card's "Show all" uses the standard, not a raw hover:underline (6 on 2026-10-07: HelpCenter's "Report a bug", Q1028))))
 
 describe("Q248(b): hover:underline vs the shared link-standard", () => {
@@ -45,7 +45,7 @@ describe("Q248(b): hover:underline vs the shared link-standard", () => {
     expect(files.length).toBeGreaterThan(200);
   });
 
-  it("exactly 39 hand-rolled hover:underline sites (raise or lower this baseline in the same commit as any change)", () => {
+  it("exactly 38 hand-rolled hover:underline sites (raise or lower this baseline in the same commit as any change)", () => {
     let hits = 0;
     for (const f of files) {
       const src = readFileSync(resolve(ROOT, f), "utf8");

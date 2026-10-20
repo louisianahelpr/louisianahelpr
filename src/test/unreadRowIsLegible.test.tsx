@@ -41,8 +41,8 @@
  * come back. The audit refuses an inventory with no unread rows in it — a
  * fixture set where nothing is unread must FAIL, not vacuously pass.
  *
- * @mutate src/components/messages/ConversationRow.tsx | background: "hsl(var(--bark))", | background: "hsl(var(--burnt-sienna))",
- * @mutate src/components/messages/ConversationRow.tsx | background: "hsl(var(--bark))", | background: "hsl(var(--info-tint))",
+ * @mutate src/components/messages/ConversationRow.tsx | const UNREAD_MARK = {\n  background: "hsl(var(--bark))", | const UNREAD_MARK = {\n  background: "hsl(var(--burnt-sienna))",
+ * @mutate src/components/messages/ConversationRow.tsx | const UNREAD_MARK = {\n  background: "hsl(var(--bark))", | const UNREAD_MARK = {\n  background: "hsl(var(--info-tint))",
  * @mutate src/components/messages/ConversationRow.tsx | const NAME_WEIGHT_UNREAD = 700; | const NAME_WEIGHT_UNREAD = 600;
  * @mutate src/components/messages/ConversationRow.tsx | className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 rounded-full" | className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full"
  * @mutate src/components/messages/ConversationRow.tsx | role="status"\n            data-testid="unread-mark" | data-testid="unread-mark"

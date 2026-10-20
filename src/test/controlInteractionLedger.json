@@ -78,7 +78,7 @@
     "adhocTint  src/components/profile/earningsTab/EarningsToolsMenu.tsx:22 <button>  hover:bg-secondary",
     "adhocTint  src/components/profile/earningsTab/WalletCard.tsx:51 <button>  hover:bg-secondary",
     "adhocTint  src/components/profile/profileEditForm/SaveBar.tsx:45 <button>  hover:bg-secondary/40",
-    "adhocTint  src/components/profile/profileLanding/SettingsSection.tsx:46 <button>  hover:bg-secondary/40",
+    "adhocTint  src/components/profile/profileLanding/SettingsSection.tsx:38 <button>  hover:bg-secondary/40",
     "adhocTint  src/components/richMessageInput/AttachSourceSheet.tsx:91 <button>  hover:bg-secondary/40",
     "adhocTint  src/pages/home/Dashboard.tsx:598 <button>  hover:bg-[hsl(var(--bark)/0.06)]",
     "adhocTint  src/pages/info/Legal.tsx:421 <button>  hover:bg-primary/5",

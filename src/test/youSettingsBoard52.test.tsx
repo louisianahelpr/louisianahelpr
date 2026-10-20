@@ -8,7 +8,7 @@
  * @mutate src/components/profile/SettingsTab.tsx |                 on ? ( |                 true ? (
  * @mutate src/components/profile/SettingsTab.tsx |       <Group title="Look"> |       <Group title="Display">
  * @mutate src/pages/profile/types.ts |   security: "Account and security", |   security: "Account Security",
- * @mutate src/pages/profile/Profile.tsx |     returnTo.current = "settings"; |     returnTo.current = null;
+ * @mutate src/pages/profile/Profile.tsx | { returnTo.current = "settings"; setTab | { returnTo.current = null; setTab
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";

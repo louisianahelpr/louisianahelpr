@@ -151,7 +151,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/CancellationDialog.tsx` | textarea×1 |  |  | cancel-reason |
-| `src/components/CompletionPrompts.tsx` | textarea×1 |  |  | Comment (optional) · custom-tip-amount · Custom tip amount in dollars |
 | `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | apply-message · save-default-pitch |
 | `src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx` | input×1 | search |  | Recent searches · Search jobs · Search jobs… · Close search |
 | `src/components/DisputeDialog.tsx` | input×1, textarea×1, select×1 | file | 1000 | Reason · Pick the closest fit… · What happened? · dispute-details-requirement · Remove file |
@@ -160,7 +159,8 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/PhotoProof.tsx` | input×1 | file |  |  |
 | `src/components/rentals/RentalVisitHelpr.tsx` | input×1, date/calendar×1 | datetime-local |  | Visit time · Visit time to offer |
 | `src/components/ResponseDeadlineDialog.tsx` | textarea×1, select×1 |  |  | Response deadline · Message to Helpr (optional) |
-| `src/components/reviewPanel/ReviewForm.tsx` | input×1, textarea×1 | file |  | Quick review tags · Review comment (optional) · Add review photo |
+| `src/components/reviewPanel/ReviewForm.tsx` | input×1 | file |  | Add review photo |
+| `src/components/reviewPanel/ReviewQuestionCard.tsx` | textarea×1 |  |  | Quick review tags · A few words (optional) · Add a few words (optional) |
 | `src/components/schedule/ScheduleChangeControl.tsx` | input×2, date/calendar×2 | date, time |  |  |
 | `src/components/series/SeriesDatesPanel.tsx` | input×1 | checkbox |  |  |
 | `src/components/W9CollectionDialog.tsx` | input×1, checkbox/switch/radio×1 | text |  | w9-name · w9-consent |

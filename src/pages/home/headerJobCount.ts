@@ -27,3 +27,22 @@ export function headerJobCount({
   if (listComplete) return listedCount;
   return serverCount ?? listedCount;
 }
+
+// The filter sheet's "Show N jobs" (board 24). Stricter than the header: the
+// lead's truth rule is "no number unless it is exact for the whole filtered
+// set", so there is NO server-total fallback here — a server count has
+// documented over-count cases (useDashboardJobsCount: the 200-id cap, the
+// client-only radius and hours predicates). The number exists only once the
+// last page is in and the list it counts is what the viewer is looking at
+// (not the Wants-quotes lens, not the phone map, not a load error).
+export function sheetResultCount({
+  listedCount,
+  listComplete,
+  listOnScreen,
+}: {
+  listedCount: number;
+  listComplete: boolean;
+  listOnScreen: boolean;
+}): number | null {
+  return listComplete && listOnScreen ? listedCount : null;
+}

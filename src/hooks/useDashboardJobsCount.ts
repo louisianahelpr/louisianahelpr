@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
+import { jobWhenRange } from "@/lib/jobWhenFilter";
 
 // True total of jobs matching the current Browse filters — NOT "how many
 // have loaded into memory so far."
@@ -55,6 +56,8 @@ export interface DashboardJobsCountFilters {
   urgentOnly: boolean;
   boostedOnly: boolean;
   expiresWithin: string;
+  /** Board 24 "When" ("" | "today" | "next7"), the same value the list filters on. */
+  jobWhen?: string;
   /** Same resolver output useDashboardFilters/useDashboardData use — keeps this layer in sync with both. */
   earlyAccessTier: string | null;
   /**
@@ -94,14 +97,14 @@ function escapeIlike(raw: string): string {
 export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
   const {
     userId, selectedCategory, searchQuery, minBudget, maxBudget,
-    urgentOnly, boostedOnly, expiresWithin, earlyAccessTier,
+    urgentOnly, boostedOnly, expiresWithin, jobWhen = "", earlyAccessTier,
     appliedJobIds, blockedUserIds, dismissedJobIds, savedOnlyJobIds,
   } = filters;
 
   return useQuery({
     queryKey: [
       "dashboardJobsCount", userId, selectedCategory, searchQuery, minBudget, maxBudget,
-      urgentOnly, boostedOnly, expiresWithin, earlyAccessTier,
+      urgentOnly, boostedOnly, expiresWithin, jobWhen, earlyAccessTier,
       appliedJobIds, blockedUserIds, dismissedJobIds, savedOnlyJobIds,
     ],
     queryFn: async () => {
@@ -182,6 +185,9 @@ export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
           query = query.lte("expires_at", threshold);
         }
       }
+
+      const whenRange = jobWhenRange(jobWhen);
+      if (whenRange) query = query.gte("date_needed", whenRange.from).lte("date_needed", whenRange.to);
 
       // `head: true` requests return no `data` body — only `count` — so the
       // count is read off the result, after unwrap() has checked its error.

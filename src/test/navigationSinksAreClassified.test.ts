@@ -130,7 +130,7 @@ const CLASSIFIED: Record<string, string> = {
   "pages/jobs/appliedJobCard/DirectionsButton.tsx::href": MAPS,
   "components/ReferralSection.tsx::href": "`sms:?&body=${encodeURIComponent(...)}` built on the line above",
   "components/admin/AdminIDVReview.tsx::stripeSessionUrl(r.idv_session_id)": "fixed https://dashboard.stripe.com/... prefix + session id",
-  "components/dashboard/FilterSheet.tsx::signupHref": "signupUrlFor(): \"/signup\" or `/signup?redirect=${encodeURIComponent(safeInternalRedirect(...))}`",
+  "components/dashboard/filterSheet/jobFilterSections.tsx::signupHref": "signupUrlFor(): \"/signup\" or `/signup?redirect=${encodeURIComponent(safeInternalRedirect(...))}`",
   "components/postjob/MaterialsPanel.tsx::amazonAffiliateUrl(item.searchUrl)": "src/lib/materialsGuide.ts static https://www.amazon.com/... literals with the Associates tag set (amazonAffiliateUrl keeps any non-amazon.com URL unchanged)",
   "pages/profile/strSettings/AddCalendarForm.tsx::helpUrl": "PLATFORM_HELP static literal map (pages/profile/strSettings/types)",
   "pages/info/legal/PrivacySection.tsx::`#${DATA_EXPORT_ANCHOR}`": "in-page #anchor built from a constant",

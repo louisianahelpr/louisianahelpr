@@ -33,6 +33,7 @@
 // rather than pretending.
 
 import { haversineMiles } from "@/lib/geo";
+import { jobMatchesWhen } from "@/lib/jobWhenFilter";
 import type { MapJob } from "./config";
 
 export interface MapJobFilterInput {
@@ -43,6 +44,8 @@ export interface MapJobFilterInput {
   urgentOnly: boolean;
   boostedOnly: boolean;
   expiresWithin: string;
+  /** Board 24 "When": inclusive day bounds from jobWhenRange, null = any day. */
+  whenRange: { from: string; to: string } | null;
   matchAvailability: boolean;
   nearbyMiles: number | null;
   /** Viewer coords, only when already resolved — never prompt for the map. */
@@ -84,6 +87,7 @@ export function isAnyFilterActive(f: MapJobFilterInput): boolean {
       f.urgentOnly ||
       f.boostedOnly ||
       f.expiresWithin ||
+      f.whenRange ||
       f.matchAvailability ||
       f.nearbyMiles !== null,
   );
@@ -160,6 +164,9 @@ export function buildMapJobFilter(f: MapJobFilterInput): (job: MapJob) => boolea
       if (f.expiresWithin === "3d" && hoursLeft > 72) return false;
       if (f.expiresWithin === "7d" && hoursLeft > 168) return false;
     }
+
+    // Same predicate as the list (useDashboardFilters); the map RPC has always returned `date_needed`.
+    if (!jobMatchesWhen(job.date_needed, f.whenRange)) return false;
 
     if (f.matchAvailability && (f.helperAvailability?.length ?? 0) > 0) {
       // Noon avoids the DST edge where a midnight-parsed date lands on the

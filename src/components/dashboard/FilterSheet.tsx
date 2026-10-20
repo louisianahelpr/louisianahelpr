@@ -6,7 +6,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { Bookmark, Clock, Rocket, SearchCheck, X, Zap } from "lucide-react";
+import { X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -27,14 +27,8 @@ import {
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { hapticLight } from "@/lib/haptics";
-import {
-  SortContent,
-  CategoryContent,
-  NearbyContent,
-  ExpiresContent,
-} from "@/components/dashboard/JobFilters";
 import { SHEET_HERO_TITLE_CLASS, SHEET_HERO_TITLE_STYLE } from "@/components/ui/sheetHeroTitle";
-import { AvailabilityRow, SignupRow, ToggleRow, WantsQuotesRow } from "@/components/dashboard/filterSheet/FilterSheetRows";
+import { FilterSheetFooter } from "@/components/dashboard/filterSheet/FilterSheetFooter";
 
 /**
  * FilterSheet — the ONE filter presentation used across the app.
@@ -51,8 +45,13 @@ import { AvailabilityRow, SignupRow, ToggleRow, WantsQuotesRow } from "@/compone
  *
  * It's section-agnostic: each surface passes the `sections` it supports and
  * the sheet renders only those. The job surfaces build theirs with
- * `buildJobFilterSections` below (Category / Budget / [Pricing] / [Distance] /
- * When / Show only / Sort by); Activity passes a single Status section.
+ * `buildJobFilterSections` (filterSheet/jobFilterSections.tsx).
+ *
+ * Board 24: a sticky footer on both presentations, "Clear all" (olive text
+ * link) on the left and one primary "Show jobs" on the right that closes the
+ * panel. The button carries a number ONLY when the caller passes an exact
+ * count for the whole filtered set (`resultCount`); a count of loaded pages
+ * is never shown.
  */
 
 export interface FilterSheetSection {
@@ -79,9 +78,16 @@ interface FilterSheetProps {
   sections: FilterSheetSection[];
   /** Count of currently-active filters — drives the header subtitle. */
   activeFilterCount: number;
-  /** Clears every filter this sheet controls. Rendered as a footer button
-   *  only when at least one filter is active. */
+  /** Clears every filter this sheet controls ("Clear all" in the footer). */
   onClearAll?: () => void;
+  /** Heading, e.g. "Filter jobs". */
+  title?: string;
+  /** Exact size of the whole filtered set, or null/undefined when it is not
+   *  known exactly (more pages to load, still loading): the button then
+   *  reads "Show jobs" with no number. */
+  resultCount?: number | null;
+  /** [singular, plural] noun for the button, e.g. ["job", "jobs"]. */
+  resultNoun?: readonly [string, string];
   /**
    * The button that opens this panel. Supply it and this renders a popover
    * anchored to that button, at every width, instead of a modal sheet; omit
@@ -95,7 +101,7 @@ interface FilterSheetProps {
    * way to anchor against an element the popover does not own.
    */
   anchorRef?: RefObject<HTMLElement | null>;
-  /** Action rows rendered after the last section, beside Clear All —
+  /** Action rows rendered after the last section, above the footer —
    *  for rows that OPEN something (Saved Searches) rather than filter. */
   footer?: ReactNode;
 }
@@ -217,10 +223,8 @@ function PanelScroller({ children, desktop = false }: { children: ReactNode; des
  *  presentations cannot drift into two different filter sets. */
 function FilterBody({
   sections,
-  activeFilterCount,
-  onClearAll,
   footer,
-}: Pick<FilterSheetProps, "sections" | "activeFilterCount" | "onClearAll" | "footer">) {
+}: Pick<FilterSheetProps, "sections" | "footer">) {
   return (
     <>
       <div className="px-5 pb-3 space-y-2.5">
@@ -232,29 +236,10 @@ function FilterBody({
       </div>
 
       {/* Action rows (open-a-dialog things like Saved Searches) sit here with
-          Clear All — the actions live together at the end, after every
+          the footer — the actions live together at the end, after every
           control, instead of one wearing a filter section's clothes. */}
       {footer && <div className="px-5 pb-2">{footer}</div>}
 
-      {onClearAll && activeFilterCount > 0 && (
-        <div className="px-5 pb-2">
-          <button
-            type="button"
-            onClick={() => {
-              hapticLight();
-              onClearAll();
-            }}
-            className="w-full inline-flex items-center justify-center gap-1.5 h-11 rounded-ds-md text-ds-13 font-semibold btn-press"
-            style={{
-              color: "hsl(var(--burnt-sienna))",
-              background: "hsl(var(--burnt-sienna) / 0.10)",
-              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-            }}
-          >
-            <X className="w-4 h-4" strokeWidth={2.25} /> Clear All
-          </button>
-        </div>
-      )}
     </>
   );
 }
@@ -267,7 +252,19 @@ export function FilterSheet({
   onClearAll,
   anchorRef,
   footer,
+  title = "Filters",
+  resultCount,
+  resultNoun = ["result", "results"],
 }: FilterSheetProps) {
+  const footerBar = (
+    <FilterSheetFooter
+      activeFilterCount={activeFilterCount}
+      onClearAll={onClearAll}
+      onDone={() => onOpenChange(false)}
+      resultCount={resultCount}
+      resultNoun={resultNoun}
+    />
+  );
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   // The panel is positioned against `window.innerHeight`, which on iOS does
@@ -435,7 +432,7 @@ export function FilterSheet({
                   uses SheetHero; this band cannot (it is a Popover, not a
                   Radix Sheet), so it reads the same shared tokens. */}
               <h2 id={titleId} className={SHEET_HERO_TITLE_CLASS} style={SHEET_HERO_TITLE_STYLE}>
-                Refine Your Search
+                {title}
               </h2>
               {!band.desktop && (
               <button
@@ -458,13 +455,9 @@ export function FilterSheet({
                 the last row is always reachable and never sheared by the
                 panel edge. */}
             <PanelScroller desktop={band.desktop}>
-              <FilterBody
-                sections={sections}
-                activeFilterCount={activeFilterCount}
-                onClearAll={onClearAll}
-                footer={footer}
-              />
+              <FilterBody sections={sections} footer={footer} />
             </PanelScroller>
+            {footerBar}
           </div>
         </PopoverContent>
       </Popover>
@@ -486,268 +479,11 @@ export function FilterSheet({
             the active-filter count still shows as a badge on the Filters button
             that opens this sheet, and an active filter still surfaces the
             "Clear all" footer below. */}
-        <SheetHero title="Refine Your Search" />
+        <SheetHero title={title} />
 
-        <FilterBody
-          sections={sections}
-          activeFilterCount={activeFilterCount}
-          onClearAll={onClearAll}
-          footer={footer}
-        />
+        <FilterBody sections={sections} footer={footer} />
+        {footerBar}
       </SheetContent>
     </Sheet>
   );
-}
-
-// ---------------- Job-filter section builder ----------------
-
-interface JobFilterSectionsArgs {
-  selectedCategory: string | null;
-  setSelectedCategory: (v: string | null) => void;
-  sortBy: string;
-  setSortBy: (v: string) => void;
-  expiresWithin: string;
-  setExpiresWithin: (v: string) => void;
-  boostedOnly: boolean;
-  setBoostedOnly: (v: boolean) => void;
-  urgentOnly: boolean;
-  setUrgentOnly: (v: boolean) => void;
-  /* ---- Nearby-radius section (omit together with showNearby={false}) ---- */
-  locationFilter?: string;
-  setLocationFilter?: (v: string) => void;
-  userLocStatus?: "idle" | "loading" | "ready" | "error";
-  userLocMessage?: string;
-  /* ---- "Only my hours" row (omit together with showAvailability={false}) ---- */
-  matchAvailability?: boolean;
-  setMatchAvailability?: (v: boolean) => void;
-  hasAvailability?: boolean;
-  /** Hide the "Only my hours" availability row (guests have no schedule). */
-  showAvailability?: boolean;
-  /* ---- "Only Saved Jobs" row (omit on surfaces without saves, e.g. guest) ---- */
-  savedOnly?: boolean;
-  onToggleSavedOnly?: () => void;
-  savedCount?: number;
-  /* ---- "Wants Quotes" row (owner answer 12): passed only while the hidden 'quotes' switch is on ---- */
-  wantsQuotes?: boolean;
-  onToggleWantsQuotes?: () => void;
-  /**
-   * Hide the "Nearby radius" section.
-   *
-   * CORRECTED 2026-09-07 — this doc used to justify hiding the section from
-   * guests on the grounds that "the guest browse feed comes from
-   * get_ranked_open_jobs, whose rows carry no latitude/longitude". Both halves
-   * were false and the conclusion drawn from them would disable a filter that
-   * works. Verified against prod: the guest feed reads the `open_jobs_browse`
-   * VIEW (DashboardGuest.tsx), that view exposes latitude/longitude, and
-   * DashboardGuest projects them explicitly — masked to 2dp (~1.1km) by
-   * 20260903031231, which is what made the radius a real filter there in the
-   * first place (BD-001). The radius is a client-side haversine over those
-   * coordinates fed by browser geolocation, and useUserLocation needs no
-   * account, so a signed-out visitor CAN use it. Default it on.
-   */
-  showNearby?: boolean;
-  /**
-   * "Saved Searches" row, rendered at the end of the "Show only" section —
-   * an action rather than a filter, but it used to sit alone in the sheet
-   * footer, disconnected from every section above it. Folded in here so it
-   * reads as part of the sheet instead of a stray extra control tacked on
-   * at the bottom. Omit on surfaces with no saved-search feature (guest).
-   */
-  savedSearchesButton?: ReactNode;
-  /**
-   * Set on a signed-out surface: where the three account-only controls send a
-   * visitor, e.g. "/signup?redirect=/browse". When set, "Only Saved Jobs",
-   * "Jobs During My Hours" and "Saved Searches" render as labelled rows that
-   * route there instead of being omitted. Hiding them made the guest sheet
-   * quietly smaller than the real one and gave a visitor no way to discover
-   * that saving a job or matching their hours exists at all.
-   */
-  signupHref?: string;
-}
-
-/**
- * Builds the standard stacked job-filter sections for the FilterSheet, reusing
- * the exact content blocks from JobFilters.
- *
- * ONE builder serves both the signed-in browse toolbar (/home) and the
- * signed-out guest feed (/browse), so the two filter sets can't silently
- * drift apart. (It used to say "the signed-out /jobs board"; that page was
- * deleted 2026-09-07 and /browse is the only signed-out feed now.)
- *
- * Almost everything here works signed-out, including the radius — see the
- * showNearby doc above. What genuinely needs an account is narrower than it
- * looks: saved jobs, saved searches, and the availability match. Those three
- * are NOT hidden from a guest; passing `signupHref` renders each as a row
- * that says what it does and routes to signup, because a control a visitor
- * cannot see is a feature they never learn exists.
- *
- * Section order:
- *
- *   1. Sort by    — first, by explicit request. It's the control most likely to
- *                   be touched on a board this size (nobody narrows a 12-job
- *                   feed; they reorder it), and unlike every section below it
- *                   ALWAYS changes what you see, so it earns the top slot.
- *   2. Category   — the everyday filter, and the one a helper opens the sheet for
- *   3. Pricing    — guest-only (open-to-bids vs set-budget)
- *   4. Distance   — authed-only radius chips
- *   5. When       — expiry window
- *   6. Show only  — the narrowing switches, grouped: Boosted + Urgent +
- *                   my-hours. Each used to be marooned (Boosted under a heading
- *                   of its own for a single pill; my-hours tacked onto the end
- *                   of When)
- *
- * Every section renders the SAME chip at the SAME size in a wrapping row — see
- * `chipBase`/`chipRow` in JobFilters.tsx. Do not reintroduce a `grid` or a
- * `w-full` chip for one section; that divergence is what made this sheet read
- * as three different controls stacked together.
- *
- * NO BUDGET SECTION — removed deliberately, on the user's call, after two
- * attempts (a dual-thumb $0–$500+ slider, then preset bands) both read as
- * fussy for what they bought. Amount is already legible on every card and
- * orderable from Sort by (Highest / Lowest pay), which is how people actually
- * shop a board this size. The feed hooks still accept min/max budget — a saved
- * search can carry one — so restoring the section is additive, not a rebuild.
- */
-export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheetSection[] {
-  const {
-    selectedCategory, setSelectedCategory,
-    locationFilter = "", setLocationFilter,
-    sortBy, setSortBy,
-    expiresWithin, setExpiresWithin,
-    matchAvailability = false, setMatchAvailability, hasAvailability = false,
-    boostedOnly, setBoostedOnly,
-    urgentOnly, setUrgentOnly,
-    userLocStatus, userLocMessage,
-    savedOnly = false, onToggleSavedOnly, savedCount = 0,
-    wantsQuotes = false, onToggleWantsQuotes, showAvailability = true,
-    showNearby = true,
-    savedSearchesButton, signupHref,
-  } = args;
-
-  const sections: FilterSheetSection[] = [
-    {
-      key: "sort",
-      title: "Sort by",
-      content: <SortContent sortBy={sortBy} setSortBy={setSortBy} />,
-    },
-    {
-      key: "category",
-      title: "Category",
-      content: (
-        <CategoryContent
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-        />
-      ),
-    },
-  ];
-
-  if (showNearby && setLocationFilter) {
-    sections.push({
-      key: "nearby",
-      title: "Distance",
-      content: (
-        <NearbyContent
-          locationFilter={locationFilter}
-          setLocationFilter={setLocationFilter}
-          status={userLocStatus}
-          message={userLocMessage}
-        />
-      ),
-    });
-  }
-
-  sections.push(
-    {
-      key: "when",
-      title: "When",
-      content: <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} />,
-    },
-    {
-      key: "show-only",
-      title: "Show only",
-      content: (
-        <div className="space-y-2.5">
-          {onToggleWantsQuotes && <WantsQuotesRow checked={wantsQuotes} onToggle={onToggleWantsQuotes} />}
-          {onToggleSavedOnly && (
-            <ToggleRow
-              icon={Bookmark}
-              label="Only Saved Jobs"
-              hint={<p className="text-ds-11 text-muted-foreground leading-snug">{savedCount > 0 ? `${savedCount} saved` : "None open right now"}</p>}
-              checked={savedOnly}
-              onChange={() => onToggleSavedOnly()}
-              ariaLabel="Show saved jobs only"
-            />
-          )}
-          <ToggleRow
-            icon={Rocket}
-            iconClassName="text-[hsl(var(--burnt-sienna))]"
-            label="Boosted Jobs"
-            hint={
-              <p className="text-ds-11 text-muted-foreground leading-snug">
-                Promoted by the person who posted it
-              </p>
-            }
-            checked={boostedOnly}
-            onChange={setBoostedOnly}
-            ariaLabel="Show boosted jobs only"
-          />
-          {/* Urgent is NOT a synonym for Boosted — different columns, and more
-              importantly different meaning to the person reading this sheet.
-              Boosted is the poster paying for placement, which buys the helper
-              nothing. Urgent is the poster paying `urgent_fee` on top of the
-              budget, which the helper actually takes home (JobCard surfaces it
-              as a bonus). So it's the one filter here that finds better-paying
-              work, and it earned its own row rather than being folded in. */}
-          <ToggleRow
-            icon={Zap}
-            iconClassName="text-[hsl(var(--burnt-sienna))]"
-            label="Urgent Jobs"
-            hint={
-              <p className="text-ds-11 text-muted-foreground leading-snug">
-                Pays a bonus on top of the budget
-              </p>
-            }
-            checked={urgentOnly}
-            onChange={setUrgentOnly}
-            ariaLabel="Show urgent jobs only"
-          />
-          {signupHref && (
-            <SignupRow
-              icon={Bookmark}
-              label="Only Saved Jobs"
-              hint="Sign up to save jobs and filter to just those"
-              href={signupHref}
-            />
-          )}
-          {signupHref && (
-            <SignupRow
-              icon={Clock}
-              label="Jobs During My Hours"
-              hint="Sign up to save your weekly hours and match on them"
-              href={signupHref}
-            />
-          )}
-          {!signupHref && showAvailability && setMatchAvailability && (
-            <AvailabilityRow
-              matchAvailability={matchAvailability}
-              setMatchAvailability={setMatchAvailability}
-              hasAvailability={hasAvailability}
-            />
-          )}
-          {savedSearchesButton}
-          {signupHref && (
-            <SignupRow
-              icon={SearchCheck}
-              label="Saved Searches"
-              hint="Sign up to save this search and get told about new matches"
-              href={signupHref}
-            />
-          )}
-        </div>
-      ),
-    },
-  );
-
-  return sections;
 }

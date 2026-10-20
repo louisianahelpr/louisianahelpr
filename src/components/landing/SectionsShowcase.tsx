@@ -12,28 +12,25 @@ import { goSignedInOr } from "./goSignedInOr";
  * everyone says "coming soon", and so does every switched section until that
  * answer is in (fails closed, useSectionsOpen). An OPEN section's card links to
  * its Browse page (or sign-up, returning there, for a section behind sign-in).
- * Copy states only what the app does today; no fee or speed figures.
+ * Copy states only what the app does today; no fee or speed figures, and no
+ * other company named (owner, 2026-10-20: the "Instead of ..." lines are gone).
  */
-const COPY: Record<SectionKey, { what: string; why: string; instead: string }> = {
+const COPY: Record<SectionKey, { what: string; why: string }> = {
   jobs: {
     what: "Hire local help, or find work nearby.",
     why: "Local people apply to your job, and your payment is held until the work is done.",
-    instead: "Instead of Thumbtack, TaskRabbit or a Facebook group",
   },
   declutter: {
     what: "Sell what you no longer need to neighbors, or find a deal.",
     why: "Offers and checkout happen in the app, so there is no cash to count.",
-    instead: "Instead of Marketplace, OfferUp or Craigslist",
   },
   shops: {
     what: "Shop Louisiana makers and small businesses, or open your own shop.",
     why: "Your shop page, your orders and your payments live in one place.",
-    instead: "Instead of Etsy or a separate website",
   },
   homes: {
     what: "Find a place to rent, or list a home you own.",
     why: "Local rentals and the people who own them, in the same app you already use.",
-    instead: "Instead of Zillow or Apartments.com",
   },
 };
 
@@ -119,7 +116,6 @@ export function SectionsShowcase() {
                   <h3 className="text-ds-22 font-bold tracking-tight text-foreground">{s.navLabel}</h3>
                   <p className="text-ds-17 font-semibold text-foreground leading-snug">{c.what}</p>
                   <p className="text-ds-15 text-muted-foreground leading-relaxed">{c.why}</p>
-                  <p className="text-ds-13 text-muted-foreground/90 mt-auto pt-1">{c.instead}.</p>
                   {!soon && (
                     <Link
                       to={link.to}
@@ -127,7 +123,7 @@ export function SectionsShowcase() {
                         e.preventDefault();
                         void goSignedInOr(navigate, link.signedIn, link.to);
                       }}
-                      className="self-start inline-flex items-center gap-1.5 text-ds-15 font-semibold text-[hsl(var(--bark))] underline-offset-4 hover:underline after:absolute after:inset-0 after:rounded-[inherit]"
+                      className="self-start mt-auto pt-1 inline-flex items-center gap-1.5 text-ds-15 font-semibold text-[hsl(var(--bark))] underline-offset-4 hover:underline after:absolute after:inset-0 after:rounded-[inherit]"
                       data-testid={`landing-browse-${s.key}`}
                     >
                       {link.text}

@@ -47,6 +47,8 @@ const Instagram = ({ className }: { className?: string }) => (
 // screen it is the ONLY way out of a blocked app, so the two copies must not
 // be allowed to drift.
 const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
+// Live since 2026-10-20 (owner: "i created a instagram").
+const INSTAGRAM_URL = "https://www.instagram.com/louisianahelpr/";
 
 /**
  * Editorial footer — matches the landing hero's parchment surface, no
@@ -244,9 +246,8 @@ const Footer = () => {
           <div className="flex items-center gap-2.5">
             {/* The App Store chip is HIDDEN until the listing is live (owner,
                 2026-10-04, Q1124: it 404s); it returns as a real link with the
-                real ID from the launch checklist (Q1289). Instagram is not live
-                yet either: an inert "Coming soon" chip. Facebook is the only
-                real, clickable account. */}
+                real ID from the launch checklist (Q1289). Facebook and Instagram
+                are both real, clickable accounts. */}
             {APP_STORE_LISTING_LIVE && (
               <a
                 href={APP_STORE_URL}
@@ -273,19 +274,20 @@ const Footer = () => {
                 fill="currentColor"
               />
             </a>
-            <button
-              type="button"
-              disabled
-              className="group inline-flex h-11 w-11 shrink-0 cursor-not-allowed items-center justify-center rounded-full text-white shadow-sm"
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all duration-300 ease-out hover:brightness-110"
               style={{
-                background:
-                  "linear-gradient(135deg, rgba(249,206,52,0.45) 0%, rgba(238,42,123,0.45) 50%, rgba(98,40,215,0.45) 100%)",
+                backgroundImage:
+                  "linear-gradient(135deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%)",
               }}
-              aria-label="Instagram — coming soon"
-              title="Coming soon"
+              aria-label="Follow us on Instagram (opens in a new tab)"
+              title="Follow us on Instagram"
             >
-              <Instagram className="h-[18px] w-[18px]" />
-            </button>
+              <Instagram className="h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110" />
+            </a>
           </div>
         </div>
       </div>

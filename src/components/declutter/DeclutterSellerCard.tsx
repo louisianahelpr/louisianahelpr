@@ -22,7 +22,8 @@ function joinedLabel(iso: string | null | undefined): string | null {
   return `Joined ${d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "America/Chicago" })}`;
 }
 
-export function DeclutterSellerCard({ sellerId }: { sellerId: string }) {
+/** `noun`: who the card is about, for its accessible name (the job page reuses this card for the poster). */
+export function DeclutterSellerCard({ sellerId, noun = "seller" }: { sellerId: string; noun?: "seller" | "poster" }) {
   const card = useQuery({ queryKey: ["declutter", "seller-card", sellerId], queryFn: () => fetchSellerCard(sellerId) });
   const stats = useQuery({ queryKey: ["declutter", "seller-stats", sellerId], queryFn: () => fetchSellerRating(sellerId) });
   const loading = card.isLoading || stats.isLoading;
@@ -33,7 +34,7 @@ export function DeclutterSellerCard({ sellerId }: { sellerId: string }) {
     <Link
       to={`/user/${sellerId}`}
       data-seller-card=""
-      aria-label={loading ? "See the seller" : `See the seller, ${name}`}
+      aria-label={loading ? `See the ${noun}` : `See the ${noun}, ${name}`}
       className="flex min-h-[72px] items-center gap-3 rounded-2xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {loading ? (

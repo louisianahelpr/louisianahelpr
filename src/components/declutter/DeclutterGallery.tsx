@@ -7,21 +7,25 @@
  * soft tint (PhotoPlaceholder), never a blank box.
  */
 import { useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 
-const FRAME = "relative aspect-square sm:aspect-[4/3] w-full overflow-hidden rounded-2xl bg-muted";
+const FRAME_BASE = "relative w-full overflow-hidden rounded-2xl bg-muted";
+// Items are photo-first (square on a phone); a job page's photo is a banner (boards 15, 168).
+const ASPECT = { item: "aspect-square sm:aspect-[4/3]", banner: "aspect-[16/9]" } as const;
 
-export function DeclutterGallery({ urls, category, title }: { urls: string[]; category: string; title: string }) {
+/** `icon`: the placeholder glyph when there is no photo (the job page passes the job category's; default: the Declutter category's). */
+export function DeclutterGallery({ urls, category, title, icon, shape = "item" }: { urls: string[]; category: string; title: string; icon?: LucideIcon; shape?: keyof typeof ASPECT }) {
+  const FRAME = `${FRAME_BASE} ${ASPECT[shape]}`;
   const track = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState(0);
   const [open, setOpen] = useState<number | null>(null);
   if (urls.length === 0) {
     return (
       <div className={FRAME} data-gallery-empty="">
-        <PhotoPlaceholder icon={categoryIcon(category)} seed={category} className="h-full w-full" />
+        <PhotoPlaceholder icon={icon ?? categoryIcon(category)} seed={category} className="h-full w-full" />
       </div>
     );
   }

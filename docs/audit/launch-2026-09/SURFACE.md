@@ -21,16 +21,16 @@ reports coverage against THIS file, not against the route list.
 | Overlay surfaces | **instance** | 175 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
 | Toast messages | **call site** | 893 (across 222 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 27 |
+| Multi-step flows — confirmed | flow | 28 |
 | Multi-step flows — probable | flow | 19 |
 | Back/next navigation only | flow | 43 |
 | Forms (submittable) | form | 72 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 149 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **586** |
+| **Navigable surfaces** (places a person can stand) | mixed | **587** |
 | **Copy surfaces** (strings a person may read) | mixed | **931** |
-| **Total auditable surface** | mixed | **1517** |
+| **Total auditable surface** | mixed | **1518** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -72,7 +72,7 @@ they differ, the reason is understood:
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 175 | 130 | agree within method (script counts every menu instance) |
 | Forms | 72 | ~38 | agree |
-| Confirmed multi-step flows | 27 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 28 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -377,6 +377,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | switch, union-state |
 | `src/pages/jobs/appliedJobCard/CrewMemberSection.tsx` | compare |
 | `src/pages/jobs/appliedJobCard/steps/HelperPhotoAsk.tsx` | compare |
+| `src/pages/jobs/jobPage/JobPageParts.tsx` | step-array |
 | `src/pages/post-job/EntryChoice.tsx` | nav-handler, union-state |
 | `src/pages/post-job/PostJob.tsx` | compare, nav-handler |
 | `src/pages/post-job/usePostJobForm.ts` | compare, nav-handler |

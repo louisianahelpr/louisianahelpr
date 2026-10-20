@@ -195,6 +195,34 @@ export const POPUP_FOOTER_ROW =
  * The tint is `--olivewood` at 6%, not a grey: a neutral chip on this
  * parchment canvas reads as disabled.
  */
+/**
+ * THE POPUP SHELL (spec v2 §3 "Sheets and menus"; lead 2026-10-20). Every
+ * DialogContent wears both strings, so no popup can be a centred card on the
+ * phone or a sheet on the desktop.
+ *  - Phone (< 640px): a bottom sheet. Full width, pinned to the bottom edge,
+ *    28px top corners (the .glass-modal radius) and square bottom corners,
+ *    up to 92dvh, the home-indicator inset under the content, slides up.
+ *  - sm and up: the centred dialog, 480px wide, zooming in. Centring rides
+ *    the standalone `translate` property, never `transform`, because
+ *    tailwindcss-animate's keyframes write `transform` (see DialogContent).
+ */
+export const POPUP_SHEET_CLS =
+  "fixed inset-x-0 bottom-0 w-full max-w-full max-h-[92dvh] !rounded-b-none " +
+  "p-4 pb-[max(1rem,env(safe-area-inset-bottom))] " +
+  "data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom";
+export const POPUP_DIALOG_CLS =
+  "sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:[translate:-50%_-50%] sm:w-full sm:max-w-[480px] " +
+  "sm:max-h-[86vh] sm:!rounded-b-[28px] sm:p-5 sm:pb-5 " +
+  "sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:slide-out-to-bottom-0 " +
+  "sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:zoom-out-95";
+
+/** The sheet's drag handle: 36x4 pill, centred 8px from the top, phone only. */
+export const POPUP_HANDLE_CLS =
+  "sm:hidden pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 h-1 w-9 rounded-full bg-[hsl(var(--muted-foreground)/0.35)]";
+
+/** Every popup action is a pill (spec v2 §2: pill 999px for every button). */
+export const POPUP_ACTION_RADIUS = "rounded-full";
+
 export const POPUP_SECONDARY_CLS =
   "basis-[calc(50%-6px)] grow !min-w-max px-4 border-0 shadow-none " +
   // `ctl-tint-on-tint`, not `ctl-tint`: this control RESTS on olivewood/0.06,
@@ -202,7 +230,9 @@ export const POPUP_SECONDARY_CLS =
   // owner correctly called invisible. The fourth tone applies the same 8 points
   // from this control's own rest. See the block beside it in index.css.
   "bg-[hsl(var(--olivewood)/0.06)] ctl-tint-on-tint " +
-  "text-[hsl(var(--olivewood))]";
+  "text-[hsl(var(--olivewood))] " +
+  // Pill, like every button (spec v2 §2 radii; lead 2026-10-20, dialog shell).
+  POPUP_ACTION_RADIUS;
 
 /**
  * The commit, primary or destructive. Full width at every size, matching the
@@ -225,4 +255,4 @@ export const POPUP_SECONDARY_CLS =
 // and then "Maybe Later", "Not Now", "Skip", "Keep the Job", "Keep It On",
 // "No Thanks", "Close", and a bare back-chevron. Nine distinct labels. Any
 // rule here has to hold for the longest of them, not for the common one.
-export const POPUP_COMMIT_CLS = "basis-[calc(50%-6px)] grow !min-w-max";
+export const POPUP_COMMIT_CLS = `basis-[calc(50%-6px)] grow !min-w-max ${POPUP_ACTION_RADIUS}`;

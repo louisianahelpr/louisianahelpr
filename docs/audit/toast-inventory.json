@@ -4007,7 +4007,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 103,
+      "line": 98,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4017,7 +4017,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 201,
+      "line": 197,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -4045,7 +4045,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 206,
+      "line": 202,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

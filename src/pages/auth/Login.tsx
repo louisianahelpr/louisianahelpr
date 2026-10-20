@@ -414,7 +414,7 @@ const Login = () => {
             what read as wrong. Splitting the two sign-in METHODS uses the width
             for something real instead of inflating one field. Stacks below lg,
             unchanged. */}
-        <div className="grid gap-6 w-full">
+        <div className="grid gap-6 w-full [&>*]:min-w-0">
         {/* noValidate: `required` stays on both inputs for semantics, but the
             browser's own validation bubble would intercept the submit and
             replace our inline messages with a native tooltip — so the "name
@@ -517,7 +517,7 @@ const Login = () => {
           <Button
             variant="primary"
             type="submit"
-            className="w-full rounded-ds-md"
+            className="w-full rounded-full"
             size="lg"
             // Loading-only disable (owner, V5) — the pattern Signup's Continue
             // and Create Account already use. A greyed-out Log In is a dead
@@ -554,7 +554,7 @@ const Login = () => {
         {SOCIAL_SIGN_IN_ENABLED && (
           <>
             <OrRule />
-            <SocialAuthButtons mode="signin" initialChoice={accountChoice} />
+            <SocialAuthButtons initialChoice={accountChoice} />
           </>
         )}
         {/* Under the providers (owner). It has been outside the card and under

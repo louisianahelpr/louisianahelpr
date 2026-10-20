@@ -109,18 +109,20 @@ describe("design tweaks (owner 2026-10-18)", () => {
     expect(n).toBeGreaterThan(7);
   });
 
-  it("owner 10-19: Declutter opens on Any distance, the dock has no +, and each section's add action is the shared pill", () => {
+  it("owner 10-19/10-20: Declutter opens on Any distance, the dock's ONE + is the center Create (it opens the sheet, never a post-a-job shortcut), and each section's add action is the shared pill", () => {
     expect(code("src/components/declutter/DeclutterHomeView.tsx")).toMatch(/useState<number \| null>\(null\)/);
     const nav = code("src/components/MobileNav.tsx");
-    expect(nav).not.toMatch(/<Plus\b/);
+    // Superseded 2026-10-20 (owner-approved mock-up: center + in the bottom bar): exactly one +, the Create button.
+    expect(nav.match(/<Plus\b/g) ?? []).toHaveLength(1);
+    expect(nav).toContain('data-testid="dock-create"');
     expect(nav).not.toMatch(/Post a new job/);
     const pills: Array<[string, RegExp]> = [
       // Declutter's add action is the top bar's "+" (owner final decisions 2026-10-19).
-      ["src/components/declutter/DeclutterHomeView.tsx", /<SectionScreen title="Declutter" add=\{sectionByKey\("declutter"\)\.add\}/],
+      ["src/components/declutter/DeclutterHomeView.tsx", /<SectionScreen section="declutter" title="Declutter" add=\{sectionByKey\("declutter"\)\.add\}/],
       ["src/components/shops/ShopDashboardView.tsx", /<SectionActionPill[\s\S]{0,200}Open a shop/],
       ["src/components/rentals/RentalsHomeView.tsx", /<SectionActionPill[\s\S]{0,120}?Add a property/],
       // Jobs & Posts' add action is the top bar's "+" (owner final decisions 2026-10-19).
-      ["src/pages/jobs/JobsSection.tsx", /<AppTopBar title=\{section\.label\} add=\{section\.add\} \/>/],
+      ["src/pages/jobs/JobsSection.tsx", /<AppTopBar title=\{section\.label\} add=\{section\.add\} explore \/>/],
     ];
     for (const [f, re] of pills) expect(code(f), f).toMatch(re);
     expect(pills.length).toBeGreaterThan(3);

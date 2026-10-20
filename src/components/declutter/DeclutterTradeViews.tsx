@@ -258,10 +258,15 @@ export function SalesWaiting() {
   );
 }
 
+const HANDOVER_TITLE: Record<Handover, string> = {
+  porch: "Porch pickup",
+  pickup_home: "Meet at the seller's home",
+  delivery: "Helpr delivery",
+};
 const HANDOVER_WORDS: Record<Handover, string> = {
-  porch: "Porch pickup: the seller leaves it out for you, no need to meet",
-  pickup_home: "Meet at the seller's home: you show a code when you pick it up",
-  delivery: "Helpr delivery: a Helpr picks it up and brings it to you",
+  porch: "The seller leaves it out for you, no need to meet. Address after you pay.",
+  pickup_home: "Pick it up at the seller's door. Address after you pay.",
+  delivery: "A local Helpr picks it up and brings it to you. Best for big items.",
 };
 
 /**
@@ -273,8 +278,8 @@ const HANDOVER_WORDS: Record<Handover, string> = {
  * the drop-off address, the SERVER geocodes it and prices the trip ($10 + $2 per
  * road mile + size), and the Pay button carries that price.
  */
-function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack }: {
-  sellerId: string; itemsTotalCents: number; totalCents: number; porchOk: boolean; onBack: () => void;
+function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, porchOk, onBack }: {
+  sellerId: string; itemsTotalCents: number; premiumCents: number; totalCents: number; porchOk: boolean; onBack: () => void;
 }) {
   const qc = useQueryClient();
   const deliveryOpen = useFeature("declutter");
@@ -299,12 +304,22 @@ function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack }
   const addressId = `dcl-dropoff-${sellerId}`;
   return (
     <>
-      <fieldset className="space-y-1">
-        <legend className="text-sm font-medium">How you get it</legend>
+      {/* Board 30: "How you'll get it" as radio cards; each price from the real rule (pickups are free; delivery is
+          the server's quote, or "Get a price" until there is one). */}
+      <fieldset className="space-y-2">
+        <legend className="mb-2 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">How you'll get it</legend>
         {offered.map((h) => (
-          <label key={h} className="flex items-center gap-2 text-sm min-h-11">
-            <input type="radio" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setHandover(h)} style={{ accentColor: "hsl(var(--primary))" }} />
-            {HANDOVER_WORDS[h]}
+          <label key={h}
+            className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-[20px] border bg-card px-4 py-3.5 ${chosen === h ? "border-2 border-primary" : "border-border"}`}
+          >
+            <input type="radio" className="mt-1 h-4 w-4 shrink-0" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setHandover(h)} style={{ accentColor: "hsl(var(--primary))" }} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-ds-15 font-semibold text-foreground">{HANDOVER_TITLE[h]}</span>
+              <span className="block text-ds-13 text-muted-foreground">{HANDOVER_WORDS[h]}</span>
+            </span>
+            <span className="shrink-0 text-ds-15 font-bold text-[hsl(var(--burnt-sienna))]">
+              {h === "delivery" ? (liveQuote ? formatPrice(liveQuote.delivery_cents) : <span className="font-semibold text-muted-foreground">Get a price</span>) : "Free"}
+            </span>
           </label>
         ))}
         {!porchOk && (
@@ -333,9 +348,34 @@ function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack }
           )}
         </div>
       )}
+      <dl className="space-y-1.5 rounded-[20px] border border-border bg-card p-4 text-ds-14" data-checkout-breakdown="">
+        <div className="flex justify-between gap-3"><dt>Items</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(itemsTotalCents)}</dd></div>
+        {delivering && liveQuote && (
+          <div className="flex justify-between gap-3"><dt>Helpr delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(liveQuote.delivery_cents)}</dd></div>
+        )}
+        <div className="flex justify-between gap-3"><dt>Buyer's fee (5% + 70¢)</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(premiumCents)}</dd></div>
+        <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2">
+          <dt className="text-ds-16 font-bold text-foreground">You pay</dt>
+          <dd className="text-ds-24 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">
+            {formatPrice(payCents)}
+            {/* Delivery chosen but not priced yet: the total is not complete, so say so (money review #4). */}
+            {delivering && !liveQuote && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground">+ delivery</span>}
+          </dd>
+        </div>
+        {/* Spec v2 §9.11: Declutter buyer screens may say what the seller keeps; sellers keep the whole price. */}
+      </dl>
+      {/* lh-money-escrow review (2026-10-20): the seller can be paid without a buyer step (home pickup marked by the
+          seller; declutter_handover_sweep pays 24 h after the slot unless a problem is open, porch also needs the
+          set-out photo: measured live with pg_get_functiondef), so never "held until you have your items". */}
+      <p className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.10)] px-3 py-2 text-ds-13 text-[hsl(var(--sienna-ink))]" data-checkout-note="">
+        The seller keeps the whole {formatPrice(itemsTotalCents)}.{" "}
+        {delivering
+          ? "It's paid to the seller once the delivery is done."
+          : "It's paid to the seller when the handover is done, or 24 hours after your pickup time unless you report a problem."}
+      </p>
       <button
         type="button"
-        className="btn-grad-primary rounded-full px-5 py-2.5 text-sm font-semibold"
+        className="btn-grad-primary !text-[hsl(var(--parchment))] h-14 w-full rounded-full px-5 text-ds-16 font-semibold"
         disabled={opening || (delivering && !liveQuote)}
         onClick={async () => {
           setOpening(true);
@@ -356,7 +396,7 @@ function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack }
       >
         {opening ? "Opening…" : `Pay ${formatPrice(payCents)}`}
       </button>
-      <p className="text-xs text-muted-foreground">You pay on Stripe's secure page. The money is held until you have your items.</p>
+      <p className="text-xs text-muted-foreground">You pay on a secure payment page.</p>
       <AddHelprNote />
     </>
   );
@@ -417,17 +457,12 @@ export function CartView() {
                 {lines.map((l) => (
                   <li key={l.line_id} className="flex justify-between gap-3 text-sm min-w-0">
                     <Link to={`/declutter/item/${l.item_id}`} className="truncate" title={l.item_title}>{l.item_title}</Link>
-                    <span className="shrink-0">{formatPrice(l.price_cents)}</span>
+                    <span className="shrink-0 font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(l.price_cents)}</span>
                   </li>
                 ))}
               </ul>
-              <dl className="text-sm space-y-1 border-t border-border pt-2">
-                <div className="flex justify-between"><dt>Items</dt><dd>{formatPrice(amounts.itemsCents)}</dd></div>
-                <div className="flex justify-between"><dt>Buyer's fee (5% + 70¢)</dt><dd>{formatPrice(amounts.premiumCents)}</dd></div>
-                <div className="flex justify-between font-semibold"><dt>Total</dt><dd>{formatPrice(amounts.totalCents)}</dd></div>
-              </dl>
               <p className="text-sm font-medium">Check out by {new Date(soonest).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} ({timeLeft(soonest)}). If you don't, you get a strike and the item goes back up for sale.</p>
-              <PayForSeller sellerId={sellerId} itemsTotalCents={amounts.itemsCents} totalCents={amounts.totalCents} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} />
+              <PayForSeller sellerId={sellerId} itemsTotalCents={amounts.itemsCents} premiumCents={amounts.premiumCents} totalCents={amounts.totalCents} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} />
             </section>
           );
         })

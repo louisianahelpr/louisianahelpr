@@ -296,6 +296,21 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
               Send offer
             </Button>
           </div>
+          {cents !== null && !offerProblem && (
+            // Board 67: what the buyer would pay if the seller says yes, from the same fee rule as Buy now and
+            // checkout (buyNowTotalCents = checkoutAmounts for one item, pickup). Delivery is added at checkout.
+            <dl className="space-y-1 rounded-[20px] border border-border bg-background p-3 text-ds-14" data-offer-bill="">
+              <div className="flex justify-between gap-3"><dt>Your offer</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(cents)}</dd></div>
+              <div className="flex justify-between gap-3"><dt>Buyer's fee (5% + 70¢)</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(buyNowTotalCents(cents) - cents)}</dd></div>
+              <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1.5">
+                <dt className="font-bold text-foreground">You pay if the seller says yes</dt>
+                <dd className="text-ds-18 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(buyNowTotalCents(cents))}</dd>
+              </div>
+              {/* lh-money-escrow re-review #2: a ceiling. Accepting charges the lower of the offer and the price now,
+                  and more items from this seller share one 70¢. Delivery, if chosen, is added at checkout. */}
+              <p className="text-ds-12 text-muted-foreground">At most, with pickup. A price drop or more items from this seller makes it less.</p>
+            </dl>
+          )}
           <p id="declutter-offer-help" className="text-xs text-muted-foreground">
             {amount.trim() && offerProblem
               ? offerProblem

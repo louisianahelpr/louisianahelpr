@@ -196,6 +196,21 @@ describe("Declutter slice 3 screens", () => {
     expect(window.confirm).not.toHaveBeenCalled();
   });
 
+  it("board 67: the offer box shows what the buyer pays if the seller says yes, from the real fee rule (5% + 70c)", async () => {
+    state.card = { brand: "visa", last4: "4242" };
+    show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "offer" } });
+    fireEvent.change(await screen.findByLabelText("Your offer"), { target: { value: "30" } });
+    // $30 + round($30 x 5%) + 70c = $30 + $2.20 = $32.20 (checkoutAmounts, the rule declutter_start_checkout charges).
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | {formatPrice(buyNowTotalCents(cents))}</dd> | {formatPrice(cents)}</dd>
+    const bill = document.querySelector("[data-offer-bill]")!;
+    expect(bill.textContent).toMatch(/Your offer\$30/);
+    expect(bill.textContent).toMatch(/Buyer's fee \(5% \+ 70¢\)\$2\.20/);
+    expect(bill.textContent).toMatch(/You pay if the seller says yes\$32\.20/);
+    // Under half the price: no bill, the rule instead.
+    fireEvent.change(screen.getByLabelText("Your offer"), { target: { value: "5" } });
+    expect(document.querySelector("[data-offer-bill]")).toBeNull();
+  });
+
   it("a link with ?after_card=buy does nothing by itself: only the router state resumes", async () => {
     state.card = { brand: "visa", last4: "4242" };
     show(<OfferPanel item={ITEM} userId="u1" />, "/declutter/item/i1?after_card=buy");
@@ -287,6 +302,21 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getByText("$7")).toBeInTheDocument();
     expect(screen.getByText("$1.05")).toBeInTheDocument();
     expect(screen.getByText("$8.05")).toBeInTheDocument();
+    // Board 30: the breakdown ends in "You pay" = the real checkout total, the seller keeps the whole item price,
+    // and no vendor is named (spec §1.7).
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx | <dd className="text-ds-24 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(payCents)}</dd> | <dd className="text-ds-24 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(itemsTotalCents)}</dd>
+    const bill = document.querySelector("[data-checkout-breakdown]")!;
+    expect(bill.textContent).toMatch(/You pay\$8\.05/);
+    const note = document.querySelector("[data-checkout-note]")!;
+    // The real payout rule (declutter_handover_sweep, read live 2026-10-20): handover done, or 24 h after the slot
+    // unless a problem is open.
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx | or 24 hours after your pickup time unless you report a problem. | once you have your items.
+    expect(note.textContent).toMatch(/The seller keeps the whole \$7\. It's paid to the seller when the handover is done, or 24 hours after your pickup time unless you report a problem\./);
+    // Owner: no codes or QR for Declutter pickup.
+    expect(document.body.textContent).not.toMatch(/\bcode\b|QR/i);
+    // Never the false promise the money review found (the sweep can pay the seller with no buyer step).
+    expect(document.body.textContent).not.toMatch(/until you have your items/);
+    expect(document.body.textContent).not.toMatch(/Stripe/);
     // Declutter is not open for this member (the switch reads false): no Helpr delivery to choose.
     expect(screen.queryByLabelText(/Helpr delivery/)).toBeNull();
     expect(screen.queryByText(/next test round/)).toBeNull();
@@ -311,9 +341,18 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(screen.getByLabelText(/Helpr delivery/));
     // No price yet: Pay waits for the server's quote.
     expect(screen.getByRole("button", { name: "Pay $3.85" })).toBeDisabled();
+    // ...and the bill says the total is not complete yet (money review #4).
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx |             {delivering && !liveQuote && <span | {false && <span
+    expect(document.querySelector("[data-checkout-breakdown]")!.textContent).toMatch(/You pay\$3\.85\+ delivery/);
     fireEvent.change(screen.getByLabelText(/Deliver to/), { target: { value: "900 Far Rd, Baker, LA" } });
     fireEvent.click(screen.getByRole("button", { name: "Get price" }));
     expect(await screen.findByText(/Helpr delivery, about 5 miles/)).toBeInTheDocument();
+    // The quote joins the bill as its own line, outside the 5% base: $3 item + $0.85 fee + $40 delivery.
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {delivering && liveQuote && ( |         {false && (
+    const bill = document.querySelector("[data-checkout-breakdown]")!;
+    expect(bill.textContent).toMatch(/Helpr delivery\$40/);
+    expect(bill.textContent).toMatch(/Buyer's fee \(5% \+ 70¢\)\$0\.85/);
+    expect(bill.textContent).toMatch(/You pay\$43\.85/);
     expect(state.quotes).toEqual([{ sellerId: "s2", address: "900 Far Rd, Baker, LA" }]);
     fireEvent.click(screen.getByRole("button", { name: "Pay $43.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "delivery" }]));

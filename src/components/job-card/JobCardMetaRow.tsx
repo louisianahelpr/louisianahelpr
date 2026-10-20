@@ -435,8 +435,8 @@ export function JobCardMetaRow({
                points at the visible "Hold for map" hint, so the sighted and the
                non-sighted affordance are the same sentence. `title` gives the
                desktop pointer user the same line on hover. */
-            aria-label={`${fullAddress ? "Job address: " : ""}${city} — tap to expand this job`}
-            title={`${city} — tap to expand, hold for the map`}
+            aria-label={`${fullAddress ? "Job address: " : ""}${city} — tap to open this job`}
+            title={`${city} — tap to open, hold for the map`}
           >
             <MapPin className="w-3 h-3 shrink-0" />
             {/* The noun the deleted `JobAddressLine` used to carry. A street

@@ -1,9 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { MapPin, SearchX, Wrench, X } from "lucide-react";
-import { safeStorage } from "@/lib/safeStorage";
-import { hapticLight } from "@/lib/haptics";
+import { SearchX, Wrench } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { type Job, type EnrichedApplication } from "../../components/job-card/activityConstants";
@@ -86,76 +84,11 @@ interface PostedJobsTabProps {
   groupByStatus?: boolean;
 }
 
-/**
- * One-time coach line for the location press-gesture.
- *
- * `helpr_` prefix so safeStorage mirrors it into Capacitor Preferences and it
- * survives a WebView data clear — a hint the user has already dismissed coming
- * back on every cold start is worse than never showing it.
- */
-const LOCATION_PRESS_HINT_KEY = "helpr_myposts_location_press_hint_seen";
-
-/**
- * "Tap opens the job. Press and hold the location for directions."
- *
- * The gesture is the fix for the owner's complaint ("tapping the location here
- * shouldn't open the map… I keep tapping it on accident"), but a gesture that
- * nothing advertises is a gesture nobody finds. The chip carries a visible
- * pressable treatment and a `title`/`aria-label` that say both actions; this
- * says it once, in words, above the list, and then goes away for good.
- *
- * ABOVE the list rather than inside the meta row on purpose. The row is
- * `flex-nowrap` with the location as its only shrinking element, so an inline
- * caption there does not cost the row a line — it costs the CITY its letters
- * ("Broussard" → "B.."). Measured at 375 before it was moved out here.
- *
- * Only when there is a card to point at: a hint above an empty list explains a
- * gesture on a control that is not on screen.
- */
-function LocationPressHint({ onDismiss }: { onDismiss: () => void }) {
-  // `items-center` (owner, 2026-09-14, VN-26: "needs to be centered better"):
-  // pin, sentence and X share ONE vertical centre. It was `items-start` with a
-  // `mt-0.5` nudge on the pin and a symmetric `-m-2.5` on the X, so the three
-  // sat on different lines of sight.
-  return (
-    <div
-      className="flex items-center gap-2 rounded-ds-md px-3 py-2"
-      style={{
-        background: "hsl(var(--olivewood) / 0.07)",
-        border: "0.5px solid hsl(var(--olivewood) / 0.20)",
-      }}
-    >
-      <MapPin
-        aria-hidden
-        className="w-3.5 h-3.5 shrink-0"
-        style={{ color: "hsl(var(--olivewood))" }}
-        strokeWidth={2.25}
-      />
-      <p
-        className="flex-1 min-w-0 font-sans leading-snug text-ds-11"
-        style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-      >
-        <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-          Tap a card to open it.
-        </span>{" "}
-        Press and hold the location to get directions.
-      </p>
-      {/* 44px-class target on a small glyph. `-my-2.5` cancels the vertical
-          padding exactly, so the strip keeps its own height and the glyph stays
-          on the row's centre line; `-mr-2.5` puts the glyph the same 12px from
-          the right edge as the pin is from the left. No left negative margin —
-          that only pulled the hit area over the sentence. */}
-      <button
-        type="button"
-        onClick={() => { hapticLight(); onDismiss(); }}
-        aria-label="Dismiss tip about opening the map"
-        className="shrink-0 -my-2.5 -mr-2.5 p-2.5 ctl-exit text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
-      >
-        <X className="w-3.5 h-3.5" strokeWidth={2.25} />
-      </button>
-    </div>
-  );
-}
+/* The one-time "Tap a card to open it. Press and hold the location to get
+   directions." strip is gone (board 14, 2026-10-20): the card face is a link to
+   the job page now and carries no location chip, so the tip described a
+   gesture that no longer exists, and it stacked with the "Get notified?"
+   prompt (spec §3: one prompt at a time). */
 
 /**
  * The end of the Posted list: a spacer that lets a short list sit at the top of
@@ -193,16 +126,6 @@ export const PostedJobsTab = ({
   // intact.
   const bulkDismiss = useBulkDismiss("posted");
 
-  // Read ONCE, on mount, from a lazy initializer — safeStorage is synchronous
-  // and hydrated before React mounts, so the first paint already knows whether
-  // the hint has been seen and it never flashes in and back out.
-  const [locationHintSeen, setLocationHintSeen] = useState(
-    () => safeStorage.getItem(LOCATION_PRESS_HINT_KEY) === "1",
-  );
-  const dismissLocationHint = useCallback(() => {
-    safeStorage.setItem(LOCATION_PRESS_HINT_KEY, "1");
-    setLocationHintSeen(true);
-  }, []);
 
   // Trust-graph applicant signals (neighbor counts, completed counts,
   // repeat-hire %, on-time %, distances) batch-fetched for the selected
@@ -385,10 +308,6 @@ export const PostedJobsTab = ({
       {/* Q210(b): $300+ recurring visits the payer must confirm on-session. */}
       {/* "Post a job" is the Jobs & Posts top bar's "+" (owner, 2026-10-19); no second pill here. */}
       <RecurringVisitPayments userId={userId} />
-      {/* Only with cards on screen to point at — see LocationPressHint. */}
-      {!locationHintSeen && visibleJobs.length > 0 && (
-        <LocationPressHint onDismiss={dismissLocationHint} />
-      )}
       {listView}
 
       {/* Fills the panel's leftover height on a short list. */}

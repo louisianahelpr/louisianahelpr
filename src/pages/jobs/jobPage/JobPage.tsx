@@ -94,8 +94,15 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
   const primary = isPoster
     ? {
-        label: open && pending > 0 ? `Review ${pending} applicant${pending === 1 ? "" : "s"}` : "Open in Posted",
-        go: () => navigate(`/posts?highlight=${encodeURIComponent(job.id)}`),
+        label: open && pending > 0 ? `Review ${pending} applicant${pending === 1 ? "" : "s"}` : "Manage job",
+        // The Posted card face is a link back to this page (board 14), so the
+        // page sends the poster to that card with its live controls open.
+        go: () =>
+          navigate(
+            open && pending > 0
+              ? `/posts?highlight=${encodeURIComponent(job.id)}`
+              : `/posts?highlight=${encodeURIComponent(job.id)}&manage=1`,
+          ),
       }
     : isHired
       ? { label: "Open in Working", go: () => navigate("/jobs?tab=working") }

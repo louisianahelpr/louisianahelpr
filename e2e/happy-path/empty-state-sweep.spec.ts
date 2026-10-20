@@ -221,6 +221,13 @@ const EXPECTED_LANDING: Record<string, string> = {
   // the bottom of this file provable: invert the gate and every OTHER route
   // starts bouncing to /complete-profile instead.
   "/complete-profile": "/home",
+
+  // /explore has no screen of its own (src/pages/explore/Explore.tsx): it
+  // forwards to the member's last section, else the first open one. This
+  // fixture has no last section and Jobs is always open, so it lands on /jobs
+  // (UI sweep 39465003189 flagged the bounce). Fixture state, not the route
+  // table, picks the target, so it lives here and not on the catalog row.
+  "/explore": "/jobs",
 };
 
 /**

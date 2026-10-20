@@ -1062,6 +1062,8 @@ describe("Popup grammar — footer", () => {
       // Boards 35/36 (Job done + review): the review can still be left later
       // from the completed card, so the dismiss names that.
       "Skip for now",
+      // Board 180's tip step: declining a tip, nothing is cancelled.
+      "No tip",
       "Not Now",
       "Skip",
       "No Thanks",

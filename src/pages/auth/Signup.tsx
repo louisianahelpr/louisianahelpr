@@ -502,16 +502,11 @@ const Signup = () => {
     <AuthShell
       hideHeader
       centerColumn
-      // Step 1 is board 55: the Log in card's width (board 37). Step 2 keeps its room.
       maxWidth={step === 1 ? "sm" : "2xl"}
       noWebChrome
-      // Step 1 exits to home; step 2 walks the wizard back rather than leaving
-      // the page, because exiting from step 2 discards the credentials already
-      // typed. Both render through the SAME shell row, so the two steps no
-      // longer differ in title size (step 2 used to be a hand-rolled row inside
-      // the card at clamp(1.6rem,2.4vw+0.5rem,2.1rem) against step 1's ds-24).
+      // Board 55: step 1 sits in the Log in card's width with its heading inside the card and no
+      // back (the H links home); step 2 keeps the row title and walks the wizard back.
       {...(step === 1 ? { hideBack: true } : { backOnClick: () => { setStep2Errors({}); setStep(1); } })}
-      // Step 1's heading is inside the card (board 55), as Log in's is; step 2 keeps the row title.
       title={step === 1 ? undefined : stepHeading.title}
     >
       <div>
@@ -547,8 +542,7 @@ const Signup = () => {
           <SignupStep2
             avatarPreview={avatarPreview}
             onAvatarChange={handleAvatarChange}
-            firstName={firstName}
-            setFirstName={setFirstName}
+            firstName={firstName} setFirstName={setFirstName}
             lastName={lastName}
             setLastName={setLastName}
             location={location}
@@ -600,8 +594,7 @@ const Signup = () => {
             setMarketingConsent={setMarketingConsent}
             inputCls={inputCls}
             labelCls={labelCls}
-            firstName={firstName}
-            setFirstName={setFirstName}
+            firstName={firstName} setFirstName={setFirstName}
             subtitle={stepHeading.subtitle}
             onContinue={async () => {
               if (!(await validateAccountStep())) return;

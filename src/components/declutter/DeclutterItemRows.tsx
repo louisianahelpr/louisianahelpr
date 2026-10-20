@@ -17,9 +17,9 @@ type From = { lat: number; lng: number; approximate: boolean } | null;
 /** A row card's width: two and a bit on a phone (the next card peeks), more as the screen widens. */
 const ROW_CARD = "w-[42%] min-w-[132px] shrink-0 snap-start sm:w-[28%] lg:w-[18%]";
 
-function Row({ title, items, cover, from }: { title: string; items: DeclutterItem[]; cover: Map<string, string>; from: From }) {
+function Row({ id, title, items, cover, from }: { id?: string; title: string; items: DeclutterItem[]; cover: Map<string, string>; from: From }) {
   return (
-    <section className="space-y-2" aria-label={title} data-item-row="">
+    <section id={id} className="scroll-mt-20 space-y-2" aria-label={title} data-item-row="">
       <h2 className="text-base font-semibold">{title}</h2>
       <ul className="-mx-3 flex snap-x gap-3 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((it) => (
@@ -72,7 +72,7 @@ export function DeclutterItemRows({ item, viewerId, from }: { item: DeclutterIte
   if (moreRows.length === 0 && similarRows.length === 0) return null;
   return (
     <div className="space-y-6" data-item-rows="">
-      {moreRows.length > 0 && <Row title="More from this seller" items={moreRows} cover={cover} from={from} />}
+      {moreRows.length > 0 && <Row id="declutter-more-from-seller" title="More from this seller" items={moreRows} cover={cover} from={from} />}
       {similarRows.length > 0 && <Row title="Similar items" items={similarRows} cover={cover} from={from} />}
     </div>
   );

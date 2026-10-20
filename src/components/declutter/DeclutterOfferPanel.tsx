@@ -98,6 +98,21 @@ const CARD_POLL_MS = 1_500;
  * amount entry. The age, reserved and own-item gates stay as they were, and
  * the server checks every buy and offer (strikes, card, sold) on its own.
  */
+/**
+ * Board 4: "Buy now" over "$40.60 total with fee". The total is the checkout
+ * total (buyNowTotalCents = checkoutAmounts, the rule declutter_start_checkout
+ * freezes), never the bare price (D6). Screen readers hear one line.
+ */
+function BuyNowLabel({ priceCents }: { priceCents: number }) {
+  return (
+    <span className="flex flex-col items-center leading-tight">
+      <span className="font-semibold">Buy now</span>{" "}
+      <span className="sr-only">·</span>{" "}
+      <span data-buy-total="" className="text-xs font-medium">{formatPrice(buyNowTotalCents(priceCents))} total with fee</span>
+    </span>
+  );
+}
+
 export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: string }) {
   const qc = useQueryClient();
   const { underAge } = useAgeGate();
@@ -224,7 +239,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
           aria-busy={card.isLoading || undefined}
           onClick={() => tap("buy")}
         >
-          Buy now · {formatPrice(buyNowTotalCents(item.current_price_cents))}
+          <BuyNowLabel priceCents={item.current_price_cents} />
         </Button>
         <Button
           type="button"
@@ -299,21 +314,9 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
             <div role="group" aria-label="Buy or make an offer" className="mx-auto flex max-w-xl gap-2">
               <Button
                 type="button"
-                size="sm"
-                className="flex-1 min-w-0 rounded-full px-3"
-                disabled={buy.isPending || card.isLoading}
-                onClick={() => {
-                  tap("buy");
-                  if (!card.data) panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                }}
-              >
-                Buy now · {formatPrice(buyNowTotalCents(item.current_price_cents))}
-              </Button>
-              <Button
-                type="button"
                 variant="outline"
-                size="sm"
-                className="flex-1 min-w-0 rounded-full px-3"
+                size="wrap"
+                className="h-14 flex-1 min-w-0 rounded-full px-3 font-semibold"
                 disabled={card.isLoading}
                 onClick={() => {
                   tap("offer");
@@ -321,6 +324,18 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
                 }}
               >
                 Make an offer
+              </Button>
+              <Button
+                type="button"
+                size="wrap"
+                className="h-14 flex-[1.5] min-w-0 rounded-full px-3"
+                disabled={buy.isPending || card.isLoading}
+                onClick={() => {
+                  tap("buy");
+                  if (!card.data) panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+              >
+                <BuyNowLabel priceCents={item.current_price_cents} />
               </Button>
             </div>
           </div>,

@@ -1,17 +1,10 @@
 {
-  "generated": "2026-10-20T03:55:03.576Z",
-  "guards": 2113,
-  "registered": 2108,
-  "unregistered": [
-    "src/lib/declutter/sellForMe.test.ts",
-    "src/lib/rentals/savedHomes.test.ts",
-    "src/lib/reviewStats.test.ts",
-    "src/lib/shops/hours.test.ts",
-    "src/lib/threadMutes.test.ts"
-  ],
+  "generated": "2026-10-20T05:42:23.612Z",
+  "guards": 2114,
+  "registered": 2114,
+  "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/test/browseEndCard.test.tsx"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],
   "classD_selfReferential": [
     {
@@ -159,24 +152,6 @@
       ],
       "parents": [
         "src/components/profile/AvailabilityTab.tsx"
-      ]
-    },
-    {
-      "module": "src/components/landing/HeroSection.tsx",
-      "tests": [
-        "src/test/twoFontTypeSystem.test.tsx"
-      ],
-      "parents": [
-        "src/pages/info/Index.tsx"
-      ]
-    },
-    {
-      "module": "src/components/landing/HowItWorksSection.tsx",
-      "tests": [
-        "src/test/landingStepsVisibleByDefault.test.tsx"
-      ],
-      "parents": [
-        "src/pages/info/Index.tsx"
       ]
     },
     {

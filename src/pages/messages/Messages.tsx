@@ -31,10 +31,14 @@ import { useThreadMuteActions } from "./useThreadMuteActions";
 import { useMessageSections } from "./useMessageSections";
 import { removeMessageAttachment } from "@/lib/storageCleanup";
 import { report } from "@/lib/errorLogger";
+import { useMessagesTwoPane } from "./useTwoPane";
+import { MessagesTwoPane } from "./MessagesTwoPane";
 
 const Messages = () => {
   usePageTitle("Messages — Helpr");
   const navigate = useNavigate();
+  // Board 38: the list and the open chat side by side, only where the chat keeps >= 480px.
+  const twoPane = useMessagesTwoPane();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const deepLinkJobId = searchParams.get("jobId");
@@ -405,8 +409,9 @@ const Messages = () => {
     hapticSuccess();
   };
 
-  // The two panes. `embedded={false}` on both: each keeps its own
-  // full-viewport shell, because only one of them is ever on screen now.
+  // The two panes. `embedded={twoPane}`: side by side (board 38) each drops its
+  // own full-viewport shell and fills its pane inside the one PageScaffold below;
+  // otherwise each keeps its own shell, because only one is on screen.
   // Section tabs: each tab lists only its own section's threads (+ support).
   const inbox = useMessageSections(conversations, allConversations);
 
@@ -425,7 +430,7 @@ const Messages = () => {
       setDeleteConvoConfirm={setDeleteConvoConfirm}
       onBatchArchive={(convos) => setBatchArchiveConfirm(convos)}
       resetSelectionNonce={selectionResetNonce}
-      embedded={false}
+      embedded={twoPane}
       activeKey={
         activeConvo
           ? `${activeConvo.jobId}_${activeConvo.otherUserId}`
@@ -463,36 +468,23 @@ const Messages = () => {
       onSnoozeMute={handleSnoozeMute}
       onUnmute={handleUnmute}
       jobSystemEvents={jobSystemEvents}
-      embedded={false}
+      embedded={twoPane}
     />
   ) : null;
 
   return (
     <>
-      {/* ONE SURFACE, ONE THREAD AT A TIME — on every width (owner,
-          2026-09-11: "when a message is selected, i think it hould be the full
-          page and tehy go back to see the rest bc if you look at this its
-          being cut off").
-
-          This used to fork on `isWebDesktop` into a side-by-side split: a
-          fixed 340px inbox column beside the thread. That column is what was
-          cutting the conversation off — it took its width off the top of an
-          area the thread already had to fit a header, a message list, an
-          attachment row and a composer into, and the list's own header then
-          had to clip its controls to survive 340px (the search "Cancel" that
-          had to become an icon was the same squeeze).
-
-          The screen-swap the phone already used is simply the better answer at
-          both sizes, and it is the one that keeps this app ONE surface rather
-          than two layouts with two sets of bugs — which is the same rule that
-          says never diverge shape on platform. Selecting a thread gives it the
-          whole page; back returns to the list.
-
-          Consequence, recorded rather than left to be discovered:
-          `MessagesEmptyThread` ("pick a thread on the left") existed only for
-          the split's empty right-hand pane and now has no caller — there is no
-          such pane. Reported, not deleted. */}
-      {!activeConvo ? (
+      {/* TWO PANES ON A WIDE DESKTOP, ONE THREAD AT A TIME EVERYWHERE ELSE (owner,
+          2026-10-20, board 38). This overrides the 2026-09-11 rule ("when a message
+          is selected, i think it should be the full page ... its being cut off"),
+          which removed an older 340px split. The owner's condition stands: the chat
+          is NEVER cut off. So the split only exists where the chat keeps >= 480px
+          (useTwoPane: sidebar and padding 298 + list 360 + 480 => from 1140px); below that,
+          desktop and phone alike keep the list -> full chat swap, and back returns
+          to the list. The list pane is 360px; the open deal room takes the rest. */}
+      {twoPane ? (
+        <MessagesTwoPane list={listEl} chat={chatEl} hasConversations={conversations.length > 0} />
+      ) : !activeConvo ? (
         <SectionBoundary label="conversations">{listEl}</SectionBoundary>
       ) : (
         <SectionBoundary label="chat">{chatEl}</SectionBoundary>
@@ -538,7 +530,7 @@ const Messages = () => {
       <BrandConfirmDialog
         open={!!deleteConvoConfirm}
         onOpenChange={(o) => { if (!o) setDeleteConvoConfirm(null); }}
-        title="Hide This Conversation?"
+        title="Hide this conversation?"
         description={
           // Q335: a deleted account can never send again, so "it'll come back
           // if they send you a new message" would be false for that thread.
@@ -584,7 +576,7 @@ const Messages = () => {
       <BrandConfirmDialog
         open={!!deleteMessageConfirm}
         onOpenChange={(o) => { if (!o) setDeleteMessageConfirm(null); }}
-        title="Delete Message?"
+        title="Delete message?"
         description="This message will be permanently deleted. This can't be undone."
         primaryLabel="Delete"
         primaryTone="sienna"

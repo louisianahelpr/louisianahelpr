@@ -19,7 +19,8 @@ const menus = blankComments(readFileSync(resolve(__dirname, "../components/messa
 
 describe("Messages top bar = the global top bar (Q2231)", () => {
   it("on the phone the header is the shared AppTopBar titled Messages, with no +", () => {
-    expect(list).toMatch(/const phoneTopBar = !isWebDesktop && !embedded;/);
+    // Board 38 (owner, 2026-10-20): the desktop two-pane list (embedded) wears the same header.
+    expect(list).toMatch(/const phoneTopBar = embedded \|\| !isWebDesktop;/);
     expect(list).toMatch(/const headerEl = phoneTopBar && !selectMode \? \(/);
     const bars = list.match(/<AppTopBar[^>]*\/>/g) ?? [];
     expect(bars).toEqual(['<AppTopBar title="Messages" />']);

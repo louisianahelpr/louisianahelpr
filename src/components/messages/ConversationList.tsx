@@ -1068,7 +1068,7 @@ export function ConversationList({
   /* Q2231 (owner, 2026-10-19): on the PHONE the top bar IS the shared AppTopBar (title · bell · profile, no "+");
      search, options and Active/All fold into ONE slim search row under the section tabs, its "more" menu at the
      row's right edge. Select mode still takes the row over; desktop keeps its in-panel row. Guard: messagesTopBarGlobalRule. */
-  const phoneTopBar = !isWebDesktop && !embedded;
+  const phoneTopBar = embedded || !isWebDesktop; // Board 38: the desktop list pane wears the phone header too.
   const moreMenu = (
     <MessagesMoreMenu
       {...inboxViewItems}

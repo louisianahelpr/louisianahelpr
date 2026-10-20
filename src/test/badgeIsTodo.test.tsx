@@ -74,6 +74,8 @@ vi.mock("@/lib/shops/orders", () => ({
 }));
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyItems: async () => [], fetchMyCart: async () => [] }));
+// Home's money tiles read the Money tab's own queries; homeMoneyTiles/homeMoneyGating prove them.
+vi.mock("@/pages/home/homeDashboard/homeMoney", () => ({ useHomeMoney: () => ({ coming: null, held: null }) }));
 vi.mock("@/lib/rentals/api", () => ({ fetchMyProperties: async () => [] }));
 vi.mock("@/lib/shops/api", () => ({ fetchMyShopId: async () => null }));
 vi.mock("@/components/mobileNav/useNavUnreadCount", () => ({ useNavUnreadCount: () => ({ unreadCount: 0, markAllRead: () => {} }) }));

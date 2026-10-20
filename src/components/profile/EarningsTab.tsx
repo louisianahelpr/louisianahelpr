@@ -8,7 +8,7 @@ import { instantPayoutFeeLabel, instantPayoutMinLabel } from "@/lib/instantPayou
 import {
   FORM_1099K_GROSS_THRESHOLD_DOLLARS,
 } from "@/lib/moneyLimits";
-import { helperTakeHomeDollars, sumHelperTakeHomeDollars, sumHelperTipDollars } from "@/lib/helperEarnings";
+import { helperTakeHomeDollars, sumHelperTipDollars } from "@/lib/helperEarnings";
 import { tierFeePercent, profileHasPerk } from "@/lib/subscriptionTiers";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
@@ -30,7 +30,7 @@ import { useHelperMilestones } from "@/hooks/useHelperMilestones";
 import type { EarningsTabProps } from "@/components/profile/earningsTab/types";
 import {
   completedWithin,
-  isAwaitingTransfer,
+  comingToYou,
   firstPayoutFeeDueFrom,
   earnedDollarsWithLedger,
   isEarnedJob,
@@ -171,16 +171,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // the one state that most needs explaining — "I finished a job, where is my
   // money" — was silent for exactly the helper who has not finished payout
   // setup and has the most reason to ask.
-  const releasingJobs = earningsJobs.filter(isAwaitingTransfer);
-  const releasingCents = Math.round(
-    sumHelperTakeHomeDollars(releasingJobs, helperFeeFallbackPct, firstPayoutFeeDueFrom(releasingJobs, firstPayoutFee)) * 100,
-  );
-  // Soonest scheduled arrival, for the "reaches your wallet <date>" copy.
-  const releasingAt =
-    releasingJobs
-      .map((j) => j.payout_scheduled_at)
-      .filter((d): d is string => !!d)
-      .sort()[0] ?? null;
+  // ONE rule, shared with Home's "Coming to you" tile (earningsTabHelpers.comingToYou):
+  // the take-home of every approved job still awaiting its transfer, and the
+  // soonest scheduled arrival for the "reaches your wallet <date>" copy.
+  const { cents: releasingCents, at: releasingAt } = comingToYou(earningsJobs, helperFeeFallbackPct, firstPayoutFee);
 
   // Helper-milestone retention nudges — one-shot toasts at meaningful
   // job/earnings/streak thresholds. Pulls from stats already computed

@@ -160,10 +160,11 @@ describe("recurring split days (Q407 4-6)", () => {
     expect(gate.body.indexOf("job_not_open")).toBeGreaterThan(flag);
     // Exactly one writer of the flag in the whole tree: claim_series_dates, whose
     // newest definition (20261007051854, Q1214 (2)) restates the first verbatim
-    // apart from the accept flag around its confirming UPDATE.
+    // apart from the accept flag around its confirming UPDATE; 20261020043346
+    // (ID once) restates it again, adding only the readiness read.
     const setters = files.filter((f) => /set_config\('app\.series_claim_rpc',\s*'1'/.test(blankSqlComments(readFileSync(`${dir}/${f}`, "utf8"))));
-    expect(setters).toEqual(["20260927012806_recurring_split_days.sql", "20261007051854_series_claim_is_an_accept.sql"]);
-    expect((allSql.match(/set_config\('app\.series_claim_rpc',\s*'1'/g) ?? []).length).toBe(2);
+    expect(setters).toEqual(["20260927012806_recurring_split_days.sql", "20261007051854_series_claim_is_an_accept.sql", "20261020043346_id_once_gates_every_accept.sql"]);
+    expect((allSql.match(/set_config\('app\.series_claim_rpc',\s*'1'/g) ?? []).length).toBe(3);
   });
 
   it("the split choice is locked after hire, and hire seeds the holds", () => {

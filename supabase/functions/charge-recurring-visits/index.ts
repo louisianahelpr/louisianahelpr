@@ -68,6 +68,16 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
+
+/** "Fri Oct 23, Fri Oct 30": the FMDy FMMon FMDD form every series notice uses. */
+function listVisitDates(dates: readonly string[]): string {
+  const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return dates.map((d) => {
+    const t = new Date(`${d}T12:00:00Z`);
+    return `${DAY[t.getUTCDay()]} ${MON[t.getUTCMonth()]} ${t.getUTCDate()}`;
+  }).join(", ");
+}
 import {
   DEFAULT_TIER_FEE_PERCENT,
   getHelperFeePercent,
@@ -541,6 +551,9 @@ serve(async (req) => {
     skippedBanned: 0,
     // Q1802: dates held by a member who is now under 18 (released, never charged).
     skippedIneligible: 0,
+    // ID once (owner 2026-10-20): due dates held by a Helpr whose payout setup
+    // or ID is not done (helper_accept_block_reason); released with a notice.
+    skippedNotReady: 0,
     skippedChargeback: 0,
     declined: 0,
     // Q210(b): $300+ visits parked for the payer to pay on-session.
@@ -1413,6 +1426,113 @@ serve(async (req) => {
         }
       }
 
+      // ── ID once (owner 2026-10-20): a holder is booked only when READY ──
+      // A claim of a future date is accept-first (claim_series_dates records
+      // the hold whatever the Helpr's setup state), so THIS is the moment the
+      // accept completes, and it is judged by the one helper every accept
+      // reads: helper_accept_block_reason (payout setup and the identity
+      // rule). jobs_award_gate skips server context, so nothing else asks it
+      // here. An unready holder's DUE dates are released through the give-up
+      // path (the poster is told the date is open again) and the holder is
+      // told why, never a silent skip; their later dates stay theirs, so
+      // finishing setup before those come due still books them. A due date
+      // with an OPEN visit payment (pending Checkout or paid) is never
+      // released (lh-authz-rls review 2026-10-20, finding 2: a released date's
+      // Checkout stayed payable, and a payment on a date nobody holds is
+      // refunded less the card fee); it stays held and unbooked, the holder is
+      // told, and the visit-date sweep settles the payment as an unbooked visit
+      // whose hold still stands (a full refund). The stored reason names
+      // nothing about the Helpr (series parties can read it), as Q1802's does.
+      // An unknown answer never books.
+      const notReadyHolders = new Map<string, string>();
+      let readyCheckFailed = false;
+      for (const helperId of new Set([...holders.values()].map((h) => h.helper_id))) {
+        if (under18Holders.has(helperId)) continue;
+        const { data: notReady, error: readyErr } = await supabase.rpc("helper_accept_block_reason", { p_user_id: helperId });
+        if (readyErr) {
+          console.error(`[charge-recurring-visits] readiness check failed for series ${parent.id}; skipping the series`, readyErr);
+          fail(`series ${parent.id}: readiness check failed (${readyErr.message})`);
+          readyCheckFailed = true;
+          break;
+        }
+        if (notReady != null) notReadyHolders.set(helperId, String(notReady));
+      }
+      if (readyCheckFailed) continue;
+      if (!dryRun) {
+        for (const [helperId, why] of notReadyHolders) {
+          const dates = dueNow.filter((d) => !alreadyThere.has(d) && holders.get(d)?.helper_id === helperId).sort();
+          if (dates.length === 0) continue;
+          const kept = dates.filter((d) => visitPayments.has(d));
+          const toRelease = dates.filter((d) => !visitPayments.has(d));
+          let gone: string[] = [];
+          if (toRelease.length > 0) {
+            const { data: released, error: relErr } = await supabase.rpc("series_release_dates", {
+              p_parent: parent.id,
+              p_helper: helperId,
+              p_dates: toRelease,
+              p_reason: "holder_ineligible",
+              p_title: parent.title ?? null,
+              p_customer: parent.customer_id,
+            });
+            if (relErr) {
+              fail(`series ${parent.id}: releasing ${toRelease.join(", ")} from a holder whose setup is not done failed (${relErr.message}); not charged, retried next run`);
+              continue;
+            }
+            gone = (Array.isArray(released) ? released : []) as string[];
+          }
+          if (gone.length === 0 && kept.length === 0) continue;
+          const step = why === "helper_identity_unverified"
+            ? "Verify your ID"
+            : why === "helper_payout_setup_incomplete" ? "Finish your payout setup" : "Finish your account setup";
+          const said = [
+            gone.length > 0
+              ? `${listVisitDates(gone)} went back to the series because your setup isn't done yet.`
+              : null,
+            kept.length > 0
+              ? `${listVisitDates(kept)} ${kept.length === 1 ? "isn't" : "aren't"} booked until it is.`
+              : null,
+          ].filter(Boolean).join(" ");
+          const link = `/jobs?job=${parent.id}`;
+          const { data: n, error: nErr } = await supabase.from("notifications").insert({
+            user_id: helperId,
+            job_id: parent.id,
+            title: `${step} to keep your visit dates`,
+            message: `${step} to keep your visit dates on "${parent.title ?? "your series"}". ${said} You only do it once.`,
+            type: "job_updates",
+            link,
+          }).select("id");
+          if (
+            nErr || !n ||
+            (n.length === 0 &&
+              (await seedBoundaryDropsRow(supabase, { user_id: helperId, job_id: parent.id as string, link })) !== true)
+          ) {
+            fail(`series ${parent.id}: the holder whose setup is not done was not told about ${[...gone, ...kept].join(", ")} (${nErr?.message ?? "zero rows"})`);
+          }
+          // A kept date (open visit payment) is not booked either: the poster
+          // hears it now, never only on the visit date (lh-authz-rls re-review
+          // 2026-10-20 #1c). Who bears the card fee if it is never booked, and
+          // closing a still-open Checkout here, are Q2241 (owner + money review).
+          if (kept.length > 0 && parent.customer_id) {
+            const posterLink = `/posts?job=${parent.id}`;
+            const { data: pn, error: pnErr } = await supabase.from("notifications").insert({
+              user_id: parent.customer_id,
+              job_id: parent.id,
+              title: kept.length === 1 ? "A visit is waiting on your Helpr" : "Visits are waiting on your Helpr",
+              message: `The Helpr on "${parent.title ?? "your series"}" still has to finish their account setup for ${listVisitDates(kept)}. If it isn't done before the visit, the visit isn't booked and anything you paid for it is refunded.`,
+              type: "job_updates",
+              link: posterLink,
+            }).select("id");
+            if (
+              pnErr || !pn ||
+              (pn.length === 0 &&
+                (await seedBoundaryDropsRow(supabase, { user_id: parent.customer_id as string, job_id: parent.id as string, link: posterLink })) !== true)
+            ) {
+              fail(`series ${parent.id}: the poster was not told ${kept.join(", ")} ${kept.length === 1 ? "waits" : "wait"} on the Helpr's setup (${pnErr?.message ?? "zero rows"})`);
+            }
+          }
+        }
+      }
+
       for (const visitDate of dueNow) {
         if (alreadyThere.has(visitDate)) { results.skippedExisting++; continue; }
         const hold = holders.get(visitDate);
@@ -1428,6 +1548,10 @@ serve(async (req) => {
         const holderId = hold.helper_id;
         if (under18Holders.has(holderId)) {
           results.skippedIneligible++;
+          continue;
+        }
+        if (notReadyHolders.has(holderId)) {
+          results.skippedNotReady++;
           continue;
         }
         if (banned.ids.has(holderId)) {
@@ -1752,7 +1876,8 @@ serve(async (req) => {
         // refunded); this only narrows that window.
         // Q1802 review: the holder's age is asked again too, so a birthday
         // saved since the check above never reaches the charge.
-        const [liveParent, liveHold, liveMinor] = await Promise.all([
+        // ID once (owner 2026-10-20): readiness is asked again too.
+        const [liveParent, liveHold, liveMinor, liveNotReady] = await Promise.all([
           supabase.from("jobs").select("id, series_ended_on").eq("id", parent.id).maybeSingle(),
           supabase
             .from("series_visit_holds")
@@ -1761,11 +1886,17 @@ serve(async (req) => {
             .eq("visit_date", visitDate)
             .maybeSingle(),
           supabase.rpc("member_under_18", { p_user_id: holderId }),
+          supabase.rpc("helper_accept_block_reason", { p_user_id: holderId }),
         ]);
-        if (liveParent.error || liveHold.error || liveMinor.error || !liveParent.data) {
+        if (liveParent.error || liveHold.error || liveMinor.error || liveNotReady.error || !liveParent.data) {
           fail(
-            `series ${parent.id} ${visitDate}: pre-charge re-read failed (${liveParent.error?.message ?? liveHold.error?.message ?? liveMinor.error?.message ?? "series row missing"})`,
+            `series ${parent.id} ${visitDate}: pre-charge re-read failed (${liveParent.error?.message ?? liveHold.error?.message ?? liveMinor.error?.message ?? liveNotReady.error?.message ?? "series row missing"})`,
           );
+          continue;
+        }
+        if (liveNotReady.data != null) {
+          // Released on the next run, by the check above.
+          results.skippedNotReady++;
           continue;
         }
         if (liveMinor.data === true) {

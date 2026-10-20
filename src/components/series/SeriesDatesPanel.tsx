@@ -11,6 +11,7 @@ import { hapticError } from "@/lib/haptics";
 import { userFacingError } from "@/lib/userFacingError";
 import {
   claimSeriesDates,
+  claimSetupStep,
   fetchSeriesDates,
   giveUpSeriesDates,
   offerSeriesDates,
@@ -208,12 +209,16 @@ export function SeriesDatesPanel({
                 onClick={() =>
                   run(async () => {
                     const r = await claimSeriesDates(jobId, pickedOpen);
-                    if (r.claimed.length === 0 && r.alreadyYours.length > 0 && r.taken.length + r.refused.length === 0) {
+                    // ID once (20261020043346): what the Helpr's setup still lacks.
+                    const step = claimSetupStep(r);
+                    if (r.claimed.length === 0 && r.alreadyYours.length > 0 && r.taken.length + r.refused.length + r.needsSetup.length === 0) {
                       return r.alreadyYours.length === 1 ? "That date is already yours." : "Those dates are already yours.";
                     }
-                    if (r.claimed.length === 0) throw new Error("Those dates were taken or can't be booked in time any more.");
-                    const lost = r.taken.length + r.refused.length;
-                    return `You have ${r.claimed.length} more date${r.claimed.length === 1 ? "" : "s"}.${lost ? ` ${lost} couldn't be added.` : ""}`;
+                    if (r.claimed.length === 0) {
+                      throw new Error(step ?? "Those dates were taken or can't be booked in time any more.");
+                    }
+                    const lost = r.taken.length + r.refused.length + r.needsSetup.length;
+                    return `You have ${r.claimed.length} more date${r.claimed.length === 1 ? "" : "s"}.${lost ? ` ${lost} couldn't be added.` : ""}${step ? ` ${step}` : ""}`;
                   })
                 }
                 className="btn-grad-primary min-h-[44px] px-4 rounded-ds-md text-ds-12 font-semibold disabled:opacity-40"

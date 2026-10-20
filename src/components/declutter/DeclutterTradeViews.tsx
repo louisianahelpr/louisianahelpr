@@ -118,7 +118,8 @@ function OfferRow({ o }: { o: MyOffer }) {
         <div className="min-w-0">
           <Link to={`/declutter/item/${o.item_id}`} className="font-semibold truncate block" title={o.item_title}>{o.item_title}</Link>
           <p className="text-sm">
-            {formatPrice(o.amount_cents)}
+            {/* Spec v2 §1.1: amounts wear the money ink. */}
+            <span className="font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(o.amount_cents)}</span>
             <span className="text-muted-foreground"> · price now {formatPrice(o.current_price_cents)}</span>
           </p>
         </div>

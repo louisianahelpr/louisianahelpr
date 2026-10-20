@@ -40,10 +40,23 @@ const ROW = "flex w-full items-center gap-3 rounded-2xl border border-border bg-
  * The way in: on Declutter's Selling tab (with the listings, so it shows on
  * the empty state too) and on the Sell an item page. Opens the sheet.
  */
-export function SellItForMeEntry() {
+export function SellItForMeEntry({ compact = false }: { compact?: boolean }) {
   const declutterOn = useFeature("declutter");
   const [open, setOpen] = useState(false);
   if (!declutterOn) return null;
+  if (compact) {
+    // Board 26: a chip under the Selling list.
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)} data-testid="sell-it-for-me-entry" aria-label="Sell it for me: get help photographing and listing your stuff"
+          className="flex min-h-10 items-center rounded-full bg-[hsl(var(--sand))] px-4 text-ds-13 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Sell it for me
+        </button>
+        <SellItForMeSheet open={open} onOpenChange={setOpen} />
+      </>
+    );
+  }
   return (
     <>
       <button type="button" className={ROW} onClick={() => setOpen(true)} data-testid="sell-it-for-me-entry">

@@ -93,7 +93,7 @@ export function YouMenu({
   const { user } = useCurrentUser();
   const money = useHomeMoney(user);
   const moneyCaption = youMoneyCaption(money);
-  const caption: Record<RowKey, string | null> = { ...YOU_STATIC_CAPTIONS, earnings: moneyCaption };
+  const caption: Partial<Record<RowKey, string | null>> = { ...YOU_STATIC_CAPTIONS, earnings: moneyCaption };
 
   return (
     <div className="shrink-0 flex flex-col gap-3">

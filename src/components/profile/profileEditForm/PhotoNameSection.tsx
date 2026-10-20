@@ -98,7 +98,7 @@ export function PhotoNameSection({
             initials={initials}
             pixelSize={80}
             aria-hidden
-            className="w-20 h-20 rounded-ds-avatar squircle border-2 border-primary/20"
+            className="w-20 h-20 rounded-full border-2 border-primary/20"
             fallbackClassName="text-ds-24 ring-0"
             onPhotoRejected={setPhotoRejection}
           />

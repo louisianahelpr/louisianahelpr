@@ -107,7 +107,7 @@ export function JobCategoryGroups({ category, setCategory }: Props) {
                 aria-expanded={on}
                 aria-controls="category-group-items"
                 onClick={() => setOpenGroup(g.id)}
-                className={`flex min-h-12 items-center rounded-ds-md px-4 py-2.5 text-left font-sans text-ds-15 font-semibold leading-tight break-normal hyphens-none transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${on ? "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]" : "bg-card border border-border text-foreground"}`}
+                className={`flex min-h-12 items-center rounded-ds-md px-4 py-2.5 text-left font-sans text-ds-15 font-semibold leading-tight break-normal hyphens-none transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${on ? "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]" : "bg-card border border-border text-foreground"}`}
               >
                 {g.label}
               </button>

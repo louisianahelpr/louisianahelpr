@@ -490,7 +490,7 @@ const Signup = () => {
   // "Pick up right where you left off." was removed. `subtitle` is optional;
   // the header renders the <p> only when one is present.
   const stepHeading: { title: string; subtitle?: string } =
-    step === 1 ? { title: "Create Account", subtitle: notifySignupSubtitle(searchParams.get("reason")) } : { title: "About You" };
+    step === 1 ? { title: "Create your account", subtitle: notifySignupSubtitle(searchParams.get("reason")) } : { title: "About you" };
 
   // No `desktopBrandPanel`: the AuthBrandPane component (deleted unused on
   // 2026-08-25) was only the H emblem, and it stacked
@@ -502,7 +502,8 @@ const Signup = () => {
     <AuthShell
       hideHeader
       centerColumn
-      maxWidth="2xl"
+      // Step 1 is board 55: the Log in card's width (board 37). Step 2 keeps its room.
+      maxWidth={step === 1 ? "sm" : "2xl"}
       noWebChrome
       // Step 1 exits to home; step 2 walks the wizard back rather than leaving
       // the page, because exiting from step 2 discards the credentials already
@@ -510,7 +511,8 @@ const Signup = () => {
       // longer differ in title size (step 2 used to be a hand-rolled row inside
       // the card at clamp(1.6rem,2.4vw+0.5rem,2.1rem) against step 1's ds-24).
       {...(step === 1 ? { backTo: "/" } : { backOnClick: () => { setStep2Errors({}); setStep(1); } })}
-      title={step === 1 ? "Create Account" : stepHeading.title}
+      // Step 1's heading is inside the card (board 55), as Log in's is; step 2 keeps the row title.
+      title={step === 1 ? undefined : stepHeading.title}
     >
       <div>
           {/* Liquid-glass card — matches the Login screen so the two auth
@@ -527,7 +529,7 @@ const Signup = () => {
                 air above the Email field than Sign In did, on two cards that are
                 otherwise the same component. An empty element is invisible;
                 the gap it reserves is not. */}
-            {stepHeading.subtitle && (
+            {step === 2 && stepHeading.subtitle && (
               <p
                 className="font-sans text-ds-15 text-left"
                 style={{
@@ -598,6 +600,9 @@ const Signup = () => {
             setMarketingConsent={setMarketingConsent}
             inputCls={inputCls}
             labelCls={labelCls}
+            firstName={firstName}
+            setFirstName={setFirstName}
+            subtitle={stepHeading.subtitle}
             onContinue={async () => {
               if (!(await validateAccountStep())) return;
               track(AhaEvent.SignupStepCompleted, { step: 1, ...ppoTrackingProps() });

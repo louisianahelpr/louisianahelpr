@@ -218,9 +218,9 @@ async function driveSignup(): Promise<string | undefined> {
   // Step 1: credentials + the two required boxes.
   fireEvent.change(document.getElementById("email")!, { target: { value: "keyevents.test@example.com" } });
   fireEvent.change(document.getElementById("password")!, { target: { value: "Str0ng!Passw0rd#" } });
+  // ONE consent box records both the agreement and the 18+ attestation (board 55).
   fireEvent.click(document.getElementById("policies")!);
-  fireEvent.click(document.getElementById("age-confirm")!);
-  fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+  fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
   // Step 2: about you.
   await waitFor(() => expect(document.getElementById("firstName")).not.toBeNull());
   const photo = new File([new Uint8Array([137, 80, 78, 71])], "me.png", { type: "image/png" });

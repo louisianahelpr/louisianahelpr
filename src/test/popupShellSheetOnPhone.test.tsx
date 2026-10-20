@@ -10,7 +10,7 @@
  *
  * @mutate src/components/ui/popupFooter.ts |   "fixed inset-x-0 bottom-0 w-full max-w-full max-h-[92dvh] !rounded-b-none " + |   "fixed left-1/2 top-1/2 w-full max-w-full max-h-[92dvh] " +
  * @mutate src/components/ui/popupFooter.ts | sm:w-full sm:max-w-[480px] | sm:w-full sm:max-w-lg
- * @mutate src/components/ui/popupFooter.ts | export const POPUP_ACTION_RADIUS = "rounded-full"; | export const POPUP_ACTION_RADIUS = "rounded-ds-md";
+ * @mutate src/components/ui/popupFooter.ts | const POPUP_ACTION_RADIUS = "rounded-full"; | const POPUP_ACTION_RADIUS = "rounded-ds-md";
  * @mutate src/components/ui/sheet.tsx | `overflow-y-auto data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 ${POPUP_SHEET_CLS} ${POPUP_DIALOG_CLS}` | `overflow-y-auto data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0`
  * @mutate src/components/ui/dialog.tsx |       <span data-sheet-handle aria-hidden className={POPUP_HANDLE_CLS} /> |       {null}
  */

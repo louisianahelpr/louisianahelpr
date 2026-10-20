@@ -216,7 +216,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
         <div className="mt-4 lg:mt-0 min-w-0 space-y-5">
           <section aria-label="Price and condition" className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <p data-item-price="" className="min-w-0 text-[34px] font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">
+              <p data-item-price="" className="min-w-0 text-ds-32 font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">
                 {formatPrice(it.current_price_cents)}
                 {dropped && (
                   <span className="ml-2 text-lg font-medium text-muted-foreground">
@@ -228,7 +228,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
               <ConditionChip stars={it.condition_stars} />
             </div>
             {drop && <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} />}
-            <h2 className="pt-1 text-[22px] font-bold leading-snug [overflow-wrap:anywhere]">{it.title}</h2>
+            <h2 className="pt-1 text-ds-22 font-bold leading-snug [overflow-wrap:anywhere]">{it.title}</h2>
             <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
               {[it.area_label, away, it.porch_ok !== false ? "Porch pickup" : null].filter(Boolean).join(" · ")}
             </p>

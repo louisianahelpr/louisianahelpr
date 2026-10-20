@@ -316,7 +316,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
                 type="button"
                 variant="outline"
                 size="wrap"
-                className="h-14 flex-1 min-w-0 whitespace-nowrap rounded-full px-3 font-semibold"
+                className="flex-1 min-w-0 whitespace-nowrap rounded-full px-3 font-semibold"
                 disabled={card.isLoading}
                 onClick={() => {
                   tap("offer");
@@ -329,7 +329,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
               <Button
                 type="button"
                 size="wrap"
-                className="h-14 flex-[1.3] min-w-0 rounded-full px-3"
+                className="flex-[1.3] min-w-0 rounded-full px-3"
                 disabled={buy.isPending || card.isLoading}
                 onClick={() => {
                   tap("buy");

@@ -24,9 +24,8 @@
  * @mutate src/hooks/useUserLocation.ts |   }, [enabled, request, rationale, attempt]); |   }, [enabled, request, rationale, attempt, profile]);
  * @mutate src/hooks/useUserLocation.ts |   return { lat: cached.lat, lng: cached.lng, approximate: cached.approximate }; |   return { lat: cached.lat, lng: cached.lng, approximate: false };
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const away = milesLabel(miles, geo.status === "ready" && geo.approximate); |   const away = milesLabel(miles);
- * @mutate src/components/declutter/DeclutterHomeView.tsx | miles={miles} approximate={origin.status === "ready" && origin.approximate} rating= | miles={miles} approximate={false} rating=
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | miles={miles} approximate={origin.status === "ready" && origin.approximate}\n | miles={miles} approximate={false}\n
  * @mutate src/components/declutter/useDeclutterOrigin.ts |     asked && device.status === "error" | false && device.status === "error"
- * @mutate src/components/declutter/DeclutterItemCard.tsx |   const reviewed = rating && rating.count > 0 ? rating : null; |   const reviewed = rating ?? null;
  * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />} | skeleton={<DeclutterItemSkeleton />}
  * @mutate src/hooks/usePermissionRationale.ts | body: "Declutter uses your location to show how far away each item is | body: "We use your location to show jobs near you, how far away each item is
  */
@@ -43,8 +42,8 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature, useFeatu
 // What Browse lists; empty unless a test puts an item up.
 const watchCalls: unknown[][] = [];
 const live: { items: unknown[] } = { items: [] };
-// Sellers' shared star ratings (the Browse cards read them in one call).
-const sellerStats: Record<string, { avg: number; count: number }> = {};
+// The nightly drop columns per item (Browse reads them in one call).
+const dropStates: Record<string, { sale_mode: string | null; last_price_drop_on: string | null }> = {};
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 // ONE object, as React Query hands back: a fresh profile per render would
 // re-run every effect keyed on it.
@@ -85,7 +84,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchSellerItems: async () => [],
   fetchSimilarItems: async () => [],
   fetchMyCard: async () => null,
-  fetchSellerRatings: async (ids: string[]) => new Map(ids.filter((id) => sellerStats[id]).map((id) => [id, sellerStats[id]])),
+  fetchDropStates: async (ids: string[]) => new Map(ids.filter((id) => dropStates[id]).map((id) => [id, dropStates[id]])),
   fetchWatching: async () => new Set(),
   fetchItem: async () => ({
     id: "i1", seller_id: "u2", status: "live", title: "Oak rocking chair", description: "Solid oak.",
@@ -109,6 +108,7 @@ import { PermissionRationaleDialog } from "@/components/PermissionRationaleDialo
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { __resolveRationale } from "@/hooks/usePermissionRationale";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
+import { dropOutlook } from "@/lib/declutter/browseFilters";
 
 const getCurrentPosition = vi.fn();
 
@@ -271,45 +271,51 @@ describe("Declutter location ask", () => {
     expect(screen.queryByText(/About \d+ mi away/)).toBeNull();
   });
 
-  it("a Browse card (owner design 2026-10-19 14:55Z): square photo or the category tint, bold price, ONE-line title, small place line, stars only when the seller has reviews", async () => {
-    const card = (id: string, seller: string, title: string) => ({
-      id, seller_id: seller, status: "live", title, category: "furniture", condition_stars: 4,
+  it("a Browse card (board 25, spec v2 §3): square photo or the category tint, price in money ink, ONE-line title, small place line, NO stars, and one real tag", async () => {
+    const card = (id: string, title: string, extra: Record<string, unknown> = {}) => ({
+      id, seller_id: "u2", status: "live", title, category: "furniture", condition_stars: 4, delivery_size: "small",
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
+      live_at: new Date(Date.now() - 2 * 86_400_000).toISOString(), porch_ok: true, ...extra,
     });
-    sellerStats.reviewed = { avg: 4.8, count: 12 };
-    sellerStats.fresh = { avg: 0, count: 0 };
-    live.items = [card("i1", "reviewed", "Oak rocking chair"), card("i2", "fresh", "Brass floor lamp"), card("i3", "unknown", "Cast iron skillet")];
+    // i1 is on the nightly drop plan and was dropped at the last run, so its next chance is the coming run.
+    const lastRunDay = new Date(Date.now() - 86_400_000).toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+    dropStates.i1 = { sale_mode: "offers", last_price_drop_on: lastRunDay };
+    live.items = [card("i1", "Oak rocking chair"), card("i2", "Brass floor lamp", { delivery_size: "large" }), card("i3", "Cast iron skillet")];
     const browse = at("/declutter", <DeclutterPage />);
-    const reviewed = (await screen.findByText("Oak rocking chair")).closest("a")!;
+    const first = (await screen.findByText("Oak rocking chair")).closest("a")!;
     // @mutate src/components/declutter/DeclutterItemCard.tsx | mt-0.5 block truncate text-sm | mt-0.5 block line-clamp-2 text-sm
-    expect(reviewed.querySelector("[data-card-title]")!.className).toMatch(/\btruncate\b/);
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | min-w-0 text-base font-bold leading-tight | min-w-0 text-base font-medium leading-tight
-    expect(reviewed.querySelector("[data-card-price]")!.className).toMatch(/\bfont-bold\b/);
+    expect(first.querySelector("[data-card-title]")!.className).toMatch(/\btruncate\b/);
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | leading-tight tabular-nums text-[hsl(var(--burnt-sienna))] | leading-tight tabular-nums
+    expect(first.querySelector("[data-card-price]")!.className).toMatch(/text-\[hsl\(var\(--burnt-sienna\)\)\]/);
+    expect(first.querySelector("[data-card-price]")!.className).toMatch(/\bfont-bold\b/);
     // No photo: the category's icon on a tint, never an empty grey box (PhotoPlaceholder).
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-full w-full" /> | null
-    expect(reviewed.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
-    // A price is never cut: it wraps the old price under it before it would clip.
-    expect(reviewed.querySelector("[data-card-price]")!.className).not.toMatch(/\btruncate\b/);
-    expect(reviewed.querySelector("[data-card-place]")!.className).toMatch(/\btruncate\b/);
-    expect(reviewed.querySelector("[data-card-rating]")!.getAttribute("aria-label")).toBe("Seller rated 4.8 of 5 from 12 reviews");
-    // No reviews (or no row at all): no stars, and never the item's condition dressed as a rating.
-    for (const t of ["Brass floor lamp", "Cast iron skillet"]) {
-      const a = screen.getByText(t).closest("a")!;
-      expect(a.querySelector("[data-card-rating]")).toBeNull();
+    expect(first.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
+    expect(first.querySelector("[data-card-price]")!.className).not.toMatch(/\btruncate\b/);
+    expect(first.querySelector("[data-card-place]")!.className).toMatch(/\btruncate\b/);
+    // Stars are for people, never an item card (spec v2 §3).
+    for (const a of screen.getAllByText(/Oak rocking chair|Brass floor lamp|Cast iron skillet/).map((e) => e.closest("a")!)) {
       expect(a.querySelector("svg.lucide-star")).toBeNull();
     }
-    expect(screen.queryByRole("img", { name: /^Condition:/ })).toBeNull();
+    // The tag comes from the real rules: the drop plan, or a big item's Helpr delivery; else none.
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | tag={outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null} | tag={null}
+    const tagOf = (t: string) => screen.getByText(t).closest("a")!.querySelector("[data-card-tag]")?.getAttribute("data-card-tag") ?? null;
+    // Whether the next chance is tonight depends on the clock (the rule itself: browseFilters.test.ts).
+    expect(tagOf("Oak rocking chair")).toBe(dropOutlook(live.items[0] as never, dropStates.i1).tonight ? "drop" : null);
+    expect(tagOf("Brass floor lamp")).toBe("delivery");
+    expect(tagOf("Cast iron skillet")).toBeNull();
+    // Drop wording is never a promise: the stop is private.
+    expect(screen.queryByText(/^Drops tonight$/)).toBeNull();
     browse.unmount();
     live.items = [];
-    delete sellerStats.reviewed;
-    delete sellerStats.fresh;
+    delete dropStates.i1;
   });
 
-  it("category tiles (lead 2026-10-19): one sideways row, icon + one word; a tap shows only that category and marks it, a second tap shows everything", async () => {
-    // @mutate src/components/declutter/DeclutterHomeView.tsx |  && (!category \|\| item.category === category), | ,
-    // @mutate src/components/declutter/DeclutterCategoryTiles.tsx | onClick={() => onChange(on ? null : key)} | onClick={() => onChange(key)}
-    // @mutate src/components/declutter/DeclutterCategoryTiles.tsx | aria-pressed={on} | aria-pressed={false}
-    // @mutate src/components/declutter/DeclutterHomeView.tsx |       <DeclutterCategoryTiles value={category} onChange={setCategory} />\n |
+  it("category chips (lead 2026-10-19 tiles, board 25 chip style): one sideways row, one word each; a tap shows only that category and marks it, a second tap shows everything", async () => {
+    // @mutate src/lib/declutter/browseFilters.ts |     if (f.category && item.category !== f.category) return false; |
+    // @mutate src/components/declutter/DeclutterChipRow.tsx | onClick={() => onChange({ ...filters, category: on ? null : key })} | onClick={() => onChange({ ...filters, category: key })}
+    // @mutate src/components/declutter/DeclutterChipRow.tsx | aria-pressed={on} | aria-pressed={false}
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |       <DeclutterChipRow filters={filters} onChange={setFilters} showDrops={showDrops} />\n |
     const item = (id: string, title: string, category: string) => ({
       id, seller_id: "u2", status: "live", title, category, condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,

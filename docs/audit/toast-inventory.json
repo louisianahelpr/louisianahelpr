@@ -4389,7 +4389,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 130,
+      "line": 132,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4399,7 +4399,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 253,
+      "line": 304,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4419,7 +4419,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 256,
+      "line": 307,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4429,7 +4429,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 261,
+      "line": 312,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4439,7 +4439,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 266,
+      "line": 317,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4449,7 +4449,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 269,
+      "line": 320,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

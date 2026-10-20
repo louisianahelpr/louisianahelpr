@@ -196,6 +196,22 @@ export async function fetchItemDropState(
   return (row ?? null) as { sale_mode: string | null; last_price_drop_on: string | null } | null;
 }
 
+/**
+ * Browse's batch of the same two columns (board 25's "May drop tonight" tag and
+ * the "Price drops" filter), one read for every card; RLS decides as above.
+ */
+export async function fetchDropStates(
+  itemIds: string[],
+): Promise<Map<string, { sale_mode: string | null; last_price_drop_on: string | null }>> {
+  const out = new Map<string, { sale_mode: string | null; last_price_drop_on: string | null }>();
+  if (itemIds.length === 0) return out;
+  const rows = unwrap(
+    await supabase.from("declutter_items").select("id, sale_mode, last_price_drop_on").in("id", itemIds),
+  ) as { id: string; sale_mode: string | null; last_price_drop_on: string | null }[] | null;
+  for (const r of rows ?? []) out.set(r.id, { sale_mode: r.sale_mode, last_price_drop_on: r.last_price_drop_on });
+  return out;
+}
+
 export async function fetchPhotos(itemIds: string[]): Promise<DeclutterPhoto[]> {
   if (itemIds.length === 0) return [];
   const rows = unwrap(
@@ -244,20 +260,6 @@ export async function fetchSellerRating(sellerId: string): Promise<{ avg: number
   const rows = unwrap(await supabase.rpc("get_public_profile_stats", { p_user_ids: [sellerId] })) ?? [];
   const row = (rows as { user_id: string; avg_rating: number | null; review_count: number | null }[]).find((r) => r.user_id === sellerId);
   return row ? { avg: Number(row.avg_rating ?? 0), count: row.review_count ?? 0 } : null;
-}
-
-/**
- * Every listed seller's shared star rating in ONE call (the Browse cards; same
- * aggregate as fetchSellerRating). Sellers with no row are simply absent.
- */
-export async function fetchSellerRatings(sellerIds: string[]): Promise<Map<string, { avg: number; count: number }>> {
-  const out = new Map<string, { avg: number; count: number }>();
-  if (sellerIds.length === 0) return out;
-  const rows = unwrap(await supabase.rpc("get_public_profile_stats", { p_user_ids: sellerIds })) ?? [];
-  for (const r of rows as { user_id: string; avg_rating: number | null; review_count: number | null }[]) {
-    out.set(r.user_id, { avg: Number(r.avg_rating ?? 0), count: r.review_count ?? 0 });
-  }
-  return out;
 }
 
 /** What the item page's seller card shows: public fields only (get_safe_profiles, granted to every member). */

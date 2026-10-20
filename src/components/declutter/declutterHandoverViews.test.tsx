@@ -80,7 +80,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   it("slice 5: a delivery order shows the delivery card, never a booking, the address or a no-show button", async () => {
     show([line({ handover: "delivery", delivery_task_id: "t1", delivery_cents: 2400 })]);
     expect(await screen.findByText("Delivery card t1 for the buyer")).toBeInTheDocument();
-    expect(screen.getByText(/Helpr delivery · you are the buyer/)).toBeInTheDocument();
+    expect(screen.getByText(/Helpr delivery · You're buying/)).toBeInTheDocument();
     expect(screen.queryByLabelText("Pick a pickup time")).toBeNull();
     expect(screen.queryByText("1234 Example St, Baton Rouge")).toBeNull();
     expect(screen.queryByRole("button", { name: "They didn't show" })).toBeNull();

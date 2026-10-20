@@ -176,7 +176,8 @@ describe("every search field is driven in a real browser (inventory minus checke
     // 2026-10-19 (Q2205): -2, PostsHeader / JobsHeader left with the old My Posts / My Jobs pages.
     // 2026-10-19 (shared section shell): -2, the Jobs, Declutter and Homes Browse rows became ONE
     // shared SectionSearchRow (Shops' new search uses it too): 3 files out, 1 in.
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(11);
+    // 2026-10-20: +1, Post a Job screen 1's category search (JobCategoryGroups.tsx, board 23), with a "Clear search" ✕.
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(12);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",
@@ -186,6 +187,7 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/components/admin/settings/AdminUserSearchField.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/messages/ConversationList.tsx",
+      "src/components/postjob/JobCategoryGroups.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
       "src/components/sections/SectionSearchRow.tsx",
       "src/pages/info/Legal.tsx",

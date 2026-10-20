@@ -6,5 +6,5 @@
  */
 export const CHIP =
   "inline-flex min-h-11 items-center rounded-full px-4 font-sans font-semibold text-ds-13 leading-tight break-normal hyphens-none text-left transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-export const CHIP_ON = "btn-grad-primary text-primary-foreground";
+export const CHIP_ON = "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]";
 export const CHIP_OFF = "bg-transparent border border-input text-foreground";

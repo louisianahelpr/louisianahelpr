@@ -23,7 +23,7 @@ export function DeclutterCategoryTiles({ value, onChange }: { value: string | nu
               className="flex w-[76px] flex-col items-center gap-1.5 rounded-2xl py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span
-                className={`flex h-14 w-14 items-center justify-center rounded-2xl ${on ? "btn-grad-primary text-primary-foreground" : "bg-card text-[hsl(var(--bark))] border border-border dark:text-foreground"}`}
+                className={`flex h-14 w-14 items-center justify-center rounded-2xl ${on ? "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]" : "bg-card text-[hsl(var(--bark))] border border-border dark:text-foreground"}`}
               >
                 <Icon className="h-6 w-6" aria-hidden />
               </span>

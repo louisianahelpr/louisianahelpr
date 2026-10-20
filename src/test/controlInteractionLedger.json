@@ -25,7 +25,6 @@
     "adhocTint  src/components/TimeRangeField.tsx:48 <button>  hover:bg-secondary/50",
     "adhocTint  src/pages/jobs/AppliedJobsTab.tsx:422 <button>  hover:bg-secondary/70",
     "adhocTint  src/components/job-card/JobCardMetaRow.tsx:290 <button>  hover:bg-[hsl(var(--olivewood)/0.12)]",
-    "adhocTint  src/pages/posts/PostedJobsTab.tsx:151 <button>  hover:bg-secondary/60",
     "adhocTint  src/pages/posts/postedJobs/DeclineApplicantSheet.tsx:87 <button>  hover:bg-secondary/70",
     "adhocTint  src/components/admin/AdminCredentialQueue.tsx:319 <Button>  hover:bg-destructive/10",
     "adhocTint  src/components/admin/AdminCredentialQueue.tsx:369 <Button>  hover:bg-destructive/10",

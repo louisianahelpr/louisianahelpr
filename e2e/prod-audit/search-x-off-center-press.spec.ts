@@ -94,6 +94,14 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="Search shops"]',
     close: CLEAR,
   },
+  // Post a Job screen 1 (board 23): "Start Fresh" opens it; the category search's ✕ clears.
+  {
+    name: "post-job-category", file: "src/components/postjob/JobCategoryGroups.tsx",
+    url: "/post-job",
+    trigger: 'button:has-text("Start Fresh")',
+    field: 'input[aria-label="Search categories"]',
+    close: CLEAR,
+  },
   {
     name: "browse-desktop-strip", file: "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
     url: "/jobs",

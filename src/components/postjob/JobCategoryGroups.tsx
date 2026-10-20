@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { SuggestCategory } from "@/components/SuggestCategory";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
@@ -67,14 +67,19 @@ export function JobCategoryGroups({ category, setCategory }: Props) {
     <div id="category-picker" className="space-y-5">
       <label className="flex min-h-[52px] items-center gap-3 rounded-full border border-border bg-card px-4 focus-within:ring-2 focus-within:ring-ring">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-        <span className="sr-only">Search categories</span>
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="e.g. wash my driveway"
-          className="min-w-0 flex-1 bg-transparent font-sans text-ds-16 text-foreground placeholder:text-muted-foreground focus:outline-none"
+          aria-label="Search categories"
+          className="min-w-0 flex-1 bg-transparent font-sans text-ds-16 text-foreground placeholder:text-muted-foreground focus:outline-none [&::-webkit-search-cancel-button]:hidden"
         />
+        {query && (
+          <button type="button" aria-label="Clear search" onClick={() => setQuery("")} className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-muted-foreground">
+            <X className="w-4 h-4" aria-hidden />
+          </button>
+        )}
       </label>
 
       {matches ? (
@@ -102,7 +107,7 @@ export function JobCategoryGroups({ category, setCategory }: Props) {
                 aria-expanded={on}
                 aria-controls="category-group-items"
                 onClick={() => setOpenGroup(g.id)}
-                className={`flex min-h-12 items-center rounded-ds-md px-4 py-2.5 text-left font-sans text-ds-15 font-semibold leading-tight break-normal hyphens-none transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${on ? "btn-grad-primary text-primary-foreground" : "bg-card border border-border text-foreground"}`}
+                className={`flex min-h-12 items-center rounded-ds-md px-4 py-2.5 text-left font-sans text-ds-15 font-semibold leading-tight break-normal hyphens-none transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${on ? "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]" : "bg-card border border-border text-foreground"}`}
               >
                 {g.label}
               </button>

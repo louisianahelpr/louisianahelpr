@@ -38,6 +38,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/hooks/useActivityBadgeCounts.ts:stores": { kind: "keyed-by-user-id" },
   "src/components/mobileNav/useNavUnreadCount.ts:stores": { kind: "keyed-by-user-id" },
   "src/components/sections/useSectionPrefs.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks" },
+  "src/components/job-card/useCardExpansion.ts:NONE_OPEN": { kind: "not-user-data", why: "a frozen empty Set: the 'no card open by default' constant, never written" },
   "src/components/sections/useSectionPrefs.ts:cache": { kind: "keyed-by-user-id" },
   "src/components/notificationPanel/notificationFeed.ts:feeds": { kind: "keyed-by-user-id" },
   "src/components/notificationPanel/notificationFeed.ts:arrivalListeners": { kind: "not-user-data", why: "subscriber callbacks" },

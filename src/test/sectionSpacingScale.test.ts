@@ -84,6 +84,7 @@ const ALLOWED: Record<string, { n: number; why: string }> = {
   "src/components/NotificationPreferences.tsx": { n: 5, why: "gap between the per-channel toggle columns of a row (horizontal)" },
   "src/pages/info/HelpCenter.tsx": { n: 1, why: "gap between an FAQ question and its chevron (horizontal)" },
   "src/components/profile/ScheduleTab.tsx": { n: 1, why: "min-[1024px]:gap-6 — the desktop two-column gap between calendar and list, not the phone stack" },
+  "src/pages/jobs/jobPage/JobPage.tsx": { n: 1, why: "lg:gap-x-8 lg:gap-y-6 — the desktop two-column split of the job page (boards 168/169); the phone stack is gap-4" },
   // AuthShell card forms: one form rhythm shared by every auth card, inside the card.
   "src/pages/auth/Login.tsx": { n: 9, why: "AuthShell card form rhythm + the lg two-panel split (and its one-column form while Apple/Google are off, Q1462)" },
   "src/pages/auth/signup/SignupStep1.tsx": { n: 8, why: "AuthShell card form rhythm + the lg two-panel split (and its one-column form while Apple/Google are off, Q1462)" },
@@ -98,6 +99,8 @@ const ALLOWED: Record<string, { n: number; why: string }> = {
   // Centred compositions with no title row (NOT_A_TITLE_ROW in shell-spacing.spec).
   "src/pages/info/NotFound.tsx": { n: 1, why: "centred 404 composition" },
   "src/pages/post-job/PaymentSuccess.tsx": { n: 1, why: "centred payment-return composition" },
+  // Step-by-step flows (spec §3): one question per screen, the step's own field rhythm.
+  "src/pages/post-job/FormStep.tsx": { n: 4, why: "space-y-6 between the fields of one Post a Job step (one question per screen), not page sections" },
   "src/pages/posts/EditJobDialog.tsx": { n: 1, why: "space-y-5 between a dialog's own form fields, not a page section" },
   // Field rhythm INSIDE one padded card, not gaps between a page's sections.
   "src/pages/profile/petProfiles/PetDetail.tsx": { n: 1, why: "inside the pet detail card" },

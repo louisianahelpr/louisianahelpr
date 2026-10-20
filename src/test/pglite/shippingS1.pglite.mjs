@@ -59,7 +59,7 @@ const buy = (uid, n, cents) => me(uid, `SELECT public.declutter_buy_now('${I(n)}
 const checkout = async (uid, seller) => (await me(uid, `SELECT * FROM public.declutter_start_checkout('${seller}', 'porch')`))[0];
 
 // 1. The switch exists and is OFF.
-ok(one(await svc(`SELECT audience FROM public.feature_switches WHERE key = 'shipping'`)) === "off", "the 'shipping' switch exists and is off");
+ok(one(await svc(`SELECT count(*)::int FROM public.feature_switches WHERE key = 'shipping'`)) === 0, "no 'shipping' switch yet (S2 creates it with its first app read)");
 
 // 2. The shipped-order fee: 5% of (items + shipping) + 70c (decision 2), same numbers as src/lib/shipping/policy.ts.
 ok(Number(one(await svc(`SELECT public.declutter_buyer_fee_cents_ship(500, 733)`))) === 132, "fee on a $5 item + $7.33 shipping = $1.32");

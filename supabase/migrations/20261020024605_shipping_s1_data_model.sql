@@ -2,7 +2,7 @@
 -- (docs/specs/shipping-draft.md, owner decisions 2026-10-20 ~02:40Z; Q2239).
 --
 -- What this adds, and what it deliberately does NOT:
---   1. The `shipping` feature switch, created OFF (lead 2026-10-20).
+--   1. (The `shipping` switch comes in S2 with its first app read; see part 1 below.)
 --   2. declutter_buyer_fee_cents_ship(items, shipping) = round((items + shipping) * 0.05) + 70
 --      (owner decision 2: the buyer fee counts the shipping, so the card fee on a shipped
 --      order is always covered: margin = 0.01955 (items + shipping) + 37.97 cents on a US
@@ -29,11 +29,10 @@
 --   CHECK holds for every row already there.
 -- ACK-DATA-LOSS: none; no column, table or row is dropped.
 
--- 1. The switch (off: nobody sees shipping until the owner turns it on).
-INSERT INTO public.feature_switches (key, audience, description)
-VALUES ('shipping', 'off',
-        'Shipping: USPS labels for Declutter (small items) and Shops, Louisiana addresses only (docs/specs/shipping-draft.md).')
-ON CONFLICT (key) DO NOTHING;
+-- 1. The `shipping` switch is NOT created here: featureSwitchRegistry.test.ts requires every
+--    switch a migration creates to be read by useFeature() in the app, and nothing reads it
+--    until S2's "Ship it" / "Ship to me" UI. S2 creates it 'off' together with that read.
+--    Nothing in S1 can be reached anyway (no RPC, no UI, no 'ship' handover).
 
 -- 2. The shipped-order fee. The one place it is computed; the app's mirror is
 --    src/lib/shipping/policy.ts (buyerFeeCentsShip) and must agree.

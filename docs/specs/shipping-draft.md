@@ -286,7 +286,7 @@ Source: usps.com/ship/shipping-restrictions.htm (read 2026-10-20) and USPS PO-13
 - The maker ships; cottage food never ships (decision 8).
 
 ### 9.2 Feature switch
-- ONE switch `shipping` (lead 2026-10-20), created `off` in S1. Every new RPC calls
+- ONE switch `shipping` (lead 2026-10-20), created `off` in S2 together with its first `useFeature("shipping")` read (featureSwitchRegistry.test.ts requires every created switch to be read by the app; S1 has no reachable surface). Every new RPC calls
   `require_feature('shipping')`, every edge function `requireFeature`; the UI hides "Ship it" / "Ship to
   me" when off. A webhook for an order already held still processes (money already moved). The owner
   turns it to testers, never everyone without her go.
@@ -296,7 +296,7 @@ Source: usps.com/ship/shipping-restrictions.htm (read 2026-10-20) and USPS PO-13
   dashboard, test + live API keys into Supabase secrets; one live rate quote to settle what address
   checks, quotes and trackers cost on unpaid carts (review fix 11), and whether a second buy of one
   shipment is refused.
-- **S1 data model + fee (this branch):** switch `shipping` off; `declutter_orders.shipping_cents`
+- **S1 data model + fee (this branch):** `declutter_orders.shipping_cents`
   (default 0), total CHECK + freeze trigger include it; fee rule `f1_ship` =
   `declutter_buyer_fee_cents_ship(items, shipping)` allowed only with shipping > 0, F1 only with
   shipping = 0; table `shipments` (service-role only: claim key, mode, rate, label cost, tracking,

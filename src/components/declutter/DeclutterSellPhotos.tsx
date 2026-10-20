@@ -10,9 +10,10 @@ import { useEffect, useMemo } from "react";
 import { Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { photoPublicUrl, type DeclutterPhoto } from "@/lib/declutter/api";
+import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
 
-export const MAX_PHOTOS = 12;
-const MIN_PHOTOS = 3;
+export const MAX_PHOTOS = DECLUTTER_MAX_PHOTOS;
+const MIN_PHOTOS = DECLUTTER_MIN_PHOTOS;
 
 function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
@@ -48,7 +49,7 @@ export function SellPhotos({
   const count = uploaded.length + held.length;
   return (
     <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-labelledby="sell-photos">
-      <h2 id="sell-photos" className="text-base font-semibold">1. Photos ({count} of {MIN_PHOTOS} to {MAX_PHOTOS})</h2>
+      <h2 id="sell-photos" className="text-base font-semibold">1. Photos ({count} of {MAX_PHOTOS}{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""})</h2>
       <p className="text-xs text-muted-foreground">Start with photos: good ones sell faster. Take your own, and location data is removed from every photo before it's uploaded.</p>
       <input id="sell-files" type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { onFiles(e.target.files); e.target.value = ""; }} />
       <ul className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2" data-sell-photos="">

@@ -5,9 +5,9 @@
  * "Buy now · {...}" label in src) names the CHECKOUT total, computed by
  * buyNowTotalCents, which is checkoutAmounts (src/lib/declutter/money.ts, the
  * rule declutter_start_checkout freezes, pinned to the server by
- * money.test.ts and posterJobFee.parity.test.ts), in exact cents.
+ * money.test.ts and posterJobFee.parity.test.ts), in exact cents (formatPrice, the cart's own formatter: "$42.70", "$28").
  *
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |           Buy now · {formatPriceCents(buyNowTotalCents(item.current_price_cents))} |           Buy now · {formatPrice(item.current_price_cents)}
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |           Buy now · {formatPrice(buyNowTotalCents(item.current_price_cents))} |           Buy now · {formatPrice(item.current_price_cents)}
  * @mutate src/lib/declutter/money.ts |   return checkoutAmounts([priceCents]).totalCents; |   return priceCents;
  */
 import { describe, expect, it } from "vitest";
@@ -15,7 +15,7 @@ import { join, relative, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { walkSource, readSource } from "./helpers/walkSource";
 import { buyNowTotalCents, checkoutAmounts } from "@/lib/declutter/money";
-import { formatPriceCents } from "@/lib/declutter/distance";
+import { formatPrice } from "@/lib/declutter/distance";
 
 const REPO = resolve(__dirname, "..", "..");
 
@@ -25,8 +25,8 @@ describe("D6: Buy now names what checkout will charge", () => {
       expect(buyNowTotalCents(p)).toBe(checkoutAmounts([p]).totalCents);
       expect(buyNowTotalCents(p)).toBe(p + Math.round(p * 0.05) + 70);
     }
-    expect(formatPriceCents(buyNowTotalCents(4000))).toBe("$42.70");
-    expect(formatPriceCents(buyNowTotalCents(2000))).toBe("$21.70");
+    expect(formatPrice(buyNowTotalCents(4000))).toBe("$42.70");
+    expect(formatPrice(buyNowTotalCents(2000))).toBe("$21.70");
   });
 
   it("inventory: every 'Buy now · amount' label in the app prints buyNowTotalCents", () => {
@@ -38,7 +38,7 @@ describe("D6: Buy now names what checkout will charge", () => {
       for (const m of src.matchAll(/Buy now\s*·\s*\{([^}]*\}?[^}]*)\}/g)) labels.push({ file: relative(REPO, f), expr: m[1] });
     }
     expect(labels.length).toBeGreaterThan(1);
-    const bare = labels.filter((l) => !/buyNowTotalCents\(/.test(l.expr) || !/formatPriceCents\(/.test(l.expr));
+    const bare = labels.filter((l) => !/buyNowTotalCents\(/.test(l.expr));
     expect(bare, bare.map((b) => `${b.file}: Buy now · {${b.expr}}`).join("\n")).toEqual([]);
   });
 });

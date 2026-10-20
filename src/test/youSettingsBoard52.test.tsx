@@ -7,6 +7,7 @@
  *
  * @mutate src/components/profile/SettingsTab.tsx |                 on ? ( |                 true ? (
  * @mutate src/components/profile/SettingsTab.tsx |       <Group title="Look"> |       <Group title="Display">
+ * @mutate src/pages/profile/types.ts |   security: "Account and security", |   security: "Account Security",
  * @mutate src/pages/profile/Profile.tsx |     returnTo.current = "settings"; |     returnTo.current = null;
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -72,6 +73,16 @@ describe("You › Settings, board 52", () => {
     fireEvent.click(screen.getByText("Log out"));
     expect(onSelectTab.mock.calls.map((c) => c[0])).toEqual(["notifications", "security"]);
     expect(onRequestLogout).toHaveBeenCalledTimes(1);
+  });
+
+  it("each row is named what the screen it opens is titled (one source, sentence case)", () => {
+    renderSettings();
+    for (const key of ["notifications", "profile", "security", "warnings"] as const) {
+      expect(screen.getByText(TAB_TITLES[key])).toBeTruthy();
+    }
+    expect([TAB_TITLES.profile, TAB_TITLES.security, TAB_TITLES.warnings, TAB_TITLES.support]).toEqual([
+      "Edit profile", "Account and security", "Warnings and strikes", "Help",
+    ]);
   });
 
   it("a tab opened from Settings backs out to Settings", () => {

@@ -11,7 +11,6 @@
  * @mutate src/components/dashboard/JobCard.tsx |   const showBudget = guestPricing \|\| isOwnJob; |   const showBudget = guestPricing;
  * @mutate src/components/dashboard/JobDetailDialog.tsx |               showBudget={!!viewerUserId && viewerUserId === job.customer_id} |               showBudget={false}
  */
-import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";

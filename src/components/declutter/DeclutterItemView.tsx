@@ -35,7 +35,7 @@ import { formatPrice, milesBetween, milesLabel } from "@/lib/declutter/distance"
 import {
   CATEGORY_LABEL,
   CONDITION_LABEL,
-  ConditionStars,
+  ConditionChip,
   DeclutterNotice,
   SIZE_LABEL,
   STATUS_HELP,
@@ -212,7 +212,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
                 </span>
               )}
             </p>
-            <ConditionStars stars={it.condition_stars} />
+            <ConditionChip stars={it.condition_stars} />
             <h2 className="pt-1 text-lg font-semibold leading-snug [overflow-wrap:anywhere]">{it.title}</h2>
             {dropped && <p className="text-xs text-muted-foreground">The price can drop again in the evening.</p>}
           </section>

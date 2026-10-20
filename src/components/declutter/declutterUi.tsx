@@ -3,7 +3,6 @@
  * (docs/specs/declutter-auctions.md). Plain words only: no "draft",
  * "pending_review" or other codes reach the member.
  */
-import { Star } from "lucide-react";
 import { useFeature } from "@/hooks/useFeature";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -72,21 +71,22 @@ export const TAX_STATEMENTS = [
 
 export const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-/** 1-5 condition stars, with the words for screen readers and beside them. */
-export function ConditionStars({ stars, showLabel = true }: { stars: number; showLabel?: boolean }) {
-  const label = CONDITION_LABEL[stars] ?? "";
+/**
+ * An item's condition as a word chip ("Lightly used"), never stars (Cowork
+ * design audit 2026-10-20, D5; HELPR-DESIGN-SPEC: stars are only for people's
+ * ratings, and a gold star row next to the seller's star rating read as a
+ * second rating). Pill, card white, hairline border, 13px.
+ */
+export function ConditionChip({ stars }: { stars: number }) {
+  const label = CONDITION_LABEL[stars];
+  if (!label) return null;
   return (
-    <span className="inline-flex items-center gap-1.5" role="img" aria-label={`Condition: ${stars} of 5 stars, ${label}`}>
-      <span className="inline-flex" aria-hidden>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <Star
-            key={n}
-            className="w-3.5 h-3.5 text-amber-500"
-            fill={n <= stars ? "currentColor" : "none"}
-          />
-        ))}
-      </span>
-      {showLabel && <span className="text-xs text-muted-foreground">{label}</span>}
+    <span
+      data-condition-chip=""
+      className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-ds-13 font-medium text-foreground"
+    >
+      <span className="sr-only">Condition: </span>
+      {label}
     </span>
   );
 }

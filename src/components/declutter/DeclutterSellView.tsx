@@ -380,7 +380,7 @@ export default function SellFlow() {
           <div>
             <label className="block text-sm font-medium" htmlFor="sell-condition">Condition</label>
             <select id="sell-condition" className={input} value={form.conditionStars} onChange={(e) => set("conditionStars", Number(e.target.value))}>
-              {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{`${n} stars: ${CONDITION_LABEL[n]}`}</option>)}
+              {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{CONDITION_LABEL[n]}</option>)}
             </select>
           </div>
           <div className="sm:col-span-2">

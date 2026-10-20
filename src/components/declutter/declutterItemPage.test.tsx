@@ -166,6 +166,28 @@ describe("the photo-first Declutter item page", () => {
     expect(await screen.findByRole("dialog", { name: "Photo viewer" })).toBeInTheDocument();
   });
 
+  // D5 (Cowork audit 2026-10-20; HELPR-DESIGN-SPEC): an item's condition is a
+  // word chip, never stars. Stars only ever mean a person's rating. The class:
+  // no star icon and no "N stars" text in the price-and-condition block, and no
+  // screen in src writes a condition as "N stars".
+  // @mutate src/components/declutter/DeclutterItemView.tsx | <ConditionChip stars={it.condition_stars} /> | <span aria-label="4 of 5 stars"><svg className="lucide-star" /></span>
+  it("D5: the condition is a word chip ('Lightly used'), never stars", async () => {
+    open();
+    const block = await screen.findByRole("region", { name: "Price and condition" });
+    const chip = block.querySelector("[data-condition-chip]");
+    expect(chip?.textContent).toBe("Condition: Lightly used");
+    expect(block.querySelector("svg.lucide-star")).toBeNull();
+    expect(block.textContent).not.toMatch(/\bstars?\b/i);
+    const { readFileSync } = await import("node:fs");
+    const { walkSource, readSource } = await import("@/test/helpers/walkSource");
+    const { blankComments } = await import("@/test/helpers/blankNonCode");
+    const { join, resolve } = await import("node:path");
+    const files = walkSource([join(resolve(__dirname, "..", "..", ".."), "src")]).filter((f) => /\.tsx$/.test(f) && !/\.test\.tsx$/.test(f));
+    expect(files.length).toBeGreaterThan(500);
+    const starred = files.filter((f) => /\}\s*stars:|\$\{\w+\} stars:|\bConditionStars\b/.test(blankComments(readSource(f) ?? readFileSync(f, "utf8"))));
+    expect(starred).toEqual([]);
+  });
+
   it("no photos: the category tint, never a blank box, and no dots", async () => {
     open();
     await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });

@@ -67,7 +67,7 @@ export function BuyingDash({ todo }: { todo: DeclutterTodo | null }) {
 }
 
 /** On sale, or on its way there (the listings a seller still manages). */
-const LISTED = new Set(["draft", "pending_review", "live", "reserved"]);
+const LISTED = new Set(["draft", "pending_review", "live", "paused", "reserved"]);
 
 const SELLING = ["listings", "offers", "waiting", "sold"] as const;
 type SellingGroup = (typeof SELLING)[number];

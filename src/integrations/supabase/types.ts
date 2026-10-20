@@ -1504,6 +1504,7 @@ export type Database = {
           ai_checked_at: string | null
           ai_flag_reason: string | null
           drop_stop_cents: number | null
+          drops_stopped: boolean
           floor_price_cents: number
           item_id: string
           move_out_on: string | null
@@ -1518,6 +1519,7 @@ export type Database = {
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
           drop_stop_cents?: number | null
+          drops_stopped?: boolean
           floor_price_cents: number
           item_id: string
           move_out_on?: string | null
@@ -1532,6 +1534,7 @@ export type Database = {
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
           drop_stop_cents?: number | null
+          drops_stopped?: boolean
           floor_price_cents?: number
           item_id?: string
           move_out_on?: string | null
@@ -12079,6 +12082,27 @@ export type Database = {
         Returns: number
       }
       declutter_wanted_sweep: { Args: never; Returns: Json }
+      declutter_listing_manage_state: {
+        Args: { p_item_id: string }
+        Returns: {
+          drops_stopped: boolean
+          floor_price_cents: number
+        }[]
+      }
+      declutter_pause_listing: { Args: { p_item_id: string }; Returns: string }
+      declutter_relist_listing: { Args: { p_item_id: string }; Returns: string }
+      declutter_set_listing_drops: {
+        Args: { p_item_id: string; p_on: boolean }
+        Returns: boolean
+      }
+      declutter_set_listing_price: {
+        Args: {
+          p_floor_price_cents: number
+          p_item_id: string
+          p_price_cents: number
+        }
+        Returns: number
+      }
       declutter_withdraw_item: { Args: { p_item_id: string }; Returns: string[] }
       end_recurring_series_by_platform: {
         Args: {

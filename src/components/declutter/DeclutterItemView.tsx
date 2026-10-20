@@ -48,6 +48,7 @@ import { DeclutterGallery } from "./DeclutterGallery";
 import { DeclutterSellerCard } from "./DeclutterSellerCard";
 import { DeclutterItemRows } from "./DeclutterItemRows";
 import { DeclutterBundleRow } from "./DeclutterBundleRow";
+import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
 import { nextPriceDrop } from "@/lib/declutter/priceDrop";
 import { shareNative } from "@/lib/nativeShare";
@@ -234,7 +235,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
             </p>
           </section>
 
-          {isSeller && (
+          {isSeller && (it.status === "live" || it.status === "paused") && <SellerListingPanel item={it} coverUrl={urls[0] ?? null} />}
+          {isSeller && it.status !== "live" && it.status !== "paused" && (
             <DeclutterNotice title={`Your listing: ${STATUS_LABEL[it.status]}`}>
               {STATUS_HELP[it.status] ?? null}
               {it.status === "rejected" && review.data?.review_note ? <p className="mt-1">Reason: {review.data.review_note}</p> : null}

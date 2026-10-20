@@ -24,6 +24,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   attestation_incomplete: "All four statements need a check before you can list this item.",
   pickup_windows_required: "Add at least one pickup time so buyers know when they can come.",
   invalid_pickup_windows: "Each pickup time needs a day, and a start time before its end time.",
+  invalid_input: "Something in that request wasn't right. Try again.",
+  invalid_price: "The price must be between $1 and $1,000.",
   invalid_floor_price: "Your lowest price must be at least $1 and no more than your asking price.",
   invalid_location: "We couldn't find that pickup address. Check it and try again.",
   item_not_found: "This item isn't available.",

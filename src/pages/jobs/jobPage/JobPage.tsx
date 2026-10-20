@@ -30,6 +30,7 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import { jobCategoryGroupOf, JOB_CATEGORY_GROUPS, sentenceCaseLabel } from "@/lib/jobCategoryGroups";
 import { useJobPage, type JobPageRow } from "./useJobPage";
 import { JobTracker, PosterMoney, HelprMoney, PostedBy } from "./JobPageParts";
+import { NoApplicantsYet } from "./NoApplicantsYet";
 
 function groupLabel(category: string): string | null {
   const id = jobCategoryGroupOf(category);
@@ -155,6 +156,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         </section>
 
 
+        {/* Board 57: the poster's open, paid job that nobody has applied to yet. */}
+        {isPoster && open && job.payment_status === "escrow" && !applicants.isLoading && !!applicants.data && total === 0 && (
+          <NoApplicantsYet job={job} onManage={() => navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`)} />
+        )}
         {(job.description?.trim() || (!isPoster && job.customer_id)) && (
           <div className="space-y-4 lg:col-start-1 lg:row-start-2">
             {job.description?.trim() && (

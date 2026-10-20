@@ -59,25 +59,19 @@ interface ConversationRowProps {
    avatar's leading corner), the name joins the preview in carrying weight, and
    the mark stops borrowing a status chip's ink.
 
-   COLOUR. Every job-status chip ink in this row comes from `jobStatusColor`,
-   and between them they use the whole warm half of the palette: olivewood
-   (open, cancelled, disputed), --sage-ink (accepted, in_progress,
-   completed; no rust since 2026-10-20), --amber-ink (revision_requested,
-   pending_approval). Unread is not a job STATUS — it is a property of the
-   reader — so it deliberately does not live in that family. --info-tint is
-   the one hue in the token set no status chip uses, it is the universal inbox
-   convention for "new", it has a dark sibling tuned for the dark canvas, and
-   it cannot be confused with the --live green presence dot further down the
-   row. Resolved: rgb(54,120,186) light / rgb(97,153,209) dark, against the
-   nearest chip ink rgb(156,65,22) — see src/test/unreadRowIsLegible.test.tsx,
-   which resolves both out of index.css rather than comparing token names.
+   COLOUR. The olive ACTION token (--bark: #5E6544 light, #A9AD86 dark), the
+   spec v2 §1.1 / board 13 unread dot (lead, 2026-10-20). It was --info-tint
+   blue, the one hue in the app the rule book does not have. The row's status
+   chip is neutral ink since board 38 (MESSAGE_STATUS_CHIP), so olive no longer
+   collides with a chip beside it: src/test/unreadRowIsLegible.test.tsx
+   resolves both out of index.css and keeps them more than SAME_INK apart.
 
    SIZE. 10px, not the 8px that shipped: iOS uses ~10 and the audit was
    explicit that 8 was not the defect. Ringed in the surface tone so it reads
    as a badge ON the avatar rather than a hole punched in it.
    ─────────────────────────────────────────────────────────────────────────── */
 const UNREAD_MARK = {
-  background: "hsl(var(--info-tint))",
+  background: "hsl(var(--bark))",
   boxShadow: "0 0 0 2px hsl(var(--ivory-sand))",
 } as const;
 

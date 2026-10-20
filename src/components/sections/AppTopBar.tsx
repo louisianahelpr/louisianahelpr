@@ -29,6 +29,7 @@ export function AppTopBar({
   title: sectionTitle,
   add: sectionAdd,
   explore = false,
+  showProfile = true,
 }: {
   /** Omit on Home: the logo shows instead. */
   title?: string;
@@ -41,6 +42,8 @@ export function AppTopBar({
    * title and "+". Guard: src/test/centerCreateNav.test.tsx.
    */
   explore?: boolean;
+  /** False on You itself (board 18): the bar keeps only the bell, since you are already on your profile. */
+  showProfile?: boolean;
 }) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
@@ -81,7 +84,7 @@ export function AppTopBar({
           <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
         </span>
         )}
-        {user && !isWebDesktop && (
+        {user && !isWebDesktop && showProfile && (
           <button
             type="button"
             aria-label="Profile"

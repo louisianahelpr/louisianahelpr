@@ -147,7 +147,7 @@ export function FormStep({ form }: FormStepProps) {
           : null;
 
   return (
-    <div key="form-step" ref={rootRef} className="space-y-section">
+    <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl space-y-section">
       {form.offerToHelperId && (
         <DirectOfferBanner
           offerToHelperName={form.offerToHelperName}

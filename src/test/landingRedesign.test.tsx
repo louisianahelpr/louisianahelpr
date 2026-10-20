@@ -18,6 +18,7 @@
  * @mutate src/components/landing/heroSearch.ts |   return { signedIn: `/jobs${qs}`, signedOut: `/browse${qs}` }; |   return { signedIn: "/jobs", signedOut: "/signup" };
  * @mutate src/components/landing/HeroSection.tsx |     const t = heroSearchTargets(query); |     const t = heroSearchTargets("");
  * @mutate src/components/landing/SectionsShowcase.tsx | "Helpr holds the money. Nobody is paid out until the work is done." | "Held through Stripe. Nobody is paid out until the work is done."
+ * @mutate src/components/landing/PhoneMock.tsx | w-full hidden sm:block | w-full
  * @mutate src/components/landing/LandingAppleButton.tsx |   if (!SOCIAL_SIGN_IN_ENABLED) return null; |
  * @mutate src/components/Navbar.tsx |   const declutterOpen = !sectionIsComingSoon("declutter", open); |   const declutterOpen = true;
  */
@@ -74,6 +75,15 @@ describe("landing redesign: the honesty fixes hold", () => {
     render(<MemoryRouter><PhoneMock /></MemoryRouter>);
     expect(screen.getByText("Good morning")).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/Marie/);
+  });
+
+  it("the phone mock is hidden at phone width and shown from sm (owner, 2026-10-20: no phone illustration below ~640px)", () => {
+    const { container } = render(<MemoryRouter><PhoneMock /></MemoryRouter>);
+    const wrap = container.firstElementChild as HTMLElement;
+    const classes = wrap.className.split(/\s+/);
+    expect(classes).toContain("hidden");
+    expect(classes).toContain("sm:block");
+    expect(classes.some((c) => /^(block|flex|grid)$/.test(c))).toBe(false);
   });
 
   it("the money band's hours are the cron's number, and Declutter claims no price-drop timing", () => {

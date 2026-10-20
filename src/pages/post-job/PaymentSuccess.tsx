@@ -500,7 +500,7 @@ const PaymentSuccess = () => {
               >
                 <UsersIcon className="w-4 h-4 mr-2" />
                 {/* Q1788: applicants only matter while the job is still open. */}
-                {lifecycleStep === 0 ? "View Applicants" : "View Job"}
+                {lifecycleStep === 0 ? "View applicants" : "View job"}
               </Button>
               {/* Secondary CTA row — share + post-another-like-this. Side by
                   side only where both labels fit at full size (12rem a
@@ -517,7 +517,7 @@ const PaymentSuccess = () => {
                   disabled={sharing || !resolvedJobId}
                   className="w-full rounded-ds-md"
                 >
-                  <Share2 className="w-4 h-4 mr-1" /> Share
+                  <Share2 className="w-4 h-4 mr-1" /> Share job
                 </Button>
                 <Button
                   type="button"
@@ -525,7 +525,7 @@ const PaymentSuccess = () => {
                   onClick={handlePostAnother}
                   className="w-full rounded-ds-md"
                 >
-                  <RotateCcw className="w-4 h-4 mr-1" /> Post Another
+                  <RotateCcw className="w-4 h-4 mr-1" /> Post another
                 </Button>
               </div>
             </>
@@ -578,7 +578,7 @@ const PaymentSuccess = () => {
             className="w-full rounded-ds-md"
             style={{ color: "hsl(var(--bark))" }}
           >
-            Back to Dashboard
+            Back to dashboard
           </Button>
         </div>
 

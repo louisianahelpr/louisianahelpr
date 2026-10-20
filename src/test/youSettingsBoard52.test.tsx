@@ -85,6 +85,12 @@ describe("You › Settings, board 52", () => {
     ]);
   });
 
+  it("Download my data opens the export card where it lives (board 176)", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../components/profile/SettingsTab.tsx"), "utf8"));
+    expect(src).toContain('label="Download my data"');
+    expect(src).toContain("navigate(dataRightsTarget(true))");
+  });
+
   it("a tab opened from Settings backs out to Settings", () => {
     const page = blankComments(readFileSync(resolve(__dirname, "../pages/profile/Profile.tsx"), "utf8"));
     expect(page).toMatch(/const openFromSettings = useCallback\(\(key: string\) => \{\s*returnTo\.current = "settings";/);

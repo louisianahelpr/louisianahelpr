@@ -35,7 +35,7 @@ describe("DataExportCard waits for auth before choosing its control", () => {
     renderCard();
     expect(screen.queryByRole("link", { name: /sign in/i })).toBeNull();
     expect(screen.queryByText(/sign in to download/i)).toBeNull();
-    expect(screen.getByRole("button", { name: "Download My Data" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Download my data" })).toBeDisabled();
   });
 
   it("signed out once ready: the Sign In link, returning straight to the in-app Legal tab card", () => {
@@ -51,7 +51,7 @@ describe("DataExportCard waits for auth before choosing its control", () => {
   it("signed in once ready: the enabled export button", () => {
     auth.state = { user: { id: "user-1" }, isReady: true };
     renderCard();
-    expect(screen.getByRole("button", { name: "Download My Data" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Download my data" })).toBeEnabled();
     expect(screen.queryByRole("link", { name: /sign in/i })).toBeNull();
   });
 });

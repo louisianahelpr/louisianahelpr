@@ -189,7 +189,7 @@ export function NavQuickMenu({
           >
             <p
               className="px-3.5 pt-3 pb-1.5 text-ds-11 font-semibold uppercase tracking-wide"
-              style={{ color: "hsl(48 9% 47%)" }}
+              style={{ color: "hsl(var(--muted-foreground))" }}
             >
               {title}
             </p>

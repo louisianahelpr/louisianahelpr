@@ -26,7 +26,7 @@ export function NavQuickMenuItem({
           {label}
         </span>
         {sub && (
-          <span className="block truncate text-ds-11" style={{ color: "hsl(48 9% 47%)" }}>
+          <span className="block truncate text-ds-11" style={{ color: "hsl(var(--muted-foreground))" }}>
             {sub}
           </span>
         )}

@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { ChevronRight, ChevronDown } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { GroupSection, GroupRow } from "@/components/sections/StatusBoxes";
 import { CustomizeSheet } from "@/components/sections/CustomizeSheet";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
-import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatJobDate } from "@/lib/dateUtils";
 import { useHomeSummary, type ComingUpItem } from "./homeDashboard/useHomeSummary";
@@ -25,11 +24,12 @@ export function jobMetaLine(job: ComingUpItem["job"]) {
 }
 
 /**
- * HOME (owner final decisions, 2026-10-19): the app opens here. Greeting; three
- * stat boxes (To do / This week / Unread); the To do list, COLLAPSED until the
- * To do STAT BOX is tapped, the one control that opens it (owner, 2026-10-19:
- * "only show To do expanded when it's clicked"; the separate "To do (n)" bar
- * duplicated the box and is gone). Never remembered: Home arrives collapsed on
+ * HOME (owner final decisions, 2026-10-19; 2026-10-20 the three stat boxes became
+ * the NEXT UP card, HELPR-DESIGN-SPEC §4). Greeting (Bodoni, a moment); Next up
+ * (the most urgent to-do from every section and both sides, with its action);
+ * the full To do list, COLLAPSED until Next up's "See all" is tapped, the one
+ * control that opens it (owner, 2026-10-19: "only show To do expanded when
+ * it's clicked"). Never remembered: Home arrives collapsed on
  * load, on coming back from a section, and on a re-tap of the Home tab. The
  * member's sections as 2x2 boxes; Coming up. No "+" and no category pills.
  */
@@ -44,7 +44,6 @@ export default function HomeDashboard() {
 function HomeDashboardScreen() {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
-  const { unreadCount } = useNavUnreadCount(user);
   const summary = useHomeSummary(user);
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
@@ -63,52 +62,63 @@ function HomeDashboardScreen() {
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
   const todoCount = summary.todos.length;
 
-  const stats = [
-    { key: "todo", n: todoCount, label: "To do", hot: todoCount > 0, onClick: toggleTodo, pressed: todoOpen },
-    { key: "week", n: summary.thisWeek, label: "This week", onClick: () => navigate("/jobs?tab=working&filter=scheduled") },
-    { key: "unread", n: unreadCount, label: "Unread", onClick: () => navigate("/messages") },
-  ];
+  const next = summary.todos[0];
+  const rest = Math.max(0, todoCount - 1);
 
   return (
     <SectionScreen>
       <div data-testid="home-dashboard" className="flex flex-col gap-section">
         <div>
-          <h1 className="text-page-title text-foreground">{first ? `${greeting()}, ${first}` : greeting()}</h1>
+          <h1 className="font-moment text-page-title text-foreground">{first ? `${greeting()}, ${first}` : greeting()}</h1>
           <p className="text-ds-14 text-muted-foreground mt-0.5">{today}</p>
         </div>
 
-        <div className="liquid-glass flex divide-x divide-border/70" role="group" aria-label="Your day">
-          {stats.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              data-stat={s.key}
-              aria-expanded={s.key === "todo" ? s.pressed : undefined}
-              aria-controls={s.key === "todo" && s.pressed ? "home-todo-list" : undefined}
-              data-open={s.key === "todo" && s.pressed ? "" : undefined}
-              onClick={s.onClick}
-              className={`btn-press relative flex-1 min-w-0 px-2 py-3 text-center first:rounded-l-[inherit] last:rounded-r-[inherit] transition-colors ${s.pressed ? "bg-[hsl(var(--bark)/0.08)]" : ""}`}
-            >
-              <span className={`block text-ds-24 leading-7 font-bold ${s.hot ? "text-[hsl(var(--accent-ink))]" : ""}`}>{s.n}</span>
-              <span className={`flex items-center justify-center gap-0.5 text-ds-12 ${s.pressed ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
-                {s.label}
-                {s.key === "todo" && (
-                  <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${s.pressed ? "rotate-180" : ""}`} aria-hidden />
+        {/* NEXT UP (owner, 2026-10-20; HELPR-DESIGN-SPEC §4 Home): the single most urgent
+            to-do from every section and both sides, with its one action. Replaces the three
+            stat boxes. Nothing invented: no to-do, no task; the money line only when the
+            to-do carries a real amount. "See all" is the ONE control for the full list. */}
+        <section data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1.5">
+          <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Next up</h2>
+          {next ? (
+            <>
+              <p data-testid="next-up-title" className="text-ds-18 font-bold leading-snug text-foreground [overflow-wrap:anywhere]">{next.title}</p>
+              <p className="text-ds-14 text-muted-foreground">
+                {next.money && <span className="font-bold" style={{ color: "hsl(var(--accent-ink))" }}>{next.money} order total</span>}
+                {next.money && " · "}
+                {next.meta}
+              </p>
+              <div className="flex items-center justify-between gap-3 mt-2">
+                <button type="button" data-testid="next-up-action" onClick={() => navigate(next.to)} className="btn-grad-primary btn-press rounded-full min-h-11 px-5 text-ds-15 font-semibold">
+                  {next.action}
+                </button>
+                {rest > 0 && (
+                  <button
+                    type="button"
+                    data-testid="next-up-see-all"
+                    aria-expanded={todoOpen}
+                    aria-controls={todoOpen ? "home-todo-list" : undefined}
+                    onClick={toggleTodo}
+                    className="min-h-11 px-1 text-ds-14 font-bold text-primary"
+                  >
+                    {todoOpen ? "Hide" : `See all (${todoCount})`}
+                  </button>
                 )}
-              </span>
-              {s.pressed && <span aria-hidden className="absolute left-1/2 -translate-x-1/2 bottom-1 w-6 h-[3px] rounded-full bg-[hsl(var(--burnt-sienna))]" />}
-            </button>
-          ))}
-        </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="font-moment text-ds-22 leading-tight text-foreground">You're all caught up</p>
+              <p className="text-ds-14 text-muted-foreground">Orders to answer and jobs that need you show up here.</p>
+            </>
+          )}
+        </section>
 
         {todoOpen && (
           <div data-testid="todo-list" id="home-todo-list">
-            <GroupSection title="To do" count={todoCount} onSeeAll={toggleTodo} seeAllLabel="Hide">
-              {todoCount === 0 && <p className="px-4 py-4 text-ds-14 text-muted-foreground">Nothing needs you right now.</p>}
-              {summary.todos.slice(0, 3).map((t, i, arr) => (
-                <GroupRow key={t.id} title={t.title} meta={t.meta} onClick={() => navigate(t.to)} last={i === arr.length - 1 && todoCount <= 3} />
+            <GroupSection title="To do" count={todoCount}>
+              {summary.todos.map((t, i, arr) => (
+                <GroupRow key={t.id} title={t.title} meta={t.meta} onClick={() => navigate(t.to)} last={i === arr.length - 1} />
               ))}
-              {todoCount > 3 && <GroupRow title={`See all ${todoCount}`} onClick={() => navigate("/jobs?tab=posted&filter=needs_you")} last />}
             </GroupSection>
           </div>
         )}

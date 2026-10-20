@@ -3,6 +3,7 @@ import { loginNotice } from "./loginNotice";
 import { AlertCircle, Clock } from "lucide-react";
 import { postAuthDestination, rememberSignupRedirect } from "@/lib/jobIntent";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { HelprMark } from "@/components/HelprMark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -334,9 +335,10 @@ const Login = () => {
         {!mfaChallenge && (
           <div className="flex flex-col items-center text-center gap-1.5" data-testid="login-card-head">
             {/* Board 37/55: no back arrow; the round H icon is the way home. */}
-            <Link to="/" aria-label="Helpr home" className="rounded-full mb-2 min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <img src="/apple-touch-icon.png" alt="" width={64} height={64} className="w-16 h-16 rounded-full ring-1 ring-border object-cover" />
-            </Link>
+            <div className="mb-2">
+              {/* The H mark used everywhere else (owner 2026-10-20: never in a circle). */}
+              <HelprMark to="/" size="lg" emblemOnly />
+            </div>
             <h1 className="text-page-title text-foreground">Log in</h1>
             <p className="text-ds-14 text-muted-foreground">Welcome back, neighbor.</p>
           </div>

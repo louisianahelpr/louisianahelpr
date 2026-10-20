@@ -3,7 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { AlertTriangle, X, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { POPUP_FOOTER_ROW } from "@/components/ui/popupFooter";
+import { POPUP_DIALOG_CLS, POPUP_FOOTER_ROW, POPUP_HANDLE_CLS, POPUP_SHEET_CLS } from "@/components/ui/popupFooter";
 import { PopupDismissCtx, usePopupDismissPresence } from "@/components/ui/popupDismiss";
 // The footer actions and the confirm context they read live in dialogActions.tsx
 // (a pure move out of this file, which the god-component ratchet caps); this file
@@ -303,7 +303,13 @@ const DialogContent = React.forwardRef<
         // 2202px inside a 341px card: every field ran off the right edge and
         // the card scrolled sideways, while documentElement stayed 375 wide.
         // A 0 floor keeps every child inside the card.
-        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid grid-cols-[minmax(0,1fr)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:w-full sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        "glass-modal z-50 grid grid-cols-[minmax(0,1fr)] overflow-y-auto gap-3 duration-300 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        // THE SHARED POPUP SHELL (spec v2 §3 "Sheets and menus", lead 2026-10-20).
+        // Phone: a bottom sheet (full width, 28px top corners, a drag handle,
+        // safe-area padding, sliding up). From sm (640px): the centred 480px
+        // dialog, zooming in. Both strings live in popupFooter.ts.
+        POPUP_SHEET_CLS,
+        POPUP_DIALOG_CLS,
         // See `stepped` above. Placed AFTER the base string and BEFORE
         // `className` so tailwind-merge resolves `top-*` and the arbitrary
         // `translate` against the base, and a caller can still override both.
@@ -311,7 +317,8 @@ const DialogContent = React.forwardRef<
         // `-translate-y-1/2`, because tailwindcss-animate's enter/exit
         // keyframes write `transform` and would clobber a transform-based one
         // mid-animation — so the opt-out has to move the same property.
-        stepped && "top-[7vh] [translate:-50%_0]",
+        // Phone: the sheet runs from 7vh to the bottom edge. Desktop: the card hangs from 7vh.
+        stepped && "top-[7vh] sm:top-[7vh] sm:[translate:-50%_0]",
         className,
       )}
       // Radix warns once per open when a Content has no `Description` and no
@@ -332,6 +339,9 @@ const DialogContent = React.forwardRef<
       onEscapeKeyDown={closeDisabled ? (e) => e.preventDefault() : undefined}
       {...props}
     >
+      {/* The bottom sheet's drag handle (phone only; spec v2 §3). Decorative: the
+          sheet closes on the backdrop, Escape, its X or its own Cancel. */}
+      <span data-sheet-handle aria-hidden className={POPUP_HANDLE_CLS} />
       <DialogConfirmCtx.Provider value={isConfirm}>
         <PopupDismissCtx.Provider value={setHasDismiss}>{children}</PopupDismissCtx.Provider>
       </DialogConfirmCtx.Provider>

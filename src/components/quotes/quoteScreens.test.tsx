@@ -28,7 +28,7 @@
  * @mutate src/lib/quotes/api.ts |   if (s === "chargeback") return "disputed"; |   if (s === "chargeback") return "paid";
  * @mutate src/lib/quotes/api.ts |   return "unknown";\n} |   return "paid";\n}
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |   return ownPrice ? "Posted" : "Booked";\n} |   return ownPrice ? "Posted and paid" : "Booked and paid";\n}
- * @mutate src/pages/quotes/QuoteRequestPage.tsx |   if (reqs.isError || quotes.isError) { |   if (reqs.isError || quotes.isError || !request) {
+ * @mutate src/pages/quotes/QuoteRequestPage.tsx |   if (reqs.isError \|\| quotes.isError) { |   if (reqs.isError \|\| quotes.isError \|\| !request) {
  */
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { describe, expect, it, vi, beforeEach } from "vitest";

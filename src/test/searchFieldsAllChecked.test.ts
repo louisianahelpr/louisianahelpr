@@ -60,8 +60,8 @@ const NO_X: Record<string, string> = {
   // Landing redesign (2026-10-20): the hero search is signed-out only (a signed-in
   // visitor is sent to /home) and both browser specs drive signed in, so it has
   // no ✕ to press yet; it filters nothing in place, it navigates on submit.
-  // Q2242 decides: a guest-mode surface in both specs plus a ✕, or this entry stays.
-  "src/components/landing/HeroSection.tsx": "landing hero search: signed-out only, navigates on submit (Q2242)",
+  // Q2242 (lead ruling, 2026-10-20): no ✕ — a submit box that navigates, not a live filter.
+  "src/components/landing/HeroSection.tsx": "landing hero search: a submit box that navigates, not a live filter; no ✕ by decision (Q2242)",
 };
 
 /** ✕ files that render ONLY below the desktop breakpoint, so the press spec

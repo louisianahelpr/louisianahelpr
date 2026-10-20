@@ -5,7 +5,7 @@
  * stays on the landing H1 only.
  *
  * @mutate src/index.css |   font-family: Montserrat, "Montserrat Fallback", system-ui, -apple-system, sans-serif !important;\n  font-style: normal !important;\n  font-weight: 650 !important;\n  font-size: var(--headline-hero) !important; |   font-family: "Bodoni Moda", Georgia, serif !important;\n  font-style: italic !important;\n  font-weight: 700 !important;\n  font-size: var(--headline-hero) !important;
- * @mutate src/index.css | .font-display:not(.landing-h1, .landing-h1 *) { | .font-display-off {
+ * @mutate src/index.css | .font-display:not(.landing-h1, .landing-h1 *, .font-moment) { | .font-display-off {
  * @mutate src/components/landing/HeroSection.tsx | className="landing-h1 relative | className="relative
  * @mutate src/components/dashboard/JobCard.tsx |         {/* No category rail: |         <span aria-hidden className={`${JOB_CARD_RAIL}`} />\n        {/* No category rail:
  * @mutate src/components/ui/skeletons/JobCardSkeleton.tsx |         {/* No category rail: |         <span className={JOB_CARD_RAIL} />\n        {/* No category rail:
@@ -36,11 +36,11 @@ function rule(selector: string): string {
 }
 
 describe("design tweaks (owner 2026-10-18)", () => {
-  it("T1: page titles are Montserrat, upright; Bodoni only on the landing H1", () => {
+  it("T1: page titles are Montserrat, upright; Bodoni only on the landing H1 and spec v2 §1.2 moments (.font-moment)", () => {
     const title = rule(".text-page-title");
     expect(title).toMatch(/font-family:\s*Montserrat/);
     expect(title).toMatch(/font-style:\s*normal/);
-    const display = rule(".font-display:not(.landing-h1, .landing-h1 *)");
+    const display = rule(".font-display:not(.landing-h1, .landing-h1 *, .font-moment)");
     expect(display).toMatch(/font-family:\s*Montserrat/);
     expect(display).toMatch(/font-style:\s*normal/);
     expect(code("src/components/landing/HeroSection.tsx")).toMatch(/className="landing-h1 relative z-10 font-display/);

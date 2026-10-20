@@ -51,7 +51,7 @@ function DollarBox({ label, value, onCommit }: { label: string; value: number | 
   const [text, setText] = useState(value === null ? "" : String(value));
   useEffect(() => setText(value === null ? "" : String(value)), [value]);
   return (
-    <label className="flex h-12 min-w-0 flex-1 items-center gap-1 rounded-[14px] border border-border bg-card px-3 focus-within:border-primary">
+    <label className="flex h-12 min-w-0 flex-1 items-center gap-1 rounded-[14px] border border-border bg-card px-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
       <span className="text-ds-15 text-muted-foreground" aria-hidden>$</span>
       <input
         aria-label={label}
@@ -63,7 +63,7 @@ function DollarBox({ label, value, onCommit }: { label: string; value: number | 
           setText(t);
           onCommit(t === "" ? null : Number(t));
         }}
-        className="w-full min-w-0 bg-transparent text-ds-15 text-foreground outline-none placeholder:text-muted-foreground/70"
+        className="w-full min-w-0 bg-transparent text-ds-15 text-foreground outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground/70"
       />
     </label>
   );

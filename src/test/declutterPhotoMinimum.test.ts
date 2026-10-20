@@ -1,6 +1,6 @@
 // @mutate supabase/migrations/20261020040503_declutter_one_photo_minimum.sql |   IF v_photos < 1 OR v_photos > 12 THEN |   IF v_photos < 3 OR v_photos > 12 THEN
 // @mutate src/lib/declutter/photoRules.ts | export const DECLUTTER_MIN_PHOTOS = 1; | export const DECLUTTER_MIN_PHOTOS = 3;
-// @mutate src/components/declutter/DeclutterSellView.tsx | {photoCount >= DECLUTTER_MIN_PHOTOS && !payoutBlock && ( | {photoCount >= 3 && !payoutBlock && (
+// @mutate src/components/declutter/DeclutterSellView.tsx | photoCount >= DECLUTTER_MIN_PHOTOS && !payoutBlock && ( | photoCount >= 3 && !payoutBlock && (
 //
 // Owner decision 2026-10-20 (pop-up on the Cowork design audit): ONE photo is
 // enough to list on Declutter (it was 3). The minimum lived in five places:

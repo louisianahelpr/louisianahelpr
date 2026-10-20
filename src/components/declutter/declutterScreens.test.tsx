@@ -81,7 +81,9 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchWatching: async () => new Set(),
   fetchItem: async () => state.item,
   fetchMyItemReview: async () => ({ review_note: "Used car seats cannot be sold.", ai_flagged: true }),
-  fetchMyItemPrivate: async () => null,
+  fetchMyItemPrivate: async () => ({ floor_price_cents: 3000, pickup_address: "100 Main Street, Baton Rouge, LA 70802", pickup_lat: 30.45, pickup_lng: -91.15 }),
+  updateDraft: async () => "i1",
+  setPorchOk: async () => true,
   fetchMyPickupWindows: async () => [],
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
   withdrawItem: async () => undefined,
@@ -126,6 +128,15 @@ const ITEM = {
   category: "furniture", condition_stars: 4, delivery_size: "large", price_cents: 4000, current_price_cents: 4000,
   area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15, created_at: "2026-10-14", live_at: null, porch_ok: true,
 };
+
+/** Walk the sell flow (board 31a-158) from step 1 to step 5 on a loaded draft. */
+async function toStep5() {
+  await screen.findByRole("heading", { name: "Show it off" });
+  await screen.findByText(/^\d+ of 12/);
+  for (let i = 0; i < 3; i++) fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Save and continue" }));
+  await screen.findByRole("heading", { name: "Ready to list?" });
+}
 
 describe("Declutter screens", () => {
   beforeEach(() => {
@@ -179,7 +190,8 @@ describe("Declutter screens", () => {
     state.underAge = true;
     at("/declutter/sell", <DeclutterSellPage />);
     expect(screen.getByText("You must be 18 or older to sell on Declutter.")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Name")).toBeNull();
+    expect(screen.queryByLabelText("Title")).toBeNull();
+    expect(document.querySelector("[data-add-photos]")).toBeNull();
   });
 
   it("no payout setup: a plain block with the way to fix it, the form still usable", () => {
@@ -187,7 +199,8 @@ describe("Declutter screens", () => {
     at("/declutter/sell", <DeclutterSellPage />);
     expect(screen.getByText("Set up payouts before you list.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Set up payouts" })).toHaveAttribute("href", "/profile?tab=payment");
-    expect(screen.getByLabelText("Name")).toBeInTheDocument();
+    // The form is still usable: step 1's photo picker is there.
+    expect(document.querySelector("[data-add-photos]")).not.toBeNull();
   });
 
   it("the seller of a rejected listing reads the admin's reason; no offer button exists", async () => {
@@ -289,11 +302,12 @@ describe("Declutter controls are the shared ones", () => {
     await screen.findByRole("button", { name: "Finish listing" });
     check();
     home.unmount();
-    // Sell: Save, and List this item once there is a photo.
+    // Sell: walk the 5 steps, and List it once there is a photo.
     state.item = { ...ITEM, status: "draft" };
     state.photos = [1, 2, 3].map((n) => ({ id: `p${n}`, item_id: "i1", storage_path: `u1/declutter/i1/${n}.jpg`, position: n }));
     const sell = at("/declutter/sell?item=i1", <DeclutterSellPage />, "/declutter/sell");
-    await screen.findByRole("button", { name: "List this item" });
+    await toStep5();
+    await screen.findByRole("button", { name: "List it" });
     check();
     sell.unmount();
     // A buyer's Ask, and the seller's Answer.
@@ -307,18 +321,23 @@ describe("Declutter controls are the shared ones", () => {
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     await screen.findByRole("button", { name: "Answer" });
     check();
-    // Inventory floor: Finish listing, Save details, List this item, Ask, Answer. (The top bar's
+    // Inventory floor: Finish listing, Continue, List it, Ask, Answer. (The top bar's
     // "Sell an item" + is a plain icon button since 2026-10-19, the same as the bell: not glossy.)
     expect(seen).toBeGreaterThan(4);
   });
 
-  it("the four tax confirmations and the porch switch are the shared Checkbox, not native inputs", async () => {
+  it("the four tax confirmations are the shared Checkbox and porch pickup the shared Switch, never native inputs", async () => {
     state.item = { ...ITEM, status: "draft" };
+    state.photos = [{ id: "p1", item_id: "i1", storage_path: "u1/declutter/i1/1.jpg", position: 0 }];
     at("/declutter/sell?item=i1", <DeclutterSellPage />, "/declutter/sell");
-    const boxes = await screen.findAllByRole("checkbox");
-    expect(boxes.length).toBe(5);
-    // Row 101: porch pickup is on by default for a listing.
-    expect(screen.getByRole("checkbox", { name: /Porch pickup/ })).toHaveAttribute("aria-checked", "true");
+    await screen.findByRole("heading", { name: "Show it off" });
+    for (let i = 0; i < 3; i++) fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
+    // Row 101: porch pickup is on by default for a listing (board 49: a toggle).
+    expect(await screen.findByRole("switch", { name: /Porch pickup/ })).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    await screen.findByRole("heading", { name: "Ready to list?" });
+    const boxes = screen.getAllByRole("checkbox");
+    expect(boxes.length).toBe(4);
     for (const b of boxes) expect(b.tagName).toBe("BUTTON");
     expect(document.querySelectorAll('input[type="checkbox"]').length).toBe(0);
     // Each statement is the box's label.

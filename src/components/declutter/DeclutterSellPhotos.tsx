@@ -56,49 +56,57 @@ export function SellPhotos({
   const previews = useMemo(() => held.map((f) => URL.createObjectURL(f)), [held]);
   useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
   const count = uploaded.length + held.length;
+  const addTile = count < MAX_PHOTOS && (
+    <li>
+      {/* Board 31a: the dashed "Add photos" tile after the photos. */}
+      <label
+        htmlFor="sell-files"
+        data-add-photos=""
+        className="flex aspect-square w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-[hsl(var(--bark)/0.45)] bg-card text-[hsl(var(--bark))] dark:text-foreground"
+      >
+        <Camera className="h-6 w-6" aria-hidden />
+        <span className="px-1 text-center text-ds-13 font-semibold">{uploading > 0 ? `Adding ${uploading}…` : "Add photos"}</span>
+      </label>
+    </li>
+  );
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-labelledby="sell-photos">
-      <h2 id="sell-photos" className="text-base font-semibold">1. Photos ({count} of {MAX_PHOTOS}{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""})</h2>
-      <p className="text-xs text-muted-foreground">Start with photos: good ones sell faster. Take your own, and location data is removed from every photo before it's uploaded.</p>
+    <div className="space-y-3" aria-label="Photos" role="group">
       <input id="sell-files" type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { onFiles(e.target.files); e.target.value = ""; }} />
-      <ul className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2" data-sell-photos="">
-        {count < MAX_PHOTOS && (
-          <li>
-            {/* The first tile is the way in, as on Mercari: big, dashed, impossible to miss. */}
-            <label
-              htmlFor="sell-files"
-              data-add-photos=""
-              className="flex aspect-square w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[hsl(var(--bark)/0.45)] bg-[hsl(var(--olive)/0.12)] text-[hsl(var(--bark))] dark:text-foreground"
-            >
-              <Camera className="h-7 w-7" aria-hidden />
-              <span className="px-1 text-center text-xs font-semibold">{uploading > 0 ? `Adding ${uploading}…` : "Add photos"}</span>
-            </label>
-          </li>
-        )}
+      <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2.5" data-sell-photos="">
         {uploaded.map((p, i) => (
           <li key={p.id} className="relative">
-            <img src={photoPublicUrl(p.storage_path)} alt={`Photo ${i + 1}`} className="aspect-square w-full object-cover rounded-xl bg-muted" />
+            <img src={photoPublicUrl(p.storage_path)} alt={`Photo ${i + 1}`} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
             {i === 0 && <CoverChip />}
             <RemoveButton label={`Remove photo ${i + 1}`} onClick={() => onRemoveUploaded(p.id)} />
           </li>
         ))}
         {previews.map((url, i) => (
           <li key={url} className="relative" data-held-photo="">
-            <img src={url} alt={`Photo ${uploaded.length + i + 1}`} className="aspect-square w-full object-cover rounded-xl bg-muted" />
+            <img src={url} alt={`Photo ${uploaded.length + i + 1}`} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
             {uploaded.length === 0 && i === 0 && <CoverChip />}
             <RemoveButton label={`Remove photo ${uploaded.length + i + 1}`} onClick={() => onRemoveHeld(i)} />
           </li>
         ))}
+        {addTile}
       </ul>
-      {held.length > 0 && <p className="text-xs text-muted-foreground">These go up when you save the details below.</p>}
+      <p className="text-ds-13 text-muted-foreground" data-photo-count="">
+        {count} of {MAX_PHOTOS}{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
+        {held.length > 0 ? " · these go up when you save on step 4" : ""}
+      </p>
+      <div className="rounded-[20px] border border-border bg-card p-4">
+        <p className="text-ds-15 font-semibold text-foreground">Photos that sell</p>
+        <p className="mt-1 text-ds-14 text-muted-foreground">
+          Daylight, a plain background, and one close-up of any wear. Take your own. Location data is removed from every photo before it's uploaded.
+        </p>
+      </div>
       {ai && (
         <>
           <Button type="button" variant="outline" size="sm" disabled={ai.busy} onClick={ai.run}>
             {ai.busy ? "Looking at your photos…" : "Fill in from my photos"}
           </Button>
-          <p className="text-xs text-muted-foreground">The photo tool fills in the name, description, category, size and condition. You can change anything, then save.</p>
+          <p className="text-xs text-muted-foreground">The photo tool fills in the name, description, category, size and condition. You can change anything on the next steps.</p>
         </>
       )}
-    </section>
+    </div>
   );
 }

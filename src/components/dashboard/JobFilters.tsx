@@ -152,6 +152,8 @@ export const CategoryContent = ({
 );
 
 const radiusOptions = [5, 10, 25, 50];
+// Five chips (Any + four radii) on one line at 375 (lead, board 24 r2): px-3, not px-4.
+const radiusChip = chipBase.replace("px-4", "px-3");
 
 export const NearbyContent = ({
   locationFilter, setLocationFilter, status, message, onSelect,
@@ -175,7 +177,7 @@ export const NearbyContent = ({
           type="button"
           aria-pressed={current === null}
           onClick={() => { hapticLight(); setLocationFilter(""); onSelect?.(); }}
-          className={`${chipBase} ${current === null ? chipActive : chipIdle}`}
+          className={`${radiusChip} ${current === null ? chipActive : chipIdle}`}
         >
           Any
         </button>
@@ -187,7 +189,7 @@ export const NearbyContent = ({
               type="button"
               aria-pressed={active}
               onClick={() => { hapticLight(); setLocationFilter(active ? "" : `nearby:${mi}`); onSelect?.(); }}
-              className={`${chipBase} ${active ? chipActive : chipIdle}`}
+              className={`${radiusChip} ${active ? chipActive : chipIdle}`}
             >
               {mi} mi
             </button>

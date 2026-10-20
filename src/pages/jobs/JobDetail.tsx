@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { useParams, useNavigate, Navigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Briefcase } from "lucide-react";
 
@@ -25,6 +25,8 @@ import type { EnrichedJob } from "@/components/dashboard/types";
 // Read-only job detail for logged-out visitors who open a shared link.
 // Lazy so the heavy dialog chunk only loads once the job resolves.
 const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
+// Signed in: the job page itself (boards 15, 42, 168, 169).
+const JobPage = lazy(() => import("./jobPage/JobPage"));
 
 /**
  * JobDetail — public, deep-linkable job preview at `/jobs/:id`.
@@ -33,9 +35,9 @@ const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialo
  * through to the `*` NotFound catch-all because no `/jobs/:id` route
  * existed — a dead end that forced recipients to a 404 instead of letting
  * them preview the job. This route closes that gap:
- *   - Signed-in recipients are handed to the real dashboard apply flow
- *     (`/home?quickApply={id}`), which already surfaces a "Apply now"
- *     prompt for the job.
+ *   - Signed-in members get the job page (jobPage/JobPage.tsx): poster
+ *     view on their own job, take-home + Apply (the quick-apply sheet)
+ *     otherwise.
  *   - Guests get the same read-only preview the Browse grid opens, with
  *     apply/report routed to /signup. Closing returns them to the public
  *     Browse list rather than a blank backdrop.
@@ -54,7 +56,7 @@ const JobDetail = () => {
   useJobRef();
 
   // Guests fetch the single job from the RLS-public masked view. We skip
-  // the fetch entirely for authed users — they're redirected below.
+  // the fetch entirely for authed users: they get the job page below.
   const { data: job, isLoading, isError, refetch, status, fetchStatus } = useQuery({
     queryKey: queryKeys.jobs.publicDetail(id ?? ""),
     queryFn: async (): Promise<EnrichedJob | null> => {
@@ -113,9 +115,14 @@ const JobDetail = () => {
     ogDescription: jobDescription,
   });
 
-  // Signed-in recipients land in their real dashboard apply flow.
-  if (!authLoading && user) {
-    return <Navigate to={`/home?quickApply=${id}`} replace />;
+  // Signed in: the job's own page (it used to redirect to /home?quickApply=<id>;
+  // that quick-apply sheet is now what the page's Apply button opens).
+  if (!authLoading && user && id) {
+    return (
+      <Suspense fallback={<div role="status" aria-busy="true" aria-label="Loading job"><JobCardSkeleton /></div>}>
+        <JobPage id={id} userId={user.id} />
+      </Suspense>
+    );
   }
 
   const requireSignup = () => navigate("/signup");

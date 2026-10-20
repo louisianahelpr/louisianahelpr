@@ -80,35 +80,39 @@ test.describe("signed out", () => {
 });
 
 test.describe("signed in (helper)", () => {
-  test("/jobs/:id from a notification opens that job's sheet", async ({ browser }, info) => {
+  // J2 (2026-10-20): /jobs/:id is the job's own page for a signed-in member; its Apply opens the quick-apply sheet.
+  test("/jobs/:id from a notification opens the job page, and Apply opens that job's sheet", async ({ browser }, info) => {
     skipWhenUnfundedLive(fx.openJob, livePay, "this test opens the funded open job");
     test.skip(!fx.openJob, "GAP: no open escrowed job by poster-e2e without an application from helper-e2e (terminal 1 is seeding)");
     const ctx = await newUserContext(browser, helper);
     const page = await ctx.newPage();
     await page.goto(`/jobs/${fx.openJob!.id}`);
+    await expect(page.getByRole("button", { name: "Apply", exact: true }), "the job page has no Apply").toBeVisible({ timeout: 30_000 });
+    expect(new URL(page.url()).pathname).toBe(`/jobs/${fx.openJob!.id}`);
+    await assertHealthy(page, info, "job-page");
+    await page.getByRole("button", { name: "Apply", exact: true }).click();
     await page.waitForURL(/\/home/, { timeout: 30_000 });
     await expect(page.getByRole("dialog").getByText(fx.openJob!.title).first(), "the job sheet did not open").toBeVisible({ timeout: 30_000 });
     await assertHealthy(page, info, "job-open");
     await ctx.close();
   });
 
-  test("/jobs/:id?ref=share share link opens that job's sheet", async ({ browser }, info) => {
+  test("/jobs/:id?ref=share share link opens the job page", async ({ browser }, info) => {
     skipWhenUnfundedLive(fx.openJob, livePay, "this test opens the funded open job");
     test.skip(!fx.openJob, "GAP: no open escrowed job to open");
     const ctx = await newUserContext(browser, helper);
     const page = await ctx.newPage();
     await page.goto(`/jobs/${fx.openJob!.id}?ref=share`);
-    await page.waitForURL(/\/home/, { timeout: 30_000 });
-    await expect(page.getByRole("dialog").getByText(fx.openJob!.title).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: fx.openJob!.title }).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("button", { name: "Apply", exact: true })).toBeVisible();
     await assertHealthy(page, info, "share-open");
     await ctx.close();
   });
 
-  test("/jobs/:id for a job that is gone says so in plain words, and the feed stays usable", async ({ browser }, info) => {
+  test("/jobs/:id for a job that is gone says so in plain words", async ({ browser }, info) => {
     const ctx = await newUserContext(browser, helper);
     const page = await ctx.newPage();
     await page.goto(`/jobs/${fx.goneJobId}`);
-    await page.waitForURL(/\/home/, { timeout: 30_000 });
     // The honest outcome is a toast/inline note, never silence and never a crash.
     await expect(page.getByText(/no longer|isn't available|not available|gone|removed|couldn't find|not found|filled|closed/i).first(), "no message for a gone job").toBeVisible({ timeout: 20_000 });
     await assertHealthy(page, info, "gone-job");
@@ -116,12 +120,14 @@ test.describe("signed in (helper)", () => {
     await ctx.close();
   });
 
-  test("/jobs/:id of your OWN post goes to My Posts, highlighted", async ({ browser }, info) => {
+  test("/jobs/:id of your OWN post opens the poster's job page, which opens it in Posted", async ({ browser }, info) => {
     skipWhenUnfundedLive(fx.openJob, livePay, "this test opens the funded open job");
     test.skip(!fx.openJob, "GAP: poster-e2e has no open job");
     const ctx = await newUserContext(browser, poster);
     const page = await ctx.newPage();
     await page.goto(`/jobs/${fx.openJob!.id}`);
+    await expect(page.getByText("Your budget").first(), "not the poster's job page").toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: /^(Review \d+ applicants?|Open in Posted)$/ }).first().click();
     await page.waitForURL(/\/posts/, { timeout: 30_000 });
     await expect(page.getByText(fx.openJob!.title).first()).toBeVisible({ timeout: 30_000 });
     await assertHealthy(page, info, "own-post");

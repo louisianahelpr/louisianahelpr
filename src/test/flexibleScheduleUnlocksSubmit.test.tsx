@@ -36,7 +36,7 @@ import type { usePostJobForm } from "@/pages/post-job/usePostJobForm";
  * as flexible)"), while `useJobDerived`'s `logisticsComplete` required
  * `startTime` UNCONDITIONALLY. `logisticsComplete` drives `submitDisabled`, so
  * the stricter of the two always won: ticking Flexible and leaving the time
- * empty left the CTA DISABLED, reading "Pick a Start Time to Continue". The
+ * empty left the CTA DISABLED, reading "Pick a start time to continue". The
  * submit branch that mentions flexible was unreachable from the UI, and the
  * result was visible in prod — 0 of 260 jobs carried the flag.
  *
@@ -65,11 +65,11 @@ const FORM_STEP_SRC = readFileSync(join(REPO, "src/pages/post-job/FormStep.tsx")
 
 /**
  * Every contextual label FormStep can put on the submit button, read out of its
- * source. "Review & Pay" is the ready state; everything else is a refusal that
+ * source. "Review & pay" is the ready state; everything else is a refusal that
  * names a field the poster still has to fill.
  */
 const ALL_CTA_LABELS = [...FORM_STEP_SRC.matchAll(/submitLabel = "([^"]+)"/g)].map((m) => m[1]);
-const BLOCKING_CTA_LABELS = ALL_CTA_LABELS.filter((l) => l !== "Review & Pay");
+const BLOCKING_CTA_LABELS = ALL_CTA_LABELS.filter((l) => l !== "Review & pay");
 
 /**
  * FLOOR — the inventory must not be empty, and must not silently collapse to
@@ -150,11 +150,13 @@ function renderFormWith({
     offerToHelperId: null, offerToHelperName: null, clearOffer: noop,
     offerResponseHours: 24, setOfferResponseHours: noop,
     openJobCount: 0,
+    // Screen 4 of 5 (When and where): the screen whose button submits.
+    formPage: 4, setFormPage: noop,
     handleReview: (e: { preventDefault: () => void }) => e.preventDefault(),
   } as unknown as ReturnType<typeof usePostJobForm>;
 
   render(<FormStep form={form} />);
-  const cta = screen.getByRole("button", { name: /Continue|Review & Pay|Has Passed/i });
+  const cta = screen.getByRole("button", { name: /Continue|Review & pay|Has Passed/i });
   return { cta, derived };
 }
 
@@ -171,7 +173,7 @@ describe("Flexible Schedule is a SUBSTITUTE for a start time, end to end", () =>
   it("has a non-empty inventory of CTA gate labels read from FormStep", () => {
     expect(ALL_CTA_LABELS.length).toBeGreaterThanOrEqual(CTA_LABEL_FLOOR);
     expect(BLOCKING_CTA_LABELS.length).toBeGreaterThan(0);
-    expect(ALL_CTA_LABELS).toContain("Review & Pay");
+    expect(ALL_CTA_LABELS).toContain("Review & pay");
   });
 
   it("ENABLES the submit CTA with Flexible ticked and no start time", () => {
@@ -186,7 +188,7 @@ describe("Flexible Schedule is a SUBSTITUTE for a start time, end to end", () =>
     for (const label of BLOCKING_CTA_LABELS) {
       expect(cta.textContent).not.toContain(label);
     }
-    expect(cta.textContent).toContain("Review & Pay");
+    expect(cta.textContent).toContain("Review & pay");
   });
 
   /**
@@ -214,7 +216,7 @@ describe("Flexible Schedule is a SUBSTITUTE for a start time, end to end", () =>
       forceLogisticsIncomplete: true,
     });
     expect(cta).toBeDisabled();
-    expect(cta.textContent).not.toContain("Pick a Start Time to Continue");
+    expect(cta.textContent).not.toContain("Pick a start time to continue");
   });
 
   it("still BLOCKS the CTA with no start time and Flexible unticked", () => {
@@ -222,22 +224,22 @@ describe("Flexible Schedule is a SUBSTITUTE for a start time, end to end", () =>
 
     expect(derived.logisticsComplete).toBe(false);
     expect(cta).toBeDisabled();
-    expect(cta.textContent).toContain("Pick a Start Time to Continue");
+    expect(cta.textContent).toContain("Pick a start time to continue");
   });
 
   it("still ENABLES the CTA the ordinary way — a real start time, no flag", () => {
     const { cta } = renderFormWith({ startTime: "09:00", isFlexibleSchedule: false });
     expect(cta).toBeEnabled();
-    expect(cta.textContent).toContain("Review & Pay");
+    expect(cta.textContent).toContain("Review & pay");
   });
 
   it("drops the required * from the Start Time label while Flexible is ticked", () => {
     renderFormWith({ startTime: "", isFlexibleSchedule: true });
-    expect(screen.getByText("Start Time").textContent).toBe("Start Time");
+    expect(screen.getByText("Start time").textContent).toBe("Start time");
 
     cleanup();
     renderFormWith({ startTime: "", isFlexibleSchedule: false });
-    expect(screen.getByText(/^Start Time/).textContent).toContain("*");
+    expect(screen.getByText(/^Start time/).textContent).toContain("*");
   });
 
   it("writes is_flexible_schedule = true and start_time = null for that job", () => {

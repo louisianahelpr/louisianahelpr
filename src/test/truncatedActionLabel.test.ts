@@ -101,7 +101,7 @@ const KNOWN: Record<string, string> = {
   "src/pages/profile/petProfiles/PetCard.tsx:button:{SPECIES_OPTIONS.find((s) => s.value === pet.species)?.label":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): species line sw==cw 166/166 at 320 on the pets page as poster-e2e",
   "src/pages/post-job/FormStep.tsx:Button:{submitLabel}":
-    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Add a Title to Continue\" sw==cw on /post-job (Start Fresh) at 320, 375 and 1440 as poster-e2e",
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Add a title to continue\" sw==cw on /post-job (Start Fresh) at 320, 375 and 1440 as poster-e2e",
 };
 
 function walk(dir: string): string[] {

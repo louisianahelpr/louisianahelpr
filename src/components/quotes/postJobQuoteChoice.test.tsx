@@ -1,11 +1,13 @@
 /**
  * Post a Job, "Set a price" or "Get quotes" (owner Q1, Q4; owner 2026-10-19:
- * the form's FIRST choice, as pills, with one line on what happens next). The three form
+ * pills with one line on what happens next). Since board 3 (builder2-jobs
+ * 2026-10-20) the choice heads screen 3 of 5, "What will you pay?"; the quote
+ * ask goes out from screen 4. The three form
  * sections are stubbed (their own tests cover them); this pins the choice:
  * shown only with the 'quotes' switch on and only for a one-time job with no
  * direct offer, "Get quotes" swaps the budget for the 24 h / 48 h / 3 days
- * window (48 h default), and "Ask for Quotes" sends the form's details to
- * create_quote_request, never the Review & Pay path.
+ * window (48 h default), and "Ask for quotes" sends the form's details to
+ * create_quote_request, never the Review & pay path.
  *
  * @mutate src/pages/post-job/FormStep.tsx |   const quotesShape = !form.offerToHelperId && !form.isRecurring && !form.isGroupJob; |   const quotesShape = !form.offerToHelperId;
  *
@@ -24,6 +26,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = { feature: true, calls: [] as { fn: string; args: unknown }[] };
@@ -37,6 +40,7 @@ vi.mock("@/components/postjob/DetailsSection", () => ({ DetailsSection: () => <d
 vi.mock("@/components/postjob/LogisticsSection", () => ({ LogisticsSection: () => <div>logistics</div> }));
 vi.mock("@/pages/post-job/DirectOfferBanner", () => ({ DirectOfferBanner: () => <div>direct offer</div> }));
 vi.mock("@/components/postjob/BudgetSection", () => ({ BudgetSection: () => <div>Budget section</div> }));
+vi.mock("@/components/postjob/JobCategoryGroups", () => ({ JobCategoryGroups: () => <div>category groups</div> }));
 vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => null, composeJobAddress: () => "x" }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), info: vi.fn() }) }));
 vi.mock("@/integrations/supabase/client", () => ({
@@ -64,15 +68,26 @@ function form(over: Record<string, unknown> = {}) {
   } as never;
 }
 
+/** FormStep with a real page state, opened on screen 3 (the price screen). */
+function Paged({ f }: { f: Record<string, unknown> }) {
+  const [formPage, setFormPage] = useState(3);
+  return <FormStep form={{ ...f, formPage, setFormPage } as never} />;
+}
+
 function show(f: never) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <FormStep form={f} />
+        <Paged f={f} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
+}
+
+/** Screen 3 -> screen 4, where the job is sent (Review & pay or Ask for quotes). */
+function toScreen4() {
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 }
 
 beforeEach(() => {
@@ -82,11 +97,11 @@ beforeEach(() => {
 });
 
 describe("Post a Job: Set a price or Get quotes", () => {
-  it("is the form's first choice, as pills, saying what happens next", () => {
+  it("heads the price screen (3 of 5), as pills, saying what happens next", () => {
     show(form());
     const group = screen.getByRole("radiogroup", { name: "How to price this job" });
-    // Above the details section: the first thing the poster decides.
-    expect(group.compareDocumentPosition(screen.getByText("details")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(group.closest("[data-form-page]")?.getAttribute("data-form-page")).toBe("3");
+    expect(screen.getByRole("heading", { name: "What will you pay?" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Set a price" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByText(/You set the budget, then review and pay/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: "Get quotes" }));
@@ -103,13 +118,14 @@ describe("Post a Job: Set a price or Get quotes", () => {
     fireEvent.click(soon);
     // Said in the line under the pills (toast.info is silenced app-wide by src/lib/toastPolicy.ts).
     expect(screen.getByText("Getting quotes from local pros is coming soon. For now, set your price.")).toBeInTheDocument();
-    // Still Set a price: the budget and Review & Pay, never the quote window or its RPC.
+    // Still Set a price: the budget and Review & pay, never the quote window or its RPC.
     expect(screen.getByRole("radio", { name: "Set a price" })).toHaveAttribute("aria-checked", "true");
     expect(soon).toHaveAttribute("aria-checked", "false");
     expect(screen.getByText("Budget section")).toBeInTheDocument();
     expect(screen.queryByRole("radio", { name: "48 hours" })).toBeNull();
-    expect(screen.queryByRole("button", { name: /Ask for Quotes/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Review & Pay/ }));
+    toScreen4();
+    expect(screen.queryByRole("button", { name: /Ask for quotes/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Review & pay/ }));
     await waitFor(() => expect(handleReview).toHaveBeenCalled());
     expect(state.calls.filter((c) => /quote/i.test(c.fn))).toEqual([]);
   });
@@ -122,7 +138,7 @@ describe("Post a Job: Set a price or Get quotes", () => {
     rerender(
       <QueryClientProvider client={new QueryClient()}>
         <MemoryRouter>
-          <FormStep form={form()} />
+          <Paged f={form()} />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -148,13 +164,14 @@ describe("Post a Job: Set a price or Get quotes", () => {
     }
   });
 
-  it("Get quotes swaps the budget for the window (48 h default) and asks for quotes, never Review & Pay", async () => {
+  it("Get quotes swaps the budget for the window (48 h default) and asks for quotes, never Review & pay", async () => {
     show(form());
     fireEvent.click(screen.getByRole("radio", { name: "Get quotes" }));
     expect(screen.queryByText("Budget section")).toBeNull();
     expect(screen.getByRole("radio", { name: "48 hours" })).toHaveAttribute("aria-checked", "true");
     fireEvent.click(screen.getByRole("radio", { name: "3 days" }));
-    fireEvent.click(screen.getByRole("button", { name: /Ask for Quotes/ }));
+    toScreen4();
+    fireEvent.click(screen.getByRole("button", { name: /Ask for quotes/ }));
     await waitFor(() => expect(state.calls.some((c) => c.fn === "create_quote_request")).toBe(true));
     expect(handleReview).not.toHaveBeenCalled();
     expect(state.calls.find((c) => c.fn === "create_quote_request")?.args).toMatchObject({

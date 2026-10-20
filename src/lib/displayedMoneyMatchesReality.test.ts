@@ -8,7 +8,7 @@ import { helperTakeHomeDollars } from "./helperEarnings";
  * THE BUG THESE PREVENT — external QA, real clicks against production,
  * 2026-09-06: three surfaces that state a real, moving sum of money rendered it
  * with `formatPrice`, which rounds to the nearest whole dollar. The post-a-job
- * CTA read "Review & Pay · $136" and then charged $136.40. `/payment-success`
+ * CTA read "Review & pay · $136" and then charged $136.40. `/payment-success`
  * said "$136 is held securely" about a $136.40 escrow. A helper's Schedule row
  * quoted a take-home 40c above the transfer.
  *
@@ -152,7 +152,7 @@ describe("the three fixed sites do not drift back", () => {
 });
 
 // Shown able to fail:
-// formatPriceExact dropping the cents — the exact shipped bug: "Review & Pay
+// formatPriceExact dropping the cents — the exact shipped bug: "Review & pay
 // $136" on a card that is then charged $136.40.
 // @mutate src/lib/format.ts | const hasFraction = cents % 100 !== 0; | const hasFraction = false;
 // ...and padding them the other way, which claims money that is not in escrow.

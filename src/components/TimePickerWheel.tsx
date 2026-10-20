@@ -80,7 +80,7 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
   // WebKit 390x844: Hour and Minute each fired one at scrollTop 1 on mount),
   // and this handler turned that into a pick of the resting rows, 12 and 00.
   // Post a Job then read "Wed, Oct 14 · 12:00 AM" for a poster who never chose
-  // a time, and its "Pick a Start Time to Continue" gate never showed (Q1660).
+  // a time, and its "Pick a start time to continue" gate never showed (Q1660).
   const touched = useRef(false);
   const markTouched = () => { touched.current = true; };
 

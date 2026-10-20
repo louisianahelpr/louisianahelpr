@@ -65,9 +65,14 @@ export async function pickStartTime(page: Page, slot: ReturnType<typeof slotAhea
   await page.getByRole("radiogroup", { name: "AM or PM" }).getByRole("radio", { name: slot.ampm }).click();
 }
 
-/** Category, title, description and (optionally) one photo. */
+/**
+ * Screens 1 and 2 of 5 (boards 23, 44): the category (Home group is open by
+ * default), then title, description and (optionally) one photo. Ends on
+ * screen 3, the price.
+ */
 export async function fillJobDetails(page: Page, title: string, photoPath?: string) {
   await page.getByRole("button", { name: "Cleaning", exact: true }).click();
+  await page.getByRole("button", { name: "Continue with Cleaning" }).click();
   await page.getByRole("textbox", { name: "Job Title *" }).fill(title);
   await page.getByRole("textbox", { name: "Description *" }).fill(
     "Automated journey test. Not a real job; created and removed by the test suite. Please ignore.",
@@ -76,15 +81,18 @@ export async function fillJobDetails(page: Page, title: string, photoPath?: stri
     await page.locator("input[type=file][accept='image/*']").first().setInputFiles(photoPath);
     await expect(page.getByRole("button", { name: "Remove photo" }).first(), "the chosen photo never appeared in the form").toBeVisible({ timeout: 30_000 });
   }
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
 }
 
 /**
- * Address, a parish-less ZIP and the date/time. ZIP is required, and a
+ * Screen 4 of 5 (board 45): address, a parish-less ZIP and the date/time.
+ * Returns the Review & pay button once it is enabled. ZIP is required, and a
  * Louisiana ZIP derives a parish, which fires the helper fan-out. 99999
  * resolves to no parish (get_parish_for_zip -> null), so the job is posted
  * with parish null, the same guard prod-lifecycle uses.
  */
 export async function fillLogistics(page: Page, slot: Slot, allowReport: (message: RegExp, why: string) => void) {
+  await expect(page.getByRole("heading", { name: "When and where?" })).toBeVisible({ timeout: 20_000 });
   await page.getByRole("combobox", { name: "Street Address" }).fill("100 Audit Way");
   await page.keyboard.press("Escape");
   await page.getByRole("combobox", { name: "City" }).fill("Baton Rouge");
@@ -93,12 +101,16 @@ export async function fillLogistics(page: Page, slot: Slot, allowReport: (messag
   await page.getByRole("textbox", { name: "ZIP code" }).fill("99999");
   await pickCalendarDay(page, slot.isoDay, { inline: /Date Needed/ });
   await pickStartTime(page, slot);
+  const review = page.getByRole("button", { name: /Review & pay/ });
+  await expect(review, "the submit button never became Review & pay").toBeEnabled({ timeout: 20_000 });
+  return review;
 }
 
-/** Budget; returns the Review & Pay button once it is enabled. */
+/** Screen 3 of 5 (board 3): the budget, then on to When and where. */
 export async function fillBudget(page: Page, dollars = "25") {
+  await expect(page.getByRole("heading", { name: "What will you pay?" })).toBeVisible({ timeout: 20_000 });
   await page.getByRole("textbox", { name: "Job budget in dollars" }).fill(dollars);
-  const review = page.getByRole("button", { name: /Review & Pay/ });
-  await expect(review, "the submit button never became Review & Pay").toBeEnabled({ timeout: 20_000 });
-  return review;
+  const next = page.getByRole("button", { name: "Continue", exact: true });
+  await expect(next, "the price screen's Continue never enabled").toBeEnabled({ timeout: 20_000 });
+  await next.click();
 }

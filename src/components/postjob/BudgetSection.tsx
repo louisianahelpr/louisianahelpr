@@ -2,7 +2,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { DollarSign, Zap, Gift } from "lucide-react";
+import { DollarSign, Zap, Gift, Minus, Plus } from "lucide-react";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { formatPriceExact } from "@/lib/format";
 import { MIN_JOB_BUDGET_DOLLARS, MAX_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS, URGENT_FEE_FLOOR_DOLLARS, formatDollarsWhole } from "@/lib/moneyLimits";
@@ -31,6 +31,9 @@ import { MIN_JOB_BUDGET_DOLLARS, MAX_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS,
  * `jobs.pricing_mode` survives — its CHECK now allows only 'set_price', and
  * the `open_jobs_browse` view still projects it.
  */
+
+/** The − / + step on the price screen (board 3). */
+const BUDGET_STEP = 5;
 
 interface BudgetSectionProps {
   /** 1-based chapter number for the section header. */
@@ -74,7 +77,7 @@ export function BudgetSection({
   const budgetNum = parseFloat(budget) || 0;
 
   // Below the posting minimum. Owner, 2026-10-01: typed $5.00 and the button
-  // stayed "Set a Budget to Continue" with nothing saying why — budgetComplete
+  // stayed "Set a budget to continue" with nothing saying why — budgetComplete
   // needs MIN_JOB_BUDGET_DOLLARS and no line on the form named it. Said here,
   // in place of the lowball hint (a budget that cannot be posted at all is the
   // stronger message, and two amber boxes would say the same thing twice).
@@ -113,6 +116,37 @@ export function BudgetSection({
           but a handful of seeded rows ever did anyway. */}
       {(
         <div className="space-y-3">
+          {/* Board 3: the price as the screen's big number (rust = money),
+              with − / + in $5 steps inside the real limits. The field below
+              stays the exact input (cents, typing); both are one value. */}
+          <div className="flex items-center justify-center gap-5 py-2">
+            <button
+              type="button"
+              aria-label="Lower the budget by $5"
+              disabled={budgetNum <= MIN_JOB_BUDGET_DOLLARS}
+              onClick={() => setBudget(String(Math.max(MIN_JOB_BUDGET_DOLLARS, Math.min(MAX_JOB_BUDGET_DOLLARS, Math.ceil(budgetNum / BUDGET_STEP) * BUDGET_STEP - BUDGET_STEP))))}
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-input bg-transparent text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <Minus className="h-5 w-5" aria-hidden />
+            </button>
+            <output
+              htmlFor="budget"
+              aria-live="polite"
+              className="min-w-[4ch] text-center font-sans text-ds-40 font-bold tabular-nums"
+              style={{ color: budgetNum > 0 ? "hsl(var(--burnt-sienna))" : "hsl(var(--muted-foreground))" }}
+            >
+              ${budgetNum > 0 ? formatPriceExact(budgetNum) : "0"}
+            </output>
+            <button
+              type="button"
+              aria-label="Raise the budget by $5"
+              disabled={budgetNum >= MAX_JOB_BUDGET_DOLLARS}
+              onClick={() => setBudget(String(budgetNum < MIN_JOB_BUDGET_DOLLARS ? MIN_JOB_BUDGET_DOLLARS : Math.min(MAX_JOB_BUDGET_DOLLARS, Math.floor(budgetNum / BUDGET_STEP) * BUDGET_STEP + BUDGET_STEP)))}
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-input bg-transparent text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <Plus className="h-5 w-5" aria-hidden />
+            </button>
+          </div>
           <Label htmlFor="budget">Budget <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
           {/* CurrencyInput stores the value as a number, but the parent form
               still keeps `budget` as a string (it's threaded through draft
@@ -165,6 +199,14 @@ export function BudgetSection({
               <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
                 The minimum budget is {formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}.
               </p>
+              {/* Board 171: offer the fix, not only the rule. */}
+              <button
+                type="button"
+                onClick={() => setBudget(String(MIN_JOB_BUDGET_DOLLARS))}
+                className="ml-auto shrink-0 rounded-full border border-input bg-transparent px-3 py-1.5 text-ds-12 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Set it to {formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}
+              </button>
             </div>
           )}
 
@@ -223,7 +265,7 @@ export function BudgetSection({
                 pushes the text 4px ABOVE the switch's centre line. The W-9 row in
                 pages/post-job/FormStep.tsx sidesteps this by using a plain <p>; we
                 keep the real <Label> for the htmlFor association and drop the margin. */}
-            <Label htmlFor="urgent" className="mb-0 cursor-pointer">Mark as Urgent</Label>
+            <Label htmlFor="urgent" className="mb-0 cursor-pointer">Mark as urgent</Label>
           </div>
           <Switch id="urgent" checked={isUrgent} onCheckedChange={setIsUrgent} />
         </div>
@@ -232,7 +274,7 @@ export function BudgetSection({
             <p className="text-ds-11 text-muted-foreground">
               ⚡ For jobs that need doing right away. Nearby Helprs are notified the moment you post, and the Helpr who takes it gets all of your bonus — no platform fee, and its small card fee is added on top at checkout. (To reach more Helprs over time, Boost the post after publishing instead.)
             </p>
-            <Label className="text-ds-11">Urgent Bonus ({formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} Minimum, {formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)} Maximum)</Label>
+            <Label className="text-ds-11">Urgent bonus ({formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum, {formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)} maximum)</Label>
             <div className="flex flex-wrap gap-2">
               {["5", "10", "15", "20"].map((amt) => (
                 <button
@@ -264,7 +306,7 @@ export function BudgetSection({
             {customUrgentFee && (
               <div className="flex items-center gap-2 mt-1">
                 <Label htmlFor="custom-urgent-fee" className="text-ds-11 font-sans text-muted-foreground shrink-0">
-                  Custom Bonus
+                  Custom bonus
                 </Label>
                 <Input
                   id="custom-urgent-fee"

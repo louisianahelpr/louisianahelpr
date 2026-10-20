@@ -53,9 +53,11 @@ describe("floating bottom bars clear the dock with the shared token (Q214/Q314)"
     expect(code).toMatch(/className="[^"]*\bfixed\b[^"]*\bbottom-safe-nav\b/);
   });
 
-  it("FormStep's submit clearance sits on the pb-safe-nav token (Q314)", () => {
+  it("FormStep's submit clearance sits on the safe-nav token (Q314)", () => {
+    // Since the five-screen flow the button is a sticky bar held above the
+    // dock by `bottom-safe-nav` (AppPage's scroller carries the pb-safe-nav).
     const code = blankComments(readSource("src/pages/post-job/FormStep.tsx") ?? "");
-    expect(code).toMatch(/className="[^"]*\bpb-safe-nav\b/);
+    expect(code).toMatch(/className="[^"]*\bsticky\b[^"]*\bbottom-safe-nav\b/);
   });
 
   it("LegalTab's bottomClearance reads the shared --safe-area-bottom var, not raw env() (Q314)", () => {

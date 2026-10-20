@@ -20,8 +20,8 @@
  * a past day. Worse, the union also matches the `<td>` gridcell, and a `<td>`
  * has no disabled state: Playwright clicked it, refused nothing, and the click
  * did nothing at all. The popover stayed open, no date was set, and
- * `Review & Pay` never armed — reported as "the submit button never became
- * Review & Pay", i.e. as if posting a job were broken. It was not; the app is
+ * `Review & pay` never armed — reported as "the submit button never became
+ * Review & pay", i.e. as if posting a job were broken. It was not; the app is
  * fine and was fine throughout.
  *
  * It is date-dependent by construction: it can only ever land on the right day

@@ -63,7 +63,7 @@ export interface UseJobDerivedParams {
  * It used to exist ONLY inside `handleReview`, as a toast. So the moment a
  * poster picked today with a time that had gone by, the form entered a state
  * where the only feedback was a transient message at the top of a long page:
- * the CTA stayed enabled, stayed priced ("Review & Pay · $72"), and gave no
+ * the CTA stayed enabled, stayed priced ("Review & pay · $72"), and gave no
  * sign that anything about it had changed. From the bottom of the form — which
  * is where the button is — the button simply looked dead, and nothing that
  * happened afterwards (including fixing the date) visibly changed the screen.
@@ -208,7 +208,7 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // A schedule that has already gone by is INCOMPLETE, not merely invalid —
   // same doctrine as the over-length title above. The alternative is a
   // Logistics header showing a green tick and the word DONE over a start time
-  // the form is about to refuse, and a "Review & Pay · $72" button that does
+  // the form is about to refuse, and a "Review & pay · $72" button that does
   // nothing when tapped. Folding it in here is what makes the CTA disable
   // itself, drop its price, and name the field that is blocking it, all
   // through the machinery that already existed for the other required fields.

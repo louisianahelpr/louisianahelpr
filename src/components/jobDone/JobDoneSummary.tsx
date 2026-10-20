@@ -9,6 +9,7 @@ import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls"
 import { queryKeys } from "@/lib/queryKeys";
 import { fetchPayoutStatus, payoutStatusQueryOptions } from "@/lib/payoutSetupQueries";
 import { transferredCents, type TransferRow } from "@/lib/jobDonePay";
+import { useAgeGate } from "@/hooks/useAgeGate";
 
 /**
  * The top of the Job done screen (boards 35 poster / 36 Helpr), under the
@@ -69,6 +70,8 @@ export function JobDoneSummary({
   otherName: string;
   viewerId: string;
 }) {
+  // Q1586(c): "Hire again" opens Post a Job, so it is greyed out under 18.
+  const { underAge, explain, gatedProps } = useAgeGate();
   const { data: job } = useQuery({
     queryKey: ["job-done-summary", jobId],
     queryFn: async () =>
@@ -184,6 +187,12 @@ export function JobDoneSummary({
           </div>
           <Link
             to={`/post-job?rebook=${jobId}&offerTo=${job.helper_id}`}
+            {...gatedProps("post")}
+            onClick={(e) => {
+              if (!underAge) return;
+              e.preventDefault();
+              explain("post");
+            }}
             // Secondary: "Send review" is this screen's one primary (spec §3).
             className="shrink-0 ml-14 min-h-11 px-5 rounded-full inline-flex items-center font-sans font-bold text-ds-14"
             style={{ background: "hsl(var(--card))", color: "hsl(var(--ink-deep))", border: "1px solid hsl(var(--olivewood) / 0.22)" }}

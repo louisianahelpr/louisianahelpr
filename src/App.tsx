@@ -75,6 +75,8 @@ const ScrollToTop = lazy(() => import("@/components/ScrollToTop"));
 const MobileNav = lazy(() => import("./components/MobileNav"));
 const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
 const DesktopTopNav = lazy(() => import("./components/DesktopTopNav"));
+// Badge = To-do (owner, 2026-10-20): publishes Home's to-do count for the navs.
+const NeedsYouMount = lazy(() => import("./components/NeedsYouMount"));
 import { SidePanelProvider } from "./components/sidePanelOpen";
 // /quotes is retired (owner 2026-10-19): old hub links redirect to Posts, Jobs or My Jobs (src/lib/quotes/homes.ts).
 const PermissionRationaleDialog = lazy(() =>
@@ -531,6 +533,7 @@ const App = () => (
             <RoutedBoundary />
           </main>
           <Suspense fallback={null}>
+            <NeedsYouMount />
             <MobileNav />
             <DesktopSidebarNav />
             <DesktopTopNav />

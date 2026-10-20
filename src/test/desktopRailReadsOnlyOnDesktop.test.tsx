@@ -28,10 +28,10 @@ vi.mock("@/hooks/useFeature", () => ({
 }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, isAdmin: false }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, gate: (_k: string, fn: () => void) => fn, gatedProps: () => ({}) }) }));
-vi.mock("@/hooks/useActivityBadgeCounts", () => ({
-  useActivityBadgeCounts: () => {
+vi.mock("@/lib/needsYouStore", () => ({
+  useNeedsYouCounts: () => {
     calls.badges++;
-    return { postsCount: 0, jobsCount: 0 };
+    return { total: 0, jobs: 0, shops: 0 };
   },
 }));
 vi.mock("@/components/mobileNav/useNavUnreadCount", () => ({

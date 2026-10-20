@@ -1,16 +1,19 @@
-// @mutate src/hooks/useActivityBadgeCounts.ts | subscribeUserRealtime(userId, "jobs:customer", () => scheduleLoad(), | subscribeUserRealtime(userId, "jobs:customer", () => loadCounts(),
-// @mutate src/hooks/useActivityBadgeCounts.ts | "applications:helper", () => scheduleLoad(), { onRecovered: scheduleLoad } | "applications:helper", () => scheduleLoad(), { onRecovered: loadCounts }
-// @mutate src/hooks/useActivityBadgeCounts.ts | same way the schedule-time path above does.\n      if (isHidden()) { | same way the schedule-time path above does.\n      if (false) {
-// @mutate src/hooks/useActivityBadgeCounts.ts | let store = stores.get(userId); | let store = undefined as BadgeStore \| undefined;
+// @mutate src/pages/home/homeDashboard/needsYouTodos.ts | subscribeUserRealtime(uid, "jobs:customer", schedule, { onRecovered: schedule }), | subscribeUserRealtime(uid, "jobs:customer", refresh, { onRecovered: schedule }),
+// @mutate src/pages/home/homeDashboard/needsYouTodos.ts | subscribeUserRealtime(uid, "applications:helper", schedule, { onRecovered: schedule }), | subscribeUserRealtime(uid, "applications:helper", schedule, { onRecovered: refresh }),
+// @mutate src/pages/home/homeDashboard/needsYouTodos.ts | const TODO_REFRESH_DEBOUNCE_MS = 400; | const TODO_REFRESH_DEBOUNCE_MS = 0;
+// @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         if (hidden()) {\n          dirtyWhileHidden = true;\n          return;\n        }\n        refresh(); |         refresh();
+// @mutate src/pages/home/homeDashboard/needsYouTodos.ts |     const schedule = () => {\n      if (hidden()) { |     const schedule = () => {\n      if (false) {
+// @mutate src/components/NeedsYouBridge.tsx | useNeedsYouTodos(user, { live: true }) | useNeedsYouTodos(user)
 // @mutate src/components/mobileNav/useNavUnreadCount.ts | let store = stores.get(userId); | let store = undefined as UnreadStore \| undefined;
-// @mutate src/hooks/useActivityBadgeCounts.ts | const BADGE_REFRESH_DEBOUNCE_MS = 400; | const BADGE_REFRESH_DEBOUNCE_MS = 0;
-// @mutate src/hooks/useActivityBadgeCounts.ts |       if (isHidden()) {\n        dirtyWhileHidden = true;\n        return;\n      }\n      loadCounts(); |       loadCounts();
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import ts from "typescript";
 import { renderHook, cleanup, act } from "@testing-library/react";
-import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
+import { createElement, type ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { User as SupaUser } from "@supabase/supabase-js";
+import { useNeedsYouTodos } from "@/pages/home/homeDashboard/needsYouTodos";
 import { readdirSync } from "./helpers/trackedFiles";
 
 /*
@@ -24,8 +27,27 @@ import { readdirSync } from "./helpers/trackedFiles";
 const rig = vi.hoisted(() => ({
   applicationsReads: 0,
   offerReads: 0,
+  coreReads: 0,
   jobsHandler: null as (() => void) | null,
 }));
+// The to-do badge's two activity cores, counted (badge = To-do, owner 2026-10-20).
+vi.mock("@/hooks/useActivityData", () => ({
+  CORE_STALE: 60_000,
+  fetchPostedActivity: async () => {
+    rig.coreReads++;
+    return { postedJobs: [], applicantCounts: {}, pendingApplicantCounts: {}, closedApplicantSummaries: {} };
+  },
+  fetchAppliedActivity: async () => {
+    rig.coreReads++;
+    return { appliedApps: [], declinedJobIds: new Set(), helperReviewedJobIds: new Set() };
+  },
+}));
+vi.mock("@/lib/backoutNotices", () => ({
+  backoutNoticeApplies: () => false,
+  backoutNoticesKey: (u: string) => ["activity", "backout", u],
+  useBackoutNotices: () => new Map(),
+}));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 
 vi.mock("@/integrations/supabase/client", () => {
   const applicationsBuilder: Record<string, unknown> = {};
@@ -82,7 +104,7 @@ function setVisibility(state: "visible" | "hidden") {
  * plus edge logs): the nav badge pair — an applications count (40,481 calls,
  * 422 s, #2 statement by total time) and get_my_pending_direct_offers (43,560
  * calls) — ran TWICE per page load because MobileNav and DesktopSidebarNav
- * both mount on every page and each ran its own copy of useActivityBadgeCounts
+ * both mount on every page and each ran its own copy of the badge hook
  * (1.89 offer requests per page-load marker request). Nothing was on a timer;
  * the multiplier was duplicate mounts and un-coalesced realtime wake-ups.
  *
@@ -237,29 +259,28 @@ describe("hot-query load (Q53)", () => {
     });
   });
 
-  describe("useActivityBadgeCounts (the #2 statement by DB time)", () => {
-    const file = join(SRC, "hooks/useActivityBadgeCounts.ts");
+  describe("the To-do badge (badge = To-do, owner 2026-10-20; was the #2 statement by DB time)", () => {
+    const file = join(SRC, "pages/home/homeDashboard/needsYouTodos.ts");
     const sf = parse(file);
 
-    it("is mounted by more than one component, which is why it must share", () => {
-      const callers = files.filter((f) => f !== file && /\buseActivityBadgeCounts\(/.test(readFileSync(f, "utf8")));
-      expect(callers.length).toBeGreaterThanOrEqual(2);
+    it("has ONE live caller (the bridge App mounts once), never a nav of its own", () => {
+      const live = files.filter((f) => /\buseNeedsYouTodos\([^)]*live:\s*true/.test(readFileSync(f, "utf8")));
+      expect(live.map((f) => relative(SRC, f))).toEqual(["components/NeedsYouBridge.tsx"]);
+      const mounts = files.filter((f) => /<NeedsYouMount\s*\/>/.test(readFileSync(f, "utf8")));
+      expect(mounts.map((f) => relative(SRC, f))).toEqual(["App.tsx"]);
+      // The navs read the published counts only, never the activity reads.
+      for (const nav of ["components/MobileNav.tsx", "components/DesktopSidebarNav.tsx"]) {
+        const src = readFileSync(join(SRC, nav), "utf8");
+        expect(src, nav).not.toMatch(/useActivityData|useNeedsYouTodos|needsYouTodos/);
+        expect(src, nav).toMatch(/useNeedsYouCounts\(/);
+      }
     });
 
-    it("reuses one store per user instead of opening a new one per consumer", () => {
-      let reuses = false;
-      visit(sf, (n) => {
-        if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === "store" && n.initializer?.getText(sf) === "stores.get(userId)") reuses = true;
-      });
-      expect(reuses, "useActivityBadgeCounts must look up the shared store before opening one").toBe(true);
-    });
-
-    it("routes every realtime wake-up and recovery through scheduleLoad", () => {
-      // The badge's realtime rides the shared per-user channel (Q105), so its
-      // handlers are the 3rd argument of each subscribeUserRealtime(...) call
-      // and its recovery the `onRecovered` in the 4th. A raw
-      // `.on("postgres_changes", …)` here would be a second channel for rows
-      // the shared one already carries (src/test/realtimeChannelInventory).
+    it("routes every realtime wake-up and recovery through schedule", () => {
+      // It rides the shared per-user channel (Q105): the handler is the 3rd
+      // argument of each subscribeUserRealtime(...) call and the recovery the
+      // `onRecovered` in the 4th. A raw `.on("postgres_changes", ...)` here
+      // would be a second channel for rows the shared one already carries.
       const handlers: string[] = [];
       const recovered: string[] = [];
       let rawBindings = 0;
@@ -277,74 +298,63 @@ describe("hot-query load (Q53)", () => {
       });
       expect(handlers.length).toBeGreaterThanOrEqual(3);
       expect(rawBindings, "the badge opened a channel of its own again").toBe(0);
-      const direct = handlers.filter((h) => !/^\(\)\s*=>\s*scheduleLoad\(\)$/.test(h));
-      expect(direct, "a realtime handler that loads directly skips the coalescing and the hidden-hold").toEqual([]);
-      expect(recovered).toEqual(handlers.map(() => "scheduleLoad"));
+      expect(handlers, "a realtime handler that refreshes directly skips the coalescing and the hidden-hold").toEqual(handlers.map(() => "schedule"));
+      expect(recovered).toEqual(handlers.map(() => "schedule"));
     });
 
-    it("scheduleLoad holds a wake-up while hidden and coalesces over a non-zero window", () => {
+    it("schedule holds a wake-up while hidden and coalesces over a non-zero window", () => {
       let body = "";
       visit(sf, (n) => {
-        if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === "scheduleLoad" && n.initializer) body = n.initializer.getText(sf);
+        if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === "schedule" && n.initializer) body = n.initializer.getText(sf);
       });
-      expect(body).toMatch(/if \(isHidden\(\)\) \{\s*dirtyWhileHidden = true;\s*return;/);
+      expect(body).toMatch(/^\(\) => \{\s*if \(hidden\(\)\) \{\s*dirtyWhileHidden = true;\s*return;/);
       expect(body).toMatch(/if \(timer\) return;/);
-      expect(body).toMatch(/setTimeout\([\s\S]*BADGE_REFRESH_DEBOUNCE_MS\)/);
+      expect(body).toMatch(/setTimeout\([\s\S]*TODO_REFRESH_DEBOUNCE_MS\)/);
       let debounce: number | null = null;
       visit(sf, (n) => {
-        if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === "BADGE_REFRESH_DEBOUNCE_MS" && n.initializer) debounce = numeric(sf, n.initializer);
+        if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === "TODO_REFRESH_DEBOUNCE_MS" && n.initializer) debounce = numeric(sf, n.initializer);
       });
       expect(debounce).toBeGreaterThanOrEqual(200);
     });
 
     /*
-     * BEHAVIOURAL, not source-text: a wake-up can start the 400 ms timer
-     * while the page is visible, then the tab is hidden before the timer
-     * fires. The source-text test above only pins that scheduleLoad checks
-     * isHidden() at SCHEDULE time — it says nothing about the timer callback
-     * itself, which is exactly where Q109 found the gap (loadCounts() ran
-     * unconditionally when the timer fired, even while hidden).
+     * BEHAVIOURAL (Q109): a wake-up can start the timer while the page is
+     * visible, then the tab is hidden before it fires. The refresh must
+     * re-check visibility at fire time and wait for the page to come back.
      */
-    it("re-checks visibility when the timer fires, not just when it was scheduled (Q109)", () => {
+    it("re-checks visibility when the timer fires, not just when it was scheduled (Q109)", async () => {
       vi.useFakeTimers();
       setVisibility("visible");
-      rig.applicationsReads = 0;
-      rig.offerReads = 0;
+      rig.coreReads = 0;
       rig.jobsHandler = null;
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client: qc }, children);
+      const user = { id: "q109-test-user" } as SupaUser;
+      const { unmount } = renderHook(() => useNeedsYouTodos(user, { live: true }), { wrapper });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10);
+      });
+      expect(rig.jobsHandler, "the jobs realtime handler was never captured").toBeTruthy();
+      // The two cores on mount: not the case under test.
+      expect(rig.coreReads).toBe(2);
+      rig.coreReads = 0;
 
-      const { unmount } = renderHook(() => useActivityBadgeCounts("q109-test-user"));
-      // Mount fires one immediate loadCounts() (openStore's own initial read) —
-      // not the case under test. Drain it before touching the counters below.
-      expect(rig.jobsHandler, "the jobs postgres_changes handler was never captured").toBeTruthy();
-      rig.applicationsReads = 0;
-      rig.offerReads = 0;
-
-      // A realtime wake-up arrives while the page is visible — starts the
-      // 400 ms debounce timer via scheduleLoad(), same as a live jobs UPDATE.
       act(() => rig.jobsHandler!());
-      // The tab is hidden before the timer fires.
       setVisibility("hidden");
-      act(() => {
-        vi.advanceTimersByTime(400);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
       });
+      expect(rig.coreReads, "the debounce timer refreshed while the page was hidden").toBe(0);
 
-      expect(
-        rig.applicationsReads,
-        "the debounce timer fired loadCounts() while the page was hidden — it must re-check " +
-          "isHidden() at fire time and defer, the same way scheduleLoad() does when the wake-up arrives",
-      ).toBe(0);
-      expect(rig.offerReads).toBe(0);
-
-      // Now the page becomes visible again — the deferred wake-up must run.
       setVisibility("visible");
-      act(() => {
+      await act(async () => {
         document.dispatchEvent(new Event("visibilitychange"));
+        await vi.advanceTimersByTimeAsync(10);
       });
-
-      expect(rig.applicationsReads).toBe(1);
-      expect(rig.offerReads).toBe(1);
+      expect(rig.coreReads, "the held wake-up never ran once the page was visible").toBe(2);
 
       unmount();
+      qc.clear();
       vi.useRealTimers();
     });
   });

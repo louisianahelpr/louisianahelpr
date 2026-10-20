@@ -12,6 +12,15 @@ import { hapticLight } from "@/lib/haptics";
 // the reachable equivalent.
 const REVEAL_AFTER_PX = 1200;
 
+// Hidden while the signed-out site footer is on screen (owner, 2026-10-20):
+// the button sits bottom-right, exactly over the footer's Follow icons at 375,
+// so a tap on Instagram scrolled the page up instead. At the footer the reader
+// is at the end of the page anyway. Footer renders only for signed-out visitors.
+function footerInView(): boolean {
+  const footer = document.querySelector("footer");
+  return !!footer && footer.getBoundingClientRect().top < window.innerHeight;
+}
+
 // Per-history-entry scroll offsets, keyed by react-router's `location.key`.
 // Module-level so it survives the AppShell remounting between routes (but
 // resets on a full reload, which matches browser-native scroll restoration).
@@ -126,7 +135,7 @@ const ScrollToTop = () => {
       // an entry left at the top came back mid-page (Q1312).
       if (currentKeyRef.current !== key) return;
       const pos = readPos();
-      setVisible(pos > REVEAL_AFTER_PX);
+      setVisible(pos > REVEAL_AFTER_PX && !footerInView());
       scrollPositions.set(key, pos);
     };
     onScroll();

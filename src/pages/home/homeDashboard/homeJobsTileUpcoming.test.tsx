@@ -26,7 +26,9 @@ vi.mock("@/hooks/useActivityData", () => ({
       ? { postedJobs: posted, pendingApplicantCounts: {}, loading: false }
       : { appliedApps: applied, loading: false },
 }));
-vi.mock("@/components/job-card/activityFilters", () => ({
+// Partial (TRAIN25): Coming up (comingUp.ts, builder1d) also reads the module's other exports (BUCKET_LABEL).
+vi.mock("@/components/job-card/activityFilters", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/job-card/activityFilters")>()),
   postedActivityBucket: (j: { bucket: string }) => j.bucket,
   appliedActivityBucket: (a: { bucket: string }) => a.bucket,
 }));

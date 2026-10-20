@@ -17,7 +17,6 @@
   "handBack": [
     "adhocBrightness  src/components/profile/SupportInline.tsx:453 <Link>  hover:brightness-[0.98]",
     "adhocBrightness  src/pages/user/AtAGlanceCard.tsx:108 <button>  hover:brightness-[0.98]",
-    "adhocTint  src/components/CompletionPrompts.tsx:308 <button>  hover:bg-accent",
     "adhocTint  src/components/ReportDialog.tsx:323 <button>  hover:bg-secondary/70",
     "adhocTint  src/components/ReportDialog.tsx:598 <button>  hover:bg-secondary/40",
     "adhocTint  src/components/SavedSearches.tsx:515 <button>  hover:bg-muted",
@@ -25,7 +24,6 @@
     "adhocTint  src/components/TimeRangeField.tsx:48 <button>  hover:bg-secondary/50",
     "adhocTint  src/pages/jobs/AppliedJobsTab.tsx:422 <button>  hover:bg-secondary/70",
     "adhocTint  src/components/job-card/JobCardMetaRow.tsx:290 <button>  hover:bg-[hsl(var(--olivewood)/0.12)]",
-    "adhocTint  src/pages/posts/PostedJobsTab.tsx:151 <button>  hover:bg-secondary/60",
     "adhocTint  src/pages/posts/postedJobs/DeclineApplicantSheet.tsx:87 <button>  hover:bg-secondary/70",
     "adhocTint  src/components/admin/AdminCredentialQueue.tsx:319 <Button>  hover:bg-destructive/10",
     "adhocTint  src/components/admin/AdminCredentialQueue.tsx:369 <Button>  hover:bg-destructive/10",

@@ -81,7 +81,7 @@ export function MineJobFace({
           to={`/jobs/${encodeURIComponent(jobId)}`}
           data-mine-face-open=""
           aria-label={`Open ${title}`}
-          className="flex items-start gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="flex items-start gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span
             className="h-14 w-14 shrink-0 overflow-hidden rounded-xl"

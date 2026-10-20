@@ -43,7 +43,8 @@ function visible(container: HTMLElement): string {
 describe("J2: a money field shows one dollar sign", () => {
   it("inventory: every CurrencyInput consumer in src is found", () => {
     const users = walk(SRC).filter((f) => /<CurrencyInput\b/.test(blankComments(readFileSync(f, "utf8"))));
-    expect(users.length).toBeGreaterThan(2);
+    // 2 since 2026-10-20: the Job done tip step (TipCostBreakdown) replaced the CompletionPrompts and TipDialog fields.
+    expect(users.length).toBeGreaterThan(1);
     expect(users.some((f) => f.endsWith("postjob/BudgetSection.tsx"))).toBe(true);
     // No consumer draws its own "$" next to the field (a second prefix).
     for (const f of users) {

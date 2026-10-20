@@ -8,6 +8,7 @@
  * @mutate src/components/whatNext/WhatNextSheet.tsx |         floor={!webDesktop} |         floor={false}
  * @mutate src/components/dashboard/ApplicationSentDialog.tsx |   const { takeHome } = useApplyTakeHome(job, platformFee); |   const takeHome = job.budget;
  * @mutate src/components/whatNext/WhatNextSheet.tsx |           event.preventDefault(); |
+ * @mutate src/components/whatNext/WhatNextSheet.tsx | className={`bg-premium-page focus:outline-none | className={`focus:outline-none
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
@@ -31,6 +32,9 @@ describe("board 77: what next after applying", () => {
     expect(steps[3].textContent).toContain("Do the job, Sat, Oct 31");
     // Floor sheet on phone (board 77 is a bottom sheet).
     expect(sheet.className.split(/\s+/)).toContain("sheet-floor");
+    // Opaque page surface, like the filter sheet: the glass default let the cards' controls
+    // behind it show through as ghost squares (lead review of b77, 2026-10-20).
+    expect(sheet.className.split(/\s+/)).toContain("bg-premium-page");
   });
 
   it("never prints an amount or a pronoun, and drops what it does not know", () => {

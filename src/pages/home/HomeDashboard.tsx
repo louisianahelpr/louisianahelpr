@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { GroupSection, GroupRow } from "@/components/sections/StatusBoxes";
@@ -55,6 +57,7 @@ function HomeDashboardScreen() {
   const { user, profile } = useCurrentUser();
   const summary = useHomeSummary(user);
   const money = useHomeMoney(user);
+  const queryClient = useQueryClient();
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
   const isWebDesktop = useIsWebDesktop();
@@ -222,11 +225,19 @@ function HomeDashboardScreen() {
                 Declutter pickups, shop orders), sorted by when. Each row is its section's icon in a tinted
                 circle, the title, and "<your side> · <when>". No price on a row (rust is money, and the
                 board shows none); the item it opens has the money. */}
+            {summary.upcoming.length === 0 && summary.upcomingFailed ? (
+              /* A failed read is not "Nothing booked yet" (spec v2 §1.5): the shared error card, with a retry
+                 of every read that failed on this screen. */
+              <ErrorState
+                variant="inline"
+                title="We couldn't load what's coming up."
+                body="Check your connection and try again."
+                onRetry={() => void queryClient.refetchQueries({ type: "active", predicate: (q) => q.state.status === "error" })}
+              />
+            ) : (
             <GroupSection title="Coming up">
               {summary.upcoming.length === 0 ? (
-                <p data-testid="coming-up-empty" className="px-4 py-4 text-ds-14 text-muted-foreground">
-                  {summary.upcomingFailed ? "We couldn't load what's coming up. Try again in a moment." : "Nothing booked yet."}
-                </p>
+                <p data-testid="coming-up-empty" className="px-4 py-4 text-ds-14 text-muted-foreground">Nothing booked yet.</p>
               ) : (
                 summary.upcoming.map((c, i) => {
                   const d = sectionDef(c.section);
@@ -269,6 +280,7 @@ function HomeDashboardScreen() {
                 })
               )}
             </GroupSection>
+            )}
           </div>
 
           <section data-home-side className="flex flex-col gap-2 min-w-0" aria-label="Your sections">

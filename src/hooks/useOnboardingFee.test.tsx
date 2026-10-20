@@ -9,7 +9,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
  * degrades to null (an unquoted fee is a gap, a wrong fee is a lie) but now
  * leaves a report.
  */
-// @mutate src/hooks/useOnboardingFee.ts | report(error, { severity: "warning", tags: { source: "useOnboardingFeeCents" } }); | void error;
+// @mutate src/hooks/useOnboardingFee.ts | if (res.error) report(res.error, { severity: "warning", tags: { source: "useOnboardingFeeCents" } }); | void res;
 
 const rpc = vi.fn();
 const reportMock = vi.fn();

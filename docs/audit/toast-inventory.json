@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 893,
-    "files": 222,
-    "rendering": 778,
-    "suppressedByPolicy": 115,
+    "calls": 896,
+    "files": 223,
+    "rendering": 780,
+    "suppressedByPolicy": 116,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 63,
-      "toast.error": 647,
+      "toast.error": 649,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 119,
+      "toast.success": 120,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 422,
+      "literal": 423,
       "template": 97,
-      "dynamic": 422,
+      "dynamic": 424,
       "jsx": 0
     }
   },
@@ -2505,7 +2505,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 88,
+      "line": 89,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2515,7 +2515,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 119,
+      "line": 120,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2525,7 +2525,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 123,
+      "line": 124,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2535,7 +2535,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 138,
+      "line": 139,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2545,7 +2545,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 140,
+      "line": 141,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2555,7 +2555,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 156,
+      "line": 157,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2575,7 +2575,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 183,
+      "line": 184,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2585,7 +2585,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 200,
+      "line": 201,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2595,7 +2595,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 202,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2605,7 +2605,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 217,
+      "line": 218,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2615,7 +2615,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 227,
+      "line": 228,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2625,7 +2625,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 242,
+      "line": 243,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2635,7 +2635,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 258,
+      "line": 259,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2645,7 +2645,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 301,
+      "line": 302,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2655,7 +2655,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 337,
+      "line": 338,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2665,7 +2665,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 349,
+      "line": 350,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2675,7 +2675,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 383,
+      "line": 384,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5585,6 +5585,46 @@
         "text": "${label} is coming soon"
       },
       "renders": true
+    },
+    {
+      "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
+      "line": 66,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"set_sms_consent\", res.error) ?? \"We couldn't save that. Try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
+      "line": 72,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't save that. Try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
+      "line": 77,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "optIn ? \"Text alerts are on.\" : \"Text alerts are off.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Text alerts are on."
+          },
+          {
+            "form": "literal",
+            "text": "Text alerts are off."
+          }
+        ]
+      },
+      "renders": false
     },
     {
       "file": "src/components/postjob/AiJobBuilder.tsx",

@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback, type CSSProperties } from "react";
 import { useDoneFloorActive } from "@/components/job-card/useDoneFloor";
 import { announceTransition } from "@/components/whatNext/HelperDoneWhatNext";
+import { TRANSITION_TOAST } from "@/components/job-card/trackerTransitionCopy";
+import { takeHelperStepRequest } from "@/components/job-card/helperStepRequest";
 import { useStepTooltip } from "@/hooks/useStepTooltip";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
@@ -99,25 +101,6 @@ const STATUSES: TrackerStep[] = [
   { key: "working", label: "Working", action: "Start Working", icon: Wrench, color: "text-primary" },
   { key: "done", label: "Done", action: "Mark Job Complete", icon: PartyPopper, color: "text-primary" },
 ];
-
-/**
- * What each completed transition tells the helper, and (because these events
- * are the poster's only signal that anything happened) what it tells them the
- * POSTER now knows. Every transition used to fire haptics and nothing else —
- * on web, where there are no haptics, a successful tap produced no feedback of
- * any kind. `arrived` has no entry: that path speaks for itself, through the
- * RPC's own verdict (`arrivalVerdictMessage`) — the one message that knows
- * whether the location confirmed anything, and the one that has to name the
- * poster's tap as what comes next. A generic line here would talk over it.
- */
-const TRANSITION_TOAST: Record<string, string> = {
-  confirmed: "You're marked as accepted.",
-  on_the_way: "The person who posted this job knows you're on the way.",
-  working: "The person who posted this job knows work has started.",
-  // Interpolated, never restated as a literal — see escrowTiming.ts and the
-  // copy-parity guard in src/lib/escrowTiming.copyParity.test.ts.
-  done: `Payout requested. The person who posted this job has ${COPY_AUTO_RELEASE_HOURS} hours to approve before your payment releases automatically.`,
-};
 
 /**
  * The two steps that happen BEFORE anyone is offered the job. A poster's own
@@ -2555,6 +2538,10 @@ export function JobTracking({
          * two different kinds of object, which is the screenshot the owner sent
          * twice. `JobStepPrimaryButton` is that one object; nothing about the
          * gates, the busy state or the confirm dialog moves. */
+        const runNext = () => { if (isDoneStep) setConfirmDoneOpen(true); else void updateStatus(nextStatus.key); };
+        const ctaDisabled = updating || isLocked || needsArrival || needsBeforePhoto || needsProof || doneTooEarly;
+        // Boards 62/64: the Working card's face asked for THIS step (helperStepRequest.ts); press it once, gates intact.
+        if (takeHelperStepRequest(jobId, nextStatus.key) && !ctaDisabled) queueMicrotask(runNext);
         const ctaEl = (
           <JobStepPrimaryButton
             icon={nextStatus.icon}
@@ -2564,16 +2551,13 @@ export function JobTracking({
             // Done asks first — see the dialog below. Every other step is a
             // reversible statement about where the helper is; this one moves
             // money and cannot be taken back from here.
-            onClick={() => {
-              if (isDoneStep) setConfirmDoneOpen(true);
-              else void updateStatus(nextStatus.key);
-            }}
+            onClick={runNext}
             // SAME OBJECT, SAME DISABLED STATE (jobRowControlSameness). The
             // before-photo gate adds a reason, not a new kind of control: a
             // control that LOOKED pressable and then failed on tap with a toast
             // is the shape the comment above `needsProof` records as the worse
             // half to get wrong, and it is not coming back for this gate.
-            disabled={updating || isLocked || needsArrival || needsBeforePhoto || needsProof || doneTooEarly}
+            disabled={ctaDisabled}
           />
         );
 

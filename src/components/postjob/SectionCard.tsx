@@ -1,23 +1,22 @@
 import type { LucideIcon } from "lucide-react";
 
 interface SectionCardProps {
-  /** 1-based chapter number shown in the corner marker. */
-  stepNumber: number;
-  /** Bodoni display title — the chapter name. */
+  /** Unused since the five-screen flow (kept optional for callers). */
+  stepNumber?: number;
+  /** The section's accessible name (aria-label). */
   title: string;
-  /** Section icon, rendered inside the chapter marker. */
-  icon: LucideIcon;
-  /** True once the section's required fields are satisfied. */
-  complete: boolean;
+  /** Unused since the five-screen flow (kept optional for callers). */
+  icon?: LucideIcon;
+  /** Unused since the five-screen flow (kept optional for callers). */
+  complete?: boolean;
   children: React.ReactNode;
 }
 
 /**
- * SectionCard — the shared "chapter" container for the three Post-a-Task
- * sections (Details / Logistics / Budget). Gives every section the same
- * contained panel, the same internal padding, and the same editorial
- * header: a numbered chapter marker + Bodoni title. This is what turns
- * the wall of fields into three unmistakable chapters.
+ * SectionCard: the plain card each Post a Job section sits in. Since the
+ * five-screen flow (boards 23/44/3/45) each screen's Bodoni question names
+ * the section, so the old numbered chapter header is gone; `title` is the
+ * card's accessible name. stepNumber / icon / complete are no longer drawn.
  */
 export function SectionCard({ title, children }: SectionCardProps) {
   // Post a Job is one question per screen now (boards 23, 44, 3, 45, 46): the

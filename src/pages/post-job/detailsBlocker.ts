@@ -20,7 +20,7 @@ export function detailsBlocker(f: { title: string; description: string; category
   // The DB refuses a description over 1000 (jobs_description_length, Q782);
   // a prefill (Repost, AI builder, draft) can carry one past the textarea's
   // maxLength, so name it here instead of failing at checkout.
-  if (f.description.length > DESCRIPTION_MAX) return "Shorten the Description to Continue";
+  if (f.description.length > DESCRIPTION_MAX) return "Shorten the description to continue";
   if (!f.category) return "Pick a category to continue";
   if (hasUnfilledPlaceholders(f.description)) return "Replace the [placeholders] to continue";
   if (contactLeakFieldError(f.title, "job title") || contactLeakFieldError(f.description, "job description"))

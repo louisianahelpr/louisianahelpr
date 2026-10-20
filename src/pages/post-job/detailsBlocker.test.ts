@@ -13,7 +13,7 @@ const CASES: [string, Partial<typeof ok>, RegExp][] = [
   ["no title", { title: "  " }, /title/],
   ["over-long title", { title: "x".repeat(TITLE_MAX + 1) }, /Shorten the title/],
   ["no description", { description: "" }, /description/],
-  ["over-long description", { description: "x".repeat(DESCRIPTION_MAX + 1) }, /Shorten the Description/],
+  ["over-long description", { description: "x".repeat(DESCRIPTION_MAX + 1) }, /Shorten the description/],
   ["no category", { category: "" }, /category/],
   ["unfilled placeholder", { description: "Clean the [room]" }, /placeholders/],
   ["phone number in description", { description: "Call me at 225-555-0142 about it" }, /contact details/],
@@ -38,4 +38,4 @@ describe("detailsBlocker names the real reason (Q353)", () => {
 });
 
 // @mutate src/pages/post-job/detailsBlocker.ts | if (f.title.length > TITLE_MAX) return "Shorten the title to continue"; | void TITLE_MAX;
-// @mutate src/pages/post-job/detailsBlocker.ts | if (f.description.length > DESCRIPTION_MAX) return "Shorten the Description to Continue"; | void DESCRIPTION_MAX;
+// @mutate src/pages/post-job/detailsBlocker.ts | if (f.description.length > DESCRIPTION_MAX) return "Shorten the description to continue"; | void DESCRIPTION_MAX;

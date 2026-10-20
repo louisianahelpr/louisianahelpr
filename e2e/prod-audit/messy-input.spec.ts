@@ -473,7 +473,12 @@ if (legHas("targeted")) test.describe("targeted rules", () => {
   scoped("post-job: whitespace-only title cannot advance; price 0, negative, decimal and 1e9 are refused before checkout", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "post-job")!);
     const writes = watchWrites(page, /\/rest\/v1\/(jobs|rpc\/.*job)|functions\/v1\/.*(checkout|job)/);
-    const title = page.locator(TEXTLIKE).filter({ visible: true }).first();
+    // Five screens (boards 23/44/3/45): pick a category on screen 1 to reach
+    // the title on screen 2; the category search box is not the title.
+    await page.getByRole("button", { name: "Cleaning", exact: true }).click();
+    await page.getByRole("button", { name: /^Continue with/ }).click();
+    const title = page.getByRole("textbox", { name: /job title/i });
+    await expect(title, "screen 2 (title) never opened").toBeVisible({ timeout: 20_000 });
     await title.fill("      ");
     await page.getByRole("button", { name: /^(continue|next)$/i }).last().click().catch(() => {});
     await page.waitForTimeout(500);
@@ -671,7 +676,8 @@ test.describe("explore dialog-gated forms from real records", () => {
       if (await desc.isVisible().catch(() => false)) await desc.fill("Messy-input explore. Never posted.").catch(() => {});
       const cat = page.getByRole("button", { name: /cleaning|handyman|moving|yard|pet|errand/i }).filter({ visible: true }).first();
       if (await cat.isVisible().catch(() => false)) await cat.click().catch(() => {});
-      const price = page.getByRole("spinbutton").filter({ visible: true }).first();
+      // The budget is a CurrencyInput textbox (Q132), on screen 3 of 5.
+      const price = page.getByRole("textbox", { name: /job budget in dollars/i }).filter({ visible: true }).first();
       if (await price.isVisible().catch(() => false)) await price.fill("40").catch(() => {});
       const city = page.getByRole("combobox", { name: /city|where/i }).or(page.getByPlaceholder(/city/i)).first();
       if (await city.isVisible().catch(() => false)) {
@@ -679,7 +685,8 @@ test.describe("explore dialog-gated forms from real records", () => {
         await page.getByRole("option").first().click({ timeout: 3_000 }).catch(() => {});
       }
       const pay = page.getByRole("button", { name: /^(pay|checkout|continue to payment|review & pay|post job)/i }).filter({ visible: true }).last();
-      const next = page.getByRole("button", { name: /^(continue|next)$/i }).filter({ visible: true }).last();
+      // Screen 1's button names the category ("Continue with Cleaning", board 23).
+      const next = page.getByRole("button", { name: /^(continue|next)( with .+)?$/i }).filter({ visible: true }).last();
       if ((await pay.count()) && !(await next.count())) {
         info.annotations.push({ type: "note", description: `stopped at the pay step after ${step} continues (never pressed)` });
         break;

@@ -68,11 +68,14 @@ export function FormStep({ form }: FormStepProps) {
     ? !(form.detailsComplete && form.logisticsComplete) || underAge || quoteSending
     : atOpenJobLimit || !formReady || underAge;
 
+  // Scanned once per render: the screen-2 gate, the back-to-fix button and
+  // the submit ladder all read it.
+  const detailsBlock = detailsBlocker(form);
   // Contextual label — names the first unfinished *field* (not just the
   // section) so the poster knows exactly what's blocking the button.
   let submitLabel = "Review & pay";
   if (!form.detailsComplete) {
-    submitLabel = detailsBlocker(form) ?? submitLabel;
+    submitLabel = detailsBlock ?? submitLabel;
   } else if (!form.logisticsComplete) {
     if (!form.streetAddress.trim() || !form.city.trim() || !form.addrState.trim() || !form.zipCode.trim())
       submitLabel = "Add the address to continue";
@@ -119,9 +122,8 @@ export function FormStep({ form }: FormStepProps) {
     pageReady = !!form.category;
     pageLabel = form.category ? `Continue with ${sentenceCaseLabel(jobCategoryLabel(form.category))}` : "Pick a category to continue";
   } else if (page === 2) {
-    const blocker = detailsBlocker(form);
-    pageReady = blocker === null;
-    pageLabel = blocker ?? "Continue";
+    pageReady = detailsBlock === null;
+    pageLabel = detailsBlock ?? "Continue";
   } else if (page === 3) {
     pageReady = askingQuotes || form.budgetComplete;
     pageLabel = pageReady ? "Continue" : "Set a budget to continue";
@@ -138,14 +140,14 @@ export function FormStep({ form }: FormStepProps) {
     ? null
     : !form.category
       ? { page: 1, label: "Pick a category to continue" }
-      : detailsBlocker(form)
-        ? { page: 2, label: detailsBlocker(form) as string }
+      : detailsBlock
+        ? { page: 2, label: detailsBlock }
         : !askingQuotes && !form.budgetComplete
-          ? { page: 3, label: "Set a price to continue" }
+          ? { page: 3, label: "Set a budget to continue" }
           : null;
 
   return (
-    <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl space-y-section pb-safe-nav">
+    <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl space-y-section">
       {form.offerToHelperId && (
         <DirectOfferBanner
           offerToHelperName={form.offerToHelperName}
@@ -171,6 +173,13 @@ export function FormStep({ form }: FormStepProps) {
           identity on their own. */}
 
       <form
+        onKeyDown={(e) => {
+          // Screens 1-3 render no submit button, so a browser never submits
+          // on Enter there: move on by hand (never from a textarea).
+          if (lastPage || e.key !== "Enter" || (e.target as HTMLElement).tagName !== "INPUT") return;
+          e.preventDefault();
+          if (pageReady) setPage?.(page + 1);
+        }}
         onSubmit={(e) => {
           if (!lastPage) {
             // Enter in a field on screens 1-3 moves on, never submits.
@@ -328,8 +337,10 @@ export function FormStep({ form }: FormStepProps) {
             required field is in, then becomes "Review & pay". */}
         {/* Sticky action bar (boards 23/44/3/45): rides above the floating
             bottom nav while the screen scrolls, and settles at the end of
-            the form. The root's pb-safe-nav gives the last field room. */}
-        <div className="sticky bottom-safe-nav z-10 bg-background pt-3 pb-2">
+            the form. AppPage's own pb-safe-nav gives the last field room;
+            bg-premium-page is AppPage's surface, so the bar blends in. The
+            column is 2xl (board 167: a flow step centred, about 640px). */}
+        <div className="sticky bottom-safe-nav z-10 bg-premium-page pt-3 pb-2">
           {backTo && !atOpenJobLimit && !underAge ? (
             <Button
               variant="primary"

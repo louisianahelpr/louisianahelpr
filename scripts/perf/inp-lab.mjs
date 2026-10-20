@@ -152,14 +152,21 @@ export const SCENARIOS = {
     arrive: "button[aria-label='Post a new job']:visible, button:has-text('Post a Job'):visible",
     steps: [
       { tap: "button:has-text('Start Fresh')" },
-      { tap: "button[aria-label='Cleaning']" },
+      // Five screens (boards 23/44/3/45): category, details, price, when and where.
+      { tap: "button[aria-pressed]:text-is('Cleaning')" },
+      { tap: "button:has-text('Continue with')" },
       { type: "#title", text: "Rake the front yard" },
       { type: "#description", text: "Leaves on the lawn and the driveway, bags are in the shed." },
       // Three phone photos, and the taps that land while they are prepared.
       { upload: "input[type=file][aria-label='Add a photo (optional)']", photos: 3 },
+      { wait: 1500 },
+      { tap: "button:text-is('Continue')" },
+      { type: "#budget", text: "60" },
+      { tap: "button[aria-label='Raise the budget by $5']" },
+      { tap: "button[aria-label='Lower the budget by $5']" },
+      { tap: "button:text-is('Continue')" },
       { tap: "button[role=radio]:has-text('Repeats')", now: true },
       { tap: "button[role=radio]:has-text('One-Time')", now: true },
-      { wait: 1500 },
       { type: "#streetAddress", text: "222 Saint Louis St" },
       { tap: "[role=option] >> nth=0" },
       { type: "#zipCode", text: "70802", clear: true },
@@ -167,9 +174,6 @@ export const SCENARIOS = {
       { tap: "button[aria-label='Go to the Next Month']" },
       { tap: "button[aria-label*=' 15th, ']" },
       { type: "input[aria-label='Start time']", text: "1030A" },
-      { type: "#budget", text: "60" },
-      { tap: "button:has-text('$50')" },
-      { tap: "button:has-text('$75')" },
       { tap: "#flexible" },
       { tap: "#flexible" },
       // Review: the form's own submit renders the checkout step in place (no

@@ -124,7 +124,7 @@ export function BudgetSection({
               type="button"
               aria-label="Lower the budget by $5"
               disabled={budgetNum <= MIN_JOB_BUDGET_DOLLARS}
-              onClick={() => setBudget(String(Math.max(MIN_JOB_BUDGET_DOLLARS, Math.ceil(budgetNum / BUDGET_STEP) * BUDGET_STEP - BUDGET_STEP)))}
+              onClick={() => setBudget(String(Math.max(MIN_JOB_BUDGET_DOLLARS, Math.min(MAX_JOB_BUDGET_DOLLARS, Math.ceil(budgetNum / BUDGET_STEP) * BUDGET_STEP - BUDGET_STEP))))}
               className="flex h-12 w-12 items-center justify-center rounded-full border border-input bg-transparent text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <Minus className="h-5 w-5" aria-hidden />

@@ -501,6 +501,8 @@ export function usePostJobForm() {
       // lives here, every screen stays mounted).
       setFormPage((p) => p - 1);
     } else if (step === "checkout") {
+      // Back from screen 5 (checkout) is screen 4, When and where.
+      setFormPage(4);
       setStep("form");
       // Scroll to top so the user lands on Details (not mid-form) to edit.
       // RAF lets the form re-render before scroll fires, so the target
@@ -511,6 +513,7 @@ export function usePostJobForm() {
     } else if (step === "form" && !skipEntry) {
       // Back out of the form to the entry landing — unless the form was
       // reached via a deep link that has no entry screen behind it.
+      setFormPage(1);
       setStep("entry");
       requestAnimationFrame(() => {
         window.scrollTo({ top: 0, behavior: "smooth" });

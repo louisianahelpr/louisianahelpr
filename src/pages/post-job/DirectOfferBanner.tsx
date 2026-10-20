@@ -69,7 +69,7 @@ export function DirectOfferBanner({
           htmlFor="direct-offer-window"
           className="text-ds-11 text-muted-foreground shrink-0"
         >
-          First Look For
+          First look for
         </Label>
         <Select
           value={String(responseHours)}

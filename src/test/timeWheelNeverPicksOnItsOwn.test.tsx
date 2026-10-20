@@ -3,7 +3,7 @@
  * 390x844, the iPhone's engine): with no Start Time chosen, the Order Summary
  * read "Wed, Oct 14 · 12:00 AM · Flexible" in WebKit and "Wed, Oct 14 ·
  * Flexible" in Chromium. Without Flexible, WebKit's submit button skipped
- * "Pick a Start Time to Continue" and went straight to "Set a Budget".
+ * "Pick a start time to continue" and went straight to "Set a Budget".
  * Traced: WebKit fires a trusted scroll event on each freshly mounted snap
  * wheel (Hour and Minute, scrollTop 1), and the wheel committed its resting
  * rows (12, 00) as the poster's choice: midnight.

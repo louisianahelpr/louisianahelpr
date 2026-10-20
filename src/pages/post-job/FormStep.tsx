@@ -70,26 +70,26 @@ export function FormStep({ form }: FormStepProps) {
 
   // Contextual label — names the first unfinished *field* (not just the
   // section) so the poster knows exactly what's blocking the button.
-  let submitLabel = "Review & Pay";
+  let submitLabel = "Review & pay";
   if (!form.detailsComplete) {
     submitLabel = detailsBlocker(form) ?? submitLabel;
   } else if (!form.logisticsComplete) {
     if (!form.streetAddress.trim() || !form.city.trim() || !form.addrState.trim() || !form.zipCode.trim())
-      submitLabel = "Add the Address to Continue";
-    else if (!form.dateNeeded) submitLabel = "Pick a Date to Continue";
+      submitLabel = "Add the address to continue";
+    else if (!form.dateNeeded) submitLabel = "Pick a date to continue";
     // Only ask for a time when the poster has not said they don't have one.
     // Ticking "Flexible Schedule" IS the answer to this question, so keeping
     // the label here left the CTA demanding a field the form no longer wants.
-    else if (!form.startTime && !form.isFlexibleSchedule) submitLabel = "Pick a Start Time to Continue";
+    else if (!form.startTime && !form.isFlexibleSchedule) submitLabel = "Pick a start time to continue";
     // The schedule is filled in but has already gone by. This branch is why
     // `scheduleInPast` is surfaced separately from `logisticsComplete`: the
-    // button used to read "Review & Pay · $72" in exactly this state and then
+    // button used to read "Review & pay · $72" in exactly this state and then
     // refuse the tap with a toast the poster could not see from down here.
-    else submitLabel = "That Start Time Has Passed";
+    else submitLabel = "That start time has passed";
   } else if (askingQuotes) {
-    submitLabel = quoteSending ? "Sending…" : "Ask for Quotes";
+    submitLabel = quoteSending ? "Sending…" : "Ask for quotes";
   } else if (!form.budgetComplete) {
-    submitLabel = "Set a Budget to Continue";
+    submitLabel = "Set a budget to continue";
   }
 
   // ONE QUESTION PER SCREEN (boards 23, 44, 3, 45, 46): What, Details, Price,
@@ -124,9 +124,25 @@ export function FormStep({ form }: FormStepProps) {
     pageLabel = blocker ?? "Continue";
   } else if (page === 3) {
     pageReady = askingQuotes || form.budgetComplete;
-    pageLabel = pageReady ? "Continue" : "Set a Budget to Continue";
+    pageLabel = pageReady ? "Continue" : "Set a budget to continue";
   }
+  // The open-job cap and the age gate stop the flow at screen 1, as the
+  // one-page form's button did (their notices sit above every screen).
+  if (atOpenJobLimit || underAge) pageReady = false;
   const lastPage = page >= 4;
+  // Screen 4 can make an EARLIER screen incomplete: turning on Repeats or
+  // Group switches "Get quotes" back to a set price, whose field is on screen
+  // 3. The button then takes the poster to that screen instead of sitting
+  // disabled over a field they cannot see.
+  const backTo = !lastPage
+    ? null
+    : !form.category
+      ? { page: 1, label: "Pick a category to continue" }
+      : detailsBlocker(form)
+        ? { page: 2, label: detailsBlocker(form) as string }
+        : !askingQuotes && !form.budgetComplete
+          ? { page: 3, label: "Set a price to continue" }
+          : null;
 
   return (
     <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl space-y-section pb-safe-nav">
@@ -160,6 +176,11 @@ export function FormStep({ form }: FormStepProps) {
             // Enter in a field on screens 1-3 moves on, never submits.
             e.preventDefault();
             if (pageReady) setPage?.(page + 1);
+            return;
+          }
+          if (backTo) {
+            e.preventDefault();
+            setPage?.(backTo.page);
             return;
           }
           if (!askingQuotes) return form.handleReview(e);
@@ -304,12 +325,22 @@ export function FormStep({ form }: FormStepProps) {
             the last thing they reach. Bottom padding clears the floating
             MobileNav dock so the button is never tucked under it. The label
             is contextual: it names the next unfinished chapter until every
-            required field is in, then becomes "Review & Pay". */}
+            required field is in, then becomes "Review & pay". */}
         {/* Sticky action bar (boards 23/44/3/45): rides above the floating
             bottom nav while the screen scrolls, and settles at the end of
             the form. The root's pb-safe-nav gives the last field room. */}
         <div className="sticky bottom-safe-nav z-10 bg-background pt-3 pb-2">
-          {!lastPage ? (
+          {backTo && !atOpenJobLimit && !underAge ? (
+            <Button
+              variant="primary"
+              type="button"
+              className="w-full rounded-full text-ds-16"
+              size="lg"
+              onClick={() => setPage?.(backTo.page)}
+            >
+              <span className="min-w-0 whitespace-normal text-center leading-tight">{backTo.label}</span>
+            </Button>
+          ) : !lastPage ? (
             <Button
               variant="primary"
               type="button"

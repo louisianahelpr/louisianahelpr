@@ -26,7 +26,16 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
       {/* Screen 5 of 5 (board 46). The card is charged when the job posts
           (create-payment, automatic capture; design-b handoff), so this
           screen says pay, never "nothing is charged now". */}
-      <PostJobStepHeader step={5} question="Look good?" helper="Check your job, then pay to post it. We hold the money until the job is done." />
+      <PostJobStepHeader
+        step={5}
+        question="Look good?"
+        helper={
+          // A post a gift card covers in full charges $0: no "pay" line then.
+          form.totalCharge > 0
+            ? "Check your job, then pay to post it. We hold the money until the job is done."
+            : "Check your job, then post it."
+        }
+      />
       {/* The PostingQualityMeter ("Post quality: Good 73%" + a checklist) used
           to sit here. Removed on owner instruction: this is the pay screen, and
           grading the post at the moment of payment asks the poster to go back

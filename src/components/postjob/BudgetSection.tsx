@@ -77,7 +77,7 @@ export function BudgetSection({
   const budgetNum = parseFloat(budget) || 0;
 
   // Below the posting minimum. Owner, 2026-10-01: typed $5.00 and the button
-  // stayed "Set a Budget to Continue" with nothing saying why — budgetComplete
+  // stayed "Set a budget to continue" with nothing saying why — budgetComplete
   // needs MIN_JOB_BUDGET_DOLLARS and no line on the form named it. Said here,
   // in place of the lowball hint (a budget that cannot be posted at all is the
   // stronger message, and two amber boxes would say the same thing twice).
@@ -265,7 +265,7 @@ export function BudgetSection({
                 pushes the text 4px ABOVE the switch's centre line. The W-9 row in
                 pages/post-job/FormStep.tsx sidesteps this by using a plain <p>; we
                 keep the real <Label> for the htmlFor association and drop the margin. */}
-            <Label htmlFor="urgent" className="mb-0 cursor-pointer">Mark as Urgent</Label>
+            <Label htmlFor="urgent" className="mb-0 cursor-pointer">Mark as urgent</Label>
           </div>
           <Switch id="urgent" checked={isUrgent} onCheckedChange={setIsUrgent} />
         </div>
@@ -274,7 +274,7 @@ export function BudgetSection({
             <p className="text-ds-11 text-muted-foreground">
               ⚡ For jobs that need doing right away. Nearby Helprs are notified the moment you post, and the Helpr who takes it gets all of your bonus — no platform fee, and its small card fee is added on top at checkout. (To reach more Helprs over time, Boost the post after publishing instead.)
             </p>
-            <Label className="text-ds-11">Urgent Bonus ({formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} Minimum, {formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)} Maximum)</Label>
+            <Label className="text-ds-11">Urgent bonus ({formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum, {formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)} maximum)</Label>
             <div className="flex flex-wrap gap-2">
               {["5", "10", "15", "20"].map((amt) => (
                 <button
@@ -306,7 +306,7 @@ export function BudgetSection({
             {customUrgentFee && (
               <div className="flex items-center gap-2 mt-1">
                 <Label htmlFor="custom-urgent-fee" className="text-ds-11 font-sans text-muted-foreground shrink-0">
-                  Custom Bonus
+                  Custom bonus
                 </Label>
                 <Input
                   id="custom-urgent-fee"

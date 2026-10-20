@@ -153,7 +153,7 @@ describe("journeys reach a job-card chip parked in the More overflow", () => {
     expect(lookupMatches('"Message Helpr"', "Message Helpr")).toBe(true);
     expect(lookupMatches('"message helpr"', "Message Helpr")).toBe(true);
     expect(lookupMatches("/^No-Show/", "No-Show — report that the Helpr never turned up")).toBe(true);
-    expect(lookupMatches("/Review & Pay/", "Reviewed")).toBe(false);
+    expect(lookupMatches("/Review & pay/", "Reviewed")).toBe(false);
     expect(lookupMatches("name", "Reviewed")).toBe(false);
   });
 });

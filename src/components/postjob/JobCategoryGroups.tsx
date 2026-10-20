@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { SuggestCategory } from "@/components/SuggestCategory";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
@@ -26,6 +26,12 @@ const CHIP_OFF = "bg-transparent border border-input text-foreground";
 export function JobCategoryGroups({ category, setCategory }: Props) {
   const [openGroup, setOpenGroup] = useState<JobCategoryGroupId>(() => jobCategoryGroupOf(category) ?? "home");
   const [query, setQuery] = useState("");
+  // A category can arrive after mount (a draft, a repost, a haul-away or
+  // maintenance prefill): open its group so the picked chip is on screen.
+  useEffect(() => {
+    const g = jobCategoryGroupOf(category);
+    if (g) setOpenGroup(g);
+  }, [category]);
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();

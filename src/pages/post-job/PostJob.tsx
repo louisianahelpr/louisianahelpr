@@ -37,7 +37,7 @@ const PostJob = () => {
   // Each step opens at its TOP (owner, 2026-10-08: "order summary page needs
   // to open at the top of the page, rn it opens at the bottom"). The steps
   // share one route, so ScrollToTop never fires between them, and the shell's
-  // scroller kept the form's offset: Review & Pay sits at the form's foot, so
+  // scroller kept the form's offset: Review & pay sits at the form's foot, so
   // Order Summary opened scrolled to its own bottom.
   // The form's four screens (formPage) share the "form" step, so a screen
   // change resets the scroll too.

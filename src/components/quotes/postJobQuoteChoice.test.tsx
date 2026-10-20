@@ -6,8 +6,8 @@
  * sections are stubbed (their own tests cover them); this pins the choice:
  * shown only with the 'quotes' switch on and only for a one-time job with no
  * direct offer, "Get quotes" swaps the budget for the 24 h / 48 h / 3 days
- * window (48 h default), and "Ask for Quotes" sends the form's details to
- * create_quote_request, never the Review & Pay path.
+ * window (48 h default), and "Ask for quotes" sends the form's details to
+ * create_quote_request, never the Review & pay path.
  *
  * @mutate src/pages/post-job/FormStep.tsx |   const quotesShape = !form.offerToHelperId && !form.isRecurring && !form.isGroupJob; |   const quotesShape = !form.offerToHelperId;
  *
@@ -85,7 +85,7 @@ function show(f: never) {
   );
 }
 
-/** Screen 3 -> screen 4, where the job is sent (Review & Pay or Ask for Quotes). */
+/** Screen 3 -> screen 4, where the job is sent (Review & pay or Ask for quotes). */
 function toScreen4() {
   fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 }
@@ -118,14 +118,14 @@ describe("Post a Job: Set a price or Get quotes", () => {
     fireEvent.click(soon);
     // Said in the line under the pills (toast.info is silenced app-wide by src/lib/toastPolicy.ts).
     expect(screen.getByText("Getting quotes from local pros is coming soon. For now, set your price.")).toBeInTheDocument();
-    // Still Set a price: the budget and Review & Pay, never the quote window or its RPC.
+    // Still Set a price: the budget and Review & pay, never the quote window or its RPC.
     expect(screen.getByRole("radio", { name: "Set a price" })).toHaveAttribute("aria-checked", "true");
     expect(soon).toHaveAttribute("aria-checked", "false");
     expect(screen.getByText("Budget section")).toBeInTheDocument();
     expect(screen.queryByRole("radio", { name: "48 hours" })).toBeNull();
     toScreen4();
-    expect(screen.queryByRole("button", { name: /Ask for Quotes/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Review & Pay/ }));
+    expect(screen.queryByRole("button", { name: /Ask for quotes/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Review & pay/ }));
     await waitFor(() => expect(handleReview).toHaveBeenCalled());
     expect(state.calls.filter((c) => /quote/i.test(c.fn))).toEqual([]);
   });
@@ -164,14 +164,14 @@ describe("Post a Job: Set a price or Get quotes", () => {
     }
   });
 
-  it("Get quotes swaps the budget for the window (48 h default) and asks for quotes, never Review & Pay", async () => {
+  it("Get quotes swaps the budget for the window (48 h default) and asks for quotes, never Review & pay", async () => {
     show(form());
     fireEvent.click(screen.getByRole("radio", { name: "Get quotes" }));
     expect(screen.queryByText("Budget section")).toBeNull();
     expect(screen.getByRole("radio", { name: "48 hours" })).toHaveAttribute("aria-checked", "true");
     fireEvent.click(screen.getByRole("radio", { name: "3 days" }));
     toScreen4();
-    fireEvent.click(screen.getByRole("button", { name: /Ask for Quotes/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Ask for quotes/ }));
     await waitFor(() => expect(state.calls.some((c) => c.fn === "create_quote_request")).toBe(true));
     expect(handleReview).not.toHaveBeenCalled();
     expect(state.calls.find((c) => c.fn === "create_quote_request")?.args).toMatchObject({

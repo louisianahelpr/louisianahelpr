@@ -43,7 +43,7 @@ export function PhotoProofToggle({
         >
           <Camera className="w-4 h-4 text-primary shrink-0" />
           <span className="text-ds-13 font-semibold text-foreground">
-            Require Before &amp; After Photos
+            Require before &amp; after photos
           </span>
         </label>
         <Switch

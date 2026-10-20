@@ -86,7 +86,7 @@ export async function fillJobDetails(page: Page, title: string, photoPath?: stri
 
 /**
  * Screen 4 of 5 (board 45): address, a parish-less ZIP and the date/time.
- * Returns the Review & Pay button once it is enabled. ZIP is required, and a
+ * Returns the Review & pay button once it is enabled. ZIP is required, and a
  * Louisiana ZIP derives a parish, which fires the helper fan-out. 99999
  * resolves to no parish (get_parish_for_zip -> null), so the job is posted
  * with parish null, the same guard prod-lifecycle uses.
@@ -101,8 +101,8 @@ export async function fillLogistics(page: Page, slot: Slot, allowReport: (messag
   await page.getByRole("textbox", { name: "ZIP code" }).fill("99999");
   await pickCalendarDay(page, slot.isoDay, { inline: /Date Needed/ });
   await pickStartTime(page, slot);
-  const review = page.getByRole("button", { name: /Review & Pay/ });
-  await expect(review, "the submit button never became Review & Pay").toBeEnabled({ timeout: 20_000 });
+  const review = page.getByRole("button", { name: /Review & pay/ });
+  await expect(review, "the submit button never became Review & pay").toBeEnabled({ timeout: 20_000 });
   return review;
 }
 

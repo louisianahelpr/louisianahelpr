@@ -1,25 +1,26 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { SECTIONS, sectionByKey } from "@/components/sections/sectionsConfig";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useFeature } from "@/hooks/useFeature";
 import type { Conversation } from "@/components/messages/types";
 import {
-  coerceMessageSection,
+  coerceInboxFilter,
   messageSectionTabs,
   SECTION_INBOX_EMPTY,
   threadSection,
-  threadsForSection,
+  threadsForFilter,
+  type InboxFilter,
 } from "@/components/messages/messageSections";
 
 /**
- * Messages' section tabs (owner, 2026-10-19: "one screen with section tabs
- * (Jobs, Declutter, Shops, Homes), never mixed"). The tab lives in `?section=`
- * so a link can open a section's inbox; Jobs when absent. The tabs follow the
- * member's Customize order and hidden sections (see messageSectionTabs for the
- * one exception). Returns the strip, the tab's own threads, and the empty state
- * a tab with no threads yet shows.
+ * Messages = ONE inbox (board 13, owner 2026-10-20; it replaced the 10-19
+ * "never mixed" tabs): chips All / Unread · n / Jobs / Declutter / Shops /
+ * Homes over one list. The chip lives in `?section=` (all when absent,
+ * `unread`, or a section key) so a link can open a section's threads. Section
+ * chips follow the member's Customize order and hidden sections (see
+ * messageSectionTabs for the one exception). Returns the chip row, the
+ * chip's threads, and the empty state a section with no threads yet shows.
  */
 export function useMessageSections(conversations: Conversation[], allConversations: Conversation[] | undefined) {
   const [params, setParams] = useSearchParams();
@@ -33,14 +34,14 @@ export function useMessageSections(conversations: Conversation[], allConversatio
 
   const jobThreads = useMemo(() => conversations.filter((c) => threadSection(c) === "jobs").length, [conversations]);
   const tabs = messageSectionTabs(visible.map((s) => s.key), prefs.order, jobThreads);
-  const section = coerceMessageSection(params.get("section"), tabs);
+  const section = coerceInboxFilter(params.get("section"), tabs);
 
   const setSection = useCallback(
-    (next: string) => {
+    (next: InboxFilter) => {
       setParams(
         (prev) => {
           const p = new URLSearchParams(prev);
-          if (next === "jobs") p.delete("section");
+          if (next === "all") p.delete("section");
           else p.set("section", next);
           return p;
         },
@@ -50,34 +51,37 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     [setParams],
   );
 
-  const shown = useMemo(() => threadsForSection(conversations, section), [conversations, section]);
+  const shown = useMemo(() => threadsForFilter(conversations, section), [conversations, section]);
   const shownAll = useMemo(
-    () => (allConversations ? threadsForSection(allConversations, section) : allConversations),
+    () => (allConversations ? threadsForFilter(allConversations, section) : allConversations),
     [allConversations, section],
   );
 
-  const unreadIn = (key: string) => conversations.filter((c) => c.unread > 0 && threadSection(c) === key).length;
-
-  const strip =
-    tabs.length > 1 ? (
-      <SegmentedControl
-        ariaLabel="Message sections"
-        semantics="tab"
-        options={tabs.map((k) => ({
-          value: k,
-          label: sectionByKey(k).label,
-          count: unreadIn(k),
-          countTone: "attention" as const,
-        }))}
-        value={section}
-        onChange={setSection}
-        className="w-full"
-        optionClassName="px-1.5 text-ds-12 min-[360px]:text-ds-13 min-[400px]:text-ds-14 whitespace-nowrap"
-      />
-    ) : undefined;
+  const unread = conversations.filter((c) => c.unread > 0).length;
+  const chips: { value: InboxFilter; label: string }[] = [
+    { value: "all", label: "All" },
+    // The real unread-thread count, or no number at all (never "· 0").
+    { value: "unread", label: unread > 0 ? `Unread · ${unread}` : "Unread" },
+    ...tabs.map((k) => ({ value: k, label: sectionByKey(k).label })),
+  ];
+  const strip = (
+    <div className="chip-row" role="group" aria-label="Filter messages" data-testid="messages-filter-chips">
+      {chips.map((c) => (
+        <button
+          key={c.value}
+          type="button"
+          data-inbox-chip={c.value}
+          aria-pressed={section === c.value}
+          onClick={() => setSection(c.value)}
+        >
+          {c.label}
+        </button>
+      ))}
+    </div>
+  );
 
   let empty: { icon: typeof SECTIONS[number]["icon"]; title: string; body: string; action?: { label: string; to: string } } | null = null;
-  if (section !== "jobs") {
+  if (section !== "all" && section !== "unread" && section !== "jobs") {
     const def = sectionByKey(section);
     const copy = SECTION_INBOX_EMPTY[section];
     empty = live[section]

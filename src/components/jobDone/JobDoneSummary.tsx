@@ -1,10 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { Lock } from "lucide-react";
+import { Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatPriceExact } from "@/lib/format";
 import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
+import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
+import { helperTakeHomeDollars, isSettledForDisplay } from "@/lib/helperEarnings";
+import { HELPR_FLAT_FEE_PERCENT, isFlatFeeJob } from "@/lib/helprFlatFee";
 
 /**
  * The top of the Job done screen (boards 35 poster / 36 Helpr), under the
@@ -19,8 +22,11 @@ import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls"
  *    what the card was charged on every fee model).
  *  - Helpr: the amount actually transferred (`payout_transfers.amount_cents`,
  *    the Helpr's own rows), so the one-time setup fee and the whole-dollar
- *    floor are already in it. Before a transfer row exists the headline says
- *    the pay is on its way WITHOUT a number. "In your bank" is never lit: no
+ *    floor are already in it. Before a transfer row exists, a flat-model job
+ *    (5% + 70c, every job funded since 2026-10-15) shows helperTakeHomeDollars
+ *    (helprFlatFeeCents on the Helpr's share + urgent bonus, the setup fee
+ *    while owed, floored to the dollar as release-payout pays); a legacy job
+ *    says the pay is on its way WITHOUT a number (and not in rust). "In your bank" is never lit: no
  *    per-job bank-arrival state exists; the caption gives the real window.
  *    Arrival date and bank last-4 from the board are omitted for the same
  *    reason (not stored per job).
@@ -39,6 +45,11 @@ interface JobDoneRow {
   status: string;
   payment_status: string | null;
   is_group_job: boolean | null;
+  helpers_needed: number | null;
+  urgent_fee: number | null;
+  helper_fee_flat_cents: number | null;
+  helper_fee_percent: number | null;
+  platform_fee_amount: number | null;
   proof_before_urls: string[] | null;
   proof_after_urls: string[] | null;
 }
@@ -82,7 +93,7 @@ export function JobDoneSummary({
       unwrap(
         await supabase
           .from("jobs")
-          .select("title, budget, status, payment_status, is_group_job, proof_before_urls, proof_after_urls")
+          .select("title, budget, status, payment_status, is_group_job, helpers_needed, urgent_fee, helper_fee_flat_cents, helper_fee_percent, platform_fee_amount, proof_before_urls, proof_after_urls")
           .eq("id", jobId)
           .maybeSingle(),
       ) as JobDoneRow | null,
@@ -106,6 +117,7 @@ export function JobDoneSummary({
   const before = job?.proof_before_urls?.[0] ?? "";
   const after = job?.proof_after_urls?.[0] ?? "";
   const [beforeSrc, afterSrc] = useProofPhotoUrls([before, after]);
+  const firstPayoutFee = useFirstPayoutFeeDollars();
 
   if (!job) return null;
 
@@ -125,7 +137,7 @@ export function JobDoneSummary({
       {photos.length > 0 && (
         <div className={`grid gap-2 ${photos.length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
           {photos.map((p) => (
-            <div key={p.label} className="relative aspect-[16/10] rounded-ds-lg overflow-hidden" style={{ background: "hsl(var(--muted))" }}>
+            <div key={p.label} className="relative aspect-[16/10] rounded-ds-lg overflow-hidden" style={{ background: "hsl(var(--photo-empty, 40 23% 82%))" }}>
               <img
                 src={p.src ?? PENDING_PHOTO_SRC}
                 alt={`${p.label} photo of ${job.title}`}
@@ -147,7 +159,7 @@ export function JobDoneSummary({
         <div className="rounded-ds-lg px-4 py-3" style={{ background: MONEY_TINT }}>
           <div className="flex items-center justify-between gap-3">
             <p className="font-sans font-bold text-ds-15 flex items-center gap-1.5" style={{ color: MONEY }}>
-              <Lock className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <Check className="w-4 h-4 shrink-0" aria-hidden="true" />
               {job.is_group_job ? "Released to your crew" : `Released to ${firstName}`}
             </p>
             {job.budget != null && (
@@ -157,21 +169,33 @@ export function JobDoneSummary({
             )}
           </div>
           <p className="font-sans text-ds-12 mt-0.5" style={{ color: MONEY }}>
-            The job price is out of escrow and on its way.
+            {job.is_group_job ? "Paid to your crew. It's on its way to their banks." : `Paid to ${firstName}. It's on its way to their bank.`}
           </p>
         </div>
       )}
 
       {side === "helper" && released && (
-        <HelprPayNote transfers={transfers ?? []} posterFirstName={firstName} />
+        <HelprPayNote
+          transfers={transfers ?? []}
+          posterFirstName={firstName}
+          expectedCents={isFlatFeeJob(job)
+            ? Math.round(helperTakeHomeDollars(job, HELPR_FLAT_FEE_PERCENT, isSettledForDisplay(job) ? 0 : firstPayoutFee) * 100)
+            : null}
+        />
       )}
     </div>
   );
 }
 
-function HelprPayNote({ transfers, posterFirstName }: { transfers: readonly TransferRow[]; posterFirstName: string }) {
-  const { cents, allSent } = transferredCents(transfers);
-  const sent = cents > 0 && allSent;
+function HelprPayNote({ transfers, posterFirstName, expectedCents }: {
+  transfers: readonly TransferRow[];
+  posterFirstName: string;
+  /** Pre-transfer take-home for a flat-model job; null when it cannot be known. */
+  expectedCents: number | null;
+}) {
+  const ledger = transferredCents(transfers);
+  const sent = ledger.cents > 0 && ledger.allSent;
+  const cents = ledger.cents > 0 ? ledger.cents : (expectedCents ?? 0);
   const steps = [
     { label: "Confirmed", done: true },
     { label: "Sent", done: sent },
@@ -182,7 +206,7 @@ function HelprPayNote({ transfers, posterFirstName }: { transfers: readonly Tran
       className="rounded-ds-lg p-4 space-y-3 text-center"
       style={{ background: "hsl(var(--card))", boxShadow: "0 4px 18px rgba(32,30,26,0.06)" }}
     >
-      <p className="font-sans font-bold text-ds-24 leading-tight tabular-nums" style={{ color: MONEY }}>
+      <p className="font-sans font-bold text-ds-24 leading-tight tabular-nums" style={{ color: cents > 0 ? MONEY : "hsl(var(--ink-deep))" }}>
         {cents > 0
           ? `$${formatPriceExact(cents / 100)} ${sent ? "was sent" : "is on its way"}`
           : "Your pay is on its way"}

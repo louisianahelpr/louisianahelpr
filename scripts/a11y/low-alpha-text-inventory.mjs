@@ -41,7 +41,9 @@ function parseTokens(block) {
   }
   return t;
 }
-const darkStart = css.search(/--parchment:\s*220 14% 9%/);
+// The dark block is the first `[data-theme="dark"] {` rule (keyed on the selector, not a colour value,
+// so re-tinting the dark canvas, warm since 2026-10-20, never loses it).
+const darkStart = css.indexOf('[data-theme="dark"] {');
 if (darkStart < 0) throw new Error("could not find the dark-theme token block in src/index.css");
 const LIGHT = parseTokens(css.slice(0, darkStart));
 const DARK = { ...LIGHT, ...parseTokens(css.slice(darkStart)) };

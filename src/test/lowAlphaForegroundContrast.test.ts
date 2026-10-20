@@ -89,7 +89,6 @@ const ACCEPTED = new Map<string, number>([
   ["src/pages/user/ReviewsSection.tsx --muted-foreground/0.3", 1], //     1.53:1 — <Star> ornament above the empty-state sentence
   ["src/components/CancellationDialog.tsx --muted-foreground/0.4", 1], // 1.80:1 — <ArrowRight rotate-90> connector between the numbered step 1 and step 2 cards
   ["src/pages/profile/WorkRecord.tsx --muted-foreground/0.5", 1], //      2.13:1 — <Briefcase> ornament above the empty-state sentence
-  ["src/components/messages/ChatView.tsx --accent/0.6", 1], //            2.44:1 — <X> in the button labelled "Dismiss safety reminder"; hover goes full accent
   ["src/pages/profile/petProfiles/PetCard.tsx --muted-foreground/0.6", 1], // 2.54:1 — <ChevronDown> expand affordance on a row named by the pet
   ["src/components/profile/profileLanding/SettingsSection.tsx --muted-foreground/0.7", 1], // 3.07:1 — <ChevronRightIcon> row affordance beside its label
 

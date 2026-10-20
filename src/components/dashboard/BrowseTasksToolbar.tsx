@@ -7,6 +7,8 @@ import { signupUrlFor } from "@/lib/jobIntent";
 import { hapticLight } from "@/lib/haptics";
 import type { BrowseTasksToolbarProps } from "./browseTasksToolbar/types";
 import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
+import { JobGroupChips } from "./JobGroupChips";
+import type { JobCategoryGroupId } from "@/lib/jobCategoryGroups";
 
 /**
  * BrowseTasksToolbar — the Browse feed's control strip: the
@@ -74,6 +76,7 @@ export function BrowseTasksToolbar({
   // row, which closes the sheet on the way — so the dialog is mounted HERE,
   // outside the sheet, or it would unmount with the row that opened it.
   const [savedSearchesOpen, setSavedSearchesOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<JobCategoryGroupId | null>(null);
 
   // One source for the row's heading text, used by both the normal and the
   // search state (search keeps it sr-only rather than dropping the h1).
@@ -155,9 +158,16 @@ export function BrowseTasksToolbar({
           title just the H logo"). */}
       {renderHeading && <h1 className="sr-only">{headingTitle}</h1>}
 
-      {/* No category pill row (owner final decisions, 2026-10-19: "a ton of
-          pills at the top"). Category is a section of the filter sheet below,
-          and the Filters button counts it while one is picked. */}
+      {/* Board 6 (spec v2, owner-adopted 2026-10-20, after the 10-19 "no pill
+          row" call): ONE row of category GROUPS, not a pill per category; a
+          group opens its sub-chips. It drives the same category filter as
+          the sheet's Category section below. */}
+      <JobGroupChips
+        selectedCategory={filters.selectedCategory}
+        setSelectedCategory={filters.setSelectedCategory}
+        openGroup={openGroup}
+        setOpenGroup={setOpenGroup}
+      />
 
       {/* Unified filter bottom sheet — the SlidersHorizontal button above
           toggles `filtersOpen`, which opens this sheet with all the filter

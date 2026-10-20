@@ -4631,6 +4631,9 @@ html.page-scrolled .page-title-card h1 { font-size: 1.0625rem !important; margin
 }
 
 /* T6 — slide-up sheet (SheetContent floor): glued to the bottom edge, grab handle, plain dim scrim. */
+/* The floor sheet is the phone half only (spec v2 §3, 2026-10-20): from 640px
+   it is the centred 480px dialog every popup is (sheetVariants "bottom"). */
+@media (max-width: 639.98px) {
 .sheet-floor {
   top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
   margin: 0 auto !important; height: auto !important;
@@ -4643,6 +4646,10 @@ html.page-scrolled .page-title-card h1 { font-size: 1.0625rem !important; margin
   box-shadow: 0 -8px 30px -12px hsl(220 14% 20% / 0.25) !important;
 }
 .sheet-floor.p-0 > :nth-child(2) { padding: 0.25rem 0.5rem 0 1.25rem; }
+}
+@media (min-width: 640px) {
+  .sheet-grab-handle { display: none; }
+}
 .sheet-floor-scrim {
   -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
   background-color: hsl(0 0% 0% / 0.28) !important;

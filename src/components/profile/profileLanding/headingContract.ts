@@ -11,5 +11,6 @@
  * IdentityHeader and fails when the name's level stops matching this constant,
  * so a future move fails in Vitest on the PR, not in the release gate.
  */
-export const PROFILE_PAGE_TITLE = "Profile";
+// Board 18 (2026-10-20): the bottom-bar tab is "You", so the page title is too.
+export const PROFILE_PAGE_TITLE = "You";
 export const PROFILE_NAME_HEADING_LEVEL = 2;

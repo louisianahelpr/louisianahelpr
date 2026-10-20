@@ -317,6 +317,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "profile-warnings", url: "/profile?tab=warnings" },
   { name: "profile-credentials", url: "/profile?tab=credentials" },
   { name: "profile-saved-helpers", url: "/profile?tab=saved_helpers" },
+  // You › Settings (board 52, 2026-10-20): Look, Your sections, Alerts, Your account, More, Log out.
+  { name: "profile-settings", url: "/profile?tab=settings" },
 
   // ── Routes added 2026-08-15 after a coverage audit ────────────────────────
   // The sweep reported "75 screens" but that counted theme/role VARIANTS, not

@@ -146,6 +146,8 @@ const OWNERS = {
   "?tab=str_settings": ["lh-long-tail-features"],
   "?tab=analytics": ["lh-long-tail-features"],
   "?tab=auto_tip": ["lh-subscriptions-credits", "lh-money-escrow"],
+  // You › Settings (board 52): section switches and the account rows. Co-owned like accessibility.
+  "?tab=settings": ["lh-input-boundary", "lh-a11y-sensory"],
 
   // ── post-a-job entry paths ───────────────────────────────────────────────
   // Six ship; EntryChoice's own docblock still describes three. Every one of

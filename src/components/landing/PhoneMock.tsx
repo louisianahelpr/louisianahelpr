@@ -13,8 +13,11 @@ const ROWS = [
   { icon: Briefcase, title: "Gutter cleaning", meta: "New Iberia · this week", price: "$75" },
 ] as const;
 
+// Phone width shows no phone (owner, 2026-10-20 ~05:55Z: board 183 overridden):
+// below `sm` (640px) the illustration is display:none, so a phone reads the
+// headline, search and steps without a second phone stacked under its own.
 const PhoneMock = () => (
-  <div aria-hidden className="landing-phone-wrap relative mx-auto w-full max-w-[19rem] sm:max-w-[20rem] lg:max-w-[21rem] select-none">
+  <div aria-hidden className="landing-phone-wrap relative mx-auto w-full hidden sm:block max-w-[19rem] sm:max-w-[20rem] lg:max-w-[21rem] select-none">
     <div className="landing-phone relative rounded-[2.75rem] p-2.5">
       <div className="landing-phone-screen rounded-[2.25rem] px-4 pt-6 pb-20 flex flex-col gap-3 overflow-hidden">
         <p className="landing-serif-text text-ds-20 leading-tight whitespace-nowrap" style={{ color: "var(--lp-ink)" }}>

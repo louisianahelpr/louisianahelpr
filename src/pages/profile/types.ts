@@ -24,7 +24,7 @@ export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availabilit
 export const REPORT_BUG_TITLE = "Report a bug";
 
 export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
-  profile: "Edit Profile",
+  profile: "Edit profile",
   earnings: "Money",
   schedule: "Schedule",
   availability: "Availability",
@@ -32,7 +32,7 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   // earnings tab (see ProfileTabPanels) so old deep links still resolve, and
   // therefore carries that screen's title rather than one of its own.
   payment: "Money",
-  security: "Account Security",
+  security: "Account and security",
   // "Legal", not "Legal & Policies", until 2026-09-19 — a drift this file's
   // own rule forbids, found when ProfileTabFallback started rendering these
   // titles as the loading header: the placeholder said "Legal" and LegalTab
@@ -42,9 +42,9 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   reviews: "Reviews about you",
   referral: "Referrals",
   subscription: "Membership",
-  support: "Help & Support",
+  support: "Help",
   notifications: "Notifications",
-  warnings: "Warnings & Strikes",
+  warnings: "Warnings and strikes",
   credentials: "Licensed & Insured",
   saved_helpers: "Saved Helprs",
   accessibility: "Accessibility",

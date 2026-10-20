@@ -18,6 +18,7 @@ import { RecentWorkSection } from "@/components/profile/profileEditForm/RecentWo
 import { SaveBar } from "@/components/profile/profileEditForm/SaveBar";
 import { isProfileEditDirty } from "@/components/profile/profileEditForm/isProfileEditDirty";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { TAB_TITLES } from "@/pages/profile/types";
 
 export type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
 
@@ -152,7 +153,7 @@ export function ProfileEditForm({
     // clearance quietly lost the home-indicator allowance.
     <ProfileTabBody bottomClearance="calc(var(--safe-area-bottom, 0px) + 6.5rem)">
       <ProfileTabHeader
-        title="Edit Profile"
+        title={TAB_TITLES.profile}
         onBack={onBack}
       />
 

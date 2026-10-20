@@ -172,15 +172,15 @@ afterEach(() => {
 });
 
 /**
- * The exact set, in the exact order. Active then All: narrow to wide, and the
- * tab the inbox lands on comes first ("here, or everything", rather than the
- * old strip's "All, and some filters"). Unread went because it was redundant
- * three times over — Active is the default so the landing view is already
+ * The exact set, in the exact order. All then Active: the tab the inbox lands
+ * on comes first, and since 2026-10-20 (spec v2, "one inbox, All default")
+ * that is All; it was Active then All from 2026-09-19. Unread went because it was redundant
+ * three times over — Active WAS the default so the landing view was already
  * filtered to live conversations; unread is marked on the ROW (the dot + bold
  * preview in ConversationRow); and the list already scrolls to the first
  * unread thread on entry (028fe3837).
  */
-const EXPECTED_TABS = ["Active", "All"];
+const EXPECTED_TABS = ["All", "Active"];
 
 /** The two widths the strip must be IDENTICAL at. */
 const WIDTHS: Array<[label: string, webDesktop: boolean]> = [

@@ -62,12 +62,10 @@
  * its disclosure; the strip simply holds two entries now. Do not "restore"
  * the third one.
  *
- * ── TAB ORDER: Active · All ──
+ * ── TAB ORDER: All · Active (was Active · All until 2026-10-20) ──
  *
- * Narrow to wide, and the first entry is the one the inbox lands on. The
- * alternative (All first) would put the tab you are NOT on in the leading
- * position, which is the arrangement that made the old three-tab strip read
- * as "All, and some filters" rather than "here, or everything".
+ * The first entry is the one the inbox lands on, so the tab you are on leads
+ * the strip. Since 2026-10-20 that is All (history item 5 below).
  *
  * ── THE PARAMETER ──
  *
@@ -79,6 +77,18 @@
  * sites and a spec to save an underscore, and would have to be put back the
  * next time the rule depends on state again. It is underscore-prefixed, so
  * no-unused-vars is satisfied.
+ *
+ * ── 5. 2026-10-20: THE INBOX OPENS ON ALL (spec v2, Option A) ──
+ *
+ * The owner adopted HELPR-DESIGN-SPEC v2 as the design standard; its
+ * Messages rule (§9.7, board 13) is "one inbox, All default", with chips
+ * All · Unread · Jobs · Declutter · Shops · Homes. That supersedes the
+ * 2026-09-19 open-on-Active rule (lead decision under spec v2, 07:10Z).
+ * Still a constant, so the 2026-08-30 complaint (a landing tab that moves
+ * with read state) stays fixed. Because All hides nothing, the
+ * "N unread aren't in Active" bar never shows on arrival; it still guards
+ * a reader who CHOOSES Active from the menu, so it stays. Tab order follows
+ * the landing rule below: All first.
  *
  * This lives in its own module rather than inline in ConversationList because
  * an E2E spec once asserted the old behaviour as a literal and broke the
@@ -135,7 +145,7 @@ export function coerceInboxView(value: string | null | undefined): InboxView {
 export const UNFILTERED_INBOX_TAB: InboxTab = "all";
 
 export function defaultInboxTab(_unreadCount: number): InboxTab {
-  return "active";
+  return "all";
 }
 
 /**
@@ -150,12 +160,12 @@ export function defaultInboxTab(_unreadCount: number): InboxTab {
  * against itself. So the list lives here, in the leaf module that already
  * owns which tabs exist, and both the strip and the guard read it.
  *
- * Narrow to wide, and the tab the inbox lands on comes first — see
- * `defaultInboxTab` above for why that is Active. The COUNTS are not here:
- * they are two different queries (the live slice, and the age-trimmed All),
+ * The tab the inbox lands on comes first — see `defaultInboxTab` above for
+ * why that is All (spec v2, 2026-10-20; it was Active from 2026-09-19).
+ * The COUNTS are not here: they are two different queries (the live slice, and the age-trimmed All),
  * and they belong where the data is.
  */
-export const INBOX_TAB_ORDER: readonly InboxTab[] = ["active", "all"];
+export const INBOX_TAB_ORDER: readonly InboxTab[] = ["all", "active"];
 
 export const INBOX_TAB_LABEL: Record<InboxTab, string> = {
   active: "Active",

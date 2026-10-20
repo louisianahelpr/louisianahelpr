@@ -125,8 +125,8 @@ const MESSAGES_HEADER_PADDING = "!py-1.5 lg:!py-2";
  * history, chose Active over Unread (see lib/inboxDefault.ts for the full
  * reasoning). So:
  *
- *   DEFAULT_INBOX_TAB    = "active" — where a visit starts.
- *   UNFILTERED_INBOX_TAB = "all"    — where "show me everything" goes.
+ *   DEFAULT_INBOX_TAB    = "all" (spec v2, 2026-10-20; was "active") — where a visit starts.
+ *   UNFILTERED_INBOX_TAB = "all"    — where "show me everything" goes; kept separate so "Show All" always widens.
  *
  * Before today these were the same constant, and every "Show All" affordance
  * was wired to the default. Leaving them conflated would have turned the
@@ -278,7 +278,7 @@ export function ConversationList({
     setSearchQuery("");
     setSearchOpen(false);
   };
-  /* Which slice of the inbox. ACTIVE is the default (owner, 2026-09-19) —
+  /* Which slice of the inbox. ALL is the default (spec v2 10-20; was Active) —
      see defaultInboxTab in lib/inboxDefault.ts for why Active and not the
      Unread rule that was removed on 2026-08-30. Resolved once, on mount, from
      the first load; changing tabs after that is the user's business.

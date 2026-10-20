@@ -27,8 +27,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 /** Statuses a test item sits in before anyone buys it; `reserved`, `completed` and the rest are a buyer's or a record. */
 export const SWEEPABLE_ITEM_STATUSES = ["draft", "pending_review", "live"];
-/** The bucket declutter photos live in (declutter_add_item_photo takes a path in it). */
-export const DECLUTTER_PHOTO_BUCKET = "job-photos";
+// Declutter photos live in the job-photos bucket (declutter_add_item_photo takes a path in it). The bucket is a
+// LITERAL in the delete URL below, so avatarRowObjectAgreement B2 can see this never touches the avatars bucket.
 
 /** Pure: the REST query for items whose title carries `marker`, owned by `sellerIds`, is_seed, still unsold. */
 export function candidateDeclutterItemsQuery(marker, sellerIds) {
@@ -68,7 +68,9 @@ export function photoPathBelongsTo(storagePath, item) {
 }
 
 async function rest(base, headers, method, query) {
-  const res = await fetch(`${base}/rest/v1/${query}`, {
+  // return=representation without select= is RETURNING *, which authenticated cannot read on some tables (403).
+  const path = method === "DELETE" && !/[?&]select=/.test(query) ? `${query}${query.includes("?") ? "&" : "?"}select=id` : query;
+  const res = await fetch(`${base}/rest/v1/${path}`, {
     method,
     headers: { ...headers, "Content-Type": "application/json", ...(method === "DELETE" ? { Prefer: "return=representation" } : {}) },
     signal: AbortSignal.timeout(20_000),
@@ -108,7 +110,7 @@ export async function removeDeclutterItemsRest({ base, headers, items, source = 
       }
       removedItems += 1;
       if (paths.length === 0) continue;
-      const res = await fetch(`${base}/storage/v1/object/${DECLUTTER_PHOTO_BUCKET}`, {
+      const res = await fetch(`${base}/storage/v1/object/job-photos`, {
         method: "DELETE",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ prefixes: paths }),

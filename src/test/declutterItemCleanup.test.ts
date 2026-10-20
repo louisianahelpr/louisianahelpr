@@ -37,12 +37,13 @@ import {
 } from "../../scripts/lib/declutterItemCleanup.mjs";
 // @ts-expect-error - plain .mjs tool script, no types
 import { DECLUTTER_SELLER_IDS, HELPER_ID, JOB_TITLE_MARKER, declutterCandidatesQuery, declutterMatches, sweepDeclutterItems } from "../../scripts/e2e/prod-audit-sweeper.mjs";
+import { ACCOUNTS } from "../../scripts/test-signin-link.mjs";
 // @ts-expect-error - plain .mjs tool script, no types
 import { removeUnsoldItem } from "../../scripts/e2e/declutterPayoutProof.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const ITEM = "7c1a7b4c-ab65-46fb-adbd-0afafbe2734a";
-const SELLER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
+const SELLER = ACCOUNTS["helper-e2e"].userId as string;
 const item = (o: Record<string, unknown> = {}) => ({ id: ITEM, title: "Fixture rocking chair [E2E-PRODAUDIT]", seller_id: SELLER, is_seed: true, status: "live", ...o });
 const gate = (i: unknown) => declutterItemMatches(i, { marker: "E2E-PRODAUDIT", sellerIds: [SELLER] }) as boolean;
 

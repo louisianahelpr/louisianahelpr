@@ -1,40 +1,43 @@
 /**
- * THE INBOX OPENS ON ACTIVE — AND MAY NOT HIDE ANYTHING UNREAD WHILE IT DOES.
+ * THE INBOX OPENS ON ALL — AND ACTIVE, WHEN CHOSEN, MAY NOT HIDE UNREAD.
  *
- * Owner, 2026-09-19: "for messages the page should open to unread or active."
- * Shown the 2026-08-30 history (the Unread-when-unread default was removed
- * because "the inbox's default view moved around depending on read state"),
- * they chose ACTIVE — a landing tab that is a constant, not a function of
- * what you have read.
+ * (File name kept: OPEN.md cites it by name. Its subject changed on
+ * 2026-10-20.)
  *
- * THE CLASS, not the instance. The defect this guards is not "the wrong tab
- * is selected"; it is **a default view that conceals something the user has
- * not read**. Active is `LIVE_JOB_STATUSES`, which excludes `open` — so an
- * applicant's unread question on a posting you have not awarded yet, the most
- * common unread thread a poster gets, is NOT in the tab the app now opens on.
- * Any narrowing default has to carry an escape hatch that names the number it
- * is hiding, or it is a silent-loss bug.
+ * 2026-10-20, Option A: the owner adopted HELPR-DESIGN-SPEC v2 as the design
+ * standard, and its Messages rule (§9.7, board 13) is "one inbox, All
+ * default". The lead decided under it that the inbox lands on ALL, which
+ * supersedes the 2026-09-19 open-on-Active rule. The landing tab is still a
+ * CONSTANT (the 2026-08-30 complaint was a landing tab that moved with read
+ * state), and All hides nothing, so the "N unread aren't in Active" bar never
+ * shows on arrival.
  *
- * Four things are asserted, and each one has failed in a previous life of
- * this screen:
- *   1. the seeded tab is Active (and the rule is read from ONE module);
- *   2. an unread thread outside the live slice produces a banner that names
- *      the count and moves the reader to All;
- *   3. nothing is claimed when nothing is hidden (no permanent nag);
- *   3b. the bar's X hides it until a NEW unread lands outside Active (owner,
+ * THE CLASS is unchanged: **a view that conceals something the user has not
+ * read** must name what it hides. Active is `LIVE_JOB_STATUSES`, which
+ * excludes `open`, so a reader who CHOOSES Active still gets the bar.
+ *
+ * Asserted:
+ *   1. the seeded tab is All, read from ONE module, and All leads the strip;
+ *   2. arriving hides nothing: no bar, even with unread on open postings;
+ *   3. once Active is chosen, an unread thread outside it produces a bar that
+ *      names the count and moves the reader back to All;
+ *   4. nothing is claimed when nothing is hidden (no permanent nag);
+ *   4b. the bar's X hides it until a NEW unread lands outside Active (owner,
  *      2026-09-26: "an x in that top bar ... so they can x it out");
- *   4. the Active empty state reads as "nothing running", points at All, and
- *      its button actually WIDENS the view — the button used to be wired to
- *      `DEFAULT_INBOX_TAB`, which since today is Active itself, i.e. a no-op.
+ *   5. the Active empty state reads as "nothing running", points at All, and
+ *      its button actually WIDENS the view.
  *
- * @mutate src/lib/inboxDefault.ts | return "active"; | return "all";
+ * The loading-frame "held space" bar (MQ28) only renders while loading on
+ * Active; since the inbox now loads on All it no longer renders on arrival,
+ * and this file asserts that rather than mutating the held branch.
+ *
+ * @mutate src/lib/inboxDefault.ts | return "all"; | return "active";
+ * @mutate src/lib/inboxDefault.ts | INBOX_TAB_ORDER: readonly InboxTab[] = ["all", "active"]; | INBOX_TAB_ORDER: readonly InboxTab[] = ["active", "all"];
  * @mutate src/components/messages/ConversationList.tsx | hiddenUnreadCount > dismissedHiddenUnread && ( | false && (
- * @mutate src/components/messages/ConversationList.tsx | cachedHiddenUnread > dismissedHiddenUnread && ( | false && (
  * @mutate src/components/messages/ConversationList.tsx | hiddenUnreadCount > dismissedHiddenUnread && ( | hiddenUnreadCount > 0 && (
- * @mutate src/components/messages/ConversationList.tsx | cachedHiddenUnread > dismissedHiddenUnread && ( | cachedHiddenUnread > 0 && (
  * @mutate src/components/messages/HiddenUnreadBar.tsx | if (loading \|\| !userId \|\| count >= dismissedHiddenUnread) return; | return;
- * @mutate src/components/messages/ConversationList.tsx | setInboxFilter(UNFILTERED_INBOX_TAB); }}>\n                  Show All | setInboxFilter(DEFAULT_INBOX_TAB); }}>\n                  Show All
- * @mutate src/components/messages/InboxMenus.tsx | aria-checked={inboxTab === key} | aria-checked={key === "active"}
+ * @mutate src/components/messages/ConversationList.tsx | setInboxFilter(UNFILTERED_INBOX_TAB); }}>\n                  Show All | setInboxFilter("active"); }}>\n                  Show All
+ * @mutate src/components/messages/InboxMenus.tsx | aria-checked={inboxTab === key} | aria-checked={key === "all"}
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
@@ -65,7 +68,7 @@ vi.mock("@/lib/haptics", () => ({
 
 import { ConversationList } from "@/components/messages/ConversationList";
 import type { Conversation } from "@/components/messages/types";
-import { defaultInboxTab, UNFILTERED_INBOX_TAB, coerceInboxView } from "@/lib/inboxDefault";
+import { defaultInboxTab, UNFILTERED_INBOX_TAB, coerceInboxView, INBOX_TAB_ORDER } from "@/lib/inboxDefault";
 // The phone header is the shared AppTopBar since Q2231; its bell and avatar
 // need the app's providers, and this file tests the list, not the bar.
 vi.mock("@/components/sections/AppTopBar", () => ({
@@ -181,13 +184,30 @@ function openPhoneDisclosure() {
   if (chevron) fireEvent.click(chevron);
 }
 
+/** Pick a tab the way a reader does: the desktop strip, or the phone's "more" menu. */
+function chooseTab(label: "All" | "Active") {
+  const group = screen.queryByRole("group", { name: "Filter conversations" });
+  if (group) {
+    const btn = within(group)
+      .getAllByRole("button")
+      .find((b) => (b.textContent ?? "").replace(/\d+/g, "").trim() === label);
+    if (!btn) throw new Error(`no ${label} tab`);
+    fireEvent.click(btn);
+    return;
+  }
+  const trigger = screen.getByRole("button", { name: "More conversation options" });
+  trigger.focus();
+  fireEvent.keyDown(trigger, { key: "Enter" });
+  const item = screen.getAllByRole("menuitemradio").find((el) => (el.textContent ?? "").trim() === label);
+  if (!item) throw new Error(`no ${label} menu item`);
+  fireEvent.click(item);
+}
+
 afterEach(() => { cleanup(); setWebDesktop(false); localStorage.clear(); });
 
-describe("Messages opens on Active, and says what Active is hiding", () => {
+describe("Messages opens on All, and Active (when chosen) says what it is hiding", () => {
   it("the inventory is real: these fixtures contain live, unread-open and finished threads", () => {
-    // Guards against the whole file passing on an empty list. Every assertion
-    // below is about which threads are shown, so an empty inbox would render
-    // the global "No messages yet" state and satisfy nothing.
+    // Guards against the whole file passing on an empty list.
     expect(MIXED.length).toBeGreaterThan(2);
     expect(MIXED.some((c) => c.jobStatus === "in_progress")).toBe(true);
     expect(MIXED.some((c) => c.jobStatus === "open" && c.unread > 0)).toBe(true);
@@ -195,54 +215,78 @@ describe("Messages opens on Active, and says what Active is hiding", () => {
     expect(ALL_FINISHED.length).toBeGreaterThan(0);
   });
 
-  it("the rule itself: the default tab is Active, and it does not depend on unread count", () => {
-    // Stable by construction — the 2026-08-30 complaint was that the landing
-    // tab moved with read state. Asked with 0 and with 7 unread, same answer.
-    expect(defaultInboxTab(0)).toBe("active");
-    expect(defaultInboxTab(7)).toBe("active");
-    // And "unfiltered" is a DIFFERENT value, or every "Show All" is a no-op.
+  it("the rule itself: the default tab is All, it does not depend on unread count, and it leads the strip", () => {
+    // Stable by construction: the 2026-08-30 complaint was a landing tab that
+    // moved with read state. Asked with 0 and with 7 unread, same answer.
+    expect(defaultInboxTab(0)).toBe("all");
+    expect(defaultInboxTab(7)).toBe("all");
     expect(UNFILTERED_INBOX_TAB).toBe("all");
-    expect(UNFILTERED_INBOX_TAB).not.toBe(defaultInboxTab(0));
+    // The tab you land on is the first one painted.
+    expect(INBOX_TAB_ORDER[0]).toBe(defaultInboxTab(0));
+    expect([...INBOX_TAB_ORDER].sort()).toEqual(["active", "all"]);
   });
 
-  it("the retired Unread view coerces to Active rather than rendering an unknown tab", () => {
-    // A session open across today's change, or any future stored/linked tab
-    // value, must not land on a highlighted-nothing empty list.
-    expect(coerceInboxView("unread")).toBe("active");
-    expect(coerceInboxView("nonsense")).toBe("active");
-    expect(coerceInboxView(null)).toBe("active");
+  it("the retired Unread view and unknown values coerce to All rather than an unknown tab", () => {
+    expect(coerceInboxView("unread")).toBe("all");
+    expect(coerceInboxView("nonsense")).toBe("all");
+    expect(coerceInboxView(null)).toBe("all");
     // Real views still pass through untouched.
-    expect(coerceInboxView("all")).toBe("all");
+    expect(coerceInboxView("active")).toBe("active");
     expect(coerceInboxView("pinned")).toBe("pinned");
     expect(coerceInboxView("recentlyDeleted")).toBe("recentlyDeleted");
   });
 
-  it("seeds Active on first load, and Active is the narrow slice", () => {
+  it("seeds All on first load (desktop strip), All first, and Active is the narrow slice", () => {
     setWebDesktop(true);
     renderInbox(MIXED);
-    expect(selectedTabLabel()).toBe("Active");
-    // The rows themselves are virtualized (VirtualList) and jsdom's viewport
-    // has no height, so the TAB COUNTS are what proves the two slices differ:
-    // 1 live thread out of 3. Reading the counts also catches a tab whose
-    // number disagrees with its own filter, which is its own class of lie.
-    expect(tabCounts()).toEqual({ Active: 1, All: 3 });
+    expect(selectedTabLabel()).toBe("All");
+    // jsdom has no layout, so the TAB COUNTS prove the two slices differ:
+    // 1 live thread out of 3, painted All first.
+    expect(tabCounts()).toEqual({ All: 3, Active: 1 });
+    expect(Object.keys(tabCounts())).toEqual(["All", "Active"]);
   });
 
-  it("names the unread it is hiding, and the banner moves the reader to All", () => {
-    setWebDesktop(false); // phone: the tab counts are behind the disclosure
+  it("seeds All on a phone too (the checked item in the more menu)", () => {
+    setWebDesktop(false);
     renderInbox(MIXED);
+    expect(selectedTabLabel()).toBe("All");
+  });
 
-    // TWO unread THREADS are outside the live slice (open-1 and open-2) —
-    // threads, not messages: open-1 alone carries 2 unread messages, and
-    // counting those would say "3", which is not the number of conversations
-    // the reader cannot see.
+  it("arriving hides nothing: no bar, even with unread threads on open postings", () => {
+    setWebDesktop(false);
+    renderInbox(MIXED);
+    expect(screen.queryByText(/aren't in Active/i)).toBeNull();
+    // ...and every unread row is in the list the reader landed on.
+    const names = screen.getAllByTestId("row-name").map((n) => n.textContent);
+    expect(names).toEqual(expect.arrayContaining(["Person open-1", "Person open-2", "Person live-1"]));
+  });
+
+  it("the loading frame holds no bar any more: the inbox loads on All (MQ28 held space is Active-only)", () => {
+    setWebDesktop(false);
+    localStorage.clear();
+    renderInbox(MIXED);
+    chooseTab("Active");
+    // A settled Active view still records the count for this account...
+    expect(localStorage.getItem("helpr_inbox_hidden_unread")).toBe("user-1:2");
+    cleanup();
+    // ...but the next visit loads on All, which hides nothing.
+    const { container } = renderInbox([], true);
+    expect(container.textContent).not.toMatch(/aren't in Active/);
+    localStorage.clear();
+  });
+
+  it("once Active is chosen, it names the unread it is hiding, and the bar moves the reader to All", () => {
+    setWebDesktop(false); // phone: the tab counts are behind the menu
+    renderInbox(MIXED);
+    chooseTab("Active");
+    expect(selectedTabLabel()).toBe("Active");
+
+    // TWO unread THREADS are outside the live slice (open-1 and open-2):
+    // threads, not messages (open-1 alone carries 2 unread messages).
     const banner = screen.getByRole("button", {
       name: /2 unread conversations aren't in Active/i,
     });
-    expect(banner).toBeTruthy();
-
-    // ON TOP of the rows (owner, 2026-09-26, MQ28: "back on top, space
-    // held"). The banner must come before the first row in the document.
+    // ON TOP of the rows (owner, 2026-09-26, MQ28).
     const liveRow = screen.getAllByTestId("row-name")[0];
     expect(
       liveRow.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_PRECEDING,
@@ -251,90 +295,64 @@ describe("Messages opens on Active, and says what Active is hiding", () => {
     fireEvent.click(banner);
     openPhoneDisclosure();
     expect(selectedTabLabel()).toBe("All");
-    // ...and the banner is gone, because All is not hiding them any more.
     expect(screen.queryByText(/aren't in Active/i)).toBeNull();
-  });
-
-  it("while loading, holds the bar's space with the last count this device saw (MQ28)", () => {
-    setWebDesktop(false);
-    localStorage.clear();
-    // A settled visit writes the count for this account...
-    renderInbox(MIXED);
-    expect(localStorage.getItem("helpr_inbox_hidden_unread")).toBe("user-1:2");
-    cleanup();
-    // ...and the next visit's loading frame reserves the bar above the
-    // skeleton: invisible, out of the accessibility tree, same text (so the
-    // same height) as the bar that will land in its place.
-    const { container } = renderInbox([], true);
-    const held = Array.from(container.querySelectorAll<HTMLElement>('[aria-hidden="true"]'))
-      .find((el) => /2 unread conversations aren't in Active/.test(el.textContent ?? ""));
-    expect(held).toBeTruthy();
-    expect(held!.style.visibility).toBe("hidden");
-    expect(screen.queryByRole("button", { name: /aren't in Active/i })).toBeNull();
-    cleanup();
-    // The first skeleton frame renders before userId resolves; the space must
-    // already be held then, or it lands a frame late and shifts the skeleton.
-    const early = renderInbox([], true, null);
-    expect(early.container.textContent).toMatch(/2 unread conversations aren't in Active/);
-    cleanup();
-    // A count another account left on this device is not held for this one.
-    const other = renderInbox([], true, "user-2");
-    expect(other.container.textContent).not.toMatch(/aren't in Active/);
-    localStorage.clear();
   });
 
   it("the X hides the bar until a new unread lands outside Active", () => {
     setWebDesktop(false);
     localStorage.clear();
     renderInbox(MIXED);
+    chooseTab("Active");
     fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
     expect(screen.queryByText(/aren't in Active/i)).toBeNull();
     cleanup();
-    // Dismissed stays dismissed on the next visit, loading frame included
-    // (no held space for a bar that will not land).
-    const loadingFrame = renderInbox([], true);
-    expect(loadingFrame.container.textContent).not.toMatch(/aren't in Active/);
-    cleanup();
+    // Dismissed stays dismissed on the next visit to Active.
     renderInbox(MIXED);
+    chooseTab("Active");
     expect(screen.queryByText(/aren't in Active/i)).toBeNull();
     cleanup();
     // A third hidden unread is news: the bar is back, with the new count.
     const MORE = [...MIXED, convo({ jobId: "open-3", jobStatus: "open", unread: 1 })];
     renderInbox(MORE);
+    chooseTab("Active");
     expect(screen.getByRole("button", { name: /3 unread conversations aren't in Active/i })).toBeTruthy();
     cleanup();
     // Dismiss at 3, read one (2 hidden), then one more arrives (3 again):
     // the mark fell with the count, so the new one re-shows the bar.
     renderInbox(MORE);
+    chooseTab("Active");
     fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
     cleanup();
     renderInbox(MIXED);
+    chooseTab("Active");
     expect(screen.queryByText(/aren't in Active/i)).toBeNull();
     cleanup();
     renderInbox(MORE);
+    chooseTab("Active");
     expect(screen.getByRole("button", { name: /3 unread conversations aren't in Active/i })).toBeTruthy();
   });
 
   it("stays quiet when Active is hiding nothing unread", () => {
     setWebDesktop(false);
     renderInbox(ALL_LIVE);
-    // ALL_LIVE has an unread thread, but it is IN Active — nothing concealed,
-    // so no banner. A banner that always shows is a nag, not a safeguard.
+    chooseTab("Active");
+    // ALL_LIVE has an unread thread, but it is IN Active: nothing concealed.
     expect(screen.queryByText(/aren't in Active/i)).toBeNull();
   });
 
-  it("a user whose jobs are all finished sees 'nothing running', not a broken inbox", () => {
+  it("a user whose jobs are all finished, on Active, sees 'nothing running' and Show All widens", () => {
     setWebDesktop(false);
     renderInbox(ALL_FINISHED);
+    // Arrival is All, so the finished threads are on screen at once.
+    expect(screen.queryByText("Nothing here right now")).toBeNull();
+    chooseTab("Active");
 
     expect(screen.getByText("Nothing here right now")).toBeTruthy();
     expect(
       screen.getByText(/No conversations belong to a job that's still running\. Finished ones are under All\./),
     ).toBeTruthy();
 
-    // The button must WIDEN the view. Wired to the default tab it would set
-    // Active from Active and do nothing — which is exactly what conflating
-    // DEFAULT_INBOX_TAB with "unfiltered" would produce.
+    // The button must WIDEN the view.
     const showAll = screen.getByRole("button", { name: /Show All \(2\)/ });
     fireEvent.click(showAll);
     expect(screen.queryByText("Nothing here right now")).toBeNull();

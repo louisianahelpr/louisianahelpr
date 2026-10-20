@@ -56,7 +56,7 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   work_record: "Work Record",
   home_history: "Home History",
   str_settings: "Host Automation",
-  auto_tip: "After a Job",
+  auto_tip: "After a job",
   // ONE ANSWER IN BOTH PLACES, and it is computed, not typed.
   //
   // This said the literal "Helpr Wrapped" while the screen's own <h1> said
@@ -115,3 +115,13 @@ export function profileTabTitle(tab: Exclude<Tab, "landing">, search: string): s
 export function currentSearch(): string {
   return typeof window === "undefined" ? "" : window.location.search;
 }
+
+/**
+ * THE ONE PROFILE COLUMN (lead, 2026-10-20). At 1440 every Profile tab's cards
+ * and its Save button ran the whole ~1150px content width and read stretched
+ * and empty. The landing, every tab body and their skeleton share this one
+ * centred measure, set here and nowhere else (no per-tab max-widths). Spec v2
+ * §4.4 keeps list columns narrow on desktop; 640px is a settings measure.
+ * Guard: src/test/profileColumnCapOnce.test.ts.
+ */
+export const PROFILE_COLUMN = "mx-auto w-full max-w-[640px]";

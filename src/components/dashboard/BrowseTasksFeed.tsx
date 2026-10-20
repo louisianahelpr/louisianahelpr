@@ -1,4 +1,5 @@
 import { Suspense, useCallback, useMemo, useRef, useEffect, useState } from "react";
+import { browseFilteredEmptyCopy } from "@/lib/browseEmptyCopy";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { Search } from "lucide-react";
@@ -422,6 +423,8 @@ export function BrowseTasksFeed({
         // Next-rung suggestion — round-numbered radii (5/10/25/50) read
         // cleaner in a sentence than the previous value × 2 ("13 mi").
         const nextMiles = currentMiles < 5 ? 10 : currentMiles < 10 ? 25 : currentMiles < 25 ? 50 : 100;
+        // J10: a search is named as a search (browseEmptyCopy.ts).
+        const filtered = browseFilteredEmptyCopy({ searchQuery: filters.searchQuery, activeFilterCount: filters.activeFilterCount, nearbyActive, currentMiles, nextMiles });
         return (
       // The shared Browse empty state (owner, 2026-10-19: Homes' style, in the same place as every section's).
       <div className="px-0 lg:px-4 pt-1 lg:pt-3 flex-1 min-h-0 flex">
@@ -430,18 +433,14 @@ export function BrowseTasksFeed({
           icon={Search}
           title={
             filters.hasFilters
-              ? (nearbyActive
-                ? `No jobs within ${currentMiles} mi of you.`
-                : "No jobs match your filters.")
+              ? filtered.title
               : `Nothing today, ${emptyStateGreeting}.`
           }
           body={
             filters.hasFilters
               ? filters.boostedOnly
                 ? "No boosted jobs right now — try clearing the filter to see all open work."
-                : nearbyActive
-                  ? `Try widening to ${nextMiles} mi, or clear the radius to see all open work across your parish.`
-                  : "Try a different category, a wider time window, or clearing a filter."
+                : filtered.body
               // Supply-side proof when we have an honest number for it. An
               // empty feed reads as "this marketplace is dead"; the parish
               // count reframes it as "waiting for a job", which is what is
@@ -478,11 +477,11 @@ export function BrowseTasksFeed({
                 </div>
               ) : (
                 <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
-                  Clear Filters
+                  {filtered.clearLabel}
                 </Button>
               )
             ) : (
-              // Post Your First Job + Notify Me (and the under-18 grey-out, Q1586(c)).
+              // Post a job + Notify me (and the under-18 grey-out, Q1586(c)).
               <EmptyFeedActions onNotify={notifyWhenWorkLands} />
             )
           }

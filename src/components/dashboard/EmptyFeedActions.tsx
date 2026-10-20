@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { useAgeGate } from "@/hooks/useAgeGate";
 
 /**
- * The empty Browse feed's two ways out: Post Your First Job, then Notify Me
- * When One Lands. Moved out of BrowseTasksFeed unchanged except for the
+ * The empty Browse feed's two ways out: Post a job, then Notify me when one
+ * lands (J8, Cowork audit 2026-10-20: it said "Post Your First Job" to people
+ * who had posted, in Title Case; sentence case per HELPR-DESIGN-SPEC). Moved out of BrowseTasksFeed unchanged except for the
  * under-18 grey-out on the post button (owner, 2026-10-12, Q1586(c)).
  *
  * Both actions used to be `ghost` at the same olivewood/80, so the screen's
@@ -26,7 +27,7 @@ export function EmptyFeedActions({ onNotify }: { onNotify: () => void }) {
     <div className="flex flex-col items-center gap-3">
       <Button onClick={gate("post", () => navigate("/post-job"))} {...gatedProps("post")} className="rounded-ds-md">
         <Plus className="w-4 h-4 mr-1" strokeWidth={2.25} />
-        Post Your First Job
+        Post a job
       </Button>
       <Button
         variant="ghost" size="wrap"
@@ -35,7 +36,7 @@ export function EmptyFeedActions({ onNotify }: { onNotify: () => void }) {
         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         <Bell className="w-4 h-4 mr-1" strokeWidth={2.25} />
-        Notify Me When One Lands
+        Notify me when one lands
       </Button>
     </div>
   );

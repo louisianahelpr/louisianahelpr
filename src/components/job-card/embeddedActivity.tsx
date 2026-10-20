@@ -6,6 +6,16 @@ import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
 /** The four status boxes over Jobs & Posts > Posted / Working (owner, 2026-10-19). */
 export const BOX_BUCKETS = ["needs_you", "waiting", "scheduled", "done"] as const;
 
+/**
+ * The status filters with the SAME words the status boxes show (H4, Cowork
+ * audit 2026-10-20): the empty state and its jump button used the old filter
+ * labels ("Scheduled") under boxes that say Upcoming / Booked / Not picked.
+ */
+export function boxLabelledFilters<F extends { key: string; label: string }>(tab: "posted" | "applied", filters: readonly F[]): F[] {
+  const words: Record<string, string> = tab === "posted" ? POSTED_GROUP_LABEL : WORKING_GROUP_LABEL;
+  return filters.map((f) => ({ ...f, label: words[f.key] ?? f.label }));
+}
+
 /** Tap a status box = only that group; tap the lit box again = every group ("all"). */
 export function nextBoxFilter(current: string, tapped: string): string {
   return current === tapped ? "all" : tapped;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, lazy, Suspense, type ReactNode } from "react";
-import { EmbeddedActivityHeader, EmbeddedActivityLoading } from "@/components/job-card/embeddedActivity";
+import { EmbeddedActivityHeader, EmbeddedActivityLoading, boxLabelledFilters } from "@/components/job-card/embeddedActivity";
 import { deepLinkReady, useActivitySettled } from "./deepLinkWait";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -365,7 +365,10 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     containerRef.current?.scrollTo(0, 0);
   }, [statusFilter, containerRef]);
 
-  const activeStatusFilters = tab === "posted" ? POSTED_STATUS_FILTERS : APPLIED_STATUS_FILTERS;
+  // H4 (Cowork audit 2026-10-20): the empty state named the buckets with the
+  // old filter labels ("Nothing under scheduled") while the status boxes above
+  // it say Upcoming / Booked / Not picked. One name per bucket: the box's.
+  const activeStatusFilters = boxLabelledFilters(tab, tab === "posted" ? POSTED_STATUS_FILTERS : APPLIED_STATUS_FILTERS);
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
   /* No auto-switch on open. The old My Posts / My Jobs pages opened on the

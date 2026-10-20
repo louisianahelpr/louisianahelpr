@@ -7,6 +7,9 @@
 //
 // Scans every tracked non-test file under src/ for the supabase-js calls that
 // take an email and requires the email argument to end in `.trim()`.
+//
+// @mutate src/lib/loginTransport.ts | email: email.trim(), password | email, password
+// @mutate src/pages/auth/ForgotPassword.tsx | resetPasswordForEmail(email.trim() | resetPasswordForEmail(email
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -55,6 +58,7 @@ describe("email-auth calls send a trimmed address", () => {
 
   it("every call under src/ trims", () => {
     const files = trackedFiles("src").filter((f) => /\.(ts|tsx)$/.test(f) && !/\.(test|spec)\.(ts|tsx)$/.test(f) && !f.startsWith("src/test/"));
+    expect(files.length).toBeGreaterThan(100);
     const hits = files.flatMap((f) => {
       const src = readFileSync(path.join(ROOT, f), "utf8");
       return src.includes("auth.") ? untrimmedCalls(f, src) : [];

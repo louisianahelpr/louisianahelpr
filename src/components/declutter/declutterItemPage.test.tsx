@@ -216,13 +216,13 @@ describe("the photo-first Declutter item page", () => {
       },
     );
     open();
-    await screen.findAllByRole("button", { name: "Buy now · $40" });
+    await screen.findAllByRole("button", { name: "Buy now · $42.70" });
     const bar = document.body.querySelector("[data-declutter-buybar]") as HTMLElement;
     expect(bar).not.toBeNull();
     expect(bar.className).toContain("bottom-0");
     // The dock yields the strip to the bar (fixedBottomBarsClearTheDock, Q1646).
     expect(document.documentElement.classList.contains("dock-yield")).toBe(true);
-    expect(within(bar).getByRole("button", { name: "Buy now · $40" })).toBeInTheDocument();
+    expect(within(bar).getByRole("button", { name: "Buy now · $42.70" })).toBeInTheDocument();
     expect(within(bar).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
   });
   it("More from this seller and Similar items: rows of the Browse card, never the member's own items, an empty row left out", async () => {

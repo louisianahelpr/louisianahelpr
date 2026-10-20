@@ -15,8 +15,8 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { useDockYield } from "@/components/mobileNav/useDockYield";
 import { buyNow, fetchMyCard, makeOffer, startCardSave, type DeclutterItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { formatPrice } from "@/lib/declutter/distance";
-import { minOfferCents } from "@/lib/declutter/money";
+import { formatPrice, formatPriceCents } from "@/lib/declutter/distance";
+import { buyNowTotalCents, minOfferCents } from "@/lib/declutter/money";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { afterCardFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
 import { DeclutterNotice } from "./declutterUi";
@@ -154,7 +154,8 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
   });
 
   const confirmBuy = () => {
-    if (window.confirm(`Buy "${item.title}" for ${formatPrice(item.current_price_cents)}? You'll have 48 hours to check out and pay. Your card isn't charged now.`)) {
+    const total = buyNowTotalCents(item.current_price_cents);
+    if (window.confirm(`Buy "${item.title}" for ${formatPriceCents(total)} (${formatPrice(item.current_price_cents)} + ${formatPriceCents(total - item.current_price_cents)} buyer's fee)? You'll have 48 hours to check out and pay. Your card isn't charged now.`)) {
       buy.mutate();
     }
   };
@@ -221,7 +222,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
           aria-busy={card.isLoading || undefined}
           onClick={() => tap("buy")}
         >
-          Buy now · {formatPrice(item.current_price_cents)}
+          Buy now · {formatPriceCents(buyNowTotalCents(item.current_price_cents))}
         </Button>
         <Button
           type="button"
@@ -304,7 +305,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
                   if (!card.data) panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
                 }}
               >
-                Buy now · {formatPrice(item.current_price_cents)}
+                Buy now · {formatPriceCents(buyNowTotalCents(item.current_price_cents))}
               </Button>
               <Button
                 type="button"

@@ -47,6 +47,7 @@ import { SellItForMeEntry } from "./SellItForMe";
 import { DeclutterBrowseBar } from "./DeclutterBrowseBar";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
+import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import {
   OLD_DECLUTTER_VIEWS,
@@ -277,7 +278,17 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
     return (
       <section className="space-y-2" aria-label="Your listings">
         <SectionHeading title="Your listings" />
-        <DeclutterNotice title="You haven't listed anything yet.">Tap "Sell an item" to start.</DeclutterNotice>
+        {/* D3 (Cowork audit 2026-10-20): the copy said 'Tap "Sell an item"' with no
+            such button on screen (only the top bar's "+"). The action is here, as
+            the section's own pill, to the same path as the "+". */}
+        <DeclutterNotice title="You haven't listed anything yet.">
+          Take a few photos and set your price. Listing is free.
+          <div>
+            <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}>
+              {sectionByKey("declutter").add.label}
+            </SectionActionPill>
+          </div>
+        </DeclutterNotice>
       </section>
     );
   }

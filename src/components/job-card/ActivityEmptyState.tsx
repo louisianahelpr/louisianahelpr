@@ -93,17 +93,15 @@ export function ActivityEmptyState({
   // status to try), or a specific status filter that's hiding the rest.
   // "Try a different filter — there might be jobs in another status" makes the
   // user go and look. When we already know exactly which buckets hold their
-  // items, say so: "Nothing under active — but you have 3 in Closed."
+  // items, the button offers the first of them (the status boxes above the
+  // list already show every count, so the sentence does not repeat them).
   //
   // This is the same failure the /jobs default-filter bug produced — items
   // present, screen blank, the explanation one menu away — so the empty state
   // should point at them rather than shrug.
   const activeLabel =
     statusLabels?.find((f) => f.key === statusFilter)?.label ?? "this view";
-  const elsewhere = (statusLabels ?? [])
-    .filter((f) => f.key !== statusFilter && f.key !== "all" && (statusCounts?.[f.key] ?? 0) > 0)
-    .map((f) => `${statusCounts?.[f.key]} in ${f.label}`);
-  /* THE BUCKET TO OFFER. `elsewhere` is already every other filter holding
+  /* THE BUCKET TO OFFER: every other filter holding
      items. "Needs you" wins whenever it holds anything — it is the bucket
      whose whole point is that something is waiting on this person — and only
      then does the fullest one decide. It used to be fullest-only, and a
@@ -117,12 +115,6 @@ export function ActivityEmptyState({
     // needs you, then waiting, then scheduled...). Fullest offered "Show
     // Cancelled (4)" over 2 in Waiting on prod at 390 (helper-e2e).
     .filter((f) => f.key !== statusFilter && f.key !== "all" && (statusCounts?.[f.key] ?? 0) > 0)[0];
-  const filteredElsewhere =
-    elsewhere.length === 0
-      ? null
-      : elsewhere.length === 1
-        ? elsewhere[0]
-        : `${elsewhere.slice(0, -1).join(", ")} and ${elsewhere[elsewhere.length - 1]}`;
   /* WHERE THE MATCHES ARE. A search only narrows the bucket on screen, so
      "No jobs match your search" was false whenever the job sat in another
      bucket: the user read that it did not exist (OPEN.md, "My Posts search
@@ -148,9 +140,11 @@ export function ActivityEmptyState({
           : "No jobs match your search — try a different term.")
       : statusFilter === "all"
         ? "No jobs match the current view."
-        : filteredElsewhere
-          ? `Nothing under ${activeLabel.toLowerCase()} — but you have ${filteredElsewhere}.`
-          : "Try a different filter — there might be jobs in another status.";
+        // H4 (Cowork audit 2026-10-20): "Nothing under scheduled — but you
+        // have 14 in Needs You, 2 in Waiting…" restated the status boxes right
+        // above it, with an old label. Say what is empty, in the box's word;
+        // the button below still jumps to where the jobs are.
+        : `Nothing in ${activeLabel} right now.`;
   // Swap the CTAs on the empty state so each tab promotes the OTHER side
   // of the marketplace. When the user has data ("no matches" view) we
   // keep them on the same side they're filtering.

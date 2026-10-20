@@ -19,6 +19,8 @@
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. We hold it until the job is done.", |   escrow: "Nothing is charged until you hire.",
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (at < 0 \|\| !side) return null; |   if (at < 0) return null;
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {isPoster && open && job.payment_status === "escrow" && | {isPoster && open &&
+ * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |     !(job.photos ?? []).length && { key: "photo" |     false && { key: "photo"
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared after you're hired.</p>} |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -223,5 +225,40 @@ describe("/jobs/:id for a signed-in member", () => {
     );
     expect(await screen.findByRole("button", { name: "Apply" })).toBeTruthy();
     expect(screen.queryByTestId("where")).toBeNull();
+  });
+});
+
+describe("board 57: the poster's open job with no applicants", () => {
+  beforeEach(() => { state.party = false; state.applicants = { total: 0, pending: 0 }; });
+
+  it("a paid, open job nobody applied to says so, with only what the poster can do", async () => {
+    state.job = row({ customer_id: ME });
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "No applicants yet" })).toBeTruthy();
+    expect(screen.getByText(/It's out to Helprs near Delcambre\./)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Add a photo/ })).toBeTruthy();
+    const price = screen.getByRole("button", { name: /Change the price/ });
+    expect(price.textContent).toContain("You're at $90");
+    expect(screen.queryByText(/quotes/i)).toBeNull();
+    fireEvent.click(price);
+    expect(screen.getByTestId("where").textContent).toContain("manage=1");
+  });
+
+  it("an unpaid post, a post with a photo, or one with applicants does not claim it", async () => {
+    state.job = row({ customer_id: ME, payment_status: "unpaid" });
+    const { unmount } = renderPage();
+    expect(await screen.findByText(/Not paid yet/)).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "No applicants yet" })).toBeNull();
+    unmount();
+    state.job = row({ customer_id: ME, photos: ["a.jpg"] });
+    const r2 = renderPage();
+    expect(await screen.findByRole("heading", { name: "No applicants yet" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Add a photo/ })).toBeNull();
+    r2.unmount();
+    state.applicants = { total: 2, pending: 2 };
+    state.job = row({ customer_id: ME });
+    renderPage();
+    expect(await screen.findByText("2 applicants")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "No applicants yet" })).toBeNull();
   });
 });

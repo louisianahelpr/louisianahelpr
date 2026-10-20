@@ -14,6 +14,7 @@ import { useActivityData } from "@/hooks/useActivityData";
 import { ActivityDialogs } from "@/components/job-card/ActivityDialogs";
 import { ActivityOfferDialogs } from "@/components/job-card/ActivityOfferDialogs";
 import { useManageDeepLink } from "./useManageDeepLink";
+import { useToastClearance } from "@/hooks/useToastClearance";
 import { RecurringVisitPayments } from "@/pages/posts/postedJobs/RecurringVisitPayments";
 import { PendingBankPayments } from "@/pages/posts/postedJobs/PendingBankPayments";
 import { type Tab } from "@/components/job-card/activityConstants";
@@ -337,6 +338,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   });
 
   useManageDeepLink(manageJobId, postedJobs, actions);
+  const toastClearance = useToastClearance();
 
   // Status-filter definitions + memoized list/count derivations.
   const { filteredPostedJobs, filteredAppliedApps, appliedCounts, postedCounts, postedSearchCounts, appliedSearchCounts } =
@@ -489,11 +491,11 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
                375 — measured, and the owner's "roughly half the screen empty".
                Giving this wrapper the panel's full height lets the tab's
                end-of-list block take the slack with `mt-auto`/`flex-1` instead
-               of the void taking it. Nothing moves on a full list: `min-h-`,
-               not `h-`, so the wrapper still grows past the fold as before. */
+               of the void taking it (`min-h-`, so a full list still grows). */
+            /* Desktop list column <= 960px, centred (spec §4.4); a live toast never covers a card (lead 10-20). */
             <div
-              className="min-h-full flex flex-col"
-              style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))" }}
+              className="min-h-full flex flex-col w-full lg:mx-auto lg:max-w-[960px]"
+              style={{ paddingBottom: `calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + ${toastClearance}px)` }}
             >
           <JobListQuotesSlot tab={tab} />{/* the member's quotes, behind the 'quotes' switch (owner 2026-10-19) */}
           {/* Jobs waiting for the poster's bank payment: shown, never bucketed. */}
@@ -503,9 +505,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
                ActivitySectionedView both use. It said `space-y-2.5` — 10px
                against the real 12px — the same 2px-per-row drift
                ActivityPageSkeleton was fixed for on 2026-09-21; a gap is part
-               of the reservation. (The applied branch below still reads
-               `space-y-2.5`; that surface belongs to the /jobs report and is
-               filed in docs/OPEN.md rather than changed here.) */
+               of the reservation. */
             <Suspense fallback={
               <div className="px-0 space-y-list">
                 {[1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}

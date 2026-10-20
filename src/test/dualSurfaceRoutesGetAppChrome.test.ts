@@ -73,11 +73,11 @@ describe("signed-in PublicLayout routes carry the app navigation (Q179)", () => 
   });
 });
 
-// @mutate src/lib/desktopNavRoutes.ts | const AUTH_PREFIX_EXCLUSIONS: string[] = ["/jobs/"]; | const AUTH_PREFIX_EXCLUSIONS: string[] = [];
-describe("the Jobs tab (/jobs) and the public job page (/jobs/<id>) are told apart", () => {
-  it("the rail shows on the Jobs tab but not on a job page", () => {
+// @mutate src/lib/desktopNavRoutes.ts | const AUTH_PREFIX_EXCLUSIONS: string[] = []; | const AUTH_PREFIX_EXCLUSIONS: string[] = ["/jobs/"];
+describe("the Jobs tab (/jobs) and a member's job page (/jobs/<id>) both carry the rail (board 168)", () => {
+  it("the rail shows on the Jobs tab and on a signed-in member's job page (guests: callers gate on a user)", () => {
     expect(isDesktopRailRoute("/jobs")).toBe(true);
-    expect(isDesktopRailRoute("/jobs/3f0c9a4e-0000-4000-8000-000000000000")).toBe(false);
+    expect(isDesktopRailRoute("/jobs/3f0c9a4e-0000-4000-8000-000000000000")).toBe(true);
   });
 });
 
@@ -106,7 +106,6 @@ const NOT_APP_CHROME: Record<string, { rail?: string; dock?: string }> = {
     dock: "pre-existing on origin/main 35b616cf8 (checkout return screen); not decided by this guard",
   },
   "/admin": { dock: "the admin console's own top bar is phone-only (desktopNavRoutes.ts NO_NAV_PREFIXES note)" },
-  "/jobs/:id": { rail: "the public job page shares /jobs/ and is excluded on purpose (AUTH_PREFIX_EXCLUSIONS)" },
 };
 
 function protectedRoutes(): string[] {

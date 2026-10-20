@@ -97,6 +97,18 @@ const TONE: Record<JobStatusTone, ToneSkin> = {
   over: { surface: "--olivewood", ink: "--olivewood", icon: XCircle },
 };
 
+/** The face line's ink (lead review 2026-10-20): status text is ink or olive,
+ *  never the amber-brown that reads as rust. Only a dispute's "Payment on hold"
+ *  keeps sienna, because it is a statement about held money (spec §3). */
+const LINE_INK: Record<JobStatusTone, string> = {
+  alarm: "--sienna-ink",
+  you: "--foreground",
+  them: "--olivewood",
+  ahead: "--olivewood",
+  done: "--bark",
+  over: "--muted-foreground",
+};
+
 export function JobStatusStrip({
   line,
   extraClocks,
@@ -116,6 +128,7 @@ export function JobStatusStrip({
 }) {
   const skin = TONE[line.tone];
   const Icon = skin.icon;
+  const ink = variant === "line" ? LINE_INK[line.tone] : skin.ink;
   // An unanswered offer reads as ONE line, its answer clock beside the
   // sentence, with the start clock under it (owner, 2026-10-08).
   const deadlineInline = line.id === "unconfirmed" && !!line.deadline;
@@ -164,11 +177,11 @@ export function JobStatusStrip({
         field rather than the rendering would have retired that check.
       */}
       <span className="sr-only">{line.eyebrow} — </span>
-      <span className={variant === "line" ? "font-sans text-ds-13 font-semibold" : "font-sans text-ds-11"} style={{ color: `hsl(var(${skin.ink}))` }}>
+      <span className={variant === "line" ? "font-sans text-ds-13 font-semibold" : "font-sans text-ds-11"} style={{ color: `hsl(var(${ink}))` }}>
         {line.detail}
       </span>
       {deadlineInline && line.deadline && (
-        <span className="inline-flex items-center gap-1.5" data-countdown-inline="deadline" style={{ color: `hsl(var(${skin.ink}))` }}>
+        <span className="inline-flex items-center gap-1.5" data-countdown-inline="deadline" style={{ color: `hsl(var(${ink}))` }}>
           {/* No "·" before the clock (owner, 2026-10-08: "Remove the period before
               the second clock"): it wraps onto its own line, where a dot leads it. */}
           <DeadlineCountdown compact deadline={line.deadline.at} expiredText={line.deadline.expiredText} consequenceText={line.deadline.consequenceText} />
@@ -181,7 +194,7 @@ export function JobStatusStrip({
         <span
           className="min-w-0 flex-1 truncate font-sans text-ds-11"
           data-job-status-suffix=""
-          style={{ color: `hsl(var(${skin.ink}))` }}
+          style={{ color: `hsl(var(${ink}))` }}
         >
           · {line.suffix}
         </span>
@@ -189,7 +202,7 @@ export function JobStatusStrip({
       {/* The state's clock, on its own row under the sentence: the same
           countdown the expanded tracker shows, in its bare form. */}
       {extraClocks && extraClocks.length > 0 ? (
-        <span className="basis-full" style={{ color: `hsl(var(${skin.ink}))` }}>
+        <span className="basis-full" style={{ color: `hsl(var(${ink}))` }}>
           <CountdownRows
             variant="bare"
             clocks={[
@@ -201,7 +214,7 @@ export function JobStatusStrip({
           />
         </span>
       ) : line.deadline && !deadlineInline && (
-        <span className="basis-full" style={{ color: `hsl(var(${skin.ink}))` }}>
+        <span className="basis-full" style={{ color: `hsl(var(${ink}))` }}>
           <DeadlineCountdown
             compact
             deadline={line.deadline.at}

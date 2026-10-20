@@ -15,6 +15,7 @@ import type { Job } from "../../../components/job-card/activityConstants";
  *   confirm_arrival   -> onConfirmArrival (the ladder's rung, already gated by derivePosterWait)
  *   approve           -> opens the card and its completion sheet (the sheet is the confirmation; never a one-tap release)
  *   done_*_open       -> onReview / onTip (a crew's per-member tips live in the card)
+ *   stalled           -> Message <Helpr> (there is no poster "done" path)
  *   cancelled         -> Post again (/post-job?rebook=)
  * Everything else opens the card's own controls in place.
  */
@@ -29,8 +30,12 @@ export interface PosterFaceHandlers {
   review: () => void;
   tip: () => void;
   postAgain: () => void;
+  message: () => void;
   manage: () => void;
 }
+
+/** "Hallie H." -> "Hallie": a button label names the person, short. */
+const first = (name: string) => name.trim().split(/\s+/)[0] || name;
 
 export function posterFaceAction(
   wait: PosterWait,
@@ -65,7 +70,11 @@ export function posterFaceAction(
       // A crew is tipped member by member, in the card.
       return job.is_group_job
         ? { label: "Manage job", onClick: h.manage, tone: "secondary" }
-        : { label: `Tip ${h.helperName}`, onClick: h.tip, tone: "primary" };
+        : { label: `Tip ${first(h.helperName)}`, onClick: h.tip, tone: "primary" };
+    case "stalled":
+      // No poster "it's done" path exists: a stalled job is released or refunded
+      // only by a person (STALLED_APPROVE_DISABLED_REASON). Talking to them is.
+      return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "primary" };
     case "cancelled":
       return { label: "Post again", onClick: h.postAgain, tone: "secondary" };
     default:
@@ -106,6 +115,7 @@ export function usePosterFaceAction(a: {
     review: () => a.onReview(job),
     tip: () => a.onTip(job.id, a.helperName),
     postAgain: () => a.navigate(`/post-job?rebook=${job.id}`),
+    message: () => a.navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages"),
     manage: () => toggle(job.id),
   });
   return { faceAction, completionRequest };

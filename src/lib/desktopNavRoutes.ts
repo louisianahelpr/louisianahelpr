@@ -4,8 +4,9 @@
 // lucide + framer-motion deps) onto the initial critical path.
 
 // Routes where the signed-in app chrome (and therefore the rail) should show.
-// /jobs is the Jobs tab. The public job page /jobs/<id> shares its prefix and
-// is excluded below (AUTH_PREFIX_EXCLUSIONS).
+// /jobs is the Jobs tab, and /jobs/<id> is a signed-in member's job page
+// (board 168, 2026-10-20). A guest on /jobs/<id> gets the public preview: every
+// caller gates the rail on a signed-in user, so the guest page is unchanged.
 const AUTH_PREFIXES = [
   // Admin. Removing it from NO_NAV_PREFIXES only stopped the nav being
   // suppressed — `isDesktopRailRoute` is an ALLOW-list, so it also has to be
@@ -88,9 +89,9 @@ const AUTH_PREFIXES = [
 
 // Path prefixes that MUST NOT get the rail even though they'd otherwise
 // match an AUTH_PREFIXES entry.
-// The public job page /jobs/<id> (PublicLayout, marketing Navbar + Footer)
-// starts with the Jobs tab's "/jobs" but is not an app screen.
-const AUTH_PREFIX_EXCLUSIONS: string[] = ["/jobs/"];
+// Empty since 2026-10-20: /jobs/<id> was excluded while a signed-in visitor
+// was redirected off it; it is now their job page (JobPage, board 168).
+const AUTH_PREFIX_EXCLUSIONS: string[] = [];
 // ...except the app screens that live under it: Jobs settings (2026-10-19) is a signed-in page.
 const APP_SCREENS_UNDER_EXCLUSIONS: string[] = ["/jobs/settings"];
 

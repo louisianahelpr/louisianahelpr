@@ -43,7 +43,7 @@ const line = (over: Partial<CartLine>): CartLine =>
 const order = (over: Partial<ShopOrder>): ShopOrder =>
   ({
     id: "so", buyer_id: "me", seller_id: "s", shop_id: "sh", status: "accepted", close_reason: null, ready_date: "2020-10-22",
-    items_cents: 1200, total_cents: 1300, shop_order_lines: [{ id: "x", item_id: "y", title: "Pecan pralines", kind: "product", unit_cents: 600, quantity: 2, line_cents: 1200 }],
+    items_cents: 1200, total_cents: 1300, shop_order_lines: [{ id: "x", item_id: "y", title: "Pecan pralines", kind: "made", unit_cents: 600, quantity: 2, line_cents: 1200 }],
     ...over,
   }) as ShopOrder;
 const none: ComingUpInputs = { postedJobs: [], appliedApps: [], cart: [], bookings: [], myOrders: [], shopOrders: [] };

@@ -198,3 +198,6 @@ describe("snooze labels and presets", () => {
     expect(t.getTime()).toBeGreaterThan(NOW.getTime());
   });
 });
+
+// @mutate src/lib/threadMutes.ts | if (isTeamThreadKey(jobId)) return false; | if (false) return false;
+// @mutate src/lib/threadMutes.ts | if (hours < 24) return `Muted for ${hours}h`; | if (hours < 8) return `Muted for ${hours}h`;

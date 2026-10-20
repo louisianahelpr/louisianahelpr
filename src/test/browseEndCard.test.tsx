@@ -42,6 +42,8 @@ describe("each Browse list renders it", () => {
     ["src/components/shops/ShopsHomeView.tsx", /<BrowseEndCard \/>/],
     ["src/components/rentals/listings/RentBrowse.tsx", /<BrowseEndCard \/>/],
   ];
+  // Floor: four Browse lists (Jobs, Declutter, Shops, Homes) were counted in src on 2026-10-20.
+  it("covers all four Browse lists", () => expect(FILES.length).toBeGreaterThan(3));
   for (const [f, re] of FILES) it(f, () => expect(src(f)).toMatch(re));
   it("only Jobs offers alerts", () => {
     for (const [f] of FILES.slice(1)) expect(src(f)).not.toMatch(/<BrowseEndCard[^>]*onAlerts/);

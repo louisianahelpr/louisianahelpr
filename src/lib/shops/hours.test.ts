@@ -57,3 +57,6 @@ describe("shop group icon", () => {
     expect(shopGroupIcon(undefined)).toBe(Store);
   });
 });
+
+// @mutate src/lib/shops/hours.ts | const h12 = hh % 12 === 0 ? 12 : hh % 12; | const h12 = hh % 12 === 0 ? 0 : hh % 12;
+// @mutate src/lib/shops/hours.ts | h.opens <= hhmm && hhmm < h.closes | h.opens <= hhmm && hhmm <= h.closes

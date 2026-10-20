@@ -8,10 +8,13 @@
  *
  * @mutate src/pages/home/HomeDashboard.tsx | export const COMING_UP_ROLE: Record<ComingUpItem["role"], string> = { posted: "You hired", working: "You're working" }; | export const COMING_UP_ROLE: Record<ComingUpItem["role"], string> = { posted: "Posted", working: "Applied" };
  * @mutate src/pages/home/HomeDashboard.tsx | meta={<span data-coming-up-role={c.role}>{[COMING_UP_ROLE[c.role], whenLine(c.job)].filter(Boolean).join(" · ")}</span>} | meta={whenLine(c.job)}
- * @mutate src/pages/home/HomeDashboard.tsx |                   onClick={() => navigate(`/jobs/${c.job.id}`)}\n |                   onClick={() => navigate(`/jobs/${c.job.id}`)}\n                  right={<span className="text-ds-15 font-bold shrink-0">${c.job.budget}</span>}\n
+ * @mutate src/pages/home/HomeDashboard.tsx |                       onClick={() => navigate(`/jobs/${c.job.id}`)}\n                      last={last} |                       onClick={() => navigate(`/jobs/${c.job.id}`)}\n                      right={<span className="text-ds-15 font-bold shrink-0">${c.job.budget}</span>}\n                      last={last}
  * @mutate src/pages/home/HomeDashboard.tsx | <span data-testid="next-up-section" | <span data-testid="next-up-section" hidden
  * @mutate src/pages/home/HomeDashboard.tsx | <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1"> | <div className="flex items-center gap-x-3 gap-y-1 mt-1">
  * @mutate src/pages/home/HomeDashboard.tsx | const NEXT_UP_MAX_DOTS = 5; | const NEXT_UP_MAX_DOTS = 8;
+ * @mutate src/pages/home/HomeDashboard.tsx | xl:grid xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] | xl:flex
+ * @mutate src/pages/home/HomeDashboard.tsx |               if (isWebDesktop) { |               if (false) {
+ * @mutate src/pages/home/HomeDashboard.tsx | <div className="flex items-center -ml-2 lg:hidden" role="group" | <div className="flex items-center -ml-2" role="group"
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -33,6 +36,8 @@ describe("Home matches board 7", () => {
     expect(block.length).toBeGreaterThan(300);
     expect(block).toContain("data-coming-up-role={c.role}");
     expect(block).toContain("COMING_UP_ROLE[c.role]");
+    // The phone row's caption: "<your side> · <when>".
+    expect(block).toMatch(/meta=\{<span data-coming-up-role=\{c\.role\}>\{\[COMING_UP_ROLE\[c\.role\], whenLine\(c\.job\)\]/);
     expect(block).toMatch(/leading=\{\s*<span aria-hidden className="w-10 h-10 shrink-0 rounded-full/);
     expect(block).not.toMatch(/budget|right=\{/);
   });
@@ -43,7 +48,7 @@ describe("Home matches board 7", () => {
   });
 
   it("the dots + See all + action row wraps, so the action never covers a dot (axe target-size at 320/375, TRAIN23)", () => {
-    const m = src.match(/<div className="([^"]*)">\s*\{todoCount > 1 && \(\s*<div className="flex items-center -ml-2" role="group" aria-label="Your to-dos">/);
+    const m = src.match(/<div className="([^"]*)">\s*\{todoCount > 1 && \(\s*<div className="flex items-center -ml-2[^"]*" role="group" aria-label="Your to-dos">/);
     expect(m, "the Next up dots row").not.toBeNull();
     expect(m![1]).toMatch(/\bflex-wrap\b/);
     // See all + the action are ONE group that grows to the row's width when it wraps.
@@ -53,5 +58,26 @@ describe("Home matches board 7", () => {
     expect(cap).toBeGreaterThan(1);
     expect(cap * 44 - 8).toBeLessThanOrEqual(248);
     expect(src).toContain("summary.todos.slice(0, NEXT_UP_MAX_DOTS)");
+  });
+
+  it("desktop is board 11: two columns from 1280, sections on the right, Coming up as a table, no Next up dots", () => {
+    // Two columns: left = Next up / To do / Coming up, right = Your sections.
+    const cols = src.match(/<div data-home-columns className="([^"]*)">/);
+    expect(cols, "the columns wrapper").not.toBeNull();
+    expect(cols![1]).toMatch(/\bxl:grid\b/);
+    expect(cols![1]).toMatch(/xl:grid-cols-\[minmax\(0,3fr\)_minmax\(0,2fr\)\]/);
+    const main = src.indexOf("<div data-home-main");
+    const side = src.indexOf('<section data-home-side className="flex flex-col gap-2 min-w-0" aria-label="Your sections">');
+    expect(main).toBeGreaterThan(src.indexOf("<div data-home-columns"));
+    expect(side).toBeGreaterThan(src.indexOf('<GroupSection title="Coming up">'));
+    expect(src.indexOf('data-testid="next-up"')).toBeGreaterThan(main);
+    // Coming up on desktop: day · time · title · "<Section> · <your side>" columns.
+    const table = src.slice(src.indexOf("if (isWebDesktop) {"), src.indexOf("data-coming-up-table-row") + 900);
+    expect(table).toContain("grid-cols-[6.5rem_4.5rem_minmax(0,1fr)_auto]");
+    expect(table).toMatch(/\{sectionDef\("jobs"\)\.label\} · \{COMING_UP_ROLE\[c\.role\]\}/);
+    expect(table).not.toMatch(/budget|price|money/);
+    // Next up on desktop: the action, then See all; no dots (board 11).
+    expect(src).toMatch(/<div className="flex items-center -ml-2 lg:hidden" role="group" aria-label="Your to-dos">/);
+    expect(src).toMatch(/data-next-up-actions className="[^"]*lg:flex-row-reverse lg:justify-end/);
   });
 });

@@ -1,13 +1,14 @@
-// @mutate src/hooks/useActivityBadgeCounts.ts | safeStorage.setItem(`${CACHE_KEYS[kind]}:${userId}`, | safeStorage.setItem(CACHE_KEYS[kind],
+// @mutate src/lib/needsYouStore.ts | return userId && owner === userId ? snap : NO_TODOS; | return snap;
 // @mutate src/components/mobileNav/mobileNavHelpers.ts | safeStorage.setItem(`${UNREAD_CACHE_KEY}:${userId}`, | safeStorage.setItem(UNREAD_CACHE_KEY,
-// @mutate src/hooks/useActivityBadgeCounts.ts | function openStore(userId: string): BadgeStore {\n  clearLegacyGlobalCache(); | function openStore(userId: string): BadgeStore {
 /**
  * CLASS CHECK: a badge / count / unread number cached on the device belongs to
  * ONE account, so its storage key carries that account's id.
  *
  * Owner report 2026-10-01: signed in as their own account (0 posted jobs,
  * prod returns 0 for the Posts badge query) the Posts nav badge read "1".
- * useActivityBadgeCounts cached both nav badges under the GLOBAL keys
+ * The old nav-badge hook (useActivityBadgeCounts, retired 2026-10-20 for
+ * badge = To-do; its counts now live in src/lib/needsYouStore.ts, stamped
+ * with the account they were computed for) cached both nav badges under the GLOBAL keys
  * "helpr_nav_posts_count" / "helpr_nav_jobs_count", and seeded the first frame
  * from them. A count written while a test account was signed in on the same
  * device painted on the next account, and stayed there whenever the live read
@@ -79,7 +80,7 @@ vi.mock("@/lib/archivedConversations", () => ({ isArchived: () => false, ARCHIVE
 vi.mock("@/lib/appBadge", () => ({ setAppIconBadge: () => Promise.resolve() }));
 vi.mock("@/components/notificationPanel/notificationFeed", () => ({ useNotificationFeed: () => {} }));
 
-import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
+import { publishNeedsYou, clearNeedsYou, useNeedsYouCounts, NO_TODOS } from "@/lib/needsYouStore";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import {
   __resetNotificationStore,
@@ -100,35 +101,16 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("a cached count for one account never paints on another (owner 2026-10-01)", () => {
-  it("Posts / Jobs nav badges: A's cached counts do not seed B, and B's errored read leaves 0", async () => {
-    rig.postsCount = 1;
-    rig.offers = 2;
-    const a = renderHook(() => useActivityBadgeCounts("user-a"));
-    await flush();
-    expect(a.result.current).toEqual({ postsCount: 1, jobsCount: 2 });
-    a.unmount();
-
-    rig.mode = "error";
-    const b = renderHook(() => useActivityBadgeCounts("user-b"));
-    // The first frame (useState seed) and the store seed are both B's own.
-    expect(b.result.current, "user B's first frame showed user A's cached badge counts").toEqual({ postsCount: 0, jobsCount: 0 });
-    await flush();
-    expect(b.result.current, "an errored read for B kept A's cached counts").toEqual({ postsCount: 0, jobsCount: 0 });
-    b.unmount();
-
-    // A coming back still gets A's own last-known counts on the first frame.
-    const a2 = renderHook(() => useActivityBadgeCounts("user-a"));
-    expect(a2.result.current).toEqual({ postsCount: 1, jobsCount: 2 });
-    a2.unmount();
-  });
-
-  it("no user: badges are 0 even when some account has a cached count", async () => {
-    rig.postsCount = 4;
-    const a = renderHook(() => useActivityBadgeCounts("user-a"));
-    await flush();
-    a.unmount();
-    const none = renderHook(() => useActivityBadgeCounts(undefined));
-    expect(none.result.current).toEqual({ postsCount: 0, jobsCount: 0 });
+  it("To-do badge (Explore / sidebar): A's published counts never show for B or for nobody", () => {
+    publishNeedsYou("user-a", { total: 3, jobs: 2, shops: 1 });
+    const a = renderHook(() => useNeedsYouCounts("user-a"));
+    expect(a.result.current).toEqual({ total: 3, jobs: 2, shops: 1 });
+    const b = renderHook(() => useNeedsYouCounts("user-b"));
+    expect(b.result.current, "user B was shown user A's to-do count").toEqual(NO_TODOS);
+    const none = renderHook(() => useNeedsYouCounts(undefined));
+    expect(none.result.current).toEqual(NO_TODOS);
+    act(() => clearNeedsYou());
+    expect(a.result.current, "signing out left A's to-do count on the navs").toEqual(NO_TODOS);
   });
 
   it("Messages nav badge: A's cached unread does not seed B", async () => {
@@ -146,18 +128,12 @@ describe("a cached count for one account never paints on another (owner 2026-10-
     b.unmount();
   });
 
-  it("the old global keys are removed on load", async () => {
-    localStorage.setItem("helpr_nav_posts_count", "1");
-    localStorage.setItem("helpr_nav_jobs_count", "1");
+  it("the old global unread key is removed on load", async () => {
     localStorage.setItem("helpr_nav_unread_count", "25");
     rig.mode = "error";
-    const b = renderHook(() => useActivityBadgeCounts("user-b"));
     const m = renderHook(() => useNavUnreadCount({ id: "user-b" } as User));
-    expect(b.result.current).toEqual({ postsCount: 0, jobsCount: 0 });
     expect(m.result.current.unreadCount).toBe(0);
     await flush();
-    expect(localStorage.getItem("helpr_nav_posts_count")).toBeNull();
-    expect(localStorage.getItem("helpr_nav_jobs_count")).toBeNull();
     expect(localStorage.getItem("helpr_nav_unread_count")).toBeNull();
   });
 
@@ -269,7 +245,6 @@ describe("every count / badge / unread cache in src/ is keyed to a user", () => 
 
   it("inventory floor: the scan finds the count caches it exists for", () => {
     expect(hits.length).toBeGreaterThan(5);
-    expect(hits.some((h) => h.file === "src/hooks/useActivityBadgeCounts.ts")).toBe(true);
     expect(hits.some((h) => h.file === "src/components/mobileNav/mobileNavHelpers.ts")).toBe(true);
   });
 

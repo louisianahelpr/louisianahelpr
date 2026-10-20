@@ -35,7 +35,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/lib/userBlocks.ts:blockReads": { kind: "keyed-by-user-id" },
   "src/lib/userRealtimeBus.ts:buses": { kind: "keyed-by-user-id" },
   "src/hooks/useCurrentUser.ts:orphanedProfileReads": { kind: "keyed-by-user-id" },
-  "src/hooks/useActivityBadgeCounts.ts:stores": { kind: "keyed-by-user-id" },
+  "src/lib/needsYouStore.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks (the counts carry their account id; a reader for another id gets zero)" },
   "src/components/mobileNav/useNavUnreadCount.ts:stores": { kind: "keyed-by-user-id" },
   "src/components/sections/useSectionPrefs.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks" },
   "src/components/sections/useSectionPrefs.ts:cache": { kind: "keyed-by-user-id" },

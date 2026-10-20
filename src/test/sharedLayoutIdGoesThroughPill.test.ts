@@ -68,8 +68,10 @@ describe("every framer layoutId goes through SharedLayoutPill (PD-009)", () => {
   it("the pills that exist use the primitive (inventory floor)", () => {
     let uses = 0;
     for (const [f, src] of code) if (f !== PRIMITIVE) uses += (src.match(/<(?:SharedLayoutPill|DockPill)\b/g) ?? []).length;
-    // LegalTab, SubscriptionTab, MobileNav's two DockPills and the one SharedLayoutPill inside DockPill (the /legal page draws a plain pill since Q1719).
-    expect(uses).toBeGreaterThan(4);
+    // LegalTab, SubscriptionTab, MobileNav's one DockPill (the second went with the five-slot
+    // bottom bar, design-a 2026-10-20) and the one SharedLayoutPill inside DockPill (the /legal
+    // page draws a plain pill since Q1719): 4.
+    expect(uses).toBeGreaterThan(3);
   });
 });
 

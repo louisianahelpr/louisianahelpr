@@ -63,8 +63,11 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
       ariaLabel: on ? s.navLabel : comingSoonLabel(s.navLabel),
     };
   });
+  // A <nav>: it moves between the four sections, and it is the same chrome on a
+  // section's loading frame and on its page, so the page-settle sampler (which
+  // skips nav) never counts it as the page arriving (settleSkeletonIsNeverContent).
   return (
-    <div data-testid="explore-switcher">
+    <nav data-testid="explore-switcher" aria-label="Sections">
       <SegmentedControl
         ariaLabel="Explore"
         options={options}
@@ -79,6 +82,6 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
         className="w-full"
         optionClassName="px-1 text-ds-11 min-[360px]:text-ds-12 whitespace-nowrap"
       />
-    </div>
+    </nav>
   );
 }

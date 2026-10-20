@@ -257,6 +257,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // Jobs settings (2026-10-19): the Jobs rows that left Profile.
   { name: "jobs-settings", url: "/jobs/settings" },
   { name: "jobs", url: "/jobs?tab=working" },
+  // Explore (the bottom bar's second slot, 2026-10-20): the four sections' switcher.
+  { name: "explore", url: "/explore" },
   { name: "messages", url: "/messages" },
   { name: "post-job", url: "/post-job" },
   { name: "payment-success", url: "/payment-success" },

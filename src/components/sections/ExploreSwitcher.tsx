@@ -55,8 +55,10 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
   if (isWebDesktop) return null;
   const options = visible.map((s) => {
     const on = isOn(s);
+    const Icon = s.icon;
     return {
       value: s.key,
+      icon: <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />,
       label: on ? s.navLabel : <span data-soon="" className="text-muted-foreground font-medium">{s.navLabel}</span>,
       ariaLabel: on ? s.navLabel : comingSoonLabel(s.navLabel),
     };
@@ -73,8 +75,9 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
           if (!isOn(s)) return sayComingSoon(s.label);
           navigate(s.path);
         }}
+        iconPosition="top"
         className="w-full"
-        optionClassName="px-1 text-ds-12 min-[360px]:text-ds-13 whitespace-nowrap"
+        optionClassName="px-1 text-ds-11 min-[360px]:text-ds-12 whitespace-nowrap"
       />
     </div>
   );

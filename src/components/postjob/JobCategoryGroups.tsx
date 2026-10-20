@@ -4,15 +4,13 @@ import { SuggestCategory } from "@/components/SuggestCategory";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
 import { JOB_CATEGORY_GROUPS, jobCategoryGroupOf, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
+import { CHIP, CHIP_ON, CHIP_OFF } from "@/components/ui/chipClasses";
 
 interface Props {
   category: string;
   setCategory: (v: string) => void;
 }
 
-const CHIP =
-  "inline-flex min-h-11 items-center rounded-full px-4 font-sans font-semibold text-ds-13 leading-tight break-normal hyphens-none text-left transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-const CHIP_OFF = "bg-transparent border border-input text-foreground";
 
 /**
  * Post a Job step 1 (board 23): search, then GROUPS that open their
@@ -58,7 +56,7 @@ export function JobCategoryGroups({ category, setCategory }: Props) {
         type="button"
         aria-pressed={on}
         onClick={() => setCategory(it.value)}
-        className={`${CHIP} ${on ? "btn-grad-primary text-primary-foreground" : CHIP_OFF}`}
+        className={`${CHIP} ${on ? CHIP_ON : CHIP_OFF}`}
       >
         {it.label}
       </button>

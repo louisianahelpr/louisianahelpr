@@ -11,7 +11,8 @@
  * @mutate src/pages/jobs/JobsSection.tsx |   { value: "posted", label: "Posted" }, |   { value: "posted", label: "Jobs I posted" },
  * @mutate src/pages/jobs/JobsSection.tsx |   return MY_JOBS_LINK_PARAMS.some((k) => params.has(k)) ? "working" : "browse"; |   return "browse";
  * @mutate src/components/job-card/embeddedActivity.tsx |   return current === tapped ? "all" : tapped; |   return tapped;
- * @mutate src/components/sections/StatusBoxes.tsx |               aria-pressed={on} |               aria-pressed={false}
+ * @mutate src/components/sections/StatusBoxes.tsx | aria-pressed={on} | aria-pressed={false}
+ * @mutate src/components/sections/StatusBoxes.tsx | {chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })} |
  * @mutate src/pages/home/useDetailJob.ts |         if (!next.has("tab")) next.set("tab", "browse"); |
  * @mutate src/pages/jobs/JobsSection.tsx |   const tab = params.get("tab") ? resolveJobsTab(params, picked) : openedOnLegacyLink ? "working" : "browse"; |   const tab = resolveJobsTab(params, picked);
  */
@@ -134,7 +135,7 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
   });
 });
 
-describe("status boxes filter: tap one = only that group, tap again = all", () => {
+describe("status chips filter: tap one = only that group, tap again or All = all", () => {
   it("the toggle rule", () => {
     expect(BOX_BUCKETS.length).toBeGreaterThan(3);
     expect(nextBoxFilter("all", "needs_you")).toBe("needs_you");
@@ -153,8 +154,15 @@ describe("status boxes filter: tap one = only that group, tap again = all", () =
     expect(box().getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(box());
     expect(box().getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByText(/tap again for all/)).toBeTruthy();
+    // Boards 14/21: "All" leads the chip row and is unlit while a group is chosen.
+    const all = () => screen.getByRole("button", { name: /^All/ });
+    expect(all().getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(box());
     expect(box().getAttribute("aria-pressed")).toBe("false");
+    expect(all().getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(box());
+    fireEvent.click(all());
+    expect(box().getAttribute("aria-pressed")).toBe("false");
+    expect(all().getAttribute("aria-pressed")).toBe("true");
   });
 });

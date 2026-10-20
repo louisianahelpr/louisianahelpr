@@ -311,7 +311,7 @@ export const ReviewsSection = ({
                 <button
                   type="button"
                   className="mt-2 text-ds-11 font-sans font-semibold underline underline-offset-2"
-                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                  style={{ color: "hsl(var(--bark))" }}
                   onClick={() => {
                     onStartResponding(r.id, "");
                   }}
@@ -352,8 +352,8 @@ export const ReviewsSection = ({
                       // handler also guards, but that's a toast, not an
                       // affordance).
                       disabled={savingResponse || responseText.trim().length === 0}
-                      className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold text-white disabled:opacity-50"
-                      style={{ backgroundColor: "hsl(var(--burnt-sienna))" }}
+                      className="btn-press px-4 py-1.5 rounded-full text-ds-12 font-semibold text-white disabled:opacity-50"
+                      style={{ backgroundColor: "hsl(var(--bark))" }}
                     >
                       {savingResponse ? "Saving…" : "Save"}
                     </button>

@@ -3,7 +3,7 @@ import { wrappedSeasonLabel } from "@/lib/format";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "warnings" | "credentials" | "saved_helpers" | "accessibility" | "pets" | "work_record" | "home_history" | "str_settings" | "auto_tip" | "wrapped" | "analytics" | "gift_card";
+export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "warnings" | "credentials" | "saved_helpers" | "accessibility" | "pets" | "work_record" | "home_history" | "str_settings" | "auto_tip" | "wrapped" | "analytics" | "gift_card" | "settings";
 
 /**
  * Human name for each Profile tab, used to build a distinct `document.title`
@@ -77,6 +77,7 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   // Was the standalone route /gift-card until 2026-09-11 — the last Profile
   // sibling that was still a route of its own.
   gift_card: "Gift Card",
+  settings: "Settings",
 };
 
 /**

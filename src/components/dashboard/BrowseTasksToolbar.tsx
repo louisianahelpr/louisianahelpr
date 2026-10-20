@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronRight, SearchCheck } from "lucide-react";
-import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/FilterSheet";
+import { FilterSheet } from "@/components/dashboard/FilterSheet";
+import { buildJobFilterSections } from "@/components/dashboard/filterSheet/jobFilterSections";
 import { SavedSearches } from "@/components/SavedSearches";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { hapticLight } from "@/lib/haptics";
@@ -43,6 +44,8 @@ import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
  * dropdown, and the FilterSheet are all one row's worth of the same state —
  * there is only ever one copy of each piece.
  */
+const JOB_NOUN = ["job", "jobs"] as const;
+
 export function BrowseTasksToolbar({
   filters,
   user,
@@ -65,6 +68,7 @@ export function BrowseTasksToolbar({
   savedCount = 0,
   wantsQuotes = false,
   onToggleWantsQuotes,
+  resultCount = null,
 }: BrowseTasksToolbarProps) {
   // Saved-searches dialog. Opened from the filter sheet's "Saved searches"
   // row, which closes the sheet on the way — so the dialog is mounted HERE,
@@ -169,6 +173,9 @@ export function BrowseTasksToolbar({
         open={filters.filtersOpen}
         onOpenChange={filters.setFiltersOpen}
         anchorRef={filtersAnchorRef}
+        title="Filter jobs"
+        resultCount={resultCount}
+        resultNoun={JOB_NOUN}
         activeFilterCount={filters.activeFilterCount}
         onClearAll={() => {
           filters.clearFilters();
@@ -218,6 +225,9 @@ export function BrowseTasksToolbar({
             locationFilter: filters.locationFilter, setLocationFilter: filters.setLocationFilter,
             sortBy: filters.sortBy, setSortBy: filters.setSortBy,
             expiresWithin: filters.expiresWithin, setExpiresWithin: filters.setExpiresWithin,
+            jobWhen: filters.jobWhen, setJobWhen: filters.setJobWhen,
+            minBudget: filters.minBudget, setMinBudget: filters.setMinBudget,
+            maxBudget: filters.maxBudget, setMaxBudget: filters.setMaxBudget,
             matchAvailability: filters.matchAvailability, setMatchAvailability: filters.setMatchAvailability,
             hasAvailability: helperAvailability.length > 0,
             boostedOnly: filters.boostedOnly, setBoostedOnly: filters.setBoostedOnly,
@@ -254,7 +264,7 @@ export function BrowseTasksToolbar({
                     or the two read as the same feature. */}
                 <SearchCheck className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} aria-hidden />
                 <span className="min-w-0 flex-1 text-ds-12 font-semibold text-foreground">
-                  Saved Searches
+                  Saved searches
                 </span>
                 <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />
               </button>

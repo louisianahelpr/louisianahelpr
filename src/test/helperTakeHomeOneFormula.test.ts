@@ -34,9 +34,9 @@ const ALLOWED: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "pre-hire browse quote that itemises budget, fee and urgent bonus as separate figures",
   },
-  "src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx": {
+  "src/components/dashboard/applyConfirmDialog/applyTakeHome.ts": {
     count: 1,
-    why: "pre-hire itemised receipt; each line is shown, and the one-time first-payout fee comes off after",
+    why: "pre-hire itemised receipt (the apply sheet, and board 77 after applying); each line is shown, and the one-time first-payout fee comes off after",
   },
   "src/pages/jobs/appliedJobCard/CancellationFeePill.tsx": {
     count: 1,

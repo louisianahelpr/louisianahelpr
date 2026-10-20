@@ -787,6 +787,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Builder 3 (2026-10-20, boards 25/39): the Declutter Browse filter panel (phone sheet + desktop column).
+  "src/components/declutter/DeclutterFilterPanel.tsx": "behind the 'declutter' switch (testers only); its only text inputs are the two whole-dollar price bounds, which strip every non-digit and cap at 5 digits (DollarBox) and only filter rows already loaded, never sent to the server; the declutter-search sweep types in the search row but does not open the filter sheet, so a FORMS sweep of the panel is owed",
   // Shops M3/M4 (2026-10-19, shops-m3): cancels, no-shows and the admin Shops orders screen.
   "src/components/admin/AdminShopsOrders.tsx": "admin-only, needs a charged Shops order (journeys never pay on live Stripe); the note (1-500), refund reason (four values), re_ id and amount are refused by shops_admin_* / shop-checkout admin_record_hand_refund as pinned by src/test/pglite/shopsRefunds.pglite.mjs and src/test/edge/shop-refunds.test.ts",
   "src/components/shops/ShopOrderCancel.tsx": "behind the 'shops' switch (testers only) and needs an accepted, charged order; the shop's cancel reason is contact-leak filtered and capped by shops_shop_cancel_order, the buyer's cancel takes no text, as pinned by src/test/pglite/shopsRefunds.pglite.mjs",

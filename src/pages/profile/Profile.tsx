@@ -144,10 +144,11 @@ const ProfilePage = () => {
   // source of truth (synced both ways below), so the title follows it.
   // TAB_TITLES has no `landing` key — the bare profile page keeps the plain
   // title rather than repeating itself.
+  // One name (board 18): the tab, the h1 and the browser tab all say "You".
   usePageTitle(
     tab === "landing" || !TAB_TITLES[tab]
-      ? "My Profile — Helpr"
-      : `${profileTabTitle(tab, searchParams.toString())} — My Profile — Helpr`,
+      ? "You — Helpr"
+      : `${profileTabTitle(tab, searchParams.toString())} — You — Helpr`,
   );
 
   // Sync tab to URL for bookmarkability; React Router owns history so browser

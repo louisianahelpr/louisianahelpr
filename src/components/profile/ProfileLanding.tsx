@@ -6,6 +6,7 @@ import { IdentityHeader } from "./profileLanding/IdentityHeader";
 import { SettingsSection } from "./profileLanding/SettingsSection";
 import { PayoutStatusRow } from "./profileLanding/PayoutStatusRow";
 import { PROFILE_PAGE_TITLE } from "./profileLanding/headingContract";
+import { YourActivity } from "./profileLanding/YourActivity";
 
 export function ProfileLanding({
   profile,
@@ -112,6 +113,9 @@ export function ProfileLanding({
           Declutter, Shops and Homes are tabs in the dock and the rail
           (useSectionTabs, 2026-10-18); Quotes moved into Post a Job
           (2026-10-19), so its row left too. */}
+
+      {/* Board 18: both sides of every section, right under who you are. */}
+      <YourActivity />
 
       <SettingsSection
         menuGroups={menuGroups}

@@ -84,6 +84,13 @@ export function useHomeSummary(user: SupaUser | null) {
       todos,
       thisWeek,
       upcoming: upcoming.slice(0, 3),
+      // You tab's activity tiles (board 18): real counts, 0 = no number shown.
+      counts: {
+        posted: postedLive.length,
+        working: appliedLive.length,
+        selling: items.filter((i) => i.status === "live").length,
+        shopOrders: myOrders.length,
+      },
       tiles: {
         // H5 (Cowork audit 2026-10-20): "N in progress" counted open jobs still
         // WAITING for applicants as in progress. The second count is the jobs that

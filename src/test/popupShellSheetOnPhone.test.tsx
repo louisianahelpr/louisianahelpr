@@ -11,6 +11,7 @@
  * @mutate src/components/ui/popupFooter.ts |   "fixed inset-x-0 bottom-0 w-full max-w-full max-h-[92dvh] !rounded-b-none " + |   "fixed left-1/2 top-1/2 w-full max-w-full max-h-[92dvh] " +
  * @mutate src/components/ui/popupFooter.ts | sm:w-full sm:max-w-[480px] | sm:w-full sm:max-w-lg
  * @mutate src/components/ui/popupFooter.ts | export const POPUP_ACTION_RADIUS = "rounded-full"; | export const POPUP_ACTION_RADIUS = "rounded-ds-md";
+ * @mutate src/components/ui/sheet.tsx | `overflow-y-auto data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 ${POPUP_SHEET_CLS} ${POPUP_DIALOG_CLS}` | `overflow-y-auto data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0`
  * @mutate src/components/ui/dialog.tsx |       <span data-sheet-handle aria-hidden className={POPUP_HANDLE_CLS} /> |       {null}
  */
 import { describe, it, expect, afterEach } from "vitest";
@@ -68,5 +69,18 @@ describe("every popup: a sheet on the phone, a 480px dialog on desktop, pill act
     for (const name of ["Cancel", "Log out"]) {
       expect(screen.getByRole("button", { name }).className).toMatch(/\brounded-full\b/);
     }
+  });
+});
+
+describe("sheets share the shell: a bottom sheet on the phone, the 480px dialog from sm", () => {
+  it("sheetVariants' bottom side wears both popup strings, and the floor sheet is phone-only CSS", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const { blankComments } = await import("./helpers/blankNonCode");
+    const sheet = blankComments(readFileSync(resolve(__dirname, "../components/ui/sheet.tsx"), "utf8"));
+    expect(sheet).toContain("${POPUP_SHEET_CLS} ${POPUP_DIALOG_CLS}");
+    const css = readFileSync(resolve(__dirname, "../index.css"), "utf8");
+    const at = css.indexOf(".sheet-floor {");
+    expect(css.lastIndexOf("@media (max-width: 639.98px) {", at)).toBeGreaterThan(at - 400);
   });
 });

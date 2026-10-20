@@ -6,9 +6,11 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
+  POPUP_DIALOG_CLS,
   POPUP_FOOTER_ROW,
   POPUP_SECONDARY_CLS,
   POPUP_COMMIT_CLS,
+  POPUP_SHEET_CLS,
 } from "@/components/ui/popupFooter";
 import { SHEET_HERO_TITLE_CLASS, SHEET_HERO_TITLE_STYLE } from "./sheetHeroTitle";
 import {
@@ -74,7 +76,12 @@ const sheetVariants = cva(
           // transform), rounds all four corners, and drops the bottom-edge
           // padding a floor-anchored sheet needed for iOS home-indicator
           // clearance — a centered card has no bottom edge to protect.
-          "inset-x-0 inset-y-0 top-0 h-fit my-auto max-w-[calc(100%-2rem)] sm:max-w-lg mx-auto data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          //
+          // SUPERSEDED 2026-10-20 by spec v2 §3 "Sheets and menus" (owner-adopted;
+          // lead: "on phone every popup is a bottom sheet, on desktop a centred
+          // 480px dialog"): the SAME two strings as DialogContent, so a sheet and
+          // a dialog are one shape at every width (popupFooter.ts).
+          `overflow-y-auto data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 ${POPUP_SHEET_CLS} ${POPUP_DIALOG_CLS}`,
         left: "inset-y-0 left-0 h-full w-3/4 rounded-none border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
           "inset-y-0 right-0 h-full w-3/4 rounded-none border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",

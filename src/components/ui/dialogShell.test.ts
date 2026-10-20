@@ -235,7 +235,8 @@ describe("Popups share one shell", () => {
   // @mutate src/components/ui/sheet.tsx | className={SHEET_HERO_TITLE_CLASS} | className="font-display font-bold leading-tight"
   it("every sheet title, SheetHero and the filter band alike, wears the shared sheet-title look", () => {
     const sheet = blankComments(read("src/components/ui/sheet.tsx"));
-    expect(sheet).toMatch(/<SheetTitle[^>]*className=\{SHEET_HERO_TITLE_CLASS\}[^>]*style=\{SHEET_HERO_TITLE_STYLE\}/s);
+    // A Bodoni "moment" title (2026-10-20: "What are we doing?") adds ONLY font-moment on top of the shared class.
+    expect(sheet).toMatch(/<SheetTitle[^>]*className=\{(?:moment \? `\$\{SHEET_HERO_TITLE_CLASS\} font-moment` : )?SHEET_HERO_TITLE_CLASS\}[^>]*style=\{SHEET_HERO_TITLE_STYLE\}/s);
     const filter = blankComments(read("src/components/dashboard/FilterSheet.tsx"));
     const heads = filter.match(/<h2 id=\{titleId\}[^>]*>/g) ?? [];
     expect(heads.length, "FilterSheet's band title was not found — the check has rotted").toBe(1);

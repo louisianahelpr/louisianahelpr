@@ -1,12 +1,13 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { UserAvatar } from "@/components/UserAvatar";
 import NotificationPanel from "@/components/NotificationPanel";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 
 /**
- * The signed-in app bar for the DESKTOP WEBSITE: the notification bell at the
- * right, spanning the content area beside the LEFT sidebar (which carries the
+ * The signed-in app bar for the DESKTOP WEBSITE: the notification bell and the
+ * member's photo at the right (board 11), spanning the content area beside the LEFT sidebar (which carries the
  * logo since 2026-10-20, board 11).
  *
  * Rendered ONCE, globally, from App.tsx beside {@link DesktopSidebarNav}, and
@@ -36,7 +37,8 @@ import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 const DesktopTopNav = () => {
   const isWebDesktop = useIsWebDesktop();
   const location = useLocation();
-  const { user } = useCurrentUser();
+  const navigate = useNavigate();
+  const { user, profile } = useCurrentUser();
 
   if (!isWebDesktop) return null;
   if (!isDesktopRailRoute(location.pathname)) return null;
@@ -60,6 +62,16 @@ const DesktopTopNav = () => {
       <div className="w-full flex h-14 items-center justify-end gap-2 px-5 lg:px-6 xl:px-6">
         <div className="flex items-center gap-1.5 -mr-1 [&_button]:h-11 [&_button]:w-11">
           <NotificationPanel />
+          {/* Board 11: bell, then the member's photo (opens You). */}
+          <button
+            type="button"
+            aria-label="Profile"
+            data-testid="desktop-top-profile"
+            onClick={() => navigate("/profile")}
+            className="btn-press rounded-full flex items-center justify-center"
+          >
+            <UserAvatar userId={user.id} src={profile?.avatar_url} name={profile?.full_name} pixelSize={72} alt="" className="w-9 h-9" />
+          </button>
         </div>
       </div>
     </header>

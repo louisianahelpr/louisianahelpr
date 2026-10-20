@@ -49,7 +49,7 @@ export function youMoneyCaption(money: ReturnType<typeof useHomeMoney>): string 
  */
 export function YouMenuList({ captions, onSelect }: { captions?: Partial<Record<RowKey, string | null>>; onSelect?: (key: string) => void }) {
   return (
-    <nav aria-label="You" className="liquid-glass overflow-hidden" data-testid="you-menu">
+    <section aria-label="You" className="liquid-glass overflow-hidden" data-testid="you-menu">
       {YOU_ROWS.map((row, i) => {
         const cap = captions?.[row.key];
         return (
@@ -60,7 +60,7 @@ export function YouMenuList({ captions, onSelect }: { captions?: Partial<Record<
             onClick={onSelect ? () => onSelect(row.key) : undefined}
             disabled={!onSelect}
             tabIndex={onSelect ? undefined : -1}
-            className="glass-press relative w-full min-h-[56px] flex items-center gap-3.5 px-4 py-3 text-left hover:bg-secondary/40 active:bg-secondary/60 transition-colors disabled:opacity-100"
+            className="glass-press relative w-full min-h-[56px] flex items-center gap-3.5 px-4 py-3 text-left ctl-tint transition-colors disabled:opacity-100"
           >
             {i > 0 && <span aria-hidden className="hairline pointer-events-none absolute top-0 left-4 right-4" />}
             <span className="shrink-0" style={{ color: "hsl(var(--bark))" }}>{ICON[row.key]}</span>
@@ -77,7 +77,7 @@ export function YouMenuList({ captions, onSelect }: { captions?: Partial<Record<
           </button>
         );
       })}
-    </nav>
+    </section>
   );
 }
 

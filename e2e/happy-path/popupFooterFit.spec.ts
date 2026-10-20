@@ -236,4 +236,4 @@ test("popup footers fit at every width, in equal halves or stacked", async ({ pa
 // the commit's own label then spilled out of the pill. The percentage basis is
 // what makes the halves equal for real. A class-name assertion cannot tell the
 // two apart — this spec renders them and reads the boxes back, so it can.
-// @mutate src/components/ui/popupFooter.ts | export const POPUP_COMMIT_CLS = "basis-[calc(50%-6px)] grow !min-w-max"; | export const POPUP_COMMIT_CLS = "flex-1 min-w-0";
+// @mutate src/components/ui/popupFooter.ts | export const POPUP_COMMIT_CLS = "basis-[calc(50%-6px)] grow !min-w-max" + ` ${POPUP_ACTION_RADIUS}`; | export const POPUP_COMMIT_CLS = "flex-1 min-w-0";

@@ -65,9 +65,6 @@ export interface TierBadgeStyle {
   prestige: boolean;
 }
 
-/** The ring a free account (and Basic, see above) wears. */
-export const NEUTRAL_AVATAR_RING = "0 0 0 2px hsl(var(--bark) / 0.18)";
-
 /** Exported for src/test/perkEnforcementParity.test.ts only — callers use tierBadgeStyle(). */
 export const TIER_BADGE_STYLES: Record<Exclude<TierId, "free">, TierBadgeStyle> = {
   basic: {

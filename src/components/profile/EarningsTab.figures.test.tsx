@@ -45,6 +45,8 @@ vi.mock("@/hooks/useCurrentUser", () => ({
 // Memberships switch OFF, the shipped state (roadmap F4/F4a).
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 2 }));
+// Board 51 head (HomeMoneyTiles over useHomeMoney) has its own guards (moneyBoard51Head, homeMoneyTiles); here it is nothing.
+vi.mock("@/pages/home/homeDashboard/homeMoney", () => ({ useHomeMoney: () => ({ coming: null, held: null }) }));
 vi.mock("@/hooks/useHelperMilestones", () => ({ useHelperMilestones: () => {} }));
 vi.mock("@/components/profile/HelperStreakBadge", () => ({
   HelperStreakBadge: () => null,

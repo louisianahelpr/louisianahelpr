@@ -57,10 +57,10 @@ const SHELLS: { file: string; must: string[]; mustNot?: RegExp[] }[] = [
   { file: "src/components/marketing/PublicLayout.tsx", must: ["var(--public-nav-h)"] },
   { file: "src/components/Navbar.tsx", must: ["h-[var(--public-nav-h)]"], mustNot: [/h-14 lg:h-16/] },
   // Skeletons mirror the shell they stand in for, or the swap jumps.
-  // The Profile landing skeleton's title is the landing's own <PageHeader>
-  // since Q1173 (2026-10-12), not a hand-copied row of its padding, so it
-  // reads the tokens through PageHeader (listed above) by construction.
-  { file: "src/components/profile/ProfilePageSkeleton.tsx", must: ["<PageHeader"] },
+  // The Profile landing skeleton's title is the landing's own top bar (board 18,
+  // 2026-10-20: the shared AppTopBar, was <PageHeader> since Q1173), not a
+  // hand-copied row of its padding, so it reads the bar's own spacing.
+  { file: "src/components/profile/ProfilePageSkeleton.tsx", must: ["<AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} />"] },
   { file: "src/components/LoginRouteSkeleton.tsx", must: ["pt-[calc(var(--safe-area-top,0px)_+_var(--shell-gap))]"] },
 ];
 

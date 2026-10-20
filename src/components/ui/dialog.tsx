@@ -265,17 +265,8 @@ const DialogContent = React.forwardRef<
         // meaningful "visible focus" state to preserve, so the browser's
         // default ring must be suppressed for every focus source, including
         // the mouse-click case where FocusScope re-parks focus here.
-      // WIDTH: `w-auto` cannot be used with `left-1/2` on a fixed element.
-      // A fixed box positioned at left:50% gets a shrink-to-fit available
-      // width of (viewport − 187.5px) at 375, so `max-w-[calc(100%-2rem)]`
-      // (343px) was unreachable and every dialog in the app rendered at
-      // ~188–250px on a phone — measured 219px here, 58% of the screen with
-      // 78px of dead margin each side, and long option labels bleeding
-      // outside the card ("Inapprop… conte…"). The translate-based centring
-      // from the 2026-08-30 "fit contents" change is what introduced it.
-      //
-      // Give it an explicit viewport-relative width on phones and keep
-      // shrink-to-fit only from `sm` up, where there is room for it.
+      // WIDTH (history): a fixed `left-1/2` box shrinks to (viewport - 50%), so
+      // phones need an explicit width; the phone sheet is now full width.
               // ONE MEASURE, NOT SHRINK-TO-FIT (2026-08-31).
       //
       // `sm:w-auto` made the card hug its content, which sounds tidy and is
@@ -304,12 +295,7 @@ const DialogContent = React.forwardRef<
         // the card scrolled sideways, while documentElement stayed 375 wide.
         // A 0 floor keeps every child inside the card.
         "glass-modal z-50 grid grid-cols-[minmax(0,1fr)] overflow-y-auto gap-3 duration-300 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        // THE SHARED POPUP SHELL (spec v2 §3 "Sheets and menus", lead 2026-10-20).
-        // Phone: a bottom sheet (full width, 28px top corners, a drag handle,
-        // safe-area padding, sliding up). From sm (640px): the centred 480px
-        // dialog, zooming in. Both strings live in popupFooter.ts.
-        POPUP_SHEET_CLS,
-        POPUP_DIALOG_CLS,
+        POPUP_SHEET_CLS, POPUP_DIALOG_CLS, // phone sheet / 480px desktop dialog (spec v2 §3; popupFooter.ts)
         // See `stepped` above. Placed AFTER the base string and BEFORE
         // `className` so tailwind-merge resolves `top-*` and the arbitrary
         // `translate` against the base, and a caller can still override both.
@@ -339,8 +325,7 @@ const DialogContent = React.forwardRef<
       onEscapeKeyDown={closeDisabled ? (e) => e.preventDefault() : undefined}
       {...props}
     >
-      {/* The bottom sheet's drag handle (phone only; spec v2 §3). Decorative: the
-          sheet closes on the backdrop, Escape, its X or its own Cancel. */}
+      {/* Phone sheet drag handle, decorative (spec v2 §3). */}
       <span data-sheet-handle aria-hidden className={POPUP_HANDLE_CLS} />
       <DialogConfirmCtx.Provider value={isConfirm}>
         <PopupDismissCtx.Provider value={setHasDismiss}>{children}</PopupDismissCtx.Provider>

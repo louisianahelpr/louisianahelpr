@@ -21,7 +21,7 @@ import type {
   EnrichedApplication,
 } from "@/components/job-card/activityConstants";
 import type { OptimisticJobCache } from "./types";
-import type { PaymentHeldSide } from "../PaymentHeldDialog";
+import type { PaymentHeldSide, PaymentHeldWho } from "../PaymentHeldDialog";
 
 /**
  * Dependencies for the offer/acceptance-phase handlers, extracted verbatim
@@ -54,6 +54,8 @@ export interface OfferHandlersDeps extends OptimisticJobCache {
   setW9DialogOpen: (open: boolean) => void;
   /** Q997: the "payment is held" pop-up, after an offer is sent or an accept completes. */
   setPaymentHeldSide: (side: PaymentHeldSide | null) => void;
+  /** Board 78: the offered Helpr's name and the job's date, for the poster's what-next sheet. */
+  setPaymentHeldWho: (who: PaymentHeldWho | null) => void;
   setRespondingHelperAppId: Dispatch<SetStateAction<string | null>>;
   /**
    * Synchronous in-flight guard for handleHelperResponse (accept/decline an
@@ -85,6 +87,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     setW9Context,
     setW9DialogOpen,
     setPaymentHeldSide,
+    setPaymentHeldWho,
     setRespondingHelperAppId,
     respondingInFlight,
   } = deps;
@@ -309,6 +312,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     // Q997 (owner, 2026-10-07): the poster is told the payment is held.
     // Opened once the "Applicant hired" moment has faded, so it never lands
     // under it (measured 2026-10-07: the check overlay covered the sentence).
+    setPaymentHeldWho({ name: deadlineDialogApp.profiles?.full_name ?? null, dateNeeded: selectedJob.date_needed ?? null });
     window.setTimeout(() => setPaymentHeldSide("poster"), SUCCESS_MOMENT_LIFETIME_MS + 250);
     await refresh();
     // The poster's OWN view after hiring. Same defect as the links above:

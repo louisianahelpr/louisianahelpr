@@ -8,7 +8,8 @@
  *     signed out and Jobs > Browse when signed in (Jobs is the only section
  *     open to everyone today);
  *   - the task chips carry no prices (no real completed-job data behind them yet);
- *   - the phone mock names nobody (owner: "leave Marie off the phone");
+ *   - the hero has NO phone mock and is one centered column (owner, 2026-10-20,
+ *     after seeing the mock live; it once had to "leave Marie off the phone");
  *   - the money band's hours are the cron's own number, never typed;
  *   - no price-drop timing is claimed for Declutter;
  *   - "Continue with Apple" sits behind the one social switch and loads lazily;
@@ -20,16 +21,15 @@
  * @mutate src/components/landing/SectionsShowcase.tsx | "Helpr holds the money. Nobody is paid out until the work is done." | "Held through Stripe. Nobody is paid out until the work is done."
  * @mutate src/components/landing/LandingAppleButton.tsx |   if (!SOCIAL_SIGN_IN_ENABLED) return null; |
  * @mutate src/components/Navbar.tsx |   const declutterOpen = !sectionIsComingSoon("declutter", open); |   const declutterOpen = true;
+ * @mutate src/components/landing/HeroSection.tsx | className="flex flex-col items-center text-center gap-5 sm:gap-6 min-w-0" | className="flex flex-col items-start gap-5 sm:gap-6 min-w-0"
+ * @mutate src/components/landing/HeroSection.tsx | <div className="relative mx-auto w-full max-w-[760px]"> | <div className="relative mx-auto w-full max-w-6xl">
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "./helpers/blankNonCode";
 import { seasonalPill } from "@/components/landing/seasonalPill";
 import { heroSearchTargets, SEARCH_MAX, SEARCH_PARAM, TASK_CHIPS } from "@/components/landing/heroSearch";
-import PhoneMock from "@/components/landing/PhoneMock";
 
 const ROOT = process.cwd();
 const read = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"));
@@ -70,10 +70,18 @@ describe("landing redesign: the honesty fixes hold", () => {
     expect(hero).not.toMatch(/\$\d|Typical prices/);
   });
 
-  it("the phone mock names nobody: a generic greeting, no member name", () => {
-    render(<MemoryRouter><PhoneMock /></MemoryRouter>);
-    expect(screen.getByText("Good morning")).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/Marie/);
+  it("the hero has no phone mock and is ONE centered column, max 760px (owner, 2026-10-20)", () => {
+    // The HTML phone mock is gone, not hidden: a real screenshot of the new Home replaces it later.
+    expect(existsSync(join(ROOT, "src/components/landing/PhoneMock.tsx"))).toBe(false);
+    const hero = read("src/components/landing/HeroSection.tsx");
+    expect(hero).not.toMatch(/PhoneMock|grid-cols/);
+    expect(hero).toMatch(/<div className="relative mx-auto w-full max-w-\[760px\]">/);
+    const column = hero.match(/data-testid="landing-hero-column" className="([^"]*)"/);
+    expect(column, "the hero column").not.toBeNull();
+    expect(column![1]).toMatch(/\bitems-center\b/);
+    expect(column![1]).toMatch(/\btext-center\b/);
+    // The chips centre with it.
+    expect(hero).toMatch(/<ul className="flex flex-wrap justify-center gap-2/);
   });
 
   it("the money band's hours are the cron's number, and Declutter claims no price-drop timing", () => {
@@ -85,8 +93,8 @@ describe("landing redesign: the honesty fixes hold", () => {
   });
 
   it("no other company or vendor named in the landing's copy (design spec v2 §1.7; Apple only as the sign-in provider)", () => {
-    const files = ["HeroSection.tsx", "SectionsShowcase.tsx", "HowItWorksSection.tsx", "PhoneMock.tsx", "seasonalPill.ts", "heroSearch.ts"].map((f) => `src/components/landing/${f}`);
-    expect(files.length).toBeGreaterThan(5);
+    const files = ["HeroSection.tsx", "SectionsShowcase.tsx", "HowItWorksSection.tsx", "seasonalPill.ts", "heroSearch.ts"].map((f) => `src/components/landing/${f}`);
+    expect(files.length).toBeGreaterThan(4);
     for (const f of files) expect(read(f), f).not.toMatch(/\bStripe\b|\bUSPS\b|Instead of/);
   });
 

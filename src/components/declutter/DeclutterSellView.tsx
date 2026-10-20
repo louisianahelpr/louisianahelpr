@@ -52,6 +52,7 @@ import {
   photoPublicUrl,
 } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
+import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
 import { ChipGroup, DropSchedule, ReviewRow, StepHead, StepperButton, dropRunTime } from "./DeclutterSellSteps";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, TAX_STATEMENTS } from "./declutterUi";
@@ -86,13 +87,6 @@ const EMPTY: FormState = {
   pickupAddress: "",
 };
 
-/** Dollars as typed -> whole cents, or null. */
-export function dollarsToCents(v: string): number | null {
-  const n = Number(v.replace(/[$,\s]/g, ""));
-  if (!Number.isFinite(n) || n <= 0) return null;
-  return Math.round(n * 100);
-}
-
 /** A house number then a street word (declutter_area_label_problem's first rule; the server also checks the pickup street). */
 export const AREA_ADDRESS_RE =
   /(^|[^0-9a-z-])[0-9]+[a-z]?\s+([a-z.'-]+\s+){0,3}(street|st|avenue|ave|road|rd|drive|dr|lane|ln|blvd|boulevard|parkway|pkwy|hwy|highway|cir|circle|court|ct|way|place|pl|trail|trl)\b/i;
@@ -112,7 +106,6 @@ export function formProblem(f: FormState): string | null {
   return null;
 }
 
-const centsToDollars = (c: number) => (c / 100).toFixed(2).replace(/\.00$/, "");
 
 export default function SellFlow() {
   const { user } = useCurrentUser();

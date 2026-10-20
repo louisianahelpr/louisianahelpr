@@ -102,7 +102,7 @@ export default function MoveFlow() {
 
   const moveItems = useQuery({ queryKey: ["declutter", "move-items", user?.id], queryFn: () => fetchMyMoveItems(user!.id), enabled: !!user });
   const inPlay = useMemo(
-    () => (moveItems.data ?? []).filter((i) => ["draft", "pending_review", "live", "reserved"].includes(i.status)),
+    () => (moveItems.data ?? []).filter((i) => ["draft", "pending_review", "live", "paused", "reserved"].includes(i.status)),
     [moveItems.data],
   );
   const drafts = useMemo(() => inPlay.filter((i) => i.status === "draft"), [inPlay]);

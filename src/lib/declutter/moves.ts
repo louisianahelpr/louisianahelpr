@@ -195,7 +195,7 @@ export async function fetchMyMoveItems(userId: string): Promise<MoveItem[]> {
       .select(MOVE_ITEM_COLUMNS)
       .eq("seller_id", userId)
       .eq("in_moving_sale", true)
-      .in("status", ["draft", "pending_review", "live", "reserved", "sold", "completed", "ended", "rejected"])
+      .in("status", ["draft", "pending_review", "live", "paused", "reserved", "sold", "completed", "ended", "rejected"])
       .order("created_at", { ascending: true }),
   );
   return (rows ?? []) as MoveItem[];

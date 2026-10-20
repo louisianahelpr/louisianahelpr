@@ -133,7 +133,9 @@ describe("client: posting and hiring never gate on identity; only the accept mir
     const reasonUsers = files
       .filter((f) => /helper_identity_unverified/.test(blankComments(readFileSync(f, "utf8"))))
       .map((f) => relative(REPO, f));
-    expect(reasonUsers.sort()).toEqual(["src/components/AwardGateDialog.tsx", "src/lib/awardGate.ts"]);
+    // helprTasks/errorCopy.ts: the Declutter delivery accept's own refusal copy
+    // (helpr_task_accept, 20261020044552, ID once at every accept).
+    expect(reasonUsers.sort()).toEqual(["src/components/AwardGateDialog.tsx", "src/lib/awardGate.ts", "src/lib/helprTasks/errorCopy.ts"]);
   });
 
   it("the post and hire code paths never read identity", () => {

@@ -20,7 +20,8 @@
  *   SQL  every function's EFFECTIVE (newest) definition in supabase/migrations
  *        that writes a booking: stamps jobs.helper_confirmed_at or
  *        group_job_helpers.helper_confirmed_at to a value, records a series
- *        hold (INSERT INTO series_visit_holds), or calls one of the shared
+ *        hold (INSERT INTO series_visit_holds), takes a Declutter delivery
+ *        (UPDATE helpr_tasks SET helpr_id), or calls one of the shared
  *        completions (complete_job_accept, complete_direct_offer_accept).
  *   TS   every non-test edge function file that writes helper_confirmed_at
  *        with a value (a server-context booking the trigger never sees).
@@ -36,6 +37,7 @@
  * @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql |   v_block := public.helper_accept_block_reason(v_uid); |   v_block := NULL;
  * @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql |   IF public.helper_accept_block_reason(p_helper) IS NOT NULL THEN | IF false THEN
  * @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql |                 AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p.user_id) THEN ARRAY[]::text[] |                 THEN ARRAY[]::text[]
+ * @mutate supabase/migrations/20261020044552_delivery_accept_reads_id_helper.sql |   v_reason := public.helper_accept_block_reason(v_uid);\n  IF v_reason = 'helper_identity_unverified' THEN |   v_reason := NULL;\n  IF v_reason = 'helper_identity_unverified' THEN
  * @mutate supabase/functions/charge-recurring-visits/index.ts | const { data: notReady, error: readyErr } = await supabase.rpc("helper_accept_block_reason", { p_user_id: helperId }); | const { data: notReady, error: readyErr } = { data: null, error: null };
  */
 import { describe, it, expect } from "vitest";
@@ -56,6 +58,8 @@ const BOOKING_WRITES: RegExp[] = [
   /\bINSERT\s+INTO\s+(?:public\.)?(?:jobs|group_job_helpers)\s*\([^)]*\bhelper_confirmed_at\b/i,
   // a recorded series hold, booked later by charge-recurring-visits
   /\bINSERT\s+INTO\s+(?:public\.)?series_visit_holds\b/i,
+  // a Declutter delivery taken (20261020044552): the Helpr's accept of a delivery
+  /\bUPDATE\s+(?:public\.)?helpr_tasks\b[^;]*?\bSET\b[^;]*?\bhelpr_id\s*=(?!\s*NULL\b)/i,
   // the shared completions
   /\bcomplete_job_accept\s*\(/i,
   /\bcomplete_direct_offer_accept\s*\(/i,
@@ -112,7 +116,7 @@ describe("every booking path asks the one ID-once helper (owner 2026-10-20)", ()
     // AND call the helper.
     expect(sql.map((s) => s.name)).toEqual([
       "accept_job_offer", "claim_series_dates", "complete_direct_offer_accept", "complete_job_accept",
-      "complete_pending_accepts_on_setup", "complete_pending_crew_confirms_on_setup",
+      "complete_pending_accepts_on_setup", "complete_pending_crew_confirms_on_setup", "helpr_task_accept",
       "quote_job_funded_hires_quoter", "respond_to_direct_offer", "rpc_group_member_confirm", "series_holds_on_hire",
     ]);
     expect(sql.length).toBeGreaterThan(8);

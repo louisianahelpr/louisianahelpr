@@ -86,7 +86,7 @@ export function TipPicker({ jobPriceDollars, valueDollars, onChange }: {
               type="button"
               aria-pressed={on}
               onClick={() => { setOther(false); onChange(x.cents / 100); }}
-              className={`min-h-14 rounded-ds-md px-1 py-2 font-sans transition-all active:scale-[0.97] ${on ? "btn-grad-primary" : ""}`}
+              className={`min-h-14 rounded-full px-1 py-2 font-sans transition-all active:scale-[0.97] ${on ? "btn-grad-primary" : ""}`}
               style={on ? { color: "hsl(var(--parchment))" } : { background: "hsl(var(--card))", color: "hsl(var(--ink-deep))", border: "1px solid hsl(var(--olivewood) / 0.22)" }}
             >
               <span className="block font-bold text-ds-15">{x.label}</span>
@@ -98,7 +98,7 @@ export function TipPicker({ jobPriceDollars, valueDollars, onChange }: {
           type="button"
           aria-pressed={other}
           onClick={() => { setOther(true); onChange(undefined); }}
-          className={`min-h-14 rounded-ds-md px-1 py-2 font-sans font-bold text-ds-15 transition-all active:scale-[0.97] ${other ? "btn-grad-primary" : ""}`}
+          className={`min-h-14 rounded-full px-1 py-2 font-sans font-bold text-ds-15 transition-all active:scale-[0.97] ${other ? "btn-grad-primary" : ""}`}
           style={other ? { color: "hsl(var(--parchment))" } : { background: "hsl(var(--card))", color: "hsl(var(--ink-deep))", border: "1px solid hsl(var(--olivewood) / 0.22)" }}
         >
           Other

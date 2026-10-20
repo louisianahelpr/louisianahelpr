@@ -114,7 +114,12 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
       key: "price",
       title: "Price",
       trailing: (
-        <span className="text-ds-13 font-bold" style={{ color: "hsl(var(--burnt-sienna))" }} data-testid="pay-range-value">
+        // Rust only when it shows a real $ range (rust = money); "Any price" is muted ink.
+        <span
+          className={`text-ds-13 font-bold ${minBudget || maxBudget ? "" : "text-muted-foreground"}`}
+          style={minBudget || maxBudget ? { color: "hsl(var(--burnt-sienna))" } : undefined}
+          data-testid="pay-range-value"
+        >
           {payRangeLabel(minBudget, maxBudget)}
         </span>
       ),

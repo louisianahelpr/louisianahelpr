@@ -791,6 +791,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/recurringSchedule.ts";`,
   );
 
+  // SMS alerts: `_shared/smsPolicy.ts` has ZERO imports (fixed text phrases,
+  // keyword classifier, Twilio signature), so the REAL module serves: the
+  // privacy rule (no notification text in an SMS) and the signature check are
+  // exactly what send-sms-notification / twilio-inbound tests must exercise.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/smsPolicy\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/smsPolicy.ts";`,
+  );
+
   // `_shared/safe-strings.ts` has ZERO imports (link sanitizing, constant-time
   // compare), so the REAL module serves: send-notification-email's service-role
   // gate is its timingSafeEqual, and a stub would be a gate nobody tested.

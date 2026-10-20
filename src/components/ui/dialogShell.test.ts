@@ -452,6 +452,7 @@ describe("Popup grammar — footer", () => {
   const BRANCHED_COMMITS: Record<string, string> = {
     "src/components/admin/BanDialog.tsx": "warning commits glossy, ban commits red — exactly one renders",
     "src/components/BlockUserDialog.tsx": "see THREE_ACTION_EXCEPTIONS",
+    "src/components/declutter/DeclutterManageListing.tsx": "board 158's confirm step: \"Mark sold\" (view sold) or \"Delete listing\" (view delete) — exactly one renders (view === \"sold\" ? primary : destructive)",
     "src/components/rentals/LeasePanel.tsx": "the lease editor's last step: \"Save and next\" until the landlord reads it, then \"Sign and send\" — exactly one renders (reviewing ? send : save)",
   };
 

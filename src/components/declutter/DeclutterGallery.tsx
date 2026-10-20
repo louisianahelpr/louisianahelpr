@@ -12,9 +12,9 @@ import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 
-const FRAME_BASE = "relative w-full overflow-hidden rounded-2xl bg-photo-empty";
+const FRAME_BASE = "relative w-full overflow-hidden rounded-2xl";
 // Items are photo-first (square on a phone); a job page's photo is a banner (boards 15, 168).
-const ASPECT = { item: "aspect-square sm:aspect-[4/3]", banner: "aspect-[16/9]" } as const;
+const ASPECT = { item: "aspect-square sm:aspect-[4/3] bg-photo-empty", banner: "aspect-[16/9] bg-photo-empty" } as const;
 
 /** `icon`: the placeholder glyph when there is no photo (the job page passes the job category's; default: the Declutter category's). */
 export function DeclutterGallery({ urls, category, title, icon, shape = "item" }: { urls: string[]; category: string; title: string; icon?: LucideIcon; shape?: keyof typeof ASPECT }) {

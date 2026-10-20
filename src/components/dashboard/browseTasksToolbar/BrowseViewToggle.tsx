@@ -1,7 +1,6 @@
 import { startTransition } from "react";
 import { List, Map as MapIcon } from "lucide-react";
-import { chipStyles } from "@/components/dashboard/JobFilters";
-import { hapticLight } from "@/lib/haptics";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 
 export interface BrowseViewToggleProps {
   /** List vs Map view selection. */
@@ -19,8 +18,8 @@ const OPTIONS = [
 ] as const;
 
 /**
- * The Browse feed's List ⇄ Map choice — two labelled chips inside the filter
- * sheet's "View" section.
+ * The Browse feed's List ⇄ Map choice inside the filter sheet's "View" section:
+ * the shared SegmentedControl, full width (board 24, lead review 2026-10-20).
  *
  * It used to be a bare icon button in the feed's header row, one of four
  * (view · saved · search · filters) that cost a horizontal strip of their own.
@@ -28,45 +27,31 @@ const OPTIONS = [
  * move the rest up into the 1 column". So this control moved into the sheet
  * and grew words.
  *
- * It is deliberately NOT a filter chip even though it borrows `chipStyles` for
- * its size and shape (one control language per sheet). Two things keep it
- * reading as a view choice: it sits alone under its own "View" heading ABOVE
- * every filter section, and both options are always present with exactly one
- * selected — a filter chip toggles a constraint on and off, this one answers
- * "how do you want to look at these jobs?" and always has an answer.
- *
- * `aria-pressed`, not `role="radio"`: same idiom as SortContent's chips, so
- * every control in this panel answers to one pattern. (The chip's 44px target
- * is now its own `h-11`, not the global `button` floor in index.css — that
- * floor deliberately skips role=radio/checkbox/switch, which is why a radio
- * here used to come out undersized.)
+ * A segmented control, not chips: both options are always present with exactly
+ * one selected, so it reads as "how do you want to look at these jobs?", never
+ * as a filter you toggle. Picking a view closes the sheet (`onSelect`, fired by
+ * SegmentedControl only on an actual change). It is a radiogroup named
+ * "Feed view" with List / Map radios.
  *
  * Omitted entirely on the desktop web (`hideViewToggle`), where the feed and
  * the map are both on screen at once and there is nothing to switch between.
  */
 export function BrowseViewToggle({ view, setView, onSelect }: BrowseViewToggleProps) {
   return (
-    <div role="group" aria-label="Feed view" className={chipStyles.chipRow}>
-      {OPTIONS.map(({ value, label, Icon }) => {
-        const active = view === value;
-        return (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={active}
-            onClick={() => {
-              if (active) return;
-              hapticLight();
-              startTransition(() => setView(value));
-              onSelect?.();
-            }}
-            className={`${chipStyles.chipBase} ${active ? chipStyles.chipActive : chipStyles.chipIdle}`}
-          >
-            <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />
-            {label}
-          </button>
-        );
-      })}
-    </div>
+    <SegmentedControl
+      ariaLabel="Feed view"
+      value={view}
+      onChange={(next) => {
+        startTransition(() => setView(next));
+        onSelect?.();
+      }}
+      className="w-full"
+      optionClassName="flex-1"
+      options={OPTIONS.map(({ value, label, Icon }) => ({
+        value,
+        label,
+        icon: <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />,
+      }))}
+    />
   );
 }

@@ -35,30 +35,13 @@ export { categoryLabels };
  * must break BETWEEN chips, not inside one — the height is fixed, so an
  * internal line break overflows the chip instead of growing it.
  *
- * `h-11` (44px) — a REAL 44px touch target, the HIG minimum, drawn at full
- * size rather than faked.
- *
- * These chips used to be `h-7` (28px) with `!min-h-0` explicitly overriding
- * index.css's global `button { min-height: 44px }` floor, so 28px of drawn
- * box was also 28px of tap target — 36% under the minimum, on the control
- * this whole panel exists to operate. The height was trimmed for density (a
- * 12-option Category row wrapping to fewer lines); the answer to that is the
- * panel's own vertical scroll — not shrinking everyone's tap target.
- *
- * Bleeding the hit area past a smaller drawn box with an `::after` was tried
- * and rejected here: measured in Chrome, the bleed lost the hit test to the
- * scroll container's own clip edge and to the following section, so chips
- * came out at 36–40px anyway. A real 44px box is the version that survives
- * measurement.
- *
- * NO `!min-h-0`: `h-11` and the global floor now agree at 44px, so the
- * override that used to be needed to escape that floor is gone. (Keep them
- * agreeing — drop below 44 and index.css silently wins again, the trap
- * documented on the toast close button and the search-bar close button.)
+ * Size (board 24, lead review 2026-10-20): the Declutter ChipGroup recipe
+ * (min-h-10, px-4, text-ds-13; DeclutterSellSteps.tsx). Measured in Chromium
+ * on /jobs: each chip renders 40px tall (the global 44px button floor does not
+ * reach these aria-pressed chips), the same as the Declutter chips.
  */
 const chipBase =
-  "inline-flex items-center gap-1.5 px-3 rounded-ds-md text-ds-12 font-semibold tracking-tight whitespace-nowrap transition-all duration-200 btn-press squircle border h-11";
-
+  "inline-flex items-center gap-1.5 px-4 rounded-full text-ds-13 font-semibold whitespace-nowrap transition-colors duration-200 btn-press border min-h-10";
 /** The one row layout, paired with `chipBase`. Wrapping and content-sized:
  *  no empty grid cells at any option count, no hidden off-screen options, and
  *  every chip is exactly as wide as its own label. */
@@ -77,11 +60,9 @@ const chipRow = "flex flex-wrap gap-2";
 // `[&_*]` pins the CategoryIcon inside an active chip to parchment too —
 // otherwise it keeps its per-category tint and disappears into the gradient.
 const chipActive =
-  "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] " +
-  "border-[hsl(var(--bark-deep)/0.55)] " +
-  "shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_2px_8px_-3px_hsl(var(--bark)/0.55)]";
+  "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] border-transparent";
 const chipIdle =
-  "bg-white/70 dark:bg-card/60 backdrop-blur text-foreground border-[hsl(var(--bark)/0.22)] hover:border-[hsl(var(--bark)/0.45)] hover:bg-white/90 dark:hover:bg-card/90";
+  "bg-card text-foreground border-border hover:bg-[hsl(var(--bark)/0.06)]";
 
 const sortOptions = [
   // "Best match" (value "smart") is the default — a composite recency +

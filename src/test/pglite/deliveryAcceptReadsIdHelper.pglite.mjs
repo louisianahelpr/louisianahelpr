@@ -68,6 +68,9 @@ await db.exec(`
     latest_pickup_at timestamptz not null default now() + interval '7 days', accepted_at timestamptz,
     pickup_slot_start timestamptz, updated_at timestamptz default now());
   create table public.helpr_task_events (task_id uuid, actor_id uuid, task_event text, created_at timestamptz default now());
+  -- prod's test_accounts (20261007033530): the ID-once helper reads it since the
+  -- review fix in 20261020043346; empty here, so no Helpr is a test account.
+  create table public.test_accounts (user_id uuid primary key, enrolled_at timestamptz not null default now(), note text);
   create function public.is_caller_banned() returns boolean language sql stable as $f$ select false $f$;
   create function public.are_users_blocked(uuid, uuid) returns boolean language sql stable as $f$ select false $f$;
   create function public.helpr_task_assert_helpr() returns uuid language sql stable as $f$ select auth.uid() $f$;

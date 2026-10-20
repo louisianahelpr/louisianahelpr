@@ -3,7 +3,7 @@ import { Search } from "lucide-react";
 import { SuggestCategory } from "@/components/SuggestCategory";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
-import { JOB_CATEGORY_GROUPS, jobCategoryGroupOf, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
+import { JOB_CATEGORY_GROUPS, jobCategoryGroupOf, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
 
 interface Props {
   category: string;
@@ -39,7 +39,7 @@ export function JobCategoryGroups({ category, setCategory }: Props) {
         if (groupHit || it.label.toLowerCase().includes(q)) found.add(it.value);
       }
     }
-    return [...found].map((value) => ({ value, label: JOB_CATEGORY_LABELS[value] }));
+    return [...found].map((value) => ({ value, label: sentenceCaseLabel(JOB_CATEGORY_LABELS[value]) }));
   }, [query]);
 
   const group = JOB_CATEGORY_GROUPS.find((g) => g.id === openGroup) ?? JOB_CATEGORY_GROUPS[0];

@@ -2,7 +2,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { DollarSign, Zap, Gift } from "lucide-react";
+import { DollarSign, Zap, Gift, Minus, Plus } from "lucide-react";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { formatPriceExact } from "@/lib/format";
 import { MIN_JOB_BUDGET_DOLLARS, MAX_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS, URGENT_FEE_FLOOR_DOLLARS, formatDollarsWhole } from "@/lib/moneyLimits";
@@ -31,6 +31,9 @@ import { MIN_JOB_BUDGET_DOLLARS, MAX_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS,
  * `jobs.pricing_mode` survives — its CHECK now allows only 'set_price', and
  * the `open_jobs_browse` view still projects it.
  */
+
+/** The − / + step on the price screen (board 3). */
+const BUDGET_STEP = 5;
 
 interface BudgetSectionProps {
   /** 1-based chapter number for the section header. */
@@ -113,6 +116,37 @@ export function BudgetSection({
           but a handful of seeded rows ever did anyway. */}
       {(
         <div className="space-y-3">
+          {/* Board 3: the price as the screen's big number (rust = money),
+              with − / + in $5 steps inside the real limits. The field below
+              stays the exact input (cents, typing); both are one value. */}
+          <div className="flex items-center justify-center gap-5 py-2">
+            <button
+              type="button"
+              aria-label="Lower the budget by $5"
+              disabled={budgetNum <= MIN_JOB_BUDGET_DOLLARS}
+              onClick={() => setBudget(String(Math.max(MIN_JOB_BUDGET_DOLLARS, Math.ceil(budgetNum / BUDGET_STEP) * BUDGET_STEP - BUDGET_STEP)))}
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-input bg-transparent text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <Minus className="h-5 w-5" aria-hidden />
+            </button>
+            <output
+              htmlFor="budget"
+              aria-live="polite"
+              className="min-w-[4ch] text-center font-sans text-ds-40 font-bold tabular-nums"
+              style={{ color: budgetNum > 0 ? "hsl(var(--burnt-sienna))" : "hsl(var(--muted-foreground))" }}
+            >
+              ${budgetNum > 0 ? formatPriceExact(budgetNum) : "0"}
+            </output>
+            <button
+              type="button"
+              aria-label="Raise the budget by $5"
+              disabled={budgetNum >= MAX_JOB_BUDGET_DOLLARS}
+              onClick={() => setBudget(String(budgetNum < MIN_JOB_BUDGET_DOLLARS ? MIN_JOB_BUDGET_DOLLARS : Math.min(MAX_JOB_BUDGET_DOLLARS, Math.floor(budgetNum / BUDGET_STEP) * BUDGET_STEP + BUDGET_STEP)))}
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-input bg-transparent text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <Plus className="h-5 w-5" aria-hidden />
+            </button>
+          </div>
           <Label htmlFor="budget">Budget <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
           {/* CurrencyInput stores the value as a number, but the parent form
               still keeps `budget` as a string (it's threaded through draft

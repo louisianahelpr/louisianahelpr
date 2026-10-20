@@ -77,10 +77,21 @@ export const JOB_CATEGORY_GROUPS: JobCategoryGroup[] = GROUP_ORDER.map((id) => (
   label: GROUP_LABELS[id],
   items: (Object.keys(JOB_CATEGORY_LABELS) as JobCategory[])
     .filter((v) => GROUP_OF[v] === id)
-    .map((value) => ({ value, label: JOB_CATEGORY_LABELS[value] })),
+    .map((value) => ({ value, label: sentenceCaseLabel(JOB_CATEGORY_LABELS[value]) })),
 })).filter((g) => g.items.length > 0);
 
 /** The group a category sits in, or null for a value outside the enum. */
 export function jobCategoryGroupOf(value: string): JobCategoryGroupId | null {
   return GROUP_OF[value as JobCategory] ?? null;
+}
+
+/**
+ * A stored Title Case label in sentence case for the UI (spec §2: "Pressure
+ * washing", "Auto & small engine"). Acronyms written in capitals stay ("HVAC").
+ */
+export function sentenceCaseLabel(label: string): string {
+  return label
+    .split(" ")
+    .map((w, i) => (i === 0 || (w.length > 1 && w === w.toUpperCase()) ? w : w.toLowerCase()))
+    .join(" ");
 }

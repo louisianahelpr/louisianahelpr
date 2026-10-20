@@ -15,7 +15,9 @@ import { AgeGateNote } from "@/components/AgeGateNote";
 import { useEffect, useRef, useState } from "react";
 import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
+import { PostJobPreviewCard } from "@/components/postjob/PostJobPreviewCard";
 import { jobCategoryLabel } from "@/lib/jobCategories";
+import { sentenceCaseLabel } from "@/lib/jobCategoryGroups";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import {
   PriceModeChoice,
@@ -115,7 +117,7 @@ export function FormStep({ form }: FormStepProps) {
   let pageReady = true;
   if (page === 1) {
     pageReady = !!form.category;
-    pageLabel = form.category ? `Continue with ${jobCategoryLabel(form.category)}` : "Pick a category to continue";
+    pageLabel = form.category ? `Continue with ${sentenceCaseLabel(jobCategoryLabel(form.category))}` : "Pick a category to continue";
   } else if (page === 2) {
     const blocker = detailsBlocker(form);
     pageReady = blocker === null;
@@ -127,7 +129,7 @@ export function FormStep({ form }: FormStepProps) {
   const lastPage = page >= 4;
 
   return (
-    <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl space-y-section">
+    <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl space-y-section pb-safe-nav">
       {form.offerToHelperId && (
         <DirectOfferBanner
           offerToHelperName={form.offerToHelperName}
@@ -240,6 +242,14 @@ export function FormStep({ form }: FormStepProps) {
           />
         </div>
         )}
+          {!askingQuotes && (
+            <PostJobPreviewCard
+              title={form.title}
+              category={form.category}
+              photo={form.imagePreviews?.[0]}
+              budget={form.budgetNum}
+            />
+          )}
         </div>
 
         {/* SCREEN 4: WHEN AND WHERE (board 45) */}
@@ -295,18 +305,21 @@ export function FormStep({ form }: FormStepProps) {
             MobileNav dock so the button is never tucked under it. The label
             is contextual: it names the next unfinished chapter until every
             required field is in, then becomes "Review & Pay". */}
-        <div className="pt-1 pb-safe-nav">
+        {/* Sticky action bar (boards 23/44/3/45): rides above the floating
+            bottom nav while the screen scrolls, and settles at the end of
+            the form. The root's pb-safe-nav gives the last field room. */}
+        <div className="sticky bottom-safe-nav z-10 bg-background pt-3 pb-2">
           {!lastPage ? (
             <Button
               variant="primary"
               type="button"
-              className="w-full rounded-full"
+              className="w-full rounded-full text-ds-16"
               size="lg"
               disabled={!pageReady}
               aria-disabled={!pageReady}
               onClick={() => setPage?.(page + 1)}
             >
-              <span className="truncate min-w-0">{pageLabel}</span>
+              <span className="min-w-0 whitespace-normal text-center leading-tight">{pageLabel}</span>
             </Button>
           ) : (
           <Button

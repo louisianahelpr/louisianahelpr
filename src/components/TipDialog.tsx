@@ -5,10 +5,11 @@ import {
   Dialog,
   DialogContent,
   DialogHero,
-  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { CurrencyInput } from "@/components/ui/currency-input";
+import { formatPriceExact } from "@/lib/format";
 import { toast } from "sonner";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { openExternalUrl } from "@/lib/openExternalUrl";
@@ -16,7 +17,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { userFacingError } from "@/lib/userFacingError";
 import { report } from "@/lib/errorLogger";
 import { currentScreen } from "@/lib/currentScreen";
-import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdown";
+import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdown";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS } from "../../supabase/functions/_shared/tipFees";
 
 interface TipDialogProps {
@@ -29,11 +30,10 @@ interface TipDialogProps {
   onClose: () => void;
 }
 
-const SUGGESTED_AMOUNTS = [5, 10, 20];
-
 export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDialogProps) {
   const [amount, setAmount] = useState<number | undefined>(undefined);
   const [sending, setSending] = useState(false);
+  const tipJob = useTipJob(jobId);
   // ME-007: one id per opening of the prompt. The server salts the Stripe
   // idempotency key with it, so a retry while open collapses onto one
   // session and a deliberate second tip after reopening gets its own.
@@ -96,85 +96,28 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
     }
   };
 
+  const tipValid = amount !== undefined && amount * 100 >= TIP_MIN_CENTS && amount * 100 <= TIP_MAX_CENTS;
+  const first = helperName ? helperName.trim().split(/\s+/)[0] : "";
+
+  // Board 180 ("tip later"): the same step as the Job done screen's tip,
+  // reached from the completed card or a notification.
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
-        <DialogHero
-          /* Helper names arrive abbreviated ("Camille R."), so the template's
-             own period doubled it up — "Send a tip to Camille R..". */
-          title={`Send a tip${helperName ? ` to ${helperName.replace(/\.$/, "")}` : ""}.`}
-        />
-        {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
-            title": headers show a title and nothing else). Not dropped —
-            this is a fee disclosure, which a sighted
-            user has to be able to read. The `subtitle` prop is gone from the
-            hero above rather than left sr-only, so screen readers hear it
-            once, here, instead of twice. */}
-        <DialogBody>
-          <p>Your Helpr receives 100% of your tip. The card-processing fee is added on top, so each amount shows what you pay.</p>
-        </DialogBody>
-        <div className="space-y-4">
-          {/* Suggested amounts — celebratory tier-styled pills first
-              since most people pick from quick-picks rather than typing. */}
-          <div>
-            <div className="grid grid-cols-3 gap-2">
-              {SUGGESTED_AMOUNTS.map((amt) => (
-                <button
-                  key={amt}
-                  type="button"
-                  className="h-14 rounded-2xl font-sans font-bold tabular-nums transition-all active:scale-[0.97] disabled:opacity-60 text-ds-18"
-                  style={{
-                    background:
-                      "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
-                      "var(--surface-premium)",
-                    border: "0.5px solid hsl(var(--burnt-sienna) / 0.30)",
-                    color: "hsl(var(--ink-deep))",
-                    letterSpacing: "-0.02em",
-                    boxShadow:
-                      "inset 0 1px 1px 0 rgba(255,255,255,0.55), " +
-                      "inset 0 0 0 0.5px hsl(var(--burnt-sienna) / 0.22), " +
-                      "0 1px 2px hsl(var(--burnt-sienna) / 0.12), " +
-                      "0 6px 14px -4px hsl(var(--burnt-sienna) / 0.28)",
-                  }}
-                  onClick={() => handleSend(amt)}
-                  disabled={sending}
-                >
-                  ${amt}
-                  <TipTotalHint tipDollars={amt} />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="h-px flex-1" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
-            <span className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-              Or custom
-            </span>
-            <div className="h-px flex-1" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
-          </div>
-
-          {/* Custom amount */}
-          <div className="flex gap-2">
-            <CurrencyInput
-              id="tip-dialog-amount"
-              className="flex-1"
-              value={amount}
-              onChange={setAmount}
-              min={TIP_MIN_CENTS / 100}
-              aria-label="Tip amount in dollars"
-            />
-            <Button
-              variant="primary"
-              className="h-12 px-5 rounded-ds-md"
-              onClick={() => handleSend(amount ?? 0)}
-              disabled={sending || amount === undefined || amount <= 0}
-            >
-              {sending ? "Sending…" : "Send Tip"}
-            </Button>
-          </div>
-          {amount !== undefined && amount >= 1 && amount <= 1000 && <TipCostBreakdown tipDollars={amount} />}
+        <DialogHero moment title={first ? `Add a tip for ${first}?` : "Add a tip?"} />
+        <div className="space-y-3 min-w-0">
+          <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            Optional.{tipJob ? ` ${tipJob.title} · $${formatPriceExact(tipJob.shareDollars)}` : ""}
+          </p>
+          <TipPicker jobPriceDollars={tipJob?.shareDollars ?? null} valueDollars={amount} onChange={setAmount} />
+          {tipValid && <TipCostBreakdown tipDollars={amount!} receiverName={helperName} />}
         </div>
+        <DialogFooter>
+          <DialogSecondaryAction onClick={onClose}>No tip</DialogSecondaryAction>
+          <DialogPrimaryAction onClick={() => handleSend(amount ?? 0)} disabled={sending || amount === undefined || amount <= 0}>
+            {sending ? "Opening checkout…" : amount !== undefined && amount > 0 ? `Tip ${centsLabel(Math.round(amount * 100))}` : "Tip"}
+          </DialogPrimaryAction>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

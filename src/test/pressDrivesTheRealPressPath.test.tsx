@@ -18,8 +18,8 @@
  *    notice, Declutter's "I got it" pays the seller), which also gated
  *    PaymentHeldDialog's "Got it", a pure close: on a record that names no test
  *    entity it was skipped, never pressed. The label cannot tell those apart;
- *    the control's ACTION can. PaymentHeldDialog's "Got it" is now
- *    DialogAcknowledgeAction (dialog.tsx), a Radix Close that takes no event
+ *    the control's ACTION can. PaymentHeldDialog's "Got it" (now the shared
+ *    WhatNextSheet's acknowledge, boards 60/78) is DialogAcknowledgeAction (dialog.tsx), a Radix Close that takes no event
  *    handler, so it can do nothing the dialog's own × does not; it carries
  *    `data-popup-dismiss`, and the harness exempts such a control from
  *    DESTRUCTIVE_RX inside an open popup. A "Got it" that is a plain
@@ -29,7 +29,7 @@
  * @mutate scripts/audit/press-every-control.mjs | if (entry.mutating) { | if (entry.mutating && false) {
  * @mutate scripts/audit/press-every-control.mjs | if ((DESTRUCTIVE_RX.test(label) && !meta.dismissOnly) \|\| | if (DESTRUCTIVE_RX.test(label) \|\|
  * @mutate scripts/audit/press-every-control.mjs | if ((DESTRUCTIVE_RX.test(label) && !meta.dismissOnly) \|\| | if ((DESTRUCTIVE_RX.test(label) && false) \|\|
- * @mutate src/components/job-card/PaymentHeldDialog.tsx | <DialogAcknowledgeAction>Got it</DialogAcknowledgeAction> | <DialogPrimaryAction onClick={onClose}>Got it</DialogPrimaryAction>
+ * @mutate src/components/whatNext/WhatNextSheet.tsx | ? <DialogAcknowledgeAction>{primary.label}</DialogAcknowledgeAction> | ? <SheetPrimaryAction onClick={onClose}>{primary.label}</SheetPrimaryAction>
  * @mutate src/components/ui/dialogActions.tsx | data-popup-dismiss="" | data-x=""
  * @mutate src/components/ui/dialogActions.tsx | .filter(([k]) => !/^on[A-Z]/.test(k)) | .filter(() => true)
  * @mutate scripts/audit/press-every-control.mjs | dismissOnly: el.hasAttribute("data-popup-dismiss") && el.closest('[role="dialog"], [role="alertdialog"]') !== null, | dismissOnly: el.hasAttribute("data-popup-dismiss"),

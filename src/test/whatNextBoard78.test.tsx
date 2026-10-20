@@ -6,6 +6,8 @@
  * @mutate src/components/job-card/PaymentHeldDialog.tsx |   if (side === "poster") return <PosterWhatNext who={who ?? null} onClose={onClose} />; |
  * @mutate src/components/job-card/activityActions/useOfferHandlers.ts |     setPaymentHeldWho({ name: deadlineDialogApp.profiles?.full_name ?? null, dateNeeded: selectedJob.date_needed ?? null }); |
  * @mutate src/components/job-card/ActivityOfferDialogs.tsx | who={actions.paymentHeldWho} |
+ * @mutate src/components/job-card/PaymentHeldDialog.tsx |   if (side === "helpr") return <HelprWhatNext who={who ?? null} onClose={onClose} />; |
+ * @mutate src/components/whatNext/WhatNextSheet.tsx | ? <DialogAcknowledgeAction>{primary.label}</DialogAcknowledgeAction> | ? <SheetPrimaryAction onClick={() => {}}>{primary.label}</SheetPrimaryAction>
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -37,13 +39,33 @@ describe("board 78: what next after sending the offer", () => {
     const { rerender } = render(<PaymentHeldDialog side="poster" who={null} onClose={() => {}} />);
     expect(screen.getByText("Your Helpr accepts")).toBeTruthy();
     expect(screen.getByText("The job day")).toBeTruthy();
-    rerender(<PaymentHeldDialog side="helpr" onClose={() => {}} />);
+    rerender(<PaymentHeldDialog side={null} onClose={() => {}} />);
     expect(screen.queryByTestId("what-next-sheet")).toBeNull();
-    expect(screen.getByText("You're booked")).toBeTruthy();
   });
 
   it("the sent offer carries the Helpr's name and the job's date to the sheet", () => {
     expect(code("src/components/job-card/activityActions/useOfferHandlers.ts")).toMatch(/setPaymentHeldWho\(\{ name: deadlineDialogApp\.profiles\?\.full_name \?\? null, dateNeeded: selectedJob\.date_needed \?\? null \}\)/);
     expect(code("src/components/job-card/ActivityOfferDialogs.tsx")).toMatch(/who=\{actions\.paymentHeldWho\}/);
+  });
+});
+
+describe("board 60: the Helpr's 'You're hired' after accepting", () => {
+  it("names the poster, keeps the held sentence, and walks the tracker's real order", () => {
+    render(<PaymentHeldDialog side="helpr" who={{ name: "Travis Boudreaux", dateNeeded: "2026-10-24", jobId: "j1" }} onClose={() => {}} />);
+    const sheet = screen.getByTestId("what-next-sheet");
+    expect(screen.getByRole("heading", { name: "You're hired" })).toBeTruthy();
+    expect(sheet.textContent).toContain("Travis picked you.");
+    expect(sheet.textContent).toContain(PAYMENT_HELD_SENTENCE);
+    const steps = within(sheet).getAllByRole("listitem");
+    expect(steps.map((s) => s.getAttribute("data-state"))).toEqual(["done", "now", "later", "later"]);
+    expect(steps[1].textContent).toContain("Confirm the day before Sat, Oct 24");
+    expect(sheet.textContent).not.toMatch(/\$|\b(he|she|his|her|they)\b/i);
+    // "Got it" only closes: the close-only primitive the press audit can press as a read.
+    expect(screen.getByRole("button", { name: "Got it" }).hasAttribute("data-popup-dismiss")).toBe(true);
+  });
+
+  it("the accept hands the job id, and Activity fills in the poster and date", () => {
+    expect((code("src/components/job-card/activityActions/useOfferHandlers.ts").match(/setPaymentHeldWho\(\{ name: null, dateNeeded: null, jobId: app\.job_id \}\);/g) ?? []).length).toBe(2);
+    expect(code("src/components/job-card/useActivityActions.ts")).toMatch(/name: a\?\.posterName \?\? null, dateNeeded: a\?\.job\?\.date_needed \?\? null/);
   });
 });

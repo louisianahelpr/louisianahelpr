@@ -73,7 +73,7 @@ describe("Q997: the 'payment is held' pop-up", () => {
     expect(screen.getByText(PAYMENT_HELD_SENTENCE)).toBeInTheDocument();
     expect(PAYMENT_HELD_SENTENCE).toBe("The payment is held by Louisiana Helpr until the job is done.");
     rerender(<PaymentHeldDialog side="helpr" onClose={onClose} />);
-    expect(screen.getByText("You're booked")).toBeInTheDocument();
+    expect(screen.getByText("You're hired")).toBeInTheDocument();
     act(() => { screen.getByRole("button", { name: "Got it" }).click(); });
     expect(onClose).toHaveBeenCalled();
     rerender(<PaymentHeldDialog side={null} onClose={onClose} />);

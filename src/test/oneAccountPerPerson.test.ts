@@ -32,7 +32,7 @@
  * @mutate src/components/auth/SocialAuthButtons.tsx | markAccountChoiceRetry(); | void 0;
  * @mutate src/components/auth/SocialAuthButtons.tsx | {retryNote && ( | {false && (
  * @mutate src/components/auth/SocialAuthButtons.tsx | import { useEffect, useRef, useState } from "react"; | import { useEffect, useRef, useState } from "react";\nimport { AccountChoiceDialog as Eager } from "@/components/auth/AccountChoiceDialog";
- * @mutate src/pages/auth/Login.tsx | <SocialAuthButtons mode="signin" initialChoice={accountChoice} /> | <SocialAuthButtons mode="signin" />
+ * @mutate src/pages/auth/Login.tsx | <SocialAuthButtons initialChoice={accountChoice} /> | <SocialAuthButtons />
  * @mutate supabase/migrations/20261005182630_one_account_per_person.sql | 'message', 'lh_account_choice:' | 'message', 'lh_other:'
  * @mutate supabase/migrations/20261005182630_one_account_per_person.sql | IF v_provider IS NULL OR v_provider NOT IN ('apple', 'google') THEN | IF v_provider IS NULL OR v_provider NOT IN ('apple') THEN
  * @mutate src/components/profile/SignInMethodsCard.tsx | = ["apple", "google"]; | = ["apple"];
@@ -162,7 +162,7 @@ describe("one account per person: a no-match social sign-in never silently creat
     expect(buttons).toMatch(/if \(retryNote\) clearAccountChoiceRetry\(\);/);
     expect(buttons).toMatch(/\{retryNote && \(/);
     expect(buttons).toMatch(/useAccountChoiceDialog\(choice !== null, \(\) => \{[\s\S]{0,200}setChoice\(null\)[\s\S]{0,200}toast\.error\(/);
-    expect(code("src/pages/auth/Login.tsx")).toMatch(/<SocialAuthButtons mode="signin" initialChoice=\{accountChoice\} \/>/);
+    expect(code("src/pages/auth/Login.tsx")).toMatch(/<SocialAuthButtons initialChoice=\{accountChoice\} \/>/);
     // Both "I'm new here" and "I already have an account" are offered.
     const dialog = code("src/components/auth/AccountChoiceDialog.tsx");
     expect(dialog).toMatch(/continueAsNewAccount\(/);

@@ -493,7 +493,7 @@ export function SignupStep1({
         <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
       </div>
 
-      <SocialAuthButtons mode="signup" />
+      <SocialAuthButtons />
       </>
       )}
 

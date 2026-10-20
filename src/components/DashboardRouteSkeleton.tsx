@@ -56,6 +56,23 @@ const DashboardRouteSkeleton = () => (
                 <Skeleton className="h-4 w-40 max-w-full rounded-ds-md" />
                 <Skeleton className="h-11 w-36 mt-2 rounded-full" />
               </div>
+              {/* Coming up (board 7: before the sections): GroupSection's header + one card of rows. */}
+              <div className="flex flex-col gap-2">
+                <div className="px-1">
+                  <Skeleton className="h-4 w-24 rounded-ds-md" />
+                </div>
+                <div className="liquid-glass overflow-hidden" data-skeleton="coming-up">
+                  {[0, 1].map((i) => (
+                    <div key={i} className={`flex items-center gap-3 px-4 py-3 ${i === 0 ? "border-b border-border/70" : ""}`}>
+                      <Skeleton className="w-10 h-10 shrink-0 rounded-full" />
+                      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                        <Skeleton className="h-4 w-40 max-w-full rounded-ds-md" />
+                        <Skeleton className="h-3.5 w-52 max-w-full rounded-ds-md" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
               {/* Your sections: header row, then the 2x2 tiles. */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-baseline justify-between px-1">
@@ -68,23 +85,6 @@ const DashboardRouteSkeleton = () => (
                       <Skeleton className="w-6 h-6 rounded-ds-md" />
                       <Skeleton className="h-5 w-20 mt-2 rounded-ds-md" />
                       <Skeleton className="h-4 w-28 max-w-full rounded-ds-md" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Coming up: GroupSection's header + one card of rows. */}
-              <div className="flex flex-col gap-2">
-                <div className="px-1">
-                  <Skeleton className="h-4 w-24 rounded-ds-md" />
-                </div>
-                <div className="liquid-glass overflow-hidden" data-skeleton="coming-up">
-                  {[0, 1].map((i) => (
-                    <div key={i} className={`flex items-center gap-3 px-4 py-3 ${i === 0 ? "border-b border-border/70" : ""}`}>
-                      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                        <Skeleton className="h-4 w-40 max-w-full rounded-ds-md" />
-                        <Skeleton className="h-3.5 w-52 max-w-full rounded-ds-md" />
-                      </div>
-                      <Skeleton className="h-5 w-10 rounded-ds-md" />
                     </div>
                   ))}
                 </div>

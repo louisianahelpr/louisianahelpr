@@ -8,6 +8,20 @@
  * Installed once from main.tsx. The bar is aria-hidden: the real h1 stays the
  * page's heading for assistive tech.
  */
+/**
+ * A route change starts the new page unscrolled, so its title is large again
+ * (Cowork design audit 2026-10-20, D4). Without this, scrolling Declutter's
+ * Browse past 56px and tapping an item left Browse's "Declutter" compact bar
+ * (and `page-scrolled`) on top of the item page, covering its back, share and
+ * heart buttons: the new page's scroller never fired a scroll event to turn
+ * them off. ScrollToTop calls this on every pathname change; a restored scroll
+ * (Back) fires its own scroll event, which turns them on again if it should.
+ */
+export function resetLargeTitles(doc: Document = document): void {
+  doc.documentElement.classList.remove("page-scrolled");
+  doc.querySelectorAll(".compact-title-bar.on").forEach((b) => b.classList.remove("on"));
+}
+
 export function installLargeTitles(doc: Document = document): () => void {
   let bar: HTMLDivElement | null = null;
   const ensureBar = (): HTMLDivElement => {

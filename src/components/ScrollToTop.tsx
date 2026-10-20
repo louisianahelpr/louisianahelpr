@@ -4,6 +4,7 @@ import { useLocation, useNavigationType } from "react-router-dom";
 
 import { prefersReducedMotion, useReducedMotion } from "@/lib/accessibility";
 import { hapticLight } from "@/lib/haptics";
+import { resetLargeTitles } from "@/lib/largeTitles";
 
 // Reveal the affordance only after the user has scrolled well past the fold —
 // several screens down — so it never clutters short pages. iOS exposes a
@@ -79,6 +80,8 @@ const ScrollToTop = () => {
 
     const samePathname = prevPathnameRef.current === pathname;
     prevPathnameRef.current = pathname;
+    // D4: a new page never inherits the last page's collapsed title bar.
+    if (!samePathname) resetLargeTitles();
 
     const mainEl = document.getElementById("main-content");
     const saved = scrollPositions.get(key);
@@ -113,7 +116,8 @@ const ScrollToTop = () => {
     // Fixed-shell routes use AppShell's internal `.app-shell-scroll` div —
     // resetting only #main-content leaves stale scroll position when
     // navigating between fixed-shell routes (Dashboard → Messages, etc.).
-    document.querySelectorAll<HTMLElement>(".app-shell-scroll").forEach((el) => {
+    // Every page scroller: AppShell's, and AppPage / SectionScreen's own column.
+    document.querySelectorAll<HTMLElement>(".app-shell-scroll, [data-app-page-scroll]").forEach((el) => {
       el.scrollTop = 0;
     });
     setVisible(false);

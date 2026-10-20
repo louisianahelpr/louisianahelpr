@@ -8,7 +8,7 @@
  * component (QuotesEntryRow) with it, so a stray Quotes destination cannot
  * come back to a menu without failing here.
  *
- * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     { path: "/quotes", icon: User, label: "Quotes" },\n    youItem,\n  ];
+ * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n |     { path: "/quotes", icon: User, label: "Quotes" },\n    youItem,\n
  */
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";

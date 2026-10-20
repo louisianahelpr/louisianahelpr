@@ -31,6 +31,8 @@ vi.mock("@/components/job-card/activityFilters", () => ({
   appliedActivityBucket: (a: { bucket: string }) => a.bucket,
 }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
+// badge = To-do (design-a2, 2026-10-20): the "need you" count is the shared to-do list; one job to-do here.
+vi.mock("./needsYouTodos", () => ({ useNeedsYouTodos: () => ({ todos: [{ id: "p-n1", section: "jobs" }] }) }));
 
 import { useHomeSummary } from "./useHomeSummary";
 

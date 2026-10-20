@@ -10,7 +10,7 @@ import HelprMark from "@/components/HelprMark";
  * mirrors Jobs (Q2214): the same SectionScreen frame (AppShell, the container,
  * the page-measure scroll column), the same top bar on Home (AppTopBar: the
  * emblem on the left, the bell, the profile avatar at the far right; no "+"),
- * then the greeting, the three stat boxes, the "Your sections" 2x2 tiles and
+ * then the greeting, the Next up card, the "Your sections" 2x2 tiles and
  * Coming up, so a cold /home goes bones -> content with nothing moving. The
  * old version drew the retired feed's title bar (emblem + search, filters,
  * bell), so a cold /home showed one shape and then another.
@@ -49,14 +49,12 @@ const DashboardRouteSkeleton = () => (
                 <Skeleton className="h-8 w-56 max-w-full rounded-ds-md" />
                 <Skeleton className="h-4 w-32 mt-1.5 rounded-ds-md" />
               </div>
-              {/* The three stat boxes: one liquid-glass card, three columns. */}
-              <div className="liquid-glass flex divide-x divide-border/70" data-skeleton="stats">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className="flex-1 min-w-0 px-2 py-3 flex flex-col items-center gap-1">
-                    <Skeleton className="h-6 w-8 rounded-ds-md" />
-                    <Skeleton className="h-3.5 w-14 rounded-ds-md" />
-                  </div>
-                ))}
+              {/* The Next up card: label, title, one line, the action pill. */}
+              <div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton="next-up">
+                <Skeleton className="h-3.5 w-16 rounded-ds-md" />
+                <Skeleton className="h-6 w-48 max-w-full rounded-ds-md" />
+                <Skeleton className="h-4 w-40 max-w-full rounded-ds-md" />
+                <Skeleton className="h-11 w-36 mt-2 rounded-full" />
               </div>
               {/* Your sections: header row, then the 2x2 tiles. */}
               <div className="flex flex-col gap-2">

@@ -73,12 +73,11 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(bar).toMatch(/className="btn-press h-10 w-10 rounded-full/);
   });
 
-  it("then Home's body: greeting, three stat boxes, the 2x2 section tiles, Coming up", () => {
-    // Home: three stats in one liquid-glass row; the skeleton draws three.
-    expect(home.match(/\{ key: "(todo|week|unread)"/g)?.length).toBe(3);
-    expect(home).toContain('className="liquid-glass flex divide-x divide-border/70"');
-    expect(skeleton).toContain('className="liquid-glass flex divide-x divide-border/70" data-skeleton="stats"');
-    expect(skeleton).toMatch(/\[0, 1, 2\]\.map\(\(i\) => \(\s*<div key=\{i\} className="flex-1 min-w-0 px-2 py-3/);
+  it("then Home's body: greeting, the Next up card, the 2x2 section tiles, Coming up", () => {
+    // Home: the Next up card (2026-10-20, it replaced the three stat boxes); the skeleton draws the same card.
+    expect(home).toContain('<section data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1.5">');
+    expect(skeleton).toContain('<div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton="next-up">');
+    expect(skeleton).toMatch(/data-skeleton="next-up">[\s\S]*?<Skeleton className="h-11 w-36 mt-2 rounded-full" \/>/);
     // 2x2 tiles, same grid.
     expect(home).toContain('<div className="grid grid-cols-2 gap-3">');
     expect(skeleton).toContain('<div className="grid grid-cols-2 gap-3" data-skeleton="tiles">');
@@ -98,7 +97,7 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
 
 // Proof this is able to fail: each restores a real way the two drift.
 // @mutate src/components/DashboardRouteSkeleton.tsx | <HelprMark to={null} size="sm" emblemOnly className="shrink-0" /> | <HelprMark to={null} size="md" emblemOnly className="shrink-0" />
-// @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton="stats"> | data-skeleton="stats-old">
-// @mutate src/components/DashboardRouteSkeleton.tsx |                 {[0, 1, 2].map((i) => ( |                 {[0, 1].map((i) => (
+// @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton="next-up"> | data-skeleton="stats">
+// @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="h-11 w-36 mt-2 rounded-full" /> |
 // @mutate src/components/DashboardRouteSkeleton.tsx |               <span className="h-10 w-10 flex items-center justify-center"> |               <span className="h-11 w-11 flex items-center justify-center">
 // @mutate src/components/DashboardRouteSkeleton.tsx |     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top"> |     <AppShell scrollable={false} className="bg-premium-page pt-safe-top">

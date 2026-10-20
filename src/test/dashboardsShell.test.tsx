@@ -2,9 +2,10 @@
  * THE DASHBOARDS SHELL (owner final decisions, 2026-10-19).
  *
  * - The app opens on HOME: /home renders the Home dashboard (not the job feed).
- * - Home: greeting, three stat boxes (To do / This week / Unread), the To do
- *   list COLLAPSED on load and opened by a tap on the To do box, the member's
- *   sections as boxes, Coming up. No "+" and no row of category pills.
+ * - Home: greeting, the NEXT UP card (2026-10-20, replacing the three stat
+ *   boxes: the most urgent to-do with its action), the To do list COLLAPSED on
+ *   load and opened by Next up's "See all", the member's sections as boxes,
+ *   Coming up. No "+" and no row of category pills.
  * - Bottom nav (owner-approved mock-up, 2026-10-20, superseding 10-19's six
  *   tabs): Home, Explore, the center "+", MESSAGES (unread badge), You. The
  *   sections live in Explore (src/test/centerCreateNav.test.tsx).
@@ -20,6 +21,8 @@
  * @mutate src/pages/home/HomeDashboard.tsx | useState(false);\n  const toggleTodo = () => setTodoOpen((o) => !o); | useState(() => sessionStorage.getItem("t") === "1");\n  const toggleTodo = () => setTodoOpen((o) => { sessionStorage.setItem("t", o ? "0" : "1"); return !o; });
  * @mutate src/pages/home/HomeDashboard.tsx |   useOnTabReselect("/home", () => setTodoOpen(false)); |   useOnTabReselect("/home", () => undefined);
  * @mutate src/pages/home/HomeDashboard.tsx |         {todoOpen && ( |         {todoCount > 0 && !todoOpen && <button type="button" onClick={toggleTodo} aria-expanded={false}>To do ({todoCount})</button>}\n        {todoOpen && (
+ * @mutate src/pages/home/HomeDashboard.tsx |   const next = summary.todos[0]; |   const next = summary.todos[summary.todos.length - 1];
+ * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       ...shopWaiting.map((o) => ({ |       ...shopWaiting.filter(() => false).map((o) => ({
  * @mutate src/components/mobileNav/dockItems.ts |     right: [{ path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" }, youItem], |     right: [youItem],
  * @mutate src/components/sections/ExploreSwitcher.tsx |   const options = visible.map((s) => { |   const options = [...visible].reverse().map((s) => {
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
@@ -37,6 +40,7 @@ import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
 const switches = vi.hoisted(() => ({ on: new Set<string>() }));
+const noTodos = vi.hoisted(() => ({ on: false }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (key: string) => switches.on.has(key),
   useFeatureStatus: (key: string) => ({ on: switches.on.has(key), settled: true }),
@@ -63,7 +67,7 @@ const job = (id: string, status: string) => ({ id, title: `Job ${id}`, status, d
 vi.mock("@/hooks/useActivityData", () => ({
   useActivityData: (_u: unknown, tab: string) => ({
     loading: false,
-    postedJobs: tab === "posted" ? [job("a", "open"), job("b", "open")] : [],
+    postedJobs: tab === "posted" && !noTodos.on ? [job("a", "open"), job("b", "open")] : [],
     appliedApps: [],
     pendingApplicantCounts: { a: 1, b: 2 },
   }),
@@ -73,7 +77,15 @@ vi.mock("@/components/job-card/activityFilters", () => ({
   appliedActivityBucket: () => "waiting",
 }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyItems: async () => [] }));
-vi.mock("@/lib/shops/orders", () => ({ fetchMyOrders: async () => [] }));
+vi.mock("@/lib/shops/orders", () => ({
+  fetchMyOrders: async () => [],
+  fetchShopOrders: async () => [
+    { id: "o-late", status: "held", accept_by: "2099-01-03T00:00:00Z", total_cents: 999, shop_order_lines: [{ title: "Later order" }] },
+    { id: "o-soon", status: "held", accept_by: "2099-01-01T00:00:00Z", total_cents: 1240, shop_order_lines: [{ title: "Pecan pralines" }] },
+    { id: "o-done", status: "handed_over", accept_by: null, total_cents: 500, shop_order_lines: [{ title: "Done order" }] },
+  ],
+  formatCents: (c: number) => `$${(c / 100).toFixed(2)}`,
+}));
 vi.mock("@/lib/rentals/api", () => ({ fetchMyProperties: async () => [] }));
 
 import MobileNav from "@/components/MobileNav";
@@ -168,17 +180,42 @@ describe("the bottom nav", () => {
 });
 
 describe("Home", () => {
-  it("has the three stat boxes, no + and no category pill row", () => {
+  it("Next up is the most urgent to-do with its one action: an order my shop must answer comes before my jobs", async () => {
     wrap(<HomeDashboard />);
-    expect([...document.querySelectorAll("[data-stat]")].map((e) => e.getAttribute("data-stat"))).toEqual(["todo", "week", "unread"]);
+    expect(await screen.findByText("Answer an order for Pecan pralines")).toBeTruthy();
+    expect(screen.getByTestId("next-up-title").textContent).toBe("Answer an order for Pecan pralines");
+    expect(screen.getByTestId("next-up").textContent).toContain("$12.40 order total");
+    const action = screen.getByTestId("next-up-action");
+    expect(action.textContent).toBe("Answer order");
+    fireEvent.click(action);
+    expect(screen.getByTestId("where").textContent).toBe("/shops/dashboard");
+    // Soonest deadline first; a handed-over order is not a to-do. Two held orders + two jobs I posted.
+    expect(screen.getByTestId("next-up-see-all").textContent).toBe("See all (4)");
+  });
+
+  it("with nothing to do, Next up says so and shows no task, no button and no number", () => {
+    switches.on = new Set();
+    noTodos.on = true;
+    wrap(<HomeDashboard />);
+    const card = screen.getByTestId("next-up");
+    expect(card.textContent).toContain("You're all caught up");
+    expect(card.querySelector("button")).toBeNull();
+    expect(card.textContent).not.toMatch(/\$|\d/);
+    noTodos.on = false;
+  });
+
+  it("has the Next up card (no stat boxes), no + and no category pill row", () => {
+    wrap(<HomeDashboard />);
+    expect(screen.getByTestId("next-up")).toBeTruthy();
+    expect(document.querySelectorAll("[data-stat]").length).toBe(0);
     expect(document.querySelector('[data-testid="section-add"]')).toBeNull();
     expect(document.querySelector(".category-chip-row, [data-category-pill], [aria-label='Categories']")).toBeNull();
   });
 
-  it("the To do list is COLLAPSED on load and a tap on the To do box opens and closes it", () => {
+  it("the To do list is COLLAPSED on load and Next up's See all opens and closes it", () => {
     wrap(<HomeDashboard />);
     expect(screen.queryByTestId("todo-list")).toBeNull();
-    const box = document.querySelector('[data-stat="todo"]') as HTMLElement;
+    const box = screen.getByTestId("next-up-see-all");
     expect(box.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(box);
     expect(screen.getByTestId("todo-list")).toBeTruthy();
@@ -190,27 +227,27 @@ describe("Home", () => {
   // Owner, 2026-10-19 ("only show To do expanded when it's clicked"): the To do
   // STAT BOX is the only control for the list (the separate "To do (n)" bar
   // duplicated it), and nothing remembers the open state.
-  it("the To do box is the ONLY control for the list: no second collapsed bar", () => {
+  it("Next up's See all is the ONLY control for the list: no second collapsed bar", () => {
     wrap(<HomeDashboard />);
     const controls = [...document.querySelectorAll("[aria-expanded]")];
-    expect(controls.map((e) => e.getAttribute("data-stat"))).toEqual(["todo"]);
+    expect(controls.map((e) => e.getAttribute("data-testid"))).toEqual(["next-up-see-all"]);
     expect(screen.queryByTestId("todo-collapsed")).toBeNull();
     expect(screen.queryByText(/^To do \(\d+\)$/)).toBeNull();
   });
 
   it("arrives collapsed after a remount even when it was open before (never remembered)", () => {
     const first = wrap(<HomeDashboard />);
-    fireEvent.click(document.querySelector('[data-stat="todo"]') as HTMLElement);
+    fireEvent.click(screen.getByTestId("next-up-see-all"));
     expect(screen.getByTestId("todo-list")).toBeTruthy();
     first.unmount();
     wrap(<HomeDashboard />);
     expect(screen.queryByTestId("todo-list")).toBeNull();
-    expect(document.querySelector('[data-stat="todo"]')!.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.getByTestId("next-up-see-all").getAttribute("aria-expanded")).toBe("false");
   });
 
   it("a re-tap of the Home tab folds the open list back up", () => {
     wrap(<HomeDashboard />);
-    fireEvent.click(document.querySelector('[data-stat="todo"]') as HTMLElement);
+    fireEvent.click(screen.getByTestId("next-up-see-all"));
     expect(screen.getByTestId("todo-list")).toBeTruthy();
     act(() => announceTabReselect("/home"));
     expect(screen.queryByTestId("todo-list")).toBeNull();

@@ -182,11 +182,11 @@ describe("Q345: every hire RPC refuses across a block", () => {
 });
 
 // Each hire RPC's check removed, one at a time.
-// @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |   IF public.are_users_blocked(v_job.customer_id, v_uid) THEN\n    RAISE EXCEPTION 'applicant_blocked'; |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked';
+// @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql |   IF public.are_users_blocked(v_job.customer_id, v_uid) THEN\n    RAISE EXCEPTION 'applicant_blocked'; |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked';
 // @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | IF public.are_users_blocked(v_helper_id, v_job_customer) THEN | IF false THEN
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | IF public.are_users_blocked(v_job_customer, v_helper_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql | IF public.are_users_blocked(auth.uid(), v_customer) THEN | IF false THEN
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF public.are_users_blocked(p_helper, v_customer) THEN |   IF false THEN
+// @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql |   IF public.are_users_blocked(p_helper, v_customer) THEN |   IF false THEN
 // @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | IF public.are_users_blocked(v_req.poster_id, v_q.quoter_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261015091114_job_quotes.sql | IF public.are_users_blocked(v_uid, v_q.quoter_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261018164442_shops_orders_checkout.sql |   IF public.are_users_blocked(v_uid, o.buyer_id) THEN\n    RAISE EXCEPTION 'applicant_blocked' |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked'

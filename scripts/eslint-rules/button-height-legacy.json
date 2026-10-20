@@ -10,7 +10,6 @@
   "src/components/SavedSearches.tsx",
   "src/components/SectionBoundary.tsx",
   "src/components/TipDialog.tsx",
-  "src/pages/posts/PostedJobsTab.tsx",
   "src/components/admin/AdminUserNotes.tsx",
   "src/components/admin/AutoRestrictedRail.tsx",
   "src/components/admin/adminJobs/JobDetailDialog.tsx",

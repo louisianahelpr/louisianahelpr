@@ -13,7 +13,7 @@
  * ~/.lh-pglite/q1214.mjs (before: allowed without the flag; after: refused
  * without it, allowed with it).
  *
- * @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |         PERFORM set_config('app.accept_rpc', '1', true);\n        UPDATE public.jobs | UPDATE public.jobs
+ * @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql |         PERFORM set_config('app.accept_rpc', '1', true);\n        UPDATE public.jobs | UPDATE public.jobs
  * @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |     RAISE EXCEPTION 'accept_required' USING ERRCODE = '42501',\n      HINT = 'An offer is accepted with Accept | IF auth.uid() IS NULL THEN RAISE EXCEPTION 'accept_required' USING ERRCODE = '42501',\n      HINT = 'An offer is accepted with Accept
  */
 import { describe, it, expect } from "vitest";
@@ -34,7 +34,7 @@ describe("Q1214 (2): confirming a Helpr is always a flagged accept", () => {
     expect([...writers].sort()).toEqual(["claim_series_dates", "complete_job_accept"]);
   });
 
-  // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |          WHERE id = v_child_id AND status = 'open' AND helper_id IS NULL;\n        PERFORM set_config('app.accept_rpc', '0', true); |          WHERE id = v_child_id AND status = 'open' AND helper_id IS NULL;
+  // @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql |          WHERE id = v_child_id AND status = 'open' AND helper_id IS NULL;\n        PERFORM set_config('app.accept_rpc', '0', true); |          WHERE id = v_child_id AND status = 'open' AND helper_id IS NULL;
   it("each turns the flag back off right after its confirming UPDATE", () => {
     const bad = writers.filter((n) => {
       const src = body(n);

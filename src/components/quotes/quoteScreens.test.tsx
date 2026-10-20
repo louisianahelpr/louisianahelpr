@@ -28,6 +28,7 @@
  * @mutate src/lib/quotes/api.ts |   if (s === "chargeback") return "disputed"; |   if (s === "chargeback") return "paid";
  * @mutate src/lib/quotes/api.ts |   return "unknown";\n} |   return "paid";\n}
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |   return ownPrice ? "Posted" : "Booked";\n} |   return ownPrice ? "Posted and paid" : "Booked and paid";\n}
+ * @mutate src/pages/quotes/QuoteRequestPage.tsx |   if (reqs.isError || quotes.isError) { |   if (reqs.isError || quotes.isError || !request) {
  */
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -194,6 +195,27 @@ describe("the 'quotes' switch", () => {
 });
 
 describe("the poster's quotes on a request", () => {
+  // a11y-webkit-prod #2375: /quotes/request/<unknown id> read "We couldn't load this request. Tap Try again." although both
+  // queries succeeded, so the audit (rightly) took the capture for an error boundary. Not found is an answer, not a failure.
+  it("a request that is not the reader's says so; it is not a load failure", async () => {
+    state.rpc.get_my_quote_requests = [REQ];
+    state.rpc.get_quotes_for_request = [];
+    at("/quotes/request/missing", <QuoteRequestPage />, "/quotes/request/:id");
+    expect(await screen.findByText("We can't find this request")).toBeInTheDocument();
+    expect(screen.queryByText("We couldn't load this request.")).toBeNull();
+    expect(screen.queryByRole("button", { name: /try again/i })).toBeNull();
+    expect(screen.getByRole("link", { name: "See your quote requests" })).toHaveAttribute("href", "/posts?quotes=1");
+  });
+
+  it("a real load failure still offers Try again", async () => {
+    state.rpc.get_my_quote_requests = new Error("boom");
+    state.rpc.get_quotes_for_request = [];
+    at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
+    expect(await screen.findByText("We couldn't load this request.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
+    expect(screen.queryByText("We can't find this request")).toBeNull();
+  });
+
   it("lists each quote with its price, note, when and photos; the poster's turn offers accept / counter / decline", async () => {
     state.rpc.get_my_quote_requests = [REQ];
     state.rpc.get_quotes_for_request = [QUOTE];

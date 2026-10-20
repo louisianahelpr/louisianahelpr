@@ -214,8 +214,20 @@ function RequestView({ id }: { id: string }) {
   });
 
   if (reqs.isPending || quotes.isPending) return <p className="text-sm text-muted-foreground">Loading quotes…</p>;
-  if (reqs.isError || quotes.isError || !request) {
+  if (reqs.isError || quotes.isError) {
     return <ErrorState variant="inline" title="We couldn't load this request." onRetry={() => { void reqs.refetch(); void quotes.refetch(); }} />;
+  }
+  // Both queries answered and none of the reader's requests has this id (a wrong link, or someone else's request): that is
+  // "not found", not a failed load, so no Try again (a11y-webkit-prod #2375 read it as an error boundary).
+  if (!request) {
+    return (
+      <QuotesNotice title="We can't find this request">
+        <p>It may have been removed, or it belongs to someone else.</p>
+        <Button asChild className="mt-3 w-full">
+          <Link to={QUOTE_HOMES.myRequests}>See your quote requests</Link>
+        </Button>
+      </QuotesNotice>
+    );
   }
   const open = request.status === "open";
   const agreed = request.status === "agreed";

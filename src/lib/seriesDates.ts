@@ -4,7 +4,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { todayYmd } from "@/lib/jobDate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { awardBlockMessage } from "@/lib/awardGate";
+import { awardBlockMessage, type AcceptMissing } from "@/lib/awardGate";
 
 /**
  * Who holds each visit date of a recurring series (20260927012806,
@@ -121,8 +121,21 @@ function seriesRpcError(error: { code?: string | null; message?: string | null }
   return new Error(copy ?? error.message ?? "Something went wrong. Please try again.");
 }
 
-/** `alreadyYours`: dates the caller already held (a double tap; review LOW-6). */
-export interface ClaimResult { claimed: string[]; taken: string[]; refused: string[]; alreadyYours: string[] }
+/**
+ * `alreadyYours`: dates the caller already held (a double tap; review LOW-6).
+ * `missing`: what the caller's setup still lacks (helper_accept_missing, the
+ * one ID-once helper every accept reads, 20261020043346). A claimed future
+ * date is booked only once nothing is missing. `needsSetup`: already-funded
+ * visits that would have been booked on the spot, not taken because of it.
+ */
+export interface ClaimResult {
+  claimed: string[];
+  taken: string[];
+  refused: string[];
+  alreadyYours: string[];
+  needsSetup: string[];
+  missing: AcceptMissing[];
+}
 
 /** Pick visit dates (the first Helpr, an offered Helpr, or a pick-up). */
 export async function claimSeriesDates(jobId: string, dates: string[]): Promise<ClaimResult> {
@@ -131,8 +144,30 @@ export async function claimSeriesDates(jobId: string, dates: string[]): Promise<
   // its refusal is not one of the RPC's own codes (Q1180 re-review #10).
   // Q1586(c): a saved birthday under 18 is refused by the applications trigger too.
   if (error) throw seriesRpcError(error, rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error) ?? (isUnder18Refusal(error) ? UNDER_18_APPLY_COPY : null));
-  const r = (data ?? {}) as { claimed?: string[]; taken?: string[]; refused?: string[]; already_yours?: string[] };
-  return { claimed: r.claimed ?? [], taken: r.taken ?? [], refused: r.refused ?? [], alreadyYours: r.already_yours ?? [] };
+  const r = (data ?? {}) as {
+    claimed?: string[]; taken?: string[]; refused?: string[]; already_yours?: string[];
+    needs_setup?: string[]; missing?: AcceptMissing[];
+  };
+  return {
+    claimed: r.claimed ?? [],
+    taken: r.taken ?? [],
+    refused: r.refused ?? [],
+    alreadyYours: r.already_yours ?? [],
+    needsSetup: r.needs_setup ?? [],
+    missing: r.missing ?? [],
+  };
+}
+
+/**
+ * The Helpr's "verify your ID to accept" step after a claim (owner 2026-10-20:
+ * ID once, at the accept), or null when nothing is missing.
+ */
+export function claimSetupStep(r: Pick<ClaimResult, "missing" | "needsSetup">): string | null {
+  if (r.missing.length === 0) return null;
+  const id = r.missing.includes("stripe_id");
+  const payout = r.missing.includes("payout_setup");
+  const what = id && payout ? "Verify your ID and set up payouts" : id ? "Verify your ID" : "Set up payouts";
+  return `${what} to finish accepting. A date is booked only once that's done; one that comes up first goes back to the series. You only do it once.`;
 }
 
 /** Hand dates back to the series. `strike` = one started within 24 hours. */

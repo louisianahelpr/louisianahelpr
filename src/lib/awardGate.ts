@@ -297,6 +297,19 @@ export function pendingAcceptStatus(missing: readonly AcceptMissing[]): { headli
 }
 
 /**
+ * What the POSTER reads on an applicant whose ID is not verified yet (owner,
+ * 2026-10-20: ID is "required but only once they are offered and accept a
+ * job"). Informational, never a refusal: the poster's offer stays open to
+ * anyone, and the Helpr's accept is what waits on the ID (the one helper,
+ * helper_accept_block_reason, 20261020043346). Names the person, never a
+ * gendered pronoun.
+ */
+export function applicantIdNote(helperName?: string | null): string {
+  const who = helperName?.trim() || "This Helpr";
+  return `${who} verifies their ID when they accept.`;
+}
+
+/**
  * What the POSTER is told when the gate refuses THEIR hire. Different audience,
  * different fix: there is nothing for the poster to do about someone else's
  * Stripe account, so this names the situation and stops rather than offering a

@@ -759,7 +759,14 @@ export const FORMS: FormSpec[] = [
   // Reject (write firewall).
   {
     name: "declutter-sell", url: "/declutter/sell", as: "helper",
-    prepare: async (page) => { await page.locator("#sell-title").waitFor({ timeout: 20_000 }); },
+    // The sell flow is 5 steps since board 31a-158 (2026-10-20): a held photo (never uploaded: only step 4 saves)
+    // opens step 2, whose text fields the sweep fills. Steps 3-4 (price, area, address) are not swept from here.
+    prepare: async (page) => {
+      await page.locator("#sell-files").waitFor({ state: "attached", timeout: 20_000 });
+      await page.setInputFiles("#sell-files", { name: "sweep.png", mimeType: "image/png", buffer: Buffer.from("89504e470d0a1a0a", "hex") });
+      await page.getByRole("button", { name: "Continue" }).click();
+      await page.locator("#sell-title").waitFor({ timeout: 20_000 });
+    },
     covers: ["src/components/declutter/DeclutterSellView.tsx", "src/components/declutter/DeclutterSellPhotos.tsx", "src/components/declutter/DeclutterPickupTimes.tsx"],
   },
   {

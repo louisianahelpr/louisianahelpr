@@ -130,7 +130,7 @@ function LocalBusinesses({ onHireHelpr, hireProps }: { onHireHelpr: () => void; 
         <ErrorState variant="inline" title="We couldn't load businesses." body={shopsErrorMessage(shops.error)} onRetry={() => void shops.refetch()} />
       ) : loading ? (
         <div role="status" aria-label="Loading businesses" className="space-y-2">
-          <Skeleton className="aspect-[2/1] w-full rounded-2xl" />
+          <Skeleton className="aspect-[2/1] w-full rounded-2xl bg-photo-empty" />
           <Skeleton className="h-4 w-2/5" />
           <Skeleton className="h-3.5 w-3/5" />
         </div>

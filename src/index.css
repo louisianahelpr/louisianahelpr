@@ -921,6 +921,8 @@
      "Disputed" 3.52:1, both under AA. Light value is byte-identical to
      --burnt-sienna, so light mode does not move at all. */
   --sienna-ink: 19 75% 35%;   /* == --burnt-sienna in light */
+  /* Spec v2 §2 --photo-empty: an empty or loading photo, warm sand (#DCD5C7), never cool grey. */
+  --photo-empty: 40 23% 82%;
 
   /* Cancel red — destructive "Cancel job" action button. Warmer & more
      saturated than the muted system --destructive, kept as its own pair.
@@ -1142,6 +1144,7 @@
 
   --boost-tint: 25 65% 56%;   /* lighter base so low-alpha fill reads on dark */
   --boost-ink:  25 80% 70%;   /* legible orange label on dark */
+  --photo-empty: 40 8% 21%;  /* spec v2 §2 dark #3A3731 */
   --sienna-ink: 19 72% 68%;   /* legible sienna label on dark. Sits in the same
                                  68-70% lightness band as --sage-ink and
                                  --danger-ink so a row of status chips stays
@@ -4483,7 +4486,10 @@ html.senior-mode *::after {
 
 /* T1 — plain upright titles: every display title is Montserrat semibold,
    upright. The landing H1 (.landing-h1) is the one Bodoni headline left. */
-.font-display:not(.landing-h1, .landing-h1 *) {
+/* Spec v2 §1.2 (owner adopted 2026-10-20) brings Bodoni back for MOMENTS only:
+   greetings, step-by-step flow questions, empty-state titles, celebrations.
+   Those carry .font-moment and are exempt from T1. */
+.font-display:not(.landing-h1, .landing-h1 *, .font-moment) {
   font-family: Montserrat, "Montserrat Fallback", system-ui, -apple-system, sans-serif !important;
   font-style: normal !important;
   font-weight: 650 !important;

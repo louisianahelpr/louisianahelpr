@@ -46,7 +46,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag }: { i
       data-item-card=""
       className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <span className="relative block aspect-square overflow-hidden rounded-2xl bg-muted">
+      <span className="relative block aspect-square overflow-hidden rounded-2xl bg-photo-empty">
         {photoPath ? (
           <img src={photoPublicUrl(photoPath)} alt="" loading="lazy" className="h-full w-full object-cover" />
         ) : (

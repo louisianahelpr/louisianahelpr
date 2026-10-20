@@ -14,7 +14,7 @@
  * hidden even from the seller, B42), so nobody but the server knows whether a
  * listing has reached its stop. What IS certain: if the price drops at that
  * run, it drops to no less than floor(current * 0.95). So the page says
- * "could drop to as low as $X", never "drops to $X".
+ * "could drop as low as $X", never "drops to $X".
  */
 
 /** The cron's minute and hour, in UTC (cron.job 'declutter-price-drops'). */
@@ -47,11 +47,21 @@ function nextRunAfter(now: Date): Date {
  * cent left to drop).
  */
 export function nextPriceDrop(item: PriceDropFields, now: Date = new Date()): { at: Date; lowestCents: number } | null {
+  // (a cron run that failed or an item that was reserved at the last run also
+  // hides the line below: hiding is the safe side of the truth rule)
   if (item.status !== "live" || item.sale_mode !== "offers" || !item.live_at) return null;
   const lowestCents = Math.floor(item.current_price_cents * 0.95);
   if (!(lowestCents < item.current_price_cents)) return null;
   const liveAt = new Date(item.live_at).getTime();
   if (Number.isNaN(liveAt)) return null;
+  // Already at the seller's stop? The sweep skips such an item without
+  // stamping last_price_drop_on, so: eligible at the LAST run (live 12 h by
+  // then) yet not dropped that Louisiana day means the sweep passed it over.
+  // Hide the line then (money review, design-b-1020 #1): it would promise a
+  // drop that never comes. This shows nothing the column does not already.
+  const lastRun = new Date(nextRunAfter(now).getTime() - 24 * 60 * 60 * 1000);
+  const eligibleAtLastRun = liveAt <= lastRun.getTime() - MIN_LIVE_MS;
+  if (eligibleAtLastRun && (!item.last_price_drop_on || item.last_price_drop_on < chicagoDay(lastRun))) return null;
   let run = nextRunAfter(now);
   // Two runs are enough: the 12-hour rule and the once-a-day rule each push it at most one day.
   for (let i = 0; i < 3; i++) {

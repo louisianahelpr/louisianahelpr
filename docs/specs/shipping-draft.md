@@ -1,6 +1,6 @@
-# Shipping for Declutter and Shops (SPEC DRAFT, nothing built)
+# Shipping for Declutter and Shops (SPEC; S1 in progress)
 
-Status: spec complete, waiting on the owner's answers and a money review (lh-money-escrow, NOT yet run). Tracked as Q2239 in docs/OPEN.md.
+Status: owner decided 2026-10-20; money review done (approve with fixes, folded into sections 5-9); S1 (data model + fee) built on wip/shipping-spec-1019. Tracked as Q2239 in docs/OPEN.md.
 Nothing gets built until both are done. Owner order 10-20 ~01:10Z: discounted USPS labels through
 Shippo or EasyPost, the buyer pays shipping at checkout, the seller prints the label, tracking shows in
 the app, a "shipped" handover with a buyer window after delivery, the seller is paid when the sale is
@@ -10,43 +10,20 @@ and their postage: the one stated exception to "we never absorb a fee").
 Every price below was read from the source named beside it on **2026-10-20 between 02:19Z and 02:30Z**
 (`date -u`). Figures I could not read from the provider's own page say so.
 
-## Decisions needed from the owner (plain words; recommendation first)
-
-1. **Which label company?**
-   - A. EasyPost (recommended): no per-label fee up to 3,000 labels a month, cheaper extra insurance
-     (1%, $1 minimum). We fund its prepaid balance from the bank (free); a card top-up costs 3.75%.
-   - B. Shippo: first 30 labels a month free, then 7 cents a label; charges a card as labels are bought.
-2. **The 5% + 70 cents buyer fee: should it also count the shipping cost?**
-   - A. Yes (recommended): 5% of (items + shipping) + 70 cents. The card fee is then always covered.
-     A $5 item with $7.33 shipping: the buyer fee goes from $0.95 to $1.32.
-   - B. No, items only. Then on cheap items with heavier boxes (or any foreign card) the card fee is
-     bigger than our fee, which breaks "we never absorb a fee".
-3. **Where can items ship at first?**
-   - A. Louisiana addresses only (recommended): one state's sales tax, local buyers, cheapest postage
-     (every Louisiana-to-Louisiana parcel measured is USPS zone 1 to 4).
-   - B. Anywhere in the US (other states' tax rules apply; ask the CPA first).
-4. **How long does the buyer have after "delivered" to report a problem before the seller is paid?**
-   - A. 2 days (48 hours) (recommended). "I got it" ends it early.
-   - B. 3 days (what Mercari is reported to use).
-5. **Lost or broken in the mail: who covers it?** (The buyer always gets their money back.)
-   - A. The seller (recommended): the seller gets the USPS insurance payout (up to $100 is included
-     free); anything above that, plus the label and card fee, is the seller's. Sellers can add extra
-     insurance at listing, and the buyer pays for it in the shipping line.
-   - B. Require extra insurance on every item over $100 (added to the buyer's shipping), seller covers
-     the rest.
-6. **Buyer cancels or the sale is refunded after the label was printed: who pays the label?**
-   - A. Nobody, if the label is cancelled unused (USPS gives the money back); if the label was already
-     used, whoever caused the refund pays it (seller backs out = seller; buyer's own choice = taken
-     from the buyer's refund) (recommended).
-   - B. Always the seller.
-7. **Free mailers: how do they get sent?**
-   - A. You keep a box of mailers; the app prints a postage label and lists requests in an admin queue;
-     you drop them off (recommended). About $10-$11 per pack (10 bags + postage, measured below).
-   - B. A supplier ships each pack (costs more, no tracking in the app).
-   And: a monthly budget cap for mailers (suggest $100 a month = about 9 packs)?
-8. **Which items can ship?** Recommended: only Declutter sizes "small" (fits a box up to 20 lb),
-   never large or extra large; Shops items the maker marks shippable; cottage food never ships until
-   the Health Department answers in writing.
+## Decided 2026-10-20 (owner pop-ups ~02:40Z, relayed by the lead)
+1. **Provider: EasyPost**, funded from the bank (ACH, auto-reload; never a card top-up, which costs 3.75%).
+2. **Buyer fee = 5% of (items + shipping) + 70 cents** on shipped orders (fee rule `f1_ship`); pickup,
+   porch and delivery orders keep F1 on items only.
+3. **Louisiana addresses only** (ZIP 700xx-714xx, checked server-side).
+4. **Buyer window: 2 days (48 h) after "delivered"**; "I got it" ends it early (shown only after the
+   delivered scan, review fix 10).
+5. **Lost or broken in the mail = the seller.** The buyer gets everything back; the USPS insurance payout
+   goes to the seller (after any debt on that order); the seller may add extra insurance at listing, paid
+   by the buyer inside the shipping line.
+6. **Spent label on a refund = whoever caused it**; an unused label is voided (money back to the wallet).
+7. **Free mailers: PAUSED** ("launch that part later"): a later phase, out of v1; no admin queue now.
+   Section 10 stays as the design for then.
+8. **Small only**: Declutter size `small`; Shops items the maker marks shippable; cottage food never.
 
 ## 1. What exists today (read from origin/main e20c7a205)
 - Declutter handover modes: `declutter_orders.handover IN ('pickup_home','porch','delivery')`
@@ -193,40 +170,57 @@ review should confirm which Stripe Tax price the account is on.)
 **Recommendation: option A** (`declutter_buyer_fee_cents(items + shipping)`), one function, same
 rounding, so the rule "the fee always covers the card" holds for every shipped order.
 
-### 5.2 Where every dollar goes
-- Buyer pays: items + fee + shipping (+ tax on Shops). Shipping = the exact postage quoted
-  + the provider's label fee (EasyPost $0) + optional insurance. Rate shown, rate charged, rate bought.
-- **Buy the label at payment time, not later** (SUPERSEDED by section 11 fix 2: authorise, buy the label, then capture): the `checkout.session.completed`
-  handler buys the exact rate the buyer paid for (the rate id frozen on the order). No rate drift, no
-  "label costs more now" case, no surplus. The seller then just prints it. If the rate is gone
-  (provider error), the order falls to "seller backs out" style handling with a full refund and NO
-  strike (not the seller's fault), and the card fee is the platform's loss: OPEN RISK R1 for the money
-  review (mitigation: re-quote and buy the cheapest same-service rate if it is not higher; otherwise
-  refund).
-- The shipping money sits in the platform's Stripe balance; the label is paid from the EasyPost wallet
-  (ACH from the owner's bank). The two must be reconciled monthly (a report: shipping collected vs
-  labels bought vs label refunds vs adjustments). It is never transferred to the seller.
-- SQL refuses to record a label whose cost is above the order's collected shipping.
+### 5.2 Where every dollar goes (design after the money review)
+- Buyer pays: items + fee (`f1_ship`) + shipping (+ tax on Shops). Shipping = the exact postage quoted
+  + EasyPost's label fee ($0 under 3,000 a month) + optional extra insurance. Rate shown = rate charged =
+  rate bought.
+- **Hold, buy, capture (review fix 2).** A shipped Declutter order opens Checkout with
+  `capture_method: manual` (a card hold, as Shops already does). On the hold: claim the label purchase
+  (below), buy the frozen rate, THEN capture. If the label cannot be bought (rate gone, provider error,
+  dearer than the held shipping), the hold is cancelled: a cancelled hold costs nothing, so no card fee
+  is ever eaten. An empty EasyPost balance is a retry state that pages ops while the hold is valid, never
+  a refund. The webhook needs a new "authorised" path (`declutterCheckout.ts:146` treats only `paid`).
+- **One label per order, ever (review fixes 7 and 13).** A `shipments` row is written in the same
+  transaction that records the hold, with `idempotency_key = '<kind>:<order id>'` (UNIQUE) and state
+  `claimed`. A worker (in `declutter-money`, retried with backoff, give-up alert) creates the EasyPost
+  shipment, stores its id BEFORE buying, and on any resume reads that shipment back first and uses its
+  label if it has one; it re-quotes only when the provider confirms no label. The rate is compared with
+  `shipping_cents` BEFORE the buy; after the buy the real cost is always recorded (never refused), and a
+  cost above `shipping_cents` pages ops. A partial UNIQUE index allows at most one live (not voided)
+  label per order. S0 proves whether EasyPost refuses a second buy of one shipment.
+- **Test mode never buys real postage (review fix 8).** `stripeModeForParties` also picks the EasyPost
+  key: a test-mode order uses the EasyPost TEST key only; `shipments.mode` records which mode bought it,
+  and a CHECK ties a live label to a live order.
+- The shipping money sits in the platform's Stripe balance; labels are paid from the EasyPost wallet
+  (ACH). Reconciliation is PER ORDER: collected shipping = label + insurance + shipping refunded
+  +/- void refunds +/- adjustments, with owner-paid mailer labels (later phase) tagged separately.
+  EasyPost's dollar strings are parsed to cents exactly.
 
-### 5.3 Refund cases (never us)
-| Case | Buyer gets | Label | Card fee (Stripe keeps it) |
+### 5.3 Refund cases (never us; decision 5 and 6)
+Ship refund reasons join the refund CHECK with their own policy (review fix 3), and a
+`declutter_shipping_reserved_cents(order)` (like `declutter_delivery_reserved_cents`) splits the
+shipping part out of every refund. Every shipping-only refund counts in
+`declutter_order_refunds_recorded_cents` (review fix 17).
+| Reason | Buyer gets | Label | Card fee (Stripe keeps it) |
 |---|---|---|---|
-| Seller backs out / misses ship-by (row 60) | everything back | voided (refund to wallet in >= 15 days); if the void is rejected (label was scanned), the label cost is the seller's debt | seller's debt (row 60), seller strike |
-| Buyer cancels before shipping (only where today's rules let the buyer cancel) | everything back minus the label if its void is rejected | voided | today's rule for that cancel |
-| Lost in the mail (no delivery scan N days after the acceptance scan) | everything back, from the held money (seller not paid yet) | spent | owner question 5: recommended the seller, offset by the USPS claim payout, which goes to the seller |
-| Damaged / not as described / empty box, reported in the window | everything back after review | spent; a return label (seller pays, from debt) if the admin wants the item back | seller's debt (as in row 60) |
-| Buyer changes their mind after delivery | nothing (sales final, owner 10-20) | | |
-- Timing gap: the buyer's refund leaves Stripe at once, but a voided label's money returns to the wallet
-  15+ days later. That is a float, not a loss.
-- USPS postage adjustments (seller under-declared weight or size, or a hazmat noncompliance fee of $50)
-  arrive later from the provider. They become the seller's fee debt (existing debt rule).
-  **OPEN RISK R2:** a debt is only recovered from FUTURE payouts; a seller who never sells again leaves
-  it unpaid, which is the platform absorbing it. Mitigations for the money review: package presets
-  with conservative weights, the seller confirms weight and size, and a seller with an unpaid shipping
-  debt cannot ship again. The same gap exists today for card-fee debts.
-- Claims: a label we bought is filed by us (EasyPost lists a "USPS Claims Program" on its pricing page,
-  terms NOT read). The payout is passed to the seller. Whether USPS refunds the postage on a lost-parcel
-  claim: NOT verified.
+| Label could not be bought | hold cancelled, never charged | none | none (hold) |
+| `seller_backed_out` / `ship_never_shipped` (no acceptance scan by ship-by) | everything back now | voided; a rejected void = seller debt | seller debt, strike |
+| Buyer cancels (where today's rules allow) / admin buyer-fault | items + fee now; SHIPPING only when the void refund succeeds (review fix 5) | voided; rejected void = buyer keeps no shipping | today's rule for that cancel |
+| `ship_lost` (no delivery scan N = 10 days after the acceptance scan; N to confirm at S4) | everything back | spent = seller debt | seller debt; USPS/EasyPost claim payout pays that order's debt first, the rest to the seller (review fix 16) |
+| `ship_damaged` / not as described, reported in the 48 h window | everything back after admin check | spent = seller debt; a return label if the admin wants the item back = seller debt | seller debt |
+| Admin no-fault | everything back | spent = seller debt (decision 6: a lost/broken parcel is the seller's) | as today |
+| Buyer changes their mind after delivery | nothing (sales final) | | |
+| Chargeback "not received" (review fix 12) | per Stripe | tracking as evidence | a lost dispute comes back by transfer reversal, then seller debt |
+- Debts (review fix 4): `declutter_seller_fee_debts` today allows ONE debt per refund
+  (`refund_id NOT NULL UNIQUE`, 20261014224914:141; inserts `ON CONFLICT (refund_id) DO NOTHING`) and
+  cascades on seller delete. S6 changes the key to (`source_kind`, `source_ref`) UNIQUE, keeps the
+  existing refund debts as `source_kind='refund_card_fee'`, adds `ship_label`, `ship_adjustment`,
+  `ship_hazmat_fee`, `ship_void_rejected`; changes the seller FK so an open debt blocks deletion; tries a
+  transfer reversal of that order's own payout before booking a debt (`_shared/chargebackClawback.ts`
+  pattern; not verified for Declutter transfers); and a seller with an open shipping debt cannot ship
+  again. This is NOT in S1 (S1 books no debts), so the `ON CONFLICT (refund_id)` callers stay valid.
+- Postage adjustments and the $50 HAZMAT fee arrive later: `ship_adjustment` / `ship_hazmat_fee` debts.
+- A voided label's money returns to the wallet 15+ days later: a float, not a loss.
 
 ## 6. Seller flow
 - Listing: a "Ship it" option next to porch / pickup, only for size "small" (owner question 8). Package
@@ -239,16 +233,24 @@ rounding, so the rule "the fee always covers the card" holds for every shipped o
 - Return address on the label: the seller's pickup address (the paid buyer already sees it, row 98).
 
 ## 7. Buyer flow, handover state and payout
-- Checkout: "Ship to me", a Louisiana address (verified by the provider before the rate quote), the
-  service (Ground Advantage default, Priority option), the frozen rate shown as its own line. Constraint
-  `total = items + premium + tax + delivery + shipping`.
-- New handover `'ship'`: paid -> label_bought -> in_transit (first USPS scan) -> delivered -> final,
-  or problem. Driven by the provider's tracking webhook (EasyPost `tracker.updated`, signature checked).
-- "Delivered" starts the buyer window (owner question 4). "I got it" ends it early. No problem when it
-  lapses = FINAL and the seller is paid through the existing declutter_payouts path. Never paid on the
-  first scan.
-- Never shipped: no acceptance scan by the ship-by date -> auto-cancel, buyer refunded, label voided,
-  seller strike.
+- Checkout: "Ship to me", a Louisiana address (verified by EasyPost before the quote), Ground Advantage
+  default, Priority option, the frozen rate as its own line. `total = items + premium + tax + delivery +
+  shipping` (S1 constraint). The freeze trigger names `shipping_cents` (review fix 14).
+- New handover `'ship'`. It joins `declutter_orders_handover_check` ONLY in the same migration that
+  teaches every handover-generic path about it (review fix 1):
+  - the auto-pay sweep and the no-booking sweep (20261018183715 lines 236 and 262) use
+    `handover NOT IN ('delivery','ship')`;
+  - the booking trigger `declutter_bookings_not_delivery` refuses `'ship'` too, and `declutter_book_pickup`,
+    no-show, seller "Picked up", porch photo and confirm each state their ship behaviour (refuse);
+  - a separate ship sweep pays only when `shipments.tracking_status = 'delivered'`,
+    `delivered_at + 48 h <= now()` and no problem is open, locking the order and acting on
+    `status='paid'` only;
+  - a guard test lists every function that branches on `handover` and fails when a new value is not
+    handled.
+- "I got it" is shown only after the delivered scan (review fix 10). Return-to-sender,
+  available-for-pickup and failure scans go to a problem state; "delivered" must match the buyer's ZIP.
+- Payout on FINAL through the existing declutter_payouts path, never on the first scan.
+- One parcel per order: weight = sum of the items' preset weights + the box (review fix 15).
 
 ## 8. Items that cannot ship (USPS rules) and how listings block them
 Source: usps.com/ship/shipping-restrictions.htm (read 2026-10-20) and USPS PO-130-2021-2 (vapes).
@@ -270,50 +272,48 @@ Source: usps.com/ship/shipping-restrictions.htm (read 2026-10-20) and USPS PO-13
 
 ## 9. Shops reuse, switches and the build plan
 ### 9.1 Shops
-- Same provider, same order-level shipping columns, same label-at-payment, same tracking webhook. For a
-  held Shops order the label is bought at CAPTURE (the maker accepted), not at checkout; a declined or
-  expired hold buys nothing.
-- The MAKER ships (maker-ships). Helpr delivery stays O4's later slice.
-- Tax: the shipping line is taxable at the buyer's address (section 4), through Q2102's PaymentIntents
-  tax flow; the pickup performance_location stays for pickup orders only.
-- Cottage food (R.S. 40:4.9) never ships until the Louisiana Department of Health answers in writing
-  (local-shops-prep.md lines 119-121 say LDH's position is NOT verified).
-- Who pays a Shops refund's label: the same table as 5.3, the maker in place of the seller.
+- Same provider, same `shipments` table (`shop_order_id`), same claim-then-buy worker, same tracking.
+- Order of events (review fix 6): maker accepts -> claim + buy the label -> capture the hold. A failed
+  label releases the hold; a capture lost after the label = void it; a label dearer than the held
+  shipping = decline at no cost. Capture retries (up to 6 days, 20261018164442:888) never buy a second
+  label (the idempotency key is per order).
+- Ship orders are excluded from `shop_handover_sweep` (20261018211820 ~552) and the ready-photo clock,
+  and finish only on delivered + 48 h; a late cancel once a label exists follows the 5.3 table with the
+  maker as the seller (`shop_payouts_due` must not pay on it).
+- Tax: shipping is taxable at the buyer's address (section 4) through Q2102's PaymentIntents tax flow
+  with `txcd_92010001`. Known gap (review fix 9): with tax on the fee, an international card loses money
+  above about $447 at 10% tax; S8 blocks non-US cards on shipped Shops orders or files it separately.
+- The maker ships; cottage food never ships (decision 8).
 
-### 9.2 Feature switches
-- `declutter_shipping` and `shops_shipping` in `feature_switches`, audience `testers` (never everyone
-  without the owner's go). Every new RPC calls `require_feature`, every edge function `requireFeature`;
-  the UI hides "Ship it" and "Ship to me" when off. A webhook for an order whose switch is off still
-  processes (money already moved).
-- `mailer_requests` switch, testers first.
+### 9.2 Feature switch
+- ONE switch `shipping` (lead 2026-10-20), created `off` in S1. Every new RPC calls
+  `require_feature('shipping')`, every edge function `requireFeature`; the UI hides "Ship it" / "Ship to
+  me" when off. A webhook for an order already held still processes (money already moved). The owner
+  turns it to testers, never everyone without her go.
 
 ### 9.3 Phased build (each phase: PGlite 3x, edge tests, lh-money-escrow + lh-authz-rls review, testers)
-- **S0 (no code):** owner answers; money review of this spec; EasyPost account opened by the owner
-  (credentials = owner step), ACH funding, test API key; one live rate quote from each provider for the
-  same 2 lb Louisiana parcel to settle the rate comparison.
-- **S1 data model:** `declutter_orders.handover` adds `'ship'`; new columns `shipping_cents`,
-  `shipping_service`, `ship_rate_id`, `ship_to` (address, private: buyer + seller after payment only,
-  RLS), `parcel` (weight oz, dims); new table `shipments` (order, provider ids, label url, tracking
-  code, status, label_cost_cents, refund status, adjustments) written only by service-role functions;
-  `total` constraint gains `+ shipping`; fee function per owner question 2; `shipping_events` log.
-- **S2 checkout:** `ship-rates` edge function (address verify + rates, Louisiana only, small only,
-  cached per order draft); `declutter-checkout` adds the shipping line (`NONTAXABLE` for Declutter casual
-  sales; `txcd_92010001` for Shops); fee base change.
-- **S3 label purchase:** on payment, buy the frozen rate; idempotent on the order id (a retried webhook
-  never buys twice); failure path R1; label PDF in a private bucket; "Print label" UI.
-- **S4 tracking webhook:** `easypost-webhook` (HMAC signature, replay-safe), status machine, ship-by
-  sweep (cron) for never-shipped orders, lost-parcel sweep.
-- **S5 handover and payout:** delivered -> window -> final -> payout via declutter_payouts; "I got it";
-  "Report a problem" during the window.
-- **S6 refunds, disputes and lost parcels:** the 5.3 table; label void; adjustments -> seller debt;
-  admin claim filing screen.
-- **S7 mailer requests:** request form (eligibility below), `mailer_requests` table, admin queue
-  ("Mailer requests": approve, print label, mark sent), the owner-paid label, monthly cap.
-- **S8 Shops:** maker-ships on the same pieces, label at capture, tax at destination.
-- **S9 copy:** Terms (spec row 24, terms draft line 76), Help, the seller's "how to ship" page (free USPS
-  Priority boxes exist for Priority labels only).
+- **S0 (owner):** open the EasyPost account (credentials), ACH funding, confirm "no card top-up" in the
+  dashboard, test + live API keys into Supabase secrets; one live rate quote to settle what address
+  checks, quotes and trackers cost on unpaid carts (review fix 11), and whether a second buy of one
+  shipment is refused.
+- **S1 data model + fee (this branch):** switch `shipping` off; `declutter_orders.shipping_cents`
+  (default 0), total CHECK + freeze trigger include it; fee rule `f1_ship` =
+  `declutter_buyer_fee_cents_ship(items, shipping)` allowed only with shipping > 0, F1 only with
+  shipping = 0; table `shipments` (service-role only: claim key, mode, rate, label cost, tracking,
+  private ship-to and parcel); pure TS module `src/lib/shipping/policy.ts` (fee, Louisiana ZIP, small
+  only, label budget check, idempotency key, who pays per refund reason) with vitest. NO `'ship'`
+  handover yet and no EasyPost calls.
+- **S2 checkout:** `'ship'` handover + the sweep/booking exclusions (fix 1) in one migration; `ship-rates`
+  edge function (Louisiana, small, verify address, cache, rate-limit); manual-capture Checkout with the
+  shipping line; fee rule trigger picks `f1_ship` for `'ship'`.
+- **S3 label worker:** claim row in the hold transaction, buy-then-capture, resume-safe, mode-keyed.
+- **S4 tracking webhook:** `easypost-webhook` (HMAC, replay-safe), status machine, ship-by and lost sweeps.
+- **S5 handover and payout:** delivered -> 48 h -> final -> payout; "I got it" after delivered.
+- **S6 refunds, debts, claims, chargebacks:** the 5.3 table, the debt key change, transfer reversal.
+- **S7 Shops** (9.1). **S8 copy** (Terms row 24, terms draft line 76, Help, "how to ship").
+- **Later (paused by the owner):** the mailer program (section 10).
 
-## 10. Mailer program
+## 10. Mailer program (PAUSED by the owner 2026-10-20: a later phase)
 - Eligibility: ID-verified (`is_identity_verified`) + at least 1 completed sale + at least 1 live
   "Ship it" listing; 1 pack per seller per 30 days (max 4 a year); the monthly cap closes requests.
 - Cost, measured: 10 x 13 in poly mailers, Uline S-21880 (colored), 100 per case at $30 (1 case) to $26

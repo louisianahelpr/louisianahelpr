@@ -1,6 +1,7 @@
 /**
- * Board 4's "2 more from Marie. One pickup, one fee." row on a Declutter item.
- * True because checkout is per seller: declutter_start_checkout(p_seller_id)
+ * Board 4's "2 more from Marie" row on a Declutter item, worded "Check out
+ * together: one pickup, one fee." (money review design-b-1020 #3: a second
+ * checkout later is a second order and a second fee). True because checkout is per seller: declutter_start_checkout(p_seller_id)
  * puts every line in the buyer's cart from that seller into ONE order with ONE
  * handover and charges declutter_buyer_fee_cents(items total) once (5% of the
  * items + 70¢; measured live with pg_get_functiondef, 2026-10-20). Shown only
@@ -20,6 +21,8 @@ export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; vi
   });
   const card = useQuery({ queryKey: ["declutter", "seller-card", item.seller_id], queryFn: () => fetchSellerCard(item.seller_id) });
   const buyable = (more.data ?? []).filter((r) => r.status === "live" && r.seller_id !== viewerId);
+  // fetchSellerItems reads at most 12 (live + reserved): a full page may hide more, so say "12+".
+  const capped = (more.data?.length ?? 0) >= 12;
   if (buyable.length === 0 || card.isLoading) return null;
   const name = card.data?.name?.trim() ? formatName(card.data.name).split(" ")[0] : "this seller";
   return (
@@ -32,9 +35,9 @@ export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; vi
       <Layers className="h-5 w-5 shrink-0 text-primary" aria-hidden />
       <span className="min-w-0">
         <span className="font-semibold">
-          {buyable.length} more from {name}.
+          {buyable.length}{capped ? "+" : ""} more from {name}.
         </span>{" "}
-        One pickup, one fee.
+        Check out together: one pickup, one fee.
       </span>
     </button>
   );

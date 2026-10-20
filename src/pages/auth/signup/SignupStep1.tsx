@@ -9,6 +9,7 @@
 
 import { useRef, useState, type KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
+import { HelprMark } from "@/components/HelprMark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -164,9 +165,10 @@ export function SignupStep1({
           Guard: src/test/signupBoard55.test.ts. */}
       <div className="flex flex-col items-center text-center gap-1.5" data-testid="signup-card-head">
         {/* Board 37/55: no back arrow; the round H icon is the way home. */}
-        <Link to="/" aria-label="Helpr home" className="rounded-full mb-2 min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <img src="/apple-touch-icon.png" alt="" width={64} height={64} className="w-16 h-16 rounded-full ring-1 ring-border object-cover" />
-        </Link>
+        <div className="mb-2">
+          {/* The H mark used everywhere else (owner 2026-10-20: never in a circle). */}
+          <HelprMark to="/" size="lg" emblemOnly />
+        </div>
         <h1 className="text-page-title text-foreground">Create your account</h1>
         <p className="text-ds-14 text-muted-foreground">{subtitle ?? "One account to hire, help, buy and sell."}</p>
       </div>

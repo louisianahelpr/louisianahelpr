@@ -8,6 +8,7 @@
  * @mutate src/components/declutter/DeclutterManageListing.tsx |                   onCheckedChange={(on) => drops.mutate(!on)} |                   onCheckedChange={(on) => drops.mutate(on)}
  * @mutate src/components/declutter/DeclutterManageListing.tsx |       if (relist) await relistListing(item.id); |
  * @mutate src/components/declutter/DeclutterManageListing.tsx |         if (!problem) save.mutate(undefined); |         save.mutate(undefined);
+ * @mutate src/components/declutter/DeclutterManageListing.tsx |       : priceCents > item.price_cents | : false
  * @mutate src/components/declutter/DeclutterManageListing.tsx |                   <RowText title="Pause listing">Hide it without losing it. Open offers close.</RowText> |                   <RowText title="Pause listing">Hide it without losing it.</RowText>
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -107,6 +108,17 @@ describe("Manage a listing (board 158)", () => {
     fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "20" } });
     fireEvent.click(screen.getByRole("button", { name: "Save price" }));
     await waitFor(() => expect(calls).toContainEqual(["price", "i1", 2500, 2000]));
+  });
+});
+
+describe("Never above the listed price (authz/money review, 2026-10-20)", () => {
+  it("a price above the one it was listed at is refused before any call (no fake 'was' price)", async () => {
+    sheet();
+    fireEvent.click(await screen.findByText("Change price or lowest price"));
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "45" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save price" }));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/raise it back up to \$40/);
+    expect(calls).toEqual([]);
   });
 });
 

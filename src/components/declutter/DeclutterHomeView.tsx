@@ -33,7 +33,6 @@ import {
   photoPublicUrl,
   setWatch,
   withdrawItem,
-  type DeclutterItem,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, formatPrice, nearestFirst } from "@/lib/declutter/distance";
@@ -319,7 +318,9 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
     onSuccess: (_v, row) => navigate(haulAwayPostJobPath([row.item_id])),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  const [managing, setManaging] = useState<DeclutterItem | null>(null);
+  // An id, not a snapshot (money review 5): the sheet always shows the freshly read listing.
+  const [managingId, setManagingId] = useState<string | null>(null);
+  const managing = (mine.data ?? []).find((i) => i.id === managingId) ?? null;
   const takeDown = useMutation({
     mutationFn: (itemId: string) => withdrawItem(itemId),
     onSuccess: () => {
@@ -395,8 +396,8 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                 </Button>
               )}
               {(item.status === "live" || item.status === "paused") && (
-                <Button type="button" variant="outline" size="sm" onClick={() => setManaging(item)}>
-                  {item.status === "paused" ? "Relist" : "Manage"}
+                <Button type="button" variant="outline" size="sm" onClick={() => setManagingId(item.id)}>
+                  Manage
                 </Button>
               )}
               {(item.status === "draft" || item.status === "pending_review") && (
@@ -434,7 +435,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
           coverUrl={myCover.get(managing.id) ? photoPublicUrl(myCover.get(managing.id)!) : null}
           open
           onOpenChange={(o) => {
-            if (!o) setManaging(null);
+            if (!o) setManagingId(null);
           }}
         />
       )}

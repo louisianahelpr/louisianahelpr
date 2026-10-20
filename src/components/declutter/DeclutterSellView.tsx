@@ -353,8 +353,6 @@ export default function SellFlow() {
   }
 
   const input = "w-full h-[52px] rounded-[14px] border border-border bg-card px-4 text-ds-15 text-foreground focus:border-primary focus:outline-none placeholder:text-muted-foreground/70";
-  const chip = (on: boolean) =>
-    `flex min-h-10 items-center rounded-full px-4 text-ds-13 font-semibold ${on ? "btn-grad-primary text-primary-foreground" : "border border-border bg-card text-foreground"}`;
   const photoTotal = photoCount + held.length;
   const priceCents = dollarsToCents(form.price);
   const floorCents = dollarsToCents(form.floor);
@@ -424,9 +422,9 @@ export default function SellFlow() {
             {label("sell-title", "Title")}
             <input id="sell-title" className={input} maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Oak rocking chair" />
           </div>
-          <ChipGroup label="Category" options={Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ value: k, label: v }))} value={form.category} onChange={(v) => set("category", v)} chip={chip} />
-          <ChipGroup label="Condition" options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} chip={chip} />
-          <ChipGroup label="Size" options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value={form.deliverySize} onChange={(v) => set("deliverySize", v as DeliverySize)} chip={chip} />
+          <ChipGroup label="Category" options={Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ value: k, label: v }))} value={form.category} onChange={(v) => set("category", v)} />
+          <ChipGroup label="Condition" options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />
+          <ChipGroup label="Size" options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value={form.deliverySize} onChange={(v) => set("deliverySize", v as DeliverySize)} />
           <div className="space-y-2">
             {label("sell-desc", "Anything else?", "(optional)")}
             <textarea id="sell-desc" className={`${input} h-auto py-3`} rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="e.g. Works great. Small scuff on the base." />
@@ -596,13 +594,15 @@ function StepHead({ title, sub }: { title: string; sub: string }) {
   );
 }
 
-function ChipGroup({ label, options, value, onChange, chip }: { label: string; options: { value: string; label: string }[]; value: string; onChange: (v: string) => void; chip: (on: boolean) => string }) {
+function ChipGroup({ label, options, value, onChange }: { label: string; options: { value: string; label: string }[]; value: string; onChange: (v: string) => void }) {
   return (
     <div className="space-y-2" role="radiogroup" aria-label={label}>
       <p className="text-ds-14 font-semibold text-foreground">{label}</p>
       <div className="flex flex-wrap gap-2">
         {options.map((o) => (
-          <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)} className={chip(value === o.value)}>
+          <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)}
+            // The selected look inline, with its declared ink, so the gradInkContrast resolver can rebuild it.
+            className={`flex min-h-10 items-center rounded-full px-4 text-ds-13 font-semibold ${value === o.value ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>
             {o.label}
           </button>
         ))}

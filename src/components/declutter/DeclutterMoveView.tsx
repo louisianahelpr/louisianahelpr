@@ -330,7 +330,7 @@ export default function MoveFlow() {
                     <label className="sr-only" htmlFor={`title-${r.key}`}>Name</label>
                     <input id={`title-${r.key}`} className={input} maxLength={80} value={r.title} disabled={!r.keep} onChange={(e) => setRow(r.key, { title: e.target.value })} />
                     <p className="text-xs text-muted-foreground">
-                      {CATEGORY_LABEL[r.category] ?? "Other"} · {SIZE_LABEL[r.deliverySize]} · {r.conditionStars} stars: {CONDITION_LABEL[r.conditionStars]}
+                      {CATEGORY_LABEL[r.category] ?? "Other"} · {SIZE_LABEL[r.deliverySize]} · {CONDITION_LABEL[r.conditionStars]}
                     </p>
                     {r.flagged && (
                       <p className="text-xs text-amber-800 dark:text-amber-200">This item may not be allowed. Check our list of items you can't sell; its own photos get a closer check when you list it.</p>

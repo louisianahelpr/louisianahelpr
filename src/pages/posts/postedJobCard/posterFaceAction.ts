@@ -74,7 +74,8 @@ export function posterFaceAction(
     case "stalled":
       // No poster "it's done" path exists: a stalled job is released or refunded
       // only by a person (STALLED_APPROVE_DISABLED_REASON). Talking to them is.
-      return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "primary" };
+      // Secondary (lead 2026-10-20): filled olive is kept for money and real next steps.
+      return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "secondary" };
     case "cancelled":
       return { label: "Post again", onClick: h.postAgain, tone: "secondary" };
     default:

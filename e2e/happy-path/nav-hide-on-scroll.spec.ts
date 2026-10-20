@@ -455,8 +455,8 @@ test("switching Jobs > Browse to map view cannot strand the dock off-screen", as
   // is unchanged; only the route to the control moved.
   await page.getByRole("button", { name: /^Filters/ }).first().click();
   await page
-    .getByRole("group", { name: "Feed view" })
-    .getByRole("button", { name: "Map", exact: true })
+    .getByRole("radiogroup", { name: "Feed view" })
+    .getByRole("radio", { name: "Map", exact: true })
     .click();
   await page.waitForTimeout(1_200);
 

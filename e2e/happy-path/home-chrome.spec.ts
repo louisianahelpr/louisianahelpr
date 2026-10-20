@@ -231,10 +231,10 @@ test("the moved controls live in the filter sheet", async ({ context, page, base
 
   // View choice — a labelled List / Map pair, not a filter chip, and Map is
   // still a real destination: picking it closes the sheet and swaps the feed.
-  await expect(sheet.getByRole("button", { name: "List" })).toBeVisible();
-  const mapChoice = sheet.getByRole("button", { name: "Map" });
+  await expect(sheet.getByRole("radio", { name: "List" })).toBeVisible();
+  const mapChoice = sheet.getByRole("radio", { name: "Map" });
   await expect(mapChoice).toBeVisible();
-  await expect(mapChoice).toHaveAttribute("aria-pressed", "false");
+  await expect(mapChoice).toHaveAttribute("aria-checked", "false");
 
   // Saved searches — a labelled row that opens the same dialog the bookmark
   // icon used to.
@@ -255,13 +255,13 @@ test("the moved controls live in the filter sheet", async ({ context, page, base
 
   // And back for the view switch — the map really renders.
   await page.getByRole("button", { name: /^Filters/ }).first().click();
-  await page.getByRole("dialog").getByRole("button", { name: "Map" }).click();
+  await page.getByRole("dialog").getByRole("radio", { name: "Map" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await settleAnimations(page);
   await page.getByRole("button", { name: /^Filters/ }).first().click();
   await expect(
-    page.getByRole("dialog").getByRole("button", { name: "Map" }),
-  ).toHaveAttribute("aria-pressed", "true");
+    page.getByRole("dialog").getByRole("radio", { name: "Map" }),
+  ).toHaveAttribute("aria-checked", "true");
 });
 
 for (const width of [320, 375, 1440]) {
@@ -323,7 +323,7 @@ for (const width of [320, 375, 1440]) {
     // carries (asserted above). If the inline row reappears here, someone
     // has re-added it instead of using the sheet.
     await expect(
-      page.getByRole("group", { name: "Feed view" }),
+      page.getByRole("radiogroup", { name: "Feed view" }),
       `guest List/Map toggle was removed on purpose @ ${width}`,
     ).toHaveCount(0);
 
@@ -347,4 +347,5 @@ for (const width of [320, 375, 1440]) {
 // NOT the desktop toolbar's map button (Dashboard.tsx `aria-pressed={mapVisible}`):
 // that is a different control on a surface this spec never opens, and mutating
 // it came back SURVIVED — correctly, since nothing here measures it.
-// @mutate src/components/dashboard/browseTasksToolbar/BrowseViewToggle.tsx | const active = view === value; | const active = false;
+// (Board 24, 2026-10-20: the View is the shared SegmentedControl, so the selected state is `aria-checked`.)
+// @mutate src/components/dashboard/browseTasksToolbar/BrowseViewToggle.tsx |       value={view} |       value={"list"}

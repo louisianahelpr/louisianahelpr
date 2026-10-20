@@ -230,17 +230,16 @@ describe("Popups share one shell", () => {
   });
 
   // Q237 (owner, 2026-09-26: "make the filter sheet title match the other
-  // sheets"): SheetHero and FilterSheet's Popover band read ONE title look.
-  // @mutate src/components/dashboard/FilterSheet.tsx | <h2 id={titleId} className={SHEET_HERO_TITLE_CLASS} style={SHEET_HERO_TITLE_STYLE}> | <h2 id={titleId} className="font-sans text-ds-17 font-bold text-foreground">
+  // sheets"). Since board 24 (2026-10-20) FilterSheet is a Sheet on every width
+  // and its title IS SheetHero's, so there is one title look and no second copy.
+  // @mutate src/components/dashboard/FilterSheet.tsx | <SheetHero title={title} /> | <h2 className="font-sans text-ds-17 font-bold text-foreground">{title}</h2>
   // @mutate src/components/ui/sheet.tsx | className={SHEET_HERO_TITLE_CLASS} | className="font-display font-bold leading-tight"
-  it("every sheet title, SheetHero and the filter band alike, wears the shared sheet-title look", () => {
+  it("every sheet title, SheetHero and the filter sheet alike, wears the shared sheet-title look", () => {
     const sheet = blankComments(read("src/components/ui/sheet.tsx"));
     expect(sheet).toMatch(/<SheetTitle[^>]*className=\{SHEET_HERO_TITLE_CLASS\}[^>]*style=\{SHEET_HERO_TITLE_STYLE\}/s);
     const filter = blankComments(read("src/components/dashboard/FilterSheet.tsx"));
-    const heads = filter.match(/<h2 id=\{titleId\}[^>]*>/g) ?? [];
-    expect(heads.length, "FilterSheet's band title was not found — the check has rotted").toBe(1);
-    expect(heads[0]).toContain("className={SHEET_HERO_TITLE_CLASS}");
-    expect(heads[0]).toContain("style={SHEET_HERO_TITLE_STYLE}");
+    expect(filter, "FilterSheet's title is not SheetHero's").toMatch(/<SheetHero title=\{title\} \/>/);
+    expect(filter, "FilterSheet rolled its own heading").not.toMatch(/<h[1-6]\b/);
   });
 
   it("the modal overlay still declares an explicit backdrop tint", () => {

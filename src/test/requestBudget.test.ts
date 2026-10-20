@@ -34,8 +34,8 @@
  * @mutate e2e/memory/retention.ts |   await gateClientNav(page, path); |
  * @mutate scripts/e2e/request-budget.mjs | if (burst > max) failures.push( | if (false) failures.push(
  * @mutate e2e/request-budgets.json | "/posts": 200 | "/posts-off": 200
- * @mutate scripts/audit/measure-loading-states.mjs |         requestMeter.tests = results.length; |         void results.length;
- * @mutate scripts/audit/measure-loading-states.mjs |     requestMeter.tests = results.length; |     void results.length;
+ * @mutate scripts/audit/measure-loading-states.mjs | requestMeter.tests = results.length; // after each surface | void 0; // after each surface
+ * @mutate scripts/audit/measure-loading-states.mjs | requestMeter.tests = results.length; // final, before the flush | void 0; // final
  * @mutate e2e/request-budgets.json | "perTest": 15.2, | "perTest": 2116,
  */
 import { describe, it, expect } from "vitest";
@@ -465,5 +465,19 @@ describe("#1754: an in-app navigation passes a pacing gate too", () => {
     expect(pushers.length, "the walk found the known client-nav helpers").toBeGreaterThanOrEqual(2);
     const ungated = pushers.filter((rel) => !/\bgateClientNav\(/.test(blankComments(read(rel))));
     expect(ungated, "these navigate in-app with no pacing gate (import gateClientNav from e2e/requestMeter.mjs)").toEqual([]);
+  });
+});
+
+describe("the loading-states request budget is per surface (nightly-red #2601)", () => {
+  it("the meter's tests count is the surfaces measured, set per surface and again before the flush", () => {
+    const src = blankComments(read("scripts/audit/measure-loading-states.mjs"));
+    expect(src.match(/requestMeter\.tests = results\.length;/g)?.length).toBe(2);
+  });
+
+  it("the budget is a per-surface rate, so the catalog growing cannot read as a request regression", () => {
+    const b = JSON.parse(read("e2e/request-budgets.json")).budgets["loading-states"];
+    // 2116 over the 139 surfaces of 2026-10-07 = 15.2. A whole-run total (> 100) scales with the catalog.
+    expect(b.perTest).toBeGreaterThan(5);
+    expect(b.perTest).toBeLessThan(100);
   });
 });

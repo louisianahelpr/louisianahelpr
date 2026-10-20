@@ -172,7 +172,8 @@ const BEFORE_ACTIONS = {
     { role: "link", name: "View" },
     { role: "button", name: "Finish listing" },
     { role: "button", name: "Delete" },
-    { role: "button", name: "Take down" },
+    // Board 158: a live listing's "Take down" lives in its Manage sheet (Delete listing / Mark sold elsewhere).
+    { role: "button", name: "Manage" },
     { role: "link", name: /Moving out sale/ },
     { role: "button", name: "Cancel sale" },
   ],

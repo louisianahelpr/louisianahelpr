@@ -381,22 +381,22 @@ export async function setListingPrice(itemId: string, priceCents: number, floorC
   return rpcData(
     await supabase.rpc("declutter_set_listing_price", { p_item_id: itemId, p_price_cents: priceCents, p_floor_price_cents: floorCents }),
     (e) => rpcErrorMessage("declutter_set_listing_price", e),
-  );
+  ) as number;
 }
 
 /** Board 158: stop (false) or restart (true) the nightly price drops. */
 export async function setListingDrops(itemId: string, on: boolean): Promise<boolean> {
-  return rpcData(await supabase.rpc("declutter_set_listing_drops", { p_item_id: itemId, p_on: on }), (e) => rpcErrorMessage("declutter_set_listing_drops", e));
+  return rpcData(await supabase.rpc("declutter_set_listing_drops", { p_item_id: itemId, p_on: on }), (e) => rpcErrorMessage("declutter_set_listing_drops", e)) as boolean;
 }
 
 /** Board 158: hide a live listing from buyers (photos and saves kept; open offers close). */
 export async function pauseListing(itemId: string): Promise<string> {
-  return rpcData(await supabase.rpc("declutter_pause_listing", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_pause_listing", e));
+  return rpcData(await supabase.rpc("declutter_pause_listing", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_pause_listing", e)) as string;
 }
 
 /** Board 158: put a paused listing back on sale. */
 export async function relistListing(itemId: string): Promise<string> {
-  return rpcData(await supabase.rpc("declutter_relist_listing", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_relist_listing", e));
+  return rpcData(await supabase.rpc("declutter_relist_listing", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_relist_listing", e)) as string;
 }
 
 export async function attestItem(itemId: string): Promise<void> {

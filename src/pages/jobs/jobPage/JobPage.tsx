@@ -120,7 +120,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     >
       <div data-job-page="" className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-x-8 lg:gap-y-6">
         <div className="lg:col-start-1 lg:row-start-1">
-          <DeclutterGallery urls={job.photos ?? []} category={job.category} title={job.title} icon={getCategoryIcon(job.category)} shape="banner" />
+          <DeclutterGallery urls={job.photos ?? []} category={job.category} title={job.title} icon={job.category === "other" ? Briefcase : getCategoryIcon(job.category)} shape="banner" />
         </div>
 
         <section
@@ -129,7 +129,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         >
           <div className="space-y-1">
             <p className="text-ds-13 font-semibold text-primary">{group ? `${group} · ${category}` : category}</p>
-            <h2 className="text-ds-24 font-bold leading-tight [overflow-wrap:anywhere]">{job.title}</h2>
+            {/* Desktop prints the title once, in the page header (lead review 2026-10-20). */}
+            <h2 className="text-ds-24 font-bold leading-tight [overflow-wrap:anywhere] lg:hidden">{job.title}</h2>
             {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}
           </div>
           <JobTracker status={job.status} side={isPoster ? "poster" : isHired ? "helpr" : null} />

@@ -8,7 +8,8 @@ import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { computeNet } from "@/components/dashboard/JobPrice";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { flatFeePercentOf, helprPaysNoFee, isFlatFeeJob } from "@/lib/helprFlatFee";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { DeclutterSellerCard } from "@/components/declutter/DeclutterSellerCard";
 import type { JobPageRow } from "./useJobPage";
 
@@ -96,34 +97,32 @@ export function PosterMoney({ job, total, loading }: { job: JobPageRow; total: n
 
 export function HelprMoney({ job }: { job: JobPageRow }) {
   const owed = useFirstPayoutFeeDollars();
+  const { profile } = useCurrentUser();
   const helpers = job.helpers_needed && job.helpers_needed > 0 ? job.helpers_needed : 1;
   const flat = isFlatFeeJob(job);
   const keepsAll = helprPaysNoFee(job);
-  // The take-home is shown only where the job carries its fee stamp: an
-  // unstamped (older) job is priced by the viewer's own tier at payout, which
-  // this page does not know, so it shows the job price instead.
-  const net = flat ? computeNet(job.budget, TIER_PERKS.free.platformFeePercent, job.urgent_fee ?? 0, helpers, job.status === "disputed" ? 0 : owed, job).netEarnings : null;
+  // A fee-stamped job pays by its stamp (5% + 70c); an older unstamped job is
+  // charged the viewer's own tier rate at payout, the same rate the feed's
+  // "You earn" figure uses (useDashboardData: tierFeePercent of the profile).
+  const tierPct = tierFeePercent(profile?.subscription_tier, profile?.subscription_expires_at);
+  const net = computeNet(job.budget, tierPct, job.urgent_fee ?? 0, helpers, job.status === "disputed" ? 0 : owed, job).netEarnings;
   const pct = flatFeePercentOf(job);
   const flatCents = Number(job.helper_fee_flat_cents ?? 0);
   const feeLine = !flat
-    ? null
+    ? `Helpr's fee (${tierPct}%) comes out of your payout.`
     : keepsAll
       ? "You keep the whole price."
       : `Helpr's fee (${pct}% + ${flatCents}¢) comes out of your payout.`;
   return (
     <div data-helpr-money="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-ds-15 font-semibold">{net !== null ? "You take home" : helpers > 1 ? "Job price, split" : "Job price"}</p>
-        <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>
-          ${net !== null ? formatPriceFloor(net) : formatPrice(job.budget / helpers)}
-        </p>
+        <p className="text-ds-15 font-semibold">You take home</p>
+        <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPriceFloor(net)}</p>
       </div>
-      {(net !== null || helpers > 1) && (
-        <p className="mt-1.5 text-ds-13 text-muted-foreground">
-          {[`$${formatPrice(job.budget)} job${helpers > 1 ? ` for ${helpers} Helprs` : ""}`, feeLine].filter(Boolean).join(" · ")}
-          {net !== null && owed > 0 && job.status !== "disputed" ? ` After the one-time $${formatPrice(owed)} setup fee, taken from your first payout.` : ""}
-        </p>
-      )}
+      <p className="mt-1.5 text-ds-13 text-muted-foreground">
+        {[`$${formatPrice(job.budget)} job${helpers > 1 ? ` for ${helpers} Helprs` : ""}`, feeLine].join(" · ")}
+        {owed > 0 && job.status !== "disputed" ? ` After the one-time $${formatPrice(owed)} setup fee, taken from your first payout.` : ""}
+      </p>
     </div>
   );
 }

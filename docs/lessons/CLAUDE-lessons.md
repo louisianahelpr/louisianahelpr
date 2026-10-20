@@ -79,23 +79,24 @@ on the desktop website. This is a hard requirement, not a nicety — a page that
 floats in a lopsided column with blank bands has failed the audit.
 
 <a id="rail-inset"></a>
-## Desktop rail inset: right edge, one layer
+## Desktop rail inset: left edge, one layer
 
-- **The desktop rail is on the RIGHT, and its inset is applied in exactly ONE
-  layer.** This entry said LEFT until 2026-09-02, and named two rules that do
-  not exist: `.app-shell-frame { left: … }` and `#root { padding-left: … }`.
-  Grep the stylesheet — the only two rail insets in the entire file are
-  `right: var(--desktop-sidebar-w)` on `.app-shell-frame` (`src/index.css:1326` [re-pointed 2026-09-12; was :987])
-  and `padding-right: var(--desktop-sidebar-w)` on `#root`
-  (`src/index.css:1570` [re-pointed 2026-09-12; was :1188]). There is no `left:` or `padding-left:` rail inset
+- **The desktop rail is on the LEFT (since 2026-10-20; owner decision
+  2026-10-19, board 11: left and always open), and its inset is applied in
+  exactly ONE layer.** It has changed edge twice: this entry said LEFT until
+  2026-09-02 while the stylesheet had moved it RIGHT, then said RIGHT until the
+  rail moved back on 2026-10-20. Grep the stylesheet — the only two rail insets
+  are `left: var(--desktop-sidebar-w)` on `.app-shell-frame` (`src/index.css:1435`)
+  and `padding-left: var(--desktop-sidebar-w)` on `#root`
+  (`src/index.css:1715`). There is no right-edge rail inset
   anywhere. `--desktop-sidebar-w` is 248px. Both rules are additionally gated on
   `.side-panel-open`, so the inset exists only while the panel is open — a
   closed panel is not a narrower rail, it is no rail.
 
   Two things to know before trusting this paragraph OR the code around it.
-  `index.css`'s comment above the `#root` rule USED to say "pinned at the
-  viewport's left edge" while the declaration pads RIGHT; it is corrected now
-  (`src/index.css:1562` [re-pointed 2026-09-12; was :1193]), but the lesson stands: the declaration is
+  `index.css`'s comment above the `#root` rule once said "pinned at the
+  viewport's left edge" while the declaration padded RIGHT; it is corrected now
+  (`src/index.css:1706`, re-pointed 2026-10-20), but the lesson stands: the declaration is
   authoritative, never the prose beside it. And `.desktop-rail`
   is not present for a guest at all — measured at 1440 on `/`, `/legal` and
   `/browse`, `<html>` carries only `web-desktop side-panel-open`, so none of

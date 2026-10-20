@@ -9,7 +9,8 @@ import { fetchShopOrders, formatCents, type ShopOrder } from "@/lib/shops/orders
 import { queryKeys } from "@/lib/queryKeys";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { useFeature } from "@/hooks/useFeature";
-import { posterStatusLine, helperStatusLine } from "@/components/job-card/jobStatusLine";
+import { posterStatusLine, helperStatusLine, type JobStatusLine } from "@/components/job-card/jobStatusLine";
+import { jobStartTarget } from "@/components/job-card/CountdownRows";
 
 export interface TodoItem {
   id: string;
@@ -40,6 +41,46 @@ function withBackout<J extends { id: string; status?: string | null }>(j: J, bac
   return open && backoutNoticeApplies(open.backout_kind, j.status) ? { ...j, backout_notice: open } : j;
 }
 
+const HOUR = 3_600_000;
+
+/** Spec v2 §5.2 tier 2: someone is waiting on the member (applicants, an offer, an order, a finished job). */
+const POSTER_SOMEONE_WAITING = new Set(["applicants", "approve", "revision_fixed", "confirm_arrival"]);
+const HELPER_SOMEONE_WAITING = new Set(["offer", "confirm_booking", "confirm_spot", "revision"]);
+
+/**
+ * When a to-do's clock runs out, if it has one STILL AHEAD: the status line's
+ * own countdown (the one the card shows), else the job's start when that is
+ * still to come. A passed clock is not a deadline any more (the card says
+ * "expired" or the job is overdue), so it does not jump the queue.
+ */
+function dueAt(line: JobStatusLine, job: Pick<Job, "date_needed" | "start_time">, now: number): number | null {
+  const clock = line.deadline?.at ? Date.parse(line.deadline.at) : NaN;
+  if (Number.isFinite(clock) && clock >= now) return clock;
+  const start = jobStartTarget(job.date_needed, job.start_time)?.getTime() ?? NaN;
+  return Number.isFinite(start) && start >= now ? start : null;
+}
+
+/** A job's date for tier 4 ("everything else, by date"); undated last. */
+const jobDateMs = (job: Pick<Job, "date_needed" | "start_time">) => jobStartTarget(job.date_needed, job.start_time)?.getTime() ?? Infinity;
+
+/**
+ * NEXT UP RANKING (spec v2 §5.2): (1) a deadline in under 24 hours, soonest
+ * first; (2) someone waiting on the member; (3) money waiting on the member;
+ * (4) everything else, by date. Ties keep the list's order. Every to-do's tier
+ * comes from the SAME status line its card shows, so Home never ranks a step
+ * the card does not name.
+ *
+ * Tier 3 has no source among today's to-dos: its examples are Homes rent and
+ * Shops pay-to-confirm, neither of which makes a to-do yet, and a Jobs
+ * payment that failed is a never-paid job, which is never a to-do
+ * (jobIsUnfundedDraft). The tier number is kept so a new source slots in.
+ */
+function rank(due: number | null, waiting: boolean, date: number, now: number): [number, number] {
+  if (due !== null && due - now < 24 * HOUR) return [1, due];
+  if (waiting) return [2, due ?? date];
+  return [4, due ?? date];
+}
+
 /**
  * THE TO-DO LIST, ONE ENTRY PER JOB OR ORDER THAT NEEDS YOU (owner, 2026-10-20:
  * badge = To-do). Home's Next up / To do, the Explore badge and the sidebar
@@ -48,7 +89,7 @@ function withBackout<J extends { id: string; status?: string | null }>(j: J, bac
  * out exactly as My Posts leaves them out (jobIsUnfundedDraft, Q1734): a count
  * must point at something the member can open.
  */
-export function deriveNeedsYouTodos(i: NeedsYouInputs): TodoItem[] {
+export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now()): TodoItem[] {
   const posted = i.postedJobs.filter((j) => !jobIsUnfundedDraft(j)).map((j) => withBackout(j, i.backout));
   const applied = i.appliedApps.map((a) => (a.job ? { ...a, job: withBackout(a.job, i.backout) } : a));
   const postedNeeds = posted.filter((j) => postedActivityBucket(j, i.pendingApplicantCounts[j.id] ?? 0) === "needs_you");
@@ -58,40 +99,63 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs): TodoItem[] {
     .filter((o) => o.status === "held")
     .slice()
     .sort((x, y) => new Date(x.accept_by ?? 0).getTime() - new Date(y.accept_by ?? 0).getTime());
-  // Every side of every section in one list (never role-based): orders to answer first (they expire),
-  // then jobs I posted, then jobs I'm working.
-  return [
-    ...shopWaiting.map((o) => ({
-      id: `s-${o.id}`,
-      section: "shops" as const,
-      title: `Answer an order for ${o.shop_order_lines?.[0]?.title ?? "your shop"}`,
-      meta: "Your shop · waiting for your answer",
-      to: "/shops/dashboard",
-      action: "Answer order",
-      money: formatCents(o.total_cents),
-    })),
-    // The task is the job card's own status sentence (jobStatusLine), so Home and the
-    // card never name a different step of one job (boards 7, 83, 165).
-    ...postedNeeds.map((j) => {
-      const n = i.pendingApplicantCounts[j.id] ?? 0;
-      return {
+  // Every side of every section in one list (never role-based), ranked by spec v2 §5.2 (rank above).
+  // An order to answer lapses at accept_by (24 hours), so a live one is always tier 1.
+  const ranked: { item: TodoItem; tier: number; at: number }[] = [];
+  for (const o of shopWaiting) {
+    const due = o.accept_by ? Date.parse(o.accept_by) : NaN;
+    const [tier, at] = rank(Number.isFinite(due) && due >= now ? due : null, true, Infinity, now);
+    ranked.push({
+      tier,
+      at,
+      item: {
+        id: `s-${o.id}`,
+        section: "shops",
+        title: `Answer an order for ${o.shop_order_lines?.[0]?.title ?? "your shop"}`,
+        meta: "Your shop · waiting for your answer",
+        to: "/shops/dashboard",
+        action: "Answer order",
+        money: formatCents(o.total_cents),
+      },
+    });
+  }
+  // The task is the job card's own status sentence (jobStatusLine), so Home and the
+  // card never name a different step of one job (boards 7, 83, 165).
+  for (const j of postedNeeds) {
+    const n = i.pendingApplicantCounts[j.id] ?? 0;
+    const line = posterStatusLine(j, n, new Date(now));
+    const [tier, at] = rank(dueAt(line, j, now), n > 0 || POSTER_SOMEONE_WAITING.has(line.id), jobDateMs(j), now);
+    ranked.push({
+      tier,
+      at,
+      item: {
         id: `p-${j.id}`,
-        section: "jobs" as const,
-        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : posterStatusLine(j, n).detail,
+        section: "jobs",
+        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : line.detail,
         meta: `${j.helper_id ? "You hired" : "You posted"} · ${j.title}`,
         to: `/jobs?tab=posted&filter=needs_you`,
         action: n > 0 ? "See applicants" : "Open job",
-      };
-    }),
-    ...appliedNeeds.map((a) => ({
-      id: `a-${a.id}`,
-      section: "jobs" as const,
-      title: helperStatusLine(a).detail,
-      meta: `${a.job!.helper_id ? "You're working" : "You applied"} · ${a.job!.title}`,
-      to: `/jobs?tab=working&filter=needs_you`,
-      action: "Open job",
-    })),
-  ];
+      },
+    });
+  }
+  for (const a of appliedNeeds) {
+    const line = helperStatusLine(a);
+    const [tier, at] = rank(dueAt(line, a.job!, now), HELPER_SOMEONE_WAITING.has(line.id), jobDateMs(a.job!), now);
+    ranked.push({
+      tier,
+      at,
+      item: {
+        id: `a-${a.id}`,
+        section: "jobs",
+        title: line.detail,
+        meta: `${a.job!.helper_id ? "You're working" : "You applied"} · ${a.job!.title}`,
+        to: `/jobs?tab=working&filter=needs_you`,
+        action: "Open job",
+      },
+    });
+  }
+  // Array.prototype.sort is stable: equal ranks keep the order above.
+  return ranked.sort((x, y) => x.tier - y.tier || x.at - y.at).map((r) => r.item);
 }
 
 /** Realtime wake-ups are coalesced over this window (one job update can fire two topics). */

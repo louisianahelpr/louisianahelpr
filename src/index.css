@@ -585,7 +585,7 @@
   --ivory-sand:   0 0% 100%;    /* surface (cards) — pure crisp white. Sits brighter
                                     than the cool-grey canvas so it reads as a clean,
                                     elevated paper tile. */
-  --sand:         220 14% 90%;  /* cool light grey — soft border / quiet surface (was warm tan #D6C7AD) */
+  --sand:         40 19% 87.8%; /* warm quiet surface / line #E6E2DA (spec v2 §2 --line; was cool 220 14% 90%, same weight on the ground) */
   --olive:        78 23% 70%;   /* #B7C3A1 — secondary green */
   --sage:         78 9% 53%;    /* #8C947D — primary accent */
   --bark:         70 20% 33%;   /* #5E6544 — deep olive */

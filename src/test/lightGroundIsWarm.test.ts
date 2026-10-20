@@ -10,6 +10,8 @@
  * @mutate src/index.css |   --page-gradient: linear-gradient(135deg, #F7F5F1 0%, #F0EDE7 100%); |   --page-gradient: linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
  * @mutate index.html | <meta name="theme-color" content="#F4F2EE" /> | <meta name="theme-color" content="#F1F2F4" />
  * @mutate capacitor.config.ts |       backgroundColor: '#F4F2EE',\n |       backgroundColor: '#F1F2F4',\n
+ * @mutate src/index.css |   --sand:         40 19% 87.8%; |   --sand:         220 14% 90%;
+ * @mutate src/index.css |   --sand:         40 8% 21%; |   --sand:         220 8% 21%;
  * @mutate ios/App/App/AppDelegate.swift | UIColor(red: 0.9569, green: 0.9490, blue: 0.9333, alpha: 1) | UIColor(red: 0.9451, green: 0.9490, blue: 0.9569, alpha: 1)
  */
 import { describe, it, expect } from "vitest";
@@ -39,6 +41,20 @@ describe("the light ground is warm #F4F2EE everywhere the canvas is painted", ()
     expect(hslHex(+h, +s, +l)).toBe("#F4F2EE");
     const grads = [...css.matchAll(/--page-gradient:\s*(linear-gradient\([^;]*\));/g)].map((m) => m[1]);
     expect(grads[0]).toBe("linear-gradient(135deg, #F7F5F1 0%, #F0EDE7 100%)");
+  });
+
+  it("--sand (light), and --muted / --secondary through it, is the warm line #E6E2DA (2026-10-20)", () => {
+    // --muted and --secondary are var(--sand) in BOTH themes; a cool hue-220
+    // grey here was every bg-muted / bg-secondary fill in light mode. The
+    // dark --sand was already warm (#3A3731, spec --subtle/--line).
+    const sand = [...css.matchAll(/--sand:\s*([\d.]+) ([\d.]+)% ([\d.]+)%;/g)];
+    expect(sand.length).toBeGreaterThan(1);
+    const [, h, s, l] = sand[0];
+    expect(hslHex(+h, +s, +l)).toBe("#E6E2DA");
+    const [, dh, ds, dl] = sand[1];
+    expect(hslHex(+dh, +ds, +dl)).toBe("#3A3731");
+    expect(css.match(/--muted:\s*var\(--sand\);/g)?.length).toBe(2);
+    expect(css.match(/--secondary:\s*var\(--sand\);/g)?.length).toBe(2);
   });
 
   it("the boot shell, theme-color, splash, StatusBar and iOS covers paint the same warm ground", () => {

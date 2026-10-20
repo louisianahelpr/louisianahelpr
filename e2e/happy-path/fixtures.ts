@@ -797,7 +797,7 @@ export async function seedAuthedSession(context: BrowserContext, user: FakeUser,
   });
   // …and the first-run OnboardingTour, for the same reason.
   //
-  // OnboardingTour (src/components/OnboardingTour.tsx) opens on a
+  // FirstRun (src/components/firstRun/FirstRun.tsx, which replaced OnboardingTour 2026-10-20) opens on a
   // `setTimeout(…, 1500)` on /home for any account that has not completed
   // it — which every freshly-seeded test session is. It is a MODAL Radix
   // dialog: it holds focus, blurs the page behind it, and eats the first tap

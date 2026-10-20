@@ -11,7 +11,6 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { isProfileComplete } from "@/components/ProtectedRoute";
 import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
@@ -32,7 +31,6 @@ const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialo
 const ApplyBody = lazy(() => import("@/components/dashboard/applyConfirmDialog/ApplyBody").then(m => ({ default: m.ApplyBody })));
 const ApplyConfirmDialog = lazy(() => import("@/components/dashboard/ApplyConfirmDialog").then(m => ({ default: m.ApplyConfirmDialog })));
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
-const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 // Map column for the web-desktop two-pane (the map surface pulls Apple's
 // MapKit JS from the CDN — lazy so the phone/native feed never pays for it).
@@ -192,23 +190,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
   useBoostReturn({ userId: user?.id, searchParams, setSearchParams, navigate });
 
   const [reportJobId, setReportJobId] = useState<string | null>(null);
-  /**
-   * ONE overlay at a time on first login.
-   *
-   * The onboarding tour and the birthday greeting are both Radix modals at
-   * `z-50` mounted as unconditional siblings below. They opened independently,
-   * so a member whose first login fell on their birthday got both at once —
-   * the tour card (337×191) painted straight over the greeting (187×250),
-   * which was on screen but completely covered and unreachable until the tour
-   * was skipped. Neither knew the other existed; nothing was stacking them
-   * wrong, they were simply racing.
-   *
-   * The tour reports whether it still owns the screen and the greeting waits
-   * on that, so the order is now fixed: tour, then birthday. Starts `true`
-   * (defer) because the tour's own answer is asynchronous — see
-   * `onActiveChange` on OnboardingTour.
-   */
-  const [tourActive, setTourActive] = useState(true);
+  // The birthday greeting no longer waits on an onboarding tour here: the first run (board 53) lives on Home.
   // Detail-dialog open/close lifecycle (which job, feed-scroll restore, and
   // ?job=<id> URL mirroring) lives in useDetailJob.
   const { detailJob, openDetailJob, closeDetailJob } = useDetailJob({
@@ -852,17 +834,10 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
         <BirthdayPopup
           dateOfBirth={profile?.date_of_birth}
           firstName={firstName}
-          deferred={tourActive}
+          deferred={false}
         />
       </Suspense>
 
-      <Suspense fallback={null}>
-        <OnboardingTour
-          profileComplete={isProfileComplete(profile, user)}
-          userId={user?.id}
-          onActiveChange={setTourActive}
-        />
-      </Suspense>
       {/* A job-match notification opens THE JOB SHEET, not a toast (owner,
           2026-09-11). `openDetailJob` is the exact same entry point a tap on
           a feed card uses — it snapshots the feed scroll and mirrors `?job=`

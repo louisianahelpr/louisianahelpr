@@ -14,6 +14,7 @@
  * which tab each order lands on.
  *
  * @mutate src/components/declutter/DeclutterMineViews.tsx |           { key: "offers", label: "To answer", count: todo?.buyerOffers ?? 0, hot: true }, |           { key: "offers", label: "Offers", count: todo?.buyerOffers ?? 0, hot: true },
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3 hidden" aria-hidden onClick={() => navigate(sectionByKey("declutter").add.path)}>
  * @mutate src/components/declutter/DeclutterHomeView.tsx |         : view === "buying" ? <BuyingDash todo={todo} /> |         : view === "buying" ? <WantedView />
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" />} |       {show("offers") && null}
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const show = (g: SellingGroup) => only === null \|\| only === g; |   const show = (_g: SellingGroup) => true;
@@ -327,6 +328,21 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const label = (box.textContent ?? "").replace(/\d+/, "").trim();
     const needsYouLabel = /^(To |Pick up|Hand over)/.test(label);
     expect(count === rows || needsYouLabel, `box "${label}" shows ${count} above ${rows} listed`).toBe(true);
+  });
+
+  // D3 (Cowork audit 2026-10-20): the empty Selling list said 'Tap "Sell an
+  // item" to start.' with no such button on the screen. The class: an empty
+  // state that names an action offers that action, right there.
+  it("D3: an empty Selling list offers 'Sell an item' as a button in the list itself", async () => {
+    state.mine = [];
+    at("/declutter?tab=selling");
+    const region = await screen.findByRole("region", { name: "Your listings" });
+    const btn = within(region).getByRole("button", { name: "Sell an item" });
+    expect(btn).toBeVisible();
+    // Whatever the empty state tells you to tap is on screen.
+    for (const m of (region.textContent ?? "").matchAll(/Tap "([^"]+)"/g)) {
+      expect(within(region).getByRole("button", { name: m[1] })).toBeInTheDocument();
+    }
   });
 
   it("every old view value maps to one of the new tabs (none falls back to Browse)", () => {

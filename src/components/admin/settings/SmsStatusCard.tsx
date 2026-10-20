@@ -81,8 +81,8 @@ export function SmsStatusCard() {
               {data.recent.map((r, i) => (
                 <li key={`${r.created_at}-${i}`} className="flex items-center justify-between gap-2 py-2 text-ds-13">
                   <span className="min-w-0">
-                    <span className="font-medium">{KIND[r.kind ?? ""] ?? r.category ?? "Notification"}</span>{" "}
-                    <span style={{ color: "hsl(var(--ink-deep) / 0.6)" }}>
+                    <span className="font-medium block">{KIND[r.kind ?? ""] ?? r.category ?? "Notification"}</span>
+                    <span className="block text-ds-12" style={{ color: "hsl(var(--ink-deep) / 0.6)" }}>
                       {new Date(r.created_at).toLocaleString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                     </span>
                   </span>

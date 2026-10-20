@@ -662,3 +662,12 @@ CREATE TRIGGER notifications_fan_out_to_sms
   WHEN (NEW.type IN ('message', 'job_match', 'new_offers', 'job_updates', 'job_update',
                      'work_status', 'expired', 'info', 'success'))
   EXECUTE FUNCTION public.sms_fan_out_on_notification();
+
+-- 9. Q807: every new public table refuses writes from unconfirmed-email sessions.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;

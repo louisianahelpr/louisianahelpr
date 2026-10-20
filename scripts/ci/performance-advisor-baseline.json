@@ -7,6 +7,9 @@
   },
   "unused_index": [
     "public.admin_user_notes.idx_admin_user_notes_admin_id",
+    "public.sms_consent_events.sms_consent_events_user_idx",
+    "public.sms_messages.sms_messages_recent_idx",
+    "public.sms_messages.sms_messages_user_recent_idx",
     "public.cancellation_fee_transfers.cancellation_fee_transfers_helper_idx",
     "public.cancellation_fee_transfers.cancellation_fee_transfers_open_idx",
     "public.chargeback_clawbacks.chargeback_clawbacks_held_repay_owed_idx",

@@ -24,6 +24,7 @@ import { ChevronRight, Sofa, Truck } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { ListedWhatNext } from "./ListedWhatNext";
+import { BoughtWhatNext } from "./BoughtWhatNext";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import {
   fetchLiveItems,
@@ -485,7 +486,7 @@ export default function DeclutterHome() {
       />
       <StrikeCount userId={user.id} />
       {view === "browse" ? <BrowseView userId={user.id} />
-        : view === "buying" ? <BuyingDash todo={todo} />
+        : view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>
           : view === "selling" ? <SellingView userId={user.id} haulOn={haulAway.on} movingOutOn={movingOut.on} todo={todo} />
             : view === "deliver" ? <Suspense fallback={<HelprSpinner />}><DeliverView /></Suspense>
               : <WantedView />}

@@ -1,0 +1,48 @@
+/**
+ * Board 82, "What next" after buying: opens on the Buying tab when checkout returns
+ * (?paid=1), only when exactly one paid order is in its handover (the return names no
+ * order, so it never guesses). The amount is the order's own total_cents (the whole charge:
+ * the delivery-damage refund returns all of it, migration 20261017055505).
+ *
+ * @mutate src/components/declutter/BoughtWhatNext.tsx |   return ids.length === 1 ? mine : null; |   return mine.length ? mine : null;
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | <><BoughtWhatNext /><BuyingDash todo={todo} /></> | <BuyingDash todo={todo} />
+ */
+import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BoughtWhatNext, justPaidOrder } from "@/components/declutter/BoughtWhatNext";
+import type { CartLine } from "@/lib/declutter/api";
+
+vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
+let cart: Partial<CartLine>[] = [];
+vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => cart }));
+const line = (o: Partial<CartLine>): Partial<CartLine> => ({ my_side: "buyer", status: "paid", order_status: "paid", order_id: "o1", item_title: "Box fan", total_cents: 2527, handover: "porch", ...o });
+
+function at(search: string) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={qc}><MemoryRouter initialEntries={[`/declutter${search}`]}><BoughtWhatNext /></MemoryRouter></QueryClientProvider>);
+}
+
+describe("board 82: after buying", () => {
+  it("one paid order: the item, the real total in rust, and its handover step", async () => {
+    cart = [line({})];
+    at("?paid=1&tab=buying");
+    expect(await screen.findByRole("heading", { name: "You bought Box fan" })).toBeTruthy();
+    const text = screen.getByTestId("what-next-sheet").textContent ?? "";
+    expect(text).toContain("You paid $25.27");
+    expect(text).toContain("Pick it up from the porch");
+    expect(text).not.toMatch(/ships|tracking/i);
+  });
+
+  it("two paid orders, or no ?paid=1: no sheet (never a guess)", () => {
+    expect(justPaidOrder([line({}), line({ order_id: "o2" })] as CartLine[])).toBeNull();
+    expect(justPaidOrder([line({}), line({ line_id: "b" })] as CartLine[])?.length).toBe(2);
+    cart = [line({})];
+    at("?tab=buying");
+    expect(screen.queryByTestId("what-next-sheet")).toBeNull();
+    expect(readFileSync(resolve(__dirname, "../../src/components/declutter/DeclutterHomeView.tsx"), "utf8")).toMatch(/<><BoughtWhatNext \/><BuyingDash todo=\{todo\} \/><\/>/);
+  });
+});

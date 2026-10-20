@@ -571,8 +571,11 @@
      gradient on top of it: a light band beside the desktop rail, and a white
      flash on every navigation. Measured by external QA 2026-09-07. One token,
      one dark override, and no rule can drift. */
-  --page-gradient: linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
-  --parchment:    220 14% 95%;  /* page canvas — cool near-white. Refined cool-neutral
+  /* WARM ground (spec v2 §2 --ground #F4F2EE; owner adopted the rule book 2026-10-20;
+     lead go 2026-10-20). Guard: src/test/lightGroundIsWarm.test.ts. The two stops sit
+     either side of #F4F2EE, as the old cool pair sat either side of #F0F2F4. */
+  --page-gradient: linear-gradient(135deg, #F7F5F1 0%, #F0EDE7 100%);
+  --parchment:    40 21% 94.5%; /* page canvas — WARM #F4F2EE (spec v2 §2). Was cool 220 14% 95%: the old note follows. Refined cool-neutral
                                     grey (hue 220, low sat) — the Linear/Stripe/Vercel
                                     premium register, never tacky cream. Held a touch
                                     below the 100%-white cards (~5% L gap) so every

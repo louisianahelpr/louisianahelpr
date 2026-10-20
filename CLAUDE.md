@@ -69,9 +69,9 @@ stories go in the lessons file, never here.
 - Document-scroll pages (legal, marketing, multi-step forms, Profile/Activity tab pages): plain `min-h-screen bg-premium-page pb-safe-nav` wrapper, plus `<PageHeader>` for a back button. Never `AppShell`.
 - A page's shell choice must agree with its entry in `DOCUMENT_SCROLL_ROUTES` (`src/hooks/useAppShellViewport.ts`, which toggles `app-shell` on `<html>`).
 - **Every page fits the screen** at every breakpoint: centered in the available area, zero horizontal overflow, no rail-width dead gutter. [L](docs/lessons/CLAUDE-lessons.md#fit-the-screen)
-- **The desktop rail is on the RIGHT, inset in ONE shared layer:** `right: var(--desktop-sidebar-w)` on `.app-shell-frame` and `padding-right: var(--desktop-sidebar-w)` on `#root` (248px), only while `.side-panel-open` and only when signed in. [L](docs/lessons/CLAUDE-lessons.md#rail-inset)
+- **The desktop rail is on the LEFT and always open (owner, 2026-10-19), inset in ONE shared layer:** `left: var(--desktop-sidebar-w)` on `.app-shell-frame` and `padding-left: var(--desktop-sidebar-w)` on `#root` (248px), only while `.side-panel-open` and only when signed in. [L](docs/lessons/CLAUDE-lessons.md#rail-inset)
 - **Trust the CSS declaration, never the comment beside it.** [L](docs/lessons/CLAUDE-lessons.md#rail-inset)
-- **A page never re-insets itself** (no per-page rail-width padding, no `lg:pr-[248px]`, no spacer flex child). [L](docs/lessons/CLAUDE-lessons.md#rail-inset)
+- **A page never re-insets itself** (no per-page rail-width padding, no `lg:pl-[248px]`, no spacer flex child). [L](docs/lessons/CLAUDE-lessons.md#rail-inset)
 - Measure centering against the post-rail area, and measure `.app-shell-frame`, NOT `<main>` (a full-width scroll wrapper).
 - **Proof of fit for any page touched:** at 1440 and 375, assert `documentElement.scrollWidth <= clientWidth`, no element wider than the viewport, column centered with no dead band; screenshot both.
 - **Phone web == native app: ONE surface.** Never branch nav or layout on `Capacitor.isNativePlatform()` (genuine native capability only). A defect at 375 in a browser is an app defect.

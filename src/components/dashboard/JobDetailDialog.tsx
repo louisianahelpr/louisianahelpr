@@ -135,10 +135,8 @@ const JobDetailDialog = ({
   const isRecommended = !!_allJobs && _allJobs[0]?.id === job.id;
 
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-  // Viewer fee only — the same resolver the Browse card and apply sheet use.
-  // (The browse feed's open_jobs_browse select doesn't expose
-  // helper_fee_percent, so a `job.helper_fee_percent ?? …` fallback here was
-  // dead code that merely LOOKED like a different fee rule.)
+  // Viewer fee only — the same resolver the Browse card and apply sheet use (open_jobs_browse
+  // has no helper_fee_percent, so a `job.helper_fee_percent ?? …` fallback was dead code).
   const commissionPercent = effectiveFee;
 
   /* WHICH OF THE TWO SURFACES THE BOTTOM OF THIS SHEET IS.
@@ -577,7 +575,6 @@ const JobDetailDialog = ({
               effectiveFee={commissionPercent}
               urgentFee={job.urgent_fee ?? 0}
               helpersNeeded={helpers} jobStatus={job.status} feeStamp={job}
-              // J1: the poster's own job shows the price they set, as on Posted.
               showBudget={!!viewerUserId && viewerUserId === job.customer_id}
             />
           </div>

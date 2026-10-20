@@ -11,7 +11,7 @@
  * @mutate src/lib/seriesDates.ts |     .filter((d) => d > input.firstVisit && d > input.today) |     .filter((d) => d > input.today)
  * @mutate src/components/series/SeriesDatesPanel.tsx | d.state === "released" && d.releasedBy !== userId && onSeries | d.state === "released" && onSeries
  * @mutate src/components/series/SeriesDatesPanel.tsx | const r = await claimSeriesDates(jobId, pickedOpen); | const r = await claimSeriesDates(jobId, picked);
- * @mutate src/lib/seriesDates.ts | alreadyYours: r.already_yours ?? [] }; | alreadyYours: [] };
+ * @mutate src/lib/seriesDates.ts | alreadyYours: r.already_yours ?? [], | alreadyYours: [],
  * @mutate src/lib/seriesDates.ts |       if (isNotDeployedYet(r.error)) return null; |       if (false) return null;
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";

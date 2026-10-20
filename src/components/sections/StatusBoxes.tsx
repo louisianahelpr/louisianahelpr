@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
+import { CHIP, CHIP_ON, CHIP_OFF } from "@/components/ui/chipClasses";
 
 export interface StatusBoxDef<K extends string> {
   key: K;
@@ -34,50 +35,59 @@ export function useStatusFilter<K extends string>(valid: readonly K[]) {
 }
 
 /**
- * Status boxes under a section's non-Browse tab (owner, 2026-10-19): tap one =
- * only that group shows (the box is highlighted); tap it again = every group.
+ * The status chip row under a section's non-Browse tab (boards 14, 21; owner,
+ * 2026-10-19 for the filter rule, spec v2 for the look). ONE row for every
+ * section (Jobs, Declutter, Shops, Homes, the Home dashboard): "All" first,
+ * then one chip per group with its count INSIDE ("Needs you · 2"; All only when
+ * the caller knows the list's length). Tap a chip
+ * = only that group shows; tap it again, or tap All = every group. A zero
+ * count is not printed (truth rule: "Done", not "Done · 0"). The row scrolls
+ * sideways, so a label is never cut. `hot` is kept for callers but no longer
+ * paints a number: rust is for money only (spec §1.1).
  */
+/** The All chip's key: not a group, so it carries `data-status-all`, never `data-status-box`. */
+const ALL = "\u0000all";
+
 export function StatusBoxes<K extends string>({
   boxes,
   value,
   onToggle,
+  allCount,
 }: {
   boxes: readonly StatusBoxDef<K>[];
   value: K | null;
   onToggle: (k: K) => void;
+  /** How many rows "All" shows. Only a caller whose list is exactly that many rows passes it; without it All has no number (the groups need not add up to the list). */
+  allCount?: number;
 }) {
   const active = boxes.find((b) => b.key === value);
+  const chip = (key: string, label: string, count: number, on: boolean, onClick: () => void) => (
+    <button
+      key={key}
+      type="button"
+      aria-pressed={on}
+      {...(key === ALL ? { "data-status-all": "" } : { "data-status-box": key })}
+      data-count={count}
+      onClick={onClick}
+      className={`${CHIP} shrink-0 whitespace-nowrap ${on ? CHIP_ON : CHIP_OFF}`}
+    >
+      <span data-chip-label="">{label}</span>
+      {count > 0 && <span className="tabular-nums" data-chip-count="">{`\u00a0· ${count}`}</span>}
+    </button>
+  );
   return (
     <div className="flex flex-col gap-2">
-      {/* Below 360px the row tightens (gap 6px, box padding 2px, 10px label) so a whole
-          word fits each box at 320 — "Needs you" / "Upcoming" were cut to "Needs y…" /
-          "Upcomi…" (guard: src/test/activityTabLabelsFitAPhone.test.ts). */}
-      <div className="grid gap-2 max-[359px]:gap-1.5" style={{ gridTemplateColumns: `repeat(${boxes.length}, minmax(0, 1fr))` }} role="group" aria-label="Filter by status">
-        {boxes.map((b) => {
-          const on = b.key === value;
-          return (
-            <button
-              key={b.key}
-              type="button"
-              aria-pressed={on}
-              data-status-box={b.key}
-              onClick={() => onToggle(b.key)}
-              className={`btn-press rounded-2xl border px-1 max-[359px]:px-0.5 py-2.5 text-center min-w-0 transition-colors ${
-                on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"
-              }`}
-            >
-              <span className={`block text-ds-20 leading-6 font-bold ${!on && b.hot && b.count > 0 ? "text-[hsl(var(--accent-ink))]" : ""}`}>{b.count}</span>
-              <span className={`block text-ds-11 max-[359px]:text-ds-10 max-[359px]:tracking-normal leading-4 mt-0.5 truncate ${on ? "" : "text-muted-foreground"}`} title={b.label}>{b.label}</span>
-            </button>
-          );
-        })}
+      <div
+        className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="group"
+        aria-label="Filter by status"
+      >
+        {chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })}
+        {boxes.map((b) => chip(b.key, b.label, b.count, b.key === value, () => onToggle(b.key)))}
       </div>
-      {active && (
+      {active && active.count === 0 && (
         <p className="text-ds-13 text-muted-foreground px-1" aria-live="polite">
-          {/* One line at 320 (the old "Showing only … · tap it again to show all" wrapped, leaving "all" alone). */}
-          {active.count === 0 ? "Nothing in " : "Only "}
-          <b className="text-foreground">{active.label}</b>
-          {active.count === 0 ? " right now" : ""} · tap again for all
+          Nothing in <b className="text-foreground">{active.label}</b> right now
         </p>
       )}
     </div>

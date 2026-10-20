@@ -11,7 +11,7 @@
  * @mutate src/components/DesktopSidebarNav.tsx | <HelprMark to="/home" size="md" emblemOnly /> | <HelprMark to="/home" size="md" />
  * @mutate src/components/DesktopSidebarNav.tsx |           onClick={() => setCreateOpen(true)} |           onClick={() => navigate("/post-job")}
  * @mutate src/components/DesktopSidebarNav.tsx |     leftItems[0],\n    exploreItem, |     leftItems[0],
- * @mutate src/components/DesktopSidebarNav.tsx |                         background: "hsl(var(--alert))", |                         background: "hsl(var(--burnt-sienna))",
+ * @mutate src/components/DesktopSidebarNav.tsx |                         // Count badges are --alert, never rust (spec v2 §1.1).\n                        background: "hsl(var(--alert))", |                         // Count badges are --alert, never rust (spec v2 §1.1).\n                        background: "hsl(var(--burnt-sienna))",
  * @mutate src/components/sidePanelOpen.tsx |   return true;\n}; |   return safeStorage.getItem(STORAGE_KEY) !== "0";\n};
  * @mutate src/components/DesktopTopNav.tsx |       data-rail-inset="" |       data-rail-off=""
  * @mutate src/components/DesktopTopNav.tsx |             aria-label="Profile"\n            data-testid="desktop-top-profile" |             aria-label="Settings"\n            data-testid="desktop-top-profile"

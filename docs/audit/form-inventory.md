@@ -332,7 +332,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/pages/auth/signup/SignupStep1.tsx` | input×2, checkbox/switch/radio×3 | email, text |  | email · signup-email-error · password · signup-password-error · policies · policies-label · age-confirm · age-confirm-label |
+| `src/pages/auth/signup/SignupStep1.tsx` | input×3, checkbox/switch/radio×2 | text, email |  | signup-card-head · signup-first-name · email · signup-email-error · password · signup-password-error · policies · policies-label |
 | `src/pages/auth/signup/SignupStep2.tsx` | input×5, textarea×1 | file, text | 5 | avatar · avatar-error · firstName · firstName-error · lastName · lastName-error · location · location-error |
 
 ## /support

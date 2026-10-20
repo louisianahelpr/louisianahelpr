@@ -15,6 +15,7 @@ export function GuestEmptyStateActions({
   onWiden,
   onShowAllLocations,
   onClearFilters,
+  clearLabel = "Clear filters",
   onNotify,
   onHire,
 }: {
@@ -24,6 +25,8 @@ export function GuestEmptyStateActions({
   onWiden: () => void;
   onShowAllLocations: () => void;
   onClearFilters: () => void;
+  /** J10: "Clear search" when only a typed search narrows the feed (browseEmptyCopy.ts). */
+  clearLabel?: string;
   onNotify: () => void;
   onHire: () => void;
 }) {
@@ -51,7 +54,7 @@ export function GuestEmptyStateActions({
         onClick={onClearFilters}
         className="text-ds-11 font-semibold text-primary hover:underline btn-press"
       >
-        Clear Filters
+        {clearLabel}
       </button>
     );
   }

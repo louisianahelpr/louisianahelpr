@@ -36,7 +36,8 @@ import { NOTIFY_SIGNUP_URL, NOTIFY_SIGNUP_SUBTITLE, notifySignupSubtitle } from 
 const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 
-const LABEL = /Notify Me When (?:Work|One) Lands|Get pinged when a job lands/;
+// Case-insensitive: J8 (2026-10-20) put the labels in sentence case ("Notify me when one lands").
+const LABEL = /Notify me when (?:work|one) lands|Get pinged when a job lands/i;
 const SHARED_HANDLER = /NOTIFY_SIGNUP_URL|notifyWhenWorkLands/;
 
 function sourceFiles(): string[] {

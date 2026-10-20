@@ -39,7 +39,7 @@ import { srFetch } from "../serviceRoleFetch";
  *           give it real data: two jobs (one the shared helper applied to, so
  *           it must OUTLIVE its poster), an avatar and a document in storage,
  *           a support report, notification preferences.
- *   export  press "Download My Data" on the Privacy panel, read the JSON the
+ *   export  press "Download my data" on the Privacy panel, read the JSON the
  *           browser saves, and check every section, the profile and both jobs
  *           (the account has no applications or reviews to find), and that the
  *           seeded tables left out are exactly KNOWN_NOT_EXPORTED.
@@ -296,10 +296,10 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
   const ctx = await newUserContext(browser, session);
   const page = await ctx.newPage();
 
-  await test.step("export: press Download My Data and read what the browser saves", async () => {
+  await test.step("export: press Download my data and read what the browser saves", async () => {
     await page.goto(`/profile?tab=legal&doc=privacy#download-your-data`);
     await assertHealthy(page, "privacy panel");
-    const button = page.getByRole("button", { name: "Download My Data" });
+    const button = page.getByRole("button", { name: "Download my data" });
     await expect(button).toBeEnabled({ timeout: 20_000 });
     const [download] = await Promise.all([page.waitForEvent("download", { timeout: 30_000 }), button.click()]);
     const file = await download.path();

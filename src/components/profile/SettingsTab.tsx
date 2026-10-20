@@ -12,6 +12,7 @@ import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig"
 import { useProfileLandingDerived } from "@/components/profile/profileLanding/useProfileLandingDerived";
 import type { MenuItem, Profile } from "@/components/profile/profileLanding/types";
 import { TAB_TITLES } from "@/pages/profile/types";
+import { dataRightsTarget } from "@/pages/info/legal/dataExportAnchor";
 
 /** Both sides of each section, the spec v2 §11 wording. */
 export const SECTION_BLURB: Record<SectionKey, string> = {
@@ -141,6 +142,8 @@ export function SettingsTab({
       <Group title="Your account">
         <Row testId="profile" label={TAB_TITLES.profile} sub="Photo, name, about you" onClick={() => onSelectTab("profile")} />
         <Row testId="security" label={TAB_TITLES.security} sub="Email, password, sign-in" onClick={() => onSelectTab("security")} />
+        {/* Board 176: the export already lives in the Legal tab's Privacy panel (DataExportCard); this opens it there. */}
+        <Row testId="download-data" label="Download my data" sub="A copy of what Helpr holds about you" onClick={() => navigate(dataRightsTarget(true))} />
         <Row testId="warnings" label={TAB_TITLES.warnings} sub="Your account standing" onClick={() => onSelectTab("warnings")} />
       </Group>
 

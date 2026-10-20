@@ -232,7 +232,7 @@ export const ADMIN_RPC_ERROR_COPY = {
   // Held-for-review payouts and refunds (admin money page, 20261019070737).
   // SMS alerts status (20261020022332): SmsStatusCard.
   admin_sms_status: {
-    forbidden: "Only admins can see the text alert log.",
+    admin_only: "Only admins can see the text alert log.",
   },
   admin_payouts_held_for_review: {
     admin_only: "Only admins can see payouts held for review.",

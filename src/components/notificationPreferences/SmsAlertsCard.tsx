@@ -38,7 +38,7 @@ export default function SmsAlertsCard() {
   const phoneId = useId();
   const consentId = useId();
 
-  const { data: consent, isPending, isError, refetch } = useQuery({
+  const { data: consent, isPending, isError, error: loadError, refetch } = useQuery({
     queryKey: [...QUERY_KEY, user?.id],
     enabled: enabled && !!user,
     queryFn: async (): Promise<SmsConsent> => parseSmsConsent(unwrap(await supabase.rpc("get_my_sms_consent"))),
@@ -115,7 +115,7 @@ export default function SmsAlertsCard() {
         {isError ? (
           <div className="flex items-center justify-between gap-3">
             <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep) / 0.75)" }}>
-              We couldn't load your text alert settings.
+              {rpcErrorMessage("get_my_sms_consent", loadError) ?? "We couldn't load your text alert settings."}
             </p>
             <Button variant="outline" size="sm" onClick={() => { void refetch(); }}>Try again</Button>
           </div>

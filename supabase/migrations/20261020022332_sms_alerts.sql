@@ -464,7 +464,7 @@ SET search_path TO 'public'
 AS $fn$
 BEGIN
   IF auth.uid() IS NULL OR NOT COALESCE(public.has_role(auth.uid(), 'admin'::app_role), false) THEN
-    RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
+    RAISE EXCEPTION 'admin_only' USING ERRCODE = '42501';
   END IF;
   RETURN jsonb_build_object(
     'audience', (SELECT audience FROM public.feature_switches WHERE key = 'sms_alerts'),

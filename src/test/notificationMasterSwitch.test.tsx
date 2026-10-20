@@ -107,7 +107,7 @@ beforeEach(() => {
 const mountLoaded = async () => {
   render(<NotificationPreferences />);
   // The switches render as skeleton pills until the fetch lands.
-  await waitFor(() => expect(screen.getByLabelText("Job Offers push")).toBeTruthy());
+  await waitFor(() => expect(screen.getByLabelText("Job offers push")).toBeTruthy());
 };
 
 const emailMaster = () => screen.getByLabelText("Email notifications master toggle");

@@ -516,13 +516,13 @@ const NotificationPreferences = () => {
         <div className="flex items-center gap-6">
           <div
             className="flex items-center justify-center gap-1 w-[51px] font-sans uppercase text-ds-10"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.12em" }}
+            style={{ color: "hsl(var(--muted-foreground))", letterSpacing: "0.08em" }}
           >
             <Smartphone className="w-3 h-3 shrink-0" /> App
           </div>
           <div
             className="flex items-center justify-center gap-1 w-[51px] font-sans uppercase text-ds-10"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.12em" }}
+            style={{ color: "hsl(var(--muted-foreground))", letterSpacing: "0.08em" }}
           >
             <Mail className="w-3 h-3 shrink-0" /> Email
           </div>
@@ -578,7 +578,7 @@ const NotificationPreferences = () => {
               className="font-sans font-semibold block text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Master Switch
+              Master switch
             </Label>
           </div>
         </div>
@@ -638,7 +638,7 @@ const NotificationPreferences = () => {
                 className="font-sans font-semibold block text-ds-14 mb-0"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
-                Quiet Hours
+                Quiet hours
               </Label>
               {/* Was "Mute non-critical pushes overnight. Security alerts still
                   fire." — the second sentence is the same false promise as the
@@ -749,8 +749,8 @@ const NotificationPreferences = () => {
             <span
               className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
               style={{
-                background: "hsl(var(--burnt-sienna) / 0.10)",
-                color: "hsl(var(--burnt-sienna))",
+                background: "hsl(var(--bark) / 0.10)",
+                color: "hsl(var(--bark))",
               }}
             >
               {item.icon}
@@ -811,8 +811,8 @@ const NotificationPreferences = () => {
           <span
             className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
             style={{
-              background: "hsl(var(--burnt-sienna) / 0.14)",
-              color: "hsl(var(--burnt-sienna))",
+              background: "hsl(var(--bark) / 0.14)",
+              color: "hsl(var(--bark))",
             }}
           >
             <Bell className="w-3.5 h-3.5" />
@@ -870,8 +870,8 @@ const NotificationPreferences = () => {
           <span
             className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
             style={{
-              background: "hsl(var(--burnt-sienna) / 0.10)",
-              color: "hsl(var(--burnt-sienna))",
+              background: "hsl(var(--bark) / 0.10)",
+              color: "hsl(var(--bark))",
             }}
           >
             <Send className="w-3.5 h-3.5" />
@@ -881,7 +881,7 @@ const NotificationPreferences = () => {
               className="font-sans font-semibold block text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Send a Test
+              Send a test
             </Label>
             <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {pushTokenCount === 0

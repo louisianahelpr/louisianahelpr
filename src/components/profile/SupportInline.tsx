@@ -30,8 +30,7 @@ import {
   X,
   Loader2,
   BookOpen,
-  ChevronRight,
-} from "lucide-react";
+  ChevronRight, Compass } from "lucide-react";
 import { toast } from "sonner";
 import { SUPPORT_SCREENSHOT_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 import { hapticError, hapticLight } from "@/lib/haptics";
@@ -486,6 +485,23 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           <span className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
             Browse the Help Center
           </span>
+        </p>
+        <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0" />
+      </Link>
+      {/* The short coach-mark tour, again (owner 2026-10-20; FirstRun on Home reads ?tour=1). */}
+      <Link
+        to="/home?tour=1"
+        data-testid="take-the-tour-again"
+        className="flex items-center gap-2.5 rounded-2xl px-4 py-3 transition-colors active:opacity-70 hover:brightness-[0.98]"
+        style={{
+          background: "hsl(var(--parchment))",
+          border: "0.5px solid hsl(var(--border) / 0.7)",
+          boxShadow: "var(--elev-inset-gloss)",
+        }}
+      >
+        <Compass className="w-4 h-4 text-primary shrink-0" aria-hidden />
+        <p className="flex-1 min-w-0 font-sans text-ds-12 leading-snug font-semibold" style={{ color: "hsl(var(--bark))" }}>
+          Take the tour again
         </p>
         <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0" />
       </Link>

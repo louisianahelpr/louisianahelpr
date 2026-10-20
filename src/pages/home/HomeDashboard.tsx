@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FirstRun } from "@/components/firstRun/FirstRun";
 import { useQueryClient } from "@tanstack/react-query";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -322,6 +323,9 @@ function HomeDashboardScreen() {
 
       </div>
       <CustomizeSheet open={customize} onOpenChange={setCustomize} />
+      {/* Board 53 + the short coach-mark tour (owner 2026-10-20). It replaced the 7-step OnboardingTour,
+          which only ever opened on /home from the Jobs feed and so never showed once Home moved here. */}
+      <FirstRun userId={user?.id} />
     </SectionScreen>
   );
 }

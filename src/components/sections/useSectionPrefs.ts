@@ -107,7 +107,16 @@ export function useSectionPrefs() {
     [prefs, save],
   );
 
+  /** First run (board 53): put the member's picks first, the rest after in their current order. */
+  const putFirst = useCallback(
+    (keys: SectionKey[]) => {
+      const first = keys.filter((k, i) => keys.indexOf(k) === i);
+      save({ ...prefs, order: [...first, ...prefs.order.filter((k) => !first.includes(k))] });
+    },
+    [prefs, save],
+  );
+
   /** The shown sections, in the member's order. */
   const visible = prefs.order.filter((k) => !prefs.hidden.includes(k)).map((k) => SECTIONS.find((s) => s.key === k)!);
-  return { prefs, visible, setHidden, move };
+  return { prefs, visible, setHidden, move, putFirst };
 }

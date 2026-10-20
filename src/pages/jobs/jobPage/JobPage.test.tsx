@@ -8,15 +8,16 @@
  *   post, design-b measured): "Paid when you posted...", never "Nothing is
  *   charged until then"; an unpaid post says Helprs can't see it; a state we
  *   have not verified prints nothing. Never the Helpr's take-home.
- * - Helpr side: take-home from the real 5% + 70c rule only on a fee-stamped
- *   job; an unstamped job shows the job price; a poster-fee job keeps it all.
+ * - Helpr side: always their take-home: the 5% + 70c stamp on a fee-stamped
+ *   job, the viewer's own tier rate on an older unstamped one (the feed's rule),
+ *   and the whole price on a poster-fee job.
  * - Tracker: four steps from jobs.status; none for a Helpr just browsing.
  * The data hook is stubbed (no Supabase mock): these check what each state renders.
  *
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) } |         ? { label: "Apply", go: () => navigate("/jobs") }
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. We hold it until the job is done.", |   escrow: "Nothing is charged until you hire.",
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = flat ? computeNet( |   const net = true ? computeNet(
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (at < 0 \|\| !side) return null; |   if (at < 0) return null;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared after you're hired.</p>} |
  */
@@ -47,13 +48,14 @@ vi.mock("@/lib/declutter/api", () => ({
 }));
 
 vi.mock("@/hooks/useCurrentUser", () => ({
-  useCurrentUser: () => ({ user: { id: ME_ID }, isLoading: false, profileQuery: {}, refresh: vi.fn() }),
+  useCurrentUser: () => ({ user: { id: ME_ID }, profile: null, isLoading: false, profileQuery: {}, refresh: vi.fn() }),
 }));
 vi.mock("@/hooks/usePendingSaveConsumer", () => ({ usePendingSaveConsumer: () => undefined }));
 vi.mock("@/hooks/useJobRef", () => ({ useJobRef: () => undefined }));
 vi.mock("@/hooks/useFeedPhase", () => ({ useFeedPhase: () => "ready", useProfileWaitPhase: () => "ready" }));
 
 import JobPage from "./JobPage";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
 import JobDetail from "../JobDetail";
 
 const ME = "11111111-1111-1111-1111-111111111111";
@@ -130,12 +132,14 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     expect(screen.getByTestId("where").textContent).toBe(`/home?quickApply=${row().id}`);
   });
 
-  it("an unstamped (older) job shows the job price, never a guessed take-home", () => {
+  it("an unstamped (older) job shows the take-home at the viewer's own tier rate", () => {
     state.job = row({ helper_fee_flat_cents: null, helper_fee_percent: null, budget: 60 });
     renderPage();
-    expect(screen.getByText("Job price")).toBeTruthy();
-    expect(screen.getByText("$60")).toBeTruthy();
-    expect(screen.queryByText("You take home")).toBeNull();
+    const pct = tierFeePercent(undefined, undefined);
+    expect(pct).toBeGreaterThan(0);
+    expect(screen.getByText("You take home")).toBeTruthy();
+    expect(screen.getByText(`$${Math.floor(60 - (60 * pct) / 100)}`)).toBeTruthy();
+    expect(screen.getByText(new RegExp(`Helpr's fee \\(${pct}%\\) comes out of your payout`))).toBeTruthy();
   });
 
   it("a poster-fee job: the Helpr keeps the whole price", () => {

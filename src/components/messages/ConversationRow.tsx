@@ -1,6 +1,6 @@
 import { memo } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
-import { BellOff, Check } from "lucide-react";
+import { BellOff, Briefcase, Check } from "lucide-react";
 import { PinnedChip } from "./PinnedChip";
 import { isImageMime } from "@/lib/messageAttachments";
 import { LastMessageImageThumb } from "./LastMessageImageThumb";
@@ -9,6 +9,7 @@ import { jobStatusColor } from "@/lib/statusColors";
 import UserAvatar from "@/components/UserAvatar";
 import type { Conversation } from "./types";
 import { rowAge } from "./rowAge";
+import { threadRoleCaption } from "./messageSections";
 
 interface ConversationRowProps {
   convo: Conversation;
@@ -438,12 +439,18 @@ const ConversationRowBase = ({
                   utility also sets `overflow-wrap: anywhere`; see the note in
                   index.css for why that declaration is the difference between
                   an ellipsis and a word sliced in half. */}
+              {/* Board 13: the section's icon + which side you are on, then the job
+                  ("You're working · Mow the yard"). Support threads have no section. */}
               <p
                 title={c.jobTitle}
-                className="flex-1 min-w-0 basis-[9rem] text-ds-11 truncate senior-clamp-2 font-sans"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                data-thread-caption
+                className="flex-1 min-w-0 basis-[9rem] text-ds-12 truncate senior-clamp-2 font-sans"
+                style={{ color: "hsl(var(--muted-foreground))" }}
               >
-                {c.jobTitle}
+                {!c.teamThread && (
+                  <Briefcase aria-label="Jobs" className="inline w-3.5 h-3.5 mr-1 -mt-0.5 align-middle" strokeWidth={1.75} />
+                )}
+                {threadRoleCaption(c) ? `${threadRoleCaption(c)} · ${c.jobTitle}` : c.jobTitle}
               </p>
               {/* Muted bell-slash — quiet visual mark that this thread
                   has notifications off for the current user. iMessage

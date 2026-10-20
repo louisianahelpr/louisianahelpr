@@ -34,6 +34,9 @@
  * @mutate e2e/memory/retention.ts |   await gateClientNav(page, path); |
  * @mutate scripts/e2e/request-budget.mjs | if (burst > max) failures.push( | if (false) failures.push(
  * @mutate e2e/request-budgets.json | "/posts": 200 | "/posts-off": 200
+ * @mutate scripts/audit/measure-loading-states.mjs |         requestMeter.tests = results.length; |         void results.length;
+ * @mutate scripts/audit/measure-loading-states.mjs |     requestMeter.tests = results.length; |     void results.length;
+ * @mutate e2e/request-budgets.json | "perTest": 15.2, | "perTest": 2116,
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync, mkdtempSync, writeFileSync } from "node:fs";

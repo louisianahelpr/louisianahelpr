@@ -878,6 +878,10 @@ async function main() {
         const r = await measureOne(ctx, t).finally(() => ctx.close().catch(() => {}));
         r.requests = sent;
         results.push(r);
+        // The budget is PER SURFACE (nightly-red #2601): every surface measured
+        // is one "test" to the meter, so the catalog growing from 139 to 196
+        // surfaces is not read as a request regression.
+        requestMeter.tests = results.length;
         const tag = r.status === "measured"
           ? `cl=${String(r.clustersMeasured ?? 0)}/${String(r.clusters?.length ?? 0)}  worstΔrow=${String(r.worstDeltaRowPx ?? "?").padStart(7)}px  ` +
             `ΔrowH=${String(r.worstDeltaRowH ?? "-").padStart(5)}  Δrows=${String(r.worstDeltaRows ?? "-").padStart(4)}  shapeBad=${r.shapeMismatches}  ` +
@@ -887,6 +891,7 @@ async function main() {
       }
     };
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+    requestMeter.tests = results.length;
     requestMeter.flush();
     await browser.close();
 

@@ -14,7 +14,7 @@
  * proves against the rendered components, and a source check pins that the
  * spec keeps reading them (a literal `level: 1` beside the name comes back red).
  *
- * @mutate src/components/profile/profileLanding/IdentityHeader.tsx | <h2 className="font-display font-bold text-ds-20 leading-tight break-words" style={{ color: "hsl(var(--ink-deep))" }}> | <h3 className="font-display font-bold text-ds-20 leading-tight break-words" style={{ color: "hsl(var(--ink-deep))" }}>
+ * @mutate src/components/profile/profileLanding/YouCard.tsx | const Heading = `h${PROFILE_NAME_HEADING_LEVEL}` as "h2"; | const Heading = "h3" as "h2";
  * @mutate src/components/profile/profileLanding/headingContract.ts | export const PROFILE_NAME_HEADING_LEVEL = 2; | export const PROFILE_NAME_HEADING_LEVEL = 1;
  * @mutate e2e/journeys/03-account.spec.ts | { name, exact: true, level: PROFILE_NAME_HEADING_LEVEL } | { name, exact: true, level: 1 }
  */
@@ -23,7 +23,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { IdentityHeader } from "@/components/profile/profileLanding/IdentityHeader";
+import { YouCard } from "@/components/profile/profileLanding/YouCard";
 import { PROFILE_NAME_HEADING_LEVEL, PROFILE_PAGE_TITLE } from "@/components/profile/profileLanding/headingContract";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -36,20 +36,12 @@ const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 function renderIdentity(displayName: string) {
   return render(
     <MemoryRouter>
-      <IdentityHeader
-        profile={{ user_id: "u1", full_name: displayName, avatar_url: null, location: "Lafayette, LA", bio: "SEED test account." } as never}
+      <YouCard
+        profile={{ user_id: "u1", full_name: displayName, avatar_url: null } as never}
         userId="u1"
         displayName={displayName}
-        initials="EH"
         avgRating={null}
         reviewCount={0}
-        completedCount={0}
-        helperBadgeStats={null}
-        onSelectTab={() => {}}
-        tier="free"
-        hasPhoto={false}
-        memberSinceLabel={null}
-        earnedBadges={[]}
       />
     </MemoryRouter>,
   );

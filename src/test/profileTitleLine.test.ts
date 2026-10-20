@@ -44,9 +44,9 @@ import { blankComments } from "./helpers/blankNonCode";
 
 // @mutate src/components/PageHeader.tsx | <span className={`${BACK_BUTTON_BOX_CLASS} block`} /> | <span className="w-10 h-10 -ml-2 block" />
 // @mutate src/components/BackButton.tsx | export const BACK_BUTTON_BOX_CLASS = "w-11 h-11 -ml-2"; | export const BACK_BUTTON_BOX_CLASS = "w-10 h-10 -ml-2";
-// @mutate src/components/profile/ProfileLanding.tsx | hideBack\n          width="none" | hideBack\n          reserveBackSlot\n          width="none"
-// @mutate src/components/profile/ProfilePageSkeleton.tsx | hideBack\n        width="none" | hideBack\n        reserveBackSlot\n        width="none"
-// @mutate src/components/profile/profileLanding/IdentityHeader.tsx | <div className="flex-1 min-w-0 text-left"> | <div className="flex-1 min-w-0 text-left"><h1>{displayName}</h1>
+// @mutate src/components/profile/ProfileLanding.tsx | <AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} /> | <PageHeader title={PROFILE_PAGE_TITLE} hideBack reserveBackSlot width="none" />
+// @mutate src/components/profile/ProfilePageSkeleton.tsx | <AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} /> | <AppTopBar title="Profile" showProfile={false} />
+// @mutate src/components/profile/profileLanding/YouCard.tsx | <div className="min-w-0 flex flex-col items-start"> | <div className="min-w-0 flex flex-col items-start"><h1>{displayName}</h1>
 
 const ROOT = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
@@ -58,7 +58,7 @@ const BACK_BUTTON = strip(read("src/components/BackButton.tsx"));
 const PAGE_HEADER = strip(read("src/components/PageHeader.tsx"));
 const SKELETONS = strip(read("src/components/profile/ProfilePageSkeleton.tsx"));
 const LANDING = strip(read("src/components/profile/ProfileLanding.tsx"));
-const IDENTITY = strip(read("src/components/profile/profileLanding/IdentityHeader.tsx"));
+const IDENTITY = strip(read("src/components/profile/profileLanding/YouCard.tsx"));
 /** Exactly the landing skeleton's body, so another skeleton's slot cannot satisfy or fail it. */
 const LANDING_SKELETON = (() => {
   const start = SKELETONS.indexOf("export const ProfilePageSkeleton");
@@ -140,28 +140,22 @@ describe("the Profile title line has one definition", () => {
     }
   });
 
-  it("the landing's title is a PageHeader on the column edge, lined up with the card", () => {
-    expect(
-      LANDING.includes("<PageHeader"),
-      "ProfileLanding no longer renders the shared <PageHeader> — its title has left the shell " +
-        "every Profile tab's title is on",
-    ).toBe(true);
-    for (const prop of ["hideBack", 'width="none"', "topInsetHandled"]) {
-      expect(
-        LANDING.includes(prop),
-        `ProfileLanding's <PageHeader> dropped \`${prop}\`. Without \`width="none"\` it gains ` +
-          `a second container; without \`topInsetHandled\` it absorbs the notch inset twice.`,
-      ).toBe(true);
-    }
+  it("the landing's title is the shared top bar on the column edge, lined up with the card", () => {
+    // Board 18 (2026-10-20): the You landing wears the same AppTopBar as Home,
+    // Explore and Messages ("You" + the bell, no photo), and its skeleton draws
+    // that same bar with the same title, so the title does not move on load.
+    const bar = "<AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} />";
+    expect(LANDING.includes(bar), "ProfileLanding no longer renders the shared top bar titled You").toBe(true);
+    expect(LANDING_SKELETON.includes(bar), "the landing skeleton's bar is not the landing's own bar").toBe(true);
     // Owner, 2026-09-25: "move the name at the top over to the left some" ->
-    // "line up with the card". The empty back slot put it 48px in.
+    // "line up with the card". An empty back slot put it 48px in.
     for (const [name, src] of [
       ["ProfileLanding.tsx", LANDING],
       ["ProfilePageSkeleton.tsx (the landing skeleton)", LANDING_SKELETON],
     ] as const) {
       expect(src.length, `${name}: nothing to scan — this guard has rotted`).toBeGreaterThan(40);
       expect(
-        /reserveBackSlot|BACK_BUTTON_BOX_CLASS|\bw-11\b/.test(src),
+        /reserveBackSlot|BACK_BUTTON_BOX_CLASS|\bw-11\b|<PageHeader/.test(src),
         `${name} reserves the empty back slot again, which puts the landing's name 48px in ` +
           `from the card below it. The owner asked on 2026-09-25 for it to line up with the card.`,
       ).toBe(false);
@@ -169,6 +163,7 @@ describe("the Profile title line has one definition", () => {
   });
 
   it("the identity row does not carry a competing title", () => {
+    expect(IDENTITY.length, "YouCard: nothing to scan — this guard has rotted").toBeGreaterThan(200);
     expect(
       IDENTITY.includes("<h1"),
       "the Profile landing's identity card has an <h1> again. The page title is the " +

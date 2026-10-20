@@ -1,9 +1,8 @@
-import PageHeader from "@/components/PageHeader";
+import { AppTopBar } from "@/components/sections/AppTopBar";
 import { useStripeConnectStatus } from "@/hooks/useStripeConnectStatus";
 import type { ProfileLandingProps } from "./profileLanding/types";
-import { useProfileLandingDerived } from "./profileLanding/useProfileLandingDerived";
-import { IdentityHeader } from "./profileLanding/IdentityHeader";
-import { SettingsSection } from "./profileLanding/SettingsSection";
+import { YouCard } from "./profileLanding/YouCard";
+import { YouMenu } from "./profileLanding/YouMenu";
 import { PayoutStatusRow } from "./profileLanding/PayoutStatusRow";
 import { PROFILE_PAGE_TITLE } from "./profileLanding/headingContract";
 import { YourActivity } from "./profileLanding/YourActivity";
@@ -12,13 +11,9 @@ export function ProfileLanding({
   profile,
   userId,
   displayName,
-  initials,
   avgRating,
   reviewCount,
-  completedCount,
-  helperBadgeStats,
   onSelectTab,
-  onNavigate,
   onRequestDelete,
   onRequestLogout,
 }: ProfileLandingProps) {
@@ -27,58 +22,22 @@ export function ProfileLanding({
   // the first frame instead of re-asking Stripe every mount.
   const { payoutPrompt, refetchStatus } = useStripeConnectStatus();
 
-  const {
-    tier,
-    hasPhoto,
-    memberSinceLabel,
-    earnedBadges,
-    menuGroups,
-  } = useProfileLandingDerived({ profile });
-
   return (
     <>
-      {/* ── THE PAGE TITLE ──────────────────────────────────────────
-          "Profile". The member's name moved back INTO the identity card,
-          beside the photo (owner, 2026-10-09: "move the name back into the
-          first box to the right of the profile pic"). The title stays,
-          lined up with the identity card and the WORK
-          list below it: it starts on the column edge (x=20 at 375, 24 at
-          1440). Owner, 2026-09-25: "move the name at the top over to the
-          left some" -> "line up with the card".
-
-          It is the shared `<PageHeader>`: `width="none"` because Profile.tsx
-          already applies the app container + `page-measure` one layer up,
-          `topInsetHandled` because AppShell's `pt-safe-top` has already
-          cleared the notch, and `hideBack` because the landing is a
-          bottom-nav root with nothing to go back to. No back slot is
-          reserved, so nothing indents the name.
-
-          `-mb-3 lg:-mb-4` cancels the landing column's own `gap-3 lg:gap-4`
-          (Profile.tsx), so the air under the title equals the air above it,
-          PageHeader's app-wide rule. */}
+      {/* ── THE TOP BAR (board 18) ─────────────────────────────────
+          The same AppTopBar as Home, Explore and Messages: the title "You"
+          on the left, the bell on the right. No profile photo in the bar, since
+          this IS your profile (spec v2 §3 top bar; board 18). */}
       <div className="-mb-3 lg:-mb-4">
-        <PageHeader
-          title={PROFILE_PAGE_TITLE}
-          hideBack
-          width="none"
-          topInsetHandled
-        />
+        <AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} />
       </div>
 
-      <IdentityHeader
+      <YouCard
         profile={profile}
         userId={userId}
         displayName={displayName}
-        initials={initials}
         avgRating={avgRating}
         reviewCount={reviewCount}
-        completedCount={completedCount}
-        helperBadgeStats={helperBadgeStats ?? null}
-        onSelectTab={onSelectTab}
-        tier={tier}
-        hasPhoto={hasPhoto}
-        memberSinceLabel={memberSinceLabel}
-        earnedBadges={earnedBadges}
       />
 
       {/* ── Getting-started slot ─────────────────────────────────────
@@ -117,14 +76,10 @@ export function ProfileLanding({
       {/* Board 18: both sides of every section, right under who you are. */}
       <YourActivity />
 
-      <SettingsSection
-        menuGroups={menuGroups}
-        onSelectTab={onSelectTab}
-        onNavigate={onNavigate}
-        onRequestLogout={onRequestLogout}
-        onRequestDelete={onRequestDelete}
-      />
-
+      {/* Board 18: Money · Alerts · Settings · Talk to a real person, then Log out
+          (clear) and Delete account (quiet). Every other row lives one level down
+          in You › Money, You › Settings or Help (board 52, spec v2 §9.8). */}
+      <YouMenu onSelectTab={onSelectTab} onRequestLogout={onRequestLogout} onRequestDelete={onRequestDelete} />
     </>
   );
 }

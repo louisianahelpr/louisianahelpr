@@ -4,7 +4,7 @@
  * These are behaviours that are only provable by RENDERING the authed page
  * with controlled data, not by reading the component:
  *
- *   1. the job description is collapsed by default and expands in place
+ *   1. the job description is not on the card face and opens in place (Manage job)
  *   2. No-Show is absent before the scheduled start and present after it —
  *      proved by moving the job's date, not by reasoning about the clock
  *   3. the active status filter is named beside the title, and "All" is silent
@@ -21,7 +21,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
-import type { Locator, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import {
   test,
   expect,
@@ -206,45 +206,6 @@ async function dismissNudge(page: Page) {
   await page.waitForTimeout(400);
 }
 
-/**
- * Open the first posted card.
- *
- * A posted card arrives COLLAPSED (owner, 2026-08-27) — title, price and the
- * meta line, nothing else. The tracker, the Applicants button, the photo strip
- * and the whole action row live behind the tap, so any test asserting on them
- * has to open the card first, exactly as a poster does.
- *
- * `force: true` for the same reason the description test gives: the affordance
- * is JobCardShell's sr-only button, which always fails Playwright's
- * "element is on top" check.
- */
-/**
- * Activate a card's expand/collapse control.
- *
- * NOT `click({ force: true })`. `force` skips Playwright's actionability
- * checks, but it still dispatches a REAL mouse event at the element's centre
- * POINT — and this control is `sr-only`, a 44px box parked wherever the card's
- * layout happens to put it. Whatever is topmost at that point receives the
- * click.
- *
- * That is exactly how this file broke on 2026-09-19: the owner's card
- * reorganisation moved the Deep-clean card's toggle to y≈790 in an 812px
- * viewport — underneath the FIXED bottom navigation — so the click landed on
- * MobileNav's "Home" button, the app pushed /home, and the assertion
- * failed with "element(s) not found" while standing on the Home screen. The
- * app was never wrong: tapping the card body and activating this control from
- * the keyboard both expand in place, verified against this build.
- *
- * The control IS the keyboard/screen-reader affordance, so activate it the way
- * a keyboard user does. Focus + Enter is hit-test free, so no future layout
- * change can silently redirect it at another element, and it proves the a11y
- * affordance genuinely works rather than merely existing in the DOM.
- */
-async function activateCardToggle(toggle: Locator) {
-  await toggle.focus();
-  await toggle.press("Enter");
-}
-
 /** The row is More + one primary (owner, 2026-10-08): everything else is in More's panel. */
 async function openMore(page: Page) {
   await page.locator("[data-job-step-overflow]").first().click();
@@ -253,17 +214,40 @@ async function openMore(page: Page) {
   return panel;
 }
 
-async function expandCard(page: Page) {
-  const toggle = page.getByRole("button", { name: "Expand Job Details" }).first();
-  await expect(toggle).toBeAttached();
-  await activateCardToggle(toggle);
-  await expect(
-    page.getByRole("button", { name: "Collapse Job Details" }).first(),
-  ).toBeAttached();
+/**
+ * Open ONE posted card's live controls in place.
+ *
+ * Since boards 14/21 (train26, 2026-10-20) a Posted or Working card is a FACE
+ * (MineJobFace): photo, title, date, one status line, the money and ONE button.
+ * Tapping the face goes to the job page (/jobs/:id); the in-place controls
+ * (tracker, step row, More) open from the face's button when it is the
+ * fallback "Manage job", and from the app's own deep link
+ * `?highlight=<id>&manage=1` (JobListPage -> useManageDeepLink), which is what
+ * a notification uses. JobCardShell's sr-only "Expand Job Details" toggle is
+ * gone from these cards (`expandable={false}`), so this used to wait for it and
+ * fail (PR #3463's smoke run).
+ *
+ * The deep link is used here because on several of these fixtures the face's
+ * button is the card's REAL next step (Confirm arrival, Approve and release),
+ * not "Manage job". The open card is proved by its Close control, which only
+ * an open face renders (MineOpenMeta), never by the gesture.
+ */
+async function expandCard(page: Page, jobId: string) {
+  await page.goto(`/jobs?tab=posted&filter=all&highlight=${encodeURIComponent(jobId)}&manage=1`);
+  await page.waitForSelector("h1");
+  await settle(page);
+  await dismissNudge(page);
+  await expect(page.locator("[data-mine-close]"), `card ${jobId} did not open`).toHaveCount(1);
+}
+
+/** Shut the open card with its own Close (MineOpenMeta); the face comes back. */
+async function closeCard(page: Page) {
+  await page.locator("[data-mine-close]").first().click();
+  await expect(page.locator("[data-mine-close]")).toHaveCount(0);
 }
 
 /**
- * Open the nth posted card and read something out of it, then close it again.
+ * Open one posted card by id, read something out of it, then close it again.
  *
  * Only ONE card can be open at a time — `expandedJobId` in Activity holds a
  * single id — so a test that needs to compare a detail across two cards has to
@@ -271,17 +255,25 @@ async function expandCard(page: Page) {
  */
 async function withCardExpanded<T>(
   page: Page,
-  index: number,
+  jobId: string,
   read: () => Promise<T>,
 ): Promise<T> {
-  const toggles = page.getByRole("button", { name: /Expand Job Details/ });
-  await activateCardToggle(toggles.nth(index));
+  await expandCard(page, jobId);
   const value = await read();
-  await activateCardToggle(
-    page.getByRole("button", { name: "Collapse Job Details" }).first(),
-  );
+  await closeCard(page);
   return value;
 }
+
+/** The seeded in-progress job's id: inProgressJobStarting keeps it. */
+const IN_PROGRESS_ID = String((SEED_JOBS.find((j) => j.status === "in_progress") as Row).id);
+
+/**
+ * An open job nobody has applied to: its face button is the fallback
+ * "Manage job" (posterFaceAction, no_applicants), the face that opens the card
+ * in place from the list itself. A copy of the seeded open job (the Deep clean
+ * brief) under an id no seeded application names.
+ */
+const LONELY_OPEN: Row = { ...(SEED_JOBS.find((j) => j.status === "open") as Row), id: "10000000-0000-4000-8000-0000000000ff" };
 
 /** The layout invariants that must hold on every variant of every screen. */
 async function assertFits(page: Page) {
@@ -392,55 +384,36 @@ test.describe("My Posts — card density + header", () => {
    });
   }
 
-  test("the description is collapsed by default and expands in place", async ({ page, context, baseURL }) => {
+  test("the description is not on the card face; Manage job opens it in place and Close shuts it", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
+    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: [jobsRule([LONELY_OPEN])] });
     await page.goto("/jobs?tab=posted&filter=all");
     await page.waitForSelector("h1");
     await settle(page);
+    await dismissNudge(page);
 
-    // The open job's brief. Present in the DOM only once expanded.
+    // The open job's brief. Present in the DOM only once the card is open.
     const description = page.getByText("Full clean — kitchen, two bathrooms", { exact: false });
     await expect(description).toHaveCount(0);
 
-    // The whole card is the click/tap toggle. The sr-only button inside
-    // JobCardShell is the keyboard/screen-reader affordance — it is
-    // intentionally not visually interactive, so it is driven from the
-    // KEYBOARD here (see activateCardToggle) rather than with a forced mouse
-    // click, which lands on whatever element happens to be topmost at the
-    // control's coordinates.
-    //
-    // Target the specific Deep clean card by heading rather than .first(): the
-    // overdue-sort lifts the revision_requested card (Touch-up paint, date
-    // yesterday) above this open job, so position-based selectors expand the
-    // wrong card and then cannot find Deep clean's description text.
-    // Find the card div that is the direct parent of the sr-only expand button
-    // AND an ancestor of the heading. Double-filter ensures we get the exact card
-    // (not an inner wrapper that has the heading but not the button, and not an
-    // outer ancestor of multiple cards). .last() picks the deepest matching div —
-    // inner wrappers don't contain the sibling button, so this is the card div.
-    const deepCleanCard = page.locator("div").filter({
-      has: page.getByRole("heading", { name: "Deep clean a two-bedroom before move-out" }),
-    }).filter({
-      has: page.getByRole("button", { name: "Expand Job Details" }),
-    }).last();
-    const toggle = deepCleanCard.getByRole("button", { name: "Expand Job Details" });
-    await expect(toggle).toBeAttached();
-    await expect(toggle).toHaveAttribute("aria-expanded", "false");
-
-    await dismissNudge(page);
+    // The face (boards 14/21): one button, here the fallback "Manage job"
+    // because nobody has applied yet. It opens the card's controls IN PLACE;
+    // the face's own link is the way to the job page.
+    const card = page.locator("[data-activity-card]").filter({ hasText: "Deep clean a two-bedroom before move-out" });
+    await expect(card).toHaveCount(1);
     await page.screenshot({ path: `${SHOTS}/card-collapsed-375.png`, fullPage: true });
 
-    await activateCardToggle(toggle);
+    await card.getByRole("button", { name: "Manage job" }).click();
     await expect(description.first()).toBeVisible();
-    // Same card — the toggle expanded in place rather than navigating.
+    // Same card — it opened in place rather than navigating to /jobs/:id.
     await expect(page).toHaveURL(/\/jobs\?tab=posted/); // /posts lives at Jobs > Posted since 2026-10-19
+    // Open, the face's button stands down (its step row carries the action).
+    await expect(card.getByRole("button", { name: "Manage job" })).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/card-expanded-375.png`, fullPage: true });
 
-    const collapse = deepCleanCard.getByRole("button", { name: "Collapse Job Details" });
-    await expect(collapse).toHaveAttribute("aria-expanded", "true");
-    await activateCardToggle(collapse);
+    await closeCard(page);
     await expect(description).toHaveCount(0);
+    await expect(card.getByRole("button", { name: "Manage job" })).toHaveCount(1);
   });
 
   // The two halves of the No-Show proof are separate tests ON PURPOSE. Re-routing
@@ -456,12 +429,7 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([inProgressJobStarting(1)])],
     });
-    await page.goto("/jobs?tab=posted&filter=all");
-    await page.waitForSelector("h1");
-    await settle(page);
-
-    await dismissNudge(page);
-    await expandCard(page);
+    await expandCard(page, IN_PROGRESS_ID);
     // The card is identified by its live tracker, not by a status band: the
     // per-card stripe was removed once the filter tabs took over saying what
     // state a job is in. See ActivityBucket in activityFilters.ts.
@@ -485,12 +453,7 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([inProgressJobStarting(-1)])],
     });
-    await page.goto("/jobs?tab=posted&filter=all");
-    await page.waitForSelector("h1");
-    await settle(page);
-
-    await dismissNudge(page);
-    await expandCard(page);
+    await expandCard(page, IN_PROGRESS_ID);
     await openMore(page);
     await expect(page.getByRole("button", { name: /no-show/i })).toHaveCount(1);
     await page.screenshot({ path: `${SHOTS}/actions-3up-with-noshow-375.png`, fullPage: true });
@@ -592,11 +555,7 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([{ ...inProgressJobStarting(-1), helper_on_the_way_at: new Date().toISOString() }])],
     });
-    await page.goto("/jobs?tab=posted&filter=all");
-    await page.waitForSelector("h1");
-    await settle(page);
-    await dismissNudge(page);
-    await expandCard(page);
+    await expandCard(page, IN_PROGRESS_ID);
 
     const row = page.getByRole("group", { name: "Job progress" });
     await expect(row).toHaveCount(1);
@@ -723,12 +682,12 @@ test.describe("My Posts — card density + header", () => {
       await page.keyboard.press("Escape");
       return colour;
     };
-    const colourA = await withCardExpanded(page, 0, readMessageColour);
-    const colourB = await withCardExpanded(page, 1, readMessageColour);
+    const colourA = await withCardExpanded(page, "job-msg-plain", readMessageColour);
+    const colourB = await withCardExpanded(page, "job-msg-done", readMessageColour);
     expect(colourA, `Message renders ${colourA} vs ${colourB}`).toBe(colourB);
 
     // Re-open the first card for the order assertions below.
-    await expandCard(page);
+    await expandCard(page, "job-msg-plain");
 
     // The first card's row: Message and More. SOS sat first until
     // 2026-10-01, when the owner moved it (with Report a Problem / Dispute)
@@ -771,11 +730,7 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([inProgressJobStarting(-1)])],
     });
-    await page.goto("/jobs?tab=posted&filter=all");
-    await page.waitForSelector("h1");
-    await settle(page);
-    await dismissNudge(page);
-    await expandCard(page);
+    await expandCard(page, IN_PROGRESS_ID);
 
     const panel = await openMore(page);
     await panel.getByRole("button", { name: "Message Helpr" }).first().click();
@@ -801,18 +756,10 @@ test.describe("My Posts — card density + header", () => {
   // the card is still open afterwards.
   test("an action in the bottom row does not toggle the card", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-    // Provide only the open job so expandCard()'s .first() is unambiguous — the
-    // default seed includes an overdue revision_requested card that sorts first
-    // and does not render Edit (only "open" status cards do).
+    // Only the open job: the default seed includes an overdue
+    // revision_requested card that does not render Edit (only "open" cards do).
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: [jobsRule([SEED_JOBS[0] as Row])] });
-    await page.goto("/jobs?tab=posted&filter=all");
-    await page.waitForSelector("h1");
-    await settle(page);
-    await dismissNudge(page);
-    await expandCard(page);
-
-    const expanded = page.getByRole("button", { name: "Collapse Job Details" }).first();
-    await expect(expanded).toHaveAttribute("aria-expanded", "true");
+    await expandCard(page, String(SEED_JOBS[0].id));
 
     // Edit — the one of the four that opens something we can assert on.
     // The row is below the fold on a 375pt card, and this page is a fixed
@@ -858,30 +805,26 @@ test.describe("My Posts — card density + header", () => {
       await discard.first().click({ timeout: 1500 }).catch(() => {});
     }
     await expect(modal).toHaveCount(0);
-    await expect(
-      page.getByRole("button", { name: "Collapse Job Details" }).first(),
-    ).toHaveAttribute("aria-expanded", "true");
+    // Still open: the open face's Close is still there (MineOpenMeta).
+    await expect(page.locator("[data-mine-close]")).toHaveCount(1);
   });
 
-  test("the card-level toggle carries aria-expanded and flips on click", async ({ page, context, baseURL }) => {
+  test("the card face is a link to its job page, and no card carries the retired sr-only toggle", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
+    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: [jobsRule([LONELY_OPEN])] });
     await page.goto("/jobs?tab=posted&filter=all");
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
 
-    // The visible chevron button was removed by owner direction — "remove the
-    // chevron entirely". The whole card is now the click/tap affordance.
-    // The keyboard/screen-reader affordance is a sr-only button inside
-    // JobCardShell whose text and aria-expanded track the expand state.
-    // { force: true } is required because sr-only elements are never "on top"
-    // in Playwright's actionability check — they're intentionally visually hidden.
-    const toggle = page.getByRole("button", { name: "Expand Job Details" }).first();
-    await expect(toggle).toBeAttached();
-    await expect(toggle).toHaveAttribute("aria-expanded", "false");
-    await toggle.click({ force: true });
-    await expect(page.getByRole("button", { name: "Collapse Job Details" }).first()).toBeAttached();
+    // Boards 14/21 (2026-10-20): the face replaced JobCardShell's whole-card
+    // toggle and its sr-only "Expand Job Details" button. Two ways in, each a
+    // real control: the face's link to /jobs/:id, and its one button.
+    await expect(page.getByRole("button", { name: /^(Expand|Collapse) Job Details$/ })).toHaveCount(0);
+    const face = page.getByRole("link", { name: `Open ${String(LONELY_OPEN.title)}` });
+    await expect(face).toHaveAttribute("href", `/jobs/${String(LONELY_OPEN.id)}`);
+    await face.click();
+    await expect(page).toHaveURL(new RegExp(`/jobs/${String(LONELY_OPEN.id)}$`));
   });
 
   test("the active bucket is the selected tab, not a caption beside the title", async ({ page, context, baseURL }) => {
@@ -970,29 +913,25 @@ test.describe("My Posts — card density + header", () => {
     await recordContrast(page, "neutral-375-light");
   });
 
-  test("My Jobs: the applied card carries the same stripe and one description toggle", async ({ page, context, baseURL }) => {
+  test("My Jobs: the applied card is the same face, and Manage job opens one card at a time", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_HELPER, seed: true });
     await page.goto("/jobs?tab=working&filter=all");
     await page.waitForSelector("h1");
     await settle(page);
 
-    // Both posted and applied cards share the same JobCardShell expand affordance:
-    // the whole card is the click/tap toggle; the keyboard/screen-reader handle
-    // is a sr-only button whose text is "Expand Job Details" / "Collapse Job Details".
-    // The visible chevron and the per-card naming ("job description" vs "job
-    // details") were removed by owner direction ("remove the chevron entirely").
-    const show = page.getByRole("button", { name: "Expand Job Details" });
-    const hide = page.getByRole("button", { name: "Collapse Job Details" });
-    expect(await show.count() + await hide.count()).toBeGreaterThan(0);
-    await expect(hide).toHaveCount(0);
+    // Posted and Working draw ONE card (MineJobFace, boards 14/21): every card
+    // arrives as a face, none open, and the face's fallback button "Manage job"
+    // opens that card's tracker and step row in place (helperFaceAction).
+    await expect(page.locator("[data-mine-face]").first()).toBeVisible();
+    await expect(page.locator("[data-mine-close]")).toHaveCount(0);
+    const manage = page.getByRole("button", { name: "Manage job" });
+    expect(await manage.count(), "no Working card offers Manage job").toBeGreaterThan(0);
 
-    const first = show.first();
-    // { force: true } required: sr-only elements are never "on top" in Playwright's
-    // actionability check (they're intentionally not visually interactive).
-    await first.click({ force: true });
-    await expect(page.getByRole("button", { name: "Collapse Job Details" })).toHaveCount(1);
+    await manage.first().click();
+    await expect(page.locator("[data-mine-close]")).toHaveCount(1);
     await page.screenshot({ path: `${SHOTS}/jobs-expanded-375.png`, fullPage: true });
+    await closeCard(page);
 
     // The withdraw action is the icon-over-label chip now, still destructive.
     void SEED_APPLICATIONS;

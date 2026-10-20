@@ -669,27 +669,22 @@ test.describe("device pass — measured", () => {
     // Keyed by INDEX, not by title: measureCardHeights reads an `h3` and the
     // applied card has none, so every title here is "" and two entries keyed
     // on it would be indistinguishable in both the record and the diff.
+    // Boards 14/21 (2026-10-20): each card is a face whose fallback button
+    // "Manage job" opens it in place (helperFaceAction), and its own Close
+    // (MineOpenMeta) shuts it; the sr-only "Expand Job Details" toggle is gone.
     const offered: { card: number; withdraw: number; edit: number }[] = [];
     for (let i = 0; i < 2; i++) {
-      const toggles = page.getByRole("button", { name: /Expand Job Details/ });
-      const toggle = toggles.nth(0);
-      // Activate the way a keyboard user does: the control is sr-only, so a
-      // hit-test click needs { force: true } and proves less.
-      await toggle.focus();
-      await toggle.press("Enter");
-      const open = page.locator(CARD).filter({
-        has: page.getByRole("button", { name: "Collapse Job Details" }),
-      });
+      await page.locator(CARD).nth(i).getByRole("button", { name: "Manage job" }).click();
+      const open = page.locator(CARD).filter({ has: page.locator("[data-mine-close]") });
       await expect(open, `card ${i} did not open`).toHaveCount(1);
       offered.push({
         card: i,
         withdraw: await open.getByRole("button", { name: "Withdraw application" }).count(),
         edit: await open.getByRole("button", { name: "Edit your application" }).count(),
       });
-      // Close it again so the next iteration's `.nth(0)` is the OTHER card.
-      const close = page.getByRole("button", { name: "Collapse Job Details" }).first();
-      await close.focus();
-      await close.press("Enter");
+      // Close it again before opening the next one.
+      await open.locator("[data-mine-close]").click();
+      await expect(page.locator("[data-mine-close]")).toHaveCount(0);
     }
 
     record({

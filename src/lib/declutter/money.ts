@@ -19,6 +19,16 @@ export function checkoutAmounts(itemPricesCents: number[]): { itemsCents: number
   return { itemsCents, premiumCents, totalCents: itemsCents + premiumCents };
 }
 
+/**
+ * What Buy now on one item costs at checkout, in cents: the price plus the
+ * buyer's fee, from checkoutAmounts (the same rule declutter_start_checkout
+ * freezes). The Buy now button shows this, never the bare price (Cowork design
+ * audit 2026-10-20, D6). Buying more from the same seller shares one 70c.
+ */
+export function buyNowTotalCents(priceCents: number): number {
+  return checkoutAmounts([priceCents]).totalCents;
+}
+
 /** The lowest offer the server accepts (row 58): at least half the current price, in whole cents. */
 export function minOfferCents(currentPriceCents: number): number {
   return Math.max(100, Math.ceil(currentPriceCents / 2));

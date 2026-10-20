@@ -220,6 +220,6 @@ describe("declutter payout proof: removeUnsoldItem", () => {
 
   it("is called from the run's finally and from the always() unlink step", () => {
     const src = blankComments(readFileSync(join(ROOT, "scripts/e2e/declutterPayoutProof.mjs"), "utf8"));
-    expect(src.match(/removeUnsoldItem\(c, state\)/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(src.match(/await removeUnsoldItem\(c, state\)/g)?.length).toBeGreaterThanOrEqual(2);
   });
 });

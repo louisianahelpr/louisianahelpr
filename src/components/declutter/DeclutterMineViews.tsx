@@ -26,7 +26,9 @@ export function BuyingDash({ todo }: { todo: DeclutterTodo | null }) {
         onToggle={toggle}
         boxes={[
           { key: "cart", label: "To pay", count: todo?.toPay ?? 0, hot: true },
-          { key: "offers", label: "Offers", count: todo?.buyerOffers ?? 0, hot: true },
+          // D2 (Cowork audit 2026-10-20): it counts the offers waiting for YOUR answer, so it says so (it read
+          // "Offers 0" above a listed offer waiting on the seller). Same verbs as To pay / Pick up.
+          { key: "offers", label: "To answer", count: todo?.buyerOffers ?? 0, hot: true },
           { key: "purchases", label: "Pick up", count: todo?.purchasesOpen ?? 0, hot: true },
         ]}
       />
@@ -55,7 +57,7 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
         value={only}
         onToggle={toggle}
         boxes={[
-          { key: "offers", label: "Offers", count: todo?.sellerOffers ?? 0, hot: true },
+          { key: "offers", label: "To answer", count: todo?.sellerOffers ?? 0, hot: true },
           { key: "listings", label: "Listed", count: listed },
           { key: "waiting", label: "To be paid", count: todo?.salesAwaitingPayment ?? 0 },
           { key: "sold", label: "Hand over", count: todo?.salesOpen ?? 0, hot: true },

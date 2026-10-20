@@ -14,8 +14,10 @@ import { blankComments } from "./helpers/blankNonCode";
  * My Jobs header row (PostsHeader / JobsHeader: a scrolling status-tab strip
  * plus an expanding search). Those screens were retired; the same promise —
  * "a label the member needs is never cut" — now applies to what replaced them:
- *   (1) the four STATUS BOXES under Jobs > Posted / Working (StatusBoxes, one
- *       grid cell each, the label `truncate`d as a last resort);
+ *   (1) the STATUS CHIPS under Jobs > Posted / Working (StatusBoxes: since
+ *       boards 14/21, 2026-10-20, a sideways-scrolling chip row, "All" first,
+ *       the count inside each chip; a chip never shrinks or truncates, so the
+ *       budget is now "each chip fits the row on its own");
  *   (2) the section TABS, Browse | Posted | Working (SectionTabs ->
  *       SegmentedControl);
  *   (3) the boxes stay up on an EMPTY list (the old Part 3: a header with its
@@ -33,9 +35,10 @@ import { blankComments } from "./helpers/blankNonCode";
  * later). Classes are PARSED from the components; change them and the budget
  * moves with them.
  *
- * @mutate src/components/sections/StatusBoxes.tsx | max-[359px]:text-ds-10 max-[359px]:tracking-normal | max-[359px]:tracking-normal
- * @mutate src/components/sections/StatusBoxes.tsx | <div className="grid gap-2 max-[359px]:gap-1.5" style= | <div className="grid gap-2" style=
- * @mutate src/lib/activityBuckets.ts |   scheduled: "Upcoming", |   scheduled: "Coming up soon",
+ * @mutate src/components/sections/StatusBoxes.tsx | shrink-0 whitespace-nowrap | min-w-0 truncate
+ * @mutate src/components/sections/StatusBoxes.tsx | flex gap-2 overflow-x-auto px-1 | flex gap-2 overflow-hidden px-1
+ * @mutate src/components/ui/chipClasses.ts | rounded-full px-4 font-sans font-semibold text-ds-13 | rounded-full px-4 font-sans font-semibold text-ds-40
+ * @mutate src/lib/activityBuckets.ts |   scheduled: "Upcoming", |   scheduled: "Upcoming jobs that are booked and waiting for their day",
  * @mutate src/components/job-card/JobListPage.tsx | titleCard={isWebDesktop ? undefined : headerEl} | titleCard={isWebDesktop \|\| showEmptyState ? undefined : headerEl}
  */
 
@@ -82,46 +85,43 @@ function dsFont(token: string): { px: number; trackingEm: number } {
 /** Tailwind spacing scale: `gap-1.5` = 6px. */
 const spacing = (n: string) => Number(n) * 4;
 
-/** The box classes at a given viewport: the narrow (<360px) layer applies when it is wired. */
-function boxGeometry(viewport: number) {
-  const narrow = viewport < 360;
-  const gapM = BOXES.match(/grid gap-([\d.]+)(?: max-\[359px\]:gap-([\d.]+))?/);
-  if (!gapM) throw new Error("could not parse the StatusBoxes grid gap");
-  const gap = spacing(narrow && gapM[2] ? gapM[2] : gapM[1]);
-  const padM = BOXES.match(/rounded-2xl border px-([\d.]+)(?: max-\[359px\]:px-([\d.]+))?/);
-  if (!padM) throw new Error("could not parse the StatusBoxes box padding");
-  const pad = spacing(narrow && padM[2] ? padM[2] : padM[1]);
-  const fontM = BOXES.match(/block text-(ds-\d+)(?: max-\[359px\]:text-(ds-\d+))?(?: max-\[359px\]:(tracking-normal))? leading-4/);
-  if (!fontM) throw new Error("could not parse the StatusBoxes label size");
-  const font = dsFont(narrow && fontM[2] ? fontM[2] : fontM[1]);
-  const trackingEm = narrow && fontM[3] ? 0 : font.trackingEm;
-  return { gap, pad, fontPx: font.px, trackingEm };
+const CHIPS = read("src/components/ui/chipClasses.ts");
+
+/** The chip's type and side padding, parsed from the shared chip class. */
+function chipGeometry() {
+  const m = CHIPS.match(/export const CHIP =\s*"[^"]*\bpx-([\d.]+)\b[^"]*\btext-(ds-\d+)\b/);
+  if (!m) throw new Error("could not parse the chip padding / size in chipClasses.ts");
+  const font = dsFont(m[2]);
+  return { pad: spacing(m[1]), fontPx: font.px, trackingEm: font.trackingEm };
 }
 
-describe("the Jobs status boxes fit a phone", () => {
-  it("the inventory is the real box list, not a copy of it", () => {
+describe("the Jobs status chips fit a phone", () => {
+  it("the inventory is the real chip list, not a copy of it", () => {
     expect(BOX_BUCKETS.length).toBe(4);
     for (const labels of [POSTED_GROUP_LABEL, WORKING_GROUP_LABEL]) {
       for (const k of BOX_BUCKETS) expect(labels[k], `${k} has no label`).toBeTruthy();
     }
-    // A cut label still says what it was (the browser's tooltip / long-press).
-    expect(BOXES).toMatch(/truncate[\s\S]{0,80}title=\{b\.label\}/);
+  });
+
+  it("the row scrolls sideways and a chip never shrinks or truncates", () => {
+    expect(BOXES).toMatch(/flex gap-2 overflow-x-auto/);
+    expect(BOXES).toMatch(/\$\{CHIP\} shrink-0 whitespace-nowrap/);
+    expect(BOXES).not.toMatch(/\btruncate\b[^\n]*data-chip-label|data-chip-label[^\n]*\btruncate\b/);
+    expect(CHIPS).not.toMatch(/\btruncate\b/);
   });
 
   for (const viewport of PHONE_WIDTHS) {
-    it(`every box label is whole at ${viewport}`, () => {
-      const { gap, pad, fontPx, trackingEm } = boxGeometry(viewport);
+    it(`every chip ("Label · 99") fits the row on its own at ${viewport}`, () => {
+      const { pad, fontPx, trackingEm } = chipGeometry();
       const row = viewport - ROW_INSET;
-      const cell = (row - gap * (BOX_BUCKETS.length - 1)) / BOX_BUCKETS.length;
-      const room = cell - 2 /* 1px border each side */ - pad * 2;
       const cut: string[] = [];
       for (const [tab, labels] of [["Posted", POSTED_GROUP_LABEL], ["Working", WORKING_GROUP_LABEL]] as const) {
-        for (const k of BOX_BUCKETS) {
-          const w = textPx(labels[k], fontPx, trackingEm);
-          if (w > room) cut.push(`${tab} "${labels[k]}" needs ${w.toFixed(1)}px, the box gives ${room.toFixed(1)}px`);
+        for (const k of ["All", ...BOX_BUCKETS.map((b) => labels[b])]) {
+          const w = textPx(`${k} · 99`, fontPx, trackingEm) + pad * 2 + 2;
+          if (w > row) cut.push(`${tab} "${k}" needs ${w.toFixed(1)}px, the row gives ${row}px`);
         }
       }
-      expect(cut, `@${viewport}: these labels truncate. Take width out of the row (type, gaps, padding, shorter words), do not widen the page.`).toEqual([]);
+      expect(cut, `@${viewport}: these chips are wider than the screen's row`).toEqual([]);
     });
   }
 });

@@ -90,8 +90,8 @@
 // always up. Same claim — this screen's navigation is on the screen without a
 // press, every word painted and WHOLE — measured on the boxes: a box that
 // paints no word, or cuts it ("Needs y…"), goes red.
-// @mutate src/components/sections/StatusBoxes.tsx | title={b.label}>{b.label}</span> | title={b.label}></span>
-// @mutate src/components/sections/StatusBoxes.tsx | max-[359px]:text-ds-10 max-[359px]:tracking-normal | max-[359px]:tracking-normal
+// @mutate src/components/sections/StatusBoxes.tsx | <span data-chip-label="">{label}</span> | <span data-chip-label=""></span>
+// @mutate src/components/sections/StatusBoxes.tsx | shrink-0 whitespace-nowrap | shrink-0 truncate max-w-[3rem]
 import { test, expect, type Browser, type Page, type TestInfo } from "../prodTest";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -272,8 +272,8 @@ async function readBoxes(page: Page): Promise<BoxShot> {
     const group = document.querySelector<HTMLElement>(groupSel);
     const gr = group?.getBoundingClientRect();
     const boxes = Array.from(group?.querySelectorAll<HTMLElement>("button[data-status-box]") ?? []).map((b) => {
-      const spans = b.querySelectorAll<HTMLElement>("span");
-      const label = spans[1];
+      // Boards 14/21 (2026-10-20): a chip, "Needs you · 2": the word in [data-chip-label], the number in data-count.
+      const label = b.querySelector<HTMLElement>("[data-chip-label]");
       const r = label?.getBoundingClientRect();
       return {
         key: b.getAttribute("data-status-box") || "",
@@ -281,7 +281,7 @@ async function readBoxes(page: Page): Promise<BoxShot> {
         w: Math.round(r?.width ?? 0),
         h: Math.round(r?.height ?? 0),
         cut: !!label && label.scrollWidth > label.clientWidth + 0.5,
-        count: Number((spans[0]?.textContent || "0").trim()) || 0,
+        count: Number(b.getAttribute("data-count") || "0") || 0,
       };
     });
     const closed = Array.from(document.querySelectorAll<HTMLElement>("button[aria-expanded]")).find(

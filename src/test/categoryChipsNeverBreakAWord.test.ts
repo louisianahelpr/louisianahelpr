@@ -3,9 +3,10 @@
  * Post a Job at 320: the Handyman chip read "Handyma" / "n"). The Post a Job
  * category picker is now board 23's groups + chips (JobCategoryGroups.tsx,
  * builder2-jobs 2026-10-20); its group tiles and its chips both wrap only
- * between words.
+ * between words. The chip class is the shared one (src/components/ui/chipClasses.ts,
+ * builder2b-jobs 2026-10-20), so every chip row inherits the rule.
  *
- * @mutate src/components/postjob/JobCategoryGroups.tsx | leading-tight break-normal hyphens-none text-left transition-transform | leading-tight break-words text-left transition-transform
+ * @mutate src/components/ui/chipClasses.ts | leading-tight break-normal hyphens-none text-left transition-transform | leading-tight break-words text-left transition-transform
  * @mutate src/components/postjob/JobCategoryGroups.tsx | font-semibold leading-tight break-normal hyphens-none transition-transform | font-semibold leading-tight break-all transition-transform
  */
 import { readFileSync } from "node:fs";
@@ -14,7 +15,8 @@ import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 
 const SRC = blankComments(readFileSync(join(process.cwd(), "src/components/postjob/JobCategoryGroups.tsx"), "utf8"));
-const CHIP = SRC.match(/const CHIP =\s*"([^"]+)"/)?.[1] ?? "";
+const CHIPS = blankComments(readFileSync(join(process.cwd(), "src/components/ui/chipClasses.ts"), "utf8"));
+const CHIP = CHIPS.match(/export const CHIP =\s*"([^"]+)"/)?.[1] ?? "";
 const TILE = SRC.match(/className=\{`flex min-h-12[^`]*`\}/)?.[0] ?? "";
 
 describe("category chip labels never break inside a word", () => {

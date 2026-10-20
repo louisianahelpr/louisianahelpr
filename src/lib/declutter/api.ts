@@ -38,7 +38,7 @@ export function rpcData<T>(result: { data: T; error: { message: string } | null;
 }
 
 export type DeclutterStatus =
-  | "draft" | "pending_review" | "live" | "reserved" | "sold" | "completed"
+  | "draft" | "pending_review" | "live" | "paused" | "reserved" | "sold" | "completed"
   | "ended" | "withdrawn" | "rejected" | "removed";
 
 export type DeliverySize = "small" | "large" | "xl";
@@ -368,6 +368,35 @@ export async function removePhoto(photoId: string): Promise<void> {
 export async function withdrawItem(itemId: string): Promise<void> {
   const paths = rpcData(await supabase.rpc("declutter_withdraw_item", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_withdraw_item", e));
   await removeObjects((paths ?? []) as string[]);
+}
+
+/** Board 158: what the Manage sheet shows (the seller's floor; whether THEY stopped the drops). */
+export async function fetchManageState(itemId: string): Promise<{ floor_price_cents: number; drops_stopped: boolean } | null> {
+  const rows = rpcData(await supabase.rpc("declutter_listing_manage_state", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_listing_manage_state", e));
+  return (rows ?? [])[0] ?? null;
+}
+
+/** Board 158: a live or paused listing's price and lowest price. Returns the new price. */
+export async function setListingPrice(itemId: string, priceCents: number, floorCents: number): Promise<number> {
+  return rpcData(
+    await supabase.rpc("declutter_set_listing_price", { p_item_id: itemId, p_price_cents: priceCents, p_floor_price_cents: floorCents }),
+    (e) => rpcErrorMessage("declutter_set_listing_price", e),
+  );
+}
+
+/** Board 158: stop (false) or restart (true) the nightly price drops. */
+export async function setListingDrops(itemId: string, on: boolean): Promise<boolean> {
+  return rpcData(await supabase.rpc("declutter_set_listing_drops", { p_item_id: itemId, p_on: on }), (e) => rpcErrorMessage("declutter_set_listing_drops", e));
+}
+
+/** Board 158: hide a live listing from buyers (photos and saves kept; open offers close). */
+export async function pauseListing(itemId: string): Promise<string> {
+  return rpcData(await supabase.rpc("declutter_pause_listing", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_pause_listing", e));
+}
+
+/** Board 158: put a paused listing back on sale. */
+export async function relistListing(itemId: string): Promise<string> {
+  return rpcData(await supabase.rpc("declutter_relist_listing", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_relist_listing", e));
 }
 
 export async function attestItem(itemId: string): Promise<void> {

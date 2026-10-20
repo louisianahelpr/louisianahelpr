@@ -33,6 +33,7 @@ import {
   photoPublicUrl,
   setWatch,
   withdrawItem,
+  type DeclutterItem,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, formatPrice, nearestFirst } from "@/lib/declutter/distance";
@@ -40,6 +41,7 @@ import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 import { DeclutterChipRow } from "./DeclutterChipRow";
+import { ManageListingSheet } from "./DeclutterManageListing";
 import { DeclutterFilterPanel } from "./DeclutterFilterPanel";
 import { NO_FILTERS, SORT_LABEL, activeFilterCount, applyBrowseFilters, dropOutlook, type DeclutterFilters } from "@/lib/declutter/browseFilters";
 import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
@@ -317,6 +319,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
     onSuccess: (_v, row) => navigate(haulAwayPostJobPath([row.item_id])),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
+  const [managing, setManaging] = useState<DeclutterItem | null>(null);
   const takeDown = useMutation({
     mutationFn: (itemId: string) => withdrawItem(itemId),
     onSuccess: () => {
@@ -391,7 +394,12 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                   <Link to={`/declutter/item/${item.id}`}>View</Link>
                 </Button>
               )}
-              {(item.status === "draft" || item.status === "pending_review" || item.status === "live") && (
+              {(item.status === "live" || item.status === "paused") && (
+                <Button type="button" variant="outline" size="sm" onClick={() => setManaging(item)}>
+                  {item.status === "paused" ? "Relist" : "Manage"}
+                </Button>
+              )}
+              {(item.status === "draft" || item.status === "pending_review") && (
                 <Button
                   type="button"
                   variant="outline"
@@ -419,6 +427,17 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
           );
         })}
       </ul>
+      {managing && (
+        <ManageListingSheet
+          key={managing.id}
+          item={managing}
+          coverUrl={myCover.get(managing.id) ? photoPublicUrl(myCover.get(managing.id)!) : null}
+          open
+          onOpenChange={(o) => {
+            if (!o) setManaging(null);
+          }}
+        />
+      )}
     </section>
   );
 }

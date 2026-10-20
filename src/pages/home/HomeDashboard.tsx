@@ -210,7 +210,7 @@ function HomeDashboardScreen() {
                         onClick={() => navigate(`/jobs/${c.job.id}`)}
                         className={`btn-press w-full text-left grid grid-cols-[6.5rem_4.5rem_minmax(0,1fr)_auto] items-center gap-4 px-5 py-3.5 ${last ? "" : "border-b border-border/70"}`}
                       >
-                        <span className="text-ds-14 font-bold text-foreground truncate" title={day}>{day}</span>
+                        <span className="text-ds-14 font-bold text-foreground truncate" title={day ?? undefined}>{day}</span>
                         <span className="text-ds-14 text-muted-foreground">{time}</span>
                         <span className="text-ds-15 font-semibold text-foreground leading-snug line-clamp-2 [overflow-wrap:anywhere]" title={c.job.title}>{c.job.title}</span>
                         <span data-coming-up-role={c.role} className="text-ds-13 text-muted-foreground whitespace-nowrap">

@@ -84,7 +84,10 @@ export function ManageListingSheet({
   const [view, setView] = useState<View>(startOn);
   const close = () => onOpenChange(false);
   const state = useManageState(item.id, open);
-  const stopped = state.data?.drops_stopped ?? false;
+  // Before migration 20261020064354 reaches prod only "take it down" works (withdraw).
+  const deployed = state.data !== "not_deployed";
+  const manage = state.data && state.data !== "not_deployed" ? state.data : null;
+  const stopped = manage?.drops_stopped ?? false;
   const drops = useListingAction((on: boolean) => setListingDrops(item.id, on), stopped ? "Price drops are back on." : `Price drops stopped at ${formatPrice(item.current_price_cents)}.`);
   const pause = useListingAction(() => pauseListing(item.id), "Paused. It's hidden from buyers.", close);
   const relist = useListingAction(() => relistListing(item.id), "Back on sale.", close);
@@ -106,11 +109,12 @@ export function ManageListingSheet({
           <div className="space-y-3">
             <ListingSummary item={item} coverUrl={coverUrl} />
             <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
+              {deployed && (<>
               <li>
                 <button type="button" className={ROW} onClick={() => setView("price")} disabled={busy}>
                   <RowText title="Change price or lowest price">
                     Now {formatPrice(item.current_price_cents)}
-                    {state.data ? ` · lowest ${formatPrice(state.data.floor_price_cents)}` : ""}
+                    {manage ? ` · lowest ${formatPrice(manage.floor_price_cents)}` : ""}
                   </RowText>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 </button>
@@ -122,7 +126,7 @@ export function ManageListingSheet({
                 <Switch
                   aria-labelledby="manage-stop-drops"
                   checked={stopped}
-                  disabled={!state.data || busy}
+                  disabled={!manage || busy}
                   onCheckedChange={(on) => drops.mutate(!on)}
                 />
               </li>
@@ -139,6 +143,7 @@ export function ManageListingSheet({
                   </button>
                 )}
               </li>
+              </>)}
               <li>
                 <button type="button" className={ROW} onClick={() => setView("sold")} disabled={busy}>
                   <RowText title="Mark sold elsewhere">Takes it down; no fees</RowText>
@@ -147,24 +152,24 @@ export function ManageListingSheet({
               </li>
               <li>
                 <button type="button" className={ROW} onClick={() => setView("delete")} disabled={busy}>
-                  <span className="flex-1 min-w-0 text-ds-15 font-semibold text-[hsl(var(--alert))]">Delete listing</span>
+                  <span className="flex-1 min-w-0 text-ds-15 font-semibold text-[hsl(var(--destructive-ink))]">Delete listing</span>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 </button>
               </li>
             </ul>
           </div>
         )}
-        {view === "price" && !state.data && (
+        {view === "price" && !manage && (
           state.isError ? (
-            <p role="alert" className="text-ds-13 text-[hsl(var(--alert))]">{declutterErrorMessage(state.error)}</p>
+            <p role="alert" className="text-ds-13 text-[hsl(var(--destructive-ink))]">{declutterErrorMessage(state.error)}</p>
           ) : (
             <Skeleton className="h-40 w-full rounded-[20px]" />
           )
         )}
-        {view === "price" && state.data && (
+        {view === "price" && manage && (
           <PriceEditor
             item={item}
-            floorCents={state.data.floor_price_cents}
+            floorCents={manage.floor_price_cents}
             relist={paused && startOn === "price"}
             onBack={() => (startOn === "price" ? close() : setView("menu"))}
             onSaved={() => (startOn === "price" ? close() : setView("menu"))}
@@ -283,7 +288,7 @@ function PriceEditor({
         <p className="text-ds-13 text-muted-foreground">Only you see this. Prices never drop below it. You keep the whole price.</p>
       </div>
       {touched && problem && (
-        <p role="alert" className="text-ds-13 text-[hsl(var(--alert))]">{problem}</p>
+        <p role="alert" className="text-ds-13 text-[hsl(var(--destructive-ink))]">{problem}</p>
       )}
       <SheetFooter>
         <SheetSecondaryAction type="button" onClick={onBack} disabled={save.isPending}>
@@ -317,15 +322,15 @@ export function SellerListingPanel({ item, coverUrl }: { item: DeclutterItem; co
         <div className="flex flex-wrap gap-2">
           {paused ? (
             <>
-              <Button type="button" onClick={() => relist.mutate(undefined)} disabled={relist.isPending}>
+              <Button type="button" size="sm" onClick={() => relist.mutate(undefined)} disabled={relist.isPending}>
                 {relist.isPending ? "Relisting…" : "Relist"}
               </Button>
-              <Button type="button" variant="outline" onClick={() => setOpen("price")} disabled={relist.isPending}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setOpen("price")} disabled={relist.isPending}>
                 Relist at a new price
               </Button>
             </>
           ) : (
-            <Button type="button" variant="outline" onClick={() => setOpen("menu")}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setOpen("menu")}>
               Manage listing
             </Button>
           )}

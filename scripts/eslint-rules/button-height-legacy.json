@@ -1,4 +1,5 @@
 [
+  "src/components/CompletionPrompts.tsx",
   "src/components/EarningsExport.tsx",
   "src/components/HelperAvailability.tsx",
   "src/components/PhotoProof.tsx",
@@ -8,6 +9,7 @@
   "src/components/SaveHelperButton.tsx",
   "src/components/SavedSearches.tsx",
   "src/components/SectionBoundary.tsx",
+  "src/components/TipDialog.tsx",
   "src/components/admin/AdminUserNotes.tsx",
   "src/components/admin/AutoRestrictedRail.tsx",
   "src/components/admin/adminJobs/JobDetailDialog.tsx",

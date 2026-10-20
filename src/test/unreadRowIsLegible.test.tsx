@@ -41,7 +41,8 @@
  * come back. The audit refuses an inventory with no unread rows in it — a
  * fixture set where nothing is unread must FAIL, not vacuously pass.
  *
- * @mutate src/components/messages/ConversationRow.tsx | background: "hsl(var(--info-tint))", | background: "hsl(var(--burnt-sienna))",
+ * @mutate src/components/messages/ConversationRow.tsx | background: "hsl(var(--bark))", | background: "hsl(var(--burnt-sienna))",
+ * @mutate src/components/messages/ConversationRow.tsx | background: "hsl(var(--bark))", | background: "hsl(var(--info-tint))",
  * @mutate src/components/messages/ConversationRow.tsx | const NAME_WEIGHT_UNREAD = 700; | const NAME_WEIGHT_UNREAD = 600;
  * @mutate src/components/messages/ConversationRow.tsx | className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 rounded-full" | className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full"
  * @mutate src/components/messages/ConversationRow.tsx | role="status"\n            data-testid="unread-mark" | data-testid="unread-mark"
@@ -222,6 +223,12 @@ function auditInbox(statuses: string[], dark: boolean, unreadCount = 3): string[
           `rgb(${chipRgb}) beside it (distance ${distance(markRgb, chipRgb).toFixed(1)} < ${SAME_INK})`,
       );
     }
+
+    // 1b. The mark is the olive ACTION colour (spec v2 §1.1, board 13): not
+    //     blue, not rust. Resolved, so a token alias to --bark also passes.
+    const actionRgb = resolveColour("hsl(var(--bark))", dark);
+    if (markRgb && actionRgb && distance(markRgb, actionRgb) > 1)
+      bad.push(`${status}: the unread mark rgb(${markRgb}) is not the olive action rgb(${actionRgb})`);
 
     // 2. More than one channel separates read from unread.
     const channels = [

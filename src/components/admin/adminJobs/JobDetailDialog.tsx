@@ -109,7 +109,7 @@ export const JobDetailDialog = ({
             )}
 
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="sienna">{categoryLabels[detailJob.category] || formatCategory(detailJob.category)}</Badge>
+              <Badge variant="secondary">{categoryLabels[detailJob.category] || formatCategory(detailJob.category)}</Badge>
               <StatusBadge status={detailJob.status} className="text-ds-11" />
               <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium ${paymentColors[detailJob.payment_status || "unpaid"]}`}>
                 {jobPaymentStatusLabel(detailJob.status, detailJob.payment_status ?? "unpaid")}

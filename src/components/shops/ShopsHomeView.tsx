@@ -109,7 +109,7 @@ function ShopSettings() {
 export default function ShopsHomeView() {
   const [tab, setTab] = useSectionTab(SHOPS_TAB_VALUES);
   return (
-    <SectionScreen title="Shops" add={sectionByKey("shops").add}>
+    <SectionScreen section="shops" title="Shops" add={sectionByKey("shops").add}>
       <SectionTabs label="Shops" tabs={SHOPS_TABS} value={tab} onChange={setTab} />
       {tab === "orders" ? (
         <ShopMyOrdersView embedded />

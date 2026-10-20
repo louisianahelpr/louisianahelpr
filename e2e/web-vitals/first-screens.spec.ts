@@ -68,6 +68,8 @@ const FRESH_MOBILE_LCP = new Map<string, (number | null)[]>();
 /** A tap's own jump (page-settle's cold-load budget) and the session's (Speed Insights' GOOD). */
 const WALK_HOP_CLS = 0.02;
 const WALK = ["Posts", "Jobs", "Messages", "Profile", "@Earnings", "Jobs", "Home"] as const;
+/** The phone bar since 2026-10-20 (Home, Explore, +, Messages, You): the sections sit under Explore. */
+const WALK_PHONE = ["Explore", "@Jobs", "Messages", "You", "@Earnings", "Explore", "Home"] as const;
 
 type ProfileName = "mobile" | "desktop";
 type Metric = "fcp" | "lcp";
@@ -305,7 +307,7 @@ test("a tap never leads to a jump: walk the dock / rail, per-tap CLS < 0.02, ses
     await page.goto(`${BASE}/home`, { waitUntil: "domcontentloaded", timeout: 60_000 });
     await settle(page, { quietMs: 2500, maxMs: 20_000 });
     const nav = width < 900 ? 'nav[aria-label="Bottom navigation"]' : 'nav[aria-label="Primary"]';
-    for (const label of WALK) {
+    for (const label of width < 900 ? WALK_PHONE : WALK) {
       const before = await page.evaluate(() => (window as unknown as { __cwv: { shifts: unknown[] } }).__cwv.shifts.length);
       const ctl = label.startsWith("@")
         ? page.locator('button:visible, a:visible, [role="tab"]:visible').filter({ hasText: label.slice(1) }).first()

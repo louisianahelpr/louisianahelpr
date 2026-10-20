@@ -7,6 +7,7 @@ import {
   Sofa,
   Store,
   KeyRound,
+  Search,
 } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
 
@@ -83,12 +84,21 @@ export const jobsAndPostsItem = {
   badgeKey: "jobsAndPosts" as const,
 };
 
+/**
+ * THE PHONE BOTTOM BAR (owner-approved mock-up, 2026-10-20): Home, Explore,
+ * the center "+", Messages, You. Explore holds the four sections (its badge is
+ * the Jobs badge: new applicants plus offers to you); You is Profile, with the
+ * member's photo. Guard: src/test/centerCreateNav.test.tsx.
+ */
+export const exploreItem = { path: "/explore", icon: Search, label: "Explore", badgeKey: "jobsAndPosts" as const };
+export const youItem = { path: "/profile", icon: UserRound, label: "You" };
+
 /** The nav's own icon for a page: an empty page wears it (owner, 2026-10-08, Q1558). */
 export function navIconFor(path: "/home" | "/posts" | "/jobs" | "/messages") {
   return [...leftItems, ...rightItems].find((i) => i.path === path)!.icon;
 }
 
-export const authPages = ["/home", "/posts", "/jobs", "/post-job", "/profile", "/messages", "/support", "/user", "/jobs/", "/browse",
+export const authPages = ["/home", "/explore", "/posts", "/jobs", "/post-job", "/profile", "/messages", "/support", "/user", "/jobs/", "/browse",
   // Declutter (hidden switch): the dock stays on its screens.
   "/declutter",
   // Quotes on jobs (hidden switch 'quotes'): the same.
@@ -153,5 +163,7 @@ export const tabStacks: Record<string, string[]> = {
   "/posts": [],
   "/jobs": ["/jobs/"],
   "/messages": [],
-  "/profile": ["/support", "/user", "/admin", "/declutter", "/shops", "/rentals"],
+  // Every section lives under Explore (2026-10-20), so Explore is lit inside any of them.
+  "/explore": ["/jobs", "/posts", "/declutter", "/shops", "/rentals", "/quotes"],
+  "/profile": ["/support", "/user", "/admin"],
 };

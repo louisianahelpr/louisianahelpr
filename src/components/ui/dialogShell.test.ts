@@ -232,7 +232,7 @@ describe("Popups share one shell", () => {
   // Q237 (owner, 2026-09-26: "make the filter sheet title match the other
   // sheets"): SheetHero and FilterSheet's Popover band read ONE title look.
   // @mutate src/components/dashboard/FilterSheet.tsx | <h2 id={titleId} className={SHEET_HERO_TITLE_CLASS} style={SHEET_HERO_TITLE_STYLE}> | <h2 id={titleId} className="font-sans text-ds-17 font-bold text-foreground">
-  // @mutate src/components/ui/sheet.tsx | className={SHEET_HERO_TITLE_CLASS} | className="font-display font-bold leading-tight"
+  // @mutate src/components/ui/sheet.tsx | className={moment ? `${SHEET_HERO_TITLE_CLASS} font-moment` : SHEET_HERO_TITLE_CLASS} | className={moment ? "font-display font-bold leading-tight font-moment" : "font-display font-bold leading-tight"}
   it("every sheet title, SheetHero and the filter band alike, wears the shared sheet-title look", () => {
     const sheet = blankComments(read("src/components/ui/sheet.tsx"));
     // A Bodoni "moment" title (2026-10-20: "What are we doing?") adds ONLY font-moment on top of the shared class.

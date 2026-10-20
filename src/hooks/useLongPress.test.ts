@@ -36,7 +36,7 @@ describe("useLongPress", () => {
     expect(onLongPress).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(onLongPress).toHaveBeenCalledTimes(1);
-    props().onTouchEnd({} as React.TouchEvent);
+    props().onTouchEnd();
     expect(onTap).not.toHaveBeenCalled();
   });
 
@@ -44,7 +44,7 @@ describe("useLongPress", () => {
     const { props, onLongPress, onTap } = setup();
     props().onMouseDown(mouse(0, 0));
     vi.advanceTimersByTime(200);
-    props().onMouseUp({} as React.MouseEvent);
+    props().onMouseUp();
     vi.advanceTimersByTime(1000);
     expect(onTap).toHaveBeenCalledTimes(1);
     expect(onLongPress).not.toHaveBeenCalled();
@@ -53,7 +53,7 @@ describe("useLongPress", () => {
   it("a short press with no onTap does nothing", () => {
     const { props, onLongPress } = setup({ tap: false });
     props().onMouseDown(mouse(0, 0));
-    props().onMouseUp({} as React.MouseEvent);
+    props().onMouseUp();
     vi.advanceTimersByTime(1000);
     expect(onLongPress).not.toHaveBeenCalled();
   });

@@ -98,6 +98,8 @@ vi.mock("@/lib/backoutNotices", () => ({
   useBackoutNotices: () => new Map(),
 }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyItems: async () => [], fetchMyCart: async () => [] }));
+// Home's money tiles read the Money tab's own queries; homeMoneyTiles/homeMoneyGating prove them.
+vi.mock("@/pages/home/homeDashboard/homeMoney", () => ({ useHomeMoney: () => ({ coming: null, held: null }) }));
 vi.mock("@/lib/shops/orders", () => ({
   fetchMyOrders: async () => [],
   fetchShopOrders: async () => [

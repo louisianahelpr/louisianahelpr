@@ -76,7 +76,8 @@ describe("Q1346: the $2 setup fee counts in Spent and the receipts", () => {
     // before db-deploy adds it 42703s every jobs read in the app (jobColumns.ts).
     expect(JOB_READABLE_COLUMN_LIST).not.toContain("onboarding_fee_amount");
     expect(JOB_COLUMNS_AHEAD_OF_DB).toContain("onboarding_fee_amount");
-    const spent = blankComments(readFileSync(join(ROOT, "src/components/profile/earningsTab/SpentSection.tsx"), "utf8"));
+    // The Spent reads live in usePosterSpendData (shared with Home's "Held for you" tile).
+    const spent = blankComments(readFileSync(join(ROOT, "src/components/profile/earningsTab/usePosterSpendData.ts"), "utf8"));
     expect(spent.length).toBeGreaterThan(1000);
     expect(spent).toMatch(/readJobsAheadOfDb\(\s*"[^"]*\bonboarding_fee_amount\b[^"]*",\s*\(columns\) => supabase\.from\("jobs"\)\.select\(columns\)/);
     const history = blankComments(readFileSync(join(ROOT, "src/pages/profile/HomeHistory.tsx"), "utf8"));
@@ -99,6 +100,6 @@ describe("Q1346: the $2 setup fee counts in Spent and the receipts", () => {
 // @mutate src/lib/posterJobCost.ts |     num(job.sales_tax_amount) +\n    num(job.onboarding_fee_amount) |     num(job.sales_tax_amount)
 // @mutate src/lib/jobColumns.ts | export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount"] as const; | export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note"] as const;
 // @mutate src/pages/profile/HomeHistory.tsx | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, onboarding_fee_amount`, | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}`,
-// @mutate src/components/profile/earningsTab/SpentSection.tsx | sales_tax_amount, onboarding_fee_amount, dispute_status, payment_status | sales_tax_amount, dispute_status, payment_status
+// @mutate src/components/profile/earningsTab/usePosterSpendData.ts | sales_tax_amount, onboarding_fee_amount, dispute_status, payment_status | sales_tax_amount, dispute_status, payment_status
 // @mutate supabase/migrations/20261012171259_job_setup_fee_stamped.sql |     NEW.onboarding_fee_amount := NULL; |     NULL;
 // @mutate src/lib/disputeSplitPreview.ts |     (job.onboarding_fee_amount ?? 0); |     0;

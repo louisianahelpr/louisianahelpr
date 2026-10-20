@@ -27,9 +27,10 @@ import { walkSource } from "./helpers/walkSource";
 // @mutate src/components/profile/ScheduleTab.tsx | isSettledForDisplay(job) ? 0 : firstPayoutFee | 0
 // @mutate src/components/profile/EarningsTab.tsx | earnedDollarsWithLedger(completedJobs, helperFeeFallbackPct, firstPayoutFee, payoutLedger) | earnedDollarsWithLedger(completedJobs, helperFeeFallbackPct, 0, payoutLedger)
 // @mutate src/pages/profile/Profile.tsx | helperFeeFallbackPct, firstPayoutFee); | helperFeeFallbackPct);
+// @mutate src/pages/home/homeDashboard/homeMoney.ts | comingToYou(earnings.data.jobs, pct, firstPayoutFee) | comingToYou(earnings.data.jobs, pct, 0)
 
 const ROOT = resolve(__dirname, "../..");
-const CALL = /(?<!function\s)\b(computeNet|helperTakeHomeDollars|sumHelperTakeHomeDollars|earnedDollarsWithLedger)\s*\(/g;
+const CALL = /(?<!function\s)\b(computeNet|helperTakeHomeDollars|sumHelperTakeHomeDollars|earnedDollarsWithLedger|comingToYou)\s*\(/g;
 const DEFINITIONS = new Set(["src/lib/helperEarnings.ts"]);
 
 /** The text inside the balanced parentheses that open at `open`. */

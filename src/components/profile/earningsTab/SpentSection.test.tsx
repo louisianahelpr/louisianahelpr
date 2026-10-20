@@ -23,10 +23,10 @@
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? [], data?.blockFees ?? []); | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], [], data?.blockFees ?? []);
 // Q1736: the crew block fees an uncaptured hold's capture took.
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? [], data?.blockFees ?? []); | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? []);
-// @mutate src/components/profile/earningsTab/SpentSection.tsx | blockFees: blockFees.error?.code === "PGRST202" ? [] : ((unwrap(blockFees) ?? []) as PosterBlockFeeRow[]), | blockFees: (unwrap(blockFees) ?? []) as PosterBlockFeeRow[],
+// @mutate src/components/profile/earningsTab/usePosterSpendData.ts | blockFees: blockFees.error?.code === "PGRST202" ? [] : ((unwrap(blockFees) ?? []) as PosterBlockFeeRow[]), | blockFees: (unwrap(blockFees) ?? []) as PosterBlockFeeRow[],
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | {formatCents(r.cents)} | {formatCents(Math.round((r.job?.budget ?? 0) * 100))}
-// @mutate src/components/profile/earningsTab/SpentSection.tsx | .eq("customer_id", posterId), | .eq("customer_id", posterId).eq("status", "completed"),
-// @mutate src/components/profile/earningsTab/SpentSection.tsx | .eq("tipper_id", user!.id), | .eq("helper_id", user!.id),
+// @mutate src/components/profile/earningsTab/usePosterSpendData.ts | supabase.from("jobs").select(columns).eq("customer_id", posterId), | supabase.from("jobs").select(columns).eq("customer_id", posterId).eq("status", "completed"),
+// @mutate src/components/profile/earningsTab/usePosterSpendData.ts | .eq("tipper_id", posterId), | .eq("helper_id", posterId),
 // @mutate src/components/profile/earningsTab/SpentSection.tsx |         {isError ? ( |         {false ? (
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";

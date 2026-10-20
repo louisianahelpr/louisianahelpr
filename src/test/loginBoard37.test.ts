@@ -6,7 +6,13 @@
  * width (the lg two-panel split is gone). Restyle only: the form still submits
  * through handleLogin, and Log in and Create account stay separate flows.
  *
- * @mutate src/pages/auth/Login.tsx | <img src="/apple-touch-icon.png" alt="Helpr" width={64} height={64} className="w-16 h-16 rounded-full | <img src="/apple-touch-icon.png" alt="Helpr" width={64} height={64} className="w-16 h-16 rounded-ds-md
+ * @mutate src/pages/auth/Login.tsx | <img src="/apple-touch-icon.png" alt="" width={64} height={64} className="w-16 h-16 rounded-full | <img src="/apple-touch-icon.png" alt="" width={64} height={64} className="w-16 h-16 rounded-ds-md
+ * @mutate src/pages/auth/Login.tsx | <AuthShell hideHeader hideBack centerColumn | <AuthShell hideHeader centerColumn
+ * @mutate src/pages/auth/Login.tsx | import { Loader2, Eye, EyeOff, Check, ShieldCheck, X } from "lucide-react"; | import { Loader2, Eye, EyeOff, Check, ShieldCheck, X, Mail } from "lucide-react";
+ * @mutate src/pages/auth/signup/SignupStep1.tsx | import { ArrowBigUp, Eye, EyeOff, Check, Circle, X } from "lucide-react"; | import { ArrowBigUp, Eye, EyeOff, Check, Circle, X, Lock } from "lucide-react";
+ * @mutate src/pages/auth/Signup.tsx | { hideBack: true } : { backOnClick: | { backTo: "/" } : { backOnClick:
+ * @mutate src/components/auth/SocialAuthButtons.tsx | style={provider === "apple" ? { backgroundColor: "hsl(var(--foreground))", color: "hsl(var(--background))" } : undefined} | style={undefined}
+ * @mutate src/pages/auth/Login.tsx | <Link to="/" aria-label="Helpr home" | <Link to="/home" aria-label="Helpr home"
  * @mutate src/pages/auth/Login.tsx |         <div className="grid gap-6 w-full [&>*]:min-w-0"> |         <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full"}>
  * @mutate src/pages/auth/Login.tsx | <h1 className="text-page-title text-foreground">Log in</h1> | <h1 className="text-page-title text-foreground">Log In</h1>
  * @mutate src/pages/auth/Login.tsx |                 Forgot password?\n |                 Forgot Password?\n
@@ -69,5 +75,19 @@ describe("Log in matches board 37", () => {
     const rule = blankComments(readFileSync(resolve(__dirname, "../components/auth/OrRule.tsx"), "utf8"));
     expect(rule).not.toMatch(/lg:hidden|accent-ink|burnt-sienna/);
     expect(src).not.toMatch(/"Log In"|Forgot Password\?|Create an Account/);
+  });
+
+  it("board 37/55 leftovers: no back arrow, no field icons, the H links home, Apple is the solid button", () => {
+    const step1 = blankComments(readFileSync(resolve(__dirname, "../pages/auth/signup/SignupStep1.tsx"), "utf8"));
+    const signup = blankComments(readFileSync(resolve(__dirname, "../pages/auth/Signup.tsx"), "utf8"));
+    const social = blankComments(readFileSync(resolve(__dirname, "../components/auth/SocialAuthButtons.tsx"), "utf8"));
+    expect(src).toMatch(/<AuthShell hideHeader hideBack centerColumn/);
+    expect(signup).toContain("{ hideBack: true } : { backOnClick:");
+    for (const f of [src, step1]) {
+      expect(f).not.toMatch(/\b(Mail|Lock)\b[^;]*from "lucide-react"/);
+      expect(f).not.toMatch(/<(Mail|Lock)\s/);
+      expect(f).toMatch(/<Link to="\/" aria-label="Helpr home"[^>]*>\s*<img src="\/apple-touch-icon\.png"/);
+    }
+    expect(social).toContain('style={provider === "apple" ? { backgroundColor: "hsl(var(--foreground))", color: "hsl(var(--background))" } : undefined}');
   });
 });

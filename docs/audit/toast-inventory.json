@@ -4389,7 +4389,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 135,
+      "line": 134,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4399,7 +4399,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 312,
+      "line": 311,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4419,7 +4419,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 315,
+      "line": 314,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4429,7 +4429,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 320,
+      "line": 319,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4439,7 +4439,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 326,
+      "line": 327,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4449,7 +4449,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 329,
+      "line": 330,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4459,7 +4459,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 85,
+      "line": 86,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4469,7 +4469,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 153,
+      "line": 160,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4479,7 +4479,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 159,
+      "line": 166,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4489,7 +4489,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 162,
+      "line": 169,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -33,6 +33,7 @@ const derived = deriveRouteSet({
   adminViews: ["analytics"],
 });
 
+// @mutate scripts/audit/press-every-control.mjs | /^<\w*Redirect\s*\/>$/.test(page) | /^<\w*Redirect\s*\/>$/.test(el)
 // @mutate scripts/audit/press-every-control.mjs | for (const v of adminViews) push(`${url}?view=${v}`, r, ["admin"]); |
 describe("press-every-control route derivation", () => {
   it("maps every <Route path> in App.tsx to at least one derived row", () => {
@@ -44,8 +45,10 @@ describe("press-every-control route derivation", () => {
   it("marks pure redirect routes so their targets are not pressed twice", () => {
     const parsed = parseAppRoutes();
     const byPath = Object.fromEntries(parsed.map((r) => [r.path, r]));
-    // App.tsx has no redirect route left since Q194, so the positive case is a
-    // synthetic route table.
+    // A redirect page inside the route wrappers (error boundary, routeEl, sign-in gate) is a
+    // redirect too (2026-10-20): /explore opens the last section, /quotes forwards to Jobs.
+    expect(byPath["/explore"].redirect).toBe(true);
+    expect(byPath["/quotes"].redirect).toBe(true);
     const synthetic = parseAppRoutes(`<Route path="/old" element={<Navigate to="/profile" replace />} />`);
     expect(synthetic).toEqual([expect.objectContaining({ path: "/old", redirect: true })]);
     expect(byPath["/home"].redirect).toBe(false);

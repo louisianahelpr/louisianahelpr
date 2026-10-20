@@ -4494,7 +4494,7 @@ html.senior-mode *::after {
    Guard: src/test/centerCreateNav.test.tsx. The class is repeated to outrank
    T1's `.font-display:not(...)` (0,2,0) when both sit on one title (SheetHero). */
 .font-moment.font-moment.font-moment {
-  font-family: "Bodoni Moda", "Bodoni Moda Fallback", Georgia, serif !important;
+  font-family: "Bodoni Moda", "Bodoni Moda Fallback", "Bodoni Moda Fallback Liberation", Georgia, serif !important;
   font-style: normal !important;
   font-weight: 600 !important;
   letter-spacing: -0.01em !important;

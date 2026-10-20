@@ -8,7 +8,7 @@
  *
  * @mutate src/pages/auth/Login.tsx | <img src="/apple-touch-icon.png" alt="Helpr" width={64} height={64} className="w-16 h-16 rounded-full | <img src="/apple-touch-icon.png" alt="Helpr" width={64} height={64} className="w-16 h-16 rounded-ds-md
  * @mutate src/pages/auth/Login.tsx |         <div className="grid gap-6 w-full [&>*]:min-w-0"> |         <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full"}>
- * @mutate src/pages/auth/Login.tsx | <h1 className="text-ds-24 font-bold leading-tight text-foreground">Log in</h1> | <h1 className="text-ds-24 font-bold leading-tight text-foreground">Log In</h1>
+ * @mutate src/pages/auth/Login.tsx | <h1 className="text-page-title text-foreground">Log in</h1> | <h1 className="text-page-title text-foreground">Log In</h1>
  * @mutate src/pages/auth/Login.tsx |                 Forgot password?\n |                 Forgot Password?\n
  * @mutate src/components/auth/SocialAuthButtons.tsx |   const label = `Continue with ${providerName}`; |   const label = providerName;
  * @mutate src/pages/auth/Login.tsx |             className="w-full rounded-full"\n            size="lg" |             className="w-full rounded-ds-md"\n            size="lg"

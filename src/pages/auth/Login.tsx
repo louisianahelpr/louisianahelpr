@@ -340,7 +340,7 @@ const Login = () => {
         {!mfaChallenge && (
           <div className="flex flex-col items-center text-center gap-1.5" data-testid="login-card-head">
             <img src="/apple-touch-icon.png" alt="Helpr" width={64} height={64} className="w-16 h-16 rounded-full ring-1 ring-border object-cover mb-2" />
-            <h1 className="text-ds-24 font-bold leading-tight text-foreground">Log in</h1>
+            <h1 className="text-page-title text-foreground">Log in</h1>
             <p className="text-ds-14 text-muted-foreground">Welcome back, neighbor.</p>
           </div>
         )}

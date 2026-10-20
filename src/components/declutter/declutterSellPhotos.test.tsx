@@ -111,7 +111,7 @@ describe("photo-first selling", () => {
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
     fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
     // Board 31b: the drop strip follows the real rule (floor(current * 0.95), never below the lowest).
-    // @mutate src/components/declutter/DeclutterSellView.tsx |     cur = Math.max(floorCents, Math.floor(cur * 0.95)); |     cur = Math.max(floorCents, Math.round(cur * 0.95));
+    // @mutate src/components/declutter/DeclutterSellSteps.tsx |     cur = Math.max(floorCents, Math.floor(cur * 0.95)); |     cur = Math.max(floorCents, Math.round(cur * 0.95));
     const strip = document.querySelector("[data-drop-schedule]")!;
     expect([...strip.querySelectorAll("ol li")].map((li) => li.textContent)).toEqual(["$38", "$36.10", "$34.29", "$32.57", "$30.94", "$30"]);
     expect(strip.textContent).toMatch(/may stop sooner/);

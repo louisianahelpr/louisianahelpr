@@ -22,7 +22,12 @@
  * Kept (green before and after):
  *   K1 a real member still sees a real seller's live item and its photo
  *   K2 the test seller still sees their own item
+ *   R6 a test seller accepting a real member's offer cannot put the test item
+ *      in her cart (declutter_take_item, the accept door)                  RED before
+ *   R7 a real member cannot ask a question on a test item                  RED before
+ *   R8 a real member cannot watch a test item                              RED before
  *   K3 another test account still sees the test item (the journeys)
+ *   K6 a test buyer still takes a test item; a real buyer a real item
  *   K5 a real member can still lock a real item; a test account a test item
  * Switch OFF:
  *   K4 a real member sees the test item (today's behaviour with the switch off)
@@ -94,6 +99,16 @@ CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
 CREATE TABLE public.declutter_items (id uuid PRIMARY KEY, seller_id uuid NOT NULL, status text NOT NULL, title text, is_seed boolean NOT NULL DEFAULT false,
   current_price_cents integer NOT NULL DEFAULT 4000, sale_mode text NOT NULL DEFAULT 'offers');
 CREATE TABLE public.declutter_buyer_cards (user_id uuid PRIMARY KEY);
+CREATE TABLE public.declutter_offers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid, buyer_id uuid, status text, closed_at timestamptz, updated_at timestamptz);
+CREATE TABLE public.declutter_offer_events (offer_id uuid, actor_side text, action text);
+CREATE TABLE public.declutter_cart_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid, buyer_id uuid, seller_id uuid, price_cents int, source text, offer_id uuid, checkout_by timestamptz);
+CREATE TABLE public.declutter_questions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid, asker_id uuid, question text, created_at timestamptz DEFAULT now());
+CREATE TABLE public.declutter_watchlist (user_id uuid, item_id uuid, UNIQUE (user_id, item_id));
+ALTER TABLE public.declutter_items ADD COLUMN updated_at timestamptz;
+CREATE FUNCTION public.declutter_notify(uuid, text, text, text, text, uuid) RETURNS void LANGUAGE sql AS $$ SELECT $$;
+CREATE FUNCTION public.require_feature(text) RETURNS void LANGUAGE sql AS $$ SELECT $$;
+CREATE FUNCTION public.is_caller_banned() RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
+CREATE FUNCTION public.declutter_assert_member(boolean) RETURNS uuid LANGUAGE sql AS $$ SELECT auth.uid() $$;
 CREATE FUNCTION public.are_users_blocked(uuid, uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE FUNCTION public.declutter_seller_out(uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE TABLE public.declutter_item_photos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid REFERENCES public.declutter_items(id), storage_path text);
@@ -109,6 +124,10 @@ ${fnStmt("has_role")}
 ${fnStmt("seed_jobs_hidden_publicly")}
 ${fnStmt("seed_hidden_in_discovery")}
 ${fnStmt("declutter_lock_buyable_item")}
+${fnStmt("seed_hidden_for")}
+${fnStmt("declutter_take_item")}
+${fnStmt("declutter_ask_question")}
+${fnStmt("declutter_set_watch")}
 -- Live 2026-10-20 (pg_policies qual): the photos policy.
 CREATE POLICY "declutter photos: readable with their item" ON public.declutter_item_photos FOR SELECT TO authenticated
   USING (EXISTS (SELECT 1 FROM public.declutter_items i WHERE i.id = declutter_item_photos.item_id));
@@ -148,6 +167,20 @@ async function lock(uid, item) {
     return String(e.message);
   }
 }
+/** Run `sql` as `uid` (superuser, as the definer functions run); null = ok, else the error. */
+async function call(uid, sql) {
+  await db.exec(`SELECT set_config('request.jwt.claim.sub', '${uid}', false);`);
+  try {
+    await db.exec("BEGIN");
+    await db.query(sql);
+    await db.exec("ROLLBACK");
+    return null;
+  } catch (e) {
+    await db.exec("ROLLBACK");
+    return String(e.message);
+  }
+}
+const take = (caller, item, buyer) => call(caller, `SELECT public.declutter_take_item('${item}', '${buyer}', 2000, 'offer', NULL)`);
 const photos = (uid) => as(uid, "SELECT item_id FROM public.declutter_item_photos").then((r) => r.map((x) => x.item_id));
 
 console.log(`${BEFORE ? "BEFORE (migration left out)" : `AFTER (applied ${REPLAY ? 3 : 1}x)`}`);
@@ -157,6 +190,13 @@ check("R3 a real member cannot read its photos", !(await photos(REAL)).includes(
 check("R4 a real member cannot open it by id", (await as(REAL, `SELECT id FROM public.declutter_items WHERE id = '${SEED_ITEM}'`)).length === 0, "", true);
 check("R5 a real member cannot lock a test item to buy or offer", (await lock(REAL, SEED_ITEM)) === "item_not_found", String(await lock(REAL, SEED_ITEM)), true);
 check("K5 a real member locks a real item; a test account locks a test item", (await lock(REAL, REAL_ITEM)) === null && (await lock(SEED_OTHER, SEED_ITEM)) === null, `${await lock(REAL, REAL_ITEM)} / ${await lock(SEED_OTHER, SEED_ITEM)}`);
+check("R6 a test seller's accept cannot cart a test item for a real member", (await take(SEED_SELLER, SEED_ITEM, REAL)) === "item_not_found", String(await take(SEED_SELLER, SEED_ITEM, REAL)), true);
+check("R7 a real member cannot ask on a test item", (await call(REAL, `SELECT public.declutter_ask_question('${SEED_ITEM}', 'Still there?')`)) === "item_not_found", "", true);
+check("R8 a real member cannot watch a test item", (await call(REAL, `SELECT public.declutter_set_watch('${SEED_ITEM}', true)`)) === "item_not_found", "", true);
+check("K6 a test buyer takes a test item; a real buyer a real item; a real member asks / watches a real item",
+  (await take(SEED_SELLER, SEED_ITEM, SEED_OTHER)) === null && (await take(REAL_SELLER, REAL_ITEM, REAL)) === null
+  && (await call(REAL, `SELECT public.declutter_ask_question('${REAL_ITEM}', 'Still there?')`)) === null
+  && (await call(REAL, `SELECT public.declutter_set_watch('${REAL_ITEM}', true)`)) === null);
 check("K1 a real member sees a real seller's item and its photo", (await browse(REAL)).includes(REAL_ITEM) && (await photos(REAL)).includes(REAL_ITEM));
 check("K2 the test seller sees their own item", (await browse(SEED_SELLER)).includes(SEED_ITEM));
 check("K3 another test account sees the test item", (await browse(SEED_OTHER)).includes(SEED_ITEM));
@@ -164,7 +204,7 @@ await db.exec(`UPDATE public.platform_settings SET feature_flags = '{"seed_jobs_
 check("K4 switch off: a real member sees the test item", (await browse(REAL)).includes(SEED_ITEM));
 
 if (BEFORE) {
-  const expectedRed = 5;
+  const expectedRed = 8;
   console.log(`\n${redFailures}/${expectedRed} RED checks failed before the migration (want ${expectedRed}); ${failures - redFailures} kept checks failed (want 0)`);
   process.exit(redFailures === expectedRed && failures === redFailures ? 0 : 1);
 }

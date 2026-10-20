@@ -6,7 +6,8 @@ import { unwrap } from "@/lib/supabaseResult";
 import { formatPriceExact } from "@/lib/format";
 import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
-import { helprFlatFeeCents, isFlatFeeJob } from "@/lib/helprFlatFee";
+import { queryKeys } from "@/lib/queryKeys";
+import { fetchPayoutStatus, payoutStatusQueryOptions } from "@/lib/payoutSetupQueries";
 import { transferredCents, type TransferRow } from "@/lib/jobDonePay";
 
 /**
@@ -159,7 +160,7 @@ export function JobDoneSummary({
             {job.payment_status === "released"
               ? (job.is_group_job ? "It's on its way to their banks." : "It's on its way to their bank.")
               : job.payout_scheduled_at
-                ? `${job.is_group_job ? "Your crew's" : `${firstName}'s`} pay goes out ${formatPayoutTime(job.payout_scheduled_at)}.`
+                ? `${job.is_group_job ? "Your crew's" : `${firstName}'s`} pay is scheduled to go out ${formatPayoutTime(job.payout_scheduled_at)}.`
                 : `${job.is_group_job ? "Your crew's" : `${firstName}'s`} pay goes out with the next payout.`}
           </p>
         </div>
@@ -197,8 +198,7 @@ export function JobDoneSummary({
         <HelprPayNote
           transfers={transfers}
           held={job.dispute_status === "reversal_hold"}
-          jobPriceCents={isFlatFeeJob(job) && !job.is_group_job && job.budget != null ? Math.round(Number(job.budget) * 100) : null}
-          feeCents={isFlatFeeJob(job) && !job.is_group_job && job.budget != null ? helprFlatFeeCents(Math.round(Number(job.budget) * 100), job) : null}
+          viewerId={viewerId}
           posterFirstName={firstName}
         />
       )}
@@ -206,27 +206,37 @@ export function JobDoneSummary({
   );
 }
 
-function HelprPayNote({ transfers, held, jobPriceCents, feeCents, posterFirstName }: {
+function HelprPayNote({ transfers, held, viewerId, posterFirstName }: {
   transfers: readonly TransferRow[];
   /** A clawed-back transfer frozen for review (transferReversed). */
   held: boolean;
-  /** Flat-model, single-Helpr job: the stamped price and its Helpr fee, for the breakdown line. */
-  jobPriceCents: number | null;
-  feeCents: number | null;
+  viewerId: string;
   posterFirstName: string;
 }) {
   // THE NUMBER IS THE TRANSFER. Before a transfer row exists no headline
   // amount is shown: account-level deductions (the one-time setup fee, a
   // Helpr-fault fee debt), a missing payout account or a freeze can all make
   // the transfer differ from the job's take-home (lh-money-escrow review,
-  // findings 2, 5, 7). The job's own price and fee are stamped facts and are
-  // shown as the breakdown line.
+  // findings 2, 5, 7). No fee breakdown line either: the fee is charged on the
+  // urgent share too and on a dispute split's share, and the transfer is
+  // floored and can carry the setup fee, so a "job · fee" line would not add
+  // up to the headline (re-review findings 1-2).
   const { cents, sent } = transferredCents(transfers);
+  // Nothing sent yet and no payout account: say what to do (re-review #3).
+  const { data: payout } = useQuery({
+    queryKey: queryKeys.payoutSetup.status(viewerId),
+    queryFn: fetchPayoutStatus,
+    ...payoutStatusQueryOptions,
+    enabled: !!viewerId && transfers.length === 0,
+  });
+  const needsPayoutSetup = transfers.length === 0 && payout != null && !payout.payouts_enabled;
   if (held || (transfers.length > 0 && cents === 0)) {
     return (
       <div className="rounded-ds-lg p-4 text-center" style={{ background: "hsl(var(--card))", boxShadow: "0 4px 18px rgba(32,30,26,0.06)" }}>
         <p className="font-sans font-bold text-ds-18" style={{ color: "hsl(var(--ink-deep))" }}>Your pay for this job is on hold</p>
-        <p className="font-sans text-ds-13 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>We'll message you about what happens next.</p>
+        <p className="font-sans text-ds-13 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          Questions about it? <Link to="/help" className="font-bold" style={{ color: "hsl(var(--bark))" }}>Get help</Link>
+        </p>
       </div>
     );
   }
@@ -245,9 +255,10 @@ function HelprPayNote({ transfers, held, jobPriceCents, feeCents, posterFirstNam
           ? `$${formatPriceExact(cents / 100)} ${sent ? "was sent" : "is on its way"}`
           : "Your pay is being prepared"}
       </p>
-      {jobPriceCents != null && feeCents != null && (
-        <p className="font-sans text-ds-12 tabular-nums" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          ${formatPriceExact(jobPriceCents / 100)} job · Helpr fee ${formatPriceExact(feeCents / 100)}
+      {needsPayoutSetup && (
+        <p className="font-sans text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
+          Add a payout account so it can be sent.{" "}
+          <Link to="/profile?tab=payment" className="font-bold" style={{ color: "hsl(var(--bark))" }}>Set up payouts</Link>
         </p>
       )}
       <p className="font-sans text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>

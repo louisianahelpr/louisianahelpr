@@ -96,7 +96,7 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
     }
   };
 
-  const tipValid = amount !== undefined && amount * 100 >= TIP_MIN_CENTS && amount * 100 <= TIP_MAX_CENTS;
+  const tipValid = amount !== undefined && Math.round(amount * 100) >= TIP_MIN_CENTS && Math.round(amount * 100) <= TIP_MAX_CENTS; // whole cents, as sent
   const first = helperName ? helperName.trim().split(/\s+/)[0] : "";
 
   // Board 180 ("tip later"): the same step as the Job done screen's tip,

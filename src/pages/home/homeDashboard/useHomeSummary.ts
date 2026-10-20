@@ -47,7 +47,7 @@ export function useHomeSummary(user: SupaUser | null) {
     const aa = applied.appliedApps ?? [];
     const postedNeeds = pj.filter((j) => postedActivityBucket(j, posted.pendingApplicantCounts?.[j.id] ?? 0) === "needs_you");
     const appliedNeeds = aa.filter((a) => appliedActivityBucket(a) === "needs_you" && a.job);
-    const postedLive = pj.filter((j) => ["waiting", "scheduled"].includes(postedActivityBucket(j, posted.pendingApplicantCounts?.[j.id] ?? 0)));
+    const postedUpcoming = pj.filter((j) => postedActivityBucket(j, posted.pendingApplicantCounts?.[j.id] ?? 0) === "scheduled");
     const appliedLive = aa.filter((a) => a.job && appliedActivityBucket(a) === "scheduled");
 
     const todos: TodoItem[] = [
@@ -73,7 +73,10 @@ export function useHomeSummary(user: SupaUser | null) {
       thisWeek,
       upcoming: upcoming.slice(0, 3),
       tiles: {
-        jobs: { n: postedNeeds.length + appliedNeeds.length, label: "need you", second: `${postedLive.length + appliedLive.length} in progress` },
+        // H5 (Cowork audit 2026-10-20): "N in progress" counted open jobs still
+        // WAITING for applicants as in progress. The second line is the jobs that
+        // are booked and ahead of you, in the Jobs status boxes' own word.
+        jobs: { n: postedNeeds.length + appliedNeeds.length, label: "need you", second: `${postedUpcoming.length + appliedLive.length} upcoming` },
         declutter: { n: items.filter((i) => i.status === "live").length, label: "live", second: `${items.filter((i) => i.status === "pending_review").length} in review` },
         shops: { n: myOrders.length, label: myOrders.length === 1 ? "open order" : "open orders", second: "Browse shops" },
         homes: { n: props.length, label: props.length === 1 ? "property" : "properties", second: props.length ? "Repairs, tenants" : "Add a property" },

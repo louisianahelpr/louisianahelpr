@@ -120,7 +120,7 @@ export async function twilioSignature(
 }
 
 /** Escape text placed inside a TwiML <Message>. */
-export function xmlEscape(s: string): string {
+function xmlEscape(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
 

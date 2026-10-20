@@ -69,6 +69,11 @@ const NOT_ACTION_ROWS = new Set([
   // replaced each tab's own header, PostsHeader / JobsHeader, on 2026-10-19,
   // Q2205), the Show older pager, the bulk-dismiss bar.
   "src/components/job-card/ActivityBucketGroups.tsx",
+  // Boards 14/21/15 (design spec v2, 2026-10-20): the mine-card FACE's one button
+  // and Close, and the job page's primary, are page-level controls at the spec's
+  // button sizes (§3 Buttons), not the step row's 11px chips.
+  "src/components/job-card/MineJobFace.tsx",
+  "src/pages/jobs/jobPage/JobPage.tsx",
   "src/components/job-card/PagedActivityList.tsx",
   "src/pages/posts/BulkDismissBar.tsx",
 ]);

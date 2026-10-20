@@ -5039,7 +5039,7 @@
     },
     {
       "file": "src/components/job-card/JobListPage.tsx",
-      "line": 306,
+      "line": 307,
       "kind": "toast.info",
       "title": {
         "form": "template",

@@ -33,6 +33,7 @@ export interface JobPageRow {
   payment_status: string | null;
   urgent_fee: number | null;
   helpers_needed: number | null;
+  is_group_job: boolean | null;
   photos: string[] | null;
   helper_fee_flat_cents: number | null;
   helper_fee_percent: number | null;
@@ -40,7 +41,7 @@ export interface JobPageRow {
 }
 
 const BASE_COLUMNS =
-  "id, title, description, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, photos, helper_fee_flat_cents";
+  "id, title, description, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents";
 const PARTY_COLUMNS = `${BASE_COLUMNS}, helper_id, helper_fee_percent, poster_fee_flat_cents`;
 
 function toRow(raw: Record<string, unknown>): JobPageRow {

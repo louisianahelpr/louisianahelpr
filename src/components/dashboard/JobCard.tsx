@@ -102,17 +102,12 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
     onSelect(job);
   }, [job, onSelect]);
 
-  // Show the gross posted budget (vs the helper's net take-home) whenever
-  // the full guest variant is active OR the lighter guestPricing flag is set.
+  // Show the gross posted budget (vs the helper's net take-home) for guestPricing or the poster's own job.
   // Net "You earn" take-home is the default for guests too (they're shown an
   // assumed fee tier via effectiveFee). Only the explicit `guestPricing` flag
   // forces the gross "Budget" figure — `variant="guest"` no longer does, so a
   // guest card can show take-home AND the "Sign up to apply" CTA together.
-  // J1 (Cowork audit 2026-10-20): the POSTER looking at their own job sees
-  // the price they set, the same figure their Posted card shows, never a
-  // Helpr's take-home. Measured on the owner's job 11f8b084: Posted said $60,
-  // her own Browse card said $52 (60 less the 12% fee, floored).
-  const isOwnJob = !!_currentUserId && job.customer_id === _currentUserId;
+  const isOwnJob = !!_currentUserId && job.customer_id === _currentUserId; // J1: own job = the price set, as on Posted
   const showBudget = guestPricing || isOwnJob;
   // Per-helpr split count for the shared JobPrice element. The net-take-home
   // math itself now lives in JobPrice (the single money component), so the

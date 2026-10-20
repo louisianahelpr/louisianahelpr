@@ -576,9 +576,7 @@ const JobDetailDialog = ({
               budget={job.budget}
               effectiveFee={commissionPercent}
               urgentFee={job.urgent_fee ?? 0}
-              helpersNeeded={helpers} jobStatus={job.status} feeStamp={job}
-              // J1: the poster's own job shows the price they set, as on Posted.
-              showBudget={!!viewerUserId && viewerUserId === job.customer_id}
+              helpersNeeded={helpers} jobStatus={job.status} feeStamp={job} showBudget={!!viewerUserId && viewerUserId === job.customer_id} // J1: own job = the price set
             />
           </div>
         </div>

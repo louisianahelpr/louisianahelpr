@@ -131,6 +131,8 @@ describe("Q341: applicant list and counters share ONE blocked filter", () => {
           // The poster's chat shows the applicant's note at the top (owner,
           // 2026-10-12): one row, read under the same block-filtered poster policy.
           "src/components/messages/chatView/ApplicationNoteCard.tsx",
+          // The job page's applicant count for the poster (board 15): status only, same policy.
+          "src/pages/jobs/jobPage/useJobPage.ts",
       ].sort(),
     );
   });

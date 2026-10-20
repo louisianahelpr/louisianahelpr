@@ -127,7 +127,7 @@ test.describe("signed in (helper)", () => {
     const page = await ctx.newPage();
     await page.goto(`/jobs/${fx.openJob!.id}`);
     await expect(page.getByText("Your budget").first(), "not the poster's job page").toBeVisible({ timeout: 30_000 });
-    await page.getByRole("button", { name: /^(Review \d+ applicants?|Open in Posted)$/ }).first().click();
+    await page.getByRole("button", { name: /^(Review \d+ applicants?|Manage job)$/ }).first().click();
     await page.waitForURL(/\/posts/, { timeout: 30_000 });
     await expect(page.getByText(fx.openJob!.title).first()).toBeVisible({ timeout: 30_000 });
     await assertHealthy(page, info, "own-post");

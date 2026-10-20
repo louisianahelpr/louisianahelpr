@@ -100,6 +100,7 @@ const TONE: Record<JobStatusTone, ToneSkin> = {
 export function JobStatusStrip({
   line,
   extraClocks,
+  variant = "band",
 }: {
   line: JobStatusLine;
   /**
@@ -109,32 +110,42 @@ export function JobStatusStrip({
    * status line, the one ending first listed first, in one format).
    */
   extraClocks?: readonly CountdownClock[] | null;
+  /** `line`: the mine-card face's status line (boards 14/21): no band, no wash,
+   *  13px semibold, inside the face under date · time. Same data, same hooks. */
+  variant?: "band" | "line";
 }) {
   const skin = TONE[line.tone];
   const Icon = skin.icon;
   // An unanswered offer reads as ONE line, its answer clock beside the
   // sentence, with the start clock under it (owner, 2026-10-08).
   const deadlineInline = line.id === "unconfirmed" && !!line.deadline;
+  const Root = variant === "line" ? "span" : "p";
   return (
-    <p
-      className="px-4 py-2 flex items-center gap-1.5 flex-wrap"
+    <Root
+      className={variant === "line" ? "flex items-center gap-1.5 flex-wrap" : "px-4 py-2 flex items-center gap-1.5 flex-wrap"}
       data-job-status-strip={line.id}
+      data-job-status-variant={variant}
       data-job-status-tone={line.tone}
       /* The two guards that pin the states this strip absorbed keep their
          hooks. They are ATTRIBUTES rather than separate components now, which
          is the whole point: one band per card. */
       {...(line.tone === "alarm" ? { "data-dispute-open-badge": "" } : {})}
       {...(line.owesConfirmation ? { "data-poster-owes-confirmation": "" } : {})}
-      style={{
-        borderTop: `0.5px solid hsl(var(${skin.surface}) / 0.22)`,
-        background: `hsl(var(${skin.surface}) / 0.08)`,
-      }}
+      style={
+        variant === "line"
+          ? undefined
+          : {
+              borderTop: `0.5px solid hsl(var(${skin.surface}) / 0.22)`,
+              background: `hsl(var(${skin.surface}) / 0.08)`,
+            }
+      }
     >
       {/* Icon takes the INK, not the surface. The surface tokens are tuned for
           low-alpha washes and borders, so at full opacity some sit near 3:1 on
           the card; the ink tokens are text-grade by construction. One rule for
           every tone rather than an exception for amber. */}
-      <Icon className="w-3 h-3 shrink-0" style={{ color: `hsl(var(${skin.ink}))` }} aria-hidden />
+      {/* The face's line carries no glyph (board 14): its colour says whose move it is. */}
+      {variant === "band" && <Icon className="w-3 h-3 shrink-0" style={{ color: `hsl(var(${skin.ink}))` }} aria-hidden />}
       {/*
         THE EYEBROW IS NO LONGER SHOWN (owner, 2026-09-21): "instead of saying
         needs you on the left. the left should say like the reason things are
@@ -153,7 +164,7 @@ export function JobStatusStrip({
         field rather than the rendering would have retired that check.
       */}
       <span className="sr-only">{line.eyebrow} — </span>
-      <span className="font-sans text-ds-11" style={{ color: `hsl(var(${skin.ink}))` }}>
+      <span className={variant === "line" ? "font-sans text-ds-13 font-semibold" : "font-sans text-ds-11"} style={{ color: `hsl(var(${skin.ink}))` }}>
         {line.detail}
       </span>
       {deadlineInline && line.deadline && (
@@ -199,6 +210,6 @@ export function JobStatusStrip({
           />
         </span>
       )}
-    </p>
+    </Root>
   );
 }

@@ -1,80 +1,8 @@
 import {
-  LogOut, AlertTriangle,
+  AlertTriangle,
   ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import type { MenuItem } from "./types";
-
-interface SettingsSectionProps {
-  menuGroups: { title: string; items: MenuItem[] }[];
-  onSelectTab: (key: string) => void;
-  onNavigate: (path: string) => void;
-  onRequestLogout: () => void;
-  onRequestDelete: () => void;
-}
-
-export function SettingsSection({
-  menuGroups,
-  onSelectTab,
-  onNavigate,
-  onRequestLogout,
-  onRequestDelete,
-}: SettingsSectionProps) {
-  return (
-    /* NO CARD AROUND THE GROUPS. Owner, 2026-09-11: keep the groups, drop the
-       outer card. This wrapper used to be a `liquid-glass` panel, so every
-       group below drew a white bordered card INSIDE a white bordered card —
-       two boundaries a pixel apart, four times on this screen (measured
-       `.liquid-glass .liquid-glass` = 4). The group cards and their eyebrows
-       are the cards (owner, 2026-08-24: "better organization"); this is only
-       the spacing between them. Same ruling as the getting-started banners in
-       ProfileLanding. */
-    <div>
-      <div className="space-y-4">
-        {/* Unified list-of-rows navigation, grouped by section. */}
-        {menuGroups.map((group) => (
-          <SettingsGroup
-            key={group.title}
-            group={group}
-            onSelect={(item) => {
-              if (item.href) onNavigate(item.href);
-              else onSelectTab(item.key);
-            }}
-          />
-        ))}
-
-        {/* Account actions: Log Out is the clear pill; Delete Account sits under
-            it as a quiet text button (owner, 2026-10-19). */}
-        <div className="pt-1 space-y-2.5">
-          <button
-            type="button"
-            onClick={onRequestLogout}
-            aria-label="Log Out"
-            className="glass-press w-full rounded-ds-lg bg-card py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
-            style={{
-              color: "hsl(var(--foreground))",
-              border: "1px solid hsl(var(--bark) / 0.32)",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-            }}
-          >
-            <LogOut className="w-4 h-4" /> Log Out
-          </button>
-          {/* DELETE ACCOUNT IS QUIET (owner, 2026-10-19: "Log Out clear and Delete
-              Account quiet"): a small muted text button under Log Out, never a
-              second pill of the same weight. Its confirm dialog does the warning. */}
-          <button
-            type="button"
-            onClick={onRequestDelete}
-            data-testid="profile-delete-account"
-            className="w-full min-h-11 inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground hover:text-[hsl(var(--burnt-sienna))] transition-colors"
-          >
-            Delete Account
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /**
  * One titled group of rows: the eyebrow over its `liquid-glass` card.

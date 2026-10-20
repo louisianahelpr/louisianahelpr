@@ -221,7 +221,7 @@ export const POPUP_HANDLE_CLS =
   "sm:hidden pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 h-1 w-9 rounded-full bg-[hsl(var(--muted-foreground)/0.35)]";
 
 /** Every popup action is a pill (spec v2 §2: pill 999px for every button). */
-export const POPUP_ACTION_RADIUS = "rounded-full";
+const POPUP_ACTION_RADIUS = "rounded-full";
 
 export const POPUP_SECONDARY_CLS =
   "basis-[calc(50%-6px)] grow !min-w-max px-4 border-0 shadow-none " +
@@ -255,4 +255,4 @@ export const POPUP_SECONDARY_CLS =
 // and then "Maybe Later", "Not Now", "Skip", "Keep the Job", "Keep It On",
 // "No Thanks", "Close", and a bare back-chevron. Nine distinct labels. Any
 // rule here has to hold for the longest of them, not for the common one.
-export const POPUP_COMMIT_CLS = `basis-[calc(50%-6px)] grow !min-w-max ${POPUP_ACTION_RADIUS}`;
+export const POPUP_COMMIT_CLS = "basis-[calc(50%-6px)] grow !min-w-max" + ` ${POPUP_ACTION_RADIUS}`;

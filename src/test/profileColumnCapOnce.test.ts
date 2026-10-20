@@ -47,7 +47,7 @@ describe("the Profile column is capped once (lead 2026-10-20)", () => {
   });
 
   it("no Profile tab or component sets a page measure of its own", () => {
-    const files = trackedFiles(ROOT).filter(
+    const files = trackedFiles("src").filter(
       (f) => /^src\/(pages\/profile|components\/profile)\/.*\.tsx$/.test(f),
     );
     expect(files.length).toBeGreaterThan(40);

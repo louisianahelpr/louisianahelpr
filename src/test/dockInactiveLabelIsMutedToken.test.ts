@@ -39,7 +39,7 @@ const ratio = (a: number[], b: number[]) => { const [x, y] = [lum(a), lum(b)].so
 
 describe("the dock's resting labels are the muted token (AA)", () => {
   it("no tracked source carries the old hard-coded grey", () => {
-    const files = trackedFiles(ROOT).filter((f) => /^src\/.*\.tsx?$/.test(f) && !f.startsWith("src/test/"));
+    const files = trackedFiles("src").filter((f) => /^src\/.*\.tsx?$/.test(f) && !f.startsWith("src/test/"));
     expect(files.length).toBeGreaterThan(500);
     const hits = files.filter((f) => /hsl\(48 9% 47%\)/.test(blankComments(read(f))));
     expect(hits).toEqual([]);

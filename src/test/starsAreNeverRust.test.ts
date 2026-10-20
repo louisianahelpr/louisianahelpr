@@ -35,7 +35,7 @@ describe("rating stars are olive, never rust", () => {
   });
 
   it("no <Star> tag outside JOBS_OWNED carries rust; JOBS_OWNED is exact", () => {
-    const files = trackedFiles(ROOT).filter((f) => /^src\/.*\.tsx$/.test(f) && !f.startsWith("src/test/"));
+    const files = trackedFiles("src").filter((f) => /^src\/.*\.tsx$/.test(f) && !f.startsWith("src/test/"));
     let stars = 0;
     const rusty = new Set<string>();
     for (const f of files) {

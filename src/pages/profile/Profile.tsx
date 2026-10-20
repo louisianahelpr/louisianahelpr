@@ -94,54 +94,36 @@ const ProfilePage = () => {
   const [justSaved, setJustSaved] = useState(false);
   const initialTab = resolveTab(searchParams.get("tab"));
   const [tab, setTab] = useState<Tab>(initialTab);
-  // ONE SETTLED PAINT for the landing (Q169, Q?profile-declutter-shift). The landing shows rows only while a
-  // hidden switch is on: Membership (useProfileLandingDerived; Quotes left 2026-10-19, Declutter, Shops and
-  // Homes left the landing for the dock 2026-10-18). Painted before the answer, such a row lands later and pushes
-  // Settings down (prod, 375: the Declutter row came ~50 ms late, moved it 90px, CLS 0.0599, prod-audit run
-  // 39008504928). The reads start with the profile read; the skeleton holds until all answer, at most
-  // ARRIVAL_CAP_MS, so Log out never hides.
-  const membershipsSwitch = useFeatureStatus("memberships");
-  // Quotes left the landing (owner, 2026-10-19: quotes live in Post a Job), so
-  // its switch no longer holds the paint.
-  const landingReady = useArrivalGate(!loading, membershipsSwitch.settled);
+  // ONE SETTLED PAINT for the landing (Q169, Q?profile-declutter-shift). Board 18's activity tiles read the
+  // section switches (useSectionTabs: "Opening soon" or not); painted before the answer, a tile changes under
+  // the reader (prod precedent: a late Declutter row moved Settings 90px, CLS 0.0599). The skeleton holds until
+  // all answer, at most ARRIVAL_CAP_MS, so Log out never hides.
+  const declutterSwitch = useFeatureStatus("declutter");
+  const shopsSwitch = useFeatureStatus("shops");
+  const rentalsSwitch = useFeatureStatus("rentals");
+  const landingReady = useArrivalGate(!loading, declutterSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled);
   const showSkeleton = tab === "landing" ? !landingReady : loading;
 
   /**
    * Back out of a tab — to the Profile landing when that is where you came
    * from, and otherwise to wherever you actually came from.
    *
-   * The seventeen tabs all hardcoded `setTab("landing")`, so back from
-   * Earnings dropped you on the Profile landing whether you had tapped the
-   * Earnings row a second earlier or followed a payout notification straight
-   * to `/profile?tab=earnings`. In the second case that is the wrong screen
-   * AND an extra press, and it made Profile the only sub-surface in the app
-   * whose back button ignored history — `/work-record`, `/benefits` and
-   * `/pets` all return you to the previous page from the same starting point.
+   * (History: every tab once hardcoded `setTab("landing")`, ignoring a
+   * notification deep link's real history.) A tab opened from Settings backs
+   * out to Settings (returnTo).
    *
-   * `cameFromLanding` is the whole distinction: true once the landing has been
-   * rendered in this visit, which is exactly the case where "up" and "back"
-   * are the same screen. Deep-linked straight into a tab, we go back a real
-   * history entry instead, falling back to the landing when there is no
-   * in-app history to go back to (a cold open on the deep link) — the same
-   * has-history test `BackButton` already uses.
+   * `cameFromLanding`: true once the landing rendered this visit ("up" ==
+   * "back"). Deep-linked into a tab, go back a real history entry, else the
+   * landing (BackButton's has-history test).
    */
-  // A tab opened from You › Settings (board 52) backs out to Settings, not to the landing.
-  const returnTo = useRef<Tab | null>(null);
+  const returnTo = useRef<Tab | null>(null); // a tab opened from You › Settings (board 52) backs out to Settings
   const cameFromLanding = useRef(initialTab === "landing");
   useEffect(() => {
     if (tab === "landing") { cameFromLanding.current = true; returnTo.current = null; }
   }, [tab]);
-  const openFromSettings = useCallback((key: string) => {
-    returnTo.current = "settings";
-    setTab(key as Tab);
-  }, []);
+  const openFromSettings = useCallback((key: string) => { returnTo.current = "settings"; setTab(key as Tab); }, []);
   const backFromTab = useCallback(() => {
-    if (returnTo.current) {
-      const parent = returnTo.current;
-      returnTo.current = null;
-      setTab(parent);
-      return;
-    }
+    if (returnTo.current) { const parent = returnTo.current; returnTo.current = null; setTab(parent); return; }
     if (cameFromLanding.current) {
       setTab("landing");
       return;
@@ -826,8 +808,7 @@ const ProfilePage = () => {
             reviewCount={reviewCount}
             seniorMode={seniorMode}
             onToggleSeniorMode={handleToggleSeniorMode}
-            onSelectTab={openFromSettings}
-            onRequestLogout={() => setShowLogoutDialog(true)}
+            onSelectTab={openFromSettings} onRequestLogout={() => setShowLogoutDialog(true)}
           />
           </div>
           </SectionBoundary>

@@ -19,8 +19,8 @@
  * switch added to the landing without being held here fails.
  */
 // @mutate src/pages/profile/Profile.tsx | const showSkeleton = tab === "landing" ? !landingReady : loading; | const showSkeleton = loading;
-// @mutate src/pages/profile/Profile.tsx | const landingReady = useArrivalGate(!loading, membershipsSwitch.settled); | const landingReady = useArrivalGate(!loading, true);
-// @mutate src/pages/profile/Profile.tsx |   const membershipsSwitch = useFeatureStatus("memberships"); |   const membershipsSwitch = { on: false, settled: true };
+// @mutate src/pages/profile/Profile.tsx | const landingReady = useArrivalGate(!loading, declutterSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled); | const landingReady = useArrivalGate(!loading, true);
+// @mutate src/pages/profile/Profile.tsx |   const declutterSwitch = useFeatureStatus("declutter"); |   const declutterSwitch = { on: false, settled: true };
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -134,6 +134,10 @@ afterEach(() => {
 /** Files in profileLanding/ the landing no longer renders, so their switch reads hold no paint. EXACT. */
 // @two-way src/pages/profile/Profile.switchHold.test.tsx:stale NOT_RENDERED entry
 const NOT_RENDERED: Record<string, string> = {
+  // Board 18 (2026-10-20): the landing is YouCard + YourActivity + YouMenu. The menu groups are read by
+  // You › Settings (SettingsTab), and SettingsGroup by /jobs/settings; neither paints on the landing.
+  "useProfileLandingDerived.tsx": "read by You › Settings (board 52), not the landing",
+  "SettingsSection.tsx": "SettingsGroup is /jobs/settings' list; the landing no longer renders it",
   // QuotesEntryRow.tsx was here until 2026-10-19: quotes moved into Post a Job and the file was deleted
   // (src/components/quotes/quotesMenuLink.test.tsx pins it gone).
 };
@@ -146,13 +150,13 @@ describe("the Profile landing waits for its switches (Q1894)", () => {
     expect(screen.queryByTestId("landing")).toBeNull();
     // Every read starts with the page, not with the landing.
     // 2026-10-19: Declutter, Shops and Homes left the landing for the dock (design-small) and
-    // Quotes moved into Post a Job, so Membership is the one switch-gated row left.
-    // ONE batched read for every switch (nightly-red #2601), and it covers memberships.
+    // Quotes moved into Post a Job. 2026-10-20 (board 18): the activity tiles read Declutter, Shops and Homes.
+    // ONE batched read for every switch (nightly-red #2601), and it covers them.
     expect([...switches.pending.keys()]).toEqual(["(batch)"]);
-    expect(switches.pending.get("(batch)")?.keys).toContain("memberships");
+    expect(switches.pending.get("(batch)")?.keys).toContain("declutter");
     await act(async () => { await vi.advanceTimersByTimeAsync(200); });
-    expect(screen.queryByTestId("landing"), "painted before 'memberships' answered").toBeNull();
-    await answer("memberships", false);
+    expect(screen.queryByTestId("landing"), "painted before the section switches answered").toBeNull();
+    await answer("declutter", false);
     expect(await screen.findByTestId("landing")).toBeTruthy();
     expect(screen.queryByTestId("skeleton")).toBeNull();
   });
@@ -187,6 +191,8 @@ describe("the Profile landing waits for its switches (Q1894)", () => {
       ...readdirSync(resolve(root, "profileLanding"))
         .filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f) && !NOT_RENDERED[f])
         .map((f) => resolve(root, "profileLanding", f)),
+      // YourActivity's tiles read the section switches through useSectionTabs (board 18).
+      resolve(__dirname, "../../components/mobileNav/useSectionTabs.ts"),
     ];
     const read = new Set<string>();
     for (const f of files) {

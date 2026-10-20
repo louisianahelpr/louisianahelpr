@@ -45,7 +45,7 @@
 // @mutate src/components/GuestBrowseSkeleton.tsx | 0.25rem) + var(--public-nav-h))" }} /> | 1.5rem) + 3rem)" }} />
 // @mutate src/components/dashboard/VirtualizedJobList.tsx | initialRect: { width: 0, height: typeof window === "undefined" ? 800 : window.innerHeight }, |
 // @mutate src/lib/simpleMode.ts | let profileSeniorMode = cachedProfileFlag(); | let profileSeniorMode = false;
-// @mutate src/pages/profile/Profile.tsx | useArrivalGate(!loading, membershipsSwitch.settled) | useArrivalGate(!loading, true)
+// @mutate src/pages/profile/Profile.tsx | useArrivalGate(!loading, declutterSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled) | useArrivalGate(!loading, true)
 // @mutate src/pages/profile/Profile.tsx | const showSkeleton = tab === "landing" ? !landingReady : loading; | const showSkeleton = loading;
 // @mutate src/pages/profile/Profile.tsx |   if (showSkeleton) { |   if (loading) {
 // @mutate src/pages/profile/Profile.tsx | <div aria-busy="true" className="container mx-auto | <div className="container mx-auto
@@ -188,8 +188,10 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
       landingFiles.add(rel);
       const src = read(rel);
       const dir = rel.replace(/\/[^/]+$/, "");
-      for (const m of src.matchAll(/from\s+"(\.{1,2}\/[^"]+)"/g)) {
-        const base = join(dir, m[1]);
+      // Relative imports, plus the absolute ones a landing row reads its switches through
+      // (board 18's YourActivity reads useSectionTabs from @/components/mobileNav).
+      for (const m of src.matchAll(/from\s+"(\.{1,2}\/[^"]+|@\/components\/(?:profile|mobileNav\/useSectionTabs)[^"]*)"/g)) {
+        const base = m[1].startsWith("@/") ? m[1].slice(2) : join(dir, m[1]);
         const hit = [`${base}.tsx`, `${base}.ts`, `${base}/index.tsx`, `${base}/index.ts`].find((p) => {
           try { return statSync(join(SRC, p)).isFile(); } catch { return false; }
         });
@@ -202,7 +204,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     for (const f of landingFiles) {
       for (const m of read(f).matchAll(/\buseFeature(?:Status)?\s*\(\s*"([a-z0-9_]+)"\s*\)/g)) keys.add(m[1]);
     }
-    // memberships (useProfileLandingDerived). Quotes left the landing 2026-10-19.
+    // declutter, shops, rentals (YourActivity via useSectionTabs; board 18, 2026-10-20).
     expect(keys.size).toBeGreaterThan(0);
 
     const profile = read("pages/profile/Profile.tsx");

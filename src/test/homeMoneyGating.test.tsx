@@ -10,7 +10,7 @@
  * @mutate src/pages/home/homeDashboard/homeMoney.ts |     if (h.cents > 0) held = h; |     held = h;
  * @mutate src/pages/home/homeDashboard/homeMoney.ts |     if (c.cents > 0) coming = { |     coming = {
  * @mutate src/hooks/useFirstPayoutFee.ts |   return profile.onboarding_fee_paid === true \|\| fee.isSuccess; |   return profile.onboarding_fee_paid === true \|\| !fee.isPending;
- * @mutate src/hooks/useOnboardingFee.ts |         throw error; |         return null;
+ * @mutate src/hooks/useOnboardingFee.ts |       const data = unwrap(res); |       const data = res.error ? null : res.data;
  * @mutate src/pages/home/homeDashboard/homeMoney.ts | hasPayoutAccount: !!profile.stripe_account_id | hasPayoutAccount: true
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -99,7 +99,7 @@ describe("Home money tiles: a real number or no tile", () => {
   it("the fee read THROWS on failure, so a failed read is isError, never a success with no fee", () => {
     const feeSrc = blankComments(readFileSync(resolve(__dirname, "../hooks/useOnboardingFee.ts"), "utf8"));
     expect(feeSrc).toMatch(/export function useOnboardingFeeQuery\(\)/);
-    expect(feeSrc).toMatch(/const \{ data, error \} = await supabase\.rpc\("get_public_platform_settings"\);\s*if \(error\) \{\s*report\([^;]*\);\s*throw error;\s*\}/);
+    expect(feeSrc).toMatch(/const res = await supabase\.rpc\("get_public_platform_settings"\);\s*if \(res\.error\) report\([^;]*\);\s*const data = unwrap\(res\);/);
   });
 
   it("no payout account: the tile knows, so it never names a wallet date", () => {

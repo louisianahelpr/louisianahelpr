@@ -22,6 +22,7 @@ import { deriveComingUp, COMING_UP_ROLE } from "@/pages/home/homeDashboard/comin
 
 type ComingUpInputs = Parameters<typeof deriveComingUp>[0];
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
+import { jobLocalDateISO } from "./helpers/jobLocalDate";
 import type { CartLine } from "@/lib/declutter/api";
 import type { ShopOrder } from "@/lib/shops/orders";
 
@@ -32,7 +33,7 @@ const iso = (d: number, h: number, m = 0) => new Date(2026, 9, d, h, m).toISOStr
 const job = (over: Partial<Job>): Job =>
   ({
     id: "j", title: "Mow the lawn", status: "accepted", payment_status: "escrow", helper_id: "h", customer_id: "me",
-    date_needed: "2026-10-23", start_time: "14:00:00", updated_at: "2026-10-01T00:00:00Z", helper_confirmed_at: "2026-10-02T00:00:00Z", ...over,
+    date_needed: jobLocalDateISO(3, new Date(NOW)), start_time: "14:00:00", updated_at: "2026-10-01T00:00:00Z", helper_confirmed_at: "2026-10-02T00:00:00Z", ...over,
   }) as Job;
 const line = (over: Partial<CartLine>): CartLine =>
   ({
@@ -122,7 +123,7 @@ describe("Coming up mixes every section and both sides (spec v2 §5.4)", () => {
   it("everything sorts into one agenda by when, and yesterday drops off", () => {
     const rows = deriveComingUp({
       ...none,
-      postedJobs: [job({ id: "sat", title: "Assemble a bookshelf", date_needed: "2026-10-24", start_time: "13:00:00" })],
+      postedJobs: [job({ id: "sat", title: "Assemble a bookshelf", date_needed: jobLocalDateISO(4, new Date(NOW)), start_time: "13:00:00" })],
       cart: [line({})],
       bookings: [{ order_id: "o1", slot_start: iso(21, 18), slot_end: null, porch_mode: null, porch_until: null }],
       myOrders: [order({ id: "thu" }), order({ id: "old", ready_date: "2026-10-19" })],

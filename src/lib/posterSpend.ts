@@ -267,7 +267,10 @@ const HELD_UNTIL_CONFIRM_STATUSES = ["accepted", "in_progress", "revision_reques
  * What the card was charged for each such job (board 29: "$103.04 held until
  * the job is done"), read off spentRows(): the job's own charge less refunds
  * and gift-card cover. A tip is its own charge, paid straight to the Helpr, so
- * it is never held. Jobs that held nothing on the card are not counted.
+ * it is never held. The one-time setup fee is not held either: it is kept the
+ * moment checkout completes and no cancel, refund or dispute returns it
+ * (Q1674), so nothing about it waits on the poster (lead, 2026-10-20, on the
+ * lh-money-escrow review). Jobs that held nothing on the card are not counted.
  */
 export function heldForYou<J extends PosterSpendJob & { status: string }>(rows: readonly SpentRow<J>[]): { cents: number; jobs: number } {
   let cents = 0;
@@ -275,7 +278,8 @@ export function heldForYou<J extends PosterSpendJob & { status: string }>(rows: 
   for (const r of rows) {
     if (!r.job || r.job.payment_status !== "escrow") continue;
     if (!(HELD_UNTIL_CONFIRM_STATUSES as readonly string[]).includes(r.job.status)) continue;
-    const held = r.cents - r.tipCents;
+    const setupFeeCents = Math.max(0, Math.round(Number(r.job.onboarding_fee_amount ?? 0) * 100) || 0);
+    const held = r.cents - r.tipCents - setupFeeCents;
     if (held <= 0) continue;
     cents += held;
     jobs += 1;

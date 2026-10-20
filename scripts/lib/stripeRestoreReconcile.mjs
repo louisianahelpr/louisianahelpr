@@ -65,8 +65,10 @@ export const DB_ID_COLUMNS = {
     { table: "cancellation_fee_transfers", column: "stripe_transfer_id" },
     { table: "chargeback_clawbacks", column: "original_transfer_id" },
     { table: "chargeback_clawbacks", column: "repay_transfer_id" },
-    { table: "tip_hold_redrives", column: "transfer_id" },
-    { table: "tip_hold_redrives", column: "repay_transfer_id" },
+    // No id column (its key is tip_id): pages by tip_id, or every run answers 42703 and exits 2
+    // (Declutter payout proof run 39345010494, 2026-10-20 00:08Z).
+    { table: "tip_hold_redrives", column: "transfer_id", orderBy: "tip_id" },
+    { table: "tip_hold_redrives", column: "repay_transfer_id", orderBy: "tip_id" },
     { table: "declutter_payouts", column: "stripe_transfer_id" },
     { table: "helpr_task_payouts", column: "stripe_transfer_id" },
     { table: "shop_payouts", column: "stripe_transfer_id" },

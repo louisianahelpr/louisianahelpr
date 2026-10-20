@@ -22,6 +22,7 @@
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |   if (md.kind === "platform_topup" \|\| | if (false &&
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |   if (pi?.id && Object.hasOwn(KNOWN_ONE_OFF_PIS, pi.id)) | if (false)
  */
+// @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "tip_hold_redrives", column: "transfer_id", orderBy: "tip_id" }, |     { table: "tip_hold_redrives", column: "transfer_id" },
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -170,6 +171,16 @@ describe("Declutter and Shops money is in the restore check (Q2230, before the D
     expect(re.rejected).toEqual(["payout_settlements.stripe_ref = not-a-stripe-id"]);
   });
 
+  it("every registered table pages by a column it has (id, or its orderBy)", () => {
+    // tip_hold_redrives has no id column and had no orderBy: every restore check answered
+    // 42703 "column tip_hold_redrives.id does not exist" and exited 2 (could not measure),
+    // first seen by the Declutter payout proof, run 39345010494 (2026-10-20).
+    const cols = new Set(publicTableColumns());
+    const bad = Object.values(DB_ID_COLUMNS).flat()
+      .map((c) => `${c.table}.${c.orderBy ?? "id"}`)
+      .filter((k) => !cols.has(k));
+    expect([...new Set(bad)]).toEqual([]);
+  });
   it("the script reads the columns through collectDbIds and pages by orderBy", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "../../scripts/check-stripe-restore-drift.mjs"), "utf8"));
     expect(src).toContain("const { ids, rejected } = collectDbIds(kind, values);");

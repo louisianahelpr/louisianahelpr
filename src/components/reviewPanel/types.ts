@@ -76,16 +76,35 @@ export type RevieweeRole = "helper" | "poster";
  * reviewer chose, not a score — it does not average into anything, so it costs
  * nothing to keep honest about who it is describing.
  */
+// Boards 35/36 (owner-approved mock-ups, 2026-10-20): five short tags for a
+// Helpr, four for a poster, the same words on the Job done screen and on the
+// completed card's Review.
 export const HELPER_QUICK_TAGS = [
-  "Great communicator",
   "On time",
+  "Great work",
+  "Friendly",
+  "Fair price",
+  "Would hire again",
+];
+
+export const POSTER_QUICK_TAGS = [
+  "Clear about the job",
+  "Paid fast",
+  "Friendly",
+  "Would work again",
+];
+
+/**
+ * Tags the form offered before boards 35/36 (2026-10-20). Never offered again,
+ * but they sit at the end of stored `reviews.feedback` rows, so the review
+ * card (splitReviewTags) must still recognise them as tags, not prose.
+ */
+export const RETIRED_QUICK_TAGS = [
+  "Great communicator",
   "Quality work",
   "Very professional",
   "Highly recommend",
   "Friendly & helpful",
-];
-
-export const POSTER_QUICK_TAGS = [
   "Clear instructions",
   "Job as described",
   "Approved quickly",

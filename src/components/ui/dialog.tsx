@@ -622,7 +622,8 @@ DialogDescription.displayName = DialogPrimitive.Description.displayName;
  * caller to pass an eyebrow and threw it away without an error. Sheet's and
  * the old alert-dialog's copies of this block said the same thing.
  */
-const DialogHero = ({ title }: {
+const DialogHero = ({ title, moment = false }: {
+  moment?: boolean; // Bodoni `.font-moment` at display size for a celebration ("Job done", boards 35/36); a boolean, not a class hatch.
   // TITLE ONLY. `eyebrow` and `subtitle` used to be ACCEPTED-BUT-DISCARDED, on
   // the reasoning that keeping them in the type made a stray usage "a no-op
   // rather than a build break". That is the wrong way round: a no-op is
@@ -637,15 +638,14 @@ const DialogHero = ({ title }: {
   // TipDialog, ReviewForm's tip prompt, InstantPayoutDialog, W9CollectionDialog.
   title: React.ReactNode;
   // NO className / titleClassName / style escape hatches — same reason as
-  // AlertDialogHero's. A popup header is ONE layout; if it changes, it changes
-  // here, once, for all ~149 of them.
+  // AlertDialogHero's. A popup header is ONE layout, changed here, once.
 }) => (
   <DialogHeader className="space-y-0 text-left">
     <DialogTitle
       // TIGHTENED (owner, 2026-08-29): was `pt-2`, matched to AlertDialogHero
       // — see the note there. Change one, change both.
-      className="font-display font-bold leading-tight [overflow-wrap:anywhere]"
-      style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+      className={moment ? "font-display font-moment leading-tight [overflow-wrap:anywhere]" : "font-display font-bold leading-tight [overflow-wrap:anywhere]"}
+      style={{ fontSize: moment ? "clamp(1.75rem, 1.6vw + 1.1rem, 2rem)" : "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
     >
       {title}
     </DialogTitle>

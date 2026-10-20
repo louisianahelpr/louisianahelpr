@@ -26,7 +26,7 @@ export function OfferSentWhatNext({ cents, onClose, onBrowse }: { cents: number 
         { key: "accepted", label: "If the seller accepts", detail: <>You have 48 hours to check out: <Money cents={buyNowTotalCents(cents)} /> for pickup</>, state: "later" },
         { key: "pickup", label: "Pick it up", detail: "Then the seller is paid", state: "later" },
       ]}
-      primary={{ label: "Got it", onClick: onClose }}
+      primary={{ label: "Got it", acknowledge: true }}
       secondary={{ label: "Keep browsing", onClick: onBrowse }}
     />
   );

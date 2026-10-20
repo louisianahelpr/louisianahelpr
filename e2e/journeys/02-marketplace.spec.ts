@@ -299,7 +299,7 @@ test.describe.serial("marketplace chain", () => {
     await test.step("poster opens Post a Job and starts fresh", async () => {
       await page.goto("/post-job");
       await page.getByRole("button", { name: /Start Fresh/ }).click();
-      await expect(page.getByRole("heading", { name: "Job Details", level: 1 })).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByRole("heading", { name: "What do you need?" })).toBeVisible({ timeout: 30_000 });
       await assertHealthy(page, "post-job form");
       expect(await page.getByText(/pricing mode|accept bids|open to offers/i).count(), "a pricing-mode picker reappeared; add each mode to this journey").toBe(0);
     });
@@ -309,16 +309,16 @@ test.describe.serial("marketplace chain", () => {
       await journey.milestone(page, "post-details-photo");
     });
 
-    await test.step("fills logistics with a parish-less ZIP and a date", async () => {
+    await test.step("sets a budget", async () => {
+      await fillBudget(page);
+    });
+
+    await test.step("fills logistics with a parish-less ZIP and a date, and reviews", async () => {
       // Soon, not days out: the tracker's actions unlock at T-2h, so a slot
       // inside that window is the only one J5 can walk. See the SLOT comment
       // for why the bucket assertions derive from this rather than fix it.
-      await fillLogistics(page, SLOT, journey.allowReport);
+      const review = await fillLogistics(page, SLOT, journey.allowReport);
       await assertHealthy(page, "logistics");
-    });
-
-    await test.step("sets a budget and reviews", async () => {
-      const review = await fillBudget(page);
       await journey.milestone(page, "post-form-complete");
       await review.click();
       await expect(page.getByText(/Payment breakdown/i)).toBeVisible({ timeout: 30_000 });

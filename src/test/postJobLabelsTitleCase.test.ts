@@ -5,18 +5,22 @@ import { readdirSync } from "./helpers/trackedFiles";
 import { blankComments } from "./helpers/blankNonCode";
 
 /**
- * VN-48 (owner, 2026-09-14): Post a Job field labels were sentence case
- * ("Job title", "Street address", "Require before & after photos") while the
- * rest of the app's headings and buttons are Title Case.
+ * OWNER OVERRIDE 2026-10-20 (design spec v2 §2, "sentence case everywhere,
+ * form labels included"): Post a Job labels are SENTENCE case ("Job title",
+ * "Street address", "Mark as urgent"). This guard used to enforce the opposite
+ * (VN-48, owner 2026-09-14: Title Case labels); the 10-20 decision replaces it.
+ * Capitalised words allowed after the first: proper nouns (PROPER below) and
+ * acronyms (ZIP, HVAC).
  *
  * Inventory from source: every <Label>…</Label> and every toggle title (the
  * `text-ds-13 font-semibold text-foreground` span a Switch sits beside) in
  * the post-job flow. Static text only — `{expressions}` are skipped, and
  * placeholders / helper sentences are not labels, so they are not checked.
  */
-// @mutate src/components/postjob/LogisticsSection.tsx | >Street Address</Label> | >Street address</Label>
+// @mutate src/components/postjob/LogisticsSection.tsx | >Street address</Label> | >Street Address</Label>
 const ROOTS = ["src/components/postjob", "src/pages/post-job"];
-const MINOR = new Set(["a", "an", "the", "and", "or", "nor", "for", "to", "of", "in", "on", "at", "by", "as", "per", "vs"]);
+/** Proper nouns that keep their capital mid-label. */
+const PROPER = new Set(["Helpr", "Helprs", "Helpr's", "Louisiana", "I", "I'll", "I'm"]);
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -38,12 +42,14 @@ function staticText(jsx: string): string {
     .trim();
 }
 
-export function titleCaseViolations(text: string): string[] {
+export function sentenceCaseViolations(text: string): string[] {
   const words = text.split(" ").filter(Boolean);
   return words.filter((raw, i) => {
     const w = raw.replace(/^[("'“]+|[)"'”?:,.*]+$/g, "");
-    if (!/^[a-z]/.test(w)) return false; // capitalised, digit, symbol
-    return i === 0 || !MINOR.has(w);
+    if (i === 0 || !/^[A-Z]/.test(w)) return false; // first word, lower case, digit, symbol
+    if (PROPER.has(w)) return false;
+    if (w.length > 1 && w === w.toUpperCase()) return false; // ZIP, HVAC, LA
+    return true;
   });
 }
 
@@ -66,22 +72,23 @@ function collectLabels(): { file: string; text: string }[] {
   return out;
 }
 
-describe("Post a Job labels are Title Case (VN-48)", () => {
-  it("the checker itself fails on the original sentence-case labels", () => {
-    expect(titleCaseViolations("Job title *")).toEqual(["title"]);
-    expect(titleCaseViolations("Require before & after photos")).toEqual(["before", "after", "photos"]);
-    expect(titleCaseViolations("Photos (optional, up to 5)")).not.toEqual([]);
-    expect(titleCaseViolations("Photos (Optional, Up to 5)")).toEqual([]);
-    expect(titleCaseViolations("Mark as Urgent")).toEqual([]);
+describe("Post a Job labels are sentence case (owner override 2026-10-20)", () => {
+  it("the checker itself fails on the old Title Case labels", () => {
+    expect(sentenceCaseViolations("Job Title *")).toEqual(["Title"]);
+    expect(sentenceCaseViolations("Require Before & After Photos")).toEqual(["Before", "After", "Photos"]);
+    expect(sentenceCaseViolations("Photos (Optional, Up to 5)")).not.toEqual([]);
+    expect(sentenceCaseViolations("Photos (optional, up to 5)")).toEqual([]);
+    expect(sentenceCaseViolations("ZIP code")).toEqual([]);
+    expect(sentenceCaseViolations("How many Helprs needed?")).toEqual([]);
   });
 
   it("finds labels to check", () => {
     expect(collectLabels().length).toBeGreaterThan(15);
   });
 
-  it("every static label in the post-job flow is Title Case", () => {
+  it("every static label in the post-job flow is sentence case", () => {
     const bad = collectLabels()
-      .map(({ file, text }) => ({ file, text, words: titleCaseViolations(text) }))
+      .map(({ file, text }) => ({ file, text, words: sentenceCaseViolations(text) }))
       .filter((l) => l.words.length > 0);
     expect(bad).toEqual([]);
   });

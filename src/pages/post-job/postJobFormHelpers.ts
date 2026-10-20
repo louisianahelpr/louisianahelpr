@@ -90,9 +90,18 @@ export function materialsNoteForPost(opts: { includeMaterials: boolean; material
  * used as scroll anchors) get scroll-only. `block: "center"` keeps the label
  * visible above the field.
  */
-export function scrollToField(id: string) {
+export function scrollToField(id: string, tries = 0) {
   const el = document.getElementById(id);
   if (!el) return;
+  // Post a Job is four screens (FormStep); a refused field may sit on a
+  // screen that is not showing. Its screen listens for this and opens first,
+  // so the poster lands ON the field the toast names, never on a hidden one.
+  const page = el.closest<HTMLElement>("[data-form-page]");
+  if (page?.hidden && tries < 5) {
+    page.dispatchEvent(new CustomEvent("lh:show-form-page", { bubbles: true }));
+    setTimeout(() => scrollToField(id, tries + 1), 50);
+    return;
+  }
   el.scrollIntoView({ behavior: "smooth", block: "center" });
   if (typeof (el as HTMLInputElement).focus === "function" && el.tagName !== "DIV") {
     setTimeout(() => (el as HTMLInputElement).focus(), 350);

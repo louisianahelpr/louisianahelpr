@@ -927,6 +927,7 @@ export const GAPS: Record<string, string> = {
   "src/components/admin/userDetail/JobsTab.tsx": "select only",
   "src/components/HelperAvailability.tsx": "switches only",
   "src/components/profile/AvailabilityTab.tsx": "switch only",
+  "src/components/postjob/JobCategoryGroups.tsx": "category search only: filters the chips in the browser; the text is never stored or sent (board 23)",
   "src/components/postjob/detailsSection/PhotoProofToggle.tsx": "switch only",
   "src/components/TimePickerWheel.tsx": "wheel picker — constrained options",
   "src/components/DatePickerField.tsx": "calendar/wheel picker — its only typed text is TypedDateInput (below), inside the wheel",

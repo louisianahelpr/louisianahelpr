@@ -229,7 +229,7 @@ export function LogisticsSection({
             }}
           />
         </div>
-        <Label htmlFor="streetAddress" className="text-ds-11 text-muted-foreground">Street Address</Label>
+        <Label htmlFor="streetAddress" className="text-ds-11 text-muted-foreground">Street address</Label>
         {mapKitReady ? (
           <AddressAutocomplete
             id="streetAddress"
@@ -338,7 +338,7 @@ export function LogisticsSection({
           to walk into. One standing helper holds every date and can release a
           single one they can't make. */}
       <div className="space-y-3">
-        <Label id="job-type-label">Job Type</Label>
+        <Label id="job-type-label">Job type</Label>
         {/* With Group withdrawn, a restored draft carrying `isGroupJob: true`
             (useJobEntry:123 rehydrates it) must not leave the whole control
             unselected — One-Time is what that draft now IS, and
@@ -375,9 +375,9 @@ export function LogisticsSection({
           <div className="rounded-ds-md border border-border p-4 space-y-2">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" />
-              <span className="text-ds-13 font-semibold text-foreground">Group Job</span>
+              <span className="text-ds-13 font-semibold text-foreground">Group job</span>
             </div>
-            <Label>How Many Helprs Needed?</Label>
+            <Label>How many Helprs needed?</Label>
             <Input
               type="number"
               inputMode="numeric"
@@ -434,7 +434,7 @@ export function LogisticsSection({
             so a red required-marker over a field the form has stopped asking
             for is the form contradicting itself. See the checkbox copy. */}
         <Label id="start-time-label">
-          Start Time
+          Start time
           {!isFlexibleSchedule && <span className="text-[hsl(var(--destructive-ink))]">{" *"}</span>}
         </Label>
         {/* Fills its column like Date Needed beside it (owner, 2026-10-07:
@@ -491,7 +491,7 @@ export function LogisticsSection({
       )}
 
       <div className="space-y-2.5">
-        <Label htmlFor="requirements">Access &amp; Parking Notes</Label>
+        <Label htmlFor="requirements">Access &amp; parking notes</Label>
         <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Gate codes, where to park, which door, pets on site… (optional)" rows={2} maxLength={500} autoCapitalize="sentences" />
       </div>
 
@@ -512,7 +512,7 @@ export function LogisticsSection({
             <label htmlFor="include-materials" className="flex items-center gap-2 cursor-pointer">
               <Wrench className="w-4 h-4 text-primary" />
               <span className="text-ds-13 font-semibold text-foreground">
-                I'll Provide Materials
+                I'll provide materials
               </span>
             </label>
             <Switch
@@ -524,7 +524,7 @@ export function LogisticsSection({
           {includeMaterials && setMaterialsNote && (
             <div className="space-y-2">
               <Label htmlFor="materials-note" className="text-ds-11">
-                Materials I'll Provide
+                Materials I'll provide
               </Label>
               <Textarea
                 id="materials-note"

@@ -2,8 +2,6 @@ import { useEffect } from "react";
 import { Briefcase } from "lucide-react";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { CREDENTIAL_TIER_CATEGORIES } from "./detailsSection/detailsSectionConstants";
-import { useAutoCategory } from "./detailsSection/useAutoCategory";
-import { CategoryPicker } from "./detailsSection/CategoryPicker";
 import { TitleField } from "./detailsSection/TitleField";
 import { DescriptionField } from "./detailsSection/DescriptionField";
 import { CredentialTierSelector } from "./detailsSection/CredentialTierSelector";
@@ -24,7 +22,6 @@ export function DetailsSection({
   description,
   setDescription,
   category,
-  setCategory,
   imagePreviews,
   imageFiles,
   onImageSelect,
@@ -48,10 +45,6 @@ export function DetailsSection({
     }
   }, [category, credentialTier, setCredentialTier]);
 
-  const { autoCategoryArmedRef, autoCategoryHint, setAutoCategoryHint } =
-    useAutoCategory({ title, category, setCategory });
-
-
   return (
     <SectionCard
       stepNumber={stepNumber}
@@ -59,14 +52,8 @@ export function DetailsSection({
       icon={Briefcase}
       complete={detailsComplete}
     >
-      <CategoryPicker
-        category={category}
-        setCategory={setCategory}
-        autoCategoryArmedRef={autoCategoryArmedRef}
-        autoCategoryHint={autoCategoryHint}
-        setAutoCategoryHint={setAutoCategoryHint}
-      />
-
+      {/* The category is picked on screen 1 (board 23, JobCategoryGroups);
+          this screen is title, details and photos (board 44). */}
       <TitleField
         title={title}
         setTitle={setTitle}

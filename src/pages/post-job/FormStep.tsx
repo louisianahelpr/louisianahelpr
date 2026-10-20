@@ -12,7 +12,12 @@ import type { usePostJobForm } from "./usePostJobForm";
 import { detailsBlocker } from "./detailsBlocker";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { AgeGateNote } from "@/components/AgeGateNote";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
+import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
+import { PostJobPreviewCard } from "@/components/postjob/PostJobPreviewCard";
+import { jobCategoryLabel } from "@/lib/jobCategories";
+import { sentenceCaseLabel } from "@/lib/jobCategoryGroups";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import {
   PriceModeChoice,
@@ -63,32 +68,86 @@ export function FormStep({ form }: FormStepProps) {
     ? !(form.detailsComplete && form.logisticsComplete) || underAge || quoteSending
     : atOpenJobLimit || !formReady || underAge;
 
+  // Scanned once per render: the screen-2 gate, the back-to-fix button and
+  // the submit ladder all read it.
+  const detailsBlock = detailsBlocker(form);
   // Contextual label — names the first unfinished *field* (not just the
   // section) so the poster knows exactly what's blocking the button.
-  let submitLabel = "Review & Pay";
+  let submitLabel = "Review & pay";
   if (!form.detailsComplete) {
-    submitLabel = detailsBlocker(form) ?? submitLabel;
+    submitLabel = detailsBlock ?? submitLabel;
   } else if (!form.logisticsComplete) {
     if (!form.streetAddress.trim() || !form.city.trim() || !form.addrState.trim() || !form.zipCode.trim())
-      submitLabel = "Add the Address to Continue";
-    else if (!form.dateNeeded) submitLabel = "Pick a Date to Continue";
+      submitLabel = "Add the address to continue";
+    else if (!form.dateNeeded) submitLabel = "Pick a date to continue";
     // Only ask for a time when the poster has not said they don't have one.
     // Ticking "Flexible Schedule" IS the answer to this question, so keeping
     // the label here left the CTA demanding a field the form no longer wants.
-    else if (!form.startTime && !form.isFlexibleSchedule) submitLabel = "Pick a Start Time to Continue";
+    else if (!form.startTime && !form.isFlexibleSchedule) submitLabel = "Pick a start time to continue";
     // The schedule is filled in but has already gone by. This branch is why
     // `scheduleInPast` is surfaced separately from `logisticsComplete`: the
-    // button used to read "Review & Pay · $72" in exactly this state and then
+    // button used to read "Review & pay · $72" in exactly this state and then
     // refuse the tap with a toast the poster could not see from down here.
-    else submitLabel = "That Start Time Has Passed";
+    else submitLabel = "That start time has passed";
   } else if (askingQuotes) {
-    submitLabel = quoteSending ? "Sending…" : "Ask for Quotes";
+    submitLabel = quoteSending ? "Sending…" : "Ask for quotes";
   } else if (!form.budgetComplete) {
-    submitLabel = "Set a Budget to Continue";
+    submitLabel = "Set a budget to continue";
   }
 
+  // ONE QUESTION PER SCREEN (boards 23, 44, 3, 45, 46): What, Details, Price,
+  // When and where; the checkout step is screen 5. Every screen stays mounted
+  // (hidden when not showing) so nothing typed is lost and the quote form's
+  // ref still answers on screen 4. The page lives in usePostJobForm so the
+  // header's back arrow steps back through it.
+  const page = form.formPage ?? 1;
+  const setPage = form.setFormPage;
+  const rootRef = useRef<HTMLDivElement>(null);
+  // scrollToField (postJobFormHelpers) asks a hidden screen to open when the
+  // submit pass refuses a field on it.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const onShow = (e: Event) => {
+      const n = Number((e.target as HTMLElement).dataset.formPage);
+      if (n >= 1 && n <= 4) setPage?.(n);
+    };
+    root.addEventListener("lh:show-form-page", onShow);
+    return () => root.removeEventListener("lh:show-form-page", onShow);
+  }, [setPage]);
+
+  let pageLabel = "Continue";
+  let pageReady = true;
+  if (page === 1) {
+    pageReady = !!form.category;
+    pageLabel = form.category ? `Continue with ${sentenceCaseLabel(jobCategoryLabel(form.category))}` : "Pick a category to continue";
+  } else if (page === 2) {
+    pageReady = detailsBlock === null;
+    pageLabel = detailsBlock ?? "Continue";
+  } else if (page === 3) {
+    pageReady = askingQuotes || form.budgetComplete;
+    pageLabel = pageReady ? "Continue" : "Set a budget to continue";
+  }
+  // The open-job cap and the age gate stop the flow at screen 1, as the
+  // one-page form's button did (their notices sit above every screen).
+  if (atOpenJobLimit || underAge) pageReady = false;
+  const lastPage = page >= 4;
+  // Screen 4 can make an EARLIER screen incomplete: turning on Repeats or
+  // Group switches "Get quotes" back to a set price, whose field is on screen
+  // 3. The button then takes the poster to that screen instead of sitting
+  // disabled over a field they cannot see.
+  const backTo = !lastPage
+    ? null
+    : !form.category
+      ? { page: 1, label: "Pick a category to continue" }
+      : detailsBlock
+        ? { page: 2, label: detailsBlock }
+        : !askingQuotes && !form.budgetComplete
+          ? { page: 3, label: "Set a budget to continue" }
+          : null;
+
   return (
-    <div key="form-step" className="space-y-section">
+    <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl space-y-section">
       {form.offerToHelperId && (
         <DirectOfferBanner
           offerToHelperName={form.offerToHelperName}
@@ -114,7 +173,25 @@ export function FormStep({ form }: FormStepProps) {
           identity on their own. */}
 
       <form
+        onKeyDown={(e) => {
+          // Screens 1-3 render no submit button, so a browser never submits
+          // on Enter there: move on by hand (never from a textarea).
+          if (lastPage || e.key !== "Enter" || (e.target as HTMLElement).tagName !== "INPUT") return;
+          e.preventDefault();
+          if (pageReady) setPage?.(page + 1);
+        }}
         onSubmit={(e) => {
+          if (!lastPage) {
+            // Enter in a field on screens 1-3 moves on, never submits.
+            e.preventDefault();
+            if (pageReady) setPage?.(page + 1);
+            return;
+          }
+          if (backTo) {
+            e.preventDefault();
+            setPage?.(backTo.page);
+            return;
+          }
           if (!askingQuotes) return form.handleReview(e);
           e.preventDefault();
           if (submitDisabled) return;
@@ -135,13 +212,15 @@ export function FormStep({ form }: FormStepProps) {
         }}
         className="space-y-4"
       >
-        {/* Set a price | Get quotes: the form's first choice (owner 2026-10-19). */}
-        {quotesShape && quotes.settled && (
-          <PriceModeChoice value={priceMode} onChange={setPriceMode} quotesComingSoon={!quotesOn} />
-        )}
+        {/* SCREEN 1: WHAT (board 23) */}
+        <div data-form-page="1" hidden={page !== 1} className="space-y-6">
+          <PostJobStepHeader step={1} question="What do you need?" helper="Search, or pick a group to see what's in it." />
+          <JobCategoryGroups category={form.category} setCategory={form.setCategory} />
+        </div>
 
-        {/* SECTION 1: DETAILS */}
-        <div>
+        {/* SCREEN 2: DETAILS (board 44) */}
+        <div data-form-page="2" hidden={page !== 2} className="space-y-6">
+          <PostJobStepHeader step={2} question="Tell us about it" helper="A few words and a photo help Helprs say yes." />
           <DetailsSection
             stepNumber={1}
             title={form.title}
@@ -167,8 +246,45 @@ export function FormStep({ form }: FormStepProps) {
           />
         </div>
 
-        {/* SECTION 2: LOGISTICS */}
+
+        {/* SCREEN 3: PRICE (board 3), or the quote window with "Get quotes" picked */}
+        <div data-form-page="3" hidden={page !== 3} className="space-y-6">
+          <PostJobStepHeader step={3} question="What will you pay?" helper={askingQuotes ? "Members near you send quotes. You pay only when you book one." : "Set a fair price. You pay when you post, and we hold it until the job is done."} />
+          {quotesShape && quotes.settled && (
+            <PriceModeChoice value={priceMode} onChange={setPriceMode} quotesComingSoon={!quotesOn} />
+          )}
+        {askingQuotes ? (
+          <QuoteRequestSection ref={quoteAsk} stepNumber={3} onSendingChange={setQuoteSending} />
+        ) : (
         <div>
+          <BudgetSection
+            stepNumber={3}
+            budget={form.budget}
+            setBudget={form.setBudget}
+            isUrgent={form.isUrgent}
+            setIsUrgent={form.setIsUrgent}
+            urgentFee={form.urgentFee}
+            setUrgentFee={form.setUrgentFee}
+            customUrgentFee={form.customUrgentFee}
+            setCustomUrgentFee={form.setCustomUrgentFee}
+            budgetComplete={form.budgetComplete}
+            giftAmount={form.giftCreditAmount}
+          />
+        </div>
+        )}
+          {!askingQuotes && (
+            <PostJobPreviewCard
+              title={form.title}
+              category={form.category}
+              photo={form.imagePreviews?.[0]}
+              budget={form.budgetNum}
+            />
+          )}
+        </div>
+
+        {/* SCREEN 4: WHEN AND WHERE (board 45) */}
+        <div data-form-page="4" hidden={page !== 4} className="space-y-6">
+          <PostJobStepHeader step={4} question="When and where?" helper="Helprs see the area now and your street address after you hire." />
           <LogisticsSection
             stepNumber={2}
             streetAddress={form.streetAddress}
@@ -212,39 +328,46 @@ export function FormStep({ form }: FormStepProps) {
           />
         </div>
 
-        {/* SECTION 3: BUDGET (or, with "Get quotes" picked at the top, the quote window) */}
-        {askingQuotes ? (
-          <QuoteRequestSection ref={quoteAsk} stepNumber={3} onSendingChange={setQuoteSending} />
-        ) : (
-        <div>
-          <BudgetSection
-            stepNumber={3}
-            budget={form.budget}
-            setBudget={form.setBudget}
-            isUrgent={form.isUrgent}
-            setIsUrgent={form.setIsUrgent}
-            urgentFee={form.urgentFee}
-            setUrgentFee={form.setUrgentFee}
-            customUrgentFee={form.customUrgentFee}
-            setCustomUrgentFee={form.setCustomUrgentFee}
-            budgetComplete={form.budgetComplete}
-            giftAmount={form.giftCreditAmount}
-          />
-        </div>
-        )}
-
         {/* Submit — sits at the natural end of the form (not sticky) so it
             never floats over and obscures the section fields above it. The
             poster scrolls the form top-to-bottom and the contextual CTA is
             the last thing they reach. Bottom padding clears the floating
             MobileNav dock so the button is never tucked under it. The label
             is contextual: it names the next unfinished chapter until every
-            required field is in, then becomes "Review & Pay". */}
-        <div className="pt-1 pb-safe-nav">
+            required field is in, then becomes "Review & pay". */}
+        {/* Sticky action bar (boards 23/44/3/45): rides above the floating
+            bottom nav while the screen scrolls, and settles at the end of
+            the form. AppPage's own pb-safe-nav gives the last field room;
+            bg-premium-page is AppPage's surface, so the bar blends in. The
+            column is 2xl (board 167: a flow step centred, about 640px). */}
+        <div className="sticky bottom-safe-nav z-10 bg-premium-page pt-3 pb-2">
+          {backTo && !atOpenJobLimit && !underAge ? (
+            <Button
+              variant="primary"
+              type="button"
+              className="w-full rounded-full text-ds-16"
+              size="lg"
+              onClick={() => setPage?.(backTo.page)}
+            >
+              <span className="min-w-0 whitespace-normal text-center leading-tight">{backTo.label}</span>
+            </Button>
+          ) : !lastPage ? (
+            <Button
+              variant="primary"
+              type="button"
+              className="w-full rounded-full text-ds-16"
+              size="lg"
+              disabled={!pageReady}
+              aria-disabled={!pageReady}
+              onClick={() => setPage?.(page + 1)}
+            >
+              <span className="min-w-0 whitespace-normal text-center leading-tight">{pageLabel}</span>
+            </Button>
+          ) : (
           <Button
             variant="primary"
             type="submit"
-            className="w-full rounded-ds-md"
+            className="w-full rounded-full"
             size="lg"
             disabled={submitDisabled}
             aria-disabled={submitDisabled}
@@ -274,6 +397,7 @@ export function FormStep({ form }: FormStepProps) {
               )}
             </span>
           </Button>
+          )}
         </div>
       </form>
     </div>

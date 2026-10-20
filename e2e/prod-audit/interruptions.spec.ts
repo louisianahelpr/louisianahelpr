@@ -546,7 +546,7 @@ test.describe("post a job", () => {
    * Purpose-built driver: the J2 post-job leg of e2e/journeys/02-marketplace.spec.ts
    * step for step (category, title, description, address, city, ZIP 99999 so no
    * parish resolves and no real helper is notified, a date slot, a budget,
-   * Review & Pay, the confirm checkbox), stopping ON the final submit and
+   * Review & pay, the confirm checkbox), stopping ON the final submit and
    * returning it. It replaces a generic Continue/Next stepper that never
    * reliably got here and skipped with a stated GAP.
    */
@@ -555,11 +555,15 @@ test.describe("post a job", () => {
     await settle(page);
     const fresh = page.getByRole("button", { name: /start fresh/i });
     if (await fresh.isVisible().catch(() => false)) await fresh.click();
-    await expect(page.getByRole("heading", { name: "Job Details", level: 1 })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: "What do you need?" })).toBeVisible({ timeout: 30_000 });
     await page.getByRole("button", { name: "Cleaning", exact: true }).click();
+    await page.getByRole("button", { name: "Continue with Cleaning" }).click();
     await page.getByRole("textbox", { name: "Job Title *" }).fill(title);
     await page.getByRole("textbox", { name: "Description *" }).fill(`${JOB_MARKER} interruption test post. Not a real job; created and removed by the test suite.`);
     await shoot(page, info, "post-step-details");
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.getByRole("textbox", { name: "Job budget in dollars" }).fill("25");
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
 
     await page.getByRole("combobox", { name: "Street Address" }).fill("100 Audit Way");
     await page.keyboard.press("Escape");
@@ -569,11 +573,10 @@ test.describe("post a job", () => {
     const slot = slotAhead(125); // 2 h notice for a new job (owner, 2026-10-08)
     await pickCalendarDay(page, slot.isoDay, { inline: /Date Needed/ });
     await pickStartTime(page, slot);
-    await page.getByRole("textbox", { name: "Job budget in dollars" }).fill("25");
     await shoot(page, info, "post-step-logistics");
 
-    const review = page.getByRole("button", { name: /Review & Pay/ });
-    await expect(review, "the submit button never became Review & Pay").toBeEnabled({ timeout: 20_000 });
+    const review = page.getByRole("button", { name: /Review & pay/ });
+    await expect(review, "the submit button never became Review & pay").toBeEnabled({ timeout: 20_000 });
     await review.click();
     await expect(page.getByText(/Payment breakdown/i)).toBeVisible({ timeout: 30_000 });
     await page.getByRole("checkbox", { name: /reviewed all details/i }).click();

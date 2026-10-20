@@ -44,7 +44,6 @@ const GUARDED_LOCALLY: Record<string, string> = {
   "src/components/postjob/detailsSection/DescriptionField.tsx:categoryTemplates": "if (!tpl ||",
   "src/lib/pricingGuide.ts:categoryPricing": "if (!pricing) return null;",
   "src/pages/post-job/EntryChoice.tsx:categoryColors": "colors?.dot",
-  "src/components/postjob/detailsSection/CategoryPicker.tsx:categoryColors": "colors?.dot",
   // Typed JobCategory, set only from this client's own option list.
   "src/components/profile/savedHelpersTab/useSavedHelpers.ts:JOB_CATEGORY_LABELS": "useState<JobCategory | null>(null)",
   "src/components/profile/SavedHelpersTab.tsx:JOB_CATEGORY_LABELS": "Object.entries(JOB_CATEGORY_LABELS) as [JobCategory, string][]",

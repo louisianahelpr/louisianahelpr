@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import AppShell from "@/components/AppShell";
 import { AppTopBar } from "./AppTopBar";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 /**
  * A section's screen frame (owner, 2026-10-19): the shared top bar (title,
@@ -18,6 +19,12 @@ export function SectionScreen({
   add?: { label: string; path: string };
   children: ReactNode;
 }) {
+  // D12 (Cowork audit 2026-10-20): the browser tab named the jobs-only landing
+  // page ("Helpr — Louisiana's Local Job Partner | Hire or Find Work") on
+  // Home, Declutter, Shops and Homes. Every section screen names itself; a
+  // page that sets a more specific title (its own usePageTitle) still wins,
+  // because a parent's effect runs after this child's.
+  usePageTitle(`${title ?? "Home"} — Helpr`);
   return (
     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top">
       <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">

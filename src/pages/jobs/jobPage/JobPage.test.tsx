@@ -55,6 +55,11 @@ vi.mock("@/hooks/useJobRef", () => ({ useJobRef: () => undefined }));
 vi.mock("@/hooks/useFeedPhase", () => ({ useFeedPhase: () => "ready", useProfileWaitPhase: () => "ready" }));
 
 import JobPage from "./JobPage";
+import { formatJobDate } from "@/lib/dateUtils";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+
+/** A day ahead, never a literal that ages into the past (jobDayFixtureTimezone). */
+const DAY = jobLocalDateISO(11);
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import JobDetail from "../JobDetail";
 
@@ -70,7 +75,7 @@ function row(over: Partial<JobPageRow> = {}): JobPageRow {
     description: "Two-car concrete driveway and the front walk.",
     category: "pressure_washing",
     budget: 90,
-    date_needed: "2026-10-31",
+    date_needed: DAY,
     start_time: "09:00",
     is_flexible_schedule: false,
     location: "123 Main St, Delcambre, LA 70528",
@@ -80,6 +85,7 @@ function row(over: Partial<JobPageRow> = {}): JobPageRow {
     payment_status: "escrow",
     urgent_fee: null,
     helpers_needed: 1,
+    is_group_job: false,
     photos: [],
     helper_fee_flat_cents: 70,
     helper_fee_percent: 5,
@@ -122,7 +128,7 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     expect(screen.getByText("You take home")).toBeTruthy();
     expect(screen.getByText("$84")).toBeTruthy();
     expect(screen.getByText(/Helpr's fee \(5% \+ 70¢\) comes out of your payout/)).toBeTruthy();
-    expect(screen.getByText("Sat, Oct 31 · 9:00 AM · Delcambre")).toBeTruthy();
+    expect(screen.getByText(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`)).toBeTruthy();
     expect(document.body.textContent).not.toContain("123 Main St");
     expect(screen.getByText("The street address is shared after you're hired.")).toBeTruthy();
     expect(screen.getByText("Home · Pressure washing")).toBeTruthy();

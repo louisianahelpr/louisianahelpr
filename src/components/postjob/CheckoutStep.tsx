@@ -157,12 +157,13 @@ export function CheckoutStep({
   // owner 2026-10-18); 0 on the flat model, so nothing changes there.
   const taxedAmount = budgetNum + (hasTaxableLine(category) ? customerFeeAmount : 0);
   const { salesTax, loading: taxLoading, jurisdiction } = useStripeSalesTax(taxedAmount, category, zipCode);
-  // J3 (audit 2026-10-20): the tax note names what is taxed, from the SAME taxedAmount quoted above.
-  const taxedWhat = hasTaxableLine(category) && customerFeeAmount > 0
-    ? `$${formatPriceExact(taxedAmount)} (the job budget and service fee)`
-    : `$${formatPriceExact(taxedAmount)} job budget`;
-  // Sales tax, resolved ONCE: the summary card and the payment breakdown both read this (computed
-  // apart they once gave two answers to "what will you charge me").
+  // J3: the tax note names what is taxed, from the SAME taxedAmount the quote is asked for.
+  const taxedWhat = `$${formatPriceExact(taxedAmount)} ${hasTaxableLine(category) && customerFeeAmount > 0 ? "(the job budget and service fee)" : "job budget"}`;
+  // Sales tax, resolved ONCE. Both the summary card at the top of the screen
+  // and the payment breakdown at the bottom read this — the two used to be
+  // computed independently (summary showed `totalCharge`, breakdown added an
+  // invented 9-11%), which is exactly why the screen showed two different
+  // answers to "what will you charge me".
   //   0    → exempt category: tax is a known zero, the total is exact.
   //   null → taxable category whose parish rate isn't resolved yet.
   const seriesDates = isRecurring ? recurringVisitDates(dateNeeded, recurrenceDays, recurrenceWeeks) : [];
@@ -647,8 +648,7 @@ export function CheckoutStep({
                       every Handyman checkout was telling the poster "Assembly is
                       taxable labor," a category their job wasn't. Caught live posting
                       a Handyman job with Licensed+Insured selected. */}
-                  {categoryLabel} is taxable labor in Louisiana, so tax applies to the{" "}
-                  {taxedWhat}. The exact rate is set by the billing address you enter at checkout.
+                  {categoryLabel} is taxable labor in Louisiana, so tax applies to the {taxedWhat}. The exact rate is set by the billing address you enter at checkout.
                 </p>
               </>
             );

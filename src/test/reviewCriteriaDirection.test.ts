@@ -65,7 +65,8 @@ describe("review tags adapt to who is being rated", () => {
     // by emptying both would pass.
     const asked = HELPER_QUICK_TAGS.join(" | ");
     expect(asked).toMatch(/\bon\s+time\b/i);
-    expect(asked).toMatch(/quality/i);
+    // Boards 35/36 (2026-10-20): "Great work" replaced "Quality work".
+    expect(asked).toMatch(/\b(?:quality|great)\s+work\b/i);
   });
 
   it("has no duplicate tag within a direction", () => {
@@ -87,8 +88,17 @@ describe("the review form asks exactly one star question", () => {
   it("renders a single StarRow and writes only `rating`", async () => {
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
-    const src = readFileSync(
+    // The form renders its stars through the shared review card (boards
+    // 35/36), so the star count is read from the card and the form must
+    // mount that card exactly once.
+    const form = readFileSync(
       join(process.cwd(), "src/components/reviewPanel/ReviewForm.tsx"),
+      "utf8",
+    );
+    expect((form.match(/<ReviewQuestionCard\b/g) ?? []).length).toBe(1);
+    expect(form).not.toMatch(/<StarRow\b/);
+    const src = form + readFileSync(
+      join(process.cwd(), "src/components/reviewPanel/ReviewQuestionCard.tsx"),
       "utf8",
     );
     // One overall star, not a list of dimensions. Counting the ACTUAL mounts

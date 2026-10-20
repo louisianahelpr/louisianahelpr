@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useState, useRef, useMemo, lazy, Suspense } from "react";
+import { browseFilteredEmptyCopy } from "@/lib/browseEmptyCopy";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -611,16 +612,12 @@ const DashboardGuest = () => {
             icon={Search}
             title={
               filters.hasFilters
-                ? nearbyActive
-                  ? `No jobs within ${currentMiles} mi of you.`
-                  : "No jobs match your filters."
+                ? browseFilteredEmptyCopy({ searchQuery: filters.searchQuery, activeFilterCount: filters.activeFilterCount, nearbyActive, currentMiles, nextMiles }).title
                 : "Nothing today, neighbor."
             }
             body={
               filters.hasFilters
-                ? nearbyActive
-                  ? `Try widening to ${nextMiles} mi, or clear the radius to see all open work across your parish.`
-                  : "Try a different category, a wider time window, or clearing a filter."
+                ? browseFilteredEmptyCopy({ searchQuery: filters.searchQuery, activeFilterCount: filters.activeFilterCount, nearbyActive, currentMiles, nextMiles }).body
                 : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
             }
             action={
@@ -631,6 +628,7 @@ const DashboardGuest = () => {
                 onWiden={() => filters.setLocationFilter(`nearby:${nextMiles}`)}
                 onShowAllLocations={() => filters.setLocationFilter("")}
                 onClearFilters={filters.clearFilters}
+                clearLabel={browseFilteredEmptyCopy({ searchQuery: filters.searchQuery, activeFilterCount: filters.activeFilterCount, nearbyActive, currentMiles, nextMiles }).clearLabel}
                 onNotify={() => navigate(NOTIFY_SIGNUP_URL)}
                 onHire={() => navigate("/signup")}
               />

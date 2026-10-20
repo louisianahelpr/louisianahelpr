@@ -17,10 +17,13 @@
  *   R2 an admin (the owner) does not see it either                          RED before
  *   R3 a real member cannot read its photos                                 RED before
  *   R4 a real member cannot open it by id (the item page)                   RED before
+ *   R5 a real member cannot lock it to buy / offer (declutter_lock_buyable_item, the
+ *      SECURITY DEFINER step under Buy now and Make an offer)                RED before
  * Kept (green before and after):
  *   K1 a real member still sees a real seller's live item and its photo
  *   K2 the test seller still sees their own item
  *   K3 another test account still sees the test item (the journeys)
+ *   K5 a real member can still lock a real item; a test account a test item
  * Switch OFF:
  *   K4 a real member sees the test item (today's behaviour with the switch off)
  */
@@ -88,7 +91,11 @@ CREATE TABLE public.platform_settings (id int PRIMARY KEY DEFAULT 1, feature_fla
 CREATE TABLE public.user_roles (user_id uuid, role public.app_role);
 CREATE TABLE public.profiles (id uuid DEFAULT gen_random_uuid(), user_id uuid PRIMARY KEY, is_seed boolean DEFAULT false);
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
-CREATE TABLE public.declutter_items (id uuid PRIMARY KEY, seller_id uuid NOT NULL, status text NOT NULL, title text, is_seed boolean NOT NULL DEFAULT false);
+CREATE TABLE public.declutter_items (id uuid PRIMARY KEY, seller_id uuid NOT NULL, status text NOT NULL, title text, is_seed boolean NOT NULL DEFAULT false,
+  current_price_cents integer NOT NULL DEFAULT 4000, sale_mode text NOT NULL DEFAULT 'offers');
+CREATE TABLE public.declutter_buyer_cards (user_id uuid PRIMARY KEY);
+CREATE FUNCTION public.are_users_blocked(uuid, uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+CREATE FUNCTION public.declutter_seller_out(uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE TABLE public.declutter_item_photos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid REFERENCES public.declutter_items(id), storage_path text);
 ALTER TABLE public.declutter_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.declutter_item_photos ENABLE ROW LEVEL SECURITY;
@@ -101,6 +108,7 @@ ${fnStmt("is_server_context")}
 ${fnStmt("has_role")}
 ${fnStmt("seed_jobs_hidden_publicly")}
 ${fnStmt("seed_hidden_in_discovery")}
+${fnStmt("declutter_lock_buyable_item")}
 -- Live 2026-10-20 (pg_policies qual): the photos policy.
 CREATE POLICY "declutter photos: readable with their item" ON public.declutter_item_photos FOR SELECT TO authenticated
   USING (EXISTS (SELECT 1 FROM public.declutter_items i WHERE i.id = declutter_item_photos.item_id));
@@ -110,9 +118,10 @@ INSERT INTO public.platform_settings (feature_flags) VALUES ('{"seed_jobs_hidden
 INSERT INTO public.profiles (user_id, is_seed) VALUES ('${REAL}', false), ('${SEED_SELLER}', true), ('${SEED_OTHER}', true), ('${ADMIN}', false), ('${REAL_SELLER}', false);
 INSERT INTO public.test_accounts VALUES ('${SEED_SELLER}'), ('${SEED_OTHER}');
 INSERT INTO public.user_roles VALUES ('${ADMIN}', 'admin');
-INSERT INTO public.declutter_items VALUES
+INSERT INTO public.declutter_items (id, seller_id, status, title, is_seed) VALUES
   ('${SEED_ITEM}', '${SEED_SELLER}', 'live', 'Fixture rocking chair [E2E-PRODAUDIT]', true),
   ('${REAL_ITEM}', '${REAL_SELLER}', 'live', 'Oak dresser', false);
+INSERT INTO public.declutter_buyer_cards VALUES ('${REAL}'), ('${SEED_OTHER}');
 INSERT INTO public.declutter_item_photos (item_id, storage_path) VALUES ('${SEED_ITEM}', 's.jpg'), ('${REAL_ITEM}', 'r.jpg');
 `;
 
@@ -129,6 +138,16 @@ async function as(uid, sql) {
   }
 }
 const browse = (uid) => as(uid, "SELECT id FROM public.declutter_items WHERE status IN ('live','reserved')").then((r) => r.map((x) => x.id));
+/** The lock as its callers run it (auth.uid() = p_buyer): null = locked, else the error message. */
+async function lock(uid, item) {
+  await db.exec(`SELECT set_config('request.jwt.claim.sub', '${uid}', false);`);
+  try {
+    await db.query(`SELECT * FROM public.declutter_lock_buyable_item('${item}', '${uid}')`);
+    return null;
+  } catch (e) {
+    return String(e.message);
+  }
+}
 const photos = (uid) => as(uid, "SELECT item_id FROM public.declutter_item_photos").then((r) => r.map((x) => x.item_id));
 
 console.log(`${BEFORE ? "BEFORE (migration left out)" : `AFTER (applied ${REPLAY ? 3 : 1}x)`}`);
@@ -136,6 +155,8 @@ check("R1 a real member does not see a test seller's live item", !(await browse(
 check("R2 an admin does not see it either", !(await browse(ADMIN)).includes(SEED_ITEM), "", true);
 check("R3 a real member cannot read its photos", !(await photos(REAL)).includes(SEED_ITEM), "", true);
 check("R4 a real member cannot open it by id", (await as(REAL, `SELECT id FROM public.declutter_items WHERE id = '${SEED_ITEM}'`)).length === 0, "", true);
+check("R5 a real member cannot lock a test item to buy or offer", (await lock(REAL, SEED_ITEM)) === "item_not_found", String(await lock(REAL, SEED_ITEM)), true);
+check("K5 a real member locks a real item; a test account locks a test item", (await lock(REAL, REAL_ITEM)) === null && (await lock(SEED_OTHER, SEED_ITEM)) === null, `${await lock(REAL, REAL_ITEM)} / ${await lock(SEED_OTHER, SEED_ITEM)}`);
 check("K1 a real member sees a real seller's item and its photo", (await browse(REAL)).includes(REAL_ITEM) && (await photos(REAL)).includes(REAL_ITEM));
 check("K2 the test seller sees their own item", (await browse(SEED_SELLER)).includes(SEED_ITEM));
 check("K3 another test account sees the test item", (await browse(SEED_OTHER)).includes(SEED_ITEM));
@@ -143,7 +164,7 @@ await db.exec(`UPDATE public.platform_settings SET feature_flags = '{"seed_jobs_
 check("K4 switch off: a real member sees the test item", (await browse(REAL)).includes(SEED_ITEM));
 
 if (BEFORE) {
-  const expectedRed = 4;
+  const expectedRed = 5;
   console.log(`\n${redFailures}/${expectedRed} RED checks failed before the migration (want ${expectedRed}); ${failures - redFailures} kept checks failed (want 0)`);
   process.exit(redFailures === expectedRed && failures === redFailures ? 0 : 1);
 }

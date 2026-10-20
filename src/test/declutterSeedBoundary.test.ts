@@ -1,4 +1,5 @@
 // @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |         AND (NOT is_seed OR NOT (SELECT public.seed_hidden_in_discovery()))) |         AND true)
+// @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |      OR (v_seed AND public.seed_hidden_in_discovery()) THEN |      THEN
 //
 // Cowork design audit 2026-10-20, D1: the owner (an admin, not a test account)
 // saw test sellers' fixtures ("Fixture rocking chair [E2E-PRODAUDIT]",
@@ -99,5 +100,15 @@ describe("D1: marketplace listing reads hide test sellers' rows by the launch sw
     const body = blankSqlComments(p!.stmt);
     expect(body).toMatch(/seller_id\s*=\s*\(SELECT auth\.uid\(\)\)/);
     expect(body).toMatch(/NOT\s+is_seed\s+OR\s+NOT\s+\(SELECT\s+public\.seed_hidden_in_discovery\(\)\)/);
+  });
+
+  it("the buy / offer lock (SECURITY DEFINER, so RLS never applies) refuses a hidden test item as not found", () => {
+    // lh-money-escrow review 2026-10-20: without this a real member holding a
+    // test item's id could reserve it and pay real money for a fixture.
+    const d = DEFS.get("declutter_lock_buyable_item");
+    expect(d, "declutter_lock_buyable_item is not defined").toBeDefined();
+    const body = blankSqlComments(d!.stmt);
+    expect(body).toMatch(/i\.is_seed/);
+    expect(body).toMatch(/OR\s+\(v_seed\s+AND\s+public\.seed_hidden_in_discovery\(\)\)\s+THEN\s+RAISE EXCEPTION 'item_not_found'/);
   });
 });

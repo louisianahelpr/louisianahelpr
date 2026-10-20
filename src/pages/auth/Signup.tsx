@@ -66,9 +66,7 @@ const Signup = () => {
     if (pendingJobId) rememberJobIntent(pendingJobId);
     rememberSignupRedirect(pendingRedirect);
   }, [pendingJobId, pendingRedirect]);
-  // An already-authenticated visitor has no business on the signup form —
-  // bounce them into the app. Wait for isReady so we don't redirect on the
-  // pre-bootstrap null snapshot.
+  // An already-authenticated visitor is bounced into the app (after isReady, never on the null snapshot).
   useEffect(() => {
     if (isReady && user) navigate(postAuthDestination(), { replace: true });
   }, [isReady, user, navigate]);
@@ -76,9 +74,7 @@ const Signup = () => {
   useEffect(() => {
     track(AhaEvent.SignupStarted, { source: "web", ...ppoTrackingProps() });
   }, []);
-  // Dev-only: seed the step from `?step=2` so the flow can be inspected
-  // without the old on-page PREVIEW band, which showed testers a control
-  // real users never see. Production always starts at step 1.
+  // Dev-only: `?step=2` seeds the step for inspection; production always starts at step 1.
   const [step, setStep] = useState(() => {
     if (!import.meta.env.DEV) return 1;
     const n = Number(new URLSearchParams(window.location.search).get("step"));
@@ -137,9 +133,8 @@ const Signup = () => {
     (searchParams.get("ref") || "").trim().toUpperCase(),
   );
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
-  // Explicit 18+ attestation — a legal requirement on a real-money platform.
-  // DOB is deferred to first post/apply, so this checkbox is what satisfies the
-  // age gate at account creation (server enforces it too via ageAttested).
+  // Explicit 18+ attestation (legal, real-money platform): the age gate at account creation;
+  // the server enforces it too via ageAttested.
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   // Marketing / promotional email opt-in — UNCHECKED by default so a user
   // who doesn't tick it never gets marketing mail. Persists to
@@ -490,7 +485,7 @@ const Signup = () => {
   // "Pick up right where you left off." was removed. `subtitle` is optional;
   // the header renders the <p> only when one is present.
   const stepHeading: { title: string; subtitle?: string } =
-    step === 1 ? { title: "Create Account", subtitle: notifySignupSubtitle(searchParams.get("reason")) } : { title: "About You" };
+    step === 1 ? { title: "Create your account", subtitle: notifySignupSubtitle(searchParams.get("reason")) } : { title: "About you" };
 
   // No `desktopBrandPanel`: the AuthBrandPane component (deleted unused on
   // 2026-08-25) was only the H emblem, and it stacked
@@ -502,7 +497,8 @@ const Signup = () => {
     <AuthShell
       hideHeader
       centerColumn
-      maxWidth="2xl"
+      // Step 1 is board 55: the Log in card's width (board 37). Step 2 keeps its room.
+      maxWidth={step === 1 ? "sm" : "2xl"}
       noWebChrome
       // Step 1 exits to home; step 2 walks the wizard back rather than leaving
       // the page, because exiting from step 2 discards the credentials already
@@ -510,7 +506,8 @@ const Signup = () => {
       // longer differ in title size (step 2 used to be a hand-rolled row inside
       // the card at clamp(1.6rem,2.4vw+0.5rem,2.1rem) against step 1's ds-24).
       {...(step === 1 ? { backTo: "/" } : { backOnClick: () => { setStep2Errors({}); setStep(1); } })}
-      title={step === 1 ? "Create Account" : stepHeading.title}
+      // Step 1's heading is inside the card (board 55), as Log in's is; step 2 keeps the row title.
+      title={step === 1 ? undefined : stepHeading.title}
     >
       <div>
           {/* Liquid-glass card — matches the Login screen so the two auth
@@ -527,7 +524,7 @@ const Signup = () => {
                 air above the Email field than Sign In did, on two cards that are
                 otherwise the same component. An empty element is invisible;
                 the gap it reserves is not. */}
-            {stepHeading.subtitle && (
+            {step === 2 && stepHeading.subtitle && (
               <p
                 className="font-sans text-ds-15 text-left"
                 style={{
@@ -598,6 +595,9 @@ const Signup = () => {
             setMarketingConsent={setMarketingConsent}
             inputCls={inputCls}
             labelCls={labelCls}
+            firstName={firstName}
+            setFirstName={setFirstName}
+            subtitle={stepHeading.subtitle}
             onContinue={async () => {
               if (!(await validateAccountStep())) return;
               track(AhaEvent.SignupStepCompleted, { step: 1, ...ppoTrackingProps() });

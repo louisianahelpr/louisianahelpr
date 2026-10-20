@@ -51,7 +51,7 @@ const active = () => page.evaluate(() => {
   if (!(await trigger.count())) {
     await g.locator("#email").fill(`a11y-${Date.now()}@example.com`);
     await g.locator("#password").fill("Xx!12345678aa");
-    for (const id of ["#policies", "#age-confirm"]) await g.locator(id).click();
+    await g.locator("#policies").click(); // one box: agreement + 18+ (board 55)
     await g.getByRole("button", { name: /continue/i }).first().click();
     await g.waitForTimeout(1000);
     trigger = g.locator("#dob");

@@ -324,7 +324,8 @@ describe("ApplyConfirmDialog contact filter", () => {
     render(<ApplyConfirmDialog {...makeProps({ applyMessage: PHONE_NOTE, handleApplyConfirm })} />);
     fireEvent.click(screen.getByRole("button", { name: /apply now/i }));
     expect(handleApplyConfirm).not.toHaveBeenCalled();
-    expect(screen.getByText(/violates platform rules/i)).toBeInTheDocument();
+    // Board 85 copy (2026-10-20): a phone number reads "Kept private for now".
+    expect(screen.getByText(/Kept private for now/i)).toBeInTheDocument();
     // The dialog wraps the match in typographic quotes, so match on content.
     expect(document.body.textContent).toContain("504-555-0100");
   });

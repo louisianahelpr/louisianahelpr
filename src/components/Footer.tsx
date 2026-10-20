@@ -112,11 +112,12 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
           blocks of vertical scroll for content that fits in two columns.
           The brand block spans both so its tagline keeps one measure. */}
       <div className="grid grid-cols-2 min-[360px]:grid-cols-[auto_auto_auto] min-[360px]:justify-between min-[500px]:grid-cols-3 min-[500px]:justify-normal gap-x-4 gap-y-6 md:gap-8 min-[620px]:grid-cols-12">
-        {/* Brand — uses the shared HelprMark component so the wordmark
+        {/* Brand — uses the shared HelprMark component so the mark
             here matches the top nav exactly (H emblem + non-italic
             "Helpr" + italic burnt-sienna "· LA" tail). */}
         <div className="col-span-2 min-[360px]:col-span-3 min-[620px]:col-span-4 space-y-3">
-          <HelprMark to="/" size="md" hideEmblem />
+          {/* The H logo, never the "Helpr" wordmark (owner, 2026-10-20 08:30Z). */}
+          <HelprMark to="/" size="md" emblemOnly />
           {/* Break after the first sentence so the tagline wraps predictably
               into two short lines instead of one long one that pushes the
               link columns around. */}

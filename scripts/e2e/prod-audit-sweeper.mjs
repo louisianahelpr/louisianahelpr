@@ -69,6 +69,7 @@ import { removeJobMediaRest } from "../lib/jobMediaRest.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
 import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+import { candidateDeclutterItemsQuery, declutterItemMatches, removeDeclutterItemsRest } from "../lib/declutterItemCleanup.mjs";
 
 // Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
 assertFreshCheckout(import.meta.url);
@@ -101,6 +102,14 @@ export const HELPER_ID = ACCOUNTS["helper-e2e"].userId;
  * future job posted while signed in as the helper account is still covered.
  */
 export const TEST_POSTER_IDS = [POSTER_ID, HELPER_ID];
+/**
+ * The Declutter fixture items e2e/prod-audit/declutterFixture.ts mints as helper-e2e
+ * ("Fixture rocking chair <MARKER>", "Fixture side table <MARKER>"). Its own undo
+ * runs from test.afterAll, which the FINAL attempt of a timed-out or cancelled leg
+ * never reaches: four runs (10-17 to 10-19) left 8 items on prod this way. Only the
+ * helper account ever sells in this suite, so only it is named.
+ */
+export const DECLUTTER_SELLER_IDS = [HELPER_ID];
 /** More than this many matches means the filter is wrong, not that this test really left this many rows. */
 export const MATCH_CAP = 50;
 
@@ -168,6 +177,44 @@ export function checkCap(jobs, cap = MATCH_CAP) {
   return jobs;
 }
 
+/** Pure: the query and gate for leftover Declutter fixture items; exported for the unit test. */
+export const declutterCandidatesQuery = () => candidateDeclutterItemsQuery(JOB_TITLE_MARKER, DECLUTTER_SELLER_IDS);
+export const declutterMatches = (item) => declutterItemMatches(item, { marker: JOB_TITLE_MARKER, sellerIds: DECLUTTER_SELLER_IDS });
+
+/**
+ * Declutter pass: list, re-check, cap, and (unless --dry-run) remove the leftover
+ * fixture items and their photo files. Returns failure strings; an unreadable list
+ * or an over-cap match is a failure too, never a silent skip.
+ */
+export async function sweepDeclutterItems({ base, headers, get }) {
+  let candidates;
+  try {
+    candidates = await get(declutterCandidatesQuery());
+  } catch (e) {
+    return [`could not list Declutter fixture items: ${e.message}`];
+  }
+  const items = candidates.filter(declutterMatches);
+  if (items.length !== candidates.length) {
+    console.warn(`[prod-audit-sweeper] declutter: PostgREST returned ${candidates.length} row(s) but only ${items.length} passed the client-side re-check — the query and declutterMatches have drifted.`);
+  }
+  console.log(`[prod-audit-sweeper] declutter "${JOB_TITLE_MARKER}": ${items.length} matching item(s)${DRY ? "  (DRY RUN)" : ""}`);
+  for (const i of items) console.log(`  ${i.id}  status=${i.status} title="${i.title}"`);
+  if (items.length > MATCH_CAP) {
+    return [`${items.length} Declutter items matched — more than the ${MATCH_CAP} hard cap; the filter is wrong, so nothing was deleted`];
+  }
+  if (DRY || items.length === 0) return [];
+  const res = await removeDeclutterItemsRest({ base, headers, items, source: "prod-audit-sweeper" });
+  console.log(`[prod-audit-sweeper] declutter: removed ${res.removedItems} item(s), ${res.removedObjects} photo object(s).`);
+  return res.failures.map((f) => `declutter: ${f}`);
+}
+
+function endRun(failures) {
+  if (failures.length) {
+    console.error(`[prod-audit-sweeper] FAIL (${failures.length}):\n  ${failures.join("\n  ")}`);
+    process.exit(1);
+  }
+}
+
 async function main() {
   const env = readEnv();
   const base = supabaseBase(env.SUPABASE_URL || env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
@@ -225,6 +272,7 @@ async function main() {
     for (const j of passed) byId.set(j.id, j);
   }
   const jobs = [...byId.values()];
+  const declutterFailures = await sweepDeclutterItems({ base, headers, get });
   for (const j of jobs) console.log(`  ${j.id}  status=${j.status} payment=${j.payment_status} title="${j.title}"`);
 
   try {
@@ -237,15 +285,15 @@ async function main() {
   }
 
   if (jobs.length === 0) {
-    console.log("[prod-audit-sweeper] OK — nothing to remove.");
-    return;
+    console.log("[prod-audit-sweeper] OK — no leftover jobs.");
+    return endRun(declutterFailures);
   }
   if (DRY) {
     console.log("[prod-audit-sweeper] dry run — nothing deleted.");
     return;
   }
 
-  const failures = [];
+  const failures = [...declutterFailures];
   const media = await removeJobMediaRest({ base, headers, jobs, source: "prod-audit-sweeper" });
   if (media.failures.length) failures.push(...media.failures.map((f) => `storage: ${f}`));
 

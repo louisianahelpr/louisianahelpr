@@ -33,7 +33,10 @@
  *      step): the account is unlinked from the throwaway seller, exactly like
  *      seatStripeAccounts.mjs --restore, so no enrolled test account keeps an
  *      unsanctioned Stripe account (e2e-journeys checks every run).
- * The order, payout, transfer and both accounts stay as the proof records.
+ * The order, payout, transfer and both accounts stay as the proof records. A run
+ * that died BEFORE anyone bought its lamp leaves no record worth keeping, only a
+ * live listing: removeUnsoldItem deletes that one item (and its photos), never
+ * an item with an order.
  *
  * SAFETY (every one fails closed, before the first write):
  *   - STRIPE_TEST_SECRET_KEY must be sk_test_/rk_test_, Stripe must answer
@@ -66,6 +69,7 @@ import { mintAdminSession, PUBLIC_ANON_KEY } from "../lib/adminSession.mjs";
 import { acceptCurrentTerms } from "../lib/acceptCurrentTerms.mjs";
 import { ensureTestAccountsEnrolled } from "../lib/testAccountEnrolment.mjs";
 import { RESET_FIELDS } from "./seatStripeAccounts.mjs";
+import { declutterItemMatches, removeDeclutterItemsRest } from "../lib/declutterItemCleanup.mjs";
 
 assertFreshCheckout(import.meta.url);
 
@@ -284,7 +288,7 @@ function clients({ key, service, base }) {
       },
     };
   };
-  return { stripe, rest, authAdmin, as };
+  return { stripe, rest, authAdmin, as, base, headers: sH };
 }
 
 function loadState(file) {
@@ -306,6 +310,28 @@ async function enrolledSet(rest, ids) {
 async function readProfile(rest, userId) {
   const [row] = await rest("GET", `profiles?user_id=eq.${userId}&select=user_id,email,is_seed,stripe_account_id,stripe_payouts_enabled,stripe_charges_enabled,stripe_identity_verified`);
   return row ?? null;
+}
+
+/**
+ * A failed run's UNSOLD lamp must not stay for sale on prod (it did on 2026-10-19:
+ * item 5de085cf, run 20261019233647a41b). Deletes this run's own item only when
+ * no order exists for it, and only through declutterItemMatches (title carries
+ * the run id, the throwaway seller, is_seed, a status no buyer holds). A sold
+ * item is the proof's record and stays. Idempotent; returns what it did.
+ */
+export async function removeUnsoldItem(c, state) {
+  const seller = state?.users?.seller;
+  if (!state?.itemId || !seller) return log("remove item: this run listed nothing; nothing to remove");
+  if (state.orderId) return log(`remove item: order ${state.orderId} exists; the item stays as the proof record`);
+  const [item] = await c.rest("GET", `declutter_items?id=eq.${state.itemId}&select=id,title,seller_id,is_seed,status`);
+  if (!item) return log(`remove item: ${state.itemId} is already gone`);
+  // An order reaches its items through declutter_cart_items.order_id (declutter_orders has no item_id).
+  const orders = await c.rest("GET", `declutter_cart_items?item_id=eq.${state.itemId}&order_id=not.is.null&select=order_id`);
+  if (orders.length) return log(`remove item: ${orders.length} order(s) reference ${state.itemId}; left alone`);
+  if (!declutterItemMatches(item, { marker: state.runId, sellerIds: [seller] })) return log(`remove item: ${state.itemId} is not this run's unsold lamp (status ${item.status}); left alone`);
+  const res = await removeDeclutterItemsRest({ base: c.base, headers: c.headers, items: [item], source: "declutter-payout-proof" });
+  if (res.failures.length) throw new Error(`remove item ${state.itemId}: ${res.failures.join("; ")}`);
+  log(`remove item: unsold lamp ${state.itemId} deleted (${res.removedObjects} photo file(s))`);
 }
 
 /** Step 6: put the seller back to no Stripe account. Safe to run any number of times. */
@@ -750,6 +776,12 @@ async function run(stateFile, priceCents) {
       process.exitCode = 1;
     }
     try {
+      await removeUnsoldItem(c, state);
+    } catch (err) {
+      console.log(`::error title=Remove unsold item failed::${err.message}`);
+      process.exitCode = 1;
+    }
+    try {
       await unlinkRun(c, state);
     } catch (err) {
       console.log(`::error title=Unlink failed::${err.message}`);
@@ -775,6 +807,7 @@ async function main() {
     const c = clients(e);
     let failed = null;
     await closeAfterFailure(c, state).catch((err) => { failed = err; });
+    await removeUnsoldItem(c, state).catch((err) => { failed = failed ?? err; });
     await unlinkRun(c, state);
     saveState(stateFile, state);
     if (failed) throw failed;

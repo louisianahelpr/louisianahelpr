@@ -1,14 +1,15 @@
-// Pins the held-payment headline's wording (Q1536, owner 2026-10-08: "Payment
-// Authorized." with a capital A). The page reads it from paymentHeading.
-// @mutate src/pages/post-job/paymentReturnCopy.ts | "Payment Authorized." | "Payment authorized."
+// Pins the held-payment headline's wording: board 56 "Your job is live" (owner
+// 2026-10-20, superseding Q1536's "Payment Authorized."). The payment-held
+// sentence stays below it on the page. The page reads it from paymentHeading.
+// @mutate src/pages/post-job/paymentReturnCopy.ts | "Your job is live" | "Payment Authorized."
 import { describe, expect, it } from "vitest";
 import { paymentHeading, type ConfirmState } from "./paymentReturnCopy";
 
 const STATES: ConfirmState[] = ["checking", "held", "not_held", "unknown", "not_yours"];
 
-describe("payment return headline (Q1536)", () => {
-  it("a held payment reads exactly 'Payment Authorized.'", () => {
-    expect(paymentHeading("held")).toBe("Payment Authorized.");
+describe("payment return headline (board 56)", () => {
+  it("a held payment reads exactly 'Your job is live'", () => {
+    expect(paymentHeading("held")).toBe("Your job is live");
   });
 
   it("every state has its own non-empty headline (cannot pass vacuously)", () => {

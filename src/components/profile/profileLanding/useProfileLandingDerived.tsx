@@ -153,10 +153,10 @@ export function useProfileLandingDerived({
     {
       title: "Help",
       items: [
-        { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: SECTION_TINT.legal },
+        { key: "support", label: TAB_TITLES.support, icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: SECTION_TINT.legal },
         { key: "report_bug", label: REPORT_BUG_TITLE, icon: <Bug className="w-5 h-5" />, desc: "Something not working? We attach the details", tint: SECTION_TINT.legal, href: "/profile?tab=support&topic=report" },
         { key: "legal", label: TAB_TITLES.legal, icon: <Gavel className="w-5 h-5" />, desc: "Terms, rules & privacy", tint: SECTION_TINT.legal },
-        { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: SECTION_TINT.danger },
+        { key: "warnings", label: TAB_TITLES.warnings, icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: SECTION_TINT.danger },
         ...(isAdmin
           ? [
               {

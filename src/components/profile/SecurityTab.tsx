@@ -39,6 +39,7 @@ import { parseUserAgent, useSecuritySessions } from "@/components/profile/securi
 import { userFacingError } from "@/lib/userFacingError";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { TAB_TITLES } from "@/pages/profile/types";
 
 /**
  * Short display labels for the "Lock again" segmented control, keyed by the
@@ -214,7 +215,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   return (
     <ProfileTabBody>
       <ProfileTabHeader
-        title="Account Security"
+        title={TAB_TITLES.security}
         onBack={onBack}
       />
 

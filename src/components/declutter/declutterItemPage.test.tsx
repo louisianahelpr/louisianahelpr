@@ -252,7 +252,7 @@ describe("the photo-first Declutter item page", () => {
     // The dock yields the strip to the bar (fixedBottomBarsClearTheDock, Q1646).
     expect(document.documentElement.classList.contains("dock-yield")).toBe(true);
     expect(within(bar).getByRole("button", { name: "Buy now · $42.70 total with fee" })).toBeInTheDocument();
-    expect(within(bar).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
+    expect(within(bar).getByRole("button", { name: "Make offer" })).toBeInTheDocument();
   });
   it("More from this seller and Similar items: rows of the Browse card, never the member's own items, an empty row left out", async () => {
     const row = (n: number, extra: object) => ({ ...ITEM, id: `0f0e0d0c-0b0a-4908-8706-0504030201${String(n).padStart(2, "0")}`, title: `Thing ${n}`, ...extra });

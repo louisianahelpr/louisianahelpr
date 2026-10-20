@@ -12,7 +12,7 @@ export type UnknownReason = "no-reference" | "unreachable" | "not-found" | "pend
 
 export function paymentPageTitle(state: ConfirmState): string {
   return state === "held"
-    ? "Payment Authorized — Helpr"
+    ? "Your job is live — Helpr"
     : state === "not_held"
       ? "Payment Not Completed — Helpr"
       : state === "checking"
@@ -24,7 +24,7 @@ export function paymentPageTitle(state: ConfirmState): string {
 
 export function paymentHeading(state: ConfirmState): string {
   return state === "held"
-    ? "Payment Authorized."
+    ? "Your job is live"
     : state === "checking"
       ? "Confirming your payment…"
       : state === "not_held"

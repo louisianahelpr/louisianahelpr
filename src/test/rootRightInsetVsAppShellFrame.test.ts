@@ -1,9 +1,10 @@
 /**
- * CLASS CHECK: every rule that insets #root for the right rail on a
- * document-scroll route (`:not(.app-shell) #root { padding-right }`) must be
+ * CLASS CHECK: every rule that insets #root for the rail on a document-scroll
+ * route (`:not(.app-shell) #root { padding-left }`; the rail is on the LEFT
+ * since 2026-10-20, it was on the right when this was written) must be
  * handed over to the frame for a page that mounts an AppShell frame:
- *   `…:not(.app-shell) #root:has(.app-shell-frame) { padding-right: 0 }` and
- *   `…:not(.app-shell) .app-shell-frame { right: var(--desktop-sidebar-w) }`.
+ *   `…:not(.app-shell) #root:has(.app-shell-frame) { padding-left: 0 }` and
+ *   `…:not(.app-shell) .app-shell-frame { left: var(--desktop-sidebar-w) }`.
  *
  * Q179 (2026-09-23 visual walk, measured at 1440 on prod as poster-e2e):
  * signed in, PublicLayout renders AppShell on /help, /support and the four
@@ -35,8 +36,8 @@ function inventory(css: string): Found {
       (rule.nodes.find((n) => n.type === "decl" && (n as postcss.Declaration).prop === prop) as
         | postcss.Declaration
         | undefined)?.value.trim();
-    const padR = decl("padding-right");
-    const right = decl("right");
+    const padR = decl("padding-left"); // the rail edge (LEFT since 2026-10-20)
+    const right = decl("left");
     for (const raw of rule.selectors) {
       const sel = norm(raw);
       if (!/:not\(\.app-shell\)/.test(sel)) continue;
@@ -55,17 +56,17 @@ function inventory(css: string): Found {
 const unpaired = ({ padded, cancelled, frames }: Found) =>
   padded.filter((s) => !cancelled.has(s) || !frames.has(s));
 
-describe("#root's right-rail inset is handed to an AppShell frame (Q179)", () => {
+describe("#root's rail inset is handed to an AppShell frame (Q179)", () => {
   it("catches the original, frame-less rule", () => {
     const original = `
       @media (min-width: 900px) {
-        html.web-desktop.desktop-rail.side-panel-open:not(.app-shell) #root { padding-right: var(--desktop-sidebar-w); }
-        html.web-desktop.app-shell.desktop-rail.side-panel-open .app-shell-frame { right: var(--desktop-sidebar-w); }
+        html.web-desktop.desktop-rail.side-panel-open:not(.app-shell) #root { padding-left: var(--desktop-sidebar-w); }
+        html.web-desktop.app-shell.desktop-rail.side-panel-open .app-shell-frame { left: var(--desktop-sidebar-w); }
       }`;
     expect(unpaired(inventory(original))).toEqual(["html.web-desktop.desktop-rail.side-panel-open:not(.app-shell)"]);
   });
 
-  it("every #root right inset in src/index.css is paired", () => {
+  it("every #root rail inset in src/index.css is paired", () => {
     const found = inventory(readFileSync("src/index.css", "utf8"));
     expect(found.padded.length).toBeGreaterThan(0);
     expect(unpaired(found)).toEqual([]);

@@ -16,8 +16,8 @@ import { transferredCents, type TransferRow } from "@/lib/jobDonePay";
  * proof photos when the Helpr added them, and the money note for this side.
  *
  * TRUTH RULE (HELPR-DESIGN-SPEC §1.5): every figure is read, never derived,
- * and this was reviewed by lh-money-escrow (2026-10-20, changes-needed, all
- * seven findings applied).
+ * reviewed by lh-money-escrow 2026-10-20 (two changes-needed rounds, all
+ * findings fixed; third round: approve).
  *  - Poster: the job price (`jobs.budget`, labelled "Job price") on an
  *    undisputed single-Helpr job; "Paid to X" only at payment_status
  *    'released', "Approved" + the real payout_scheduled_at at
@@ -25,8 +25,7 @@ import { transferredCents, type TransferRow } from "@/lib/jobDonePay";
  *    2026-10-20 05:35Z) or what the card was charged.
  *  - Helpr: the headline amount is the transfer itself
  *    (`payout_transfers.amount_cents`, own rows, clawbacks removed). Before a
- *    transfer exists there is no headline number, only the stamped job price
- *    and its Helpr fee. "In your bank" is never lit: no per-job bank-arrival
+ *    transfer exists there is no number at all (no fee line either). "In your bank" is never lit: no per-job bank-arrival
  *    state exists; the caption gives the real window. The board's arrival
  *    date and bank last-4 are omitted for the same reason.
  */
@@ -257,7 +256,7 @@ function HelprPayNote({ transfers, held, viewerId, posterFirstName }: {
       </p>
       {needsPayoutSetup && (
         <p className="font-sans text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-          Add a payout account so it can be sent.{" "}
+          {payout?.connected ? "Finish setting up payouts so it can be sent." : "Add a payout account so it can be sent."}{" "}
           <Link to="/profile?tab=payment" className="font-bold" style={{ color: "hsl(var(--bark))" }}>Set up payouts</Link>
         </p>
       )}

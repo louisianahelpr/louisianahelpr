@@ -21,7 +21,8 @@
  * @mutate src/pages/home/HomeDashboard.tsx | useState(false);\n  const toggleTodo = () => setTodoOpen((o) => !o); | useState(() => sessionStorage.getItem("t") === "1");\n  const toggleTodo = () => setTodoOpen((o) => { sessionStorage.setItem("t", o ? "0" : "1"); return !o; });
  * @mutate src/pages/home/HomeDashboard.tsx |   useOnTabReselect("/home", () => setTodoOpen(false)); |   useOnTabReselect("/home", () => undefined);
  * @mutate src/pages/home/HomeDashboard.tsx |         {todoOpen && ( |         {todoCount > 0 && !todoOpen && <button type="button" onClick={toggleTodo} aria-expanded={false}>To do ({todoCount})</button>}\n        {todoOpen && (
- * @mutate src/pages/home/HomeDashboard.tsx |   const next = summary.todos[0]; |   const next = summary.todos[summary.todos.length - 1];
+ * @mutate src/pages/home/HomeDashboard.tsx |   const next = summary.todos[at]; |   const next = summary.todos[summary.todos.length - 1];
+ * @mutate src/pages/home/HomeDashboard.tsx |                       onClick={() => setShown(i)} |                       onClick={() => setShown(0)}
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       ...shopWaiting.map((o) => ({ |       ...shopWaiting.filter(() => false).map((o) => ({
  * @mutate src/components/mobileNav/dockItems.ts |     right: [{ path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" }, youItem], |     right: [youItem],
  * @mutate src/components/sections/ExploreSwitcher.tsx |   const options = visible.map((s) => { |   const options = [...visible].reverse().map((s) => {
@@ -191,6 +192,11 @@ describe("Home", () => {
     expect(screen.getByTestId("where").textContent).toBe("/shops/dashboard");
     // Soonest deadline first; a handed-over order is not a to-do. Two held orders + two jobs I posted.
     expect(screen.getByTestId("next-up-see-all").textContent).toBe("See all (4)");
+    // A carousel over all four (mock-up 7): "1 of 4", and a dot shows the next one.
+    expect(screen.getByTestId("next-up-label").textContent).toBe("Next up · 1 of 4");
+    fireEvent.click(document.querySelector('[data-next-up-dot="1"]') as HTMLElement);
+    expect(screen.getByTestId("next-up-title").textContent).toBe("Answer an order for Later order");
+    expect(screen.getByTestId("next-up-label").textContent).toBe("Next up · 2 of 4");
   });
 
   it("with nothing to do, Next up says so and shows no task, no button and no number", () => {

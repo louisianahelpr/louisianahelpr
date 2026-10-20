@@ -614,10 +614,12 @@
      --burnt-sienna so raising it for legibility does not shift the brand
      accent everywhere it is used as a fill, border, or icon. */
   --accent-ink:   19 75% 35%;
-  --stormy-sky:   198 12% 36%;  /* WCAG AA. 38% measured 4.48:1 for 11px muted text on a
-                                   #dedfdf card — a 0.02 fail, and this repo has shipped
-                                   4.46/4.49 "basically fine" before. 36% = 4.88:1 there,
-                                   6.51:1 on white. */
+  --stormy-sky:   40 6% 36%;    /* muted #615E56: the spec v2 §2 --muted hue and weight (#6B675F,
+                                   40 6% 39.6%) at the old token's 36% lightness. #6B675F itself is
+                                   4.36:1 on --muted/--sand #E6E2DA (bg-muted chips and icon wells),
+                                   a fail for small text; 36% is 5.02:1 there, 4.86:1 on #dedfdf,
+                                   5.81:1 on the ground, 6.49:1 on white (2026-10-20, was cool
+                                   198 12% 36%). */
   /* ── GOLD IS PRESTIGE ONLY. Enforced 2026-08-13 (P1). ───────────────────
      ALLOWED: subscription tier badges (Pro / Elite), the verified flag, the
      top-rated star, helper streak badges, the Elite ring. That is the whole
@@ -667,11 +669,10 @@
   --muted-foreground:     var(--stormy-sky);
   --secondary:            var(--sand);
   --secondary-foreground: var(--olivewood);
-  --border:               220 14% 82%; /* cool hairline — premium neutral edge, firmed
-                                            so the 1px card outline is actually perceptible
-                                            against both the near-white canvas and white
-                                            cards (was 87%, too faint; orig warm tan 38 24% 56%) */
-  --input:                220 13% 90%;  /* field BORDER token — cool quiet well, visible on white card (was warm 38 24% 72%) */
+  --border:               40 19% 81.6%; /* line-strong #D9D3C7 (spec v2 §2), the same weight as the
+                                            cool 220 14% 82% hairline it replaces (2026-10-20) */
+  --input:                40 19% 87.8%; /* field BORDER token: line #E6E2DA (spec v2 §2), warm at the
+                                            weight of the cool 220 13% 90% it replaces (2026-10-20) */
   --accent:               var(--burnt-sienna);
   --accent-foreground:    0 0% 100%;
   /* App primary = Bark (the bolder olive-green from the landing CTAs). The

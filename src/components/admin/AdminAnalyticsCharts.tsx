@@ -78,9 +78,10 @@ export const RevenueLineChart = ({ data }: { data: MonthlyDatum[] }) => (
       {/* --stormy-sky, not --secondary. --secondary is --sand, a surface
           token: as a 2px line it was invisible against the chart in both
           themes, so this series had no readable line AND no readable legend
-          label. --stormy-sky is a real mid-tone in both themes (198 12% 36%
-          light / 198 14% 65% dark) and is a distinct hue from the bark green
-          and burnt-sienna rust of the other two series. */}
+          label. --stormy-sky is a real mid-tone in both themes (40 6% 36%
+          light / 40 11% 69% dark since 2026-10-20: a near-neutral warm grey)
+          and reads apart from the saturated bark green and burnt-sienna rust
+          of the other two series. */}
       <Line type="monotone" dataKey="signups" name="New Users" stroke="hsl(var(--stormy-sky))" strokeWidth={2} dot={{ r: 4 }} />
     </LineChart>
   </ResponsiveContainer>

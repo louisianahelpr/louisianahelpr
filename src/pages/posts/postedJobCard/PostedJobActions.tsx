@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trackJobCompleted } from "@/lib/jobCompletedEvent";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { useNavigate } from "react-router-dom";
@@ -46,6 +46,9 @@ interface PostedJobActionsProps {
   helperWorking?: boolean;
   /** An open job's Applicants, as the row's primary; see PosterStepCtx. */
   applicantsPrimary?: { count: number; onOpen: () => void } | null;
+  /** Bumped by the card face's "Approve and release" (board 14): opens the
+   *  completion sheet, which stays the confirmation (never a one-tap release). */
+  completionRequest?: number;
 }
 
 /**
@@ -131,6 +134,7 @@ export function PostedJobActions({
   helperWorking = false,
   applicantsPrimary = null,
   onActionComplete,
+  completionRequest = 0,
 }: PostedJobActionsProps) {
   // Own instant-release flag — when on, the 24h review countdown is replaced
   // by an honest "releases within minutes" line (owner, 2026-08-24). Cast:
@@ -139,6 +143,9 @@ export function PostedJobActions({
   const instantReleaseOn = !!(_ownProfile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
   const navigate = useNavigate();
   const [completionSheetOpen, setCompletionSheetOpen] = useState(false);
+  useEffect(() => {
+    if (completionRequest > 0 && !job.poster_completed_at) setCompletionSheetOpen(true);
+  }, [completionRequest, job.poster_completed_at]);
   // Guards the Resolve & Pay / Escalate to Admin buttons while their
   // supabase UPDATE is in-flight — prevents double-tap submission.
   const [disputeActing, setDisputeActing] = useState(false);

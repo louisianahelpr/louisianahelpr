@@ -58,7 +58,7 @@ function card(title: string) {
       <BackoutBanner job={{ backout_notice: { id: `n-${title}`, job_id: `j-${title}`, backout_kind: "offer_expired", actor_name: null } }} />
       <h3>{title}</h3>
       <span>
-        <button type="button" aria-label="Job address: 100 Audit Way, Baton Rouge, LA 99999 — tap to expand this job">100 Audit Way</button>
+        <button type="button" aria-label="Job address: 100 Audit Way, Baton Rouge, LA 99999 — tap to open this job">100 Audit Way</button>
       </span>
     </JobCardShell>
   );
@@ -84,7 +84,7 @@ describe("press-every-control: a write on a job card lands on, and is remembered
     const shells = [...container.querySelectorAll("[data-activity-card]")];
     expect(shells).toHaveLength(2);
     const gots = screen.getAllByRole("button", { name: "Got It" });
-    const chips = screen.getAllByRole("button", { name: /tap to expand this job/ });
+    const chips = screen.getAllByRole("button", { name: /tap to open this job/ });
     for (const i of [0, 1]) {
       expect(gots[i].closest(RECORD_ROW_SEL), "Got It belongs to no record").toBe(shells[i]);
       expect(chips[i].closest(RECORD_ROW_SEL), "the chip belongs to no record").toBe(shells[i]);

@@ -42,7 +42,11 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
+
+function WhereAmI() {
+  return <span data-testid="where">{useLocation().pathname}</span>;
+}
 import type { AppliedApp, Job } from "../../components/job-card/activityConstants";
 
 /* The tracker opens a realtime channel; its pure derivations are kept because
@@ -122,6 +126,7 @@ const noop = () => {};
 function renderCard(toggle = vi.fn()) {
   render(
     <MemoryRouter>
+      <WhereAmI />
       <AppliedJobCard
         app={app}
         expandedJobIds={new Set()}
@@ -182,16 +187,18 @@ describe("/jobs card: a tap opens the job, it never opens Apple Maps", () => {
     ).toEqual([]);
   });
 
-  it("the location slot is a button, and tapping it expands the card", () => {
-    const toggle = renderCard();
+  /* Board 21 (lead 2026-10-20): a tap on the card OPENS THE JOB PAGE now, and
+     the location row does what the rest of the card does. */
+  it("the location slot is a button, and tapping it opens the job", () => {
+    renderCard();
     /* The accessible name states BOTH actions — JobCardMetaRow's own wording
        for the press-to-map control. Asking for it by role means a link in this
        slot cannot satisfy this test. */
-    const chip = screen.getByRole("button", { name: /tap to expand this job/i });
+    const chip = screen.getByRole("button", { name: /tap to open this job/i });
     expect(chip.tagName).toBe("BUTTON");
     fireEvent.click(chip);
-    // JobCardShell's wrapper onClick is what toggles; the chip must not stop it.
-    expect(toggle, "a tap on the location did not open the job").toHaveBeenCalledWith("job-1");
+    // The row's wrapper onClick is what navigates; the chip must not stop it.
+    expect(screen.getByTestId("where").textContent, "a tap on the location did not open the job").toBe("/jobs/job-1");
   });
 
   it("the address chip still offers directions, to the FULL address", () => {

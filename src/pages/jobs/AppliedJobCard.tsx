@@ -8,12 +8,13 @@ import { CheckCircle2, Star, XCircle, Eye, Pencil, Image } from "lucide-react";
 import { PhotoProofDialog } from "@/components/PhotoProof";
 import type { AppliedApp } from "../../components/job-card/activityConstants";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
-import { JobCardTitleBar } from "../../components/job-card/JobCardTitleBar";
+import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace";
+import { helperFaceAction } from "./appliedJobCard/helperFaceAction";
 import { PersonTile } from "@/components/PersonTile";
 import { JobActionRow, JobActionChip, JobStepPrimaryButton } from "../../components/job-card/JobActionRow";
 import { JobCardMetaRow } from "../../components/job-card/JobCardMetaRow";
 import { JobCardPhotoStrip } from "../../components/job-card/JobCardPhotoStrip";
-import { formatPrice, formatPriceFloor, formatShortDate } from "@/lib/format";
+import { formatPriceFloor, formatShortDate } from "@/lib/format";
 import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCard/types";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
 import { closedCardLabel, deriveAppliedJobCardState, describeCancellation } from "./appliedJobCard/appliedJobCardHelpers";
@@ -138,7 +139,6 @@ function AppliedJobCardInner({
     isPending,
     isFullyDone,
     isExpanded,
-    commissionPercent,
     payout,
     isMinimalCard,
     hasActionSection,
@@ -317,6 +317,17 @@ function AppliedJobCardInner({
     </>
   );
 
+  // The states the server already hands the full address to (the meta row's own gate).
+  const addressOnFace = !isMinimalCard && (isOffered || isConfirmed || isActive || isDisputed);
+  // The face's ONE button (board 21; helperFaceAction.ts).
+  const faceAction = helperFaceAction({
+    isMinimalCard,
+    isOffered,
+    owesReview: isCompleted && !isFullyDone && canLeaveReview && !helperReviewedJobIds.has(app.job_id),
+    review: () => onHelperReview(app.job_id, posterId!, app.posterName || "the person who posted this job"),
+    manage: () => toggleExpandedJobId(app.job_id),
+  });
+
   return (
     /* The card publishes its own expand state to HelperTrackerPanel, which sits
        whichever JobStepCard this state mounts, through the shared person
@@ -326,30 +337,37 @@ function AppliedJobCardInner({
     <JobCardPersonContext.Provider value={personCtx}>
         <div ref={cardRef}>
         <JobCardShell
-          expandable={!isMinimalCard}
+          /* THE FACE OPENS THE JOB PAGE (board 21, lead 2026-10-20); the
+             card's live controls open in place from the face's one button. */
+          expandable={false}
           expanded={isExpanded}
           onToggle={() => toggleExpandedJobId(app.job_id)}
-          category={job.category}
         >
           <BackoutBanner job={job} />{/* the poster backed out: until Got It (Q1575) */}
-          <JobCardTitleBar
+          <MineJobFace
+            jobId={job.id}
             title={job.title || "a job"}
             category={job.category}
-            // FLOORED, matching JobPrice (owner, 2026-08-19: the headline
-            // take-home floors — a payout figure may never read above the
-            // payout). Browse, the job-detail pill and this card all quote
-            // the same whole-dollar floor; only breakdown line items keep
-            // exact cents, because those must visibly add up.
-            amount={formatPriceFloor(payout)}
-            amountTitle={`Budget: $${formatPrice(job.budget ?? 0)} · Fee: ${commissionPercent}%`}
-            meta={metaRow}
+            photo={job.photos?.[0] ?? null}
+            // A hired Helpr's collapsed card keeps the full street address
+            // (owner, 2026-09-19: "the address needs to show ... when they say
+            // they are on their way"): the meta row, which carries date and
+            // time too, stands in for the plain date line.
+            when={addressOnFace || isExpanded ? "" : mineFaceWhen(job)}
+            // A tap on the row opens the job, like the face (MineJobFace); holding the address opens the map.
+            extra={addressOnFace ? metaRow : null}
+            // FLOORED, matching JobPrice (owner, 2026-08-19): a take-home never
+            // reads above the payout. What this Helpr takes home (board 21).
+            money={`$${formatPriceFloor(payout)}`}
+            moneyCaption="you take home"
+            status={
+              !isMinimalCard && !isExpanded ? (
+                <HelperCollapsedStrip variant="line" app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} />
+              ) : null
+            }
+            action={isExpanded ? null : faceAction}
           />
-
-          {/* NO STATUS BAND — the filter tabs say it (owner: "remove"). Same
-              removal the posted card took: with Needs you / Scheduled /
-              Waiting / Done at the top of the list, a coloured band on every
-              card repeats the tab the reader is standing in, once per card,
-              all the way down. */}
+          {isExpanded && <MineOpenMeta jobId={job.id} meta={addressOnFace ? null : metaRow} onClose={() => toggleExpandedJobId(app.job_id)} />}
 
           {/* ONE TRACKER IN THE APP (owner: "remove this tracker globally,
               there should only be the other live tracker").
@@ -367,12 +385,6 @@ function AppliedJobCardInner({
               moment payment is released). Where the money sits is a fact for
               the payout screen, not a second timeline on a job card. */}
 
-          {/* Summary info line. The expand control rides the END of this row
-              as a bare chevron — owner: "move the details arrow up and remove
-              the words details". It used to be a labelled "View details ⌄"
-              button on its own row below, which spent a full 44px band and two
-              words saying what a chevron says on its own. The accessible name
-              stays on `aria-label`, because a bare glyph has none. */}
           {/* `pb-1.5` when an action section follows, `py-3` otherwise. The
               meta block's bottom padding and the action block's top padding
               stacked to ~48px of dead band with a hairline through the middle,
@@ -417,21 +429,7 @@ function AppliedJobCardInner({
               hasActionSection && !isMinimalCard ? (showDescription || showNotes ? "pb-2.5" : "pb-1.5") : "pb-3"
             }`}
           >
-            {/* No chevron glyph on this card (owner: remove it) — the whole
-                card is the expand/collapse tap target (JobCardShell), so no
-                visible control is needed to say there's more. */}
-
-            {/* Description behind a tap — expands IN PLACE on this card (it IS
-                the detail surface for an applied job; there is no separate
-                signed-in detail page).
-
-                This card already had a "View details" control, but it sat
-                BELOW a description that was already fully readable, so the
-                toggle appeared to promise something it had mostly already
-                shown. There is still exactly ONE affordance — the same
-                `expandedJobId` toggle, unchanged in wording and position — it
-                simply now gates the description too, which is what makes it
-                coherent. Nothing was bolted on beside it. */}
+            {/* The description, once the card is open (the job page /jobs/:id has it too, board 21). */}
             {/* WHO POSTED THE JOB — a PersonTile under the description (owner
                 V6, 2026-09-15: "same as the poster side"). VN-22 moved the
                 other party's profile out of the little meta area into a tile
@@ -722,7 +720,7 @@ function AppliedJobCardInner({
               none. With the panel gone that would leave a bordered strip with
               nothing in it, which is the silent-band defect this card already
               has a fallback for further down. */}
-          {isCompleted && !isFullyDone && (canLeaveReview || hasProof) && (
+          {isCompleted && !isFullyDone && isExpanded && (canLeaveReview || hasProof) && (
             <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
               {/* Same icon-over-label chip PostedJobCard's completed state
                   uses for Review/Reviewed — this was a plain full-width
@@ -845,9 +843,6 @@ function AppliedJobCardInner({
             <div className="px-4 py-2.5 border-t border-border/20 space-y-2">
               {job.is_recurring && <HelperSeriesRow job={job} userId={userId} />}
             </div>
-          )}
-          {!isMinimalCard && !isExpanded && (
-            <HelperCollapsedStrip app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} />
           )}
         </JobCardShell>
         </div>

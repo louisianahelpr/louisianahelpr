@@ -122,4 +122,4 @@ describe("the COLLAPSED Posts card signals an owed confirmation (item 6e)", () =
 // .test.tsx renders the badge directly and stayed green with the mount deleted.
 // Unmount the strip and the collapsed card goes silent about the one move only
 // the poster can make.
-// @mutate src/pages/posts/PostedJobCard.tsx | {!isExpanded && ( | {false && (
+// @mutate src/pages/posts/PostedJobCard.tsx | status={isExpanded ? null : ( | status={true ? null : (

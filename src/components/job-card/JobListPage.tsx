@@ -13,6 +13,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
 import { ActivityDialogs } from "@/components/job-card/ActivityDialogs";
 import { ActivityOfferDialogs } from "@/components/job-card/ActivityOfferDialogs";
+import { useManageDeepLink } from "./useManageDeepLink";
 import { RecurringVisitPayments } from "@/pages/posts/postedJobs/RecurringVisitPayments";
 import { PendingBankPayments } from "@/pages/posts/postedJobs/PendingBankPayments";
 import { type Tab } from "@/components/job-card/activityConstants";
@@ -88,6 +89,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   const [highlightJobId, setHighlightJobId] = useState<string | null>(() =>
     defaultTab === "posted" ? (searchParams.get("highlight") ?? null) : null,
   );
+  const manageJobId = defaultTab === "posted" && searchParams.get("manage") === "1" ? searchParams.get("highlight") : null;
 
   // Deep-link to ONE JOB — `?job=<jobId>`.
   //
@@ -157,6 +159,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     if (!highlightAppId && !highlightJobId) return;
     const next = new URLSearchParams(searchParams);
     next.delete("highlight");
+    next.delete("manage");
     setSearchParams(next, { replace: true });
     // Run once on mount — both ids are stable here (useState initial values;
     // the posted branch's later setHighlightJobId cannot fire before this).
@@ -332,6 +335,8 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     helperNames,
     completedJobMeta,
   });
+
+  useManageDeepLink(manageJobId, postedJobs, actions);
 
   // Status-filter definitions + memoized list/count derivations.
   const { filteredPostedJobs, filteredAppliedApps, appliedCounts, postedCounts, postedSearchCounts, appliedSearchCounts } =

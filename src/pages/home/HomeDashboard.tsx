@@ -10,17 +10,23 @@ import { formatJobDate } from "@/lib/dateUtils";
 import { useHomeSummary, SECTION_INVITE, type ComingUpItem } from "./homeDashboard/useHomeSummary";
 import { useOnTabReselect } from "@/components/mobileNav/tabReselect";
 import { feedLinkTarget } from "./homeDashboard/feedLinkForward";
+import { SECTIONS } from "@/components/sections/sectionsConfig";
 
 function greeting(d = new Date()) {
   const h = d.getHours();
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
-/** "Baton Rouge · Sun, Oct 25 · 9:00 AM" — location, then date, then time (owner, 2026-10-19). */
-export function jobMetaLine(job: ComingUpItem["job"]) {
+/** "Today · 2:00 PM": when, for a Coming up row (board 7). */
+function whenLine(job: ComingUpItem["job"]) {
   const time = job.start_time ? new Date(`1970-01-01T${job.start_time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : null;
-  return [job.location?.split(",")[0], job.date_needed ? formatJobDate(job.date_needed) : null, time].filter(Boolean).join(" · ");
+  return [job.date_needed ? formatJobDate(job.date_needed) : null, time].filter(Boolean).join(" ");
 }
+
+/** Board 7: each Coming up row says which side you are on ("You hired" / "You're working"). */
+export const COMING_UP_ROLE: Record<ComingUpItem["role"], string> = { posted: "You hired", working: "You're working" };
+
+const sectionDef = (key: string) => SECTIONS.find((d) => d.key === key) ?? SECTIONS[0];
 
 /**
  * HOME (owner final decisions, 2026-10-19; 2026-10-20 the three stat boxes became
@@ -81,9 +87,22 @@ function HomeDashboardScreen() {
             stat boxes. Nothing invented: no to-do, no task; the money line only when the
             to-do carries a real amount. "See all" is the ONE control for the full list. */}
         <section data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1.5">
-          <h2 data-testid="next-up-label" className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            {todoCount > 1 ? `Next up · ${at + 1} of ${todoCount}` : "Next up"}
-          </h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 data-testid="next-up-label" className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              {todoCount > 1 ? `Next up · ${at + 1} of ${todoCount}` : "Next up"}
+            </h2>
+            {next && (() => {
+              // Board 7: the to-do's section, by icon and name, top right.
+              const d = sectionDef(next.section);
+              const Icon = d.icon;
+              return (
+                <span data-testid="next-up-section" className="inline-flex items-center gap-1.5 text-ds-13 font-semibold text-foreground">
+                  <Icon className="w-4 h-4 text-primary" strokeWidth={1.75} aria-hidden />
+                  {d.label}
+                </span>
+              );
+            })()}
+          </div>
           {next ? (
             <>
               <p data-testid="next-up-title" className="text-ds-18 font-bold leading-snug text-foreground [overflow-wrap:anywhere]">{next.title}</p>
@@ -92,39 +111,42 @@ function HomeDashboardScreen() {
                 {next.money && " · "}
                 {next.meta}
               </p>
-              {todoCount > 1 && (
-                <div className="flex items-center -ml-2" role="group" aria-label="Your to-dos">
-                  {summary.todos.slice(0, 8).map((t, i) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      data-next-up-dot={i}
-                      aria-label={`To-do ${i + 1} of ${todoCount}`}
-                      aria-current={i === at ? "true" : undefined}
-                      onClick={() => setShown(i)}
-                      className="h-11 w-6 flex items-center justify-center"
-                    >
-                      <span aria-hidden className={`h-1.5 rounded-full transition-all ${i === at ? "w-4 bg-primary" : "w-1.5 bg-border"}`} />
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Board 7: one row, the dots (and See all) left, the ONE action right. */}
               <div className="flex items-center justify-between gap-3 mt-1">
-                <button type="button" data-testid="next-up-action" onClick={() => navigate(next.to)} className="btn-grad-primary btn-press rounded-full min-h-11 px-5 text-ds-15 font-semibold">
+                <div className="flex items-center min-w-0">
+                  {todoCount > 1 && (
+                    <div className="flex items-center -ml-2" role="group" aria-label="Your to-dos">
+                      {summary.todos.slice(0, 8).map((t, i) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          data-next-up-dot={i}
+                          aria-label={`To-do ${i + 1} of ${todoCount}`}
+                          aria-current={i === at ? "true" : undefined}
+                          onClick={() => setShown(i)}
+                          className="h-11 w-5 flex items-center justify-center"
+                        >
+                          <span aria-hidden className={`h-1.5 rounded-full transition-all ${i === at ? "w-4 bg-primary" : "w-1.5 bg-border"}`} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {rest > 0 && (
+                    <button
+                      type="button"
+                      data-testid="next-up-see-all"
+                      aria-expanded={todoOpen}
+                      aria-controls={todoOpen ? "home-todo-list" : undefined}
+                      onClick={toggleTodo}
+                      className="min-h-11 px-1 ml-1 text-ds-13 font-bold text-primary whitespace-nowrap"
+                    >
+                      {todoOpen ? "Hide" : `See all (${todoCount})`}
+                    </button>
+                  )}
+                </div>
+                <button type="button" data-testid="next-up-action" onClick={() => navigate(next.to)} className="btn-grad-primary btn-press rounded-full min-h-11 px-5 text-ds-15 font-semibold shrink-0">
                   {next.action}
                 </button>
-                {rest > 0 && (
-                  <button
-                    type="button"
-                    data-testid="next-up-see-all"
-                    aria-expanded={todoOpen}
-                    aria-controls={todoOpen ? "home-todo-list" : undefined}
-                    onClick={toggleTodo}
-                    className="min-h-11 px-1 text-ds-14 font-bold text-primary"
-                  >
-                    {todoOpen ? "Hide" : `See all (${todoCount})`}
-                  </button>
-                )}
               </div>
             </>
           ) : (
@@ -144,6 +166,33 @@ function HomeDashboardScreen() {
             </GroupSection>
           </div>
         )}
+
+        {/* Board 7: Coming up mixes both sides; each row is the section's icon in a tinted
+            circle, the title, and "<your side> · <when>". No price on a job row (rust is money,
+            and the board shows none); the job page has the money. */}
+        <GroupSection title="Coming up">
+          {summary.upcoming.length === 0 ? (
+            <p className="px-4 py-4 text-ds-14 text-muted-foreground">Nothing booked yet.</p>
+          ) : (
+            summary.upcoming.map((c, i) => {
+              const Icon = sectionDef("jobs").icon;
+              return (
+                <GroupRow
+                  key={c.id}
+                  leading={
+                    <span aria-hidden className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-muted">
+                      <Icon className="w-5 h-5 text-primary" strokeWidth={1.75} />
+                    </span>
+                  }
+                  title={c.job.title}
+                  meta={<span data-coming-up-role={c.role}>{[COMING_UP_ROLE[c.role], whenLine(c.job)].filter(Boolean).join(" · ")}</span>}
+                  onClick={() => navigate(`/jobs/${c.job.id}`)}
+                  last={i === summary.upcoming.length - 1}
+                />
+              );
+            })
+          )}
+        </GroupSection>
 
         <section className="flex flex-col gap-2" aria-label="Your sections">
           <div className="flex items-baseline justify-between px-1">
@@ -180,22 +229,6 @@ function HomeDashboardScreen() {
           </div>
         </section>
 
-        <GroupSection title="Coming up">
-          {summary.upcoming.length === 0 ? (
-            <p className="px-4 py-4 text-ds-14 text-muted-foreground">Nothing booked yet.</p>
-          ) : (
-            summary.upcoming.map((c, i) => (
-              <GroupRow
-                key={c.id}
-                title={c.job.title}
-                meta={jobMetaLine(c.job)}
-                onClick={() => navigate(`/jobs/${c.job.id}`)}
-                right={<span className="text-ds-15 font-bold shrink-0">${c.job.budget}</span>}
-                last={i === summary.upcoming.length - 1}
-              />
-            ))
-          )}
-        </GroupSection>
       </div>
       <CustomizeSheet open={customize} onOpenChange={setCustomize} />
     </SectionScreen>

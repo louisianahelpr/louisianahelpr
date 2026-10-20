@@ -11,7 +11,8 @@
 import { describe, it, expect } from "vitest";
 import { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "@/test/helpers/trackedFiles";
 import { join, resolve } from "node:path";
 import { CurrencyInput } from "./currency-input";
 import { blankComments } from "@/test/helpers/blankNonCode";

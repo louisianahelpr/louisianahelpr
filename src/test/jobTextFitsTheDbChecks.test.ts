@@ -158,6 +158,8 @@ const NOT_A_JOB_TITLE = new Set<string>([
   'supabase/functions/charge-recurring-visits/index.ts|"Paid recurring visit was never booked and the refund failed"',
   'supabase/functions/charge-recurring-visits/index.ts|"Recurring visit charge outcome UNKNOWN"',
   'supabase/functions/charge-recurring-visits/index.ts|"Recurring visit double-charged and the refund failed"',
+  // ID once (2026-10-20): the Helpr's "finish setup" notification title, not a jobs row.
+  'supabase/functions/charge-recurring-visits/index.ts|`${step} to keep your visit dates`',
   'supabase/functions/charge-recurring-visits/index.ts|"Recurring visit hit the uniqueness index and its funding could not be verified"',
   'supabase/functions/charge-recurring-visits/index.ts|"Recurring visit charged but not created, and the refund failed"',
   'supabase/functions/charge-recurring-visits/index.ts|"Recurring visit created without its application row"',

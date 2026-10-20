@@ -30,7 +30,7 @@
 // @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |     v_done := public.complete_direct_offer_accept(p_job_id, auth.uid()); |     v_done := jsonb_build_object('action', 'accepted');
 // @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |       INSERT INTO public.job_accept_pending (job_id, helper_id)\n      VALUES (p_job_id, auth.uid()) |       PERFORM 1; -- (job_id, helper_id)\n      -- VALUES (p_job_id, auth.uid())
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |                AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL)) |               AND true))
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF public.direct_accept_block_reason(p_job_id, p_helper) IS NOT NULL THEN |   IF false THEN
+// @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql |   IF public.direct_accept_block_reason(p_job_id, p_helper) IS NOT NULL THEN |   IF false THEN
 // @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |     v_block := public.direct_accept_block_reason(p_job_id, auth.uid()); |     v_block := NULL;
 // @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |      AND COALESCE(public.get_user_credential_tier(p_helper), 0) < v_job.credential_tier THEN |      AND false THEN
 // @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() THEN\n    RETURN 'job_date_has_passed'; | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() - interval '1 day' THEN\n    RETURN 'job_date_has_passed';

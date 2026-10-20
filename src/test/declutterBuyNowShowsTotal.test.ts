@@ -7,7 +7,7 @@
  * rule declutter_start_checkout freezes, pinned to the server by
  * money.test.ts and posterJobFee.parity.test.ts), in exact cents (formatPrice, the cart's own formatter: "$42.70", "$28").
  *
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |           Buy now · {formatPrice(buyNowTotalCents(item.current_price_cents))} |           Buy now · {formatPrice(item.current_price_cents)}
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | onClick={() => tap("buy")}\n        >\n          Buy now · {formatPrice(buyNowTotalCents(item.current_price_cents))} | onClick={() => tap("buy")}\n        >\n          Buy now · {formatPrice(item.current_price_cents)}
  * @mutate src/lib/declutter/money.ts |   return checkoutAmounts([priceCents]).totalCents; |   return priceCents;
  */
 import { describe, expect, it } from "vitest";

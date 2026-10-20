@@ -152,7 +152,7 @@ const ROWS: Row[] = [
 
 describe("closed value sets agree between client and DB CHECK (Q54)", () => {
   it("inventory floor: every row resolves on both sides", () => {
-    // 10 rows: CompletionPrompts no longer has its own star input (boards 35/36 render StarRow through ReviewQuestionCard).
+    // 10 rows (measured 2026-10-20): CompletionPrompts no longer has its own star input (boards 35/36 render StarRow through ReviewQuestionCard).
     expect(ROWS.length).toBeGreaterThan(9);
     for (const r of ROWS) {
       expect(r.client().length, `${r.id}: client side empty`).toBeGreaterThan(0);

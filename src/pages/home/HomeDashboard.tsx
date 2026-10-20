@@ -46,6 +46,9 @@ export default function HomeDashboard() {
   return <HomeDashboardScreen />;
 }
 
+/** Next up shows at most this many dots: five 44px targets fit the 320 card; See all lists the rest. */
+const NEXT_UP_MAX_DOTS = 5;
+
 function HomeDashboardScreen() {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
@@ -111,42 +114,45 @@ function HomeDashboardScreen() {
                 {next.money && " · "}
                 {next.meta}
               </p>
-              {/* Board 7: one row, the dots (and See all) left, the ONE action right. */}
-              <div className="flex items-center justify-between gap-3 mt-1">
-                <div className="flex items-center min-w-0">
-                  {todoCount > 1 && (
-                    <div className="flex items-center -ml-2" role="group" aria-label="Your to-dos">
-                      {summary.todos.slice(0, 8).map((t, i) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          data-next-up-dot={i}
-                          aria-label={`To-do ${i + 1} of ${todoCount}`}
-                          aria-current={i === at ? "true" : undefined}
-                          onClick={() => setShown(i)}
-                          className="h-11 w-5 flex items-center justify-center"
-                        >
-                          <span aria-hidden className={`h-1.5 rounded-full transition-all ${i === at ? "w-4 bg-primary" : "w-1.5 bg-border"}`} />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {rest > 0 && (
+              {/* Board 7: dots left, See all + the ONE action right. Every dot is a 44px target (index.css floor),
+                  so at 320/375 they cannot share a line with the rest: the See all + action group WRAPS as one
+                  piece below the dots (See all left, action right) instead of covering them (axe target-size,
+                  TRAIN23). At most 5 dots fit 320; See all lists every to-do. */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                {todoCount > 1 && (
+                  <div className="flex items-center -ml-2" role="group" aria-label="Your to-dos">
+                    {summary.todos.slice(0, NEXT_UP_MAX_DOTS).map((t, i) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        data-next-up-dot={i}
+                        aria-label={`To-do ${i + 1} of ${todoCount}`}
+                        aria-current={i === at ? "true" : undefined}
+                        onClick={() => setShown(i)}
+                        className="h-11 w-5 flex items-center justify-center"
+                      >
+                        <span aria-hidden className={`h-1.5 rounded-full transition-all ${i === at ? "w-4 bg-primary" : "w-1.5 bg-border"}`} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div data-next-up-actions className="ml-auto grow flex items-center justify-between gap-3">
+                  {rest > 0 ? (
                     <button
                       type="button"
                       data-testid="next-up-see-all"
                       aria-expanded={todoOpen}
                       aria-controls={todoOpen ? "home-todo-list" : undefined}
                       onClick={toggleTodo}
-                      className="min-h-11 px-1 ml-1 text-ds-13 font-bold text-primary whitespace-nowrap"
+                      className="min-h-11 px-1 -ml-1 text-ds-13 font-bold text-primary whitespace-nowrap"
                     >
                       {todoOpen ? "Hide" : `See all (${todoCount})`}
                     </button>
-                  )}
+                  ) : <span />}
+                  <button type="button" data-testid="next-up-action" onClick={() => navigate(next.to)} className="btn-grad-primary btn-press rounded-full min-h-11 px-5 text-ds-15 font-semibold shrink-0">
+                    {next.action}
+                  </button>
                 </div>
-                <button type="button" data-testid="next-up-action" onClick={() => navigate(next.to)} className="btn-grad-primary btn-press rounded-full min-h-11 px-5 text-ds-15 font-semibold shrink-0">
-                  {next.action}
-                </button>
               </div>
             </>
           ) : (

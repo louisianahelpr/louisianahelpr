@@ -60,6 +60,29 @@ serve(async (req) => {
   const twilio = twilioConfig((k) => Deno.env.get(k))
   const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceRoleKey)
 
+  const recordResult = async (
+    smsId: string,
+    status: 'sent' | 'failed',
+    sid: string | null,
+    errorCode: string | null,
+  ): Promise<boolean> => {
+    const { data, error } = await supabase.rpc('sms_record_result', {
+      p_sms_id: smsId,
+      p_status: status,
+      p_provider_sid: sid,
+      p_error_code: errorCode,
+    })
+    if (error) {
+      console.error(`[send-sms-notification] sms_record_result failed for ${smsId}: ${error.message}`)
+      return false
+    }
+    if (data !== true) {
+      console.error(`[send-sms-notification] sms_record_result changed no row for ${smsId}`)
+      return false
+    }
+    return true
+  }
+
   const { data: claimData, error: claimError } = await supabase.rpc('sms_claim', {
     p_notification_id: notificationId,
     p_provider_ready: twilio !== null,
@@ -75,7 +98,7 @@ serve(async (req) => {
   if (!twilio || !claim.sms_id || !claim.phone || !isSmsKind(claim.kind)) {
     // sms_claim only says 'send' with all of these; anything else is a bug.
     console.error(`[send-sms-notification] malformed claim for ${notificationId}`)
-    if (claim.sms_id) await recordResult(supabase, claim.sms_id, 'failed', null, 'malformed_claim')
+    if (claim.sms_id) await recordResult(claim.sms_id, 'failed', null, 'malformed_claim')
     return json(500, { error: 'malformed_claim' })
   }
 
@@ -115,34 +138,10 @@ serve(async (req) => {
     console.error(`[send-sms-notification] Twilio request threw: ${caughtMessage(err)}`)
   }
 
-  const ok = await recordResult(supabase, claim.sms_id, sid ? 'sent' : 'failed', sid, errorCode)
+  const ok = await recordResult(claim.sms_id, sid ? 'sent' : 'failed', sid, errorCode)
   if (!sid) {
     console.error(`[send-sms-notification] Twilio refused text ${claim.sms_id}: ${errorCode}`)
     return json(502, { sent: false, error_code: errorCode, recorded: ok })
   }
   return json(200, { sent: true, recorded: ok })
 })
-
-async function recordResult(
-  supabase: ReturnType<typeof createClient>,
-  smsId: string,
-  status: 'sent' | 'failed',
-  sid: string | null,
-  errorCode: string | null,
-): Promise<boolean> {
-  const { data, error } = await supabase.rpc('sms_record_result', {
-    p_sms_id: smsId,
-    p_status: status,
-    p_provider_sid: sid,
-    p_error_code: errorCode,
-  })
-  if (error) {
-    console.error(`[send-sms-notification] sms_record_result failed for ${smsId}: ${error.message}`)
-    return false
-  }
-  if (data !== true) {
-    console.error(`[send-sms-notification] sms_record_result changed no row for ${smsId}`)
-    return false
-  }
-  return true
-}

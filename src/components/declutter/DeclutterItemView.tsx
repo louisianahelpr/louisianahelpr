@@ -23,6 +23,7 @@ import {
   askQuestion,
   fetchItem,
   fetchItemDropState,
+  fetchManageState,
   fetchMyItemReview,
   fetchPhotos,
   fetchQuestions,
@@ -141,6 +142,12 @@ export default function ItemView({ itemId }: { itemId: string }) {
     queryFn: () => fetchItemDropState(itemId),
     enabled: validId && item.data?.status === "live",
   });
+  // Board 158: the seller who stopped the drops is never told "Could drop" (same key as the Manage sheet).
+  const sellerDrops = useQuery({
+    queryKey: ["declutter", "manage", itemId],
+    queryFn: () => fetchManageState(itemId),
+    enabled: isSeller && item.data?.status === "live",
+  });
   const review = useQuery({
     queryKey: ["declutter", "my-review", itemId],
     queryFn: () => fetchMyItemReview(itemId),
@@ -228,7 +235,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
               </p>
               <ConditionChip stars={it.condition_stars} />
             </div>
-            {drop && <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} />}
+            {drop && !(isSeller && sellerDrops.data && sellerDrops.data !== "not_deployed" && sellerDrops.data.drops_stopped) && (
+              <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} mine={isSeller} />
+            )}
             <h2 className="pt-1 text-ds-22 font-bold leading-snug [overflow-wrap:anywhere]">{it.title}</h2>
             <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
               {[it.area_label, away, it.porch_ok !== false ? "Porch pickup" : null].filter(Boolean).join(" · ")}

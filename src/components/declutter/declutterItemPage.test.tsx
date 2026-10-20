@@ -24,7 +24,9 @@
  * @mutate src/components/declutter/DeclutterItemRows.tsx | (rows ?? []).filter((r) => r.seller_id !== viewerId) | (rows ?? [])
  * @mutate src/components/declutter/DeclutterItemRows.tsx |       {moreRows.length > 0 && <Row |       {<Row
  * @mutate src/components/declutter/DeclutterItemView.tsx |       {!isSeller && (\n        <div className="mt-8"> |       {(\n        <div className="mt-8">
- * @mutate src/components/declutter/DeclutterItemView.tsx |             {drop && <PriceDropBanner | {false && <PriceDropBanner
+ * @mutate src/components/declutter/DeclutterItemView.tsx |             {drop && !(isSeller | {false && !(isSeller
+ * @mutate src/components/declutter/DeclutterItemView.tsx | lowestCents={drop.lowestCents} at={drop.at} mine={isSeller} /> | lowestCents={drop.lowestCents} at={drop.at} />
+ * @mutate src/components/declutter/DeclutterItemView.tsx | sellerDrops.data.drops_stopped) && ( | false) && (
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const drop = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null; |   const drop = { at: new Date(), lowestCents: it.current_price_cents - 200 };
  * @mutate src/components/declutter/DeclutterBundleRow.tsx | (r) => r.status === "live" && r.seller_id !== viewerId | (r) => r.seller_id !== viewerId
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |   const capped = (more.data?.length ?? 0) >= 12; |   const capped = false;
@@ -45,6 +47,8 @@ const state = {
   similar: [] as unknown[],
   tableRows: [] as unknown[],
   drop: null as unknown,
+  manage: null as unknown,
+  reads: 0,
 };
 const calls: [string, unknown[]][] = [];
 // A PostgREST builder that records each call and resolves to state.tableRows.
@@ -95,7 +99,8 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchSellerItems: async () => state.more,
     fetchSimilarItems: async () => state.similar,
     fetchItem: async () => state.item,
-    fetchItemDropState: async () => state.drop,
+    fetchItemDropState: async () => { state.reads++; return state.drop; },
+    fetchManageState: async () => { state.reads++; return state.manage; },
     fetchPhotos: async () => state.photos,
     fetchQuestions: async () => [],
     fetchWatching: async () => new Set(),
@@ -151,6 +156,7 @@ describe("the photo-first Declutter item page", () => {
     state.more = [];
     state.similar = [];
     state.drop = null;
+    state.manage = null;
     calls.length = 0;
   });
   afterEach(() => {
@@ -328,6 +334,26 @@ describe("the photo-first Declutter item page", () => {
     state.drop = { sale_mode: "fixed", last_price_drop_on: null };
     open();
     await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+    expect(document.querySelector("[data-price-drop]")).toBeNull();
+  });
+
+  // Lead (2026-10-20): the seller reads about their own rule, never "the seller chose"; once they stop the drops
+  // (board 158) their page stops saying "Could drop".
+  it("seller: the drop line speaks to the seller, and hides once they stopped the drops", async () => {
+    state.item = { ...ITEM, seller_id: "u1", current_price_cents: 3800, live_at: new Date(Date.now() - 60_000).toISOString() };
+    state.drop = { sale_mode: "offers", last_price_drop_on: null };
+    state.manage = { floor_price_cents: 3000, drops_stopped: false };
+    const first = open();
+    expect(await screen.findByText(/never goes below your lowest price/)).toBeInTheDocument();
+    expect(screen.queryByText(/the seller chose/)).toBeNull();
+    first.unmount();
+    state.manage = { floor_price_cents: 3000, drops_stopped: true };
+    state.reads = 0;
+    open();
+    await screen.findByText("Your listing is for sale");
+    // Both reads (the drop rule and the seller's own stop) have landed before absence is judged.
+    await waitFor(() => expect(state.reads).toBe(2));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
     expect(document.querySelector("[data-price-drop]")).toBeNull();
   });
 

@@ -1,5 +1,6 @@
 // @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |         AND (NOT is_seed OR NOT (SELECT public.seed_hidden_in_discovery()))) |         AND true)
-// @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |      OR (v_seed AND public.seed_hidden_in_discovery()) THEN |      THEN
+// @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |      OR (v_seed AND public.seed_hidden_for(p_buyer)) THEN |      THEN
+// @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |      AND public.seed_hidden_for(p_buyer) THEN\n    RAISE EXCEPTION 'item_not_found' |      AND false THEN\n    RAISE EXCEPTION 'item_not_found'
 //
 // Cowork design audit 2026-10-20, D1: the owner (an admin, not a test account)
 // saw test sellers' fixtures ("Fixture rocking chair [E2E-PRODAUDIT]",
@@ -13,7 +14,7 @@
 // in the policy itself or in a function it calls (two hops). Inventory: every
 // newest CREATE POLICY in the migrations on a table that has is_seed.
 // Behaviour proof under the real roles: src/test/pglite/declutterSeedBoundary.pglite.mjs
-// (4 RED checks fail without the migration; all pass applied 3x).
+// (8 RED checks fail without the migration; all 14 pass applied 3x).
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -102,13 +103,30 @@ describe("D1: marketplace listing reads hide test sellers' rows by the launch sw
     expect(body).toMatch(/NOT\s+is_seed\s+OR\s+NOT\s+\(SELECT\s+public\.seed_hidden_in_discovery\(\)\)/);
   });
 
-  it("the buy / offer lock (SECURITY DEFINER, so RLS never applies) refuses a hidden test item as not found", () => {
-    // lh-money-escrow review 2026-10-20: without this a real member holding a
-    // test item's id could reserve it and pay real money for a fixture.
-    const d = DEFS.get("declutter_lock_buyable_item");
-    expect(d, "declutter_lock_buyable_item is not defined").toBeDefined();
-    const body = blankSqlComments(d!.stmt);
-    expect(body).toMatch(/i\.is_seed/);
-    expect(body).toMatch(/OR\s+\(v_seed\s+AND\s+public\.seed_hidden_in_discovery\(\)\)\s+THEN\s+RAISE EXCEPTION 'item_not_found'/);
+  // The WRITE side (lh-money-escrow + lh-authz-rls reviews, 2026-10-20): a
+  // SECURITY DEFINER function never sees the policy above. The class: every
+  // Declutter function that acts on SOMEONE ELSE's item (it refuses 'own_item')
+  // and the accept door into a cart (declutter_take_item) refuse a test item
+  // the person it acts for may not see, asked with seed_hidden_for(<that person>).
+  it("every buyer-side Declutter function refuses a hidden test item as not found", () => {
+    const buyerSide = [...DEFS.entries()]
+      .filter(([n, d]) => n.startsWith("declutter_") && /'own_item'/.test(blankSqlComments(d.stmt)))
+      .map(([n]) => n);
+    expect(buyerSide.length).toBeGreaterThan(2);
+    expect(buyerSide).toEqual(expect.arrayContaining(["declutter_lock_buyable_item", "declutter_ask_question", "declutter_set_watch"]));
+    const who: Record<string, string> = { declutter_lock_buyable_item: "p_buyer", declutter_take_item: "p_buyer", declutter_ask_question: "v_uid", declutter_set_watch: "v_uid" };
+    for (const n of [...buyerSide, "declutter_take_item"]) {
+      const body = blankSqlComments(DEFS.get(n)?.stmt ?? "");
+      expect(who[n], `${n} acts on someone else's item: list whom it acts for here`).toBeDefined();
+      expect(body, `${n} never asks the seed switch`).toMatch(new RegExp(`is_seed[\\s\\S]*public\\.seed_hidden_for\\(${who[n]}\\)[\\s\\S]*RAISE EXCEPTION 'item_not_found'`));
+    }
+  });
+
+  it("the accept door checks the BUYER before the item is reserved", () => {
+    const body = blankSqlComments(DEFS.get("declutter_take_item")?.stmt ?? "");
+    const check = body.search(/public\.seed_hidden_for\(p_buyer\)/);
+    const reserve = body.search(/SET status = 'reserved'/);
+    expect(check).toBeGreaterThan(0);
+    expect(reserve).toBeGreaterThan(check);
   });
 });

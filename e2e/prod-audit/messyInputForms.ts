@@ -781,6 +781,21 @@ export const FORMS: FormSpec[] = [
     covers: ["src/components/declutter/DeclutterItemView.tsx"],
   },
   {
+    // Board 158 (builder3b, 2026-10-20): the seller's Manage sheet on the same live fixture item (the helper sells
+    // it). The sweep opens "Change price or lowest price" and types; it never presses Save price (write firewall).
+    name: "declutter-manage-price", url: "/declutter", as: "helper",
+    prepare: async (page) => {
+      const id = runtime.declutter.liveId;
+      if (!id) throw new Error("declutter-manage-price needs the live Declutter fixture item (declutterFixture.ts); none was minted");
+      await page.goto(`/declutter/item/${id}`);
+      await settle(page);
+      await page.getByRole("button", { name: "Manage listing" }).click();
+      await page.getByRole("button", { name: /Change price or lowest price/ }).click();
+      await page.locator("#manage-price").waitFor({ timeout: 20_000 });
+    },
+    covers: ["src/components/declutter/DeclutterManageListing.tsx"],
+  },
+  {
     name: "declutter-review", url: "/admin?view=settings", as: "admin",
     prepare: async (page) => {
       await recoverAdminGate(page);

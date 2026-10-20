@@ -39,10 +39,13 @@ const PostJob = () => {
   // share one route, so ScrollToTop never fires between them, and the shell's
   // scroller kept the form's offset: Review & Pay sits at the form's foot, so
   // Order Summary opened scrolled to its own bottom.
-  const lastStep = useRef(form.step);
+  // The form's four screens (formPage) share the "form" step, so a screen
+  // change resets the scroll too.
+  const lastStep = useRef(`${form.step}:${form.formPage}`);
   useLayoutEffect(() => {
-    if (lastStep.current === form.step) return;
-    lastStep.current = form.step;
+    const key = `${form.step}:${form.formPage}`;
+    if (lastStep.current === key) return;
+    lastStep.current = key;
     window.scrollTo(0, 0);
     // AppPage's own column is the scroller on a phone (measured 2026-10-08 in
     // WebKit at 390x844: `[data-app-page-scroll]` sat at 536 of 1200 while the
@@ -51,16 +54,13 @@ const PostJob = () => {
     document.querySelectorAll<HTMLElement>(".app-shell-scroll, [data-app-page-scroll]").forEach((el) => {
       el.scrollTop = 0;
     });
-  }, [form.step]);
+  }, [form.step, form.formPage]);
 
   // Per-step header copy. The entry landing is the new first step where the
   // poster picks how to begin (start fresh / draft / template).
-  const header =
-    form.step === "checkout"
-      ? { eyebrow: "Almost there", title: "Order Summary", meta: "Review and pay to publish" }
-      : form.step === "entry"
-        ? { eyebrow: "New request", title: "Post a Job", meta: "Pick how you'd like to begin." }
-        : { eyebrow: "New request", title: "Job Details", meta: "The more detail, the better." };
+  // Each screen asks its own question under the bar (PostJobStepHeader), so
+  // the bar just names the flow (sentence case, spec §2 Type).
+  const header = { title: "Post a job" };
 
   return (
     /* ONE shell, like every other in-app sub-screen (owner, 2026-08-30:

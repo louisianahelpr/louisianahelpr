@@ -150,6 +150,8 @@ function renderFormWith({
     offerToHelperId: null, offerToHelperName: null, clearOffer: noop,
     offerResponseHours: 24, setOfferResponseHours: noop,
     openJobCount: 0,
+    // Screen 4 of 5 (When and where): the screen whose button submits.
+    formPage: 4, setFormPage: noop,
     handleReview: (e: { preventDefault: () => void }) => e.preventDefault(),
   } as unknown as ReturnType<typeof usePostJobForm>;
 

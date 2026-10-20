@@ -80,7 +80,6 @@ const LEDGER = [
   "src/components/TimePickerWheel.tsx",
   "src/pages/jobs/AppliedJobsTab.tsx",
   "src/pages/posts/postedJobs/DeclineApplicantSheet.tsx",
-  "src/components/postjob/detailsSection/CategoryPicker.tsx",
   "src/components/postjob/detailsSection/CredentialTierSelector.tsx",
   "src/components/postjob/detailsSection/PhotoUpload.tsx",
   "src/pages/profile/AutoTip.tsx",

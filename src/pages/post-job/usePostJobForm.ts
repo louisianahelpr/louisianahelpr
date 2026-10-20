@@ -54,6 +54,9 @@ export function usePostJobForm() {
   // Declutter's "Sell it for me" (`sellForMe`, src/lib/declutter/sellForMe.ts).
   const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) || searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("declutterOrder") || searchParams.get("maintenance") || searchParams.get("turnover") || searchParams.get("haulAway"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
+  // Which of the form's four screens is showing (1 What, 2 Details, 3 Price,
+  // 4 When and where; screen 5 is the checkout step). Boards 23/44/3/45/46.
+  const [formPage, setFormPage] = useState(1);
 
   // Gift card — the gift card this post is being funded with, if any.
   // Read ONCE here so the id that goes to create-payment and the amount the
@@ -493,7 +496,11 @@ export function usePostJobForm() {
   });
 
   const handlePostJobBack = () => {
-    if (step === "checkout") {
+    if (step === "form" && formPage > 1) {
+      // Back steps through the form's screens; entered data stays (state
+      // lives here, every screen stays mounted).
+      setFormPage((p) => p - 1);
+    } else if (step === "checkout") {
       setStep("form");
       // Scroll to top so the user lands on Details (not mid-form) to edit.
       // RAF lets the form re-render before scroll fires, so the target
@@ -517,6 +524,8 @@ export function usePostJobForm() {
     // step / nav
     step,
     setStep,
+    formPage,
+    setFormPage,
     handlePostJobBack,
     // overlay / status
     saving,

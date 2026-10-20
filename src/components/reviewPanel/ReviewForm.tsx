@@ -1,9 +1,9 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
 import { useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +24,9 @@ import { TipDialog } from "@/components/TipDialog";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative, pickerFailure } from "@/lib/nativeCamera";
 import { report } from "@/lib/errorLogger";
-import { StarRow } from "./StarRow";
+import { ReviewQuestionCard } from "./ReviewQuestionCard";
+import { JobDoneSummary } from "@/components/jobDone/JobDoneSummary";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { quickTagsFor, safeImageSrc, type ReviewFormProps } from "./types";
 import { userFacingError } from "@/lib/userFacingError";
 import { recordReviewInActivityCache } from "@/lib/reviewActivityCache";
@@ -45,13 +47,9 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
   // the moment of peak satisfaction.
   const [tipPromptOpen, setTipPromptOpen] = useState(false);
   const [tipDialogOpen, setTipDialogOpen] = useState(false);
+  const { user: viewer } = useAuthReady();
 
   const MAX_PHOTOS = 3;
-
-  // `revieweeName` is an abbreviated display name that ALREADY ends in a
-  // period whenever the surname is an initial ("Tre B."), so appending one
-  // unconditionally rendered "Rate Tre B..".
-  const titleName = revieweeName.trimEnd().endsWith(".") ? revieweeName.trimEnd() : `${revieweeName.trimEnd()}.`;
 
   const addPhotoFiles = (picked: File[]) => {
     const selected = picked.filter((f) => {
@@ -91,14 +89,8 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
   // The tags still adapt to WHO is being rated — "On time" and "Quality work"
   // describe someone who came and did a job. See ./types.
   const quickOptions = quickTagsFor(revieweeRole);
-
-  const toggleQuickOption = (option: string) => {
-    setFeedback((prev) => {
-      const parts = prev.split(", ").filter(Boolean);
-      if (parts.includes(option)) return parts.filter((p) => p !== option).join(", ");
-      return [...parts, option].join(", ");
-    });
-  };
+  // "Andre L." -> "Andre" for the question ("How did Andre do?").
+  const firstName = revieweeName.trim().split(/\s+/)[0] || revieweeName;
 
   const canSubmit = rating > 0;
 
@@ -112,7 +104,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
   const submitOnce = async () => {
     if (!canSubmit) {
       hapticError();
-      toast.error("Tap an Overall star rating to leave your review.");
+      toast.error("Tap a star rating to leave your review.");
       return;
     }
     setSubmitting(true);
@@ -280,73 +272,24 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
-        <DialogHero title={`Rate ${titleName}`} />
-        {/* `min-w-0` on the grid child: DialogContent is a `grid`, and a grid
-            item's automatic minimum size is its min-content width — so one wide
-            row inside here pushed the whole track past the dialog's own width
-            and clipped every child's right edge. */}
+        {/* Boards 35/36: the Job done moment, then the review card. The same
+            layout the poster sees right after release (CompletionPrompts). */}
+        <DialogHero moment title="Job done" />
         <div className="space-y-3 min-w-0">
-          <StarRow
-            value={rating}
-            onChange={setRating}
-            label="Overall"
-            sublabel="Your overall experience"
-            optional={false}
+          <JobDoneSummary
+            jobId={jobId}
+            side={revieweeRole === "poster" ? "helper" : "poster"}
+            otherName={revieweeName}
+            viewerId={viewer?.id ?? ""}
           />
-          {/* WRAPPING rows, not one hidden-scroll line (owner, 2026-09-14,
-              VN-30: "can't scroll these options"). The single line had a hidden
-              scrollbar and a right-edge fade, so on desktop a mouse wheel could
-              not reach the clipped chips at all. Six short tags wrap onto two
-              or three rows and every one is visible and clickable. No scroll
-              region any more, so no `tabIndex` — each chip is its own tab stop. */}
-          <div
-            role="group"
-            aria-label="Quick review tags"
-            className="flex flex-wrap gap-2 pt-1 pb-1"
+          <ReviewQuestionCard
+            question={revieweeRole === "poster" ? `How was working for ${firstName}?` : `How did ${firstName} do?`}
+            rating={rating}
+            onRating={setRating}
+            tags={quickOptions}
+            feedback={feedback}
+            onFeedback={setFeedback}
           >
-            {quickOptions.map((opt) => {
-              const selected = feedback.includes(opt);
-              return (
-                <button
-                  aria-pressed={selected}
-                  key={opt}
-                  type="button"
-                  onClick={() => toggleQuickOption(opt)}
-                  // SELECTED = GLOSSY. `btn-grad-primary` is the shared
-                  // primary surface; this chip painted a FLAT `--bark` fill,
-                  // which is the same rule break the withdraw and decline
-                  // reason pickers had ("primary and selected controls must be
-                  // glossy, never flat").
-                  className={`shrink-0 whitespace-nowrap text-ds-12 font-sans font-semibold px-3 py-1.5 rounded-full transition-all active:scale-[0.97] ${
-                    selected ? "btn-grad-primary" : ""
-                  }`}
-                  style={
-                    selected
-                      ? {
-                          color: "hsl(var(--parchment))",
-                          border: "0.5px solid hsl(var(--bark))",
-                          boxShadow: "var(--elev-bark-flat)",
-                        }
-                      : {
-                          background: "var(--surface-premium)",
-                          color: "hsl(var(--ink-deep))",
-                          border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                        }
-                  }
-                >
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
-          <Textarea
-            aria-label="Review comment (optional)"
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-            rows={3}
-            className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14 leading-relaxed"
-          />
-
           {/* Photo attachments — up to 3 photos */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
@@ -388,9 +331,9 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
                     background: "var(--surface-premium)",
                   }}
                 >
-                  <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} />
+                  <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} />
                   <span className="font-sans text-ds-9" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    {photoFiles.length === 0 ? "Add Photo" : "Add More"}
+                    {photoFiles.length === 0 ? "Add photo" : "Add more"}
                   </span>
                 </button>
               )}
@@ -410,6 +353,19 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
               onChange={handlePhotoInput}
             />
           </div>
+          </ReviewQuestionCard>
+          {revieweeRole === "poster" && (
+            // Board 36: the Helpr's next step after a finished job. A text
+            // link, not a second primary: "Send review" is this screen's one.
+            <Link
+              to="/jobs"
+              onClick={onClose}
+              className="block text-center font-sans font-bold text-ds-14 py-2"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              Find your next job
+            </Link>
+          )}
         </div>
         {/* Plain DialogFooter. The `!flex-col !items-stretch` override forced
             this one dialog to stack its buttons full-width at EVERY width,
@@ -433,7 +389,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
             onClick={onClose}
             disabled={submitting}
           >
-            Maybe Later
+            Skip for now
           </DialogSecondaryAction>
           <DialogPrimaryAction
             onClick={handleSubmit}
@@ -448,7 +404,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
                 Review" is the wording the rest of the flow uses
                 (CompletionPrompts.tsx, and the "Submitting…" state right
                 here); "Post Review" appeared nowhere else in the app. */}
-            {submitting ? "Submitting…" : "Submit Review"}
+            {submitting ? "Sending…" : "Send review"}
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>

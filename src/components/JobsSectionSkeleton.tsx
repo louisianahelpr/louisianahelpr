@@ -39,6 +39,8 @@ function JobsHeaderBones() {
           </span>
         </div>
       </div>
+      {/* Explore's section switcher (phone only; the desktop rail lists the sections). */}
+      <Skeleton className="explore-switcher-bone h-12 w-full rounded-full" />
       {/* SegmentedControl: `p-0.5` track around `h-11` segments = 48px. */}
       <Skeleton className="h-12 w-full rounded-full" />
     </div>

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useReducedMotion } from "@/lib/accessibility";
 import {
+  Plus,
   type LucideIcon,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -23,15 +24,12 @@ import { POSTED_STATUS_FILTERS } from "@/components/job-card/activityFilters";
 import { useStoredSessionHint } from "@/hooks/useStoredSessionHint";
 import { transformedImageUrl } from "@/lib/imageUrl";
 import {
-  leftItems,
-  rightItems,
   authPages,
   noNavPages,
   tabStacks,
 } from "@/components/mobileNav/mobileNavHelpers";
-import { useSectionTabs, comingSoonLabel, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
-import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
-import { dockItems } from "@/components/mobileNav/dockItems";
+import { phoneDockItems } from "@/components/mobileNav/dockItems";
+import { CreateSheet } from "@/components/create/CreateSheet";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
@@ -74,14 +72,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // badges (new applicants on your posts; pending direct offers to you).
   // Count-only queries — deliberately not the heavy useActivityData hook.
   const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
-  // The section tabs (owner, 2026-10-18, option 1A). A signed-in member's
-  // dock is Home, the shown sections, then Messages (owner, 2026-10-19);
-  // Profile is the avatar in every top bar (AppTopBar). A section whose switch is
-  // off for them is GREYED and says "coming soon" instead of navigating
-  // (owner, 2026-10-18). Guests keep the five-tab dock, which locks for them.
-  const sectionTabs = useSectionTabs();
-  const { visible: visibleSections } = useSectionPrefs();
-  const sectionDock = !isGuest;
+  // THE PHONE BOTTOM BAR (owner-approved mock-up, 2026-10-20): Home,
+  // Explore, the center "+", Messages, You. The four sections live in Explore
+  // (their switches and Customize apply there); the "+" opens the create sheet.
+  const dock = phoneDockItems();
+  const [createOpen, setCreateOpen] = useState(false);
   // Signed-out visitors get no bottom dock (below), so nothing should reserve
   // space for one. This class zeroes `--bottom-nav-h`, which feeds Tailwind's
   // `safe-nav` token — collapsing the ~112px strip on all 22 `pb-safe-nav`
@@ -126,7 +121,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   useEffect(() => {
     if (dockHidden) return;
     return prefetchRoutesWhenIdle([
-      ...[...leftItems, ...rightItems].map((i) => i.path),
+      ...[...dock.left, ...dock.right].map((i) => i.path),
       "/post-job",
     ]);
   }, [dockHidden]);
@@ -404,9 +399,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     setGateOpen(true);
   };
 
-  const renderItem = ({ path, icon: Icon, label, badgeKey, comingSoon }: { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "posts" | "jobs" | "jobsAndPosts"; comingSoon?: boolean }) => {
-    // A switched-off section: shown, muted, aria-disabled, never navigates.
-    const soon = !!comingSoon && !isGuest;
+  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "posts" | "jobs" | "jobsAndPosts" }) => {
     // Guest-mode tab remap: Home -> /browse (the read-only home dashboard
     // that mirrors the real /home), Profile -> /login. Other tabs stay
     // visually present but show a lock + open the signup sheet.
@@ -442,10 +435,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     const showBadge = badgeCount > 0;
 
     const handleClick = () => {
-      if (soon) {
-        sayComingSoon(label);
-        return;
-      }
       // Swallow the trailing click a completed long-press's touchend
       // produces — see the comment on `justLongPressedRef` above.
       if ((path === "/posts" || path === "/messages") && justLongPressedRef.current) {
@@ -485,11 +474,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
 
     // A section tab is lit anywhere inside its section; the one Jobs & Posts
     // tab is lit on both lists.
-    const isActive =
-      !soon && (active ||
-      inStack ||
-      (sectionDock && sectionTabs.some((t) => t.path === path) && location.pathname.startsWith(`${path}/`)) ||
-      (badgeKey === "jobsAndPosts" && location.pathname === "/posts"));
+    const isActive = active || inStack;
     // Long-press quick menus only wire up for Posts and Messages, and only
     // for a real signed-in account — guests never navigate has-status
     // filters or conversations. handleClick above already double-checks
@@ -505,11 +490,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       <TabButton
         key={path}
         onTap={handleClick}
-        onPrefetch={() => !locked && !soon && prefetchRoute(effectivePath)}
-        ariaLabel={soon ? comingSoonLabel(label) : locked ? `${label} — locked until your account is approved` : label}
+        onPrefetch={() => !locked && prefetchRoute(effectivePath)}
+        ariaLabel={locked ? `${label} — locked until your account is approved` : label}
         ariaCurrent={isActive ? "page" : undefined}
-        ariaDisabled={soon}
-        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""} ${soon ? "opacity-40" : ""}`}
+        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""}`}
         style={{ color: isActive ? "hsl(var(--bark))" : "hsl(48 9% 47%)" }}
         longPress={longPress}
       >
@@ -573,6 +557,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               pixelSize={48}
               alt=""
               className="w-[24px] h-[24px] transition-all duration-200"
+              // The monogram at 24px: the default type size spilled "AW" past the circle (looked, 2026-10-20).
+              fallbackClassName="text-ds-9 tracking-[-0.02em]"
               style={{
                 boxShadow: isActive
                   ? "0 0 0 2px hsl(var(--bark)), 0 0 0 3.5px hsl(var(--bark) / 0.18)"
@@ -740,9 +726,41 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 container padding the Home chip sat 10px in from the dock's inner
                 edge; at 6px it sits 8px in. Height is untouched (h-14). */}
             <div className="flex items-stretch h-14 px-1.5">
-              {(sectionDock
-                ? dockItems(sectionTabs, visibleSections)
-                : [...leftItems, ...rightItems]).map((item) => (
+              {dock.left.map((item) => (
+                <div key={item.path} className="flex flex-1 items-stretch relative">
+                  {renderItem(item)}
+                </div>
+              ))}
+              {/* The center "+" (owner-approved mock-up, 2026-10-20): one raised
+                  olive disc that opens "What are we doing?". The only loud
+                  thing in the bar; it turns into an X while the sheet is open. */}
+              <div className="flex flex-1 items-start justify-center relative">
+                <button
+                  type="button"
+                  data-testid="dock-create"
+                  aria-label="Create"
+                  aria-haspopup="dialog"
+                  aria-expanded={createOpen}
+                  onClick={() => {
+                    hapticMedium();
+                    setCreateOpen((o) => !o);
+                  }}
+                  // HELPR-DESIGN-SPEC §3: a 60px disc raised half above the bar, in a 4px ring of the page's own ground.
+                  className="btn-grad-primary btn-press absolute -top-[30px] w-[60px] h-[60px] rounded-full flex items-center justify-center [-webkit-tap-highlight-color:transparent]"
+                  style={{
+                    color: "hsl(var(--primary-foreground))",
+                    boxShadow: "0 0 0 4px hsl(var(--background)), 0 4px 18px rgba(32, 30, 26, 0.12)",
+                  }}
+                >
+                  <Plus
+                    className="w-7 h-7 transition-transform duration-200"
+                    strokeWidth={2.25}
+                    aria-hidden
+                    style={{ transform: createOpen ? "rotate(45deg)" : undefined }}
+                  />
+                </button>
+              </div>
+              {dock.right.map((item) => (
                 <div key={item.path} className="flex flex-1 items-stretch relative">
                   {renderItem(item)}
                 </div>
@@ -750,13 +768,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </div>
           </div>
 
-          {/* No Post "+" here any more (owner, 2026-10-19): each section
-              carries its own add action as a pill (SectionActionPill), so
-              the dock is only the tabs. */}
         </div>
       </nav>
 
       <GateSheet open={gateOpen} onOpenChange={setGateOpen} />
+      <CreateSheet open={createOpen} onOpenChange={setCreateOpen} />
     </>
   );
 });

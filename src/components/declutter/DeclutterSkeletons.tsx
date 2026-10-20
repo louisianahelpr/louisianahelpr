@@ -23,7 +23,7 @@ import { DeclutterNotice } from "./declutterUi";
 /** /declutter: the section shell (top bar), the tab row, the search row and the first cards. */
 export function DeclutterHomeSkeleton() {
   return (
-    <SectionScreen title="Declutter" add={sectionByKey("declutter").add}>
+    <SectionScreen section="declutter" title="Declutter" add={sectionByKey("declutter").add}>
       <Skeleton className="h-11 w-full rounded-full" aria-hidden />
       <DeclutterBrowseBones />
     </SectionScreen>

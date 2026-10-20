@@ -36,7 +36,7 @@ import { LISTING_GRID, ListingCardBone } from "./listings/listingBones";
  */
 export function RentalsHomeSkeleton() {
   return (
-    <SectionScreen title="Homes" add={sectionByKey("homes").add}>
+    <SectionScreen section="homes" title="Homes" add={sectionByKey("homes").add}>
       <Skeleton className="h-11 w-full rounded-full" aria-hidden />
       <div className="space-y-4" role="status" aria-label="Loading Homes">
         <div className="space-y-4">

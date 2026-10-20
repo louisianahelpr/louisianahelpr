@@ -291,7 +291,8 @@ describe("Bodoni for moments", () => {
     const css = readFileSync(resolve(ROOT, "src/index.css"), "utf8");
     const m = css.match(/\.font-moment\.font-moment\.font-moment \{([^}]*)\}/);
     expect(m?.[1]).toMatch(/"Bodoni Moda"[^;]*!important/);
-    expect(css).toMatch(/\.font-display:not\(\.landing-h1, \.landing-h1 \*\) \{/);
+    // J1 (Post a Job step headers) adds `.font-moment` to the :not() list, so a moment title never meets T1's rule at all.
+    expect(css).toMatch(/\.font-display:not\(\.landing-h1, \.landing-h1 \*(?:, \.font-moment)?\) \{/);
   });
 });
 

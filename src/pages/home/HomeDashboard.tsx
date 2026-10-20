@@ -7,6 +7,7 @@ import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatJobDate } from "@/lib/dateUtils";
+import { jobStartTimeLabel } from "@/lib/jobDate";
 import { useHomeSummary, SECTION_INVITE, type ComingUpItem } from "./homeDashboard/useHomeSummary";
 import { useOnTabReselect } from "@/components/mobileNav/tabReselect";
 import { feedLinkTarget } from "./homeDashboard/feedLinkForward";
@@ -20,7 +21,8 @@ function greeting(d = new Date()) {
 
 /** The day and the time of a Coming up row (board 7 joins them; board 11's table gives each a column). */
 function whenParts(job: ComingUpItem["job"]) {
-  const time = job.start_time ? new Date(`1970-01-01T${job.start_time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : null;
+  // The shared rule (jobStartTimeClass): a malformed or "flexible" column value never prints raw.
+  const time = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
   return { day: job.date_needed ? formatJobDate(job.date_needed) : null, time };
 }
 

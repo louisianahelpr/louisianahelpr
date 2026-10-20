@@ -69,9 +69,13 @@ for (const width of [375, 1440]) {
     const startFresh = page.getByRole("button", { name: /^start fresh/i }).first();
     await startFresh.waitFor({ timeout: 20_000 });
     await startFresh.click();
-    await page.getByRole("heading", { name: /logistics|where and when/i }).first()
-      .waitFor({ timeout: 20_000 })
-      .catch(() => undefined);
+    // J1 (2026-10-20): Post a Job is one question per screen and Repeats lives on
+    // screen 4 (When and where). Open it the way the form's own submit pass does
+    // (scrollToField in postJobFormHelpers.ts dispatches lh:show-form-page on the
+    // hidden screen), so this spec measures the picker without re-driving screens 1-3.
+    const screen4 = page.locator('[data-form-page="4"]');
+    await screen4.waitFor({ state: "attached", timeout: 20_000 });
+    await screen4.evaluate((el) => el.dispatchEvent(new CustomEvent("lh:show-form-page", { bubbles: true })));
 
     // `radio`, not `button`: the Job type control is the app's shared
     // <SegmentedControl />, which gives the group `role="radiogroup"` and each

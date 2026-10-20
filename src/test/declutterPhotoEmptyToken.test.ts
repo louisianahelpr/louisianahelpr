@@ -9,7 +9,8 @@
  * @mutate src/components/declutter/DeclutterGallery.tsx | overflow-hidden rounded-2xl bg-photo-empty"; | overflow-hidden rounded-2xl";
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { blankComments, blankCssComments } from "./helpers/blankNonCode";
 

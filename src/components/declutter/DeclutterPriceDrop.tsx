@@ -18,7 +18,7 @@ export function PriceDropBanner({ lowestCents, at }: { lowestCents: number; at: 
       <ArrowDown className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
       <div className="min-w-0">
         <p className="text-ds-15 font-bold leading-snug">
-          Could drop to {formatPrice(lowestCents)} {dropWhenLabel(at)}
+          Could drop as low as {formatPrice(lowestCents)} {dropWhenLabel(at)}
         </p>
         <p className="text-sm leading-snug">
           Each evening it can drop up to 5%, until it reaches a price the seller chose.

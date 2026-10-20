@@ -11,6 +11,7 @@
  * @mutate src/lib/declutter/priceDrop.ts |   const lowestCents = Math.floor(item.current_price_cents * 0.95); |   const lowestCents = Math.floor(item.current_price_cents * 0.9);
  * @mutate src/lib/declutter/priceDrop.ts |     const oldEnough = liveAt <= run.getTime() - MIN_LIVE_MS; |     const oldEnough = true;
  * @mutate src/lib/declutter/priceDrop.ts |     const notToday = !item.last_price_drop_on \|\| item.last_price_drop_on < chicagoDay(run); |     const notToday = true;
+ * @mutate src/lib/declutter/priceDrop.ts |   if (eligibleAtLastRun && (!item.last_price_drop_on \|\| item.last_price_drop_on < chicagoDay(lastRun))) return null; |   void eligibleAtLastRun;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -48,8 +49,14 @@ describe("nextPriceDrop follows declutter_price_drop_sweep", () => {
 
   it("winter (CST): the same UTC run reads 5:07 PM", () => {
     const now = new Date("2026-12-10T15:00:00Z");
-    const d = nextPriceDrop({ ...LIVE, last_price_drop_on: null }, now);
+    const d = nextPriceDrop({ ...LIVE, last_price_drop_on: "2026-12-09" }, now);
     expect(dropWhenLabel(d!.at, now)).toBe("this evening at 5:07 PM");
+  });
+
+  it("at the seller's stop (eligible at the last run, not dropped that day): no line, never a promise that won't come", () => {
+    // Live since the 10th, last dropped on the 18th: the 19th's 23:07Z run skipped it.
+    expect(nextPriceDrop({ ...LIVE, last_price_drop_on: "2026-10-18" }, NOW)).toBeNull();
+    expect(nextPriceDrop({ ...LIVE, last_price_drop_on: null }, NOW)).toBeNull();
   });
 
   it("never for a fixed-price, reserved or not-yet-live item, or one with no cent left to drop", () => {

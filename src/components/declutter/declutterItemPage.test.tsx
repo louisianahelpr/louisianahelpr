@@ -27,6 +27,7 @@
  * @mutate src/components/declutter/DeclutterItemView.tsx |             {drop && <PriceDropBanner | {false && <PriceDropBanner
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const drop = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null; |   const drop = { at: new Date(), lowestCents: it.current_price_cents - 200 };
  * @mutate src/components/declutter/DeclutterBundleRow.tsx | (r) => r.status === "live" && r.seller_id !== viewerId | (r) => r.seller_id !== viewerId
+ * @mutate src/components/declutter/DeclutterBundleRow.tsx |   const capped = (more.data?.length ?? 0) >= 12; |   const capped = false;
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |   if (buyable.length === 0 \|\| card.isLoading) return null; |   if (card.isLoading) return null;
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
@@ -316,10 +317,11 @@ describe("the photo-first Declutter item page", () => {
   // (src/lib/declutter/priceDrop.ts), and only "could ... as low as": the
   // seller's stop is private, so the page never promises a drop.
   it("board 4: an offers listing shows when it could next drop and how low; a fixed-price one shows nothing", async () => {
-    state.item = { ...ITEM, current_price_cents: 3800, live_at: "2026-10-01T12:00:00Z" };
+    // Live a minute ago: not yet eligible at the last run, so no "at its stop" doubt.
+    state.item = { ...ITEM, current_price_cents: 3800, live_at: new Date(Date.now() - 60_000).toISOString() };
     state.drop = { sale_mode: "offers", last_price_drop_on: null };
     const first = open();
-    const banner = await screen.findByText(/Could drop to \$36\.10 (this evening|tomorrow) at \d{1,2}:07 PM/);
+    const banner = await screen.findByText(/Could drop as low as \$36\.10 (this evening|tomorrow) at \d{1,2}:07 PM/);
     expect(banner.closest("[data-price-drop]")).not.toBeNull();
     expect(screen.queryByText(/Drops to/)).toBeNull();
     first.unmount();
@@ -340,9 +342,14 @@ describe("the photo-first Declutter item page", () => {
       { ...ITEM, id: "a3", title: "Rug", status: "reserved" },
     ];
     const first = open();
-    const row = await screen.findByRole("button", { name: /2 more from Dana\. One pickup, one fee\./ });
+    const row = await screen.findByRole("button", { name: /2 more from Dana\. Check out together: one pickup, one fee\./ });
     expect(row).toHaveAttribute("data-bundle-row");
     first.unmount();
+    // A full page of 12 (the read's limit) may hide more: "11+", never a short count.
+    state.more = Array.from({ length: 12 }, (_, i) => ({ ...ITEM, id: `b${i}`, title: `Thing ${i}`, status: i === 0 ? "reserved" : "live" }));
+    const full = open();
+    expect(await screen.findByRole("button", { name: /^11\+ more from Dana\./ })).toBeInTheDocument();
+    full.unmount();
     state.more = [{ ...ITEM, id: "a3", title: "Rug", status: "reserved" }];
     open();
     await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });

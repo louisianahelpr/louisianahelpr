@@ -3,21 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { useActivityData } from "@/hooks/useActivityData";
 import { postedActivityBucket, appliedActivityBucket } from "@/components/job-card/activityFilters";
-import type { Job } from "@/components/job-card/activityConstants";
-import { fetchMyItems } from "@/lib/declutter/api";
-import { fetchMyOrders } from "@/lib/shops/orders";
+import { fetchMyItems, fetchMyCart } from "@/lib/declutter/api";
+import { fetchMyBookings } from "@/lib/declutter/handover";
+import { fetchMyOrders, fetchShopOrders } from "@/lib/shops/orders";
 import { fetchMyProperties } from "@/lib/rentals/api";
 import { useFeature } from "@/hooks/useFeature";
 import { useNeedsYouTodos } from "./needsYouTodos";
 import { deriveLiveNow, deriveWaiting } from "./nextUpStates";
-
-export interface ComingUpItem {
-  id: string;
-  job: Job;
-  role: "posted" | "working";
-}
+import { deriveComingUp, type ComingUpItem } from "./comingUp";
 
 const DAY = 86_400_000;
+/** Board 7 and board 11 both show four Coming up rows. */
+const COMING_UP_MAX = 4;
 
 /**
  * The both-sides invitation a Home section card shows when nothing real is
@@ -58,6 +55,12 @@ export function useHomeSummary(user: SupaUser | null) {
   // The to-do list is the ONE the nav badges count (badge = To-do, owner 2026-10-20).
   const { todos } = useNeedsYouTodos(user);
   const homes = useQuery({ queryKey: ["rentals", "my-properties", uid], queryFn: () => fetchMyProperties(uid), enabled: !!uid && homesOn });
+  // Coming up's Declutter pickups and shop orders: the SAME reads (keys and fetches) the Buying/Selling
+  // tabs and the Shop dashboard make, so Home adds no query shape.
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: !!uid && declutterOn });
+  const paidIds = [...new Set((cart.data ?? []).filter((l) => l.status === "paid" && l.order_id).map((l) => l.order_id!))];
+  const bookings = useQuery({ queryKey: ["declutter", "bookings", paidIds.join(",")], queryFn: () => fetchMyBookings(paidIds), enabled: paidIds.length > 0 });
+  const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => fetchShopOrders(uid), enabled: !!uid && shopsOn });
 
   return useMemo(() => {
     const now = Date.now();
@@ -70,13 +73,17 @@ export function useHomeSummary(user: SupaUser | null) {
     const jobTodos = todos.filter((t) => t.section === "jobs").length;
     const shopTodos = todos.filter((t) => t.section === "shops").length;
 
-    const upcoming: ComingUpItem[] = [
-      ...pj.filter((j) => postedActivityBucket(j, 0) === "scheduled").map((job) => ({ id: `p-${job.id}`, job, role: "posted" as const })),
-      ...appliedLive.map((a) => ({ id: `a-${a.id}`, job: a.job!, role: "working" as const })),
-    ]
-      .filter((c) => c.job.date_needed && new Date(c.job.date_needed).getTime() >= now - DAY)
-      .sort((x, y) => new Date(x.job.date_needed).getTime() - new Date(y.job.date_needed).getTime());
-    const thisWeek = upcoming.filter((c) => new Date(c.job.date_needed).getTime() < now + 7 * DAY).length;
+    const upcoming: ComingUpItem[] = deriveComingUp({
+      postedJobs: pj,
+      appliedApps: aa,
+      cart: (declutterOn ? cart.data : undefined) ?? [],
+      bookings: bookings.data ?? [],
+      myOrders: (shopsOn ? orders.data : undefined) ?? [],
+      shopOrders: (shopsOn ? shopOrders.data : undefined) ?? [],
+    }, now);
+    const thisWeek = upcoming.filter((c) => c.at < now + 7 * DAY).length;
+    // A failed read is not "nothing booked" (spec v2 §1.5): Home says it could not load instead.
+    const upcomingFailed = posted.loadError || applied.loadError || cart.isError || bookings.isError || orders.isError || shopOrders.isError;
 
     const items = declutter.data ?? [];
     const myOrders = (orders.data ?? []).filter((o) => o.status === "held" || o.status === "accepted");
@@ -89,7 +96,8 @@ export function useHomeSummary(user: SupaUser | null) {
       liveNow: deriveLiveNow(pj, aa),
       waiting: todos.length ? null : deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa),
       thisWeek,
-      upcoming: upcoming.slice(0, 3),
+      upcoming: upcoming.slice(0, COMING_UP_MAX),
+      upcomingFailed,
       // You tab's activity tiles (board 18): real counts, 0 = no number shown.
       counts: {
         posted: postedLive.length,
@@ -107,5 +115,5 @@ export function useHomeSummary(user: SupaUser | null) {
         homes: countLine([[props.length, "property", "properties"]]),
       },
     };
-  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.loading, applied.appliedApps, applied.loading, declutter.data, orders.data, todos, homes.data]);
+  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError]);
 }

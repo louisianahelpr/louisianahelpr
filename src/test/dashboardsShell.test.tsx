@@ -97,7 +97,7 @@ vi.mock("@/lib/backoutNotices", () => ({
   backoutNoticesKey: (u: string) => ["activity", "backout", u],
   useBackoutNotices: () => new Map(),
 }));
-vi.mock("@/lib/declutter/api", () => ({ fetchMyItems: async () => [] }));
+vi.mock("@/lib/declutter/api", () => ({ fetchMyItems: async () => [], fetchMyCart: async () => [] }));
 vi.mock("@/lib/shops/orders", () => ({
   fetchMyOrders: async () => [],
   fetchShopOrders: async () => [

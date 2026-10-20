@@ -462,18 +462,23 @@ test(j8, async ({ browser, request, journey }) => {
   const ctx = await newUserContext(browser, helper, { rotation });
   const page = journey.track("helper", await ctx.newPage());
 
-  for (const [button, heading] of [
-    [/^Account Security/, "Account Security"],
-    [/^Notifications/, "Notifications"],
-    [/^Accessibility/, "Accessibility"],
-    [/^Legal/, "Legal"],
-    [/^Warnings & Strikes/, "Warnings & Strikes"],
-    [/^Help & Support/, "Help & Support"],
-    [/^Money/, "Money"],
+  // Board 18 (2026-10-20): the You tab lists Money · Alerts · Settings · Talk to
+  // a real person; the account rows live one level down in You › Settings
+  // (board 52). Each row is opened from the screen it now sits on.
+  for (const [from, button, heading] of [
+    ["/profile", /^Money/, "Money"],
+    ["/profile", /^Alerts/, "Notifications"],
+    ["/profile", /^Talk to a real person/, "Help"],
+    ["/profile", /^Settings/, "Settings"],
+    ["/profile?tab=settings", /^Account and security/, "Account Security"],
+    ["/profile?tab=settings", /^Color mode/, "Accessibility"],
+    ["/profile?tab=settings", /^Legal/, "Legal"],
+    ["/profile?tab=settings", /^Warnings and strikes/, "Warnings"],
   ] as const) {
     await test.step(`${heading} opens`, async () => {
-      await page.goto("/profile");
-      await expect(page.getByRole("button", { name: "Log Out" }), "the profile page never finished loading").toBeVisible({ timeout: 45_000 });
+      await page.goto(from);
+      const ready = from === "/profile" ? page.getByRole("button", { name: "Log out" }) : page.getByRole("button", { name: button });
+      await expect(ready.first(), "the page never finished loading").toBeVisible({ timeout: 45_000 });
       await page.getByRole("button", { name: button }).filter({ visible: true }).first().click();
       await expect(page.getByRole("heading", { level: 1 }).first(), `${heading} did not open`).toContainText(new RegExp(heading.split(" ")[0], "i"), { timeout: 30_000 });
       await assertHealthy(page, heading);

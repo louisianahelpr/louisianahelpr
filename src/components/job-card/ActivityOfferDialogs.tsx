@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import type { useActivityActions } from "@/components/job-card/useActivityActions";
 import { PaymentHeldDialog } from "@/components/job-card/PaymentHeldDialog";
+import { HelperDoneWhatNextHost } from "@/components/whatNext/HelperDoneWhatNext";
 
 // Dialogs mount only on a user action, so lazy-loading keeps their subtrees
 // out of the initial chunk entirely.
@@ -49,6 +50,8 @@ export function ActivityOfferDialogs({
       )}
       {/* Q997: "the payment is held" after an offer is sent or an accept completes. */}
       <PaymentHeldDialog side={actions.paymentHeldSide} who={actions.paymentHeldWho} onClose={() => actions.setPaymentHeldSide(null)} />
+      {/* Board 81: the Helpr's "What next" after marking a job done (opened by JobTracking). */}
+      <HelperDoneWhatNextHost />
     </>
   );
 }

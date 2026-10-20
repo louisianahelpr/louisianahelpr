@@ -53,7 +53,7 @@
 // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (!tabsReady) return <DeclutterHomeSkeleton />;\n |
 // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (listLoading) return <DeclutterBrowseBones />;\n |
 // @mutate src/components/declutter/DeclutterHomeView.tsx |  \|\| origin.status === "pending"; | ;
-// @mutate src/components/declutter/DeclutterHomeView.tsx | ratings.isLoading \|\| watching.isLoading \|\| origin | ratings.isLoading \|\| origin
+// @mutate src/components/declutter/DeclutterHomeView.tsx | drops.isLoading \|\| watching.isLoading \|\| origin | drops.isLoading \|\| origin
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { readFileSync, statSync } from "node:fs";
@@ -237,7 +237,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     expect(src).toMatch(/\n {2}if \(!tabsReady\) return <DeclutterHomeSkeleton \/>;/);
     // Browse: one gate for where-you-are AND the items; no half-painted list.
     // The cards' hearts (the watchlist read, 2026-10-19) join the same gate.
-    expect(src).toMatch(/const listLoading = items\.isLoading \|\| photos\.isLoading \|\| ratings\.isLoading \|\| watching\.isLoading \|\| origin\.status === "pending";/);
+    expect(src).toMatch(/const listLoading = items\.isLoading \|\| photos\.isLoading \|\| drops\.isLoading \|\| watching\.isLoading \|\| origin\.status === "pending";/);
     expect(src).toMatch(/\n {2}if \(listLoading\) return <DeclutterBrowseBones \/>;/);
     expect(src).not.toContain("Loading items…");
   });

@@ -3,7 +3,7 @@
  * seller" / "Similar items" rows): one card for every list of items.
  */
 import { Link } from "react-router-dom";
-import { Heart, Star } from "lucide-react";
+import { Heart } from "lucide-react";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { photoPublicUrl, type DeclutterItem, type DeclutterPhoto } from "@/lib/declutter/api";
@@ -16,13 +16,12 @@ export function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
 }
 
 /**
- * A Browse card (owner-approved design, 2026-10-19 14:55Z: Facebook
- * Marketplace / Mercari): the square photo first (or the category icon on a
- * soft tint, never a blank box), then the price in bold, the title on ONE
- * line, and a small place line, so more items fit on a screen. No box around
- * it: the photo's rounded corners are the card, as on Homes. The seller's
- * stars only when the seller has reviews (Q2226); the item's condition is on
- * its own page.
+ * A Browse card (board 25 / 39, HELPR-DESIGN-SPEC v2 §3 "Item card"): the
+ * square photo first (or the category icon on a soft tint, never a blank box),
+ * at most ONE tag on the photo, then the price in money ink with the old price
+ * struck through, the title on ONE line and a small place line. No stars on an
+ * item card (spec §3: stars are for people; a seller's rating lives on the item
+ * page's seller card). No box around it: the photo's corners are the card.
  */
 /** The card's heart (the Declutter watchlist, row 46): whether this member watches the item, and the toggle. */
 export interface CardSave {
@@ -31,49 +30,55 @@ export interface CardSave {
   pending?: boolean;
 }
 
-export function ItemCard({ item, photoPath, miles, approximate, rating, save }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; rating?: { avg: number; count: number }; save?: CardSave }) {
+/**
+ * The one tag a card's photo may wear, only from a real rule: "May drop
+ * tonight" (the nightly drop could lower it this evening; the stop is private,
+ * so never "Drops"), or "Helpr delivery" (a big item; delivery is offered on
+ * every item while Declutter is open, and the spec puts it first for big ones).
+ */
+export type CardTag = "drop" | "delivery";
+
+export function ItemCard({ item, photoPath, miles, approximate, save, tag }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; tag?: CardTag | null }) {
   const away = milesLabel(miles, approximate);
-  const reviewed = rating && rating.count > 0 ? rating : null;
   const card = (
     <Link
       to={`/declutter/item/${item.id}`}
       data-item-card=""
       className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <span className="block aspect-square overflow-hidden rounded-2xl bg-muted">
+      <span className="relative block aspect-square overflow-hidden rounded-2xl bg-muted">
         {photoPath ? (
           <img src={photoPublicUrl(photoPath)} alt="" loading="lazy" className="h-full w-full object-cover" />
         ) : (
           <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-full w-full" />
         )}
+        {tag && (
+          // Opaque card under the tint, so the tag reads the same on any photo.
+          <span data-card-tag={tag} className="absolute bottom-2 left-2 max-w-[calc(100%-1rem)] rounded-full bg-card shadow-sm">
+            <span
+              className={`block rounded-full truncate px-2.5 py-1 text-ds-11 font-semibold leading-none ${tag === "drop" ? "bg-[hsl(var(--burnt-sienna)/0.14)] text-[hsl(var(--sienna-ink))]" : "border border-border text-foreground"}`}
+            >
+              {tag === "drop" ? "May drop tonight" : "Helpr delivery"}
+            </span>
+          </span>
+        )}
       </span>
       <span className="block min-w-0 px-0.5 pt-2">
-        <span className="flex min-w-0 items-baseline justify-between gap-2">
-          <span data-card-price className="min-w-0 text-base font-bold leading-tight tabular-nums">
-            {formatPrice(item.current_price_cents)}
-            {item.current_price_cents < item.price_cents && (
-              <span className="ml-1.5 text-xs font-medium text-muted-foreground">
-                <span className="sr-only">Price dropped, was </span>
-                <s aria-hidden>{formatPrice(item.price_cents)}</s>
-              </span>
-            )}
-          </span>
-          {reviewed && (
-            <span
-              data-card-rating
-              role="img"
-              aria-label={`Seller rated ${reviewed.avg.toFixed(1)} of 5 from ${reviewed.count} review${reviewed.count === 1 ? "" : "s"}`}
-              className="shrink-0 inline-flex items-center gap-0.5 text-xs text-muted-foreground"
-            >
-              <Star className="w-3 h-3 text-amber-500" fill="currentColor" aria-hidden />
-              <span aria-hidden>{reviewed.avg.toFixed(1)}</span>
+        <span data-card-price className="block min-w-0 text-base font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">
+          {formatPrice(item.current_price_cents)}
+          {item.current_price_cents < item.price_cents && (
+            <span className="ml-1.5 text-xs font-medium text-muted-foreground">
+              <span className="sr-only">Price dropped, was </span>
+              <s aria-hidden>{formatPrice(item.price_cents)}</s>
             </span>
           )}
         </span>
-        <span data-card-title className="mt-0.5 block truncate text-sm leading-snug" title={item.title}>{item.title}</span>
+        <span data-card-title className="mt-0.5 block truncate text-sm font-semibold leading-snug" title={item.title}>{item.title}</span>
         <span data-card-place className="block truncate text-xs text-muted-foreground" title={`${item.area_label}${away ? ` · ${away}` : ""}`}>
           {item.area_label}
           {away ? ` · ${away}` : ""}
+          {/* Board 39: desktop cards also say how you get it. */}
+          {item.porch_ok && <span className="hidden lg:inline"> · Porch pickup</span>}
         </span>
       </span>
     </Link>

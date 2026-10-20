@@ -40,7 +40,7 @@ export function backoutNoticeApplies(kind: BackoutNotice["backout_kind"], jobSta
   return kind === "poster_cancelled" || (jobStatus !== "completed" && jobStatus !== "cancelled");
 }
 
-const backoutNoticesKey = (userId: string | null | undefined) => ["activity", "backout", userId] as const;
+export const backoutNoticesKey = (userId: string | null | undefined) => ["activity", "backout", userId] as const;
 
 /** The caller's open (not yet Got It) notices, by job. Under the activity prefix so its refreshes cover it. */
 export function useBackoutNotices(userId: string | null | undefined): Map<string, BackoutNotice> {

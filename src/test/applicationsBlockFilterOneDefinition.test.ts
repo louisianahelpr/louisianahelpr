@@ -117,7 +117,6 @@ describe("Q341: applicant list and counters share ONE blocked filter", () => {
         "src/components/admin/adminJobs/useApplicantCounts.ts",
         "src/components/dashboard/jobDetailDialog/useJobDetailData.ts",
         "src/components/dashboard/prefetchJobDialog.ts",
-        "src/hooks/useActivityBadgeCounts.ts",
         "src/hooks/useActivityData.ts",
         "src/hooks/useDashboardData.ts",
         "src/pages/profile/HomeHistory.tsx",

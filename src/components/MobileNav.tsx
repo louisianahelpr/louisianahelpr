@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
+import { useNeedsYouCounts } from "@/lib/needsYouStore";
 import { prefetchRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { prefetchRoute, prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
@@ -27,7 +27,7 @@ import {
   noNavPages,
   tabStacks,
 } from "@/components/mobileNav/mobileNavHelpers";
-import { phoneDockItems } from "@/components/mobileNav/dockItems";
+import { phoneDockItems, type DockItem } from "@/components/mobileNav/dockItems";
 import { CreateSheet } from "@/components/create/CreateSheet";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
@@ -67,10 +67,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // realtime channel + archive listener, the native app-icon badge mirror,
   // and the best-effort mark-all-read action — all owned by this hook.
   const { unreadCount } = useNavUnreadCount(user);
-  // Lightweight "actionable activity" counts for the Posts / Jobs tab
-  // badges (new applicants on your posts; pending direct offers to you).
-  // Count-only queries — deliberately not the heavy useActivityData hook.
-  const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
+  // BADGE = TO-DO (owner, 2026-10-20): the Explore badge is the number of
+  // to-dos on Home (one per job or order that needs you), published by the
+  // lazily-mounted NeedsYouBridge. This file reads only the tiny store, never
+  // the activity reads (MobileNav is a first-screen root).
+  const todo = useNeedsYouCounts(user?.id);
   // THE PHONE BOTTOM BAR (owner-approved mock-up, 2026-10-20): Home,
   // Explore, the center "+", Messages, You. The four sections live in Explore
   // (their switches and Customize apply there); the "+" opens the create sheet.
@@ -390,7 +391,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     setGateOpen(true);
   };
 
-  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "posts" | "jobs" | "jobsAndPosts" }) => {
+  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: LucideIcon; label: string; badgeKey?: DockItem["badgeKey"] }) => {
     // Guest-mode tab remap: Home -> /browse (the read-only home dashboard
     // that mirrors the real /home), Profile -> /login. Other tabs stay
     // visually present but show a lock + open the signup sheet.
@@ -409,20 +410,19 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       location.pathname === effectivePath || (path === "/home" && location.pathname === "/browse");
 
     const inStack = !isGuest && isInStack(path);
-    // Guests never carry a badge (nothing to count). Each badged tab pulls
-    // from its own count source: Messages → unread DMs, Posts → new
-    // applicants on your jobs, Jobs → pending direct offers to you.
+    // Guests never carry a badge (nothing to count). Messages → unread
+    // chats; Explore → the To-do count (the same list Home shows).
     const badgeCount = isGuest
       ? 0
       : badgeKey === "messages"
         ? unreadCount
-        : badgeKey === "jobsAndPosts"
-          ? postsCount + jobsCount
-        : badgeKey === "posts"
-          ? postsCount
-          : badgeKey === "jobs"
-            ? jobsCount
-            : 0;
+        : badgeKey === "todo"
+          ? todo.total
+          : badgeKey === "todoJobs"
+            ? todo.jobs
+            : badgeKey === "todoShops"
+              ? todo.shops
+              : 0;
     const showBadge = badgeCount > 0;
 
     const handleClick = () => {
@@ -548,6 +548,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               header's prominent Get started button is the single unlock CTA. */}
           {showBadge && (
             <span
+              data-dock-badge={path}
               className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full text-ds-10 flex items-center justify-center font-bold px-1"
               style={{
                 // Count badges are --alert, never rust (rust is money only; spec v2 §1.1).

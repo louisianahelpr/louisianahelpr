@@ -250,9 +250,9 @@ describe("realtime channel inventory (Q105)", () => {
     expect(consumers.map((f) => relative(SRC, f)).sort()).toEqual([
       "components/mobileNav/useNavUnreadCount.ts",
       "components/notificationPanel/notificationFeed.ts",
-      "hooks/useActivityBadgeCounts.ts",
       "hooks/useActivityData.ts",
       "hooks/useRealtimePush.ts",
+      "pages/home/homeDashboard/needsYouTodos.ts",
       "pages/messages/useMessagesRealtime.ts",
     ]);
   });

@@ -54,11 +54,11 @@ export function writeCachedUnread(userId: string, n: number) {
 
 export const leftItems = [
   { path: "/home", icon: Home, label: "Home" },
-  { path: "/posts", icon: ClipboardList, label: "Posts", badgeKey: "posts" as const },
+  { path: "/posts", icon: ClipboardList, label: "Posts" },
 ];
 
 export const rightItems = [
-  { path: "/jobs", icon: Briefcase, label: "Jobs", badgeKey: "jobs" as const },
+  { path: "/jobs", icon: Briefcase, label: "Jobs" },
   { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" as const },
   { path: "/profile", icon: UserRound, label: "Profile" },
 ];
@@ -78,10 +78,10 @@ export const sectionItems = [
 /**
  * THE PHONE BOTTOM BAR (owner-approved mock-up, 2026-10-20): Home, Explore,
  * the center "+", Messages, You. Explore holds the four sections (its badge is
- * the Jobs badge: new applicants plus offers to you); You is Profile, with the
- * member's photo. Guard: src/test/centerCreateNav.test.tsx.
+ * the To-do count: every job or order that needs you, one each, the same list
+ * as Home's Next up; owner 2026-10-20); You is Profile, with the member's photo. Guard: src/test/centerCreateNav.test.tsx.
  */
-export const exploreItem = { path: "/explore", icon: Compass, label: "Explore", badgeKey: "jobsAndPosts" as const };
+export const exploreItem = { path: "/explore", icon: Compass, label: "Explore", badgeKey: "todo" as const };
 export const youItem = { path: "/profile", icon: UserRound, label: "You" };
 
 /** The nav's own icon for a page: an empty page wears it (owner, 2026-10-08, Q1558). */

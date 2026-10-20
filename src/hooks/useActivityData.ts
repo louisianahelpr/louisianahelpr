@@ -743,7 +743,7 @@ function latestTrackingByJob(
 // Cache warming
 // ---------------------------------------------------------------------------
 
-const CORE_STALE = 60 * 1000;
+export const CORE_STALE = 60 * 1000;
 
 /**
  * MOUNTING /jobs OR /posts ALWAYS REVALIDATES, EVEN WHEN THE CACHE SAYS FRESH.

@@ -146,7 +146,10 @@ export function EntryChoice({ form }: EntryChoiceProps) {
    * match. A radio, not three checkboxes: these are alternative ways to start
    * the SAME post, so at most one can be the one you are using.
    */
-  const [openSection, setOpenSection] = useState<"repost" | "templates" | "ai" | "offer" | null>(null);
+  // `?start=ai` (the create sheet's "Or just describe the job" row, 2026-10-20) opens the AI builder.
+  const [openSection, setOpenSection] = useState<"repost" | "templates" | "ai" | "offer" | null>(() =>
+    searchParams.get("start") === "ai" ? "ai" : null,
+  );
   const repostOpen = openSection === "repost";
   const templatesOpen = openSection === "templates";
   const toggleSection = (key: "repost" | "templates" | "ai") =>

@@ -14,15 +14,20 @@
  * rows left the Profile page ("not where they belong"), and this nav never
  * says "Rentals".
  *
- * The dock assertions RENDER the real MobileNav (hooks with network behind
+ * (Superseded again 2026-10-20 by the owner-approved mock-up: the phone bar
+ * is Home, Explore, "+", Messages, You, and the sections live in EXPLORE. The
+ * greyed "coming soon" rule now holds on Explore and the "+" sheet; see
+ * src/test/centerCreateNav.test.tsx. The top bar keeps bell then avatar, per
+ * HELPR-DESIGN-SPEC §3.)
+ *
+ * The Explore assertions RENDER the real page (hooks with network behind
  * them are stubbed); the @mutate lines break each sentence and this file must
  * go red.
  *
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | { path: "/rentals", icon: KeyRound, label: "Homes", feature: "rentals" as const }, | { path: "/rentals", icon: KeyRound, label: "Rentals", feature: "rentals" as const },
  * @mutate src/components/mobileNav/useSectionTabs.ts |   return sectionItems.map((s) => ({ ...s, on: on[s.feature] })); |   return sectionItems.map((s) => ({ ...s, on: true }));
- * @mutate src/components/MobileNav.tsx |       if (soon) {\n        sayComingSoon(label);\n        return;\n      } |
- * @mutate src/components/MobileNav.tsx |         ariaDisabled={soon} |
- * @mutate src/components/MobileNav.tsx |   const sectionDock = !isGuest; |   const sectionDock = false;
+ * @mutate src/components/sections/ExploreSwitcher.tsx |           if (!isOn(s)) return sayComingSoon(s.label); |
+ * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: on ? s.navLabel : comingSoonLabel(s.navLabel), |       ariaLabel: s.navLabel,
  * @mutate src/components/DesktopSidebarNav.tsx |     ...dockItems(sectionTabs, visibleSections), |     ...dockItems(sectionTabs, visibleSections), { path: "/posts", icon: User, label: "Posts" },
  * @mutate src/components/DesktopSidebarNav.tsx | onClick={() => { if (soon) return sayComingSoon(label); if | onClick={() => { if (false) return sayComingSoon(label); if
  * @mutate src/components/sections/AppTopBar.tsx |         <span data-testid="top-bar-bell"> |         <span data-testid="top-bar-bell-x">
@@ -61,7 +66,9 @@ vi.mock("@/hooks/useAgeGate", () => ({
   useAgeGate: () => ({ underAge: false, explain: () => {}, gate: (_k: string, f: () => void) => f, gatedProps: () => ({}) }),
 }));
 
-import MobileNav from "@/components/MobileNav";
+vi.mock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+
+import { ExploreSwitcher } from "@/components/sections/ExploreSwitcher";
 import { sectionItems } from "@/components/mobileNav/mobileNavHelpers";
 
 const ROOT = resolve(__dirname, "../..");
@@ -70,19 +77,19 @@ const code = (rel: string) => blankComments(readFileSync(resolve(ROOT, rel), "ut
 function Where() {
   return <span data-testid="where">{useLocation().pathname}</span>;
 }
-function renderDock(at = "/home") {
+function renderExplore(at = "/jobs") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[at]}>
-        <MobileNav />
+        <ExploreSwitcher current="jobs" />
         <Routes><Route path="*" element={<Where />} /></Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
-const dockLabels = () =>
-  [...document.querySelectorAll('nav[aria-label="Bottom navigation"] button[aria-label]')].map((b) => b.getAttribute("aria-label"));
+const exploreLabels = () =>
+  [...document.querySelectorAll('[data-testid="explore-switcher"] [role="radio"]')].map((b) => b.getAttribute("aria-label") || b.textContent);
 
 beforeEach(() => {
   switches.on.clear();
@@ -100,45 +107,31 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(sectionItems.some((s) => /rental/i.test(s.label))).toBe(false);
   });
 
-  it("the dock is Home, Jobs, Declutter, Shops, Homes, Messages (owner final 2026-10-19); no +, no Profile tab", () => {
+  it("Explore lists Jobs, Declutter, Shops, Homes with every switch on; never Rentals", () => {
     switches.on = new Set(["declutter", "shops", "rentals"]);
-    renderDock();
-    const labels = dockLabels();
-    expect(labels).toEqual(["Home", "Jobs", "Declutter", "Shops", "Homes", "Messages"]);
-    // The "+" left the dock (owner, 2026-10-19): each section has its own add pill.
-    expect(labels).not.toContain("Post a new job");
-    expect(labels).not.toContain("Profile");
+    renderExplore();
+    expect(exploreLabels()).toEqual(["Jobs", "Declutter", "Shops", "Homes"]);
   });
 
-  it("a switched-OFF section is greyed, aria-disabled, labelled 'coming soon', and a tap does not navigate", () => {
+  it("a switched-OFF section is labelled 'coming soon', muted, and a tap does not navigate", () => {
     switches.on = new Set(["shops"]);
-    renderDock();
-    const declutter = screen.getByRole("button", { name: "Declutter, coming soon" });
-    expect(declutter.getAttribute("aria-disabled")).toBe("true");
-    expect(declutter.className).toMatch(/\bopacity-40\b/);
-    expect(declutter.className).toMatch(/min-h-\[48px\]/);
+    renderExplore();
+    const declutter = screen.getByRole("radio", { name: "Declutter, coming soon" });
+    expect(declutter.querySelector("[data-soon]")).toBeTruthy();
     fireEvent.click(declutter);
-    expect(screen.getByTestId("where").textContent).toBe("/home");
+    expect(screen.getByTestId("where").textContent).toBe("/jobs");
     expect(toasts).toEqual(["Declutter is coming soon"]);
-    expect(screen.getByRole("button", { name: "Homes, coming soon" }).getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByRole("radio", { name: "Homes, coming soon" })).toBeTruthy();
   });
 
   it("a switched-ON section is live: no aria-disabled, its plain name, and a tap navigates", () => {
     switches.on = new Set(["shops"]);
-    renderDock();
-    const shops = screen.getByRole("button", { name: "Shops" });
-    expect(shops.getAttribute("aria-disabled")).toBeNull();
-    expect(shops.className).not.toMatch(/\bopacity-40\b/);
+    renderExplore();
+    const shops = screen.getByRole("radio", { name: "Shops" });
+    expect(shops.querySelector("[data-soon]")).toBeNull();
     fireEvent.click(shops);
     expect(screen.getByTestId("where").textContent).toBe("/shops");
     expect(toasts).toEqual([]);
-  });
-
-  it("the Jobs tab is lit on /posts and carries both badges", () => {
-    renderDock("/posts");
-    const jp = screen.getByRole("button", { name: "Jobs" });
-    expect(jp.getAttribute("aria-current")).toBe("page");
-    expect(jp.textContent).toContain("3");
   });
 
   it("the top bar's right side is the section's +, then the bell, then the Profile avatar at the far right", () => {

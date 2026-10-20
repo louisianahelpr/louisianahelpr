@@ -31,7 +31,7 @@
  * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     youItem,\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
  * @mutate src/components/DesktopSidebarNav.tsx | onClick={() => { if (soon) return sayComingSoon(label); if | onClick={() => { if (false) return sayComingSoon(label); if
  * @mutate src/components/sections/AppTopBar.tsx |         <span data-testid="top-bar-bell"> |         <span data-testid="top-bar-bell-x">
- * @mutate src/components/profile/ProfileLanding.tsx |       <SettingsSection\n |       <Link to="/declutter">Declutter</Link>\n      <SettingsSection\n
+ * @mutate src/components/profile/ProfileLanding.tsx |       <YourActivity /> |       <Link to="/declutter">Declutter</Link>\n      <YourActivity />
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";

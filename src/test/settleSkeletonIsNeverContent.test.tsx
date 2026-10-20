@@ -30,8 +30,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SETTLE_INIT, SKELETON_SCOPE_SEL } from "../../scripts/audit/measure-page-settle.mjs";
 import { PLACEHOLDER_SEL } from "../../scripts/audit/measure-loading-states.mjs";
 import { ProfilePageSkeleton } from "@/components/profile/ProfilePageSkeleton";
-import { SettingsGroup } from "@/components/profile/profileLanding/SettingsSection";
-import { ACCOUNT_MENU_GROUP } from "@/components/profile/profileLanding/workMenuGroup";
+import { YOU_ROWS, YOU_STATIC_CAPTIONS, YouMenuList } from "@/components/profile/profileLanding/YouMenu";
 
 type Settle = { counts: { n: number; added?: string[] }[] };
 const settle = () => (window as unknown as { __settle: Settle }).__settle;
@@ -89,15 +88,15 @@ describe("page-settle: a skeleton is never content", () => {
     expect(SETTLE_INIT.toString()).toContain(SKELETON_SCOPE_SEL);
   });
 
-  it("does NOT count ProfilePageSkeleton's real-text Account rows (the /profile two-waves finding)", () => {
+  it("does NOT count ProfilePageSkeleton's real-text You rows (the /profile two-waves finding)", () => {
     const r = itemsIn(<ProfilePageSkeleton />);
-    // Non-vacuous: the skeleton really does draw the Account group's text.
-    expect(r.text).toContain(ACCOUNT_MENU_GROUP.items[0].label);
+    // Non-vacuous: the skeleton really does draw board 18's four rows' text.
+    expect(r.text).toContain(YOU_ROWS[3].label);
     expect(r, `counted skeleton rows: ${r.added.join(" | ")}`).toMatchObject({ n: 0 });
   });
 
-  it("DOES count the same Account rows when they are the page (the sampler is live)", () => {
-    const r = itemsIn(<div className="space-y-4"><SettingsGroup group={ACCOUNT_MENU_GROUP} /></div>);
+  it("DOES count the same You rows when they are the page (the sampler is live)", () => {
+    const r = itemsIn(<div className="space-y-4"><YouMenuList captions={YOU_STATIC_CAPTIONS} onSelect={() => {}} /></div>);
     expect(r.n).toBeGreaterThan(1);
   });
 

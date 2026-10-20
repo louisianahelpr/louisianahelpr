@@ -20,7 +20,7 @@
  * @mutate src/components/job-card/JobListPage.tsx |           <JobsSettingsRow className="mt-4" /> |
  * @mutate src/components/job-card/JobsSettingsRow.tsx |         onClick={() => navigate("/jobs/settings")} |         onClick={() => navigate("/profile")}
  * @mutate src/App.tsx |       <Route path="/jobs/settings" element= |       <Route path="/jobs/settings-old" element=
- * @mutate src/components/profile/profileLanding/SettingsSection.tsx |             className="w-full min-h-11 inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground | className="w-full rounded-ds-lg py-3.5 border inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground
+ * @mutate src/components/profile/profileLanding/YouMenu.tsx |           className="w-full min-h-11 inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground | className="w-full rounded-ds-lg py-3.5 border inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -100,13 +100,16 @@ describe("Jobs settings", () => {
 
 describe("Log Out clear, Delete Account quiet", () => {
   it("Delete Account is a small muted text button with no border or fill; Log Out keeps its bordered pill", () => {
-    const s = src("src/components/profile/profileLanding/SettingsSection.tsx");
-    const del = s.slice(s.indexOf('data-testid="profile-delete-account"'), s.indexOf("Delete Account", s.indexOf('data-testid="profile-delete-account"')));
+    // Board 18 (2026-10-20): both live in YouMenu under the four rows.
+    const s = src("src/components/profile/profileLanding/YouMenu.tsx");
+    const at = s.indexOf('data-testid="profile-delete-account"');
+    const del = s.slice(at, s.indexOf("Delete account", at));
     expect(del.length).toBeGreaterThan(20);
     expect(del).toMatch(/text-muted-foreground/);
-    expect(del).not.toMatch(/border|rounded-ds-lg|py-3\.5|background/);
-    const out = s.slice(s.indexOf('aria-label="Log Out"') - 200, s.indexOf('aria-label="Log Out"') + 400);
-    expect(out).toMatch(/py-3\.5/);
+    expect(del).not.toMatch(/border|rounded|py-3\.5|background|bg-/);
+    const o = s.indexOf("onClick={onRequestLogout}");
+    const out = s.slice(o, s.indexOf("Log out", o));
+    expect(out).toMatch(/rounded-full/);
     expect(out).toMatch(/border: "1px solid/);
   });
 });

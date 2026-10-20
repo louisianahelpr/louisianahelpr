@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { unwrap } from "@/lib/supabaseResult";
 
 /**
  * The one-time account setup fee, in cents, as the platform actually charges it.
@@ -29,18 +30,16 @@ export function useOnboardingFeeQuery() {
     // must not be pinned for the life of the session either.
     staleTime: 10 * 60_000,
     queryFn: async (): Promise<number | null> => {
-      const { data, error } = await supabase.rpc("get_public_platform_settings");
+      const res = await supabase.rpc("get_public_platform_settings");
       // Reported here (Q753: every payout preview reads this number) AND
-      // THROWN (lh-money-escrow review of the Home money tiles, 2026-10-20):
+      // THROWN through unwrap() (lh-money-escrow review of the Home money tiles, 2026-10-20):
       // a swallowed failure read as an ANSWER, so useFirstPayoutFeeKnown took
       // "no fee" for known and Home showed a take-home $2 high. Every caller
       // still gets null (useOnboardingFeeCents is `data ?? null`), so no
       // screen loses anything. `reportsItself` keeps the shared QueryCache
       // reporter from logging it twice.
-      if (error) {
-        report(error, { severity: "warning", tags: { source: "useOnboardingFeeCents" } });
-        throw error;
-      }
+      if (res.error) report(res.error, { severity: "warning", tags: { source: "useOnboardingFeeCents" } });
+      const data = unwrap(res);
       const cents = (Array.isArray(data) ? data[0] : null)?.onboarding_fee_cents;
       // A zero or negative fee means the platform is not charging one, which
       // is not a number to put in a sentence about paying.

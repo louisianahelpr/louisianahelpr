@@ -2,12 +2,13 @@
  * Cowork design audit 2026-10-20, D6: Declutter's "Buy now · $40" showed the
  * bare price, and the buyer met the 5% + 70c fee only at checkout ($42.70).
  * The class: every buy button that names an amount (inventory: every
- * "Buy now · {...}" label in src) names the CHECKOUT total, computed by
+ * "{...} total with fee" label in src; board 4 made the button two lines,
+ * "Buy now" over "$40.60 total with fee") names the CHECKOUT total, computed by
  * buyNowTotalCents, which is checkoutAmounts (src/lib/declutter/money.ts, the
  * rule declutter_start_checkout freezes, pinned to the server by
  * money.test.ts and posterJobFee.parity.test.ts), in exact cents (formatPrice, the cart's own formatter: "$42.70", "$28").
  *
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx | onClick={() => tap("buy")}\n        >\n          Buy now · {formatPrice(buyNowTotalCents(item.current_price_cents))} | onClick={() => tap("buy")}\n        >\n          Buy now · {formatPrice(item.current_price_cents)}
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | {formatPrice(buyNowTotalCents(priceCents))} total with fee | {formatPrice(priceCents)} total with fee
  * @mutate src/lib/declutter/money.ts |   return checkoutAmounts([priceCents]).totalCents; |   return priceCents;
  */
 import { describe, expect, it } from "vitest";
@@ -29,16 +30,16 @@ describe("D6: Buy now names what checkout will charge", () => {
     expect(formatPrice(buyNowTotalCents(2000))).toBe("$21.70");
   });
 
-  it("inventory: every 'Buy now · amount' label in the app prints buyNowTotalCents", () => {
+  it("inventory: every '<amount> total with fee' label in the app prints buyNowTotalCents", () => {
     const files = walkSource([join(REPO, "src")]).filter((f) => /\.tsx$/.test(f) && !/\.test\.tsx$/.test(f));
     expect(files.length).toBeGreaterThan(500);
     const labels: { file: string; expr: string }[] = [];
     for (const f of files) {
       const src = blankComments(readSource(f) ?? "");
-      for (const m of src.matchAll(/Buy now\s*·\s*\{([^}]*\}?[^}]*)\}/g)) labels.push({ file: relative(REPO, f), expr: m[1] });
+      for (const m of src.matchAll(/\{([^{}]*(?:\([^{}]*\))?[^{}]*)\}\s*total with fee/g)) labels.push({ file: relative(REPO, f), expr: m[1] });
     }
-    expect(labels.length).toBeGreaterThan(1);
+    expect(labels.length).toBeGreaterThan(0);
     const bare = labels.filter((l) => !/buyNowTotalCents\(/.test(l.expr));
-    expect(bare, bare.map((b) => `${b.file}: Buy now · {${b.expr}}`).join("\n")).toEqual([]);
+    expect(bare, bare.map((b) => `${b.file}: {${b.expr}} total with fee`).join("\n")).toEqual([]);
   });
 });

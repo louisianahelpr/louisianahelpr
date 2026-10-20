@@ -69,11 +69,7 @@ function useAccountChoiceDialog(needed: boolean, onLoadFailed: () => void): Acco
 }
 import { userFacingError } from "@/lib/userFacingError";
 
-type SocialAuthLabelMode = "signin" | "signup";
-
 interface SocialAuthButtonsProps {
-  // Label mode — "signin" → "Sign in with Apple", "signup" → "Sign up with Apple".
-  mode?: SocialAuthLabelMode;
   // Where to navigate after a successful native sign-in. Defaults to /home.
   redirectTo?: string;
   // Q446: a web sign-in that came back needing the one-account choice
@@ -82,7 +78,6 @@ interface SocialAuthButtonsProps {
 }
 
 export function SocialAuthButtons({
-  mode = "signin",
   redirectTo,
   initialChoice = null,
 }: SocialAuthButtonsProps) {
@@ -142,8 +137,8 @@ export function SocialAuthButtons({
         </p>
       )}
       <div className="flex flex-col gap-4">
-        <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} onChoose={setChoice} />
-        <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} onChoose={setChoice} />
+        <SocialAuthButton provider="apple" redirectTo={redirectTo} onChoose={setChoice} />
+        <SocialAuthButton provider="google" redirectTo={redirectTo} onChoose={setChoice} />
         {choice && AccountChoiceDialog && (
           <AccountChoiceDialog choice={choice} onDone={() => setChoice(null)} onChoice={setChoice} redirectTo={redirectTo} />
         )}
@@ -154,18 +149,19 @@ export function SocialAuthButtons({
 
 interface SocialAuthButtonProps {
   provider: SocialProvider;
-  mode: SocialAuthLabelMode;
   redirectTo?: string;
   onChoose: (choice: AccountChoice) => void;
 }
 
-function SocialAuthButton({ provider, mode, redirectTo, onChoose }: SocialAuthButtonProps) {
+function SocialAuthButton({ provider, redirectTo, onChoose }: SocialAuthButtonProps) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const verb = mode === "signup" ? "Sign up" : "Sign in";
+  // Board 37/55 + audit L11 (2026-10-20): "Continue with Apple" / "Continue
+  // with Google" on Log in AND Create account, so one wording serves both
+  // (Apple's HIG lists "Continue with Apple" among its approved titles).
   const providerName = provider === "apple" ? "Apple" : "Google";
-  const label = `${verb} with ${providerName}`;
+  const label = `Continue with ${providerName}`;
 
   const handleClick = async () => {
     setLoading(true);
@@ -216,7 +212,7 @@ function SocialAuthButton({ provider, mode, redirectTo, onChoose }: SocialAuthBu
       size="lg"
       // w-full inside a half-width grid cell. h-12 keeps the 44pt minimum
       // target with room to spare.
-      className="w-full h-12 rounded-ds-md border-border/70 hover:bg-muted/40 gap-2"
+      className="w-full h-12 rounded-full border-border/70 hover:bg-muted/40 gap-2"
       onClick={handleClick}
       disabled={loading}
       // Still carries the FULL label ("Sign in with Apple"), not just the
@@ -235,8 +231,8 @@ function SocialAuthButton({ provider, mode, redirectTo, onChoose }: SocialAuthBu
               enough for text reads as a rendering failure. aria-hidden because
               the button's aria-label already names the action in full; without
               it a screen reader would announce "Sign in with Apple, Apple". */}
-          <span aria-hidden className="font-sans font-medium text-ds-14">
-            {provider === "apple" ? "Apple" : "Google"}
+          <span aria-hidden className="font-sans font-semibold text-ds-15">
+            {label}
           </span>
         </>
       )}

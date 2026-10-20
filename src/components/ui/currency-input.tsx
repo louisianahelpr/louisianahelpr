@@ -21,15 +21,17 @@ function stripFormatting(value: string): string {
 }
 
 /**
- * Formats a number as `$1,234.50` (USD, en-US, always 2 decimals). Returns
+ * Formats a number as `1,234.50` (en-US, always 2 decimals; the "$" is the field prefix). Returns
  * an empty string for `undefined`, `NaN`, or non-finite inputs so the field
  * shows the placeholder instead of "$NaN".
  */
 function formatUsd(value: number | undefined): string {
   if (value === undefined || !Number.isFinite(value)) return "";
+  // NO currency symbol: the field draws its own "$" prefix (the span below),
+  // so a "$" here showed as "$ $40.00" on every blurred field (Cowork design
+  // audit 2026-10-20, J2). currencyInputOneDollarSign.test.tsx.
   return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+    style: "decimal",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
@@ -64,7 +66,7 @@ interface CurrencyInputProps
   > {
   /**
    * Current price in dollars. `undefined` shows the placeholder; any number
-   * is rendered as `$X,XXX.XX` when the field is not focused.
+   * is rendered as `X,XXX.XX` after the "$" prefix when the field is not focused.
    */
   value: number | undefined;
   /**
@@ -88,7 +90,7 @@ interface CurrencyInputProps
  * CurrencyInput — a USD-price input that auto-formats on blur.
  *
  * Displays raw editable digits while focused (`1234.5`), then formats to
- * `$1,234.50` (en-US, USD, always 2 decimal places, with `$` prefix and
+ * `$1,234.50` (en-US, always 2 decimal places, the `$` drawn once as a prefix, and
  * thousands commas) when the field loses focus. Re-focusing strips the
  * formatting back to plain digits so the value stays editable.
  *

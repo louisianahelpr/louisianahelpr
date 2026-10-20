@@ -39,7 +39,7 @@ describe("CurrencyInput", () => {
     expect(input.value).toBe("1234.5");
 
     fireEvent.blur(input);
-    expect(input.value).toBe("$1,234.50");
+    expect(input.value).toBe("1,234.50");
   });
 
   it("strips formatting back to raw digits on focus", () => {
@@ -47,7 +47,7 @@ describe("CurrencyInput", () => {
     const input = screen.getByLabelText("price") as HTMLInputElement;
 
     // Initial controlled value renders formatted.
-    expect(input.value).toBe("$1,234.50");
+    expect(input.value).toBe("1,234.50");
 
     fireEvent.focus(input);
     // Focus drops the `$`, commas, and trailing zero — back to editable.
@@ -96,10 +96,10 @@ describe("CurrencyInput", () => {
   it("operates as a controlled input — re-renders when value prop changes", () => {
     const { rerender } = render(<CurrencyInput value={10} onChange={() => {}} aria-label="price" />);
     const input = screen.getByLabelText("price") as HTMLInputElement;
-    expect(input.value).toBe("$10.00");
+    expect(input.value).toBe("10.00");
 
     rerender(<CurrencyInput value={99.5} onChange={() => {}} aria-label="price" />);
-    expect(input.value).toBe("$99.50");
+    expect(input.value).toBe("99.50");
 
     rerender(<CurrencyInput value={undefined} onChange={() => {}} aria-label="price" />);
     expect(input.value).toBe("");
@@ -114,7 +114,7 @@ describe("CurrencyInput", () => {
     fireEvent.change(input, { target: { value: "2" } });
     fireEvent.blur(input);
 
-    expect(input.value).toBe("$5.00");
+    expect(input.value).toBe("5.00");
     expect(onChange).toHaveBeenLastCalledWith(5);
   });
 
@@ -127,7 +127,7 @@ describe("CurrencyInput", () => {
     fireEvent.change(input, { target: { value: "500" } });
     fireEvent.blur(input);
 
-    expect(input.value).toBe("$100.00");
+    expect(input.value).toBe("100.00");
     expect(onChange).toHaveBeenLastCalledWith(100);
   });
 

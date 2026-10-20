@@ -80,6 +80,9 @@ const OWNERS = {
   "/home": ["lh-design-holes", "lh-copy-content"],
   "/jobs": ["lh-design-holes"],
   "/posts": ["lh-design-holes"],
+  // The bottom bar's Explore tab (2026-10-20): it redirects into a section, so
+  // its defect is landing somewhere closed or forgotten (the switcher's memory).
+  "/explore": ["lh-design-holes"],
   "/post-job": ["lh-input-boundary", "lh-money-escrow"],
   "/messages": ["lh-trust-safety"],
   // The Stripe checkout RETURN. Was owned only by lh-native-bridge, which

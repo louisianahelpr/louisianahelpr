@@ -49,9 +49,20 @@ export function WhatNextSheet({
       <SheetContent
         side="bottom"
         floor={!webDesktop}
-        className={webDesktop ? "sm:max-w-[440px]" : undefined}
+        className={`focus:outline-none ${webDesktop ? "sm:max-w-[440px]" : ""}`}
         data-testid="what-next-sheet"
+        // Focus lands on the sheet itself, not its first button: Radix's default put the
+        // focus ring on the outline action at open, so it read as selected (lead, board 77).
+        // Tab still reaches both actions, and the ring shows only for keyboard focus.
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
+        }}
       >
+        {/* The board's mark: a check in a muted circle above the title, aligned with it. */}
+        <span aria-hidden className="flex h-11 w-11 items-center justify-center rounded-full bg-muted text-primary">
+          <Check className="h-5 w-5" />
+        </span>
         <SheetHero title={title} />
         {lead ? <p className="text-ds-14 text-foreground">{lead}</p> : null}
         <section aria-labelledby="what-next-heading" className="mt-3">

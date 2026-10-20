@@ -394,6 +394,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         noteWithheld,
         posterName: sentJob?.posterName ?? null,
         dateNeeded: sentJob?.date_needed ?? null,
+        job: sentJob,
       });
       // First-application funnel event — strictly best-effort analytics, so
       // it must never break (or block) the apply flow. Isolated in its own

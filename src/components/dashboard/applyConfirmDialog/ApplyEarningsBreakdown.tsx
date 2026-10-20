@@ -1,15 +1,11 @@
 import { useState } from "react";
 import { ShieldCheck, ChevronDown } from "lucide-react";
 import type { EnrichedJob } from "@/components/dashboard/types";
-import { netUrgentFeeDollars } from "@/lib/stripeFees";
-import { useFirstPayoutFeeCents } from "@/hooks/useFirstPayoutFee";
+import { useApplyTakeHome } from "./applyTakeHome";
 // formatPriceExact: this component IS the arithmetic — budget, fee, urgent
 // bonus, take-home. Whole-dollar rounding is right for a headline price and
 // wrong for the lines that justify it, where the column has to add up.
 import { formatPriceExact as formatPrice, formatPriceFloor } from "@/lib/format";
-import { floorPayoutDollars } from "@/lib/helperEarnings";
-import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
-import { HELPR_FLAT_FEE_CENTS, flatFeePercentOf, helprFlatFeeCents, helprPaysNoFee, isFlatFeeJob } from "@/lib/helprFlatFee";
 
 /**
  * ApplyEarningsBreakdown — the "You earn" take-home block on the apply step.
@@ -38,38 +34,10 @@ export function ApplyEarningsBreakdown({
   platformFee: number;
 }) {
   const [showMath, setShowMath] = useState(false);
-  const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
-  const perHelper = confirmApplyJob.budget / helpers;
-  // Urgent bonus nets its own bundled Stripe processing cost, then splits across
-  // the roster like the budget (#114), so the "+ urgent bonus" line and the
-  // Take-home total both equal what the edge transfers to each helper.
-  const netUrgent = netUrgentFeeDollars(confirmApplyJob.urgent_fee) / helpers;
-  // Q1839: a flat-model job (jobs.helper_fee_flat_cents stamped, roadmap F3)
-  // charges 5% + 70c on the Helpr's share of budget + urgent bonus, as every
-  // payout path does (helprFlatFeeCents); the viewer's tier never applies.
-  const flat = isFlatFeeJob(confirmApplyJob);
-  const commission = flat
-    ? helprFlatFeeCents(Math.round(perHelper * 100) + Math.round(netUrgent * 100), confirmApplyJob) / 100
-    : perHelper * platformFee / 100;
-  // Poster-fee model (owner 2026-10-18): the Helpr pays no fee, so no fee
-  // line and no "0% + $0.00" label (lh-money-escrow review #4).
-  const noFee = helprPaysNoFee(confirmApplyJob);
-  const feeLabel = flat
-    ? `${flatFeePercentOf(confirmApplyJob)}% + $${(Math.round(Number(confirmApplyJob.helper_fee_flat_cents ?? HELPR_FLAT_FEE_CENTS)) / 100).toFixed(2)}`
-    : `${platformFee}%`;
-  const beforeFirstPayoutFee = perHelper - commission + netUrgent;
-  // ME-008: an account whose `onboarding_fee_paid` is not true loses the
-  // one-time setup fee from its FIRST payout (release-payout /
-  // process-scheduled-payouts). The take-home shown here must not read higher
-  // than what lands, so it comes off the total and gets its own line.
-  const firstPayoutFee = useFirstPayoutFeeCents() / 100;
-  const payout = netAfterFirstPayoutFee(beforeFirstPayoutFee, firstPayoutFee);
-  // Q236: the transfer pays WHOLE dollars, rounded DOWN (the platform keeps
-  // the cents). The receipt shows the dropped cents as their own line so the
-  // exact-cent rows above still add up to the take-home below.
-  const takeHome = floorPayoutDollars(payout);
-  const droppedCents = payout > 0 ? Math.round((payout - takeHome) * 100) / 100 : 0;
-  const hasUrgent = (confirmApplyJob.urgent_fee ?? 0) > 0;
+  // The maths lives in useApplyTakeHome so the "What next" sheet after applying (board 77)
+  // prints the SAME take-home this receipt does, never a second copy of the rules.
+  const { helpers, perHelper, netUrgent, commission, noFee, feeLabel, firstPayoutFee, takeHome, droppedCents, hasUrgent } =
+    useApplyTakeHome(confirmApplyJob, platformFee);
 
   // The plain-words summary. Same facts as the receipt, one line, no columns.
   const summary = [

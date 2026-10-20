@@ -66,11 +66,11 @@ export interface SupportTopic {
 export const SUPPORT_TOPICS: readonly SupportTopic[] = [
   {
     key: "message",
-    label: "Message Admin",
-    description: "Send a message or ask the admin team a question",
+    label: "Talk to a real person",
+    description: "Ask our team anything. A person reads every message.",
     messagePlaceholder: "How can our team help you today?",
     messageLabel: "Your message",
-    submitLabel: "Send Message",
+    submitLabel: "Send message",
     reportLabel: "Admin Message",
   },
   {
@@ -79,7 +79,7 @@ export const SUPPORT_TOPICS: readonly SupportTopic[] = [
     description: "Share an idea to improve the platform",
     messagePlaceholder: "Describe your idea to improve Helpr…",
     messageLabel: "Your idea",
-    submitLabel: "Send Suggestion",
+    submitLabel: "Send suggestion",
     reportLabel: "Suggestion",
   },
   {
@@ -90,7 +90,7 @@ export const SUPPORT_TOPICS: readonly SupportTopic[] = [
     description: "A bug, or something in the app that isn't working",
     messagePlaceholder: "Please describe the bug or technical problem…",
     messageLabel: "What went wrong?",
-    submitLabel: "Report Issue",
+    submitLabel: "Report issue",
     reportLabel: "Issue Report",
   },
   {
@@ -99,7 +99,7 @@ export const SUPPORT_TOPICS: readonly SupportTopic[] = [
     description: "Something else we should know about",
     messagePlaceholder: "Tell us what's on your mind…",
     messageLabel: "Your message",
-    submitLabel: "Send Message",
+    submitLabel: "Send message",
     reportLabel: "Other",
   },
 ] as const;

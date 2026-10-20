@@ -25,6 +25,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   pickup_windows_required: "Add at least one pickup time so buyers know when they can come.",
   invalid_pickup_windows: "Each pickup time needs a day, and a start time before its end time.",
   invalid_input: "Something in that request wasn't right. Try again.",
+  price_above_listed: "You can lower the price, or raise it back up to the price you listed it at.",
   invalid_price: "The price must be between $1 and $1,000.",
   invalid_floor_price: "Your lowest price must be at least $1 and no more than your asking price.",
   invalid_location: "We couldn't find that pickup address. Check it and try again.",

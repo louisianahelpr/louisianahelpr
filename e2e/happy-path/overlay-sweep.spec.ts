@@ -221,6 +221,13 @@ const EXPECTED_LANDING: Record<string, string> = {
   // view. Both are true of their own fixture, which is why this is measured
   // here rather than inherited from the catalog.
   "/jobs/10000000-0000-4000-8000-000000000001": "/posts",
+
+  // /explore has no screen of its own (src/pages/explore/Explore.tsx): it
+  // forwards to the member's last section, else the first open one. This
+  // fixture has no last section and Jobs is always open, so it lands on /jobs
+  // (UI sweep 39465003189 flagged the bounce). Fixture state, not the route
+  // table, picks the target, so it lives here and not on the catalog row.
+  "/explore": "/jobs",
 };
 
 /**

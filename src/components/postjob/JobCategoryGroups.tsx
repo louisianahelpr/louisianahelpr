@@ -75,7 +75,7 @@ export function JobCategoryGroups({ category, setCategory }: Props) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="e.g. wash my driveway"
-          className="min-w-0 flex-1 bg-transparent font-sans text-ds-16 text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent font-sans text-ds-16 text-foreground placeholder:text-muted-foreground focus:outline-none"
         />
       </label>
 

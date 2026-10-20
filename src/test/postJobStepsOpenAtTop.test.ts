@@ -22,8 +22,10 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 const SRC = read("src/pages/post-job/PostJob.tsx");
 
 describe("Post a Job: every step opens at its top", () => {
-  it("a step change resets the shell's scroller AND AppPage's own column (keyed on form.step)", () => {
-    const effect = SRC.slice(SRC.indexOf("const lastStep = useRef(form.step)"), SRC.indexOf("}, [form.step]);"));
+  it("a step change resets the shell's scroller AND AppPage's own column (keyed on form.step and form.formPage)", () => {
+    // Keyed on the step AND the form's screen (formPage, boards 23/44/3/45):
+    // the four form screens share the "form" step, so each must reset too.
+    const effect = SRC.slice(SRC.indexOf("const lastStep = useRef(`${form.step}:${form.formPage}`)"), SRC.indexOf("}, [form.step, form.formPage]);"));
     expect(effect.length).toBeGreaterThan(0);
     expect(effect).toMatch(/querySelectorAll<HTMLElement>\("\.app-shell-scroll, \[data-app-page-scroll\]"\)/);
     expect(effect).toMatch(/el\.scrollTop = 0;/);

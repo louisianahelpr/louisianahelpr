@@ -20,6 +20,7 @@ import { buyNowTotalCents, minOfferCents } from "@/lib/declutter/money";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { afterCardFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
 import { DeclutterNotice } from "./declutterUi";
+import { OfferSentWhatNext } from "./OfferSentWhatNext";
 import { dollarsInputToCents, invalidateTrades } from "./DeclutterTradeViews";
 
 /**
@@ -149,12 +150,14 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
       : cents >= item.current_price_cents ? "Offer less than the price. To pay the price, tap Buy now."
         : cents < minCents ? `Offers must be at least ${formatPrice(minCents)} (half the price).`
           : null;
+  // Board 79: the offer just sent, for the "What next" sheet (replaces the toast).
+  const [sentCents, setSentCents] = useState<number | null>(null);
   const send = useMutation({
     mutationFn: () => makeOffer(item.id, cents as number),
     onSuccess: () => {
       setOpen(false);
       setAmount("");
-      toast.success("Offer sent. The seller has 48 hours to answer.");
+      setSentCents(cents);
       invalidateTrades(qc);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -357,6 +360,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
           </div>,
           document.body,
         )}
+      <OfferSentWhatNext cents={sentCents} onClose={() => setSentCents(null)} onBrowse={() => { setSentCents(null); navigate("/declutter"); }} />
     </section>
   );
 }

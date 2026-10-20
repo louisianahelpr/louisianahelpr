@@ -787,6 +787,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Landing redesign (2026-10-20): the hero search.
+  "src/components/landing/HeroSection.tsx": "signed-out only (the landing sends a signed-in visitor to /home, and this sweep signs in); the search writes nothing: it navigates to /browse?q= or /jobs?q= with the text whitespace-collapsed, trimmed and capped at 80 characters, URL-encoded by URLSearchParams (src/components/landing/heroSearch.ts, pinned by src/test/landingRedesign.test.tsx)",
   // Shops M3/M4 (2026-10-19, shops-m3): cancels, no-shows and the admin Shops orders screen.
   "src/components/admin/AdminShopsOrders.tsx": "admin-only, needs a charged Shops order (journeys never pay on live Stripe); the note (1-500), refund reason (four values), re_ id and amount are refused by shops_admin_* / shop-checkout admin_record_hand_refund as pinned by src/test/pglite/shopsRefunds.pglite.mjs and src/test/edge/shop-refunds.test.ts",
   "src/components/shops/ShopOrderCancel.tsx": "behind the 'shops' switch (testers only) and needs an accepted, charged order; the shop's cancel reason is contact-leak filtered and capped by shops_shop_cancel_order, the buyer's cancel takes no text, as pinned by src/test/pglite/shopsRefunds.pglite.mjs",

@@ -13,7 +13,7 @@ export const SEARCH_MAX = 80;
 /** Example searches only: no prices until real completed-job data backs them (lead). */
 export const TASK_CHIPS = ["Lawn mowing", "Furniture assembly", "Gutter cleaning", "Moving help"] as const;
 
-export function searchTerm(raw: string): string {
+function searchTerm(raw: string): string {
   return raw.replace(/\s+/g, " ").trim().slice(0, SEARCH_MAX);
 }
 

@@ -1,10 +1,10 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 893,
-    "files": 222,
+    "calls": 891,
+    "files": 223,
     "rendering": 778,
-    "suppressedByPolicy": 115,
+    "suppressedByPolicy": 113,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
@@ -14,13 +14,13 @@
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 119,
+      "toast.success": 117,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 422,
+      "literal": 421,
       "template": 97,
-      "dynamic": 422,
+      "dynamic": 421,
       "jsx": 0
     }
   },
@@ -676,7 +676,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 633,
+      "line": 616,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -686,7 +686,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 974,
+      "line": 957,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -696,7 +696,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 984,
+      "line": 967,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -771,7 +771,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 999,
+      "line": 982,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -781,7 +781,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1052,
+      "line": 1035,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",
@@ -872,7 +872,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1057,
+      "line": 1040,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -892,7 +892,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1077,
+      "line": 1060,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -902,7 +902,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1163,
+      "line": 1146,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -912,7 +912,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1176,
+      "line": 1159,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -922,7 +922,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1203,
+      "line": 1186,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -932,7 +932,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1256,
+      "line": 1239,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -942,7 +942,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1300,
+      "line": 1283,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -952,7 +952,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1359,
+      "line": 1342,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -962,23 +962,13 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1418,
+      "line": 1401,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
         "text": "Work started — we saved it, but couldn't tell the person who posted this job. Send them a message so they know."
       },
       "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 1422,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "message"
-      },
-      "renders": false
     },
     {
       "file": "src/components/NotificationPanel.tsx",
@@ -4389,7 +4379,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 130,
+      "line": 131,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4399,7 +4389,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 253,
+      "line": 254,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4419,7 +4409,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 256,
+      "line": 257,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4429,7 +4419,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 261,
+      "line": 262,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4439,7 +4429,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 266,
+      "line": 267,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4449,7 +4439,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 269,
+      "line": 270,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4669,7 +4659,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 58,
+      "line": 59,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4679,17 +4669,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 157,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Offer sent. The seller has 48 hours to answer."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 160,
+      "line": 163,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4699,7 +4679,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 165,
+      "line": 168,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4709,7 +4689,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 168,
+      "line": 171,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4839,27 +4819,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 334,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "status === \"live\" ? \"Your item is for sale.\" : \"Sent for a review. We'll let you know when it's up for sale.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Your item is for sale."
-          },
-          {
-            "form": "literal",
-            "text": "Sent for a review. We'll let you know when it's up for sale."
-          }
-        ]
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 339,
+      "line": 337,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8224,6 +8184,16 @@
         "text": "url"
       },
       "renders": true
+    },
+    {
+      "file": "src/components/whatNext/HelperDoneWhatNext.tsx",
+      "line": 21,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": false
     },
     {
       "file": "src/hooks/useAgeGate.ts",

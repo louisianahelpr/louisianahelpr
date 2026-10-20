@@ -10,6 +10,8 @@
  * @mutate src/pages/home/HomeDashboard.tsx | meta={<span data-coming-up-role={c.role}>{[COMING_UP_ROLE[c.role], whenLine(c.job)].filter(Boolean).join(" · ")}</span>} | meta={whenLine(c.job)}
  * @mutate src/pages/home/HomeDashboard.tsx |                   onClick={() => navigate(`/jobs/${c.job.id}`)}\n |                   onClick={() => navigate(`/jobs/${c.job.id}`)}\n                  right={<span className="text-ds-15 font-bold shrink-0">${c.job.budget}</span>}\n
  * @mutate src/pages/home/HomeDashboard.tsx | <span data-testid="next-up-section" | <span data-testid="next-up-section" hidden
+ * @mutate src/pages/home/HomeDashboard.tsx | <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1"> | <div className="flex items-center gap-x-3 gap-y-1 mt-1">
+ * @mutate src/pages/home/HomeDashboard.tsx | const NEXT_UP_MAX_DOTS = 5; | const NEXT_UP_MAX_DOTS = 8;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -38,5 +40,18 @@ describe("Home matches board 7", () => {
   it("Next up names its section, top right", () => {
     expect(src).not.toMatch(/<span data-testid="next-up-section" hidden/);
     expect(src).toMatch(/<span data-testid="next-up-section"[^>]*>\s*<Icon/);
+  });
+
+  it("the dots + See all + action row wraps, so the action never covers a dot (axe target-size at 320/375, TRAIN23)", () => {
+    const m = src.match(/<div className="([^"]*)">\s*\{todoCount > 1 && \(\s*<div className="flex items-center -ml-2" role="group" aria-label="Your to-dos">/);
+    expect(m, "the Next up dots row").not.toBeNull();
+    expect(m![1]).toMatch(/\bflex-wrap\b/);
+    // See all + the action are ONE group that grows to the row's width when it wraps.
+    expect(src).toMatch(/<div data-next-up-actions className="[^"]*\bgrow\b[^"]*"/);
+    // Five 44px dot targets (the index.css floor) are 212px after the -ml-2; the 320 card gives 248.
+    const cap = Number(src.match(/const NEXT_UP_MAX_DOTS = (\d+);/)?.[1]);
+    expect(cap).toBeGreaterThan(1);
+    expect(cap * 44 - 8).toBeLessThanOrEqual(248);
+    expect(src).toContain("summary.todos.slice(0, NEXT_UP_MAX_DOTS)");
   });
 });

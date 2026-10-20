@@ -62,7 +62,10 @@ function HomeDashboardScreen() {
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
   const todoCount = summary.todos.length;
 
-  const next = summary.todos[0];
+  // Next up is a carousel over the to-dos (mock-up 7: "Next up · 1 of 5"); it opens on the most urgent.
+  const [shown, setShown] = useState(0);
+  const at = Math.min(shown, Math.max(0, todoCount - 1));
+  const next = summary.todos[at];
   const rest = Math.max(0, todoCount - 1);
 
   return (
@@ -78,7 +81,9 @@ function HomeDashboardScreen() {
             stat boxes. Nothing invented: no to-do, no task; the money line only when the
             to-do carries a real amount. "See all" is the ONE control for the full list. */}
         <section data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1.5">
-          <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Next up</h2>
+          <h2 data-testid="next-up-label" className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            {todoCount > 1 ? `Next up · ${at + 1} of ${todoCount}` : "Next up"}
+          </h2>
           {next ? (
             <>
               <p data-testid="next-up-title" className="text-ds-18 font-bold leading-snug text-foreground [overflow-wrap:anywhere]">{next.title}</p>
@@ -87,7 +92,24 @@ function HomeDashboardScreen() {
                 {next.money && " · "}
                 {next.meta}
               </p>
-              <div className="flex items-center justify-between gap-3 mt-2">
+              {todoCount > 1 && (
+                <div className="flex items-center -ml-2" role="group" aria-label="Your to-dos">
+                  {summary.todos.slice(0, 8).map((t, i) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      data-next-up-dot={i}
+                      aria-label={`To-do ${i + 1} of ${todoCount}`}
+                      aria-current={i === at ? "true" : undefined}
+                      onClick={() => setShown(i)}
+                      className="h-11 w-6 flex items-center justify-center"
+                    >
+                      <span aria-hidden className={`h-1.5 rounded-full transition-all ${i === at ? "w-4 bg-primary" : "w-1.5 bg-border"}`} />
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-3 mt-1">
                 <button type="button" data-testid="next-up-action" onClick={() => navigate(next.to)} className="btn-grad-primary btn-press rounded-full min-h-11 px-5 text-ds-15 font-semibold">
                   {next.action}
                 </button>

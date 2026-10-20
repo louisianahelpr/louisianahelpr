@@ -10,7 +10,7 @@ import {
 import { OnlineIndicator } from "@/components/ChatPresence";
 import UserAvatar from "@/components/UserAvatar";
 import { jobStatusLabel } from "@/lib/statusLabels";
-import { jobStatusColor } from "@/lib/statusColors";
+import { MESSAGE_STATUS_CHIP } from "./messageStatusChip";
 import { snoozeRemainingLabel } from "@/lib/threadMutes";
 import type { Conversation } from "./types";
 
@@ -210,8 +210,7 @@ export function ChatHeader({
               // `assigned` isn't in the job_status enum — it's a legacy alias for
               // the offered-not-yet-confirmed window, routed through the
               // sienna-tinted `in_progress` slot so it reads as "in motion".
-              const palette =
-                status === "accepted" ? jobStatusColor("in_progress") : jobStatusColor(status);
+              const palette = MESSAGE_STATUS_CHIP; // neutral: rust is money only (board 38 review)
               // No "Awarded" special-case. statusLabels.ts is the single source of
               // truth and its own docs say: do NOT introduce synonyms ("Awarded",
               // "Done", "Selected") for an existing enum value. This file and

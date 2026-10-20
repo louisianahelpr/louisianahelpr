@@ -172,7 +172,7 @@ async function probeCards(page: Page) {
          the press-to-map button or the plain maps anchor. A card with no
          address has no slot, and zero hits there proves nothing. */
       const row = card.querySelector(".job-meta-row");
-      const hasLocation = !!row?.querySelector('button[aria-label$="tap to expand this job"], ' + mapsSel);
+      const hasLocation = !!row?.querySelector('button[aria-label$="tap to open this job"], ' + mapsSel);
       return {
         collapsed,
         hasLocation,

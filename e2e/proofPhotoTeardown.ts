@@ -7,7 +7,7 @@
  * `proof_before_urls` / `proof_after_urls`. Every screen that shows the job then
  * signs a path storage no longer has: `400 POST /object/sign/proof-photos/…`,
  * which is what press-every-control run 36069319716 failed on four times
- * ("Baton Rouge — tap to expand this job" on /posts). Measured on prod
+ * ("Baton Rouge — tap to open this job" on /posts). Measured on prod
  * 2026-09-25: 6 job rows named a missing proof object, all is_seed, 5 of them
  * "[E2E DO NOT ACCEPT] automated lifecycle" jobs left in_progress.
  *

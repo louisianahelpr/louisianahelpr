@@ -331,7 +331,8 @@ describe("the poster's collapsed card announces the dispute", () => {
     const strip = readFileSync(resolve(__dirname, "./HelperCollapsedStrip.tsx"), "utf8");
     expect(
       // hideStatus={isOffered} (owner, 2026-10-05): an offer card says its own state; a disputed card is never an offer.
-      /\{!isMinimalCard && !isExpanded && \(\s*<HelperCollapsedStrip/.test(src) &&
+      // Since 2026-10-20 (board 21) the strip is the card face's status line, mounted collapsed only.
+      /!isMinimalCard && !isExpanded \? \(\s*<HelperCollapsedStrip/.test(src) &&
         /<JobStatusStrip line=\{(withReviewed\()?helperStatusLine\(/.test(strip),
       "AppliedJobCard no longer draws a collapsed-card status strip. A Helpr scrolling " +
         "My Jobs cannot tell that one of these jobs has a 72-hour clock running on their pay.",

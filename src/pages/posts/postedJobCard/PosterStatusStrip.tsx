@@ -26,6 +26,7 @@ export function PosterStatusStrip({
   showStartClock = false,
   closedApplicants = null,
   helperName = null,
+  variant = "band",
 }: {
   job: Args[0];
   pendingApplicantCount: number;
@@ -37,6 +38,8 @@ export function PosterStatusStrip({
   closedApplicants?: string | null;
   /** The hired Helpr's name, for "Lexi accepted" (Q1552). */
   helperName?: string | null;
+  /** `line` on the mine-card face (boards 14/21). */
+  variant?: "band" | "line";
 }) {
   // The poster's instant-release setting: with it on there is no auto-complete
   // clock, so the collapsed line must not show one (InProgressStep agrees).
@@ -49,5 +52,5 @@ export function PosterStatusStrip({
   // soonest first, one format, instead of a pill above the strip.
   // Guard: src/test/offerCountdownRows.test.tsx.
   const clocks = showStartClock ? collapsedClocks(job, true) : [];
-  return <JobStatusStrip line={line} extraClocks={clocks} />;
+  return <JobStatusStrip line={line} extraClocks={clocks} variant={variant} />;
 }

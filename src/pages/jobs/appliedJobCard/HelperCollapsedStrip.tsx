@@ -53,6 +53,7 @@ export function HelperCollapsedStrip({
   hideStatus = false,
   reviewed = false,
   tracking,
+  variant = "band",
 }: {
   app: AppliedApp;
   job: Job;
@@ -69,6 +70,8 @@ export function HelperCollapsedStrip({
   reviewed?: boolean;
   /** The list's latest `job_tracking` row for this job (AppliedJobsTab `latestTracking`). */
   tracking?: TrackingData | null;
+  /** `line` on the mine-card face (board 21). */
+  variant?: "band" | "line";
 }) {
   // A crew member's strip has no clock rows of its own yet, so it keeps the
   // start pill above it. Everyone else: every time at the bottom, under the
@@ -77,7 +80,7 @@ export function HelperCollapsedStrip({
   if (hideStatus) return clock;
   const strip = isCrewLive
     ? <CrewStatusStrip app={app} job={job} userId={userId} unsettledDisputeJobIds={unsettledDisputeJobIds} />
-    : <JobStatusStrip line={withReviewed(helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app, false, { workUnderway: helperProgress(job, tracking?.status).workUnderway }), reviewed)} extraClocks={showStartClock ? collapsedClocks(job, false) : null} />;
+    : <JobStatusStrip line={withReviewed(helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app, false, { workUnderway: helperProgress(job, tracking?.status).workUnderway }), reviewed)} extraClocks={showStartClock ? collapsedClocks(job, false) : null} variant={variant} />;
   return <>{clock}{strip}</>;
 }
 

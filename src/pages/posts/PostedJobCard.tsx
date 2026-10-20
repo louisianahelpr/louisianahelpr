@@ -16,7 +16,9 @@ import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { PersonTile } from "@/components/PersonTile";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
-import { JobCardTitleBar } from "../../components/job-card/JobCardTitleBar";
+import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace";
+import { usePosterFaceAction } from "./postedJobCard/posterFaceAction";
+import { derivePosterWait } from "@/components/job-card/jobStatusLine";
 import { JobCardMetaRow } from "../../components/job-card/JobCardMetaRow";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
 import { PostedJobDetails } from "./postedJobCard/PostedJobDetails";
@@ -223,13 +225,8 @@ function PostedJobCardInner({
                 // removed (20260901033011), so it stands with no address. The
                 // chip's normaliser already treats "" as absent.
                 location={job.location ?? ""}
-                // Tap expands, HOLD opens the map (owner: "tapping the
-                // location here shouldn't open the map… I keep tapping it on
-                // accident"). The location sits in the middle of the card body,
-                // so a thumb aimed at the card hit a link and got thrown out to
-                // a map; now every part of the collapsed card does the same
-                // thing on tap. Opt-in per card so My Jobs is untouched — see
-                // the prop's note in JobCardMetaRow.
+                // Tap opens the job (board 14), HOLD opens the map (owner:
+                // "I keep tapping it on accident"); see JobCardMetaRow.
                 locationPressToMap
                 /* THE FULL ADDRESS GOES WHERE THE CITY WAS (owner, 2026-09-19,
                    pointing at /jobs: "the full address needs to go where the
@@ -286,6 +283,15 @@ function PostedJobCardInner({
             </>
   );
 
+  // The face's ONE button (board 14): the same wait the status line prints.
+  const { faceAction, completionRequest } = usePosterFaceAction({
+    job, isExpanded, helperName, toggle: toggleExpandedJobId, navigate,
+    wait: derivePosterWait(withDisputeSettling(job, unsettledDisputeJobIds), pendingApplicantCounts?.[job.id] ?? 0, undefined, completedJobMeta[job.id]),
+    pendingApplicants: pendingApplicantCounts?.[job.id] ?? 0,
+    confirmingArrival: confirmingArrivalJobId === job.id, completing: completingJobId === job.id,
+    onLoadApplications, onConfirmArrival, onReview, onTip,
+  });
+
   return (
         /* The Helpr's tile, published to whichever JobStepCard this status
            mounts (jobCardPerson.tsx). The provider wraps the WHOLE card, not
@@ -294,29 +300,37 @@ function PostedJobCardInner({
         <JobCardPersonContext.Provider value={personCtx}>
         <div ref={cardRef}>
           <JobCardShell
-            // EVERY card expands now, not just the ones with a description or an archived-completed summary. A posted
-            // card opens collapsed (owner, 2026-08-27: it used to arrive with the tracker, the Applicants button and
-            // the whole Share/Boost/Edit/Cancel row already open, so four jobs filled several screens and none of
-            // them could be compared at a glance), and what is behind the tap is now the card's whole body — so the
-            // tap has to be offered on all of them. One exception (owner, 2026-09-14, VN-29): a COMPLETED job with a
-            // tip or review still outstanding opens expanded, and collapses once both are done. The default lives in
-            // useCardExpansion (src/components/job-card), which owns `expandedJobIds`.
-            expandable
+            /* The face is a link to /jobs/:id (board 14); the live controls open
+               in place from its one button or /posts?highlight=<id>&manage=1. */
+            expandable={false}
             expanded={isExpanded}
             onToggle={() => toggleExpandedJobId(job.id)}
-            // scroll-mt keeps a card's title from ghosting up under the
-            // translucent (~0.85 opacity) page title card when it scrolls
-            // to the top of the list.
             className="group relative scroll-mt-3"
-            category={job.category}
           >
             <BackoutBanner job={job} />{/* someone backed out: until Got It (Q1575) */}
-            <JobCardTitleBar
+            <MineJobFace
+              jobId={job.id}
               title={job.title}
               category={job.category}
-              amount={formatPrice(job.budget)}
-              meta={metaRow}
+              photo={job.photos?.[0] ?? null}
+              when={isExpanded ? "" : mineFaceWhen(job)} // open, the meta row below says it
+              // The poster sees their own budget, never the Helpr's take-home (board 14; 09-24 rule).
+              money={`$${formatPrice(job.budget)}`}
+              // Open, the strip stands down: the body below says all of it (collapsedStatusSentence).
+              status={isExpanded ? null : (
+                <PosterStatusStrip
+                  job={withDisputeSettling(job, unsettledDisputeJobIds)}
+                  variant="line"
+                  pendingApplicantCount={pendingApplicantCounts?.[job.id] ?? 0}
+                  closedApplicants={closedApplicantSummaries?.[job.id] ?? null}
+                  completedMeta={completedJobMeta[job.id]}
+                  showStartClock={job.status === "accepted"}
+                  helperName={job.helper_id ? helperNames[job.helper_id] ?? null : null}
+                />
+              )}
+              action={isExpanded ? null : faceAction}
             />
+            {isExpanded && <MineOpenMeta jobId={job.id} meta={metaRow} onClose={() => toggleExpandedJobId(job.id)} />}
 
             {/* The series strip, visit dates and schedule change (Q407). */}
             <PostedJobSeriesControls job={job} userId={userId} />
@@ -737,65 +751,16 @@ function PostedJobCardInner({
                 helperWorking={initialTracking?.status === "working" || initialTracking?.status === "done"}
                 applicantsPrimary={job.status === "open" && takesApplicants(job, initialGroupHelpers) ? { count: applicantCounts[job.id] || 0, onOpen: () => onLoadApplications(job) } : null}
                 onActionComplete={onActionComplete}
+                completionRequest={completionRequest}
               />
             </div>
             )}
-            {/* WHAT THIS CARD IS WAITING ON — ONE STRIP AT THE CARD'S BOTTOM
-                EDGE, AND THE ONLY THING A COLLAPSED CARD SAYS ABOUT STATE.
-                (owner, 2026-09-19: "in the box to the left of the dots should
-                show what we are waiting on, like if the person is on their way
-                or confirmed but now you need to confirm etc, remove the dots",
-                and on the look: "similar to how dispute open displays.")
-
-                IT REPLACES FOUR BLOCKS THAT USED TO STAND HERE, and each of
-                them was this same idea written once more:
-
-                  · the collapsed DISPUTE badge (sienna, "Dispute open …
-                    Payment on hold") — now `tone: "alarm"`, same words, same
-                    tokens, same `data-dispute-open-badge` hook;
-                  · the collapsed CONFIRMATION badge ("Needs your OK … Confirm
-                    They Arrived") — now the `confirm_arrival` /
-                    `confirm_working` lines, same rung, same
-                    `data-poster-owes-confirmation` hook;
-                  · the CONTESTED card's full tracker, un-gated that morning so
-                    a dispute was visible without a tap — the owner has since
-                    seen it and ruled the other way: the strip is the signal,
-                    the tracker is detail, and detail lives behind the expand
-                    (see PostedJobCard.contestedTracker.test.tsx);
-                  · the compact 16px-dot rail, chosen hours earlier because the
-                    labelled rail could not fit 212px — superseded outright.
-                    Eight anonymous dots give a position on a track; this gives
-                    the reader their next move.
-
-                A COLLAPSED CARD NOW CONTAINS NO TRACKER AT ALL, on any status.
-                That also takes <JobTracking>'s realtime channel and its
-                queries off every row of the list — the strip is a pure render
-                over columns this card already holds, and the list's own
-                freshness never came from the tracker.
-
-                WHY THE BOTTOM EDGE AND NOT UNDER THE TITLE, where the dispute
-                badge sat: "in the box TO THE LEFT OF THE DOTS" — the dots were
-                at the bottom, so that is the slot the owner is pointing at.
-                It is also the same slot on the Helpr's card, and these two
-                cards sit in two tabs of one screen: a status line that lived
-                at the top of one and the bottom of the other would be the
-                "assembled rather than designed" defect this card keeps having
-                removed. The dispute stays a full-width tinted band on the
-                collapsed card, unmissable without a tap (the 2026-09-06 finding).
-
-                The rule it reads is not new: see `posterStatusLine` in
-                jobStatusLine.ts. */}
+            {/* WHAT THIS CARD IS WAITING ON is the face's status line now (board 14):
+                the one line a closed card says about state, from `posterStatusLine`
+                (it was a band at the bottom edge from 2026-09-19 to 2026-10-20; the
+                dispute and owed-confirmation hooks ride it unchanged). A closed card
+                mounts no tracker at all, so no realtime channel per row. */}
             {!isExpanded && !!(job as { schedule_change_asked_of_me?: boolean }).schedule_change_asked_of_me && /* Q1551 */ <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={false} hideAsk />}
-            {!isExpanded && (
-              <PosterStatusStrip
-                job={withDisputeSettling(job, unsettledDisputeJobIds)}
-                pendingApplicantCount={pendingApplicantCounts?.[job.id] ?? 0}
-                closedApplicants={closedApplicantSummaries?.[job.id] ?? null}
-                completedMeta={completedJobMeta[job.id]}
-                showStartClock={job.status === "accepted"}
-                helperName={job.helper_id ? helperNames[job.helper_id] ?? null : null}
-              />
-            )}
           </JobCardShell>
         </div>
         </JobCardPersonContext.Provider>

@@ -31,7 +31,7 @@ describe("JobCardMetaRow location chip at rest (VN-27)", () => {
         locationPressToMap
       />,
     );
-    const chip = screen.getByRole("button", { name: /Lafayette — tap to expand this job/ });
+    const chip = screen.getByRole("button", { name: /Lafayette — tap to open this job/ });
     const classes = [...chip.classList];
     // Any UNPREFIXED fill or border utility — `bg-…`, bare `border`,
     // `border-[…]` AND `border-olivewood/20`, which the first version of this

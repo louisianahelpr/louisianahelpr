@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { ChoicePill } from "@/components/ui/ChoicePill";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
@@ -14,42 +15,32 @@ import { centsLabel, tipQuoteForDollars } from "@/components/TipCostBreakdown";
 
 type Mode = "off" | "percent" | "fixed";
 
-const PERCENT_PRESETS = [10, 15, 20];
-const FIXED_PRESETS = [5, 10, 20];
+/** Board 182's default-tip pills. A saved value that is none of these shows
+ *  as "Other" with its own field, so nothing a poster set before is lost. */
+const CHIPS = [
+  { mode: "percent", value: 10, label: "10%" },
+  { mode: "percent", value: 15, label: "15%" },
+  { mode: "percent", value: 20, label: "20%" },
+  { mode: "fixed", value: 5, label: "$5 flat" },
+] as const;
 /** Mirrors the CHECK constraint in 20260811180000. Kept in sync deliberately:
  *  the form should refuse a bad value before the database has to. */
 // Fixed amounts and caps start at the $3 tip minimum (TIP_MIN_CENTS); a
 // percent tip that works out under it is not charged and the poster is asked.
 const LIMITS = { percent: { min: 1, max: 50 }, fixed: { min: 3, max: 500 }, cap: { min: 3, max: 500 } };
 
-/** SELECTED = the app's shared glossy primary surface, never a flat tint.
- *  Standing project rule (see `glossyPrimaryInvariant.test.ts` and the note in
- *  EarningsRangeToggle): a chosen control wears `btn-grad-primary`, the same
- *  radial bark gradient as every primary CTA. Until 2026-08-31 both tile rows
- *  here painted a flat `hsl(var(--bark) / 0.15)` INLINE — which is why the
- *  invariant test could not see them: it reads className strings, and an
- *  inline `style` fill is invisible to it. Declared once so the two rows can
- *  never drift from each other again. */
-const TILE_ACTIVE =
-  "btn-grad-primary !text-[hsl(var(--parchment))] " +
-  "shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_2px_8px_-3px_hsl(var(--bark)/0.55)]";
-/** `min-h-[44px]` is load-bearing, not decoration. The app-wide
- *  `button { min-height: 44px }` in index.css explicitly EXCLUDES
- *  `[role="radio"]`, so the moment these tiles gained real radio semantics
- *  they also lost their automatic touch target. Declare the height that
- *  actually renders — the same trap EarningsRangeToggle documents. */
-const TILE_BASE =
-  // `overflow-hidden` is a backstop, not the fix: the labels are short enough
-  // to fit at 320 (measured), and this only guarantees a future longer one
-  // clips inside its own tile instead of printing over its neighbour.
-  "min-h-[44px] overflow-hidden rounded-ds-md text-ds-13 font-sans font-semibold transition-all " +
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+const UNIT_MARK =
+  "absolute top-1/2 -translate-y-1/2 text-ds-13 font-sans font-semibold pointer-events-none text-muted-foreground";
 
 /** A number field is 36.8px tall on its own line (measured on the maximum-per-job
  *  input at every breakpoint) — under the 44px minimum. `min-h-[44px]` is the fix;
  *  inputs are not covered by the global touch-target rule. */
 const FIELD_BASE =
-  "w-full min-h-[44px] py-2 rounded-ds-sm text-ds-13 font-sans font-semibold";
+  "w-full min-h-[44px] py-2 rounded-ds-sm text-ds-13 font-sans font-semibold bg-card text-foreground";
+const fieldStyle = (valid: boolean) => ({
+  border: `1px solid hsl(var(--${valid ? "border" : "burnt-sienna"})${valid ? "" : " / 0.6"})`,
+  outline: "none",
+});
 
 /**
  * "After a Job" — everything that happens automatically once a job is finished.
@@ -96,6 +87,13 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
   const justSavedTimer = useRef<number>();
   useEffect(() => () => window.clearTimeout(justSavedTimer.current), []);
   const [loaded, setLoaded] = useState(false);
+  // "Other" is chosen explicitly (or seeded from a value no pill matches), so
+  // tapping it with 15% still selected opens the field instead of doing nothing.
+  const [other, setOther] = useState(false);
+  // The mode the switch turns back on to: whatever was set before it went off.
+  const lastOnMode = useRef<Exclude<Mode, "off">>("percent");
+  // The custom amount typed under Other, kept while a pill is tried instead.
+  const otherDraft = useRef<{ mode: Exclude<Mode, "off">; value: string } | null>(null);
 
   // Seed from the profile once it arrives. Guarded by `loaded` so a later
   // profile refetch can't stomp edits the user is in the middle of making.
@@ -111,6 +109,13 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
     setAutoRelease(p.auto_release_on_complete ?? false);
     if (p.auto_tip_value != null) setValue(String(p.auto_tip_value));
     if (p.auto_tip_cap != null) setCap(String(p.auto_tip_cap));
+    const seededMode = p.auto_tip_mode ?? "off";
+    if (seededMode !== "off") {
+      lastOnMode.current = seededMode;
+      const custom = !CHIPS.some((c) => c.mode === seededMode && c.value === p.auto_tip_value);
+      setOther(custom);
+      if (custom && p.auto_tip_value != null) otherDraft.current = { mode: seededMode, value: String(p.auto_tip_value) };
+    }
     setLoaded(true);
   }, [profile, loaded]);
 
@@ -211,295 +216,227 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
   const cappedByMax = uncapped != null && example != null && example < Math.round(uncapped);
 
   const isPercent = mode === "percent";
-  /** The unit the amount fields are denominated in. This screen prints
-   *  percentages and dollars one under the other — "15" meant a percent in the
-   *  tile row and dollars in the maximum field, with nothing on either control
-   *  saying which. Every amount input now carries its own marker. */
-  const captionClass = "font-sans text-ds-12";
-  const captionStyle = { color: "hsl(var(--olivewood) / 0.8)" } as const;
+  const on = mode !== "off";
+  const chosenChip = other ? null : CHIPS.find((c) => c.mode === mode && String(c.value) === value) ?? null;
+  const captionClass = "font-sans text-ds-12 text-muted-foreground";
+
+  const pickChip = (c: (typeof CHIPS)[number]) => {
+    void hapticLight();
+    // Keep what was typed under Other, so tapping a pill to compare and then
+    // Other again brings it back instead of the pill's number.
+    if (other) otherDraft.current = { mode: mode === "fixed" ? "fixed" : "percent", value };
+    setOther(false);
+    setMode(c.mode);
+    setValue(String(c.value));
+  };
+  const pickOther = () => {
+    void hapticLight();
+    if (other) return;
+    setOther(true);
+    if (otherDraft.current) {
+      setMode(otherDraft.current.mode);
+      setValue(otherDraft.current.value);
+    }
+  };
+  // Changing the unit clears the number: "25" typed as a percent must never
+  // quietly become $25 a job (or $40 become 40% of every job).
+  const pickUnit = (m: Exclude<Mode, "off">) => {
+    void hapticLight();
+    if (m === mode) return;
+    setMode(m);
+    setValue("");
+  };
+  const toggleOn = (next: boolean) => {
+    void hapticLight();
+    if (next) setMode(lastOnMode.current);
+    else {
+      lastOnMode.current = mode === "off" ? lastOnMode.current : mode;
+      setMode("off");
+    }
+  };
 
   return (
     <ProfileTabBody>
-      <ProfileTabHeader title="After a Job" onBack={onBack} />
+      <ProfileTabHeader title="After a job" onBack={onBack} />
       {/* Profile.tsx owns the shell — AppShell plus the single centered content
-          column. This tab contributes nothing but its own vertical rhythm;
-          adding a `page-measure`/gutter wrapper here would be a second
-          max-width inside Profile's own. */}
+          column. This tab contributes nothing but its own vertical rhythm. */}
       <div className="space-y-section">
-        <section className="liquid-glass rounded-ds-md p-card space-y-4">
-          <h2 className="font-display font-bold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
-            Automatic Tip
-          </h2>
-          <p
-            className="font-sans text-ds-13 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-          >
-            Tip automatically once a job is finished, without having to remember.
-            Charged after completion — never before — so you only ever tip for
-            work that actually happened. Your Helpr receives 100% of the tip; the
-            card-processing fee is added on top of it for you. If you
-            haven't saved a card, we'll ask you to confirm the tip instead of
-            charging it automatically.
-          </p>
-
-          <div role="radiogroup" aria-label="Automatic tip" className="grid grid-cols-3 gap-2">
-            {(["off", "percent", "fixed"] as const).map((m) => {
-              const active = mode === m;
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => { void hapticLight(); setMode(m); }}
-                  className={`${TILE_BASE} px-1 ${active ? TILE_ACTIVE : ""}`}
-                  style={
-                    active
-                      ? { border: "1px solid hsl(var(--bark-deep) / 0.55)" }
-                      : {
-                          background: "transparent",
-                          border: "1px solid hsl(var(--bark) / 0.18)",
-                          color: "hsl(var(--bark))",
-                        }
-                  }
-                >
-                  {/* "Percent", not "Percentage". Measured at 320: each tile is
-                      66px wide (56px inside the padding) and "Percentage"
-                      renders 82px — it spilled out of both sides of its own
-                      tile and printed over the "Fixed" tile beside it, which is
-                      visible in the owner's screenshot and predates this pass.
-                      "Percent" renders 52.7px, fits with 3px to spare, and
-                      matches the caption it controls ("Percent of the job"). */}
-                  {m === "off" ? "Off" : m === "percent" ? "Percent" : "Fixed"}
-                </button>
-              );
-            })}
-          </div>
-
-          {mode !== "off" && (
-            <div className="space-y-2">
-              <p id="auto-tip-amount-label" className={captionClass} style={captionStyle}>
-                {isPercent ? "Percent of the job" : "Amount per job"}
+        <div className="space-y-4">
+          {/* Board 182: one switch card, then the default tip as pills. The
+              switch IS the old "Off" tile; "Percent"/"Fixed" became the chips
+              themselves (10% 15% 20% $5 flat) with "Other" for anything else. */}
+          <section className="liquid-glass rounded-ds-md p-card flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h2 id="auto-tip-heading" className="font-sans font-semibold text-ds-14 text-foreground">
+                Tip automatically after each job
+              </h2>
+              <p id="auto-tip-desc" className="font-sans text-ds-12 leading-snug text-muted-foreground">
+                Charged after the job is finished, never before.
               </p>
-              {/* A grid, not a wrapping flex row with the custom field as a
-                  fourth cell. The custom field used to sit INSIDE this row as a
-                  bare `15` beside `10%` and `20%` — three tiles carrying their
-                  unit and a fourth that looked like a fourth preset and read as
-                  a fourth value. Presets are a choice; the field below is an
-                  entry. Different jobs, different rows. */}
-              <div
-                role="radiogroup"
-                aria-labelledby="auto-tip-amount-label"
-                className="grid grid-cols-3 gap-2"
-              >
-                {(isPercent ? PERCENT_PRESETS : FIXED_PRESETS).map((n) => {
-                  const active = String(n) === value;
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      onClick={() => { void hapticLight(); setValue(String(n)); }}
-                      className={`${TILE_BASE} px-1 ${active ? TILE_ACTIVE : ""}`}
-                      style={
-                        active
-                          ? { border: "1px solid hsl(var(--bark-deep) / 0.55)" }
-                          : {
-                              background: "transparent",
-                              border: "1px solid hsl(var(--bark) / 0.18)",
-                              color: "hsl(var(--bark))",
-                            }
-                      }
-                    >
-                      {isPercent ? `${n}%` : `$${n}`}
-                    </button>
-                  );
-                })}
+            </div>
+            <Switch
+              checked={on}
+              onCheckedChange={toggleOn}
+              aria-labelledby="auto-tip-heading"
+              aria-describedby="auto-tip-desc"
+              className="shrink-0"
+            />
+          </section>
+
+          {on && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p id="auto-tip-amount-label" className="font-sans text-ds-14 font-semibold text-foreground">
+                  Default tip
+                </p>
+                <div role="radiogroup" aria-labelledby="auto-tip-amount-label" className="flex flex-wrap gap-2">
+                  {/* px-3, not the pill's px-4: all five fit one row at 375. */}
+                  {CHIPS.map((c) => (
+                    <ChoicePill key={c.label} selected={chosenChip === c} onClick={() => pickChip(c)} className="px-3">
+                      {c.label}
+                    </ChoicePill>
+                  ))}
+                  <ChoicePill selected={other} onClick={pickOther} className="px-3">
+                    Other
+                  </ChoicePill>
+                </div>
               </div>
 
-              <label htmlFor="auto-tip-custom" className={`block ${captionClass}`} style={captionStyle}>
-                {isPercent ? "Or a custom percent" : "Or a custom amount"}
-              </label>
-              {/* The unit lives ON the field, not only in the caption above it.
-                  `aria-hidden` on the marker so the accessible name stays the
-                  visible `<label>` rather than gaining a stray "$". */}
-              <div className="relative">
-                {!isPercent && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-ds-13 font-sans font-semibold pointer-events-none"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                  >
-                    $
-                  </span>
-                )}
-                <input
-                  id="auto-tip-custom"
-                  type="number"
-                  inputMode="numeric"
-                  min={limits.min}
-                  max={limits.max}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  className={`${FIELD_BASE} ${isPercent ? "pl-3 pr-9" : "pl-8 pr-3"}`}
-                  style={{
-                    background: "transparent",
-                    border: `1px solid hsl(var(--${valueValid ? "bark" : "burnt-sienna"}) / 0.40)`,
-                    color: "hsl(var(--bark))",
-                    outline: "none",
-                  }}
-                />
-                {isPercent && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ds-13 font-sans font-semibold pointer-events-none"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                  >
-                    %
-                  </span>
-                )}
-              </div>
-              {!valueValid && (
-                <p className="font-sans text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                  {isPercent ? "Pick between 1% and 50%." : `Pick between $${LIMITS.fixed.min} and $${LIMITS.fixed.max}.`}
-                </p>
+              {other && (
+                <div className="space-y-2">
+                  <div role="radiogroup" aria-label="Tip as" className="flex gap-2">
+                    {(["percent", "fixed"] as const).map((m) => (
+                      <ChoicePill key={m} selected={mode === m} onClick={() => pickUnit(m)}>
+                        {m === "percent" ? "Percent of the job" : "Dollar amount"}
+                      </ChoicePill>
+                    ))}
+                  </div>
+                  <label htmlFor="auto-tip-custom" className={`block ${captionClass}`}>
+                    {isPercent ? "Your percent" : "Your amount per job"}
+                  </label>
+                  {/* The unit lives ON the field, not only in the caption above it.
+                      `aria-hidden` on the marker so the accessible name stays the
+                      visible `<label>` rather than gaining a stray "$". */}
+                  <div className="relative">
+                    {!isPercent && (
+                      <span aria-hidden="true" className={`${UNIT_MARK} left-3`}>$</span>
+                    )}
+                    <input
+                      id="auto-tip-custom"
+                      type="number"
+                      inputMode="numeric"
+                      min={limits.min}
+                      max={limits.max}
+                      value={value}
+                      placeholder="Type an amount"
+                      onChange={(e) => setValue(e.target.value)}
+                      className={`${FIELD_BASE} ${isPercent ? "pl-3 pr-9" : "pl-8 pr-3"}`}
+                      style={fieldStyle(valueValid || value.trim() === "")}
+                    />
+                    {isPercent && (
+                      <span aria-hidden="true" className={`${UNIT_MARK} right-3`}>%</span>
+                    )}
+                  </div>
+                  {!valueValid && value.trim() !== "" && (
+                    <p className="font-sans text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                      {isPercent ? "Pick between 1% and 50%." : `Pick between $${LIMITS.fixed.min} and $${LIMITS.fixed.max}.`}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {isPercent && (
+                <div className="space-y-2">
+                  <label htmlFor="auto-tip-cap" className={`block ${captionClass}`}>
+                    Maximum per job (optional)
+                  </label>
+                  {/* `$`, always. This field sits directly under a row of
+                      percentages, so a bare "15" here and a "15%" there made the
+                      same two digits mean two different things on one screen. */}
+                  <div className="relative">
+                    <span aria-hidden="true" className={`${UNIT_MARK} left-3`}>$</span>
+                    <input
+                      id="auto-tip-cap"
+                      type="number"
+                      inputMode="numeric"
+                      min={LIMITS.cap.min}
+                      max={LIMITS.cap.max}
+                      value={cap}
+                      placeholder="No maximum"
+                      onChange={(e) => setCap(e.target.value)}
+                      className={`${FIELD_BASE} pl-8 pr-3`}
+                      style={fieldStyle(capValid)}
+                    />
+                  </div>
+                  {/* The cap is the whole reason percentage mode is safe to offer:
+                      15% of a $600 job is $90, which is not what most people
+                      picture when they set "15%". */}
+                  <p className="font-sans text-ds-11 text-muted-foreground">
+                    A percentage of a large job adds up. A maximum keeps it predictable.
+                  </p>
+                </div>
+              )}
+
+              {example != null && (
+                <div className="liquid-glass rounded-ds-md p-card">
+                  <p className="text-ds-13 font-sans text-foreground">
+                    On a <span className="font-semibold">$150</span> job you'd tip{" "}
+                    <span className="font-semibold">${formatPrice(example)}</span>
+                    {cappedByMax ? (
+                      <> — {numericValue}% would be ${formatPriceExact(uncapped!)}, held to your ${formatPrice(numericCap!)} maximum.</>
+                    ) : (
+                      "."
+                    )}
+                    {example > 0 && (
+                      <>
+                        {" "}Your Helpr receives all ${formatPriceExact(example)}; with card processing you pay{" "}
+                        <span className="font-semibold">{centsLabel(tipQuoteForDollars(example).chargeCents)}</span>.
+                      </>
+                    )}
+                  </p>
+                </div>
               )}
             </div>
           )}
 
-          {isPercent && (
-            <div className="space-y-2">
-              <label htmlFor="auto-tip-cap" className={`block ${captionClass}`} style={captionStyle}>
-                Maximum per job — optional
-              </label>
-              {/* `$`, always. This field sits directly under a row of
-                  percentages, so a bare "15" here and a "15%" there made the
-                  same two digits mean two different things on one screen. */}
-              <div className="relative">
-                <span
-                  aria-hidden="true"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-ds-13 font-sans font-semibold pointer-events-none"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                >
-                  $
-                </span>
-                <input
-                  id="auto-tip-cap"
-                  type="number"
-                  inputMode="numeric"
-                  min={LIMITS.cap.min}
-                  max={LIMITS.cap.max}
-                  value={cap}
-                  placeholder="No maximum"
-                  onChange={(e) => setCap(e.target.value)}
-                  className={`${FIELD_BASE} pl-8 pr-3`}
-                  style={{
-                    background: "transparent",
-                    border: `1px solid hsl(var(--${capValid ? "bark" : "burnt-sienna"}) / 0.40)`,
-                    color: "hsl(var(--bark))",
-                    outline: "none",
-                  }}
-                />
-              </div>
-              {/* The cap is the whole reason percentage mode is safe to offer:
-                  15% of a $600 job is $90, which is not what most people
-                  picture when they set "15%". */}
-              <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                A percentage of a large job adds up. A maximum keeps it predictable.
-              </p>
-            </div>
-          )}
-
-          {example != null && (
-            <div
-              className="rounded-ds-md p-3"
-              style={{ background: "hsl(var(--bark) / 0.06)", border: "0.5px solid hsl(var(--bark) / 0.18)" }}
-            >
-              <p className="text-ds-12 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
-                On a <span className="font-semibold">$150</span> job you'd tip{" "}
-                <span className="font-semibold">${formatPrice(example)}</span>
-                {cappedByMax ? (
-                  <> — {numericValue}% would be ${formatPriceExact(uncapped!)}, held to your ${formatPrice(numericCap!)} maximum.</>
-                ) : (
-                  "."
-                )}
-                {example > 0 && (
-                  <>
-                    {" "}Your Helpr receives all ${formatPriceExact(example)}; with card processing you pay{" "}
-                    <span className="font-semibold">{centsLabel(tipQuoteForDollars(example).chargeCents)}</span>.
-                  </>
-                )}
-              </p>
-            </div>
-          )}
-        </section>
-
-        {/* Instant release gets its own section, not a subsection of the tip
-            (issue #172). The two used to share one <section> with no heading of
-            its own — a release-timing preference is a different question from a
-            tip amount, so burying it inside the tip card read as a stray toggle
-            rather than its own setting. Same card chrome + heading treatment as
-            the tip section above; Save still persists both in one write (they're
-            one profile row), so the button stays below both rather than
-            duplicating inside each. Kept here because both answer "what happens
-            automatically once the job is finished?" — which is now what the page
-            is CALLED (owner, 2026-08-31). Safe to offer because completion is
-            DB-gated (photos + 30-min floor, 20260824235000); release fires on
-            the next auto-release pass, which runs every 30 minutes.
-
-            ONE heading, not two. The `h2` used to say "Instant Release" and the
-            row beneath it "Release on completion" — the same sentence twice, in
-            two type treatments, over a single switch. The section heading is the
-            name; the italic line is what it does. */}
-        <section className="liquid-glass rounded-ds-md p-card space-y-3">
-          {/* The switch sits on the HEADING row, not beside the sentence. It
-              used to share a tinted inner box with the description, which
-              left the body text a ~200px column beside a 44px switch inside
-              a card 335px wide at 375 — a full-width card wrapping its one
-              sentence in a ribbon (state-matrix sweep, 2026-09-11). The
-              heading names the setting, the switch is its control, and the
-              sentence beneath gets the card's whole width. */}
-          <div className="flex items-center justify-between gap-3">
-            <h2
-              id="instant-release-heading"
-              className="font-display font-bold text-ds-14"
-              style={{ color: "hsl(var(--ink-deep))" }}
-            >
-              Instant Release
-            </h2>
-            <Switch
-              checked={autoRelease}
-              onCheckedChange={setAutoRelease}
-              aria-labelledby="instant-release-heading"
-              aria-describedby="instant-release-desc"
-              className="shrink-0"
-            />
-          </div>
-          <p
-            id="instant-release-desc"
-            className="font-sans text-ds-12 leading-snug"
-            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-          >
-            Release payment as soon as the Helpr marks the job done with photo
-            proof — instead of holding it for your 24-hour review.
+          <p className={captionClass}>
+            Your Helpr gets 100% of every tip. Card processing is added on top. If you
+            haven't saved a card, we'll ask you to confirm the tip instead of charging it.
           </p>
+        </div>
+
+        {/* Instant release: its own card, same row shape as the auto-tip switch
+            above. Save still persists both in one write (they're one profile
+            row). Safe to offer because completion is DB-gated (photos + 30-min
+            floor, 20260824235000); release fires on the next auto-release pass,
+            which runs every 30 minutes. */}
+        <section className="liquid-glass rounded-ds-md p-card flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 id="instant-release-heading" className="font-sans font-semibold text-ds-14 text-foreground">
+              Instant release
+            </h2>
+            <p id="instant-release-desc" className="font-sans text-ds-12 leading-snug text-muted-foreground">
+              Release payment as soon as the Helpr marks the job done with photo
+              proof, instead of holding it for your 24-hour review.
+            </p>
+          </div>
+          <Switch
+            checked={autoRelease}
+            onCheckedChange={setAutoRelease}
+            aria-labelledby="instant-release-heading"
+            aria-describedby="instant-release-desc"
+            className="shrink-0"
+          />
         </section>
 
         <Button
           variant="primary"
           onClick={() => void save()}
           disabled={saving || justSaved || !valueValid || !capValid}
-          className="w-full rounded-ds-md"
+          className="w-full rounded-full"
         >
           {saving ? "Saving…" : justSaved ? (<><Check className="w-4 h-4 mr-1.5" strokeWidth={3} aria-hidden /> Saved</>) : "Save"}
         </Button>
-        {/* A trailing explainer card used to sit here. Removed on owner
-            instruction: it was a second explanation of the same feature at the
-            far end of a short screen, after the Save button had already ended
-            it. Its one piece of load-bearing behaviour — that an unsaved card
-            means we confirm the tip rather than auto-charge it — was folded
-            into the opening paragraph rather than lost. */}
       </div>
     </ProfileTabBody>
   );

@@ -446,15 +446,17 @@ export const FORMS: FormSpec[] = [
   { name: "profile-support", url: "/profile?tab=support", as: "helper", covers: ["src/components/profile/SupportInline.tsx"] },
   { name: "gift-card", url: "/profile?tab=gift_card", as: "poster", covers: ["src/pages/profile/GiftCard.tsx"] },
   {
-    // Auto-tip opens on "Off", and the amount and cap fields only exist while
-    // a mode is chosen (`mode !== "off"` in AutoTip.tsx) — correct product
-    // behaviour: there is no amount to type when the feature is off. The mode
-    // tiles are `role="radio"`, not buttons, so `pressIfPresent` cannot see
-    // them. "Percent" is chosen over "Fixed" because it renders BOTH number
-    // fields (the percent value and the dollar cap); "Fixed" renders only one.
+    // Auto-tip opens switched off, and the amount and cap fields only exist
+    // while it is on (board 182: a switch, then pills 10% 15% 20% $5 flat
+    // Other). Correct product behaviour: there is no amount to type when the
+    // feature is off. Switch on (percent by default, which renders the dollar
+    // cap), then "Other" for the custom field: BOTH number fields render.
+    // The pills are `role="radio"`, so `pressIfPresent` cannot see them.
     name: "auto-tip", url: "/profile?tab=auto_tip", as: "poster",
     prepare: async (page) => {
-      await page.getByRole("radio", { name: /^percent$/i }).first().click().catch(() => {});
+      const sw = page.getByRole("switch", { name: /tip automatically/i }).first();
+      if ((await sw.getAttribute("aria-checked").catch(() => null)) !== "true") await sw.click().catch(() => {});
+      await page.getByRole("radio", { name: /^other$/i }).first().click().catch(() => {});
       await page.locator("#auto-tip-custom").waitFor({ timeout: 5_000 }).catch(() => {});
     },
     covers: ["src/pages/profile/AutoTip.tsx"],

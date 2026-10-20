@@ -5,31 +5,28 @@ import { unwrap } from "@/lib/supabaseResult";
 import { formatPriceExact } from "@/lib/format";
 import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
-import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
-import { helperTakeHomeDollars, isSettledForDisplay } from "@/lib/helperEarnings";
-import { HELPR_FLAT_FEE_PERCENT, isFlatFeeJob } from "@/lib/helprFlatFee";
+import { helprFlatFeeCents, isFlatFeeJob } from "@/lib/helprFlatFee";
+import { transferredCents, type TransferRow } from "@/lib/jobDonePay";
 
 /**
  * The top of the Job done screen (boards 35 poster / 36 Helpr), under the
  * "Job done" moment title: the job and the other person, the before/after
  * proof photos when the Helpr added them, and the money note for this side.
  *
- * TRUTH RULE (HELPR-DESIGN-SPEC §1.5): every figure is read, never derived.
- *  - Poster: the job price (`jobs.budget`) and the fact that escrow was
- *    released, shown only when `payment_status` says it was. The poster never
- *    sees the Helpr's take-home (owner 2026-10-20 05:35Z; the board's
- *    "You paid $103.04" line is dropped because no single stamped column says
- *    what the card was charged on every fee model).
- *  - Helpr: the amount actually transferred (`payout_transfers.amount_cents`,
- *    the Helpr's own rows), so the one-time setup fee and the whole-dollar
- *    floor are already in it. Before a transfer row exists, a flat-model job
- *    (5% + 70c, every job funded since 2026-10-15) shows helperTakeHomeDollars
- *    (helprFlatFeeCents on the Helpr's share + urgent bonus, the setup fee
- *    while owed, floored to the dollar as release-payout pays); a legacy job
- *    says the pay is on its way WITHOUT a number (and not in rust). "In your bank" is never lit: no
- *    per-job bank-arrival state exists; the caption gives the real window.
- *    Arrival date and bank last-4 from the board are omitted for the same
- *    reason (not stored per job).
+ * TRUTH RULE (HELPR-DESIGN-SPEC §1.5): every figure is read, never derived,
+ * and this was reviewed by lh-money-escrow (2026-10-20, changes-needed, all
+ * seven findings applied).
+ *  - Poster: the job price (`jobs.budget`, labelled "Job price") on an
+ *    undisputed single-Helpr job; "Paid to X" only at payment_status
+ *    'released', "Approved" + the real payout_scheduled_at at
+ *    'payout_pending'. The poster never sees the Helpr's take-home (owner
+ *    2026-10-20 05:35Z) or what the card was charged.
+ *  - Helpr: the headline amount is the transfer itself
+ *    (`payout_transfers.amount_cents`, own rows, clawbacks removed). Before a
+ *    transfer exists there is no headline number, only the stamped job price
+ *    and its Helpr fee. "In your bank" is never lit: no per-job bank-arrival
+ *    state exists; the caption gives the real window. The board's arrival
+ *    date and bank last-4 are omitted for the same reason.
  */
 
 type Side = "poster" | "helper";
@@ -50,30 +47,13 @@ interface JobDoneRow {
   helper_fee_flat_cents: number | null;
   helper_fee_percent: number | null;
   platform_fee_amount: number | null;
+  disputed_at: string | null;
+  dispute_status: string | null;
+  payout_scheduled_at: string | null;
   proof_before_urls: string[] | null;
   proof_after_urls: string[] | null;
 }
 
-interface TransferRow {
-  amount_cents: number;
-  status: string;
-  metadata: unknown;
-}
-
-/** What the Helpr kept from this job's transfers, in cents, and whether all were sent. */
-function transferredCents(rows: readonly TransferRow[]): { cents: number; allSent: boolean } {
-  let cents = 0;
-  let allSent = true;
-  for (const t of rows) {
-    if (t.status === "failed" || t.status === "canceled") continue;
-    const reversed = t.status === "reversed"
-      ? Math.max(0, Number((t.metadata as { amount_reversed_cents?: number } | null)?.amount_reversed_cents ?? t.amount_cents ?? 0))
-      : 0;
-    cents += Math.max(0, Number(t.amount_cents ?? 0) - reversed);
-    if (t.status !== "paid") allSent = false;
-  }
-  return { cents, allSent };
-}
 
 export function JobDoneSummary({
   jobId,
@@ -93,7 +73,7 @@ export function JobDoneSummary({
       unwrap(
         await supabase
           .from("jobs")
-          .select("title, budget, status, payment_status, is_group_job, helpers_needed, urgent_fee, helper_fee_flat_cents, helper_fee_percent, platform_fee_amount, proof_before_urls, proof_after_urls")
+          .select("title, budget, status, payment_status, is_group_job, helpers_needed, urgent_fee, helper_fee_flat_cents, helper_fee_percent, platform_fee_amount, disputed_at, dispute_status, payout_scheduled_at, proof_before_urls, proof_after_urls")
           .eq("id", jobId)
           .maybeSingle(),
       ) as JobDoneRow | null,
@@ -117,7 +97,6 @@ export function JobDoneSummary({
   const before = job?.proof_before_urls?.[0] ?? "";
   const after = job?.proof_after_urls?.[0] ?? "";
   const [beforeSrc, afterSrc] = useProofPhotoUrls([before, after]);
-  const firstPayoutFee = useFirstPayoutFeeDollars();
 
   if (!job) return null;
 
@@ -155,47 +134,72 @@ export function JobDoneSummary({
         </div>
       )}
 
-      {side === "poster" && released && (
+      {side === "poster" && released && !job.disputed_at && !job.dispute_status && (
+        // Only an undisputed job: a dispute split or a crew refund pays out
+        // less than the price, and showing what WAS paid would reveal the
+        // Helpr's take-home (lh-money-escrow review, findings 3, 4, 6).
         <div className="rounded-ds-lg px-4 py-3" style={{ background: MONEY_TINT }}>
           <div className="flex items-center justify-between gap-3">
             <p className="font-sans font-bold text-ds-15 flex items-center gap-1.5" style={{ color: MONEY }}>
               <Check className="w-4 h-4 shrink-0" aria-hidden="true" />
-              {job.is_group_job ? "Released to your crew" : `Released to ${firstName}`}
+              {job.payment_status === "released"
+                ? (job.is_group_job ? "Paid to your crew" : `Paid to ${firstName}`)
+                : "Approved"}
             </p>
-            {job.budget != null && (
-              <p className="font-sans font-bold text-ds-18 tabular-nums" style={{ color: MONEY }}>
+            {job.budget != null && !job.is_group_job && (
+              <p className="font-sans font-bold text-ds-18 tabular-nums text-right leading-tight" style={{ color: MONEY }}>
                 ${formatPriceExact(job.budget)}
+                <span className="block font-semibold text-ds-11">Job price</span>
               </p>
             )}
           </div>
           <p className="font-sans text-ds-12 mt-0.5" style={{ color: MONEY }}>
-            {job.is_group_job ? "Paid to your crew. It's on its way to their banks." : `Paid to ${firstName}. It's on its way to their bank.`}
+            {job.payment_status === "released"
+              ? (job.is_group_job ? "It's on its way to their banks." : "It's on its way to their bank.")
+              : job.payout_scheduled_at
+                ? `${job.is_group_job ? "Your crew's" : `${firstName}'s`} pay goes out ${formatPayoutTime(job.payout_scheduled_at)}.`
+                : `${job.is_group_job ? "Your crew's" : `${firstName}'s`} pay goes out with the next payout.`}
           </p>
         </div>
       )}
 
-      {side === "helper" && released && (
+      {side === "helper" && released && transfers && (
         <HelprPayNote
-          transfers={transfers ?? []}
+          transfers={transfers}
+          held={job.dispute_status === "reversal_hold"}
+          jobPriceCents={isFlatFeeJob(job) && !job.is_group_job && job.budget != null ? Math.round(Number(job.budget) * 100) : null}
+          feeCents={isFlatFeeJob(job) && !job.is_group_job && job.budget != null ? helprFlatFeeCents(Math.round(Number(job.budget) * 100), job) : null}
           posterFirstName={firstName}
-          expectedCents={isFlatFeeJob(job)
-            ? Math.round(helperTakeHomeDollars(job, HELPR_FLAT_FEE_PERCENT, isSettledForDisplay(job) ? 0 : firstPayoutFee) * 100)
-            : null}
         />
       )}
     </div>
   );
 }
 
-function HelprPayNote({ transfers, posterFirstName, expectedCents }: {
+function HelprPayNote({ transfers, held, jobPriceCents, feeCents, posterFirstName }: {
   transfers: readonly TransferRow[];
+  /** A clawed-back transfer frozen for review (transferReversed). */
+  held: boolean;
+  /** Flat-model, single-Helpr job: the stamped price and its Helpr fee, for the breakdown line. */
+  jobPriceCents: number | null;
+  feeCents: number | null;
   posterFirstName: string;
-  /** Pre-transfer take-home for a flat-model job; null when it cannot be known. */
-  expectedCents: number | null;
 }) {
-  const ledger = transferredCents(transfers);
-  const sent = ledger.cents > 0 && ledger.allSent;
-  const cents = ledger.cents > 0 ? ledger.cents : (expectedCents ?? 0);
+  // THE NUMBER IS THE TRANSFER. Before a transfer row exists no headline
+  // amount is shown: account-level deductions (the one-time setup fee, a
+  // Helpr-fault fee debt), a missing payout account or a freeze can all make
+  // the transfer differ from the job's take-home (lh-money-escrow review,
+  // findings 2, 5, 7). The job's own price and fee are stamped facts and are
+  // shown as the breakdown line.
+  const { cents, sent } = transferredCents(transfers);
+  if (held || (transfers.length > 0 && cents === 0)) {
+    return (
+      <div className="rounded-ds-lg p-4 text-center" style={{ background: "hsl(var(--card))", boxShadow: "0 4px 18px rgba(32,30,26,0.06)" }}>
+        <p className="font-sans font-bold text-ds-18" style={{ color: "hsl(var(--ink-deep))" }}>Your pay for this job is on hold</p>
+        <p className="font-sans text-ds-13 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>We'll message you about what happens next.</p>
+      </div>
+    );
+  }
   const steps = [
     { label: "Confirmed", done: true },
     { label: "Sent", done: sent },
@@ -209,8 +213,13 @@ function HelprPayNote({ transfers, posterFirstName, expectedCents }: {
       <p className="font-sans font-bold text-ds-24 leading-tight tabular-nums" style={{ color: cents > 0 ? MONEY : "hsl(var(--ink-deep))" }}>
         {cents > 0
           ? `$${formatPriceExact(cents / 100)} ${sent ? "was sent" : "is on its way"}`
-          : "Your pay is on its way"}
+          : "Your pay is being prepared"}
       </p>
+      {jobPriceCents != null && feeCents != null && (
+        <p className="font-sans text-ds-12 tabular-nums" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          ${formatPriceExact(jobPriceCents / 100)} job · Helpr fee ${formatPriceExact(feeCents / 100)}
+        </p>
+      )}
       <p className="font-sans text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
         {/* Not "<name> confirmed": a job can also complete on the auto-release timer. */}
         The job with {posterFirstName} is confirmed.
@@ -238,4 +247,11 @@ function HelprPayNote({ transfers, posterFirstName, expectedCents }: {
       </p>
     </div>
   );
+}
+
+/** "Tue, Oct 21 at 3:00 PM" in the viewer's zone. */
+function formatPayoutTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime()) || d.getTime() < Date.now()) return "with the next payout";
+  return `on ${d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} at ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
 }

@@ -14,7 +14,6 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CurrencyInput } from "@/components/ui/currency-input";
 import { Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS } from "../../supabase/functions/_shared/tipFees";
@@ -24,7 +23,8 @@ import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdown";
+import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdown";
+import { formatPriceExact } from "@/lib/format";
 import { recordReviewInActivityCache } from "@/lib/reviewActivityCache";
 import { unwrapMutation, WriteRejectedError } from "@/lib/mutationResult";
 import { userFacingError } from "@/lib/userFacingError";
@@ -82,6 +82,9 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
   const [saving, setSaving] = useState(false);
   const [, setAlreadyReviewed] = useState(false);
   const [customTip, setCustomTip] = useState<number | undefined>(undefined);
+  // Board 180: the tip step's base price and the job title under the question.
+  const tipJob = useTipJob(jobId);
+  const tipValid = customTip !== undefined && customTip * 100 >= TIP_MIN_CENTS && customTip * 100 <= TIP_MAX_CENTS;
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
   // The shared, direction-aware tags (reviewPanel/types): the same words the
@@ -315,54 +318,25 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
         </DialogContent>
       </Dialog>
 
-      {/* Tip Prompt — close advances to share step (peak emotional moment
-          for a referral ask). Skipping the tip still hits the share step. */}
+      {/* Tip Prompt (board 180) — close advances to share step (peak
+          emotional moment for a referral ask). Skipping the tip still hits
+          the share step. */}
       <Dialog open={step === "tip"} onOpenChange={() => setStep("share")}>
         <DialogContent
           stepped>
-          <DialogHero
-            title="Say Thanks with a Tip?"
-          />
-          <div className="space-y-4">
-            <DialogBody><p>{revieweeName} receives 100% of your tip. The card-processing fee is added on top, and each amount shows what you pay. Totally optional!</p></DialogBody>
-            <div className="space-y-2">
-              <label htmlFor="custom-tip-amount" className="text-ds-13 font-medium text-foreground">Enter your tip</label>
-              <div className="flex gap-2">
-                <CurrencyInput
-                  id="custom-tip-amount"
-                  className="flex-1 text-ds-17 font-semibold"
-                  value={customTip}
-                  onChange={setCustomTip}
-                  min={TIP_MIN_CENTS / 100}
-                  aria-label="Custom tip amount in dollars"
-                />
-                <Button
-                  className="h-12 px-6"
-                  onClick={() => sendTip(customTip ?? 0)}
-                  disabled={saving || customTip === undefined || customTip <= 0}
-                >
-                  {saving ? "Sending…" : "Send"}
-                </Button>
-              </div>
-              {customTip !== undefined && customTip * 100 >= TIP_MIN_CENTS && customTip * 100 <= TIP_MAX_CENTS && <TipCostBreakdown tipDollars={customTip} />}
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-ds-11 text-muted-foreground">or quick pick</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-            <div className="flex gap-3 justify-center">
-              {[5, 10, 20].map((amt) => (
-                <Button key={amt} variant="outline" size="lg" onClick={() => sendTip(amt)} disabled={saving} className="h-auto py-2 flex-col text-ds-17 font-bold">
-                  ${amt}
-                  <TipTotalHint tipDollars={amt} />
-                </Button>
-              ))}
-            </div>
+          <DialogHero moment title={`Add a tip for ${firstName}?`} />
+          <div className="space-y-3 min-w-0">
+            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Optional.{tipJob ? ` ${tipJob.title} · $${formatPriceExact(tipJob.shareDollars)}` : ""}
+            </p>
+            <TipPicker jobPriceDollars={tipJob?.shareDollars ?? null} valueDollars={customTip} onChange={setCustomTip} />
+            {tipValid && <TipCostBreakdown tipDollars={customTip!} receiverName={revieweeName} />}
           </div>
-          {/* Lone footer control -> `outline`, not a bare ghost label. */}
           <DialogFooter>
-            <DialogSecondaryAction onClick={() => setStep("share")}>Skip</DialogSecondaryAction>
+            <DialogSecondaryAction onClick={() => setStep("share")}>No tip</DialogSecondaryAction>
+            <DialogPrimaryAction onClick={() => sendTip(customTip ?? 0)} disabled={saving || customTip === undefined || customTip <= 0}>
+              {saving ? "Opening checkout…" : customTip !== undefined && customTip > 0 ? `Tip ${centsLabel(Math.round(customTip * 100))}` : "Tip"}
+            </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>

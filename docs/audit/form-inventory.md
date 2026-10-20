@@ -113,8 +113,8 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/declutter/DeclutterSellPhotos.tsx` | input×1 | file |  | sell-photos · sell-files |
-| `src/components/declutter/DeclutterSellView.tsx` | input×5, textarea×1, select×3, checkbox/switch/radio×2 | text | 80, 2000, 300 | sell-details · sell-title · Oak rocking chair · sell-desc · sell-category · sell-condition · sell-size · sell-price |
+| `src/components/declutter/DeclutterSellPhotos.tsx` | input×1 | file |  | Photos · sell-files |
+| `src/components/declutter/DeclutterSellView.tsx` | input×5, textarea×1, checkbox/switch/radio×2 | text | 80, 2000, 300 | sell-title · e.g. Oak rocking chair · sell-desc · sell-price · Price · sell-floor · e.g. 30 · sell-porch |
 
 ## /declutter/sell, /declutter/move
 

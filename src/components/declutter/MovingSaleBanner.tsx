@@ -49,7 +49,7 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
               to={`/declutter/item/${it.id}`}
               className="block rounded-xl border border-border overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <div className="aspect-square bg-muted">
+              <div className="aspect-square bg-photo-empty">
                 {cover.get(it.id) ? (
                   <img src={photoPublicUrl(cover.get(it.id)!)} alt="" loading="lazy" className="w-full h-full object-cover" />
                 ) : (

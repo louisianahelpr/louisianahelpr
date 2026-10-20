@@ -100,6 +100,8 @@ export default {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        // Spec v2 §2: an empty or loading photo (Declutter cards, gallery, sell tiles, skeletons).
+        "photo-empty": "hsl(var(--photo-empty))",
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",

@@ -12,7 +12,7 @@ import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 
-const FRAME = "relative aspect-square sm:aspect-[4/3] w-full overflow-hidden rounded-2xl bg-muted";
+const FRAME = "relative aspect-square sm:aspect-[4/3] w-full overflow-hidden rounded-2xl bg-photo-empty";
 
 export function DeclutterGallery({ urls, category, title }: { urls: string[]; category: string; title: string }) {
   const track = useRef<HTMLDivElement>(null);

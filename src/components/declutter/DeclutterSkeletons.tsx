@@ -52,7 +52,7 @@ export function DeclutterBrowseBones() {
       <ul className={DECLUTTER_GRID} aria-hidden>
         {[0, 1, 2, 3].map((i) => (
           <li key={i} className="min-w-0">
-            <Skeleton className="aspect-square w-full rounded-2xl" />
+            <Skeleton className="aspect-square w-full rounded-2xl bg-photo-empty" />
             <div className="space-y-1.5 px-0.5 pt-2">
               <Skeleton className="h-4 w-14" />
               <Skeleton className="h-3.5 w-4/5" />
@@ -72,8 +72,8 @@ export function DeclutterItemSkeleton() {
   return (
     <AppPage title="Item" backTo="/declutter">
       <div className="flex gap-2 overflow-hidden -mx-1 px-1" role="status" aria-label="Loading the item">
-        <Skeleton className="shrink-0 w-[80%] max-w-sm aspect-square rounded-2xl" />
-        <Skeleton className="shrink-0 w-[80%] max-w-sm aspect-square rounded-2xl" />
+        <Skeleton className="shrink-0 w-[80%] max-w-sm aspect-square rounded-2xl bg-photo-empty" />
+        <Skeleton className="shrink-0 w-[80%] max-w-sm aspect-square rounded-2xl bg-photo-empty" />
       </div>
       <Skeleton className="h-52 w-full rounded-2xl" aria-hidden />
     </AppPage>

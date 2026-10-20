@@ -407,6 +407,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     if (accept) {
       fireSuccessMoment({ label: "Job accepted" });
       // Q997: the Helpr is told the payment is held (a direct offer, accepted).
+      setPaymentHeldWho({ name: null, dateNeeded: null, jobId: app.job_id });
       window.setTimeout(() => setPaymentHeldSide("helpr"), SUCCESS_MOMENT_LIFETIME_MS + 250);
       await refresh();
       setStatusFilter("accepted");
@@ -456,6 +457,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       // Q997 (owner, 2026-10-07): the Helpr is told the payment is held. Not
       // on top of the W-9 signature a business job requires at this moment:
       // two modals at once would stack.
+      setPaymentHeldWho({ name: null, dateNeeded: null, jobId: app.job_id });
       setPaymentHeldSide("helpr");
     }
   } catch (err) {

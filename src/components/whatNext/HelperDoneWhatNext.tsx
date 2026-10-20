@@ -53,7 +53,7 @@ export function HelperDoneWhatNextHost() {
         { key: "paid", label: "You're paid", detail: "Your payout follows once it's complete", state: "later" },
         { key: "reviews", label: "You both leave reviews", detail: "It helps you get hired again", state: "later" },
       ]}
-      primary={{ label: "Got it", onClick: () => setMoment(null) }}
+      primary={{ label: "Got it", acknowledge: true }}
       secondary={{ label: "Find your next job", onClick: () => { setMoment(null); navigate("/jobs"); } }}
     />
   );

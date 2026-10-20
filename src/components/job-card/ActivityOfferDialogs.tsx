@@ -48,7 +48,7 @@ export function ActivityOfferDialogs({
         </Suspense>
       )}
       {/* Q997: "the payment is held" after an offer is sent or an accept completes. */}
-      <PaymentHeldDialog side={actions.paymentHeldSide} onClose={() => actions.setPaymentHeldSide(null)} />
+      <PaymentHeldDialog side={actions.paymentHeldSide} who={actions.paymentHeldWho} onClose={() => actions.setPaymentHeldSide(null)} />
     </>
   );
 }

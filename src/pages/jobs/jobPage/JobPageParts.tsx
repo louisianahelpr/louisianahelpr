@@ -87,9 +87,10 @@ export function PosterMoney({ job, total, loading }: { job: JobPageRow; total: n
         <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPrice(job.budget)}</p>
       </div>
       {line && <p className="mt-1.5 text-ds-13 text-muted-foreground">{line}</p>}
-      {job.status === "open" && !loading && (
+      {/* Zero applicants is the page's own "No applicants yet" block (board 57), not a line here. */}
+      {job.status === "open" && !loading && total > 0 && (
         <p data-applicant-count="" className="mt-3 border-t border-border pt-3 text-ds-14 font-semibold">
-          {total === 0 ? "No applicants yet" : `${total} applicant${total === 1 ? "" : "s"}`}
+          {`${total} applicant${total === 1 ? "" : "s"}`}
         </p>
       )}
     </div>

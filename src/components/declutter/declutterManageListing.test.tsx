@@ -4,6 +4,7 @@
  * backend proof is ~/.lh-pglite/b3b-manage-listing.mjs, PGlite 3x), and the
  * rows the server can't do yet ("Edit listing" for a live item) are not shown.
  *
+ * @mutate src/components/declutter/DeclutterManageListing.tsx |   const deployed = state.data !== "not_deployed"; |   const deployed = true;
  * @mutate src/components/declutter/DeclutterManageListing.tsx |                   onCheckedChange={(on) => drops.mutate(!on)} |                   onCheckedChange={(on) => drops.mutate(on)}
  * @mutate src/components/declutter/DeclutterManageListing.tsx |       if (relist) await relistListing(item.id); |
  * @mutate src/components/declutter/DeclutterManageListing.tsx |         if (!problem) save.mutate(undefined); |         save.mutate(undefined);
@@ -15,10 +16,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const calls: unknown[][] = [];
 const manage = { floor_price_cents: 3000, drops_stopped: false };
+let deployed = true;
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/lib/declutter/api", () => ({
-  fetchManageState: async () => manage,
+  fetchManageState: async () => (deployed ? manage : "not_deployed"),
   setListingPrice: async (...a: unknown[]) => { calls.push(["price", ...a]); return a[1]; },
   setListingDrops: async (...a: unknown[]) => { calls.push(["drops", ...a]); return a[1]; },
   pauseListing: async (...a: unknown[]) => { calls.push(["pause", ...a]); return "paused"; },
@@ -43,6 +45,7 @@ const sheet = (over: Record<string, unknown> = {}) =>
 beforeEach(() => {
   calls.length = 0;
   manage.drops_stopped = false;
+  deployed = true;
 });
 
 describe("Manage a listing (board 158)", () => {
@@ -54,6 +57,16 @@ describe("Manage a listing (board 158)", () => {
     }
     expect(screen.queryByText("Edit listing")).toBeNull();
     expect(screen.getByText("Hide it without losing it. Open offers close.")).toBeTruthy();
+  });
+
+  it("before the migration reaches prod, only taking it down is offered", async () => {
+    deployed = false;
+    sheet();
+    expect(await screen.findByText("Mark sold elsewhere")).toBeTruthy();
+    await waitFor(() => expect(screen.queryByText("Change price or lowest price")).toBeNull());
+    expect(screen.queryByText("Stop price drops")).toBeNull();
+    expect(screen.queryByText("Pause listing")).toBeNull();
+    expect(screen.getByText("Delete listing")).toBeTruthy();
   });
 
   it("the switch stops the drops (on = stopped)", async () => {

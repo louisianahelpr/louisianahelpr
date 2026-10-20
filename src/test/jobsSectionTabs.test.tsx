@@ -19,6 +19,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, renderHook, act, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { useState, type ReactNode } from "react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@/pages/home/Dashboard", () => ({
   default: ({ embeddedHeader }: { embeddedHeader?: ReactNode }) => <div data-testid="feed">{embeddedHeader}</div>,
@@ -40,6 +41,7 @@ vi.mock("@/hooks/useAgeGate", () => ({
   useAgeGate: () => ({ underAge: false, explain: () => {}, gate: (_k: string, f: () => void) => f, gatedProps: () => ({}) }),
 }));
 vi.mock("@/lib/haptics", () => ({ hapticLight: () => {}, hapticMedium: () => {} }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false, useFeatureStatus: () => ({ on: false, settled: true }) }));
 
 import JobsSection from "@/pages/jobs/JobsSection";
 import { useDetailJob } from "@/pages/home/useDetailJob";
@@ -53,11 +55,13 @@ function Where() {
 }
 const open = (url: string) =>
   render(
-    <MemoryRouter initialEntries={[url]}>
-      <Routes>
-        <Route path="/jobs" element={<><JobsSection /><Where /></>} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter initialEntries={[url]}>
+        <Routes>
+          <Route path="/jobs" element={<><JobsSection /><Where /></>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 const segments = () => within(screen.getByTestId("section-tabs")).getAllByRole("tab");
 
@@ -74,11 +78,13 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     for (const t of tabs) expect((t.textContent ?? "").trim().split(/\s+/)).toHaveLength(1);
   });
 
-  it("the section's own + is Post a job, then the bell, then the profile avatar", () => {
+  it("on a phone the bar is Explore, the bell, then the profile avatar: no + (the bottom bar's center + creates, 2026-10-20)", () => {
     open("/jobs");
     const bar = screen.getByTestId("app-top-bar");
+    expect(within(bar).getByRole("heading", { level: 1 }).textContent).toBe("Explore");
     const labels = within(bar).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
-    expect(labels).toEqual(["Post a job", "Notifications", "Profile"]);
+    expect(labels).toEqual(["Notifications", "Profile"]);
+    expect(within(screen.getByTestId("explore-switcher")).getByRole("radio", { name: "Jobs" }).getAttribute("aria-checked")).toBe("true");
   });
 
   it("tapping Posted shows the posted list; Browse brings the feed back", () => {

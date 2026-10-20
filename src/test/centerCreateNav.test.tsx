@@ -17,6 +17,8 @@
  * - Explore (HELPR-DESIGN-SPEC §3): /explore opens the section the member was
  *   last in, else their first open shown section; every section screen carries
  *   the Jobs / Declutter / Shops / Homes switcher above its own tabs.
+ * - On a phone a section's top bar reads "Explore" and has no "+" (mock-up 6;
+ *   HELPR-DESIGN-SPEC §3 "no + in the top bar"): the center "+" creates.
  * - "What are we doing?" is a MOMENT title: Bodoni via `.font-moment`, which
  *   outranks T1's upright-Montserrat `.font-display` rule.
  *
@@ -34,6 +36,7 @@
  * @mutate src/components/sections/ExploreSwitcher.tsx |   useEffect(() => writeLastSection(user?.id, current), [user?.id, current]); |
  * @mutate src/components/create/CreateSheet.tsx | <SheetHero moment title="What are we doing?" /> | <SheetHero title="What are we doing?" />
  * @mutate src/index.css | .font-moment.font-moment.font-moment { | .font-moment {
+ * @mutate src/components/sections/AppTopBar.tsx |   const phoneExplore = explore && !isWebDesktop; |   const phoneExplore = false;
  * @mutate src/components/sections/SectionScreen.tsx |           {section && <ExploreSwitcher current={section} />} |
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -265,5 +268,17 @@ describe("Bodoni for moments", () => {
     const m = css.match(/\.font-moment\.font-moment\.font-moment \{([^}]*)\}/);
     expect(m?.[1]).toMatch(/"Bodoni Moda"[^;]*!important/);
     expect(css).toMatch(/\.font-display:not\(\.landing-h1, \.landing-h1 \*\) \{/);
+  });
+});
+
+describe("a section's phone top bar (mock-up 6)", () => {
+  it("reads Explore and carries no +; the bell and avatar stay", async () => {
+    vi.doMock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+    const { AppTopBar } = await import("@/components/sections/AppTopBar");
+    renderAt(<AppTopBar title="Declutter" add={{ label: "Sell an item", path: "/declutter/sell" }} explore />, "/declutter");
+    const bar = screen.getByTestId("app-top-bar");
+    expect(bar.querySelector("h1")?.textContent).toBe("Explore");
+    expect(bar.querySelector('[data-testid="section-add"]')).toBeNull();
+    expect(bar.querySelector('[data-testid="top-bar-profile"]')).toBeTruthy();
   });
 });

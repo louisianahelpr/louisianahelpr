@@ -30,7 +30,8 @@ function JobsHeaderBones() {
       <div className="app-top-bar flex items-center justify-between gap-2 h-16">
         <Skeleton className="h-8 w-[4.5rem] rounded-ds-md" />
         <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
-          <Skeleton className="w-10 h-10 rounded-full" />
+          {/* The section "+" bone: desktop only, like the "+" itself (phones create from the bottom bar's center "+"). */}
+          <Skeleton className="top-bar-add-bone w-10 h-10 rounded-full" />
           <span className="h-11 w-11 flex items-center justify-center">
             <Skeleton className="h-6 w-6 rounded-full" />
           </span>

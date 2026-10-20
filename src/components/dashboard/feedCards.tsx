@@ -33,11 +33,14 @@ export function JobFeedCard({
   job,
   index,
   recommended,
+  hero,
   common,
 }: {
   job: EnrichedJob;
   index: number;
   recommended?: boolean;
+  /** Board 6: the feed's first card, drawn big with its picture band. */
+  hero?: boolean;
   common: JobCardCommonProps;
 }) {
   return (
@@ -46,6 +49,7 @@ export function JobFeedCard({
       effectiveFee={common.effectiveFee}
       currentUserId={common.currentUserId}
       recommended={recommended}
+      hero={hero}
       onApply={common.onApply}
       onReport={common.onReport}
       onSelect={common.onSelect}

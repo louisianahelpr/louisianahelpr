@@ -22,6 +22,7 @@ import {
   answerQuestion,
   askQuestion,
   fetchItem,
+  fetchItemDropState,
   fetchMyItemReview,
   fetchPhotos,
   fetchQuestions,
@@ -46,6 +47,9 @@ import PriceHint from "./DeclutterPriceHint";
 import { DeclutterGallery } from "./DeclutterGallery";
 import { DeclutterSellerCard } from "./DeclutterSellerCard";
 import { DeclutterItemRows } from "./DeclutterItemRows";
+import { DeclutterBundleRow } from "./DeclutterBundleRow";
+import { PriceDropBanner } from "./DeclutterPriceDrop";
+import { nextPriceDrop } from "@/lib/declutter/priceDrop";
 import { shareNative } from "@/lib/nativeShare";
 import { getPublicOrigin } from "@/lib/authRedirects";
 
@@ -130,6 +134,12 @@ export default function ItemView({ itemId }: { itemId: string }) {
     enabled: !!user,
   });
   const isSeller = !!user && item.data?.seller_id === user.id;
+  // A failed read hides the drop line (nothing is promised); the item itself still shows.
+  const dropState = useQuery({
+    queryKey: ["declutter", "item-drop", itemId],
+    queryFn: () => fetchItemDropState(itemId),
+    enabled: validId && item.data?.status === "live",
+  });
   const review = useQuery({
     queryKey: ["declutter", "my-review", itemId],
     queryFn: () => fetchMyItemReview(itemId),
@@ -163,6 +173,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const canAct = !isSeller && (it.status === "live" || it.status === "reserved");
 
   const dropped = it.current_price_cents < it.price_cents;
+  // Board 4: the next drop only from the real rule (priceDrop.ts), never a promise the server may not keep.
+  const drop = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null;
   const urls = (photos.data ?? []).map((p) => photoPublicUrl(p.storage_path));
 
   return (
@@ -202,19 +214,24 @@ export default function ItemView({ itemId }: { itemId: string }) {
         </div>
 
         <div className="mt-4 lg:mt-0 min-w-0 space-y-5">
-          <section aria-label="Price and condition" className="space-y-1.5">
-            <p data-item-price="" className="text-3xl font-bold leading-tight tabular-nums">
-              {formatPrice(it.current_price_cents)}
-              {dropped && (
-                <span className="ml-2 text-base font-medium text-muted-foreground">
-                  <span className="sr-only">Price dropped, was </span>
-                  <s aria-hidden>{formatPrice(it.price_cents)}</s>
-                </span>
-              )}
+          <section aria-label="Price and condition" className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p data-item-price="" className="min-w-0 text-[34px] font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">
+                {formatPrice(it.current_price_cents)}
+                {dropped && (
+                  <span className="ml-2 text-lg font-medium text-muted-foreground">
+                    <span className="sr-only">Price dropped, was </span>
+                    <s aria-hidden>{formatPrice(it.price_cents)}</s>
+                  </span>
+                )}
+              </p>
+              <ConditionChip stars={it.condition_stars} />
+            </div>
+            {drop && <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} />}
+            <h2 className="pt-1 text-[22px] font-bold leading-snug [overflow-wrap:anywhere]">{it.title}</h2>
+            <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
+              {[it.area_label, away, it.porch_ok !== false ? "Porch pickup" : null].filter(Boolean).join(" · ")}
             </p>
-            <ConditionChip stars={it.condition_stars} />
-            <h2 className="pt-1 text-lg font-semibold leading-snug [overflow-wrap:anywhere]">{it.title}</h2>
-            {dropped && <p className="text-xs text-muted-foreground">The price can drop again in the evening.</p>}
           </section>
 
           {isSeller && (
@@ -225,6 +242,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
           )}
 
           {!isSeller && <DeclutterSellerCard sellerId={it.seller_id} />}
+
+          {canAct && <DeclutterBundleRow item={it} viewerId={user?.id ?? null} />}
 
           {/* Buy now and Make an offer sit right under the price and seller (owner, 2026-10-19). */}
           {canAct && user && <OfferPanel item={it} userId={user.id} />}

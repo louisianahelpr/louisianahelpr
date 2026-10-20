@@ -145,7 +145,7 @@ describe("Declutter slice 3 screens", () => {
 
   it("no saved card: Buy now and Make an offer still show; Buy asks for a card first and remembers where to come back (row 36)", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
-    const buy = await screen.findByRole("button", { name: "Buy now · $42.70" });
+    const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total with fee" });
     expect(screen.getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
     // The reassurance is a line under the buttons, not a box in their place.
     expect(screen.getByText("You're only charged when you buy.")).toBeInTheDocument();
@@ -178,7 +178,7 @@ describe("Declutter slice 3 screens", () => {
   it("back from saving a card in the app (the sheet closes): Buy goes straight to its confirm", async () => {
     state.returnWithCard = { brand: "visa", last4: "4242" };
     show(<OfferPanel item={ITEM} userId="u1" />);
-    const buy = await screen.findByRole("button", { name: "Buy now · $42.70" });
+    const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total with fee" });
     await waitFor(() => expect(buy).toBeEnabled());
     fireEvent.click(buy);
     fireEvent.click(await screen.findByRole("button", { name: "Add a card" }));
@@ -199,7 +199,7 @@ describe("Declutter slice 3 screens", () => {
   it("a link with ?after_card=buy does nothing by itself: only the router state resumes", async () => {
     state.card = { brand: "visa", last4: "4242" };
     show(<OfferPanel item={ITEM} userId="u1" />, "/declutter/item/i1?after_card=buy");
-    await waitFor(() => expect(screen.getByRole("button", { name: "Buy now · $42.70" })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Buy now · $42.70 total with fee" })).toBeEnabled());
     expect(window.confirm).not.toHaveBeenCalled();
     expect(screen.queryByLabelText("Your offer")).toBeNull();
   });
@@ -241,7 +241,7 @@ describe("Declutter slice 3 screens", () => {
   it("with a card: Buy at the price and an offer of at least half (rows 57-58)", async () => {
     state.card = { brand: "visa", last4: "4242" };
     show(<OfferPanel item={ITEM} userId="u1" />);
-    expect(await screen.findByRole("button", { name: "Buy now · $42.70" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Buy now · $42.70 total with fee" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("button", { name: "Make an offer" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Make an offer" }));
     const input = screen.getByLabelText("Your offer");

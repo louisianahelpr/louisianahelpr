@@ -24,6 +24,10 @@
  * @mutate src/components/declutter/DeclutterItemRows.tsx | (rows ?? []).filter((r) => r.seller_id !== viewerId) | (rows ?? [])
  * @mutate src/components/declutter/DeclutterItemRows.tsx |       {moreRows.length > 0 && <Row |       {<Row
  * @mutate src/components/declutter/DeclutterItemView.tsx |       {!isSeller && (\n        <div className="mt-8"> |       {(\n        <div className="mt-8">
+ * @mutate src/components/declutter/DeclutterItemView.tsx |             {drop && <PriceDropBanner | {false && <PriceDropBanner
+ * @mutate src/components/declutter/DeclutterItemView.tsx |   const drop = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null; |   const drop = { at: new Date(), lowestCents: it.current_price_cents - 200 };
+ * @mutate src/components/declutter/DeclutterBundleRow.tsx | (r) => r.status === "live" && r.seller_id !== viewerId | (r) => r.seller_id !== viewerId
+ * @mutate src/components/declutter/DeclutterBundleRow.tsx |   if (buyable.length === 0 \|\| card.isLoading) return null; |   if (card.isLoading) return null;
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -39,6 +43,7 @@ const state = {
   more: [] as unknown[],
   similar: [] as unknown[],
   tableRows: [] as unknown[],
+  drop: null as unknown,
 };
 const calls: [string, unknown[]][] = [];
 // A PostgREST builder that records each call and resolves to state.tableRows.
@@ -89,6 +94,7 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchSellerItems: async () => state.more,
     fetchSimilarItems: async () => state.similar,
     fetchItem: async () => state.item,
+    fetchItemDropState: async () => state.drop,
     fetchPhotos: async () => state.photos,
     fetchQuestions: async () => [],
     fetchWatching: async () => new Set(),
@@ -143,6 +149,7 @@ describe("the photo-first Declutter item page", () => {
     shared.length = 0;
     state.more = [];
     state.similar = [];
+    state.drop = null;
     calls.length = 0;
   });
   afterEach(() => {
@@ -238,13 +245,13 @@ describe("the photo-first Declutter item page", () => {
       },
     );
     open();
-    await screen.findAllByRole("button", { name: "Buy now · $42.70" });
+    await screen.findAllByRole("button", { name: "Buy now · $42.70 total with fee" });
     const bar = document.body.querySelector("[data-declutter-buybar]") as HTMLElement;
     expect(bar).not.toBeNull();
     expect(bar.className).toContain("bottom-0");
     // The dock yields the strip to the bar (fixedBottomBarsClearTheDock, Q1646).
     expect(document.documentElement.classList.contains("dock-yield")).toBe(true);
-    expect(within(bar).getByRole("button", { name: "Buy now · $42.70" })).toBeInTheDocument();
+    expect(within(bar).getByRole("button", { name: "Buy now · $42.70 total with fee" })).toBeInTheDocument();
     expect(within(bar).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
   });
   it("More from this seller and Similar items: rows of the Browse card, never the member's own items, an empty row left out", async () => {
@@ -304,5 +311,42 @@ describe("the photo-first Declutter item page", () => {
     const { default: RealAppPage } = await vi.importActual<typeof import("@/components/AppPage")>("@/components/AppPage");
     render(<MemoryRouter><RealAppPage title="Real page title" phoneHidesTitle><p>body</p></RealAppPage></MemoryRouter>);
     expect(screen.getByRole("heading", { name: "Real page title" }).className).toMatch(/(^|\s)max-sm:sr-only(\s|$)/);
+  });
+  // Board 4 (2026-10-20): the price-drop line only from the real nightly rule
+  // (src/lib/declutter/priceDrop.ts), and only "could ... as low as": the
+  // seller's stop is private, so the page never promises a drop.
+  it("board 4: an offers listing shows when it could next drop and how low; a fixed-price one shows nothing", async () => {
+    state.item = { ...ITEM, current_price_cents: 3800, live_at: "2026-10-01T12:00:00Z" };
+    state.drop = { sale_mode: "offers", last_price_drop_on: null };
+    const first = open();
+    const banner = await screen.findByText(/Could drop to \$36\.10 (this evening|tomorrow) at \d{1,2}:07 PM/);
+    expect(banner.closest("[data-price-drop]")).not.toBeNull();
+    expect(screen.queryByText(/Drops to/)).toBeNull();
+    first.unmount();
+    state.drop = { sale_mode: "fixed", last_price_drop_on: null };
+    open();
+    await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+    expect(document.querySelector("[data-price-drop]")).toBeNull();
+  });
+
+  // Board 4: "N more from <first name>. One pickup, one fee." is true because
+  // declutter_start_checkout groups every cart line from one seller into one
+  // order and charges declutter_buyer_fee_cents once. Only items that can still
+  // be bought (live) count; none, no row.
+  it("board 4: the bundle row counts the seller's other LIVE items by first name; only reserved ones, no row", async () => {
+    state.more = [
+      { ...ITEM, id: "a1", title: "Side table", status: "live" },
+      { ...ITEM, id: "a2", title: "Lamp", status: "live" },
+      { ...ITEM, id: "a3", title: "Rug", status: "reserved" },
+    ];
+    const first = open();
+    const row = await screen.findByRole("button", { name: /2 more from Dana\. One pickup, one fee\./ });
+    expect(row).toHaveAttribute("data-bundle-row");
+    first.unmount();
+    state.more = [{ ...ITEM, id: "a3", title: "Rug", status: "reserved" }];
+    open();
+    await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+    await screen.findByText("More from this seller");
+    expect(document.querySelector("[data-bundle-row]")).toBeNull();
   });
 });

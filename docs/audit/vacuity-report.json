@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-21T11:27:31.994Z",
-  "guards": 2241,
-  "registered": 2240,
+  "generated": "2026-10-21T12:17:01.978Z",
+  "guards": 2245,
+  "registered": 2244,
   "unregistered": [
     "src/lib/savedSearches.test.ts"
   ],
@@ -12,6 +12,7 @@
     "src/test/analyticsCountsReadRealEvents.test.ts",
     "src/test/identityGatesPostAndStart.test.ts",
     "src/test/identityVerifiedAtKeepsFirstDate.test.ts",
+    "src/test/leadResubscribeUndoesOnlyTheLink.test.ts",
     "src/test/moneyOwedBlocksAccountDeletion.test.ts",
     "src/test/paidTierBadgeNeedsMemberships.test.ts"
   ],

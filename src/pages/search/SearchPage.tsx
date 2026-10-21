@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Search, X } from "lucide-react";
+import { Search, X, type LucideIcon } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -12,6 +12,11 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { formatPrice } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
 import { SEARCH_PARAM } from "@/components/landing/heroSearch";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
+import { firstPhotos } from "@/components/declutter/DeclutterItemCard";
+import { categoryIcon } from "@/lib/declutter/categoryIcons";
+import { fetchPhotos, photoPublicUrl } from "@/lib/declutter/api";
+import { getCategoryIcon } from "@/lib/categoryIcons";
 import { likePattern, type SearchSection } from "./searchQuery";
 
 /**
@@ -30,8 +35,8 @@ const PER_SECTION = 3;
 /** A chip (or "See all") shows up to this many; beyond it, Jobs opens Browse. */
 const MAX_ROWS = 20;
 
-type JobHit = { id: string; title: string; budget: number | null; pricing_mode: string | null; parish: string | null; date_needed: string | null };
-type ItemHit = { id: string; title: string; current_price_cents: number | null; price_cents: number | null; area_label: string | null };
+type JobHit = { id: string; title: string; category: string | null; budget: number | null; pricing_mode: string | null; parish: string | null; date_needed: string | null };
+type ItemHit = { id: string; title: string; category: string | null; cover?: string | null; current_price_cents: number | null; price_cents: number | null; area_label: string | null };
 
 function useJobHits(q: string, userId: string | null) {
   return useQuery({
@@ -46,7 +51,7 @@ function useJobHits(q: string, userId: string | null) {
       const blocked = [...(await getBlockedUserIds(userId!))];
       let query = supabase
         .from("open_jobs_browse")
-        .select("id,title,budget,pricing_mode,parish,date_needed", { count: "exact" })
+        .select("id,title,category,budget,pricing_mode,parish,date_needed", { count: "exact" })
         .ilike("title", likePattern(q));
       if (blocked.length) query = query.not("customer_id", "in", `(${blocked.join(",")})`);
       const res = await query
@@ -65,17 +70,30 @@ function useItemHits(q: string, on: boolean) {
     queryFn: async () => {
       const res = await supabase
         .from("declutter_items")
-        .select("id,title,current_price_cents,price_cents,area_label", { count: "exact" })
+        .select("id,title,category,current_price_cents,price_cents,area_label", { count: "exact" })
         .in("status", ["live", "reserved"])
         .ilike("title", likePattern(q))
         .order("live_at", { ascending: false })
         .limit(MAX_ROWS);
-      return { rows: (unwrap(res) ?? []) as ItemHit[], count: res.count ?? 0 };
+      const rows = (unwrap(res) ?? []) as ItemHit[];
+      // Declutter is photo-first: each row leads with its cover photo, read
+      // the way Browse's cards read it (first photo by position).
+      const cover = firstPhotos(await fetchPhotos(rows.map((r) => r.id)));
+      return { rows: rows.map((r) => ({ ...r, cover: cover.get(r.id) ?? null })), count: res.count ?? 0 };
     },
   });
 }
 
-function Row({ to, title, sub, price }: { to: string; title: string; sub?: string | null; price?: string | null }) {
+/** The 44px square that leads every row: an item's cover photo, a job's category icon. */
+function Thumb({ photo, icon, seed }: { photo?: string | null; icon: LucideIcon; seed: string | null }) {
+  return (
+    <span className="shrink-0 w-11 h-11 rounded-xl overflow-hidden bg-photo-empty" aria-hidden>
+      {photo ? <img src={photoPublicUrl(photo)} alt="" loading="lazy" className="w-full h-full object-cover" /> : <PhotoPlaceholder icon={icon} seed={seed} className="w-full h-full" />}
+    </span>
+  );
+}
+
+function Row({ to, title, sub, price, thumb }: { to: string; title: string; sub?: string | null; price?: string | null; thumb?: React.ReactNode }) {
   return (
     <Link
       to={to}
@@ -83,6 +101,7 @@ function Row({ to, title, sub, price }: { to: string; title: string; sub?: strin
       title={sub ? `${title} · ${sub}` : title}
       className="flex items-center gap-3 px-4 py-3 min-h-[56px] border-b border-border last:border-b-0 ctl-tint"
     >
+      {thumb}
       <span className="flex-1 min-w-0">
         <span className="block font-sans font-semibold text-ds-14 leading-snug truncate" style={{ color: "hsl(var(--ink-deep))" }}>{title}</span>
         {sub && <span className="block font-sans text-ds-12 text-muted-foreground truncate">{sub}</span>}
@@ -217,7 +236,7 @@ export default function SearchPage() {
             {items.data!.rows.slice(0, section === "all" ? PER_SECTION : MAX_ROWS).map((it) => {
               const cents = it.current_price_cents ?? it.price_cents;
               return (
-                <Row key={it.id} to={`/declutter/item/${it.id}`} title={it.title} sub={it.area_label} price={typeof cents === "number" ? `$${formatPrice(cents / 100)}` : null} />
+                <Row key={it.id} to={`/declutter/item/${it.id}`} title={it.title} sub={it.area_label} thumb={<Thumb photo={it.cover} icon={categoryIcon(it.category)} seed={it.category} />} price={typeof cents === "number" ? `$${formatPrice(cents / 100)}` : null} />
               );
             })}
           </Group>
@@ -230,6 +249,7 @@ export default function SearchPage() {
                 key={j.id}
                 to={`/jobs/${j.id}`}
                 title={j.title}
+                thumb={<Thumb icon={getCategoryIcon(j.category)} seed={j.category} />}
                 sub={[j.parish ? `${j.parish} Parish` : null, j.date_needed ? formatJobDate(j.date_needed) : null].filter(Boolean).join(" · ") || null}
                 price={j.pricing_mode === "quote" ? "Quote" : typeof j.budget === "number" && j.budget > 0 ? `$${formatPrice(j.budget)}` : null}
               />

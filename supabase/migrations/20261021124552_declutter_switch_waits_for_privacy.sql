@@ -12,6 +12,8 @@
 -- through by itself the moment the narrowing is live; nothing has to be undone. 'off' and 'testers' are never refused.
 -- The admin screen shows the message as is (under 280 characters, plain words: userFacingError).
 --
+-- has_any_column_privilege for the two offer tables, so a later column-list grant (buyer_id among them) also counts;
+-- the trigger also fires on a key change, so renaming an open row to 'declutter' is checked too (re-review, 2026-10-21).
 -- The trigger function is not SECURITY DEFINER and is not callable by clients (REVOKE from PUBLIC, anon,
 -- authenticated): it runs only as the trigger. Replay-safe: CREATE OR REPLACE, DROP TRIGGER IF EXISTS.
 
@@ -23,8 +25,8 @@ AS $fn$
 BEGIN
   IF NEW.key IN ('declutter', 'declutter_wanted')
      AND NEW.audience = 'everyone'
-     AND (has_table_privilege('authenticated', 'public.declutter_offers', 'SELECT')
-          OR has_table_privilege('authenticated', 'public.declutter_offer_events', 'SELECT')
+     AND (has_any_column_privilege('authenticated', 'public.declutter_offers', 'SELECT')
+          OR has_any_column_privilege('authenticated', 'public.declutter_offer_events', 'SELECT')
           OR has_column_privilege('authenticated', 'public.declutter_questions', 'asker_id', 'SELECT')) THEN
     RAISE EXCEPTION 'Declutter cannot open to everyone yet: members can still see who made an offer or asked a question. It can open once the next app update is live.'
       USING ERRCODE = '55000',
@@ -38,5 +40,5 @@ REVOKE ALL ON FUNCTION public.feature_switches_declutter_waits_for_privacy() FRO
 
 DROP TRIGGER IF EXISTS feature_switches_declutter_waits_for_privacy ON public.feature_switches;
 CREATE TRIGGER feature_switches_declutter_waits_for_privacy
-  BEFORE INSERT OR UPDATE OF audience ON public.feature_switches
+  BEFORE INSERT OR UPDATE OF audience, key ON public.feature_switches
   FOR EACH ROW EXECUTE FUNCTION public.feature_switches_declutter_waits_for_privacy();

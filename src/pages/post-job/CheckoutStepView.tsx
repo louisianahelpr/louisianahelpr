@@ -23,11 +23,11 @@ interface CheckoutStepViewProps {
 export function CheckoutStepView({ form }: CheckoutStepViewProps) {
   return (
     <div key="checkout-step" className="space-y-section">
-      {/* Screen 5 of 5 (board 46). The card is charged when the job posts
+      {/* Screen 7 of 7 (board 46). The card is charged when the job posts
           (create-payment, automatic capture; design-b handoff), so this
           screen says pay, never "nothing is charged now". */}
       <PostJobStepHeader
-        step={5}
+        screen="review"
         question="Look good?"
         helper={
           // A post a gift card covers in full charges $0: no "pay" line then.

@@ -103,7 +103,7 @@ export async function fillLogistics(page: Page, slot: Slot, allowReport: (messag
   await page.keyboard.press("Escape");
   allowReport(/ZIP 99999 resolved to no Louisiana parish/, "deliberate: keeps parish null so no real helper is notified");
   await page.getByRole("textbox", { name: "ZIP code" }).fill("99999");
-  await pickCalendarDay(page, slot.isoDay, { inline: /Date Needed/ });
+  await pickCalendarDay(page, slot.isoDay, { inline: /Date needed/i });
   await pickStartTime(page, slot);
   const review = page.getByRole("button", { name: /Review, then pay/ });
   await expect(review, "the submit button never became Review, then pay").toBeEnabled({ timeout: 20_000 });

@@ -3,7 +3,7 @@
  * the presence dot and its label wear the spec's olive, the status chip is
  * sentence case at a readable size, and the composer placeholder fits at 375.
  *
- * @mutate src/components/messages/ConversationRow.tsx |                         background: "hsl(var(--bark))", |                         background: "hsl(var(--live))",
+ * @mutate src/components/messages/ConversationRow.tsx | olive presence dot.\n                        background: "hsl(var(--bark))", | olive presence dot.\n                        background: "hsl(var(--live))",
  * @mutate src/components/messages/ConversationRow.tsx | className="text-ds-11 font-sans font-semibold px-1.5 py-0.5 rounded-full shrink-0" | className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
  * @mutate src/components/RichMessageInput.tsx |               : "Message" |               : "Type a message…"
  */

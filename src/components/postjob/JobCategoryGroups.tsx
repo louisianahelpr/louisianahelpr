@@ -1,22 +1,11 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { Car, House, Leaf, MessageCircle, PartyPopper, PawPrint, Search, Truck, Wrench, type LucideIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Search } from "lucide-react";
 import { SuggestCategory } from "@/components/SuggestCategory";
-import { CategoryIcon } from "@/components/job/CategoryIcon";
+import { GROUP_EMOJI, categoryEmoji } from "@/lib/categoryEmoji";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
 import { JOB_CATEGORY_GROUPS, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
 
-/** One Lucide glyph per group, from the app's own set (src/lib/categoryIcons.ts uses the same family). */
-const GROUP_ICONS: Record<JobCategoryGroupId, LucideIcon> = {
-  home: House,
-  yard: Leaf,
-  moving_errands: Truck,
-  auto: Car,
-  pets: PawPrint,
-  events: PartyPopper,
-  trades: Wrench,
-  other: MessageCircle,
-};
 
 /**
  * Words people type that name the job, not the category ("e.g. wash my driveway", the box's own
@@ -27,6 +16,9 @@ const SEARCH_HINTS: [RegExp, JobCategory[]][] = [
   [/\b(?:lawn|mow|weeds?|leaves|hedges?)\b/, ["yard_work"]],
   [/\b(?:furniture|boxes|haul)\b/, ["moving", "declutter_help"]],
 ];
+
+/** Shorter tile labels where the group name wraps to three lines at 375 (lead 2026-10-21; the mock-up's own wording). */
+const TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" };
 
 interface Props {
   category: string;
@@ -75,7 +67,7 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
     onPicked();
   };
 
-  const tile = (key: string, icon: ReactNode, label: string, onClick: () => void, opts: { pressed?: boolean; sub?: string } = {}) => (
+  const tile = (key: string, icon: string, label: string, onClick: () => void, opts: { pressed?: boolean; sub?: string } = {}) => (
     <button
       key={key}
       type="button"
@@ -83,9 +75,9 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
       onClick={onClick}
       // A picked category (coming back to this screen) wears an olive OUTLINE, never a fill (board 166):
       // nothing on these screens is filled olive, the tap is the choice.
-      className={`flex min-h-[72px] items-center gap-3 rounded-2xl bg-card px-3.5 py-3 text-left font-sans text-foreground transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${opts.pressed ? "border-2 !border-primary" : "border border-border"}`}
+      className={`flex min-h-[72px] items-center gap-2.5 rounded-2xl bg-card px-3 py-3 text-left font-sans text-foreground transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${opts.pressed ? "border-2 !border-primary" : "border border-border"}`}
     >
-      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]" aria-hidden>
+      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-ds-20 leading-none" aria-hidden>
         {icon}
       </span>
       <span className="min-w-0 flex-1 leading-tight break-normal hyphens-none">
@@ -95,7 +87,7 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
     </button>
   );
   const categoryTile = (it: { value: string; label: string }) =>
-    tile(it.value, <CategoryIcon category={it.value} className="h-5 w-5" aria-hidden />, it.label, () => pick(it.value), { pressed: category === it.value });
+    tile(it.value, categoryEmoji(it.value), it.label, () => pick(it.value), { pressed: category === it.value });
 
   const open = group ? JOB_CATEGORY_GROUPS.find((g) => g.id === group) : null;
   if (open) {
@@ -137,12 +129,11 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
 
       <section aria-label="Category groups" className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
         {JOB_CATEGORY_GROUPS.map((g) => {
-          const Icon = GROUP_ICONS[g.id];
           const holdsPick = g.items.some((it) => it.value === category);
           return tile(
             g.id,
-            <Icon className="h-5 w-5" />,
-            g.label,
+            GROUP_EMOJI[g.id],
+            TILE_LABEL[g.id] ?? g.label,
             () => (g.items.length === 1 ? pick(g.items[0].value) : setGroup(g.id)),
             { pressed: holdsPick, sub: g.items.length > 1 ? groupSample(g.items) : undefined },
           );

@@ -132,7 +132,7 @@ describe("a successful password change leaves visible evidence", () => {
 
   it("offers a control so nobody has to wait out the timer", async () => {
     await submitNewPassword();
-    fireEvent.click(await screen.findByRole("button", { name: /Go to dashboard/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /Go home/i }));
     expect(navigateMock).toHaveBeenCalledWith("/home", { replace: true });
   });
 

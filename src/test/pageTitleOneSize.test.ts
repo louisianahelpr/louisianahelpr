@@ -38,7 +38,6 @@ const EXEMPT: Record<string, string> = {
   // LOCKED landing hero (CLAUDE.md): font, colour and copy are off-limits.
   "src/components/landing/HeroSection.tsx": "locked landing hero",
   // The decorative "404" numeral, not a page title.
-  "src/pages/info/NotFound.tsx": "decorative 404 numeral",
 };
 
 const TITLE_SIZE = /\b(text-page-title|text-headline-hero|sr-only)\b/;

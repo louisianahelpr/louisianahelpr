@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Check, X, Circle, Eye, EyeOff } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
+import { AuthCardHead } from "@/components/auth/AuthCardHead";
 import { signOutOtherDevices } from "@/lib/authSignOut";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -228,61 +229,41 @@ const ResetPassword = () => {
   // keeps the ambient brand wash that used to ride on `desktopBrandPanel`.
   // Dropping the brand pane also removes the second, pinned top-left chevron it
   // rendered at lg+ beside the title row's own — the same stacked-arrow defect
-  // /forgot-password showed. Tab title ("Set New Password — Helpr") already
-  // matches this h1.
+  // /forgot-password showed.
   return (
-    <AuthShell hideHeader centerColumn maxWidth="sm" backTo="/login" title="Set New Password" noWebChrome>
-      {/* Heading + emblem removed. The heading is now AuthShell's `title` row
-          (left of the chevron, ds-24) like every other auth screen — this one
-          rendered it centred at clamp(1.85rem,3vw+0.5rem,2.5rem), a third
-          distinct auth title size alongside Login's ds-24 and
-          ForgotPassword/SignupPending's clamp(1.6rem…2.1rem). The mobile
-          emblem went with it for the reason Login dropped its own: it stacked
-          a third band of vertical space above a heading that was already above
-          the card. */}
-      {/* No subhead — "Set a new password for your account." restated the
-          title immediately above it. The card below carries the state-specific
-          explanation, which is the only line that adds information. */}
-      {/* Same card rhythm as Login / Signup / ForgotPassword
-          (p-5 sm:p-6 lg:p-10). It was p-6 sm:p-8 — a fourth padding scale on
-          the one card component all four auth screens share. */}
-      <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
+    // Spec v2 rebuild (audit 2026-10-21): /login's centered card — H mark and
+    // one sentence-case heading inside the card, no Title Case [back] [title]
+    // row above it. The way back is the "Back to log in" link at the foot.
+    <AuthShell hideHeader hideBack centerColumn maxWidth="sm" noWebChrome>
+      {/* role="status" on the whole card once done, so the announcement
+          carries the heading ("Password updated.") as well as the detail. */}
+      <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6" role={done ? "status" : undefined} aria-live={done ? "polite" : undefined}>
+        <AuthCardHead testId="reset-card-head" title={done ? "Password updated." : "Set a new password"} />
         {done ? (
           /* role="status" + aria-live: a screen-reader user gets the same
              evidence a sighted one does. Without it the panel is silent
              exactly the way the old no-op was. */
-          <div className="text-center space-y-4" role="status" aria-live="polite">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
-              style={{ background: "hsl(var(--primary) / 0.12)" }}
-            >
-              <Check className="w-7 h-7" style={{ color: "hsl(var(--primary))" }} strokeWidth={2} />
-            </div>
-            {/* h2, not h1 — AuthShell's `title` row is already the page h1
-                ("Set New Password"), same as ForgotPassword's confirmation. */}
-            <h2 className="text-page-title leading-tight text-balance">
-              Password updated.
-            </h2>
+          <div className="text-center space-y-4">
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Your new password is active. You&rsquo;re still signed in on this device
-              &mdash; taking you to your dashboard.
+              &mdash; taking you home.
             </p>
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {othersSignedOut
                 ? "Anywhere else you were signed in will ask for the new password next time."
-                : "We couldn\u2019t sign out your other devices. Use \u201cSign Out Everywhere\u201d on your profile\u2019s Security tab."}
+                : "We couldn\u2019t sign out your other devices. Use \u201cSign out everywhere\u201d on your profile\u2019s Security tab."}
             </p>
             <Button
               variant="primary"
               type="button"
               size="lg"
-              className="w-full rounded-ds-md"
+              className="w-full rounded-full"
               onClick={() => {
                 if (redirectTidRef.current !== null) window.clearTimeout(redirectTidRef.current);
                 navigate("/home", { replace: true });
               }}
             >
-              Go to dashboard
+              Go home
             </Button>
           </div>
         ) : !ready && verifying ? (
@@ -303,7 +284,7 @@ const ResetPassword = () => {
                 the space-y-4 margin, so the link sat flush against the
                 paragraph above it (0px, Q179). Guard:
                 src/test/noButtonInsideLink.test.ts. */}
-            <Button asChild variant="outline" className="w-full rounded-ds-md">
+            <Button asChild variant="outline" className="w-full rounded-full">
               <Link to="/forgot-password">
                 {linkError ? "Request a new reset link" : "Request a reset link"}
               </Link>
@@ -454,13 +435,20 @@ const ResetPassword = () => {
             <Button
               variant="primary"
               type="submit"
-              className="w-full rounded-ds-md"
+              className="w-full rounded-full"
               size="lg"
               disabled={loading}
             >
               {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Updating…</> : "Update password"}
             </Button>
           </form>
+        )}
+        {!done && (
+          <p className="text-center text-ds-13 text-muted-foreground">
+            <Link to="/login" className="font-bold" style={{ color: "hsl(var(--bark))" }}>
+              Back to log in
+            </Link>
+          </p>
         )}
       </div>
     </AuthShell>

@@ -23,7 +23,7 @@ import { fetchShop, setShopFollow, setShopPaused, shopPhotoUrl } from "@/lib/sho
 import { shareShop } from "@/lib/shops/publicShop";
 import { saveShopFlyer } from "@/lib/shops/shopFlyer";
 import { shopsErrorMessage } from "@/lib/shops/errors";
-import { categoryLabel, ShopsNotice, useShopCategories } from "./shopsUi";
+import { categoryLabel, ShopsNotice, ShopUnavailable, useShopCategories } from "./shopsUi";
 import { ShopCard, ShopGallery, ShopHero, ShopHoursCard } from "./ShopProfile";
 import ShopFaqs from "./ShopFaqs";
 import ShopPolicies from "./ShopPolicies";
@@ -66,9 +66,7 @@ export default function ShopView() {
   if (shop.isError || !shop.data) {
     return (
       <AppPage title="Shop" backTo="/shops">
-        <ShopsNotice title="This shop isn't available." tone="warn">
-          <p>{shop.isError ? shopsErrorMessage(shop.error) : "It may have closed."}</p>
-        </ShopsNotice>
+        <ShopUnavailable body={shop.isError ? shopsErrorMessage(shop.error) : "It may have closed."} />
       </AppPage>
     );
   }

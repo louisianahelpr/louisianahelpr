@@ -136,7 +136,7 @@ describe("PaymentSuccess", () => {
     it("tells the user what to do next and gives a way out", async () => {
       renderAt();
       await screen.findByText(/we couldn't confirm your payment/i);
-      expect(screen.getByRole("button", { name: /open my posts/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /see your posted jobs/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /contact support/i })).toBeInTheDocument();
       expect(screen.getByText(/don't pay again/i)).toBeInTheDocument();
@@ -192,7 +192,7 @@ describe("PaymentSuccess", () => {
       expect(screen.getByText(/don't have a reference for this payment/i)).toBeInTheDocument();
       // Nothing to re-check, so no dead Try again button.
       expect(screen.queryByRole("button", { name: /try again/i })).toBeNull();
-      expect(screen.getByRole("button", { name: /open my posts/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /see your posted jobs/i })).toBeInTheDocument();
     });
   });
 
@@ -229,9 +229,9 @@ describe("PaymentSuccess", () => {
       expect(screen.queryByRole("button", { name: /view applicants/i })).toBeNull();
       expect(screen.queryByRole("button", { name: /^share job$/i })).toBeNull();
       expect(screen.queryByRole("button", { name: /post another/i })).toBeNull();
-      expect(screen.queryByRole("button", { name: /open my posts/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /see your posted jobs/i })).toBeNull();
       // …and a way back.
-      expect(screen.getByRole("button", { name: /back to dashboard/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /go home/i })).toBeInTheDocument();
     });
 
     it("treats a job with no poster left (anonymised) as not the viewer's", async () => {

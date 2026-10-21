@@ -9,10 +9,8 @@ import { Button } from "@/components/ui/button";
 import {
   Share2,
   RotateCcw,
-  Users as UsersIcon,
   AlertTriangle,
   Loader2,
-  LifeBuoy,
 } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { hapticSuccess, hapticLight } from "@/lib/haptics";
@@ -379,10 +377,9 @@ const PaymentSuccess = () => {
         void hapticLight();
         navigate("/support");
       }}
-      className="w-full rounded-ds-md"
+      className="w-full rounded-full"
       style={{ color: "hsl(var(--bark))" }}
     >
-      <LifeBuoy className="w-4 h-4 mr-2" />
       Contact support
     </Button>
   );
@@ -409,9 +406,11 @@ const PaymentSuccess = () => {
               aria-hidden="true"
             />
           ) : (
+            // Olive, not rust (spec v2 §1.1: rust is money only). The words say
+            // what went wrong; the mark only says "look here".
             <AlertTriangle
               className="w-11 h-11"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
+              style={{ color: "hsl(var(--bark))" }}
               strokeWidth={1.75}
               aria-hidden="true"
             />
@@ -446,7 +445,7 @@ const PaymentSuccess = () => {
               alreadyReleased ? (
                 escrowAmount != null ? (
                   <>
-                    <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                    <span className="font-semibold" style={{ color: "hsl(var(--accent-ink))" }}>
                       ${formatPriceExact(escrowAmount)}
                     </span>{" "}
                     was paid and has already been released to your Helpr.
@@ -456,7 +455,7 @@ const PaymentSuccess = () => {
                 )
               ) : escrowAmount != null ? (
                 <>
-                  <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                  <span className="font-semibold" style={{ color: "hsl(var(--accent-ink))" }}>
                     ${formatPriceExact(escrowAmount)}
                   </span>{" "}
                   is held securely — released when you confirm the work is done.
@@ -469,7 +468,7 @@ const PaymentSuccess = () => {
             ) : confirmState === "not_held" ? (
               <>
                 This job isn't funded, so no money is being held for it. You can start payment
-                again from My Posts, or contact support if you think this is wrong.
+                again from your posted jobs, or contact support if you think this is wrong.
               </>
             ) : confirmState === "not_yours" ? (
               <>
@@ -506,9 +505,8 @@ const PaymentSuccess = () => {
                 variant="primary"
                 size="lg"
                 onClick={handleViewApplicants}
-                className="w-full rounded-ds-md"
+                className="w-full rounded-full"
               >
-                <UsersIcon className="w-4 h-4 mr-2" />
                 {/* Q1788: applicants only matter while the job is still open. */}
                 {lifecycleStep === 0 ? "View applicants" : "View job"}
               </Button>
@@ -525,7 +523,7 @@ const PaymentSuccess = () => {
                   variant="outline"
                   onClick={handleShareJob}
                   disabled={sharing || !resolvedJobId}
-                  className="w-full rounded-ds-md"
+                  className="w-full rounded-full"
                 >
                   <Share2 className="w-4 h-4 mr-1" /> Share job
                 </Button>
@@ -533,7 +531,7 @@ const PaymentSuccess = () => {
                   type="button"
                   variant="outline"
                   onClick={handlePostAnother}
-                  className="w-full rounded-ds-md"
+                  className="w-full rounded-full"
                 >
                   <RotateCcw className="w-4 h-4 mr-1" /> Post another
                 </Button>
@@ -549,10 +547,9 @@ const PaymentSuccess = () => {
                 variant="primary"
                 size="lg"
                 onClick={handleViewApplicants}
-                className="w-full rounded-ds-md"
+                className="w-full rounded-full"
               >
-                <UsersIcon className="w-4 h-4 mr-2" />
-                Open my posts
+                See your posted jobs
               </Button>
               {resolvedJobId && (
                 <Button
@@ -560,7 +557,7 @@ const PaymentSuccess = () => {
                   variant="outline"
                   onClick={handleRetryConfirm}
                   disabled={confirmState === "checking"}
-                  className="w-full rounded-ds-md"
+                  className="w-full rounded-full"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
                   {confirmState === "checking" ? "Checking…" : "Try again"}
@@ -585,10 +582,10 @@ const PaymentSuccess = () => {
               }
               navigate("/home");
             }}
-            className="w-full rounded-ds-md"
+            className="w-full rounded-full"
             style={{ color: "hsl(var(--bark))" }}
           >
-            Back to dashboard
+            Go home
           </Button>
         </div>
 

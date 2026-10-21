@@ -61,7 +61,7 @@ export default function TipMoment() {
     },
   });
 
-  if (q.isLoading) return <AppPage title="Tip" backTo="/home"><div className="flex justify-center py-16"><HelprSpinner /></div></AppPage>;
+  if (q.isPending) return <AppPage title="Tip" backTo="/home"><div className="flex justify-center py-16"><HelprSpinner /></div></AppPage>;
   if (q.isError) {
     return <AppPage title="Tip" backTo="/home"><ErrorState title="We couldn't load this tip." onRetry={() => void q.refetch()} /></AppPage>;
   }
@@ -78,10 +78,12 @@ export default function TipMoment() {
   // The job's take-home: paid (a transfer row) or the take-home the money function computes, floored as every payout figure is.
   // Estimated only for a job done and awaiting payout, never refunded, cancelled or disputed (money review).
   const estimable = !!job && job.status === "completed" && job.payment_status === "payout_pending" && !job.disputed_at;
+  // A budget splits across helpers_needed only on a group job.
+  const crew = job?.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const jobCents = paidCents ?? (estimable && job
     ? Math.floor(computeNet(
         Number(job.budget), helperFeePercentOrLegacy(job.helper_fee_percent), Number(job.urgent_fee ?? 0),
-        job.is_group_job && job.helpers_needed ? job.helpers_needed : 1,
+        crew,
         job.status === "disputed" ? 0 : firstPayoutFee,
         { helper_fee_flat_cents: job.helper_fee_flat_cents, helper_fee_percent: job.helper_fee_percent },
       ).netEarnings) * 100

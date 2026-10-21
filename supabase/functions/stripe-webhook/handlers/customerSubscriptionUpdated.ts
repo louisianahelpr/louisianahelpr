@@ -6,6 +6,9 @@ import { resolveSubscriptionUserId } from "./_resolveUser.ts";
 import { subscriptionCurrentPeriodEndISO } from "../../_shared/stripeSubscriptionPeriod.ts";
 import { CLEARED_SUBSCRIPTION_LINKAGE, subscriptionLinkage } from "../../_shared/subscriptionLinkage.ts";
 
+/** Statuses where access ends but Stripe may still charge the card. */
+const STILL_BILLING_STATUSES: string[] = ["past_due", "unpaid"];
+
 export async function handleCustomerSubscriptionUpdated(
   event: Stripe.Event,
   ctx: WebhookContext,
@@ -140,9 +143,13 @@ export async function handleCustomerSubscriptionUpdated(
         subscription_tier: null,
         subscription_expires_at: null,
         // Clear what described the subscription, keep stripe_customer_id — see
-        // CLEARED_SUBSCRIPTION_LINKAGE. Leaving a subscription id behind on a
-        // tier-less row is drift the reconciler would then have to report.
+        // CLEARED_SUBSCRIPTION_LINKAGE. EXCEPT on past_due / unpaid: Stripe is
+        // still retrying (or holds an open invoice), so the member may still be
+        // billed and must keep a way to manage or cancel (lead 2026-10-21). The
+        // kept id is what mayStillBeBilled shows the Membership row on;
+        // customerSubscriptionDeleted clears it when Stripe finally cancels.
         ...CLEARED_SUBSCRIPTION_LINKAGE,
+        ...(STILL_BILLING_STATUSES.includes(subscription.status) ? { stripe_subscription_id: subscription.id } : {}),
       })
       .eq("user_id", userId)
       .select("user_id");

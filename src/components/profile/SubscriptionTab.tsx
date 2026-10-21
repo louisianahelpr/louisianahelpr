@@ -17,6 +17,7 @@ import { ONE_TIME_PASS_DAYS } from "@/lib/subscriptionTiers";
 import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierConfig";
 import { BILLING_OPTIONS, BILLING_PILL_STYLE } from "@/components/profile/subscriptionTab/billingPill";
 import { MembershipFeeNote, MembershipLegalLinks, MembershipsUnavailable } from "@/components/profile/subscriptionTab/MembershipFootnotes";
+import { MembershipStillBilled } from "@/components/profile/subscriptionTab/MembershipStillBilled";
 import { renewalLabel } from "@/lib/subscriptionRenewalLabel";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { openAppleSubscriptions } from "@/lib/appleSubscriptions";
@@ -321,8 +322,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
       </div>
       </div>
 
-      {/* Manage row used to live here — now consolidated into the active
-          tier's own card footer below. */}
+      <MembershipStillBilled profile={profile} onManage={handleManageSubscription} loading={loadingPortal} />
 
       {/* The one-time pass explainer banner that lived here was removed at the
           owner's direction (2026-08-27). "Once" still needs a duration or it

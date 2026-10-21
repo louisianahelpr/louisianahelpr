@@ -1,5 +1,5 @@
 import { ID_VERIFIED_LABEL } from "@/components/profile/IdVerifiedPill";
-import { holdsPaidPlan } from "@/lib/subscriptionTiers";
+import { holdsPaidPlan, mayStillBeBilled } from "@/lib/subscriptionTiers";
 import {
   ShieldAlert, UserPlus, TrendingUp, Crown, Gavel, HelpCircle,
   AlertTriangle, Bug, Gift,
@@ -76,8 +76,10 @@ export function useProfileLandingDerived({
   // Every paid rung names the NEXT rung, not a favourite one. This used to
   // skip Plus entirely, so a Plus member read "Free — tap to upgrade" on the
   // row describing the $15/mo plan they were paying for.
-  const subscriptionDesc =
-    tier === "elite"
+  // Shown only while mayStillBeBilled: a plan that ended on our side says so.
+  const subscriptionDesc = !holdsPaidPlan(profile?.subscription_tier, profile?.subscription_expires_at)
+    ? "Plan ended · manage billing"
+    : tier === "elite"
       ? `${TIER_PERKS.elite.name} — top visibility`
       : tier === "plus"
         ? `${TIER_PERKS.plus.name} — upgrade to ${TIER_PERKS.elite.name}`
@@ -122,9 +124,10 @@ export function useProfileLandingDerived({
           desc: "Wallet, analytics, payout setup & tax exports",
           tint: SECTION_TINT.money,
         },
-        // Owner 2026-10-21 (#23): only a member who HOLDS a plan sees the row
-        // (to manage it); nobody else is offered one. The store app never shows memberships.
-        ...((holdsPaidPlan(profile?.subscription_tier, profile?.subscription_expires_at) && !MEMBERSHIPS_HIDDEN_IN_THIS_APP)
+        // Owner 2026-10-21 (#23): only a member who holds a plan, or may still be
+        // billed for one (lead: always able to manage or cancel), sees the row;
+        // nobody else is offered one. The store app never shows memberships.
+        ...((mayStillBeBilled(profile) && !MEMBERSHIPS_HIDDEN_IN_THIS_APP)
           ? [{ key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: SECTION_TINT.money }]
           : []),
         { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: SECTION_TINT.money },

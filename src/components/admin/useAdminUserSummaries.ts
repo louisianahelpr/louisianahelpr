@@ -143,7 +143,7 @@ export function useAdminUserSummaries() {
       // What Stripe really sent each Helpr (admins read every transfer).
       supabase.from("payout_transfers").select("helper_id, amount_cents, job_id").in("helper_id", userIds).eq("status", "paid"),
       // Crew members: a crew job has no single helper_id (Q407); its roster names them.
-      supabase.from("group_job_helpers").select("helper_id, job_id, share_cents, jobs(budget, helpers_needed, payment_status, stripe_payment_intent_id)").in("helper_id", userIds),
+      supabase.from("group_job_helpers").select("helper_id, job_id, share_cents, jobs(budget, helpers_needed, is_group_job, payment_status, stripe_payment_intent_id)").in("helper_id", userIds),
     ]);
     const failed = error ?? giftCardPaid.error ?? transfers.error ?? crew.error;
     if (failed || !data) {
@@ -173,14 +173,15 @@ export function useAdminUserSummaries() {
         of(j.customer_id).chargedCents += Math.round(posterPaidDollars(j) * 100);
       }
     }
-    for (const g of (crew.data ?? []) as { helper_id: string | null; job_id: string; share_cents: number | null; jobs: { budget: number | null; helpers_needed: number | null; payment_status: string | null; stripe_payment_intent_id: string | null } | null }[]) {
+    for (const g of (crew.data ?? []) as { helper_id: string | null; job_id: string; share_cents: number | null; jobs: { budget: number | null; helpers_needed: number | null; is_group_job: boolean | null; payment_status: string | null; stripe_payment_intent_id: string | null } | null }[]) {
       const j = g.jobs;
       if (!g.helper_id || !j || paidJobs.has(`${g.job_id}:${g.helper_id}`)) continue;
-      if (!["escrow", "payout_pending", "released"].includes(j.payment_status ?? "") || !(j.stripe_payment_intent_id || giftCardPaid.ids.has(g.job_id))) continue;
+      if (!isCapturedPayment({ ...j, gift_card_paid: giftCardPaid.ids.has(g.job_id) })) continue;
       // The share frozen in cents at hire is what the payout cron pays; the
       // even split is only for rosters from before share_cents existed.
+      const crewSize = j.is_group_job && j.helpers_needed && j.helpers_needed > 0 ? j.helpers_needed : 1;
       of(g.helper_id).heldCents += g.share_cents != null ? Number(g.share_cents)
-        : Math.round(((Number(j.budget) || 0) / (j.helpers_needed && j.helpers_needed > 0 ? j.helpers_needed : 1)) * 100);
+        : Math.round(((Number(j.budget) || 0) / crewSize) * 100);
     }
     const totals: Record<string, number> = {};
     for (const [id, m] of Object.entries(money)) totals[id] = (m.paidOutCents + m.chargedCents) / 100;

@@ -121,6 +121,7 @@ export type JobActionTone =
   | "boost"
   | "edit"
   | "danger"
+  | "quietDanger"
   | "primary"
   | "approve"
   | "neutral"
@@ -187,6 +188,14 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
         background: "hsl(var(--destructive) / 0.11)",
         color: "hsl(var(--danger-ink))",
         border: "0.5px solid hsl(var(--destructive) / 0.32)",
+      };
+    case "quietDanger":
+      // A destructive move that is NOT the card's point (spec v2, audit #48: the Applied card's Withdraw):
+      // no pink fill, the danger ink on a hairline outline, so it reads as an exit, never as a next step.
+      return {
+        background: "transparent",
+        color: "hsl(var(--danger-ink))",
+        border: "0.5px solid hsl(var(--border))",
       };
     case "neutral":
       // The quiet tone — the SUPPORTING actions, the ones that neither decide

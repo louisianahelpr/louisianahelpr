@@ -56,6 +56,9 @@
  * one changed nothing it rendered. That is the mutation doing its job: a case
  * per section now exists, and each has a mutation that reaches it.
  *
+ * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   if (s.isPending) return { label: "View application", onClick: s.manage, tone: "secondary" }; |
+ * @mutate src/pages/jobs/AppliedJobCard.tsx |                   tone="quietDanger" |                   tone="danger"
+ * @mutate src/pages/jobs/AppliedJobCard.tsx |                   label="Edit application" |                   label="Edit"
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isConfirmed && isExpanded && ( | {isConfirmed && (
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isActive && isExpanded && ( | {isActive && (
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isDisputed && isExpanded && ( | {isDisputed && (
@@ -287,6 +290,21 @@ describe("Jobs: a collapsed card hides the tracker and the action row", () => {
     expect(screen.getByText(/^Seen /), "the Seen chip is information, not an action").toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Withdraw/i }), "Withdraw is a control").toBeNull();
     expect(screen.queryByRole("button", { name: /Edit your application/i })).toBeNull();
+    // Audit #48: the face's one button names what the card holds, the application, never "Manage job".
+    expect(screen.getByRole("button", { name: "View application" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
+  });
+
+  it("expanded + pending (audit #48, spec v2): Edit application is quiet and Withdraw is the quiet destructive outline", () => {
+    const app = makeApp({ status: "pending" }, { status: "open", helper_id: null, helper_confirmed_at: null });
+    renderApplied(app, true);
+    const edit = screen.getByRole("button", { name: /Edit your application/ });
+    const withdraw = screen.getByRole("button", { name: /Withdraw application/ });
+    expect(edit.textContent).toContain("Edit application");
+    // No yellow Edit, no pink-filled Withdraw: Edit wears the neutral tint, Withdraw has no fill and the danger ink.
+    expect(edit.getAttribute("style") ?? "").toContain("--olivewood");
+    expect(withdraw.getAttribute("style") ?? "").toMatch(/background: transparent/);
+    expect(withdraw.getAttribute("style") ?? "").toContain("--danger-ink");
   });
 });
 

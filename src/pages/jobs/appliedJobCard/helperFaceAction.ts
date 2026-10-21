@@ -36,12 +36,15 @@ export function helperFaceNextStep(
  *  - A live job with a next tracker step (helperFaceNextStep): that step, as the one
  *    filled button. It opens the card and asks the tracker to press the same step
  *    (helperStepRequest.ts), so the tracker's gates and Done's confirmation still apply.
+ *  - Applied, waiting on the poster: "View application" (audit #48), which opens the application in place.
  *  - Everything else: "Manage job", which opens the card's live tracker and
  *    its step row (On my way, photos, Start working, Mark done, More) in place.
  */
 export function helperFaceAction(s: {
   isMinimalCard: boolean;
   isOffered: boolean;
+  /** Applied and waiting (audit #48): the face says what the card holds, the application. */
+  isPending?: boolean;
   owesReview: boolean;
   review: () => void;
   manage: () => void;
@@ -52,6 +55,7 @@ export function helperFaceAction(s: {
   if (s.isMinimalCard || s.isOffered) return null;
   if (s.owesReview)
     return { label: "Leave a review", onClick: s.review, tone: "primary" };
+  if (s.isPending) return { label: "View application", onClick: s.manage, tone: "secondary" };
   const step = s.step;
   if (step) return { label: step.label, onClick: () => { requestHelperStep(step.jobId, step.key); (s.open ?? s.manage)(); }, tone: "primary" };
   return { label: "Manage job", onClick: s.manage, tone: "secondary" };

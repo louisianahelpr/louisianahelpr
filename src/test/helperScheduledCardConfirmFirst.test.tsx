@@ -11,7 +11,9 @@
  * three moves the owner named.
  *
  * @mutate src/components/job-card/JobStepCard.tsx | const isMoreOnly = (_c: ReactNode) => true; | const isMoreOnly = (_c: ReactNode) => false;
- * @mutate src/components/JobConfirmation.tsx | Confirm you'll be at the job | I'm still on
+ * @mutate src/components/JobConfirmation.tsx | const HELPER_CONFIRM_LABEL = "Confirm you'll be at the job"; | const HELPER_CONFIRM_LABEL = "I'm still on";
+ * @mutate src/pages/jobs/appliedJobCard/ConfirmedSection.tsx |       primaryChipKey="message" |
+ * @mutate src/components/JobConfirmation.tsx |     if (hideNotYetOpen) return null; |     if (hideNotYetOpen) return <JobStepRowSlot slot="primary"><button type="button" disabled>Confirm you'll be at the job</button></JobStepRowSlot>;
  * @mutate src/pages/jobs/appliedJobCard/ConfirmedSection.tsx | <DirectionsButton key="directions" location={job.location} />, | null,
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
@@ -99,7 +101,7 @@ function makeJob(dateNeeded: string): Job {
 
 async function renderCard(dateNeeded: string) {
   const job = makeJob(dateNeeded);
-  const app = { id: "app-1", job_id: job.id, helper_id: HELPER, status: "accepted", created_at: ago(72), job } as unknown as AppliedApp;
+  const app = { id: "app-1", job_id: job.id, helper_id: HELPER, status: "accepted", created_at: ago(72), job, posterName: "Lexi L." } as unknown as AppliedApp;
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const out = render(
     <QueryClientProvider client={client}>
@@ -133,19 +135,27 @@ async function readCard(dateNeeded: string) {
 }
 
 describe("Q1554 — the Helpr's scheduled card: Confirm first, the rest under More", () => {
-  for (const [name, days, enabled] of [
-    ["four days out (confirm greyed until the day before)", 4, false],
-    ["the day before (confirm live)", 1, true],
+  // Owner 2026-10-21 (lead ruling the same day): before the window the primary is what the stage needs,
+  // "Message <poster>", never a greyed confirm; a line says when confirming opens. Inside it, the live confirm.
+  for (const [name, days, want] of [
+    ["four days out (Message the poster; the line says when confirming opens)", 4, /^Message Lexi$/],
+    ["the day before (confirm live)", 1, /Confirm you'll be at the job/],
   ] as const) {
     it(name, async () => {
       const { primaries, primaryLabels, moreLabels, cardText } = await readCard(centralDay(days));
 
-      // The row is More + ONE primary, and that primary is the confirm.
+      // The row is More + ONE primary: the action this stage needs, always live.
       expect(primaryLabels, `row controls besides More: [${primaryLabels.join(" | ")}]`).toHaveLength(1);
-      expect(primaryLabels[0]).toMatch(/Confirm you'll be at the job/);
+      expect(primaryLabels[0]).toMatch(want);
       expect(cardText).not.toMatch(/I'm on my way/);
       const disabled = primaries[0].hasAttribute("disabled") || primaries[0].getAttribute("aria-disabled") === "true";
-      expect(disabled, enabled ? "the confirm is greyed inside the day-before window" : "the confirm is live before the day-before window").toBe(!enabled);
+      expect(disabled, "the row's primary is greyed: a disabled future step").toBe(false);
+      if (days > 1) {
+        expect(cardText).toMatch(/Confirm the day before\. Opens [A-Z][a-z]{2} 12:00 AM/);
+        expect(cardText).not.toMatch(/Confirm you'll be at the job/);
+      }
+      // Message is the primary OR a More item, never both (primaryChipKey).
+      expect(moreLabels.filter((l) => /^Message/.test(l)).length, `More: [${moreLabels.join(" | ")}]`).toBe(days > 1 ? 0 : 1);
 
       // The three moves the owner named live under More, not on the row.
       expect(moreLabels.length, "More holds fewer moves than the owner named").toBeGreaterThan(2);

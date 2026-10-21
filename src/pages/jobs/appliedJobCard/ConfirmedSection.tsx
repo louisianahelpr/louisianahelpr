@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { JobActionChip } from "@/components/job-card/JobActionRow";
+import { JobActionChip, JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import { MessageSquare, CalendarX2, CalendarClock, Clock } from "lucide-react";
@@ -109,6 +109,8 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
      section used to hand-draw the identical container, which is how its row
      would have stayed stacked while the others went to one row (owner,
      2026-09-14, VN-21). */
+  const posterFirst = (app.posterName ?? "").trim().split(/\s+/)[0] || null;
+  const messagePoster = () => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages");
   return (
     <JobStepCard
       side="helper"
@@ -125,6 +127,11 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
          than stacked above or below it. Its button ("I'm still on", then the
          tracker's "I'm on my way") is the row's primary and portals into it. */
       header={<HelperTrackerPanel app={app} job={job} userId={userId} initialTracking={initialTracking} onCantMakeIt={() => setCancelOpen(true)} hideConfirmNotYetOpen />}
+      /* NOTHING TO CONFIRM YET (owner, 2026-10-21, lead ruling the same day): before the day-before window
+         the primary is what this stage needs, talking to the poster, never a greyed "Confirm you'll be at
+         the job". The confirm claims this slot the moment the window opens (JobConfirmation). */
+      primary={<JobStepPrimaryButton icon={MessageSquare} label={posterFirst ? `Message ${posterFirst}` : "Message the poster"} onClick={messagePoster} />}
+      primaryChipKey="message"
       notice={
         <>
           {/* Every clock in one place, one format, soonest first (owner,
@@ -186,7 +193,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           label="Message"
           ariaLabel="Message the person who posted this job"
           tone="message"
-          onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}
+          onClick={messagePoster}
         />,
         ...(startPassed
           ? []

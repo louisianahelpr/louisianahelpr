@@ -200,21 +200,10 @@ export function JobConfirmation({
         </JobStepRowSlot>
       );
     }
-    const waitingPrimary = variant === "inline" && (isHelper || isOwner) ? (
-      <>
-        <JobStepRowSlot slot="note">
-          <p className="font-sans text-ds-10" data-helper-confirm-wait-note="" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            This button turns on{" "}
-            {opensAtForNote.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })}
-            , the day before the job.
-          </p>
-        </JobStepRowSlot>
-        <JobStepRowSlot slot="primary">
-          <JobStepPrimaryButton icon={CheckCircle2} label={isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"} disabled onClick={() => {}} />
-        </JobStepRowSlot>
-      </>
-    ) : null;
-    if (hideNotYetOpen) return waitingPrimary;
+    /* THE HELPR'S CARD NEVER SHOWS A GREYED CONFIRM EITHER (lead ruling 2026-10-21): the step's own primary
+       ("Message Lexi") holds the slot; the tracker line says the moment it opens ("Confirm the day before.
+       Opens Wed 12:00 AM") and the card's clock counts down to it, so nothing is added here. */
+    if (hideNotYetOpen) return null;
     // The shared helper, not midnight minus 24h: that is 23:00 or 01:00 on the two DST days.
     const opensAt = new Date(opensMs);
     const minsUntilOpen = Math.max(0, Math.round((opensAt.getTime() - now.getTime()) / 60_000));
@@ -229,7 +218,6 @@ export function JobConfirmation({
        missing is one clock and one sentence. */
     return (
       <>
-        {waitingPrimary}
         <div
           className="flex items-start gap-2 p-2 rounded-ds-sm border"
           style={{

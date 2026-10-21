@@ -141,5 +141,28 @@ for (const role of ["anon", "authenticated"]) {
   check(`${role} cannot read analytics_events_real`, denied);
 }
 
+// Q2112 (2026-10-21): DELETING an account keeps its rows' robot tag. Deletion
+// anonymises (purge_user_data, and the FK's ON DELETE SET NULL), and the
+// anonymise trigger (verbatim from 20260902035527) strips actor-valued keys;
+// the tag must survive both, because once the profile is gone the view can
+// only see the tag.
+const scrubMig = readFileSync(
+  new URL("../../../supabase/migrations/20260902035527_backfill_orphaned_user_rows_from_pre_purge_deletions.sql", import.meta.url).pathname,
+  "utf8",
+);
+const scrubFn = scrubMig.slice(scrubMig.indexOf("CREATE OR REPLACE FUNCTION public.scrub_analytics_actor_from_properties()"), scrubMig.indexOf("$fn$;", scrubMig.indexOf("scrub_analytics_actor_from_properties()")));
+const scrubTrg = scrubMig.slice(scrubMig.indexOf("DROP TRIGGER IF EXISTS trg_scrub_analytics_actor_from_properties"), scrubMig.indexOf("EXECUTE FUNCTION public.scrub_analytics_actor_from_properties();") + "EXECUTE FUNCTION public.scrub_analytics_actor_from_properties();".length);
+await db.exec(scrubFn.replaceAll("$body$", "$b$") + ";\n" + scrubTrg);
+await insertAs("authenticated", { event: "seed_then_deleted", userId: SEED, props: { actor: SEED } });
+await insertAs("authenticated", { event: "webdriver_then_deleted", userId: REAL, props: { automated: true, automation: "webdriver", actor: REAL } });
+await db.exec(`UPDATE public.analytics_events SET user_id = NULL WHERE user_id IN ('${SEED}', '${REAL}') AND event IN ('seed_then_deleted', 'webdriver_then_deleted');
+DELETE FROM public.profiles WHERE user_id = '${SEED}';`);
+const gone = await propsOf("seed_then_deleted");
+check("a deleted test account's row keeps its seed_user tag", gone?.automated === true && gone?.automation === "seed_user", JSON.stringify(gone));
+check("deletion still strips the actor id from that row", gone !== null && !("actor" in gone), JSON.stringify(gone));
+check("a deleted account's client-tagged row keeps its webdriver tag", (await reasonOf("webdriver_then_deleted")) === "webdriver");
+const leaked = (await db.query("SELECT event FROM public.analytics_events_real WHERE event IN ('seed_then_deleted', 'webdriver_then_deleted')")).rows.length;
+check("neither deleted robot row reaches analytics_events_real", leaked === 0, String(leaked));
+
 console.log(failures ? `\n${failures} FAIL` : "\nALL PASS");
 process.exit(failures ? 1 : 0);

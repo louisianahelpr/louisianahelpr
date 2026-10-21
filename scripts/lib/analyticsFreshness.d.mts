@@ -21,6 +21,8 @@ export interface FreshnessResult {
 }
 export const DEGRADED_RATIO: number;
 export const DEGRADED_MIN: number;
+/** Q2112: SQL true for a robot row (tagged automated, or from an is_seed profile); alias `e`. */
+export const ROBOT_EVENT_SQL: string;
 export const KEY_EVENTS: KeyEvent[];
 export const MISSING_MILESTONES: Record<string, string>;
 export const NOT_MONITORED: Record<string, string>;

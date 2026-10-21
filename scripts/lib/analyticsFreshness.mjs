@@ -24,8 +24,9 @@
  *               "quiet, cannot tell broken" and never alerted.
  *   unreadable  the read failed: red run.
  *
- * Test traffic is shown beside real traffic (events from is_seed profiles;
- * rows with is_seed) but never decides a verdict: seeders write rows through
+ * Test traffic is shown beside real traffic (robot events: tagged automated
+ * or from is_seed profiles, ROBOT_EVENT_SQL; rows with is_seed) but never
+ * decides a verdict: seeders write rows through
  * the API without the browser, so seed rows with no event prove nothing.
  */
 
@@ -192,6 +193,18 @@ export const NOT_MONITORED = {
 
 const lit = (s) => `'${String(s).replace(/'/g, "''")}'`;
 
+/**
+ * Q2112: a ROBOT row is one the robot tagging marked (properties.automated,
+ * migration 20261018035943) or one from a test profile; it is the exact
+ * complement of public.analytics_events_real's WHERE. The monitor counts
+ * people's events against people's actions: robot events used to fill
+ * `events`, so a real event that stopped firing still read "ok" whenever a
+ * nightly journey fired it. Inlined (not the view) because the view is
+ * service-role only and this runs as the Management API's read-only role.
+ */
+export const ROBOT_EVENT_SQL = `(coalesce(e.properties, '{}'::jsonb) -> 'automated' IS NOT DISTINCT FROM 'true'::jsonb
+    OR EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = e.user_id AND p.is_seed))`;
+
 /** One read-only statement: one row per key event. */
 export function freshnessSql(events = KEY_EVENTS) {
   return events
@@ -199,10 +212,10 @@ export function freshnessSql(events = KEY_EVENTS) {
       const since = `(now() - interval '${Math.trunc(k.windowDays)} days')`;
       const ground = k.ground ? k.ground.replaceAll("$SINCE", since) : null;
       return `SELECT ${lit(k.event)} AS event, ${Math.trunc(k.windowDays)} AS window_days,
-  (SELECT count(*) FROM public.analytics_events e WHERE e.event = ${lit(k.event)} AND e.created_at > ${since})::int AS events,
-  (SELECT count(*) FROM public.analytics_events e JOIN public.profiles p ON p.user_id = e.user_id
-    WHERE e.event = ${lit(k.event)} AND e.created_at > ${since} AND p.is_seed)::int AS test_events,
-  (SELECT max(e.created_at) FROM public.analytics_events e WHERE e.event = ${lit(k.event)}) AS last_event_at,
+  (SELECT count(*) FROM public.analytics_events e WHERE e.event = ${lit(k.event)} AND e.created_at > ${since} AND NOT ${ROBOT_EVENT_SQL})::int AS events,
+  (SELECT count(*) FROM public.analytics_events e
+    WHERE e.event = ${lit(k.event)} AND e.created_at > ${since} AND ${ROBOT_EVENT_SQL})::int AS test_events,
+  (SELECT max(e.created_at) FROM public.analytics_events e WHERE e.event = ${lit(k.event)} AND NOT ${ROBOT_EVENT_SQL}) AS last_event_at,
   ${ground ? `(SELECT g.real FROM (${ground}) g)::int` : "NULL::int"} AS real_actions,
   ${ground ? `(SELECT g.test FROM (${ground}) g)::int` : "NULL::int"} AS test_actions`;
     })
@@ -251,7 +264,7 @@ export function evaluateFreshness(rows, events = KEY_EVENTS) {
     "",
     `**${summary}**`,
     "",
-    "Real = not is_seed. Pre-launch, QUIET (no event, no real action) is expected and never alerts; BROKEN (real actions, zero events) does.",
+    "Real = not is_seed and not tagged as a robot (Q2112). Pre-launch, QUIET (no event, no real action) is expected and never alerts; BROKEN (real actions, zero events) does.",
     "",
     "| Event | Milestone | Window | Events | of which test | Real actions | Test actions | Last event | Status |",
     "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",

@@ -7,7 +7,7 @@
  * builder2b-jobs 2026-10-20), so every chip row inherits the rule.
  *
  * @mutate src/components/ui/chipClasses.ts | leading-tight break-normal hyphens-none text-left transition-transform | leading-tight break-words text-left transition-transform
- * @mutate src/components/postjob/JobCategoryGroups.tsx | font-semibold leading-tight break-normal hyphens-none transition-transform | font-semibold leading-tight break-all transition-transform
+ * @mutate src/components/postjob/JobCategoryGroups.tsx | text-foreground leading-tight break-normal hyphens-none transition-transform | text-foreground leading-tight break-all transition-transform
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

@@ -76,6 +76,9 @@ export const FEATURE_SWITCH_KEYS = [
   // category, for the job's poster. Created 'testers' by 20261021020444; get_applicant_category_counts
   // refuses without it (require_feature).
   "applicant_proof",
+  // Board 184, "Sent to N Helprs" (builder2f 2026-10-21): the new-job alerts already sent for the poster's
+  // open job. Created 'testers' by 20261021020915; get_job_match_reach refuses without it (require_feature).
+  "job_reach",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

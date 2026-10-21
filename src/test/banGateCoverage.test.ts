@@ -83,7 +83,7 @@ function scanMigrationRpcs(): { lastBody: Map<string, string>; granted: Set<stri
   const granted = new Set<string>();
   for (const f of files) {
     const sql = blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8"));
-    for (const m of sql.matchAll(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.([a-z0-9_]+)\s*\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$[^;]*/gi)) {
+    for (const m of sql.matchAll(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.([a-z0-9_]+)\s*\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$[^;]*/gi)) {
       // Whole statement: attributes sit before AS $$ or after the closing $$.
       lastBody.set(m[1], m[0]);
     }

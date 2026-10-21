@@ -9,7 +9,7 @@
  */
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Briefcase } from "lucide-react";
+import { Briefcase, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { getCategoryIcon } from "@/lib/categoryIcons";
@@ -50,6 +50,7 @@ export function MineJobFace({
   moneyCaption,
   action,
   extra,
+  onCollapse,
 }: {
   jobId: string;
   title: string;
@@ -68,6 +69,8 @@ export function MineJobFace({
   /** Under the face, above the button, OUTSIDE the link (it may hold controls):
    *  a hired Helpr's street address row (owner, 2026-09-19 en-route carve-out). */
   extra?: ReactNode;
+  /** The card is open: a small chevron beside the title shuts it (owner, 2026-10-21: no "Close" link). */
+  onCollapse?: () => void;
 }) {
   const Icon =
     category === "other" || !category ? Briefcase : getCategoryIcon(category);
@@ -77,11 +80,12 @@ export function MineJobFace({
     <div data-mine-face="" className="p-4 md:flex md:items-center md:gap-6">
       {/* From 768px the one button sits to the right of the face, not across a 1500px card. */}
       <div className="min-w-0 md:flex-1">
+        <div className="flex items-start gap-1">
         <Link
           to={`/jobs/${encodeURIComponent(jobId)}`}
           data-mine-face-open=""
           aria-label={`Open ${title}`}
-          className="flex items-start gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex min-w-0 flex-1 items-start gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span
             className="h-14 w-14 shrink-0 overflow-hidden rounded-xl"
@@ -132,6 +136,18 @@ export function MineJobFace({
             )}
           </span>
         </Link>
+        {onCollapse && (
+          <button
+            type="button"
+            data-mine-close=""
+            aria-label={`Close ${title}`}
+            onClick={onCollapse}
+            className="-mr-2 -mt-2.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ChevronUp className="h-5 w-5" aria-hidden="true" />
+          </button>
+        )}
+        </div>
         {/* Under the title column (56px thumb + 12px gap), outside the link: the
           address row holds its own press-to-map control. A tap here opens the
           job like the face does (pointer only; the link above is the keyboard
@@ -169,25 +185,19 @@ export function MineJobFace({
 
 /**
  * The top of an OPEN mine card: the full meta row (the poster's own address,
- * a hired Helpr's street address, expiry, series) and Close. Nothing may go
- * after the step row (Q1567), so the way back sits up here. A tap on the row
- * opens the job, like the face; holding the address opens the map.
+ * a hired Helpr's street address, expiry, series). Nothing may go after the
+ * step row (Q1567); the way back is the chevron beside the title (MineJobFace
+ * onCollapse). A tap on the row opens the job, like the face; holding the
+ * address opens the map.
  */
-export function MineOpenMeta({ jobId, meta, onClose }: { jobId: string; meta: ReactNode; onClose: () => void }) {
+export function MineOpenMeta({ jobId, meta }: { jobId: string; meta: ReactNode }) {
   const navigate = useNavigate();
+  if (!meta) return null;
   return (
-    <div className="flex items-start gap-2 px-4 pb-1" data-mine-expanded-meta="">
-      <div className="min-w-0 flex-1" onClick={() => navigate(`/jobs/${encodeURIComponent(jobId)}`)}>
+    <div className="px-4 pb-1" data-mine-expanded-meta="">
+      <div className="min-w-0" onClick={() => navigate(`/jobs/${encodeURIComponent(jobId)}`)}>
         {meta}
       </div>
-      <button
-        type="button"
-        data-mine-close=""
-        onClick={onClose}
-        className="-my-2 min-h-11 shrink-0 px-2 text-ds-14 font-semibold text-primary"
-      >
-        Close
-      </button>
     </div>
   );
 }

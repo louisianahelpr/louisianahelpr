@@ -56,6 +56,13 @@ export function useJobMediaUpload() {
     setScopeVideoFile(null);
     setScopeVideoPreviewUrl(null);
   };
+  /** Every photo and the scope video gone: a template starts a new job (owner, 2026-10-21). */
+  const clearMedia = () => {
+    setImageFiles([]);
+    setImagePreviews([]);
+    setUploadProgressByIndex({});
+    clearVideo();
+  };
   // Per-image progress 0..1 keyed by current index in `imageFiles`.
   // Combined view of compression progress (selection time) and upload
   // progress (submit time) — only one phase runs at any given moment.
@@ -291,6 +298,7 @@ export function useJobMediaUpload() {
     scopeVideoPreviewUrl,
     handleVideoSelect,
     clearVideo,
+    clearMedia,
     handleImageSelect,
     addPrefillImages,
     removeImage,

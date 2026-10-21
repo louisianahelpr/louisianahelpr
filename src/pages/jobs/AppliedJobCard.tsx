@@ -365,9 +365,9 @@ function AppliedJobCardInner({
                 <HelperCollapsedStrip variant="line" app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} />
               ) : null
             }
-            action={isExpanded ? null : faceAction}
+            action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(app.job_id) : undefined}
           />
-          {isExpanded && <MineOpenMeta jobId={job.id} meta={addressOnFace ? null : metaRow} onClose={() => toggleExpandedJobId(app.job_id)} />}
+          {isExpanded && <MineOpenMeta jobId={job.id} meta={addressOnFace ? null : metaRow} />}
 
           {/* ONE TRACKER IN THE APP (owner: "remove this tracker globally,
               there should only be the other live tracker").

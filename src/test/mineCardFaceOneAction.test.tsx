@@ -181,11 +181,11 @@ describe("the Posted card face (board 14)", () => {
     expect(h.toggle).toHaveBeenCalledWith("job-1");
   });
 
-  it("open: the face drops its button (the step row carries the action) and offers Close", () => {
+  it("open: the face drops its button (the step row carries the action) and offers the chevron by the title", () => {
     const h = renderCard(base, { expanded: true });
     expect(faceButtons()).toHaveLength(0);
     expect(screen.getByTestId("step-row")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Close / }));
     expect(h.toggle).toHaveBeenCalledWith("job-1");
   });
 });

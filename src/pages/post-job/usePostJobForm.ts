@@ -247,6 +247,7 @@ export function usePostJobForm() {
     scopeVideoPreviewUrl,
     handleVideoSelect,
     clearVideo,
+    clearMedia,
     handleImageSelect,
     addPrefillImages,
     removeImage,
@@ -400,6 +401,16 @@ export function usePostJobForm() {
     setCredentialTier,
     setIncludeMaterials,
     setMaterialsNote,
+    // A template starts a NEW job: the state useJobEntry does not own goes too (owner, 2026-10-21).
+    resetOtherFields: () => {
+      clearMedia();
+      setSelectedPetIds([]);
+      setRecurrenceDays([]);
+      setRecurrenceWeeks(4);
+      setSeriesSplitOk(false);
+      setPhotoProofTouched(false);
+      setCustomUrgentFee(false);
+    },
   });
 
   // Review-gate + pre-submit checks + job-insert/payment flow. Extracted

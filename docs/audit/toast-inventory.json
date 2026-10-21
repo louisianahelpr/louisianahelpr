@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 920,
+    "calls": 921,
     "files": 235,
-    "rendering": 796,
+    "rendering": 797,
     "suppressedByPolicy": 124,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 64,
-      "toast.error": 664,
+      "toast.error": 665,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 430,
       "template": 99,
-      "dynamic": 440,
+      "dynamic": 441,
       "jsx": 0
     }
   },
@@ -93,7 +93,17 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 261,
+      "line": 266,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"poster_cancel_job\", error) ?? \"The cancellation fee changed. Check the new amount and confirm again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/CancellationDialog.tsx",
+      "line": 323,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -103,7 +113,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 263,
+      "line": 325,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -113,7 +123,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 308,
+      "line": 370,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -304,7 +314,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 322,
+      "line": 384,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

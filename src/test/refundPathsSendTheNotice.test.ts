@@ -27,7 +27,7 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   if (!isOnboardingFeeCorrection && ordinaryRefunds.length > 0) { |   if (!isOnboardingFeeCorrection && isFullRefund && ordinaryRefunds.length > 0) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |       const result = await sendRefundNotice(supabase, { |       const result = await Promise.resolve({ status: "sent", error: "", emailed: false }); void ({
  * @mutate supabase/functions/stripe-webhook/index.ts |   "charge.refunded": handleChargeRefunded, |   "charge.refunded_off": handleChargeRefunded,
- * @mutate supabase/functions/void-cancelled-payments/index.ts |             await tellPosterMoneyBack(job, pi, { key: `release:${pi.id}`, kind: "release", amountCents: Number(pi.amount ?? 0), keptCents: 0, keptReason: null }); |             void tellPosterMoneyBack;
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |             await tellPosterMoneyBack(job, pi, { key: `release:${pi.id}`, kind: "release", amountCents: holdSplit.backCents, keptCents: 0, keptReason: null }); |             void tellPosterMoneyBack;
  * @mutate supabase/functions/void-cancelled-payments/index.ts |       const result = await sendRefundNotice(supabaseAdmin, {\n        key: n.key, |       const result = await Promise.resolve({ status: "sent", error: "" }); void ({\n        key: n.key,
  */
 import { describe, it, expect } from "vitest";

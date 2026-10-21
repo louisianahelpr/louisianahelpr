@@ -13911,7 +13911,7 @@ export type Database = {
         Returns: string[]
       }
       poster_cancel_job: {
-        Args: { p_job_id: string; p_reason?: string }
+        Args: { p_expected_fee_cents?: number; p_job_id: string; p_reason?: string }
         Returns: Json
       }
       poster_crew_block_fee_cents: {

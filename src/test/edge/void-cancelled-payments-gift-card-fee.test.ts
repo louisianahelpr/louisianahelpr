@@ -23,8 +23,8 @@
  * (its donation was reversed, or it was already given back) on a single-Helpr
  * job, the fee is capped at what the card covered and the job settles.
  *
- * @mutate supabase/functions/void-cancelled-payments/index.ts | if (feeCents > holdCents) { | if (false) {
- * @mutate supabase/functions/void-cancelled-payments/index.ts | const captureCents = Math.min(feeCents, holdCents); | const captureCents = feeCents;
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | if (holdSplit.feesExceedHold) { | if (false) {
+ * @mutate supabase/functions/_shared/posterCancelSplit.ts | const captureCents = feesCents > 0 ? Math.min(feesCents, holdCents) : 0; | const captureCents = feesCents;
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (cardShortCents > 0 && !feesFitCard) { | if (false) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (cardShortCents > 0 && !feesFitCard) { | if (cardShortCents > 0) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | blockFeeCents - (capturedCents - Math.max(0, chargeRefundedCents)))) | blockFeeCents - capturedCents))

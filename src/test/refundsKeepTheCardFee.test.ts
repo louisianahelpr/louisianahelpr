@@ -124,7 +124,7 @@ import { effectiveDefs, migrationFiles, parseDefs } from "./helpers/effectiveFun
 
 const ROOT = process.cwd();
 const FN = join(ROOT, "supabase/functions");
-const HELPERS = ["refundToPayerCents(", "crewFeeShareReturnCents(", "refundLessStripeFeeCents("];
+const HELPERS = ["refundToPayerCents(", "crewFeeShareReturnCents(", "refundLessStripeFeeCents(", "posterCancelSplit("];
 const OWN_MISTAKE_MARK = "own-mistake full refund (owner, 2026-10-14)";
 
 type Kind = "keeps-fee" | "own-mistake" | "both" | "pass-through" | "sql-policy" | "helpr-fault";
@@ -705,10 +705,13 @@ const AMOUNT_DEFS: Record<string, string[]> = {
   "cancel-refund-": [
     "refundAmount",
     "refundAmount = voidSplit.refundCents > 0 || refundedAtStripe ? voidSplit.refundCents : capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents - voidSplit.taxKeptCents",
-    "voidSplit = refundToPayerCents({ capturedCents, actualFeeCents: sellerFault ? 0 : actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: fullSeriesRefund || sellerFault ? 0 : serviceFeeCents, setupFeeCents: setupFeeKeptCents(job), otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents, alreadyRefundedCents: chargeRefundedCents, taxCents: await chargeTaxCentsFor(stripe, pi), })",
+    // Boards 66/172 slice 2: through posterCancelSplit, the split the poster's cancel quote shows (its own
+    // refundToPayerCents call is pinned in "posterCancelSplit keeps the card fee" below).
+    "voidSplit = capturedSplit.split",
     "capturedCents = pi.amount_received ?? pi.amount",
     "blockFeeCents = crewBlockFeeCents(blockFeeRows)",
     "nonRefundableCents = voidSplit.nonRefundableCents",
+    "capturedSplit = posterCancelSplit({ job, sellerFault, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents, charge: { state: \"captured\", capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), alreadyRefundedCents: chargeRefundedCents, taxCents: await chargeTaxCentsFor(stripe, pi), }, })",
   ],
   "createRefundOnce#0": [
     "owedCents",
@@ -1226,6 +1229,17 @@ describe("every refund keeps the card fee, except our own mistakes (owner, 2026-
     expect(stale.map((e) => `${e.file} ${e.key}`), "stale REFUND_SITES entry: remove it").toEqual([]);
     // 5 since slice 5: the Helpr delivery fee given back on its own (owner row 40).
     expect(REFUND_SITES.filter((e) => e.kind === "own-mistake").length).toBe(5);
+  });
+
+  // Boards 66/172 slice 2: posterCancelSplit (the sweep's refund and the poster's quote) is a HELPER above only
+  // because its captured split IS refundToPayerCents, keeping the card fee and the poster's kept fee.
+  // @mutate supabase/functions/_shared/posterCancelSplit.ts |     customerFeeCents: fullSeriesRefund \|\| i.sellerFault ? 0 : serviceFeeCents, |     customerFeeCents: 0,
+  it("posterCancelSplit keeps the card fee through refundToPayerCents", () => {
+    const src = blankComments(readFileSync(join(FN, "_shared/posterCancelSplit.ts"), "utf8")).replace(/\s+/g, " ");
+    expect(src).toMatch(/from "\.\/refundAmount\.ts"/);
+    expect(src).toContain("const split = refundToPayerCents({ capturedCents: c.capturedCents, actualFeeCents: i.sellerFault ? 0 : c.actualFeeCents, customerFeeCents: fullSeriesRefund || i.sellerFault ? 0 : serviceFeeCents, setupFeeCents: setupFeeKeptCents(i.job), otherKeptCents: feesCents, alreadyRefundedCents: c.alreadyRefundedCents, taxCents: c.taxCents, });");
+    expect(src).toContain("const serviceFeeCents = posterCancelKeptFeeCents(i.job);");
+    expect(src).toContain("backCents: split.refundCents,");
   });
 
   it("each refund either keeps the card fee through the shared helper or is a named own-mistake full refund", () => {

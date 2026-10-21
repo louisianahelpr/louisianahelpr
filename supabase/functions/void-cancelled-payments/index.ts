@@ -12,6 +12,7 @@ import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
 import { chargeTaxCentsFor, posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { posterCancelSplit } from "../_shared/posterCancelSplit.ts";
 import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
@@ -2256,6 +2257,16 @@ serve(async (req) => {
           // Q2000: lowered to what the card covered when the gift cannot pay.
           let cancellationFee = jobCancellationFee;
           const blockCents = crewBlockFeeCents(blockFeeRows);
+          // Q1806: never more than the hold (amount_capturable).
+          const holdCents = Math.max(0, Math.round(Number(pi.amount_capturable ?? pi.amount ?? 0)));
+          // Boards 66/172 slice 2: THE split the poster's cancel dialog was
+          // quoted from (create-payment cancel_quote, "Back to you"), so the
+          // quote and what this hold releases cannot disagree.
+          const holdSplit = posterCancelSplit({
+            job, sellerFault, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents: blockCents,
+            charge: { state: "hold", amountCents: Number(pi.amount ?? 0), capturableCents: holdCents },
+          });
+          if (holdSplit.state !== "hold") throw new Error("posterCancelSplit answered a hold with a captured split");
           if (cancellationFee > 0 || blockCents > 0) {
             // Capture ONLY the fee — Stripe auto-releases the uncaptured
             // remainder (budget + customer fee) back to the poster. Charging
@@ -2269,14 +2280,13 @@ serve(async (req) => {
             // the gift pays the rest. Checked before any money moves with a
             // conservative fee estimate (a Klarna/Affirm hold costs ~6%), then
             // priced from the charge's real fee after the capture.
-            const holdCents = Math.max(0, Math.round(Number(pi.amount_capturable ?? pi.amount ?? 0)));
-            const captureCents = Math.min(feeCents, holdCents);
+            const captureCents = holdSplit.captureCents;
             let holdGift: { cents: number; uncollectable?: true } | null = null;
             /** Q2000: the gift can never pay its part; the fee is capped at the card below. */
             let holdGiftGone = false;
             /** Review of 8354ebb0e #2: what an earlier restore kept of the gift, still paying its part. */
             let holdGiftKeptOnlyCents = 0;
-            if (feeCents > holdCents) {
+            if (holdSplit.feesExceedHold) {
               const estFeeCents = Math.max(stripeProcessingCostCents(holdCents), Math.round(holdCents * 0.0599) + 30);
               holdGift = await giftCoversShortfall(cardNonRefundableCents(holdCents, estFeeCents) + feeCents - holdCents, "fee capture", true);
               if (!holdGift) continue;
@@ -2324,9 +2334,9 @@ serve(async (req) => {
             if (settledFee) refunded++;
             // Q1806: a hold captured whole sends nothing back to the card; the
             // gift notice says what the gift paid.
-            if (!((holdGift || holdGiftGone) && Number(pi.amount ?? 0) - captureCents <= 0)) await tellPosterMoneyBack(job, pi, {
+            if (!((holdGift || holdGiftGone) && holdSplit.backCents <= 0)) await tellPosterMoneyBack(job, pi, {
               key: `release:${pi.id}`, kind: "release",
-              amountCents: Math.max(0, Number(pi.amount ?? 0) - captureCents), keptCents: captureCents,
+              amountCents: holdSplit.backCents, keptCents: captureCents,
               keptReason: keptParts.join(" and ") || null,
             });
             results.push({ job_id: job.id, title: job.title, status: settledFee ? "fee_captured" : "fee_captured_not_settled", cancellation_fee: cancellationFee });
@@ -2336,7 +2346,7 @@ serve(async (req) => {
             await stripe.paymentIntents.cancel(paymentIntentId);
             const settledVoid = await settleCancelledJob(job, { payment_status: "cancelled" }, "PI cancel");
             // Q1714: the whole hold went back; tell the poster.
-            await tellPosterMoneyBack(job, pi, { key: `release:${pi.id}`, kind: "release", amountCents: Number(pi.amount ?? 0), keptCents: 0, keptReason: null });
+            await tellPosterMoneyBack(job, pi, { key: `release:${pi.id}`, kind: "release", amountCents: holdSplit.backCents, keptCents: 0, keptReason: null });
             if (settledVoid) voided++;
             results.push({ job_id: job.id, title: job.title, status: settledVoid ? "voided" : "voided_not_settled", amount: pi.amount / 100 });
           }
@@ -2425,18 +2435,24 @@ serve(async (req) => {
           await payBlockFees(pi);
           const blockFeeCents = crewBlockFeeCents(blockFeeRows);
           // THE refund amount (owner, 2026-10-14: never absorb a fee), from
-          // _shared/refundAmount.ts, the definition every refund path uses.
+          // _shared/refundAmount.ts, the definition every refund path uses,
+          // through posterCancelSplit: the SAME split create-payment's
+          // cancel_quote showed the poster as "Back to you" (boards 66/172
+          // slice 2), so the quote and this refund cannot disagree.
           // A10: a seller-fault Declutter setup job keeps no card fee (the seller
           // owes it: declutter_setup_job_fee_debt below); its setup fee is still kept.
-          const voidSplit = refundToPayerCents({
-            capturedCents,
-            actualFeeCents: sellerFault ? 0 : actualOrEstimatedFeeCents(pi, capturedCents),
-            customerFeeCents: fullSeriesRefund || sellerFault ? 0 : serviceFeeCents,
-            setupFeeCents: setupFeeKeptCents(job),
-            otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents,
-            alreadyRefundedCents: chargeRefundedCents,
-            taxCents: await chargeTaxCentsFor(stripe, pi),
+          const capturedSplit = posterCancelSplit({
+            job, sellerFault, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents,
+            charge: {
+              state: "captured",
+              capturedCents,
+              actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents),
+              alreadyRefundedCents: chargeRefundedCents,
+              taxCents: await chargeTaxCentsFor(stripe, pi),
+            },
           });
+          if (capturedSplit.state !== "captured") throw new Error("posterCancelSplit answered a captured charge with a hold split");
+          const voidSplit = capturedSplit.split;
           const nonRefundableCents = voidSplit.nonRefundableCents;
           // Q1806: what the gift keeps, from the fees left after payBlockFees.
           const cardGiftKeptCents = cardGift

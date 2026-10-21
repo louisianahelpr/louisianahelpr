@@ -750,6 +750,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/refundAmount.ts";`,
   );
 
+  // Boards 66/172 slice 2: `_shared/posterCancelSplit.ts` imports only the
+  // zero-import refundAmount, posterFees and seriesRefund modules, and is THE
+  // split both the poster's cancel quote (create-payment) and the sweep
+  // (void-cancelled-payments) use, so the real module runs in both.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/posterCancelSplit\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/posterCancelSplit.ts";`,
+  );
+
   // Q407 (5)/(9): `_shared/seriesRefund.ts` has ZERO imports and decides when a
   // cancelled series visit is refunded in full; the real module is under test.
   out = out.replace(

@@ -25,7 +25,7 @@ import { transformedImageUrl } from "@/lib/imageUrl";
 import {
   authPages,
   noNavPages,
-  tabStacks,
+  inTabStack,
 } from "@/components/mobileNav/mobileNavHelpers";
 import { phoneDockItems, type DockItem } from "@/components/mobileNav/dockItems";
 import { CreateSheet } from "@/components/create/CreateSheet";
@@ -381,11 +381,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const params = new URLSearchParams(location.search);
   if (location.pathname === "/messages" && params.has("chat")) return null;
 
-  const isInStack = (tabPath: string) => {
-    if (location.pathname === tabPath) return true;
-    const stack = tabStacks[tabPath] || [];
-    return stack.some((p) => location.pathname.startsWith(p));
-  };
+  const isInStack = (tabPath: string) => inTabStack(tabPath, location.pathname, user?.id);
 
   const triggerGate = () => {
     setGateOpen(true);

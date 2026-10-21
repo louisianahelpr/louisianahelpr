@@ -29,12 +29,13 @@
  * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | ' for "' \|\| v_req.title \|\| '".', v_uid, true, | ' for "' \|\| v_req.title \|\| '".', v_uid, false,
  * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql |     v_reason := public.direct_accept_block_reason(NEW.id, v_quoter); |     v_reason := NULL;
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql | WHERE j.id = v_req.job_id AND j.customer_id = v_uid\n | WHERE j.id = v_req.job_id\n
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |   AFTER INSERT ON public.user_blocks | AFTER INSERT ON public.job_quotes
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |          OR (r.poster_id = NEW.blocked_id AND q.quoter_id = NEW.blocker_id)); |          OR false);
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |   EXCEPTION WHEN OTHERS THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes | EXCEPTION WHEN unique_violation THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes
+ * @mutate supabase/migrations/20261021112534_block_closes_agreed_unbooked_quote.sql |   AFTER INSERT ON public.user_blocks | AFTER INSERT ON public.job_quotes
+ * @mutate supabase/migrations/20261021112534_block_closes_agreed_unbooked_quote.sql |          OR (r.poster_id = NEW.blocked_id AND q.quoter_id = NEW.blocker_id)); |          OR false);
+ * @mutate supabase/migrations/20261021112534_block_closes_agreed_unbooked_quote.sql |   EXCEPTION WHEN OTHERS THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes | EXCEPTION WHEN unique_violation THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes
  * @mutate supabase/migrations/20261021061341_member_display_name.sql |      AND NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id)\n |      AND true\n
  * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql |         IF FOUND AND NOT public.are_users_blocked(v_quoter, NEW.customer_id) THEN | IF FOUND THEN
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |        AND q.quoter_id = p_helper\n |        AND true\n
+ * @mutate supabase/migrations/20261021112534_block_closes_agreed_unbooked_quote.sql |        WHERE r.status = 'agreed'\n |        WHERE r.status = 'open'\n
  * @mutate supabase/migrations/20261019005719_quote_cap_live_requests.sql |   v_close := LEAST(now() + make_interval(hours => v_window), v_start - interval '2 hours'); |   v_close := now() + make_interval(hours => v_window);
  */
 import { describe, expect, it } from "vitest";
@@ -160,7 +161,17 @@ describe("quotes: owner answers 8-11", () => {
     expect(b).toContain(
       "AND q.status = 'pending' AND ((r.poster_id = NEW.blocker_id AND q.quoter_id = NEW.blocked_id) OR (r.poster_id = NEW.blocked_id AND q.quoter_id = NEW.blocker_id));",
     );
-    expect(b).toMatch(/q\.quoter_id = NEW\.blocker_id\)\); EXCEPTION WHEN OTHERS THEN BEGIN INSERT INTO public\.error_logs/);
+    // Everything the block does sits inside the one guarded block, so a failure never undoes the block.
+    expect(b).toMatch(/END LOOP; EXCEPTION WHEN OTHERS THEN BEGIN INSERT INTO public\.error_logs/);
+  });
+
+  // Q2122 (owner, 2026-10-21): an accepted quote never booked closes too, and its request is cancelled.
+  // Behaviour: src/test/pglite/blockClosesAgreedUnbookedQuote.pglite.mjs.
+  it("Q2122: a block also closes an accepted, unbooked quote and cancels its request", () => {
+    const b = body("quote_close_pending_across_block");
+    expect(b).toContain("WHERE r.status = 'agreed' AND r.job_id IS NULL AND q.status = 'accepted'");
+    expect(b).toContain("UPDATE public.job_quote_requests SET status = 'cancelled', updated_at = now() WHERE id = v_request.id AND status = 'agreed' AND job_id IS NULL;");
+    expect(existsSync(resolve(root, "src/test/pglite/blockClosesAgreedUnbookedQuote.pglite.mjs"))).toBe(true);
   });
 
   it("the behaviour proof exists", () => {

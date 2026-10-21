@@ -88,6 +88,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_refund_set_mode',     'action',   'VOLATILE: records a Declutter refund''s Stripe mode once and returns it (service only; 20261015042253)'),
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
   ('declutter_set_listing_drops',   'action',   'VOLATILE: the seller turns price drops on/off on their own listing and gets the stored value back (board 158; 20261020064354)'),
+  ('declutter_set_wanted_public',   'action',   'VOLATILE: the poster opens or closes public answers on their own Wanted post and gets the stored value back (a NULL choice is stored as false; 20261021031757)'),
   ('declutter_set_porch_ok',        'action',   'VOLATILE: the seller sets porch pickup on their own draft and gets the stored value back; a NULL choice raises invalid_porch_choice (row 101; 20261017055504)'),
   ('landlord_id_images_deleted',    'action',   'VOLATILE: the retention sweep stamps a landlord ID review whose photos it removed and reports whether it did (service only; a NULL argument matches no row and answers FALSE; 20261019051407)'),
   ('money_ref_in_use',              'deny',     'TRUE = this Stripe id is already on a money row, so settle-by-hand refuses it (ref_already_used); its only caller tests it inside IF v_stripe IS NOT NULL, and a NULL ref matches no row (FALSE) (20261019070737)'),

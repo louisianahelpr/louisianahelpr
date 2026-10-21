@@ -16,7 +16,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { Switch } from "@/components/ui/switch";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { WantedNearSection } from "./DeclutterWantedReplies";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import {
@@ -24,6 +27,7 @@ import {
   closeWanted,
   createWanted,
   fetchMyWanted,
+  setWantedPublic,
   wantedFormProblem,
   type WantedForm,
   type WantedPost,
@@ -32,17 +36,22 @@ import {
 import { CATEGORY_LABEL, DeclutterNotice } from "./declutterUi";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 
-const EMPTY: WantedForm = { what: "", category: "", maxPrice: "", radius: 10 };
+// Q2267: "Let sellers near me reply" starts ON in the form (owner 2026-10-21); the server default stays off.
+const EMPTY: WantedForm = { what: "", category: "", maxPrice: "", radius: 10, public: true };
 
 function WantedForm({ at, onPosted }: { at: { lat: number; lng: number }; onPosted: () => void }) {
   const [form, setForm] = useState<WantedForm>(EMPTY);
   const [problem, setProblem] = useState<string | null>(null);
   const post = useMutation({
     mutationFn: () => createWanted(form, at),
-    onSuccess: () => {
+    onSuccess: (r) => {
       setForm(EMPTY);
       setProblem(null);
-      toast.success("Posted. If your New offers alerts are on, we'll tell you when a match is listed at or under your price.");
+      toast.success(
+        r.repliesOn
+          ? "Posted. Sellers near you can answer it, and we'll tell you when a match is listed at or under your price."
+          : "Posted. If your New offers alerts are on, we'll tell you when a match is listed at or under your price.",
+      );
       onPosted();
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -65,7 +74,9 @@ function WantedForm({ at, onPosted }: { at: { lat: number; lng: number }; onPost
       <div className="space-y-1">
         <h2 id="wanted-form-title" className="font-moment text-ds-28 leading-tight">What are you looking for?</h2>
         <p className="text-ds-13 text-muted-foreground">
-          Sellers near you with a matching listing get a heads-up with your highest price, never your name or your words. You get one when a match is listed at or under your price. Only you see your post.
+          {form.public
+            ? "Sellers near you can see it and answer with one of their listings. You get a heads-up when a match is listed at or under your price."
+            : "Sellers near you with a matching listing get a heads-up with your highest price, never your name or your words. You get one when a match is listed at or under your price. Only you see your post."}
         </p>
       </div>
       <div className="space-y-1">
@@ -102,6 +113,14 @@ function WantedForm({ at, onPosted }: { at: { lat: number; lng: number }; onPost
           options={WANTED_RADIUS_CHOICES.map((m) => ({ value: String(m), label: `${m} mi` }))}
         />
       </div>
+      {/* Q2267 (owner 2026-10-21): on by default, in plain view, with what sellers see. */}
+      <div className="flex items-start justify-between gap-3 rounded-2xl border border-border px-4 py-3">
+        <div className="min-w-0">
+          <label htmlFor="wanted-public" className="block text-ds-15 font-semibold">Let sellers near me reply</label>
+          <p className="text-ds-13 text-muted-foreground">Sellers near you see your first name, what you want and your max price, never your address.</p>
+        </div>
+        <Switch id="wanted-public" checked={form.public} onCheckedChange={(v) => setForm((f) => ({ ...f, public: v }))} />
+      </div>
       {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
       <div className="space-y-2">
         <p className="text-ds-13 text-muted-foreground">Your Wanted stays up 30 days. You can close it anytime.</p>
@@ -123,6 +142,15 @@ function WantedRow({ post }: { post: WantedPost }) {
     mutationFn: () => closeWanted(post.id),
     onSuccess: () => {
       toast.success("Closed. No more alerts for this one.");
+      void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
+    },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  // Q2267: turn replies on or off later (only once the server reports the setting).
+  const replies = useMutation({
+    mutationFn: (on: boolean) => setWantedPublic(post.id, on),
+    onSuccess: (on) => {
+      toast.success(on ? "Sellers near you can answer this post." : "Only you see this post now.");
       void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -159,6 +187,12 @@ function WantedRow({ post }: { post: WantedPost }) {
           </div>
         )
       )}
+      {post.status === "open" && post.public !== undefined && (
+        <div className="flex items-center justify-between gap-3">
+          <label htmlFor={`wanted-public-${post.id}`} className="text-ds-13">Sellers near me can reply</label>
+          <Switch id={`wanted-public-${post.id}`} checked={post.public} disabled={replies.isPending} onCheckedChange={(v) => replies.mutate(v)} />
+        </div>
+      )}
       {post.status === "open" && (
         <Button type="button" variant="outline" size="sm" disabled={close.isPending} onClick={() => close.mutate()}>
           Close
@@ -171,6 +205,7 @@ function WantedRow({ post }: { post: WantedPost }) {
 export function WantedView() {
   const qc = useQueryClient();
   const { underAge } = useAgeGate();
+  const { user } = useCurrentUser();
   const { origin, askDevice, asked, asking, deviceNote } = useDeclutterOrigin();
   const mine = useQuery({ queryKey: ["declutter", "wanted"], queryFn: fetchMyWanted });
 
@@ -197,6 +232,8 @@ export function WantedView() {
           )}
         </DeclutterNotice>
       )}
+      {/* Q2267: public posts near you that you can answer with one of your listings. */}
+      {!underAge && user && origin.status === "ready" && <WantedNearSection at={{ lat: origin.lat, lng: origin.lng }} userId={user.id} />}
       <section className="space-y-2" aria-labelledby="wanted-mine-title">
         <h2 id="wanted-mine-title" className="text-base font-semibold">Your wanted posts</h2>
         {mine.isLoading ? (

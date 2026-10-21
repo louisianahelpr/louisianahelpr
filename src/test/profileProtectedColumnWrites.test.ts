@@ -68,7 +68,11 @@ const KNOWN_OFFENDERS: string[] = [
  * a listed one that no longer appears.
  */
 // @two-way src/test/profileProtectedColumnWrites.test.ts:const staleUnresolved =
-const KNOWN_UNRESOLVED: Record<string, string> = {};
+const KNOWN_UNRESOLVED: Record<string, string> = {
+  // Audit #41 (2026-10-21): the switches save as they flip; the parameter is typed SwitchPatch,
+  // which names only auto_tip_mode / auto_tip_value / auto_tip_cap / auto_release_on_complete.
+  "src/pages/profile/AutoTip.tsx :: parameter patch": "typed SwitchPatch: only the four auto-tip/auto-release columns, none protected",
+};
 
 const ADMIN_SURFACE = /^src\/(components\/admin\/|pages\/Admin)/;
 
@@ -383,7 +387,7 @@ describe("client writes to profiles columns that prevent_self_escalation resets"
   it("finds the profiles writes it claims to check (inventory floor)", () => {
     // EXACT, both directions (measured 2026-09-24; 12 -> 13 on 2026-10-09: PhotoPrompt pins avatar_url; 14: it saves phone + birthday; 15 on 2026-10-13, Q1586(a): the phone moved to save_my_phone, PhotoPrompt writes the birthday alone and src/lib/phoneSave.ts keeps the pre-RPC PGRST202 fallback; 16 on 2026-10-13: PhotoPrompt's under-18 save writes the birthday on its own path, Q1586(c); 16 -> 12 on 2026-10-14: PhotoPrompt and its 4 writes (avatar, details, under-18 phone, under-18 birthday) removed, owner "no later prompt"; 12 -> 13 on 2026-10-20: You › Settings' "Let Helpr share my job photos" writes share_job_photos, a self-writable column): a new write must be counted
     // here on purpose, and a moved-server-side one lowers it (Q304/Q99/Q40 did).
-    expect({ all: writes.length, nonAdmin: writes.filter((w) => !ADMIN_SURFACE.test(w.file)).length }).toEqual({ all: 13, nonAdmin: 13 });
+    expect({ all: writes.length, nonAdmin: writes.filter((w) => !ADMIN_SURFACE.test(w.file)).length }).toEqual({ all: 14, nonAdmin: 14 }); // 14 since 2026-10-21: AutoTip's instant switch save (audit #41)
   });
 
   it("resolves every payload it inspects — unresolved is a failure, never clean", () => {

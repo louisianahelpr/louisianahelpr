@@ -391,7 +391,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
        owns the AppShell. Same shape PetProfiles, WorkRecord, HomeHistory,
        StrSettings, AutoTip and HelprWrapped use. */
     <ProfileTabBody>
-      <ProfileTabHeader title="Gift Card" onBack={onBack} />
+      <ProfileTabHeader title="Gift card" onBack={onBack} />
         {/* ── Claiming a gift (from the emailed claim link) ─────────────────── */}
         {/* Spans full width above the split so the status is visible regardless
             of which column the eye lands on first. */}

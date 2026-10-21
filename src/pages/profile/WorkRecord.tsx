@@ -304,7 +304,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
     // Earnings" eyebrow has no equivalent on this header; the document card
     // below already prints "Employment & Earnings Record" as its own heading.
     <ProfileTabBody>
-      <ProfileTabHeader title="Work Record" onBack={onBack} />
+      <ProfileTabHeader title="Work record" onBack={onBack} />
       {/* The shared section rhythm (--section-gap, Q191) between the
           document card and the share/print controls — was space-y-5. */}
       <div className="space-y-section">

@@ -233,7 +233,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
 
   return (
     <ProfileTabBody>
-      <ProfileTabHeader title="Host Automation" onBack={onBack} />
+      <ProfileTabHeader title="Host automation" onBack={onBack} />
 
         {/* ONE card, every breakpoint (owner, 2026-08-29: "merge into 1"). This
             used to stack a desktop-only "How it works" rail ABOVE the

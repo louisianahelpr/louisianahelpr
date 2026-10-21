@@ -16,13 +16,17 @@ on:
       mode:
         description: "probe (read-only), create (writes products), screenshots (uploads the review image)"
         type: choice
-        options: [probe, create, screenshots, inspect, fix-availability, fix-review-issues]
+        options: [probe, create, screenshots, inspect, fix-availability, fix-review-issues, release-status, release-cancel, release-age-rating, release-iap-offsale, release-submit]
         default: probe
         required: true
       apply:
-        description: "fix-review-issues only: actually write (unchecked = dry run)"
+        description: "fix-review-issues and release-* modes: actually write (unchecked = dry run)"
         type: boolean
         default: false
+      cancel_build:
+        description: "release-cancel only: refuse unless the open submission carries this build number"
+        type: string
+        default: ""
 
 # Least privilege (CodeQL actions/missing-workflow-permissions): the job only
 # checks out the repo and calls App Store Connect with its own secrets.
@@ -47,4 +51,5 @@ jobs:
           # fix-review-issues is a DRY RUN unless this is set to 1 — it edits a
           # live App Store listing, so seeing the diff first is the default.
           ASC_APPLY: ${{ inputs.apply && '1' || '0' }}
+          ASC_CANCEL_BUILD: ${{ inputs.cancel_build }}
         run: node scripts/asc/${{ inputs.mode }}.mjs

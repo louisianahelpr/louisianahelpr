@@ -105,7 +105,7 @@ describe("ApplyEarningsBreakdown — flat-model jobs (Q1839)", () => {
 
 // lh-money-escrow review #4 (jobs poster fee, owner 2026-10-18): a poster-fee
 // job's Helpr pays nothing, so there is no fee line and no "0% + $0.00" label.
-// @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |     noFee ? "no fee" : `− ${feeLabel} fee`, |     `− ${feeLabel} fee`,
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |     noFee ? "no fee" : `− Helpr fee (${feeLabel})`, |     `− Helpr fee (${feeLabel})`,
 // @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |           {!noFee && ( |           {true && (
 describe("ApplyEarningsBreakdown — poster-fee jobs show no Helpr fee (review #4)", () => {
   it("a poster-fee job: take-home is the whole budget, no fee row, the summary says no fee", () => {

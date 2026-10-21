@@ -14,7 +14,7 @@ import type { EnrichedApplication } from "@/components/job-card/activityConstant
  * flow (and its payout gate) is exactly the card's. Never the Helpr's
  * take-home (poster screen, checkoutNoHelperPayLine).
  */
-export const COMPARE_MAX = 3;
+const COMPARE_MAX = 3;
 
 export function useApplicantCompare() {
   const [ids, setIds] = useState<string[]>([]);

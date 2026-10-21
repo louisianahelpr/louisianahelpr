@@ -96,7 +96,7 @@ describe("Messages search on a phone: its own slim row (Q143 -> Q2231)", () => {
       const row = screen.getByTestId("messages-search-row");
       const field = within(row).getByRole("searchbox", { name: "Search conversations" });
       expect(field).toBeTruthy();
-      expect(within(row).getByRole("button", { name: "More conversation options" })).toBeTruthy();
+      expect(within(row).getByRole("button", { name: "Inbox views and options" })).toBeTruthy();
       expect(screen.getByTestId("app-top-bar").contains(field)).toBe(false);
       expect(screen.queryByRole("button", { name: "Search conversations" })).toBeNull();
       fireEvent.change(field, { target: { value: "faucet" } });

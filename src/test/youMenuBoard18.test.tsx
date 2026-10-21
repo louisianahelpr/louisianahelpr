@@ -2,7 +2,7 @@
  * BOARD 18, the rest of it (builder1e/1f, 2026-10-20): the bell sits in the
  * title row with no profile photo (you are already on your profile), a slim
  * profile card (photo with seal, name, "Verified neighbor · 5.0 · 1 review",
- * "View my public profile"), and ONE four-row list: Money · Alerts · Settings ·
+ * "View my public profile"), and ONE four-row list: Money · Notifications · Settings ·
  * Talk to a real person. Log out stays a clear pill; Delete account stays quiet
  * text. Spec v2 §9.8, §1.5 (every fact real or hidden), §1.1 (money in rust).
  *
@@ -25,12 +25,12 @@ afterEach(cleanup);
 
 describe("You tab, board 18", () => {
   it("one list of exactly four rows, in the board's order", () => {
-    expect(YOU_ROWS.map((r) => r.label)).toEqual(["Money", "Alerts", "Settings", "Talk to a real person"]);
+    expect(YOU_ROWS.map((r) => r.label)).toEqual(["Money", "Notifications", "Settings", "Talk to a real person"]);
     const picked: string[] = [];
     render(<YouMenuList captions={{ earnings: "$96.55 coming", settings: "Account, look, sections" }} onSelect={(k) => picked.push(k)} />);
     const rows = screen.getAllByRole("button");
     expect(rows.map((r) => r.textContent)).toEqual([
-      "Money$96.55 coming", "Alerts", "SettingsAccount, look, sections", "Talk to a real person",
+      "Money$96.55 coming", "Notifications", "SettingsAccount, look, sections", "Talk to a real person",
     ]);
     fireEvent.click(rows[2]);
     fireEvent.click(rows[3]);

@@ -275,14 +275,22 @@ const HELD_UNTIL_CONFIRM_STATUSES = ["accepted", "in_progress", "revision_reques
 export function heldForYou<J extends PosterSpendJob & { status: string }>(rows: readonly SpentRow<J>[]): { cents: number; jobs: number } {
   let cents = 0;
   let jobs = 0;
+  for (const { held } of heldRows(rows)) {
+    cents += held;
+    jobs += 1;
+  }
+  return { cents, jobs };
+}
+
+/** The held jobs themselves, each with the cents held for it (heldForYou's own rule, one place). */
+export function heldRows<J extends PosterSpendJob & { status: string }>(rows: readonly SpentRow<J>[]): { job: J; held: number }[] {
+  const out: { job: J; held: number }[] = [];
   for (const r of rows) {
     if (!r.job || r.job.payment_status !== "escrow") continue;
     if (!(HELD_UNTIL_CONFIRM_STATUSES as readonly string[]).includes(r.job.status)) continue;
     const setupFeeCents = Math.max(0, Math.round(Number(r.job.onboarding_fee_amount ?? 0) * 100) || 0);
     const held = r.cents - r.tipCents - setupFeeCents;
-    if (held <= 0) continue;
-    cents += held;
-    jobs += 1;
+    if (held > 0) out.push({ job: r.job, held });
   }
-  return { cents, jobs };
+  return out;
 }

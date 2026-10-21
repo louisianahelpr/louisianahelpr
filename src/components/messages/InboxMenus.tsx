@@ -1,4 +1,4 @@
-import { Check, CheckSquare, Menu, MoreHorizontal, Pin, Trash2 } from "lucide-react";
+import { Check, CheckSquare, ListFilter, Menu, Pin, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -106,11 +106,14 @@ export function MessagesMoreMenu({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          aria-label="More conversation options"
+          // Owner 2026-10-21: a bare "…" read as nothing. A filter icon, a name that says what the menu holds
+          // (Active / All, pinned, archived, recently deleted, select), and the same words as a tooltip.
+          aria-label="Inbox views and options"
+          title="Inbox views and options"
           data-testid="messages-more"
           className={`btn-press relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${isDefaultFilter ? "text-muted-foreground" : "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]"}`}
         >
-          <MoreHorizontal className="h-[18px] w-[18px]" aria-hidden />
+          <ListFilter className="h-[18px] w-[18px]" aria-hidden />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

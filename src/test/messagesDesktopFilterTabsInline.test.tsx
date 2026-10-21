@@ -214,7 +214,7 @@ describe("Messages inbox filter tabs — always visible, never behind a disclosu
       if (!webDesktop) {
         expect(disclosure(), "no chevron on the phone any more (Q2231)").toBeNull();
         expect(tabGroup(), "no strip on the phone (Q2231)").toBeNull();
-        expect(screen.getByRole("button", { name: "More conversation options" }).getAttribute("aria-haspopup")).toBe("menu");
+        expect(screen.getByRole("button", { name: "Inbox views and options" }).getAttribute("aria-haspopup")).toBe("menu");
         return;
       }
 
@@ -281,7 +281,7 @@ describe("Messages inbox filter tabs — always visible, never behind a disclosu
     expect(tabGroup()).toBeNull();
     expect(disclosure()).toBeNull();
     expect(screen.getByRole("searchbox", { name: "Search conversations" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "More conversation options" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Inbox views and options" })).toBeTruthy();
   });
 
   /**

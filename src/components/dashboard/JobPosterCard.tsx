@@ -1,5 +1,5 @@
 import { hasPerk, tierDisplayName } from "@/lib/subscriptionTiers";
-import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
+import { usePaidTierBadge } from "@/hooks/usePaidTierBadge";
 import { TrustRow } from "@/components/TrustRow";
 import { PersonTile } from "@/components/PersonTile";
 import type { EnrichedJob } from "./types";
@@ -26,6 +26,8 @@ interface JobPosterCardProps {
  * Extracted verbatim from JobDetailDialog.tsx.
  */
 export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardProps) {
+  // Called before the early return below (rules-of-hooks).
+  const paidTierBadge = usePaidTierBadge();
   // Nothing to show. The guest /jobs feed comes from `get_ranked_open_jobs`,
   // whose RETURNS TABLE has no `customer_id` — so this tile rendered with a
   // blank name, a "U" fallback avatar, and a link to a literal `/user/` with no
@@ -60,7 +62,7 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
   // Any paying tier opens the trust row. This was a literal
   // elite/pro/basic list and it dropped Plus (CC-019), so a $15/mo poster's
   // tile rendered as if they were on the free plan.
-  const posterTierBadge = tierBadgeStyle(job.posterSubscriptionTier);
+  const posterTierBadge = paidTierBadge(job.posterSubscriptionTier);
   const hasTier = hasPerk(job.posterSubscriptionTier, "tierBadge");
   /* THE RATING IS PRINTED ONCE, BESIDE THE NAME.
      It used to be printed twice in this one tile: "★ 4.8 (5)" inline next to

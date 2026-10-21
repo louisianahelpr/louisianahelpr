@@ -60,7 +60,7 @@ function openOptions() {
   // Phone since Q2231: the search row's one "more" menu; desktop: the hamburger.
   const trigger =
     screen.queryByRole("button", { name: "Conversation list options" }) ??
-    screen.getByRole("button", { name: "More conversation options" });
+    screen.getByRole("button", { name: "Inbox views and options" });
   trigger.focus();
   fireEvent.keyDown(trigger, { key: "Enter" });
 }

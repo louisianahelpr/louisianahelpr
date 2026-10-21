@@ -20,14 +20,22 @@ function comingCaption(c: NonNullable<HomeMoney["coming"]>): string {
   return `Sent ${STANDARD_PAYOUT_PHRASE}`;
 }
 
-/** Board 7/51 caption under "Held for you". */
-function heldCaption(jobs: number): string {
-  return `Until you confirm ${jobs} job${jobs === 1 ? "" : "s"}`;
+/**
+ * The held tile's words (owner, 2026-10-21, truth): this is the POSTER'S own payment held for the Helpr,
+ * not money held FOR the poster, so it never says "Held for you". One job: "Held for Mow two lawns" /
+ * "Paid to Yusef H. after you confirm it's done"; several: "Held for 2 jobs" / "Paid to each Helpr after
+ * you confirm their job is done". Only a Helpr's own pending earnings ("Coming to you") are theirs.
+ */
+function heldWords(h: NonNullable<HomeMoney["held"]>): { label: string; caption: string } {
+  if (h.only) {
+    return { label: `Held for ${h.only.title}`, caption: `Paid to ${h.only.helper ?? "your Helpr"} after you confirm it's done` };
+  }
+  return { label: `Held for ${h.jobs} job${h.jobs === 1 ? "" : "s"}`, caption: h.jobs === 1 ? "Paid to your Helpr after you confirm it's done" : "Paid to each Helpr after you confirm their job is done" };
 }
 
 /**
  * HOME'S MONEY STRIP (spec v2 §5.3; board 7 on phone, board 11 on desktop):
- * "Coming to you" and "Held for you", side by side, amounts in rust (money is
+ * "Coming to you" and the poster's held payment ("Held for <job>"), side by side, amounts in rust (money is
  * the one thing rust means). A tile with nothing real is not drawn; with both
  * gone the strip is gone. Each opens You › Money on the half it is about.
  */
@@ -68,9 +76,9 @@ export function HomeMoneyTiles({
         <MoneyTile
           kind="held"
           span={span}
-          label="Held for you"
+          label={heldWords(money.held).label}
           cents={money.held.cents}
-          caption={heldCaption(money.held.jobs)}
+          caption={heldWords(money.held).caption}
           onClick={() => (onOpen ? onOpen("held") : navigate("/profile?tab=earnings&view=spent"))}
         />
       )}

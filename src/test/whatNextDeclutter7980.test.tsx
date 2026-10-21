@@ -24,6 +24,9 @@ const items: Record<string, Record<string, unknown>> = {};
 vi.mock("@/lib/declutter/api", () => ({
   fetchItem: async (id: string) => items[id] ?? null,
   fetchItemDropState: async (id: string) => ({ sale_mode: items[id]?.sale_mode ?? null, last_price_drop_on: null }),
+  // Board 192's link card reads the cover.
+  fetchPhotos: async () => [],
+  photoPublicUrl: (p: string) => `https://cdn/${p}`,
 }));
 const code = (f: string) => readFileSync(resolve(__dirname, "../..", f), "utf8");
 

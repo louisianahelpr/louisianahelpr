@@ -4,6 +4,7 @@ import { WhatNextSheet, type WhatNextStep } from "@/components/whatNext/WhatNext
 import { fetchItem, fetchItemDropState } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
 import { dropWhenLabel, nextPriceDrop } from "@/lib/declutter/priceDrop";
+import { ListingLinkCard, copyListingLink } from "./DeclutterShareCard";
 
 /** Router state DeclutterSellView hands the Selling tab after a publish (board 80). */
 type JustListed = { itemId: string; status: string };
@@ -36,6 +37,7 @@ export function ListedWhatNext() {
   if (!listed || !it) return null;
   const live = listed.status === "live";
   const drop = live ? nextPriceDrop(it) : null;
+  const shareable = live && it.status === "live";
   const steps: WhatNextStep[] = live
     ? [
         { key: "listed", label: <>Listed at <Money cents={it.current_price_cents} /></>, detail: "Today", state: "done" },
@@ -58,6 +60,10 @@ export function ListedWhatNext() {
       lead={<><strong>{it.title}</strong>{live ? " is up for sale now." : " goes up once it's checked."}</>}
       steps={steps}
       primary={{ label: "See my listing", onClick: () => navigate(`/declutter/item/${it.id}`) }}
-    />
+      // Board 192 (Builder 3c): share only a listing buyers can open now, never one paused or in review.
+      secondary={shareable ? { label: "Copy link for local groups", onClick: () => void copyListingLink(it) } : undefined}
+    >
+      {shareable ? <ListingLinkCard item={it} /> : null}
+    </WhatNextSheet>
   );
 }

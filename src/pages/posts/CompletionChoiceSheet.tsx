@@ -71,6 +71,8 @@ interface CompletionChoiceSheetProps {
    * release pays out from; otherwise the sheet names no number.
    */
   jobPrice?: number | null;
+  /** A crew job: the release pays every hired Helpr, so the note does not name one. */
+  groupJob?: boolean;
   onClose: () => void;
   /** Called when the poster approves (path A) — parent runs the full
    *  complete-job flow (status transition + CompletionPrompts). */
@@ -88,6 +90,7 @@ export function CompletionChoiceSheet({
   proofBeforeUrls = [],
   proofAfterUrls = [],
   jobPrice = null,
+  groupJob = false,
   jobTitle,
   onClose,
   onConfirm,
@@ -254,7 +257,15 @@ export function CompletionChoiceSheet({
           inset each sheet had written differently is dead weight — and
           `.glass-modal` is THE popup surface. Shared `p-4 sm:p-5`, same ramp
           DialogContent uses. */}
-      <SheetContent side="bottom">
+      <SheetContent
+        side="bottom"
+        // Board 65 (lead, MUST): this sheet releases money. Initial focus goes to the sheet itself, never to
+        // "Confirm and release", so a stray Enter or Space at open cannot release the payment.
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
+        }}
+      >
         {mode === "choice" ? (
           <>
             {/* Board 65: the Helpr's name, never he/she; the decision with its evidence on screen. */}
@@ -279,10 +290,10 @@ export function CompletionChoiceSheet({
                 <p className="rounded-2xl border border-border bg-card p-4 font-sans text-ds-16 font-bold leading-snug">{jobTitle}</p>
               )}
               {/* A money note (spec §3): tint + rust, the job price only (never the Helpr's take-home). */}
-              <p className="rounded-ds-md p-3.5 font-sans text-ds-13 leading-snug" style={{ background: "hsl(var(--burnt-sienna) / 0.08)", color: "hsl(var(--sienna-ink))" }}>
+              <p className="rounded-ds-md p-3.5 font-sans text-ds-13 leading-snug text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
                 When you confirm,{" "}
-                {jobPrice ? <>the <strong className="tabular-nums">${formatPriceExact(jobPrice)}</strong> job price is</> : "your payment is"}{" "}
-                released to {helperName}. If something isn't right, tell {helperName} first. The money stays held.
+                {jobPrice ? <>the <strong className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}>${formatPriceExact(jobPrice)}</strong> job price is</> : "your payment is"}{" "}
+                released to {groupJob ? "your Helprs" : helperName}. If something isn't right, tap "Something's not right" and the money stays held.
               </p>
               {/* Full width on the phone (board 65): the shell's commit button sizes to its label. */}
               <div className="flex flex-col [&>button]:w-full">

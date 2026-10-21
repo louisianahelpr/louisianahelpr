@@ -246,6 +246,7 @@
     "RESEND_WEBHOOK_SECRET": "shared HMAC secret; no expiry at the vendor",
     "SECRET_KEY": "Supabase sb_secret_ key; not a JWT, no expiry date",
     "SEND_EMAIL_HOOK_SECRET": "Supabase auth hook HMAC secret; no expiry",
+    "SENTRY_ALERTS_TOKEN": "owner-created Sentry token (Alerts read+write, Project read) for sentry-alert-rules.yml, Q185, 2026-10-21; not created yet. If Sentry shows an expiry on the token page when it is made, move it to items with that date",
     "SENTRY_ORG": "identifier, not a credential",
     "SENTRY_PROJECT": "identifier, not a credential",
     "SENTRY_READ_TOKEN": "owner-created Sentry personal read token (org/project/event read) for the quota monitor, 2026-09-23; expiry not recorded at creation: if Sentry shows one on the token page, move it to items with that date",

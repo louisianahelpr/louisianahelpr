@@ -1,0 +1,74 @@
+name: Sentry alert rules
+
+# docs/OPEN.md Q185 (owner, 2026-10-21): the issue alerts in
+# docs/SENTRY_ALERT_RULES.md are created in Sentry by this workflow, email only,
+# environment production. Definitions: scripts/sentry/alertRules.mjs; runner:
+# scripts/sentry/sync-alert-rules.mjs; guard: src/test/sentryAlertRules.test.ts.
+#
+# Idempotent: it lists the org's alerts, matches by exact name, creates the
+# missing ones, updates the drifted ones and never deletes anything. Then it
+# READS EVERY ALERT BACK and goes red unless each exists once with the expected
+# name, environment, triggers, conditions and email action. A green run is the
+# proof the alerts exist.
+#
+# Needs the secret SENTRY_ALERTS_TOKEN (Alerts: Read & Write, Project: Read).
+# Without it the run prints a notice naming the secret and stays green.
+# The weekly run repeats the sync, so an alert edited or deleted by hand is put
+# back and the read-back re-proves all of them.
+
+on:
+  schedule:
+    # Mondays 14:37 UTC. Sentry only, never prod Supabase.
+    - cron: "37 14 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print the payloads only (no Sentry API call)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# A Sentry config sync, not a prod suite: its own group, never prod-load.
+concurrency:
+  group: sentry-alert-rules
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Create, update and read back the Sentry alerts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Sync the alerts, then read every one back
+        env:
+          SENTRY_ALERTS_TOKEN: ${{ secrets.SENTRY_ALERTS_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+        run: node scripts/sentry/sync-alert-rules.mjs
+
+  notify:
+    name: Report nightly result
+    needs: [sync]
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      actions: write
+      checks: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: sentry-alert-rules
+          status: ${{ needs.sync.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -49,7 +49,6 @@ const num = (l: string) => Number(/\*\*Q(\d+)/.exec(l)![1]);
  */
 // @two-way src/test/reviewFindingsCarryATag.test.ts:NOT_FROM_A_REVIEW is exact: every entry is still untagged and review-worded
 const NOT_FROM_A_REVIEW: Record<string, string> = {
-  Q2272: "Builder 5's owner question on board 141 (a refund-request feature); \"an lh-money-escrow review\" names a review its build will need, not a filed finding",
   Q2275: "the owner's saved-searches-for-every-section feature item (board 91, lead 2026-10-21); \"review on the migration\" names a review its build will need, not a filed finding",
   Q2272: "an owner decision on board 141 (a refund-request feature), mapped by Builder 5 on 2026-10-21; its \"review\" wording describes how disputes are decided today, not a filed finding",
   Q1790: "Apple's App Review (the reviewer's demo password), found preparing the 1.0.4 resubmission; not a code reviewer's finding",

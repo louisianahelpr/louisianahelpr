@@ -1156,53 +1156,53 @@ export type Database = {
       }
       declutter_cart_items: {
         Row: {
-          buyer_id: string
+          buyer_id: string | null
           checkout_by: string
           closed_at: string | null
           created_at: string
           id: string
           is_seed: boolean
-          item_id: string
+          item_id: string | null
           offer_id: string | null
           order_id: string | null
           price_cents: number
           reminded_24h_at: string | null
           reminded_2h_at: string | null
-          seller_id: string
+          seller_id: string | null
           source: string
           status: string
         }
         Insert: {
-          buyer_id: string
+          buyer_id?: string | null
           checkout_by: string
           closed_at?: string | null
           created_at?: string
           id?: string
           is_seed?: boolean
-          item_id: string
+          item_id?: string | null
           offer_id?: string | null
           order_id?: string | null
           price_cents: number
           reminded_24h_at?: string | null
           reminded_2h_at?: string | null
-          seller_id: string
+          seller_id?: string | null
           source: string
           status?: string
         }
         Update: {
-          buyer_id?: string
+          buyer_id?: string | null
           checkout_by?: string
           closed_at?: string | null
           created_at?: string
           id?: string
           is_seed?: boolean
-          item_id?: string
+          item_id?: string | null
           offer_id?: string | null
           order_id?: string | null
           price_cents?: number
           reminded_24h_at?: string | null
           reminded_2h_at?: string | null
-          seller_id?: string
+          seller_id?: string | null
           source?: string
           status?: string
         }
@@ -1967,7 +1967,7 @@ export type Database = {
         Row: {
           delivery_cents: number
           shipping_cents: number
-          buyer_id: string
+          buyer_id: string | null
           card_fee_cents: number | null
           close_reason: string | null
           closed_at: string | null
@@ -1980,7 +1980,7 @@ export type Database = {
           items_cents: number
           paid_at: string | null
           premium_cents: number
-          seller_id: string
+          seller_id: string | null
           status: string
           stripe_checkout_session_id: string | null
           stripe_paid_at: string | null
@@ -1991,7 +1991,7 @@ export type Database = {
         Insert: {
           delivery_cents?: number
           shipping_cents?: number
-          buyer_id: string
+          buyer_id?: string | null
           card_fee_cents?: number | null
           close_reason?: string | null
           closed_at?: string | null
@@ -2004,7 +2004,7 @@ export type Database = {
           items_cents: number
           paid_at?: string | null
           premium_cents: number
-          seller_id: string
+          seller_id?: string | null
           status?: string
           stripe_checkout_session_id?: string | null
           stripe_paid_at?: string | null
@@ -2015,7 +2015,7 @@ export type Database = {
         Update: {
           delivery_cents?: number
           shipping_cents?: number
-          buyer_id?: string
+          buyer_id?: string | null
           card_fee_cents?: number | null
           close_reason?: string | null
           closed_at?: string | null
@@ -2028,7 +2028,7 @@ export type Database = {
           items_cents?: number
           paid_at?: string | null
           premium_cents?: number
-          seller_id?: string
+          seller_id?: string | null
           status?: string
           stripe_checkout_session_id?: string | null
           stripe_paid_at?: string | null

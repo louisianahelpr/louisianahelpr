@@ -124,13 +124,13 @@ describe("/home-history says who came out", () => {
     await screen.findByText("Emergency water-heater swap");
     // Read off `jobs.helper_id`. The old applications-only lookup rendered
     // NOTHING here — the "done by" line simply vanished.
-    expect(screen.getByText("Renée Beauchêne-Landry")).toBeTruthy();
+    expect(screen.getByText("Renée B.")).toBeTruthy(); // owner 2026-10-21: other members as "First L."
   });
 
   it("names the WHOLE roster on a group job, not just the lead", async () => {
     renderPage();
     await screen.findByText("Post-storm debris haul");
-    expect(screen.getByText("Marcus Thibodeaux, Renée Beauchêne-Landry and Dee Guidry")).toBeTruthy();
+    expect(screen.getByText("Marcus T., Renée B. and Dee G.")).toBeTruthy();
   });
 
   it("gives every completed job a 'done by' line", async () => {

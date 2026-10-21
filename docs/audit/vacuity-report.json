@@ -1,22 +1,15 @@
 {
-  "generated": "2026-10-21T03:10:29.307Z",
-  "guards": 2193,
-  "registered": 2188,
+  "generated": "2026-10-21T07:45:57.326Z",
+  "guards": 2224,
+  "registered": 2223,
   "unregistered": [
-    "src/lib/declutter/sellForMe.test.ts",
-    "src/lib/rentals/savedHomes.test.ts",
-    "src/lib/reviewStats.test.ts",
-    "src/lib/shops/hours.test.ts",
-    "src/lib/threadMutes.test.ts"
+    "src/lib/savedSearches.test.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/test/browseEndCard.test.tsx",
-    "src/test/categoryChipsAreNotRust.test.ts",
-    "src/test/centerCreateNav.test.tsx",
-    "src/test/pricesAreNeverOlive.test.ts",
-    "src/test/starsAreNeverRust.test.ts",
-    "src/test/youSettingsBoard52.test.tsx"
+    "src/components/disputeDecisionBoard142.test.ts",
+    "src/test/analyticsCountsReadRealEvents.test.ts",
+    "src/test/moneyOwedBlocksAccountDeletion.test.ts"
   ],
   "classD_selfReferential": [
     {
@@ -129,6 +122,15 @@
       ]
     },
     {
+      "module": "src/components/declutter/MovingSaleBanner.tsx",
+      "tests": [
+        "src/components/declutter/movingSaleBanner.test.tsx"
+      ],
+      "parents": [
+        "src/pages/user/UserProfile.tsx"
+      ]
+    },
+    {
       "module": "src/components/ErrorBoundary.tsx",
       "tests": [
         "src/test/errorBoundariesQuietDuringChunkRecovery.test.tsx",
@@ -164,24 +166,6 @@
       ],
       "parents": [
         "src/components/profile/AvailabilityTab.tsx"
-      ]
-    },
-    {
-      "module": "src/components/landing/HeroSection.tsx",
-      "tests": [
-        "src/test/twoFontTypeSystem.test.tsx"
-      ],
-      "parents": [
-        "src/pages/info/Index.tsx"
-      ]
-    },
-    {
-      "module": "src/components/landing/HowItWorksSection.tsx",
-      "tests": [
-        "src/test/landingStepsVisibleByDefault.test.tsx"
-      ],
-      "parents": [
-        "src/pages/info/Index.tsx"
       ]
     },
     {

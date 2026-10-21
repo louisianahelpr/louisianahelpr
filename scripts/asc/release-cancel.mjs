@@ -5,7 +5,7 @@
 // back to an editable state, keeps its metadata, and a new build can be
 // attached. It never deletes a build.
 //
-// Optional ASC_CANCEL_BUILD=<build number>: refuse unless the version in the
+// Optional ASC_BUILD=<build number>: refuse unless the version in the
 // submission carries exactly that build (so a stale run cannot cancel a newer
 // submission).
 //
@@ -16,7 +16,7 @@ import { APPLY, findApp } from "./release-lib.mjs";
 
 const token = mintToken();
 const app = await findApp(token);
-const expectBuild = (process.env.ASC_CANCEL_BUILD ?? "").trim();
+const expectBuild = (process.env.ASC_BUILD ?? "").trim();
 
 const open = (await ascAll(`/v1/reviewSubmissions?filter[app]=${app.id}&filter[platform]=IOS&limit=50`, token))
   .filter((s) => ["WAITING_FOR_REVIEW", "IN_REVIEW", "UNRESOLVED_ISSUES", "READY_FOR_REVIEW"].includes(s.attributes.state));
@@ -38,7 +38,7 @@ for (const s of open) {
   }
   console.log(`submission ${s.id} state=${s.attributes.state} submitted=${s.attributes.submittedDate ?? "-"} -> ${builds.join(", ") || "no version item"}`);
   if (expectBuild && !builds.some((x) => x.endsWith(`build ${expectBuild}`))) {
-    console.log(`  REFUSED: ASC_CANCEL_BUILD=${expectBuild} is not in this submission`);
+    console.log(`  REFUSED: ASC_BUILD=${expectBuild} is not in this submission`);
     failed = true;
     continue;
   }

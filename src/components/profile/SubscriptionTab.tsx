@@ -21,7 +21,7 @@ import { renewalLabel } from "@/lib/subscriptionRenewalLabel";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { openAppleSubscriptions } from "@/lib/appleSubscriptions";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { useFeature } from "@/hooks/useFeature";
+import { useMembershipsOn, MEMBERSHIPS_HIDDEN_IN_THIS_APP } from "@/hooks/useMembershipsOn";
 import {
   isIapAvailable,
   purchaseTier,
@@ -46,7 +46,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   // The row is hidden but /profile?tab=subscription is still a deep link, and on
   // iOS Apple takes the money before verify-apple-iap grants, so the refusal
   // sits here, before either payment path. create-pro-checkout uses the same switch.
-  const membershipsOn = useFeature("memberships");
+  const membershipsOn = useMembershipsOn();
   const [refreshing, setRefreshing] = useState(false);
   const reduceMotion = useReducedMotion();
   const [searchParams] = useSearchParams();
@@ -236,6 +236,19 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     if (billingInterval === "one_time") return tier.oneTime;
     return tier.monthly;
   };
+
+  // The store app never shows the plans, even through the
+  // /profile?tab=subscription deep link (useMembershipsOn).
+  if (MEMBERSHIPS_HIDDEN_IN_THIS_APP) {
+    return (
+      <ProfileTabBody>
+        <ProfileTabHeader title="Membership" onBack={onBack} />
+        <p className="text-ds-14 text-muted-foreground" data-testid="memberships-unavailable">
+          Memberships aren't available right now.
+        </p>
+      </ProfileTabBody>
+    );
+  }
 
   return (
     /* `space-y-4` — the shell every other Profile tab uses. This one wrapped
@@ -851,7 +864,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           the only way back for someone who reinstalled or changed device.
           Rendered only where it can do anything (native iOS with the purchase
           plugin present), so the web storefront is untouched. */}
-      {isIapAvailable() && (
+      {isIapAvailable() && membershipsOn && (
         <div className="mt-4 flex justify-center">
           <button
             type="button"

@@ -1,5 +1,6 @@
 {
  "captured": "2026-09-23T18:11:36.900Z",
+ "amended": "2026-10-21 (lander 4): user_roles INSERT and UPDATE removed from writable; migration 20261021184118 revoked them, and prod information_schema.role_table_grants shows authenticated DELETE,SELECT only",
  "source": "prod fncmgoasalhdgfwzhsqa, read-only catalog query; fixture for scripts/probes/ban-gate-coverage.probe.mjs",
  "writable": [
   {
@@ -432,14 +433,6 @@
   },
   {
    "op": "DELETE",
-   "tbl": "user_roles"
-  },
-  {
-   "op": "INSERT",
-   "tbl": "user_roles"
-  },
-  {
-   "op": "UPDATE",
    "tbl": "user_roles"
   },
   {

@@ -36,6 +36,8 @@ const form = {
   draftLoaded: true,
   hasDraft: false,
   openJobCount: 0,
+  entryPanel: null,
+  setEntryPanel: vi.fn(),
   startFresh: vi.fn(),
   setStep: vi.fn(),
   useTemplate: vi.fn(),
@@ -64,9 +66,11 @@ describe("gift card banner", () => {
     renderEntry();
     expect(banner()).toHaveTextContent("2 Helpr gift cards waiting for you");
     expect(screen.getByRole("link", { name: "See them" })).toHaveAttribute("href", "/profile?tab=gift_card");
-    // First in the column: above Start fresh.
-    const col = banner()!.closest(".flex.flex-col.gap-3")!;
-    expect(col.firstElementChild!.textContent).toMatch(/waiting for you/);
+    // Top of the column, right under step 0's question (owner 2026-10-21), above the four cards.
+    const q = screen.getByRole("heading", { name: "How do you want to start?" });
+    const first = screen.getByRole("button", { name: /^Start from scratch/ });
+    expect(q.compareDocumentPosition(banner()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(banner()!.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("stays out of the way while a gift is already being spent (?gift_card=)", () => {

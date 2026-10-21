@@ -74,9 +74,12 @@ export function useSavedHelpersLite() {
 export function OfferToSavedHelpr({
   open,
   onOpenChange,
+  headless = false,
 }: {
   open: boolean;
   onOpenChange: (next: boolean) => void;
+  /** The picker only, no collapsible header row: Post a Job step 0's saved-Helpr panel. */
+  headless?: boolean;
 }) {
   const navigate = useNavigate();
   // Preserve whatever is already on /post-job — above all `gift_card` and
@@ -104,47 +107,8 @@ export function OfferToSavedHelpr({
     navigate(`/post-job?${next.toString()}`);
   };
 
-  return (
-    <div className="rounded-2xl liquid-glass p-card flex flex-col justify-center" style={{ minHeight: "104px" }}>
-      <button
-        type="button"
-        onClick={toggle}
-        aria-expanded={open}
-        className="w-full flex items-center gap-4 text-left active:scale-[0.99] transition-transform"
-      >
-        <span
-          className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
-          style={{ background: "hsl(var(--boost-tint) / 0.16)" }}
-          aria-hidden
-        >
-          <UserCheck className="w-5 h-5" style={{ color: "hsl(var(--boost-ink))" }} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span
-            className="block font-display font-bold text-ds-17"
-            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
-          >
-            Offer It to a Saved Helpr
-          </span>
-          <span
-            className="block font-sans mt-0.5 text-ds-11"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            They get first refusal for a window you set before it opens to everyone.
-          </span>
-        </span>
-        <ChevronDown
-          className="w-5 h-5 shrink-0 transition-transform"
-          style={{
-            color: "hsl(var(--olivewood) / 0.8)",
-            transform: open ? "rotate(180deg)" : undefined,
-          }}
-          aria-hidden
-        />
-      </button>
-
-      {open && (
-        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+  const list = (
+        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 ${headless ? "" : "mt-3"}`}>
           {!helpers ? (
             <p
               className="font-sans text-ds-12 py-2"
@@ -204,7 +168,49 @@ export function OfferToSavedHelpr({
             })
           )}
         </div>
-      )}
+  );
+  if (headless) return list;
+
+  return (
+    <div className="rounded-2xl liquid-glass p-card flex flex-col justify-center" style={{ minHeight: "104px" }}>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        className="w-full flex items-center gap-4 text-left active:scale-[0.99] transition-transform"
+      >
+        <span
+          className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
+          style={{ background: "hsl(var(--boost-tint) / 0.16)" }}
+          aria-hidden
+        >
+          <UserCheck className="w-5 h-5" style={{ color: "hsl(var(--boost-ink))" }} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span
+            className="block font-display font-bold text-ds-17"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+          >
+            Offer It to a Saved Helpr
+          </span>
+          <span
+            className="block font-sans mt-0.5 text-ds-11"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+          >
+            They get first refusal for a window you set before it opens to everyone.
+          </span>
+        </span>
+        <ChevronDown
+          className="w-5 h-5 shrink-0 transition-transform"
+          style={{
+            color: "hsl(var(--olivewood) / 0.8)",
+            transform: open ? "rotate(180deg)" : undefined,
+          }}
+          aria-hidden
+        />
+      </button>
+
+      {open && list}
     </div>
   );
 }

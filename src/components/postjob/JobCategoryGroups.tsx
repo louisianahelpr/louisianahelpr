@@ -1,35 +1,58 @@
-import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
+import { Car, House, Leaf, MessageCircle, PartyPopper, PawPrint, Search, Truck, Wrench, type LucideIcon } from "lucide-react";
 import { SuggestCategory } from "@/components/SuggestCategory";
+import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
-import { JOB_CATEGORY_GROUPS, jobCategoryGroupOf, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
-import { CHIP, CHIP_ON, CHIP_OFF } from "@/components/ui/chipClasses";
+import { JOB_CATEGORY_GROUPS, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
+
+/** One Lucide glyph per group, from the app's own set (src/lib/categoryIcons.ts uses the same family). */
+const GROUP_ICONS: Record<JobCategoryGroupId, LucideIcon> = {
+  home: House,
+  yard: Leaf,
+  moving_errands: Truck,
+  auto: Car,
+  pets: PawPrint,
+  events: PartyPopper,
+  trades: Wrench,
+  other: MessageCircle,
+};
+
+/**
+ * Words people type that name the job, not the category ("e.g. wash my driveway", the box's own
+ * example). Each offers every category it could mean; the poster taps the right one.
+ */
+const SEARCH_HINTS: [RegExp, JobCategory[]][] = [
+  [/\b(?:driveway|sidewalk|siding|patio)\b/, ["pressure_washing", "concrete_masonry"]],
+  [/\b(?:lawn|mow|weeds?|leaves|hedges?)\b/, ["yard_work"]],
+  [/\b(?:furniture|boxes|haul)\b/, ["moving", "declutter_help"]],
+];
 
 interface Props {
   category: string;
   setCategory: (v: string) => void;
+  /** The group whose categories show (screen 1b), or null for the groups (screen 1). */
+  group: JobCategoryGroupId | null;
+  setGroup: (g: JobCategoryGroupId | null) => void;
+  /** A category was tapped: go on to Details. The tap IS the choice (owner 2026-10-21). */
+  onPicked: () => void;
 }
 
-
 /**
- * Post a Job step 1 (board 23): search, then GROUPS that open their
- * categories as chips. One category is picked; the sticky Continue in
- * FormStep names it. Selected controls wear `btn-grad-primary` (CLAUDE.md).
+ * Post a Job screen 1 and 1b (owner 2026-10-21, mock-up helpr-postjob-flow-mockup.png).
  *
- * Search matches category and group names, plus the same keyword map the
- * title auto-pick uses (`categoryFromTitle`: "wash my driveway" finds
- * Pressure Washing). It never sets the category on its own; the poster taps.
+ * Screen 1: the search box, then exactly the 8 groups as 2-column tiles with an icon each. No
+ * category list on this screen. A group with one category ("Something else" = Other) is that
+ * category, so its tap goes straight on.
+ * Screen 1b: that group's categories as tiles; a tap picks it and goes on. The page's back arrow
+ * returns to the groups (usePostJobForm `categoryGroup`).
+ *
+ * Search matches category and group names, plus the keyword map the title auto-pick uses
+ * (`categoryFromTitle`) and SEARCH_HINTS ("wash my driveway" offers Pressure washing and Concrete & masonry); a match is a tile, and its
+ * tap goes on too. Nothing is picked without a tap.
  */
-export function JobCategoryGroups({ category, setCategory }: Props) {
-  const [openGroup, setOpenGroup] = useState<JobCategoryGroupId>(() => jobCategoryGroupOf(category) ?? "home");
+export function JobCategoryGroups({ category, setCategory, group, setGroup, onPicked }: Props) {
   const [query, setQuery] = useState("");
-  // A category can arrive after mount (a draft, a repost, a haul-away or
-  // maintenance prefill): open its group so the picked chip is on screen.
-  useEffect(() => {
-    const g = jobCategoryGroupOf(category);
-    if (g) setOpenGroup(g);
-  }, [category]);
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -37,6 +60,7 @@ export function JobCategoryGroups({ category, setCategory }: Props) {
     const found = new Set<JobCategory>();
     const guess = categoryFromTitle(q);
     if (guess && guess in JOB_CATEGORY_LABELS) found.add(guess as JobCategory);
+    for (const [re, cats] of SEARCH_HINTS) if (re.test(q)) cats.forEach((c) => found.add(c));
     for (const g of JOB_CATEGORY_GROUPS) {
       const groupHit = g.label.toLowerCase().includes(q);
       for (const it of g.items) {
@@ -46,22 +70,43 @@ export function JobCategoryGroups({ category, setCategory }: Props) {
     return [...found].map((value) => ({ value, label: sentenceCaseLabel(JOB_CATEGORY_LABELS[value]) }));
   }, [query]);
 
-  const group = JOB_CATEGORY_GROUPS.find((g) => g.id === openGroup) ?? JOB_CATEGORY_GROUPS[0];
-
-  const chip = (it: { value: string; label: string }) => {
-    const on = category === it.value;
-    return (
-      <button
-        key={it.value}
-        type="button"
-        aria-pressed={on}
-        onClick={() => setCategory(it.value)}
-        className={`${CHIP} ${on ? CHIP_ON : CHIP_OFF}`}
-      >
-        {it.label}
-      </button>
-    );
+  const pick = (value: string) => {
+    setCategory(value);
+    onPicked();
   };
+
+  const tile = (key: string, icon: ReactNode, label: string, onClick: () => void, opts: { pressed?: boolean; sub?: string } = {}) => (
+    <button
+      key={key}
+      type="button"
+      aria-pressed={opts.pressed}
+      onClick={onClick}
+      // A picked category (coming back to this screen) wears an olive OUTLINE, never a fill (board 166):
+      // nothing on these screens is filled olive, the tap is the choice.
+      className={`flex min-h-[72px] items-center gap-3 rounded-2xl bg-card px-3.5 py-3 text-left font-sans text-foreground transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${opts.pressed ? "border-2 !border-primary" : "border border-border"}`}
+    >
+      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]" aria-hidden>
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1 leading-tight break-normal hyphens-none">
+        <span className="block text-ds-15 font-semibold">{label}</span>
+        {opts.sub && <span className="mt-1 hidden text-ds-13 font-normal text-muted-foreground lg:block">{opts.sub}</span>}
+      </span>
+    </button>
+  );
+  const categoryTile = (it: { value: string; label: string }) =>
+    tile(it.value, <CategoryIcon category={it.value} className="h-5 w-5" aria-hidden />, it.label, () => pick(it.value), { pressed: category === it.value });
+
+  const open = group ? JOB_CATEGORY_GROUPS.find((g) => g.id === group) : null;
+  if (open) {
+    return (
+      <div id="category-picker">
+        <section aria-label={`In ${open.label}`} className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
+          {open.items.map(categoryTile)}
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div id="category-picker" className="space-y-5">
@@ -81,49 +126,27 @@ export function JobCategoryGroups({ category, setCategory }: Props) {
         <section aria-label="Matching categories" className="space-y-2.5">
           <h2 className="font-sans text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Matches</h2>
           {matches.length > 0 ? (
-            <div className="flex flex-wrap gap-2">{matches.map(chip)}</div>
+            <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">{matches.map(categoryTile)}</div>
           ) : (
             <p className="font-sans text-ds-14 text-muted-foreground">
-              No category matches "{query.trim()}". Open a group below, or pick Other under Something else.
+              No category matches "{query.trim()}". Pick a group below, or Something else.
             </p>
           )}
         </section>
       ) : null}
 
-      <section aria-label="Category groups" className="space-y-2.5">
-        <h2 className="font-sans text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Groups</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
-          {JOB_CATEGORY_GROUPS.map((g) => {
-            const on = g.id === group.id;
-            return (
-              <button
-                key={g.id}
-                type="button"
-                aria-expanded={on}
-                aria-controls="category-group-items"
-                onClick={() => setOpenGroup(g.id)}
-                // The open group wears an olive OUTLINE (board 166): the one filled olive control on this
-                // screen is the Continue button, and the picked category chip below.
-                className={`flex min-h-12 flex-col justify-center rounded-ds-md bg-card px-4 py-2.5 text-left font-sans text-foreground leading-tight break-normal hyphens-none transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${on ? "border-2 !border-primary" : "border border-border"}`}
-              >
-                <span className="text-ds-15 font-semibold">{g.label}</span>
-                {/* Desktop (board 166): what is in the group, from the group's own categories. */}
-                {g.items.length > 1 && (
-                  <span className="hidden lg:block mt-1 text-ds-13 font-normal text-muted-foreground">{groupSample(g.items)}</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section
-        id="category-group-items"
-        aria-label={`In ${group.label}`}
-        className="space-y-3 rounded-ds-lg border border-border bg-card p-4"
-      >
-        <h3 className="font-sans text-ds-14 font-bold text-foreground">In {group.label}</h3>
-        <div className="flex flex-wrap gap-2">{group.items.map(chip)}</div>
+      <section aria-label="Category groups" className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
+        {JOB_CATEGORY_GROUPS.map((g) => {
+          const Icon = GROUP_ICONS[g.id];
+          const holdsPick = g.items.some((it) => it.value === category);
+          return tile(
+            g.id,
+            <Icon className="h-5 w-5" />,
+            g.label,
+            () => (g.items.length === 1 ? pick(g.items[0].value) : setGroup(g.id)),
+            { pressed: holdsPick, sub: g.items.length > 1 ? groupSample(g.items) : undefined },
+          );
+        })}
       </section>
 
       {/* I1: "Other" always works; this sends a missing category to the admin

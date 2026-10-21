@@ -18,7 +18,7 @@ import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { PostJobPreviewCard } from "@/components/postjob/PostJobPreviewCard";
 import { PostJobStepRail } from "@/components/postjob/PostJobStepRail";
 import { jobCategoryLabel } from "@/lib/jobCategories";
-import { sentenceCaseLabel } from "@/lib/jobCategoryGroups";
+import { JOB_CATEGORY_GROUPS, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import {
   PriceModeChoice,
@@ -118,6 +118,7 @@ export function FormStep({ form }: FormStepProps) {
     return () => root.removeEventListener("lh:show-form-page", onShow);
   }, [setPage]);
 
+  const openGroup = form.categoryGroup ? JOB_CATEGORY_GROUPS.find((g) => g.id === form.categoryGroup) ?? null : null;
   let pageLabel = "Continue";
   let pageReady = true;
   if (page === 1) {
@@ -220,8 +221,23 @@ export function FormStep({ form }: FormStepProps) {
       >
         {/* SCREEN 1: WHAT (board 23) */}
         <div data-form-page="1" hidden={page !== 1} className="space-y-section">
-          <PostJobStepHeader step={1} question="What do you need?" helper="Search, or pick a group to see what's in it." />
-          <JobCategoryGroups category={form.category} setCategory={form.setCategory} />
+          {openGroup ? (
+            <PostJobStepHeader step={1} question={groupQuestion(openGroup.id, openGroup.label)} helper="Tap one to keep going." />
+          ) : (
+            <PostJobStepHeader step={1} question="What do you need done?" helper="Search, or pick a category." />
+          )}
+          <JobCategoryGroups
+            category={form.category}
+            setCategory={form.setCategory}
+            group={form.categoryGroup}
+            setGroup={form.setCategoryGroup}
+            onPicked={() => {
+              // The open-job cap and the age gate stop the flow at screen 1 (their notices sit above it).
+              if (atOpenJobLimit || underAge) return;
+              form.setCategoryGroup(null);
+              setPage?.(2);
+            }}
+          />
         </div>
 
         {/* SCREEN 2: DETAILS (board 44) */}
@@ -347,6 +363,9 @@ export function FormStep({ form }: FormStepProps) {
             the form. AppPage's own pb-safe-nav gives the last field room;
             bg-premium-page is AppPage's surface, so the bar blends in. The
             column is 2xl (board 167: a flow step centred, about 640px). */}
+        {/* Not on screen 1 (owner 2026-10-21): a tap on a category IS the choice, so no floating
+            "Pick a category" / "Continue" button sits over the tiles. */}
+        {page !== 1 && (
         <div className="sticky bottom-safe-nav z-10 bg-premium-page pt-3 pb-2">
           {backTo && !atOpenJobLimit && !underAge ? (
             <Button
@@ -406,6 +425,7 @@ export function FormStep({ form }: FormStepProps) {
           </Button>
           )}
         </div>
+        )}
       </form>
       </div>
       <aside className="hidden lg:block sticky top-6">
@@ -413,4 +433,12 @@ export function FormStep({ form }: FormStepProps) {
       </aside>
     </div>
   );
+}
+
+/** Screen 1b's question (mock-up: "What kind of home job?"). Sentence case; "Something else" never opens 1b. */
+function groupQuestion(id: JobCategoryGroupId, label: string): string {
+  if (id === "moving_errands") return "What kind of moving or errand?";
+  if (id === "events") return "What kind of event help?";
+  if (id === "trades") return "What kind of trade job?";
+  return `What kind of ${label.toLowerCase()} job?`;
 }

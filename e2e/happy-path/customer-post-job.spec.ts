@@ -10,7 +10,7 @@ import { DATE } from "./seedData";
 //   1. The marketing landing page renders with a Sign Up CTA
 //   2. /signup loads without crashing (the public-form route entry-point)
 //   3. An authed customer can reach /post-job, see the entry landing, and
-//      "Start fresh" into the form step
+//      "Start from scratch" into the form step
 //   4. /posts surfaces a job the customer "posted" (mocked select)
 
 test.describe("customer post-job happy path", () => {
@@ -77,17 +77,17 @@ test.describe("customer post-job happy path", () => {
 
     await page.goto("/post-job");
 
-    // /post-job now opens on the entry-landing step (start fresh / draft /
+    // /post-job opens on step 0 (start from scratch / template / saved Helpr / AI /
     // template) before the full form. ProtectedRoute does an async profile
     // fetch + Big-7 gate before it renders children, so allow extra time.
     await expect(page.getByRole("heading", { name: /post a job/i })).toBeVisible({
       timeout: 15_000,
     });
 
-    // "Start fresh" transitions into the multi-step form.
-    await page.getByRole("button", { name: /start fresh/i }).click();
-    // J1 (2026-10-20): the form is five screens, one question each; screen 1 asks "What do you need?".
-    await expect(page.getByRole("heading", { name: /what do you need/i })).toBeVisible({
+    // "Start from scratch" transitions into the multi-step form.
+    await page.getByRole("button", { name: /start from scratch/i }).click();
+    // J1 (2026-10-20): the form is five screens, one question each; screen 1 asks "What do you need done?" (owner 2026-10-21).
+    await expect(page.getByRole("heading", { name: /what do you need done/i })).toBeVisible({
       timeout: 10_000,
     });
 
@@ -179,6 +179,6 @@ test.describe("customer post-job happy path", () => {
 
 // The entry-landing → form transition is what "post a job" actually IS on this
 // screen: ProtectedRoute can pass, the heading can render, and the page is
-// still a dead end if "Start fresh" does not advance the step. Neutering
+// still a dead end if "Start from scratch" does not advance the step. Neutering
 // `startFresh` must red test 2.
 // @mutate src/pages/post-job/useJobEntry.ts | const startFresh = () => { | const startFresh = () => { return;

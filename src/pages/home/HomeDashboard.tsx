@@ -19,6 +19,7 @@ import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { ProgressSegments } from "@/components/ui/ProgressSegments";
 import { LIVE_STEPS } from "./homeDashboard/nextUpStates";
+import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
 
 function greeting(d = new Date()) {
   const h = d.getHours();
@@ -97,6 +98,8 @@ function HomeDashboardScreen() {
             900px). Right (~40%): the money tiles, then YOUR SECTIONS as a compact 2x2. The phone keeps one column in the same order. */}
         <div data-home-columns className="flex flex-col gap-section xl:grid xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:gap-6 xl:items-start">
           <div data-home-main className="flex flex-col gap-section min-w-0">
+            {/* Board 143: a failed bank payout, first under the greeting; renders nothing unless one is open. */}
+            <PayoutFailedCard />
 
             {/* LIVE NOW (board 165, spec v2 §5.1): only while a job of mine, either side, is happening. */}
             {summary.liveNow && (() => {

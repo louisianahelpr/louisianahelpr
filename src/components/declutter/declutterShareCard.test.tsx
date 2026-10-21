@@ -5,7 +5,7 @@
  * shows the area, never an address.
  *
  * @mutate src/components/declutter/ListedWhatNext.tsx |   const shareable = live && it.status === "live"; |   const shareable = true;
- * @mutate src/components/declutter/DeclutterShareCard.tsx | export const listingLink = (id: string) => `${getPublicOrigin()}/declutter/item/${id}`; | export const listingLink = (id: string) => `${getPublicOrigin()}/declutter`;
+ * @mutate src/components/declutter/DeclutterShareCard.tsx | const listingLink = (id: string) => `${getPublicOrigin()}/declutter/item/${id}`; | const listingLink = (id: string) => `${getPublicOrigin()}/declutter`;
  * @mutate src/components/declutter/DeclutterShareCard.tsx | <p className="truncate text-ds-13 text-muted-foreground">{item.area_label} · on Louisiana Helpr</p> | <p className="truncate text-ds-13 text-muted-foreground">on Louisiana Helpr</p>
  * @mutate src/components/declutter/DeclutterShareCard.tsx |   if (await copyToClipboard(url)) { |   if (false) {
  */

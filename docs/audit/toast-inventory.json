@@ -1,10 +1,10 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 896,
-    "files": 225,
+    "calls": 898,
+    "files": 228,
     "rendering": 782,
-    "suppressedByPolicy": 114,
+    "suppressedByPolicy": 116,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
@@ -14,12 +14,12 @@
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 118,
+      "toast.success": 120,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 423,
-      "template": 97,
+      "literal": 424,
+      "template": 98,
       "dynamic": 424,
       "jsx": 0
     }
@@ -4358,26 +4358,6 @@
       "renders": true
     },
     {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 495,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Thanks. Your review shows once both of you review, or after 14 days."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 496,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
       "line": 136,
       "kind": "toast.error",
@@ -4449,37 +4429,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 86,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 160,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 166,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Question posted. The seller's answer will show here."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 169,
+      "line": 109,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4509,7 +4459,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 170,
+      "line": 172,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4519,7 +4469,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 178,
+      "line": 180,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4529,7 +4479,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 182,
+      "line": 184,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -4539,7 +4489,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 184,
+      "line": 186,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4549,7 +4499,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 193,
+      "line": 195,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4559,7 +4509,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 209,
+      "line": 211,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -4569,7 +4519,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 212,
+      "line": 214,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4589,7 +4539,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 223,
+      "line": 225,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4599,7 +4549,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 235,
+      "line": 237,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4609,7 +4559,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 241,
+      "line": 243,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4619,7 +4569,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 245,
+      "line": 247,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4629,7 +4579,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 256,
+      "line": 258,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4639,7 +4589,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 263,
+      "line": 265,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4649,7 +4599,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 264,
+      "line": 266,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4669,7 +4619,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 267,
+      "line": 269,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4710,6 +4660,74 @@
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
       "line": 171,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterQuestions.tsx",
+      "line": 87,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Answer posted."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterQuestions.tsx",
+      "line": 91,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterQuestions.tsx",
+      "line": 152,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Question posted. The answer will show here."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterQuestions.tsx",
+      "line": 155,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterReviewForm.tsx",
+      "line": 51,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Thanks. ${REVIEW_SHOWS}",
+        "holes": {
+          "REVIEW_SHOWS": [
+            {
+              "form": "literal",
+              "text": "Reviews show once you both leave one, or after 14 days."
+            }
+          ]
+        }
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterReviewForm.tsx",
+      "line": 60,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4856,6 +4874,16 @@
         "text": "stepProblem"
       },
       "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterShareCard.tsx",
+      "line": 32,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Link copied. Paste it in your local groups."
+      },
+      "renders": false
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",

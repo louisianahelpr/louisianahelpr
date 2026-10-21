@@ -9,6 +9,7 @@ import type { WebhookContext } from "../context.ts";
 import { isSingleHelprFeeTransfer, settleCancellationFeeTransfer } from "./_cancellationFeeLedger.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { requeueBlockers } from "./_chargebackHold.ts";
+import { tellFeePayeeFailed, tellHelprPayoutFailed } from "./_payoutFailedNotice.ts";
 
 export async function handleTransferCanceled(
   event: Stripe.Event,
@@ -28,6 +29,8 @@ export async function handleTransferCanceled(
   if (isSingleHelprFeeTransfer(transfer)) {
     const rowId = await settleCancellationFeeTransfer(transfer, "failed", { supabase, logStep }, "transfer_canceled");
     if (rowId) {
+      // Tell the Helpr (lead 2026-10-22: only Slack heard before).
+      await tellFeePayeeFailed(supabase, transfer, logStep);
       await postSlackOpsAlert({
         kind: "payout_failed",
         severity: "critical",
@@ -51,7 +54,7 @@ export async function handleTransferCanceled(
       failure_reason: "transfer_canceled",
     })
     .eq("stripe_transfer_id", transfer.id)
-    .select("job_id")
+    .select("job_id, helper_id, amount_cents")
     .maybeSingle();
 
   if (ledgerErr) {
@@ -92,6 +95,9 @@ export async function handleTransferCanceled(
   // internal status over a card dispute. Such a job stays 'released' (a false
   // terminal state, but not a payable one) and ops is paged to reconcile.
   let requeueBlocked = false;
+  // Whether the job really went back to payout_pending (the Helpr is told "we'll
+  // try again" only then).
+  let requeued = false;
   if (canceledLedger?.job_id) {
     const blockers = await requeueBlockers(supabase, canceledLedger.job_id);
     if (blockers.readError) {
@@ -175,10 +181,22 @@ export async function handleTransferCanceled(
         oncePerDayKey: `transfer-canceled-reset-zero-rows:${canceledLedger.job_id}`,
       });
     } else {
+      requeued = true;
       logStep("Canceled transfer — job reset to payout_pending for retry", {
         jobId: canceledLedger.job_id,
       });
     }
+  }
+
+  // Tell the Helpr (lead 2026-10-22: a payout that did not settle used to reach only Slack).
+  if (canceledLedger?.helper_id) {
+    await tellHelprPayoutFailed(supabase, {
+      userId: String(canceledLedger.helper_id),
+      jobId: canceledLedger.job_id ? String(canceledLedger.job_id) : null,
+      amountCents: Number(canceledLedger.amount_cents ?? transfer.amount ?? 0),
+      requeued,
+      transferId: transfer.id,
+    });
   }
 
   await postSlackOpsAlert({

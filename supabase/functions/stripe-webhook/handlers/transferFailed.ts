@@ -9,6 +9,7 @@ import type { WebhookContext } from "../context.ts";
 import { isSingleHelprFeeTransfer, settleCancellationFeeTransfer } from "./_cancellationFeeLedger.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { requeueBlockers } from "./_chargebackHold.ts";
+import { tellFeePayeeFailed, tellHelprPayoutFailed } from "./_payoutFailedNotice.ts";
 
 export async function handleTransferFailed(
   event: Stripe.Event,
@@ -31,6 +32,8 @@ export async function handleTransferFailed(
   if (isSingleHelprFeeTransfer(transfer)) {
     const rowId = await settleCancellationFeeTransfer(transfer, "failed", { supabase, logStep }, failureReason);
     if (rowId) {
+      // Tell the Helpr (lead 2026-10-22: only Slack heard before).
+      await tellFeePayeeFailed(supabase, transfer, logStep);
       await postSlackOpsAlert({
         kind: "payout_failed",
         severity: "critical",
@@ -54,7 +57,7 @@ export async function handleTransferFailed(
       failure_reason: failureReason,
     })
     .eq("stripe_transfer_id", transfer.id)
-    .select("job_id")
+    .select("job_id, helper_id, amount_cents")
     .maybeSingle();
 
   if (ledgerErr) {
@@ -95,6 +98,9 @@ export async function handleTransferFailed(
   // internal status over a card dispute. Such a job stays 'released' (a false
   // terminal state, but not a payable one) and ops is paged to reconcile.
   let requeueBlocked = false;
+  // Whether the job really went back to payout_pending (the Helpr is told "we'll
+  // try again" only then).
+  let requeued = false;
   if (failedLedger?.job_id) {
     const blockers = await requeueBlockers(supabase, failedLedger.job_id);
     if (blockers.readError) {
@@ -175,8 +181,20 @@ export async function handleTransferFailed(
         oncePerDayKey: `transfer-failed-reset-zero-rows:${failedLedger.job_id}`,
       });
     } else {
+      requeued = true;
       logStep("Failed transfer — job reset to payout_pending for retry", { jobId: failedLedger.job_id });
     }
+  }
+
+  // Tell the Helpr (lead 2026-10-22: a failed payout used to reach only Slack).
+  if (failedLedger?.helper_id) {
+    await tellHelprPayoutFailed(supabase, {
+      userId: String(failedLedger.helper_id),
+      jobId: failedLedger.job_id ? String(failedLedger.job_id) : null,
+      amountCents: Number(failedLedger.amount_cents ?? transfer.amount ?? 0),
+      requeued,
+      transferId: transfer.id,
+    });
   }
 
   // Operator alert — failed payouts always need human eyes.

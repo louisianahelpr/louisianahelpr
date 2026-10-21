@@ -11,9 +11,10 @@ const LandingAppleButton = lazy(() => import("./LandingAppleButton"));
 /**
  * The landing page below the hero (owner-approved redesign, 2026-10-20): the
  * four section cards, then (after How a job works) the money band and the join
- * block. A section whose switch is not open to everyone says "Opening soon" and
- * has no link, and so does every switched section until that answer is in
- * (fails closed, useSectionsOpen). An OPEN section's card links to its Browse
+ * block. A section whose switch is not open to everyone has no link and sits
+ * under ONE "Opening soon" line with the others not yet open (owner 2026-10-21),
+ * and so does every switched section until that answer is in (fails closed,
+ * useSectionsOpen). An OPEN section's card links to its Browse
  * page (or sign-up, returning there, for a section behind sign-in).
  *
  * Copy states only what the app does today (lead, LANDING-APPROVED.md): no
@@ -81,6 +82,46 @@ export function SectionsShowcase() {
   const { open } = useSectionsOpen(seen);
   const navigate = useNavigate();
 
+  const cards = SECTIONS.map((s) => {
+    const Icon = s.icon;
+    const soon = sectionIsComingSoon(s.feature, open);
+    const link = cardLinkFor(s.key, s.path, s.navLabel);
+    // All four sections are equal (design spec v2 §1): one card style.
+    const card = (
+      <li
+        key={s.key}
+        className="relative rounded-[20px] p-6 flex flex-col gap-3 min-h-[14rem] lg:min-h-[17rem] min-w-0"
+        style={{ background: "var(--lp-ground)", color: "var(--lp-ink)" }}
+        data-section={s.key}
+        data-soon={soon ? "true" : "false"}
+      >
+        <Icon className="w-6 h-6" strokeWidth={1.6} aria-hidden style={{ color: "var(--lp-action-strong)" }} />
+        <h3 className="text-ds-20 font-bold tracking-tight mt-2">{s.navLabel}</h3>
+        <p className="text-ds-15 leading-relaxed" style={{ color: "var(--lp-body)" }}>
+          {COPY[s.key]}
+        </p>
+        {!soon && (
+          <Link
+            to={link.to}
+            onClick={(e) => {
+              e.preventDefault();
+              void goSignedInOr(navigate, link.signedIn, link.to);
+            }}
+            className="self-start mt-auto pt-1 inline-flex items-center gap-1.5 min-h-11 text-ds-15 font-bold underline-offset-4 hover:underline after:absolute after:inset-0 after:rounded-[inherit]"
+            style={{ color: "var(--lp-action-strong)" }}
+            data-testid={`landing-browse-${s.key}`}
+          >
+            {link.text}
+            <ArrowRight className="w-4 h-4" strokeWidth={1.75} aria-hidden />
+          </Link>
+        )}
+      </li>
+    );
+    return { soon, card };
+  });
+  const openCards = cards.filter((c) => !c.soon);
+  const soonCards = cards.filter((c) => c.soon);
+
   return (
     <section ref={ref} id="sections" aria-labelledby="sections-heading" className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-14 lg:pt-16 pb-16 sm:pb-20 lg:pb-28 scroll-mt-24" style={{ background: "var(--lp-surface)" }}>
       <div className="mx-auto w-full max-w-6xl flex flex-col gap-8 sm:gap-12">
@@ -92,52 +133,40 @@ export function SectionsShowcase() {
             Verify your ID once and it counts everywhere on Helpr.
           </p>
         </div>
-        <ul className="grid grid-cols-1 min-[560px]:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="landing-sections">
-          {SECTIONS.map((s) => {
-            const Icon = s.icon;
-            const soon = sectionIsComingSoon(s.feature, open);
-            const link = cardLinkFor(s.key, s.path, s.navLabel);
-            // All four sections are equal (design spec v2 §1): one card style.
-            return (
-              <li
-                key={s.key}
-                className="relative rounded-[20px] p-6 flex flex-col gap-3 min-h-[14rem] lg:min-h-[17rem]"
-                style={{ background: "var(--lp-ground)", color: "var(--lp-ink)" }}
-                data-section={s.key}
-                data-soon={soon ? "true" : "false"}
+        {/* Owner 2026-10-21: ONE "Opening soon" line above the unopened cards, never a
+            pill on each. The open cards come first; the line names the group, so it
+            moves with the switches (fail closed: a section is "soon" until its answer
+            is in). At lg the four cards share one row, the open ones on the left. */}
+        <div
+          className="grid grid-cols-1 lg:grid-cols-4 gap-4"
+          data-testid="landing-sections"
+          style={{ "--open-n": openCards.length, "--soon-n": soonCards.length } as React.CSSProperties}
+        >
+          <ul
+            className="grid grid-cols-1 gap-4 md:[grid-template-columns:repeat(var(--open-n),minmax(0,1fr))] lg:[grid-column:span_var(--open-n)]"
+            aria-label="Open now"
+          >
+            {openCards.map((c) => c.card)}
+          </ul>
+          {soonCards.length > 0 && (
+            <div className="flex flex-col gap-3 min-w-0 lg:[grid-column:span_var(--soon-n)]">
+              <p
+                id="sections-soon"
+                className="text-ds-15 font-semibold"
+                style={{ color: "var(--lp-body)" }}
+                data-testid="landing-sections-soon"
               >
-                <Icon className="w-6 h-6" strokeWidth={1.6} aria-hidden style={{ color: "var(--lp-action-strong)" }} />
-                <h3 className="text-ds-20 font-bold tracking-tight mt-2">{s.navLabel}</h3>
-                <p className="text-ds-15 leading-relaxed" style={{ color: "var(--lp-body)" }}>
-                  {COPY[s.key]}
-                </p>
-                {soon ? (
-                  <span
-                    className="self-start mt-auto rounded-full px-3 py-1 text-ds-12 font-semibold"
-                    style={{ border: "1px solid var(--lp-line-strong)", color: "var(--lp-muted)" }}
-                  >
-                    Opening soon
-                  </span>
-                ) : null}
-                {!soon && (
-                  <Link
-                    to={link.to}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      void goSignedInOr(navigate, link.signedIn, link.to);
-                    }}
-                    className="self-start mt-auto pt-1 inline-flex items-center gap-1.5 min-h-11 text-ds-15 font-bold underline-offset-4 hover:underline after:absolute after:inset-0 after:rounded-[inherit]"
-                    style={{ color: "var(--lp-action-strong)" }}
-                    data-testid={`landing-browse-${s.key}`}
-                  >
-                    {link.text}
-                    <ArrowRight className="w-4 h-4" strokeWidth={1.75} aria-hidden />
-                  </Link>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                Opening soon
+              </p>
+              <ul
+                aria-labelledby="sections-soon"
+                className="flex-1 grid grid-cols-1 gap-4 md:[grid-template-columns:repeat(var(--soon-n),minmax(0,1fr))]"
+              >
+                {soonCards.map((c) => c.card)}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
@@ -222,7 +251,7 @@ export function TrustAndJoin() {
             Join your neighbors on{" "}
             <em style={{ fontStyle: "italic", color: "var(--lp-action-strong)" }}>Helpr.</em>
           </h2>
-          <p className="max-w-xl text-ds-15 sm:text-ds-17" style={{ color: "var(--lp-body)" }}>One free account for Jobs, Declutter, Shops and Homes.</p>
+          <p className="max-w-xl text-ds-15 sm:text-ds-17" style={{ color: "var(--lp-body)" }}>One free account. Jobs are open now.</p>
           <div className="mt-2 w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
               to="/signup"

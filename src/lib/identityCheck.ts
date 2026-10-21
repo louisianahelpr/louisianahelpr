@@ -85,6 +85,50 @@ export function identityView(idvStatus: string | null | undefined): IdentityView
 }
 
 /**
+ * A check "with our team" (manual_review) is STALE once it has waited 48 hours
+ * with no admin decision (an admin decision moves idv_status off
+ * manual_review, so still being in it IS "no decision"). Stale, the sheet leads
+ * with a fresh Stripe check; under 48 h it still says "with our team" and
+ * offers the fresh check second (owner report 2026-10-21). Either way the
+ * server decides whether a restart may start (stripe-idv-start +
+ * claim_idv_attempt).
+ */
+export const IDENTITY_REVIEW_STALE_MS = 48 * 60 * 60 * 1000;
+
+export function identityReviewIsStale(since: string | null | undefined, now: number = Date.now()): boolean {
+  if (!since) return false;
+  const t = Date.parse(since);
+  return Number.isFinite(t) && now - t > IDENTITY_REVIEW_STALE_MS;
+}
+
+/**
+ * When the member's CURRENT manual review began: their newest idv_status ->
+ * manual_review row in helper_verifications (written by the profiles history
+ * trigger; RLS lets a member read their own), else `fallback` (the profile's
+ * updated_at, which any profile edit moves, so it can only make the wait look
+ * shorter). The server's idv_review_waiting_since() reads the same two.
+ * Unreadable -> the fallback; a wrong "fresh" only reorders the two buttons.
+ */
+export async function readIdentityReviewSince(userId: string, fallback: string | null | undefined): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from("helper_verifications")
+      .select("changed_at")
+      .eq("user_id", userId)
+      .eq("field", "idv_status")
+      .eq("new_value", "manual_review")
+      .order("changed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.changed_at ?? fallback ?? null;
+  } catch (e) {
+    report(e, { severity: "warning", tags: { area: "identity", op: "readIdentityReviewSince" } });
+    return fallback ?? null;
+  }
+}
+
+/**
  * The server's refusal, recognised by its raised code (migration
  * 20261021081258), so a caller can open the sheet instead of a dead-end toast.
  */

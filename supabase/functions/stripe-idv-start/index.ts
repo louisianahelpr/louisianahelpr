@@ -6,6 +6,18 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
+/** Profile states whose stored session is read at Stripe before anything is claimed. */
+const RESUMABLE_OR_REVIEW = ["pending", "processing", "manual_review"];
+/** Profile states a member may restart from (with a finished or unreadable previous session). */
+const RESTART_FROM = ["manual_review", "pending", "not_started"];
+/** Stripe session states that mean the previous check is over without a verdict. */
+const RESTART_AFTER = ["requires_input", "canceled"];
+
+function restartAllowed(idvStatus: string | null, previousReadable: boolean, previousStatus: string | null): boolean {
+  if (!RESTART_FROM.includes(idvStatus ?? "not_started")) return false;
+  return !previousReadable || RESTART_AFTER.includes(previousStatus ?? "");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -123,20 +135,46 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Reuse existing pending session if it exists and is still usable
-    if (profile?.idv_session_id && (profile.idv_status === "processing" || profile.idv_status === "pending")) {
+    // The previous session, read at Stripe (free: no claim, no new session).
+    // A pending/processing one that still takes input is handed back as is.
+    // Its status also decides whether a FRESH check may start below.
+    let previousReadable = false;
+    let previousStatus: string | null = null;
+    if (profile?.idv_session_id && RESUMABLE_OR_REVIEW.includes(profile.idv_status ?? "")) {
       try {
         const existing = await stripe.identity.verificationSessions.retrieve(profile.idv_session_id);
-        if (existing.status === "requires_input" && existing.url) {
+        previousReadable = true;
+        previousStatus = existing.status;
+        if (profile.idv_status !== "manual_review" && existing.status === "requires_input" && existing.url) {
           return new Response(JSON.stringify({ url: existing.url, sessionId: existing.id }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: 200,
           });
         }
-      } catch (_e) {
-        // fall through to create a new session
+      } catch (e) {
+        // Only Stripe's "no such session" (gone, or made on the other mode: an
+        // old-flow test session) counts as finished for the restart below. A
+        // rate limit, a 5xx or a network blip is not an answer: a session Stripe
+        // is still processing or has verified must never be restarted past
+        // (lh-authz-rls review, finding 1), so fail closed and let them retry.
+        const code = (e as { code?: unknown; statusCode?: unknown } | null)?.code;
+        const http = (e as { statusCode?: unknown } | null)?.statusCode;
+        if (code !== "resource_missing" && http !== 404) {
+          console.error("[stripe-idv-start] could not read the previous session:", (e as { message?: string })?.message);
+          return fail(503, "We couldn't reach your ID check just now. Please try again in a moment.");
+        }
+        previousReadable = false;
       }
     }
+
+    // RESTART (owner report 2026-10-21): a check stuck "with our team", or a
+    // pending one that can no longer be resumed, may start a FRESH session when
+    // the previous one is requires_input or canceled at Stripe, or cannot be
+    // read. Never while Stripe is still processing it or has verified it (a
+    // verified-but-held check is a person's call). claim_idv_attempt still
+    // refuses a ban, an admin's rejection ('failed') and a fourth attempt, and
+    // never writes 'verified'.
+    const restart = restartAllowed(profile?.idv_status ?? null, previousReadable, previousStatus);
 
     // ── COST GATE ──────────────────────────────────────────────────────────
     // Everything past this line spends platform money: Stripe bills the
@@ -150,10 +188,20 @@ serve(async (req) => {
     // cannot reset it. It also enforces that the account has settled the $2
     // "identity verification & account setup fee" that pays for this, is not
     // banned, and has attempts left.
-    const { data: claimRaw, error: claimErr } = await supabaseAdmin.rpc("claim_idv_attempt", {
+    let { data: claimRaw, error: claimErr } = await supabaseAdmin.rpc("claim_idv_attempt", {
       p_user_id: user.id,
       p_skip_fee_gate: skipFeeGate,
+      p_restart: restart,
     });
+    if (claimErr?.code === "PGRST202" && restart) {
+      // The 4-argument claim (20261021135734) not deployed yet: the old claim,
+      // which never restarts. A deploy-order gap degrades to the old refusal.
+      console.warn("[stripe-idv-start] claim_idv_attempt(p_restart) not deployed yet (PGRST202): no restart");
+      ({ data: claimRaw, error: claimErr } = await supabaseAdmin.rpc("claim_idv_attempt", {
+        p_user_id: user.id,
+        p_skip_fee_gate: skipFeeGate,
+      }));
+    }
     if (claimErr) {
       // Fail CLOSED. An unreadable claim is not permission to spend.
       console.error("[stripe-idv-start] claim_idv_attempt failed:", claimErr.message);
@@ -228,6 +276,10 @@ serve(async (req) => {
           );
         case "account_restricted":
           return fail(403, "This account can't start verification right now.");
+        case "rejected":
+          // An admin's decision (or a match to a removed account) stands; only
+          // an admin moves it. The sheet shows its "couldn't verify" state.
+          return fail(403, "We couldn't verify this ID. Get in touch and we'll help you sort it out.", { rejected: true });
         case "attempt_race_lost":
           return fail(409, "A verification is already starting — give it a second and refresh.");
         case "profile_not_found":

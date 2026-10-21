@@ -12,8 +12,10 @@ import { userFacingError } from "@/lib/userFacingError";
 import { report } from "@/lib/errorLogger";
 import {
   closeIdentityCheck,
+  identityReviewIsStale,
   identityView,
   openIdentityCheck,
+  readIdentityReviewSince,
   useIdentityCheckSheet,
   type IdentityCheckReason,
   type IdentityView,
@@ -38,7 +40,7 @@ const COPY: Record<Exclude<IdentityView, "start">, { title: string; body: string
   },
   with_team: {
     title: "Your ID check is with our team",
-    body: "Stripe couldn't confirm it on its own, so a person on our team is looking at it. We'll let you know when it's done, usually within 24 hours.",
+    body: "Stripe couldn't confirm it on its own, so a person on our team is looking at it. We'll let you know when it's done, usually within 24 hours. You can also start a fresh check with Stripe now.",
   },
   failed: {
     title: "We couldn't verify this ID",
@@ -48,6 +50,18 @@ const COPY: Record<Exclude<IdentityView, "start">, { title: string; body: string
     title: "Your ID is verified",
     body: "Thanks. You're all set, and you won't be asked again.",
   },
+};
+
+/** "With our team" for over 48 hours with no decision: lead with a fresh check. */
+const STALE_REVIEW = {
+  title: "Try your ID check again",
+  body: "Your last check has waited on our team longer than it should. Start a fresh one with Stripe now. It takes about 2 minutes.",
+};
+
+/** The server will not start a fresh check (Stripe is still on it, or a person has to finish it). */
+const REVIEW_ONLY = {
+  title: "Your ID check is with our team",
+  body: "A person on our team needs to finish this one. We'll let you know as soon as it's done.",
 };
 
 /**
@@ -67,6 +81,10 @@ export function IdentityCheckHost() {
   // The server's own answer when it differs from the profile we hold (the
   // manual-review refusal arrives before the profile refetch does).
   const [override, setOverride] = useState<IdentityView | null>(null);
+  // When the current manual review began (stale rule), and whether the server
+  // has said a fresh check cannot start from here.
+  const [reviewSince, setReviewSince] = useState<string | null>(null);
+  const [restartOff, setRestartOff] = useState(false);
 
   // Entry by link: the notice (?verify_id=1) and Stripe's return (?idv=complete).
   useEffect(() => {
@@ -86,12 +104,30 @@ export function IdentityCheckHost() {
   useEffect(() => {
     if (open) {
       setOverride(null);
+      setRestartOff(false);
       void refresh();
     }
   }, [open, refresh]);
 
   const view: IdentityView = override ?? identityView(profile?.idv_status);
-  const copy = view === "start" ? null : COPY[view];
+  const profileUpdatedAt = (profile as { updated_at?: string | null } | null)?.updated_at ?? null;
+  useEffect(() => {
+    if (!open || view !== "with_team" || !user?.id) return;
+    let live = true;
+    void readIdentityReviewSince(user.id, profileUpdatedAt).then((since) => {
+      if (live) setReviewSince(since);
+    });
+    return () => {
+      live = false;
+    };
+  }, [open, view, user?.id, profileUpdatedAt]);
+
+  const canRestart = view === "with_team" && !restartOff;
+  const staleReview = canRestart && identityReviewIsStale(reviewSince);
+  const copy =
+    view === "start" ? null
+    : view === "with_team" ? (restartOff ? REVIEW_ONLY : staleReview ? STALE_REVIEW : COPY.with_team)
+    : COPY[view];
 
   const start = async () => {
     setLoading(true);
@@ -101,9 +137,16 @@ export function IdentityCheckHost() {
         body: { native: isNativePlatform, return_path: returnPath },
       });
       if (error) {
-        const body = (await functionErrorBody(error)) as { inManualReview?: boolean } | null;
+        const body = (await functionErrorBody(error)) as { inManualReview?: boolean; rejected?: boolean } | null;
         if (body?.inManualReview === true) {
           setOverride("with_team");
+          setRestartOff(true);
+          void refresh();
+          return;
+        }
+        if (body?.rejected === true) {
+          setOverride("failed");
+          void refresh();
           return;
         }
         throw new Error(await functionErrorMessage(error, "We couldn't start the ID check"));
@@ -135,7 +178,7 @@ export function IdentityCheckHost() {
     : view === "failed" ? { label: "Contact support", onClick: () => { closeIdentityCheck(); navigate("/support"); } }
     : { label: view === "verified" ? "Done" : "Got it", onClick: closeIdentityCheck };
   /** A state with nothing to do has ONE labelled way out (it also drops the corner x, popupDismiss.tsx); a state with a step has Not now. */
-  const nothingToDo = view === "checking" || view === "with_team" || view === "verified";
+  const nothingToDo = view === "checking" || (view === "with_team" && !canRestart) || view === "verified";
 
   return (
     <Sheet open={open} onOpenChange={(o) => (o ? undefined : closeIdentityCheck())}>
@@ -160,6 +203,29 @@ export function IdentityCheckHost() {
             <p className="text-ds-15 text-foreground">{copy!.body}</p>
           </div>
         )}
+        {canRestart && !staleReview ? (
+          // Under 48 h: "with our team" leads, and a fresh check is offered second.
+          <SheetFooter className="pt-5">
+            <SheetSecondaryAction onClick={start} disabled={loading} data-testid="identity-check-restart">
+              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />}
+              Try again with Stripe
+            </SheetSecondaryAction>
+            <SheetPrimaryAction onClick={closeIdentityCheck} disabled={loading} data-testid="identity-check-primary">
+              Got it
+            </SheetPrimaryAction>
+          </SheetFooter>
+        ) : canRestart ? (
+          // Stale (over 48 h, no decision): the fresh check leads.
+          <SheetFooter className="pt-5">
+            <SheetSecondaryAction onClick={closeIdentityCheck} disabled={loading}>
+              Not now
+            </SheetSecondaryAction>
+            <SheetPrimaryAction onClick={start} disabled={loading} data-testid="identity-check-restart">
+              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />}
+              Try again with Stripe
+            </SheetPrimaryAction>
+          </SheetFooter>
+        ) : (
         <SheetFooter className="pt-5">
           {/* A state with nothing to do has ONE labelled way out (it also drops
               the corner x, popupDismiss.tsx); a state with a step has Not now. */}
@@ -177,6 +243,7 @@ export function IdentityCheckHost() {
             </SheetPrimaryAction>
           )}
         </SheetFooter>
+        )}
       </SheetContent>
     </Sheet>
   );

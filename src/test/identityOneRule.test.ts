@@ -27,7 +27,7 @@
  * not a gate (the rule itself, a verdict WRITER, or Stripe's own Connect sync).
  *
  * @mutate src/lib/helperTier.ts |   if (!tierIdentityVerified(profile)) return false; |   if (profile.stripe_identity_verified !== true) return false;
- * @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql |   IF public.identity_is_verified(v_status, v_connect) THEN | IF v_status = 'verified' THEN
+ * @mutate supabase/migrations/20261021135734_idv_restart_after_manual_review.sql |   IF public.identity_is_verified(v_status, v_connect) THEN | IF v_status = 'verified' THEN
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";

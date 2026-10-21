@@ -1,0 +1,1573 @@
+-- DECLUTTER: THE SELLER DELIVERS, THE BUYER PICKS A DATE AND TIME
+-- (owner request 2026-10-21 night; spec ~/.lh-wt/declutter-seller-delivery-spec.md,
+-- mirrored in docs/specs/declutter-seller-delivery.md). Behind the switch
+-- 'declutter_seller_delivery', created OFF here.
+--
+-- What was missing: a seller could not say "I can deliver this myself", so a
+-- buyer without a car had only porch pickup, pickup at the door, or a Helpr.
+--
+-- What this adds (every number the owner still has to confirm is ONE value in
+-- declutter_seller_delivery_rules(), marked [DEFAULT] there):
+--   1. Seller settings: "I can deliver" (off by default), a flat whole-dollar
+--      rate per order, a distance limit, weekly delivery windows and days off.
+--      Per item, the seller can switch delivery off (on by default: an item is
+--      deliverable unless it is in declutter_item_no_seller_delivery).
+--   2. Checkout handover 'seller_delivery' with a chosen 1-hour slot
+--      (declutter_start_checkout gains p_slot_start). The slot is HELD for the
+--      Stripe page's life (31 min + margin) and becomes the booking when the
+--      payment lands (the order-status trigger, so every path that marks an
+--      order paid books it). A slot someone else took in the meantime is
+--      refused at checkout ("slot_unavailable"); a payment that lands after
+--      its hold lapsed AND the slot went to someone else leaves the booking
+--      'needs_time' (the buyer picks again; no money moves on its own).
+--   3. Range: every item's pickup point (rounded, as Helpr delivery prices it)
+--      within the seller's distance of the buyer's geocoded drop-off.
+--   4. Money: the rate is part of the ONE order charge (delivery_cents); the
+--      buyer's fee is 5% of (items + rate) + 70c, so the card fee on the rate
+--      is covered (the shipping rule, owner decision 2 of 2026-10-20) and the
+--      seller keeps the whole rate; it is paid to the seller WITH the items at
+--      the handover (declutter_payouts.delivery_cents). Seller proceeds are
+--      not rounded (the whole-dollar ruling covers Helpr payouts only).
+--      Refunds: seller cancels / does not deliver -> everything back, delivery
+--      included, the seller pays the card fee (full_seller_pays_fee); the rate
+--      is never refunded on its own (declutter_delivery_refund refuses it).
+--   5. After payment: the buyer's address reaches the seller only then; the
+--      seller's "Delivered" photo, the buyer's "I got it" (existing confirm)
+--      or the 24 h auto-pay after the photo; reminders 24 h and 1 h before;
+--      either side proposes a new time, the other accepts.
+--
+-- Restated, each from its NEWEST definition (prod md5 of prosrc read
+-- 2026-10-21, equal to the repo text; the PGlite proof checks it):
+--   declutter_orders_fee_rule_f1        20261015023613  (ab8c8664...)
+--   declutter_start_checkout            20261017055505  (8526c31a...)
+--   declutter_complete_handover         20261017055505  (e6290ef7...)
+--   declutter_bookings_not_delivery     20261017055505  (36a800a3...)
+--   declutter_delivery_refund           20261017055505  (977715c2...)
+--   declutter_address_access            20261015042253  (e5d21f8b...)
+--   declutter_handover_sweep            20261018183715  (57399150...)
+-- NOT restated (they already do the right thing for 'seller_delivery', proven
+-- in the PGlite proof): declutter_mark_order_paid, declutter_close_paid_order,
+-- declutter_record_refund, declutter_delivery_reserved_cents (0 on an order
+-- with no Helpr task and no delivery refund, so a refund is the whole order),
+-- declutter_confirm_handover, declutter_orders_fee_rule_frozen.
+--
+-- Replay-safe: IF NOT EXISTS / OR REPLACE / DROP ... IF EXISTS / ON CONFLICT.
+-- Grants by role name, REVOKE ... FROM PUBLIC, anon. Applied 3x by
+-- src/test/pglite/declutterSellerDelivery.pglite.mjs.
+
+-- ---------------------------------------------------------------------------
+-- 1. The switch (OFF; opening it is the owner's flip in Admin -> Settings).
+INSERT INTO public.feature_switches (key, audience, description)
+VALUES ('declutter_seller_delivery', 'off',
+        'Declutter: the seller delivers for a flat rate and the buyer picks a date and time at checkout.')
+ON CONFLICT (key) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 2. The rules: ONE place for every number (the app reads them from
+--    declutter_my_seller_delivery / declutter_seller_delivery_offer; its
+--    mirror src/lib/declutter/sellerDelivery.ts is pinned to this text by
+--    src/test/declutterSellerDelivery.test.ts).
+CREATE OR REPLACE FUNCTION public.declutter_seller_delivery_rules()
+RETURNS jsonb
+LANGUAGE sql
+IMMUTABLE
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT jsonb_build_object(
+    'rate_min_cents', 500,                                -- [DEFAULT] $5, the raise ruling's floor
+    'rate_max_cents', 15000,                              -- [DEFAULT] $150, the raise ruling's cap
+    'radius_choices_miles', jsonb_build_array(5, 10, 25, 50), -- [DEFAULT]
+    'radius_default_miles', 10,                           -- [DEFAULT]
+    'slot_minutes', 60,                                   -- [DEFAULT] 1-hour slots
+    'lead_hours', 24,                                     -- [DEFAULT] bookable from 24 h ahead
+    'horizon_days', 14,                                   -- [DEFAULT] up to 14 days out
+    'per_slot', 1,                                        -- [DEFAULT] one delivery per slot per seller
+    'hold_minutes', 35,                                   -- the Stripe page lives 31 min; a little more
+    'not_delivered_after_minutes', 15,                    -- [DEFAULT] "Not delivered" from slot end + 15 min
+    'auto_confirm_hours', 24,                             -- as for porch: 24 h after the photo
+    'proposals_per_side', 3,                              -- [DEFAULT] new-time requests per side
+    'reminder_hours', jsonb_build_array(24, 1),           -- the spec: 24 h and 1 h before
+    'timezone', 'America/Chicago');
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_seller_delivery_rules() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_seller_delivery_rules() TO authenticated, service_role;
+
+-- [DEFAULT] The buyer's fee on a seller-delivered order counts the rate (the
+-- shipping rule): 5% of (items + rate) + 70c, once per order.
+CREATE OR REPLACE FUNCTION public.declutter_buyer_fee_cents_seller_delivery(p_items_cents integer, p_delivery_cents integer)
+RETURNS integer
+LANGUAGE sql
+IMMUTABLE
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT round((greatest(COALESCE(p_items_cents, 0), 0) + greatest(COALESCE(p_delivery_cents, 0), 0)) * 0.05)::integer + 70;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_buyer_fee_cents_seller_delivery(integer, integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_buyer_fee_cents_seller_delivery(integer, integer) TO authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 3. Tables. No client privilege on any of them: members read and write
+--    through the RPCs below (the buyer's address must never reach the seller
+--    before payment).
+
+-- The seller's "I can deliver" setting.
+CREATE TABLE IF NOT EXISTS public.declutter_seller_delivery (
+  seller_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  enabled boolean NOT NULL DEFAULT false,
+  rate_cents integer NOT NULL CHECK (rate_cents > 0 AND rate_cents % 100 = 0),
+  radius_miles integer NOT NULL CHECK (radius_miles BETWEEN 1 AND 100),
+  is_seed boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.declutter_seller_delivery ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.declutter_seller_delivery FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.declutter_seller_delivery TO service_role;
+
+-- Weekly delivery windows, Louisiana local time (several per day OK).
+CREATE TABLE IF NOT EXISTS public.declutter_delivery_windows (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  seller_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  weekday smallint NOT NULL CHECK (weekday BETWEEN 0 AND 6), -- 0 = Sunday
+  starts_local time NOT NULL,
+  ends_local time NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT declutter_delivery_windows_order CHECK (ends_local > starts_local),
+  CONSTRAINT declutter_delivery_windows_key UNIQUE (seller_id, weekday, starts_local)
+);
+ALTER TABLE public.declutter_delivery_windows ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.declutter_delivery_windows FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.declutter_delivery_windows TO service_role;
+
+-- Days off (local dates with no delivery).
+CREATE TABLE IF NOT EXISTS public.declutter_delivery_days_off (
+  seller_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  day date NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (seller_id, day)
+);
+ALTER TABLE public.declutter_delivery_days_off ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.declutter_delivery_days_off FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.declutter_delivery_days_off TO service_role;
+
+-- [DEFAULT] per item: deliverable unless the seller switched it off here.
+CREATE TABLE IF NOT EXISTS public.declutter_item_no_seller_delivery (
+  item_id uuid PRIMARY KEY REFERENCES public.declutter_items(id) ON DELETE CASCADE,
+  seller_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS declutter_item_no_seller_delivery_seller_idx ON public.declutter_item_no_seller_delivery (seller_id);
+ALTER TABLE public.declutter_item_no_seller_delivery ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.declutter_item_no_seller_delivery FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.declutter_item_no_seller_delivery TO service_role;
+
+-- One per seller-delivered order: the slot (held, then booked), the frozen
+-- drop-off, a proposed new time, the reminders sent.
+--   held        checkout started; counts against the slot until held_until
+--   booked      paid; the slot is the order's
+--   needs_time  paid, but the slot went to someone else after the hold lapsed
+--   released    the checkout ended unpaid (superseded / expired)
+--   cancelled   the order was refunded
+--   done        the handover is done
+CREATE TABLE IF NOT EXISTS public.declutter_seller_deliveries (
+  order_id uuid PRIMARY KEY REFERENCES public.declutter_orders(id) ON DELETE CASCADE,
+  buyer_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  seller_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status text NOT NULL CHECK (status IN ('held', 'booked', 'needs_time', 'released', 'cancelled', 'done')),
+  slot_start timestamptz,
+  slot_end timestamptz,
+  held_until timestamptz,
+  dropoff_address text NOT NULL CHECK (char_length(btrim(dropoff_address)) BETWEEN 5 AND 300),
+  dropoff_area text NOT NULL,
+  dropoff_lat numeric NOT NULL CHECK (dropoff_lat BETWEEN -90 AND 90),
+  dropoff_lng numeric NOT NULL CHECK (dropoff_lng BETWEEN -180 AND 180),
+  proposed_start timestamptz,
+  proposed_by text CHECK (proposed_by IS NULL OR proposed_by IN ('buyer', 'seller')),
+  proposed_at timestamptz,
+  buyer_proposals smallint NOT NULL DEFAULT 0 CHECK (buyer_proposals >= 0),
+  seller_proposals smallint NOT NULL DEFAULT 0 CHECK (seller_proposals >= 0),
+  reminded_hours integer[] NOT NULL DEFAULT '{}',
+  is_seed boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT declutter_seller_deliveries_slot CHECK ((slot_start IS NULL) = (slot_end IS NULL)
+                                                    AND (slot_start IS NULL OR slot_end > slot_start)),
+  CONSTRAINT declutter_seller_deliveries_has_slot CHECK (status NOT IN ('held', 'booked') OR slot_start IS NOT NULL),
+  CONSTRAINT declutter_seller_deliveries_hold CHECK (status <> 'held' OR held_until IS NOT NULL),
+  CONSTRAINT declutter_seller_deliveries_proposal CHECK ((proposed_start IS NULL) = (proposed_by IS NULL)),
+  CONSTRAINT declutter_seller_deliveries_not_own CHECK (buyer_id <> seller_id)
+);
+CREATE INDEX IF NOT EXISTS declutter_seller_deliveries_slot_idx ON public.declutter_seller_deliveries (seller_id, slot_start)
+  WHERE status IN ('held', 'booked');
+CREATE INDEX IF NOT EXISTS declutter_seller_deliveries_buyer_idx ON public.declutter_seller_deliveries (buyer_id);
+CREATE INDEX IF NOT EXISTS declutter_seller_deliveries_due_idx ON public.declutter_seller_deliveries (slot_start)
+  WHERE status = 'booked';
+ALTER TABLE public.declutter_seller_deliveries ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.declutter_seller_deliveries FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.declutter_seller_deliveries TO service_role;
+
+-- is_seed: the setting from the seller's profile, the delivery from its order.
+CREATE OR REPLACE FUNCTION public.declutter_seller_delivery_seed()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  NEW.is_seed := COALESCE((SELECT p.is_seed FROM public.profiles p WHERE p.user_id = NEW.seller_id), false);
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_seller_delivery_seed() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_declutter_seller_delivery_seed ON public.declutter_seller_delivery;
+CREATE TRIGGER trg_declutter_seller_delivery_seed BEFORE INSERT ON public.declutter_seller_delivery
+  FOR EACH ROW EXECUTE FUNCTION public.declutter_seller_delivery_seed();
+DROP TRIGGER IF EXISTS trg_declutter_seller_deliveries_seed ON public.declutter_seller_deliveries;
+CREATE TRIGGER trg_declutter_seller_deliveries_seed BEFORE INSERT ON public.declutter_seller_deliveries
+  FOR EACH ROW EXECUTE FUNCTION public.declutter_order_rows_seed();
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
+
+-- ---------------------------------------------------------------------------
+-- 4. Orders and payouts carry the rate.
+-- DESTRUCTIVE-DDL-ACK: declutter_orders_handover_check, declutter_orders_delivery,
+-- declutter_orders_fee_rule, declutter_orders_premium_rule and declutter_payouts_amount
+-- ACK-REASON: each CHECK is dropped only to be re-added in the same block with
+--   'seller_delivery' / fee rule 'f1_seller_delivery' / declutter_payouts.delivery_cents
+--   in it; every existing row (no 'seller_delivery' order exists, delivery_cents = 0 on
+--   every payout) satisfies the new CHECK, which only ever allows one more case.
+-- ACK-DATA-LOSS: none; no column, table or row is dropped.
+ALTER TABLE public.declutter_payouts ADD COLUMN IF NOT EXISTS delivery_cents integer NOT NULL DEFAULT 0;
+DO $do$
+BEGIN
+  ALTER TABLE public.declutter_orders DROP CONSTRAINT IF EXISTS declutter_orders_handover_check;
+  ALTER TABLE public.declutter_orders ADD CONSTRAINT declutter_orders_handover_check
+    CHECK (handover IN ('pickup_home', 'porch', 'delivery', 'seller_delivery'));
+  ALTER TABLE public.declutter_orders DROP CONSTRAINT IF EXISTS declutter_orders_delivery;
+  -- A Helpr delivery carries its fee (>= $10); a seller delivery a whole-dollar rate.
+  ALTER TABLE public.declutter_orders ADD CONSTRAINT declutter_orders_delivery
+    CHECK (delivery_cents >= 0 AND (handover <> 'delivery' OR delivery_cents >= 1000)
+           AND (handover <> 'seller_delivery' OR (delivery_cents > 0 AND delivery_cents % 100 = 0)));
+  ALTER TABLE public.declutter_orders DROP CONSTRAINT IF EXISTS declutter_orders_fee_rule;
+  ALTER TABLE public.declutter_orders ADD CONSTRAINT declutter_orders_fee_rule
+    CHECK (fee_rule IN ('premium15', 'f1', 'f1_ship', 'f1_seller_delivery'));
+  ALTER TABLE public.declutter_orders DROP CONSTRAINT IF EXISTS declutter_orders_premium_rule;
+  ALTER TABLE public.declutter_orders ADD CONSTRAINT declutter_orders_premium_rule CHECK (
+    (fee_rule = 'f1' AND shipping_cents = 0 AND premium_cents = round(items_cents * 0.05)::integer + 70)
+    OR (fee_rule = 'f1_ship' AND shipping_cents > 0
+        AND premium_cents = round((items_cents + shipping_cents) * 0.05)::integer + 70)
+    OR (fee_rule = 'f1_seller_delivery' AND shipping_cents = 0 AND handover = 'seller_delivery'
+        AND premium_cents = round((items_cents + delivery_cents) * 0.05)::integer + 70)
+    OR (fee_rule = 'premium15' AND shipping_cents = 0
+        AND premium_cents = greatest(round(items_cents * 0.15)::integer, 100)));
+  ALTER TABLE public.declutter_payouts DROP CONSTRAINT IF EXISTS declutter_payouts_delivery;
+  ALTER TABLE public.declutter_payouts ADD CONSTRAINT declutter_payouts_delivery CHECK (delivery_cents >= 0);
+  ALTER TABLE public.declutter_payouts DROP CONSTRAINT IF EXISTS declutter_payouts_amount;
+  ALTER TABLE public.declutter_payouts ADD CONSTRAINT declutter_payouts_amount
+    CHECK (amount_cents = items_cents + delivery_cents - debt_cents AND amount_cents >= 0);
+END
+$do$;
+GRANT SELECT (delivery_cents) ON TABLE public.declutter_payouts TO authenticated;
+
+-- Every NEW order's fee rule, whatever a caller passes (restated from
+-- 20261015023613): a seller-delivered order is on 'f1_seller_delivery'.
+CREATE OR REPLACE FUNCTION public.declutter_orders_fee_rule_f1()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  NEW.fee_rule := CASE WHEN NEW.handover = 'seller_delivery' THEN 'f1_seller_delivery' ELSE 'f1' END;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_orders_fee_rule_f1() FROM PUBLIC, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 5. Internals (service only).
+
+-- Every slot start of a seller's schedule in [p_from, p_to]: each window,
+-- each local day, stepped by the slot length, days off removed.
+CREATE OR REPLACE FUNCTION public.declutter_delivery_slot_starts(p_seller uuid, p_from timestamptz, p_to timestamptz)
+RETURNS SETOF timestamptz
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  WITH r AS (SELECT make_interval(mins => (public.declutter_seller_delivery_rules() ->> 'slot_minutes')::integer) AS len,
+                    public.declutter_seller_delivery_rules() ->> 'timezone' AS tz)
+  SELECT DISTINCT g.s
+    FROM r
+    CROSS JOIN LATERAL generate_series((p_from AT TIME ZONE r.tz)::date::timestamp,
+                                       (p_to AT TIME ZONE r.tz)::date::timestamp, interval '1 day') AS d(day)
+    JOIN public.declutter_delivery_windows w
+      ON w.seller_id = p_seller AND w.weekday = extract(dow FROM d.day)::smallint
+    CROSS JOIN LATERAL generate_series((d.day::date + w.starts_local) AT TIME ZONE r.tz,
+                                       ((d.day::date + w.ends_local) AT TIME ZONE r.tz) - r.len, r.len) AS g(s)
+   WHERE p_seller IS NOT NULL AND g.s >= p_from AND g.s <= p_to
+     AND NOT EXISTS (SELECT 1 FROM public.declutter_delivery_days_off x
+                      WHERE x.seller_id = p_seller AND x.day = d.day::date)
+   ORDER BY g.s;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_delivery_slot_starts(uuid, timestamptz, timestamptz) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_delivery_slot_starts(uuid, timestamptz, timestamptz) TO service_role;
+
+-- How many OTHER orders hold or have booked this slot (a lapsed hold does not count).
+CREATE OR REPLACE FUNCTION public.declutter_delivery_slot_used(p_seller uuid, p_start timestamptz, p_except_order uuid)
+RETURNS integer
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT count(*)::integer FROM public.declutter_seller_deliveries d
+   WHERE d.seller_id = p_seller AND d.slot_start = p_start
+     AND d.order_id IS DISTINCT FROM p_except_order
+     AND (d.status = 'booked' OR (d.status = 'held' AND d.held_until > now()));
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_delivery_slot_used(uuid, timestamptz, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_delivery_slot_used(uuid, timestamptz, uuid) TO service_role;
+
+-- The open slots a buyer may pick: lead_hours ahead to horizon_days out,
+-- under the per-slot limit. p_except_order's own hold does not count (the
+-- buyer coming back to their own open checkout still sees their time).
+CREATE OR REPLACE FUNCTION public.declutter_delivery_open_slots(p_seller uuid, p_except_order uuid)
+RETURNS SETOF timestamptz
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT s FROM public.declutter_delivery_slot_starts(p_seller,
+           now() + make_interval(hours => (public.declutter_seller_delivery_rules() ->> 'lead_hours')::integer),
+           now() + make_interval(days => (public.declutter_seller_delivery_rules() ->> 'horizon_days')::integer)) s
+   WHERE public.declutter_delivery_slot_used(p_seller, s, p_except_order)
+         < (public.declutter_seller_delivery_rules() ->> 'per_slot')::integer;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_delivery_open_slots(uuid, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_delivery_open_slots(uuid, uuid) TO service_role;
+
+-- Can this seller deliver these cart lines to this buyer? reason NULL = yes.
+--   seller_not_delivering  setting off, missing, or a rate outside today's caps
+--   item_not_deliverable   an item the seller switched off, or with no pickup point
+--   address_needed         no drop-off geocoded for this seller in the last 24 h
+--   out_of_range           an item's pickup point is farther than the seller goes
+-- Range is measured from the ROUNDED pickup point (2 decimals, ~1 km), as
+-- Helpr delivery prices it, and only yes/no reaches the buyer: no distance an
+-- address-probing buyer could use to find the seller's home.
+CREATE OR REPLACE FUNCTION public.declutter_seller_delivery_check(p_buyer uuid, p_seller uuid, p_lines uuid[])
+RETURNS TABLE (reason text, rate_cents integer, radius_miles integer, dropoff_address text, dropoff_area text,
+               dropoff_lat numeric, dropoff_lng numeric)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  s public.declutter_seller_delivery;
+  d public.declutter_delivery_dropoffs;
+  v_rules jsonb := public.declutter_seller_delivery_rules();
+  v_far integer;
+  v_unplaced boolean;
+BEGIN
+  SELECT * INTO s FROM public.declutter_seller_delivery x WHERE x.seller_id = p_seller;
+  IF NOT FOUND OR NOT s.enabled
+     OR s.rate_cents NOT BETWEEN (v_rules ->> 'rate_min_cents')::integer AND (v_rules ->> 'rate_max_cents')::integer THEN
+    RETURN QUERY SELECT 'seller_not_delivering'::text, NULL::integer, NULL::integer, NULL::text, NULL::text, NULL::numeric, NULL::numeric;
+    RETURN;
+  END IF;
+  IF p_lines IS NULL OR cardinality(p_lines) = 0 OR EXISTS (
+       SELECT 1 FROM public.declutter_cart_items c
+         JOIN public.declutter_item_no_seller_delivery n ON n.item_id = c.item_id
+        WHERE c.id = ANY (p_lines)) THEN
+    RETURN QUERY SELECT 'item_not_deliverable'::text, s.rate_cents, s.radius_miles, NULL::text, NULL::text, NULL::numeric, NULL::numeric;
+    RETURN;
+  END IF;
+  SELECT * INTO d FROM public.declutter_delivery_dropoffs x WHERE x.buyer_id = p_buyer AND x.seller_id = p_seller;
+  IF NOT FOUND OR d.geocoded_at < now() - interval '24 hours' THEN
+    RETURN QUERY SELECT 'address_needed'::text, s.rate_cents, s.radius_miles, NULL::text, NULL::text, NULL::numeric, NULL::numeric;
+    RETURN;
+  END IF;
+  SELECT bool_or(p.pickup_lat IS NULL OR p.pickup_lng IS NULL),
+         max(public.declutter_road_miles(round(p.pickup_lat, 2), round(p.pickup_lng, 2), d.lat, d.lng))
+    INTO v_unplaced, v_far
+    FROM public.declutter_cart_items c
+    LEFT JOIN public.declutter_item_private p ON p.item_id = c.item_id
+   WHERE c.id = ANY (p_lines);
+  IF v_unplaced IS NOT FALSE OR v_far IS NULL THEN
+    RETURN QUERY SELECT 'item_not_deliverable'::text, s.rate_cents, s.radius_miles, NULL::text, d.area_label, NULL::numeric, NULL::numeric;
+    RETURN;
+  END IF;
+  IF v_far > s.radius_miles THEN
+    RETURN QUERY SELECT 'out_of_range'::text, s.rate_cents, s.radius_miles, NULL::text, d.area_label, NULL::numeric, NULL::numeric;
+    RETURN;
+  END IF;
+  RETURN QUERY SELECT NULL::text, s.rate_cents, s.radius_miles, d.address, d.area_label, d.lat, d.lng;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_seller_delivery_check(uuid, uuid, uuid[]) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_seller_delivery_check(uuid, uuid, uuid[]) TO service_role;
+
+-- The local time words used in notices ("Sat Oct 25 at 2:00 PM").
+CREATE OR REPLACE FUNCTION public.declutter_delivery_when(p_at timestamptz)
+RETURNS text
+LANGUAGE sql
+STABLE
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT to_char(p_at AT TIME ZONE (public.declutter_seller_delivery_rules() ->> 'timezone'), 'Dy Mon FMDD at FMHH12:MI AM');
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_delivery_when(timestamptz) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_delivery_when(timestamptz) TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- 6. The seller's settings (member RPCs; the switch is required: new work).
+
+CREATE OR REPLACE FUNCTION public.declutter_my_seller_delivery()
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  v_rules jsonb := public.declutter_seller_delivery_rules();
+  s public.declutter_seller_delivery;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.require_feature('declutter');
+  PERFORM public.require_feature('declutter_seller_delivery');
+  SELECT * INTO s FROM public.declutter_seller_delivery x WHERE x.seller_id = v_uid;
+  RETURN jsonb_build_object(
+    'enabled', COALESCE(s.enabled, false),
+    'rate_cents', s.rate_cents,
+    'radius_miles', COALESCE(s.radius_miles, (v_rules ->> 'radius_default_miles')::integer),
+    'windows', COALESCE((SELECT jsonb_agg(jsonb_build_object('weekday', w.weekday, 'starts', to_char(w.starts_local, 'HH24:MI'),
+                                                             'ends', to_char(w.ends_local, 'HH24:MI'))
+                                          ORDER BY w.weekday, w.starts_local)
+                           FROM public.declutter_delivery_windows w WHERE w.seller_id = v_uid), '[]'::jsonb),
+    'days_off', COALESCE((SELECT jsonb_agg(x.day ORDER BY x.day) FROM public.declutter_delivery_days_off x
+                           WHERE x.seller_id = v_uid
+                             AND x.day >= (now() AT TIME ZONE (v_rules ->> 'timezone'))::date), '[]'::jsonb),
+    'items_off', COALESCE((SELECT jsonb_agg(n.item_id ORDER BY n.created_at) FROM public.declutter_item_no_seller_delivery n
+                            WHERE n.seller_id = v_uid), '[]'::jsonb),
+    'rules', v_rules);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_my_seller_delivery() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_my_seller_delivery() TO authenticated, service_role;
+
+-- "I can deliver": on/off, the rate (whole dollars, inside the caps), the distance (one of the choices).
+CREATE OR REPLACE FUNCTION public.declutter_set_seller_delivery(p_enabled boolean, p_rate_cents integer, p_radius_miles integer)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid;
+  v_rules jsonb := public.declutter_seller_delivery_rules();
+BEGIN
+  PERFORM public.require_feature('declutter');
+  PERFORM public.require_feature('declutter_seller_delivery');
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  v_uid := public.declutter_assert_member(true);
+  IF p_enabled IS NULL THEN
+    RAISE EXCEPTION 'invalid_delivery_setting' USING ERRCODE = '22023';
+  END IF;
+  IF p_rate_cents IS NULL OR p_rate_cents % 100 <> 0
+     OR p_rate_cents NOT BETWEEN (v_rules ->> 'rate_min_cents')::integer AND (v_rules ->> 'rate_max_cents')::integer THEN
+    RAISE EXCEPTION 'invalid_delivery_rate' USING ERRCODE = '22023',
+      HINT = format('Pick a whole-dollar rate from $%s to $%s.', (v_rules ->> 'rate_min_cents')::integer / 100,
+                    (v_rules ->> 'rate_max_cents')::integer / 100);
+  END IF;
+  IF p_radius_miles IS NULL OR NOT (v_rules -> 'radius_choices_miles') @> to_jsonb(p_radius_miles) THEN
+    RAISE EXCEPTION 'invalid_delivery_distance' USING ERRCODE = '22023', HINT = 'Pick one of the distances shown.';
+  END IF;
+  INSERT INTO public.declutter_seller_delivery (seller_id, enabled, rate_cents, radius_miles)
+  VALUES (v_uid, p_enabled, p_rate_cents, p_radius_miles)
+  ON CONFLICT (seller_id) DO UPDATE SET enabled = EXCLUDED.enabled, rate_cents = EXCLUDED.rate_cents,
+    radius_miles = EXCLUDED.radius_miles, updated_at = now();
+  RETURN public.declutter_my_seller_delivery();
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_set_seller_delivery(boolean, integer, integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_set_seller_delivery(boolean, integer, integer) TO authenticated, service_role;
+
+-- Replace the weekly windows and the days off. p_windows: a JSON array of
+-- {"weekday": 0-6, "starts": "HH:MM", "ends": "HH:MM"}, 0 to 28 of them, each
+-- at least one slot long. p_days_off: local dates from today up to a year out
+-- (at most 60; past ones are dropped). A booking already made keeps its time.
+CREATE OR REPLACE FUNCTION public.declutter_set_delivery_schedule(p_windows jsonb, p_days_off date[])
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid;
+  v_rules jsonb := public.declutter_seller_delivery_rules();
+  v_today date;
+BEGIN
+  PERFORM public.require_feature('declutter');
+  PERFORM public.require_feature('declutter_seller_delivery');
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  v_uid := public.declutter_assert_member(true);
+  v_today := (now() AT TIME ZONE (v_rules ->> 'timezone'))::date;
+  IF p_windows IS NULL OR jsonb_typeof(p_windows) <> 'array' OR jsonb_array_length(p_windows) > 28 THEN
+    RAISE EXCEPTION 'invalid_delivery_windows' USING ERRCODE = '22023', HINT = 'Give up to 28 delivery times.';
+  END IF;
+  IF p_days_off IS NOT NULL AND (cardinality(p_days_off) > 60
+     OR EXISTS (SELECT 1 FROM unnest(p_days_off) x WHERE x IS NULL OR x > v_today + 366)) THEN
+    RAISE EXCEPTION 'invalid_days_off' USING ERRCODE = '22023', HINT = 'Pick up to 60 days off within the next year.';
+  END IF;
+  DELETE FROM public.declutter_delivery_windows WHERE seller_id = v_uid;
+  BEGIN
+    INSERT INTO public.declutter_delivery_windows (seller_id, weekday, starts_local, ends_local)
+    SELECT v_uid, (w ->> 'weekday')::smallint, (w ->> 'starts')::time, (w ->> 'ends')::time
+      FROM jsonb_array_elements(p_windows) AS w;
+  EXCEPTION WHEN check_violation OR not_null_violation OR unique_violation
+              OR invalid_text_representation OR invalid_datetime_format OR datetime_field_overflow THEN
+    RAISE EXCEPTION 'invalid_delivery_windows' USING ERRCODE = '22023',
+      HINT = 'Each delivery time needs a day and a start before its end, with no repeats.';
+  END;
+  IF EXISTS (SELECT 1 FROM public.declutter_delivery_windows w WHERE w.seller_id = v_uid
+               AND w.ends_local - w.starts_local < make_interval(mins => (v_rules ->> 'slot_minutes')::integer)) THEN
+    RAISE EXCEPTION 'invalid_delivery_windows' USING ERRCODE = '22023',
+      HINT = format('Each delivery time must be at least %s minutes long.', v_rules ->> 'slot_minutes');
+  END IF;
+  DELETE FROM public.declutter_delivery_days_off WHERE seller_id = v_uid;
+  INSERT INTO public.declutter_delivery_days_off (seller_id, day)
+  SELECT DISTINCT v_uid, x FROM unnest(COALESCE(p_days_off, '{}'::date[])) x WHERE x >= v_today;
+  RETURN public.declutter_my_seller_delivery();
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_set_delivery_schedule(jsonb, date[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_set_delivery_schedule(jsonb, date[]) TO authenticated, service_role;
+
+-- Per item: switch seller delivery off (too heavy) or back on.
+CREATE OR REPLACE FUNCTION public.declutter_set_item_seller_delivery(p_item_id uuid, p_on boolean)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid;
+BEGIN
+  PERFORM public.require_feature('declutter');
+  PERFORM public.require_feature('declutter_seller_delivery');
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  v_uid := public.declutter_assert_member(true);
+  IF p_item_id IS NULL OR p_on IS NULL
+     OR NOT EXISTS (SELECT 1 FROM public.declutter_items i WHERE i.id = p_item_id AND i.seller_id = v_uid) THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF p_on THEN
+    DELETE FROM public.declutter_item_no_seller_delivery WHERE item_id = p_item_id;
+  ELSE
+    INSERT INTO public.declutter_item_no_seller_delivery (item_id, seller_id) VALUES (p_item_id, v_uid)
+    ON CONFLICT (item_id) DO NOTHING;
+  END IF;
+  RETURN p_on;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_set_item_seller_delivery(uuid, boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_set_item_seller_delivery(uuid, boolean) TO authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 7. The buyer's offer for their cart with one seller: is seller delivery
+--    available, the rate, and the open times. Answers ONLY a buyer with
+--    in-cart lines from that seller (the cart first, as checkout does: no
+--    schedule or "is this seller out" oracle on an arbitrary id).
+CREATE OR REPLACE FUNCTION public.declutter_seller_delivery_offer(p_seller_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid;
+  v_lines uuid[];
+  v_rules jsonb := public.declutter_seller_delivery_rules();
+  c record;
+  v_open uuid;
+  v_held timestamptz;
+  v_slots timestamptz[] := '{}';
+  v_reason text;
+BEGIN
+  PERFORM public.require_feature('declutter');
+  PERFORM public.require_feature('declutter_seller_delivery');
+  v_uid := public.declutter_assert_member(false);
+  IF p_seller_id IS NULL OR p_seller_id = v_uid THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  v_lines := ARRAY(SELECT x.id FROM public.declutter_cart_items x
+                    WHERE x.buyer_id = v_uid AND x.seller_id = p_seller_id AND x.status = 'in_cart'
+                      AND x.checkout_by > now() ORDER BY x.id);
+  IF cardinality(v_lines) = 0 THEN
+    RAISE EXCEPTION 'cart_empty' USING ERRCODE = '55000', HINT = 'Nothing from this seller is waiting for checkout.';
+  END IF;
+  IF public.declutter_seller_out(p_seller_id) OR public.are_users_blocked(p_seller_id, v_uid) THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  SELECT * INTO c FROM public.declutter_seller_delivery_check(v_uid, p_seller_id, v_lines);
+  SELECT o.id INTO v_open FROM public.declutter_orders o
+   WHERE o.buyer_id = v_uid AND o.seller_id = p_seller_id AND o.status = 'awaiting_payment';
+  SELECT d.slot_start INTO v_held FROM public.declutter_seller_deliveries d
+   WHERE d.order_id = v_open AND d.status = 'held' AND d.held_until > now();
+  IF c.reason IS NULL THEN
+    v_slots := ARRAY(SELECT s FROM public.declutter_delivery_open_slots(p_seller_id, v_open) s);
+  END IF;
+  v_reason := COALESCE(c.reason, CASE WHEN cardinality(v_slots) = 0 THEN 'no_times' END);
+  RETURN jsonb_build_object(
+    'available', v_reason IS NULL,
+    'reason', v_reason,
+    'rate_cents', c.rate_cents,
+    'radius_miles', c.radius_miles,
+    'dropoff_area', c.dropoff_area,
+    'slot_minutes', (v_rules ->> 'slot_minutes')::integer,
+    'slots', to_jsonb(v_slots),
+    'held_slot', v_held);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_seller_delivery_offer(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_seller_delivery_offer(uuid) TO authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 8. Checkout, restated from 20261017055505 (its newest definition) with
+--    'seller_delivery' and p_slot_start. A new argument, so the old
+--    signature is dropped first (the edge function names its arguments; the
+--    third defaults to NULL, so an older edge build still calls it).
+--    For 'seller_delivery': the switch, the check above (setting, items,
+--    address, range), the slot among the open ones; the rate frozen as
+--    delivery_cents, the fee on items + rate; the slot HELD for the page's
+--    life, under a lock on the seller's setting row so two buyers cannot
+--    take the last place in one slot. The idempotent return also compares
+--    the slot and needs the hold still live.
+DROP FUNCTION IF EXISTS public.declutter_start_checkout(uuid, text);
+CREATE OR REPLACE FUNCTION public.declutter_start_checkout(p_seller_id uuid, p_handover text, p_slot_start timestamptz DEFAULT NULL)
+RETURNS TABLE (order_id uuid, items_cents integer, premium_cents integer, tax_cents integer,
+               total_cents integer, superseded_session_id text, checkout_session_id text, delivery_cents integer)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid;
+  v_items integer;
+  v_premium integer;
+  v_order uuid;
+  v_old_session text;
+  v_n integer;
+  v_lines uuid[];
+  v_existing record;
+  v_delivery integer := 0;
+  v_dropoff_key text;
+  q record;
+  sd record;
+  v_sd_dropoff text;
+  v_rules jsonb := public.declutter_seller_delivery_rules();
+BEGIN
+  -- Row 62 (B44): no require_feature here. Nothing NEW can start without the
+  -- switch (offer, Buy and accept all require it); a line already in the cart
+  -- is a sale already agreed, and checkout below needs one.
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  v_uid := public.declutter_assert_member(true);
+  IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch', 'delivery', 'seller_delivery') THEN
+    RAISE EXCEPTION 'handover_unavailable' USING ERRCODE = '22023',
+      HINT = 'Choose porch pickup, pickup at the seller''s home, delivery by the seller, or Helpr delivery.';
+  END IF;
+  -- Slice 5: delivery is new work for a Helpr, so it needs the switch (row 62:
+  -- a member the switch is off for can still finish with a pickup).
+  IF p_handover = 'delivery' THEN
+    PERFORM public.require_feature('declutter');
+  END IF;
+  -- Seller delivery is new work for the seller: both switches.
+  IF p_handover = 'seller_delivery' THEN
+    PERFORM public.require_feature('declutter');
+    PERFORM public.require_feature('declutter_seller_delivery');
+  ELSE
+    p_slot_start := NULL;
+  END IF;
+
+  -- Lock order: items -> orders -> lines.
+  PERFORM 1 FROM public.declutter_items i
+   WHERE i.id IN (SELECT c.item_id FROM public.declutter_cart_items c
+                   WHERE c.buyer_id = v_uid AND c.seller_id = p_seller_id AND c.status = 'in_cart')
+   ORDER BY i.id FOR UPDATE;
+  SELECT o.id, o.handover, o.stripe_checkout_session_id, o.items_cents, o.premium_cents, o.tax_cents, o.total_cents,
+         o.delivery_cents,
+         (SELECT od.dropoff_address || '|' || od.road_miles FROM public.declutter_order_deliveries od WHERE od.order_id = o.id) AS dropoff_key,
+         (SELECT x.slot_start FROM public.declutter_seller_deliveries x
+           WHERE x.order_id = o.id AND x.status = 'held' AND x.held_until > now()) AS held_slot,
+         (SELECT x.dropoff_address FROM public.declutter_seller_deliveries x WHERE x.order_id = o.id) AS sd_dropoff,
+         ARRAY(SELECT c.id FROM public.declutter_cart_items c WHERE c.order_id = o.id AND c.status = 'in_cart' ORDER BY c.id) AS lines
+    INTO v_existing
+    FROM public.declutter_orders o
+   WHERE o.buyer_id = v_uid AND o.seller_id = p_seller_id AND o.status = 'awaiting_payment'
+   FOR UPDATE;
+  PERFORM 1 FROM public.declutter_cart_items c
+   WHERE c.buyer_id = v_uid AND c.seller_id = p_seller_id AND c.status = 'in_cart'
+   ORDER BY c.item_id FOR UPDATE;
+  SELECT count(*), COALESCE(sum(c.price_cents), 0), ARRAY(SELECT c2.id FROM public.declutter_cart_items c2
+           WHERE c2.buyer_id = v_uid AND c2.seller_id = p_seller_id AND c2.status = 'in_cart'
+             AND c2.checkout_by > now() ORDER BY c2.id)
+    INTO v_n, v_items, v_lines
+    FROM public.declutter_cart_items c
+   WHERE c.buyer_id = v_uid AND c.seller_id = p_seller_id AND c.status = 'in_cart'
+     AND c.checkout_by > now();
+  -- The caller's own cart first: an empty cart says nothing about the seller
+  -- (no ban / strike / tax-flag oracle on an arbitrary id).
+  IF v_n = 0 THEN
+    RAISE EXCEPTION 'cart_empty' USING ERRCODE = '55000', HINT = 'Nothing from this seller is waiting for checkout.';
+  END IF;
+  -- B33 tax hook: a business-like seller's sale is never taken untaxed.
+  IF EXISTS (SELECT 1 FROM public.declutter_seller_flags f
+              WHERE f.user_id = p_seller_id AND f.business_like) THEN
+    RAISE EXCEPTION 'seller_tax_not_ready' USING ERRCODE = '55000',
+      HINT = 'Checkout for this seller is not available yet.';
+  END IF;
+  IF public.declutter_seller_out(p_seller_id) OR public.are_users_blocked(p_seller_id, v_uid) THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  -- Row 101: porch only when EVERY line's item allows it. Read from the lines
+  -- this checkout groups (v_lines), under the item locks taken above. Before the
+  -- idempotent return, so no open porch order is handed back either.
+  IF p_handover = 'porch' AND EXISTS (
+       SELECT 1 FROM public.declutter_cart_items c
+         JOIN public.declutter_items i ON i.id = c.item_id
+        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok) THEN
+    RAISE EXCEPTION 'porch_unavailable' USING ERRCODE = '22023',
+      HINT = 'The seller asked buyers to meet at their home for this item. Choose pickup at the seller''s home.';
+  END IF;
+  -- Slice 5: the delivery for exactly these lines, from server data only.
+  IF p_handover = 'delivery' THEN
+    SELECT * INTO q FROM public.declutter_delivery_compute(v_uid, p_seller_id, v_lines);
+    v_delivery := q.delivery_cents;
+    v_dropoff_key := q.dropoff_address || '|' || q.road_miles;
+  END IF;
+  -- Seller delivery: setting, items, address, range; then the slot, under the
+  -- seller's setting-row lock (held to the end of this transaction).
+  IF p_handover = 'seller_delivery' THEN
+    SELECT * INTO sd FROM public.declutter_seller_delivery_check(v_uid, p_seller_id, v_lines);
+    IF sd.reason = 'address_needed' THEN
+      RAISE EXCEPTION 'delivery_address_needed' USING ERRCODE = '22023', HINT = 'Enter the address to deliver to.';
+    ELSIF sd.reason = 'out_of_range' THEN
+      RAISE EXCEPTION 'delivery_out_of_range' USING ERRCODE = '22023',
+        HINT = 'This seller doesn''t deliver that far. Choose pickup or another delivery.';
+    ELSIF sd.reason IS NOT NULL THEN
+      RAISE EXCEPTION 'seller_delivery_unavailable' USING ERRCODE = '22023',
+        HINT = 'This seller can''t deliver these items. Choose another way to get them.';
+    END IF;
+    PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = p_seller_id FOR UPDATE;
+    IF p_slot_start IS NULL OR NOT EXISTS (
+         SELECT 1 FROM public.declutter_delivery_open_slots(p_seller_id, v_existing.id) s WHERE s = p_slot_start) THEN
+      RAISE EXCEPTION 'slot_unavailable' USING ERRCODE = '22023',
+        HINT = 'That delivery time was just taken or is no longer open. Pick another time.';
+    END IF;
+    v_delivery := sd.rate_cents;
+    v_sd_dropoff := sd.dropoff_address;
+  END IF;
+
+  -- Idempotent (money review #3): the same lines and the same handover return
+  -- the order already open, and its Stripe session for the app to reuse.
+  -- Slice 5: and the same delivery (fee and drop-off). Seller delivery: and
+  -- the same slot, still held, to the same address.
+  IF v_existing.id IS NOT NULL AND v_existing.handover = p_handover AND v_existing.lines = v_lines
+     AND v_existing.delivery_cents = v_delivery
+     AND v_existing.dropoff_key IS NOT DISTINCT FROM v_dropoff_key
+     AND (p_handover <> 'seller_delivery'
+          OR (v_existing.held_slot = p_slot_start AND v_existing.sd_dropoff IS NOT DISTINCT FROM v_sd_dropoff)) THEN
+    RETURN QUERY SELECT v_existing.id, v_existing.items_cents, v_existing.premium_cents, v_existing.tax_cents,
+                        v_existing.total_cents, NULL::text, v_existing.stripe_checkout_session_id, v_existing.delivery_cents;
+    RETURN;
+  END IF;
+  IF v_existing.id IS NOT NULL THEN
+    UPDATE public.declutter_orders SET status = 'superseded', close_reason = 'superseded', closed_at = now()
+     WHERE id = v_existing.id AND status = 'awaiting_payment';
+    v_old_session := v_existing.stripe_checkout_session_id;
+  END IF;
+
+  -- F1: 5% of the item total + 70c, once per checkout (card cost inside it).
+  -- The Helpr delivery fee is not part of the item total (row 29 prices it
+  -- alone); the seller's delivery rate is ([DEFAULT], the shipping rule).
+  v_premium := CASE WHEN p_handover = 'seller_delivery'
+                    THEN public.declutter_buyer_fee_cents_seller_delivery(v_items, v_delivery)
+                    ELSE public.declutter_buyer_fee_cents(v_items) END;
+  INSERT INTO public.declutter_orders (buyer_id, seller_id, handover, items_cents, premium_cents, tax_cents,
+                                       delivery_cents, total_cents)
+  VALUES (v_uid, p_seller_id, p_handover, v_items, v_premium, 0, v_delivery, v_items + v_premium + v_delivery)
+  RETURNING id INTO v_order;
+  UPDATE public.declutter_cart_items c SET order_id = v_order
+   WHERE c.id = ANY (v_lines);
+  IF p_handover = 'delivery' THEN
+    INSERT INTO public.declutter_order_deliveries (order_id, dropoff_address, dropoff_area, dropoff_lat, dropoff_lng,
+                                                   road_miles, size, delivery_cents)
+    VALUES (v_order, q.dropoff_address, q.dropoff_area, q.dropoff_lat, q.dropoff_lng, q.road_miles, q.size, v_delivery);
+  END IF;
+  IF p_handover = 'seller_delivery' THEN
+    INSERT INTO public.declutter_seller_deliveries (order_id, buyer_id, seller_id, status, slot_start, slot_end, held_until,
+                                                    dropoff_address, dropoff_area, dropoff_lat, dropoff_lng)
+    VALUES (v_order, v_uid, p_seller_id, 'held', p_slot_start,
+            p_slot_start + make_interval(mins => (v_rules ->> 'slot_minutes')::integer),
+            now() + make_interval(mins => (v_rules ->> 'hold_minutes')::integer),
+            sd.dropoff_address, sd.dropoff_area, sd.dropoff_lat, sd.dropoff_lng);
+  END IF;
+
+  RETURN QUERY SELECT v_order, v_items, v_premium, 0, v_items + v_premium + v_delivery, v_old_session, NULL::text, v_delivery;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_start_checkout(uuid, text, timestamptz) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_start_checkout(uuid, text, timestamptz) TO authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 9. The slot follows the order (AFTER UPDATE OF status, so every path that
+--    pays, supersedes, expires, refunds or completes an order moves it):
+--      paid        held -> booked (re-checked: if the hold lapsed and another
+--                  order has the slot, 'needs_time' and both are told);
+--                  a payment honoured late (B41, expired -> paid) re-claims it
+--      superseded / expired (from awaiting_payment)  held -> released
+--      refunded    -> cancelled (the slot is free again)
+--      handed_over -> done
+CREATE OR REPLACE FUNCTION public.declutter_seller_delivery_on_order()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  d public.declutter_seller_deliveries;
+BEGIN
+  IF NEW.handover IS DISTINCT FROM 'seller_delivery' OR NEW.status IS NOT DISTINCT FROM OLD.status THEN
+    RETURN NEW;
+  END IF;
+  SELECT * INTO d FROM public.declutter_seller_deliveries WHERE order_id = NEW.id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.status = 'paid' AND d.status IN ('held', 'released') THEN
+    -- The same lock checkout takes, so no checkout can take this slot meanwhile.
+    PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = NEW.seller_id FOR UPDATE;
+    INSERT INTO public.declutter_handovers (order_id, code) VALUES (NEW.id, public.declutter_new_handover_code())
+    ON CONFLICT (order_id) DO NOTHING;
+    IF d.slot_start > now()
+       AND public.declutter_delivery_slot_used(NEW.seller_id, d.slot_start, NEW.id)
+           < (public.declutter_seller_delivery_rules() ->> 'per_slot')::integer THEN
+      UPDATE public.declutter_seller_deliveries SET status = 'booked', held_until = NULL, updated_at = now()
+       WHERE order_id = NEW.id;
+      PERFORM public.declutter_notify(NEW.seller_id, 'payment', 'Delivery booked',
+        format('Deliver to %s on %s. The address is on the sale.', d.dropoff_area, public.declutter_delivery_when(d.slot_start)),
+        '/declutter?view=sales', NEW.buyer_id);
+      PERFORM public.declutter_notify(NEW.buyer_id, 'payment', 'Delivery booked',
+        format('The seller delivers on %s.', public.declutter_delivery_when(d.slot_start)),
+        '/declutter?view=cart', NEW.seller_id);
+    ELSE
+      UPDATE public.declutter_seller_deliveries
+         SET status = 'needs_time', slot_start = NULL, slot_end = NULL, held_until = NULL, updated_at = now()
+       WHERE order_id = NEW.id;
+      PERFORM public.declutter_notify(NEW.buyer_id, 'payment', 'Pick a new delivery time',
+        'Your payment came through after your delivery time was given to someone else. Pick a new time from the seller''s open times.',
+        '/declutter?view=cart', NEW.seller_id);
+      PERFORM public.declutter_notify(NEW.seller_id, 'payment', 'Buyer is picking a delivery time',
+        'The buyer paid, but their time was taken in the meantime. They will pick a new one.',
+        '/declutter?view=sales', NEW.buyer_id);
+    END IF;
+  ELSIF OLD.status = 'awaiting_payment' AND NEW.status IN ('superseded', 'expired') THEN
+    UPDATE public.declutter_seller_deliveries SET status = 'released', updated_at = now()
+     WHERE order_id = NEW.id AND status = 'held';
+  ELSIF NEW.status = 'refunded' THEN
+    UPDATE public.declutter_seller_deliveries SET status = 'cancelled', proposed_start = NULL, proposed_by = NULL,
+           proposed_at = NULL, updated_at = now()
+     WHERE order_id = NEW.id;
+  ELSIF NEW.status = 'handed_over' THEN
+    UPDATE public.declutter_seller_deliveries SET status = 'done', proposed_start = NULL, proposed_by = NULL,
+           proposed_at = NULL, updated_at = now()
+     WHERE order_id = NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_seller_delivery_on_order() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_declutter_orders_seller_delivery ON public.declutter_orders;
+CREATE TRIGGER trg_declutter_orders_seller_delivery AFTER UPDATE OF status ON public.declutter_orders
+  FOR EACH ROW EXECUTE FUNCTION public.declutter_seller_delivery_on_order();
+
+-- ---------------------------------------------------------------------------
+-- 10. The handover pays the seller the rate WITH the items, restated from
+--     20261017055505 (its newest definition). Only the payout lines change:
+--     on a 'seller_delivery' order the payout is items + rate (less any fee
+--     debt, capped at that sum) and the notice names that amount. Seller
+--     proceeds are exact cents (the whole-dollar rule is for Helpr payouts).
+CREATE OR REPLACE FUNCTION public.declutter_complete_handover(p_order_id uuid, p_by text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  o public.declutter_orders;
+  v_debt integer;
+  v_payout uuid;
+  v_task public.helpr_tasks;
+  v_task_out jsonb;
+  v_rate integer;
+BEGIN
+  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
+  IF o.status = 'handed_over' THEN
+    RETURN jsonb_build_object('result', 'already_handed_over');
+  END IF;
+  IF o.status IS DISTINCT FROM 'paid' THEN
+    RAISE EXCEPTION 'order_not_paid' USING ERRCODE = '55000';
+  END IF;
+  IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN
+    RAISE EXCEPTION 'problem_open' USING ERRCODE = '55000',
+      HINT = 'A problem was reported on this sale. Louisiana Helpr decides before anyone is paid.';
+  END IF;
+  -- Slice 5: a delivery.
+  IF o.handover = 'delivery' THEN
+    SELECT t.* INTO v_task FROM public.declutter_order_deliveries od JOIN public.helpr_tasks t ON t.id = od.task_id
+     WHERE od.order_id = o.id FOR UPDATE OF t;
+    IF v_task.status IN ('picked_up', 'delivered') THEN
+      v_task_out := public.helpr_task_confirm(v_task.id,
+        CASE p_by WHEN 'code' THEN 'code' WHEN 'buyer' THEN 'customer' WHEN 'admin' THEN 'admin' ELSE 'auto' END, NULL);
+    ELSIF v_task.status = 'confirmed' OR (p_by = 'admin' AND v_task.status = 'failed') THEN
+      -- Already confirmed, or the damage decision (row 43) that failed the
+      -- task itself and refunds the whole order on its own: nothing more here.
+      NULL;
+    ELSIF p_by = 'admin' AND (v_task.id IS NULL OR v_task.status IN ('open', 'accepted')) THEN
+      IF v_task.id IS NOT NULL THEN
+        PERFORM public.helpr_task_close(v_task.id, 'cancelled', 'The sale was decided without a delivery');
+      END IF;
+      PERFORM public.declutter_delivery_refund(o.id, 'delivery_not_done');
+    ELSE
+      RAISE EXCEPTION 'delivery_not_done' USING ERRCODE = '55000',
+        HINT = 'The Helpr has not picked the item up yet.';
+    END IF;
+  END IF;
+  -- Seller delivery: the rate is the seller's, paid with the items.
+  v_rate := CASE WHEN o.handover = 'seller_delivery' THEN o.delivery_cents ELSE 0 END;
+  INSERT INTO public.declutter_handovers (order_id, code) VALUES (o.id, public.declutter_new_handover_code())
+  ON CONFLICT (order_id) DO NOTHING;
+  UPDATE public.declutter_handovers SET confirmed_at = now(), confirmed_by = p_by WHERE order_id = o.id AND confirmed_at IS NULL;
+  UPDATE public.declutter_orders SET status = 'handed_over', close_reason = 'handed_over', handed_over_at = now(), closed_at = now()
+   WHERE id = o.id AND status = 'paid';
+  UPDATE public.declutter_items SET status = 'completed', updated_at = now()
+   WHERE id IN (SELECT c.item_id FROM public.declutter_cart_items c WHERE c.order_id = o.id AND c.status = 'paid')
+     AND status = 'sold';
+  v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' || o.id::text, o.items_cents + v_rate);
+  INSERT INTO public.declutter_payouts (order_id, seller_id, items_cents, delivery_cents, debt_cents, amount_cents, status)
+  VALUES (o.id, o.seller_id, o.items_cents, v_rate, v_debt, o.items_cents + v_rate - v_debt,
+          CASE WHEN o.items_cents + v_rate - v_debt = 0 THEN 'nothing_due' ELSE 'pending' END)
+  ON CONFLICT (order_id) DO NOTHING
+  RETURNING id INTO v_payout;
+  -- The words depend on what is due and whether the seller can be paid (lh-money-escrow review 2.1).
+  PERFORM public.declutter_notify(o.seller_id, 'payment', 'Handover done',
+    CASE
+      WHEN o.items_cents + v_rate - v_debt = 0 THEN
+        format('This sale paid off the $%s card fee you owed, so there is nothing to send.', to_char(v_debt / 100.0, 'FM999990.00'))
+      WHEN NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id = o.seller_id AND pr.stripe_account_id IS NOT NULL) THEN
+        format('Set up payouts in Settings to get your $%s. We send it as soon as you do.', to_char((o.items_cents + v_rate - v_debt) / 100.0, 'FM999990.00'))
+      ELSE format('$%s is on its way to your payout account.', to_char((o.items_cents + v_rate - v_debt) / 100.0, 'FM999990.00'))
+    END,
+    '/declutter?view=sales', o.buyer_id);
+  PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Enjoy your item',
+    'The handover is done and the sale is final. Leave the seller a review.', '/declutter?view=cart', o.seller_id);
+  RETURN jsonb_build_object('result', 'handed_over', 'payout_id', v_payout, 'by', p_by)
+         || CASE WHEN v_task_out IS NOT NULL THEN jsonb_build_object('helpr_payout_id', v_task_out->'helpr_payout_id') ELSE '{}'::jsonb END;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_complete_handover(uuid, text) TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- 11. Three guards restated from their newest definitions.
+
+-- No pickup booking on a seller-delivered order either (restated from
+-- 20261017055505): its time is the delivery slot, and the pickup sweep must
+-- never auto-pay or no-show it through a booking.
+CREATE OR REPLACE FUNCTION public.declutter_bookings_not_delivery()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = NEW.order_id AND o.handover = 'delivery') THEN
+    RAISE EXCEPTION 'delivery_order' USING ERRCODE = '55000',
+      HINT = 'A Helpr is delivering this order and picks the pickup time.';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = NEW.order_id AND o.handover = 'seller_delivery') THEN
+    RAISE EXCEPTION 'delivery_order' USING ERRCODE = '55000',
+      HINT = 'The seller is delivering this order at the time you picked.';
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_bookings_not_delivery() FROM PUBLIC, anon, authenticated;
+
+-- The delivery fee given back on its own is a HELPR-delivery path only
+-- (restated from 20261017055505): a seller's rate is never refunded alone,
+-- it goes back only with the whole order (spec: "never refunded on its own").
+CREATE OR REPLACE FUNCTION public.declutter_delivery_refund(p_order_id uuid, p_reason text)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  o public.declutter_orders;
+  v_id uuid;
+BEGIN
+  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
+  IF o.delivery_cents <= 0 OR o.stripe_payment_intent_id IS NULL OR o.handover = 'seller_delivery' THEN
+    RAISE EXCEPTION 'no_delivery_fee' USING ERRCODE = '55000';
+  END IF;
+  INSERT INTO public.declutter_delivery_refunds (order_id, stripe_payment_intent_id, reason, refund_cents)
+  VALUES (o.id, o.stripe_payment_intent_id, p_reason, o.delivery_cents)
+  ON CONFLICT (order_id) DO NOTHING
+  RETURNING id INTO v_id;
+  IF v_id IS NULL THEN
+    SELECT id INTO v_id FROM public.declutter_delivery_refunds WHERE order_id = o.id;
+  END IF;
+  RETURN v_id;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_delivery_refund(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_delivery_refund(uuid, text) TO service_role;
+
+-- The seller's exact address goes to the buyer of a paid order who comes to
+-- get the item (restated from 20261015042253); a buyer the seller delivers to
+-- has no need of it, so a seller delivery does not reveal it.
+CREATE OR REPLACE FUNCTION public.declutter_address_access(p_item_id uuid, p_user_id uuid)
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT CASE
+           WHEN i.seller_id = p_user_id THEN 'seller'
+           WHEN EXISTS (SELECT 1 FROM public.declutter_cart_items c
+                          JOIN public.declutter_orders o ON o.id = c.order_id
+                         WHERE c.item_id = i.id AND c.status = 'paid'
+                           AND o.status = 'paid' AND o.buyer_id = p_user_id
+                           AND o.handover <> 'seller_delivery') THEN 'paid_buyer'
+         END
+    FROM public.declutter_items i
+   WHERE i.id = p_item_id
+     AND p_user_id IS NOT NULL;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_address_access(uuid, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_address_access(uuid, uuid) TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- 12. After payment (member RPCs). No switch: like every handover step
+--     (row 62) these finish a sale already paid for, so turning the switch
+--     off never strands one.
+
+-- Either side's view of the delivery. The buyer's address reaches the seller
+-- only once the order is paid (and not after a refund).
+CREATE OR REPLACE FUNCTION public.declutter_seller_delivery_booking(p_order_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  v_rules jsonb := public.declutter_seller_delivery_rules();
+  o public.declutter_orders;
+  d public.declutter_seller_deliveries;
+  h public.declutter_handovers;
+  v_side text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
+  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);
+  SELECT * INTO d FROM public.declutter_seller_deliveries WHERE order_id = o.id;
+  IF v_side IS NULL OR o.handover IS DISTINCT FROM 'seller_delivery' OR d.order_id IS NULL
+     OR NOT (o.status IN ('paid', 'handed_over') OR (v_side = 'buyer' AND o.status = 'awaiting_payment')) THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  SELECT * INTO h FROM public.declutter_handovers WHERE order_id = o.id;
+  RETURN jsonb_build_object(
+    'order_id', o.id, 'side', v_side, 'order_status', o.status, 'status', d.status,
+    'slot_start', d.slot_start, 'slot_end', d.slot_end, 'delivery_cents', o.delivery_cents,
+    'dropoff_area', d.dropoff_area,
+    'dropoff_address', CASE WHEN v_side = 'buyer' OR o.status IN ('paid', 'handed_over') THEN d.dropoff_address END,
+    'proposed_start', d.proposed_start, 'proposed_by', d.proposed_by,
+    'proposals_left', (v_rules ->> 'proposals_per_side')::integer
+                      - CASE WHEN v_side = 'buyer' THEN d.buyer_proposals ELSE d.seller_proposals END,
+    'delivered_at', h.set_out_at, 'delivered_photo_path', h.set_out_photo_path,
+    'confirmed_at', h.confirmed_at,
+    'not_delivered_from', d.slot_end + make_interval(mins => (v_rules ->> 'not_delivered_after_minutes')::integer));
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_seller_delivery_booking(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_seller_delivery_booking(uuid) TO authenticated, service_role;
+
+-- The seller's "Delivered" with a photo (required), from the booked time.
+-- It does not pay by itself: the buyer's "I got it" or, 24 h after the
+-- photo, the sweep does (as for porch).
+CREATE OR REPLACE FUNCTION public.declutter_seller_delivered(p_order_id uuid, p_photo_path text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  o public.declutter_orders;
+  d public.declutter_seller_deliveries;
+  v_side text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  o := public.declutter_lock_order(p_order_id);
+  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);
+  IF v_side IS NULL THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF o.status = 'handed_over' THEN
+    RETURN jsonb_build_object('result', 'already_handed_over');
+  END IF;
+  IF o.status <> 'paid' OR o.handover <> 'seller_delivery' THEN
+    RAISE EXCEPTION 'not_a_seller_delivery' USING ERRCODE = '55000';
+  END IF;
+  IF v_side <> 'seller' THEN
+    RAISE EXCEPTION 'wrong_side' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO d FROM public.declutter_seller_deliveries WHERE order_id = o.id FOR UPDATE;
+  IF d.status IS DISTINCT FROM 'booked' THEN
+    RAISE EXCEPTION 'not_booked_yet' USING ERRCODE = '55000';
+  END IF;
+  IF now() < d.slot_start THEN
+    RAISE EXCEPTION 'before_delivery_time' USING ERRCODE = '55000',
+      HINT = 'You can mark it delivered from the booked delivery time.';
+  END IF;
+  p_photo_path := NULLIF(btrim(p_photo_path), '');
+  IF p_photo_path IS NULL
+     OR split_part(p_photo_path, '/', 1) IS DISTINCT FROM v_uid::text
+     OR split_part(p_photo_path, '/', 2) IS DISTINCT FROM 'declutter'
+     OR split_part(p_photo_path, '/', 3) IS DISTINCT FROM 'handover'
+     OR split_part(p_photo_path, '/', 4) IS DISTINCT FROM o.id::text
+     OR split_part(p_photo_path, '/', 5) = ''
+     OR split_part(p_photo_path, '/', 6) <> ''
+     OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'declutter-handover' AND so.name = p_photo_path) THEN
+    RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';
+  END IF;
+  INSERT INTO public.declutter_handovers (order_id, code) VALUES (o.id, public.declutter_new_handover_code())
+  ON CONFLICT (order_id) DO NOTHING;
+  UPDATE public.declutter_handovers SET set_out_photo_path = p_photo_path, set_out_at = now()
+   WHERE order_id = o.id AND confirmed_at IS NULL;
+  UPDATE public.declutter_seller_deliveries SET proposed_start = NULL, proposed_by = NULL, proposed_at = NULL, updated_at = now()
+   WHERE order_id = o.id;
+  PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Your items were delivered',
+    'The seller delivered your items and took a photo. Tap "I got it" when you have them, or report a problem.',
+    '/declutter?view=cart', o.seller_id);
+  RETURN jsonb_build_object('result', 'delivered');
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_seller_delivered(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_seller_delivered(uuid, text) TO authenticated, service_role;
+
+-- The buyer's "It wasn't delivered", from the slot's end + 15 min, while the
+-- seller has no "Delivered" photo: everything back, delivery included; the
+-- seller gets a strike and pays the card fee (seller fault, row 60).
+CREATE OR REPLACE FUNCTION public.declutter_report_not_delivered(p_order_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  o public.declutter_orders;
+  d public.declutter_seller_deliveries;
+  v_side text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  o := public.declutter_lock_order(p_order_id);
+  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);
+  IF v_side IS NULL THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF o.status <> 'paid' OR o.handover <> 'seller_delivery' THEN
+    RAISE EXCEPTION 'not_a_seller_delivery' USING ERRCODE = '55000';
+  END IF;
+  IF v_side <> 'buyer' THEN
+    RAISE EXCEPTION 'wrong_side' USING ERRCODE = '42501';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN
+    RAISE EXCEPTION 'problem_open' USING ERRCODE = '55000';
+  END IF;
+  SELECT * INTO d FROM public.declutter_seller_deliveries WHERE order_id = o.id FOR UPDATE;
+  IF d.status IS DISTINCT FROM 'booked' THEN
+    RAISE EXCEPTION 'not_booked_yet' USING ERRCODE = '55000';
+  END IF;
+  IF now() < d.slot_end + make_interval(mins => (public.declutter_seller_delivery_rules() ->> 'not_delivered_after_minutes')::integer) THEN
+    RAISE EXCEPTION 'too_early' USING ERRCODE = '55000', HINT = 'Wait 15 minutes after the delivery time ends.';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL) THEN
+    RAISE EXCEPTION 'seller_delivered' USING ERRCODE = '55000',
+      HINT = 'The seller marked it delivered with a photo. If it is not there, report a problem.';
+  END IF;
+  RETURN public.declutter_close_paid_order(o.id, 'seller_no_show', 'seller', 'seller_no_show',
+    'You did not deliver a booked Declutter order. The buyer got everything back, delivery included; the card fee comes out of your next Declutter payout.');
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_report_not_delivered(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_report_not_delivered(uuid) TO authenticated, service_role;
+
+-- The seller cancels a paid delivery before delivering: the same seller-fault
+-- rules (everything back, delivery included; strike; the seller pays the card fee).
+CREATE OR REPLACE FUNCTION public.declutter_seller_cancel_delivery(p_order_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  o public.declutter_orders;
+  v_side text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  o := public.declutter_lock_order(p_order_id);
+  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);
+  IF v_side IS NULL THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF o.status <> 'paid' OR o.handover <> 'seller_delivery' THEN
+    RAISE EXCEPTION 'not_a_seller_delivery' USING ERRCODE = '55000';
+  END IF;
+  IF v_side <> 'seller' THEN
+    RAISE EXCEPTION 'wrong_side' USING ERRCODE = '42501';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN
+    RAISE EXCEPTION 'problem_open' USING ERRCODE = '55000';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL) THEN
+    RAISE EXCEPTION 'seller_delivered' USING ERRCODE = '55000',
+      HINT = 'You already marked it delivered. Report a problem instead.';
+  END IF;
+  RETURN public.declutter_close_paid_order(o.id, 'seller_backed_out', 'seller', 'item_gone_after_sale',
+    'You cancelled a paid Declutter delivery. The buyer got everything back, delivery included; the card fee comes out of your next Declutter payout.');
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_seller_cancel_delivery(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_seller_cancel_delivery(uuid) TO authenticated, service_role;
+
+-- A new time: either side proposes one of the seller's open times, the other
+-- accepts. A buyer whose time was lost ('needs_time') books one directly.
+CREATE OR REPLACE FUNCTION public.declutter_propose_delivery_time(p_order_id uuid, p_slot_start timestamptz)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  v_rules jsonb := public.declutter_seller_delivery_rules();
+  o public.declutter_orders;
+  d public.declutter_seller_deliveries;
+  v_side text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  o := public.declutter_lock_order(p_order_id);
+  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);
+  IF v_side IS NULL THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF o.status <> 'paid' OR o.handover <> 'seller_delivery' THEN
+    RAISE EXCEPTION 'not_a_seller_delivery' USING ERRCODE = '55000';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN
+    RAISE EXCEPTION 'problem_open' USING ERRCODE = '55000';
+  END IF;
+  SELECT * INTO d FROM public.declutter_seller_deliveries WHERE order_id = o.id FOR UPDATE;
+  IF d.status NOT IN ('booked', 'needs_time')
+     OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL) THEN
+    RAISE EXCEPTION 'not_reschedulable' USING ERRCODE = '55000';
+  END IF;
+  PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = o.seller_id FOR UPDATE;
+  IF p_slot_start IS NULL OR p_slot_start IS NOT DISTINCT FROM d.slot_start
+     OR NOT EXISTS (SELECT 1 FROM public.declutter_delivery_open_slots(o.seller_id, o.id) s WHERE s = p_slot_start) THEN
+    RAISE EXCEPTION 'slot_unavailable' USING ERRCODE = '22023',
+      HINT = 'That delivery time is not open. Pick another time.';
+  END IF;
+  IF d.status = 'needs_time' AND v_side = 'buyer' THEN
+    UPDATE public.declutter_seller_deliveries
+       SET status = 'booked', slot_start = p_slot_start,
+           slot_end = p_slot_start + make_interval(mins => (v_rules ->> 'slot_minutes')::integer),
+           proposed_start = NULL, proposed_by = NULL, proposed_at = NULL, reminded_hours = '{}', updated_at = now()
+     WHERE order_id = o.id;
+    PERFORM public.declutter_notify(o.seller_id, 'payment', 'Delivery booked',
+      format('Deliver to %s on %s. The address is on the sale.', d.dropoff_area, public.declutter_delivery_when(p_slot_start)),
+      '/declutter?view=sales', o.buyer_id);
+    RETURN jsonb_build_object('result', 'booked', 'slot_start', p_slot_start);
+  END IF;
+  IF (CASE WHEN v_side = 'buyer' THEN d.buyer_proposals ELSE d.seller_proposals END)
+     >= (v_rules ->> 'proposals_per_side')::integer THEN
+    RAISE EXCEPTION 'reschedule_used' USING ERRCODE = '55000', HINT = 'You can''t ask for another new time on this order.';
+  END IF;
+  UPDATE public.declutter_seller_deliveries
+     SET proposed_start = p_slot_start, proposed_by = v_side, proposed_at = now(),
+         buyer_proposals = buyer_proposals + CASE WHEN v_side = 'buyer' THEN 1 ELSE 0 END,
+         seller_proposals = seller_proposals + CASE WHEN v_side = 'seller' THEN 1 ELSE 0 END,
+         updated_at = now()
+   WHERE order_id = o.id;
+  PERFORM public.declutter_notify(CASE WHEN v_side = 'buyer' THEN o.seller_id ELSE o.buyer_id END, 'payment',
+    'New delivery time asked',
+    format('The %s asked to move the delivery to %s. Accept or keep the current time.',
+           v_side, public.declutter_delivery_when(p_slot_start)),
+    '/declutter?view=' || CASE WHEN v_side = 'buyer' THEN 'sales' ELSE 'cart' END, v_uid);
+  RETURN jsonb_build_object('result', 'proposed', 'proposed_start', p_slot_start);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_propose_delivery_time(uuid, timestamptz) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_propose_delivery_time(uuid, timestamptz) TO authenticated, service_role;
+
+-- Accept (the OTHER side only) or turn down / withdraw (either side) a proposed time.
+CREATE OR REPLACE FUNCTION public.declutter_answer_delivery_time(p_order_id uuid, p_accept boolean)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  v_rules jsonb := public.declutter_seller_delivery_rules();
+  o public.declutter_orders;
+  d public.declutter_seller_deliveries;
+  v_side text;
+  v_other uuid;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  o := public.declutter_lock_order(p_order_id);
+  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);
+  IF v_side IS NULL THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF o.status <> 'paid' OR o.handover <> 'seller_delivery' THEN
+    RAISE EXCEPTION 'not_a_seller_delivery' USING ERRCODE = '55000';
+  END IF;
+  SELECT * INTO d FROM public.declutter_seller_deliveries WHERE order_id = o.id FOR UPDATE;
+  IF d.proposed_start IS NULL OR p_accept IS NULL THEN
+    RAISE EXCEPTION 'no_proposal' USING ERRCODE = '55000';
+  END IF;
+  v_other := CASE WHEN v_side = 'buyer' THEN o.seller_id ELSE o.buyer_id END;
+  IF p_accept AND d.proposed_by = v_side THEN
+    RAISE EXCEPTION 'wrong_side' USING ERRCODE = '42501', HINT = 'The other side accepts the time you asked for.';
+  END IF;
+  IF NOT p_accept THEN
+    UPDATE public.declutter_seller_deliveries SET proposed_start = NULL, proposed_by = NULL, proposed_at = NULL, updated_at = now()
+     WHERE order_id = o.id;
+    IF d.proposed_by <> v_side THEN
+      PERFORM public.declutter_notify(v_other, 'payment', 'Delivery time kept',
+        format('The new time was turned down. The delivery stays %s.', COALESCE(public.declutter_delivery_when(d.slot_start), 'to be picked')),
+        '/declutter?view=' || CASE WHEN v_side = 'buyer' THEN 'sales' ELSE 'cart' END, v_uid);
+    END IF;
+    RETURN jsonb_build_object('result', 'kept');
+  END IF;
+  PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = o.seller_id FOR UPDATE;
+  IF d.proposed_start <= now()
+     OR public.declutter_delivery_slot_used(o.seller_id, d.proposed_start, o.id)
+        >= (v_rules ->> 'per_slot')::integer THEN
+    UPDATE public.declutter_seller_deliveries SET proposed_start = NULL, proposed_by = NULL, proposed_at = NULL, updated_at = now()
+     WHERE order_id = o.id;
+    RETURN jsonb_build_object('result', 'slot_taken');
+  END IF;
+  UPDATE public.declutter_seller_deliveries
+     SET status = 'booked', slot_start = d.proposed_start,
+         slot_end = d.proposed_start + make_interval(mins => (v_rules ->> 'slot_minutes')::integer),
+         proposed_start = NULL, proposed_by = NULL, proposed_at = NULL, reminded_hours = '{}', updated_at = now()
+   WHERE order_id = o.id;
+  PERFORM public.declutter_notify(v_other, 'payment', 'Delivery time changed',
+    format('The delivery is now %s.', public.declutter_delivery_when(d.proposed_start)),
+    '/declutter?view=' || CASE WHEN v_side = 'buyer' THEN 'sales' ELSE 'cart' END, v_uid);
+  RETURN jsonb_build_object('result', 'moved', 'slot_start', d.proposed_start);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_answer_delivery_time(uuid, boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_answer_delivery_time(uuid, boolean) TO authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 13. The sweep (every 10 min), restated from 20261018183715 (its newest
+--     definition). Changes: the two pickup loops skip 'seller_delivery' (it
+--     has no pickup booking and no 7-day pickup deadline: without this the
+--     second loop would refund a paid delivery as a buyer no-show on day 7);
+--     two new loops for seller delivery: (c) auto-pay 24 h after the seller's
+--     "Delivered" photo unless a problem is open, (d) the reminders.
+CREATE OR REPLACE FUNCTION public.declutter_handover_sweep()
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  r record;
+  o public.declutter_orders;
+  v_auto integer := 0;
+  v_noshow integer := 0;
+  v_sd_auto integer := 0;
+  v_reminders integer := 0;
+  v_rules jsonb := public.declutter_seller_delivery_rules();
+  v_h integer;
+BEGIN
+  FOR r IN
+    SELECT o2.id FROM public.declutter_orders o2
+      JOIN public.declutter_bookings b ON b.order_id = o2.id
+     WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery') AND b.slot_start IS NOT NULL AND b.slot_start + interval '24 hours' <= now()
+       AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o2.id AND p.status = 'open')
+       AND (o2.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h
+                                               WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL))
+     ORDER BY o2.id LIMIT 200
+  LOOP
+    BEGIN
+      o := public.declutter_lock_order(r.id);
+      IF o.status = 'paid' AND o.handover NOT IN ('delivery', 'seller_delivery')
+         AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open')
+         AND EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start IS NOT NULL
+                       AND b.slot_start + interval '24 hours' <= now())
+         -- Porch (owner 2026-10-18): no "Left on porch" photo, no auto-pay.
+         AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h
+                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN
+        PERFORM public.declutter_complete_handover(o.id, 'auto');
+        v_auto := v_auto + 1;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      -- One bad order never stops the rest; it is logged and retried next run.
+      PERFORM public.log_cron_defect('declutter_handover_sweep', r.id::text, SQLERRM);
+    END;
+  END LOOP;
+  FOR r IN
+    SELECT o2.id FROM public.declutter_orders o2
+      LEFT JOIN public.declutter_bookings b ON b.order_id = o2.id
+     WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery') AND o2.paid_at + interval '7 days' <= now()
+       AND (b.order_id IS NULL OR b.slot_start IS NULL)
+       AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o2.id AND p.status = 'open')
+     ORDER BY o2.id LIMIT 200
+  LOOP
+    BEGIN
+      o := public.declutter_lock_order(r.id);
+      IF o.status = 'paid' AND o.handover NOT IN ('delivery', 'seller_delivery')
+         AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open')
+         AND NOT EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start IS NOT NULL) THEN
+        PERFORM public.declutter_close_paid_order(o.id, 'buyer_no_show', 'buyer', 'not_picked_up',
+          'You did not pick up a paid Declutter item within 7 days. The item price was refunded; the buyer''s fee was not.');
+        v_noshow := v_noshow + 1;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      PERFORM public.log_cron_defect('declutter_handover_sweep', r.id::text, SQLERRM);
+    END;
+  END LOOP;
+  -- (c) Seller delivery: 24 h after the "Delivered" photo, unless a problem is open.
+  FOR r IN
+    SELECT o2.id FROM public.declutter_orders o2
+      JOIN public.declutter_seller_deliveries d ON d.order_id = o2.id
+      JOIN public.declutter_handovers h ON h.order_id = o2.id
+     WHERE o2.status = 'paid' AND o2.handover = 'seller_delivery' AND d.status = 'booked'
+       AND h.set_out_photo_path IS NOT NULL
+       AND h.set_out_at + make_interval(hours => (v_rules ->> 'auto_confirm_hours')::integer) <= now()
+       AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o2.id AND p.status = 'open')
+     ORDER BY o2.id LIMIT 200
+  LOOP
+    BEGIN
+      o := public.declutter_lock_order(r.id);
+      IF o.status = 'paid' AND o.handover = 'seller_delivery'
+         AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open')
+         AND EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL
+                       AND h.set_out_at + make_interval(hours => (v_rules ->> 'auto_confirm_hours')::integer) <= now()) THEN
+        PERFORM public.declutter_complete_handover(o.id, 'auto');
+        v_sd_auto := v_sd_auto + 1;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      PERFORM public.log_cron_defect('declutter_handover_sweep', r.id::text, SQLERRM);
+    END;
+  END LOOP;
+  -- (d) Reminders before a booked delivery (24 h and 1 h, from the rules). One
+  -- per run per order: the nearest one due; any earlier one not sent yet is
+  -- marked sent too, so a late booking never gets "tomorrow" after "soon".
+  FOR r IN
+    SELECT d.order_id, d.buyer_id, d.seller_id, d.slot_start, d.dropoff_area, d.reminded_hours
+      FROM public.declutter_seller_deliveries d
+      JOIN public.declutter_orders o2 ON o2.id = d.order_id
+     WHERE d.status = 'booked' AND o2.status = 'paid' AND d.slot_start > now()
+       AND d.slot_start <= now() + make_interval(hours => (SELECT max(x::integer) FROM jsonb_array_elements_text(v_rules -> 'reminder_hours') x))
+     ORDER BY d.slot_start LIMIT 500
+  LOOP
+    BEGIN
+      SELECT min(x::integer) INTO v_h FROM jsonb_array_elements_text(v_rules -> 'reminder_hours') x
+       WHERE r.slot_start <= now() + make_interval(hours => x::integer)
+         AND NOT x::integer = ANY (r.reminded_hours);
+      IF v_h IS NOT NULL THEN
+        UPDATE public.declutter_seller_deliveries d
+           SET reminded_hours = (SELECT array_agg(DISTINCT y ORDER BY y)
+                                   FROM unnest(d.reminded_hours || ARRAY(SELECT x::integer FROM jsonb_array_elements_text(v_rules -> 'reminder_hours') x
+                                                                         WHERE x::integer >= v_h)) y),
+               updated_at = now()
+         WHERE d.order_id = r.order_id;
+        PERFORM public.declutter_notify(r.seller_id, 'payment', 'Delivery coming up',
+          format('You deliver to %s on %s.', r.dropoff_area, public.declutter_delivery_when(r.slot_start)),
+          '/declutter?view=sales', r.buyer_id);
+        PERFORM public.declutter_notify(r.buyer_id, 'payment', 'Delivery coming up',
+          format('The seller delivers on %s.', public.declutter_delivery_when(r.slot_start)),
+          '/declutter?view=cart', r.seller_id);
+        v_reminders := v_reminders + 1;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      PERFORM public.log_cron_defect('declutter_handover_sweep', r.order_id::text, SQLERRM);
+    END;
+  END LOOP;
+  RETURN jsonb_build_object('auto_paid', v_auto, 'not_picked_up', v_noshow,
+                            'delivery_auto_paid', v_sd_auto, 'delivery_reminders', v_reminders);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_handover_sweep() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_handover_sweep() TO service_role;

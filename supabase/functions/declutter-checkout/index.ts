@@ -34,6 +34,16 @@
  *                declutter_delivery_quote AS THE BUYER. Nothing is charged.
  *   pay with handover 'delivery' adds the frozen delivery fee as its own line.
  *
+ *   seller_delivery_quote { seller_id, address? }  The seller delivers
+ *                (20261021181258, switch 'declutter_seller_delivery'): with an
+ *                address, it is geocoded HERE and stored exactly as for Helpr
+ *                delivery; then declutter_seller_delivery_offer AS THE BUYER
+ *                answers: available or why not, the seller's rate, the open
+ *                times. Nothing is charged and no distance is returned.
+ *   pay with handover 'seller_delivery' and slot_start (an ISO time from the
+ *                offer's slots): declutter_start_checkout holds the slot and
+ *                freezes the rate; the rate is its own "Seller delivery" line.
+ *
  * Row 62: no switch check for pay/cancel_sale. Both only finish a sale that was
  * already agreed; starting anything new (offer, Buy, a card, a delivery) needs
  * the switch: delivery_quote checks it here, and declutter_start_checkout
@@ -106,8 +116,12 @@ async function expirePage(stripe: Stripe, sessionId: string): Promise<void> {
   }
 }
 
-async function startCheckout(asBuyer: Db, sellerId: string, handover: string): Promise<{ row?: OrderRow; refusal?: Response }> {
-  const { data, error } = await asBuyer.rpc("declutter_start_checkout", { p_seller_id: sellerId, p_handover: handover });
+async function startCheckout(asBuyer: Db, sellerId: string, handover: string, slotStart: string | null): Promise<{ row?: OrderRow; refusal?: Response }> {
+  // p_slot_start only for a seller delivery: every other call is the same call as before.
+  const args = handover === "seller_delivery"
+    ? { p_seller_id: sellerId, p_handover: handover, p_slot_start: slotStart }
+    : { p_seller_id: sellerId, p_handover: handover };
+  const { data, error } = await asBuyer.rpc("declutter_start_checkout", args);
   if (error) return { refusal: rpcRefusal(error) };
   const row = (Array.isArray(data) ? data[0] : data) as OrderRow | undefined;
   if (!row?.order_id) return { refusal: json({ error: TRY_AGAIN }, 500) };
@@ -143,6 +157,9 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   const sellerId = typeof body.seller_id === "string" ? body.seller_id : "";
   const handover = typeof body.handover === "string" ? body.handover : "";
   if (!UUID_RE.test(sellerId)) return json({ error: "item_not_found" }, 404);
+  // Seller delivery: the chosen slot, an ISO time; the RPC checks it is one of the open ones.
+  const slotStart = handover === "seller_delivery" ? isoTime(body.slot_start) : null;
+  if (handover === "seller_delivery" && !slotStart) return json({ error: "slot_unavailable" }, 400);
   const native = isNativeRequest(body);
 
   const mode = await stripeModeForParties(admin, [user.id, sellerId]);
@@ -181,6 +198,12 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
         const { error: quoteErr } = await asBuyer.rpc("declutter_delivery_quote", { p_seller_id: sellerId });
         if (quoteErr) return rpcRefusal(quoteErr);
       }
+      if (handover === "seller_delivery") {
+        // The same for a seller delivery: a refused offer or a time no longer open
+        // must not cost the buyer their open page. The RPC stays the protection.
+        const refused = await sellerDeliveryRefused(asBuyer, sellerId, slotStart!);
+        if (refused) return refused;
+      }
       try {
         await stripeOf(open.stripe_checkout_session_id).checkout.sessions.expire(open.stripe_checkout_session_id);
       } catch (e) {
@@ -191,7 +214,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     }
   }
 
-  let { row, refusal } = await startCheckout(asBuyer, sellerId, handover);
+  let { row, refusal } = await startCheckout(asBuyer, sellerId, handover, slotStart);
   if (refusal) return refusal;
 
   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id);
@@ -207,13 +230,15 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       console.error(`[declutter-checkout] retire failed: ${retireErr.message}`);
       return json({ error: TRY_AGAIN }, 503);
     }
-    ({ row, refusal } = await startCheckout(asBuyer, sellerId, handover));
+    ({ row, refusal } = await startCheckout(asBuyer, sellerId, handover, slotStart));
     if (refusal) return refusal;
   }
   const order = row!;
-  // Slice 5: the delivery fee frozen on the order (0 unless handover is 'delivery').
+  // Slice 5: the delivery fee frozen on the order (0 unless handover is 'delivery'
+  // or 'seller_delivery', the seller's rate).
   const deliveryCents = Number(order.delivery_cents ?? 0);
-  if ((handover === "delivery") !== (deliveryCents > 0)
+  const carriesDelivery = handover === "delivery" || handover === "seller_delivery";
+  if (carriesDelivery !== (deliveryCents > 0)
       || order.items_cents + order.premium_cents + order.tax_cents + deliveryCents !== order.total_cents || order.total_cents <= 0) {
     console.error(`[declutter-checkout] order ${order.order_id} amounts do not add up`);
     return json({ error: TRY_AGAIN }, 500);
@@ -253,8 +278,9 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   ];
   if (deliveryCents > 0) {
     // Row 29: $10 + $2 per road mile + size add-ons, computed and frozen in SQL.
+    // Seller delivery: the seller's flat rate, frozen in SQL (20261021181258).
     lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: deliveryCents,
-      product_data: { name: "Helpr delivery", tax_code: NONTAXABLE_TAX_CODE } } });
+      product_data: { name: handover === "seller_delivery" ? "Seller delivery" : "Helpr delivery", tax_code: NONTAXABLE_TAX_CODE } } });
   }
   // now + 31 min, never less (lh-money-escrow review 3b #11); taps in the same
   // second share one page through the idempotency key, and a second page from
@@ -330,6 +356,58 @@ async function deliveryQuote(body: Record<string, unknown>, user: { id: string }
   return json({ quote });
 }
 
+/** An ISO time string the database can read, or null. */
+function isoTime(v: unknown): string | null {
+  if (typeof v !== "string" || v.length > 40 || Number.isNaN(Date.parse(v))) return null;
+  return new Date(v).toISOString();
+}
+
+/**
+ * Would declutter_start_checkout refuse this seller delivery (offer not
+ * available, or the time no longer open)? Asked only before closing an open
+ * page to switch it to seller delivery. null = it would go ahead.
+ */
+async function sellerDeliveryRefused(asBuyer: Db, sellerId: string, slotStart: string): Promise<Response | null> {
+  const { data, error } = await asBuyer.rpc("declutter_seller_delivery_offer", { p_seller_id: sellerId });
+  if (error) return rpcRefusal(error);
+  const offer = data as { available?: boolean; reason?: string | null; slots?: string[] } | null;
+  if (!offer?.available) return json({ error: "seller_delivery_unavailable", reason: offer?.reason ?? null }, 400);
+  const want = Date.parse(slotStart);
+  if (!(offer.slots ?? []).some((s) => Date.parse(s) === want)) return json({ error: "slot_unavailable" }, 400);
+  return null;
+}
+
+async function sellerDeliveryQuote(body: Record<string, unknown>, user: { id: string }, asBuyer: Db, admin: Db) {
+  const sellerId = typeof body.seller_id === "string" ? body.seller_id : "";
+  if (!UUID_RE.test(sellerId) || sellerId === user.id) return json({ error: "item_not_found" }, 404);
+  // New work for the seller: the switch, from the verified user, never the body.
+  const off = await requireFeature(admin, "declutter_seller_delivery", user, corsHeaders);
+  if (off) return off;
+  if (body.address !== undefined && body.address !== null && body.address !== "") {
+    const address = plausibleAddress(body.address);
+    if (!address) return json({ error: "invalid_address" }, 400);
+    const point = await geocodeDropoff(address);
+    if ("miss" in point) {
+      if (point.miss === "not_found") return json({ error: "address_not_found" }, 422);
+      console.error(JSON.stringify({ event: "dropoff_geocode_unavailable", status: point.status, detail: point.detail }));
+      await postSlackOpsAlert({
+        kind: "custom", severity: "warning", oncePerDayKey: "declutter-dropoff-geocode-unavailable",
+        title: "Declutter delivery: the address lookup is not answering",
+        message: `Nominatim could not answer a drop-off lookup (${point.detail}). Buyers are told to try again in a minute; delivery quotes fail until it answers.`,
+        fields: { Status: point.status ?? "no answer" },
+      }).catch((e) => console.error(JSON.stringify({ event: "dropoff_geocode_alert_failed", detail: String(e).slice(0, 200) })));
+      return json({ error: "geocode_unavailable" }, 503);
+    }
+    const { error: setErr } = await admin.rpc("declutter_set_delivery_dropoff", {
+      p_buyer: user.id, p_seller: sellerId, p_address: address, p_area_label: point.areaLabel, p_lat: point.lat, p_lng: point.lng,
+    });
+    if (setErr) return rpcRefusal(setErr);
+  }
+  const { data: offer, error: offerErr } = await asBuyer.rpc("declutter_seller_delivery_offer", { p_seller_id: sellerId });
+  if (offerErr) return rpcRefusal(offerErr);
+  return json({ offer });
+}
+
 async function cancelSale(body: Record<string, unknown>, user: { id: string }, asSeller: Db, admin: Db) {
   const itemId = typeof body.item_id === "string" ? body.item_id : "";
   if (!UUID_RE.test(itemId)) return json({ error: "item_not_found" }, 404);
@@ -376,6 +454,7 @@ serve(async (req) => {
     if (body.action === "pay") return await pay(body, user, asMember, admin);
     if (body.action === "cancel_sale") return await cancelSale(body, user, asMember, admin);
     if (body.action === "delivery_quote") return await deliveryQuote(body, user, asMember, admin);
+    if (body.action === "seller_delivery_quote") return await sellerDeliveryQuote(body, user, asMember, admin);
     return json({ error: "invalid_action" }, 400);
   } catch (error) {
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);

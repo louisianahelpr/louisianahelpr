@@ -195,6 +195,9 @@ async function settleOrder(
         parties?.handover === "delivery"
           // Slice 5 (lh-money-escrow #8): a delivery order has no pickup to make.
           ? "Next: a Helpr picks your items up from the seller and leaves them at your door with a photo. Tap \"I got it\" in the app when you have them."
+          : parties?.handover === "seller_delivery"
+          // 20261021181258: the seller brings them at the time the buyer picked.
+          ? "Next: the seller delivers your items at the time you picked. Tap \"I got it\" in the app when you have them."
           : "Next: pick up your items at the time you chose."}`);
     return;
   }

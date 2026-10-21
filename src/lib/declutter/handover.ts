@@ -10,6 +10,7 @@
  * declutterErrorMessage(err).
  */
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { isStorageObjectPath } from "@/lib/storagePath";
 import { unwrap } from "@/lib/supabaseResult";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
@@ -158,6 +159,8 @@ export interface MyHandover {
   confirmed_at: string | null;
   set_out_at: string | null;
   set_out_photo_path: string | null;
+  /** Board 159 / Q2266: the seller's "Where exactly?" note (absent until 20261021023158 is on prod). */
+  set_out_note?: string | null;
   picked_up_at: string | null;
 }
 
@@ -168,6 +171,16 @@ export async function fetchMyHandover(orderId: string): Promise<MyHandover> {
     throw Object.assign(new Error(res.error.message), words ? { userMessage: words } : {});
   }
   return res.data as unknown as MyHandover;
+}
+
+/**
+ * Board 159 / Q2266: the seller's "Where exactly?" note, sent right after the porch photo. Returns the note as
+ * saved, or "not_deployed" while migration 20261021023158 has not reached prod (the photo still went through).
+ */
+export async function porchNote(orderId: string, note: string): Promise<string | null | "not_deployed"> {
+  const res = await supabase.rpc("declutter_porch_note", { p_order_id: orderId, p_note: note });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_porch_note")) return "not_deployed";
+  return rpcData(res, (e) => rpcErrorMessage("declutter_porch_note", e)) as string | null;
 }
 
 /** A short-lived link to a handover photo (the two sides and admins may read it). */
@@ -201,11 +214,28 @@ export async function reportProblem(orderId: string, reason: ProblemReason, note
 }
 
 /** A review after the handover (row 45), both ways, blind until both or 14 days. */
-export async function leaveReview(orderId: string, stars: number, comment: string | null): Promise<string> {
-  return rpcData(
-    await supabase.rpc("declutter_leave_review", { p_order_id: orderId, p_stars: stars, p_comment: comment as string }),
-    (e) => rpcErrorMessage("declutter_leave_review", e),
-  ) as string;
+/**
+ * Q2265: `tags` go only when chosen, so the call works before and after migration 20261021023530. Before it
+ * reaches prod a call WITH tags finds no 4-argument function (PGRST202): the review is sent without them, and
+ * `tagsDropped` says so, so the sheet can tell the member (lh-authz-rls review #3).
+ */
+export async function leaveReview(
+  orderId: string,
+  stars: number,
+  comment: string | null,
+  tags: readonly string[] = [],
+): Promise<{ id: string; tagsDropped: boolean }> {
+  const base = { p_order_id: orderId, p_stars: stars, p_comment: comment as string };
+  // One call site for both tries (rpcErrorCopyCoverage reads each call site's copy).
+  const send = (args: typeof base & { p_tags?: string[] }) => supabase.rpc("declutter_leave_review", args);
+  let res = await send(tags.length ? { ...base, p_tags: [...tags] } : base);
+  let tagsDropped = false;
+  if (tags.length && res.error && isMissingRpcNamed(res.error, "declutter_leave_review")) {
+    console.warn("[declutter] review tags not deployed yet; sending the review without them");
+    tagsDropped = true;
+    res = await send(base);
+  }
+  return { id: rpcData(res, (e) => rpcErrorMessage("declutter_leave_review", e)) as string, tagsDropped };
 }
 
 /** The exact pickup address: the paid buyer and the seller only (rows 27, 98). */

@@ -37,6 +37,7 @@ import {
   fetchItemAddress,
   fetchMyBookings,
   fetchMyPayouts,
+  porchNote,
   porchPhoto,
   reportNoShow,
   sellerPickedUp,
@@ -389,14 +390,28 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const photo = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, note }: { file: File; note?: string }) => {
       const path = await uploadHandoverPhoto(userId, order.orderId, file);
       const where = order.side === "buyer" ? await currentPosition() : null;
-      return porchPhoto(order.orderId, path, where);
+      const r = await porchPhoto(order.orderId, path, where);
+      // Q2266: the note follows the photo; a note that cannot be saved never undoes the photo.
+      // Always sent with a seller's photo, even empty: a retake must never leave the old note under the new photo
+      // (lh-authz-rls review of Q2266 #1; an empty note clears it on the server).
+      let noteProblem: string | null = null;
+      if (r.result === "set_out" && order.side === "seller") {
+        try {
+          if ((await porchNote(order.orderId, note ?? "")) === "not_deployed" && note) noteProblem = "Your note couldn't be saved yet.";
+        } catch (err) {
+          // The photo is in and the buyer is told; only the note failed. Say why, and keep the error in the logs.
+          console.warn("[declutter] porch note not saved", err);
+          noteProblem = `Your note wasn't saved: ${declutterErrorMessage(err)}`;
+        }
+      }
+      return { ...r, noteProblem };
     },
     onSuccess: (r) => {
       setPreview(null);
-      if (r.result === "set_out") toast.success("Left on porch. The buyer is told.");
+      if (r.result === "set_out") toast.success(r.noteProblem ? `Left on porch. The buyer is told. ${r.noteProblem}` : "Left on porch. The buyer is told.");
       else if (r.paid === false) toast.success("Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid.");
       else toast.success("Picked up. The seller is paid and the sale is final.");
       invalidate(qc, order.orderId);
@@ -425,7 +440,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
       </label>
       {/* The shops' handover pattern (ShopHandoverActions): a hidden camera input opened by a real button. */}
       <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={photo.isPending}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (order.side === "seller") setPreview(f); else photo.mutate(f); } e.target.value = ""; }} />
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (order.side === "seller") setPreview(f); else photo.mutate({ file: f }); } e.target.value = ""; }} />
       <button type="button" className={order.side === "seller" ? primary : btn} disabled={photo.isPending}
         onClick={() => document.getElementById(fileId)?.click()}>
         {photo.isPending ? "Saving…" : order.side === "seller" ? "Take the porch photo" : "Take your pickup photo"}
@@ -438,7 +453,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
           file={preview}
           who={who}
           pending={photo.isPending}
-          onSend={(f) => photo.mutate(f)}
+          onSend={(f, note) => photo.mutate({ file: f, note })}
           onRetake={() => document.getElementById(fileId)?.click()}
           onClose={() => setPreview(null)}
         />

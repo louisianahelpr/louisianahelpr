@@ -42,6 +42,7 @@ const state = {
   photos: [] as unknown[],
   rating: { avg: 4.8, count: 12 } as { avg: number; count: number } | null,
   seller: { name: "Dana Robichaux", avatarUrl: null, joinedAt: "2025-03-10T12:00:00Z" } as unknown,
+  tags: [] as string[][],
   safeRows: [] as unknown[],
   more: [] as unknown[],
   similar: [] as unknown[],
@@ -107,6 +108,7 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchMyItemReview: async () => null,
     fetchSellerRating: async () => state.rating,
     fetchSellerCard: async () => state.seller,
+    fetchSellerReviewTags: async () => state.tags,
     fetchMyCard: async () => null,
     photoPublicUrl: (p: string) => `https://cdn/${p}`,
     setWatch: async () => "watching",
@@ -152,6 +154,7 @@ describe("the photo-first Declutter item page", () => {
     state.photos = [];
     state.rating = { avg: 4.8, count: 12 };
     state.seller = { name: "Dana Robichaux", avatarUrl: null, joinedAt: "2025-03-10T12:00:00Z" };
+    state.tags = [];
     shared.length = 0;
     state.more = [];
     state.similar = [];
@@ -207,6 +210,18 @@ describe("the photo-first Declutter item page", () => {
     await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
     expect(document.querySelector("[data-gallery-empty] [data-photo-placeholder]")).not.toBeNull();
     expect(document.querySelector("[data-gallery-dots]")).toBeNull();
+  });
+
+  it("Q2265 seller card: what buyers said most, from visible reviews; nothing when no review has a tag", async () => {
+    // @mutate src/components/declutter/DeclutterSellerCard.tsx | {top.length > 0 && ( | {false && (
+    state.tags = [["as_described", "easy_pickup"], ["as_described"], []];
+    const { unmount } = open();
+    await waitFor(() => expect(document.querySelector("[data-seller-tags]")?.textContent).toBe("As described (2) · Easy pickup (1)"));
+    unmount();
+    state.tags = [[], []];
+    open();
+    expect(await screen.findByText("Dana R.")).toBeInTheDocument();
+    expect(document.querySelector("[data-seller-tags]")).toBeNull();
   });
 
   it("seller card: First L., stars and joined date; a seller with no reviews shows no stars and no 'No reviews yet'", async () => {

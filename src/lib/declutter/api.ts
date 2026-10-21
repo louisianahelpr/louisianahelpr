@@ -263,6 +263,16 @@ export async function fetchSellerRating(sellerId: string): Promise<{ avg: number
   return row ? { avg: Number(row.avg_rating ?? 0), count: row.review_count ?? 0 } : null;
 }
 
+/**
+ * Q2265: the quick tags buyers gave this seller, from their VISIBLE reviews only (declutter_visible_reviews: the
+ * blind rule and the seed switch apply server-side; blocks do not filter reviews). Before migration 20261021023530 the rows carry no
+ * tags, so nothing shows.
+ */
+export async function fetchSellerReviewTags(sellerId: string): Promise<string[][]> {
+  const rows = (unwrap(await supabase.rpc("declutter_visible_reviews", { p_user_id: sellerId })) ?? []) as { reviewer_side: string; tags?: string[] | null }[];
+  return rows.filter((r) => r.reviewer_side === "buyer").map((r) => r.tags ?? []);
+}
+
 /** What the item page's seller card shows: public fields only (get_safe_profiles, granted to every member). */
 export interface SellerCard {
   name: string | null;

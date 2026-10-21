@@ -11,7 +11,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Star } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchSellerCard, fetchSellerRating } from "@/lib/declutter/api";
+import { fetchSellerCard, fetchSellerRating, fetchSellerReviewTags } from "@/lib/declutter/api";
+import { topReviewTags } from "@/lib/declutter/reviewTags";
 import { formatName } from "@/lib/utils";
 
 /** "Joined March 2025" from an ISO date; null when there is no usable date. */
@@ -26,6 +27,13 @@ function joinedLabel(iso: string | null | undefined): string | null {
 export function DeclutterSellerCard({ sellerId, noun = "seller" }: { sellerId: string; noun?: "seller" | "poster" }) {
   const card = useQuery({ queryKey: ["declutter", "seller-card", sellerId], queryFn: () => fetchSellerCard(sellerId) });
   const stats = useQuery({ queryKey: ["declutter", "seller-stats", sellerId], queryFn: () => fetchSellerRating(sellerId) });
+  // Q2265: what buyers said most (Declutter only; never on the job page's poster card). A failed read shows nothing.
+  const tagLists = useQuery({
+    queryKey: ["declutter", "seller-tags", sellerId],
+    queryFn: () => fetchSellerReviewTags(sellerId),
+    enabled: noun === "seller",
+  });
+  const top = topReviewTags(tagLists.data ?? []);
   const loading = card.isLoading || stats.isLoading;
   const reviews = stats.data?.count ?? 0;
   const name = formatName(card.data?.name, "A neighbor");
@@ -59,6 +67,11 @@ export function DeclutterSellerCard({ sellerId, noun = "seller" }: { sellerId: s
                   <span className="sr-only"> stars from </span>
                   <span aria-hidden>·</span> {reviews} review{reviews === 1 ? "" : "s"}
                 </span>
+              </span>
+            )}
+            {top.length > 0 && (
+              <span data-seller-tags="" className="block truncate text-xs text-foreground">
+                {top.map((t) => `${t.label} (${t.count})`).join(" · ")}
               </span>
             )}
             {joined && <span className="block text-xs text-muted-foreground">{joined}</span>}

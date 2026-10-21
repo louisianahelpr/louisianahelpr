@@ -4,9 +4,9 @@
  * Lexi?" (or "selling to Tommy?"), olive stars, a few optional words.
  *
  * Truth calls (board vs live rules):
- *  - The board's quick chips ("As described", "Paid fast"…) are NOT shown:
- *    declutter_leave_review stores only stars and a comment, so a chip would
- *    be a claim we drop. They need a migration (hard phase).
+ *  - The board's quick chips (Q2265, migration 20261021023530): a fixed list
+ *    per side (src/lib/declutter/reviewTags.ts = declutter_review_tags_for),
+ *    stored with the review and shown under the same blind rule.
  *  - Reviews show once both sides review, or 14 days after the handover
  *    (declutter_visible_reviews), not the board's 7.
  *  - The other person's first name comes from their public profile; without
@@ -24,6 +24,7 @@ import UserAvatar from "@/components/UserAvatar";
 import { leaveReview } from "@/lib/declutter/handover";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { REVIEW_TAGS } from "@/lib/declutter/reviewTags";
 
 const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
 
@@ -32,14 +33,15 @@ export function DeclutterReviewForm({ orderId, side, userId }: { orderId: string
   const [open, setOpen] = useState(false);
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [sent, setSent] = useState(false);
   const { otherId, name, avatarUrl, who } = useOrderOtherPerson(orderId, userId, side);
   const send = useMutation({
-    mutationFn: (args: { stars: number; comment: string | null }) => leaveReview(orderId, args.stars, args.comment),
-    onSuccess: () => {
+    mutationFn: (args: { stars: number; comment: string | null; tags: string[] }) => leaveReview(orderId, args.stars, args.comment, args.tags),
+    onSuccess: (r) => {
       setSent(true);
       setOpen(false);
-      toast.success(`Thanks. ${REVIEW_SHOWS}`);
+      toast.success(r.tagsDropped ? `Thanks. Your tags couldn't be saved yet. ${REVIEW_SHOWS}` : `Thanks. ${REVIEW_SHOWS}`);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => {
@@ -82,6 +84,23 @@ export function DeclutterReviewForm({ orderId, side, userId }: { orderId: string
               ))}
             </div>
           </div>
+          {/* Board 163: quick tags, this side's fixed list; selected ones wear the primary olive. */}
+          <div role="group" aria-label="Quick tags" className="flex flex-wrap justify-center gap-2 pt-4" data-review-tags="">
+            {REVIEW_TAGS[side].map(([tag, label]) => {
+              const on = tags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  aria-pressed={on}
+                  className={`min-h-11 rounded-full px-4 text-ds-14 font-semibold ${on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card"}`}
+                  onClick={() => setTags((t) => (on ? t.filter((x) => x !== tag) : [...t, tag]))}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
           <div className="space-y-2 pt-4">
             <label htmlFor={`dcl-review-${orderId}`} className="block text-ds-15 font-semibold">
               A few words <span className="font-normal text-muted-foreground">(optional)</span>
@@ -98,7 +117,7 @@ export function DeclutterReviewForm({ orderId, side, userId }: { orderId: string
             <p className="text-ds-13 text-muted-foreground">{REVIEW_SHOWS}</p>
           </div>
           <SheetFooter>
-            <SheetPrimaryAction disabled={send.isPending || stars === 0} onClick={() => send.mutate({ stars, comment: comment.trim() || null })}>
+            <SheetPrimaryAction disabled={send.isPending || stars === 0} onClick={() => send.mutate({ stars, comment: comment.trim() || null, tags })}>
               Send review
             </SheetPrimaryAction>
           </SheetFooter>

@@ -4740,6 +4740,156 @@
       "sha": "ec4fa4add4317642e1c7f596441018ee2e977da9",
       "reason": "Closed PR (auto-land: perf/web-vitals-inp-fcp). Landed on main by the landing trains: 2 of 2 code commit(s) are on main under the same subjects (e.g. dac0772db4, 3812a84247). Its 8 added line(s) not found verbatim are older wording of lines main has since changed: 8 of them main itself added after the merge base and a later commit rewrote (combined-tree fixes, counts, comments).",
       "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/land/train38-758fea43",
+      "sha": "51032dd83e6d376c4a230a4f7ca5993dbebdc748",
+      "reason": "Partly landed by the landing trains: 4 of 7 code commit(s) are on main under the same subjects (e.g. 54cc306d9d (#3506), 8f6ab4d623 (#3506), 995e711b64 (#3506), d83972a84e (#3506)). The 3 commit(s) not matched by subject (51032dd83e fix(train38): the Wanted reply's over-price line reads --des; 53be114714 fix(train38): Builder 3c s4 guard round: declutter_set_wante; 10d2be505c fix(declutter): question askers are not readable by other me) are covered by the line check that follows. Of its 62 added line(s) not found verbatim, 24 are older wording main itself added after the merge base and a later commit rewrote. Its 1 deleted line(s) still on main are kept or restated by main's own landed version of the same change. 3 docs(open)/chore(generated) commit(s) are bookkeeping main regenerates. Its unlanded piece, Declutter question askers not readable by other members (Q2278, migration 20261021044114_declutter_questions_hide_asker), is carried by ready/builder3c-declutter-s4 (35 of its 38 leftover lines; the other 3 are popup-title counts main has since rewritten), queued for the next train; docs/OPEN.md Q2278 [~].",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/builder1i-shell-wip",
+      "sha": "6522540e4a52eba0153035e041b2585062c883b8",
+      "reason": "Partly landed by the landing trains: 14 of 14 code commit(s) are on main under the same subjects (e.g. fca48c2915 (#3485), a97beb6631 (#3485), 40d2ea0dbb (#3485), 38bcb3f455 (#3483)). Of its 142 added line(s) not found verbatim, 109 are older wording main itself added after the merge base and a later commit rewrote. Its 12 deleted line(s) still on main are kept or restated by main's own landed version of the same change. Same sha as ready/builder1i-shell-6, queued for the next train: its 33 lines not on main (EntryChoice, popup titles sentence case, e2e selectors) ride that branch.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/builder1j-q1929-wip",
+      "sha": "fda4823bf6f0f79ede47d973c28a206f0aec2001",
+      "reason": "NOT on main: Declutter delivery pay raise, the earlier copy of wip/declutter-launch-q1929. Pending: docs/OPEN.md Q1929 (paused by the owner 2026-10-21).",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/builder1j-sentry-1",
+      "sha": "326feb6446359e191da33ffe8bf97e44295007ff",
+      "reason": "NOT on main: the Sentry alert rules workflow (docs/OPEN.md Q185). Pending: carried by ready/builder1j-sentry-1 (627 of its 629 lines; the other 2 are test lines that branch rewrote), queued for the next train; the workflow needs the owner's SENTRY_ALERTS_TOKEN.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/builder2g-jobs-wip",
+      "sha": "0d9302f564bca65ca934fdc203f66f7d335ba706",
+      "reason": "Partly landed by the landing trains: 31 of 33 code commit(s) are on main under the same subjects (e.g. f657c09997 (#3485), 9ca958758d (#3485), 3a38dee3da (#3483), dba6899f31 (#3483)). The 2 commit(s) not matched by subject (0d9302f564 wip(jobs): cancel-notice review note 1 applied (a pending di; f825c96be6 test(190): date the floor counts in the price-guidance test ) are covered by the line check that follows. Of its 79 added line(s) not found verbatim, 71 are older wording main itself added after the merge base and a later commit rewrote. Its 18 deleted line(s) still on main are kept or restated by main's own landed version of the same change. Its 8 lines not on main (price-guidance floor comments, jobProgress dates, CrewMemberSection title) are carried by ready/builder2g-jobs-s14, queued for the next train.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/builder2h-jobs-141-exact",
+      "sha": "88a6d0ea6a1e3d3b9f23246e48e6efa36421194c",
+      "reason": "NOT on main: board 141 refund requests (refund_requests migration, RPCs, come back and finish). Pending: handoff-141 / docs/OPEN.md Q2272 (board 141 refund requests), with the owner's amount rule still open; most of it is also carried by ready/builder2h-jobs-141.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/builder2h-jobs-20",
+      "sha": "c27a2daba313bd61b1b52e87331438930cfeb75a",
+      "reason": "NOT on main: board 66/172 slice 2 (the poster's cancel dialog shows the quoted fee; poster_cancel_job refuses a fee not shown). Pending: carried by ready/builder2h-jobs-20 (every line), which is back with the jobs lane for a component-size fix (CancellationDialog over its line limit) before it rides a train.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/builder3c-declutter",
+      "sha": "7b2f3d7e40c8153fe7f3bf2b9c720bd87c27b408",
+      "reason": "Partly landed by the landing trains: 4 of 5 code commit(s) are on main under the same subjects (e.g. 54cc306d9d (#3506), 8f6ab4d623 (#3506), 995e711b64 (#3506), d83972a84e (#3506)). The 1 commit(s) not matched by subject (71855da34e fix(declutter): question askers are not readable by other me) are covered by the line check that follows. Of its 60 added line(s) not found verbatim, 25 are older wording main itself added after the merge base and a later commit rewrote. Its 1 deleted line(s) still on main are kept or restated by main's own landed version of the same change. 2 docs(open)/chore(generated) commit(s) are bookkeeping main regenerates. Its unlanded piece, Declutter question askers not readable by other members (Q2278, migration 20261021044114), is carried line for line by ready/builder3c-declutter-s4, queued for the next train; docs/OPEN.md Q2278 [~].",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/categories-mobile-1019",
+      "sha": "5234dccd2666caf8f7d9361df789979d60a65e5b",
+      "reason": "NOT on main: mobile job categories with a license-required gate, Licensed Services card, two-step picker (migrations 20261019184311, 20261019185210). Pending: the categories lane, paused to its handoff by the lead (licensed categories gated, no identity check), not yet restarted.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/dashboards-q2199-1019",
+      "sha": "389feb375b76c4dc33e012a9c848548f64bed4a0",
+      "reason": "NOT on main: Customize follows the account (profiles section order / hidden sections, migration 20261019074124). Pending: docs/OPEN.md Q2199 (split to its own branch by c14de992b2 (#3421)). The rest of the branch landed with the dashboards build.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-consignment-spec-1019",
+      "sha": "2cce25d88d547da168e374f1260c1647f34e46fc",
+      "reason": "NOT on main: docs/specs/declutter-consignment-draft.md, the consignment (Sell it for me v2) spec draft, nothing built. Pending: the owner answered the product questions 2026-10-20; the CPA/lawyer items are still open before a money review and a build.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-launch-q1929",
+      "sha": "b10e9407bc6f60c9f714a9a0bd63927f8aaa195c",
+      "reason": "NOT on main: Declutter delivery pay raise. Pending: docs/OPEN.md Q1929 (paused by the owner 2026-10-21).",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-privacy-1021",
+      "sha": "d08cfec48082223065dbcee2790c8c0a429d2727",
+      "reason": "NOT on main: a Declutter seller's hidden state kept on the item row (migration 20261021142959). Pending: docs/OPEN.md Q1852.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/homes-bankrent-1019",
+      "sha": "36f931afb58ca213c6588d8cb71b4b26593e9d14",
+      "reason": "NOT on main: Homes bank rent (ACH rent checkout, autopay, transfers). Pending: held by the owner's decision that bank rent stays OFF until the fee decision; the lane keeps it on this wip branch.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/homes-cards-1019",
+      "sha": "de282603944b8912728f9c295c66af2dc30cb337",
+      "reason": "NOT on main: shorter Homes cards (owner-approved 2026-10-19). Pending: queued for the next free builder from this branch.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/homes-firstlisting-1019",
+      "sha": "5c54f8954531552c799c8ad88c5f2aea8abd74e2",
+      "reason": "NOT on main: a landlord's first listing waits for admin review (migration 20261019185022). Pending: the homes lane paused it with its code review to be re-run before it lands.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/jobs-followups-1019",
+      "sha": "e8c822b2f75ad4ed31060252bc0ee6f762b0f267",
+      "reason": "NOT on main: the Helpr-fault money follow-ups (give the deduction back when the job ends with no payout that kept it, payout-run races, true-up, deletion refused while a card fee is owed, Quick Release key salt, the Helpr sees the deduction). Pending: queued in the lead's list for final checks; docs/OPEN.md Q2167 carries the visible-deduction piece. Its landlord ID-check commits are superseded on main by the free photo review, 4598180f2e (#3407).",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/phone-save-1021",
+      "sha": "b0becbba835eedcbe9feb42fe3387cd8ceb416e0",
+      "reason": "NOT on main: save_my_phone re-applied (migration 20261013012700 phone_save_rpc_rate_limited). Pending: docs/OPEN.md Q1805 (lands with the App Store build only).",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/profile-insert-pin-1021",
+      "sha": "ca09f2cd50b65b71e7cca177e248fb78617ea524",
+      "reason": "NOT on main: pin the remaining billing columns on the profiles INSERT policy (migration 20261021064512). Pending: docs/OPEN.md Q1856.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/quotes-fixes-1019",
+      "sha": "8486afa6f9d634e1642585e168821c617a0ebe4a",
+      "reason": "NOT on main: a paid quote job hires its quoter or the poster is told (migration 20261019184844). Pending: docs/OPEN.md Q2116 HIGH (main carries only the one-notice part, fbaeaeec10 (#3358)).",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/reds-1017-12-save",
+      "sha": "a04ee37979f83a5017a7dac274875cf143c8e818",
+      "reason": "NOT on main: the press shard plan by measured cost and one shared ceiling per leg (scripts/audit/pressShardPlan.mjs, pressSharedCeiling.mjs). Pending: the press timing item in the lead's list (needs measured press times before it lands).",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/shops-noshow-refund-1019",
+      "sha": "11494eceb6b24815fcee80b3c911e8f1e41054df",
+      "reason": "NOT on main: an admin refunds a disputed Shops no-show from the shop's payout (migration 20261019185756). Pending: an open owner question on how the refund is funded when the shop's payout already went out.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/shops-restore-1019",
+      "sha": "e2e78de18363acd4f065b45e36852e23a42f3926",
+      "reason": "NOT on main: the Stripe restore check reads the Shops refund ids (shop_refunds, shop_hand_refunds). Pending: docs/OPEN.md Q2232 HIGH.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "remote:origin/wip/sms-alerts",
+      "sha": "fe8d0764f9785a5951561b069f9988183e38376f",
+      "reason": "NOT on main: SMS alerts behind the sms_alerts switch (migration 20261020022332, Twilio send, consent). Pending: the SMS lane is paused by the lead for the design focus and keeps its work here.",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "pr:3480",
+      "sha": "51032dd83e6d376c4a230a4f7ca5993dbebdc748",
+      "reason": "Partly landed by the landing trains: 4 of 7 code commit(s) are on main under the same subjects (e.g. 54cc306d9d (#3506), 8f6ab4d623 (#3506), 995e711b64 (#3506), d83972a84e (#3506)). The 3 commit(s) not matched by subject (51032dd83e fix(train38): the Wanted reply's over-price line reads --des; 53be114714 fix(train38): Builder 3c s4 guard round: declutter_set_wante; 10d2be505c fix(declutter): question askers are not readable by other me) are covered by the line check that follows. Of its 62 added line(s) not found verbatim, 24 are older wording main itself added after the merge base and a later commit rewrote. Its 1 deleted line(s) still on main are kept or restated by main's own landed version of the same change. 3 docs(open)/chore(generated) commit(s) are bookkeeping main regenerates. Closed PR, same head as land/train38-758fea43. Its unlanded piece, Declutter question askers not readable by other members (Q2278), is carried by ready/builder3c-declutter-s4, queued for the next train; docs/OPEN.md Q2278 [~].",
+      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
     }
   ]
 }

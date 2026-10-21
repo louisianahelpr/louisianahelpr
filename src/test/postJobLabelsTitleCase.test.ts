@@ -17,7 +17,7 @@ import { blankComments } from "./helpers/blankNonCode";
  * the post-job flow. Static text only — `{expressions}` are skipped, and
  * placeholders / helper sentences are not labels, so they are not checked.
  */
-// @mutate src/components/postjob/LogisticsSection.tsx | >Street address</Label> | >Street Address</Label>
+// @mutate src/components/postjob/AddressBlock.tsx | >Street address</Label> | >Street Address</Label>
 const ROOTS = ["src/components/postjob", "src/pages/post-job"];
 /** Proper nouns that keep their capital mid-label. */
 const PROPER = new Set(["Helpr", "Helprs", "Helpr's", "Louisiana", "I", "I'll", "I'm"]);

@@ -35,8 +35,11 @@ interface AddressAutocompleteProps {
    * fields may be empty when MapKit couldn't infer it from the
    * placemark — callers should treat them as best-effort.
    */
-  onPick: (picked: { street: string; city: string; zipCode: string }) => void;
+  onPick: (picked: { street: string; city: string; state: string; zipCode: string }) => void;
   className?: string;
+  /** Accessible name (default "Street address"); the single address box says "Address". */
+  ariaLabel?: string;
+  placeholder?: string;
 }
 
 /**
@@ -53,6 +56,8 @@ interface MapKitPlace {
   locality?: string;
   postCode?: string;
   postalCode?: string;
+  administrativeArea?: string;
+  administrativeAreaCode?: string;
 }
 interface MapKitSearch {
   autocomplete: (
@@ -85,6 +90,8 @@ export function AddressAutocomplete({
   onChange,
   onPick,
   className,
+  ariaLabel,
+  placeholder,
 }: AddressAutocompleteProps) {
   const mapKitStatus = useMapKitJs();
   const [query, setQuery] = useState(value);
@@ -171,7 +178,7 @@ export function AddressAutocomplete({
         s.raw,
               (err, data) => {
           if (err || !data?.places?.length) {
-            onPick({ street: fallbackStreet, city: "", zipCode: "" });
+            onPick({ street: fallbackStreet, city: "", state: "", zipCode: "" });
             return;
           }
                   const place = data.places[0];
@@ -185,13 +192,14 @@ export function AddressAutocomplete({
           const street = composedStreet || fallbackStreet;
           const city = place.locality ?? "";
           const zipCode = place.postCode ?? place.postalCode ?? "";
+          const state = place.administrativeAreaCode ?? place.administrativeArea ?? "";
           setQuery(street);
           onChange(street);
-          onPick({ street, city, zipCode });
+          onPick({ street, city, state, zipCode });
         },
       );
     } catch {
-      onPick({ street: fallbackStreet, city: "", zipCode: "" });
+      onPick({ street: fallbackStreet, city: "", state: "", zipCode: "" });
     }
   };
 
@@ -234,7 +242,8 @@ export function AddressAutocomplete({
         maxLength={200}
         autoComplete="street-address"
         autoCapitalize="words"
-        aria-label="Street address"
+        aria-label={ariaLabel ?? "Street address"}
+        placeholder={placeholder}
         {...comboboxProps}
         className={className}
       />

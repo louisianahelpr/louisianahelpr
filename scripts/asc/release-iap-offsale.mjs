@@ -28,6 +28,10 @@ async function territoryCount(path) {
   };
 }
 
+// Only the membership products (com.helpr.<tier>.<cadence>); any other product
+// added later (e.g. a Job Boost) is left alone.
+const MEMBERSHIP_ID = /^com\.helpr\.(basic|plus|pro|elite)\.(monthly|annual|onetime)$/;
+
 const products = [];
 for (const p of await ascAll(`/v1/apps/${app.id}/inAppPurchasesV2?limit=200`, token)) {
   products.push({
@@ -58,6 +62,10 @@ for (const g of await ascAll(`/v1/apps/${app.id}/subscriptionGroups?limit=50`, t
 
 let failed = false;
 for (const p of products) {
+  if (!MEMBERSHIP_ID.test(p.productId)) {
+    console.log(`${p.productId}  not a membership product, left alone`);
+    continue;
+  }
   const before = await territoryCount(p.availabilityPath);
   console.log(`${p.productId}  state=${p.state}  territories=${before.count}  newTerritories=${before.newTerritories}`);
   if (before.count === 0 && before.newTerritories === false) {

@@ -53,7 +53,7 @@ const config: CapacitorConfig = {
     version: '1.0.4',
     build: '7112',
     category: 'public.app-category.lifestyle',
-    supportUrl: 'https://louisianahelpr.com/support',
+    supportUrl: 'https://www.louisianahelpr.com/support',
     privacyPolicyUrl: 'https://www.louisianahelpr.com/privacy',
     marketingUrl: 'https://www.louisianahelpr.com',
     // Safe-area insets are handled entirely in CSS via env(safe-area-inset-*)

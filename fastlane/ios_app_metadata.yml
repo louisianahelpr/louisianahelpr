@@ -44,7 +44,9 @@ build:
 app_store:
   marketing_url: https://www.louisianahelpr.com
   privacy_url: https://www.louisianahelpr.com/privacy
-  support_url: https://louisianahelpr.com/support
+  # App Review 1.5 (April 2026): the support page itself, which works signed
+  # out and has a contact form. Matches App Store Connect (measured 2026-10-21).
+  support_url: https://www.louisianahelpr.com/support
 
 # All NSUsageDescription strings the binary advertises. App Store review
 # rejects builds whose runtime prompts don't match these. Edit copy here —

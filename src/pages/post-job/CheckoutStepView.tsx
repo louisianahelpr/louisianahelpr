@@ -32,7 +32,7 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         helper={
           // A post a gift card covers in full charges $0: no "pay" line then.
           form.totalCharge > 0
-            ? "Check your job, then pay to post it. We hold the money until the job is done."
+            ? "Check your job. You're charged when you post, and the money is held until the job is done."
             : "Check your job, then post it."
         }
       />

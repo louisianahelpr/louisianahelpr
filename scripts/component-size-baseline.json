@@ -16,7 +16,7 @@
     "src/components/PhotoProof.tsx": 634,
     "src/components/postjob/CheckoutStep.tsx": 815,
     "src/components/profile/CredentialsTab.tsx": 911,
-    "src/components/profile/ScheduleTab.tsx": 854,
+    "src/components/profile/ScheduleTab.tsx": 843,
     "src/components/profile/SubscriptionTab.tsx": 871,
     "src/components/ui/dialog.tsx": 790,
     "src/pages/auth/CompleteProfile.tsx": 919,

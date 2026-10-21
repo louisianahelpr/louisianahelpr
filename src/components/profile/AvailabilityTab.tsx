@@ -259,16 +259,15 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
       {/* "Available now" — a ready-to-start-today signal for helprs, bounded by
           the SAME weekly grid rendered directly below it. Shows on applicant
           cards so posters can prioritize immediately-available helpers. */}
-      <div
-        className="rounded-ds-lg px-4 py-3.5 flex items-center justify-between gap-4"
-        style={{
-          background: isAvailable ? "hsl(var(--sage) / 0.08)" : "hsl(var(--parchment) / 0.5)",
-          border: isAvailable ? "1px solid hsl(var(--sage) / 0.25)" : "1px solid hsl(var(--olivewood) / 0.12)",
-        }}
-      >
+      {/* Spec v2 rebuild (audit 2026-10-21): the one card, and ONE name for
+          the switch in both states. It read "Mark as available" (off) above a
+          week of days switched ON, which looked like two answers to one
+          question; it is a separate "right now" signal, and its label now
+          says so, with the weekly hours under their own heading below. */}
+      <div className="rounded-[20px] liquid-glass px-4 py-3.5 flex items-center justify-between gap-4">
         <div>
-          <p className="text-ds-14 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-            {isAvailable ? "Available now" : "Mark as available"}
+          <p className="text-ds-15 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+            Available right now
           </p>
           <p className="text-ds-12 text-muted-foreground">
             {isAvailable

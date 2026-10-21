@@ -288,19 +288,19 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
     );
   }
 
+  // Spec v2 rebuild (audit 2026-10-21): ONE compact list. Seven day rows in a
+  // single card, split by hairlines, instead of seven stacked cards; the
+  // presets are the shared chip; "Day off" is quiet text, not an uppercase pill.
+  // The off row is dimmed through its label colour, never opacity (an 85%
+  // container compounded with its own text and failed AA, 12 axe nodes).
   return (
-    <div className="space-y-4">
-      {/* Bulk shortcuts — three one-tap presets so users don't have to
-          set every day individually. They WRAP. This row used to be a
-          hidden-scrollbar horizontal scroller, which at 375 clipped the
-          second pill to "Weekends o" and hid the third entirely, with nothing
-          on screen saying the row moves — a chopped word reads as a rendering
-          fault, not an affordance. Three short pills on two lines costs one
-          extra row of height and hides nothing. */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="shrink-0 text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-          Quick set:
-        </span>
+    <div className="space-y-3">
+      <h2 className="text-ds-12 font-sans font-semibold uppercase tracking-[0.08em] text-muted-foreground px-1">
+        Your weekly hours
+      </h2>
+      {/* The presets WRAP (a hidden-scrollbar scroller clipped "Weekends o"
+          at 375 and hid the third pill). */}
+      <div className="flex flex-wrap items-center gap-2">
         {[
           { label: "Weekdays 9–5", apply: weekdays9to5 },
           { label: "Weekends off", apply: weekendsOff },
@@ -311,92 +311,50 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
             type="button"
             onClick={() => setSlots(preset.apply)}
             disabled={!changesWeek(preset.apply)}
-            className="shrink-0 inline-flex items-center rounded-full px-3 h-7 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all disabled:opacity-50 disabled:active:scale-100"
-            style={{
-              background: "var(--surface-premium)",
-              border: "1px solid hsl(var(--olivewood) / 0.18)",
-              color: "hsl(var(--olivewood))",
-            }}
+            className="shrink-0 inline-flex items-center rounded-full px-3.5 min-h-9 text-ds-13 font-sans font-semibold text-foreground border active:scale-[0.96] transition-all disabled:opacity-50 disabled:active:scale-100"
+            style={{ background: "hsl(var(--card))", borderColor: "hsl(var(--border))" }}
           >
             {preset.label}
           </button>
         ))}
       </div>
 
-      <div className="space-y-2">
+      <div className="rounded-[20px] liquid-glass px-4 divide-y divide-[hsl(var(--sand))]" data-availability-list="">
         {DAYS.map((day, i) => {
           const slot = slots[i];
           const off = !slot.is_available;
           return (
-            <div
-              key={day}
-              className={cn(
-                "rounded-2xl liquid-glass p-card transition-all",
-                // Dimming an "off" row with opacity attenuates its TEXT too:
-                // at 70% the day label and hours measured under the 4.5:1 AA
-                // bar (12 axe nodes). 85% still reads as de-emphasised without
-                // pushing the copy below the threshold.
-                off && "opacity-85",
-              )}
-            >
-              {/* Row budget at 375: the card's inner width is 235px, the
-                  switch+label cluster takes 95, and the hours pill gets what
-                  is left. With gap-3 on both flex rows that left 82px for
-                  text that measures 89px, so the DEFAULT "9 AM – 5 PM"
-                  rendered "9 AM – 5 …" on every row — a comment in
-                  TimeRangeField said the compact format fixed exactly this,
-                  and it did not. gap-2 on both rows buys 8px; `flex-wrap`
-                  is the safety net so a wide range ("10:30 AM – 5:30 PM")
-                  drops to its own line instead of ever being cut off. Label
-                  column is w-9: the widest three-letter day measures 34px. */}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Switch
-                    checked={slot.is_available}
-                    onCheckedChange={(checked) => updateSlot(i, "is_available", checked)}
-                    aria-label={`Toggle ${day}`}
-                  />
-                  <span
-                    className="font-sans font-bold w-9 text-ds-15"
-                    style={{
-                      color: off ? "hsl(var(--olivewood) / 0.8)" : "hsl(var(--ink-deep))",
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    {day.slice(0, 3)}
-                  </span>
-                </div>
-
-                {slot.is_available ? (
-                  <TimeRangeField
-                    start={slot.start_time}
-                    end={slot.end_time}
-                    onChange={({ start, end }) => {
-                      updateSlot(i, "start_time", start);
-                      updateSlot(i, "end_time", end);
-                    }}
-                    className="ml-auto px-2.5 gap-1"
-                  />
-                ) : (
-                  /* "Day off" pill — explicit chip rather than fading
-                      italic text so the off state reads as intentional,
-                      not forgotten. */
-                  <span
-                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-ds-11 font-sans font-semibold uppercase tracking-wider"
-                    style={{
-                      background: "hsl(var(--olivewood) / 0.10)",
-                      // Full strength, not 0.8: this pill sits inside the
-                      // dimmed "off" card, so its own alpha compounded with the
-                      // container's and landed at 4.15:1 — still under AA even
-                      // after the container was lifted to 85%.
-                      color: "hsl(var(--olivewood))",
-                      border: "1px solid hsl(var(--olivewood) / 0.18)",
-                    }}
-                  >
-                    Day off
-                  </span>
-                )}
+            // Row budget at 375: switch + label take ~95px; gap-2 and
+            // `flex-wrap` keep a wide range ("10:30 AM – 5:30 PM") on its own
+            // line rather than ever cutting it off.
+            <div key={day} className="flex flex-wrap items-center justify-between gap-2 py-2.5 min-h-[56px]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Switch
+                  checked={slot.is_available}
+                  onCheckedChange={(checked) => updateSlot(i, "is_available", checked)}
+                  aria-label={`Toggle ${day}`}
+                />
+                <span
+                  className="font-sans font-bold w-9 text-ds-15"
+                  style={{ color: off ? "hsl(var(--muted-foreground))" : "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+                >
+                  {day.slice(0, 3)}
+                </span>
               </div>
+
+              {slot.is_available ? (
+                <TimeRangeField
+                  start={slot.start_time}
+                  end={slot.end_time}
+                  onChange={({ start, end }) => {
+                    updateSlot(i, "start_time", start);
+                    updateSlot(i, "end_time", end);
+                  }}
+                  className="ml-auto px-2.5 gap-1"
+                />
+              ) : (
+                <span className="ml-auto text-ds-13 font-sans text-muted-foreground">Day off</span>
+              )}
             </div>
           );
         })}
@@ -405,7 +363,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
         onClick={handleSave}
         disabled={saving}
         size="lg"
-        className="w-full h-12 rounded-2xl text-ds-15 font-semibold"
+        className="w-full h-12 rounded-full text-ds-15 font-semibold"
       >
         {saving ? "Saving…" : "Save availability"}
       </Button>

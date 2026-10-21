@@ -9,6 +9,7 @@
  * new builder that forgets the fallback cannot bring the blank back.
  *
  * @mutate src/components/dashboard/JobPosterCard.tsx | name={job.posterName?.trim() \|\| POSTER_NAME_FALLBACK} | name={job.posterName}
+ * @mutate src/components/PersonTile.tsx | className="text-ds-12 font-sans font-medium" | className="text-ds-10 font-sans font-semibold uppercase"
  */
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -46,5 +47,17 @@ describe("JobPosterCard never prints a blank poster name", () => {
       </MemoryRouter>,
     );
     expect(nameUnderEyebrow()).toBe("Hallie B.");
+  });
+
+  it("the eyebrow reads in sentence case, never an uppercase label (spec v2, lead 2026-10-21)", () => {
+    render(
+      <MemoryRouter>
+        <JobPosterCard job={job("Hallie B.")} repeatJobs={0} />
+      </MemoryRouter>,
+    );
+    const eyebrow = document.querySelector("[data-person-eyebrow]")!;
+    expect(eyebrow.textContent).toBe("Posted by");
+    expect(eyebrow.className.split(/\s+/)).not.toContain("uppercase");
+    expect((eyebrow as HTMLElement).style.textTransform).not.toBe("uppercase");
   });
 });

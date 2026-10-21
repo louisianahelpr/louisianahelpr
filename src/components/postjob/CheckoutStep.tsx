@@ -424,7 +424,7 @@ export function CheckoutStep({
       <div className="rounded-2xl liquid-glass overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-primary" /> Payment Breakdown
+            <CreditCard className="w-4 h-4 text-primary" /> Payment breakdown
           </h3>
         </div>
         <div className="p-5 space-y-3">
@@ -460,24 +460,24 @@ export function CheckoutStep({
               Checking your gift card…
             </div>
           )}
-          <CheckoutSummaryRow label="Job Budget" amount={formatPriceExact(budgetNum)} />
+          <CheckoutSummaryRow label="Job budget" amount={formatPriceExact(budgetNum)} />
           {/* Roadmap F3 (owner 2026-10-14/15): the poster pays exactly the job
               price. No service fee and no card-cost line; the row shows only
               if a fee is ever passed in (never for a post made today, since
               useJobDerived prices it at 0 like create-payment). */}
           {customerFeeAmount > 0 && (
-            <CheckoutSummaryRow label="Service Fee" amount={formatPriceExact(customerFeeAmount)} />
+            <CheckoutSummaryRow label="Service fee" amount={formatPriceExact(customerFeeAmount)} />
           )}
           {isUrgent && urgentFeeNum > 0 && (
-            <CheckoutSummaryRow labelClassName="flex items-center gap-1" label={<><Zap className="w-3 h-3 text-accent" /> Urgent Bonus</>} amount={formatPriceExact(urgentFeeNum)} />
+            <CheckoutSummaryRow labelClassName="flex items-center gap-1" label={<><Zap className="w-3 h-3 text-accent" /> Urgent bonus</>} amount={formatPriceExact(urgentFeeNum)} />
           )}
           {/* F3: the urgent bonus is part of the job price, with no card-fee
               line of its own (owner 2026-10-15); shown only if one is passed. */}
           {isUrgent && urgentCardFeeAmount > 0 && (
-            <CheckoutSummaryRow label="Urgent Bonus Card Fee" amount={formatPriceExact(urgentCardFeeAmount)} />
+            <CheckoutSummaryRow label="Urgent bonus card fee" amount={formatPriceExact(urgentCardFeeAmount)} />
           )}
           {onboardingFeeAmount > 0 && (
-            <CheckoutSummaryRow label={<>One-Time Account Setup <span className="text-ds-12">(First Job Only)</span></>} amount={formatPriceExact(onboardingFeeAmount)} />
+            <CheckoutSummaryRow label={<>One-time account setup <span className="text-ds-12">(first job only)</span></>} amount={formatPriceExact(onboardingFeeAmount)} />
           )}
           {/* ── Gift applied ────────────────────────────────────────────────
               The line this screen was missing. `redeem_gift_card` applies the

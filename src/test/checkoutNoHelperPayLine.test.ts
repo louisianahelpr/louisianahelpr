@@ -1,4 +1,4 @@
-// @mutate src/components/postjob/CheckoutStep.tsx | <CheckoutSummaryRow label="Job Budget" amount={formatPriceExact(budgetNum)} /> | <CheckoutSummaryRow label="Job Budget" amount={formatPriceExact(budgetNum)} />{"Your Helpr receives $1 of this"}
+// @mutate src/components/postjob/CheckoutStep.tsx | <CheckoutSummaryRow label="Job budget" amount={formatPriceExact(budgetNum)} /> | <CheckoutSummaryRow label="Job budget" amount={formatPriceExact(budgetNum)} />{"Your Helpr receives $1 of this"}
 /**
  * Owner, 2026-09-24: "On payment break down remove your helpr earns… from this."
  * The poster's Payment Breakdown lists what THEY pay (budget, fee, tax, total).
@@ -13,7 +13,7 @@ const src = readFileSync(join(__dirname, "../components/postjob/CheckoutStep.tsx
 describe("checkout Payment Breakdown has no Helpr-pay line", () => {
   it("reads the real breakdown", () => {
     expect(src.length).toBeGreaterThan(10_000);
-    expect(src).toContain("Job Budget");
+    expect(src).toContain("Job budget");
   });
   it("never says what the Helpr receives or earns", () => {
     expect(src.match(/Helprs? (receives?|earns?)\b[^\n]*\$/g) ?? []).toEqual([]);

@@ -78,7 +78,7 @@ interface ActivityDialogsProps {
   setDeadlineDialogApp: (app: DeadlineDialogApp | null) => void;
   onDeadlineConfirm: (hours: number, msg?: string) => Promise<void> | void;
   /** The job being hired into: the dialog states the answer-by cap at its start. */
-  deadlineJob?: Pick<Job, "date_needed" | "start_time"> | null;
+  deadlineJob?: Pick<Job, "date_needed" | "start_time"> & Partial<Pick<Job, "title" | "budget" | "is_group_job" | "urgent_fee" | "is_flexible_schedule" | "recurrence_days" | "payment_status">> | null;
   // Dispute
   disputeJob: Job | null;
   setDisputeJob: (job: Job | null) => void;
@@ -255,6 +255,13 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           helperName={formatName(props.deadlineDialogApp.profiles?.full_name, "Helpr")}
           onConfirm={props.onDeadlineConfirm}
           job={props.deadlineJob ?? null}
+          helper={{
+            userId: props.deadlineDialogApp.profiles?.user_id ?? props.deadlineDialogApp.helper_id,
+            avatarUrl: props.deadlineDialogApp.profiles?.avatar_url ?? null,
+            idVerified: props.deadlineDialogApp.profiles?.is_id_verified ?? null,
+            avgRating: props.deadlineDialogApp.avgRating ?? null,
+            reviewCount: props.deadlineDialogApp.reviewCount ?? null,
+          }}
           onClose={() => props.setDeadlineDialogApp(null)}
         />
       )}

@@ -17,6 +17,7 @@ import { firstPhotos } from "@/components/declutter/DeclutterItemCard";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { fetchPhotos, photoPublicUrl } from "@/lib/declutter/api";
 import { getCategoryIcon } from "@/lib/categoryIcons";
+import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
 import { likePattern, type SearchSection } from "./searchQuery";
 
 /**
@@ -223,6 +224,16 @@ export default function SearchPage() {
               );
             })}
           </div>
+        )}
+
+        {q && switchesSettled && (
+          // Board 91: save the words as an alert. With "All" the sheet asks
+          // which open section to watch.
+          <SaveSearchButton
+            userId={user?.id}
+            draft={{ section: declutterOn && (section === "declutter" || (section === "all" && itemCount > 0 && jobCount === 0)) ? "declutter" : "jobs", query: q, category: null, minDollars: null, maxDollars: null, radiusMiles: null }}
+            sections={section === "all" && declutterOn ? ["jobs", "declutter"] : undefined}
+          />
         )}
 
         {!q && <p className="font-sans text-ds-13 text-muted-foreground px-1">Search every section at once.</p>}

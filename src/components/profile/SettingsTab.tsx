@@ -118,8 +118,9 @@ function ShareJobPhotosRow({ profile }: { profile: Profile | null }) {
 /**
  * YOU › SETTINGS (board 52, spec v2 §9.17): Look (color mode, bigger text and
  * buttons), Your sections (a switch per open section, "Soon" for a closed one),
- * Alerts, Your account, More, and Log out. Text messages and saved searches
- * join Alerts when they exist (boards 88, 91); nothing here is a placeholder.
+ * Alerts (notifications, and saved searches since Q2275, board 91), Your
+ * account, More, and Log out. Text messages join Alerts when they exist
+ * (board 88); nothing here is a placeholder.
  */
 export function SettingsTab({
   profile,
@@ -194,6 +195,7 @@ export function SettingsTab({
 
       <Group title="Alerts">
         <Row testId="notifications" label={TAB_TITLES.notifications} sub="What we tell you, and how" onClick={() => onSelectTab("notifications")} />
+        <Row testId="saved-searches" label={TAB_TITLES.saved_searches} sub="Get told when something new matches" onClick={() => onSelectTab("saved_searches")} />
       </Group>
 
       <Group title="Your account">

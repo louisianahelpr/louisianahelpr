@@ -44,7 +44,8 @@ import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 import { DeclutterChipRow } from "./DeclutterChipRow";
 import { ManageListingSheet } from "./DeclutterManageListing";
 import { DeclutterFilterPanel } from "./DeclutterFilterPanel";
-import { NO_FILTERS, SORT_LABEL, activeFilterCount, applyBrowseFilters, dropOutlook, type DeclutterFilters } from "@/lib/declutter/browseFilters";
+import { NO_FILTERS, SORT_LABEL, activeFilterCount, applyBrowseFilters, browseStateFromParams, dropOutlook, type DeclutterFilters } from "@/lib/declutter/browseFilters";
+import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
 import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
@@ -105,8 +106,11 @@ function ListingsSkeleton() {
 }
 
 function BrowseView({ userId }: { userId: string }) {
-  // Any distance by default (owner, 2026-10-19); the member's own choice holds for the visit.
-  const [maxMiles, setMaxMiles] = useState<number | null>(null);
+  // Any distance by default (owner, 2026-10-19); the member's own choice holds
+  // for the visit. A saved search (Q2275) opens Browse with its filters in the URL.
+  const [params] = useSearchParams();
+  const [start] = useState(() => browseStateFromParams(params));
+  const [maxMiles, setMaxMiles] = useState<number | null>(start.maxMiles);
   const wide = useWideScreen();
   // No location prompt on landing: miles come from what we already know, and
   // the device is asked only from the "Use my location" button below.
@@ -135,8 +139,8 @@ function BrowseView({ userId }: { userId: string }) {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["declutter", "watching"] }),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  const [query, setQuery] = useState("");
-  const [filters, setFilters] = useState<DeclutterFilters>(NO_FILTERS);
+  const [query, setQuery] = useState(start.query);
+  const [filters, setFilters] = useState<DeclutterFilters>(start.filters);
   const now = new Date();
   const outlook = new Map(others.map((i) => [i.id, dropOutlook(i, drops.data?.get(i.id), now)]));
   const showDrops = [...outlook.values()].some((o) => o.planned);
@@ -174,6 +178,13 @@ function BrowseView({ userId }: { userId: string }) {
     <div className="min-w-0 space-y-4">
       <DeclutterBrowseBar query={query} onQuery={setQuery} filterCount={filterCount} panel={panel} shown={rows.length} onClearAll={clearAll} />
       <DeclutterChipRow filters={filters} onChange={setFilters} showDrops={showDrops} />
+      {/* Only the filters a saved search keeps (words, category, price, distance); the sheet shows them. */}
+      {(q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null)) && (
+        <SaveSearchButton
+          userId={userId}
+          draft={{ section: "declutter", query, category: filters.category, minDollars: filters.minDollars, maxDollars: filters.maxDollars, radiusMiles: from ? maxMiles : null }}
+        />
+      )}
       {others.length > 0 && (
         <p data-results-line="" className="hidden items-baseline justify-between gap-3 text-ds-13 text-muted-foreground lg:flex">
           <span>

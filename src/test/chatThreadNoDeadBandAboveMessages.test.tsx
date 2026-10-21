@@ -69,6 +69,9 @@ vi.mock("@/lib/offJobGate", () => ({ useOffJobState: () => null }));
 // src/test/chatShowsApplicationNote.test.tsx. It renders inside the anchored
 // block (ahead of the timeline), never above the scroller.
 vi.mock("./../components/messages/chatView/ApplicationNoteCard", () => ({ ApplicationNoteCard: () => <section data-testid="chat-application-note" /> }));
+// Board 2's deal card reads the job (React Query); its own spec is dealStage.test.ts.
+// It is pinned under the header ABOVE the scroller, like the safety banner.
+vi.mock("./../components/messages/chatView/DealCard", () => ({ DealCard: () => <section data-testid="deal-card">deal</section> }));
 vi.mock("./../components/messages/useMessageReactions", () => ({
   useMessageReactions: () => ({ reactions: new Map(), react: vi.fn() }),
 }));
@@ -190,6 +193,9 @@ describe("chat thread — the bottom-anchor band never opens between two pieces 
       // The one deliberate exception (owner, 2026-09-25): the dismissible
       // safety banner, pinned directly under the header.
       if (child.textContent?.includes("Keep chats & payments on Helpr")) return false;
+      // The second (board 2, lead-approved 2026-10-21, builder1g shell-3): the
+      // deal card, pinned under the header the same way. Named, not a class.
+      if (child.getAttribute("data-testid") === "deal-card") return false;
       // sr-only content takes no layout space, so it cannot open a band.
       return !child.className.toString().includes("sr-only");
     });

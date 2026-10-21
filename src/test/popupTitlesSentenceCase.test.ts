@@ -58,9 +58,11 @@ describe("every pop-up title is sentence case", () => {
   const all = files.flatMap((f) => titles(readFileSync(f, "utf8")).map((t) => ({ f, t })));
 
   it("reads every real title (exact inventory, both ways)", () => {
-    // 59 on 2026-10-21 (builder1g, TRAIN29). A new DialogHero title raises it,
-    // a deleted one lowers it, in the same commit.
-    expect(all.length).toBe(59);
+    // 58 on 2026-10-21 (TRAIN29 rebased on TRAIN28): 59 on builder1g's base,
+    // minus ApplicationSentDialog, whose DialogHero became a WhatNextSheet
+    // `title=` in Builder 2f's s5. A new DialogHero title raises it, a deleted
+    // one lowers it, in the same commit.
+    expect(all.length).toBe(58);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

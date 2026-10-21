@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-21T14:15:07.502Z",
-  "guards": 2275,
-  "registered": 2274,
+  "generated": "2026-10-21T15:39:12.694Z",
+  "guards": 2284,
+  "registered": 2283,
   "unregistered": [
     "src/lib/savedSearches.test.ts"
   ],

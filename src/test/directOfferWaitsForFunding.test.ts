@@ -55,7 +55,7 @@
  * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |          CASE WHEN public.job_payment_is_funded(v_job.payment_status) THEN\n            format('The person you offered |          CASE WHEN true THEN\n            format('The person you offered
  * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |              CASE WHEN public.job_payment_is_funded(NEW.payment_status) THEN |              CASE WHEN true THEN
  * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |          CASE WHEN public.job_payment_is_funded(payment_status) THEN\n           'Your direct offer |          CASE WHEN true THEN\n           'Your direct offer
- * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |      AND public.job_payment_is_funded(NEW.payment_status) THEN\n    v_recipient := OLD.customer_id; |      AND true THEN\n    v_recipient := OLD.customer_id;
+ * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql |      AND public.job_payment_is_funded(NEW.payment_status) THEN\n    v_recipient := OLD.customer_id; |      AND true THEN\n    v_recipient := OLD.customer_id;
  * Behaviour (real Postgres): src/test/pglite/offerNoticesWaitForFunding.pglite.mjs
  * (12 PASS on the fix; with --before U1-U5 FAIL, and G: the fixture grants
  * nothing, prod never let anon run these functions).

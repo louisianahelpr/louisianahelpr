@@ -151,7 +151,10 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(flat(body("declutter_delivery_on_task_event"))).not.toMatch(/4-digit|drop-off code/);
     expect(flat(NO_QR)).toContain("CREATE TRIGGER trg_declutter_handovers_no_new_code BEFORE INSERT OR UPDATE OF confirmed_by ON public.declutter_handovers");
     expect(flat(body("declutter_no_new_code_confirmation"))).toContain("IF NEW.confirmed_by = 'code' AND (TG_OP = 'INSERT' OR OLD.confirmed_by IS DISTINCT FROM 'code') THEN");
-    for (const fn of ["helpr_task_delivered", "helpr_task_view", "helpr_task_confirm"]) expect(DEFS.get(fn)?.file).toBe(NO_DROPOFF_CODE_FILE);
+    for (const fn of ["helpr_task_delivered", "helpr_task_confirm"]) expect(DEFS.get(fn)?.file).toBe(NO_DROPOFF_CODE_FILE);
+    // helpr_task_view was restated verbatim from that file by 20261021131322 (only its Helpr-name line changed);
+    // the body check below still reads the newest definition.
+    expect(DEFS.get("helpr_task_view")?.file).toBe("20261021131322_member_names_first_and_initial.sql");
     expect(flat(body("helpr_task_confirm"))).toContain("IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN");
     expect(flat(body("helpr_task_view"))).not.toMatch(/dropoff_code|code_locked/);
     expect(flat(body("helpr_task_delivered"))).not.toMatch(/dropoff_code|wrong_code|'confirmed', 'code'/);

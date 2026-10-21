@@ -11,6 +11,7 @@
  * Behaviour (helper cases, two producers, the backfill of stored rows, 3x replay): src/test/pglite/memberDisplayName.pglite.mjs.
  * @mutate supabase/migrations/20261021061341_member_display_name.sql | SELECT public.member_display_name(full_name, 'Your Helpr') INTO v_helper_name | SELECT COALESCE(full_name, 'Your Helpr') INTO v_helper_name
  * @mutate supabase/migrations/20261021061341_member_display_name.sql | SELECT public.member_display_name(full_name, 'Someone') INTO v_reviewer_name | SELECT COALESCE(full_name, 'Someone') INTO v_reviewer_name
+ * @mutate supabase/functions/create-notification/index.ts | facts.posterFirstName = memberDisplayName(prof?.full_name, "").split(" ")[0] \|\| null; | facts.posterFirstName = (prof?.full_name ?? "").split(" ")[0] \|\| null;
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const donorName = memberDisplayName((session.metadata as any)?.donor_name as string \| undefined, "Someone"); | const donorName = ((session.metadata as any)?.donor_name as string \| undefined)?.trim() \|\| "Someone";
  */
 import { describe, it, expect } from "vitest";
@@ -34,14 +35,13 @@ const SQL_RAW_NAME_OK: Record<string, string> = {
   notify_admins_new_member: "staff only: the new-member notice goes to admins",
   sweep_expired_auto_bans: "the label is for the cron's own log; the member notice names nobody",
   notify_on_application: "the recipient's OWN name, for their email greeting",
-  nudge_confirm: "first name only (split_part(..., 1))",
-  notify_message_recipient: "builds 'First L.' itself (sender_short)",
+  // nudge_confirm and notify_message_recipient left this list in 20261021131322: their own split on ' '
+  // let a tab or no-break space keep the surname attached, so both now read member_display_name.
 };
 
 /** Edge producers whose source touches a name field without memberDisplayName. path -> why. Exact and two-way. */
 const EDGE_RAW_NAME_OK: Record<string, string> = {
   "admin-user-actions": "the member's OWN name in their email greeting, and staff audit details",
-  "create-notification": "the poster's first name only (posterFirstName = first word)",
   "execute-dispute-split": "selects the payee's own profile for Stripe; no name in any notice",
   "expire-subscriptions": "the member's own profile; no other member is named",
   "instant-payout": "the member's own profile for Stripe; no other member is named",
@@ -141,7 +141,8 @@ describe("notifications name other members as 'First L.' (Q2292)", () => {
 
   it("the SQL helper is defined once, on the same rule (first word + last word's initial + '.')", () => {
     const def = defs.get("member_display_name");
-    expect(def?.file).toBe("20261021061341_member_display_name.sql");
+    // Restated in 20261021131322 with formatName's exact whitespace set (src/test/memberNamesMaskedInResponses.test.ts).
+    expect(def?.file).toBe("20261021131322_member_names_first_and_initial.sql");
     expect(def!.stmt).toMatch(/v\.parts\[1\] \|\| ' ' \|\| left\(v\.parts\[array_length\(v\.parts, 1\)\], 1\) \|\| '\.'/);
   });
 });

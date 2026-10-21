@@ -13,6 +13,13 @@
  *
  * Slice 5 (Helpr delivery): a Helpr mid-delivery (holding someone's item) or
  * with delivery pay still pending cannot delete their account either.
+ *
+ * Q1929 (delivery-pay raises): a raise still in flight blocks both parties; a settled one, or an abandoned
+ * page past its 31-minute life, never blocks (lh-money-escrow review finding 1: an abandoned page and a paid-out
+ * raise used to count forever).
+ * @mutate supabase/functions/_shared/accountPurge.ts | const RAISE_TASK_RUNNING = ["open", "accepted", "picked_up", "delivered"]; | const RAISE_TASK_RUNNING = ["open", "accepted", "picked_up", "delivered", "confirmed"];
+ * @mutate supabase/functions/_shared/accountPurge.ts | .eq("status", "awaiting_payment").gt("created_at", pageCutoff).limit(1) | .eq("status", "awaiting_payment").limit(1)
+ * @mutate supabase/functions/_shared/accountPurge.ts |     { label: "refund to send", build: () => raiseQuery(admin, userId).eq("status", "refunding").limit(1) }, |
  */
 import { describe, expect, it } from "vitest";
 
@@ -37,9 +44,11 @@ function fakeAdmin(tables: Tables) {
         is: (c: string, v: unknown) => (preds.push((r) => (r[c] ?? null) === v), q),
         not: () => q,
         gte: () => q,
+        gt: (c: string, v: unknown) => (preds.push((r) => String(r[c] ?? "") > String(v)), q),
         in: (c: string, vs: unknown[]) => (preds.push((r) => vs.includes(r[c])), q),
         or: (expr: string) => {
-          if (table !== "declutter_cart_items") return preds.push(() => false), q;
+          // A raise row carries its order's buyer_id / seller_id flattened (the !inner embed's filter).
+          if (table !== "declutter_cart_items" && table !== "declutter_delivery_raises") return preds.push(() => false), q;
           const terms = expr.split(",").map((t) => t.split(".eq."));
           preds.push((r) => terms.some(([c, v]) => r[c] === v));
           return q;
@@ -119,5 +128,37 @@ describe("a Helpr delivery in flight blocks deleting the Helpr's account", () =>
     const down = { error: { code: "08006", message: "connection reset" } };
     expect((await findActiveWork(fakeAdmin({ helpr_tasks: down }), HELPR)).ok).toBe(false);
     expect((await findActiveWork(fakeAdmin({ helpr_task_payouts: down }), HELPR)).ok).toBe(false);
+  });
+
+  it("Q1929: a delivery-pay raise in flight blocks both parties; a settled or abandoned one does not", async () => {
+    const now = Date.now();
+    // A raise row carries its order's parties and its task's status flattened (the !inner embeds' filters).
+    const raise = (r: Row): Row => ({ id: "r1", buyer_id: BUYER, seller_id: SELLER, "helpr_tasks.status": "open", created_at: new Date(now).toISOString(), ...r });
+    const blocks: Row[] = [
+      raise({ status: "refunding" }),
+      raise({ status: "applied" }),
+      raise({ status: "applied", "helpr_tasks.status": "delivered" }),
+      raise({ status: "awaiting_payment", created_at: new Date(now - 5 * 60e3).toISOString() }),
+    ];
+    for (const row of blocks) {
+      for (const who of [BUYER, SELLER]) {
+        const r = await findActiveWork(fakeAdmin({ declutter_delivery_raises: [row] }), who);
+        expect(r, `${row.status} ${who}`).toMatchObject({ ok: true, active: true, reason: "declutter" });
+      }
+    }
+    const settled: Row[] = [
+      // Confirmed: the raise is in the Helpr's payout (paid by declutter-money or settled by hand), not in flight.
+      raise({ status: "applied", "helpr_tasks.status": "confirmed" }),
+      raise({ status: "refunded" }),
+      raise({ status: "superseded" }),
+      raise({ status: "awaiting_payment", created_at: new Date(now - 2 * 3600e3).toISOString() }),
+    ];
+    for (const row of settled) {
+      const r = await findActiveWork(fakeAdmin({ declutter_delivery_raises: [row] }), BUYER);
+      expect(r, `${row.status} ${String(row["helpr_tasks.status"])}`).toMatchObject({ ok: true, active: false });
+    }
+    expect(await findActiveWork(fakeAdmin({ declutter_delivery_raises: [raise({ status: "applied", buyer_id: HELPR, seller_id: HELPR })] }), BUYER))
+      .toMatchObject({ ok: true, active: false });
+    expect((await findActiveWork(fakeAdmin({ declutter_delivery_raises: { error: { code: "08006", message: "connection reset" } } }), BUYER)).ok).toBe(false);
   });
 });

@@ -15,6 +15,7 @@
 import { useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { StepTracker } from "@/components/tracker/StepTracker";
+import { DeliveryRaisePanel } from "./DeliveryRaisePanel";
 import { DateTimeField } from "@/components/DateTimeField";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -170,6 +171,8 @@ export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; 
         </ul>
       )}
       <TaskPhotos view={v} />
+      {/* Q1929 (row 40): the buyer may raise the pay while no Helpr has it; it also lists their raises. */}
+      {side === "buyer" && <DeliveryRaisePanel orderId={orderId} />}
       {canConfirm && (
         <button type="button" className={primary} disabled={gotIt.isPending}
           onClick={() => { if (window.confirm("Do you have the item? Tapping \"I got it\" pays the seller and the Helpr and makes the sale final.")) gotIt.mutate(); }}>

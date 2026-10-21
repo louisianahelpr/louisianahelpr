@@ -213,6 +213,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/stripeCustomer.ts";`,
   );
 
+  // A raised delivery's payout parts (Q1929): `_shared/helprPayoutParts.ts` has
+  // ZERO imports (pure arithmetic), so the REAL module serves.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/helprPayoutParts\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/helprPayoutParts.ts";`,
+  );
+
   // Function-to-function fetch: `_shared/functionFetch.ts` has ZERO imports and
   // calls the global `fetch` at call time, so the real module still hits each
   // test's stubbed fetch while its trace-limit retry stays exercised.

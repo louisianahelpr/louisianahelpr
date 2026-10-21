@@ -325,6 +325,10 @@ describe("Declutter slice 3 screens", () => {
     // @mutate src/components/declutter/DeclutterTradeViews.tsx |             {formatPrice(payCents)}\n |             {formatPrice(itemsTotalCents)}\n
     const bill = document.querySelector("[data-checkout-breakdown]")!;
     expect(bill.textContent).toMatch(/You pay\$8\.05/);
+    // Board 161: two items, one checkout, the fee once on their total.
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx | <dt>{itemCount > 1 ? "Buyer's fee (5% + 70¢, once)" : "Buyer's fee (5% + 70¢)"}</dt> | <dt>Buyer's fee (5% + 70¢)</dt>
+    expect(bill.textContent).toMatch(/^2 items\$7Buyer's fee \(5% \+ 70¢, once\)\$1\.05/);
+    expect(screen.getByText("One checkout, one pickup, one fee.")).toBeInTheDocument();
     const note = document.querySelector("[data-checkout-note]")!;
     // The real payout rule (declutter_handover_sweep, read live 2026-10-20): handover done, or 24 h after the slot
     // unless a problem is open.

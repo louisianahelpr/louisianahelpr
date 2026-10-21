@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search, X, type LucideIcon } from "lucide-react";
 import AppPage from "@/components/AppPage";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { useFeatureStatus } from "@/hooks/useFeature";
@@ -197,7 +198,8 @@ export default function SearchPage() {
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Search jobs, items, shops and homes"
             aria-label="Search jobs, items, shops and homes"
-            className="flex-1 min-w-0 bg-transparent outline-none font-sans text-ds-15"
+            // The pill draws the focus ring (focus-within); the input must not draw a second, square one (audit #27).
+            className="flex-1 min-w-0 bg-transparent outline-none focus-visible:outline-none font-sans text-ds-15"
           />
           {draft && (
             <button type="button" onClick={() => setDraft("")} aria-label="Clear search" className="shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-muted-foreground ctl-exit">
@@ -246,7 +248,13 @@ export default function SearchPage() {
           </div>
         )}
         {q && !loading && !failed && jobCount === 0 && itemCount === 0 && (
-          <p className="font-sans text-ds-13 text-muted-foreground px-1">Nothing matches “{q}” yet.</p>
+          // A real empty state (audit #27): what happened, and the way on.
+          <EmptyState
+            icon={Search}
+            title={`Nothing matches “${q}” yet`}
+            body="Save this search and we'll tell you when something new matches, or look through everything open now."
+            action={<Link to="/jobs" className="font-sans font-semibold text-ds-14 underline underline-offset-2" style={{ color: "hsl(var(--bark))" }}>Browse all jobs</Link>}
+          />
         )}
 
         {q && declutterOn && itemCount > 0 && show("declutter") && (

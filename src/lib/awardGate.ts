@@ -165,7 +165,7 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
         title: "We Couldn't Find Your Profile",
         body:
           "Something's off with your account — we couldn't read the verification status this job needs. Try again in a moment, and get in touch if it keeps happening.",
-        ctaLabel: "Open Payout Settings",
+        ctaLabel: "Open payout settings",
         collect: "eventually_due",
       };
   }

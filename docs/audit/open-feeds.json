@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-21T14:40Z",
+  "measured_at": "2026-10-21T15:54Z",
   "issues": {
     "readable": true,
     "open": [
@@ -99,7 +99,7 @@
         "number": 3487,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39614308871",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39626323510",
         "runTruncated": false
       },
       {
@@ -113,14 +113,7 @@
         "number": 3505,
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39605540043",
-        "runTruncated": false
-      },
-      {
-        "number": 3508,
-        "title": "nightly-red: main: Supabase DB Deploy",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39614308954",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39614308912",
         "runTruncated": false
       }
     ]
@@ -525,7 +518,6 @@
     "issue #3487": "Q1816",
     "issue #3491": "Q1816",
     "issue #3505": "Q1816",
-    "issue #3508": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",

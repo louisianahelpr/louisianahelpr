@@ -9,6 +9,8 @@
  * @mutate src/components/quotes/quotesUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/lib/escrowCheckout.ts |       action: "escrow", |       action: "quote_checkout",
  * @mutate src/lib/escrowCheckout.ts |       ...(opts.returnPath ? { returnPath: opts.returnPath } : {}), |       ...{},
+ * @mutate src/components/quotes/QuotePriceStepper.tsx |   if (posterFeeModel) return null; |   if (!posterFeeModel) return null;
+ * @mutate src/components/quotes/QuotePriceStepper.tsx | const STEP = 5; | const STEP = 10;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |   if (reqs.isError \|\| quotes.isError) { |   if (reqs.isError \|\| quotes.isError \|\| !request) {
  * @mutate src/pages/quotes/QuoteRequestPage.tsx | const requestReturnPath = (requestId: string) => `/quotes/request/${requestId}`; | const requestReturnPath = (requestId: string) => `/post-job?r=${requestId}`;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |       const jobId = await bookAcceptedQuote(id); |       const jobId = id;
@@ -43,6 +45,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
   feature: true,
+  posterFee: true,
   /** false: the switch's answer has not arrived (the gate's loading frame). */
   switchSettled: true,
   rpc: {} as Record<string, unknown>,
@@ -53,7 +56,9 @@ const state = {
   job: null as null | { payment_status: string; status?: string } | Error,
 };
 
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature }));
+// 'jobs_poster_fee' is off on prod (2026-10-21): a booked quote is on the flat Helpr fee model.
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => (key === "jobs_poster_fee" ? state.posterFee : state.feature) }));
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => 0, useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeKnown: () => true }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
@@ -153,6 +158,7 @@ beforeEach(() => {
   state.invokes = [];
   state.opened = [];
   state.job = null;
+  state.posterFee = true;
 });
 
 describe("the 'quotes' switch", () => {
@@ -359,11 +365,17 @@ describe("the quoter's send-a-quote form", () => {
   it("sends price, note, when and photos only once all three are filled", async () => {
     state.rpc.list_open_quote_requests = [OPEN];
     state.rpc.submit_job_quote = "q9";
+    state.posterFee = false; // the flat model, as on prod today
     at("/quotes/send/r9", <SendQuotePage />, "/quotes/send/:id");
     expect(await screen.findByText("Mow and edge a corner lot")).toBeInTheDocument();
     const send = screen.getByRole("button", { name: /Send quote/ });
     expect(send).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("Total price (whole dollars)"), { target: { value: "120" } });
+    fireEvent.change(screen.getByLabelText("Your price in whole dollars"), { target: { value: "115" } });
+    // Board 43: − / + move the price by $5; the take-home at that price is the apply sheet's own figure.
+    fireEvent.click(screen.getByRole("button", { name: "$5 more" }));
+    expect(screen.getByLabelText("Your price in whole dollars")).toHaveValue("120");
+    // $120 - (5% of $120 + $0.70 = $6.70) = $113.30, floored to the dollar the transfer pays.
+    expect(document.querySelector("[data-quote-take-home]")?.textContent).toMatch(/You take home \$113 after the Helpr fee \(5% \+ 70¢\) if this quote is booked/);
     fireEvent.change(screen.getByLabelText("What's included"), { target: { value: "Mow, edge and blow" } });
     expect(screen.getByRole("button", { name: "Send quote · $120" })).toBeDisabled();
     fireEvent.change(screen.getByLabelText("When you can do it"), { target: { value: "Friday after 3" } });
@@ -378,7 +390,7 @@ describe("the quoter's send-a-quote form", () => {
     state.rpc.list_open_quote_requests = [];
     at("/quotes/send/r9", <SendQuotePage />, "/quotes/send/:id");
     expect(await screen.findByText("This request isn't taking quotes anymore")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Total price (whole dollars)")).toBeNull();
+    expect(screen.queryByLabelText("Your price in whole dollars")).toBeNull();
   });
 });
 

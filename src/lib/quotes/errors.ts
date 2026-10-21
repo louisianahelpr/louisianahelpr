@@ -22,6 +22,8 @@ const JOB_INSERT_REFUSAL_COPY: ReadonlyArray<{ match: RegExp; copy: string }> = 
   { match: /^email_unconfirmed\b/, copy: "Confirm your email address first: open the link we emailed you, then try again." },
   // 20261021081258: Stripe Identity before a post (the quote's job is a post); api.ts also opens the ID sheet.
   { match: /^identity_required_to_post\b/, copy: "Verify your ID with Stripe first. It takes about 2 minutes, once; then book again." },
+  // 20261021110531 (Q2291): a member job outside Louisiana is refused at insert.
+  { match: /^job_address_not_louisiana\b/, copy: "Helpr is in Louisiana only for now. Use a Louisiana address." },
 ];
 
 /** The member-facing words for a quote RPC failure (or the escrow checkout's refusal). */

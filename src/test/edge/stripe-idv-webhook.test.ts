@@ -261,3 +261,64 @@ describe("stripe-idv-webhook: ID near-match doubt-check (Q1416)", () => {
     expect((upd?.payload as { idv_status?: string })?.idv_status).toBeDefined();
   });
 });
+
+// A DECISION WINS (owner report 2026-10-21, the restart): the webhook's status
+// write lands only on an undecided profile ('verified' and 'failed' are final
+// until an admin moves them) and only for the CURRENT session (or none stored).
+// A write that matches no row is a deliberate, acknowledged no-op: no
+// "verified" notice, no email, no admin flag.
+// @mutate supabase/functions/stripe-idv-webhook/index.ts |         .not("idv_status", "in", "(verified,failed)")\n | \n
+// @mutate supabase/functions/stripe-idv-webhook/index.ts |       if (!updRows \|\| (updRows as unknown[]).length === 0) { |       if (false) {
+describe("stripe-idv-webhook: an admin's decision and the current session win", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+
+  async function deliver(type: string) {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_idv_decided",
+      type,
+      data: { object: { id: "vs_new1", metadata: { user_id: "user-1" }, last_error: null } },
+    });
+    stripeMock.identity.verificationSessions.retrieve.mockResolvedValue({
+      id: "vs_new1",
+      verified_outputs: { first_name: "Ann", last_name: "Lee", dob: { year: 1990, month: 1, day: 2 } },
+      last_verification_report: { document: {}, selfie: {} },
+    });
+    scenario.rpc.identity_fingerprint = "a".repeat(64);
+    scenario.rpc.enforce_retained_ban = { banned: false };
+    scenario.rpc.flag_possible_ban_evasion_by_identity = { flagged: false };
+    return fn.fetch(webhookRequest(fn));
+  }
+
+  const statusWrite = () =>
+    scenario.writes.find((w) => w.table === "profiles" && w.op === "update" && "idv_status" in ((w.payload as object) ?? {}));
+
+  it("the status write is conditional: never over verified/failed, only the current (or no) session", async () => {
+    scenario.writeSelectRows.profiles = [{ user_id: "user-1" }];
+    const res = await deliver("identity.verification_session.verified");
+    expect(res.status).toBe(200);
+    const w = statusWrite();
+    expect((w?.payload as { idv_status?: string }).idv_status).toBe("verified");
+    expect(w?.filters).toEqual(expect.arrayContaining([
+      { op: "eq", column: "user_id", value: "user-1" },
+      { op: "not", column: "idv_status", operator: "in", value: "(verified,failed)" },
+      { op: "or", column: "", value: "idv_session_id.is.null,idv_session_id.eq.vs_new1" },
+    ]));
+    expect(w?.selectCols).toBe("user_id");
+  });
+
+  for (const type of ["identity.verification_session.verified", "identity.verification_session.requires_input"]) {
+    it(`${type.split(".").pop()} on a decided profile or an older session: acknowledged, nothing announced`, async () => {
+      scenario.writeSelectRows.profiles = [];
+      const res = await deliver(type);
+      expect(res.status).toBe(200);
+      expect((JSON.parse(await res.text()) as { skipped?: string }).skipped).toBe("decided_or_stale_session");
+      expect(scenario.writes.filter((w) => w.table === "notifications")).toHaveLength(0);
+    });
+  }
+});

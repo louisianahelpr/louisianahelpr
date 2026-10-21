@@ -229,19 +229,13 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
                   key={label}
                   {...wrapperProps}
                   aria-label={href || onClick ? `${label}: ${value}` : undefined}
-                  className={`min-w-0 flex flex-col items-center justify-center gap-0.5 rounded-ds-md px-1.5 py-2 text-center ${href || onClick ? "glass-press cursor-pointer" : ""}`}
-                  style={{
-                    backgroundColor: "var(--glass-bg-soft)",
-                    backdropFilter: "blur(18px) saturate(160%)",
-                    WebkitBackdropFilter: "blur(18px) saturate(160%)",
-                    border: "0.5px solid var(--glass-border)",
-                    boxShadow:
-                      "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 1px 2px hsl(var(--olivewood) / 0.05)",
-                  }}
+                  // Spec v2 rebuild (audit 2026-10-21): a flat --subtle tile with an
+                  // olive icon, not a frosted box with a rust icon.
+                  className={`min-w-0 flex flex-col items-center justify-center gap-0.5 rounded-[14px] bg-muted px-1.5 py-2 text-center ${href || onClick ? "glass-press cursor-pointer" : ""}`}
                 >
                   <Icon
                     className="w-3.5 h-3.5 shrink-0"
-                    style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+                    style={{ color: "hsl(var(--bark))" }}
                     aria-hidden
                   />
                   <span
@@ -285,33 +279,21 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
             <Wrapper
               key={label}
               {...wrapperProps}
-              className={`relative min-w-0 rounded-ds-md p-2.5 overflow-hidden ${fillsRow ? "col-span-2" : ""} ${href ? "glass-press transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
+              className={`relative min-w-0 rounded-[14px] p-2.5 overflow-hidden ${fillsRow ? "col-span-2" : ""} ${href ? "glass-press transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
               style={{
-                backgroundColor: urgent ? "hsl(var(--accent) / 0.10)" : "var(--glass-bg-soft)",
-                backdropFilter: "blur(18px) saturate(160%)",
-                WebkitBackdropFilter: "blur(18px) saturate(160%)",
-                border: urgent
-                  ? "0.5px solid hsl(var(--accent) / 0.45)"
-                  : "0.5px solid var(--glass-border)",
-                boxShadow:
-                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-                  (urgent
-                    ? "0 1px 2px hsl(var(--accent) / 0.18)"
-                    : "0 1px 2px hsl(var(--olivewood) / 0.05)"),
+                backgroundColor: urgent ? "hsl(var(--accent) / 0.10)" : "hsl(var(--muted))",
+                border: urgent ? "0.5px solid hsl(var(--accent) / 0.45)" : "none",
                 display: "block",
               }}
             >
               <div className="relative z-10">
                 <p
-                  className="flex items-center justify-center gap-1.5 text-ds-11 font-sans font-semibold uppercase"
-                  style={{
-                    color: urgent ? "hsl(var(--accent))" : "hsl(var(--olivewood) / 0.8)",
-                    letterSpacing: "0.06em",
-                  }}
+                  className="flex items-center justify-center gap-1.5 text-ds-12 font-sans"
+                  style={{ color: urgent ? "hsl(var(--accent))" : "hsl(var(--muted-foreground))" }}
                 >
                   <Icon
                     className="w-3.5 h-3.5 shrink-0"
-                    style={{ color: urgent ? "hsl(var(--accent))" : "hsl(var(--burnt-sienna) / 0.7)" }}
+                    style={{ color: urgent ? "hsl(var(--accent))" : "hsl(var(--bark))" }}
                   />
                   {label}
                 </p>

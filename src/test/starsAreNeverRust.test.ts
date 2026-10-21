@@ -24,7 +24,6 @@ const RUST = /\b(?:fill|text)-accent\b|--accent\b|--accent-ink|--burnt-sienna|--
 const JOBS_OWNED = [
   "src/components/dashboard/CompactJobCard.tsx",
   "src/components/dashboard/JobCard.tsx",
-  "src/components/dashboard/JobDetailDialog.tsx",
   "src/pages/posts/postedJobs/ApplicantsPanel.tsx",
 ];
 

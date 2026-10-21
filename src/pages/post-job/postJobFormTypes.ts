@@ -6,4 +6,4 @@
 
 export type Step = "entry" | "form" | "checkout";
 /** Step 0's ways to start that open in place of the cards (Start from scratch goes straight to the form). */
-export type EntryPanel = "templates" | "offer" | "ai";
+export type EntryPanel = "templates" | "offer" | "ai" | "repost";

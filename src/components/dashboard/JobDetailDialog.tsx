@@ -2,7 +2,7 @@ import { useRef, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHero, DialogBody } from "@/components/ui/dialog";
 import { Repeat, Rocket, Zap, Bookmark, Flag, Star } from "lucide-react";
-import { categoryLabels, categoryColors } from "@/components/job-card/activityConstants";
+import { categoryLabels } from "@/components/job-card/activityConstants";
 import { formatCategory } from "@/lib/format";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { OptimizedImage } from "@/components/ui/optimized-image";
@@ -13,6 +13,7 @@ import type { EnrichedJob } from "./types";
 import { JobPosterCard } from "./JobPosterCard";
 import { PhotoLightbox } from "./PhotoLightbox";
 import { JobPrice } from "./JobPrice";
+import { JobPriceTakeHome } from "./helprTakeHome";
 import { useJobDetailData } from "./jobDetailDialog/useJobDetailData";
 import { JobStatTiles } from "./jobDetailDialog/JobStatTiles";
 import { JobDetailFooter } from "./jobDetailDialog/JobDetailFooter";
@@ -126,7 +127,6 @@ const JobDetailDialog = ({
   if (!job) return null;
 
   const photos = job.photos || [];
-  const catStyle = categoryColors[job.category] || categoryColors.other;
   // Mirrors JobCard's `recommended={i === 0}` — that prop is purely
   // positional (the first card of whatever list is currently showing), not
   // a field on the job row, so the dialog derives the same thing from the
@@ -548,18 +548,11 @@ const JobDetailDialog = ({
                   <button
                     type="button"
                     onClick={() => setDescExpanded((v) => !v)}
-                    className="mt-1.5 text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] hover:opacity-80 transition-opacity"
-                    // --accent-ink, not --burnt-sienna. This is a real control
-                    // — the only way to read the rest of a long job
-                    // description — and at `--burnt-sienna/0.85` it measured
-                    // 3.63:1 on a dark card against a 4.5:1 AA floor. Raw
-                    // sienna clears AA on dark at no alpha below 1.0 (0.85 →
-                    // 3.63, 0.9 → 3.91, 1.0 → 4.53). `--accent-ink` is the
-                    // app's accent-as-text split: the SAME colour in light
-                    // (19 75% 35%) and the legible lift in dark (19 70% 66%),
-                    // so light mode moves only by the 0.85 → 0.9 alpha step.
-                    // 4.86:1 both themes.
-                    style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
+                    className="mt-1 min-h-[44px] -my-2 text-ds-13 font-sans font-bold hover:opacity-80 transition-opacity"
+                    // A text link is olive (--action-strong), sentence case (spec
+                    // v2 rebuild, audit 2026-10-21): it was a rust uppercase
+                    // "READ MORE", and rust is money only.
+                    style={{ color: "hsl(var(--bark))" }}
                   >
                     {descExpanded ? "Show less" : "Read more"}
                   </button>
@@ -567,6 +560,7 @@ const JobDetailDialog = ({
               </div>
             )}
           </div>
+          {!(viewerUserId && viewerUserId !== job.customer_id) && (
           <div className="shrink-0">
             <JobPrice
               variant="chip"
@@ -577,7 +571,16 @@ const JobDetailDialog = ({
               helpersNeeded={helpers} jobStatus={job.status} feeStamp={job} showBudget={!!viewerUserId && viewerUserId === job.customer_id} // J1: own job = the price set
             />
           </div>
+          )}
         </div>
+        {/* #62 (audit 2026-10-21): a signed-in Helpr sees BOTH numbers, named,
+            from the job page's own take-home (useHelprTakeHome) — not a bare
+            "$103" that read as the price beside "posted at $120" later. */}
+        {viewerUserId && viewerUserId !== job.customer_id && (
+          <p className="text-ds-14 text-foreground">
+            <JobPriceTakeHome job={job} />
+          </p>
+        )}
 
         {/* ── FRAME CHROME, RENDERED AFTER THE HERO ─────────────────────────
             NOTHING RENDERS ABOVE THE HERO (dialog.tsx, "THE POPUP GRAMMAR").
@@ -626,11 +629,9 @@ const JobDetailDialog = ({
             margins — neither sits inside the p-4/p-5 content box) to achieve
             the flush-edge design — the apply-dialog-fit e2e excludes them
             from its content-overflow check on that basis. */}
-        <span
-          aria-hidden
-          data-frame-chrome="true"
-          className={`absolute left-0 top-0 bottom-0 w-1.5 z-10 rounded-tl-lg rounded-bl-lg ${catStyle.dot}`}
-        />
+        {/* No category stripe down the left edge and no corner tab (spec v2
+            rebuild, audit 2026-10-21: no per-category colours; the category is
+            an olive caption, like the job card's). */}
         {/* THE BADGE ROW IS IN FLOW, NOT ABSOLUTE, AND RESERVES THE ICON LANE.
             (owner, 2026-08-31, screenshot annotated "Covering buttons".)
             It used to be `absolute top-0 left-0 … flex items-stretch` — a
@@ -682,14 +683,15 @@ const JobDetailDialog = ({
             because the collision was measured at 768 too. */}
         <div
           data-frame-chrome="true"
-          className="relative order-first z-20 pointer-events-none flex flex-nowrap items-stretch min-w-0 -mt-4 -mx-4 sm:-mt-5 sm:-mx-5"
+          className="relative order-first z-20 pointer-events-none flex flex-wrap items-center gap-2 min-w-0 min-h-[32px]"
           // Inline, not a `pr-*` class: the lane is a px geometry that does not
           // change with the breakpoint, and it is computed above rather than
           // looked up in a table that can fall behind the icons' real size.
           style={{ paddingRight: `${iconLaneReservePx}px` }}
         >
           <span
-            className={`inline-flex min-w-0 shrink items-center gap-1.5 pl-3.5 pr-3 py-1.5 rounded-tl-lg text-ds-13 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
+            className="inline-flex min-w-0 shrink items-center gap-1.5 text-ds-12 font-semibold leading-none"
+            style={{ color: "hsl(var(--bark))" }}
           >
             <CategoryIcon
               category={job.category}
@@ -717,14 +719,12 @@ const JobDetailDialog = ({
               JobCard's own Recommended chip. */}
           {isRecommended && (
             <span
-              className={`inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-ds-13 font-semibold leading-none shadow-sm border-b ${!job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""}`}
-              style={{
-                background: "hsl(var(--burnt-sienna) / 0.12)",
-                color: "hsl(var(--burnt-sienna))",
-                borderColor: "hsl(var(--burnt-sienna) / 0.20)",
-              }}
+              // Olive outline chip, in the row (not rust, not poking over the
+              // card's edge): it is a hint, not money.
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-ds-12 font-semibold leading-none"
+              style={{ color: "hsl(var(--sage-ink))", borderColor: "hsl(var(--bark) / 0.45)" }}
             >
-              <Star className="w-3.5 h-3.5 shrink-0" strokeWidth={2} style={{ fill: "hsl(var(--burnt-sienna) / 0.3)" }} />
+              <Star className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
               Recommended
             </span>
           )}
@@ -733,12 +733,11 @@ const JobDetailDialog = ({
           {job.is_urgent && (
             <span role="img"
               aria-label="Urgent"
-              className={`urgent-pulse inline-flex items-center gap-1.5 px-3 py-1.5 text-ds-12 font-bold uppercase leading-none shadow-sm border-b ${!job.isBoosted ? "rounded-br-lg" : ""}`}
+              className="urgent-pulse inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-ds-12 font-semibold leading-none"
               style={{
                 color: "hsl(var(--accent))",
                 background: "hsl(var(--accent) / 0.15)",
                 borderColor: "hsl(var(--accent) / 0.5)",
-                letterSpacing: "0.05em",
               }}
             >
               <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--accent))", fill: "hsl(var(--accent))" }} />
@@ -748,12 +747,11 @@ const JobDetailDialog = ({
           {job.isBoosted && (
             <span role="img"
               aria-label="Boosted"
-              className="boosted-pulse inline-flex items-center gap-1.5 px-3 py-1.5 rounded-br-lg text-ds-12 font-bold uppercase leading-none shadow-sm border-b"
+              className="boosted-pulse inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-ds-12 font-semibold leading-none"
               style={{
                 color: "hsl(var(--boost-ink))",
                 background: "hsl(var(--boost-tint) / 0.16)",
                 borderColor: "hsl(var(--boost-tint) / 0.5)",
-                letterSpacing: "0.05em",
               }}
             >
               <Rocket className="w-3.5 h-3.5 shrink-0" strokeWidth={2.25} style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }} />
@@ -821,7 +819,7 @@ const JobDetailDialog = ({
                   setLightboxIndex(0);
                 }}
                 aria-label="View all photos in a grid"
-                className="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-10 font-sans font-semibold uppercase tracking-[0.05em] transition-transform active:scale-95 hover:scale-105"
+                className="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-ds-12 font-sans font-semibold transition-transform active:scale-95 hover:scale-105"
                 style={{
                   backgroundColor: "var(--glass-bg-strong)",
                   backdropFilter: "blur(12px) saturate(150%)",
@@ -843,7 +841,7 @@ const JobDetailDialog = ({
             the pills the mockup called out. */}
         {job.is_recurring && (
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[hsl(var(--burnt-sienna)/0.08)] text-[hsl(var(--burnt-sienna))] text-ds-10 font-semibold uppercase tracking-wider border border-[hsl(var(--burnt-sienna)/0.2)]">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-ds-12 font-semibold border" style={{ color: "hsl(var(--sage-ink))", borderColor: "hsl(var(--bark) / 0.45)" }}>
                 <Repeat className="w-3 h-3" strokeWidth={2.25} />
                 {recurrenceShapeLabel(job as Parameters<typeof recurrenceShapeLabel>[0])}
               </span>

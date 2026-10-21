@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import { afterEach, describe, it, expect, vi, beforeAll } from "vitest";
 import { act, fireEvent, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -9,6 +9,9 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 // @mutate src/pages/posts/postedJobCard/steps/ScheduledStep.tsx | primary={<JobStepPrimaryButton icon={MessageSquare} | primary={false && <JobStepPrimaryButton icon={MessageSquare}
 // @mutate src/components/JobConfirmation.tsx |     if (variant === "inline" && isOwner) { |     if (false) {
+// @mutate src/components/JobConfirmation.tsx |           label={newSlot ? "Confirm" : isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"} |           label={isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"}
+// @mutate src/components/JobConfirmation.tsx |       {isOwner ? `Confirm the new time, ${newSlot}` : `Confirm you'll be there ${newSlot}`} |       {isOwner ? `Confirm the new time` : `Confirm you'll be there`}
+// @mutate src/components/JobConfirmation.tsx |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm ${newSlot}` |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm`
 /**
  * VN-21 — EVERY BUTTON ON A STEP CARD SITS ON ONE ROW (owner, 2026-09-14).
  *
@@ -75,6 +78,10 @@ function makeSupabase() {
   };
 }
 vi.mock("@/integrations/supabase/client", () => makeSupabase());
+// A date/time moved by an accepted change (owner, 2026-10-21): the cases below that need it set RESCHEDULED.v.
+const RESCHEDULED = vi.hoisted(() => ({ v: false }));
+vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => RESCHEDULED.v }));
+afterEach(() => { RESCHEDULED.v = false; });
 
 import { ActiveJobSection } from "../../pages/jobs/appliedJobCard/ActiveJobSection";
 import { ConfirmedSection } from "../../pages/jobs/appliedJobCard/ConfirmedSection";
@@ -369,6 +376,30 @@ const CASES: Array<{
     primary: ["Confirm you'll be at the job"],
   },
   {
+    // Owner, 2026-10-21: the date moved after accept, so the Helpr confirms the NEW slot.
+    name: "Jobs · Confirmed, date moved, day-of confirm owed (Confirm; names the new slot)",
+    render: () => {
+      RESCHEDULED.v = true;
+      return wrap(
+        <ConfirmedSection
+          app={makeApp(makeJob({}))}
+          job={makeJob({
+            status: "accepted", date_needed: TODAY, start_time: "23:59",
+            helper_confirmed_at: ago(72), helper_dayof_confirmed_at: null,
+            helper_on_the_way_at: null, helper_arrived_at: null, poster_confirmed_working_at: null,
+          })}
+          userId={HELPER}
+          initialTracking={tracking("confirmed")}
+          navigate={vi.fn()}
+        />,
+      );
+    },
+    minControls: 4,
+    primary: ["Confirm"],
+    primaryDisabled: false,
+    note: /Confirm you'll be there [A-Z][a-z]{2} 11:59 PM/,
+  },
+  {
     name: "Jobs · On the way (I've arrived + Directions · Message · Report a Problem)",
     render: active(makeJob({ helper_arrived_at: null, poster_confirmed_working_at: null }), "on_the_way"),
     minControls: 4,
@@ -505,6 +536,29 @@ const CASES: Array<{
     primary: ["Message Hallie"],
     primaryDisabled: false,
     note: /Waiting on Hallie to confirm by .+ · Nudge/,
+  },
+  {
+    // Owner, 2026-10-21: the date moved after accept; the poster's old confirm was cleared (20261021074803).
+    name: "Posts · Accepted, date moved, poster owes the new time (Confirm; names the new slot)",
+    render: () => {
+      RESCHEDULED.v = true;
+      return wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", helper_dayof_confirmed_at: null, poster_confirmed_at: null, helper_on_the_way_at: null, helper_arrived_at: null, date_needed: STARTS_SOON.date, start_time: STARTS_SOON.time }))} />);
+    },
+    minControls: 2,
+    primary: ["Confirm"],
+    primaryDisabled: false,
+    note: /Confirm the new time, [A-Z][a-z]{2} \d{1,2}:\d{2} [AP]M/,
+  },
+  {
+    name: "Posts · Accepted, date moved, poster confirmed, Helpr owes (Message <Helpr>; waiting on the new slot)",
+    render: () => {
+      RESCHEDULED.v = true;
+      return wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", helper_dayof_confirmed_at: null, poster_confirmed_at: ago(0.5), helper_on_the_way_at: null, helper_arrived_at: null, date_needed: STARTS_SOON.date, start_time: STARTS_SOON.time }))} />);
+    },
+    minControls: 2,
+    primary: ["Message Hallie"],
+    primaryDisabled: false,
+    note: /Waiting for Hallie to confirm [A-Z][a-z]{2} \d{1,2}:\d{2} [AP]M · Nudge/,
   },
   {
     name: "Posts · Accepted, both confirmed, not on the way yet (Message <Helpr>; says what's next)",

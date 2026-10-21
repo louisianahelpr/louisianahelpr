@@ -13,6 +13,7 @@ import { JobTracking } from "@/components/JobTracking";
 import { PosterStatusStrip } from "./postedJobCard/PosterStatusStrip";
 import { withDisputeSettling } from "../../components/job-card/jobStatusLine";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
+import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { PersonTile } from "@/components/PersonTile";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
@@ -100,6 +101,7 @@ function PostedJobCardInner({
   // The "Tipped & Reviewed" strip below reads completedJobMeta directly.
   // Q344: a decided dispute whose money has not moved is not "Done · paid".
   const unsettledDisputeJobIds = useUnsettledDisputeJobIds();
+  const rescheduled = useJobRescheduled(job.id, job.status === "accepted");
   const isExpanded = expandedJobIds.has(job.id);
 
   // A description that merely restates the title is not a description.
@@ -171,7 +173,7 @@ function PostedJobCardInner({
      `disputed` and `revision_requested` only, so a dispute was visible without
      a tap. They have now seen it: the STATUS STRIP is the signal a dispute is
      open (it says so, in sienna, with "Payment on hold"), and the eight-step
-     tracker plus its map is detail — which on this card lives behind the
+     tracker is detail — which on this card lives behind the
      expand, like everything else. `PostedJobCard.contestedTracker.test.tsx`
      records the whole arc and now pins the new contract.
 
@@ -179,17 +181,14 @@ function PostedJobCardInner({
      <JobTracking> at all — which also means no realtime channel and no
      per-card queries on a list that can be long.
 
-     THE TRACKER NO LONGER CARRIES THE PERSON TILE. It did for three days
-     (owner, 2026-09-16); the owner has since moved the tile to directly above
-     the action row, so the `personTile` slot is gone from <JobTracking>
-     altogether. The V6 rule it existed to protect is unchanged and now lives
-     at `helperTile` above: nothing about the Helpr on a collapsed card. */
+     The person tile sits directly above the action row, not in <JobTracking>; the V6 rule
+     (nothing about the Helpr on a collapsed card) lives at `helperTile` above. */
   const trackerBlock = showsTracker ? (
     <div onClick={(e) => e.stopPropagation()}>
       {/* `embedded`: this card is already a JobCardShell glass card,
           so the tracker renders without a box of its own (same fix
           as HelperTrackerPanel; guard noNestedTrackerCard.test.ts). */}
-      <JobTracking embedded includePostingSteps jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} helperArrivalNearMissAt={(job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
+      <JobTracking embedded includePostingSteps jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} helperArrivalNearMissAt={(job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} rescheduled={rescheduled} />
     </div>
   ) : null;
 

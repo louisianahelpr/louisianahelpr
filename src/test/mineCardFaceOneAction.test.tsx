@@ -31,6 +31,7 @@ import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
 import { helperFaceAction } from "@/pages/jobs/appliedJobCard/helperFaceAction";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
+vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false })); // no QueryClient here
 vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("@/hooks/useUnsettledDisputeJobIds", () => ({ useUnsettledDisputeJobIds: () => undefined }));
 vi.mock("@/hooks/useCurrentUser", async (importOriginal) => ({

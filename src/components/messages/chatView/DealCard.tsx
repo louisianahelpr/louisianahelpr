@@ -8,6 +8,7 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatJobDate } from "@/lib/dateUtils";
 import { formatPrice } from "@/lib/format";
 import type { Conversation } from "../types";
+import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobProgress, type ProgressJob } from "@/lib/jobProgress";
 import { JobProgress } from "@/components/tracker/JobProgress";
 
@@ -142,6 +143,7 @@ export function usePersonFacts(otherUserId: string | null): string {
 export function DealCard({ convo, userId }: { convo: Conversation; userId: string }) {
   const navigate = useNavigate();
   const { data } = useDealCard(convo, userId);
+  const rescheduled = useJobRescheduled(data?.job.id, data?.job.status === "accepted");
   if (!data) return null;
   const { job, application } = data;
   const viewerIsPoster = !!convo.viewerIsPoster;
@@ -152,6 +154,7 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
     otherFirst: first === "them" ? null : first,
     threadHelprId: viewerIsPoster ? convo.otherUserId : userId,
     application,
+    rescheduled,
   });
   const Icon = getCategoryIcon(job.category);
   const when = [job.date_needed ? formatJobDate(job.date_needed) : null, clock(job.start_time)].filter(Boolean).join(" · ");

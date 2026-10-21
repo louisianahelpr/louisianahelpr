@@ -3,6 +3,8 @@
 // @mutate src/lib/jobProgress.ts | !!(job.poster_confirmed_working_at \|\| job.poster_confirmed_arrival_at \|\| job.helper_arrival_verified_at) | !!(job.poster_confirmed_working_at \|\| job.poster_confirmed_arrival_at \|\| job.helper_arrival_verified_at \|\| job.helper_arrived_at)
 // @mutate src/lib/jobProgress.ts | if (job.helper_id && o.threadHelprId && job.helper_id !== o.threadHelprId) { | if (false) {
 // @mutate src/lib/jobProgress.ts |     if (!Number.isNaN(opens) && now < opens) { |     if (false) {
+// @mutate src/lib/jobProgress.ts |     const slot = o.rescheduled ? slotLabel(job.date_needed, job.start_time) : ""; |     const slot = "";
+// @mutate src/lib/jobProgress.ts |         const mine = poster ? !posterIn : !helprIn; |         const mine = poster ? !helprIn : !posterIn;
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -50,6 +52,24 @@ describe("jobProgress (the one tracker)", () => {
     expect(poster(j)).toMatchObject({ next: "Tap I'm still on to confirm" });
     expect(poster({ ...j, poster_confirmed_at: "t" })).toMatchObject({ next: "Waiting on Jolie to confirm by Thu 7:00 AM" });
     expect(poster({ ...j, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ next: "You're both confirmed. Jolie taps On my way when they leave" });
+  });
+
+  it("moved by an accepted change: each side's line names the NEW slot until they confirm it (owner, 2026-10-21)", () => {
+    // The "Mow two lawns" shape: moved to Thu 9:00 AM; the server cleared both confirmations (20261021074803).
+    const j = { status: "accepted", helper_id: JO, date_needed: "2037-10-22", start_time: "09:00" };
+    const rp = (x: Partial<ProgressJob>) => jobProgress({ ...base, helper_confirmed_at: "t", ...x }, { viewer: "poster", otherFirst: "Yusef", now: NOW, rescheduled: true });
+    const rh = (x: Partial<ProgressJob>) => jobProgress({ ...base, helper_confirmed_at: "t", ...x }, { viewer: "helpr", otherFirst: "Ben", now: NOW, rescheduled: true });
+    expect(rp(j)).toMatchObject({ step: 2, word: "Hired", next: "Confirm the new time, Thu 9:00 AM" });
+    expect(rh({ ...j, helper_id: ME })).toMatchObject({ step: 2, next: "Confirm you'll be there Thu 9:00 AM" });
+    // One side in: the other's line waits on the NEW slot.
+    expect(rp({ ...j, poster_confirmed_at: "t" })).toMatchObject({ next: "Waiting for Yusef to confirm Thu 9:00 AM" });
+    expect(rh({ ...j, helper_id: ME, helper_dayof_confirmed_at: "t" })).toMatchObject({ next: "Waiting for Ben to confirm Thu 9:00 AM" });
+    // Both in: the normal confirmed state.
+    expect(rp({ ...j, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ next: "You're both confirmed. Yusef taps On my way when they leave" });
+    // Moved to a day whose window has not opened: the new slot, then when confirming opens.
+    expect(rp({ ...j, date_needed: "2037-10-23" })).toMatchObject({ next: "New time Fri 9:00 AM. Yusef confirms the day before. Opens Thu 12:00 AM" });
+    // No start time: the weekday alone.
+    expect(rp({ ...j, start_time: null })).toMatchObject({ next: "Confirm the new time, Thu" });
   });
 
   it("board 62: on the way and arrived are Hired, not Working", () => {

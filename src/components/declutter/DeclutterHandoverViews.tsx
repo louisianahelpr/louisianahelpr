@@ -228,7 +228,8 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
  */
 function PickupAddresses({ lines }: { lines: CartLine[] }) {
   const results = useQueries({
-    queries: lines.map((l) => ({ queryKey: ["declutter", "address", l.item_id], queryFn: () => fetchItemAddress(l.item_id) })),
+    // A line whose listing is gone (its seller deleted their account, Q2307) has no address to read.
+    queries: lines.map((l) => ({ queryKey: ["declutter", "address", l.item_id], queryFn: () => (l.item_id ? fetchItemAddress(l.item_id) : Promise.resolve(null)) })),
   });
   const failed = results.find((r) => r.isError);
   if (failed) return <p className="text-sm" role="alert">{declutterErrorMessage(failed.error)}</p>;

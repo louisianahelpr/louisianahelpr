@@ -277,7 +277,7 @@ export function SalesWaiting() {
               disabled={cancel.isPending}
               onClick={() => {
                 if (window.confirm("Cancel this sale? You'll get a Declutter strike, and the buyer is told. 3 strikes pause Declutter for you.")) {
-                  cancel.mutate(l.item_id);
+                  if (l.item_id) cancel.mutate(l.item_id);
                 }
               }}
             >
@@ -474,7 +474,8 @@ export function CartView() {
   const now = Date.now();
   const waiting = mine.filter((l) => l.status === "in_cart" && new Date(l.checkout_by).getTime() > now);
   const bySeller = new Map<string, CartLine[]>();
-  for (const l of waiting) bySeller.set(l.seller_id, [...(bySeller.get(l.seller_id) ?? []), l]);
+  // A line still waiting for checkout always has its seller (an account with a line in flight cannot be deleted).
+  for (const l of waiting) if (l.seller_id) bySeller.set(l.seller_id, [...(bySeller.get(l.seller_id) ?? []), l]);
   return (
     <section className="space-y-3" aria-label="Your cart">
       <SectionHeading title="Your cart" todo={waiting.length} todoWords="to check out" />
@@ -492,7 +493,11 @@ export function CartView() {
               <ul className="space-y-1">
                 {lines.map((l) => (
                   <li key={l.line_id} className="flex justify-between gap-3 text-sm min-w-0">
-                    <Link to={`/declutter/item/${l.item_id}`} className="truncate" title={l.item_title}>{l.item_title}</Link>
+                    {l.item_id ? (
+                      <Link to={`/declutter/item/${l.item_id}`} className="truncate" title={l.item_title}>{l.item_title}</Link>
+                    ) : (
+                      <span className="truncate" title={l.item_title}>{l.item_title}</span>
+                    )}
                     <span className="shrink-0 font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(l.price_cents)}</span>
                   </li>
                 ))}

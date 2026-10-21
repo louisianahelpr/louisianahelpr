@@ -66,6 +66,7 @@ export const EXPECTED_PURGE_STEPS = [
   "storage",
   "avatar_pointer",
   "retain_ban",
+  "declutter_scrub",
   "database",
   "job_media",
   "message_attachments",

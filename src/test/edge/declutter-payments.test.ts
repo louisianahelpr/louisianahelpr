@@ -27,7 +27,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "complete") return json({ paid: true, order_id: open.id }); |
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && open.handover !== handover) { |     if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (refused) return json({ error: "porch_unavailable" }, 400); |         if (false) return json({ error: "porch_unavailable" }, 400);
- * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (parties && (parties.buyer_id !== meta.buyer_id \|\| parties.seller_id !== meta.seller_id)) { |   if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (parties && !partyGone && (parties.buyer_id !== meta.buyer_id \|\| parties.seller_id !== meta.seller_id)) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (refunded === "sent") { |   if (true) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> \| null)?.kind === "declutter_refund")) { |   if (allRefunds.length > 0 && allRefunds.some((r) => (r?.metadata as Record<string, string> \| null)?.kind === "declutter_refund")) {
  * @mutate supabase/functions/declutter-checkout/index.ts |     payer_id: user.id, |
@@ -90,7 +90,7 @@ beforeEach(() => {
 });
 
 describe("stripe-webhook: Declutter order paid", () => {
-  async function deliver(answer: unknown, opts: { created?: number; fee?: number | null; chargedAt?: number } = {}) {
+  async function deliver(answer: unknown, opts: { created?: number; fee?: number | null; chargedAt?: number; orderRow?: Record<string, unknown> } = {}) {
     env();
     const fn = await loadEdgeFunction("stripe-webhook");
     stripeMock.webhooks.constructEventAsync.mockResolvedValue({
@@ -109,10 +109,24 @@ describe("stripe-webhook: Declutter order paid", () => {
     });
     scenario.rpc.declutter_mark_order_paid = answer;
     scenario.reads.profiles = { rows: [{ email: "buyer@test.dev", user_id: BUYER }] };
-    scenario.reads.declutter_orders = { rows: [{ buyer_id: BUYER, seller_id: SELLER }] };
+    scenario.reads.declutter_orders = { rows: [opts.orderRow ?? { buyer_id: BUYER, seller_id: SELLER }] };
     const res = await fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=x" } }));
     return res;
   }
+
+  // Q2307 (lh-money-escrow review 2026-10-21 #3): a payment on an order a party has left (deleted account, column NULL)
+  // is refunded automatically and never applied, instead of a "wrong people, refund by hand" page.
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   const partyGone = !!parties && (parties.buyer_id == null \|\| parties.seller_id == null); |   const partyGone = false;
+  it("a payment on an order a party has left is refunded automatically, never marked paid", async () => {
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_gone", status: "succeeded" });
+    scenario.rpc.declutter_refund_party_gone = { result: "refund", refund_id: "rf-gone", reason: "order_closed", fee_policy: "full_platform_absorbs", refund_cents: 4600, refund_status: "pending" };
+    const res = await deliver({ result: "paid" }, { orderRow: { buyer_id: BUYER, seller_id: null } });
+    expect(res.status).toBe(200);
+    expect(rpcs("declutter_mark_order_paid")).toHaveLength(0);
+    expect(rpcs("declutter_refund_party_gone")[0]?.args).toMatchObject({ p_order_id: ORDER, p_payment_intent_id: "pi_dc", p_amount_cents: 4600 });
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_dc", amount: 4600 }), { idempotencyKey: "declutter-refund-rf-gone" });
+    expect((slackAlerts as Array<{ title: string }>).some((a) => /names the wrong people/.test(a.title))).toBe(false);
+  });
 
   it("marks the order paid with the CHARGE's own time and the card fee Stripe kept, then sends a receipt", async () => {
     const res = await deliver({ result: "paid" }, { created: 1_760_000_123, chargedAt: 1_760_000_100 });

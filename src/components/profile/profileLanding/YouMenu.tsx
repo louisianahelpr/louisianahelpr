@@ -1,11 +1,13 @@
-import { Bell, Headphones, LogOut, Settings, Wallet } from "lucide-react";
+import { Bell, Headphones, LogOut, Settings, ShieldAlert, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHomeMoney } from "@/pages/home/homeDashboard/homeMoney";
 import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
 
 /**
- * BOARD 18's list: Money · Alerts · Settings · Talk to a real person, one card,
+ * BOARD 18's list: Money · Alerts · Settings · Talk to a real person, one card
+ * (with Admin above Talk to a real person for a confirmed admin, ADMIN_ROW),
  * then Log out (the clear pill) and Delete account (quiet text) under it
  * (owner, 2026-10-19: "Log Out clear and Delete Account quiet").
  *
@@ -20,13 +22,32 @@ export const YOU_ROWS = [
   { key: "support", label: "Talk to a real person" },
 ] as const;
 
-type RowKey = (typeof YOU_ROWS)[number]["key"];
+/**
+ * ADMINS ONLY: the way into /admin from the phone (owner, 2026-10-21: "I can't
+ * find the admin panel"). It sits directly above "Talk to a real person" and is
+ * drawn only for a CONFIRMED admin: useCurrentUser's `isAdmin`, the same signal
+ * the desktop rail's Admin group reads, which is false while the role is
+ * loading and when the role read failed, so it never flashes for anyone else.
+ * The skeleton draws no admin row (it cannot know the role yet). Hiding it is
+ * not the protection: /admin sits behind AdminRoute and the server's admin checks.
+ */
+export const ADMIN_ROW = { key: "admin", label: "Admin" } as const;
+
+type RowKey = (typeof YOU_ROWS)[number]["key"] | typeof ADMIN_ROW.key;
+
+/** The rows to draw: YOU_ROWS, plus Admin above "Talk to a real person" for a confirmed admin. */
+function youRows(showAdmin: boolean): ReadonlyArray<{ key: RowKey; label: string }> {
+  if (!showAdmin) return YOU_ROWS;
+  const at = YOU_ROWS.findIndex((r) => r.key === "support");
+  return [...YOU_ROWS.slice(0, at), ADMIN_ROW, ...YOU_ROWS.slice(at)];
+}
 
 const ICON: Record<RowKey, ReactNode> = {
   earnings: <Wallet className="w-5 h-5" aria-hidden />,
   notifications: <Bell className="w-5 h-5" aria-hidden />,
   settings: <Settings className="w-5 h-5" aria-hidden />,
   support: <Headphones className="w-5 h-5" aria-hidden />,
+  admin: <ShieldAlert className="w-5 h-5" aria-hidden />,
 };
 
 /** The captions known before any data (the skeleton draws these too). Money's is data, so it is not here. */
@@ -47,10 +68,18 @@ export function youMoneyCaption(money: ReturnType<typeof useHomeMoney>): string 
  * out of the tab order): that is the landing skeleton's first frame
  * (ProfilePageSkeleton), so the loading frame and the page share one markup.
  */
-export function YouMenuList({ captions, onSelect }: { captions?: Partial<Record<RowKey, string | null>>; onSelect?: (key: string) => void }) {
+export function YouMenuList({
+  captions,
+  onSelect,
+  showAdmin = false,
+}: {
+  captions?: Partial<Record<RowKey, string | null>>;
+  onSelect?: (key: string) => void;
+  showAdmin?: boolean;
+}) {
   return (
     <section aria-label="You" className="liquid-glass overflow-hidden" data-testid="you-menu">
-      {YOU_ROWS.map((row, i) => {
+      {youRows(showAdmin).map((row, i) => {
         const cap = captions?.[row.key];
         return (
           <button
@@ -90,14 +119,19 @@ export function YouMenu({
   onRequestLogout: () => void;
   onRequestDelete: () => void;
 }) {
-  const { user } = useCurrentUser();
+  const { user, isAdmin } = useCurrentUser();
+  const navigate = useNavigate();
   const money = useHomeMoney(user);
   const moneyCaption = youMoneyCaption(money);
   const caption: Partial<Record<RowKey, string | null>> = { ...YOU_STATIC_CAPTIONS, earnings: moneyCaption };
 
   return (
     <div className="shrink-0 flex flex-col gap-3">
-      <YouMenuList captions={caption} onSelect={onSelectTab} />
+      <YouMenuList
+        captions={caption}
+        showAdmin={isAdmin}
+        onSelect={(key) => (key === ADMIN_ROW.key ? navigate("/admin") : onSelectTab(key))}
+      />
 
       <div className="pt-1 space-y-1">
         <button

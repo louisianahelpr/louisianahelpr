@@ -41,7 +41,7 @@ export const PAGE_CANONICALS: Record<TabKey, string> = {
 export const LAST_UPDATED: Record<TabKey, string> = {
   terms: "Oct 2026",
   community: "Jun 2026",
-  privacy: "Jun 2026",
+  privacy: "Oct 2026",
 };
 
 

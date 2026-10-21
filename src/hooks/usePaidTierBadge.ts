@@ -1,4 +1,4 @@
-import { useFeature } from "@/hooks/useFeature";
+import { useMembershipsOn } from "@/hooks/useMembershipsOn";
 import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
 
 /**
@@ -10,6 +10,7 @@ import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
  * Guard: src/test/paidTierBadgeNeedsMemberships.test.ts.
  */
 export function usePaidTierBadge(): (tier: string | null | undefined) => ReturnType<typeof tierBadgeStyle> {
-  const on = useFeature("memberships");
+  // Through useMembershipsOn, the one reader of the raw switch: also off in the store app.
+  const on = useMembershipsOn();
   return (tier) => (on ? tierBadgeStyle(tier) : null);
 }

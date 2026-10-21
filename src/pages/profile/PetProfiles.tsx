@@ -170,7 +170,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
     // list and inside the empty state.
     <ProfileTabBody>
       <ProfileTabHeader
-        title="My Pets"
+        title="My pets"
         onBack={onBack}
         rightSlot={
           // Not while the empty state is up (Q247): its own "Add a pet" CTA

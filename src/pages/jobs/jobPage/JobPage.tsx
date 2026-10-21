@@ -60,7 +60,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const posterCard = useQuery({ queryKey: ["declutter", "seller-card", posterId], queryFn: () => fetchSellerCard(posterId!), enabled: !!posterId && !isPoster });
   const posterFirst = (posterCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
 
-  if (q.isLoading) {
+  if (q.isPending) {
     return (
       <AppPage title="Job" backTo="/jobs">
         <div role="status" aria-busy="true" aria-label="Loading job"><JobCardSkeleton /></div>

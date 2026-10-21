@@ -32,6 +32,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/lib/pinnedConversations.ts:cache": { kind: "keyed-by-user-id" },
   "src/components/job-card/helperStepRequest.ts:pending": { kind: "not-user-data", why: "a one-shot tap request (job id + step name) that expires after 10 s and is cleared the first time the tracker draws; nothing to leak to the next account" },
   "src/lib/pinnedConversations.ts:loadGen": { kind: "keyed-by-user-id" },
+  "src/components/mobileNav/useSectionTabs.ts:shownComingSoon": { kind: "not-user-data", why: "toast ids of the 'X is coming soon' notices shown (one per switched-off section label), dismissed and cleared on the next route change; section names, nothing about the account" },
   "src/lib/archivedConversations.ts:cache": { kind: "keyed-by-user-id" },
   "src/lib/userBlocks.ts:blockReads": { kind: "keyed-by-user-id" },
   "src/lib/userRealtimeBus.ts:buses": { kind: "keyed-by-user-id" },

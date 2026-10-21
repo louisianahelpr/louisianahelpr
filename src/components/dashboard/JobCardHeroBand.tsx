@@ -14,7 +14,7 @@ export function JobCardHeroBand({ photo, category }: { photo: string | null | un
         <img src={photo} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center" aria-hidden>
-          <CategoryIcon category={category} className="h-10 w-10 text-primary/70" strokeWidth={1.75} />
+          <CategoryIcon category={category} className="h-10 w-10 text-primary" strokeWidth={1.75} />
         </div>
       )}
     </div>

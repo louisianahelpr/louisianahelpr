@@ -6,12 +6,16 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
+const insertResult = vi.hoisted(() => ({ refuse: false }));
 vi.mock("@/integrations/supabase/client", () => {
   const chain = () => {
     const self: Record<string, unknown> = {};
     self.select = () => self;
     self.single = () => self;
-    self.then = (resolve: (v: unknown) => void) => resolve({ data: { id: "0a1b2c3d-0000-0000-0000-000000000000" }, error: null });
+    self.then = (resolve: (v: unknown) => void) =>
+      resolve(insertResult.refuse
+        ? { data: null, error: { message: "rate limited", code: "P0001" } }
+        : { data: { id: "0a1b2c3d-0000-0000-0000-000000000000" }, error: null });
     return self;
   };
   return {
@@ -78,5 +82,22 @@ describe("ReportDialog, board 157", () => {
     fireEvent.click(screen.getByRole("switch", { name: "Also block Tommy H." }));
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onBlock).not.toHaveBeenCalled();
+  });
+
+  it("a refused insert keeps the form and never hands over to Block", async () => {
+    insertResult.refuse = true;
+    try {
+      const onBlock = vi.fn();
+      render(<ReportDialog open onClose={vi.fn()} reportedType="user" reportedId="u1" alsoBlock={{ name: "Tommy H.", onBlock }} />);
+      fireEvent.click(screen.getAllByRole("radio")[0]);
+      fireEvent.change(screen.getByRole("textbox"), { target: { value: "Asked me to pay in cash." } });
+      fireEvent.click(screen.getByRole("switch", { name: "Also block Tommy H." }));
+      fireEvent.click(screen.getByRole("button", { name: "Send report" }));
+      await waitFor(() => expect(screen.getByRole("button", { name: "Send report" })).toHaveProperty("disabled", false));
+      expect(screen.queryByText("Report sent")).toBeNull();
+      expect(onBlock).not.toHaveBeenCalled();
+    } finally {
+      insertResult.refuse = false;
+    }
   });
 });

@@ -51,7 +51,7 @@ export const ACCOUNT_MENU_GROUP: { title: string; items: MenuItem[] } = {
   items: [
     { key: "security", label: TAB_TITLES.security, icon: <Shield className="w-5 h-5" />, desc: "Email, password & login", tint: SECTION_TINT.account },
     { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get", tint: SECTION_TINT.account },
-    { key: "accessibility", label: "Accessibility", icon: <Type className="w-5 h-5" />, desc: "Color mode & Senior mode", tint: SECTION_TINT.account },
+    { key: "accessibility", label: "Accessibility", icon: <Type className="w-5 h-5" />, desc: "Color mode & bigger text", tint: SECTION_TINT.account },
     {
       key: "sections",
       label: "Your sections",

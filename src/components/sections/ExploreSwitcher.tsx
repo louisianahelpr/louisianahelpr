@@ -4,10 +4,11 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { safeStorage } from "@/lib/safeStorage";
-import { useSectionTabs, comingSoonLabel } from "@/components/mobileNav/useSectionTabs";
+import { useSectionTabs, comingSoonLabel, previewLabel } from "@/components/mobileNav/useSectionTabs";
 import { useSectionPrefs } from "./useSectionPrefs";
 import type { SectionDef, SectionKey } from "./sectionsConfig";
 import { SoonPill } from "@/components/sections/SoonPill";
+import { PreviewPill } from "@/components/sections/PreviewPill";
 
 const LAST_KEY = "helpr_explore_last";
 
@@ -36,6 +37,12 @@ export function useSectionIsOn() {
   return (s: SectionDef) => s.feature === null || !!live.find((t) => t.path === s.path)?.on;
 }
 
+/** Is this live section a tester-only preview for the viewer (useSectionTabs `preview`)? Jobs never is. */
+export function useSectionIsPreview() {
+  const live = useSectionTabs();
+  return (s: SectionDef) => s.feature !== null && !!live.find((t) => t.path === s.path)?.preview;
+}
+
 /**
  * EXPLORE'S SECTION SWITCHER (HELPR-DESIGN-SPEC §3 "Bottom bar", owner
  * 2026-10-20): the bottom bar's Explore tab holds the four sections as a
@@ -57,6 +64,7 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
   const isWebDesktop = useIsWebDesktop();
   const { visible } = useSectionPrefs();
   const isOn = useSectionIsOn();
+  const isPreview = useSectionIsPreview();
   useEffect(() => writeLastSection(user?.id, current), [user?.id, current]);
   if (isWebDesktop) return null;
   const options = visible.map((s) => {
@@ -65,7 +73,16 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
     return {
       value: s.key,
       icon: on ? (
-        <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />
+        isPreview(s) ? (
+          // "Preview" sits centered over the icon: at 320 a segment is ~71px and the badge 50px, so
+          // hung off the icon's right (as "Soon" is) it ran past the last tab and clipped (looked, 2026-10-21).
+          <span className="relative inline-flex">
+            <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />
+            <PreviewPill variant="badge" aria-hidden="true" className="absolute -top-4 left-1/2 -translate-x-1/2" />
+          </span>
+        ) : (
+          <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />
+        )
       ) : (
         // "Soon" sits beside the muted icon, so the name below stays whole at 320.
         <span className="relative inline-flex">
@@ -74,7 +91,7 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
         </span>
       ),
       label: on ? s.navLabel : <span data-soon="" className="text-muted-foreground font-medium">{s.navLabel}</span>,
-      ariaLabel: on ? s.navLabel : comingSoonLabel(s.navLabel),
+      ariaLabel: on ? (isPreview(s) ? previewLabel(s.navLabel) : s.navLabel) : comingSoonLabel(s.navLabel),
     };
   });
   // A <nav>: it moves between the four sections, and it is the same chrome on a

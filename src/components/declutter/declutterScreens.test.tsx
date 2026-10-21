@@ -33,6 +33,8 @@ const state = {
   card: null as unknown,
 };
 
+// The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: () => state.feature,
   // DeclutterPage warms the declutter_wanted read with useFeatureStatus (Q?declutter-settle).

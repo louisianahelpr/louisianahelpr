@@ -15,6 +15,8 @@ import { MemoryRouter } from "react-router-dom";
 const user = vi.hoisted(() => ({ current: { id: "u1", email: "lexi@example.com", identities: [{ provider: "email" }, { provider: "google" }] } as unknown }));
 vi.mock("sonner", () => ({ toast: vi.fn() }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: user.current, profile: null, isAdmin: false }) }));
+// The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/hooks/useDarkMode", () => ({ useDarkMode: () => ({ theme: "system" }) }));
 vi.mock("@/components/sections/useSectionPrefs", async () => {

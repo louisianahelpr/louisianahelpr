@@ -19,6 +19,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { identityView, openIdentityCheck, type IdentityView } from "@/lib/identityCheck";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import { SoonPill } from "@/components/sections/SoonPill";
+import { PreviewPill } from "@/components/sections/PreviewPill";
 
 /** Both sides of each section, the spec v2 §11 wording. */
 export const SECTION_BLURB: Record<SectionKey, string> = {
@@ -56,11 +57,14 @@ export function accountLine(email: string | null | undefined, identities: { prov
   return parts.length ? parts.join(" · ") : null;
 }
 
-function Row({ label, sub, onClick, right, testId, danger = false }: { label: string; sub?: string; onClick?: () => void; right?: ReactNode; testId?: string; danger?: boolean }) {
+function Row({ label, badge, sub, onClick, right, testId, danger = false }: { label: string; badge?: ReactNode; sub?: string; onClick?: () => void; right?: ReactNode; testId?: string; danger?: boolean }) {
+  const name = (
+    <span className={`block text-ds-15 font-semibold leading-tight ${danger ? "" : "text-foreground"}`} style={danger ? { color: "hsl(var(--alert-ink))" } : undefined}>{label}</span>
+  );
   const body = (
     <>
       <span className="flex-1 min-w-0">
-        <span className={`block text-ds-15 font-semibold leading-tight ${danger ? "" : "text-foreground"}`} style={danger ? { color: "hsl(var(--alert-ink))" } : undefined}>{label}</span>
+        {badge ? <span className="flex items-center gap-2">{name}{badge}</span> : name}
         {sub && <span className="block text-ds-13 text-muted-foreground mt-0.5">{sub}</span>}
       </span>
       {right ?? (onClick && <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />)}
@@ -169,12 +173,16 @@ export function SettingsTab({
 
       <Group title="Your sections">
         {SECTIONS.map((s) => {
-          const on = s.feature === null || !!live.find((t) => t.path === s.path)?.on;
+          const tab = live.find((t) => t.path === s.path);
+          const on = s.feature === null || !!tab?.on;
+          const preview = s.feature !== null && !!tab?.preview;
           return (
             <Row
               key={s.key}
               testId={`section-${s.key}`}
               label={s.label}
+              // Beside the name, not the switch: there it squeezed the blurb onto two lines at 375 (looked, 2026-10-21).
+              badge={preview ? <PreviewPill data-section-preview={s.key} /> : undefined}
               sub={on ? SECTION_BLURB[s.key] : "Opening soon"}
               right={
                 on ? (

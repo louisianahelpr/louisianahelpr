@@ -3753,7 +3753,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 78,
+      "line": 79,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -3763,7 +3763,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 81,
+      "line": 84,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5664,7 +5664,7 @@
     },
     {
       "file": "src/components/mobileNav/useSectionTabs.ts",
-      "line": 45,
+      "line": 65,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -5984,7 +5984,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 104,
+      "line": 108,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5994,7 +5994,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 185,
+      "line": 193,
       "kind": "toast",
       "title": {
         "form": "literal",

@@ -22,6 +22,8 @@ import { blankComments } from "./helpers/blankNonCode";
 const toast = vi.hoisted(() => vi.fn());
 vi.mock("sonner", () => ({ toast }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null }) }));
+// The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k !== "rentals" }));
 vi.mock("@/pages/home/homeDashboard/useHomeSummary", () => ({
   useHomeSummary: () => ({ counts: { posted: 2, working: 0, selling: 1, shopOrders: 0 } }),

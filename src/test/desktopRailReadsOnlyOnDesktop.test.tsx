@@ -17,7 +17,7 @@ import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const calls = vi.hoisted(() => ({ feature: [] as string[], badges: 0, unread: 0, desktop: false }));
+const calls = vi.hoisted(() => ({ feature: [] as string[], badges: 0, unread: 0, previews: 0, desktop: false }));
 
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => calls.desktop }));
 vi.mock("@/hooks/useFeature", () => ({
@@ -40,6 +40,14 @@ vi.mock("@/components/mobileNav/useNavUnreadCount", () => ({
     return { unreadCount: 0 };
   },
 }));
+// The "Preview" mark's read (features_open_to_everyone, via useSectionTabs) is one of the rail's reads too.
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({
+  ...(await orig<object>()),
+  useOpenToEveryoneAnswer: () => {
+    calls.previews++;
+    return null;
+  },
+}));
 vi.mock("@/components/admin/adminBadgeStore", () => ({ useAdminBadges: () => ({}) }));
 vi.mock("@/components/sidePanelOpen", () => ({ useSidePanel: () => ({ open: true }) }));
 
@@ -57,6 +65,7 @@ describe("the desktop rail reads only where it renders", () => {
     calls.feature.length = 0;
     calls.badges = 0;
     calls.unread = 0;
+    calls.previews = 0;
   });
 
   it("at phone width (below 900px) it renders nothing and asks for no feature switch or badge count", () => {
@@ -65,6 +74,7 @@ describe("the desktop rail reads only where it renders", () => {
     expect(container.querySelector("nav")).toBeNull();
     expect(calls.feature, "a phone page load must not send the rail's feature_enabled_for").toEqual([]);
     expect(calls.badges + calls.unread, "nor read its badge counts").toBe(0);
+    expect(calls.previews, "nor ask which sections are open to everyone").toBe(0);
   });
 
   it("on the desktop website it renders and reads every hidden-switch destination (the check can see the calls)", () => {
@@ -75,5 +85,6 @@ describe("the desktop rail reads only where it renders", () => {
     expect(calls.feature.length).toBeGreaterThan(1);
     expect(calls.feature).toEqual(expect.arrayContaining(["declutter", "shops"]));
     expect(calls.badges).toBeGreaterThan(0);
+    expect(calls.previews).toBeGreaterThan(0);
   });
 });

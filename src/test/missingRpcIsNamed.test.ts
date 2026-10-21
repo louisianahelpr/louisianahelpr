@@ -19,7 +19,7 @@
  *      lowering the number in the same commit; a new one fails.
  *
  * @mutate src/lib/threadMutes.ts |     if (isMissingRpcNamed(error, "toggle_thread_mute")) { |     if (isMissingRpcNamed(error, "set_thread_snooze")) {
- * @mutate src/components/landing/useSectionsOpen.ts |     if (isMissingRpcNamed(res.error, "features_open_to_everyone")) return []; |     if (res.error?.code === "PGRST202") return [];
+ * @mutate src/components/landing/useSectionsOpen.ts |     if (isMissingRpcNamed(res.error, "features_open_to_everyone")) return null; |     if (res.error?.code === "PGRST202") return null;
  * @mutate src/lib/missingRpc.ts | export function isMissingRpcNamed( | export function isMissingRpc(error: unknown): boolean {\n  return (error as { code?: string } \| null)?.code === "PGRST202";\n}\nexport function isMissingRpcNamed(
  */
 import { readFileSync } from "node:fs";

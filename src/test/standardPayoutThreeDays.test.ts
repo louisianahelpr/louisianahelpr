@@ -21,7 +21,7 @@
  * @mutate supabase/functions/auto-release-payment/index.ts | const payoutTime = standardPayoutAtIso(job.helper_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
  * @mutate supabase/functions/create-payment/index.ts | const payoutTime = standardPayoutAtIso(isHelper ? null : job.helper_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
  * @mutate supabase/functions/auto-release-payment/index.ts | will be sent to your account ${STANDARD_PAYOUT_PHRASE}.`\n            : `"${job.title}" was auto-completed | will be transferred to your account in 24 hours.`\n            : `"${job.title}" was auto-completed
- * @mutate src/components/profile/earningsTab/EarningsSummaryCard.tsx | `Approved — sent ${STANDARD_PAYOUT_PHRASE}` | `Approved — releases 24 hours after approval`
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   return `Sent ${STANDARD_PAYOUT_PHRASE}`; |   return `Sent 24 hours after approval`;
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -127,7 +127,8 @@ describe("standard pay: 3 days after the job is done (Q202)", () => {
   it("the client sites that state the standard timing interpolate the shared phrase", () => {
     const sites = [
       "src/pages/jobs/appliedJobCard/steps/SubmittedStep.tsx",
-      "src/components/profile/earningsTab/EarningsSummaryCard.tsx",
+      // The Money tab's approved-not-sent line folded into the Coming to you tile (board 51, 2026-10-20).
+      "src/pages/home/homeDashboard/HomeMoneyTiles.tsx",
       "src/pages/info/helpCenter/helpCenterContent.ts",
       "src/pages/info/legal/TermsSection.tsx",
     ];

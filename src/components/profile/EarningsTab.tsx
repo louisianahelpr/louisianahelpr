@@ -30,7 +30,6 @@ import { useHelperMilestones } from "@/hooks/useHelperMilestones";
 import type { EarningsTabProps } from "@/components/profile/earningsTab/types";
 import {
   completedWithin,
-  comingToYou,
   firstPayoutFeeDueFrom,
   earnedDollarsWithLedger,
   isEarnedJob,
@@ -161,23 +160,9 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const availableTotal = (stripeData?.available ?? []).reduce((s, b) => s + b.amount, 0);
   const pendingTotal = (stripeData?.pending ?? []).reduce((s, b) => s + b.amount, 0);
 
-  // Money the poster has ALREADY approved but that Stripe has not been told
-  // about yet. auto-release-payment flips the job to `payout_pending` with a
-  // `payout_scheduled_at` PAYOUT_HOLD_HOURS out, and only then does
-  // release-payout create the actual transfer — so for that whole window the
-  // amount sits on the PLATFORM's balance and appears in neither Stripe bucket
-  // the wallet reads. From the helper's chair a job they were paid for simply
-  // vanished: approved, and then in neither Available nor Pending.
-  //
-  // This line now renders in <EarningsSummaryCard />, NOT in <WalletCard />
-  // where it used to live. WalletCard only mounts once Stripe is connected, so
-  // the one state that most needs explaining — "I finished a job, where is my
-  // money" — was silent for exactly the helper who has not finished payout
-  // setup and has the most reason to ask.
-  // ONE rule, shared with Home's "Coming to you" tile (earningsTabHelpers.comingToYou):
-  // the take-home of every approved job still awaiting its transfer, and the
-  // soonest scheduled arrival for the "reaches your wallet <date>" copy.
-  const { cents: releasingCents, at: releasingAt } = comingToYou(earningsJobs, helperFeeFallbackPct, firstPayoutFee);
+  // Approved-not-sent money (on the PLATFORM's balance until release-payout fires, so in neither Stripe
+  // bucket) shows ONCE, in board 51's "Coming to you" tile at the top of this page (HomeMoneyTiles over
+  // useHomeMoney -> earningsTabHelpers.comingToYou). It mounts with or without a payout account.
 
   // Helper-milestone retention nudges — one-shot toasts at meaningful
   // job/earnings/streak thresholds. Pulls from stats already computed
@@ -419,8 +404,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             tipsDollars={rangeTips}
             tipCount={rangeTipRows.length}
             inProgressCount={inProgressJobs.length}
-            releasingCents={releasingCents}
-            releasingAt={releasingAt}
           />
 
           {range === "week" && (

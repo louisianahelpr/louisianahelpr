@@ -45,8 +45,18 @@ vi.mock("@/hooks/useCurrentUser", () => ({
 // Memberships switch OFF, the shipped state (roadmap F4/F4a).
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 2 }));
-// Board 51 head (HomeMoneyTiles over useHomeMoney) has its own guards (moneyBoard51Head, homeMoneyTiles); here it is nothing.
-vi.mock("@/pages/home/homeDashboard/homeMoney", () => ({ useHomeMoney: () => ({ coming: null, held: null }) }));
+// Board 51: "Coming to you" is the ONE place the approved-not-sent money shows (the Earned card's
+// "Approved" line folded into it, 2026-10-20). Its hook reads its own query; here it is fed the same
+// rule (comingToYou) over this file's jobs at the viewer's Free fee and the $2 setup fee.
+vi.mock("@/pages/home/homeDashboard/homeMoney", async () => {
+  const { comingToYou } = await import("@/components/profile/earningsTab/earningsTabHelpers");
+  return {
+    useHomeMoney: () => {
+      const c = comingToYou(jobs, 12, 2);
+      return { coming: c.cents > 0 ? { ...c, hasPayoutAccount: true } : null, held: null };
+    },
+  };
+});
 vi.mock("@/hooks/useHelperMilestones", () => ({ useHelperMilestones: () => {} }));
 vi.mock("@/components/profile/HelperStreakBadge", () => ({
   HelperStreakBadge: () => null,

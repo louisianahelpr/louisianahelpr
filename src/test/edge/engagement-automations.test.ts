@@ -35,6 +35,9 @@
 // @mutate supabase/functions/engagement-automations/index.ts |           .gte('claimed_at', comeBackSince) |           .gte('claimed_at', new Date(0).toISOString())
 // @mutate supabase/functions/engagement-automations/index.ts |       .eq('is_seed', false)\n      .is('anonymized_at', null)\n      .eq('ban_status', 'active'),\n    ) |     )
 // @mutate supabase/functions/engagement-automations/index.ts |         .eq('is_seed', false)\n        .is('anonymized_at', null)\n        .eq('ban_status', 'active'),\n    ) |     )
+// @mutate supabase/functions/engagement-automations/index.ts |       if (!(daysSinceSignup <= WELCOME_DRIP_MAX_DAYS)) continue | 
+// @mutate supabase/functions/engagement-automations/index.ts |       if (!(daysSinceSignup <= WELCOME_DRIP_MAX_DAYS)) continue |       if (!(daysSinceSignup <= WELCOME_DRIP_MAX_DAYS + 1)) continue
+// @mutate supabase/functions/engagement-automations/index.ts |         .gte('created_at', welcomeWindowStart) | 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -492,6 +495,73 @@ describe("engagement-automations edge function", () => {
       expect(b.adminDigest).toBe(0);
       expect(String(b.defectReasons)).toContain("admin digest NOT sent");
       expect(String(b.defectReasons)).toContain("open reports");
+    });
+  });
+
+  // ─── Owner ruling 2026-10-21 (Q2303, issue #3509) ────────────────────────
+  // The welcome series goes ONLY to members who joined in the last 14 days.
+  // Older members get no welcome step at all (only the come-back emails, which
+  // are a different function). Inside 14 days the steps are unchanged.
+  describe("the 14-day welcome window", () => {
+    const DAY = 86_400_000;
+    function seedSignup(msAgo: number, dripStep = 0) {
+      seedOneDripRecipient();
+      const row = (scenario.reads.profiles!.selectOverrides![0].result.rows as Record<string, unknown>[])[0];
+      row.created_at = new Date(Date.now() - msAgo).toISOString();
+      row.drip_step = dripStep;
+    }
+    async function dripsSent(): Promise<number> {
+      const fn = await loadConfigured();
+      const res = await fn.fetch(cronRequest(fn));
+      expect(res.status).toBe(200);
+      const b = await body(res);
+      expect(queued()).toHaveLength(b.drip as number);
+      return b.drip as number;
+    }
+
+    it("a member who joined 13 days ago still gets the step that is due", async () => {
+      seedSignup(13 * DAY);
+      expect(await dripsSent()).toBe(1);
+      expect((emailRenders[0] as { type: { name: string } }).type.name).toBe("WelcomeDripStep1Email");
+    });
+
+    it("a member who joined 15 days ago gets no welcome step at all", async () => {
+      seedSignup(15 * DAY);
+      expect(await dripsSent()).toBe(0);
+    });
+
+    it("a member on step 2 who joined 15 days ago does not get step 3", async () => {
+      seedSignup(15 * DAY, 2);
+      expect(await dripsSent()).toBe(0);
+    });
+
+    it("the boundary is 14 days: one minute inside is mailed, one minute past is not", async () => {
+      seedSignup(14 * DAY - 60_000, 2);
+      expect(await dripsSent()).toBe(1);
+      expect((emailRenders[0] as { type: { name: string } }).type.name).toBe("WelcomeDripStep3Email");
+
+      resetSupabaseMock();
+      resetEmailMocks();
+      seedSignup(14 * DAY + 60_000, 2);
+      expect(await dripsSent()).toBe(0);
+    });
+
+    it("the drip-recipient READ itself asks only for members who joined in the last 14 days", async () => {
+      seedSignup(2 * DAY);
+      await dripsSent();
+      const dripReads = (scenario.readQueries ?? []).filter(
+        (q) => q.table === "profiles" && /drip_step/.test(q.cols ?? "") && q.filters.some((f) => f.op === "lt" && f.column === "drip_step"),
+      );
+      // Inventory floor: the drip scan was found (a renamed column would
+      // otherwise make the loop below check nothing).
+      expect(dripReads.length).toBeGreaterThan(0);
+      for (const q of dripReads) {
+        const since = q.filters.find((f) => f.op === "gte" && f.column === "created_at")?.value as string | undefined;
+        expect(since, "drip read filters created_at >= 14 days ago").toBeDefined();
+        const days = (Date.now() - new Date(since!).getTime()) / DAY;
+        expect(days).toBeGreaterThan(13.999);
+        expect(days).toBeLessThan(14.001);
+      }
     });
   });
 

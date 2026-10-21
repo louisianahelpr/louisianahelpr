@@ -350,6 +350,17 @@ export const CommunityContent = () => (
           </ul>
         }
       />
+      {/* Q2308: Declutter's own strike count, stated in full in Terms > Declutter. */}
+      <PolicyRowItem
+        icon={Ban}
+        title="Declutter strikes (buying and selling)"
+        body={
+          <>
+            <p>Declutter keeps its own strike count, separate from job strikes. Each Declutter strike lasts 1 year, and <strong className="text-foreground">3 active strikes lock you out of Declutter</strong> until one expires. Your jobs are not affected.</p>
+            <p>The full list of what earns one is in the Terms, under Declutter.</p>
+          </>
+        }
+      />
       <PolicyRowItem
         icon={Siren}
         title="How we detect violations"

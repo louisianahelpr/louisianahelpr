@@ -16,9 +16,9 @@
 --     seller -> poster awaiting the BUYER (the poster), tagged with wanted_id; the existing offer card, accept
 --     (card required, least(offer, price now)) and the 48-hour checkout run unchanged.
 --  6. LIMITS: one reply per (post, seller) (unique index), 10 replies a day per seller, at most 5 answers a day
---     reaching one poster, the selling gates (declutter_assert_member(true), declutter_seller_out), the post locked
+--     per POST (never per poster: that would link two posts to one person), the selling gates (declutter_assert_member(true), declutter_seller_out), the post locked
 --     FOR UPDATE and re-checked; only a listing with no open offer can answer (no oracle on who the poster is).
---  7. NOTIFY: the poster gets "A seller has a match" for each (at most 5 a day by point 6).
+--  7. NOTIFY: the poster gets "A seller has a match", at most 5 a day per poster (silent cap).
 --  8. Members lose the direct table read of declutter_offers / declutter_offer_events (review blocker #1).
 -- Restated (prod prosrc md5 = 20261016053541's bodies, measured 2026-10-21): declutter_create_wanted
 -- 7345066c676c6458b4ae97bf0434a056, declutter_my_wanted c1916e3b0cb3cf0262484816b5454b3b (adds `public`).
@@ -346,11 +346,12 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.declutter_offers o WHERE o.item_id = i.id AND o.status = 'open') THEN
     RAISE EXCEPTION 'listing_has_open_offer' USING ERRCODE = '55000', HINT = 'This listing has an open offer. Answer with another listing, or after it closes.';
   END IF;
-  -- At most 5 answers a day reach one poster (review #3): that bounds the match alert AND every later notice the
-  -- offer paths send (expiry, voided, closed), which are not quieted per kind.
-  PERFORM pg_advisory_xact_lock(hashtext('declutter_wanted_inbox:' || w.user_id::text));
+  -- At most 5 answers a day per POST (lead ruling on review N1, 10-21): a per-poster refusal would tell a seller that
+  -- two posts share one poster. With at most 10 open posts a poster, that still bounds every later notice the offer
+  -- paths send (expiry, voided, closed); the per-poster bound is the silent alert cap below.
+  PERFORM pg_advisory_xact_lock(hashtext('declutter_wanted_post_answers:' || w.id::text));
   IF (SELECT count(*) FROM public.declutter_offers o
-       WHERE o.buyer_id = w.user_id AND o.wanted_id IS NOT NULL AND o.created_at > now() - interval '24 hours') >= 5 THEN
+       WHERE o.wanted_id = w.id AND o.created_at > now() - interval '24 hours') >= 5 THEN
     RAISE EXCEPTION 'wanted_busy' USING ERRCODE = '54000', HINT = 'This post has enough answers for today. Try tomorrow.';
   END IF;
   -- The Wanted post is the poster's opening ask; the answer is the seller's counter to it (counter_count 1, a
@@ -361,10 +362,15 @@ BEGIN
   RETURNING id INTO v_id;
   INSERT INTO public.declutter_offer_events (offer_id, actor_side, action, amount_cents)
   VALUES (v_id, 'seller', 'counter', p_amount_cents);
-  PERFORM public.declutter_notify(w.user_id, 'new_offers', 'A seller has a match',
-    format('A seller near you has "%s" for $%s, at or under your Wanted price. Accept, counter or decline within 48 hours.',
-           i.title, to_char(p_amount_cents / 100.0, 'FM999990.00')),
-    '/declutter?view=offers', v_uid);
+  -- At most 5 "match" alerts a day per poster (this one included), silently: later answers still arrive as offers,
+  -- and nothing the seller sees depends on it.
+  IF (SELECT count(*) FROM public.declutter_offers o
+       WHERE o.buyer_id = w.user_id AND o.wanted_id IS NOT NULL AND o.created_at > now() - interval '24 hours') <= 5 THEN
+    PERFORM public.declutter_notify(w.user_id, 'new_offers', 'A seller has a match',
+      format('A seller near you has "%s" for $%s, at or under your Wanted price. Accept, counter or decline within 48 hours.',
+             i.title, to_char(p_amount_cents / 100.0, 'FM999990.00')),
+      '/declutter?view=offers', v_uid);
+  END IF;
   RETURN v_id;
 END;
 $fn$;

@@ -5,6 +5,8 @@ import { formatName } from "@/lib/utils";
 import { applicantIdNote } from "@/lib/awardGate";
 import UserAvatar from "@/components/UserAvatar";
 import { ApplicantHireRow } from "./applicantsPanel/ApplicantHireRow";
+import { ApplicantProofLine } from "./applicantsPanel/ApplicantProofLine";
+import { useApplicantCategoryCounts } from "./useApplicantCategoryCounts";
 import { CompareBar, CompareCheck, ShowMoreApplicants, useApplicantCompare } from "./applicantsPanel/ApplicantCompare";
 import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Pencil, ShieldAlert, Sparkles, Star } from "lucide-react";
 import { IconActionButton } from "@/components/dashboard/IconActionButton";
@@ -128,6 +130,7 @@ export function ApplicantsPanel({
 
   const compare = useApplicantCompare();
   const [shown, setShown] = useState(10);
+  const categoryCounts = useApplicantCategoryCounts(selectedJob?.id);
   const {
     applicantSort,
     setApplicantSort,
@@ -380,17 +383,9 @@ export function ApplicantsPanel({
                             Below `sm` a pending card wraps and its right column dissolves
                             (`contents`), so the Hire row drops under the name: ApplicantHireRow. */}
                         <div className={app.status === "pending" ? "flex flex-wrap sm:flex-nowrap items-start gap-3" : "flex items-start gap-3"}>
-                          {/* Migrated onto the shared `<UserAvatar>`
-                              (2026-08-31). This is a hiring decision: the
-                              poster is choosing between people, and the
-                              previous markup gave a candidate whose upload is
-                              a flat coloured block NO identity at all — an
-                              `<OptimizedImage>` with no guard beyond a bare
-                              404, layered over an initials span that only
-                              rendered when `avatar_url` was null. Every blank
-                              avatar on prod returns 200, so the initials never
-                              got a turn and the applicant read as an anonymous
-                              tinted circle. See `src/lib/avatarImage.ts`.
+                          {/* Migrated onto the shared `<UserAvatar>` (2026-08-31): a hiring decision gave a
+                              candidate whose upload is a flat block NO identity (every blank avatar on prod
+                              returns 200, so the initials never showed). See `src/lib/avatarImage.ts`.
 
                               The <a> keeps the link, the halo ring (top-pick /
                               verified) and the 44px tap target; the avatar
@@ -532,6 +527,7 @@ export function ApplicantsPanel({
                               )}
                             </span>
                             {/* ID once (owner, 2026-10-20): the offer stays open; the Helpr's accept waits on the ID. */}
+                            <ApplicantProofLine categoryCount={categoryCounts ? categoryCounts.get(app.helper_id) ?? 0 : undefined} totalCount={completedCountsMap.get(app.helper_id) ?? 0} idVerified={app.profiles?.is_id_verified === true} category={selectedJob.category} />
                             {app.profiles && app.profiles.is_id_verified !== true && (
                               <span className="block mt-0.5 text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood))" }} data-applicant-id-note="">
                                 {applicantIdNote(formatName(app.profiles.full_name, ""))}

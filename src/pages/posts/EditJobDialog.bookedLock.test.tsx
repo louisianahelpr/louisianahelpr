@@ -101,4 +101,11 @@ describe("a booked job's place and details are not offered for editing (Q1204)",
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     expect(update.mock.calls[0][0]).toMatchObject({ title: "Shelves, three", location: "Baton Rouge", require_photo_proof: true });
   });
+
+  // Board 172 (owner 2026-10-21): the price never edits after posting, and the dialog says why.
+  it("shows the price as locked, with the way to change it", () => {
+    const src = require("node:fs").readFileSync("src/pages/posts/EditJobDialog.tsx", "utf8") as string;
+    expect(src).toMatch(/Set when you paid\. To change it, cancel and post again\./);
+    expect(src).not.toMatch(/\bbudget: /);
+  });
 });

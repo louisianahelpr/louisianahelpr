@@ -3,6 +3,7 @@ import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { formatPrice } from "@/lib/format";
 import { getCity } from "@/lib/locationUtils";
 import type { JobPageRow } from "./useJobPage";
+import { useJobReach } from "./useJobReach";
 
 /**
  * Board 57, the poster's open job with nobody applied yet. Shown only when the job is
@@ -14,6 +15,8 @@ import type { JobPageRow } from "./useJobPage";
  */
 export function NoApplicantsYet({ job, onManage }: { job: JobPageRow; onManage: () => void }) {
   const city = job.location ? getCity(job.location) : null;
+  // Board 184: the alerts already sent, a floor (sent rows only); 0 or unknown says nothing new.
+  const reach = useJobReach(job.id);
   const rows = [
     !(job.photos ?? []).length && { key: "photo", title: "Add a photo", detail: "Jobs with photos are easier to say yes to" },
     { key: "price", title: "Change the price", detail: <>You're at <span className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">${formatPrice(job.budget)}</span></> },
@@ -22,7 +25,10 @@ export function NoApplicantsYet({ job, onManage }: { job: JobPageRow; onManage: 
     <section data-no-applicants="" aria-labelledby="no-applicants-title" className="space-y-3 text-center lg:col-start-1">
       <h2 id="no-applicants-title" className="font-display font-moment text-ds-28 font-semibold">No applicants yet</h2>
       <p className="text-ds-14 text-muted-foreground">
-        {city ? `It's out to Helprs near ${city}.` : "It's out to Helprs nearby."} We'll tell you when someone applies.
+        {reach && reach > 0
+          ? `Sent to ${reach} Helpr${reach === 1 ? "" : "s"} so far.`
+          : city ? `It's out to Helprs near ${city}.` : "It's out to Helprs nearby."}{" "}
+        We'll tell you when someone applies.
       </p>
       <h3 className="pt-2 text-left text-ds-12 font-semibold uppercase tracking-wide text-muted-foreground">Want replies sooner?</h3>
       <div className="space-y-2 text-left">

@@ -7,7 +7,8 @@
 // @mutate src/components/postjob/detailsSection/detailsSectionConstants.ts |   "plumbing",\n  "hvac", |   "hvac",
 // @mutate src/components/postjob/DetailsSection.tsx |           <CredentialTierSelector |           <div
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "@/test/helpers/trackedFiles";
 import { join } from "node:path";
 import * as constants from "./detailsSectionConstants";
 import { CREDENTIAL_TIER_CATEGORIES, CREDENTIAL_TIERS } from "./detailsSectionConstants";

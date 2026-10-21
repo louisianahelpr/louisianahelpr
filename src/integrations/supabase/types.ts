@@ -11905,6 +11905,17 @@ export type Database = {
           pickup_lng: number
         }[]
       }
+      declutter_item_questions: {
+        Args: { p_item_id: string }
+        Returns: {
+          answer: string
+          answered_at: string
+          created_at: string
+          id: string
+          item_id: string
+          question: string
+        }[]
+      }
       declutter_leave_review: {
         Args: {
           p_comment: string

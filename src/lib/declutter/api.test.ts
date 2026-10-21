@@ -326,19 +326,38 @@ describe("reads", () => {
     await expect(fetchPhotos(["i1"])).resolves.toEqual([]);
   });
 
-  it("fetchQuestions reads one item's questions oldest first", async () => {
+  it("fetchQuestions reads one item's questions through declutter_item_questions, never the asker (Q2278)", async () => {
     h.queue.push(ok([{ id: "q1" }]));
     await expect(fetchQuestions("i1")).resolves.toEqual([{ id: "q1" }]);
+    expect(h.rpcs[0]).toEqual(["declutter_item_questions", { p_item_id: "i1" }]);
+    expect(h.queries).toEqual([]);
+    h.queue.push(ok(null));
+    await expect(fetchQuestions("i1")).resolves.toEqual([]);
+  });
+
+  it("fetchQuestions falls back to the table read without asker_id only while the RPC is not deployed (PGRST202 naming it)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    h.queue.push({ data: null, error: { code: "PGRST202", message: "Could not find the function public.declutter_item_questions(p_item_id) in the schema cache", hint: null } });
+    h.queue.push(ok([{ id: "q2" }]));
+    await expect(fetchQuestions("i1")).resolves.toEqual([{ id: "q2" }]);
     expect(h.queries[0]).toEqual({
       table: "declutter_questions",
       ops: [
-        ["select", ["id, item_id, asker_id, question, answer, answered_at, created_at"]],
+        ["select", ["id, item_id, question, answer, answered_at, created_at"]],
         ["eq", ["item_id", "i1"]],
         ["order", ["created_at", { ascending: true }]],
       ],
     });
-    h.queue.push(ok(null));
-    await expect(fetchQuestions("i1")).resolves.toEqual([]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it("fetchQuestions throws the RPC's own refusal with its words (no silent fallback)", async () => {
+    h.queue.push({ data: null, error: { code: "42501", message: "feature_disabled" } });
+    const err = (await fetchQuestions("i1").catch((e: unknown) => e)) as { userMessage?: string };
+    expect(err).toBeInstanceOf(Error);
+    expect(typeof err.userMessage).toBe("string");
+    expect(h.queries).toEqual([]);
   });
 
   it("fetchWatching returns the watched item ids as a Set", async () => {

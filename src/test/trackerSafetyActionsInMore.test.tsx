@@ -148,7 +148,7 @@ describe("the shell: safety actions sit only inside More, and SOS still opens it
 
       // Tap 2: SOS. The panel closes (and unmounts) and the sheet still opens.
       fireEvent.click(within(panel).getByRole("button", { name: /^SOS/ }));
-      expect(screen.getByText("Share Your Location")).toBeTruthy();
+      expect(screen.getByText("Are you safe?")).toBeTruthy();
     });
   }
 });

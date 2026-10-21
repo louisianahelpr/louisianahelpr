@@ -104,13 +104,22 @@ export function cardPaymentProblem(job: {
  */
 export const PAYMENT_PROBLEM_COPY: Record<
   JobPaymentProblem,
-  { eyebrow: string; detail: string; title: string; body: string }
+  { eyebrow: string; detail: string; title: string; body: string; money?: string }
 > = {
+  // Board 145, both sides in one voice (lh-money-escrow review 2026-10-21).
+  // Left out (truth rule): the bank's reason and an amount (not on the card's
+  // data); "Helpr answers the bank for you" (no code submits evidence); and
+  // "the payout goes through automatically if the bank sides with it" (only a
+  // clawed-back payout is re-paid automatically; an unpaid one waits on an
+  // admin, chargeDisputeClosed.ts). Inquiries also set 'chargeback' without
+  // withdrawing money, and a lost dispute leaves it set, so no line says the
+  // money was taken or that the bank is still deciding.
   chargeback: {
     eyebrow: "Bank dispute",
-    detail: "Payment taken back by the bank",
-    title: "The bank took this payment back",
-    body: "The card's bank opened a dispute on this charge and withdrew the funds. Payouts for this job stop until the bank decides.",
+    detail: "The card's bank opened a dispute",
+    title: "The card's bank opened a dispute",
+    body: "The cardholder disputed this charge with their bank.",
+    money: "Payouts for this job are on hold because of this dispute.",
   },
   failed: {
     eyebrow: "Payment failed",

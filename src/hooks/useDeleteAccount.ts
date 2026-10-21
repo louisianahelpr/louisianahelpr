@@ -151,7 +151,7 @@ export function useDeleteAccount(): UseDeleteAccount {
   // The dialog must stay mounted and open for as long as the flow owns the
   // screen — INCLUDING after the button that started it has already closed it.
   //
-  // "Delete Forever" is a `DialogDestructiveAction`, and inside a
+  // "Delete my account" is a `DialogDestructiveAction`, and inside a
   // `role="alertdialog"` dialog.tsx wraps those in `DialogPrimitive.Close`
   // (`MaybeClose`) so every confirm button dismisses its own dialog. That is
   // the house convention and it is correct for the 43 confirms written against

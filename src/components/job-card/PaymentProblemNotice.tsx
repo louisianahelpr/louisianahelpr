@@ -1,4 +1,4 @@
-import { AlertTriangle } from "lucide-react";
+import { MoneyNote } from "@/components/money/MoneyNote";
 import { PAYMENT_PROBLEM_COPY, cardPaymentProblem } from "@/lib/jobPaymentCardState";
 
 /**
@@ -13,19 +13,20 @@ export function PaymentProblemNotice({ job }: { job: { payment_status?: string |
   const problem = cardPaymentProblem(job);
   if (!problem) return null;
   const copy = PAYMENT_PROBLEM_COPY[problem];
+  // Board 145: a plain card (title + one line), then the money state in the
+  // one money note. Rust only on the money note; no warning icon in rust.
   return (
-    <div
-      role="status"
-      data-payment-problem={problem}
-      className="rounded-2xl border border-[hsl(var(--burnt-sienna))]/30 bg-[hsl(var(--burnt-sienna))]/5 p-3"
-    >
-      <div className="flex items-start gap-2">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--accent-ink))]" aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-foreground">{copy.title}</p>
-          <p className="mt-0.5 text-sm text-muted-foreground">{copy.body}</p>
-        </div>
+    <div role="status" data-payment-problem={problem} className="space-y-2">
+      <div
+        className="rounded-2xl px-4 py-3"
+        // Inline, not `bg-card`: the T2 card rule makes every .bg-card border
+        // transparent (!important).
+        style={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+      >
+        <p className="font-sans font-bold text-ds-15 leading-snug text-foreground">{copy.title}</p>
+        <p className="mt-0.5 text-ds-13 text-muted-foreground leading-snug">{copy.body}</p>
       </div>
+      {copy.money ? <MoneyNote>{copy.money}</MoneyNote> : null}
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { ShieldAlert, Share2, Loader2, Phone } from "lucide-react";
+import type React from "react";
+import { useInRouterContext, useNavigate } from "react-router-dom";
+import { ShieldAlert, Share2, Loader2, Phone, MessageCircle, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +10,6 @@ import {
   SheetHero,
   SheetFooter,
   SheetSecondaryAction,
-  SheetDestructiveAction,
 } from "@/components/ui/sheet";
 import { shareNative } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -30,22 +31,16 @@ import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS } from "@/components/job-car
  * component below records the second shape that used to live here and why it
  * is gone.
  *
- * The burnt-sienna tint and border are carried across verbatim from the old
- * header pill, so the control reads the same as it always did.
- *
- * The LABEL is --danger-ink, not raw --burnt-sienna. A raw brand hue has no
- * dark sibling: on the dark canvas it resolved to rgb(212,103,53) over its own
- * 0.08 tint and measured 4.12:1 at 14px/700 — under AA, on the one control in
- * the app somebody reaches for when they feel unsafe. --danger-ink exists for
- * exactly this (see its note in index.css, minted when the same defect hit the
- * Cancel chip at 1.92:1) and carries a 70%-lightness dark value that sits level
- * with its --info / --boost / --amber siblings, so the action row stays even.
- * Light mode is unchanged in feel — a deep red where the sienna was.
+ * The chip wears the ALERT family (lead ruling 2026-10-21, spec v2 §1.1:
+ * rust is money only, destructive is --alert). It used to carry a burnt-sienna
+ * tint and border, a rust-family hue on a control that is not money. The label
+ * is --destructive-ink (= --alert-ink, lifted in dark for text), never the
+ * --destructive fill, which reads about 2.3:1 as text on the dark card.
  */
 const SOS_TINT = {
-  color: "hsl(var(--danger-ink))",
-  background: "hsl(var(--burnt-sienna) / 0.08)",
-  border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+  color: "hsl(var(--destructive-ink))",
+  background: "hsl(var(--destructive) / 0.06)",
+  border: "0.5px solid hsl(var(--destructive) / 0.3)",
 } as const;
 
 /**
@@ -152,6 +147,41 @@ export function SosShareButton({ onOpen }: { onOpen: () => void }) {
   );
 }
 
+/**
+ * Board 156's entry: the round shield button for a live job's header (the
+ * deal-room chat header), owning its own sheet. Renders nothing unless SOS is
+ * offered for this job (`sosOffered`: the Helpr is on site and the job is not
+ * done), so a header can mount it unconditionally. Same sheet, same handler as
+ * the job card's SOS chip.
+ */
+export function SafetyShieldButton({
+  job,
+}: {
+  job: { id: string } & Parameters<typeof sosOffered>[0];
+}) {
+  const [open, setOpen] = useState(false);
+  if (!sosOffered(job)) return null;
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="SOS — are you safe?"
+        data-sos-shield=""
+        onClick={() => setOpen(true)}
+        className="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+        style={{
+          border: "1.5px solid hsl(var(--destructive))",
+          background: "hsl(var(--card))",
+          color: SOS_TINT.color,
+        }}
+      >
+        <ShieldAlert className="w-5 h-5" aria-hidden />
+      </button>
+      <SosShareSheet jobId={job.id} open={open} onOpenChange={setOpen} />
+    </>
+  );
+}
+
 export function SosShareSheet({
   jobId,
   open,
@@ -226,69 +256,131 @@ export function SosShareSheet({
   };
 
   return (
-    <>
-      <Sheet open={open} onOpenChange={setOpen}>
-        {/* No bespoke padding or ground. `side="bottom"` is a centred modal at
-          every width now, not a floor-anchored sheet, so the safe-area bottom
-          inset each sheet had written differently is dead weight — and
-          `.glass-modal` is THE popup surface. Shared `p-4 sm:p-5`, same ramp
-          DialogContent uses. */}
+    <Sheet open={open} onOpenChange={setOpen}>
+      {/* Board 156, "Are you safe?" (spec v2 §9.31). Restyle of the existing
+          flow only: everything here is something the app really does. Left out
+          on purpose (truth rule): the board's live-location toggle to "Helpr
+          Safety", "Leave and end the job", and the other side's "Paused by
+          Helpr Safety" state. None of them exists server-side: sharing sends
+          ONE position to the person you pick, through the phone's share
+          sheet. */}
       <SheetContent side="bottom">
-          <SheetHero title="Share Your Location" />
-          {/* THE EMERGENCY NUMBER (TS-007). Sharing a location reaches only the
-              person the user picks; it alerts nobody else, so the sheet says
-              so and puts 911 one tap away. A real `tel:` link, not a handler:
-              the OS dialer opens on web and in the native shell alike.
-              Guard: src/test/sosOffersEmergencyCall.test.ts. */}
-          <p className="text-ds-13 text-muted-foreground mt-1">
-            In immediate danger? Call 911 first. Sharing sends your location only to the
-            person you pick. It does not alert us or emergency services.
-          </p>
-          <Button
-            asChild
-            variant="outline"
-            className="w-full mt-3"
-            style={{ ...SOS_TINT, border: SOS_TINT.border }}
-          >
-            <a href="tel:911" aria-label="Call 911">
-              <Phone className="w-4 h-4 mr-2" />
-              Call 911
-            </a>
-          </Button>
-          {/* THE SHARED POPUP FOOTER, not a hand-rolled stack of two
-              full-width buttons. This was the last sheet drawing its own
-              action row, and it was also the last surface in the app showing a
-              labelled "Cancel" AND the corner × at the same time — its ghost
-              Cancel could not register with SheetContent because it was not the
-              shared primitive (see popupDismiss.tsx). Through the primitive it
-              registers, the × goes away, and the sheet gets the one footer
-              every other popup has. Behaviour is byte-for-byte what it was:
-              same handlers, same disabled/aria-busy guards, same labels. */}
-          <SheetFooter className="mt-4">
-            <SheetSecondaryAction onClick={() => setOpen(false)} disabled={locating}>
-              Cancel
-            </SheetSecondaryAction>
-            {/* Broadcasting your live location is a safety action the sender
-                cannot recall, so it takes the one destructive treatment.
-                Reading a GPS fix takes up to 10s; without the pending state the
-                gap between tap and share sheet reads as the button not
-                working — the failure mode this whole control has to be free
-                of. */}
-            <SheetDestructiveAction
-              disabled={locating}
-              aria-busy={locating}
-              onClick={share}
-            >
-              {locating ? (
-                <Loader2 className="w-4 h-4 mr-2 motion-safe:animate-spin" />
-              ) : (
-                <Share2 className="w-4 h-4 mr-2" />
-              )}
-              {locating ? "Getting your location…" : "Share Location Link"}
-            </SheetDestructiveAction>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
-    </>
+        <SheetHero title="Are you safe?" />
+        {/* THE EMERGENCY NUMBER (TS-007), the one big alert fill on the sheet
+            (board 156). A real `tel:` link, not a handler: the OS dialer opens
+            on web and in the native shell alike.
+            Guard: src/test/sosOffersEmergencyCall.test.ts. */}
+        <a
+          href="tel:911"
+          aria-label="Call 911"
+          data-sos-call-911=""
+          className="mt-3 flex w-full items-center justify-center gap-2 h-14 rounded-full font-sans font-bold text-ds-16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+          style={{ background: "hsl(var(--destructive))", color: "hsl(var(--destructive-foreground))" }}
+        >
+          <Phone className="w-5 h-5" aria-hidden />
+          Call 911
+        </a>
+        <p className="text-ds-13 text-muted-foreground mt-2">
+          In immediate danger? Call 911 first. It calls from your phone.
+        </p>
+
+        <div
+          className="mt-4 rounded-2xl overflow-hidden"
+          // Inline, not `bg-card`: the T2 card rule makes every .bg-card
+          // border transparent (!important).
+          style={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+        >
+          <SafetyRow
+            onClick={share}
+            disabled={locating}
+            busy={locating}
+            icon={locating ? <Loader2 className="w-5 h-5 motion-safe:animate-spin" /> : <Share2 className="w-5 h-5" />}
+            title={locating ? "Getting your location…" : "Share my location"}
+            sub="Sends where you are right now to someone you pick. It does not alert us or emergency services."
+          />
+          <div aria-hidden className="mx-4" style={{ borderTop: "1px solid hsl(var(--border))" }} />
+          <TalkToHelprRow disabled={locating} onGo={() => setOpen(false)} />
+        </div>
+
+        {/* ONE dismiss, through the shared footer: "I'm safe now" closes the
+            sheet (board 156). The share is a row above, not a footer commit. */}
+        <SheetFooter className="mt-4">
+          <SheetSecondaryAction onClick={() => setOpen(false)} disabled={locating}>
+            I'm safe now
+          </SheetSecondaryAction>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+const SUPPORT_TALK_PATH = "/support?topic=message";
+
+/**
+ * Talk to Helpr: the support form's "Talk to a real person" topic. Board 156
+ * says "A real person, now"; the real process is a person reading every
+ * message (supportTopics.ts), so the row promises exactly that and no speed.
+ * Router-optional: the sheet also renders in harnesses with no router, where
+ * it falls back to a plain page load of the same path.
+ */
+function TalkToHelprRow({ disabled, onGo }: { disabled: boolean; onGo: () => void }) {
+  const inRouter = useInRouterContext();
+  return inRouter ? (
+    <TalkToHelprRouted disabled={disabled} onGo={onGo} />
+  ) : (
+    <TalkToHelprButton disabled={disabled} onClick={() => { onGo(); window.location.assign(SUPPORT_TALK_PATH); }} />
+  );
+}
+
+function TalkToHelprRouted({ disabled, onGo }: { disabled: boolean; onGo: () => void }) {
+  const navigate = useNavigate();
+  return <TalkToHelprButton disabled={disabled} onClick={() => { onGo(); navigate(SUPPORT_TALK_PATH); }} />;
+}
+
+function TalkToHelprButton({ disabled, onClick }: { disabled: boolean; onClick: () => void }) {
+  return (
+    <SafetyRow
+      onClick={onClick}
+      disabled={disabled}
+      icon={<MessageCircle className="w-5 h-5" />}
+      title="Talk to Helpr"
+      sub="A real person reads every message"
+    />
+  );
+}
+
+/** One tappable row in the safety sheet's list card (board 156). */
+function SafetyRow({
+  onClick,
+  disabled,
+  busy,
+  icon,
+  title,
+  sub,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  busy?: boolean;
+  icon: React.ReactNode;
+  title: string;
+  sub: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-busy={busy || undefined}
+      className="ctl-tint w-full flex items-center gap-3 min-h-[60px] px-4 py-3 text-left disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+    >
+      <span aria-hidden className="shrink-0" style={{ color: "hsl(var(--bark))" }}>
+        {icon}
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="block font-sans font-semibold text-ds-14 leading-snug text-foreground">{title}</span>
+        <span className="block text-ds-12 text-muted-foreground mt-0.5 leading-snug">{sub}</span>
+      </span>
+      <ChevronRight aria-hidden className="shrink-0 w-4 h-4 text-muted-foreground" />
+    </button>
   );
 }

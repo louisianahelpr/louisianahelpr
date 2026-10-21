@@ -65,11 +65,11 @@ const FORM_STEP_SRC = readFileSync(join(REPO, "src/pages/post-job/FormStep.tsx")
 
 /**
  * Every contextual label FormStep can put on the submit button, read out of its
- * source. "Review & pay" is the ready state; everything else is a refusal that
+ * source. "Review, then pay" is the ready state; everything else is a refusal that
  * names a field the poster still has to fill.
  */
 const ALL_CTA_LABELS = [...FORM_STEP_SRC.matchAll(/submitLabel = "([^"]+)"/g)].map((m) => m[1]);
-const BLOCKING_CTA_LABELS = ALL_CTA_LABELS.filter((l) => l !== "Review & pay");
+const BLOCKING_CTA_LABELS = ALL_CTA_LABELS.filter((l) => l !== "Review, then pay");
 
 /**
  * FLOOR — the inventory must not be empty, and must not silently collapse to
@@ -156,7 +156,7 @@ function renderFormWith({
   } as unknown as ReturnType<typeof usePostJobForm>;
 
   render(<FormStep form={form} />);
-  const cta = screen.getByRole("button", { name: /Continue|Review & pay|Has Passed/i });
+  const cta = screen.getByRole("button", { name: /Continue|Review, then pay|Has Passed/i });
   return { cta, derived };
 }
 
@@ -173,7 +173,7 @@ describe("Flexible Schedule is a SUBSTITUTE for a start time, end to end", () =>
   it("has a non-empty inventory of CTA gate labels read from FormStep", () => {
     expect(ALL_CTA_LABELS.length).toBeGreaterThanOrEqual(CTA_LABEL_FLOOR);
     expect(BLOCKING_CTA_LABELS.length).toBeGreaterThan(0);
-    expect(ALL_CTA_LABELS).toContain("Review & pay");
+    expect(ALL_CTA_LABELS).toContain("Review, then pay");
   });
 
   it("ENABLES the submit CTA with Flexible ticked and no start time", () => {
@@ -188,7 +188,7 @@ describe("Flexible Schedule is a SUBSTITUTE for a start time, end to end", () =>
     for (const label of BLOCKING_CTA_LABELS) {
       expect(cta.textContent).not.toContain(label);
     }
-    expect(cta.textContent).toContain("Review & pay");
+    expect(cta.textContent).toContain("Review, then pay");
   });
 
   /**
@@ -230,7 +230,7 @@ describe("Flexible Schedule is a SUBSTITUTE for a start time, end to end", () =>
   it("still ENABLES the CTA the ordinary way — a real start time, no flag", () => {
     const { cta } = renderFormWith({ startTime: "09:00", isFlexibleSchedule: false });
     expect(cta).toBeEnabled();
-    expect(cta.textContent).toContain("Review & pay");
+    expect(cta.textContent).toContain("Review, then pay");
   });
 
   it("drops the required * from the Start Time label while Flexible is ticked", () => {

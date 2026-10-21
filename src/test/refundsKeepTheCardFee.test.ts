@@ -299,6 +299,8 @@ const TS_MONEY_TOUCHES: string[] = [
   // Q2170: the admin "Bill the Helpr" button READS whether the ruling is billed yet (no write; the bill is server-side).
   'src/components/admin/helprFault/BillHelprFaultButton.tsx: .select("card_fee_cents")',
   "src/components/admin/helprFault/BillHelprFaultButton.tsx: if (live) setUnbilled({ jobId, value: !error && !!data && data.card_fee_cents == null });",
+  // Declutter reviews (Builder 3c s3): READS the order's two parties to name who is being reviewed; no money column, no write.
+  'src/lib/declutter/reviews.ts: .from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle(), ) as { buyer_id: string | null',
   // Shops M1: the card fee Stripe kept at capture, recorded on the order (no refund here).
   'supabase/functions/_shared/shopHolds.ts: const { error } = await admin.rpc("shop_order_captured", { p_order_id: orderId, p_card_fee_cents: fee });',
   // Q2170: admin_bill_helpr_fault READS the ruling's card fee (already billed?) and audits what it billed; the

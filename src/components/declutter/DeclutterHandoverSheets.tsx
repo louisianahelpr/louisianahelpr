@@ -63,8 +63,9 @@ export function PutItOutSheet({
       <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} className="max-h-[90dvh] overflow-y-auto" data-put-it-out="">
         <SheetHero title="Put it out" />
         <p className="text-ds-14">Take one photo of it where {who} will find it. That photo is the handover.</p>
-        {url && (
-          <div className="mt-3 aspect-[4/3] w-full overflow-hidden rounded-2xl bg-muted">
+        {/* Only a local blob: preview is drawn (CodeQL js/xss-through-dom; the PhotoProof pattern). */}
+        {url?.startsWith("blob:") && (
+          <div className="mt-3 aspect-[4/3] w-full overflow-hidden rounded-2xl bg-photo-empty">
             <img src={url} alt="Your porch photo" className="h-full w-full object-cover" />
           </div>
         )}
@@ -104,7 +105,7 @@ function PorchPhotoThumb({ orderId }: { orderId: string }) {
   if (!path || !h.data?.set_out_at) return null;
   return (
     <figure className="mt-3 space-y-1.5" data-got-it-photo="">
-      <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-muted">
+      <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-photo-empty">
         {url.data && <img src={url.data} alt="Where the item was left" className="h-full w-full object-cover" />}
       </div>
       <figcaption className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">

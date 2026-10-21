@@ -32,7 +32,7 @@ import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNo
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
-import { HelperSeriesRow, ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
+import { HelperSeriesRow, JobRequestRows } from "@/components/series/JobSeriesCardControls";
 import { useCardNotes } from "@/components/job-card/JobNotes";
 import { RentalVisitHelprSlot } from "@/components/rentals/RentalVisitHelprSlot";
 
@@ -654,8 +654,8 @@ function AppliedJobCardInner({
             </div>
           )}
           {/* Confirmed: show tracking + message */}
-          {/* A date/time change (Q407 8): above the step, never below its row (Q1567). */}
-          <ScheduleChangeForJob job={job} userId={userId} viewer="helper" expanded={isExpanded} hideAsk />
+          {/* A date/time change, then a refund request: above the step, never below its row (Q1567). */}
+          <JobRequestRows job={job} userId={userId} viewer="helper" expanded={isExpanded} otherName={app.posterName} feeFallbackPercent={viewerFeePercent} />
           {isConfirmed && isExpanded && (
             <ConfirmedSection
               app={app}

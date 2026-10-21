@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 921,
-    "files": 235,
-    "rendering": 797,
-    "suppressedByPolicy": 124,
+    "calls": 927,
+    "files": 238,
+    "rendering": 800,
+    "suppressedByPolicy": 127,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 64,
-      "toast.error": 665,
+      "toast.error": 668,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 128,
+      "toast.success": 131,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 430,
-      "template": 99,
-      "dynamic": 441,
+      "literal": 431,
+      "template": 100,
+      "dynamic": 445,
       "jsx": 0
     }
   },
@@ -6568,6 +6568,86 @@
       "renders": true
     },
     {
+      "file": "src/components/refund/RefundAnswerDialog.tsx",
+      "line": 96,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "status === \"agreed\" ? `Agreed. ${first} gets the refund and the rest comes to you after your fee.` : status === \"finish_offered\" ? `Sent. ${first} can accept or decline the new time.` : \"Sent. A real person at Helpr will decide.\"",
+        "branches": [
+          {
+            "form": "template",
+            "text": "Agreed. ${first} gets the refund and the rest comes to you after your fee."
+          },
+          {
+            "form": "dynamic",
+            "text": "status === \"finish_offered\" ? `Sent. ${first} can accept or decline the new time.` : \"Sent. A real person at Helpr will decide.\"",
+            "branches": [
+              {
+                "form": "template",
+                "text": "Sent. ${first} can accept or decline the new time."
+              },
+              {
+                "form": "literal",
+                "text": "Sent. A real person at Helpr will decide."
+              }
+            ]
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/refund/RefundAnswerDialog.tsx",
+      "line": 116,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"We couldn't send your answer. Check your connection and try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/refund/RefundRequestDialog.tsx",
+      "line": 68,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Sent to ${first}. Nothing moves unless they agree."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/refund/RefundRequestDialog.tsx",
+      "line": 82,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"We couldn't send that. Check your connection and try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/refund/RefundRequestPanel.tsx",
+      "line": 66,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Withdrawn. Nothing changes on the payment."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/refund/RefundRequestPanel.tsx",
+      "line": 74,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"We couldn't withdraw that. Check your connection and try again.\")"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/rentals/DepositPanel.tsx",
       "line": 45,
       "kind": "toast",
@@ -7793,7 +7873,7 @@
     },
     {
       "file": "src/components/schedule/ScheduleChangeControl.tsx",
-      "line": 64,
+      "line": 65,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -7803,7 +7883,7 @@
     },
     {
       "file": "src/components/schedule/ScheduleChangeControl.tsx",
-      "line": 65,
+      "line": 66,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",
@@ -7813,7 +7893,7 @@
     },
     {
       "file": "src/components/schedule/ScheduleChangeControl.tsx",
-      "line": 69,
+      "line": 70,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

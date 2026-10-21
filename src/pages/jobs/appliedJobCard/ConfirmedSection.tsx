@@ -130,7 +130,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
       /* NOTHING TO CONFIRM YET (owner, 2026-10-21, lead ruling the same day): before the day-before window
          the primary is what this stage needs, talking to the poster, never a greyed "Confirm you'll be at
          the job". The confirm claims this slot the moment the window opens (JobConfirmation). */
-      primary={<JobStepPrimaryButton icon={MessageSquare} label={posterFirst ? `Message ${posterFirst}` : "Message the poster"} onClick={messagePoster} />}
+      primary={<JobStepPrimaryButton icon={MessageSquare} label={posterFirst ? `Message ${posterFirst}` : "Message the person who posted it"} onClick={messagePoster} />}
       primaryChipKey="message"
       notice={
         <>

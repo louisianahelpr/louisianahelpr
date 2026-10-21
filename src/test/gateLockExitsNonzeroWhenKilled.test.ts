@@ -40,7 +40,8 @@ const CASES: Array<[string, string[]]> = [
   ["killed by SIGKILL (the macOS memory killer)", [node, "-e", "process.kill(process.pid, 'SIGKILL')"]],
   ["aborted (a V8 fatal error)", [node, "-e", "process.abort()"]],
   ["out of heap (tsc -b on this Mac)", [node, "--max-old-space-size=16", "-e", "const a = []; for (;;) a.push(new Array(1e5).fill(1));"]],
-  ["killed behind a shell (npm run, sh -c)", ["sh", "-c", `"${node}" -e "process.kill(process.pid, 'SIGKILL')"`]],
+  // a trailing command keeps sh from exec-ing node, so the gate sees sh exit 137, not the signal
+  ["killed behind a shell (npm run, sh -c)", ["sh", "-c", `"${node}" -e "process.kill(process.pid, 'SIGKILL')"; exit $?`]],
   ["killed by SIGTERM (a timeout)", [node, "-e", "process.kill(process.pid, 'SIGTERM')"]],
   ["never started", ["/nonexistent/lh-no-such-command"]],
 ];

@@ -4890,6 +4890,30 @@
       "sha": "51032dd83e6d376c4a230a4f7ca5993dbebdc748",
       "reason": "Partly landed by the landing trains: 4 of 7 code commit(s) are on main under the same subjects (e.g. 54cc306d9d (#3506), 8f6ab4d623 (#3506), 995e711b64 (#3506), d83972a84e (#3506)). The 3 commit(s) not matched by subject (51032dd83e fix(train38): the Wanted reply's over-price line reads --des; 53be114714 fix(train38): Builder 3c s4 guard round: declutter_set_wante; 10d2be505c fix(declutter): question askers are not readable by other me) are covered by the line check that follows. Of its 62 added line(s) not found verbatim, 24 are older wording main itself added after the merge base and a later commit rewrote. Its 1 deleted line(s) still on main are kept or restated by main's own landed version of the same change. 3 docs(open)/chore(generated) commit(s) are bookkeeping main regenerates. Closed PR, same head as land/train38-758fea43. Its unlanded piece, Declutter question askers not readable by other members (Q2278), is carried by ready/builder3c-declutter-s4, queued for the next train; docs/OPEN.md Q2278 [~].",
       "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+    },
+    {
+      "id": "pr:3518",
+      "sha": "24c421b5f04029c7cb0535dacd28a815fff5fa02",
+      "reason": "Closed as superseded (land/trainBigN, a second session's train). Its coverage floor and sentry-1 landed in train N2 #3521 (7d9036465c), whose sentry sync goes through scripts/lib/apiBase.mjs instead of this PR's own variant of the same fix; its idv-restart commits and the sweep_idv_review_waiting proof are ready/builder1j-idv-restart-1b, carried by the next train.",
+      "checked": "2026-10-21 (lander 4: content-checked against origin/main 7d9036465c with scripts/stranded-work.mjs; commits matched by subject)"
+    },
+    {
+      "id": "pr:3520",
+      "sha": "fc62790600dc5cdef02840af4da6501cfba52e2c",
+      "reason": "Closed as superseded by train N2 #3521 (7d9036465c): every commit landed there except idv-restart-1 (its leftover lines), which returned to its builder and is ready/builder1j-idv-restart-1b, carried by the next train; its sentry leftover is the original raw LH_SENTRY_API_BASE read that N2 replaced with apiBase.",
+      "checked": "2026-10-21 (lander 4: content-checked against origin/main 7d9036465c with scripts/stranded-work.mjs; commits matched by subject)"
+    },
+    {
+      "id": "remote:origin/wip/builder1j-idv-restart-1",
+      "sha": "9e782a01fd77916a08f1e6f4b1490b9eb6d02ee5",
+      "reason": "The work-in-progress copy of the identity restart; superseded by ready/builder1j-idv-restart-1b (the same change plus the sweep_idv_review_waiting fixed-clock proof and producer entry), carried by the next train.",
+      "checked": "2026-10-21 (lander 4: content-checked against origin/main 7d9036465c with scripts/stranded-work.mjs; commits matched by subject)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-1017-16",
+      "sha": "6d6c4e58e1dd514c57df0763495e268e57830bf1",
+      "reason": "Landed on main as ce5351af90 (same subject, the gift + card late-cancel fee). Its 3 leftover lines in supabase/functions/void-cancelled-payments/index.ts and src/test/edge/void-cancelled-payments-gift-card-fee.test.ts are older wording that train M2 #3519 (1b6ecbb31b, the deleted crew member's share) rewrote.",
+      "checked": "2026-10-21 (lander 4: content-checked against origin/main 7d9036465c with scripts/stranded-work.mjs; commits matched by subject)"
     }
   ]
 }

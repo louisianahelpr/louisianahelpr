@@ -96,7 +96,8 @@ describe("the no-show journey hires outside the 15-minute window, then moves the
     const open = src.slice(src.indexOf("async function openCard("));
     const fnBody = open.slice(0, open.indexOf("\n}\n") + 2);
     expect(fnBody.length).toBeGreaterThan(40);
-    expect(fnBody).toMatch(/getByRole\("group", \{ name: \/Job progress\/ \}\)/);
+    // The ONE tracker (owner, 2026-10-21): JobProgress's [data-job-progress], not the retired "Job progress" rail.
+    expect(fnBody).toMatch(/locator\("\[data-job-progress\]"\)/);
     expect(fnBody).toMatch(/expect\(progress[^)]*\)\.toBeVisible\(/);
   });
 });

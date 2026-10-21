@@ -46,3 +46,12 @@ CREATE POLICY "payout_failures own read" ON public.payout_failures
   FOR SELECT TO authenticated
   USING (user_id = (SELECT auth.uid()));
 
+
+-- The unconfirmed-email write gate every member table carries (20260927234313; DB Smoke checks it).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;

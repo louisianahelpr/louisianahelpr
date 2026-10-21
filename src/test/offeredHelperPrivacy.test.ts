@@ -209,6 +209,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:clear_job_accept_pending": "no-return",
     // matches its UPDATE on the offeree; returns only {action, application_id}
     "function:complete_direct_offer_accept": "no-return",
+    // 20261021072502 (owner 2026-10-21, cancel notice): a trigger (RETURNS trigger) that reads
+    // the offeree only to decide who still hears a cancel (a pending direct offer); returns NEW.
+    "function:notify_on_application": "no-return",
     "function:get_my_pending_direct_offers": "own-row-only",
     "function:get_jobs_for_my_applications": "returns-guarded",
     "view:open_jobs_browse": "returns-guarded",

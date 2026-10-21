@@ -3,7 +3,7 @@ import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 
 /**
- * The ONE primary action of a live job: "Mark Job Complete" (owner,
+ * The ONE primary action of a live job: "Mark job complete" (owner,
  * 2026-09-14 — was "I'm Done — Request Payout"; same words as the tracker's
  * Done CTA).
  *
@@ -13,8 +13,8 @@ import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
  * ONE ROW, AND THE TRACKER'S CTA WINS (owner, 2026-09-14, VN-21). This is the
  * step's `primary` prop, which JobStepCard renders only when nothing nested
  * has claimed the row's primary slot. On these two steps the tracker's own
- * next-step CTA ("Start Working", then "Mark Job Complete") normally has, so
- * this stands down — it used to render as a SECOND "Mark Job Complete" under
+ * next-step CTA ("Start working", then "Mark job complete") normally has, so
+ * this stands down — it used to render as a SECOND "Mark job complete" under
  * the tracker's identical one (singlePrimaryCta.test.tsx pinned that at 2).
  * The 30-minute sentence is no longer part of the button for the same reason:
  * see {@link PayoutUnlockNote}, which the step renders whichever control is
@@ -46,7 +46,7 @@ export function PayoutPrimary({
   return (
     <JobStepPrimaryButton
       icon={CheckCircle2}
-      label={busy ? "…" : tooEarly ? `Available in ${minutesLeft} min` : "Mark Job Complete"}
+      label={busy ? "…" : tooEarly ? `Available in ${minutesLeft} min` : "Mark job complete"}
       onClick={onComplete}
       disabled={busy || tooEarly}
     />
@@ -57,7 +57,7 @@ export function PayoutPrimary({
  * Why completion is not available yet, on the line directly above the row.
  *
  * Rendered by the step, not by PayoutPrimary, because the control it explains
- * is usually the TRACKER's "Mark Job Complete" (which enforces the same
+ * is usually the TRACKER's "Mark job complete" (which enforces the same
  * 30-minute floor on tap) — and the helper watching the clock needs the
  * minutes whichever control is drawn.
  */

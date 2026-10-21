@@ -527,7 +527,7 @@ export function derivePosterWait(
       const rung = posterConfirmationRung(job, derivePosterStep(job.status)!, now);
       if (rung?.stalled) return "stalled";
       // The WORKING vouch is not a collapsed state any more (Q1571): it waits
-      // for the Helpr's Start Working, which is on their tracker, not on this
+      // for the Helpr's Start working, which is on their tracker, not on this
       // row, and it is optional (owner answer 3). The card says "Lexi is working".
       if (rung?.enabled && rung.action === "arrival") return "confirm_arrival";
       if (jobIsOverdue(job)) {
@@ -703,7 +703,7 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   /* The day-before window is open and this Helpr has not confirmed (Q1574). */
   confirm_day: { detail: "Confirm you'll be at the job" },
   // The job's start has come (agreedJobStage "started"); the countdown said the rest (Q1552).
-  today: { detail: "It's time — tap I'm On My Way" },
+  today: { detail: "It's time — tap I'm on my way" },
   /* FINDING #5 on the Helpr's side. `appliedActivityBucket` lifts only TODAY's
      work into Needs You, so a job started a day early reads "Scheduled ·
      You're on the way" / "Scheduled · Finish and mark it done" — a commitment
@@ -716,15 +716,15 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   before_photo: { detail: "Take the before photo", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   /* Arrived, on the on-site step (the tracking row says work has not
      started), before photo taken or not owed: the expanded primary is the
-     tracker's "Start Working" (lane B, 2026-10-12: the line read "Finish and
+     tracker's "Start working" (lane B, 2026-10-12: the line read "Finish and
      mark it done"). Read only when the card passes its tracking progress. */
-  start_working: { detail: "Tap Start Working", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
-  /* The same step while Start Working is still locked on the arrival rule
+  start_working: { detail: "Tap Start working", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
+  /* The same step while Start working is still locked on the arrival rule
      (no GPS match, no poster tap: arrivalEstablished). The tracker's amber
-     line names the poster's "Confirm They Arrived" as the one way out. */
+     line names the poster's "Confirm they've arrived" as the one way out. */
   arrival_unconfirmed: { detail: "Waiting on them to confirm you arrived", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
   /* Working (tracking row), and the owed after photo is the working step's
-     primary ("Take After Photo", primaryPhotoAsk.ts). */
+     primary ("Take After photo", primaryPhotoAsk.ts). */
   after_photo: { detail: "Take the after photo", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   working: { detail: "Finish and mark it done", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   submitted: { detail: "With them for approval" },
@@ -737,15 +737,15 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   /* PAST THE DAY, NAMED BY THE NEXT TRACKER STEP (owner, 2026-10-01). "Mark
      it done or cancel" offered a "mark it done" the Helpr's tracker does not
      have until they are at the job. A Helpr who has not set off owes On My
-     Way (or `helper_cancel_booking`), one on the way owes I've Arrived, and
+     Way (or `helper_cancel_booking`), one on the way owes I've arrived, and
      one at the job owes finishing and Mark Done. */
   overdue_not_started: { detail: "Day passed — On My Way or cancel" },
-  overdue_not_arrived: { detail: "Day passed — tap I've Arrived" },
+  overdue_not_arrived: { detail: "Day passed — tap I've arrived" },
   overdue_unfinished: { detail: "Day passed — finish and mark it done" },
   /* Past the day, at the job, and the before photo is still the primary. */
   overdue_before_photo: { detail: "Day passed — take the before photo" },
-  /* Past the day, at the job, work not started (tracking row): the next step is Start Working. */
-  overdue_start_working: { detail: "Day passed — tap Start Working" },
+  /* Past the day, at the job, work not started (tracking row): the next step is Start working. */
+  overdue_start_working: { detail: "Day passed — tap Start working" },
   /* Shorter than its on-the-day twin: the 320 line has room for no name here. */
   overdue_arrival_unconfirmed: { detail: "Day passed — arrival not confirmed" },
   overdue_after_photo: { detail: "Day passed — take the after photo" },
@@ -777,9 +777,9 @@ export type HelperCardProgress = { workUnderway: boolean };
  * An arrived Helpr's next step, named the way the expanded card names its
  * primary: at the working step (tracking row) the owed after photo, else
  * finishing; at the on-site step the owed before photo, else the tracker's
- * Start Working, or its arrival lock (arrivalEstablished) while that is shut.
+ * Start working, or its arrival lock (arrivalEstablished) while that is shut.
  * Without the card's progress an arrived job reads as before: the before photo
- * when it is owed (no photo, no Start Working: tracker_requires_before_photo),
+ * when it is owed (no photo, no Start working: tracker_requires_before_photo),
  * else "working".
  */
 type ArrivedWait = "after_photo" | "working" | "before_photo" | "start_working" | "arrival_unconfirmed";
@@ -864,7 +864,7 @@ export function deriveHelperWait(app: AppliedApp, progress?: HelperCardProgress)
 /**
  * Which step an overdue Helpr is stuck before. The job row's stamps do not
  * separate arrived from working; the tracking row does, so with the card's
- * progress an arrived Helpr who has not started is owed Start Working (or its
+ * progress an arrived Helpr who has not started is owed Start working (or its
  * arrival lock), and without it the answer stays finish and mark it done.
  */
 const OVERDUE_ARRIVED: Record<ArrivedWait, HelperWait> = {

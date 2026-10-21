@@ -2,7 +2,7 @@
  * The Helpr's collapsed card line names the step its expanded primary asks for.
  *
  * Seen live at 375 on seed job 90aa6c8b (lead, 2026-10-12): an ARRIVED,
- * photo-required job with no before photo drew "Take Before Photo" as the
+ * photo-required job with no before photo drew "Take Before photo" as the
  * expanded card's primary, while the collapsed line read "Finish and mark it
  * done": two different next steps on one card. deriveHelperWait returned
  * `working` for every arrived in_progress job and never looked at the photo.
@@ -108,7 +108,7 @@ describe("the collapsed line and the expanded primary name the same next step", 
       const job = arrivedJob(over);
       const primary = expandedPrimary(job);
       const line = helperStatusLine(app(job));
-      const primaryIsBefore = primary === "Take Before Photo";
+      const primaryIsBefore = primary === "Take Before photo";
       expect(
         /before photo/i.test(line.detail),
         `expanded primary "${primary ?? "(none: the tracker's next step)"}" but the collapsed line reads "${line.detail}"`,
@@ -121,7 +121,7 @@ describe("the collapsed line and the expanded primary name the same next step", 
     expect(line.id).toBe("before_photo");
     expect(line.detail).toBe("Take the before photo");
     expect(line.eyebrow).toBe("Needs You");
-    expect(expandedPrimary(arrivedJob({ require_photo_proof: true }))).toBe("Take Before Photo");
+    expect(expandedPrimary(arrivedJob({ require_photo_proof: true }))).toBe("Take Before photo");
   });
 
   it("a crew member's job never gets the photo line (crews have no photo primary)", () => {
@@ -133,7 +133,7 @@ describe("the collapsed line and the expanded primary name the same next step", 
 /*
  * THE TRACKER'S HALF (lane B finding, 2026-10-12): on the on-site step with
  * the before photo taken (or not owed), the expanded primary is the tracker's
- * "Start Working", but the collapsed line read "Finish and mark it done". The
+ * "Start working", but the collapsed line read "Finish and mark it done". The
  * jobs row cannot say whether work started; the `job_tracking` row can, and
  * the strip never saw it. Now AppliedJobCard passes the list's tracking row to
  * HelperCollapsedStrip, which reads it through helperProgress, the same
@@ -142,16 +142,16 @@ describe("the collapsed line and the expanded primary name the same next step", 
  * CLASS: every tracking row the list can hold (none / arrived / working) x
  * every arrival evidence (claim only / GPS verified / poster confirmed) x on
  * the day / past it x after photo taken or not, with the before photo taken:
- * the REAL strip, rendered, names Start Working exactly when the expanded card
- * is on its on-site step and Start Working is unlocked, names the poster's
+ * the REAL strip, rendered, names Start working exactly when the expanded card
+ * is on its on-site step and Start working is unlocked, names the poster's
  * arrival tap when it is locked (arrivalEstablished), names the after photo
  * exactly when the real HelperPhotoAsk makes it the working step's primary
- * (the same mismatch one step later: "Take After Photo" over "Finish and mark
+ * (the same mismatch one step later: "Take After photo" over "Finish and mark
  * it done"), and says finish only when nothing else is the primary.
  */
-describe("the collapsed strip names the tracker's next step (Start Working)", () => {
+describe("the collapsed strip names the tracker's next step (Start working)", () => {
   const TRACKER_SRC = readFileSync(join(__dirname, "../components/JobTracking.tsx"), "utf8");
-  const START = "Start Working";
+  const START = "Start working";
 
   const STRIP_CASES: Array<[string, Record<string, unknown>, string | null]> = [];
   for (const tracking of [null, "arrived", "working"])
@@ -192,9 +192,9 @@ describe("the collapsed strip names the tracker's next step (Start Working)", ()
     return text;
   }
 
-  it("covers every combination, and the tracker's on-site action is still called Start Working (inventory floor)", () => {
+  it("covers every combination, and the tracker's on-site action is still called Start working (inventory floor)", () => {
     expect(STRIP_CASES.length).toBe(36);
-    expect(TRACKER_SRC).toMatch(/key: "working", label: "Working", action: "Start Working"/);
+    expect(TRACKER_SRC).toMatch(/key: "working", label: "Working", action: "Start working"/);
   });
 
   for (const [name, over, trackingStatus] of STRIP_CASES) {
@@ -207,19 +207,19 @@ describe("the collapsed strip names the tracker's next step (Start Working)", ()
       const photo = expandedPrimaryAt(job, step);
       const text = stripText(job, trackingStatus);
       const unlocked = arrivalEstablished(job);
-      const where = `expanded step "${step}", primary "${photo ?? `tracker (Start Working ${unlocked ? "unlocked" : "locked on the arrival rule"})`}", collapsed strip "${text}"`;
-      expect(/after photo/i.test(text), where).toBe(photo === "Take After Photo");
+      const where = `expanded step "${step}", primary "${photo ?? `tracker (Start working ${unlocked ? "unlocked" : "locked on the arrival rule"})`}", collapsed strip "${text}"`;
+      expect(/after photo/i.test(text), where).toBe(photo === "Take After photo");
       expect(text.includes(START), where).toBe(step === "on_site" && unlocked);
       expect(/confirm you arrived|arrival not confirmed/i.test(text), where).toBe(step === "on_site" && !unlocked);
       expect(/finish and mark it done/i.test(text), where).toBe(step === "working" && photo === null);
     });
   }
 
-  it("the reported shape (on site, photo taken, tracking row 'arrived', GPS verified) reads Start Working, as Needs You", () => {
+  it("the reported shape (on site, photo taken, tracking row 'arrived', GPS verified) reads Start working, as Needs You", () => {
     const job = arrivedJob({ require_photo_proof: true, proof_before_urls: ["before.jpg"], helper_arrival_verified_at: ago(1) });
     const line = helperStatusLine(app(job), false, { workUnderway: helperProgress(job, "arrived").workUnderway });
     expect(line.id).toBe("start_working");
-    expect(line.detail).toBe("Tap Start Working");
+    expect(line.detail).toBe("Tap Start working");
     expect(line.eyebrow).toBe("Needs You");
   });
 });

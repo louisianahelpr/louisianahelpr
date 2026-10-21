@@ -12,11 +12,11 @@ import type { HelperStepProps } from "./stepContract";
  * arrival step (it is the reason the tracker's Done control is refused), so it
  * is not duplicated here.
  *
- * Directions is gone — they are standing at the address. So is Cancel Job
+ * Directions is gone — they are standing at the address. So is Cancel job
  * (owner, 2026-09-14, VN-18: no back-out once on the way or arrived); Report a
  * Problem sits beside Message instead.
  *
- * ONE ROW (owner, 2026-09-14, VN-21): the tracker's "Start Working" is the
+ * ONE ROW (owner, 2026-09-14, VN-21): the tracker's "Start working" is the
  * row's primary, Message and Report a Problem sit beside it. PayoutPrimary is
  * only the fallback for a card whose tracker offers no next step.
  */
@@ -61,7 +61,7 @@ export function OnSiteStep({
          problem always all the way on the left" (superseded 2026-09-27: Report a Problem now lives inside More — MORE_ONLY_CHIP_KEYS in JobStepCard), and "before and after photos
          should be to the left of the primary buttons". The primary is already
          far right (V2/V3), so the row reads:
-           Report a Problem · …middle… · Before/After Photo · [green primary]
+           Report a Problem · …middle… · Before/After photo · [green primary]
          The ends are also what the overflow control may never take — see
          `allocateJobStepRow`. */
       // Owner, 2026-09-24: at phone width Message stays in the row and

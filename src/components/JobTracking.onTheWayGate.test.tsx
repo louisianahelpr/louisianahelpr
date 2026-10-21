@@ -7,7 +7,7 @@
  * bb2c3732-476a-4f66-aae6-372cbdfcfdf6: `status = 'in_progress'` with
  * `helper_confirmed_at`, `poster_confirmed_at` AND `helper_dayof_confirmed_at`
  * all NULL. The tracker painted the **Confirmed** step complete and offered
- * **"I'm On My Way"** — and the server refused the tap with
+ * **"I'm on my way"** — and the server refused the tap with
  * `helper_not_confirmed`.
  *
  * THE SERVER IS THE ORACLE. `helper_mark_on_the_way` (read live off prod
@@ -106,7 +106,7 @@ describe("the reported prod row: in_progress with NO confirmation stamp", () => 
   it("does NOT offer the button the server refuses", () => {
     renderHelperTracker();
     expect(
-      screen.queryByRole("button", { name: /I'm On My Way/i }),
+      screen.queryByRole("button", { name: /I'm on my way/i }),
       'the tracker offers "I\'m On My Way" on a job whose helper_confirmed_at is NULL. ' +
         "helper_mark_on_the_way raises helper_not_confirmed on exactly that row, so the tap " +
         "is refused — the bad-GPS deadlock's class, one step earlier on the same rail.",
@@ -118,7 +118,7 @@ describe("the reported prod row: in_progress with NO confirmation stamp", () => 
     // the Helpr the stamp the server wants — the ordinary shape of this state,
     // and the one the "Confirm the job below" line was written for.
     renderHelperTracker({ posterConfirmedAt: "2026-09-19T15:00:00.000Z" });
-    expect(screen.queryByRole("button", { name: /I'm On My Way/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /I'm on my way/i })).toBeNull();
     expect(document.body.textContent ?? "").toMatch(/Confirm the job below to unlock the next step/i);
   });
 
@@ -126,7 +126,7 @@ describe("the reported prod row: in_progress with NO confirmation stamp", () => 
    * separate decision about how a job reaches `in_progress` with no stamps.
    *
    * With every confirmation stamp NULL the rail floors at Offered, so the
-   * next-step CTA becomes "I've Accepted" (`STATUSES[1]`). That tap is NOT
+   * next-step CTA becomes "I've accepted" (`STATUSES[1]`). That tap is NOT
    * refused by the server — it writes `job_tracking.status = 'confirmed'` and
    * nothing else — but it does not stamp `helper_confirmed_at` either, so it
    * advances the RAIL without producing the fact the next step needs, and the
@@ -135,7 +135,7 @@ describe("the reported prod row: in_progress with NO confirmation stamp", () => 
    * column `helper_mark_on_the_way` reads. No client tap can produce
    * `helper_confirmed_at`; only `accept_job` / `respond_to_direct_offer` do.
    *
-   * It is left exactly as it is on purpose. Withholding "I've Accepted" here
+   * It is left exactly as it is on purpose. Withholding "I've accepted" here
    * would make that control unreachable in every state (it is only ever
    * offered when the helper has not confirmed), i.e. a deletion dressed as a
    * gate — and this lane's brief is to fix the control the SERVER refuses, not
@@ -146,9 +146,9 @@ describe("the reported prod row: in_progress with NO confirmation stamp", () => 
     renderHelperTracker();
     const text = document.body.textContent ?? "";
     expect(text, "the only control here writes a tracking row, which the server accepts").toContain(
-      "I've Accepted",
+      "I've accepted",
     );
-    expect(screen.queryByRole("button", { name: /I'm On My Way/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /I'm on my way/i })).toBeNull();
   });
 
   it("does not paint the Confirmed step complete off the status", () => {
@@ -174,7 +174,7 @@ describe("the gate keys on the STEP, not on where the rail happens to sit", () =
         eta_minutes: null, updated_at: "2026-09-19T15:00:00.000Z",
       },
     });
-    expect(screen.queryByRole("button", { name: /I'm On My Way/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /I'm on my way/i })).toBeNull();
   });
 
   it("offers it once the Helpr's OWN day-before confirm exists — never on the accept alone (Q1570)", () => {
@@ -182,7 +182,7 @@ describe("the gate keys on the STEP, not on where the rail happens to sit", () =
     // poster's confirmation: a poster who never confirms still cannot trap a
     // Helpr on a job the server would start.
     renderHelperTracker({ helperConfirmedAt: "2026-09-19T15:00:00.000Z", helperDayofConfirmedAt: "2026-09-19T16:00:00.000Z" });
-    expect(screen.getByRole("button", { name: /I'm On My Way/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /I'm on my way/i })).toBeTruthy();
   });
 });
 

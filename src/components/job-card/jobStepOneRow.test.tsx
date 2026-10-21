@@ -7,6 +7,8 @@ import type { AppliedApp, Job } from "./activityConstants";
 import type { PosterStepCtx } from "../../pages/posts/postedJobCard/steps/posterStepContract";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
+// @mutate src/pages/posts/postedJobCard/steps/ScheduledStep.tsx | primary={<JobStepPrimaryButton icon={MessageSquare} | primary={false && <JobStepPrimaryButton icon={MessageSquare}
+// @mutate src/components/JobConfirmation.tsx |     if (variant === "inline" && isOwner) { |     if (false) {
 /**
  * VN-21 — EVERY BUTTON ON A STEP CARD SITS ON ONE ROW (owner, 2026-09-14).
  *
@@ -143,7 +145,7 @@ const STARTS_SOON = jobClock(1);
 type J = Job & { revision_note?: string | null };
 
 /** Both halves of the VN-33 arrival rule, so the tracker offers its next step
- *  rather than the legacy "Try My Location Again" retry. */
+ *  rather than the legacy "Try my location again" retry. */
 const VERIFIED = { helper_arrival_verified_at: ago(6), poster_confirmed_arrival_at: ago(6) };
 
 function makeJob(over: Record<string, unknown>): J {
@@ -317,7 +319,7 @@ const CASES: Array<{
         />,
       ),
     minControls: 4,
-    primary: ["I'm On My Way"],
+    primary: ["I'm on my way"],
     primaryDisabled: false,
   },
   {
@@ -345,7 +347,7 @@ const CASES: Array<{
     // Directions in More on the job's day. Cancel job would make five.
     minControls: 4,
     maxControls: 4,
-    primary: ["I'm On My Way"],
+    primary: ["I'm on my way"],
   },
   {
     name: "Jobs · Confirmed, day-of confirmation still owed (I'm still on)",
@@ -364,29 +366,29 @@ const CASES: Array<{
         />,
       ),
     minControls: 4,
-    primary: ["Confirm You'll Be at the Job"],
+    primary: ["Confirm you'll be at the job"],
   },
   {
-    name: "Jobs · On the way (I've Arrived + Directions · Message · Report a Problem)",
+    name: "Jobs · On the way (I've arrived + Directions · Message · Report a Problem)",
     render: active(makeJob({ helper_arrived_at: null, poster_confirmed_working_at: null }), "on_the_way"),
     minControls: 4,
-    primary: ["I've Arrived"],
+    primary: ["I've arrived"],
   },
   {
     // The fixture carries both proof photos, so the capture chip is absent —
     // the row is legitimately three. Its companion above pins the other side.
     // Q366: SOS is in the Helpr's row from arrival to completion, as on the
     // poster's card, so the ceiling counts it. SOS, Report a Problem and
-    // Dispute now share the row's one More menu: Message · More · Start Working.
-    name: "Jobs · Arrived (Start Working + Message · More with SOS and Report a Problem)",
+    // Dispute now share the row's one More menu: Message · More · Start working.
+    name: "Jobs · Arrived (Start working + Message · More with SOS and Report a Problem)",
     render: active(makeJob({ ...VERIFIED, poster_confirmed_working_at: null }), "arrived"),
     minControls: 3,
     maxControls: 3,
-    primary: ["Start Working"],
+    primary: ["Start working"],
   },
   {
     /* THE UNVERIFIED ARRIVAL, WITH ONE CONTROL INSTEAD OF TWO.
-       This case read ["Try My Location Again", "Start Working"] — the tracker
+       This case read ["Try my location again", "Start working"] — the tracker
        portalled both into the single primary slot, outline first so the glossy
        one stayed right-most (owner, 2026-09-16). Owner, 2026-09-19: the retry
        chip is removed and the pull-to-refresh gesture on My Jobs re-checks the
@@ -396,33 +398,33 @@ const CASES: Array<{
        keeping: this is still the state that used to draw an extra control, so
        `maxControls` fails the moment one comes back. The row is one control
        narrower here and nowhere else. */
-    name: "Jobs · Arrived, unverified arrival (Start Working alone — no retry chip)",
+    name: "Jobs · Arrived, unverified arrival (Start working alone — no retry chip)",
     render: active(makeJob({ poster_confirmed_working_at: null }), "arrived"),
     minControls: 3,
     maxControls: 3,
-    primary: ["Start Working"],
+    primary: ["Start working"],
   },
   {
     // The pair singlePrimaryCta.test.tsx pinned at 2: the tracker's "Mark Job
     // Complete" above PayoutPrimary's identical one. The tracker's IS the
     // primary; PayoutPrimary stands down.
-    name: "Jobs · Working (Mark Job Complete + Message · Report a Problem)",
+    name: "Jobs · Working (Mark job complete + Message · Report a Problem)",
     render: active(makeJob({ ...VERIFIED }), "working"),
     minControls: 3,
-    primary: ["Mark Job Complete"],
+    primary: ["Mark job complete"],
   },
   {
     /* THE CAPTURE IS IN THE ROW NOW (owner, 2026-09-19: "before and after
        buttons should also be on the same lines as the other buttons"). It was
        a titled panel with a full-width "Add photo" button in the `ask` slot
        ABOVE the row — the block in the owner's screenshot. Four controls:
-       Message · After Photo · More (Report a Problem, Dispute and SOS) + the
+       Message · After photo · More (Report a Problem, Dispute and SOS) + the
        disabled primary. */
-    name: "Jobs · Working, after photo still owed (photo first: Take After Photo is the primary)",
+    name: "Jobs · Working, after photo still owed (photo first: Take After photo is the primary)",
     render: active(makeJob({ ...VERIFIED, proof_after_urls: [] }), "working"),
     minControls: 3,
     maxControls: 4,
-    primary: ["Take After Photo"],
+    primary: ["Take After photo"],
   },
   {
     name: "Jobs · Submitted (Message · Report a Problem, no primary)",
@@ -443,16 +445,16 @@ const CASES: Array<{
     primary: ["I'll fix it"],
   },
   {
-    name: "Jobs · Disputed, filed by the Helpr (Withdraw + Timeline · Message · Contact Admin)",
+    name: "Jobs · Disputed, filed by the Helpr (Withdraw + Timeline · Message · Contact admin)",
     render: disputed(makeJob({ status: "disputed", dispute_status: "open", disputed_by: HELPER, dispute_reason: "x" })),
     minControls: 4,
-    primary: ["Withdraw Dispute"],
+    primary: ["Withdraw dispute"],
   },
   {
-    name: "Jobs · Disputed, filed by the poster (Respond + Timeline · Message · Contact Admin)",
+    name: "Jobs · Disputed, filed by the poster (Respond + Timeline · Message · Contact admin)",
     render: disputed(makeJob({ status: "disputed", dispute_status: "open", disputed_by: POSTER, dispute_reason: "x" })),
     minControls: 4,
-    primary: ["Respond to Dispute"],
+    primary: ["Respond to dispute"],
   },
   // ── /posts, poster ──
   {
@@ -463,32 +465,73 @@ const CASES: Array<{
   },
   {
     // NOTHING TO CONFIRM YET: NO BOX (owner decision Q1400, 2026-10-07). From
-    // 2026-09-19 this state drew a disabled "Confirm Arrival" with "once your
+    // 2026-09-19 this state drew a disabled "Confirm they've arrived" with "once your
     // Helpr is at the job" under it; the owner ruled that dead primary-looking
     // box out from accept until the Helpr marks themselves arrived.
-    name: "Posts · Scheduled, nothing to confirm yet (no arrival box; Message · Cancel)",
+    // Owner, 2026-10-21: the primary is what this stage needs, "Message <Helpr>" (the Message chip stands down).
+    name: "Posts · Scheduled, nothing to confirm yet (no arrival box; Message <Helpr> primary · Cancel)",
     render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", helper_on_the_way_at: null, helper_arrived_at: null }))} />),
     minControls: 2,
-    primary: [],
+    primary: ["Message Hallie"],
+  },
+  // ── Posts · Accepted, owner 2026-10-21: each stage's primary is the action it needs, never a greyed
+  //    future step ("Confirm they've arrived" before the Helpr is on the way was the bug). ──
+  {
+    name: "Posts · Offered, Helpr has not accepted yet (Message <Helpr> primary)",
+    render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", helper_confirmed_at: null, helper_dayof_confirmed_at: null, poster_confirmed_at: null, helper_on_the_way_at: null, helper_arrived_at: null, date_needed: jobClock(72).date, start_time: jobClock(72).time }))} />),
+    minControls: 2,
+    primary: ["Message Hallie"],
+    primaryDisabled: false,
+  },
+  {
+    name: "Posts · Accepted, before the confirm window (Message <Helpr>; says when confirming opens)",
+    render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", helper_dayof_confirmed_at: null, poster_confirmed_at: null, helper_on_the_way_at: null, helper_arrived_at: null, date_needed: jobClock(72).date, start_time: jobClock(72).time }))} />),
+    minControls: 2,
+    primary: ["Message Hallie"],
+    primaryDisabled: false,
+    note: /You and Hallie confirm the day before\. Opens /,
+  },
+  {
+    name: "Posts · Accepted, window open, poster has not confirmed (I'm still on)",
+    render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", helper_dayof_confirmed_at: null, poster_confirmed_at: null, helper_on_the_way_at: null, helper_arrived_at: null, date_needed: STARTS_SOON.date, start_time: STARTS_SOON.time }))} />),
+    minControls: 2,
+    primary: ["I'm still on"],
+    primaryDisabled: false,
+  },
+  {
+    name: "Posts · Accepted, poster confirmed, Helpr has not (Message <Helpr>; waiting on them)",
+    render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", helper_dayof_confirmed_at: null, poster_confirmed_at: ago(0.5), helper_on_the_way_at: null, helper_arrived_at: null, date_needed: STARTS_SOON.date, start_time: STARTS_SOON.time }))} />),
+    minControls: 2,
+    primary: ["Message Hallie"],
+    primaryDisabled: false,
+    note: /Waiting on Hallie to confirm by .+ · Nudge/,
+  },
+  {
+    name: "Posts · Accepted, both confirmed, not on the way yet (Message <Helpr>; says what's next)",
+    render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", helper_dayof_confirmed_at: ago(0.5), poster_confirmed_at: ago(0.5), helper_on_the_way_at: null, helper_arrived_at: null, date_needed: STARTS_SOON.date, start_time: STARTS_SOON.time }))} />),
+    minControls: 2,
+    primary: ["Message Hallie"],
+    primaryDisabled: false,
+    note: /You're both confirmed\. Hallie taps On my way/,
   },
   {
     // Was a full-width button of its own in PostedJobCard, above the tracker.
-    name: "Posts · Scheduled, Helpr says they arrived (Confirm Arrival + Message · Cancel)",
+    name: "Posts · Scheduled, Helpr says they arrived (Confirm they've arrived + Message · Cancel)",
     render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", poster_confirmed_arrival_at: null }))} />),
     minControls: 3,
-    primary: ["Confirm Arrival"],
+    primary: ["Confirm they've arrived"],
   },
   {
-    name: "Posts · In Progress, arrived (Confirm They Arrived + SOS · Message)",
+    name: "Posts · In Progress, arrived (Confirm they've arrived + SOS · Message)",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ poster_confirmed_arrival_at: null, poster_confirmed_working_at: null }))} />),
     minControls: 3,
-    primary: ["Confirm They Arrived"],
+    primary: ["Confirm they've arrived"],
   },
   {
-    name: "Posts · In Progress, arrival confirmed (Confirm They're Working + SOS · Message)",
+    name: "Posts · In Progress, arrival confirmed (Confirm they're working + SOS · Message)",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ poster_confirmed_arrival_at: ago(5), poster_confirmed_working_at: null }))} />),
     minControls: 3,
-    primary: ["Confirm They're Working"],
+    primary: ["Confirm they're working"],
   },
   {
     // Q1400 (owner, 2026-10-07): no disabled arrival box before arrival.
@@ -521,10 +564,10 @@ const CASES: Array<{
     // with nobody marking it done is STALLED — its slot goes to the stalled
     // notice instead (the case directly below). A finished box is what a job
     // that is still legitimately running shows.
-    name: "Posts · In Progress, both vouches in (disabled Working Confirmed)",
+    name: "Posts · In Progress, both vouches in (disabled Working confirmed)",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ date_needed: TODAY, poster_confirmed_arrival_at: ago(6), poster_confirmed_working_at: ago(5) }))} />),
     minControls: 3,
-    primary: ["Working Confirmed"],
+    primary: ["Working confirmed"],
     primaryDisabled: true,
     primaryDone: true,
   },
@@ -603,14 +646,14 @@ const CASES: Array<{
     primary: ["Approve & Pay"],
   },
   {
-    name: "Posts · Completed (Tip · Review · Hire Again)",
+    name: "Posts · Completed (Tip · Review · Hire again)",
     render: () => wrap(<CompletedStep {...posterCtx(makeJob({ status: "completed", poster_completed_at: ago(1), helper_completed_at: ago(2), payment_status: "released" }))} />),
     minControls: 3,
     // Review and Tip are the primaries, right of More (owner, 2026-10-08).
     primary: ["Review", "Tip"],
   },
   {
-    name: "Posts · Disputed (Resolve & Pay + Escalate · Timeline · Message · Contact Admin)",
+    name: "Posts · Disputed (Resolve & Pay + Escalate · Timeline · Message · Contact admin)",
     render: () =>
       wrap(
         <DisputedStep
@@ -677,7 +720,9 @@ describe("VN-21 — a step card's buttons are ONE row", () => {
       expect(rows.length, `${rows.length} action rows on one card — [${labels.join(" | ")}]`).toBe(1);
       const row = rows[0] as HTMLElement;
 
-      const outside = controls.filter((b) => !row.contains(b));
+      // The Nudge link lives on the row's note line by design (owner, 2026-10-08: "a one-line link on the
+      // row's note line"); it is the status line's own action, not a second row.
+      const outside = controls.filter((b) => !row.contains(b) && !b.closest("[data-nudge-confirm]"));
       expect(
         outside.map((b) => (b.getAttribute("aria-label") || b.textContent || "").trim()),
         "these controls render on their own row, outside the step's single action row",

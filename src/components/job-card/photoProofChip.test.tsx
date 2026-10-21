@@ -24,7 +24,7 @@
  * it is on this same row (owner: "before and after buttons should also be on
  * the same lines as the other buttons"), so the two now sit side by side on the
  * disputed card — which is exactly why their labels differ: "Photos" opens the
- * gallery of what exists, "Before Photo" / "After Photo" adds what does not.
+ * gallery of what exists, "Before photo" / "After photo" adds what does not.
  * See src/test/beforePhotoCapture.test.tsx.
  */
 import { describe, it, expect, vi } from "vitest";

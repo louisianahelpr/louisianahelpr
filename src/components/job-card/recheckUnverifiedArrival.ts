@@ -6,10 +6,10 @@ import type { useActivityData } from "@/hooks/useActivityData";
 type AppliedApps = ReturnType<typeof useActivityData>["appliedApps"];
 
 /* THE GESTURE ALSO RE-CHECKS AN UNVERIFIED ARRIVAL (owner, 2026-09-19).
-   It is what replaces the "Try My Location Again" chip the same ruling
+   It is what replaces the "Try my location again" chip the same ruling
    removed from the job card's action row — and it had to be built first,
    because that chip was measurably the ONLY claimed -> verified path in
-   the product (the row's primary in that state reads "Start Working", not
+   the product (the row's primary in that state reads "Start working", not
    "Mark Arrived", so there was nothing else to re-tap).
 
    DELIBERATELY NOT AWAITED. The gesture's advertised job is refreshing the

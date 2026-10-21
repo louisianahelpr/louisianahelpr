@@ -2,13 +2,13 @@
  * THE OFFER CARD, BOTH SIDES (owner, 2026-10-05, seen live on "Clean my room"
  * at 375):
  *
- *   poster (/posts, Waiting): a DISABLED green "Confirm Arrival" with "Your
+ *   poster (/posts, Waiting): a DISABLED green "Confirm they've arrived" with "Your
  *     Helpr hasn't confirmed this booking yet…" on an offer the Helpr had not
  *     accepted; and "Job starts in" only on the expanded card.
  *   Helpr (/jobs, offered): the answer-by clock TWICE (box over Accept and the
  *     footer strip), no step rail, the reschedule block's gradient Accept
- *     beside "Accept Job", "Ask for a new date or time" on the collapsed card,
- *     and an enabled "Accept Job" that only after the tap said Stripe setup
+ *     beside "Accept job", "Ask for a new date or time" on the collapsed card,
+ *     and an enabled "Accept job" that only after the tap said Stripe setup
  *     was unfinished.
  *
  * The rules, each failing on the state that shipped:
@@ -19,7 +19,7 @@
  *      Accept is never the gradient primary;
  *   4. one answer-by clock on the Helpr's offer card;
  *   5. the Helpr's offer card draws the step rail when expanded;
- *   6. before the tap, the offer card's primary is "Accept Job" whatever the
+ *   6. before the tap, the offer card's primary is "Accept job" whatever the
  *      accept gate says (owner, 2026-10-06: anyone can accept, payout setup
  *      comes after; this reverses the 2026-10-05 "Set up payouts" primary);
  *      only an accept already waiting on Stripe makes the setup step the
@@ -33,7 +33,7 @@
  * @mutate src/pages/jobs/AppliedJobCard.tsx | hideStatus={isOffered} | hideStatus={false}
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isOffered && isExpanded && ( | {false && (
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |       {!isExpired && acceptPending && ( |       {false && (
- * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish Accepting" : "Accept Job"; | const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish Stripe Setup" : "Accept Job";
+ * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish accepting" : "Accept job"; | const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish Stripe Setup" : "Accept job";
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | { id: "answer", at: deadline, text: "left to answer", expiredText: "Response deadline expired" }, |
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |             startClock,\n |             \n
  * @mutate src/pages/posts/PostedJobCard.tsx |       eyebrow={offerUnanswered ? "Offered to" : "Helpr"} |       eyebrow="Helpr"
@@ -325,19 +325,19 @@ describe("6. the offer card's primary is Accept before the tap, for every Helpr"
     ["helper_identity_unverified"],
     ["helper_payout_setup_incomplete"],
     ["helper_unknown"],
-  ] as const)("gate %s: an enabled Accept Job beside Decline, no setup step and no gate line", (reason) => {
+  ] as const)("gate %s: an enabled Accept job beside Decline, no setup step and no gate line", (reason) => {
     gateState.reason = reason;
     renderOffer();
-    expect(screen.getByRole("button", { name: /Accept Job/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Accept job/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: /^Decline$/ })).toBeEnabled();
     expect(screen.queryByRole("button", { name: /Set up payouts|Finish Stripe Setup/ })).toBeNull();
     expect(document.querySelector("[data-offer-gate-line]")).toBeNull();
   });
 
-  it("gate unknown (profile loading): Accept Job is there and enabled, never a Checking… wait", () => {
+  it("gate unknown (profile loading): Accept job is there and enabled, never a Checking… wait", () => {
     gateState.loading = true;
     renderOffer();
-    expect(screen.getByRole("button", { name: /Accept Job/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Accept job/ })).toBeEnabled();
     expect(screen.queryByRole("button", { name: /Checking/ })).toBeNull();
   });
 
@@ -348,17 +348,17 @@ describe("6. the offer card's primary is Accept before the tap, for every Helpr"
     [["payout_setup", "stripe_id"], /Not accepted yet: waiting on your payout setup and Stripe ID check/],
     [["stripe_id"], /Not accepted yet: waiting on your Stripe ID check/],
     [["payout_setup"], /Not accepted yet: waiting on your payout setup\./],
-  ] as const)("accepted, waiting on %j: Decline | Finish Accepting in one row, and the status says not accepted yet", (missing, line) => {
+  ] as const)("accepted, waiting on %j: Decline | Finish accepting in one row, and the status says not accepted yet", (missing, line) => {
     pendingJobs.add("job-1");
     gateState.missing = [...missing];
     gateState.reason = gateState.missing.includes("payout_setup") ? "helper_payout_setup_incomplete" : "helper_identity_unverified";
     renderOffer();
     // Owner, 2026-10-08: "it should say finish accepting, they already accepted".
-    const accept = screen.getByRole("button", { name: /Finish Accepting/ });
+    const accept = screen.getByRole("button", { name: /Finish accepting/ });
     const row = accept.parentElement!;
     const labels = [...row.querySelectorAll(":scope > button")].map((b) => b.textContent?.trim());
-    expect(labels).toEqual(["Decline", "Finish Accepting"]);
-    expect(screen.queryByRole("button", { name: /Set up payouts|Finish Stripe Setup|Decline this job/ })).toBeNull();
+    expect(labels).toEqual(["Decline", "Finish accepting"]);
+    expect(screen.queryByRole("button", { name: /Set up payouts|Finish Stripe setup|Finish Stripe Setup|Decline this job/i })).toBeNull();
     expect(document.querySelector("[data-offer-pending-status]")?.textContent).toMatch(line);
   });
 });

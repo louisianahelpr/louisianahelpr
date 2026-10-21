@@ -56,7 +56,7 @@ describe("deriveAppliedJobCardState — direct offers", () => {
 
   // press-every-control 38536821617 shard 11: job fddf389d, cancelled by its
   // poster at 13:38Z with the direct-offer marker still `pending`, rendered
-  // Accept Job / Decline, and both answered "This job is no longer open."
+  // Accept job / Decline, and both answered "This job is no longer open."
   // @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | job.offered_to_helper_id === app.helper_id &&\n    status === "open" && !job.helper_id; | job.offered_to_helper_id === app.helper_id;
   it("offers nothing on a job that is no longer open, whatever its stale offer marker says", () => {
     for (const over of [{ status: "cancelled" }, { status: "accepted", helper_id: "someone-else" }, { status: "open", helper_id: "someone-else" }] as const) {

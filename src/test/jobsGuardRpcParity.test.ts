@@ -53,7 +53,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 //
 //   1. the tracker's Confirmed step back to being derived from jobs.status,
 //      which is the prod-bb2c3732 bug this describe block was added for;
-//   2. the "I'm On My Way" gate back to being POSITIONAL (job_confirmed only),
+//   2. the "I'm on my way" gate back to being POSITIONAL (job_confirmed only),
 //      which is what let that derivation route around it.
 //
 // @mutate src/components/JobTracking.tsx | "revision_requested") {\n    atLeast(STATUS_IDX.assigned) | "revision_requested") {\n    atLeast(STATUS_IDX.job_confirmed)
@@ -230,7 +230,7 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
      * VN-33 (2026-09-14) made arrival take GPS **AND** the poster's confirm,
      * and enforced the GPS half by having `mark_helper_arrival` REFUSE a far or
      * fix-less arrival and write NOTHING. `helper_arrived_at` therefore stayed
-     * NULL — and the poster's "Confirm They Arrived" control renders only once
+     * NULL — and the poster's "Confirm they've arrived" control renders only once
      * that stamp exists, so the poster was never offered the tap the Helpr's
      * own blocked CTA was telling them to go ask for. Deadlock.
      *
@@ -251,7 +251,7 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
         expect(
           rpc,
           `mark_helper_arrival raises '${code}' again. A refusal writes nothing, so ` +
-            `helper_arrived_at stays NULL, the poster's "Confirm They Arrived" control ` +
+            `helper_arrived_at stays NULL, the poster's "Confirm they've arrived" control ` +
             `never renders, and the job deadlocks — the exact bug the owner reversed on ` +
             `2026-09-19.`,
         ).not.toMatch(new RegExp(`RAISE EXCEPTION '${code}'`));

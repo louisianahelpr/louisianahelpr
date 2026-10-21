@@ -373,7 +373,7 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
     status: "in_progress", helper_id: HELPER, date_needed: TODAY,
     helper_confirmed_at: ago(20), helper_on_the_way_at: ago(1),
   }),
-  /* Arrived, no before photo yet: the card's primary is "Take Before Photo". */
+  /* Arrived, no before photo yet: the card's primary is "Take Before photo". */
   before_photo: makeApp({}, {
     status: "in_progress", helper_id: HELPER, date_needed: TODAY,
     helper_confirmed_at: ago(20), helper_arrived_at: ago(1), proof_before_urls: [],

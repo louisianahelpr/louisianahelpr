@@ -11,7 +11,7 @@
  * THE BUG (measured live 2026-10-20, pg_get_functiondef): only the single-job
  * accept read the helper. rpc_group_member_confirm and
  * complete_pending_crew_confirms_on_setup read helper_award_block_reason
- * (payouts ONLY), so an unverified crew member's Accept My Spot booked them;
+ * (payouts ONLY), so an unverified crew member's Accept my spot booked them;
  * claim_series_dates recorded holds with no readiness read, and
  * charge-recurring-visits books holds in server context, where jobs_award_gate
  * does not judge; complete_direct_offer_accept trusted its callers.

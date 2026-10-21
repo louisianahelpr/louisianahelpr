@@ -53,7 +53,7 @@ export interface HelperDisputeCopy {
    */
   canRespond: boolean;
   /**
-   * Offer "Withdraw Dispute" — the helper's only exit that is not an admin.
+   * Offer "Withdraw dispute" — the helper's only exit that is not an admin.
    *
    * Until 2026-09-07 this panel had no such control, and the poster's card
    * said so out loud: "Your Helpr opened this, so only they can withdraw it."

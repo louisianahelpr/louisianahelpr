@@ -7,7 +7,7 @@
  * THE BUG THIS IS THE CLASS OF (owner, 2026-09-19). Since VN-33,
  * `mark_helper_arrival` refused a bad-GPS arrival and wrote NOTHING, so
  * `helper_arrived_at` stayed null. The Helpr's blocked CTA then told them, in
- * copy, to ask the poster to tap "Confirm They Arrived" — while that poster
+ * copy, to ask the poster to tap "Confirm they've arrived" — while that poster
  * control was itself gated on `helper_arrived_at` and therefore never
  * rendered. Both halves were individually correct and individually tested.
  * `src/lib/arrivalGate.test.ts` even asserted the refusal copy names the
@@ -55,7 +55,7 @@
  *             their `aria-label`/`label`/`title` attributes, and every
  *             `label:`-shaped property in an object literal — which is where
  *             this app keeps its step-card labels
- *             (`posterStepContract.ts`'s `label: "Confirm They Arrived"`).
+ *             (`posterStepContract.ts`'s `label: "Confirm they've arrived"`).
  *             Conditionals are followed on both branches.
  *
  * So renaming a button, deleting it, or gating it on a dead column fails the
@@ -78,7 +78,7 @@
  *    existed and refused — see CHECK 3, which is the half aimed at that, and
  *    which is best-effort by construction.
  */
-// @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | ? "Confirm Arrival" : "Confirm They Arrived", | ? "Confirm Arrival" : "Confirm Arrival",
+// @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts |       label: "Confirm they've arrived",\n      enabled: false, |       label: "Confirm arrival",\n      enabled: false,
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
@@ -227,7 +227,7 @@ export function collectRenderedLabels(files: string[]): RenderedLabels {
       }
       if (ts.isJsxSelfClosingElement(n)) attrs(n.attributes.properties, n);
 
-      // `{ label: "Confirm They Arrived" }` — where this app keeps step labels.
+      // `{ label: "Confirm they've arrived" }` — where this app keeps step labels.
       if (ts.isPropertyAssignment(n)) {
         const key = ts.isIdentifier(n.name) || ts.isStringLiteral(n.name) ? n.name.text : null;
         if (key && LABEL_PROP.has(key)) collectStrings(n.initializer, n);
@@ -254,7 +254,9 @@ const VERB_NAME = new RegExp(
 /** A string only names a control if it is telling somebody about a control. */
 const CONTROL_CONTEXT =
   /\b(tap|taps|tapping|press|presses|click|clicks|choose|choosing|select|hit|button|control|screen|tab|switch|toggle|chip|option)\b/i;
-const SHAPE_OK = new RegExp(`^${TITLE_WORD}(\\s+(?:${TITLE_WORD}|${JOIN_WORD}))*$`);
+// Title Case ("Pay All with Stripe") or sentence case ("Confirm they've arrived", owner 2026-10-21: every
+// control label is sentence case now): a capital first word, then words of letters, digits or apostrophes.
+const SHAPE_OK = new RegExp(`^${TITLE_WORD}(\\s+(?:${TITLE_WORD}|${JOIN_WORD}|[a-z][a-z0-9’']*))*$`);
 
 export interface NamedControl {
   file: string;
@@ -302,7 +304,7 @@ export function collectNamedControls(files: string[]): NamedControl[] {
  * Does this phrase name a real control?
  *
  * The RENDERED inventory is the tokenizer: prose runs on past the end of a
- * label ("tap Mark Job Complete so your payment can be released"), so every
+ * label ("tap Mark job complete so your payment can be released"), so every
  * contiguous ≥2-word span of the phrase is offered to the inventory and the
  * longest hit wins. That is why the verb-form scan can be permissive without
  * inventing violations.
@@ -343,7 +345,7 @@ export interface ControlProducer {
 
 /**
  * Every literal piece of text in a subtree. Template literals are flattened
- * with a hard break at each `${…}`, so `tap "Confirm They Arrived" ${unlocks}`
+ * with a hard break at each `${…}`, so `tap "Confirm they've arrived" ${unlocks}`
  * still reads as one sentence while a control name can never span an
  * interpolation. Without the template arm this scan saw NOTHING in
  * `arrivalGateMessage`, whose every return is a template — the exact
@@ -611,7 +613,7 @@ describe("control reachability — the inventories are real", () => {
     expect(NAMED.length).toBeGreaterThan(5);
     // The arrival copy is the bug this file exists for; if the scanner ever
     // stops seeing it, every check below goes vacuously green.
-    expect(NAMED.some((n) => n.phrase === "Confirm They Arrived")).toBe(true);
+    expect(NAMED.some((n) => n.phrase === "Confirm they've arrived")).toBe(true);
   });
 
   it("found the control producers that decide whether a control is offered", () => {
@@ -713,7 +715,7 @@ describe("CHECK 3 (best-effort) — the named control is offered in the state th
       // statically from its `label:` literals — not only the ones some state
       // enables. Ownership read from `everEnabled` alone went blind exactly
       // when it mattered: rename the ENABLED in-progress label away and the
-      // producer still paints "Confirm They Arrived" greyed (the Q1568 rung),
+      // producer still paints "Confirm they've arrived" greyed (the Q1568 rung),
       // so CHECK 1 still resolves it, while this check dropped the label as
       // "not ours" because no state enabled it any more (vacuity survivor,
       // 2026-10-17). A label the producer draws but never turns on, named
@@ -784,13 +786,13 @@ async function importProducer(relPath: string): Promise<Record<string, unknown> 
 
 describe("the checks are able to fail", () => {
   it("CHECK 1 goes red when a control named in copy is renamed away", () => {
-    // The world minus the "Confirm They Arrived" label — exactly what VN-33
+    // The world minus the "Confirm they've arrived" label — exactly what VN-33
     // produced when the control stopped rendering.
     const crippled = new Map(RENDERED.byLabel);
-    crippled.delete(normaliseLabel("Confirm They Arrived"));
+    crippled.delete(normaliseLabel("Confirm they've arrived"));
     const misses = NAMED.filter((n) => n.kind === "quoted" && !resolveNamedControl(n.phrase, crippled));
     expect(misses.length).toBeGreaterThan(0);
-    expect(misses.some((m) => m.phrase === "Confirm They Arrived")).toBe(true);
+    expect(misses.some((m) => m.phrase === "Confirm they've arrived")).toBe(true);
   });
 
   it("CHECK 2 goes red for a control gated on a column nothing writes", () => {
@@ -804,23 +806,23 @@ describe("the checks are able to fail", () => {
 
   it("CHECK 3 still owns a label the producer paints but never enables", () => {
     // The 2026-10-17 vacuity survivor, in miniature: the enabled label was
-    // renamed away, and the only "Confirm They Arrived" left is a greyed rung.
+    // renamed away, and the only "Confirm they've arrived" left is a greyed rung.
     // Ownership has to come from what the producer can PAINT, or the copy
     // naming that label is silently out of scope.
     const ctrl = CONTROL_PRODUCERS.find((p) => p.name === "posterConfirmationRung");
     expect(ctrl, "posterConfirmationRung not discovered").toBeTruthy();
-    expect(ctrl!.labels.map(normaliseLabel)).toContain(normaliseLabel("Confirm They Arrived"));
+    expect(ctrl!.labels.map(normaliseLabel)).toContain(normaliseLabel("Confirm they've arrived"));
     const ctrlFn = (job: Record<string, unknown>) => ({
-      label: job.helper_arrived_at ? "Confirm Arrival" : "Confirm They Arrived",
+      label: job.helper_arrived_at ? "Confirm arrival" : "Confirm they've arrived",
       enabled: !!job.helper_arrived_at,
     });
-    const staticLabels = ["Confirm Arrival", "Confirm They Arrived"];
+    const staticLabels = ["Confirm arrival", "Confirm they've arrived"];
     const everEnabled = new Set<string>();
     for (const s of stateSpace(["helper_arrived_at"])) {
       const r = ctrlFn(s);
       if (r.enabled) everEnabled.add(normaliseLabel(r.label));
     }
-    const named = normaliseLabel("Confirm They Arrived");
+    const named = normaliseLabel("Confirm they've arrived");
     // Ownership from enablement alone: blind (the old, vacuous rule).
     expect(everEnabled.has(named)).toBe(false);
     // Ownership from what it paints: sees it, so the copy is checked.
@@ -834,10 +836,10 @@ describe("the checks are able to fail", () => {
     // exactly that column.
     const copyFn = (job: Record<string, unknown>) =>
       job.helper_arrived_at
-        ? 'Tap "Mark Job Complete" when you are done.'
-        : 'Ask them to tap "Confirm They Arrived" before you can start.';
+        ? 'Tap "Mark job complete" when you are done.'
+        : `Ask them to tap "Confirm they've arrived" before you can start.`;
     const ctrlFn = (job: Record<string, unknown>) => ({
-      label: job.helper_arrived_at ? "Confirm They Arrived" : "Mark Job Complete",
+      label: job.helper_arrived_at ? "Confirm they've arrived" : "Mark job complete",
       enabled: !!job.helper_arrived_at,
     });
     const shared = ["helper_arrived_at"];

@@ -579,7 +579,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     // The Helpr's tracker renders JobConfirmation's `inline` variant
     // (HelperTrackerPanel), whose control is HELPER_CONFIRM_LABEL in
     // src/components/JobConfirmation.tsx; "I'm still on" is the poster's.
-    const HELPER_CONFIRM = "Confirm You'll Be at the Job";
+    const HELPER_CONFIRM = "Confirm you'll be at the job";
     // Before the window opens the Helpr's primary is this SAME button, greyed,
     // saying when it turns on (docs/JOB-LIFECYCLE.md step 4, owner 2026-10-08);
     // from midnight the day before it is live (step 5). So "before-open" asserts

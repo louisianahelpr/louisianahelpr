@@ -297,7 +297,7 @@ export function planDisputedJob(
  *
  * So the accepted state gets an owner, like the disputed one: a funded job of
  * its own, helper-e2e applies (apply_to_job), poster-e2e hires
- * (accept_application), helper-e2e confirms the offer (the app's Accept Job
+ * (accept_application), helper-e2e confirms the offer (the app's Accept job
  * write; unconfirmed, expire_unanswered_offers strikes helper-e2e at the
  * deadline), and it is LEFT accepted. The rules:
  *  - REUSE an accepted fixture hired to helper-e2e, escrowed, with at least

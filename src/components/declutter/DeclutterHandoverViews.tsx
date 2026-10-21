@@ -332,7 +332,7 @@ function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: Pa
     if (order.handover !== "pickup_home") {
       return (
         <p className="text-sm text-muted-foreground">
-          You're paid when the buyer taps "I got it" or takes their pickup photo, or automatically 24 hours after the pickup time if you posted the "Left on porch" photo and no problem is reported.
+          You're paid when the buyer taps "I got it" or takes their pickup photo, or automatically 24 hours after the pickup time if you posted the porch photo and no problem is reported.
         </p>
       );
     }

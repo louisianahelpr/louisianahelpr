@@ -152,7 +152,7 @@ export function GroupJobHelpers({
   const canRemove = isOwner && jobStatus === "open";
 
   /**
-   * THE POSTER'S PER-MEMBER "Confirm They Arrived" (Q1382). A crew has no lead
+   * THE POSTER'S PER-MEMBER "Confirm they've arrived" (Q1382). A crew has no lead
    * (Q407): each member's arrival is confirmed on their own roster row by
    * rpc_poster_confirm_member_arrival, and that confirmation is the gate the
    * server enforces before that member can mark their part done

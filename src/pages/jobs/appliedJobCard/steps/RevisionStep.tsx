@@ -24,7 +24,7 @@ import type { HelperStepProps } from "./stepContract";
  * revision panel keeps the `ask` slot to itself. `HelperPhotoAsk` offers the
  * AFTER photo here and keeps offering it after one exists — see its note.
  *
- * ONE PRIMARY, THEN THE NEXT STEP. "Mark Fixed" appears only once the revision
+ * ONE PRIMARY, THEN THE NEXT STEP. "Mark fixed" appears only once the revision
  * has actually been accepted; before that, accept-the-work and declare-it-done
  * rendered side by side on a job the helper had not agreed to touch yet.
  */
@@ -89,14 +89,14 @@ export function RevisionStep({
   // ONE ROW (owner, 2026-09-14, VN-21: "can all the buttons be on 1 row like
   // i'll fix it, message etc"). Before acceptance the row's primary is the
   // revision card's "I'll Fix It", portalled in from HelperRevisionCard; from
-  // acceptance it is "Mark Fixed". Either way it leads the row in the dark
+  // acceptance it is "Mark fixed". Either way it leads the row in the dark
   // green, with Message and Report a Problem beside it — never both at once.
   const primary =
     !job.revision_completed_at && revisionAccepted ? (
       <JobStepPrimaryButton
         icon={RefreshCw}
         iconClassName={resolving ? "animate-spin" : undefined}
-        label={resolving ? "Marking…" : "Mark Fixed"}
+        label={resolving ? "Marking…" : "Mark fixed"}
         disabled={resolving}
         onClick={onMarkFixed}
       />
@@ -114,7 +114,7 @@ export function RevisionStep({
          problem always all the way on the left" (superseded 2026-09-27: Report a Problem now lives inside More — MORE_ONLY_CHIP_KEYS in JobStepCard), and "before and after photos
          should be to the left of the primary buttons". The primary is already
          far right (V2/V3), so the row reads:
-           Report a Problem · …middle… · Before/After Photo · [green primary]
+           Report a Problem · …middle… · Before/After photo · [green primary]
          The ends are also what the overflow control may never take — see
          `allocateJobStepRow`. */
       // Owner, 2026-09-24: at phone width Message stays in the row and

@@ -117,7 +117,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           // Stepping away at the END of a job is normal and is not evidence of
           // fraud. What matters is that they WERE there, which the arrival
           // ladder records at the moment it was true: server-verified GPS AND
-          // the poster's "Confirm They Arrived" — both, since VN-33 (owner,
+          // the poster's "Confirm they've arrived" — both, since VN-33 (owner,
           // 2026-09-14; see arrivalGate.ts). The same rule is enforced by
           // enforce_helper_completion_gates and create-payment's release, so
           // this is the message, not the gate.

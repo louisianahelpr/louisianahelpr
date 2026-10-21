@@ -7,7 +7,7 @@
  * never showed the Reviewed badge after the review was submitted". Measured on
  * prod the same hour (probe runs 36212737517 / 36213134702 on
  * wip/vac1797-probe-journeys): the review row existed, and the Done card's
- * row read Photos · More · Hire Again — "Tip" and "Reviewed" were in the More
+ * row read Photos · More · Hire again — "Tip" and "Reviewed" were in the More
  * panel, a Radix popover portaled to <body>, so the card-scoped
  * `getByRole("button", { name: /^Reviewed\b/ })` counted 0 on every reload.
  *

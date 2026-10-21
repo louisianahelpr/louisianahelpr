@@ -290,7 +290,7 @@ export function CrewMemberSection({
     <JobActionChip
       key="cancel"
       icon={CalendarX2}
-      label={step === "confirm" ? "Can't Make It" : "Cancel Job"}
+      label={step === "confirm" ? "Can't make it" : "Cancel job"}
       ariaLabel="Leave this crew? See what happens if you leave now"
       tone="danger"
       onClick={() => setCancelOpen(true)}
@@ -301,27 +301,27 @@ export function CrewMemberSection({
     step === "confirm" ? (
       <JobStepPrimaryButton icon={CheckCircle2} label={busy ? "…" : CREW_ACCEPT_COPY.button} onClick={onConfirm} disabled={busy} />
     ) : step === "set_out" ? (
-      <JobStepPrimaryButton icon={Truck} label={busy ? "…" : "I'm On My Way"} onClick={onSetOut} disabled={busy} />
+      <JobStepPrimaryButton icon={Truck} label={busy ? "…" : "I'm on my way"} onClick={onSetOut} disabled={busy} />
     ) : step === "arrive" ? (
-      <JobStepPrimaryButton icon={MapPin} label={busy ? "…" : "I've Arrived"} onClick={onArrive} disabled={busy} />
+      <JobStepPrimaryButton icon={MapPin} label={busy ? "…" : "I've arrived"} onClick={onArrive} disabled={busy} />
     ) : step === "finish" && proofOk ? (
       <JobStepPrimaryButton
         icon={CheckCircle2}
-        label={busy ? "…" : minutesLeft > 0 ? `Available in ${minutesLeft} min` : "Mark My Part Done"}
+        label={busy ? "…" : minutesLeft > 0 ? `Available in ${minutesLeft} min` : "Mark my part done"}
         onClick={onDone}
         disabled={busy || minutesLeft > 0}
       />
     ) : step === "done" ? (
-      <JobStepPrimaryButton icon={CheckCircle2} label="Part Done" onClick={() => {}} disabled tone="done" />
+      <JobStepPrimaryButton icon={CheckCircle2} label="Part done" onClick={() => {}} disabled tone="done" />
     ) : null;
 
   const STATUS: Record<CrewMemberStep, string> = {
     confirm: CREW_ACCEPT_COPY.hint,
     waiting_for_crew: CREW_ACCEPT_COPY.onCrewWaiting,
     set_out: CREW_ACCEPT_COPY.onCrewSetOut,
-    arrive: "You're on your way. Tap I've Arrived when you get there.",
+    arrive: "You're on your way. Tap I've arrived when you get there.",
     awaiting_poster:
-      'You\'re checked in. The person who posted this job now taps "Confirm They Arrived" for you, then you can finish your part.',
+      `You're checked in. The person who posted this job now taps "Confirm they've arrived" for you, then you can finish your part.`,
     finish: proofOk
       ? "You're working. Mark your part done when you finish."
       : "You're working. Add before and after photos of your part, then mark it done.",
@@ -396,7 +396,7 @@ export function CrewMemberSection({
                     text: `${CREW_ACCEPT_COPY.lateLeaveStrike} — ${RELIABILITY_LADDER_SENTENCE}.`,
                   }
             }
-            primaryLabel={busy ? "Leaving…" : step === "confirm" ? "Turn Down" : "Leave Crew"}
+            primaryLabel={busy ? "Leaving…" : step === "confirm" ? "Turn down" : "Leave crew"}
             primaryTone="sienna"
             primaryDisabled={busy}
             onPrimary={() => void onCancel()}

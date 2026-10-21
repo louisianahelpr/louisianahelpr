@@ -12,7 +12,7 @@
  * renders correctly in isolation whether or not any card ever mounts it — the
  * exact shape `scripts/vacuity` calls class (b), and the reason the badge guard
  * in that README could not fail. So this renders the whole `AppliedJobCard`, in
- * the state a helper is in at the moment they tap "I'm On My Way", COLLAPSED,
+ * the state a helper is in at the moment they tap "I'm on my way", COLLAPSED,
  * and asserts the street address is on screen without expanding anything.
  *
  * AND IT ASSERTS THE LIMIT. The same line must NOT appear on a merely pending

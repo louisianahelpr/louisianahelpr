@@ -162,7 +162,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.getByText(/Add a Helpr below/)).toBeInTheDocument();
     unmount();
     show([line({ handover: "porch", my_side: "seller" })]);
-    expect(await screen.findByText(/if you posted the "Left on porch" photo/)).toBeInTheDocument();
+    expect(await screen.findByText(/if you posted the porch photo/)).toBeInTheDocument();
     expect(screen.queryByText("Pickup at the door")).toBeNull();
     expect(screen.queryByRole("button", { name: "Picked up" })).toBeNull();
   });

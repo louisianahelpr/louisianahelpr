@@ -9,7 +9,7 @@
  * With the standing primary-right rule (V2/V3) that is three fixed positions
  * and one flexible middle:
  *
- *   Report a Problem · …middle… · Before/After Photo · [green primary]
+ *   Report a Problem · …middle… · Before/After photo · [green primary]
  *
  * ── WHY THE OVERFLOW RULE HAD TO CHANGE WITH IT ───────────────────────────
  * `allocateJobStepRow` (70d276587) moves chips into a `More` popover when the

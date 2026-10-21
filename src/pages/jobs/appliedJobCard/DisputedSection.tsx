@@ -355,7 +355,7 @@ export function DisputedSection({
      opener — so the state never has two primaries, which is the shell's rule.
 
      Both lead the card's ONE action row, in the dark green, with Timeline /
-     Message / Contact Admin beside them (owner, 2026-09-14, VN-21). Respond
+     Message / Contact admin beside them (owner, 2026-09-14, VN-21). Respond
      used to be a full-width outline inside the body above the row; it opens
      the same inline form, which still renders above the row, and it steps out
      of the row while that form is open (the form's Submit is the move then). */
@@ -363,16 +363,16 @@ export function DisputedSection({
   const primary = canWithdraw ? (
     <JobStepPrimaryButton
       icon={Undo2}
-      label="Withdraw Dispute"
+      label="Withdraw dispute"
       disabled={withdrawing}
       onClick={() => setWithdrawConfirmOpen(true)}
     />
   ) : !hasResponded && canRespond && !respondOpen ? (
-    /* "Respond to Dispute" implies the poster is still the one listening.
+    /* "Respond to dispute" implies the poster is still the one listening.
        Once it is escalated they are not. */
     <JobStepPrimaryButton
       icon={MessageSquare}
-      label={awaitingAdmin ? "Add Your Side" : "Respond to Dispute"}
+      label={awaitingAdmin ? "Add your side" : "Respond to dispute"}
       onClick={() => setRespondingJobId(app.job_id)}
     />
   ) : null;
@@ -387,7 +387,7 @@ export function DisputedSection({
           title="Withdraw this dispute?"
           description="The job goes back to where it was before you filed, and the payment comes off hold and returns to its normal schedule. You can file again if the issue isn't actually settled."
           callout={{ icon: AlertTriangle, text: "Only withdraw if you and the person who posted this job have sorted it out." }}
-          primaryLabel="Withdraw Dispute"
+          primaryLabel="Withdraw dispute"
           /* `bark`, not `sienna`: sienna is reserved for the genuinely
              irreversible (the poster's twin releases escrow and can never be
              undone). A withdrawal moves no money and `rpc_open_dispute`'s
@@ -403,7 +403,7 @@ export function DisputedSection({
      header renders the job's ACTUAL dispute_deadline and its caption already
      says what happens when it lapses.
 
-     View Timeline / Message / Contact Admin — three peers, and the SHELL counts
+     View Timeline / Message / Contact admin — three peers, and the SHELL counts
      them, so this row is a 3-up for the same reason every other state's row is
      the width it is. */
   /* THE PHOTO CHIP MOVES TO THE END (owner, 2026-09-19: "before and after
@@ -418,9 +418,9 @@ export function DisputedSection({
      lands on first, which is the inconsistency that was reported.
 
      There is no Report a Problem chip on a disputed card — the dispute IS the
-     report — so the Helpr's way out is `Contact Admin`: the one control here
+     report — so the Helpr's way out is `Contact admin`: the one control here
      that reaches a human who can end it. It leads; Message follows; the two
-     read-only destinations (Timeline & Evidence, and Contact Admin's old
+     read-only destinations (Timeline & Evidence, and Contact admin's old
      place) come after, which is the house order
      `partitionJobStepRowChips` documents (escape, then Message, then the
      ancillary read-only ones).
@@ -433,7 +433,7 @@ export function DisputedSection({
         <JobActionChip
           key="admin"
           icon={LifeBuoy}
-          label="Contact Admin"
+          label="Contact admin"
           ariaLabel="Contact an admin about this dispute"
           tone="neutral"
           /* Carries the job, same as the poster's chip in PostedJobActions —
@@ -453,7 +453,7 @@ export function DisputedSection({
         />,
         <JobActionChip
           key="timeline"
-          // Its own icon, not the AlertTriangle Contact Admin also wore. The
+          // Its own icon, not the AlertTriangle Contact admin also wore. The
           // reason has changed but the rule has not: these chips are never
           // icon-only any more (2026-09-19), yet two identical triangles under
           // two different words is still two controls that look the same.

@@ -124,7 +124,8 @@ import { effectiveDefs, migrationFiles, parseDefs } from "./helpers/effectiveFun
 
 const ROOT = process.cwd();
 const FN = join(ROOT, "supabase/functions");
-const HELPERS = ["refundToPayerCents(", "crewFeeShareReturnCents(", "refundLessStripeFeeCents("];
+// withheldFeeReturnCents (Q1915): a released withheld fee plus its kept tax, never the card fee.
+const HELPERS = ["refundToPayerCents(", "crewFeeShareReturnCents(", "refundLessStripeFeeCents(", "withheldFeeReturnCents("];
 const OWN_MISTAKE_MARK = "own-mistake full refund (owner, 2026-10-14)";
 
 type Kind = "keeps-fee" | "own-mistake" | "both" | "pass-through" | "sql-policy" | "helpr-fault";
@@ -171,6 +172,9 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
   // A10 (owner, 2026-10-17): a Declutter setup job cancelled because the seller backed out comes back in full
   // (card fee included, the seller owes it); every other cancellation keeps the fee.
   { file: "supabase/functions/void-cancelled-payments/index.ts", key: "cancel-refund-", kind: "both", why: "cancelled job settlement; full for a seller-fault Declutter setup job (A10)" },
+  // Q1915 (owner 2026-10-21): a deleted crew member's late-cancel share, withheld when the job settled, goes back to
+  // the person who posted it (plus the sales tax the cancel refund kept on it). The card fee stays kept.
+  { file: "supabase/functions/void-cancelled-payments/index.ts", key: "crew-share-returned-", kind: "keeps-fee", why: "a deleted crew member's withheld fee share back to the person who posted the job (Q1915)" },
   { file: "supabase/functions/process-scheduled-payouts/index.ts", key: "crew-dispute-refund-", kind: "keeps-fee", why: "crew unfilled spots / crew dispute" },
   { file: "supabase/functions/charge-recurring-visits/index.ts", key: "refunds.create(params, opts)", kind: "pass-through", why: "createRefundOnce: callers checked below" },
   {
@@ -709,6 +713,11 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     "capturedCents = pi.amount_received ?? pi.amount",
     "blockFeeCents = crewBlockFeeCents(blockFeeRows)",
     "nonRefundableCents = voidSplit.nonRefundableCents",
+  ],
+  // Q1915: a deleted crew member's withheld share plus the tax the cancel refund kept on it; the card fee stays kept.
+  "crew-share-returned-": [
+    "shareRefundCents",
+    "shareRefundCents = withheldFeeReturnCents({ withheldCents: cents, keptTaxCents, capturedCents, refundedCents: Math.round(Number(charge?.amount_refunded ?? 0)), })",
   ],
   "createRefundOnce#0": [
     "owedCents",

@@ -241,3 +241,14 @@ export function posterCancelKeptFeeCents(
 export function crewFeeShareReturnCents(i: { customerFeeCents: number; actualFeeCents: number; proRataCents: number }): number {
   return Math.min(cents(i.proRataCents), Math.max(0, cents(i.customerFeeCents) - cents(i.actualFeeCents)));
 }
+
+/**
+ * What goes back to the payer when a fee WITHHELD from their cancellation
+ * refund is released afterwards (Q1915: a crew member who deleted their
+ * account): the withheld cents, plus the sales tax the cancellation refund kept
+ * on them (taxOnKeptCents; 0 when none was kept), never more than the charge
+ * still holds. Stripe's card fee is not in it: it stays kept.
+ */
+export function withheldFeeReturnCents(i: { withheldCents: number; keptTaxCents: number; capturedCents: number; refundedCents: number }): number {
+  return Math.min(cents(i.withheldCents) + cents(i.keptTaxCents), Math.max(0, cents(i.capturedCents) - cents(i.refundedCents)));
+}

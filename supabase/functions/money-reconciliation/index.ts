@@ -582,7 +582,7 @@ serve(async (req) => {
     if (cancelledCrewIds.length > 0) {
       const { data: shareRows, error: shareErr } = await admin
         .from("crew_cancellation_fee_shares")
-        .select("job_id, helper_id, committed, share_basis_cents, share_amount")
+        .select("job_id, helper_id, committed, share_basis_cents, share_amount, status")
         .in("job_id", cancelledCrewIds);
       // Before 20260925154606 deploys the ledger does not exist, and no crew
       // cancelled without a lead can exist either (the backfill is in the same

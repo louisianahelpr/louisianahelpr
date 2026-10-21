@@ -8,7 +8,7 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import { hapticError } from "@/lib/haptics";
 import { userFacingError } from "@/lib/userFacingError";
 import { queryKeys } from "@/lib/queryKeys";
-import { fetchPendingScheduleChange, requestScheduleChange, respondScheduleChange } from "@/lib/scheduleChange";
+import { fetchPendingScheduleChange, requestScheduleChange, respondScheduleChange, withdrawScheduleChange } from "@/lib/scheduleChange";
 
 const when = (date: string, time: string | null) =>
   `${formatJobDate(date)}${time ? ` at ${jobStartTimeLabel(time) ?? time.slice(0, 5)}` : ""}`;
@@ -236,15 +236,44 @@ export function ScheduleChangeControl({
             >
               Decline
             </button>
+            {/* Board 66/172: the answer can be another time. Asking again replaces this request and tells them. */}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setAsking(true)}
+              className="min-h-[44px] px-1 text-ds-12 font-semibold underline underline-offset-2 disabled:opacity-40"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              Suggest another time
+            </button>
           </div>
         </div>
       )}
 
       {askedByMe && pending && (
-        <p className="text-ds-11 text-muted-foreground leading-snug">
-          You asked to move this to {when(pending.new_date, pending.new_start_time)}. Waiting for an answer; it lapses at the
-          current start time.
-        </p>
+        <div className="space-y-1">
+          <p className="text-ds-11 text-muted-foreground leading-snug">
+            You asked to move this to {when(pending.new_date, pending.new_start_time)}. Waiting for an answer; it lapses at the
+            current start time.
+          </p>
+          {/* Board 66/172 slice 3: whoever asked can take it back while it is pending. */}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              act(async () => {
+                const s = await withdrawScheduleChange(pending.id);
+                if (s === "withdrawn") return "Request withdrawn. The date and time stay as they are.";
+                // Answered or lapsed in the meantime: nothing left to take back (the card re-reads what happened).
+                return { warn: s === "expired" ? expiredMessage(s) : "It was already answered, so there's nothing to take back." };
+              })
+            }
+            className="min-h-[44px] px-1 text-ds-11 font-semibold underline underline-offset-2 disabled:opacity-40"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            Withdraw request
+          </button>
+        </div>
       )}
 
       {!askedOfMe && !hideAsk && (
@@ -258,7 +287,7 @@ export function ScheduleChangeControl({
         </button>
       )}
 
-      {!hideAsk && (
+      {(!hideAsk || askedOfMe) && (
         <ScheduleChangeAskDialog
           open={asking}
           onOpenChange={setAsking}

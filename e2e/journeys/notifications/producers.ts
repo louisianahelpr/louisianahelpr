@@ -170,6 +170,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   },
   "sql:request_job_schedule_change": { uncovered: GAP("request_job_schedule_change on a hired journey job (the other party answers with respond_job_schedule_change)") },
   "sql:respond_job_schedule_change": { uncovered: GAP("respond_job_schedule_change after the other party asks to move a hired journey job") },
+  "sql:withdraw_job_schedule_change": { uncovered: GAP("withdraw_job_schedule_change after asking to move a hired journey job") },
   "sql:request_job_detail_change": { uncovered: GAP("request_job_detail_change on a hired journey job (each booked Helpr answers with respond_job_detail_change)") },
   "sql:respond_job_detail_change": { uncovered: GAP("respond_job_detail_change after the poster asks to change a hired journey job's details") },
   "sql:settle_job_detail_change": { uncovered: GAP("settle_job_detail_change when the last booked Helpr accepts, or a crew member leaves after the rest accepted (Q1500)") },

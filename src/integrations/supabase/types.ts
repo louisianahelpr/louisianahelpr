@@ -15440,6 +15440,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: string
       }
+      withdraw_job_schedule_change: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
       withdraw_job_quote: {
         Args: { p_quote_id: string }
         Returns: undefined

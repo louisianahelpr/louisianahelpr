@@ -116,6 +116,18 @@ const DRIP_STEPS = {
   },
 } as const
 
+/**
+ * The welcome drip goes ONLY to members who joined in the last 14 days
+ * (owner ruling 2026-10-21, Q2303, issue #3509). A member who signed up more
+ * than 14 days ago gets no welcome step at all, whatever step they are on;
+ * older members who never got the series get only the come-back emails
+ * (come-back-emails / claim_come_back_emails, unchanged). Inside the window
+ * the step days (1, 3, 7) and the one-a-day rule are as before. Measured
+ * from profiles.created_at, the same column the step days use. Exactly 14
+ * days is still inside; 14 days and one second is out.
+ */
+const WELCOME_DRIP_MAX_DAYS = 14
+
 // ─── Main Handler ──────────────────────────────────────────────────
 
 /**
@@ -448,12 +460,17 @@ serve(async (_req) => {
       last_drip_at: string | null
       created_at: string
     }
+    const welcomeWindowStart = new Date(now.getTime() - WELCOME_DRIP_MAX_DAYS * 24 * 60 * 60 * 1000).toISOString()
     const dripScan = await scanAll<DripUser>('drip recipients', (countOpt) =>
       supabase
         .from('profiles')
         .select('user_id, full_name, email, drip_step, last_drip_at, created_at', countOpt)
         .order('user_id', { ascending: true })
         .lt('drip_step', 3)
+        // Joined in the last 14 days only (WELCOME_DRIP_MAX_DAYS, Q2303). The
+        // loop below checks the same window again, so a row this filter let
+        // through by mistake still gets no welcome step.
+        .gte('created_at', welcomeWindowStart)
         .not('email', 'is', null)
       // Automated lifecycle mail previously went to EVERY profile with an
       // address — including unverified addresses. Email verification is the
@@ -484,6 +501,10 @@ serve(async (_req) => {
 
       const signupDate = new Date(user.created_at)
       const daysSinceSignup = (now.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24)
+
+      // Past the welcome window (joined more than 14 days ago): no welcome
+      // step at all (Q2303). An unreadable sign-up date is out too.
+      if (!(daysSinceSignup <= WELCOME_DRIP_MAX_DAYS)) continue
 
       // Which step is due, from days since signup.
       let targetStep: 1 | 2 | 3 | -1 = -1
@@ -539,6 +560,10 @@ serve(async (_req) => {
     // ─── 2. Re-engagement Nudges (COMMERCIAL) ─────────────────────
     // Users inactive for 14+ days (no job posted, no message, no login update)
     // who finished the drip (step >= 3), so the two sequences never overlap.
+    // Since the 14-day welcome window (Q2303) a member who joined more than
+    // 14 days ago and never reached step 3 (never got the series, or was cut
+    // off partway) stays below step 3 and so never gets this win-back either:
+    // by the owner's ruling they get only the come-back emails.
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
     type InactiveUser = {

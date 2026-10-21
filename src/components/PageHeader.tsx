@@ -1,5 +1,6 @@
 import BackButton, { BACK_BUTTON_BOX_CLASS } from "@/components/BackButton";
 import HelprMark from "@/components/HelprMark";
+import { PageTitleBar } from "@/components/header/PageTitleBar";
 import type { CSSProperties, ReactNode } from "react";
 
 interface PageHeaderProps {
@@ -233,8 +234,16 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
   // Only absorb the safe-area inset when nothing above us has already cleared
   // it: no own top bar AND no sibling header stacked above (topInsetHandled).
   const absorbSafeArea = !showTopBar && !topInsetHandled;
+  // ONE header row (owner 2026-10-21): on the desktop website the back arrow,
+  // title and actions go into the global top bar (PageTitleBar); on a phone the
+  // page keeps exactly the rows below.
+  const desktopActions = rightSlot || titleActions ? <>{rightSlot}{titleActions}</> : undefined;
   return (
-    <>
+    <PageTitleBar
+      title={title}
+      back={hideBack ? undefined : { onBack, backTo }}
+      actions={desktopActions}
+      phone={<>
       {showTopBar && (
         <header className="glass-header sticky top-0 z-50">
           {frame(
@@ -349,7 +358,8 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
           </div>
         </>,
       )}
-    </>
+    </>}
+    />
   );
 };
 

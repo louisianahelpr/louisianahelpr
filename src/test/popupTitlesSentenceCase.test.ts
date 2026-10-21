@@ -66,7 +66,7 @@ function titleValue(attrs: string): string | null {
 
 /**
  * The words a title SHOWS: a plain literal, a template's literal parts, and in
- * an expression the string BRANCHES (after ? : ?? ||), never the strings it
+ * an expression the string BRANCHES (after ? : ?? || &&), never the strings it
  * compares against (`step === "confirmation"`). `${…}` becomes a value marker.
  */
 function titles(src: string): string[] {
@@ -77,7 +77,7 @@ function titles(src: string): string[] {
     const lit = /^"([^"]*)"$/.exec(v) ?? /^\{"([^"]*)"\}$/.exec(v) ?? /^\{`([^`]*)`\}$/.exec(v);
     const parts = lit
       ? [lit[1]]
-      : [...v.matchAll(/(?:\?|:|\?\?|\|\|)\s*(?:"([^"]*)"|`([^`]*)`)/g)].map((x) => x[1] ?? x[2]);
+      : [...v.matchAll(/(?:\?|:|\?\?|\|\||&&)\s*(?:"([^"]*)"|`([^`]*)`)/g)].map((x) => x[1] ?? x[2]);
     for (const raw of parts) out.push(raw.replace(/\$\{[^}]*\}/g, "\u0001"));
   }
   return out;

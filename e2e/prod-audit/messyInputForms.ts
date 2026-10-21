@@ -737,14 +737,15 @@ export const FORMS: FormSpec[] = [
   },
   {
     // The panel's one text field is the private applicant note (localStorage
-    // only), behind "Add Private Note" on the pending applicant's row.
+    // only), behind "Add Private Note" on the pending applicant's row. It lives
+    // in ApplicantPrivateNote since board 170 (shared by the cards and the table).
     name: "applicants-note", url: "/posts", as: "poster",
     prepare: async (page) => {
       await openApplicantsPanel(page);
       await page.getByRole("button", { name: PRIVATE_NOTE_BUTTON }).first().click();
       await page.getByRole("textbox", { name: /^private note$/i }).waitFor({ timeout: 15_000 });
     },
-    covers: ["src/pages/posts/postedJobs/ApplicantsPanel.tsx"],
+    covers: ["src/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote.tsx"],
   },
   {
     name: "decline-applicant", url: "/posts", as: "poster",

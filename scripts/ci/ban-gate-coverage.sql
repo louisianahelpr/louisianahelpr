@@ -91,7 +91,6 @@ WITH table_exempt(tbl, op, why) AS (
   ('stripe_webhook_events', 'INSERT', 'only policy is false: no client write exists'),
   ('stripe_webhook_events', 'UPDATE', 'only policy is false: no client write exists'),
   ('stripe_webhook_events', 'DELETE', 'only policy is false: no client write exists'),
-  ('user_roles', 'UPDATE', 'only policy is false: no client write exists'),
   -- Admin-only by RLS (policy requires has_role admin). The admin role, not the
   -- member ban ladder, is the control for an admin; and these tables are also
   -- written by consequence code running in the violator's own session, which a
@@ -123,7 +122,6 @@ WITH table_exempt(tbl, op, why) AS (
   ('user_bans', 'INSERT', 'admin-only by RLS'),
   ('user_bans', 'UPDATE', 'admin-only by RLS'),
   ('user_bans', 'DELETE', 'admin-only by RLS'),
-  ('user_roles', 'INSERT', 'admin-only by RLS'),
   ('user_roles', 'DELETE', 'admin-only by RLS'),
   ('user_violations', 'INSERT', 'admin-only by RLS; also written by consequence code in the violator session'),
   ('user_violations', 'UPDATE', 'admin-only by RLS'),

@@ -53,7 +53,7 @@ export const DB_ID_COLUMNS = {
     { table: "declutter_refunds", column: "stripe_payment_intent_id" },
     { table: "declutter_hand_refunds", column: "stripe_payment_intent_id", orderBy: "stripe_refund_id" },
     { table: "declutter_delivery_refunds", column: "stripe_payment_intent_id" },
-    // Q1929: a delivery-pay raise is its own charge (20261021130506).
+    // Q1929: a delivery-pay raise is its own charge (20261021185418).
     { table: "declutter_delivery_raises", column: "stripe_payment_intent_id" },
     { table: "shop_orders", column: "stripe_payment_intent_id" },
   ],

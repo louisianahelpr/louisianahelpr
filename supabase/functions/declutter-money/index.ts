@@ -36,7 +36,7 @@
  *      declutter_delivery_refund_executed. metadata.kind stays
  *      "declutter_refund" so the webhook's charge.refunded path leaves it to
  *      this function.
- *   4b. DELIVERY-PAY RAISES (Q1929, row 40; 20261021130506)
+ *   4b. DELIVERY-PAY RAISES (Q1929, row 40; 20261021185418)
  *      declutter_delivery_raise_refunds_due(): a paid raise the delivery did
  *      not use (nobody took it, the sale was cancelled, a page paid after the
  *      delivery stopped waiting) goes back in full on the raise's OWN charge,
@@ -153,7 +153,7 @@ type HelprPayoutDue = {
   transfer_group: string | null;
   refunds_recorded_cents: number | null;
   attempts: number;
-  /** Q1929: how much of the pay came from paid raises, and each raise's own charge (20261021130506). */
+  /** Q1929: how much of the pay came from paid raises, and each raise's own charge (20261021185418). */
   raised_cents?: number | null;
   raise_parts?: unknown;
 };
@@ -851,7 +851,7 @@ serve(async (req) => {
   const payouts = (payoutsRes.data ?? []) as PayoutDue[];
   const helprPayouts = (helprRes.data ?? []) as HelprPayoutDue[];
   const deliveryRefunds = (deliveryRes.data ?? []) as DeliveryRefundDue[];
-  // Q1929: raises of a delivery's pay to give back (20261021130506). A function not deployed yet
+  // Q1929: raises of a delivery's pay to give back (20261021185418). A function not deployed yet
   // (PGRST202: this edge shipped before its migration) is one defect, never a stop for the rest.
   const raiseRes = await admin.rpc("declutter_delivery_raise_refunds_due", { p_limit: BATCH });
   if (raiseRes.error && (raiseRes.error as { code?: string }).code !== "PGRST202") {

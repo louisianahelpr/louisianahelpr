@@ -1,6 +1,6 @@
 /**
  * "Raise the pay" on the buyer's delivery (spec row 40, Q1929; migration
- * 20261021130506). Shown under the delivery while no Helpr has taken it: the
+ * 20261021185418). Shown under the delivery while no Helpr has taken it: the
  * buyer offers more, sees exactly what the second card payment costs (the
  * raise plus its card fee), and pays it on a Stripe page. Nothing changes until
  * that payment goes through; a raise the delivery never uses comes back in

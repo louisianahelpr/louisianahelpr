@@ -1,6 +1,6 @@
 /**
  * The buyer's "Raise the pay" panel (Q1929, spec row 40; migration
- * 20261021130506). The amounts and the rules are proven in SQL by
+ * 20261021185418). The amounts and the rules are proven in SQL by
  * src/test/pglite/declutterDeliveryRaise.pglite.mjs; this proves the panel
  * shows the honest price of the second payment (raise + card fee, the same
  * formula as the SQL) and sends exactly the raise the buyer typed.

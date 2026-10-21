@@ -155,7 +155,7 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     task_not_found: DC.task_not_found,
     under_18: DC.under_18,
   },
-  // Q1929: the buyer's "Raise the pay" panel on a delivery (20261021130506). Read only from the
+  // Q1929: the buyer's "Raise the pay" panel on a delivery (20261021185418). Read only from the
   // delivery screen, so its words live here with the other delivery-screen RPCs.
   declutter_delivery_raise_status: {
     feature_disabled: DC.feature_disabled,

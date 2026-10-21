@@ -265,7 +265,7 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
   // the delivery we sold did not happen (no Helpr, damage, a cancel that was not the buyer's) or our system took a
   // payment it could not use (the delivery stopped waiting, a replaced page, a wrong amount). A sale cancelled for
   // the buyer's own reason keeps the raise's card fee: decided in SQL (declutter_delivery_raises_on_task_close,
-  // CHECK declutter_delivery_raises_refund_amount, 20261021130506; proven by declutterDeliveryRaise.pglite.mjs).
+  // CHECK declutter_delivery_raises_refund_amount, 20261021185418; proven by declutterDeliveryRaise.pglite.mjs).
   { file: "supabase/functions/declutter-money/index.ts", key: "payment_intent: x.payment_intent_id", kind: "own-mistake", why: "delivery-pay raise back on its own charge: the delivery never had a Helpr, or a payment we could not use (Q1929)" },
   {
     file: "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts", key: "payment_intent: paymentIntentId", kind: "sql-policy",
@@ -456,14 +456,14 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_admin_decide_delivery_damage: "20261017055505_declutter_helpr_delivery.sql fe11a9a3460b2a93",
       declutter_card_fee_estimate: "20261014224914_declutter_slice3b_payments.sql c3eec727dc09fe3e",
       declutter_close_paid_order: "20261017055505_declutter_helpr_delivery.sql 0c52fabd4123f2d4",
-      // Q1929 (20261021130506), reviewed: a delivery-pay raise is its OWN charge and never a declutter_refunds row.
+      // Q1929 (20261021185418), reviewed: a delivery-pay raise is its OWN charge and never a declutter_refunds row.
       // _start writes an unpaid raise row (its card fee is the buyer's to pay, grossed up); _status reads the
       // buyer's own raises; the close trigger moves applied raises to refunding: everything paid, except a sale
       // cancelled for the buyer's own reason, where the raise's card fee is kept (refund = paid - card fee, held
       // by CHECK declutter_delivery_raises_refund_amount). None records or changes an order refund.
-      declutter_delivery_raise_start: "20261021130506_declutter_delivery_raise_pay.sql f54438c6e9a4e1f9",
-      declutter_delivery_raise_status: "20261021130506_declutter_delivery_raise_pay.sql bd5359e2919ef3b0",
-      declutter_delivery_raises_on_task_close: "20261021130506_declutter_delivery_raise_pay.sql 5a8a059eef32a5f7",
+      declutter_delivery_raise_start: "20261021185418_declutter_delivery_raise_pay.sql f54438c6e9a4e1f9",
+      declutter_delivery_raise_status: "20261021185418_declutter_delivery_raise_pay.sql bd5359e2919ef3b0",
+      declutter_delivery_raises_on_task_close: "20261021185418_declutter_delivery_raise_pay.sql 5a8a059eef32a5f7",
       declutter_hand_refund_failed: "20261017055500_declutter_refund_hand_settle.sql df3bdc676a1d434c",
       // Owner answer 7 (20261017060455): the three seller-out paths record
       // 'seller_out' (full refund, the card fee is the seller's debt) instead of order_closed / sold_elsewhere.

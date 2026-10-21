@@ -1,6 +1,6 @@
 /**
  * Raising a Declutter delivery's pay (spec row 40, Q1929; migration
- * 20261021130506_declutter_delivery_raise_pay). The raise is its own card
+ * 20261021185418_declutter_delivery_raise_pay). The raise is its own card
  * payment, so the buyer pays that payment's card cost: what Stripe keeps on a
  * card charge (2.9% + 30c), grossed up so the whole raise reaches the
  * delivery's pay.

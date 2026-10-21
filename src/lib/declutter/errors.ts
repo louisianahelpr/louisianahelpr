@@ -160,7 +160,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   vehicle_photo_required: "Add a photo of your truck.",
   not_picked_up_yet: "Take the \"Picked up\" photo first.",
   not_at_dropoff: "Take the photo at the drop-off address.",
-  // Raise the delivery pay (20261021130506, Q1929).
+  // Raise the delivery pay (20261021185418, Q1929).
   invalid_raise: "Raise the pay by whole dollars, at least $5.",
   delivery_not_waiting: "A Helpr already took this delivery, or it closed.",
   raise_too_late: "Less than an hour is left to find a Helpr, so the pay can't be raised now.",

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261021130506_declutter_delivery_raise_pay (Q1929, spec
+ * PGlite proof for 20261021185418_declutter_delivery_raise_pay (Q1929, spec
  * row 40: "the buyer may raise the pay to attract a Helpr"; owner 2026-10-21:
  * build it). On top of Declutter slices 1-4, slice 5 delivery
  * (20261017055505) and the no-code drop-off (20261018183715,
@@ -25,7 +25,7 @@ import os from "node:os";
 import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FILE } from "../../../scripts/declutter/slice3Harness.mjs";
 import { raiseCardFeeCents, RAISE_MIN_CENTS } from "../../lib/declutter/raiseFee.ts";
 
-const NEW_FILE = "20261021130506_declutter_delivery_raise_pay.sql";
+const NEW_FILE = "20261021185418_declutter_delivery_raise_pay.sql";
 const BEFORE = [
   "20261017055500_declutter_refund_hand_settle.sql",
   "20261017055502_declutter_handover_private_bucket.sql",

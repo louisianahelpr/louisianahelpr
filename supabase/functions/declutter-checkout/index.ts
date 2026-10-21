@@ -385,7 +385,7 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
   }
 
   const { data, error } = await asBuyer.rpc("declutter_delivery_raise_start", { p_order_id: orderId, p_raise_cents: raiseCents });
-  // This function can deploy before its migration (20261021130506): say it is not available yet, never "try again".
+  // This function can deploy before its migration (20261021185418): say it is not available yet, never "try again".
   if (error?.code === "PGRST202") return json({ error: "raise_unavailable" }, 503);
   if (error) return rpcRefusal(error);
   const raise = (Array.isArray(data) ? data[0] : data) as RaiseRow | undefined;

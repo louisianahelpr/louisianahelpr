@@ -1,6 +1,6 @@
 /**
  * Raising a Declutter delivery's pay (spec row 40, Q1929; migration
- * 20261021130506_declutter_delivery_raise_pay). The buyer of a delivery no
+ * 20261021185418_declutter_delivery_raise_pay). The buyer of a delivery no
  * Helpr has taken yet may add to the pay; it is its own card payment (the
  * raise plus its card fee, src/lib/declutter/raiseFee.ts), made on a Stripe
  * page that declutter-checkout opens. Nothing changes until that payment

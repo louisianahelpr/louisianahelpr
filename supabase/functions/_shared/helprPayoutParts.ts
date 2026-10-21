@@ -1,6 +1,6 @@
 // helprPayoutParts — how ONE Helpr task payout is funded when the buyer
 // raised the delivery's pay (Q1929, spec row 40; migration
-// 20261021130506_declutter_delivery_raise_pay).
+// 20261021185418_declutter_delivery_raise_pay).
 //
 // A Stripe transfer made with source_transaction may not exceed its source
 // charge (and all transfers from one charge together may not either). A raise

@@ -10,6 +10,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import type { DeliverySize } from "@/lib/declutter/api";
+import { roundPayoutDownCents } from "../../../supabase/functions/_shared/money";
 
 /** Row 29: $10 base per checkout. */
 export const DELIVERY_BASE_CENTS = 1000;
@@ -24,11 +25,16 @@ export function deliveryPriceCents(roadMiles: number, sizes: readonly DeliverySi
   return DELIVERY_BASE_CENTS + DELIVERY_PER_MILE_CENTS * miles + sizes.reduce((sum, s) => sum + (DELIVERY_SIZE_CENTS[s] ?? 0), 0);
 }
 
-/** What the Helpr takes home from a delivery fee: jobs' flat fee 5% + 70c comes out of it (row 42). */
+/**
+ * What the Helpr takes home from a delivery fee: jobs' flat fee 5% + 70c comes
+ * out of it (row 42), then the payout is rounded DOWN to the whole dollar and
+ * the platform keeps the cents (owner 2026-10-21, the Jobs rule Q236). Mirrors
+ * helpr_payout_round_down_cents(pay - helpr_task_fee_cents(pay)) in SQL.
+ */
 export function helprTakeHomeCents(payCents: number): number {
   const pay = Math.max(0, Math.round(payCents));
   if (pay === 0) return 0;
-  return pay - Math.min(pay, Math.round((pay * 5) / 100) + 70);
+  return roundPayoutDownCents(pay - Math.min(pay, Math.round((pay * 5) / 100) + 70));
 }
 
 export interface DeliveryQuote {

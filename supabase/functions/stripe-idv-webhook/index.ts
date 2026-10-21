@@ -463,15 +463,37 @@ serve(async (req) => {
         updateData.legacy_manual_review = true;
       }
 
-      const { error: updErr } = await supabase
+      // A DECISION WINS (owner report 2026-10-21, restart): the write lands only
+      // while the profile is undecided ('verified' and 'failed' are final until
+      // an admin moves them) and this event is for the CURRENT session (or none
+      // is stored: claim_idv_attempt clears it when an attempt is claimed). So
+      // an admin's rejection is never turned into 'verified' by a check that
+      // was still in flight, an admin's approval is never undone by a late
+      // event, and a stale session's event never lands on a fresh restart.
+      const { data: updRows, error: updErr } = await supabase
         .from("profiles")
         .update(updateData)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .not("idv_status", "in", "(verified,failed)")
+        // The id is Stripe's (a signed event), checked to its shape anyway before
+        // it goes into a filter string.
+        .or(`idv_session_id.is.null,idv_session_id.eq.${/^[A-Za-z0-9_]+$/.test(session.id) ? session.id : "invalid"}`)
+        .select("user_id");
 
       if (updErr) {
         // Throwing here routes into the outer catch which fires postSlackOpsAlert.
         // A silent log would permanently lose the IDV status update with no operator alert.
         throw updErr;
+      }
+      if (!updRows || (updRows as unknown[]).length === 0) {
+        // Deliberate no-op, not a failure: a decision already stands, or this
+        // is an older session. Acknowledge so Stripe does not retry, and say so.
+        console.warn(
+          `[stripe-idv-webhook] ${event.type} for ${session.id} not applied: the profile is already decided or on a newer session`,
+        );
+        return new Response(JSON.stringify({ received: true, skipped: "decided_or_stale_session" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Notify user + admins

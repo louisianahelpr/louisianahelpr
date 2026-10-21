@@ -3,6 +3,8 @@
 // that runs the existing release, and "Something's not right" opening the fix request.
 // @mutate src/pages/posts/CompletionChoiceSheet.tsx |                   {jobPrice ? `Confirm and release $${formatPriceExact(jobPrice)}` : "Confirm and release"} |                   {"Confirm and release"}
 // @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx |             jobPrice={!job.is_group_job && !(job.urgent_fee && job.urgent_fee > 0) ? job.budget : null} |             jobPrice={job.budget}
+// @mutate src/pages/posts/CompletionChoiceSheet.tsx |           event.preventDefault();\n          (event.currentTarget as HTMLElement \| null)?.focus({ preventScroll: true }); |           void event;
+// @mutate src/pages/posts/CompletionChoiceSheet.tsx | <strong className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}> | <strong className="tabular-nums">
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -36,6 +38,10 @@ describe("board 65: confirm and release", () => {
     expect(screen.getByText("Pressure wash driveway")).toBeInTheDocument();
     expect(screen.getByText(/job price is/).textContent).toMatch(/\$90 job price is released to Andre/);
     expect(screen.queryByText(/take home|takes home/i)).toBeNull();
+    // lh-money-escrow review (2026-10-21) #3: no Helpr pay, fee or rule anywhere on the poster's release sheet.
+    expect(document.body.textContent).not.toMatch(/receives|take.?home|payout|after fees|\d+%|\$0\.70/i);
+    // #2: one consistent story: released on confirm; held only through "Something's not right".
+    expect(screen.getByText(/job price is/).textContent).toMatch(/tap "Something's not right" and the money stays held\.$/);
     fireEvent.click(screen.getByRole("button", { name: "Confirm and release $90" }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
@@ -50,5 +56,21 @@ describe("board 65: confirm and release", () => {
   it("the card passes a price only for a one-Helpr job with no urgent bonus", () => {
     const src = blankComments(readFileSync("src/pages/posts/postedJobCard/steps/InProgressStep.tsx", "utf8"));
     expect(src).toMatch(/jobPrice=\{!job\.is_group_job && !\(job\.urgent_fee && job\.urgent_fee > 0\) \? job\.budget : null\}/);
+  });
+
+  // Lead MUST (2026-10-21): a stray Enter or Space at open must not release money.
+  it("opens with focus on the sheet, never on the release button", async () => {
+    show(90);
+    const release = screen.getByRole("button", { name: "Confirm and release $90" });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(document.activeElement).not.toBe(release);
+    expect(document.activeElement?.getAttribute("role")).toBe("dialog");
+  });
+
+  it("the note is ink with only the amount in rust (rust = money only)", () => {
+    show(90);
+    const note = screen.getByText(/job price is/);
+    expect(note.className).toContain("text-foreground");
+    expect(note.querySelector("strong")?.getAttribute("style")).toMatch(/sienna-ink/);
   });
 });

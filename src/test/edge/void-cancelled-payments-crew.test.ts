@@ -143,7 +143,7 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     expect(ledgerFlips()).toEqual([]);
   });
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts | const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0 && s.status !== "paid"); | const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0);
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0 && s.status !== "paid" && s.status !== "void"); | const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0 && s.status !== "void");
   it("never pays a share the ledger already marks paid", async () => {
     seedCancelledCrew(MEMBERS.map((m, i) => ({
       id: `share-${i + 1}`, helper_id: m, committed: true, share_basis_cents: 10000, share_amount: "50.00",

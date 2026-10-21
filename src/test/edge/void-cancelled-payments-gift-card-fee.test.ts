@@ -39,7 +39,7 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if ((funding.donationReversed \|\| funding.restored) && !crewShares && blockFeeRows.length === 0) { | if (!crewShares && blockFeeRows.length === 0) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts | cancellationFee = Math.min(feeOwedCents, cardLeftCents + cardGift.cents) / 100; | cancellationFee = feeOwedCents / 100;
  * @mutate supabase/functions/void-cancelled-payments/index.ts | cancellationFee = Math.min(Math.round(cancellationFee * 100), cardLeftCents + holdGiftKeptOnlyCents) / 100; | cancellationFee = cancellationFee;
- * @mutate supabase/functions/void-cancelled-payments/index.ts | ...(cardGiftGone ? { cancellation_fee: cancellationFee } : {}), | ...({}),
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | ...(cardGiftGone \|\| crewShareReturned ? { cancellation_fee: cancellationFee } : {}), | ...(crewShareReturned ? { cancellation_fee: cancellationFee } : {}),
  * @mutate supabase/functions/void-cancelled-payments/index.ts | } else if (cardGift \|\| cardGiftGone) { | } else if (cardGift) {
  * @mutate supabase/functions/_shared/money.ts | return total <= chargeCents ? chargeId : undefined; | return chargeId;
  * @mutate supabase/functions/_shared/money.ts | const total = linked + | const total = 0 +

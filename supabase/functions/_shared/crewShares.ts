@@ -102,6 +102,21 @@ export interface CrewFeeShareRow {
   committed: boolean;
   share_basis_cents: number | string | null;
   share_amount: number | string | null;
+  /** 'pending' | 'paid' | 'failed' | 'void'; absent reads as not paid. */
+  status?: string | null;
+}
+
+/**
+ * Q1915 (owner decided 2026-10-21): a share whose member deleted their account
+ * (helper_id set NULL by the FK) goes BACK TO THE POSTER, on the card and the
+ * gift paths alike. void-cancelled-payments marks it 'void' once it has gone
+ * back (before the fee is charged, or when it is refunded after), and only a
+ * void share leaves the fee: until then it was withheld from the poster like
+ * any other (lh-money-escrow review #1). A share PAID before its member was
+ * deleted is never voided: that money went out.
+ */
+export function returnsToPoster(s: Pick<CrewFeeShareRow, "status">): boolean {
+  return s.status === "void";
 }
 
 /**
@@ -109,6 +124,8 @@ export interface CrewFeeShareRow {
  * fee must equal round(basis * ladder% / 100) to the cent, and the bases must
  * not add up to more than the budget. Returns the total to charge in dollars,
  * or `mismatch` naming what is wrong — the caller then moves NO money.
+ * Every row is still re-priced, but a share that goes back to the poster
+ * (returnsToPoster, Q1915) is left out of the total.
  */
 export function crewCancellationFee(
   job: CrewCancellationFeeJob,
@@ -126,7 +143,7 @@ export function crewCancellationFee(
       return { total: 0, mismatch: { helper_id: s.helper_id, stored: storedCents / 100, expected: expectedCents / 100, reason: "share does not match its price" } };
     }
     basisTotal += basis;
-    totalCents += storedCents;
+    if (!returnsToPoster(s)) totalCents += storedCents;
   }
   if (basisTotal > budgetCents) {
     return { total: 0, mismatch: { helper_id: null, stored: basisTotal / 100, expected: budgetCents / 100, reason: "shares exceed the budget" } };

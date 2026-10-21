@@ -1,15 +1,19 @@
 {
-  "generated": "2026-10-21T07:45:57.326Z",
-  "guards": 2224,
-  "registered": 2223,
+  "generated": "2026-10-21T09:29:29.157Z",
+  "guards": 2233,
+  "registered": 2232,
   "unregistered": [
     "src/lib/savedSearches.test.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/disputeDecisionBoard142.test.ts",
+    "src/test/alarmColourInvariant.test.ts",
     "src/test/analyticsCountsReadRealEvents.test.ts",
-    "src/test/moneyOwedBlocksAccountDeletion.test.ts"
+    "src/test/identityGatesPostAndStart.test.ts",
+    "src/test/identityVerifiedAtKeepsFirstDate.test.ts",
+    "src/test/moneyOwedBlocksAccountDeletion.test.ts",
+    "src/test/paidTierBadgeNeedsMemberships.test.ts"
   ],
   "classD_selfReferential": [
     {

@@ -13151,6 +13151,14 @@ export type Database = {
           title: string
         }[]
       }
+      get_price_guidance: {
+        Args: { p_category: string }
+        Returns: {
+          high_dollars: number
+          low_dollars: number
+          sample_count: number
+        }[]
+      }
       get_public_platform_settings: {
         Args: never
         Returns: {

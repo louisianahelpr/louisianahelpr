@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { LogisticsSection } from "@/components/postjob/LogisticsSection";
 import { BudgetSection } from "@/components/postjob/BudgetSection";
+import { PriceGuidanceCard } from "@/components/postjob/PriceGuidance";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
 import { DirectOfferBanner } from "./DirectOfferBanner";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
@@ -301,6 +302,12 @@ export function FormStep({ form }: FormStepProps) {
             budgetComplete={form.budgetComplete}
             giftAmount={form.giftCreditAmount}
           />
+          {/* Board 190: what most real jobs in this category paid; nothing without 30+ real jobs. */}
+          {form.category && (
+            <div className="mt-4">
+              <PriceGuidanceCard category={form.category} budget={form.budgetNum} onUse={(d) => form.setBudget(String(d))} />
+            </div>
+          )}
         </div>
         )}
           {!askingQuotes && (

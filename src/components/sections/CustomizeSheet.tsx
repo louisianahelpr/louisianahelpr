@@ -6,6 +6,7 @@ import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { SECTION_INVITE } from "@/pages/home/homeDashboard/useHomeSummary";
 import { sectionByKey } from "./sectionsConfig";
 import { useSectionPrefs } from "./useSectionPrefs";
+import { SoonPill } from "@/components/sections/SoonPill";
 
 /**
  * Customize sections = board 90 (2026-10-20; first built 2026-10-19). Home and
@@ -74,7 +75,7 @@ export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenCh
                     }}
                   />
                 ) : (
-                  <span className="text-ds-13 font-semibold text-muted-foreground" data-section-soon={key}>Opening soon</span>
+                  <SoonPill data-section-soon={key} />
                 )}
               </li>
             );

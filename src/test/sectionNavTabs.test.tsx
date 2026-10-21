@@ -33,7 +33,7 @@
  * @mutate src/components/sections/ExploreSwitcher.tsx |           if (!s \|\| !isOn(s)) return; |           if (!s) return;
  * @mutate src/components/sections/ExploreSwitcher.tsx |           if (!s \|\| !isOn(s)) return; |           if (!s) return; if (!isOn(s)) return void toast("Soon");
  * @mutate src/components/sections/ExploreSwitcher.tsx |         tone="quiet" |         tone="solid"
- * @mutate src/components/sections/ExploreSwitcher.tsx |             Soon\n |             \n
+ * @mutate src/components/sections/ExploreSwitcher.tsx | <SoonPill variant="badge" data-soon-badge="" aria-hidden="true" className="absolute -top-1.5 left-full -ml-0.5" /> | <span data-soon-badge="" aria-hidden />
  * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: on ? s.navLabel : comingSoonLabel(s.navLabel), |       ariaLabel: s.navLabel,
  * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     youItem,\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
  * @mutate src/components/DesktopSidebarNav.tsx | onClick={() => { if (soon) return sayComingSoon(label); if | onClick={() => { if (false) return sayComingSoon(label); if

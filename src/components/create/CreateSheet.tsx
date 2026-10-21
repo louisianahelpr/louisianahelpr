@@ -10,6 +10,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchMyShopId } from "@/lib/shops/api";
 import { hapticLight } from "@/lib/haptics";
+import { SoonPill } from "@/components/sections/SoonPill";
 
 /** The AI post-a-job path (EntryChoice opens its builder on `?start=ai`). */
 const DESCRIBE_IT_PATH = "/post-job?start=ai";
@@ -95,7 +96,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                       onClick={() => sayComingSoon(s.label)}
                       className="min-h-11 -my-2.5 px-1 flex items-center"
                     >
-                      <span className="rounded-full border border-border px-2.5 py-0.5 text-ds-12 font-semibold text-muted-foreground">Opening soon</span>
+                      <SoonPill />
                     </button>
                   )}
                   {side && <span className="text-ds-13 text-muted-foreground shrink-0">{side}</span>}

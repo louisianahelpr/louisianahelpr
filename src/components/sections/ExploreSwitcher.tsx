@@ -7,6 +7,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { useSectionTabs, comingSoonLabel } from "@/components/mobileNav/useSectionTabs";
 import { useSectionPrefs } from "./useSectionPrefs";
 import type { SectionDef, SectionKey } from "./sectionsConfig";
+import { SoonPill } from "@/components/sections/SoonPill";
 
 const LAST_KEY = "helpr_explore_last";
 
@@ -69,9 +70,7 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
         // "Soon" sits beside the muted icon, so the name below stays whole at 320.
         <span className="relative inline-flex">
           <Icon className="w-[18px] h-[18px] text-muted-foreground" strokeWidth={1.75} aria-hidden />
-          <span data-soon-badge="" aria-hidden className="absolute -top-1.5 left-full -ml-0.5 rounded-full border border-border bg-card px-1 text-ds-9 font-semibold leading-[14px] text-muted-foreground">
-            Soon
-          </span>
+          <SoonPill variant="badge" data-soon-badge="" aria-hidden="true" className="absolute -top-1.5 left-full -ml-0.5" />
         </span>
       ),
       label: on ? s.navLabel : <span data-soon="" className="text-muted-foreground font-medium">{s.navLabel}</span>,

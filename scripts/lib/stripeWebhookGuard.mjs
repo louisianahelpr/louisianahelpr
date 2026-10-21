@@ -19,7 +19,7 @@
  * be a LIVE key (else the read graded the retired sandbox), and the endpoints
  * are then graded exactly like a /v1/webhook_endpoints list.
  */
-export function gradeConfigCheckResponse(body, handlers, url, testModeEvents = null) {
+export function gradeConfigCheckResponse(body, handlers, url, testModeEvents = null, connectTypes = []) {
   if (!body || typeof body !== "object") {
     return { failures: ["stripe-webhook-config-check returned no JSON object. Refusing to grade."], notes: [] };
   }
@@ -37,7 +37,7 @@ export function gradeConfigCheckResponse(body, handlers, url, testModeEvents = n
   }
   // Both halves are graded and reported: a config failure must not hide an
   // undelivered event, nor the other way round.
-  const config = gradeLiveEndpoints({ data: body.endpoints }, handlers, url);
+  const config = gradeLiveEndpoints({ data: body.endpoints }, handlers, url, connectTypes);
   const undelivered = gradeUndelivered(body.undelivered);
   const tax = gradeTaxRegistrations(body.taxRegistrations, body.taxError);
   // Q1820: graded whenever the caller names the test-mode event set (the
@@ -234,7 +234,14 @@ export function endpointKey(u) {
  * Asserts, for endpoints on `url`: every one is a live-mode object, exactly one
  * is enabled, and that one's enabled_events equal `handlers` in both directions.
  */
-export function gradeLiveEndpoints(list, handlers, url) {
+/**
+ * `connectTypes` (board 143a): the event types only a CONNECT endpoint
+ * delivers (CONNECT_EVENT_TYPES in the webhook index). One enabled endpoint on
+ * the same URL whose subscription is exactly that set is the Connect endpoint,
+ * not a #1586 duplicate: it is graded on its own (exactly the set, nothing
+ * else), and the remaining endpoint must still be the one account endpoint.
+ */
+export function gradeLiveEndpoints(list, handlers, url, connectTypes = []) {
   const failures = [];
   const notes = [];
   const fail = (m) => failures.push(m);
@@ -259,8 +266,26 @@ export function gradeLiveEndpoints(list, handlers, url) {
     fail("A test-mode webhook endpoint came back from the live read. This guard grades live mode only. Refusing to grade.");
     return { failures, notes };
   }
-  const enabled = ours.filter((e) => e.status === "enabled");
-  notes.push(`Stripe live mode: ${ours.length} endpoint(s) on ${url}, ${enabled.length} enabled.`);
+  const allEnabled = ours.filter((e) => e.status === "enabled");
+  notes.push(`Stripe live mode: ${ours.length} endpoint(s) on ${url}, ${allEnabled.length} enabled.`);
+  const connectSet = [...new Set(connectTypes)].sort();
+  const isConnect = (e) => {
+    if (connectSet.length === 0) return false;
+    const evs = [...new Set(e.enabled_events ?? [])].sort();
+    return evs.length > 0 && evs.every((x) => connectSet.includes(x));
+  };
+  const connectEps = allEnabled.filter(isConnect);
+  if (connectEps.length > 1) {
+    fail(`${connectEps.length} enabled Connect-only endpoints point at ${url} (${connectEps.map((e) => e.id).join(", ")}). Keep one.`);
+    return { failures, notes };
+  }
+  if (connectEps.length === 1) {
+    const evs = [...new Set(connectEps[0].enabled_events ?? [])].sort();
+    const missing = connectSet.filter((x) => !evs.includes(x));
+    if (missing.length) fail(`Connect endpoint ${connectEps[0].id} does NOT subscribe to: ${missing.join(", ")}.`);
+    notes.push(`Connect endpoint ${connectEps[0].id}: ${evs.join(", ")}.`);
+  }
+  const enabled = allEnabled.filter((e) => !connectEps.includes(e));
 
   // B1. Exactly one enabled endpoint. Two means every event is delivered twice.
   if (enabled.length > 1) {

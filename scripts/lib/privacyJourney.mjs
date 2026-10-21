@@ -124,6 +124,8 @@ export const EXPORT_SECTIONS = [
   "rental_rent_plans", "rental_rent_charges", "rental_rent_payments", "rental_deposits", "rental_leases",
   // Saved homes (20261019185722; exported by 20261019185723).
   "saved_homes",
+  // Board 143a (20261021035753): the member's own bank payout failures.
+  "payout_failures",
   "storage_objects",
 ];
 

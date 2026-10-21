@@ -1058,6 +1058,14 @@ describe("Popup grammar — footer", () => {
     // Opt-out prompts, not confirms. Adding a name here is a deliberate
     // statement that the surface is an invitation being declined.
     const DECLINE_LABELS = new Set([
+      // Declutter handover sheets (Builder 3c s3, DeclutterHandoverSheets.tsx):
+      // "Retake" takes the porch photo again (an action, not a dismissal);
+      // "Something's not right" opens the problem report instead of confirming;
+      // "Not yet" / "Not now" defer the I-got-it / meet-up step, nothing is cancelled.
+      "Retake",
+      "Something's not right",
+      "Not yet",
+      "Not now",
       // Declutter Browse filter sheet (board 39): its footer's secondary resets
       // every filter; it is an action, not a dismissal.
       "Clear all",

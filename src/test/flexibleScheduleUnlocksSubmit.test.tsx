@@ -13,6 +13,9 @@ vi.mock("@/hooks/useFeature", () => ({
   useFeature: () => false,
   useFeatureStatus: () => ({ on: false, settled: true, lastAnswer: false }),
 }));
+// Board 190's price guidance card reads its RPC through React Query too (and is
+// switch-gated); the price is not what this spec proves.
+vi.mock("@/components/postjob/PriceGuidance", () => ({ PriceGuidanceCard: () => null }));
 vi.mock("@/hooks/useHelprActivity", () => ({
   useHelprActivity: () => ({ activity: null, loading: false }),
 }));

@@ -17,7 +17,8 @@
  * @mutate scripts/slo.mjs |       AND NOT ${ROBOT_EVENT_SQL}`; |       `;
  * @mutate scripts/lib/analyticsFreshness.mjs | export const ROBOT_EVENT_SQL = `(coalesce(e.properties, '{}'::jsonb) -> 'automated' IS NOT DISTINCT FROM 'true'::jsonb | export const ROBOT_EVENT_SQL = `(false
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ROBOT_EVENT_SQL } from "../../scripts/lib/analyticsFreshness.mjs";

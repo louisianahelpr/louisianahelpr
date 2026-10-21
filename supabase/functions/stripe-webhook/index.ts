@@ -32,6 +32,8 @@ import { handleTransferCreated } from "./handlers/transferCreated.ts";
 import { handleTransferFailed } from "./handlers/transferFailed.ts";
 import { handleTransferReversed } from "./handlers/transferReversed.ts";
 import { handleTransferCanceled } from "./handlers/transferCanceled.ts";
+import { handlePayoutFailed } from "./handlers/payoutFailed.ts";
+import { handlePayoutPaid } from "./handlers/payoutPaid.ts";
 
 // The event types a TEST-mode endpoint event may run (owner 2026-10-12, test
 // mode for test accounts): what the routed checkout, payout, refund, dispute
@@ -53,6 +55,14 @@ const TEST_MODE_EVENT_TYPES = new Set([
   "transfer.canceled",
   "account.updated",
 ]);
+
+// Board 143a (lead 10-21): Helpr payouts happen ON connected accounts, so
+// payout.failed / payout.paid arrive only through a CONNECT endpoint (same URL,
+// its own signing secret). An event verified by that secret may reach ONLY the
+// payout handlers; any other type it carries is logged and acknowledged with no
+// side effect, so the Connect endpoint can never drive a money path.
+const CONNECT_WEBHOOK_SECRET_ENV = "STRIPE_CONNECT_WEBHOOK_SECRET";
+const CONNECT_EVENT_TYPES: ReadonlySet<string> = new Set(["payout.failed", "payout.paid"]);
 
 // Dispatch map: one handler per Stripe event type. Adding support for a new
 // event = add a handler file + one entry here. Anything not listed falls
@@ -80,6 +90,9 @@ const EVENT_HANDLERS: Record<
   "transfer.failed": handleTransferFailed,
   "transfer.reversed": handleTransferReversed,
   "transfer.canceled": handleTransferCanceled,
+  // Board 143a: a member's bank returned a payout (record + notice only).
+  "payout.failed": handlePayoutFailed,
+  "payout.paid": handlePayoutPaid,
 };
 
 serve(async (req) => {
@@ -167,6 +180,13 @@ serve(async (req) => {
     .map((s) => s.trim())
     .filter(Boolean);
   let verifiedByTestSecret = false;
+  // The CONNECT endpoint's secret(s): tried after the account endpoint's, before
+  // the test endpoint's. Fail closed as before: no match on any secret is a 400.
+  const connectWebhookSecrets = (Deno.env.get(CONNECT_WEBHOOK_SECRET_ENV) ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  let verifiedByConnectSecret = false;
 
   // Returns the event or throws — keeping the single-expression `try` below
   // means `event` stays definitely-assigned for the compiler, which a bare
@@ -179,6 +199,15 @@ serve(async (req) => {
       } catch (e) {
         // Expected when this event came from the OTHER endpoint. Only the
         // last failure is surfaced; a miss here is not itself an error.
+        lastErr = e;
+      }
+    }
+    for (const secret of connectWebhookSecrets) {
+      try {
+        const connectEvent = await stripe.webhooks.constructEventAsync(body, sig, secret);
+        verifiedByConnectSecret = true;
+        return connectEvent;
+      } catch (e) {
         lastErr = e;
       }
     }
@@ -209,14 +238,17 @@ serve(async (req) => {
     console.error(`[STRIPE-WEBHOOK] Error: ${String(err)}`);
     console.error(`[STRIPE-WEBHOOK] Signature schemes: ${delivery.schemes.join(",") || "none"} (Stripe adds v0 only to TEST-mode events)`);
     console.error(`[STRIPE-WEBHOOK] Claimed (UNVERIFIED) event: ${delivery.claimedId ?? "none"} type=${delivery.claimedType ?? "none"} livemode=${delivery.claimedLivemode}`);
-    console.error(`[STRIPE-WEBHOOK] Tried ${webhookSecrets.length} live secret(s), lengths: ${webhookSecrets.map((s) => s.length).join(", ")}; ${testWebhookSecrets.length} test secret(s)`);
+    console.error(`[STRIPE-WEBHOOK] Tried ${webhookSecrets.length} live secret(s), lengths: ${webhookSecrets.map((s) => s.length).join(", ")}; ${connectWebhookSecrets.length} connect secret(s); ${testWebhookSecrets.length} test secret(s)`);
     console.error(`[STRIPE-WEBHOOK] Body length: ${delivery.bodyBytes} bytes`);
-    console.error("[STRIPE-WEBHOOK] → Refusing (400) so Stripe retries. Add the sending endpoint's signing secret to STRIPE_WEBHOOK_SECRET (comma-separate multiple endpoints).");
+    // Name BOTH homes for a secret (lh-money-escrow review, 2026-10-21): the
+    // CONNECT endpoint's secret must never go in STRIPE_WEBHOOK_SECRET, or its
+    // events verify as account-endpoint events and skip the payout-only rule.
+    console.error("[STRIPE-WEBHOOK] → Refusing (400) so Stripe retries. Account endpoint secret → STRIPE_WEBHOOK_SECRET (comma-separate several); Connect endpoint secret → STRIPE_CONNECT_WEBHOOK_SECRET, never the other.");
     await postSlackOpsAlert(
       signatureFailureAlert({
         fn: "stripe-webhook",
         title: "Stripe webhook signature failed",
-        secretEnv: "STRIPE_WEBHOOK_SECRET",
+        secretEnv: "STRIPE_WEBHOOK_SECRET (account endpoint) or STRIPE_CONNECT_WEBHOOK_SECRET (Connect endpoint; never put it in the other)",
         keyMode: stripeKeyMode(stripeKey),
         err,
         delivery,
@@ -225,7 +257,7 @@ serve(async (req) => {
     return webhookRejectResponse("signature_verification_failed");
   }
 
-  logStep("Event received", { type: event.type, id: event.id, via: verifiedByTestSecret ? "test_endpoint" : "live_endpoint" });
+  logStep("Event received", { type: event.type, id: event.id, via: verifiedByTestSecret ? "test_endpoint" : verifiedByConnectSecret ? "connect_endpoint" : "live_endpoint" });
 
   // ---- TEST-mode events (owner 2026-10-12, test mode for test accounts) ----
   // Signed by the TEST endpoint's secret, so it can only be a sandbox event:
@@ -476,8 +508,11 @@ serve(async (req) => {
 
   try {
     const ctx: WebhookContext = { stripe: handlerStripe, supabase, logStep };
-    const handler = EVENT_HANDLERS[event.type];
-    if (handler) {
+    const connectRefused = verifiedByConnectSecret && !CONNECT_EVENT_TYPES.has(event.type);
+    const handler = connectRefused ? undefined : EVENT_HANDLERS[event.type];
+    if (connectRefused) {
+      logStep("Connect endpoint event not routed (only payout.failed / payout.paid are)", { type: event.type, id: event.id });
+    } else if (handler) {
       await handler(event, ctx);
     } else {
       logStep("Unhandled event type", { type: event.type });

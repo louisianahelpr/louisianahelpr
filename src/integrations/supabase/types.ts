@@ -6456,6 +6456,48 @@ export type Database = {
           },
         ]
       }
+      payout_failures: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          failed_at: string
+          failure_code: string | null
+          id: string
+          resolved_at: string | null
+          stripe_account_id: string
+          stripe_event_id: string
+          stripe_payout_id: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          failed_at?: string
+          failure_code?: string | null
+          id?: string
+          resolved_at?: string | null
+          stripe_account_id: string
+          stripe_event_id: string
+          stripe_payout_id: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          failed_at?: string
+          failure_code?: string | null
+          id?: string
+          resolved_at?: string | null
+          stripe_account_id?: string
+          stripe_event_id?: string
+          stripe_payout_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payout_holds: {
         Row: {
           denied_at: string | null

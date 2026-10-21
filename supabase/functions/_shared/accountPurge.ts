@@ -150,7 +150,7 @@ export interface ActiveWorkResult {
    * held on one). Its own copy, because what unblocks it is ending the series
    * (or leaving it), not finishing a job (owner decision Q407 (7)).
    */
-  reason?: "job" | "series" | "declutter" | "shops";
+  reason?: "job" | "series" | "declutter" | "shops" | "money_owed";
 }
 
 /** What the person is told when a running series blocks deleting their account. */
@@ -322,6 +322,13 @@ export async function findActiveWork(
   const shopOrder = await findShopOrderInFlight(admin, userId);
   if (!shopOrder.ok || shopOrder.active) return shopOrder;
 
+  // 1e. Money still owed TO this member that only their account can receive
+  //     (Q2273, lh-money-escrow review of the board 120 copy). Each row's payee
+  //     is SET NULL or orphaned with the account, and the money path then
+  //     refuses it, so deleting now would forfeit it.
+  const owed = await findMoneyOwedToMember(admin, userId);
+  if (!owed.ok || owed.active) return owed;
+
   // 2. Group-job rosters. Read the memberships, then test THOSE jobs.
   // 201, not 200: a page that comes back FULL is indistinguishable from a page
   // that was truncated, and silently truncating this read would hand back
@@ -449,6 +456,150 @@ async function findShopOrderInFlight(admin: PurgeCapableClient, userId: string):
   }
   if (owed.data && owed.data.length > 0) {
     return { ok: true, active: true, detail: `shop payout ${owed.data[0].id}`, reason: "shops" };
+  }
+  return { ok: true, active: false };
+}
+
+/**
+ * Q2273: what the member is told when money still owed to them blocks the
+ * delete. It never names a payout hold: a held tip's re-drive row is staff
+ * business (20261004220059), so "a tip" is all it says.
+ */
+export const MONEY_OWED_BLOCKS_DELETION_MESSAGE =
+  "Money is still on its way to you: a cancellation fee, a tip, or a payout held by a bank dispute. You can delete your account once it has been paid or settled.";
+
+/** The statuses in which each ledger still owes the member money (Q2273). */
+export const CANCELLATION_FEE_OWED_STATUSES = ["pending", "failed"];
+export const TIP_REDRIVE_OWED_STATUSES = ["owed", "reversed", "repaying", "failed"];
+/**
+ * A chargeback-held payout blocks unless the card dispute is known LOST
+ * (dispute_status 'dispute_lost'). Fail closed on money (lh-money-escrow
+ * re-review of Q2273): the job row cannot tell an open or won card dispute from
+ * a lost one when an internal dispute status was already on the job (it is left
+ * in place), and a won one there is still owed. The cost: such a job lost at the
+ * bank keeps the member blocked until someone clears it (Q2277).
+ */
+export const CHARGEBACK_SETTLED_DISPUTE_STATUS = "dispute_lost";
+/**
+ * A clawed-back payout owed back after a won dispute (chargeback_clawbacks):
+ * being re-paid, failed to re-pay, or a re-pay waiting on a payout hold
+ * (status 'reversed' with held_repay_owed_at set; chargebackClawback.ts).
+ */
+export const CLAWBACK_OWED_FILTER = "status.in.(repaying,repay_failed),held_repay_owed_at.not.is.null";
+
+/**
+ * Q2273: money still owed TO the member, each a fail-closed read:
+ *  - cancellation_fee_transfers pending/failed (helper_id SET NULL on delete;
+ *    the transfer path then refuses the row);
+ *  - tip_hold_redrives owed/reversed/repaying/failed (helper_id has no FK, so
+ *    the row would point at a deleted account);
+ *  - a crew member's cancellation-fee share (crew_cancellation_fee_shares);
+ *  - a job payout held by a card dispute: payment_status 'chargeback' on a job
+ *    the member worked (lead or crew) unless the card dispute is known lost,
+ *    and a clawed-back payout owed back after a win (CLAWBACK_OWED_FILTER).
+ */
+async function findMoneyOwedToMember(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {
+  // A missing TABLE only (42P01 / PGRST205): never a missing column (42703,
+  // also "does not exist"), which must fail closed.
+  const absent = (e: { code?: string; message: string }) => /^(42P01|PGRST205)$/.test(e.code ?? "");
+  const fee: PostgrestLike<{ id: string }[]> = await admin
+    .from("cancellation_fee_transfers")
+    .select("id")
+    .eq("helper_id", userId)
+    .in("status", CANCELLATION_FEE_OWED_STATUSES)
+    .limit(1);
+  if (fee.error && !absent(fee.error)) {
+    console.error(`[accountPurge] cancellation-fee check failed for ${userId}:`, fee.error.message);
+    return { ok: false, active: false, detail: fee.error.message };
+  }
+  if (fee.data && fee.data.length > 0) {
+    return { ok: true, active: true, detail: `cancellation fee ${fee.data[0].id}`, reason: "money_owed" };
+  }
+
+  // A crew member's share of a cancellation fee (crew_cancellation_fee_shares,
+  // helper_id SET NULL on delete; pending/failed are retried hourly). A $0
+  // share is never sent, so it never blocks.
+  // Read the page and drop the $0 ones here (a share of 0 is never sent). A
+  // FULL page could hide an owed share past it, so it fails closed.
+  const SHARE_CAP = 200;
+  const share: PostgrestLike<{ id: string; share_amount: number | string }[]> = await admin
+    .from("crew_cancellation_fee_shares")
+    .select("id, share_amount")
+    .eq("helper_id", userId)
+    .in("status", CANCELLATION_FEE_OWED_STATUSES)
+    .limit(SHARE_CAP + 1);
+  if (share.error && !absent(share.error)) {
+    console.error(`[accountPurge] crew fee-share check failed for ${userId}:`, share.error.message);
+    return { ok: false, active: false, detail: share.error.message };
+  }
+  if ((share.data?.length ?? 0) > SHARE_CAP) {
+    console.error(`[accountPurge] crew fee-share read for ${userId} hit the ${SHARE_CAP}-row cap`);
+    return { ok: false, active: false, detail: `crew fee shares exceeded ${SHARE_CAP} rows` };
+  }
+  const owedShare = (share.data ?? []).find((r) => Number(r.share_amount) > 0);
+  if (owedShare) {
+    return { ok: true, active: true, detail: `crew fee share ${owedShare.id}`, reason: "money_owed" };
+  }
+
+  const tip: PostgrestLike<{ tip_id: string }[]> = await admin
+    .from("tip_hold_redrives")
+    .select("tip_id")
+    .eq("helper_id", userId)
+    .in("status", TIP_REDRIVE_OWED_STATUSES)
+    .limit(1);
+  if (tip.error && !absent(tip.error)) {
+    console.error(`[accountPurge] tip re-drive check failed for ${userId}:`, tip.error.message);
+    return { ok: false, active: false, detail: tip.error.message };
+  }
+  if (tip.data && tip.data.length > 0) {
+    return { ok: true, active: true, detail: `tip ${tip.data[0].tip_id}`, reason: "money_owed" };
+  }
+
+  // A held chargeback payout, as the lead Helpr.
+  const held: PostgrestLike<{ id: string }[]> = await admin
+    .from("jobs")
+    .select("id")
+    .eq("helper_id", userId)
+    .eq("payment_status", "chargeback")
+    .or(`dispute_status.is.null,dispute_status.neq.${CHARGEBACK_SETTLED_DISPUTE_STATUS}`)
+    .limit(1);
+  if (held.error) {
+    console.error(`[accountPurge] chargeback-held check failed for ${userId}:`, held.error.message);
+    return { ok: false, active: false, detail: held.error.message };
+  }
+  if (held.data && held.data.length > 0) {
+    return { ok: true, active: true, detail: `chargeback-held job ${held.data[0].id}`, reason: "money_owed" };
+  }
+
+  // ...and as a crew member of a group job.
+  const crew: PostgrestLike<{ job_id: string }[]> = await admin
+    .from("group_job_helpers")
+    .select("job_id, jobs!inner(payment_status, dispute_status)")
+    .eq("helper_id", userId)
+    .eq("jobs.payment_status", "chargeback")
+    .or(`dispute_status.is.null,dispute_status.neq.${CHARGEBACK_SETTLED_DISPUTE_STATUS}`, { referencedTable: "jobs" })
+    .limit(1);
+  if (crew.error && !absent(crew.error)) {
+    console.error(`[accountPurge] crew chargeback-held check failed for ${userId}:`, crew.error.message);
+    return { ok: false, active: false, detail: crew.error.message };
+  }
+  if (crew.data && crew.data.length > 0) {
+    return { ok: true, active: true, detail: `chargeback-held group job ${crew.data[0].job_id}`, reason: "money_owed" };
+  }
+
+  // A payout already clawed back and now being re-paid after a won dispute.
+  const claw: PostgrestLike<{ id: string }[]> = await admin
+    .from("chargeback_clawbacks")
+    .select("id")
+    .eq("helper_id", userId)
+    .or(CLAWBACK_OWED_FILTER)
+    .limit(1);
+  if (claw.error && !absent(claw.error)) {
+    console.error(`[accountPurge] clawback re-pay check failed for ${userId}:`, claw.error.message);
+    return { ok: false, active: false, detail: claw.error.message };
+  }
+  if (claw.data && claw.data.length > 0) {
+    return { ok: true, active: true, detail: `clawback ${claw.data[0].id}`, reason: "money_owed" };
   }
   return { ok: true, active: false };
 }

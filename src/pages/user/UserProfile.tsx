@@ -39,7 +39,6 @@ import SaveHelperButton from "@/components/SaveHelperButton";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { hasInAppHistory } from "@/lib/inAppHistory";
 import { useQueryClient } from "@tanstack/react-query";
 import { unblockUser } from "@/lib/userBlocks";
 
@@ -321,10 +320,12 @@ const UserProfile = () => {
 
   // One shell for the three states with no profile to show (offline, error,
   // not found): the same header and column as the loaded page.
+  // No action placeholders here: with no profile there are no actions to
+  // arrive, so the grey boxes would never resolve (audit #48).
   const stateCard = (card: ReactNode) =>
     wrap(
       <>
-        <PageHeader eyebrow={headerEyebrow} title={headerTitle} meta={headerMeta} titleActions={headerActionPlaceholder} />
+        <PageHeader eyebrow={headerEyebrow} title={headerTitle} meta={headerMeta} />
         <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
           <div className="flex">{card}</div>
         </div>
@@ -346,16 +347,9 @@ const UserProfile = () => {
         icon={UserX}
         title="Profile not found"
         body="This profile may have been removed, or the link is no longer valid."
-        // Same guard as every other back affordance: a profile link
-        // shared into a messaging app opens cold, and `navigate(-1)`
-        // from there leaves the app instead of showing this person the
-        // rest of it. Browse is the honest fallback — they arrived
-        // looking for a helpr.
-        action={
-          <BarkPillButton onClick={() => (hasInAppHistory() ? navigate(-1) : navigate("/home"))}>
-            Go back
-          </BarkPillButton>
-        }
+        // The header's back arrow already goes back (audit #48: "Go back"
+        // duplicated it); the way ON is Jobs, where they came looking for a Helpr.
+        action={<BarkPillButton onClick={() => navigate("/jobs")}>Browse jobs</BarkPillButton>}
       />,
     );
   }

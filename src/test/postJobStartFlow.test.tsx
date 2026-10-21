@@ -7,7 +7,8 @@
  * @mutate src/components/postjob/JobCategoryGroups.tsx |     setCategory(value);\n    onPicked(); |     setCategory(value);
  * @mutate src/components/postjob/JobCategoryGroups.tsx | () => (g.items.length === 1 ? pick(g.items[0].value) : setGroup(g.id)), | () => setGroup(g.id),
  * @mutate src/pages/post-job/FormStep.tsx |         {page !== 1 && ( |         {true && (
- * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/admin", "/post-job"]; | "/admin"];
+ * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/post-job", "/declutter/sell"]; | "/post-job"];
+ * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/admin", "/post-job", "/declutter/sell"]; | "/admin", "/declutter/sell"];
  * @mutate src/pages/post-job/usePostJobForm.ts |     if (step === "entry" && entryPanel) { |     if (false) {
  * @mutate src/components/postjob/JobCategoryGroups.tsx | tile(it.value, categoryEmoji(it.value), it.label, | tile(it.value, "", it.label,
  * @mutate src/components/postjob/JobCategoryGroups.tsx | const TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" }; | const TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = {};
@@ -72,6 +73,8 @@ describe("Post a Job start (owner 2026-10-21)", () => {
     expect(step).toContain("{page !== 1 && (");
     expect(step).toContain('question="What do you need done?"');
     expect(noNavPages).toContain("/post-job");
+    // Owner: no bottom bar in flows; selling an item is a flow too (audit #45).
+    expect(noNavPages).toContain("/declutter/sell");
     // Back from a way to start returns to the cards; back from 1b returns to the groups.
     const form = read("src/pages/post-job/usePostJobForm.ts");
     expect(form).toMatch(/if \(step === "entry" && entryPanel\) \{\s*\/\/[^\n]*\n\s*setEntryPanel\(null\);/);

@@ -188,6 +188,21 @@ describe("the photo-first Declutter item page", () => {
   // no star icon and no "N stars" text in the price-and-condition block, and no
   // screen in src writes a condition as "N stars".
   // @mutate src/components/declutter/DeclutterItemView.tsx | <ConditionChip stars={it.condition_stars} /> | <span aria-label="4 of 5 stars"><svg className="lucide-star" /></span>
+  // Audit #47 (2026-10-21): each fact once, one heading style. The condition is the chip only (no Details row
+  // repeating it); the body title is for screen readers on desktop, where the page header prints it; Questions is
+  // a sentence-case head like Details and Pickup.
+  // @mutate src/components/declutter/DeclutterItemView.tsx | [overflow-wrap:anywhere] lg:sr-only">{it.title} | [overflow-wrap:anywhere]">{it.title}
+  // @mutate src/components/declutter/DeclutterQuestions.tsx | <h2 id="declutter-questions" className="text-base font-semibold"> | <h2 id="declutter-questions" className="text-ds-13 font-semibold uppercase tracking-wider text-muted-foreground">
+  it("audit #47: the condition is said once, the title once per width, and Questions is a sentence-case head", async () => {
+    open();
+    await screen.findByRole("region", { name: "Price and condition" });
+    expect(screen.getAllByText(/Lightly used/).length).toBe(1);
+    const title = document.querySelector("[aria-label='Price and condition'] h2")!;
+    expect(title.className.split(/\s+/)).toContain("lg:sr-only");
+    const q = await screen.findByRole("heading", { name: /^Questions/ });
+    expect(q.className.split(/\s+/)).not.toContain("uppercase");
+  });
+
   it("D5: the condition is a word chip ('Lightly used'), never stars", async () => {
     open();
     const block = await screen.findByRole("region", { name: "Price and condition" });

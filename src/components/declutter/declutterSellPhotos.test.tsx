@@ -128,6 +128,9 @@ describe("photo-first selling", () => {
   it("a step will not move on until its own question is answered", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
+    // Audit #45: nothing is printed under the live Continue until it is tapped.
+    // @mutate src/components/declutter/DeclutterSellView.tsx | && triedStep === step && <p role="alert" | && <p role="alert"
+    expect(screen.queryByTestId("sell-form-problem")).toBeNull();
     // @mutate src/components/declutter/DeclutterSellView.tsx |     if (stepProblem) { |     if (false) {
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByRole("heading", { name: "Show it off" })).toBeInTheDocument();

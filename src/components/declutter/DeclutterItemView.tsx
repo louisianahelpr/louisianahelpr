@@ -30,7 +30,6 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, milesBetween, milesLabel } from "@/lib/declutter/distance";
 import {
   CATEGORY_LABEL,
-  CONDITION_LABEL,
   ConditionChip,
   DeclutterNotice,
   SIZE_LABEL,
@@ -178,7 +177,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
             {drop && !(isSeller && sellerDrops.data && sellerDrops.data !== "not_deployed" && sellerDrops.data.drops_stopped) && (
               <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} mine={isSeller} />
             )}
-            <h2 className="pt-1 text-ds-22 font-bold leading-snug [overflow-wrap:anywhere]">{it.title}</h2>
+            {/* The title once (audit #47): the desktop page header already prints it. The condition is said once too:
+                the chip beside the price (board D5), not again as a Details row. */}
+            <h2 className="pt-1 text-ds-22 font-bold leading-snug [overflow-wrap:anywhere] lg:sr-only">{it.title}</h2>
             <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
               {[it.area_label, away, it.porch_ok !== false ? "Porch pickup" : null].filter(Boolean).join(" · ")}
             </p>
@@ -204,7 +205,6 @@ export default function ItemView({ itemId }: { itemId: string }) {
           <section className="space-y-1" aria-labelledby="declutter-details">
             <h2 id="declutter-details" className="text-base font-semibold">Details</h2>
             <dl className="divide-y divide-border">
-              <Detail label="Condition">{CONDITION_LABEL[it.condition_stars] ?? "Not stated"}</Detail>
               <Detail label="Category">{CATEGORY_LABEL[it.category] ?? "Other"}</Detail>
               <Detail label="Size">{SIZE_LABEL[it.delivery_size]}</Detail>
             </dl>

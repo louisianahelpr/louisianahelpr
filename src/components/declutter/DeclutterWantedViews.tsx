@@ -47,10 +47,13 @@ function WantedForm({ at, onPosted }: { at: { lat: number; lng: number }; onPost
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  const input = "w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm";
+  const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
   return (
+    // Board 116 "Post a Wanted", kept to what the server stores (declutter_create_wanted: words, category, highest price,
+    // distance). Not built: how you'd get it, details, a reference photo (no fields), and neighbors replying (a Wanted is
+    // private by design, W-spec: sellers get a heads-up with your price, never your name or words; board 117 is parked).
     <form
-      className="rounded-2xl border border-border bg-card p-4 space-y-3"
+      className="rounded-2xl border border-border bg-card p-4 space-y-4"
       aria-labelledby="wanted-form-title"
       onSubmit={(e) => {
         e.preventDefault();
@@ -59,34 +62,40 @@ function WantedForm({ at, onPosted }: { at: { lat: number; lng: number }; onPost
         if (!p) post.mutate();
       }}
     >
-      <h2 id="wanted-form-title" className="text-base font-semibold">Looking for something?</h2>
-      <p className="text-xs text-muted-foreground">
-        Sellers near you with a matching listing get a heads-up with your highest price, never your name or your words. You get one when a match is listed at or under your price. Only you see your post.
-      </p>
-      <div>
-        <label className="block text-sm font-medium" htmlFor="wanted-what">What you want</label>
-        <input id="wanted-what" className={input} maxLength={60} value={form.what} placeholder="Crib"
+      <div className="space-y-1">
+        <h2 id="wanted-form-title" className="font-moment text-ds-28 leading-tight">What are you looking for?</h2>
+        <p className="text-ds-13 text-muted-foreground">
+          Sellers near you with a matching listing get a heads-up with your highest price, never your name or your words. You get one when a match is listed at or under your price. Only you see your post.
+        </p>
+      </div>
+      <div className="space-y-1">
+        <label className="block text-ds-15 font-semibold" htmlFor="wanted-what">I'm looking for</label>
+        <input id="wanted-what" className={input} maxLength={60} value={form.what} placeholder="Kids bike, 16 inch"
           onChange={(e) => setForm((f) => ({ ...f, what: e.target.value }))} />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="min-w-0">
-          <label className="block text-sm font-medium" htmlFor="wanted-category">Category</label>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="min-w-0 space-y-1">
+          <label className="block text-ds-15 font-semibold" htmlFor="wanted-max">Up to</label>
+          <div className={`${input} flex items-center gap-1 focus-within:ring-2 focus-within:ring-ring`}>
+            <span aria-hidden className="font-semibold text-[hsl(var(--burnt-sienna))]">$</span>
+            <input id="wanted-max" className="w-full min-w-0 bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none placeholder:font-normal placeholder:text-muted-foreground"
+              inputMode="numeric" value={form.maxPrice} placeholder="30"
+              onChange={(e) => setForm((f) => ({ ...f, maxPrice: e.target.value }))} />
+          </div>
+        </div>
+        <div className="min-w-0 space-y-1">
+          <label className="block text-ds-15 font-semibold" htmlFor="wanted-category">Category</label>
           <select id="wanted-category" className={input} value={form.category}
             onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
             <option value="">Pick one</option>
             {Object.entries(CATEGORY_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
-        <div className="min-w-0">
-          <label className="block text-sm font-medium" htmlFor="wanted-max">Highest price ($)</label>
-          <input id="wanted-max" className={input} inputMode="numeric" value={form.maxPrice} placeholder="80"
-            onChange={(e) => setForm((f) => ({ ...f, maxPrice: e.target.value }))} />
-        </div>
       </div>
       <div className="space-y-1">
-        <p className="text-sm font-medium">How far you'd go</p>
+        <p className="text-ds-15 font-semibold">Within</p>
         <SegmentedControl
-          ariaLabel="How far you'd go"
+          ariaLabel="Within"
           layout="wrap"
           value={String(form.radius)}
           onChange={(v) => setForm((f) => ({ ...f, radius: Number(v) as WantedRadius }))}
@@ -94,7 +103,10 @@ function WantedForm({ at, onPosted }: { at: { lat: number; lng: number }; onPost
         />
       </div>
       {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
-      <Button type="submit" disabled={post.isPending}>{post.isPending ? "Posting…" : "Post what I want"}</Button>
+      <div className="space-y-2">
+        <p className="text-ds-13 text-muted-foreground">Your Wanted stays up 30 days. You can close it anytime.</p>
+        <Button type="submit" className="w-full sm:w-auto" disabled={post.isPending}>{post.isPending ? "Posting…" : "Post Wanted"}</Button>
+      </div>
     </form>
   );
 }

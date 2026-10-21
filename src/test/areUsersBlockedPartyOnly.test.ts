@@ -81,6 +81,10 @@ const EXPECTED_CALLERS = [
   "declutter_seller_moving_sale",
   "declutter_set_watch",
   "declutter_start_checkout",
+  // Declutter Wanted public replies (20261021031757, board 117): v_uid := declutter_assert_member(true)
+  // is one argument, the Wanted post's owner (w.user_id) the other, in both the browse and the reply.
+  "declutter_wanted_browse",
+  "declutter_wanted_reply",
   "direct_accept_block_reason",
   "enforce_application_job_state",
   "enforce_block_on_message_insert",

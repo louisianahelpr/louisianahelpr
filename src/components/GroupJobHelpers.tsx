@@ -280,35 +280,20 @@ export function GroupJobHelpers({
        `rounded-2xl liquid-glass p-card` wrapper drew a bordered box inside it.
        Guard: src/test/noNestedTrackerCard.test.ts (cross-file job-card walk). */
     <div className="space-y-3">
-      <div>
-        <h3
-          className="font-display font-bold leading-tight text-headline-card"
-          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-        >
-          Group job
-        </h3>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="h-2 flex-1 rounded-full bg-secondary overflow-hidden">
-          <div
-            className="h-full bg-primary rounded-full transition-all"
-            style={{ width: `${Math.min(100, (filledSlots / slotTotal) * 100)}%` }}
-          />
-        </div>
-        <span className="text-ds-11 font-medium text-foreground">
-          {filledSlots}/{slotTotal} Helprs
-        </span>
-      </div>
-
+      {/* Board 119: "Your crew · 2 of 3 hired", then one row per member and per open spot. No crew lead:
+          a crew has none (Q407). Montserrat: a section label, not a moment. */}
+      <h3 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        Your crew · {filledSlots} of {slotTotal} hired
+      </h3>
       {helpers.length > 0 && (
         <div className="space-y-2">
           {helpers.map((h) => (
-            <div key={h.id} className="flex items-center justify-between p-2 rounded-ds-sm border border-border">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-ds-11 font-bold">
+            <div key={h.id} className="flex min-h-14 items-center justify-between gap-2 border-b border-border py-2 last:border-b-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-muted text-foreground flex items-center justify-center text-ds-13 font-bold" aria-hidden>
                   {(h.helperName || "?")[0].toUpperCase()}
                 </div>
-                <span className="text-ds-13 text-foreground">{h.helperName}</span>
+                <span className="text-ds-15 font-semibold text-foreground">{h.helperName}</span>
                 <span className={`text-ds-11 px-1.5 py-0.5 rounded-full ${
                   h.status === "accepted" ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground"
                 }`}>
@@ -356,6 +341,22 @@ export function GroupJobHelpers({
         </div>
       )}
 
+      {remaining > 0 && (
+        <ul aria-label="Open spots" className="space-y-1">
+          {Array.from({ length: remaining }, (_, i) => (
+            <li key={i} className="flex min-h-14 items-center gap-3 py-1">
+              <span aria-hidden className="h-10 w-10 shrink-0 rounded-full border-2 border-dashed border-border" />
+              <span className="text-ds-15 font-semibold text-muted-foreground">Open spot</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {/* How a crew works, from the real rules: each member's share is released on its own confirm (Q407),
+          and a dropped spot can be refilled from the applicants (the sentence below says how). */}
+      <div className="rounded-xl bg-muted/60 px-3 py-2.5 text-ds-13 text-foreground" data-crew-how="">
+        <p className="font-semibold">How crew jobs work</p>
+        <p className="text-muted-foreground">Each Helpr is paid on their own when you confirm. If someone drops out, the spot opens again for your applicants.</p>
+      </div>
       {remaining > 0 && (
         <p className="text-ds-11 text-muted-foreground text-center">
           {/* Q1378 (owner 2026-10-05): a booked crew a member left carries on.

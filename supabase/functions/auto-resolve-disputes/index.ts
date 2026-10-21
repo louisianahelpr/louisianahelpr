@@ -7,6 +7,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import { loadJobPayoutHolds, loadPayoutHolds, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
+import { REFUND_AGREEMENT_HELD_ERROR, loadStillHeldAgreements } from "../_shared/refundRequestHold.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 
@@ -39,6 +40,14 @@ const REMINDER_WINDOW_HOURS = 24;
  * so a row still sitting in one an hour later means nobody came back to it.
  */
 const STUCK_SPLIT_MINUTES = 60;
+
+/**
+ * How long a refund the two parties agreed (board 141, decided_via
+ * 'agreement') may wait for refund-request-sweep's first hand-out before it
+ * counts as stuck: the sweep runs every 10 minutes, so 90 leaves room for a
+ * missed run or two without paging anyone.
+ */
+const AGREEMENT_HANDOUT_MINUTES = 90;
 
 /** Bound every sweep read — a runaway page is a silent partial sweep. */
 const SWEEP_LIMIT = 500;
@@ -876,7 +885,7 @@ serve(async (req) => {
       const stuckCutoff = Date.now() - STUCK_SPLIT_MINUTES * 60 * 1000;
       const { data: claimed, error: stuckErr } = await supabase
         .from("disputes")
-        .select("id, job_id, execution_status, execution_started_at, execution_error")
+        .select("id, job_id, execution_status, execution_started_at, execution_error, decided_via, decided_at")
         // DECIDED rows only (round-5 review, MEDIUM-2): a dispute superseded by
         // rpc_supersede_dispute_decision keeps its execution record as history,
         // and without this every supersede raised a permanent stuck-split alarm.
@@ -901,6 +910,14 @@ serve(async (req) => {
         // stamp on a claimed row is MORE alarming than an old one, so it counts
         // as stuck rather than being skipped.
         const aged = (claimed ?? []).filter((row) => {
+          // Board 141: a refund the two parties AGREED is queued for the
+          // refund-request-sweep (every 10 minutes, retried 30 minutes apart),
+          // so a fresh, never-claimed agreement is not stuck yet (lh-money-escrow
+          // review, #5). Past the window it is judged like any other split.
+          if (row.decided_via === "agreement" && row.execution_status === "pending" && !row.execution_started_at) {
+            const decidedAt = Date.parse(String(row.decided_at ?? ""));
+            if (Number.isFinite(decidedAt) && decidedAt > Date.now() - AGREEMENT_HANDOUT_MINUTES * 60 * 1000) return false;
+          }
           const startedAt = row.execution_started_at as string | null;
           if (!startedAt) return true;
           const t = Date.parse(startedAt);
@@ -962,6 +979,31 @@ serve(async (req) => {
                   if (heldIds.has(row.id as string)) heldStuckSplits.push({ id: row.id as string, job_id: row.job_id as string });
                 }
                 stuck = stuck.filter((row) => !heldIds.has(row.id as string));
+              }
+            }
+
+            // ── Agreed refunds held for an admin (board 141) ───────────────
+            // refund_agreements_due never settles an agreement automatically
+            // when a party is banned, suspended, under a ban review or on a
+            // payout hold: it marks an untouched one REFUND_AGREEMENT_HELD_ERROR,
+            // the admin queue lists it unsettled, and the sweep paged ops once.
+            // Set aside here (body only) ONLY while a party is still held, as
+            // the payout-hold block above does; once the hold lifts it is stuck
+            // again and pages, so nobody forgets it. FAIL CLOSED: an unreadable
+            // check sets nothing aside.
+            const agreementCandidates = stuck.filter((row) =>
+              typeof row.execution_error === "string" && (row.execution_error as string).startsWith(REFUND_AGREEMENT_HELD_ERROR)
+            );
+            if (agreementCandidates.length) {
+              const stillHeld = await loadStillHeldAgreements(supabase, agreementCandidates.map((row) => row.id as string));
+              if (!stillHeld.ok) {
+                console.error("[auto-resolve-disputes] held-agreement read failed; every stuck split stays stuck:", stillHeld.message);
+                defects.record(`stuck split held-agreement read: ${stillHeld.message}`);
+              } else {
+                for (const row of stuck) {
+                  if (stillHeld.disputes.has(row.id as string)) heldStuckSplits.push({ id: row.id as string, job_id: row.job_id as string });
+                }
+                stuck = stuck.filter((row) => !stillHeld.disputes.has(row.id as string));
               }
             }
 

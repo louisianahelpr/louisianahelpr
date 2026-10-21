@@ -17,6 +17,7 @@ import { useCallback, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import Dashboard from "@/pages/home/Dashboard";
 import JobListPage from "@/components/job-card/JobListPage";
+import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { AppTopBar } from "@/components/sections/AppTopBar";
 import { ExploreSwitcher } from "@/components/sections/ExploreSwitcher";
 import { ExploreSearchEntry } from "@/components/sections/ExploreSearchEntry";
@@ -89,8 +90,9 @@ const JobsSection = () => {
     </div>
   );
 
-  if (tab === "posted") return <JobListPage key="posted" defaultTab="posted" embeddedHeader={header} />;
-  if (tab === "working") return <JobListPage key="working" defaultTab="applied" embeddedHeader={header} />;
+  // Board 141: the refund_requests switch, read once for every job card in the list.
+  if (tab === "posted") return <RefundsSwitchProvider><JobListPage key="posted" defaultTab="posted" embeddedHeader={header} /></RefundsSwitchProvider>;
+  if (tab === "working") return <RefundsSwitchProvider><JobListPage key="working" defaultTab="applied" embeddedHeader={header} /></RefundsSwitchProvider>;
   return <Dashboard embeddedHeader={header} />;
 };
 

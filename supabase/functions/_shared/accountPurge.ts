@@ -329,6 +329,15 @@ export async function findActiveWork(
   const owed = await findMoneyOwedToMember(admin, userId);
   if (!owed.ok || owed.active) return owed;
 
+  // 1f. A live refund request (board 141, Q2272), as the poster who asked or
+  //     the Helpr asked: money is being decided between them (open, declined
+  //     with its dispute not filed yet, or agreed and not yet split). Its party
+  //     columns are SET NULL with the account, and every step after that
+  //     refuses a request whose party is gone, so deleting now would strand the
+  //     refund or the Helpr's share.
+  const refund = await findLiveRefundRequest(admin, userId);
+  if (!refund.ok || refund.active) return refund;
+
   // 2. Group-job rosters. Read the memberships, then test THOSE jobs.
   // 201, not 200: a page that comes back FULL is indistinguishable from a page
   // that was truncated, and silently truncating this read would hand back
@@ -603,6 +612,52 @@ async function findMoneyOwedToMember(admin: PurgeCapableClient, userId: string):
   }
   return { ok: true, active: false };
 }
+
+/**
+ * A live refund request this member asked or was asked (board 141, Q2272):
+ * open, declined with its dispute not filed yet, or agreed with its decided
+ * dispute not executed. Fails closed on a read error; a missing table (42P01 /
+ * PGRST205, the migration-lag window) holds nobody. Two reads so an agreed
+ * request is judged by its OWN dispute's state (an old, settled agreement
+ * never blocks), the same rule as public.refund_request_is_live.
+ */
+async function findLiveRefundRequest(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {
+  // A missing TABLE only, never a missing column (42703 fails closed).
+  const absent = (e: { code?: string }) => e.code === "42P01" || e.code === "PGRST205";
+  const party = `requester_id.eq.${userId},responder_id.eq.${userId}`;
+  const waiting: PostgrestLike<{ id: string }[]> = await admin
+    .from("refund_requests")
+    .select("id")
+    .or(party)
+    .or(REFUND_REQUEST_WAITING_FILTER)
+    .limit(1);
+  if (waiting.error && !absent(waiting.error)) {
+    console.error(`[accountPurge] refund request check failed for ${userId}:`, waiting.error.message);
+    return { ok: false, active: false, detail: waiting.error.message };
+  }
+  if (waiting.data && waiting.data.length > 0) {
+    return { ok: true, active: true, detail: `refund request ${waiting.data[0].id}`, reason: "job" };
+  }
+  const agreed: PostgrestLike<{ id: string }[]> = await admin
+    .from("refund_requests")
+    .select("id, disputes!refund_requests_dispute_id_fkey!inner(status, execution_status)")
+    .or(party)
+    .eq("status", "agreed")
+    .eq("disputes.status", "decided")
+    .or("execution_status.is.null,execution_status.neq.executed", { referencedTable: "disputes" })
+    .limit(1);
+  if (agreed.error && !absent(agreed.error)) {
+    console.error(`[accountPurge] agreed refund check failed for ${userId}:`, agreed.error.message);
+    return { ok: false, active: false, detail: agreed.error.message };
+  }
+  if (agreed.data && agreed.data.length > 0) {
+    return { ok: true, active: true, detail: `agreed refund ${agreed.data[0].id}`, reason: "job" };
+  }
+  return { ok: true, active: false };
+}
+
+/** A refund request still waiting: open, a come-back offer not yet settled (Q2326), or declined with its dispute not filed yet. */
+export const REFUND_REQUEST_WAITING_FILTER = "status.in.(open,finish_offered,coming_back),and(status.eq.declined,dispute_id.is.null)";
 
 /** A Declutter sale this member is a party to that is not settled yet (fail closed on a read error). */
 async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {

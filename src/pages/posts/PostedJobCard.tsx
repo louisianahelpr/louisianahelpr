@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, RefreshCw, Check, MapPinOff } from "lucide-react";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { PostedJobSeriesControls } from "@/pages/posts/PostedJobSeriesControls";
-import { ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
+import { JobRequestRows, ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
 import { CountdownRows, posterOfferClocks } from "./postedJobCard/posterOfferClocks";
 import { JobTracking } from "@/components/JobTracking";
 import { PosterStatusStrip } from "./postedJobCard/PosterStatusStrip";
@@ -723,7 +723,7 @@ function PostedJobCardInner({
                       here, a row of its own above the tracker. */}
                 </div>
               )}
-              <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={isExpanded} hideAsk />
+              <JobRequestRows job={job} userId={userId} viewer="poster" expanded={isExpanded} otherName={job.helper_id ? helperNames[job.helper_id] : null} feeFallbackPercent={null} />
               {/* Actions */}
               <PostedJobActions
                 job={job}

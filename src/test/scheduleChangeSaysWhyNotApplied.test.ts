@@ -31,7 +31,9 @@ describe("a change that could not be applied says why", () => {
     expect(expiredMessage("expired:new_time_passed")).toMatch(/new time had already started/);
     expect(expiredMessage("expired:job_started")).toMatch(/original start arrived/);
     expect(expiredMessage("expired:job_changed")).toMatch(/job changed/);
-    for (const r of ["new_time_passed", "job_started", "job_changed"]) expect(expiredMessage(`expired:${r}`)).toMatch(/told/);
+    // Board 141 (Q2326): a come-back offer answered after it lapsed.
+    expect(expiredMessage("expired:come_back_lapsed")).toMatch(/real person at Helpr will decide the refund/);
+    for (const r of ["new_time_passed", "job_started", "job_changed", "come_back_lapsed"]) expect(expiredMessage(`expired:${r}`)).toMatch(/told/);
   });
 
   it("an expired or clashing accept is a WARNING, never a success toast", () => {

@@ -31,11 +31,14 @@
 // skips the transfer leg entirely, and issues only the refund. That property is
 // the whole reason this is not a single all-or-nothing block.
 //
-// Invocation: admin user JWT ONLY. There is no cron path — a dispute split is
-// always a human decision, so there is nothing for a service token to do here.
-// (`verify_jwt` is left at its default of true in config.toml, so the gateway
-// rejects non-JWT bearers before this code runs; the admin check below is the
-// second gate, not the only one.)
+// Invocation: an admin user JWT, or (board 141, Q2272) the service key from
+// refund-request-sweep for a split the two parties AGREED: a person always
+// decided it, an admin or both parties. The service door settles only a
+// dispute public.refund_agreement_for_dispute proves (the other side's
+// recorded agreement), checked before any write or Stripe call; everything
+// else answers 403 and is left as it was. `verify_jwt = false` in config.toml
+// (the sweep may hold the non-JWT sb_secret_ key): the admin check below
+// verifies the JWT itself (auth.getUser), as every other money function does.
 //
 // Body: { dispute_id: string }
 //
@@ -62,8 +65,9 @@ import { CLEAR_TEST_MODE_ACTION, TEST_MODE_CLEARED_MARKER, clearTestModeRecords 
 import { getHelperFeePercent, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { flatFeePercentOf } from "../_shared/helprFlatFee.ts";
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
+import { agreedRushRefundCents } from "../_shared/refundRush.ts";
 import { setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
-import { cardCostFeeCents, chargeTaxCentsFor, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
@@ -147,12 +151,25 @@ serve(async (req) => {
 
   const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-  // ── Auth: admin JWT, and nothing else ────────────────────────────────────
+  // ── Auth: an admin JWT, or the service key for an AGREED refund ──────────
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader) return json({ error: "Missing authorization header" }, 401);
 
-  let adminUserId: string;
-  try {
+  // Board 141 (docs/OPEN.md Q2272; owner 2026-10-21: the money moves
+  // AUTOMATICALLY when the other side agrees). The ONE non-admin door: the
+  // service-only refund-request-sweep, by the exact service key. It settles a
+  // dispute only when public.refund_agreement_for_dispute proves the other
+  // side's recorded agreement (step 1b, before any write or Stripe call); a
+  // decision an admin made is never settled through it, and it never runs
+  // the test-mode clear. Guard: src/test/edge/refundAgreementGuard.test.ts.
+  const serviceKeys = [Deno.env.get("SECRET_KEY"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")]
+    .filter((k): k is string => typeof k === "string" && k.length > 0);
+  const agreementCaller = serviceKeys.some((k) => sameSecret(authHeader, `Bearer ${k}`));
+
+  // NULL on the agreement door: the ledger rows and the audit row then name no
+  // admin, and the audit details name the two parties who agreed.
+  let adminUserId: string | null = null;
+  if (!agreementCaller) try {
     const supabaseUser = createClient(supabaseUrl, anonKey);
     const token = authHeader.replace("Bearer ", "");
     const { data: u, error: authErr } = await supabaseUser.auth.getUser(token);
@@ -199,6 +216,8 @@ serve(async (req) => {
   // test-mode records (clear_test_mode_dispute_ledger) and supersedes as the
   // admin; it never runs the split and never calls markFailed.
   if (body.action !== undefined) {
+    // An admin's button only: the agreement door runs the split and nothing else.
+    if (agreementCaller || adminUserId === null) return json({ error: "this action needs an admin" }, 403);
     if (body.action !== CLEAR_TEST_MODE_ACTION) return json({ error: "unknown action" }, 400);
     const adminClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
     const out = await clearTestModeRecords({
@@ -253,6 +272,29 @@ serve(async (req) => {
     return json({ error: "dispute lookup failed — retry" }, 500);
   }
   if (!dispute) return json({ error: "dispute not found" }, 404);
+
+  // ── 1b. The agreement door moves money ONLY on a recorded agreement ──────
+  // Asked before any refusal that writes (refuse() stamps the dispute) and
+  // before any Stripe call: a dispute this door may not settle is left exactly
+  // as it was. Fails CLOSED: an unreadable proof is a refusal.
+  let agreement: RefundAgreementProof | null = null;
+  if (agreementCaller) {
+    const { data: proof, error: proofErr } = await supabaseAdmin.rpc("refund_agreement_for_dispute", {
+      p_dispute_id: disputeId,
+    });
+    if (proofErr) {
+      console.error(`[execute-dispute-split] agreement proof read failed for dispute ${disputeId}:`, proofErr);
+      return json({ error: "could not verify the refund agreement — nothing was moved, retry" }, 503);
+    }
+    agreement = parseRefundAgreement(proof, disputeId);
+    if (!agreement) {
+      console.error(`[execute-dispute-split] REFUSING the service key on dispute ${disputeId}: no recorded refund agreement`);
+      return json(
+        { error: "no recorded agreement between the two parties for this dispute — nothing was moved", code: "no_recorded_agreement" },
+        403,
+      );
+    }
+  }
   if (dispute.status !== "decided") {
     return await refuse(
       { error: `dispute status is ${dispute.status}, expected decided`, dispute_status: dispute.status },
@@ -300,6 +342,10 @@ serve(async (req) => {
     return await refuse({ error: "job lookup failed — retry" }, 500);
   }
   if (!job) return await refuse({ error: "job not found for this dispute" }, 404);
+  // The agreement is between THIS job's poster and Helpr, re-read now.
+  if (agreement && (agreement.jobId !== job.id || agreement.posterId !== job.customer_id || agreement.helperId !== job.helper_id)) {
+    return await refuse({ error: "the recorded agreement does not match this job's poster and Helpr — nothing was moved" }, 409);
+  }
 
   // Group jobs: refuse, loudly. One escrow funds N helpers, so a partial split
   // needs N transfers and a per-helper share. Executing the single-helper path
@@ -623,8 +669,38 @@ serve(async (req) => {
   );
 
   const perHelperBudget = Number(job.budget);
-  const helperBudgetShareDollars = perHelperBudget * helperShare;
-  const helperUrgentShareDollars = netUrgentFeeDollars(job.urgent_fee) * helperShare;
+  // Q2298 (owner, 2026-10-21): an agreed PART refund returns EXACTLY the
+  // amount asked ("asking $20 refunds $20"), not that share of everything
+  // charged. The poster gets amount_cents back; everything else is settled as
+  // a release of the price less that amount would be: the Helpr's share is
+  // the price less the amount and the rush fee less its refunded share, less their fee;
+  // the card processing fee, service fee and sales tax stay with the kept part
+  // as they do on any release. An agreed ALL refund keeps the admin full-refund
+  // rule below (what was paid, less the card cost). Fails closed: a recorded
+  // price that is not the job's price, more than the charge can return, or a
+  // gift-funded job (how an exact amount divides between the card and the gift
+  // is not decided) moves nothing; an admin settles it.
+  const exactAgreed = agreement !== null && agreement.amountCents < agreement.budgetCents;
+  if (exactAgreed && agreement !== null && agreement.budgetCents !== Math.round(perHelperBudget * 100)) {
+    return await refuse({ error: "the agreed refund's price is not this job's price — nothing was moved; an admin settles it" }, 409);
+  }
+  if (exactAgreed && giftAppliedCents > 0) {
+    return await refuse({ error: "an agreed part refund on a gift-funded job is settled by an admin (how the amount divides between the card and the gift is not decided) — nothing was moved" }, 409);
+  }
+  const helperBudgetShareDollars = exactAgreed && agreement !== null
+    ? (agreement.budgetCents - agreement.amountCents) / 100
+    : perHelperBudget * helperShare;
+  // Owner 2026-10-21: an agreed part also returns the rush (urgent) fee in the
+  // SAME share as the price (no cliff): $20 asked of a $40 job with a $10 rush
+  // fee returns $20 + $5, and the Helpr keeps the other $5 of it
+  // (_shared/refundRush.ts, the one rule the preview and the notice share).
+  const rushCents = Math.round(netUrgentFeeDollars(job.urgent_fee) * 100);
+  const rushBackCents = exactAgreed && agreement !== null
+    ? agreedRushRefundCents(rushCents, agreement.amountCents, agreement.budgetCents)
+    : 0;
+  const helperUrgentShareDollars = exactAgreed
+    ? (rushCents - rushBackCents) / 100
+    : netUrgentFeeDollars(job.urgent_fee) * helperShare;
   const platformFeeDollars = jobHelprCommissionDollars(job, helperBudgetShareDollars, helperFeePercent, helperUrgentShareDollars);
   const helperPayoutDollars =
     helperBudgetShareDollars + helperUrgentShareDollars - platformFeeDollars;
@@ -645,23 +721,41 @@ serve(async (req) => {
   // _shared/refundAmount.ts, exactly as admin_refund_dispute computes it: the
   // card cost only (Stripe's real fee, or customer_fee_amount on a job priced
   // with no service fee), never a legacy service fee from a poster who won.
+  const chargeTaxCents = await chargeTaxCentsFor(stripe, pi);
   const posterBase = refundToPayerCents({
     capturedCents,
     actualFeeCents: pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0,
     customerFeeCents: pi ? cardCostFeeCents(job) : 0,
     setupFeeCents: pi ? setupFeeKeptCents(job) : 0,
-    taxCents: await chargeTaxCentsFor(stripe, pi),
+    taxCents: chargeTaxCents,
   });
   const nonRefundableCents = posterBase.feeKeptCents;
   const refundableCents = posterBase.ceilingCents;
-  const refundCents = Math.max(0, Math.round(refundableCents * posterShare));
+  const refundCents = exactAgreed && agreement !== null
+    ? agreement.amountCents + rushBackCents
+    : Math.max(0, Math.round(refundableCents * posterShare));
+  // A TAXED charge is not settled on the exact path yet (lh-money-escrow
+  // review of the Q2298 change): how Stripe Tax records a flat partial refund
+  // of an automatic_tax Checkout charge is unchecked (Q1998), so the tax the
+  // poster's receipt would state is not known. Fails closed, as for a gift:
+  // nothing moves and an admin settles it. A tax read that fails is treated
+  // as taxed (checkoutChargeTaxCents is null then, never a silent 0).
+  if (exactAgreed) {
+    const exactTaxCents = pi ? await checkoutChargeTaxCents(stripe, pi) : 0;
+    if (exactTaxCents === null || exactTaxCents > 0) {
+      return await refuse({ error: "an agreed part refund on a taxed charge is settled by an admin until Q1998 (how Stripe Tax records a flat partial refund) is checked — nothing was moved" }, 409);
+    }
+  }
+  if (exactAgreed && refundCents > refundableCents) {
+    return await refuse({ error: `the agreed refund (${refundCents}c) is more than this charge can return (${refundableCents}c) — nothing was moved; an admin settles it` }, 409);
+  }
 
   // Gift leg. Basis points, not dollars: the amount is computed inside
   // `restore_gift_card_for_job` from the applied value it alone knows, so the
   // formula lives in exactly one place. `Math.floor` mirrors that function's
   // integer division so this figure and the row it eventually writes agree to
   // the cent — and rounds toward the platform, never toward minting money.
-  const giftShareBps = Math.min(10000, Math.max(0, Math.round(posterShare * 10000)));
+  const giftShareBps = exactAgreed ? 0 : Math.min(10000, Math.max(0, Math.round(posterShare * 10000)));
   const giftRestoreCents = Math.floor((giftAppliedCents * giftShareBps) / 10000);
 
   if (helperCents === 0 && refundCents === 0 && giftRestoreCents === 0) {
@@ -888,7 +982,7 @@ serve(async (req) => {
           amount_cents: recoveredCents,
           platform_fee_cents: platformFeeCents,
           status: "paid",
-          initiated_by: "admin",
+          initiated_by: agreementCaller ? "system" : "admin",
           initiated_by_user_id: adminUserId,
           metadata: {
             source: "execute_dispute_split",
@@ -1514,7 +1608,7 @@ serve(async (req) => {
             helper_id: job.helper_id ?? "",
             customer_id: job.customer_id ?? "",
             helper_share: String(helperShare),
-            initiated_by: "admin",
+            initiated_by: agreementCaller ? "system" : "admin",
             // As release-payout does: what this transfer withheld for a Helpr-fault card fee.
             helpr_fault_fee_cents: String(helprFaultFeeCents),
           },
@@ -1577,7 +1671,7 @@ serve(async (req) => {
       platform_fee_cents: platformFeeCents,
       status: "paid",
       paid_at: new Date().toISOString(),
-      initiated_by: "admin",
+      initiated_by: agreementCaller ? "system" : "admin",
       initiated_by_user_id: adminUserId,
       metadata: {
         source: "execute_dispute_split",
@@ -1896,10 +1990,15 @@ serve(async (req) => {
   // the job terminal), never silent — writeAdminAudit alerts on a lost row.
   await writeAdminAudit(supabaseAdmin, {
     adminId: adminUserId,
-    action: "execute_dispute_split",
+    // Board 141: the agreement door's own action name, with the two parties
+    // whose recorded agreement it acted on.
+    action: agreement ? "execute_refund_agreement" : "execute_dispute_split",
     targetType: "dispute",
     targetId: disputeId,
     details: {
+      ...(agreement
+        ? { refund_request_id: agreement.requestId, agreed_poster_id: agreement.posterId, agreed_helper_id: agreement.helperId, agreed_amount_cents: agreement.amountCents }
+        : {}),
       job_id: job.id,
       helper_share: helperShare,
       poster_share: posterShare,
@@ -1922,11 +2021,16 @@ serve(async (req) => {
   const helperDollars = movedHelperCents / 100;
   const refundDollars = refundCents / 100;
   if (job.helper_id && movedHelperCents > 0) {
+    const helperAmount = movedHelperCents % 100 !== 0 ? formatExactDollars(helperDollars) : formatPayoutDollars(helperDollars);
     const { error: helperNoteErr } = await supabaseAdmin.from("notifications").insert({
       user_id: job.helper_id,
       job_id: job.id,
-      title: "Dispute settled — your share was sent",
-      message: `The dispute on "${job.title}" was settled with a ${Math.round(helperShare * 100)}% share to you. $${movedHelperCents % 100 !== 0 ? formatExactDollars(helperDollars) : formatPayoutDollars(helperDollars)} is on its way to your bank.`,
+      // Board 141: an agreement is told as what it was, not a "dispute". It is
+      // the Helpr's pay notice; the poster's refund notice is the one below.
+      title: agreement ? "Settled as you agreed — your share was sent" : "Dispute settled — your share was sent",
+      message: agreement
+        ? `What you agreed on "${job.title}" is settled. $${helperAmount} is on its way to your bank.`
+        : `The dispute on "${job.title}" was settled with a ${Math.round(helperShare * 100)}% share to you. $${helperAmount} is on its way to your bank.`,
       type: "payment",
       // `/profile?tab=earnings` is the earnings screen — `/earnings` and
       // `/analytics` both redirect here, and Dashboard reads no `tab` param.
@@ -1948,7 +2052,9 @@ serve(async (req) => {
       : restoredGiftCents > 0
       ? `$${formatExactDollars(restoredGiftCents / 100)} is back as a gift you can use on another job.`
       : `$${formatExactDollars(refundDollars)} has been refunded to your original payment method.`;
-    const settled = `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you.`;
+    const settled = agreement
+      ? `The refund you and your Helpr agreed on "${job.title}" is settled.`
+      : `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you.`;
     if (refundId && refundCents > 0) {
       // Q1714: THE refund notice (in the app and by email: amount, card,
       // reference, 5-10 business days), claimed on the refund's id. The
@@ -1964,11 +2070,15 @@ serve(async (req) => {
         // receipt's total. A gift's share is not on the card at all.
         keptCents: Math.max(0, capturedCents - refundCents),
         // Q2082 (a): the poster's share of the tax kept on the kept card fee.
-        taxKeptCents: Math.round(posterBase.taxKeptCents * posterShare),
+        // Q2298: the exact path only ever settles an untaxed charge (a taxed
+        // one is refused above until Q1998), so no tax is kept on it.
+        taxKeptCents: exactAgreed ? 0 : Math.round(posterBase.taxKeptCents * posterShare),
         // The Helpr is named only when the decision gave them a share.
         // Q1674: a first job also keeps its one-time $2 setup fee; named last.
-        keptReason: setupFeeKeptReason(movedHelperCents > 0
-          ? "the Helpr's share under the dispute decision and the card processing fee"
+        keptReason: setupFeeKeptReason(exactAgreed
+          ? "the rest of what you paid: the Helpr's pay you agreed to and the fees"
+          : movedHelperCents > 0
+          ? (agreement ? "the Helpr's share you agreed to and the card processing fee" : "the Helpr's share under the dispute decision and the card processing fee")
           : "the card processing fee, which can't be returned", setupFeeKeptCents(job)),
         recipientId: job.customer_id,
         jobId: job.id,
@@ -1992,7 +2102,7 @@ serve(async (req) => {
       // Gift only: no card refund, so no refund notice; the gift is the news.
       const { error: posterNoteErr } = await supabaseAdmin.from("notifications").insert({
         user_id: job.customer_id,
-        title: "Dispute settled — your gift is back",
+        title: agreement ? "Settled as you agreed — your gift is back" : "Dispute settled — your gift is back",
         message: `${settled} ${posterHow}`,
         type: "payment",
         // The settled job. A resolved dispute leaves the job completed or
@@ -2029,6 +2139,56 @@ serve(async (req) => {
     resumed: isResume,
   });
 });
+
+/**
+ * Board 141 (Q2272): the other side's RECORDED agreement, as
+ * public.refund_agreement_for_dispute returns it (20261021102943). Every field
+ * is required and must be well-formed, and it must name the dispute asked
+ * about; anything else is "no agreement" (fail closed).
+ */
+interface RefundAgreementProof {
+  requestId: string;
+  disputeId: string;
+  jobId: string;
+  posterId: string;
+  helperId: string;
+  amountCents: number;
+  budgetCents: number;
+}
+
+/**
+ * Is `given` exactly `expected`, compared in time that does not depend on
+ * where they first differ (the gateway's JWT check is off for this function,
+ * so the service door's key compare is the whole gate; lh-money-escrow and
+ * lh-authz-rls review notes).
+ */
+function sameSecret(given: string, expected: string): boolean {
+  const a = new TextEncoder().encode(given);
+  const b = new TextEncoder().encode(expected);
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < b.length; i++) diff |= (a[i] ?? 0) ^ b[i];
+  return diff === 0;
+}
+
+function parseRefundAgreement(raw: unknown, disputeId: string): RefundAgreementProof | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const id = (v: unknown) => (typeof v === "string" && UUID_RE.test(v) ? v : null);
+  const cents = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v > 0 ? v : null);
+  const out = {
+    requestId: id(o.request_id),
+    disputeId: id(o.dispute_id),
+    jobId: id(o.job_id),
+    posterId: id(o.poster_id),
+    helperId: id(o.helper_id),
+    amountCents: cents(o.amount_cents),
+    budgetCents: cents(o.budget_cents),
+  };
+  if (Object.values(out).some((v) => v === null)) return null;
+  if (out.disputeId !== disputeId || out.posterId === out.helperId) return null;
+  if ((out.amountCents as number) > (out.budgetCents as number)) return null;
+  return out as RefundAgreementProof;
+}
 
 /**
  * Normalise a recorded `payout_split` into a { helperShare, posterShare } pair

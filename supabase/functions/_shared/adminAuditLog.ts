@@ -18,7 +18,9 @@
  */
 
 export interface AdminAuditRow {
-  adminId: string;
+  /** NULL only when no admin acted: execute-dispute-split settling a refund
+   *  the two parties agreed (board 141), whose details name both of them. */
+  adminId: string | null;
   action: string;
   targetType: string;
   targetId: string;

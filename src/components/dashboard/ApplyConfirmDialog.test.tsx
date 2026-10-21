@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { ApplyConfirmDialog } from "./ApplyConfirmDialog";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { scanMessage } from "@/lib/messageScanner";
+import { POPUP_DIALOG_CLS, POPUP_SHEET_CLS } from "@/components/ui/popupFooter";
 
 // `toast` is a thin stub. `dismiss` is real to these tests: ApplyBody takes
 // down its own "You're offline" toast when the network returns (Q131).
@@ -153,19 +154,22 @@ describe("ApplyConfirmDialog", () => {
     expect(screen.getByRole("button", { name: "Applying…" })).toBeDisabled();
   });
 
-  it("is centered, matching every other sheet app-wide", () => {
-    // Superseded 2026-08-30: sheets moved from bottom-anchored to centered
-    // (owner reviewed centered-modal / inset-sheet / anchored-panel options
-    // and picked centered for this group — see sheet.tsx's sheetVariants).
-    // This dialog uses the SAME shared `side="bottom"` variant every other
-    // sheet does, so it must track whatever that variant currently renders —
-    // asserting a literal class string here would just re-break the next
-    // time the shared variant changes, so assert the outcome (vertically
-    // centered, not pinned to the bottom edge) instead.
+  it("is the shared popup shell: a bottom sheet on the phone, centred from 640px, like every other popup", () => {
+    // Spec v2 §3 "Sheets and menus" (lead 2026-10-20, dd0dfdacf9): the one
+    // DialogContent is a bottom sheet on the phone (POPUP_SHEET_CLS) and a
+    // centred 480px dialog from sm (POPUP_DIALOG_CLS). Superseded the
+    // 2026-08-30 centred-at-every-width sheet this used to assert. It tracks
+    // the shared strings rather than a literal copy, so the next change to the
+    // shell moves this test with it.
     render(<ApplyConfirmDialog {...makeProps()} />);
     const sheet = screen.getByRole("dialog");
-    expect(sheet.className).not.toContain("bottom-0");
-    expect(sheet.className).toContain("my-auto");
+    for (const cls of POPUP_SHEET_CLS.split(/\s+/).filter((c) => /^(fixed|bottom-0|inset-x-0)$/.test(c))) {
+      expect(sheet.className.split(/\s+/)).toContain(cls);
+    }
+    for (const cls of ["sm:top-1/2", "sm:left-1/2", "sm:bottom-auto"]) {
+      expect(POPUP_DIALOG_CLS).toContain(cls);
+      expect(sheet.className.split(/\s+/)).toContain(cls);
+    }
   });
 
   it("dismisses from the TOP-RIGHT, like every other sheet", () => {

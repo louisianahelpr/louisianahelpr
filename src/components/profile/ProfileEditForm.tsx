@@ -322,7 +322,7 @@ export function ProfileEditForm({
                   /* Board 41 / spec v2 §1.1: one chip style, olive when selected,
                      never a per-category colour (a rust "Handyman" chip read as money). */
                   className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-ds-11 font-semibold transition-colors active:scale-95 ${
-                    active ? "bg-primary border-primary text-primary-foreground" : "bg-transparent border-border text-foreground"
+                    active ? "btn-grad-primary border-transparent !text-[hsl(var(--parchment))]" : "bg-transparent border-border text-foreground"
                   }`}
                 >
                   {active ? (

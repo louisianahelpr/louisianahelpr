@@ -69,6 +69,8 @@ vi.mock("@/hooks/useAgeGate", () => ({
   useAgeGate: () => ({ underAge: false, explain: () => {}, gate: (_k: string, f: () => void) => f, gatedProps: () => ({}) }),
 }));
 vi.mock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+// Home mounts FirstRun (board 53 tour), which reads the account's tour stamp: answered here, never the network.
+vi.mock("@/lib/onboardingTourCompletion", () => ({ fetchTourCompletion: async () => ({ status: "completed" }), markTourCompleted: async () => true }));
 const job = (id: string, status: string) => ({ id, title: `Job ${id}`, status, date_needed: "2099-01-02", start_time: "09:00:00", location: "Baton Rouge, LA", budget: 50, helper_id: null });
 vi.mock("@/hooks/useActivityData", () => ({
   // Home's to-do list (badge = To-do) reads the same posted core.

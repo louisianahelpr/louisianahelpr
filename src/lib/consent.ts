@@ -18,7 +18,7 @@ export const LATEST_TERMS_VERSION = "Oct 2026";
 
 // The Privacy Policy is versioned on its own (Q289): legal_acceptances records
 // both, and a Terms-only bump must not claim a Privacy version that never existed.
-export const LATEST_PRIVACY_VERSION = "Jun 2026";
+export const LATEST_PRIVACY_VERSION = "Oct 2026";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** "Oct 2026" -> 202610 (comparable), or null for anything that is not "Mon YYYY". */

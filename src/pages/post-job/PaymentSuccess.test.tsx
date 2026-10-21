@@ -10,6 +10,7 @@
  * "failed confirmation must NOT render a success claim" behaviour is pinned
  * here permanently rather than left to a sweep that only runs on demand.
  */
+// @mutate src/pages/post-job/PaymentSuccess.tsx |   const live = lifecycleStep === 0 && !alreadyReleased && !directOffer; |   const live = true;
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -339,7 +340,8 @@ describe("PaymentSuccess", () => {
       };
       renderAt();
       const heading = await screen.findByRole("heading", { level: 1 });
-      expect(heading).toHaveTextContent(/your job is live/i);
+      // Paid out already: never "Your job is live" (lh-money-escrow review 2026-10-21 #1).
+      expect(heading).toHaveTextContent(/^payment confirmed\.$/i);
       expect(screen.getByText(/already been released/i)).toBeInTheDocument();
       expect(screen.queryByText(/released when you confirm the work is done/i)).not.toBeInTheDocument();
     });
@@ -387,13 +389,24 @@ describe("PaymentSuccess follows the job's stage (Q1788)", () => {
     ["completed", "Released", "View Job"],
   ];
 
+  it("a paid direct offer to one Helpr is not 'live' (Helprs browsing cannot see it)", async () => {
+    jobsLookup = {
+      data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: POSTER, status: "open", offered_to_helper_id: "h1" },
+      error: null,
+    };
+    renderAt();
+    await screen.findByRole("heading", { level: 1, name: /^payment confirmed\.$/i });
+  });
+
   it.each(cases)("status %s marks %s and offers %s", async (status, step, primary) => {
     jobsLookup = {
       data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: POSTER, status },
       error: null,
     };
     renderAt();
-    await screen.findByRole("heading", { level: 1, name: /your job is live/i });
+    // Board 56: "live" only while the job is still open; past that, the headline is about the money only
+    // (lh-money-escrow review 2026-10-21).
+    await screen.findByRole("heading", { level: 1, name: status === "open" ? /your job is live/i : /^payment confirmed\.$/i });
     const pill = screen.getByText(/you are here/i);
     expect(pill.parentElement?.textContent ?? "").toContain(step);
     expect(screen.getAllByText(/you are here/i)).toHaveLength(1);

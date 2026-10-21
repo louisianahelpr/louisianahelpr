@@ -120,6 +120,7 @@ jobs:
           race-runner.yml:2
           scoreboard.yml:2
           security-audit.yml:14
+          sentry-alert-rules.yml:8
           slow-network.yml:4
           staleness-watch.yml:2
           stripe-webhook-guard.yml:2

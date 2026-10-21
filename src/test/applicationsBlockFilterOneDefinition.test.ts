@@ -137,6 +137,10 @@ describe("Q341: applicant list and counters share ONE blocked filter", () => {
           "src/pages/jobs/jobPage/useJobPage.ts",
           // Board 189 first-job Home: a head-only count of the member's OWN applications (helper_id = self), no applicant list.
           "src/pages/home/homeDashboard/FirstJobHome.tsx",
+          // Board 66/172 s4: Edit job's head-only count of the poster's applicants, read under the same
+          // block-filtered poster policy. It only decides whether the category picker shows locked; the
+          // server (category_locked_after_applications) refuses the change either way.
+          "src/pages/posts/EditJobDialog.tsx",
       ].sort(),
     );
   });

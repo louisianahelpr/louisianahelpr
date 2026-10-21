@@ -24,6 +24,8 @@ import { quoteErrorMessage } from "./errors";
  * The open-jobs limit below is the trigger's own text as of 2026-10-17.
  * @mutate src/lib/quotes/errors.ts |   { match: /maximum of 5 open jobs at a time/, | { match: /maximum of 6 open jobs at a time/,
  * @mutate src/lib/quotes/errors.ts |   { match: /^Minimum budget is \$/, | { match: /^Minimum price is \$/,
+ * An UPDATE-only refusal stays out of reach only while its INSERT branch returns first.
+ * @mutate supabase/migrations/20261021111723_open_job_edit_tells_applicants.sql |   IF TG_OP = 'INSERT' THEN | IF TG_OP = 'NEVER' THEN
  */
 
 const MIGRATIONS = resolve(__dirname, "../../../supabase/migrations");
@@ -44,6 +46,8 @@ const NOT_FROM_QUOTE_INSERT: Record<string, { columns: string[]; reason: string 
   enforce_onboarding_fee_server_owned: { columns: ["onboarding_fee_amount"], reason: "raises only when the client writes the setup fee" },
   enforce_job_completion_server_owned: { columns: ["status", "helper_completed_at"], reason: "raises only when the client writes completion" },
   refuse_under_18_member: { columns: ["helper_id"], reason: "under_18 has words; helper_unavailable is raised only for a helper_id being set" },
+  // No column: the raise sits behind TG_OP, not a column the insert could leave empty (checked below).
+  jobs_open_edit_tells_applicants: { columns: [], reason: "returns at TG_OP = 'INSERT' before any raise; category_locked_after_applications is raised only on an UPDATE of an existing job's category" },
 };
 
 /** Triggers created by EXECUTE format (no literal CREATE TRIGGER): name, function, the migration that attaches them to every table. */
@@ -128,6 +132,23 @@ describe("Q1875: jobs INSERT trigger refusals have words on the quote booking pa
       if (!triggerFns.has(fn)) wrong.push(`${fn}: no longer a jobs BEFORE INSERT trigger function`);
       for (const c of columns) if (cols.has(c)) wrong.push(`${fn}: quote_insert_job now writes ${c}`);
     }
+    expect(wrong).toEqual([]);
+  });
+
+  it("a function said to be out of reach with no column returns on INSERT before its first raise", () => {
+    const wrong: string[] = [];
+    let checked = 0;
+    for (const [fn, { columns }] of Object.entries(NOT_FROM_QUOTE_INSERT)) {
+      if (columns.length) continue;
+      checked++;
+      const body = blankSqlComments(defs.get(fn)?.body ?? "");
+      const insertReturn = /IF\s+TG_OP\s*=\s*'INSERT'\s+THEN[\s\S]*?RETURN\s+NEW;\s*END\s+IF;/i.exec(body);
+      const firstRaise = body.search(/RAISE\s+EXCEPTION/i);
+      if (!insertReturn || firstRaise < 0 || insertReturn.index + insertReturn[0].length > firstRaise) {
+        wrong.push(`${fn}: no RETURN NEW for TG_OP = 'INSERT' ahead of its first RAISE EXCEPTION`);
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
     expect(wrong).toEqual([]);
   });
 

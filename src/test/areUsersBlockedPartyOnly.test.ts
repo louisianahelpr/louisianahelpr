@@ -101,6 +101,12 @@ const EXPECTED_CALLERS = [
   // Helpr may be the one moving the status), and it gets the real answer the
   // same way enforce_block_on_message_insert does: pg_trigger_depth() > 0.
   "insert_job_status_system_message",
+  // Board 66/172 s4 (20261021111723): the BEFORE INSERT OR UPDATE trigger on
+  // jobs passes two parties, (a.helper_id, OLD.customer_id): the pending
+  // applicant and the job's poster, so it never asks about a third person. It
+  // gets the real answer through the pg_trigger_depth() > 0 arm; a NULL would
+  // only hold that applicant's edit notice back.
+  "jobs_open_edit_tells_applicants",
   "list_open_quote_requests",
   "offer_series_dates",
   // Quote hire on pay (20261018155222): the AFTER UPDATE OF payment_status

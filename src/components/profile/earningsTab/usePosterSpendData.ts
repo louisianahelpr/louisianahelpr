@@ -7,6 +7,8 @@ import type { PosterBlockFeeRow, PosterGiftRow, PosterRefundRow, PosterSpendJob,
 /** Poster-side slice for the Spent card and its list. */
 export interface SpentJobRow extends PosterSpendJob {
   title: string | null;
+  /** The hired Helpr (Home's held tile names who it is paid to). */
+  helper_id?: string | null;
   status: string;
   dispute_status: string | null;
   /** 0 on a job priced with no poster service fee (its fee IS the card cost); read by setupFeeReceiptNote. */
@@ -47,7 +49,7 @@ export function usePosterSpendData(userId: string | undefined) {
         // them cost anything. onboarding_fee_amount is ahead of db-deploy
         // (JOB_COLUMNS_AHEAD_OF_DB), so the read retries once without it.
         readJobsAheadOfDb(
-          "id, title, status, budget, customer_fee_amount, platform_fee_percent, urgent_fee, sales_tax_amount, onboarding_fee_amount, dispute_status, payment_status, stripe_payment_intent_id, cancellation_fee, cancellation_fee_status, poster_completed_at, helper_completed_at, cancelled_at, created_at",
+          "id, title, status, helper_id, budget, customer_fee_amount, platform_fee_percent, urgent_fee, sales_tax_amount, onboarding_fee_amount, dispute_status, payment_status, stripe_payment_intent_id, cancellation_fee, cancellation_fee_status, poster_completed_at, helper_completed_at, cancelled_at, created_at",
           (columns) => supabase.from("jobs").select(columns).eq("customer_id", posterId),
         ),
         supabase.from("payment_refunds").select("job_id, amount_cents, stripe_payment_intent_id, source").eq("customer_id", posterId),

@@ -155,7 +155,7 @@ function selectedTabLabel(): string | null {
 
 /** Radix's DropdownMenu opens on a keyboard Enter in jsdom (no pointer events). */
 function checkedInMoreMenu(): string | null {
-  const trigger = screen.queryByRole("button", { name: "More conversation options" });
+  const trigger = screen.queryByRole("button", { name: "Inbox views and options" });
   if (!trigger) return null;
   trigger.focus();
   fireEvent.keyDown(trigger, { key: "Enter" });
@@ -195,7 +195,7 @@ function chooseTab(label: "All" | "Active") {
     fireEvent.click(btn);
     return;
   }
-  const trigger = screen.getByRole("button", { name: "More conversation options" });
+  const trigger = screen.getByRole("button", { name: "Inbox views and options" });
   trigger.focus();
   fireEvent.keyDown(trigger, { key: "Enter" });
   const item = screen.getAllByRole("menuitemradio").find((el) => (el.textContent ?? "").trim() === label);

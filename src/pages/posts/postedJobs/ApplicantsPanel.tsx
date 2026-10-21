@@ -17,7 +17,7 @@ import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
 import { hapticLight } from "@/lib/haptics";
 import { tierDisplayName } from "@/lib/subscriptionTiers";
-import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
+import { usePaidTierBadge } from "@/hooks/usePaidTierBadge";
 import { type Job, type EnrichedApplication } from "../../../components/job-card/activityConstants";
 import { type JobAnalytics } from "./useJobAnalytics";
 import { useApplicantComparison } from "./useApplicantComparison";
@@ -62,7 +62,6 @@ interface ApplicantsPanelProps {
   onBoost?: (jobId: string) => void;
   onEdit?: (job: Job) => void;
 }
-
 /** Trust signals include a raw rating string like "4.9★" (applicantScoring.ts),
     which a screen reader reads literally as "black star" — meaningless next to
     the number. The glyph is decorative (the number already carries the
@@ -100,6 +99,7 @@ export function ApplicantsPanel({
   onBoost,
   onEdit,
 }: ApplicantsPanelProps) {
+  const paidTierBadge = usePaidTierBadge();
   // Bidding was removed (never used in production): applicants are hired or declined outright.
 
   // Decline confirmation sheet — open when poster taps "Decline" on an applicant.
@@ -306,7 +306,7 @@ export function ApplicantsPanel({
                   const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
                   // Derived from the shared badge table, so Plus gets the same
                   // halo as Pro instead of none at all (CC-019).
-                  const helperTierStyle = tierBadgeStyle(helperTier);
+                  const helperTierStyle = paidTierBadge(helperTier);
                   const haloColor = helperTierStyle?.prestige ? helperTierStyle.color : null;
                   const helperName = formatName(app.profiles?.full_name, "Helpr");
                   const helperInitials = helperInitialsFrom(helperName);

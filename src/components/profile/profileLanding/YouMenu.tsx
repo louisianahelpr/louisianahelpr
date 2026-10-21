@@ -15,7 +15,7 @@ import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers
  */
 export const YOU_ROWS = [
   { key: "earnings", label: "Money" },
-  { key: "notifications", label: "Alerts" },
+  { key: "notifications", label: "Notifications" },
   { key: "settings", label: "Settings" },
   { key: "support", label: "Talk to a real person" },
 ] as const;
@@ -31,7 +31,7 @@ const ICON: Record<RowKey, ReactNode> = {
 
 /** The captions known before any data (the skeleton draws these too). Money's is data, so it is not here. */
 export const YOU_STATIC_CAPTIONS: Partial<Record<RowKey, string>> = {
-  notifications: "Notifications",
+  notifications: "What we tell you, and how",
   settings: "Account, look, sections",
   support: "Help",
 };

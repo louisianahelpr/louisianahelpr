@@ -7,7 +7,7 @@
  *
  * @mutate src/pages/home/homeDashboard/homeMoney.ts |   if (profile && feeKnown && earnings.data && !earnings.isError) { |   if (profile && earnings.data) {
  * @mutate src/pages/home/homeDashboard/homeMoney.ts |   if (spend.data && !spend.isError) { |   if (spend.data) {
- * @mutate src/pages/home/homeDashboard/homeMoney.ts |     if (h.cents > 0) held = h; |     held = h;
+ * @mutate src/pages/home/homeDashboard/homeMoney.ts |     if (h.cents > 0) held = { ...h, only: null }; |     held = { ...h, only: null };
  * @mutate src/pages/home/homeDashboard/homeMoney.ts |     if (c.cents > 0) coming = { |     coming = {
  * @mutate src/hooks/useFirstPayoutFee.ts |   return profile.onboarding_fee_paid === true \|\| fee.isSuccess; |   return profile.onboarding_fee_paid === true \|\| !fee.isPending;
  * @mutate src/hooks/useOnboardingFee.ts |       const data = unwrap(res); |       const data = res.error ? null : res.data;
@@ -23,6 +23,8 @@ const state = vi.hoisted(() => ({
   feePending: false,
   feeFailed: false,
 }));
+// The held tile reads the Helpr's name with its own small query (get_safe_profiles); not what this test is about.
+vi.mock("@tanstack/react-query", async (orig) => ({ ...(await orig<object>()), useQuery: () => ({ data: undefined }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u" }, profile: state.profile }) }));
 vi.mock("@/hooks/useProfileTabData", () => ({ useProfileEarnings: () => state.earnings }));
 vi.mock("@/components/profile/earningsTab/usePosterSpendData", () => ({ usePosterSpendData: () => state.spend }));
@@ -60,7 +62,7 @@ describe("Home money tiles: a real number or no tile", () => {
     const m = renderHook(() => useHomeMoney(user)).result.current;
     expect(m.coming?.cents).toBeGreaterThan(0);
     expect(m.coming?.at).toBe("2026-10-23T15:00:00Z");
-    expect(m.held).toEqual({ cents: 4150, jobs: 1 });
+    expect(m.held).toEqual({ cents: 4150, jobs: 1, only: null });
   });
 
   it("loading: no tiles", () => {

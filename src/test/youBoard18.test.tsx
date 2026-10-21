@@ -1,11 +1,14 @@
 /**
  * You = board 18 (2026-10-20): the page is named "You" (h1 and browser tab,
  * one name), and YOUR ACTIVITY shows both sides of every section the member
- * shows, two tiles each, with a count only when it is real and non-zero; a
- * section not open to this viewer reads "Opening soon" and never routes in.
+ * shows, two tiles each, with a count only when it is real and non-zero. A
+ * section not open to this viewer has no tiles; ONE line names every such
+ * section (owner 2026-10-21: "Homes is opening soon").
  *
- * @mutate src/components/profile/profileLanding/YourActivity.tsx |                   {on && n > 0 ? ` · ${n}` : ""} |                   {` · ${n}`}
- * @mutate src/components/profile/profileLanding/YourActivity.tsx |                 onClick={() => (on ? navigate(t.to) : sayComingSoon(s.label))} |                 onClick={() => navigate(t.to)}
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |                   {n > 0 ? ` · ${n}` : ""} |                   {` · ${n}`}
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |   const open = visible.filter(isOn); |   const open = visible;
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |       {soon && <p | {false && <p
+ * @mutate src/pages/home/HomeDashboard.tsx |               {visible.filter(isLive).map((s) => { |               {visible.map((s) => {
  * @mutate src/components/profile/profileLanding/headingContract.ts | export const PROFILE_PAGE_TITLE = "You"; | export const PROFILE_PAGE_TITLE = "Profile";
  * @mutate src/components/profile/ProfileLanding.tsx |       <YourActivity /> |       {null}
  */
@@ -29,6 +32,7 @@ vi.mock("@/components/sections/useSectionPrefs", async () => {
 });
 
 import { YourActivity, ACTIVITY_TILES } from "@/components/profile/profileLanding/YourActivity";
+import { openingSoonLine } from "@/components/mobileNav/useSectionTabs";
 import { PROFILE_PAGE_TITLE } from "@/components/profile/profileLanding/headingContract";
 
 let path = "";
@@ -45,23 +49,33 @@ describe("You matches board 18", () => {
     expect(page).not.toContain("My Profile — Helpr");
   });
 
-  it("eight tiles, both sides of each section; real non-zero counts only", () => {
+  it("both sides of each OPEN section; real non-zero counts only; one line for the rest", () => {
     render(<MemoryRouter><YourActivity /><Where /></MemoryRouter>);
     const tiles = screen.getAllByRole("button");
-    expect(tiles.length).toBe(8);
     expect(Object.values(ACTIVITY_TILES).flat().length).toBe(8);
     expect(tiles.map((t) => t.textContent)).toEqual([
-      "JobsPosted · 2", "JobsWorking", "DeclutterBuying", "DeclutterSelling · 1",
-      "ShopsOrders", "ShopsMy shop", "HomesRentingOpening soon", "HomesOwningOpening soon",
+      "JobsPosted · 2", "JobsWorking", "DeclutterBuying", "DeclutterSelling · 1", "ShopsOrders", "ShopsMy shop",
     ]);
+    expect(screen.getByTestId("you-activity-soon").textContent).toBe("Homes is opening soon");
   });
 
-  it("an open tile routes to its tab; a closed section says coming soon and stays put", () => {
+  it("an open tile routes to its tab; a closed section has no tile to tap", () => {
     render(<MemoryRouter initialEntries={["/profile"]}><YourActivity /><Where /></MemoryRouter>);
     fireEvent.click(screen.getByRole("button", { name: "Jobs Posted, 2" }));
     expect(path).toBe("/jobs?tab=posted");
-    fireEvent.click(screen.getByRole("button", { name: "Homes Owning, opening soon" }));
-    expect(path).toBe("/jobs?tab=posted");
-    expect(toast).toHaveBeenCalledWith("Homes is coming soon", expect.anything());
+    expect(screen.queryByRole("button", { name: /Homes/ })).toBeNull();
+  });
+
+  it("Home's Your sections: a box per OPEN section, and the same one line for the rest", () => {
+    const home = blankComments(readFileSync(resolve(__dirname, "../pages/home/HomeDashboard.tsx"), "utf8"));
+    expect(home).toContain("{visible.filter(isLive).map((s) => {");
+    expect(home).toContain("openingSoonLine(visible.filter((s) => !isLive(s)).map((s) => s.label))");
+    expect(home).not.toMatch(/>Opening soon</);
+  });
+
+  it("the line names every closed section, in one sentence", () => {
+    expect(openingSoonLine([])).toBeNull();
+    expect(openingSoonLine(["Homes"])).toBe("Homes is opening soon");
+    expect(openingSoonLine(["Declutter", "Shops", "Homes"])).toBe("Declutter, Shops and Homes are opening soon");
   });
 });

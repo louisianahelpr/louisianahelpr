@@ -14,6 +14,8 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { JobPosterCard, POSTER_NAME_FALLBACK } from "./JobPosterCard";
+// The paid-tier badge reads the memberships switch (usePaidTierBadge); not what this test is about.
+vi.mock("@/hooks/usePaidTierBadge", () => ({ usePaidTierBadge: () => () => null }));
 import type { EnrichedJob } from "./types";
 
 const job = (posterName: string | undefined) =>

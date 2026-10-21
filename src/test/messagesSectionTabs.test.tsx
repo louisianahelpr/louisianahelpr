@@ -18,6 +18,7 @@
  *
  * @mutate src/components/messages/messageSections.ts |     return s === "support" \|\| s === section; |     return true;
  * @mutate src/components/messages/messageSections.ts |   if (jobThreads > 0) keep.add("jobs"); |   void 0;
+ * @mutate src/pages/messages/useMessageSections.tsx |     (k) => live[k] \|\| conversations.some((c) => threadSection(c) === k), |     (k) => k !== undefined,
  * @mutate src/components/messages/messageSections.ts |   if (filter === "all") return [...list]; |   if (filter === "all") return list.filter((c) => !!c.teamThread);
  * @mutate src/components/messages/messageSections.ts |   if (filter === "unread") return list.filter((c) => c.unread > 0); |   if (filter === "unread") return [...list];
  * @mutate src/components/messages/messageSections.ts |   return "all";\n} |   return "jobs";\n}
@@ -25,7 +26,6 @@
  * @mutate src/pages/messages/useMessageSections.tsx |     { value: "unread", label: unread > 0 ? `Unread · ${unread}` : "Unread" }, |     { value: "unread", label: `Unread · ${unread}` },
  * @mutate src/pages/messages/Messages.tsx |       conversations={inbox.conversations} |       conversations={conversations}
  * @mutate src/components/messages/ConversationList.tsx |       {phoneSearchRow}\n      {sectionTabs && ( |       {phoneSearchRow}\n      {false && (
- * @mutate src/pages/messages/useMessageSections.tsx |     empty = live[section] |     empty = true
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -132,14 +132,15 @@ const wrap = (entry: string) =>
   };
 
 describe("the hook", () => {
-  it("All (default): every thread, chips All / Unread · n / the four sections, no section empty state", () => {
+  it("All (default): every thread, chips All / Unread · n / the OPEN sections, no section empty state", () => {
     const { result } = renderHook(() => useMessageSections([JOB, TEAM], [JOB, TEAM]), { wrapper: wrap("/messages") });
     expect(result.current.section).toBe("all");
     expect(result.current.conversations).toEqual([JOB, TEAM]);
     expect(result.current.sectionEmpty).toBeNull();
     render(<MemoryRouter>{result.current.strip}</MemoryRouter>);
     const chips = screen.getAllByRole("button").map((b) => b.textContent);
-    expect(chips).toEqual(["All", "Unread · 1", "Jobs", "Declutter", "Shops", "Homes"]);
+    // Declutter is switched off here and has no threads: no chip (owner 2026-10-21).
+    expect(chips).toEqual(["All", "Unread · 1", "Jobs", "Shops", "Homes"]);
     expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -149,13 +150,14 @@ describe("the hook", () => {
     expect(screen.getByRole("button", { name: "Unread" })).toBeInTheDocument();
   });
 
-  it("an open section with no threads says so and offers Browse; a switched-off one says coming soon", () => {
+  it("an open section with no threads says so and offers Browse; a switched-off one has no chip at all", () => {
     const shops = renderHook(() => useMessageSections([JOB], [JOB]), { wrapper: wrap("/messages?section=shops") });
     expect(shops.result.current.conversations).toEqual([]);
     expect(shops.result.current.sectionEmpty).toMatchObject({ title: "No Shops messages yet", action: { label: "Browse Shops", to: "/shops" } });
+    // A switched-off section has no chip, so its link falls back to All (owner 2026-10-21).
     const declutter = renderHook(() => useMessageSections([JOB], [JOB]), { wrapper: wrap("/messages?section=declutter") });
-    expect(declutter.result.current.sectionEmpty).toMatchObject({ title: "Declutter is coming soon" });
-    expect(declutter.result.current.sectionEmpty?.action).toBeUndefined();
+    expect(declutter.result.current.section).toBe("all");
+    expect(declutter.result.current.sectionEmpty).toBeNull();
   });
 
   it("a hidden section has no chip, and its URL falls back to All", () => {
@@ -199,7 +201,7 @@ describe("the screen", () => {
     renderList(null);
     expect(screen.getByText("No messages yet")).toBeInTheDocument();
     // Phone (Q2231): Active / All are reachable from the search row's more menu.
-    expect(screen.getByRole("button", { name: "More conversation options" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Inbox views and options" })).toBeTruthy();
   });
 
   it("Messages.tsx hands the list the tab's threads, never the raw inbox", () => {

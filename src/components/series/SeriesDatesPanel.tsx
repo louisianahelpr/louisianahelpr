@@ -134,8 +134,12 @@ export function SeriesDatesPanel({
       ? "A date opened up — pick it up"
       : `${mine.length} upcoming date${mine.length === 1 ? "" : "s"} are yours${takeable.length ? ` · ${takeable.length} open` : ""}`;
 
+  // Board 118 (restyle only, owner 2026-10-21): each visit is a row, the day in bold and its real state
+  // under it, in sentence case. Only the states the series read has (no "Done · paid", no Skip/Pause).
+  const stateWords = (d: SeriesDate) =>
+    d.state === "mine" ? "Yours" : d.state === "taken" ? "Has a Helpr" : d.state === "released" ? "Opened up" : "Open";
   const row = (d: SeriesDate, selectable: boolean) => (
-    <li key={d.date} className="flex items-center gap-2 min-h-[44px]">
+    <li key={d.date} className="flex items-center gap-2 min-h-[52px] border-b border-border last:border-b-0">
       {selectable ? (
         <label className="flex items-center gap-2 min-h-[44px] flex-1 cursor-pointer">
           <input
@@ -145,14 +149,17 @@ export function SeriesDatesPanel({
             onChange={() => toggle(d.date)}
             aria-label={formatJobDate(d.date)}
           />
-          <span className="text-ds-12 text-foreground">{formatJobDate(d.date)}</span>
+          <span className="flex flex-col">
+            <span className="text-ds-15 font-semibold text-foreground">{formatJobDate(d.date)}</span>
+            <span className="text-ds-12 font-semibold text-primary">{stateWords(d)}</span>
+          </span>
         </label>
       ) : (
-        <span className="text-ds-12 text-foreground flex-1">{formatJobDate(d.date)}</span>
+        <span className="flex flex-1 flex-col">
+          <span className="text-ds-15 font-semibold text-foreground">{formatJobDate(d.date)}</span>
+          <span className={`text-ds-12 font-semibold ${d.state === "open" || d.state === "released" ? "text-muted-foreground" : "text-primary"}`}>{stateWords(d)}</span>
+        </span>
       )}
-      <span className="text-ds-11 text-muted-foreground shrink-0">
-        {d.state === "mine" ? "Yours" : d.state === "taken" ? "Has a Helpr" : d.state === "released" ? "Opened up" : "Open"}
-      </span>
     </li>
   );
 
@@ -190,7 +197,8 @@ export function SeriesDatesPanel({
                 disabled={busy || pickedMine.length === 0}
                 onClick={() => setConfirmGiveUp(true)}
                 className="min-h-[44px] px-1 text-ds-11 font-semibold underline underline-offset-2 disabled:opacity-40"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
+                // Not money, so not rust (spec §1.1): giving a date up is the alert text action.
+                style={{ color: "hsl(var(--alert, 4 71% 41%))" }}
               >
                 Give up {pickedMine.length || ""} date{pickedMine.length === 1 ? "" : "s"}
               </button>
@@ -230,6 +238,7 @@ export function SeriesDatesPanel({
 
           {isPoster && (
             <section className="space-y-2">
+              <h4 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Visits</h4>
               <ul>{view.dates.map((d) => row(d, false))}</ul>
               {openDates.length > 0 && (
                 <div className="space-y-1">

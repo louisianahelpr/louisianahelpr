@@ -91,10 +91,11 @@ describe("liquid-glass card padding token (Q213b)", () => {
     /*
      * INVENTORY FLOOR. With the string regex broken the survey finds no raw
      * padding and no token users, and the equality below would pass on an
-     * empty object. 82 p-card strings on 2026-09-26.
+     * empty object. 82 p-card strings on 2026-09-26; 73 on 2026-10-21 (Builder 2f s7/s8 restyles drop p-card strings;
+     * measured by this survey on TRAIN31), floor 70.
      */
     expect(files.length, "src .ts/.tsx files walked — the walk found nothing (938 on 2026-09-26)").toBeGreaterThan(900);
-    expect(tokenUsers, "liquid-glass strings reading p-card — the survey is matching nothing").toBeGreaterThanOrEqual(75);
+    expect(tokenUsers, "liquid-glass strings reading p-card — the survey is matching nothing").toBeGreaterThanOrEqual(70);
 
     // Stale direction, named per entry so a fixed card lowers the list.
     const stale = Object.entries(ALLOWED)

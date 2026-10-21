@@ -5,6 +5,7 @@ import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { AlertTriangle, MessageSquare, Loader2, RotateCw } from "lucide-react";
 import { TypingIndicator } from "@/components/ChatPresence";
 import { MessageBubble } from "../MessageBubble";
+import { ChatReceiptCard } from "./ChatReceiptCard";
 import type { Conversation, Message } from "../types";
 import type { TimelineItem } from "./types";
 import {
@@ -244,12 +245,14 @@ export function ChatTimeline({
           // below, so one thread never shows two idioms for one kind of
           // fact — see SystemEventRow.
           const ev = item.event;
+          if (ev.kind === "receipt" && ev.receipt) return <ChatReceiptCard key={item.key} receipt={ev.receipt} />;
           return (
             <SystemEventRow
               key={item.key}
               icon={iconForEventKind(ev.kind)}
               label={ev.label}
               at={ev.at}
+              money={ev.money}
             />
           );
         }

@@ -3,7 +3,9 @@ import {
   CheckCircle2,
   CircleSlash,
   Info,
+  Lock,
   MapPin,
+  Receipt,
   Navigation,
   PlayCircle,
   RotateCcw,
@@ -51,6 +53,9 @@ const EVENT_ICONS: Record<JobSystemEventKind, LucideIcon> = {
   revision_requested: RotateCcw,
   cancelled: CircleSlash,
   disputed: ShieldAlert,
+  // Board 181 / spec v2 §3: a money note wears a lock and the money tint.
+  tipped: Lock,
+  receipt: Receipt,
 };
 
 export function iconForEventKind(kind: JobSystemEventKind): LucideIcon {
@@ -81,9 +86,12 @@ export function SystemEventRow({
   icon: Icon,
   label,
   at,
+  money = false,
 }: {
   icon: LucideIcon;
   label: string;
+  /** A money note (a tip): the money tint, spec v2 §3 "Status bubbles and money notes". */
+  money?: boolean;
   /** ISO timestamp. Derived events carry one; stored rows are placed by their
    *  own `created_at` in the timeline and don't repeat it. */
   at?: string;
@@ -99,7 +107,10 @@ export function SystemEventRow({
         role="note"
         aria-label={`System update: ${label}`}
         className="max-w-[80%] px-2.5 py-1 rounded-full text-center"
-        style={{
+        style={money ? {
+          background: "hsl(var(--burnt-sienna) / 0.10)",
+          border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+        } : {
           background: "hsl(var(--ivory-sand) / 0.55)",
           border: "0.5px solid hsl(var(--olivewood) / 0.18)",
           boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6)",
@@ -107,13 +118,13 @@ export function SystemEventRow({
       >
         <p
           className="font-sans text-ds-10 leading-snug inline-flex items-center gap-1"
-          style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          style={{ color: money ? "hsl(var(--sienna-ink))" : "hsl(var(--olivewood) / 0.85)" }}
         >
           <Icon
             aria-hidden="true"
             className="w-3 h-3 shrink-0"
             strokeWidth={1.75}
-            style={{ color: "hsl(var(--bark))" }}
+            style={{ color: money ? "hsl(var(--sienna-ink))" : "hsl(var(--bark))" }}
           />
           {label}
           {at && (

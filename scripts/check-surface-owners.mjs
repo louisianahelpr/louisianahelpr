@@ -104,6 +104,7 @@ const OWNERS = {
   // Quotes on jobs (hidden switch 'quotes', created off).
   "/quotes": ["lh-long-tail-features"],
   "/quotes/request/:id": ["lh-long-tail-features", "lh-money-escrow"],
+  "/tips/:tipId": ["lh-money-escrow"],
   "/quotes/send/:id": ["lh-long-tail-features", "lh-input-boundary"],
   // Shops (hidden switch 'shops', docs/specs/local-shops-prep.md).
   "/shops": ["lh-long-tail-features", "lh-browse-discovery"],

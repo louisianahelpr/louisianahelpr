@@ -17,6 +17,9 @@ import { queryKeys } from "@/lib/queryKeys";
 import { ARCHIVE_CHANGED_EVENT, isArchived } from "@/lib/archivedConversations";
 import {
   deriveJobSystemEvents,
+  deriveMoneyEvents,
+  type JobCharge,
+  type PaidTip,
   type JobSystemEvent,
   type JobTimestamps,
 } from "@/lib/jobSystemEvents";
@@ -353,7 +356,7 @@ export function useMessagesData({
     // the messages. The job select is narrow — only the fields the
     // event deriver reads.
     const isTeam = isTeamThreadKey(convo.jobId);
-    const [messagesRes, jobRes] = await Promise.all([
+    const [messagesRes, jobRes, tipsRes, giftRes] = await Promise.all([
       threadRows(resolvedUserId, convo)
         // Defense-in-depth: mirror the RLS SELECT policy's flagged clause
         // (visible if I'm the sender OR the row isn't hidden) so a scanner-hidden
@@ -369,19 +372,35 @@ export function useMessagesData({
         : supabase
             .from("jobs")
             .select(
-              "cancelled_at, cancelled_by, customer_id, helper_arrived_at, helper_completed_at, helper_id, helper_on_the_way_at, poster_completed_at, revision_requested_at, disputed_at, disputed_by",
+              "cancelled_at, cancelled_by, customer_id, helper_arrived_at, helper_completed_at, helper_id, helper_on_the_way_at, poster_completed_at, revision_requested_at, disputed_at, disputed_by, status, payment_status, budget, urgent_fee, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, poster_fee_flat_cents, platform_fee_percent, stripe_payment_intent_id",
             )
             .eq("id", convo.jobId)
             .maybeSingle(),
+      // Board 181: paid tips on this job (tips RLS: the tipper and the tipped Helpr).
+      isTeam
+        ? Promise.resolve({ data: [], error: null })
+        : supabase.from("tips").select("id, amount, created_at, tipper_id, helper_id").eq("job_id", convo.jobId).eq("payment_status", "paid"),
+      // A gift card on the job means the card charge is not the price: no receipt (fails closed on error).
+      isTeam
+        ? Promise.resolve({ data: [], error: null })
+        : supabase.from("gift_cards").select("id").eq("job_id", convo.jobId).limit(1),
     ]);
     const { error } = messagesRes;
     const data = messagesRes.data?.map(normalizeMessageRow) ?? null;
     // Job lookup is best-effort: a failure here just means no system
     // events render. We don't surface it — the message thread still works.
     if (!jobRes.error && jobRes.data) {
-      setJobSystemEvents(
-        deriveJobSystemEvents(jobRes.data as JobTimestamps, convo.jobId),
-      );
+      // A failed tips read drops only the money pills and receipt (reported), never the thread.
+      if (tipsRes.error) report(tipsRes.error, { severity: "warning", tags: { source: "Messages.openConvo.tips" } });
+      // Only this thread's two people: on a crew job a tip to another member is not this chat's.
+      const tips = tipsRes.error ? [] : ((tipsRes.data ?? []) as (PaidTip & { helper_id: string })[])
+        .filter((t) => t.helper_id === resolvedUserId || t.helper_id === convo.otherUserId);
+      const giftOrUnknown = !!giftRes.error || (giftRes.data ?? []).length > 0;
+      const otherFirst = (convo.otherUserName ?? "").trim().split(/\s+/)[0] ?? "";
+      setJobSystemEvents([
+        ...deriveJobSystemEvents(jobRes.data as JobTimestamps, convo.jobId),
+        ...(tipsRes.error ? [] : deriveMoneyEvents(jobRes.data as unknown as JobCharge, tips, resolvedUserId, otherFirst, convo.jobId, { giftOrUnknown })),
+      ]);
     }
 
     // Surface a failed thread fetch instead of falling through to the

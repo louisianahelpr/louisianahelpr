@@ -94,6 +94,7 @@ export const authPages = ["/home", "/explore", "/posts", "/jobs", "/post-job", "
   "/declutter",
   // Quotes on jobs (hidden switch 'quotes'): the same.
   "/quotes",
+  "/tips",
   // Shops (hidden switch): the same.
   "/shops",
   // One search across the sections (board 89).

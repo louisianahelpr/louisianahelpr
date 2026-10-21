@@ -67,7 +67,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative px-5 sm:px-8 lg:px-12 pt-24 sm:pt-28 lg:pt-36 pb-16 sm:pb-20 lg:pb-28">
+    <section className="relative px-5 sm:px-8 lg:px-12 pt-24 sm:pt-28 lg:pt-36 pb-14 sm:pb-16 lg:pb-20">
       <div className="relative mx-auto w-full max-w-[760px]">
         <div data-testid="landing-hero-column" className="flex flex-col items-center text-center gap-5 sm:gap-6 min-w-0">
           <p
@@ -103,7 +103,7 @@ const HeroSection = () => {
             className="landing-search w-full max-w-xl text-left flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-1.5 sm:p-1.5"
             data-testid="landing-search"
           >
-            <label htmlFor={inputId} className="sr-only">Search jobs, items, shops and homes</label>
+            <label htmlFor={inputId} className="sr-only">Search local jobs</label>
             <div className="landing-search-field w-full sm:w-auto sm:flex-1 min-w-0 shrink-0 flex items-center gap-2 sm:gap-2.5 px-4 sm:pl-4 sm:pr-2 h-14 sm:h-12">
               <Search className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} aria-hidden style={{ color: "var(--lp-muted)" }} />
               <input
@@ -115,7 +115,7 @@ const HeroSection = () => {
                 maxLength={80}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search jobs, items, shops and homes"
+                placeholder="Search local jobs"
                 className="w-full min-w-0 bg-transparent outline-none text-ds-16 placeholder:text-[color:var(--lp-muted)] placeholder:opacity-70 placeholder:text-ds-14 max-[399px]:placeholder:text-ds-13 max-[349px]:placeholder:text-ds-12"
                 style={{ color: "var(--lp-ink)" }}
               />

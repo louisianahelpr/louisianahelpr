@@ -384,7 +384,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 74,
+      "line": 76,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -401,7 +401,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 78,
+      "line": 80,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -411,7 +411,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 112,
+      "line": 114,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -421,7 +421,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 120,
+      "line": 122,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -431,7 +431,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 165,
+      "line": 167,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -441,7 +441,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 282,
+      "line": 284,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1259,7 +1259,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 123,
+      "line": 128,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1269,7 +1269,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 124,
+      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1279,7 +1279,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 130,
+      "line": 135,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1289,7 +1289,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 146,
+      "line": 151,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1299,7 +1299,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 171,
+      "line": 179,
       "kind": "toast.error",
       "title": {
         "form": "literal",

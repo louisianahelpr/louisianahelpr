@@ -70,7 +70,7 @@ function doubleClick(button: HTMLElement) {
 }
 
 const fillReport = async () => {
-  fireEvent.click(screen.getByRole("button", { name: /Spam or scam/ }));
+  fireEvent.click(screen.getByRole("radio", { name: /Spam or scam/ }));
   fireEvent.change(await screen.findByRole("textbox"), { target: { value: "This listing is a scam." } });
 };
 
@@ -81,10 +81,10 @@ describe("same-frame double click inserts one row", () => {
     db.settle = null; // in flight, so the first click never completes
   });
 
-  it("ReportDialog: Submit Report", async () => {
+  it("ReportDialog: Send report", async () => {
     render(<ReportDialog open onClose={vi.fn()} reportedType="job" reportedId="job-1" />);
     await fillReport();
-    doubleClick(screen.getByRole("button", { name: "Submit Report" }));
+    doubleClick(screen.getByRole("button", { name: "Send report" }));
     await waitFor(() => expect(db.insert).toHaveBeenCalled());
     await new Promise((r) => setTimeout(r, 20));
     expect(db.insert).toHaveBeenCalledTimes(1);
@@ -112,7 +112,7 @@ describe("the latch RELEASES, so a refused write can be retried", () => {
     render(<ReportDialog open onClose={vi.fn()} reportedType="job" reportedId="job-1" />);
     await fillReport();
 
-    const submit = screen.getByRole("button", { name: "Submit Report" });
+    const submit = screen.getByRole("button", { name: "Send report" });
     fireEvent.click(submit);
     await waitFor(() => expect(toastError).toHaveBeenCalled());
     await waitFor(() => expect(submit).not.toBeDisabled());

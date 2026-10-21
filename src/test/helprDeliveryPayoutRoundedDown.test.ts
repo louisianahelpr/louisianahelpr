@@ -27,7 +27,7 @@
 // @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql |          public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents), t.open_until, t.latest_pickup_at |          t.pay_cents - t.fee_cents, t.open_until, t.latest_pickup_at
 // @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql | THEN public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents) END, | THEN t.pay_cents - t.fee_cents END,
 // @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql | ELSE format('$%s is on its way to your payout account.', (v_amount / 100)::text) END, | ELSE format('$%s is on its way to your payout account.', to_char(v_amount / 100.0, 'FM999990.00')) END,
-// @mutate supabase/functions/declutter-money/index.ts |             amount: h.amount_cents, |             amount: h.amount_cents + 50,
+// @mutate supabase/functions/declutter-money/index.ts |       parts = helprPayoutParts(h.amount_cents, h.payment_intent_id, h.raised_cents, h.raise_parts); |       parts = helprPayoutParts(h.amount_cents + 50, h.payment_intent_id, h.raised_cents, h.raise_parts);
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -92,9 +92,12 @@ describe("Helpr delivery payouts are whole dollars, rounded down (owner 2026-10-
   it("the transfer is the row's own amount: payouts_due selects it, declutter-money sends it unchanged", () => {
     expect(flat(newestFunction("helpr_task_payouts_due").body)).toMatch(/^SELECT p\.id, t\.id, .*\bp\.amount_cents, pr\.stripe_account_id,/);
     const money = blankComments(readFileSync("supabase/functions/declutter-money/index.ts", "utf8"));
-    const leg = money.slice(money.indexOf("hTransfer = await stripe.transfers.create("));
+    // Q1929 (delivery-pay raises): the row's amount is split into per-charge parts that add up to it exactly
+    // (helprPayoutParts throws otherwise), and each part is sent as it is.
+    expect(money).toMatch(/parts = helprPayoutParts\(h\.amount_cents, h\.payment_intent_id, h\.raised_cents, h\.raise_parts\);/);
+    const leg = money.slice(money.indexOf("sent[i] = await stripe.transfers.create("));
     expect(leg.length).toBeGreaterThan(100);
-    expect(leg.slice(0, 200)).toMatch(/\{\s*amount: h\.amount_cents,\s*currency: "usd",/);
+    expect(leg.slice(0, 200)).toMatch(/\{\s*amount: part\.amountCents,\s*currency: "usd",/);
   });
 
   it("the client mirror floors the same way", () => {

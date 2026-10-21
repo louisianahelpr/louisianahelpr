@@ -84,6 +84,9 @@ beforeEach(() => {
   resetEmailMocks();
   // Real members (no test_accounts rows): live mode.
   scenario.reads.test_accounts = { rows: [] };
+  // Q1929: every hand refund first asks whether it was on a delivery-pay raise's own charge. These
+  // charges are orders, so the real RPC answers 'not_raise' (an unknown answer now throws).
+  scenario.rpc.declutter_delivery_raise_hand_refund = "not_raise";
 });
 
 describe("stripe-webhook: Declutter order paid", () => {
@@ -427,6 +430,24 @@ describe("stripe-webhook: Declutter order paid", () => {
     scenario.rpcErrors = { declutter_record_hand_refund: { message: "deadlock detected" } };
     const res = await deliverChargeRefunded(handCharge([{ id: "re_hand3", amount: 4600, status: "succeeded", metadata: {} }]));
     expect(res.status).toBe(500);
+  });
+
+  // Q1929: the raise question decides the path only with a known answer. A missing answer used to read
+  // as "a raise" and skip the order's own record (the 6 red tests of the wip, 2026-10-21).
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     if (!raiseErr && !["not_raise", "settled", "already", "recorded_other"].includes(String(raiseAnswer))) { |     if (false) {
+  it("a hand refund whose raise question gives no known answer is a 500 and records nothing (Stripe redelivers)", async () => {
+    scenario.rpc.declutter_delivery_raise_hand_refund = null;
+    const res = await deliverChargeRefunded(handCharge([{ id: "re_hand4", amount: 4600, status: "succeeded", metadata: {} }]));
+    expect(res.status).toBe(500);
+    expect(rpcs("declutter_record_hand_refund")).toHaveLength(0);
+  });
+
+  it("a hand refund on a raise's own charge settles the raise and never touches the order's rows", async () => {
+    scenario.rpc.declutter_delivery_raise_hand_refund = "settled";
+    const res = await deliverChargeRefunded(handCharge([{ id: "re_hand5", amount: 1000, status: "succeeded", metadata: {} }]));
+    expect(res.status).toBe(200);
+    expect(rpcs("declutter_delivery_raise_hand_refund")).toHaveLength(1);
+    expect(rpcs("declutter_record_hand_refund")).toHaveLength(0);
   });
 
   it("a refund already done (replayed event) is never sent to Stripe again", async () => {

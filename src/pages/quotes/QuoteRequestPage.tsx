@@ -18,6 +18,7 @@
  *    hidden from Activity and Posts, so this screen is the only way back.
  */
 import { useState } from "react";
+import { formatName } from "@/lib/utils";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -74,7 +75,7 @@ function QuoteCard({ quote, requestOpen, requestId }: { quote: RequestQuote; req
           ) : (
             <span aria-hidden className="h-10 w-10 shrink-0 rounded-full bg-muted" />
           )}
-          <p className="min-w-0 font-semibold text-foreground break-words">{quote.quoter_name || "A member"}</p>
+          <p className="min-w-0 font-semibold text-foreground break-words">{formatName(quote.quoter_name, "A member")}</p>
         </div>
         <p className="shrink-0 text-lg font-semibold tabular-nums text-foreground">{dollars(quote.price_cents)}</p>
       </div>
@@ -242,7 +243,7 @@ function RequestView({ id }: { id: string }) {
         </p>
       </div>
       {agreed && accepted && !request.job_id && (
-        <QuotesNotice title={`You agreed on ${dollars(accepted.price_cents)} with ${accepted.quoter_name || "this member"}`}>
+        <QuotesNotice title={`You agreed on ${dollars(accepted.price_cents)} with ${formatName(accepted.quoter_name, "this member")}`}>
           <p>Pay now to book it. The money is held until the job is done. Checkout shows your total before you pay.</p>
           <Button type="button" className="mt-3 w-full" disabled={book.isPending} onClick={() => book.mutate()}>
             Book and pay

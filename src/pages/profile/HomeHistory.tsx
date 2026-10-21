@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatName } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -209,12 +210,14 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
         .select("user_id, full_name")
         .in("user_id", [...new Set([userId, ...helperIds])]);
       const profiles = unwrap(profilesRes) as { user_id: string; full_name: string | null }[];
-      // Full names, not `formatName`'s "Marcus T." — this is a permanent record
-      // a homeowner may hand a buyer or an insurer, and an initial is not
-      // something a third party can act on. A missing name says so rather than
-      // inventing "Someone".
+      // Your own name in full; every other member as "Marcus T." (owner 2026-10-21: we never show a
+      // member's last name, only its first letter; this reverses the earlier full-name record).
+      // A missing name says so rather than inventing "Someone".
       const profileMap = new Map(
-        profiles.map((p) => [p.user_id, (p.full_name ?? "").trim() || "Name not on file"]),
+        profiles.map((p) => [
+          p.user_id,
+          p.user_id === userId ? (p.full_name ?? "").trim() || "Name not on file" : formatName(p.full_name, "Name not on file"),
+        ]),
       );
 
       return jobs.map((j) => ({

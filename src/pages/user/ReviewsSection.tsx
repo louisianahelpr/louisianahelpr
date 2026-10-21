@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatName } from "@/lib/utils";
 import { Star, ChevronDown, MoreHorizontal } from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatShortDate, formatCategory } from "@/lib/format";
@@ -296,7 +297,7 @@ export const ReviewsSection = ({
                     className="text-ds-11 font-semibold uppercase tracking-[0.06em] mb-1.5"
                     style={{ color: "hsl(var(--olivewood)/0.8)" }}
                   >
-                    Response from {profileFullName}
+                    Response from {formatName(profileFullName, "the Helpr")}
                   </p>
                   <p
                     className="text-ds-13 font-sans leading-relaxed"

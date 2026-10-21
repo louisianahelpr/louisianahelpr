@@ -801,8 +801,8 @@ const UserProfile = () => {
         <ReportDialog
           open={showReport}
           onClose={() => setShowReport(false)}
-          reportedType="user"
-          reportedId={userId}
+          reportedType="user" reportedId={userId}
+          alsoBlock={profile ? { name: formatName(profile.full_name) || "this person", onBlock: () => setShowBlock(true) } : undefined}
         />
       )}
 

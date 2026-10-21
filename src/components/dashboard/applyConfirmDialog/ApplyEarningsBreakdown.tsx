@@ -51,30 +51,17 @@ export function ApplyEarningsBreakdown({
     .join(" ");
 
   return (
-    <div
-      className="rounded-ds-md p-3.5"
-      style={{
-        background:
-          "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
-          "var(--surface-premium)",
-        border: "0.5px solid hsl(var(--bark) / 0.22)",
-        boxShadow:
-          "inset 0 1px 1px 0 rgba(255,255,255,0.6), " +
-          "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22)",
-      }}
-    >
+    // Board 58: a money note, so the money tint and rust (spec §1.1, §3 "Status bubbles and money notes").
+    <div className="rounded-ds-md p-3.5" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
       {/* HEADLINE — floors, matching JobPrice and every other headline
           take-home in the app. The itemised rows below keep exact cents
           because they have to add up. */}
-      <p
-        className="font-sans font-semibold uppercase text-ds-10 mb-0.5"
-        style={{ color: "hsl(var(--olivewood) / 0.7)", letterSpacing: "0.14em" }}
-      >
-        You earn
+      <p className="font-sans font-semibold text-ds-13 mb-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
+        You take home
       </p>
       <p
         className="font-sans font-bold tabular-nums leading-none text-ds-32"
-        style={{ color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
+        style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "-0.02em" }}
       >
         ${formatPriceFloor(takeHome)}
       </p>
@@ -134,7 +121,7 @@ export function ApplyEarningsBreakdown({
             <span className="font-sans font-semibold text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>Take-home</span>
             <span
               className="font-sans font-bold tabular-nums text-ds-14"
-              style={{ color: "hsl(var(--bark))" }}
+              style={{ color: "hsl(var(--burnt-sienna))" }}
             >
               ${formatPriceFloor(takeHome)}
             </span>

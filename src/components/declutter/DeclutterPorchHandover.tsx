@@ -89,7 +89,8 @@ export function PickupStatus({
       <StepTracker steps={STEPS[handover]} at={at} />
       <p className="text-ds-14">{standing(handover, side, at)}</p>
       {money && (
-        <p className="rounded-xl px-3 py-2 text-ds-13" style={{ background: "hsl(var(--burnt-sienna) / 0.08)", color: "hsl(var(--sienna-ink))" }}>
+        // Rust on the amount only (lead, board 65 note): the sentence is ink on the money tint.
+        <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground [&_strong]:text-[hsl(var(--sienna-ink))]" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
           {money}
         </p>
       )}

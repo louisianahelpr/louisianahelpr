@@ -15,6 +15,7 @@
 import { useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { StepTracker } from "@/components/tracker/StepTracker";
+import { DateTimeField } from "@/components/DateTimeField";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -45,7 +46,6 @@ import {
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
-const input = "w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
 const SIZE_WORDS: Record<TaskSize, string> = {
   small: "Small (fits in a car)",
@@ -291,7 +291,7 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
       <p className="text-ds-12 text-muted-foreground">Exact addresses unlock when you accept.</p>
       <div className="space-y-2">
         <label htmlFor={id} className="block text-ds-13 font-semibold">Pickup time (inside the seller's pickup times, by {when(t.latest_pickup_at)})</label>
-        <input id={id} type="datetime-local" className={input} value={slot} onChange={(e) => setSlot(e.target.value)} />
+        <DateTimeField id={id} label="Pickup time" value={slot} onChange={setSlot} />
         <button type="button" className={`${primary} w-full min-h-12 text-ds-16 disabled:opacity-50`} disabled={take.isPending || !localInputToIso(slot)}
           onClick={() => { const iso = localInputToIso(slot); if (iso) take.mutate(iso); }}>
           Accept delivery

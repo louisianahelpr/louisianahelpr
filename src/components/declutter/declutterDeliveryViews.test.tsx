@@ -22,6 +22,12 @@ const state = {
   calls: [] as unknown[][],
 };
 
+// The shared day + time pickers are exercised in their own tests; here a plain input stands in, same value shape.
+vi.mock("@/components/DateTimeField", () => ({
+  DateTimeField: ({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) => (
+    <input id={id} value={value} onChange={(e) => onChange(e.target.value)} />
+  ),
+}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" } }) }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));

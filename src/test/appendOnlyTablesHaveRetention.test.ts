@@ -18,20 +18,37 @@
  * Two-way: a NO_AGE_PRUNE entry that is pruned, or no longer a table, fails.
  * That the pruning functions actually run is prunersAreScheduled.test.ts.
  *
- * @mutate supabase/migrations/20260925052618_prune_retention_tables.sql | DELETE FROM public.notification_logs | DELETE FROM public.notification_logs_x
- * @mutate supabase/migrations/20260925052618_prune_retention_tables.sql | WHERE signed_at < now() - interval '4 years'; | WHERE signed_at < now() - interval '40 years';
+ * @mutate supabase/migrations/20261021193738_sms_alerts.sql | DELETE FROM public.notification_logs | DELETE FROM public.notification_logs_x
+ * @mutate supabase/migrations/20261021193738_sms_alerts.sql | WHERE signed_at < now() - interval '4 years'; | WHERE signed_at < now() - interval '40 years';
+ * @mutate supabase/migrations/20261021193738_sms_alerts.sql | COALESCE(account_deleted_at, created_at) < now() - interval '4 years'; | COALESCE(account_deleted_at, created_at) < now() - interval '400 years';
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { effectiveDefs, parseDefs } from "./helpers/effectiveFunctionDefs";
 
 const MIG = join(process.cwd(), "supabase", "migrations");
-const sql = readdirSync(MIG)
+// A DELETE inside a function counts only in the definition the database runs
+// now (effectiveDefs: the newest CREATE, after rewrites). Reading every copy
+// would let a later restatement drop a prune and stay green (the SMS migration
+// restates prune_retention_tables). Text outside function bodies (DO blocks,
+// plain statements) is read from every migration as before.
+const blankSpans = (code: string, spans: { index: number; stmt: string }[]) => {
+  let out = code;
+  for (const d of spans) out = out.slice(0, d.index) + " ".repeat(d.stmt.length) + out.slice(d.index + d.stmt.length);
+  return out;
+};
+const outsideFunctions = readdirSync(MIG)
   .filter((f) => f.endsWith(".sql"))
   .sort()
-  .map((f) => blankSqlComments(readFileSync(join(MIG, f), "utf8")))
+  .map((f) => {
+    const raw = readFileSync(join(MIG, f), "utf8");
+    return blankSpans(blankSqlComments(raw), parseDefs(raw));
+  })
   .join("\n");
+const liveFunctionBodies = [...effectiveDefs(MIG).values()].map((d) => blankSqlComments(d.stmt)).join("\n");
+const sql = `${outsideFunctions}\n${liveFunctionBodies}`;
 
 /** Log-shaped tables deliberately never pruned by age, each with why. */
 const NO_AGE_PRUNE: Record<string, string> = {
@@ -45,6 +62,9 @@ const NO_AGE_PRUNE: Record<string, string> = {
 /** Owner-decided windows: table -> the interval its DELETE must use. */
 const RETENTION_BY_DECISION: Record<string, string> = {
   helper_w9_records: "4 years",
+  // Owner, 2026-10-20 (Q2336): a deleted member's SMS consent record is kept
+  // 4 years (the TCPA limitation period) after the account is deleted.
+  sms_consent_events: "4 years",
 };
 
 const SHAPE = /_(?:log|logs|history|views|events|runs|samples)$/;

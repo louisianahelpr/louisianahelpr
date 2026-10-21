@@ -91,6 +91,8 @@ export const FEATURE_SWITCH_KEYS = [
   // or says no (Helpr decides). Created 'testers' by 20261021102943; rpc_open_refund_request and
   // rpc_answer_refund_request refuse without it (require_feature).
   "refund_requests",
+  // SMS text alerts (20261021193738): set_sms_consent refuses a new opt-in without it.
+  "sms_alerts",
 ] as const;
 
 /**

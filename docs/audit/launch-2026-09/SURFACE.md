@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 190 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 926 (across 238 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 30 |
+| Toast messages | **call site** | 932 (across 239 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Multi-step flows — confirmed | flow | 31 |
 | Multi-step flows — probable | flow | 21 |
 | Back/next navigation only | flow | 49 |
-| Forms (submittable) | form | 73 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 150 |
+| Forms (submittable) | form | 74 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 151 |
 | Email templates | **exported template** | 21 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **619** |
-| **Copy surfaces** (strings a person may read) | mixed | **965** |
-| **Total auditable surface** | mixed | **1584** |
+| **Navigable surfaces** (places a person can stand) | mixed | **622** |
+| **Copy surfaces** (strings a person may read) | mixed | **971** |
+| **Total auditable surface** | mixed | **1593** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,8 +71,8 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 190 | 130 | agree within method (script counts every menu instance) |
-| Forms | 73 | ~38 | agree |
-| Confirmed multi-step flows | 30 | 9 | agree; the agent excluded section routers this script still counts |
+| Forms | 74 | ~38 | agree |
+| Confirmed multi-step flows | 31 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -375,6 +375,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | Component | Signals |
 |---|---|
 | `src/components/admin/settings/FeatureSwitchesCard.tsx` | compare |
+| `src/components/admin/settings/SmsStatusCard.tsx` | compare |
 | `src/components/AdminRoute.tsx` | compare |
 | `src/components/analytics/ApplicationsPanel.tsx` | step-array |
 | `src/components/CompletionPrompts.tsx` | compare, nav-handler, union-state |
@@ -521,6 +522,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/EarningsExport.tsx` (dialog/mutation)
 - [ ] `src/components/HelperAvailability.tsx` (dialog/mutation)
 - [ ] `src/components/landing/HeroSection.tsx` (form tag)
+- [ ] `src/components/notificationPreferences/SmsAlertsCard.tsx` (dialog/mutation)
 - [ ] `src/components/postjob/CheckoutStep.tsx` (dialog/mutation)
 - [ ] `src/components/profile/AvailabilityTab.tsx` (dialog/mutation)
 - [ ] `src/components/profile/CredentialsTab.tsx` (dialog/mutation)

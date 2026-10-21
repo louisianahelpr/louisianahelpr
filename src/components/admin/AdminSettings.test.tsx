@@ -30,6 +30,9 @@ vi.mock("./settings/FeatureSwitchesCard", () => ({ FeatureSwitchesCard: () => nu
 // The Declutter review card (hidden switch) has its own test; stubbed the same way.
 vi.mock("./settings/DeclutterReviewCard", () => ({ DeclutterReviewCard: () => null }));
 vi.mock("./settings/DeclutterProblemsCard", () => ({ DeclutterProblemsCard: () => null }));
+// The SMS alerts card (hidden switch) runs its own React Query reads and has its own test,
+// settings/SmsStatusCard.test.tsx; stubbed the same way.
+vi.mock("./settings/SmsStatusCard", () => ({ SmsStatusCard: () => null }));
 
 const ADMIN_USER_ID = "admin-user-1";
 const ADMIN_ROLE_ID = "role-1";

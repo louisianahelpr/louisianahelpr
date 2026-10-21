@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 903,
-    "files": 230,
-    "rendering": 786,
-    "suppressedByPolicy": 117,
+    "calls": 908,
+    "files": 232,
+    "rendering": 790,
+    "suppressedByPolicy": 118,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 64,
-      "toast.error": 654,
+      "toast.error": 658,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 121,
+      "toast.success": 122,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 425,
+      "literal": 427,
       "template": 97,
-      "dynamic": 429,
+      "dynamic": 433,
       "jsx": 0
     }
   },
@@ -1489,7 +1489,7 @@
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 189,
+      "line": 195,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1499,7 +1499,7 @@
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 199,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1509,7 +1509,7 @@
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 210,
+      "line": 216,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1519,7 +1519,7 @@
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 252,
+      "line": 258,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1529,7 +1529,7 @@
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 254,
+      "line": 260,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1539,7 +1539,7 @@
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 291,
+      "line": 297,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1549,7 +1549,7 @@
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 327,
+      "line": 333,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4379,7 +4379,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 136,
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4389,7 +4389,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 313,
+      "line": 324,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4409,7 +4409,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 316,
+      "line": 327,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4419,7 +4419,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 321,
+      "line": 332,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4429,7 +4429,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 329,
+      "line": 340,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4439,7 +4439,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 332,
+      "line": 343,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6014,7 +6014,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 183,
+      "line": 184,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -7636,6 +7636,30 @@
         "text": "Review posted. It goes live once they review you too — or in 14 days, whichever comes first."
       },
       "renders": true
+    },
+    {
+      "file": "src/components/savedSearches/SaveSearchSheet.tsx",
+      "line": 59,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"We couldn't save your search. Please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/savedSearches/SaveSearchSheet.tsx",
+      "line": 65,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Search saved"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Find it in You › Settings › Saved searches."
+      },
+      "renders": false
     },
     {
       "file": "src/components/schedule/ScheduleChangeControl.tsx",
@@ -10787,6 +10811,36 @@
       "title": {
         "form": "literal",
         "text": "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/SavedSearchesTab.tsx",
+      "line": 51,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"We couldn't change that alert. Please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/SavedSearchesTab.tsx",
+      "line": 64,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"We couldn't delete that search. Please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/SavedSearchesTab.tsx",
+      "line": 124,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"We couldn't change that. Please try again.\")"
       },
       "renders": true
     },

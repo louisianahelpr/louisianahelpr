@@ -37,16 +37,20 @@ export function useFirstJobState(userId: string | undefined): FirstJobState | nu
     enabled: !!userId,
     queryFn: async () => {
       const apps = await supabase.from("applications").select("id", { count: "exact", head: true }).eq("helper_id", userId!);
-      if (apps.error) throw apps.error;
+      // A head-only count: unwrap() throws the read error (Q1182) and hands back the count.
+      const appCount = unwrap({ data: apps.count, error: apps.error, status: apps.status });
       const prefs = unwrap(await supabase.from("notification_preferences").select("job_matches, email_job_matches").eq("user_id", userId!).maybeSingle());
       return {
-        isNew: (apps.count ?? 0) === 0,
+        isNew: (appCount ?? 0) === 0,
         alertsOff: !!prefs && prefs.job_matches === false && prefs.email_job_matches === false,
       };
     },
   });
   return data ?? null;
 }
+
+/** A budget splits across helpers_needed only on a group job. */
+const crewSize = (j: NearJob): number => (j.is_group_job && j.helpers_needed ? j.helpers_needed : 1);
 
 interface NearJob {
   id: string;
@@ -137,7 +141,7 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
                     budget={j.budget}
                     effectiveFee={TIER_PERKS.free.platformFeePercent}
                     urgentFee={j.urgent_fee ?? 0}
-                    helpersNeeded={j.is_group_job && j.helpers_needed ? j.helpers_needed : 1}
+                    helpersNeeded={crewSize(j)}
                     feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents }}
                   />
                 )}

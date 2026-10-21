@@ -670,11 +670,11 @@ test.describe("device pass — measured", () => {
     // applied card has none, so every title here is "" and two entries keyed
     // on it would be indistinguishable in both the record and the diff.
     // Boards 14/21 (2026-10-20): each card is a face whose fallback button
-    // "Manage job" opens it in place (helperFaceAction), and its own Close
+    // "View application" (a pending application, audit #48) opens it in place (helperFaceAction), and its own Close
     // (MineOpenMeta) shuts it; the sr-only "Expand job details" toggle is gone.
     const offered: { card: number; withdraw: number; edit: number }[] = [];
     for (let i = 0; i < 2; i++) {
-      await page.locator(CARD).nth(i).getByRole("button", { name: "Manage job" }).click();
+      await page.locator(CARD).nth(i).getByRole("button", { name: "View application" }).click();
       const open = page.locator(CARD).filter({ has: page.locator("[data-mine-close]") });
       await expect(open, `card ${i} did not open`).toHaveCount(1);
       offered.push({

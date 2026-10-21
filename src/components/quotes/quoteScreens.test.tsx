@@ -9,7 +9,7 @@
  * @mutate src/components/quotes/quotesUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/lib/escrowCheckout.ts |       action: "escrow", |       action: "quote_checkout",
  * @mutate src/lib/escrowCheckout.ts |       ...(opts.returnPath ? { returnPath: opts.returnPath } : {}), |       ...{},
- * @mutate src/components/quotes/QuotePriceStepper.tsx |   if (posterFeeModel) return null; |   if (!posterFeeModel) return null;
+ * @mutate src/components/quotes/QuotePriceStepper.tsx |   if (!posterFee.settled \|\| posterFee.on \|\| !feeKnown) return null; |   if (posterFee.on) return null;
  * @mutate src/components/quotes/QuotePriceStepper.tsx | const STEP = 5; | const STEP = 10;
  * @mutate src/components/quotes/QuotesSideBySide.tsx |   if (live.length < 2) return null; |   return null;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |   if (reqs.isError \|\| quotes.isError) { |   if (reqs.isError \|\| quotes.isError \|\| !request) {
@@ -47,6 +47,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const state = {
   feature: true,
   posterFee: true,
+  feeKnown: true,
   /** false: the switch's answer has not arrived (the gate's loading frame). */
   switchSettled: true,
   rpc: {} as Record<string, unknown>,
@@ -58,8 +59,12 @@ const state = {
 };
 
 // 'jobs_poster_fee' is off on prod (2026-10-21): a booked quote is on the flat Helpr fee model.
-vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => (key === "jobs_poster_fee" ? state.posterFee : state.feature) }));
-vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => 0, useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeKnown: () => true }));
+vi.mock("@/hooks/useFeature", async (orig) => ({
+  ...(await orig<typeof import("@/hooks/useFeature")>()),
+  useFeature: (key: string) => (key === "jobs_poster_fee" ? state.posterFee : state.feature),
+  useFeatureStatus: (key: string) => ({ on: key === "jobs_poster_fee" ? state.posterFee : state.feature, settled: state.switchSettled, lastAnswer: null }),
+}));
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => 0, useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeKnown: () => state.feeKnown }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
@@ -160,6 +165,7 @@ beforeEach(() => {
   state.opened = [];
   state.job = null;
   state.posterFee = true;
+  state.feeKnown = true;
 });
 
 describe("the 'quotes' switch", () => {
@@ -198,6 +204,17 @@ describe("the 'quotes' switch", () => {
     expect(link.textContent).toMatch(/Quote request/);
     expect(link.textContent).toMatch(/Taking quotes · 2 quotes/);
     expect(screen.getByRole("heading", { name: "Your quote requests" })).toBeInTheDocument();
+  });
+});
+
+describe("board 43: the take-home waits for its reads (lh-money-escrow review #4)", () => {
+  it("hides the figure while the setup fee is not known yet", async () => {
+    state.rpc.list_open_quote_requests = [OPEN];
+    state.posterFee = false;
+    state.feeKnown = false;
+    at("/quotes/send/r9", <SendQuotePage />, "/quotes/send/:id");
+    fireEvent.change(await screen.findByLabelText("Your price in whole dollars"), { target: { value: "120" } });
+    expect(document.querySelector("[data-quote-take-home]")).toBeNull();
   });
 });
 
@@ -396,7 +413,7 @@ describe("the quoter's send-a-quote form", () => {
     fireEvent.click(screen.getByRole("button", { name: "$5 more" }));
     expect(screen.getByLabelText("Your price in whole dollars")).toHaveValue("120");
     // $120 - (5% of $120 + $0.70 = $6.70) = $113.30, floored to the dollar the transfer pays.
-    expect(document.querySelector("[data-quote-take-home]")?.textContent).toMatch(/You take home \$113 after the Helpr fee \(5% \+ 70¢\) if this quote is booked/);
+    expect(document.querySelector("[data-quote-take-home]")?.textContent).toMatch(/You take home \$113 after the Helpr fee \(5% \+ \$0\.70\) if this quote is booked/);
     fireEvent.change(screen.getByLabelText("What's included"), { target: { value: "Mow, edge and blow" } });
     expect(screen.getByRole("button", { name: "Send quote · $120" })).toBeDisabled();
     fireEvent.change(screen.getByLabelText("When you can do it"), { target: { value: "Friday after 3" } });

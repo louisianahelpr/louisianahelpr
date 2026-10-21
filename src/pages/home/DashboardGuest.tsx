@@ -79,7 +79,7 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
  * on a signed-in user, so it correctly stays hidden for guests.
  *
  * On native, the chrome matches Home too: a brand row — emblem, then
- * "Log in" / "Get started" where Home puts its live-job pill and its bell.
+ * "Log in" / "Join free" where Home puts its live-job pill and its bell.
  * There is no app bar. The one deliberate difference from Home is that this
  * row carries NO search or filter icons (see the DashboardTitleBar comment
  * below); Home does. On web, search/filters live in PageHeader's
@@ -92,7 +92,7 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
  * notification bell, occupying the same slot at the end of the title bar's
  * single row.
  *
- * "Log in" is a plain text control; "Get started" is the SOLID primary button,
+ * "Log in" is a plain text control; "Join free" is the SOLID primary button,
  * matching the marketing nav's signup CTA (Navbar.tsx) so the one conversion
  * action on the site looks the same wherever a guest meets it. That parity is
  * the point — /jobs and /browse are the two guest browse surfaces, and V9 of
@@ -127,7 +127,7 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
  * Tight horizontal padding rather than the button default (`sm` = px-4): it is
  * the only slack in this row that costs nothing — the labels and the 44px tap
  * heights are untouched. "Log in" keeps `px-2` (a text control needs no box);
- * the solid "Get started" takes `px-3` so its filled pill has room to read as
+ * the solid "Join free" (once "Get started", owner 2026-10-21) takes `px-3` so its filled pill has room to read as
  * a button rather than a label with a background.
  *
  * Measured at 375 after the change: the title card is 335px wide, "Log in" is
@@ -184,7 +184,7 @@ function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup
         className="text-ds-11 h-11 px-3 rounded-ds-md font-sans font-semibold btn-press"
         style={{ color: "hsl(var(--parchment))" }}
       >
-        Get started
+        Join free
       </Button>
     </>
   );
@@ -762,7 +762,7 @@ const DashboardGuest = () => {
   }
 
   // Web: the SAME shell as /legal, /help and /support — marketing Navbar
-  // (which already renders Log in / Get started for a signed-out visitor)
+  // (which already renders Jobs | Log in · Join free for a signed-out visitor)
   // above, the site Footer (Company/Legal columns) below. See the shell-split
   // note atop this component for why this diverges from the native branch.
   // PublicHeaderPage, NOT a hand-rolled PublicLayout + PageHeader + padded

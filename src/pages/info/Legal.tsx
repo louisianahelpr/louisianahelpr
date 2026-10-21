@@ -357,7 +357,7 @@ const Legal = () => {
                 className="absolute inset-0 rounded-ds-md btn-grad-primary"
                 style={{
                   // Reference the shared primary-CTA surface (`.btn-grad-primary`,
-                  // the same radial-gloss treatment the "Get started"/bark CTAs
+                  // the same radial-gloss treatment the "Join free"/bark CTAs
                   // use) so the selected tab reads as a primary button and can
                   // never drift from the canonical gradient. Border + ELEV_FILLED
                   // depth layered on top.

@@ -43,9 +43,11 @@ export function ApplyEarningsBreakdown({
   const summary = [
     `$${formatPrice(confirmApplyJob.budget)} budget`,
     helpers > 1 ? `÷ ${helpers} Helprs` : null,
-    noFee ? "no fee" : `− ${feeLabel} fee`,
+    // Board 58 (lead): the fee is ONE subtraction, its rule in brackets ("− Helpr fee (5% + $0.70)"),
+    // so "5% + $0.70" never reads as minus 5% plus 70¢.
+    noFee ? "no fee" : `− Helpr fee (${feeLabel})`,
     hasUrgent ? "+ urgent bonus" : null,
-    firstPayoutFee > 0 ? "− one-time fee" : null,
+    firstPayoutFee > 0 ? "− one-time setup fee" : null,
   ]
     .filter(Boolean)
     .join(" ");

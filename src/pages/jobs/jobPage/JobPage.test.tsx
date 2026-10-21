@@ -20,6 +20,7 @@
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (at < 0 \|\| !side) return null; |   if (at < 0) return null;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {isPoster && open && job.payment_status === "escrow" && | {isPoster && open &&
+ * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |         {reach && reach > 0 |         {reach !== null
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |     !(job.photos ?? []).length && { key: "photo" |     false && { key: "photo"
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared after you're hired.</p>} |
  */
@@ -31,6 +32,7 @@ import type { JobPageRow } from "./useJobPage";
 
 const state = {
   job: null as JobPageRow | null,
+  reach: null as number | null,
   party: false,
   applicants: { total: 0, pending: 0 },
   owed: 0,
@@ -54,6 +56,8 @@ vi.mock("@/hooks/useCurrentUser", () => ({
 }));
 vi.mock("@/hooks/usePendingSaveConsumer", () => ({ usePendingSaveConsumer: () => undefined }));
 vi.mock("@/hooks/useJobRef", () => ({ useJobRef: () => undefined }));
+// Board 184: the reach read is a hidden-switch RPC; the tests set it through state.reach.
+vi.mock("./useJobReach", () => ({ useJobReach: () => state.reach }));
 vi.mock("@/hooks/useFeedPhase", () => ({ useFeedPhase: () => "ready", useProfileWaitPhase: () => "ready" }));
 
 import JobPage from "./JobPage";
@@ -229,7 +233,23 @@ describe("/jobs/:id for a signed-in member", () => {
 });
 
 describe("board 57: the poster's open job with no applicants", () => {
-  beforeEach(() => { state.party = false; state.applicants = { total: 0, pending: 0 }; });
+  beforeEach(() => { state.party = false; state.applicants = { total: 0, pending: 0 }; state.reach = null; });
+
+  // Board 184: with the reach known and above 0, the page says how many were already told (a floor).
+  it("board 184: 'Sent to N Helprs so far.' when the alerts went out; nothing new at 0 or unknown", async () => {
+    state.job = row({ customer_id: ME });
+    state.reach = 14;
+    renderPage();
+    expect(await screen.findByText(/^Sent to 14 Helprs so far\. We'll tell you when someone applies\.$/)).toBeTruthy();
+  });
+
+  it("board 184: a reach of 0 keeps the plain line (a fresh post has not been sent yet)", async () => {
+    state.job = row({ customer_id: ME });
+    state.reach = 0;
+    renderPage();
+    expect(await screen.findByText(/It's out to Helprs near Delcambre\./)).toBeTruthy();
+    expect(screen.queryByText(/Sent to/)).toBeNull();
+  });
 
   it("a paid, open job nobody applied to says so, with only what the poster can do", async () => {
     state.job = row({ customer_id: ME });

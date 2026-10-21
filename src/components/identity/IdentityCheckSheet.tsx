@@ -134,6 +134,8 @@ export function IdentityCheckHost() {
     : view === "continue" ? { label: "Continue with Stripe", onClick: start }
     : view === "failed" ? { label: "Contact support", onClick: () => { closeIdentityCheck(); navigate("/support"); } }
     : { label: view === "verified" ? "Done" : "Got it", onClick: closeIdentityCheck };
+  /** A state with nothing to do has ONE labelled way out (it also drops the corner x, popupDismiss.tsx); a state with a step has Not now. */
+  const nothingToDo = view === "checking" || view === "with_team" || view === "verified";
 
   return (
     <Sheet open={open} onOpenChange={(o) => (o ? undefined : closeIdentityCheck())}>
@@ -161,18 +163,18 @@ export function IdentityCheckHost() {
         <SheetFooter className="pt-5">
           {/* A state with nothing to do has ONE labelled way out (it also drops
               the corner x, popupDismiss.tsx); a state with a step has Not now. */}
-          {view === "checking" || view === "with_team" || view === "verified" ? (
-            <SheetSecondaryAction onClick={closeIdentityCheck} data-testid="identity-check-primary">
+          <SheetSecondaryAction
+            onClick={closeIdentityCheck}
+            disabled={!nothingToDo && loading}
+            data-testid={nothingToDo ? "identity-check-primary" : undefined}
+          >
+            {nothingToDo ? primary.label : "Not now"}
+          </SheetSecondaryAction>
+          {!nothingToDo && (
+            <SheetPrimaryAction onClick={primary.onClick} disabled={loading} data-testid="identity-check-primary">
+              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />}
               {primary.label}
-            </SheetSecondaryAction>
-          ) : (
-            <>
-              <SheetSecondaryAction onClick={closeIdentityCheck} disabled={loading}>Not now</SheetSecondaryAction>
-              <SheetPrimaryAction onClick={primary.onClick} disabled={loading} data-testid="identity-check-primary">
-                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />}
-                {primary.label}
-              </SheetPrimaryAction>
-            </>
+            </SheetPrimaryAction>
           )}
         </SheetFooter>
       </SheetContent>

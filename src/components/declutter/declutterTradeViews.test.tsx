@@ -293,6 +293,20 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getAllByText(/under your lowest price/)).toHaveLength(1);
   });
 
+  it("board 160: a buyer's declined or expired offer says nothing was charged and links the item; never 'Offer again'", async () => {
+    state.offers = [
+      { ...OFFER, offer_id: "d1", my_side: "buyer", status: "declined", floor_price_cents: null, item_title: "Porch swing" },
+      { ...OFFER, offer_id: "e1", my_side: "buyer", status: "expired", floor_price_cents: null, item_title: "Rug" },
+      { ...OFFER, offer_id: "s9", status: "declined", item_title: "Desk" },
+    ];
+    show(<><OffersSection side="seller" /><OffersSection side="buyer" /></>);
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx | {o.my_side === "buyer" && (o.status === "declined" \|\| o.status === "expired") && ( | {false && (
+    const ended = await screen.findAllByText(/^Nothing was charged\./);
+    expect(ended).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: "See the item" })[0].getAttribute("href")).toBe(`/declutter/item/${OFFER.item_id}`);
+    expect(screen.queryByText(/Offer again/)).toBeNull();
+  });
+
   it("boards 68-70: an offer card's money lines use what accepting really charges, least(offer, price now)", async () => {
     state.offers = [
       // The seller dropped the price to $22 below the buyer's $25 offer: accepting sells for $22.

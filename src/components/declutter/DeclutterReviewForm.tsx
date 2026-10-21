@@ -15,15 +15,14 @@
  * src/lib/starColor.ts on the shell branch.
  */
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import UserAvatar from "@/components/UserAvatar";
-import { fetchSellerCard } from "@/lib/declutter/api";
 import { leaveReview } from "@/lib/declutter/handover";
-import { fetchOrderOtherPerson } from "@/lib/declutter/reviews";
+import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 
 const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
@@ -34,15 +33,7 @@ export function DeclutterReviewForm({ orderId, side, userId }: { orderId: string
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState("");
   const [sent, setSent] = useState(false);
-  const other = useQuery({ queryKey: ["declutter", "order-other", orderId], queryFn: () => fetchOrderOtherPerson(orderId, userId) });
-  const otherId = other.data ?? null;
-  const card = useQuery({
-    queryKey: ["declutter", "seller-card", otherId],
-    queryFn: () => fetchSellerCard(otherId!),
-    enabled: !!otherId,
-  });
-  const first = (card.data?.name ?? "").trim().split(/\s+/)[0] || null;
-  const who = first ?? (side === "buyer" ? "the seller" : "the buyer");
+  const { otherId, name, avatarUrl, who } = useOrderOtherPerson(orderId, userId, side);
   const send = useMutation({
     mutationFn: (args: { stars: number; comment: string | null }) => leaveReview(orderId, args.stars, args.comment),
     onSuccess: () => {
@@ -71,7 +62,7 @@ export function DeclutterReviewForm({ orderId, side, userId }: { orderId: string
         <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} className="max-h-[90dvh] overflow-y-auto" data-review-sheet="">
           <SheetHero title="Leave a review" />
           <div className="flex flex-col items-center gap-3 pt-1 text-center">
-            {otherId && <UserAvatar userId={otherId} src={card.data?.avatarUrl ?? null} name={card.data?.name ?? who} className="h-14 w-14" />}
+            {otherId && <UserAvatar userId={otherId} src={avatarUrl} name={name ?? who} className="h-14 w-14" />}
             <p className="text-ds-20 font-bold leading-snug [overflow-wrap:anywhere]">
               How was {side === "buyer" ? "buying from" : "selling to"} {who}?
             </p>

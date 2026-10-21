@@ -3,7 +3,10 @@
  * (docs/specs/local-shops-prep.md; migration 20261017061155_shops_profiles).
  * Plain words only: no codes reach the member.
  */
-import { BadgeCheck, FileCheck2, IdCard, Landmark, ShieldCheck, Star } from "lucide-react";
+import { BadgeCheck, FileCheck2, IdCard, Landmark, ShieldCheck, Star, Store } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import AppPage from "@/components/AppPage";
@@ -82,14 +85,19 @@ export function ShopRating({ rating, count }: { rating: number | null; count: nu
   );
 }
 
-/** A plain-English block in place of a control the member cannot use yet. */
+/**
+ * A plain-English block in place of a control the member cannot use yet.
+ * Spec v2 palette (audit 2026-10-21): no amber box. Both tones are the one
+ * card surface; "warn" keeps role="alert" and marks its title with the
+ * --alert ink, the one colour the spec gives problems.
+ */
 export function ShopsNotice({ title, children, tone = "info" }: { title: string; children?: ReactNode; tone?: "info" | "warn" }) {
   return (
     <div
       role={tone === "warn" ? "alert" : "status"}
-      className={`rounded-2xl border p-4 text-sm ${tone === "warn" ? "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100" : "border-border bg-card text-foreground"}`}
+      className="rounded-[20px] border border-border bg-card p-4 text-sm text-foreground"
     >
-      <p className="font-semibold">{title}</p>
+      <p className="font-semibold" style={tone === "warn" ? { color: "hsl(var(--alert-ink))" } : undefined}>{title}</p>
       {children && <div className="mt-1 text-muted-foreground">{children}</div>}
     </div>
   );
@@ -129,5 +137,28 @@ export function OrderGroup({ title, count, empty, children }: { title: string; c
       </h2>
       {count === 0 ? <p className="px-1 text-sm text-muted-foreground">{empty}</p> : <ul className="space-y-3">{children}</ul>}
     </section>
+  );
+}
+
+/**
+ * A shop link that leads nowhere (paused, closed, never existed): the one
+ * empty-state layout, not a warning box (spec v2 rebuild, audit 2026-10-21).
+ */
+export function ShopUnavailable({ body = "It may be paused or closed. Check the link with whoever sent it." }: { body?: string }) {
+  const { user } = useAuthReady();
+  return (
+    <div className="flex" role="alert">
+      <EmptyState
+        variant="inline"
+        icon={Store}
+        title="This shop isn't available"
+        body={body}
+        action={
+          <Button asChild variant="primary" size="lg" className="rounded-full px-8">
+            <Link to={user ? "/home" : "/"}>Go home</Link>
+          </Button>
+        }
+      />
+    </div>
   );
 }

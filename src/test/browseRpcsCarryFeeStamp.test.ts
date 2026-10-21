@@ -15,7 +15,7 @@
 //     landing teaser get_public_open_jobs (budget only) is untouched.
 // Executed proof: src/test/pglite/browseRpcsFeeStamp.pglite.mjs.
 //
-// @mutate supabase/migrations/20261017094018_browse_rpcs_carry_fee_stamp.sql | pricing_mode text, distance_band text, helper_fee_flat_cents integer) | pricing_mode text, distance_band text)
+// @mutate supabase/migrations/20261021062609_memberships_off_paid_perks.sql | pricing_mode text, distance_band text, helper_fee_flat_cents integer) | pricing_mode text, distance_band text)
 // @mutate supabase/migrations/20261017094018_browse_rpcs_carry_fee_stamp.sql |     j.helper_fee_flat_cents\n  FROM public.jobs j |     NULL::integer AS helper_fee_flat_cents\n  FROM public.jobs j
 // @mutate supabase/migrations/20261017094018_browse_rpcs_carry_fee_stamp.sql | GRANT EXECUTE ON FUNCTION public.get_open_jobs_for_map() TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.get_open_jobs_for_map() TO authenticated, service_role;
 // @mutate supabase/migrations/20261017094018_browse_rpcs_carry_fee_stamp.sql | COMMENT ON FUNCTION public.get_ranked_open_jobs(integer, integer, boolean, numeric, numeric, numeric) IS | SELECT 1 AS
@@ -82,7 +82,8 @@ describe("browse RPCs carry the jobs fee-model stamp (Q1839)", () => {
       ["get_open_jobs_for_map", ""],
     ] as const) {
       const def = DEFS.get(name)!;
-      expect(def.file).toBe("20261017094018_browse_rpcs_carry_fee_stamp.sql");
+      // Q1848 restated get_ranked_open_jobs (memberships switch on the poster boost), same header.
+      expect(["20261017094018_browse_rpcs_carry_fee_stamp.sql", "20261021062609_memberships_off_paid_perks.sql"]).toContain(def.file);
       const head = def.stmt.slice(0, def.stmt.indexOf("$function$"));
       expect(head).toMatch(/LANGUAGE sql\s+STABLE SECURITY DEFINER\s+SET search_path TO 'public'\s+SET "TimeZone" TO 'America\/Chicago'/);
       const fn = `public.${name}(${args})`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

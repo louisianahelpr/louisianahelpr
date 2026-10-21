@@ -40,7 +40,7 @@ import { blankComments } from "./helpers/blankNonCode";
  * bottom: the cumulative bullets a tier's card shows must advertise a perk
  * exactly when the matrix grants it.
  */
-// @mutate supabase/migrations/20260915043200_admin_support_queue_admits_plus.sql | IN ('basic', 'pro', 'plus', 'elite') | IN ('basic', 'pro', 'elite') -- IN ('basic', 'pro', 'plus', 'elite')
+// @mutate supabase/migrations/20261021062609_memberships_off_paid_perks.sql | IN ('basic', 'pro', 'plus', 'elite') | IN ('basic', 'pro', 'elite') -- IN ('basic', 'pro', 'plus', 'elite')
 
 const REPO = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(REPO, "supabase/migrations");
@@ -363,11 +363,17 @@ describe("VN-44 owner decision, stated once", () => {
  * (BILLING_ONLY, each with its reason), or is a known open gap (KNOWN_UNGATED,
  * exact both ways, each naming its OPEN.md item). Not covered here: tier
  * reads through _shared modules (the legacy tier commission in helperFees.ts,
- * which a job funded before F3 keeps by design) and SQL perks other than the
- * Analytics gate (Q1848 lists them).
+ * which a job funded before F3 keeps by design). The SQL perks (the Analytics
+ * gate, and since Q1848 the Elite shield, the poster boost and priority
+ * support) are pinned by name below.
  */
 // @mutate supabase/migrations/20261017085012_helper_advanced_analytics.sql |          AND public.feature_enabled_for_user('memberships', p_user_id) |          AND true
 // @mutate supabase/functions/instant-job-match/index.ts |         if (await featureEnabledForUser(supabase, "memberships", { id })) tierCounts.add(id); |         tierCounts.add(id);
+// @mutate supabase/migrations/20261021062609_memberships_off_paid_perks.sql |           AND public.feature_enabled_for_user('memberships', p_helper)) |           AND true)
+// @mutate supabase/migrations/20261021062609_memberships_off_paid_perks.sql |             WHEN NOT public.feature_enabled_for_user('memberships', j.customer_id) THEN 0 |             WHEN false THEN 0
+// @mutate supabase/migrations/20261021062609_memberships_off_paid_perks.sql |         WHEN NOT public.feature_enabled_for_user('memberships', r.reporter_id) THEN 'free' |         WHEN false THEN 'free'
+// @mutate supabase/functions/weekly-helper-report/index.ts |       if (await featureEnabledForUser(supabase, "memberships", { id: h.user_id })) activeHelpers.push(h); |       activeHelpers.push(h);
+// @mutate supabase/functions/check-pro-subscription/index.ts | if (hasPerk(tier, "referralUpgradeBonus") && (await featureEnabledForUser(supabaseAdmin, "memberships", { id: user.id }))) { | if (hasPerk(tier, "referralUpgradeBonus")) {
 const BILLING_ONLY: Record<string, string> = {
   "apple-app-store-notifications": "applies Apple's billing notices to the profile's tier; grants no perk",
   "verify-apple-iap": "records a verified Apple purchase on the profile; the purchase gate is its own switch check (Q1849)",
@@ -376,10 +382,8 @@ const BILLING_ONLY: Record<string, string> = {
   "money-reconciliation": "grades a legacy job's stamped fee against the tier ladder it was paid at; an audit, grants nothing",
 };
 // @two-way src/test/perkEnforcementParity.test.ts:asks the switch now, drop it from the exemption lists
-const KNOWN_UNGATED: Record<string, string> = {
-  "weekly-helper-report": "Q1848 (4): the weekly report goes to tier holders",
-  "check-pro-subscription": "Q1848 (5): the $10 referral upgrade bonus is minted by tier",
-};
+// Empty since Q1848 (owner 2026-10-21): weekly-helper-report and check-pro-subscription ask the switch.
+const KNOWN_UNGATED: Record<string, string> = {};
 
 describe("Memberships switch (F4a) — every edge function that reads a tier asks the switch, or is listed", () => {
   const FN_ROOT = resolve(REPO, "supabase/functions");
@@ -414,5 +418,17 @@ describe("Memberships switch (F4a) — every edge function that reads a tier ask
   it("the Advanced Analytics gate asks the switch in its newest definition", () => {
     const { body } = newestFunctionBody("helper_has_advanced_analytics");
     expect(body).toMatch(/public\.feature_enabled_for_user\(\s*'memberships'\s*,\s*p_user_id\s*\)/);
+  });
+
+  // Q1848 (owner 2026-10-21): the SQL perks too. Each newest definition asks the switch for the
+  // member the perk is for. Proof of behaviour: src/test/pglite/membershipsOffPaidPerks.pglite.mjs.
+  it.each([
+    ["apply_job_denial_consequence", "p_helper", "the Elite strike shield"],
+    ["get_ranked_open_jobs", "j.customer_id", "the poster rank boost"],
+    ["admin_support_queue", "r.reporter_id", "priority support"],
+  ])("%s asks the switch for its member (%s, %s)", (fn, who) => {
+    const { body } = newestFunctionBody(fn);
+    const esc = who.replace(".", "\\.");
+    expect(body).toMatch(new RegExp(`public\\.feature_enabled_for_user\\(\\s*'memberships'\\s*,\\s*${esc}\\s*\\)`));
   });
 });

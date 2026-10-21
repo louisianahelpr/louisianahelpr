@@ -69,7 +69,7 @@ vi.mock("@/lib/offJobGate", () => ({ useOffJobState: () => null }));
 // src/test/chatShowsApplicationNote.test.tsx. It renders inside the anchored
 // block (ahead of the timeline), never above the scroller.
 vi.mock("./../components/messages/chatView/ApplicationNoteCard", () => ({ ApplicationNoteCard: () => <section data-testid="chat-application-note" /> }));
-// Board 2's deal card reads the job (React Query); its own spec is dealStage.test.ts.
+// Board 2's deal card reads the job (React Query); its own spec is src/lib/jobProgress.test.ts.
 // It is pinned under the header ABOVE the scroller, like the safety banner.
 vi.mock("./../components/messages/chatView/DealCard", () => ({ DealCard: () => <section data-testid="deal-card">deal</section>, useDealCardShown: () => false, useDealSafetyJob: () => null, usePersonFacts: () => "" }));
 vi.mock("./../components/messages/useMessageReactions", () => ({

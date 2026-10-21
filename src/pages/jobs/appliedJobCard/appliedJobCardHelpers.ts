@@ -173,7 +173,8 @@ export function describeCancellation(
 
 /** Headline on a closed card whose job details are gone (Q1207: a swept offer says it expired). */
 export function closedCardLabel(app: { closed_reason?: string | null; status?: string | null }): string {
-  if (app.closed_reason === "job_cancelled") return "Job cancelled";
+  // Owner, 2026-10-21: an applicant who was not hired is not told about a cancellation; the card just says this.
+  if (app.closed_reason === "job_cancelled") return "This job is no longer available";
   if (app.closed_reason === "offer_expired") return "Offer expired";
   if (app.closed_reason === "not_confirmed") return "Reposted: you didn't confirm";
   return app.status === "rejected" ? "Not selected" : "Job no longer available";

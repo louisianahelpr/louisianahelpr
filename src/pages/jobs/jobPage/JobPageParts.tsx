@@ -13,50 +13,23 @@ import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { DeclutterSellerCard } from "@/components/declutter/DeclutterSellerCard";
 import type { JobPageRow } from "./useJobPage";
-import { StepTracker } from "@/components/tracker/StepTracker";
+import { JobProgress } from "@/components/tracker/JobProgress";
+import { jobProgress } from "@/lib/jobProgress";
 
 const CARD = "rounded-2xl border border-border bg-card p-4 lg:border-0 lg:p-0 lg:rounded-none lg:bg-transparent lg:!shadow-none";
 const MONEY = "text-[hsl(var(--burnt-sienna))]";
 
-const STEPS = [
-  { status: "open", label: "Posted" },
-  { status: "accepted", label: "Hired" },
-  { status: "in_progress", label: "Working" },
-  { status: "completed", label: "Done" },
-] as const;
-
-/** What comes next, per side, in plain words. Only the four live steps have one. */
-const NEXT: Record<"poster" | "helpr", Partial<Record<string, string>>> = {
-  poster: {
-    open: "Next: pick your Helpr.",
-    accepted: "Next: your Helpr starts the job.",
-    in_progress: "Next: check the work and release the pay.",
-  },
-  helpr: {
-    accepted: "Next: start the job on the day.",
-    in_progress: "Next: mark the job done.",
-  },
-};
-
-/** Statuses off the four-step path say what happened instead of drawing a tracker. */
-const OFF_PATH: Record<string, string> = {
-  cancelled: "This job was cancelled.",
-  disputed: "This job is being reviewed. We'll message you both.",
-};
-
-export function JobTracker({ status, side }: { status: string | null; side: "poster" | "helpr" | null }) {
-  const s = status ?? "";
-  if (OFF_PATH[s]) {
-    return <p data-job-state="" className="rounded-xl bg-muted px-3 py-2 text-ds-14 font-medium">{OFF_PATH[s]}</p>;
-  }
-  const at = STEPS.findIndex((x) => x.status === s);
-  // A Helpr browsing an open job is not on the job yet: no tracker for them.
-  if (at < 0 || !side) return null;
-  const next = NEXT[side][s];
+/**
+ * The job page's tracker is THE one tracker (owner, 2026-10-21): the same four segments and next line as
+ * chat and the job cards (jobProgress). A Helpr browsing an open job is not on it yet: no tracker for them.
+ */
+export function JobTracker({ job, side }: { job: JobPageRow; side: "poster" | "helpr" | null }) {
+  if (!side) return null;
+  const progress = jobProgress(job, { viewer: side });
+  if (progress.step === null && !progress.next) return null;
   return (
     <div data-job-tracker="" className="rounded-2xl border border-border bg-card p-4 lg:border-0 lg:bg-transparent lg:p-0 lg:pt-1 lg:!shadow-none">
-      <StepTracker steps={STEPS.map((x) => x.label)} at={at} />
-      {next && <p className="mt-2 text-ds-14 text-muted-foreground">{next}</p>}
+      <JobProgress progress={progress} />
     </div>
   );
 }
@@ -103,8 +76,11 @@ export function HelprMoney({ job }: { job: JobPageRow }) {
   const net = computeNet(job.budget, tierPct, job.urgent_fee ?? 0, helpers, job.status === "disputed" ? 0 : firstPayoutFee, job).netEarnings;
   const pct = flatFeePercentOf(job);
   const flatCents = Number(job.helper_fee_flat_cents ?? 0);
+  // A job posted before the flat fee (no helper_fee_flat_cents stamp) is still paid out at the tier rate by
+  // release-payout / process-scheduled-payouts (getHelperFeePercent), so the page says so and why (owner
+  // check 2026-10-21: 1 real open job on prod was still legacy-priced).
   const feeLine = !flat
-    ? `Helpr's fee (${tierPct}%) comes out of your payout.`
+    ? `Helpr's fee (${tierPct}%) comes out of your payout. This job was posted before the flat fee, so the older fee applies.`
     : keepsAll
       ? "You keep the whole price."
       : `Helpr's fee (${pct}% + ${flatCents}¢) comes out of your payout.`;

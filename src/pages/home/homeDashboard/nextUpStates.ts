@@ -1,6 +1,7 @@
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { postedActivityBucket, appliedActivityBucket, jobIsOverdue, jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { posterStatusLine, helperStatusLine } from "@/components/job-card/jobStatusLine";
+import { jobProgress, type JobProgressState } from "@/lib/jobProgress";
 
 /**
  * The two Home states around Next up (boards 83 and 165, spec v2 §5.1 + §9.22 +
@@ -8,8 +9,6 @@ import { posterStatusLine, helperStatusLine } from "@/components/job-card/jobSta
  * every word is the job card's own status sentence or a real column.
  */
 
-/** The job tracker's four steps (board 165): Posted · Hired · Working · Done. */
-export const LIVE_STEPS = ["Posted", "Hired", "Working", "Done"] as const;
 
 export interface LiveNow {
   id: string;
@@ -21,8 +20,8 @@ export interface LiveNow {
   detail: string;
   /** When the Helpr arrived, if the row says so: the card's "Started 2:04 PM". */
   startedAt: string | null;
-  /** 0-based index into LIVE_STEPS of the current step. */
-  step: number;
+  /** THE one tracker's state for this job (owner, 2026-10-21), from the same rules as every card. */
+  progress: JobProgressState;
 }
 
 /**
@@ -42,7 +41,7 @@ export function deriveLiveNow(postedJobs: readonly Job[], appliedApps: readonly 
       side: "You hired",
       detail: posterStatusLine(j).detail,
       startedAt: j.helper_arrived_at ?? null,
-      step: 2,
+      progress: jobProgress(j, { viewer: "poster" }),
       sort: started(j),
     })),
     ...appliedApps
@@ -54,13 +53,13 @@ export function deriveLiveNow(postedJobs: readonly Job[], appliedApps: readonly 
         side: "You're working",
         detail: helperStatusLine(a).detail,
         startedAt: a.job!.helper_arrived_at ?? null,
-        step: 2,
+        progress: jobProgress(a.job!, { viewer: "helpr", otherFirst: (a.posterName ?? "").split(" ")[0] || null }),
         sort: started(a.job!),
       })),
   ].sort((x, y) => (y.sort > x.sort ? 1 : y.sort < x.sort ? -1 : 0));
   if (!candidates.length) return null;
   const c = candidates[0];
-  return { id: c.id, jobId: c.jobId, title: c.title, side: c.side, detail: c.detail, startedAt: c.startedAt, step: c.step };
+  return { id: c.id, jobId: c.jobId, title: c.title, side: c.side, detail: c.detail, startedAt: c.startedAt, progress: c.progress };
 }
 
 export interface Waiting {

@@ -31,6 +31,9 @@ import { jobCategoryGroupOf, JOB_CATEGORY_GROUPS, sentenceCaseLabel } from "@/li
 import { useJobPage, type JobPageRow } from "./useJobPage";
 import { JobTracker, PosterMoney, HelprMoney, PostedBy } from "./JobPageParts";
 import { NoApplicantsYet } from "./NoApplicantsYet";
+import { jobPageViewerState } from "./viewerState";
+import { useQuery } from "@tanstack/react-query";
+import { fetchSellerCard } from "@/lib/declutter/api";
 
 function groupLabel(category: string): string | null {
   const id = jobCategoryGroupOf(category);
@@ -51,7 +54,11 @@ const CARD = "rounded-2xl border border-border bg-card";
 
 export default function JobPage({ id, userId }: { id: string; userId: string }) {
   const navigate = useNavigate();
-  const { job: q, applicants, isPoster } = useJobPage(id, userId);
+  const { job: q, applicants, isPoster, myApplication } = useJobPage(id, userId);
+  // The poster's "First L." (the same card PostedBy draws, so the read is shared), for "Waiting on Lexi".
+  const posterId = q.data?.job.customer_id ?? null;
+  const posterCard = useQuery({ queryKey: ["declutter", "seller-card", posterId], queryFn: () => fetchSellerCard(posterId!), enabled: !!posterId && !isPoster });
+  const posterFirst = (posterCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
 
   if (q.isLoading) {
     return (
@@ -93,6 +100,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // quick-apply flow; the page opens it rather than growing a second one.
   const canApply = !isPoster && !party && open;
 
+  // Every viewer state, one table (viewerState.ts): applied, offered, hired, declined, closed, own job.
+  const viewer = jobPageViewerState({ isPoster, userId: userId ?? null, job, myApplication: myApplication.data, posterFirst });
+  const highlight = `/jobs?tab=working&highlight=${encodeURIComponent(job.id)}`;
   const primary = isPoster
     ? {
         label: open && pending > 0 ? `Review ${pending} applicant${pending === 1 ? "" : "s"}` : "Manage job",
@@ -105,11 +115,15 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               : `/posts?highlight=${encodeURIComponent(job.id)}&manage=1`,
           ),
       }
-    : isHired
+    : viewer.action.kind === "open_working"
       ? { label: "Open in Working", go: () => navigate("/jobs?tab=working") }
-      : canApply
-        ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
-        : null;
+      : viewer.action.kind === "see_offer"
+        ? { label: "See the offer", go: () => navigate(highlight) }
+        : viewer.action.kind === "view_application"
+          ? { label: "View application", go: () => navigate(highlight) }
+          : viewer.action.kind === "apply" && canApply
+            ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
+            : null;
 
   return (
     <AppPage
@@ -141,12 +155,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             <h2 className="text-ds-24 font-bold leading-tight [overflow-wrap:anywhere] lg:hidden">{job.title}</h2>
             {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}
           </div>
-          <JobTracker status={job.status} side={isPoster ? "poster" : isHired ? "helpr" : null} />
+          <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} />
           {isPoster ? (
             <PosterMoney job={job} total={total} loading={applicants.isLoading} />
           ) : (
             <HelprMoney job={job} />
           )}
+          {viewer.status && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
           {primary && (
             <Button variant="primary" size="lg" className="w-full rounded-full text-ds-16" onClick={primary.go}>
               {primary.label}

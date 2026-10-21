@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
+import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import {
   Database, Eye, Shield, Lock, Trash2, Cookie, Users, Wallet, Scale,
-  CheckCircle, FileText, ShieldCheck,
-} from "lucide-react";
+  CheckCircle, FileText, ShieldCheck, Camera } from "lucide-react";
 import { useContext, type ReactNode } from "react";
 import {
   PolicyRowItem,
@@ -105,6 +105,20 @@ export const PrivacyContent = () => (
         icon={Database}
         title="Platform improvement"
         body={<p>To analyze usage patterns, fix bugs, and develop new features that serve our Louisiana community.</p>}
+      />
+      <PolicyRowItem
+        icon={Camera}
+        title="Photos from jobs"
+        body={
+          <p data-privacy-job-photos>
+            Before and after photos from a job may be used on our website, social media and ads to show what Helprs do,
+            only when both the poster and the Helpr allow it. We crop or blur faces, house numbers, street signs, license
+            plates and anything that shows where you live, and never name you without asking. Turn off
+            &ldquo;{SHARE_JOB_PHOTOS_LABEL}&rdquo; in{" "}
+            <Link to="/profile?tab=settings" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Settings</Link>{" "}
+            to stop future use.
+          </p>
+        }
       />
     </PolicySection>
 

@@ -6991,6 +6991,7 @@ export type Database = {
           promotions_before_unsubscribe: Json | null
           saved_helper_seen: Json
           senior_mode: boolean
+          share_job_photos: boolean
           skills: string | null
           stripe_account_id: string | null
           stripe_charges_enabled: boolean
@@ -7096,6 +7097,7 @@ export type Database = {
           promotions_before_unsubscribe?: Json | null
           saved_helper_seen?: Json
           senior_mode?: boolean
+          share_job_photos?: boolean
           skills?: string | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
@@ -7201,6 +7203,7 @@ export type Database = {
           promotions_before_unsubscribe?: Json | null
           saved_helper_seen?: Json
           senior_mode?: boolean
+          share_job_photos?: boolean
           skills?: string | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
@@ -13370,6 +13373,7 @@ export type Database = {
         Args: { p_payment_status: string }
         Returns: boolean
       }
+      job_photos_shareable: { Args: { p_job_id: string }; Returns: boolean }
       job_posted_by_seed: {
         Args: { p_customer_id: string }
         Returns: boolean

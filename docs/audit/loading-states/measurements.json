@@ -27439,7 +27439,7 @@
       "url": "/profile?tab=settings",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 3970,
+      "capturedAt": 2420,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -27477,7 +27477,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1421
+              "h": 1523
             },
             "containerRect": {
               "x": 0,
@@ -27493,7 +27493,7 @@
               "w": 375,
               "h": 812
             },
-            "scrollH": 1437,
+            "scrollH": 1539,
             "elements": 27,
             "textLeaves": 1,
             "media": 0,
@@ -27513,7 +27513,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1421
+              "h": 1523
             },
             "containerRect": {
               "x": 0,
@@ -27529,7 +27529,7 @@
               "w": 375,
               "h": 812
             },
-            "scrollH": 1437,
+            "scrollH": 1539,
             "elements": 27,
             "textLeaves": 1,
             "media": 0,
@@ -27549,7 +27549,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1421
+              "h": 1523
             },
             "containerRect": {
               "x": 0,
@@ -27565,7 +27565,7 @@
               "w": 375,
               "h": 812
             },
-            "scrollH": 1437,
+            "scrollH": 1539,
             "elements": 27,
             "textLeaves": 1,
             "media": 0,
@@ -27585,7 +27585,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1421
+              "h": 1523
             },
             "containerRect": {
               "x": 0,
@@ -27601,7 +27601,7 @@
               "w": 375,
               "h": 812
             },
-            "scrollH": 1437,
+            "scrollH": 1539,
             "elements": 27,
             "textLeaves": 1,
             "media": 0,
@@ -27621,7 +27621,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1421
+              "h": 1523
             },
             "containerRect": {
               "x": 0,
@@ -27637,7 +27637,7 @@
               "w": 375,
               "h": 812
             },
-            "scrollH": 1437,
+            "scrollH": 1539,
             "elements": 27,
             "textLeaves": 1,
             "media": 0,
@@ -27676,7 +27676,7 @@
             "h": 35.4
           },
           "main#main-content > div > div > div > div > div > div > section:nth-of-type(5) > h2": {
-            "y": 973.1,
+            "y": 1075.4,
             "h": 35.4
           },
           "div#root > nav": {
@@ -27696,7 +27696,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1420.3
+              "h": 1522.6
             },
             "containerRect": {
               "x": 8,
@@ -27712,11 +27712,11 @@
               "w": 359,
               "h": 812
             },
-            "scrollH": 1532,
-            "elements": 126,
-            "textLeaves": 39,
+            "scrollH": 1635,
+            "elements": 132,
+            "textLeaves": 41,
             "media": 0,
-            "controls": 18,
+            "controls": 19,
             "placeholders": 0,
             "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
           },
@@ -27726,7 +27726,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1420.3
+              "h": 1522.6
             },
             "containerRect": {
               "x": 8,
@@ -27742,11 +27742,11 @@
               "w": 359,
               "h": 812
             },
-            "scrollH": 1532,
-            "elements": 126,
-            "textLeaves": 39,
+            "scrollH": 1635,
+            "elements": 132,
+            "textLeaves": 41,
             "media": 0,
-            "controls": 18,
+            "controls": 19,
             "placeholders": 0,
             "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
           },
@@ -27756,7 +27756,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1420.3
+              "h": 1522.6
             },
             "containerRect": {
               "x": 8,
@@ -27772,11 +27772,11 @@
               "w": 359,
               "h": 812
             },
-            "scrollH": 1532,
-            "elements": 126,
-            "textLeaves": 39,
+            "scrollH": 1635,
+            "elements": 132,
+            "textLeaves": 41,
             "media": 0,
-            "controls": 18,
+            "controls": 19,
             "placeholders": 0,
             "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
           },
@@ -27786,7 +27786,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1420.3
+              "h": 1522.6
             },
             "containerRect": {
               "x": 8,
@@ -27802,11 +27802,11 @@
               "w": 359,
               "h": 812
             },
-            "scrollH": 1532,
-            "elements": 126,
-            "textLeaves": 39,
+            "scrollH": 1635,
+            "elements": 132,
+            "textLeaves": 41,
             "media": 0,
-            "controls": 18,
+            "controls": 19,
             "placeholders": 0,
             "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
           },
@@ -27816,7 +27816,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1420.3
+              "h": 1522.6
             },
             "containerRect": {
               "x": 8,
@@ -27832,11 +27832,11 @@
               "w": 359,
               "h": 812
             },
-            "scrollH": 1532,
-            "elements": 126,
-            "textLeaves": 39,
+            "scrollH": 1635,
+            "elements": 132,
+            "textLeaves": 41,
             "media": 0,
-            "controls": 18,
+            "controls": 19,
             "placeholders": 0,
             "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
           }
@@ -27851,13 +27851,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1421
+            "h": 1523
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1420.3
+            "h": 1522.6
           },
           "skeletonContainer": {
             "x": 0,
@@ -27871,7 +27871,7 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": -0.7,
+          "deltaRowPx": -0.4,
           "deltaContainerPx": 0,
           "rows": [
             7,
@@ -27888,11 +27888,11 @@
           ],
           "controls": [
             1,
-            18
+            19
           ],
           "textLeaves": [
             1,
-            39
+            41
           ],
           "placeholderCount": 5,
           "shapeMatch": true
@@ -27903,13 +27903,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1421
+            "h": 1523
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1420.3
+            "h": 1522.6
           },
           "skeletonContainer": {
             "x": 0,
@@ -27923,7 +27923,7 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": -0.7,
+          "deltaRowPx": -0.4,
           "deltaContainerPx": 0,
           "rows": [
             7,
@@ -27940,11 +27940,11 @@
           ],
           "controls": [
             1,
-            18
+            19
           ],
           "textLeaves": [
             1,
-            39
+            41
           ],
           "placeholderCount": 2,
           "shapeMatch": true
@@ -27955,13 +27955,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1421
+            "h": 1523
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1420.3
+            "h": 1522.6
           },
           "skeletonContainer": {
             "x": 0,
@@ -27975,7 +27975,7 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": -0.7,
+          "deltaRowPx": -0.4,
           "deltaContainerPx": 0,
           "rows": [
             7,
@@ -27992,11 +27992,11 @@
           ],
           "controls": [
             1,
-            18
+            19
           ],
           "textLeaves": [
             1,
-            39
+            41
           ],
           "placeholderCount": 2,
           "shapeMatch": true
@@ -28007,13 +28007,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1421
+            "h": 1523
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1420.3
+            "h": 1522.6
           },
           "skeletonContainer": {
             "x": 0,
@@ -28027,7 +28027,7 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": -0.7,
+          "deltaRowPx": -0.4,
           "deltaContainerPx": 0,
           "rows": [
             7,
@@ -28044,11 +28044,11 @@
           ],
           "controls": [
             1,
-            18
+            19
           ],
           "textLeaves": [
             1,
-            39
+            41
           ],
           "placeholderCount": 2,
           "shapeMatch": true
@@ -28059,13 +28059,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1421
+            "h": 1523
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1420.3
+            "h": 1522.6
           },
           "skeletonContainer": {
             "x": 0,
@@ -28079,7 +28079,7 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": -0.7,
+          "deltaRowPx": -0.4,
           "deltaContainerPx": 0,
           "rows": [
             7,
@@ -28096,17 +28096,17 @@
           ],
           "controls": [
             1,
-            18
+            19
           ],
           "textLeaves": [
             1,
-            39
+            41
           ],
           "placeholderCount": 1,
           "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": -0.7,
+      "worstDeltaRowPx": -0.4,
       "worstDeltaRowH": null,
       "worstDeltaRows": 0,
       "shapeMismatches": 0,
@@ -28126,7 +28126,7 @@
       "url": "/profile?tab=settings",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2322,
+      "capturedAt": 2418,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -28164,7 +28164,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1421
+              "h": 1523
             },
             "containerRect": {
               "x": 0,
@@ -28180,7 +28180,7 @@
               "w": 375,
               "h": 812
             },
-            "scrollH": 1437,
+            "scrollH": 1539,
             "elements": 27,
             "textLeaves": 1,
             "media": 0,
@@ -28200,7 +28200,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1421
+              "h": 1523
             },
             "containerRect": {
               "x": 0,
@@ -28216,7 +28216,7 @@
               "w": 375,
               "h": 812
             },
-            "scrollH": 1437,
+            "scrollH": 1539,
             "elements": 27,
             "textLeaves": 1,
             "media": 0,
@@ -28236,7 +28236,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1421
+              "h": 1523
             },
             "containerRect": {
               "x": 0,
@@ -28252,7 +28252,7 @@
               "w": 375,
               "h": 812
             },
-            "scrollH": 1437,
+            "scrollH": 1539,
             "elements": 27,
             "textLeaves": 1,
             "media": 0,
@@ -28272,7 +28272,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1421
+              "h": 1523
             },
             "containerRect": {
               "x": 0,
@@ -28288,7 +28288,7 @@
               "w": 375,
               "h": 812
             },
-            "scrollH": 1437,
+            "scrollH": 1539,
             "elements": 27,
             "textLeaves": 1,
             "media": 0,
@@ -28308,7 +28308,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1421
+              "h": 1523
             },
             "containerRect": {
               "x": 0,
@@ -28324,7 +28324,7 @@
               "w": 375,
               "h": 812
             },
-            "scrollH": 1437,
+            "scrollH": 1539,
             "elements": 27,
             "textLeaves": 1,
             "media": 0,
@@ -28363,7 +28363,7 @@
             "h": 35.4
           },
           "main#main-content > div > div > div > div > div > div > section:nth-of-type(5) > h2": {
-            "y": 973.1,
+            "y": 1075.4,
             "h": 35.4
           },
           "div#root > nav": {
@@ -28383,7 +28383,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1420.3
+              "h": 1522.6
             },
             "containerRect": {
               "x": 8,
@@ -28399,11 +28399,11 @@
               "w": 359,
               "h": 812
             },
-            "scrollH": 1532,
-            "elements": 126,
-            "textLeaves": 39,
+            "scrollH": 1635,
+            "elements": 132,
+            "textLeaves": 41,
             "media": 0,
-            "controls": 18,
+            "controls": 19,
             "placeholders": 0,
             "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
           },
@@ -28413,7 +28413,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1420.3
+              "h": 1522.6
             },
             "containerRect": {
               "x": 8,
@@ -28429,11 +28429,11 @@
               "w": 359,
               "h": 812
             },
-            "scrollH": 1532,
-            "elements": 126,
-            "textLeaves": 39,
+            "scrollH": 1635,
+            "elements": 132,
+            "textLeaves": 41,
             "media": 0,
-            "controls": 18,
+            "controls": 19,
             "placeholders": 0,
             "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
           },
@@ -28443,7 +28443,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1420.3
+              "h": 1522.6
             },
             "containerRect": {
               "x": 8,
@@ -28459,11 +28459,11 @@
               "w": 359,
               "h": 812
             },
-            "scrollH": 1532,
-            "elements": 126,
-            "textLeaves": 39,
+            "scrollH": 1635,
+            "elements": 132,
+            "textLeaves": 41,
             "media": 0,
-            "controls": 18,
+            "controls": 19,
             "placeholders": 0,
             "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
           },
@@ -28473,7 +28473,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1420.3
+              "h": 1522.6
             },
             "containerRect": {
               "x": 8,
@@ -28489,11 +28489,11 @@
               "w": 359,
               "h": 812
             },
-            "scrollH": 1532,
-            "elements": 126,
-            "textLeaves": 39,
+            "scrollH": 1635,
+            "elements": 132,
+            "textLeaves": 41,
             "media": 0,
-            "controls": 18,
+            "controls": 19,
             "placeholders": 0,
             "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
           },
@@ -28503,7 +28503,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 1420.3
+              "h": 1522.6
             },
             "containerRect": {
               "x": 8,
@@ -28519,11 +28519,11 @@
               "w": 359,
               "h": 812
             },
-            "scrollH": 1532,
-            "elements": 126,
-            "textLeaves": 39,
+            "scrollH": 1635,
+            "elements": 132,
+            "textLeaves": 41,
             "media": 0,
-            "controls": 18,
+            "controls": 19,
             "placeholders": 0,
             "text": "SettingsLookColor modeMatch my phoneBigger text and buttonsEasier reading everywhereYour sectionsJobsHire help or find workDeclutterSell or find a dealShopsShop"
           }
@@ -28538,13 +28538,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1421
+            "h": 1523
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1420.3
+            "h": 1522.6
           },
           "skeletonContainer": {
             "x": 0,
@@ -28558,7 +28558,7 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": -0.7,
+          "deltaRowPx": -0.4,
           "deltaContainerPx": 0,
           "rows": [
             7,
@@ -28575,11 +28575,11 @@
           ],
           "controls": [
             1,
-            18
+            19
           ],
           "textLeaves": [
             1,
-            39
+            41
           ],
           "placeholderCount": 5,
           "shapeMatch": true
@@ -28590,13 +28590,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1421
+            "h": 1523
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1420.3
+            "h": 1522.6
           },
           "skeletonContainer": {
             "x": 0,
@@ -28610,7 +28610,7 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": -0.7,
+          "deltaRowPx": -0.4,
           "deltaContainerPx": 0,
           "rows": [
             7,
@@ -28627,11 +28627,11 @@
           ],
           "controls": [
             1,
-            18
+            19
           ],
           "textLeaves": [
             1,
-            39
+            41
           ],
           "placeholderCount": 2,
           "shapeMatch": true
@@ -28642,13 +28642,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1421
+            "h": 1523
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1420.3
+            "h": 1522.6
           },
           "skeletonContainer": {
             "x": 0,
@@ -28662,7 +28662,7 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": -0.7,
+          "deltaRowPx": -0.4,
           "deltaContainerPx": 0,
           "rows": [
             7,
@@ -28679,11 +28679,11 @@
           ],
           "controls": [
             1,
-            18
+            19
           ],
           "textLeaves": [
             1,
-            39
+            41
           ],
           "placeholderCount": 2,
           "shapeMatch": true
@@ -28694,13 +28694,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1421
+            "h": 1523
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1420.3
+            "h": 1522.6
           },
           "skeletonContainer": {
             "x": 0,
@@ -28714,7 +28714,7 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": -0.7,
+          "deltaRowPx": -0.4,
           "deltaContainerPx": 0,
           "rows": [
             7,
@@ -28731,11 +28731,11 @@
           ],
           "controls": [
             1,
-            18
+            19
           ],
           "textLeaves": [
             1,
-            39
+            41
           ],
           "placeholderCount": 2,
           "shapeMatch": true
@@ -28746,13 +28746,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1421
+            "h": 1523
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 1420.3
+            "h": 1522.6
           },
           "skeletonContainer": {
             "x": 0,
@@ -28766,7 +28766,7 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": -0.7,
+          "deltaRowPx": -0.4,
           "deltaContainerPx": 0,
           "rows": [
             7,
@@ -28783,17 +28783,17 @@
           ],
           "controls": [
             1,
-            18
+            19
           ],
           "textLeaves": [
             1,
-            39
+            41
           ],
           "placeholderCount": 1,
           "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": -0.7,
+      "worstDeltaRowPx": -0.4,
       "worstDeltaRowH": null,
       "worstDeltaRows": 0,
       "shapeMismatches": 0,
@@ -28968,6 +28968,22 @@
       "replaced": [
         "customer /profile?tab=support",
         "helper /profile?tab=support"
+      ]
+    },
+    {
+      "at": "2026-10-20T23:55:48.808Z",
+      "base": "http://127.0.0.1:4173",
+      "surfaces": [
+        "customer /profile?tab=settings",
+        "helper /profile?tab=support",
+        "customer /profile?tab=support",
+        "helper /profile?tab=settings"
+      ],
+      "replaced": [
+        "customer /profile?tab=support",
+        "helper /profile?tab=support",
+        "customer /profile?tab=settings",
+        "helper /profile?tab=settings"
       ]
     }
   ]

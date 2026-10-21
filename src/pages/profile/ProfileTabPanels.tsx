@@ -119,6 +119,8 @@ export interface ProfileTabPanelsProps {
   /** You › Settings (board 52) opens other tabs and asks to log out. */
   onSelectTab?: (key: string) => void;
   onRequestLogout?: () => void;
+  /** Board 120: Settings' Delete account row opens the page's delete dialog. */
+  onRequestDelete?: () => void;
 }
 
 /**
@@ -173,6 +175,7 @@ export const ProfileTabPanels = ({
   onToggleSeniorMode,
   onSelectTab,
   onRequestLogout,
+  onRequestDelete,
 }: ProfileTabPanelsProps) => {
   return (
     <>
@@ -336,6 +339,7 @@ export const ProfileTabPanels = ({
             onToggleSeniorMode={onToggleSeniorMode}
             onSelectTab={onSelectTab ?? (() => {})}
             onRequestLogout={onRequestLogout ?? (() => {})}
+            onRequestDelete={onRequestDelete}
             onBack={onBackFromTab}
           />
         </Suspense>

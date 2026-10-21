@@ -96,6 +96,7 @@ import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 import { InProgressStep } from "@/pages/posts/postedJobCard/steps/InProgressStep";
 import { ConfirmedSection } from "@/pages/jobs/appliedJobCard/ConfirmedSection";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});
@@ -218,10 +219,10 @@ describe("Posts card: the gate reason renders ABOVE the action row", () => {
     ).toContain("text-center");
   });
 
-  it("Q1568 (supersedes Q1400): on the way, a greyed arrival box with its line under the row", () => {
-    wrap(<InProgressStep {...posterCtx(makeJob({ helper_on_the_way_at: ago(1), helper_arrived_at: null }))} />);
-    expect((screen.getByRole("button", { name: /Confirm they've arrived/ }) as HTMLButtonElement).disabled).toBe(true);
-    expect(noteHost().textContent).toMatch(/turns on once your Helpr says they've arrived/);
+  it("owner rule 2026-10-21 (supersedes Q1568): on the way, no greyed arrival box; the waiting line sits under the row", () => {
+    wrap(<InProgressStep {...posterCtx(makeJob({ helper_on_the_way_at: ago(1), helper_arrived_at: null, date_needed: jobLocalDateISO(1) }))} />);
+    expect(screen.queryByRole("button", { name: /Confirm they've arrived/ })).toBeNull();
+    expect(noteHost().textContent).toMatch(/on the way\. You'll confirm once they say they've arrived/);
   });
 
   it("Q1400 can fail: once the Helpr has arrived the box is drawn", () => {

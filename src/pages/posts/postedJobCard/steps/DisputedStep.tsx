@@ -54,20 +54,22 @@ export function DisputedStep(ctx: PosterStepCtx) {
 
   const header = (
     <>
-      <div className="p-3 rounded-ds-sm bg-destructive/5 border border-destructive/20">
-        <p className="text-ds-11 text-[hsl(var(--destructive-ink))] font-medium flex items-center gap-1">
-          <AlertTriangle className="w-3.5 h-3.5" />
+      {/* ONE calm box (spec v2, audit #6): no red box, no pink box inside it. The alert colour is the
+          icon alone; "the money stays held" is already the tracker's line, so it is not said twice. */}
+      <div className="p-3 rounded-ds-sm border border-border bg-card">
+        <p className="text-ds-13 text-foreground font-semibold flex items-center gap-1.5">
+          <AlertTriangle className="w-4 h-4 text-[hsl(var(--alert-ink))]" aria-hidden />
           {disputeStatus === "escalated"
-            ? "Escalated to Admin"
+            ? "Escalated to an admin"
             : disputeStatus === "resolved"
-              ? "Dispute Resolved"
+              ? "Dispute resolved"
               : "Dispute under review"}
         </p>
-        <p className="text-ds-11 text-muted-foreground mt-1">
-          {awaitingAdmin
-            ? "Admin is reviewing this dispute. You'll be notified of the outcome, and nothing is charged or released until then."
-            : "Payment is on hold pending resolution."}
-        </p>
+        {awaitingAdmin && (
+          <p className="text-ds-12 text-muted-foreground mt-1">
+            An admin is reviewing this dispute. You'll be told the outcome, and nothing is charged or released until then.
+          </p>
+        )}
         {job.dispute_reason && <p className="text-ds-11 text-muted-foreground mt-1">"{job.dispute_reason}"</p>}
         {job.dispute_helper_response && (
           <div className="mt-2 p-2 rounded bg-muted/50">
@@ -76,15 +78,15 @@ export function DisputedStep(ctx: PosterStepCtx) {
           </div>
         )}
         {showDeadline && job.dispute_deadline && (
-          <DeadlineCountdown
-            deadline={job.dispute_deadline}
-            expiredText="Deadline passed — payment auto-releasing to Helpr"
-            /* Derived from the controls actually on this card, not from the
-               happy path — each wording names only moves THIS poster can make,
-               and every one still answers "what happens if I do nothing". */
-            consequenceText={consequenceText}
-            variant="destructive"
-          />
+          <div className="mt-2 space-y-1">
+            {/* A clock line, not a second box. */}
+            <DeadlineCountdown compact deadline={job.dispute_deadline} expiredText="Deadline passed: the payment is auto-releasing to your Helpr" consequenceText="left" />
+            {/* Derived from the controls actually on this card, not from the
+                happy path — each wording names only moves THIS poster can make,
+                and every one still answers "what happens if I do nothing". */}
+            {/* Only while the clock runs: past it, the line above says the payment is releasing. */}
+            {new Date(job.dispute_deadline).getTime() > Date.now() && <p className="text-ds-12 text-muted-foreground">{consequenceText}</p>}
+          </div>
         )}
       </div>
       {/* Static fallback ONLY when there is no live deadline to count: with
@@ -121,8 +123,8 @@ export function DisputedStep(ctx: PosterStepCtx) {
         canEscalate && canResolve ? (
           <JobStepPrimaryButton
             icon={CheckCircle2}
-            label="Resolve & Pay"
-            ariaLabel="Resolve & Pay — close this dispute and release the payment to your Helpr"
+            label="Resolve & pay"
+            ariaLabel="Resolve & pay — close this dispute and release the payment to your Helpr"
             disabled={disputeActing}
             onClick={(e) => {
               e.stopPropagation();

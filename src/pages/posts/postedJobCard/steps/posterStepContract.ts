@@ -149,6 +149,10 @@ export interface PosterConfirmRung {
   /** A GATE (something must happen first) rather than an ordinary WAIT —
    *  amber, exactly as JobTracking styles its own blocked-CTA reasons. */
   gate: boolean;
+  /** NOTHING TO TAP YET (owner rule 2026-10-21, lead ruling the same day): the line alone, no greyed box.
+   *  The step's own primary ("Message Hallie") holds the slot; the real button appears the moment the
+   *  Helpr acts (says they've arrived / taps Start working). */
+  waiting?: boolean;
   /**
    * THIS IS THE STALLED-JOB NOTICE, not a confirmation the poster could ever
    * take. Set only by the owner-item-7 branch at the bottom of
@@ -233,8 +237,9 @@ export function posterConfirmationRung(
       label: "Confirm they've arrived",
       enabled: false,
       done: false,
-      reason: "This button turns on once your Helpr says they've arrived.",
+      reason: "Your Helpr is on the way. You'll confirm once they say they've arrived.",
       gate: false,
+      waiting: true,
     };
   }
 
@@ -264,8 +269,9 @@ export function posterConfirmationRung(
       label: "Confirm they're working",
       enabled: helperWorking,
       done: false,
-      reason: helperWorking ? null : "This button turns on once your Helpr taps Start working.",
+      reason: helperWorking ? null : "Your Helpr taps Start working when they begin; you can confirm then.",
       gate: false,
+      waiting: !helperWorking,
     };
   } else {
     rung = {

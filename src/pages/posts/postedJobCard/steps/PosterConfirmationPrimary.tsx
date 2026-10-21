@@ -73,7 +73,8 @@ export function PosterConfirmationPrimary({
           </p>
         ) : null}
       </JobStepRowSlot>
-      <JobStepRowSlot slot="primary">
+      {/* Waiting on the Helpr: the line alone; the step's "Message Hallie" keeps the slot (owner, 2026-10-21). */}
+      {!rung.waiting && <JobStepRowSlot slot="primary">
         <JobStepPrimaryButton
           icon={CheckCircle2}
           label={busy ? "…" : rung.label}
@@ -92,7 +93,7 @@ export function PosterConfirmationPrimary({
             else if (rung.action === "working") onConfirmWorking(job.id);
           }}
         />
-      </JobStepRowSlot>
+      </JobStepRowSlot>}
     </>
   );
 }

@@ -435,12 +435,14 @@ test.describe("My Posts — card density + header", () => {
     // state a job is in. See ActivityBucket in activityFilters.ts. The tracker is
     // THE one JobProgress (owner, 2026-10-21: "we need 1 tracker").
     await expect(page.locator("[data-job-progress]")).toHaveCount(1);
-    // Everything but the primary lives in More now (owner, 2026-10-08).
-    const panel = await openMore(page);
+    // Nothing to confirm yet, so Message is the row's PRIMARY (owner rule 2026-10-21: never a greyed future
+    // step); everything else lives in More (owner, 2026-10-08) when there is anything else.
+    const row = page.locator("[data-job-step-row]").first();
+    await expect(row.locator("[data-job-step-primary]").getByRole("button", { name: /^Message\b/ })).toHaveCount(1);
+    // Before the start there is no other move at all (no More, so No-Show cannot hide in it either).
+    await expect(page.locator("[data-job-step-overflow]")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /no-show/i })).toHaveCount(0);
-    // The rest is still there — this is a gate, not an empty state. Share is
-    // NOT among them: a job that already has a helpr has nothing to advertise.
-    await expect(panel.getByRole("button", { name: "Message Helpr" })).toHaveCount(1);
+    // Share is NOT among the moves: a job that already has a helpr has nothing to advertise.
     await expect(page.getByRole("button", { name: /share|copy link/i })).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/actions-2up-no-noshow-375.png` });
     await page.keyboard.press("Escape");
@@ -474,7 +476,7 @@ test.describe("My Posts — card density + header", () => {
     // assertion here is about tap-target height, not wording — anchoring it to
     // the visible label keeps it green through the next re-phrasing of the
     // trailing context while still failing if the chip disappears.
-    for (const name of [/^Message Helpr\b/, /^No-Show\b/]) {
+    for (const name of [/^Message\b/, /^No-Show\b/]) {
       const box = await page.getByRole("button", { name }).first().boundingBox();
       expect(box, `${name} has no box`).not.toBeNull();
       expect(box!.height, `${name} tap target`).toBeGreaterThanOrEqual(44);
@@ -690,8 +692,8 @@ test.describe("My Posts — card density + header", () => {
     });
     await expandCard(page, IN_PROGRESS_ID);
 
-    const panel = await openMore(page);
-    await panel.getByRole("button", { name: "Message Helpr" }).first().click();
+    // Message is the row's primary while nothing is confirmable (owner rule 2026-10-21).
+    await page.locator("[data-job-step-primary]").getByRole("button", { name: /^Message\b/ }).first().click();
     await page.waitForURL(/\/messages\?/);
     const url = new URL(page.url());
     // Landing on the bare list — the old behaviour — leaves both params null.

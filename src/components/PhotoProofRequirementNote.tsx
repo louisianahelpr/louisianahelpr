@@ -59,7 +59,8 @@ export const PhotoProofRequirementNote = ({
   if (!reason) return null;
   const text = audience === "poster" ? POSTER_PROOF_MISSING_NOTE : reason;
   return (
-    <p className={`text-ds-11 text-[hsl(var(--destructive-ink))] flex items-center gap-1 ${className}`}>
+    // The poster's line is a FACT with nothing to tap (audit #6): muted, never alarm red. The Helpr's stays red: theirs is owed.
+    <p className={`text-ds-11 ${audience === "poster" ? "text-muted-foreground" : "text-[hsl(var(--destructive-ink))]"} flex items-center gap-1 ${className}`}>
       <Camera className="w-3 h-3" /> {text}
     </p>
   );

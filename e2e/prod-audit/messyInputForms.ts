@@ -787,6 +787,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // You › Settings (board 52, 2026-10-20): switches and rows only, no typed input.
+  "src/components/profile/SettingsTab.tsx": "no text input: two-state switches (bigger text, section on/off, refused when it would hide the last section) and navigation rows; nothing a messy string can reach",
   // Shops M3/M4 (2026-10-19, shops-m3): cancels, no-shows and the admin Shops orders screen.
   "src/components/admin/AdminShopsOrders.tsx": "admin-only, needs a charged Shops order (journeys never pay on live Stripe); the note (1-500), refund reason (four values), re_ id and amount are refused by shops_admin_* / shop-checkout admin_record_hand_refund as pinned by src/test/pglite/shopsRefunds.pglite.mjs and src/test/edge/shop-refunds.test.ts",
   "src/components/shops/ShopOrderCancel.tsx": "behind the 'shops' switch (testers only) and needs an accepted, charged order; the shop's cancel reason is contact-leak filtered and capped by shops_shop_cancel_order, the buyer's cancel takes no text, as pinned by src/test/pglite/shopsRefunds.pglite.mjs",

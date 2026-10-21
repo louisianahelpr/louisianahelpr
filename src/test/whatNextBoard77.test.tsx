@@ -1,10 +1,10 @@
 /**
  * Board 77, "What next" after applying: the shared WhatNextSheet, built from real data.
- * The poster is named (never he/she), the step being waited on says "Now", no amount is
+ * The person who posted this job is named (never he/she), the step being waited on says "Now", no amount is
  * printed (the take-home stays on the apply sheet's breakdown), and a withheld note is told.
  *
  * @mutate src/components/dashboard/ApplicationSentDialog.tsx |         { key: "pick", label: `${who} picks a Helpr`, detail: "We'll let you know if you're picked", state: "now" }, |         { key: "pick", label: `${who} picks a Helpr`, detail: "We'll let you know if you're picked", state: "later" },
- * @mutate src/components/dashboard/ApplicationSentDialog.tsx |   const who = name ?? "The poster"; |   const who = "They";
+ * @mutate src/components/dashboard/ApplicationSentDialog.tsx |   const who = name ?? "The person who posted this job"; |   const who = "They";
  * @mutate src/components/whatNext/WhatNextSheet.tsx |         floor={!webDesktop} |         floor={false}
  * @mutate src/components/dashboard/ApplicationSentDialog.tsx |   const { takeHome } = useApplyTakeHome(job, platformFee); |   const takeHome = job.budget;
  * @mutate src/components/whatNext/WhatNextSheet.tsx |           event.preventDefault(); |
@@ -42,7 +42,7 @@ describe("board 77: what next after applying", () => {
     const text = screen.getByTestId("what-next-sheet").textContent ?? "";
     expect(text).not.toMatch(/\$/);
     expect(text).not.toMatch(/\b(he|she|his|her)\b/i);
-    expect(text).toContain("The poster picks a Helpr");
+    expect(text).toContain("The person who posted this job picks a Helpr");
     expect(text).toContain("Do the job");
     expect(text).not.toContain("Do the job,");
   });

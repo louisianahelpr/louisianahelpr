@@ -115,7 +115,7 @@ function FirstRunPicker({ options, picks, onToggle, onSkip, onContinue }: {
           <div className="flex justify-end">
             <button type="button" onClick={onSkip} className="min-h-11 px-2 text-ds-15 font-bold" style={{ color: "hsl(var(--bark))" }}>Skip</button>
           </div>
-          <h1 id="first-run-title" ref={headingRef} tabIndex={-1} style={{ outline: "none" }} className="font-display font-moment text-ds-32 leading-tight text-foreground mt-2">
+          <h1 id="first-run-title" ref={headingRef} tabIndex={-1} style={{ outline: "none" }} className="font-moment text-page-title text-foreground mt-2">
             What brings you to Helpr?
           </h1>
           <p className="text-ds-14 text-muted-foreground mt-1">Pick any. You can do all of it with one account.</p>
@@ -152,7 +152,7 @@ function FirstRunPicker({ options, picks, onToggle, onSkip, onContinue }: {
           <p className="text-ds-13 text-muted-foreground mt-3">This only sets what you see first on Home. Nothing is locked.</p>
         </div>
       </div>
-      <div className="border-t border-border bg-background px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="border-t border-border bg-background px-5 pt-3 pb-[max(1rem,var(--safe-area-bottom,0px))]">
         <div className="mx-auto w-full max-w-[480px]">
           <button type="button" onClick={onContinue} className="btn-grad-primary w-full min-h-14 rounded-full text-ds-16 font-bold">
             Continue

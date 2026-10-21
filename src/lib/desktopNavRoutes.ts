@@ -23,6 +23,8 @@ const AUTH_PREFIXES = [
   "/declutter",
   // Quotes on jobs (hidden switch 'quotes'; each page is the 404 while off).
   "/quotes",
+  // Board 181: the Helpr's tip moment.
+  "/tips",
   // Shops (hidden switch; each page is the 404 while it is off).
   "/shops",
   // Rentals (hidden switch 'rentals'; each page is the 404 while it is off).

@@ -68,6 +68,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/dashboard/filterSheet/FilterSheetRows.tsx` | checkbox/switch/radio×1 |  |  |  |
+| `src/components/dashboard/filterSheet/PayRangeSlider.tsx` | input×2 | range |  | pay-range · Lowest price · Highest price |
 | `src/components/dashboard/JobCard.tsx` | date/calendar×2 |  |  | Just posted · Boosted · job-card-countdown-slot |
 | `src/components/job-card/JobCardMetaRow.tsx` | date/calendar×1 |  |  |  |
 | `src/components/SavedSearches.tsx` | input×1 | text | 60 | Saved searches · search-name · e.g. Lawn care under $200 · Save filter set · Delete saved search |
@@ -96,7 +97,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/declutter/DeclutterDeliveryViews.tsx` | input×8, date/calendar×2 | datetime-local, checkbox, file |  | Your vehicle · Your deliveries · Deliveries near you |
+| `src/components/declutter/DeclutterDeliveryViews.tsx` | input×8, date/calendar×2 | datetime-local, checkbox, file |  | What happened · Your vehicle · Route · Your deliveries · Deliveries near you |
 | `src/components/declutter/DeclutterFilterPanel.tsx` | input×1, checkbox/switch/radio×2 | text |  |  |
 | `src/components/declutter/DeclutterHandoverViews.tsx` | input×5, textarea×2, select×1, date/calendar×3 | datetime-local, file | 1000 | Out until · Stars · Review (optional) |
 | `src/components/declutter/DeclutterTradeViews.tsx` | input×3 | text, radio | 300 | Your price, like 30 · Sold, waiting for the buyer to pay · Your cart |
@@ -151,7 +152,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/CancellationDialog.tsx` | textarea×1 |  |  | cancel-reason |
-| `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | apply-message · save-default-pitch |
+| `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | apply-message · apply-message-help · save-default-pitch |
 | `src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx` | input×1 | search |  | Recent searches · Search jobs · Search jobs… · Close search |
 | `src/components/DisputeDialog.tsx` | input×1, textarea×1, select×1 | file | 1000 | Reason · Pick the closest fit… · What happened? · dispute-details-requirement · Remove file |
 | `src/components/DisputeTimelineDialog.tsx` | input×1 | file |  | Remove file |

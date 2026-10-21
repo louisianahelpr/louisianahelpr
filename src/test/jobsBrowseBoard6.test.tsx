@@ -2,7 +2,7 @@
 // "Farther away" divider, and the hero card's picture band.
 // @mutate src/pages/home/fartherAwaySplit.ts | if (miles != null && miles > NEARBY_MILES) { | if (miles != null && miles > NEARBY_MILES * 100) {
 // @mutate src/components/dashboard/JobGroupChips.tsx | setSelectedCategory(on ? null : g.items[0].value); | setOpenGroup(g.id);
-// @mutate src/components/dashboard/JobCardHeroBand.tsx | {photo ? ( | {false ? (
+// @mutate src/components/dashboard/JobCardHeroBand.tsx |   if (!photo) return null; |   if (false) return null;
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { NEARBY_MILES, splitFartherAway } from "@/pages/home/fartherAwaySplit";
@@ -83,11 +83,10 @@ describe("board 6: category group chips", () => {
 });
 
 describe("board 6: hero picture band", () => {
-  it("shows the job's own photo, else the category icon (never a stock picture)", () => {
-    const { container, rerender } = render(<JobCardHeroBand photo="https://x.test/p.jpg" category="cleaning" />);
+  it("shows the job's own photo, and nothing at all without one (no empty block, no stock picture)", () => {
+    const { container, rerender } = render(<JobCardHeroBand photo="https://x.test/p.jpg" />);
     expect(container.querySelector("img")?.getAttribute("src")).toBe("https://x.test/p.jpg");
-    rerender(<JobCardHeroBand photo={null} category="cleaning" />);
-    expect(container.querySelector("img")).toBeNull();
-    expect(container.querySelector("svg")).not.toBeNull();
+    rerender(<JobCardHeroBand photo={null} />);
+    expect(container.innerHTML).toBe("");
   });
 });

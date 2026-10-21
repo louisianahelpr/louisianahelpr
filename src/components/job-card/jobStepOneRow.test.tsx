@@ -341,8 +341,10 @@ const CASES: Array<{
           navigate={vi.fn()}
         />,
       ),
-    minControls: 3,
-    maxControls: 3,
+    // Four since board 187 (e1b80db64a): "Running late" joins Message and
+    // Directions in More on the job's day. Cancel Job would make five.
+    minControls: 4,
+    maxControls: 4,
     primary: ["I'm On My Way"],
   },
   {

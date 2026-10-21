@@ -10,7 +10,12 @@ const LINE: Record<string, { title: string; body: string; cta: string | null }> 
   },
   continue: { title: "Finish your ID check", body: "You started it with Stripe. Pick up where you left off.", cta: "Continue" },
   checking: { title: "Stripe is checking your ID", body: "This usually takes a few minutes. We'll let you know.", cta: null },
-  with_team: { title: "Your ID check is with our team", body: "We'll let you know when it's done, usually within 24 hours.", cta: null },
+  // Not a dead end (owner report 2026-10-21): the sheet offers a fresh Stripe check.
+  with_team: {
+    title: "Your ID check is with our team",
+    body: "We'll let you know when it's done, usually within 24 hours. You can also start a fresh check.",
+    cta: "See options",
+  },
   failed: { title: "We couldn't verify this ID", body: "Get in touch and we'll help you sort it out.", cta: "See what to do" },
 };
 

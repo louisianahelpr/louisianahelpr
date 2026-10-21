@@ -12510,6 +12510,7 @@ export type Database = {
       claim_idv_attempt: {
         Args: {
           p_max_attempts?: number
+          p_restart?: boolean
           p_skip_fee_gate?: boolean
           p_user_id: string
         }
@@ -13549,6 +13550,7 @@ export type Database = {
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
       is_identity_verified: { Args: { p_user_id: string }; Returns: boolean }
       identity_check_exempt: { Args: { p_user_id: string }; Returns: boolean }
+      idv_review_waiting_since: { Args: { p_user_id: string }; Returns: string }
       is_late_cancellation: {
         Args: { p_has_helper: boolean; p_hours_until: number }
         Returns: boolean
@@ -15499,6 +15501,7 @@ export type Database = {
       sweep_old_notifications: { Args: never; Returns: number }
       sweep_open_ban_settlement_reviews: { Args: never; Returns: Json }
       sweep_payout_schedule_freezes: { Args: never; Returns: Json }
+      sweep_idv_review_waiting: { Args: never; Returns: Json }
       sweep_quote_alerts: { Args: never; Returns: Json }
       sweep_release_last_chance: { Args: never; Returns: Json }
       sweep_saved_search_alert_queue: { Args: never; Returns: number }

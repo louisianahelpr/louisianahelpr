@@ -3,14 +3,15 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
-import { MessageSquare, CalendarX2, CalendarClock } from "lucide-react";
+import { MessageSquare, CalendarX2, CalendarClock, Clock } from "lucide-react";
+import { RunningLateSheet } from "@/components/job-card/RunningLateSheet";
 import { ScheduleChangeAskDialog, usePendingScheduleChange } from "@/components/schedule/ScheduleChangeControl";
 import { scheduleChangeAllowed } from "@/components/series/JobSeriesCardControls";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { hasJobStarted } from "@/lib/dateUtils";
+import { hasJobStarted, todayLocalISO } from "@/lib/dateUtils";
 import { CountdownRows, jobStartTarget } from "@/components/job-card/CountdownRows";
 import { confirmationOpensClock } from "@/components/job-card/confirmationOpensClock";
 import { DirectionsButton } from "./DirectionsButton";
@@ -33,6 +34,9 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
   // "Ask for a new date or time" sits under More on the Helpr's card (owner,
   // 2026-10-08), the same form the poster's row opens; only once accepted.
   const [askOpen, setAskOpen] = useState(false);
+  // Board 187: on the day, until the Helpr has arrived, a one-tap "Running late" message to the poster.
+  const [lateOpen, setLateOpen] = useState(false);
+  const canSayLate = !!job.customer_id && job.date_needed?.slice(0, 10) === todayLocalISO() && !job.helper_arrived_at;
   const canAsk = scheduleChangeAllowed(job, userId, "helper");
   const { data: pendingChange } = usePendingScheduleChange(job.id, canAsk);
   const askedOfMe = !!pendingChange && pendingChange.responder_id === userId;
@@ -172,6 +176,9 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
             onClick={() => setAskOpen(true)}
           />
         ),
+        canSayLate && (
+          <JobActionChip key="late" icon={Clock} label="Running late" tone="neutral" onClick={() => setLateOpen(true)} />
+        ),
         <DirectionsButton key="directions" location={job.location} />,
         <JobActionChip
           key="message"
@@ -205,6 +212,17 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           userId={userId}
           dateNeeded={job.date_needed}
           startTime={job.start_time ?? null}
+        />
+      )}
+      {canSayLate && job.customer_id && (
+        <RunningLateSheet
+          open={lateOpen}
+          onOpenChange={setLateOpen}
+          jobId={job.id}
+          posterId={job.customer_id}
+          posterName={app.posterName ?? ""}
+          userId={userId}
+          onNeedNewTime={canAsk && !askedOfMe ? () => setAskOpen(true) : undefined}
         />
       )}
       <BrandConfirmDialog

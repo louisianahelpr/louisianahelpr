@@ -321,7 +321,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           rounded, and the category rail/tab need SOME edge to align to) but
           carries no paint of its own. */}
       <div className={bare ? "relative h-full overflow-hidden rounded-lg" : JOB_CARD_CLIP}>
-        {/* No category rail (owner 2026-10-18); the category reads from the icon + label. */}
+        {/* No category rail: owner 2026-10-18; the category reads from the icon + label. */}
         {hero && !bare && <JobCardHeroBand photo={job.photos?.[0]} category={job.category} />}
         {/* ── BADGE RAIL ───────────────────────────────────────────────
             ONE row holding EVERY badge this card can render, sharing one

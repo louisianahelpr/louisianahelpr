@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 900,
+    "calls": 901,
     "files": 225,
-    "rendering": 784,
+    "rendering": 785,
     "suppressedByPolicy": 116,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 64,
-      "toast.error": 652,
+      "toast.error": 653,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,7 +18,7 @@
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 425,
+      "literal": 426,
       "template": 97,
       "dynamic": 426,
       "jsx": 0
@@ -384,7 +384,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 76,
+      "line": 79,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -401,7 +401,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 80,
+      "line": 83,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -411,7 +411,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 114,
+      "line": 117,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -421,7 +421,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 122,
+      "line": 126,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -431,7 +431,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 167,
+      "line": 171,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -441,7 +441,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 284,
+      "line": 288,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1269,7 +1269,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 128,
+      "line": 124,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1279,7 +1279,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 129,
+      "line": 125,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1289,7 +1289,17 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 135,
+      "line": 137,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't send your report — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/ReportDialog.tsx",
+      "line": 142,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1299,7 +1309,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 151,
+      "line": 158,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1309,7 +1319,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 179,
+      "line": 192,
       "kind": "toast.error",
       "title": {
         "form": "literal",

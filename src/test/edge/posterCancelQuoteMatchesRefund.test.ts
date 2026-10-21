@@ -34,12 +34,13 @@ import { resetSharedMocks } from "./mocks/shared";
 const CRON_SECRET = "cron-secret-quote";
 const POSTER = { id: "poster-1", email: "poster@test.com" };
 // 2026-10-21 15:00Z is 10:00 in Louisiana (CDT); a 16:00 start is 6 h out (the 25% tier).
-const NOW = new Date("2026-10-21T15:00:00.000Z");
+// A fixed clock more than a year back (jobDayFixtureTimezone: a present-era job day ages from future to past).
+const NOW = new Date("2024-10-21T15:00:00.000Z");
 
 type Job = Record<string, unknown>;
 const baseJob = (over: Job = {}): Job => ({
   id: "job-q", title: "Mow the lawn", customer_id: POSTER.id, helper_id: "helper-1", helper_confirmed_at: "2026-10-20T12:00:00Z",
-  status: "accepted", payment_status: "escrow", budget: 100, date_needed: "2026-10-21", start_time: "16:00:00",
+  status: "accepted", payment_status: "escrow", budget: 100, date_needed: "2024-10-21", start_time: "16:00:00",
   // A flat-model stamp, so the sweep prices the Helpr's share without a tier read.
   helper_fee_percent: 5, helper_fee_flat_cents: 70, helper_completed_at: null, is_group_job: false,
   stripe_payment_intent_id: "pi_q", stripe_session_id: null, customer_fee_amount: 10, poster_fee_flat_cents: null,
@@ -116,7 +117,7 @@ describe("cancel_quote == the sweep's refund (posterCancelSplit, called from bot
   });
 
   it("a free cancel (48 h out) on a poster-fee job: only Stripe's real fee is kept", async () => {
-    const job = baseJob({ date_needed: "2026-10-23", start_time: "10:00:00", customer_fee_amount: 5.7, poster_fee_flat_cents: 70 });
+    const job = baseJob({ date_needed: "2024-10-23", start_time: "10:00:00", customer_fee_amount: 5.7, poster_fee_flat_cents: 70 });
     const pi = captured(10570, 337);
     const q = await quote(job, pi);
     expect(q).toMatchObject({ fee_cents: 0, charge_state: "captured" });

@@ -320,7 +320,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           carries no paint of its own. */}
       <div className={bare ? "relative h-full overflow-hidden rounded-lg" : JOB_CARD_CLIP}>
         {/* No category rail: owner 2026-10-18; the category reads from the icon + label. */}
-        {hero && !bare && <JobCardHeroBand photo={job.photos?.[0]} category={job.category} />}
+        {hero && !bare && <JobCardHeroBand photo={job.photos?.[0]} />}
         {/* ── BADGE RAIL ───────────────────────────────────────────────
             ONE row holding EVERY badge this card can render, sharing one
             top edge, one bottom edge and one baseline BY CONSTRUCTION —

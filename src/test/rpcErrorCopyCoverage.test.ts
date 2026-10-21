@@ -67,6 +67,11 @@ const UNREACHABLE: Allowlist = {
   get_job_match_reach: {
     feature_disabled: { reason: "no message exists at this site: useJobReach runs only while job_reach is on, and any error leaves the reach line out (a mid-session switch-off is expected and silent)." },
   },
+  // Board 190 (builder2g s13): same shape. usePriceGuidance runs only while price_guidance is on, and any
+  // error leaves the guidance card out (42501 quietly, anything else reported).
+  get_price_guidance: {
+    feature_disabled: { reason: "no message exists at this site: usePriceGuidance runs only while price_guidance is on, and any error leaves the card out (a mid-session switch-off is expected and silent)." },
+  },
   get_applicant_category_counts: {
     feature_disabled: { reason: "no message exists at this site: useApplicantCategoryCounts runs only while applicant_proof is on, and any error leaves the proof line out." },
   },

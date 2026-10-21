@@ -1,10 +1,11 @@
 {
-  "generated": "2026-10-21T20:34:14.537Z",
-  "guards": 2296,
-  "registered": 2296,
+  "generated": "2026-10-21T23:25:49.110Z",
+  "guards": 2302,
+  "registered": 2302,
   "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/test/refundRequestTakeHome.test.ts"
   ],
   "classD_selfReferential": [
     {

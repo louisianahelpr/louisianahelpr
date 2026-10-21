@@ -20,6 +20,11 @@
     "why": "Same table, distinguished by initiator; filters is_seed=false so seed rows can never prove it",
     "status": "NEVER"
   },
+  "refund-request-sweep": {
+    "observable": "cron_run_log",
+    "why": "Board 141: every run of the refund-request sweep records its counts (closed, lapsed, agreements settled or held) through cronResult under jobname refund-request-sweep; an agreed refund it settles also writes one dispute_settlement_claims row via execute-dispute-split",
+    "status": "NEVER"
+  },
   "execute-dispute-split": {
     "observable": "dispute_settlement_claims",
     "why": "A split writes exactly one claim row per settlement",

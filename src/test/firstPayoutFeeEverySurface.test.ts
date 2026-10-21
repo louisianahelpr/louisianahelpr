@@ -72,6 +72,7 @@ const EXEMPT: Record<string, { count: number; why: string }> = {
   "src/components/profile/earningsTab/earningsTabHelpers.ts": { count: 1, why: "earnedByJob: per-job take-home for the insights split; the first-payout fee is taken ONCE off the total as feeOwed (firstPayoutFeeDueFrom), never pinned to one job, so the split adds up to Earned (lh-money-escrow review, 2026-10-21)" },
   "src/components/profile/EarningsForecastCard.tsx": { count: 1, why: "sums inside the queryFn; the fee is applied ONCE at render with netAfterFirstPayoutFee (asserted below)" },
   "src/lib/helperAnalytics.ts": { count: 3, why: "analytics aggregates over completed jobs" },
+  "src/lib/refundRequests/index.ts": { count: 1, why: "board 141 refundTakeHomeDollars: the Helpr's share of an AGREED refund is paid by execute-dispute-split, which takes no first-payout setup fee on that path (its ledger metadata: 'no onboarding fee on this path', Q1520), so 0 is the truth there" },
   "src/lib/jobDisplayPay.ts": { count: 1, why: "sort key only: one constant off every job keeps the order, and jobs at or under the fee tie at the $0 the cards show" },
 };
 

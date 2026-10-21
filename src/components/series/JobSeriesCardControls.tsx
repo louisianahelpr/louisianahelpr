@@ -4,6 +4,8 @@ import { SeriesDatesPanel } from "@/components/series/SeriesDatesPanel";
 import { EndSeriesControl } from "@/components/series/EndSeriesControl";
 import { ScheduleChangeControl } from "@/components/schedule/ScheduleChangeControl";
 import { ScheduleClashNotice } from "@/components/job-card/ScheduleClashNotice";
+import { RefundRequestPanel } from "@/components/refund/RefundRequestPanel";
+import type { RefundJob } from "@/lib/refundRequests";
 import { formatRecurrenceInterval, formatShortDate } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
 
@@ -168,6 +170,37 @@ export function HelperSeriesRow({ job, userId }: { job: SeriesCardJob; userId: s
       </div>
       {/* Visit dates: yours, and any you can pick (Q407 5/6). */}
       <SeriesDatesForJob job={job} userId={userId} isPoster={false} inset={false} />
+    </>
+  );
+}
+
+/**
+ * The two requests the parties send each other about a job, on BOTH cards, in
+ * the order the cards show them: a date/time change (Q407 8: above the step,
+ * never below its row, Q1567), then board 141's refund request and its answer
+ * (Q2272). Each renders nothing when its own rule says no.
+ */
+export function JobRequestRows({
+  job,
+  userId,
+  viewer,
+  expanded,
+  otherName,
+  feeFallbackPercent,
+}: {
+  job: SeriesCardJob & RefundJob & { title: string };
+  userId: string;
+  viewer: "poster" | "helper";
+  expanded: boolean;
+  /** The other person on the job, as stored. */
+  otherName: string | null | undefined;
+  /** The Helpr's own fee rate when the job has no stamp; the poster's card passes null. */
+  feeFallbackPercent: number | null;
+}) {
+  return (
+    <>
+      <ScheduleChangeForJob job={job} userId={userId} viewer={viewer} expanded={expanded} hideAsk />
+      <RefundRequestPanel job={job} userId={userId} otherName={otherName} feeFallbackPercent={feeFallbackPercent} expanded={expanded} />
     </>
   );
 }

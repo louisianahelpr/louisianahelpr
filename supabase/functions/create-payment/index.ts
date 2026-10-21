@@ -12,10 +12,10 @@ import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, flatFeePercentOf } from "../_shared/helprFlatFee.ts";
-import { actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
+import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { POSTER_SERVICE_FEE_PERCENT, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
-import { cardCostFeeCents, chargeTaxCentsFor, posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";
 import { jobFlatFeeTotalCents } from "../_shared/crewShares.ts";
 import { POSTER_JOB_FEE_CENTS, POSTER_JOB_FEE_DESCRIPTION, isPosterFeeJob } from "../_shared/posterJobFee.ts";
@@ -52,7 +52,9 @@ import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
-import { jobLocalMidnightMs } from "../_shared/cancellationFee.ts";
+import { cancellationFeePercent, computeCancellationFee, helperIsCommitted, hoursUntilJob, jobLocalMidnightMs } from "../_shared/cancellationFee.ts";
+import { posterCancelSplit } from "../_shared/posterCancelSplit.ts";
+import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { checkPayoutHold, checkJobPayoutHold, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
@@ -89,6 +91,8 @@ const ACTION_MONEY_KIND: Record<string, MoneyKind> = {
   release: "payout",
   admin_release_dispute: "payout",
   cancel_escrow: "refund",
+  // Boards 66/172 slice 2: reads the job's own charge to quote a cancel (moves no money), so the charge's mode.
+  cancel_quote: "refund",
   admin_refund_dispute: "refund",
   admin_refund_general: "refund",
   // Q2170: reads the fault refund on the job's own charge (moves no money), so the charge's mode.
@@ -2199,6 +2203,123 @@ serve(async (req) => {
     }
 
     // ─── CANCEL ESCROW ───
+    // ─── CANCEL QUOTE: what a poster's cancel would send back (read only) ───
+    // Boards 66/172 slice 2 (2026-10-21), the shops_order_cancel_quote pattern:
+    // the cancel dialog asks this BEFORE the poster confirms, shows "Back to
+    // you $X" from it, and passes its fee_cents to poster_cancel_job as
+    // p_expected_fee_cents (a tier that moved in between is refused there with
+    // quote_changed, nothing written). The amount is posterCancelSplit, the
+    // SAME function void-cancelled-payments refunds with, fed the charge's real
+    // Stripe fee, tax and earlier refunds. Moves no money and writes nothing.
+    // Where the sweep would price the refund some other way (a crew, a gift on
+    // the job, an earlier refund, fees larger than the card payment, a payee
+    // in the other Stripe mode, an unreadable input), back_to_you_cents is
+    // null with the reason: the dialog then shows no number rather than one
+    // the sweep did not compute.
+    if (action === "cancel_quote") {
+      const jobId = typeof body?.jobId === "string" ? body.jobId : "";
+      if (!jobId) throw new PublicError("Missing jobId");
+      const quoteJson = (payload: Record<string, unknown>, status = 200) =>
+        new Response(JSON.stringify(payload), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status });
+      const { data: qJob, error: qJobErr } = await supabaseAdmin.from("jobs").select("*").eq("id", jobId).maybeSingle();
+      // A malformed id (22P02) is a job that does not exist, as readJobParties answers it (lh-authz-rls review nit 4).
+      if (qJobErr?.code === "22P02") return quoteJson({ error: "Job not found" }, 404);
+      if (qJobErr) {
+        console.error(`[create-payment] cancel_quote job read failed for ${jobId}: ${qJobErr.message}`);
+        return quoteJson({ error: "Couldn't work out the refund right now. Try again." }, 503);
+      }
+      // Only the poster: anyone else is told nothing about the job (no oracle).
+      if (!qJob || qJob.customer_id !== user.id) return quoteJson({ error: "Job not found" }, 404);
+      const nowIso = new Date().toISOString();
+      // poster_cancel_job's own refusals, read the same way (it re-decides under its lock).
+      if (!["open", "accepted", "in_progress", "revision_requested"].includes(String(qJob.status)) || qJob.helper_completed_at) {
+        return quoteJson({ can_cancel: false, quoted_at: nowIso });
+      }
+      let feePercent: number | null = null;
+      const unquoted = (reason: string, feeCents: number | null) =>
+        quoteJson({ can_cancel: true, fee_cents: feeCents, fee_percent: feePercent, back_to_you_cents: null, unquoted_reason: reason, charge_state: null, quoted_at: nowIso });
+      // A crew prices from its roster ledger, written only by the cancel itself.
+      if (qJob.is_group_job) return unquoted("crew", null);
+      // THE ladder poster_cancel_job records and checks p_expected_fee_cents
+      // against (_shared/cancellationFee.ts, cent for cent with the SQL).
+      const feeCents = Math.round(computeCancellationFee({ ...qJob, cancelled_at: nowIso }) * 100);
+      // Its tier, from the same ladder (0 when no fee is recorded).
+      feePercent = feeCents > 0 && qJob.date_needed
+        ? cancellationFeePercent(helperIsCommitted(qJob), hoursUntilJob(qJob.date_needed, nowIso, qJob.start_time ?? null))
+        : 0;
+      if (qJob.payment_status !== "escrow") return unquoted("not_in_escrow", feeCents);
+      const { data: qGift, error: qGiftErr } = await supabaseAdmin
+        .from("gift_cards").select("id").eq("job_id", jobId).in("status", ["redeemed", "reserved"]).limit(1);
+      if (qGiftErr) return unquoted("unreadable", feeCents);
+      if ((qGift?.length ?? 0) > 0) return unquoted("gift", feeCents);
+      // A10: void-cancelled-payments reads the same marker (a missing table or column reads "not marked").
+      const { data: qFault, error: qFaultErr } = await supabaseAdmin
+        .from("declutter_order_jobs").select("seller_fault_refund_id").eq("job_id", jobId).maybeSingle();
+      if (qFaultErr && !["42P01", "42703", "PGRST204", "PGRST205"].includes(qFaultErr.code ?? "")) return unquoted("unreadable", feeCents);
+      const qSellerFault = !qFaultErr && !!qFault?.seller_fault_refund_id;
+      // The sweep's own fee rule: no fee on a seller-fault setup job or an unfilled / ban-ended series visit.
+      const owedFeeCents = qSellerFault || refundsSeriesVisitInFull(qJob) ? 0 : feeCents;
+      if (owedFeeCents > 0) {
+        // A fee owed to a payee of the other Stripe mode goes back with the refund instead (the sweep's feePayeesShareMode).
+        try {
+          await jobMoneyMode(supabaseAdmin, jobId, { kind: "payout", extraParties: [qJob.helper_id] });
+        } catch (modeErr) {
+          if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
+          // One word for every such case: "mixed" would tell the poster whether their Helpr is a test account
+          // (lh-authz-rls review nit 5); the log keeps the detail.
+          console.warn(`[create-payment] cancel_quote job ${jobId}: fee payee mode ${modeErr.reason}; no amount quoted`);
+          return unquoted("unreadable", feeCents);
+        }
+      }
+      let qPiId: string | null = typeof qJob.stripe_payment_intent_id === "string" ? qJob.stripe_payment_intent_id : null;
+      try {
+        if (!qPiId && qJob.stripe_session_id) {
+          const qSession = await stripe.checkout.sessions.retrieve(qJob.stripe_session_id);
+          const sPi = qSession.payment_intent;
+          qPiId = typeof sPi === "string" ? sPi : sPi?.id ?? null;
+        }
+        if (!qPiId) return unquoted("no_payment", feeCents);
+        const qPi = await stripe.paymentIntents.retrieve(qPiId, { expand: ["latest_charge.balance_transaction"] });
+        if (qPi.status === "requires_capture") {
+          const holdSplit = posterCancelSplit({
+            job: qJob, sellerFault: qSellerFault, cancellationFeeCents: owedFeeCents, blockFeeCents: 0,
+            charge: {
+              state: "hold",
+              amountCents: Number(qPi.amount ?? 0),
+              capturableCents: Math.max(0, Math.round(Number(qPi.amount_capturable ?? qPi.amount ?? 0))),
+            },
+          });
+          if (holdSplit.state !== "hold" || holdSplit.feesExceedHold) return unquoted("fees_exceed_payment", feeCents);
+          return quoteJson({ can_cancel: true, fee_cents: feeCents, fee_percent: feePercent, back_to_you_cents: holdSplit.backCents, unquoted_reason: null, charge_state: "hold", quoted_at: nowIso });
+        }
+        if (qPi.status !== "succeeded") return unquoted("payment_state", feeCents);
+        const capturedCents = qPi.amount_received ?? qPi.amount;
+        // The sweep reads Stripe's REAL fee off the balance transaction; a
+        // charge whose fee is not settled yet would be an estimate, so no number.
+        const realFeeCents = actualStripeFeeCents(qPi);
+        const alreadyRefundedCents = Number(
+          (qPi.latest_charge && typeof qPi.latest_charge === "object"
+            ? (qPi.latest_charge as { amount_refunded?: number }).amount_refunded
+            : 0) ?? 0,
+        );
+        // An earlier refund on the charge (an admin's partial, a duplicate setup fee) changes what the sweep may return.
+        if (realFeeCents === null) return unquoted("unreadable", feeCents);
+        if (alreadyRefundedCents > 0) return unquoted("earlier_refund", feeCents);
+        const taxCents = await checkoutChargeTaxCents(stripe, qPi);
+        if (taxCents === null) return unquoted("unreadable", feeCents);
+        const capturedSplit = posterCancelSplit({
+          job: qJob, sellerFault: qSellerFault, cancellationFeeCents: owedFeeCents, blockFeeCents: 0,
+          charge: { state: "captured", capturedCents, actualFeeCents: realFeeCents, alreadyRefundedCents, taxCents },
+        });
+        if (capturedSplit.state !== "captured" || !capturedSplit.feesFitCard) return unquoted("fees_exceed_payment", feeCents);
+        return quoteJson({ can_cancel: true, fee_cents: feeCents, fee_percent: feePercent, back_to_you_cents: capturedSplit.backCents, unquoted_reason: null, charge_state: "captured", quoted_at: nowIso });
+      } catch (quoteErr) {
+        // A quote that cannot read Stripe shows no number; the cancel itself still works.
+        console.warn(`[create-payment] cancel_quote could not read the payment for job ${jobId}: ${caughtMessage(quoteErr)}`);
+        return unquoted("unreadable", feeCents);
+      }
+    }
+
     if (action === "cancel_escrow") {
       const { jobId } = body;
       if (!jobId) throw new PublicError("Missing jobId");

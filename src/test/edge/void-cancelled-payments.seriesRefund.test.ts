@@ -25,8 +25,8 @@
  * @mutate supabase/functions/_shared/seriesRefund.ts |   return inSeries && !job.helper_id; |   return false;
  * @mutate supabase/functions/_shared/seriesRefund.ts |   return inSeries && !job.helper_id; |   return !!job.parent_job_id && !job.helper_id;
  * @mutate supabase/functions/_shared/seriesRefund.ts |   if (inSeries && !!job.series_ban_cancelled_at) return true; |   if (!!job.series_ban_cancelled_at) return true;
- * @mutate supabase/functions/void-cancelled-payments/index.ts |             customerFeeCents: fullSeriesRefund \|\| sellerFault ? 0 : serviceFeeCents, |             customerFeeCents: sellerFault ? 0 : serviceFeeCents,
- * @mutate supabase/functions/void-cancelled-payments/index.ts |             actualFeeCents: sellerFault ? 0 : actualOrEstimatedFeeCents(pi, capturedCents), |             actualFeeCents: fullSeriesRefund \|\| sellerFault ? 0 : actualOrEstimatedFeeCents(pi, capturedCents),
+ * @mutate supabase/functions/_shared/posterCancelSplit.ts |     customerFeeCents: fullSeriesRefund \|\| i.sellerFault ? 0 : serviceFeeCents, |     customerFeeCents: i.sellerFault ? 0 : serviceFeeCents,
+ * @mutate supabase/functions/_shared/posterCancelSplit.ts |     actualFeeCents: i.sellerFault ? 0 : c.actualFeeCents, |     actualFeeCents: fullSeriesRefund \|\| i.sellerFault ? 0 : c.actualFeeCents,
  * @mutate supabase/functions/void-cancelled-payments/index.ts |         if (markerErr && !isMissingColumn(markerErr)) { |         if (false) {
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql | visit one included.\n        WITH gone AS (\n          UPDATE public.jobs c\n             SET status = 'cancelled',\n                 cancelled_at = now(),\n                 cancellation_reason = 'series_ended_account_banned',\n                 series_ban_cancelled_at = now(), | visit one included.\n        WITH gone AS (\n          UPDATE public.jobs c\n             SET status = 'cancelled',\n                 cancelled_at = now(),\n                 cancellation_reason = 'series_ended_account_banned',\n                 series_ban_cancelled_at = NULL,
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql | Nothing else on the series changes.\n        WITH gone AS (\n          UPDATE public.jobs c\n             SET status = 'cancelled',\n                 cancelled_at = now(),\n                 cancellation_reason = 'series_ended_account_banned',\n                 series_ban_cancelled_at = now(), | Nothing else on the series changes.\n        WITH gone AS (\n          UPDATE public.jobs c\n             SET status = 'cancelled',\n                 cancelled_at = now(),\n                 cancellation_reason = 'series_ended_account_banned',\n                 series_ban_cancelled_at = NULL,
@@ -129,7 +129,7 @@ describe("void-cancelled-payments: an unfilled or ban-ended series visit is refu
   });
 
   // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is KEPT on a cancel.
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |             setupFeeCents: setupFeeKeptCents(job),\n            otherKeptCents: | setupFeeCents: 0,\n            otherKeptCents:
+  // @mutate supabase/functions/_shared/posterCancelSplit.ts |     setupFeeCents: setupFeeKeptCents(i.job),\n    otherKeptCents: | setupFeeCents: 0,\n    otherKeptCents:
   it("a cancelled FIRST job (no Helpr yet) keeps the service fee and the $2 setup fee; the rest comes back (Q1674)", async () => {
     seed({ helper_id: null, helper_confirmed_at: null, onboarding_fee_amount: 2 });
     expect(await refundedCents()).toBe(11000 - 1000 - 200);

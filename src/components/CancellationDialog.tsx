@@ -10,7 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 // stays so this dialog keeps rendering a rejected write's own message if any
 // future write lands here.
 import { isWriteRejected } from "@/lib/mutationResult";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { rpcErrorCode, rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { fetchPosterCancelQuote, type PosterCancelQuote } from "@/lib/posterCancelQuote";
 import { report } from "@/lib/errorLogger";
 import {
   Dialog,
@@ -123,6 +124,30 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
+  // Boards 66/172 slice 2: the SERVER's quote (create-payment cancel_quote).
+  // "Back to you" is only ever its number: the exact refund needs the
+  // charge's Stripe fee, tax, any gift and a first job's setup fee, none of
+  // which this screen knows. Its fee is what poster_cancel_job is asked to
+  // charge (p_expected_fee_cents). Null = not read (or not quotable): no
+  // amount is shown, the cancel still works.
+  const [quote, setQuote] = useState<PosterCancelQuote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteNonce, setQuoteNonce] = useState(0);
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    setQuoteLoading(true);
+    void fetchPosterCancelQuote(jobId).then((q) => {
+      if (!alive) return;
+      setQuote(q);
+      setQuoteLoading(false);
+    });
+    return () => { alive = false; };
+  }, [open, jobId, quoteNonce]);
+  // The server's fee, for a single booking (a crew prices per member below).
+  const quotedFeeCents = !crew && typeof quote?.fee_cents === "number" ? quote.fee_cents : null;
+  const backToYouCents = typeof quote?.back_to_you_cents === "number" ? quote.back_to_you_cents : null;
+
   // Tiered cancellation fee (only applies once a helpr has been selected):
   //   • 24+ hours before job  → 0%   (free cancellation)
   //   • Less than 24 hours    → 25%  (helpr has committed time)
@@ -139,7 +164,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // ever quote a HARSHER tier than the schedule earns — 41 hours of notice
   // read as 23 and showed 25% where the copy below promises free.
   const hoursUntilJob = (jobLocalStartMs(jobDate, jobStartTime) - Date.now()) / (1000 * 60 * 60);
-  const cancellationFeePercent = sharedCancellationFeePercent(hasHelper, hoursUntilJob);
+  // Slice 2: the server quote's tier wins when it has one (same ladder, read
+  // at the server's clock), so the percent and the fee below always agree.
+  const cancellationFeePercent = quotedFeeCents !== null && typeof quote?.fee_percent === "number"
+    ? quote.fee_percent
+    : sharedCancellationFeePercent(hasHelper, hoursUntilJob);
   const feeTier = cancellationFeePercent === 50
     ? "Less than 2 hours before job"
     : cancellationFeePercent === 25
@@ -148,7 +177,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // A crew's fee is one equal share per member who confirmed (Q407); the
   // helper-share lines below then describe ONE member's share.
   const crewQuote = crew ? crewCancellationFeeQuote(crew.members, jobBudget, crew.needed, hoursUntilJob) : null;
-  const cancellationFee = crewQuote ? crewQuote.total : Math.round(jobBudget * cancellationFeePercent) / 100;
+  const cancellationFee = crewQuote
+    ? crewQuote.total
+    : quotedFeeCents !== null
+      ? quotedFeeCents / 100
+      : Math.round(jobBudget * cancellationFeePercent) / 100;
   // One member's share: the smallest, so "at least" below stays a floor.
   const payeeFee = crewQuote ? Math.min(...crewQuote.perMember.filter((f) => f > 0), cancellationFee) : cancellationFee;
   // The helper's share of the cancellation fee, from the POSTER's side.
@@ -203,10 +236,39 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
       // `p_reason` is OMITTED rather than passed as null when blank: the SQL
       // declares `p_reason text DEFAULT NULL`, so the two calls are identical,
       // and omitting is what the generated `Args` (`p_reason?: string`) can say.
-      const { data: verdict, error } = await supabase.rpc("poster_cancel_job", {
+      // Slice 2: the fee the server quoted (and this dialog shows) is the fee
+      // poster_cancel_job may charge; a tier that moved since is refused there
+      // (quote_changed) before anything is written.
+      const expectedFeeCents = quotedFeeCents ?? undefined;
+      let { data: verdict, error } = await supabase.rpc("poster_cancel_job", {
         p_job_id: jobId,
         p_reason: reason.trim() || undefined,
+        p_expected_fee_cents: expectedFeeCents,
       });
+      // Deploy lag (20261021130723 not live yet): the old two-argument
+      // function does not know p_expected_fee_cents, so ask it the old way
+      // (unchecked, exactly as before this slice).
+      if (error && String(error.code ?? "") === "PGRST202" && expectedFeeCents !== undefined) {
+        ({ data: verdict, error } = await supabase.rpc("poster_cancel_job", {
+          p_job_id: jobId,
+          p_reason: reason.trim() || undefined,
+        }));
+      }
+      if (error && rpcErrorCode("poster_cancel_job", error) === "quote_changed") {
+        // Nothing was cancelled. Show the new fee and let the poster decide again.
+        // Reported (lh-money-escrow review): a tier crossing clears on the
+        // re-quote, so the same job reported twice in a row means the quote and
+        // poster_cancel_job price the fee differently, a defect to fix at once.
+        report(error, {
+          severity: "warning",
+          tags: { source: "CancellationDialog.quoteChanged" },
+          context: { job_id: jobId, expected_fee_cents: expectedFeeCents ?? null },
+        });
+        hapticError();
+        toast.error(rpcErrorMessage("poster_cancel_job", error) ?? "The cancellation fee changed. Check the new amount and confirm again.");
+        setQuoteNonce((n) => n + 1);
+        return;
+      }
       if (error) {
         // PGRST202 = merged but not yet deployed (db-deploy.yml runs on the
         // merge commit), so for a few minutes this RPC does not exist yet.
@@ -503,6 +565,39 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             </div>
           )}
 
+          {/* Boards 66/172 slice 2: "Back to you" is the SERVER's number
+              (create-payment cancel_quote -> _shared/posterCancelSplit.ts,
+              the function void-cancelled-payments refunds with). This screen
+              never works it out: the exact refund needs the charge's Stripe
+              fee, its tax, any gift and a first job's setup fee. No quote, no
+              number: the refund notice carries the real one. */}
+          {wasFunded && (
+            <div
+              className="rounded-ds-md border border-border bg-card p-3.5"
+              data-testid="cancel-back-to-you"
+              aria-live="polite"
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="font-sans font-semibold text-ds-13 text-foreground">Back to you</p>
+                {backToYouCents !== null && !quoteLoading ? (
+                  <p className="font-sans font-bold text-ds-15 tabular-nums text-foreground">${formatPrice(backToYouCents / 100)}</p>
+                ) : null}
+              </div>
+              <p className="text-ds-12 text-muted-foreground mt-0.5">
+                {quoteLoading
+                  ? "Working out your refund…"
+                  : backToYouCents !== null
+                    ? quote?.charge_state === "hold"
+                      // void-cancelled-payments runs hourly: it releases the hold / sends the refund.
+                      ? "Released from the hold on your card within the hour."
+                      : "Refunded to your card within the hour. Your bank may take a few days to show it."
+                    : quote?.unquoted_reason === "gift"
+                      ? "A gift card paid toward this job, so your refund notice will show what goes back to your card and to your gift balance."
+                      : "Your refund notice will show the exact amount."}
+              </p>
+            </div>
+          )}
+
           {/* What the Helpr actually gets — the two things nothing else in this
               dialog says, both traceable to code that runs.
 
@@ -584,7 +679,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
           <DialogSecondaryAction disabled={cancelling} onClick={onClose}>
             Keep the Job
           </DialogSecondaryAction>
-          <DialogDestructiveAction onClick={handleCancel} disabled={cancelling}>
+          {/* Held while the quote loads, so the fee confirmed is the one quoted. */}
+          <DialogDestructiveAction onClick={handleCancel} disabled={cancelling || quoteLoading}>
             {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel · pay $${formatPrice(cancellationFee)}` : "Cancel job"}
           </DialogDestructiveAction>
         </DialogFooter>

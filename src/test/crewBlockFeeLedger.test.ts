@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |         ON CONFLICT (job_id, slot_no) DO NOTHING; |         ;
  * @mutate supabase/migrations/20261021141852_export_my_data_no_drop_stop.sql |   v_out := v_out \|\| jsonb_build_object('crew_block_fees', |   v_out := v_out \|\| jsonb_build_object('crew_block_fees_x',
  * @mutate supabase/migrations/20261015034054_open_jobs_browse_fee_stamp.sql | - (SELECT count(*)::integer AS count FROM crew_block_fees b WHERE b.job_id = jobs.id)) ELSE 0 END) > 0)) | ) ELSE 0 END) > 0))
- * @mutate supabase/functions/void-cancelled-payments/index.ts |             otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents, |             otherKeptCents: Math.round(cancellationFee * 100),
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents, | cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents: 0,
  */
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
@@ -100,7 +100,9 @@ describe("a crew block fee is a ledger row and its spot stays closed (Q1390)", (
     expect(psp).toMatch(/payCrewBlockFees\([\s\S]{0,200}\);\s+for \(const p of paidFees\.problems\) jobDefect\(job\.id, p\);\s+\}\s+const refund = await refundUnfilledCrewShares\(\{ \.\.\.a, paidCents, blockFeeCents: crewBlockFeeCents\(blockFees\.rows\) \}\);/);
     expect(psp).toMatch(/const unfilledCents = unpaidBudgetCents - blockFeeCents \+ Math\.max\(0, urgentCents - paidUrgent\);/);
     // The refund is the shared refundToPayerCents (owner, 2026-10-14: never absorb a fee); the block fee is withheld as part of what it keeps.
-    expect(vcp).toMatch(/await payBlockFees\(pi\);\s+const blockFeeCents = crewBlockFeeCents\(blockFeeRows\);[\s\S]{0,1000}const voidSplit = refundToPayerCents\(\{[\s\S]{0,400}otherKeptCents: Math\.round\(cancellationFee \* 100\) \+ blockFeeCents,/);
+    expect(vcp).toMatch(/await payBlockFees\(pi\);\s+const blockFeeCents = crewBlockFeeCents\(blockFeeRows\);[\s\S]{0,1200}const capturedSplit = posterCancelSplit\(\{\s*job, sellerFault, cancellationFeeCents: Math\.round\(cancellationFee \* 100\), blockFeeCents,/);
+    // Boards 66/172 slice 2: the split keeps the block fees with the cancellation fee.
+    expect(readFileSync("supabase/functions/_shared/posterCancelSplit.ts", "utf8")).toMatch(/const feesCents = cents\(i\.cancellationFeeCents\) \+ cents\(i\.blockFeeCents\);[\s\S]{0,1500}otherKeptCents: feesCents,/);
     // Part F: a fee still owed on a settled job is retried every run.
     expect(vcp).toMatch(/\.from\("crew_block_fees"\)[\s\S]{0,200}\.in\("status", \["owed", "failed"\]\)/);
     // The ghost-transfer guard knows a block fee is this loop's own (HIGH, lh-money-escrow review).

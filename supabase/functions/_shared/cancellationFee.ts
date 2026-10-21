@@ -206,8 +206,15 @@ export function computeCancellationFee(job: CancellationFeeJob): number {
   if (!(budget > 0) || !committed || !job.date_needed) return 0;
   const hours = hoursUntilJob(job.date_needed, job.cancelled_at, job.start_time);
   const percent = cancellationFeePercent(committed, hours);
-  // round(budget * percent) / 100 mirrors the client's cent-accurate math.
-  return Math.round(budget * percent) / 100;
+  // Cent for cent with poster_cancel_job's numeric `round(budget * percent) / 100.0`
+  // (halves round up), in INTEGER cents. It was `Math.round(budget * percent) / 100`
+  // in floats, which disagreed with the SQL on 3,387 of the 196,020 (cent budget,
+  // tier) pairs in $10-$1000 (e.g. $10.01 at 50%: 500c here, 501c recorded):
+  // lh-authz-rls review of boards 66/172 slice 2. The cancel quote passes this
+  // fee to poster_cancel_job as p_expected_fee_cents, so a mismatch there would
+  // refuse that poster's cancel every time (quote_changed).
+  const budgetCents = Math.round(budget * 100);
+  return Math.floor((budgetCents * percent + 50) / 100) / 100;
 }
 
 // Crew (group job) shares and fees live in ./crewShares.ts (Q407).

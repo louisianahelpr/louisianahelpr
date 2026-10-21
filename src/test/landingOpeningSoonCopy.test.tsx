@@ -83,7 +83,10 @@ describe("the landing says what is open today", () => {
   });
 
   it("every section open: no Opening soon line at all", () => {
-    const { unmount } = renderSections(new Set(SECTIONS.map((s) => s.feature).filter((f): f is string => !!f)));
+    const features: string[] = [];
+    for (const s of SECTIONS) if (s.feature) features.push(s.feature);
+    expect(features.length).toBeGreaterThan(2);
+    const { unmount } = renderSections(new Set(features));
     expect(screen.queryByText("Opening soon")).toBeNull();
     unmount();
   });

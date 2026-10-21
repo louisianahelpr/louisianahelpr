@@ -24,13 +24,13 @@ reports coverage against THIS file, not against the route list.
 | Multi-step flows — confirmed | flow | 30 |
 | Multi-step flows — probable | flow | 21 |
 | Back/next navigation only | flow | 49 |
-| Forms (submittable) | form | 74 |
+| Forms (submittable) | form | 73 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 150 |
 | Email templates | **exported template** | 21 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **618** |
+| **Navigable surfaces** (places a person can stand) | mixed | **617** |
 | **Copy surfaces** (strings a person may read) | mixed | **959** |
-| **Total auditable surface** | mixed | **1577** |
+| **Total auditable surface** | mixed | **1576** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 188 | 130 | agree within method (script counts every menu instance) |
-| Forms | 74 | ~38 | agree |
+| Forms | 73 | ~38 | agree |
 | Confirmed multi-step flows | 30 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -519,7 +519,6 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/EarningsExport.tsx` (dialog/mutation)
 - [ ] `src/components/HelperAvailability.tsx` (dialog/mutation)
 - [ ] `src/components/landing/HeroSection.tsx` (form tag)
-- [ ] `src/components/NotificationPreferences.tsx` (dialog/mutation)
 - [ ] `src/components/postjob/CheckoutStep.tsx` (dialog/mutation)
 - [ ] `src/components/profile/AvailabilityTab.tsx` (dialog/mutation)
 - [ ] `src/components/profile/CredentialsTab.tsx` (dialog/mutation)

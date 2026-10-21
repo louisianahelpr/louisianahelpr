@@ -24,7 +24,7 @@
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   return `Sent ${STANDARD_PAYOUT_PHRASE}`; |   return `Payout ${walletDay(new Date().toISOString())}`;
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx | navigate(money.coming!.hasPayoutAccount ? "/profile?tab=earnings" : "/profile?tab=payment") | navigate("/profile?tab=earnings")
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!money.coming && !money.held) return null; |   if (!money.coming && !money.held) return <div data-home-money="empty" />;
- * @mutate src/components/profile/EarningsTab.tsx |   const { cents: releasingCents, at: releasingAt } = comingToYou(earningsJobs, helperFeeFallbackPct, firstPayoutFee); |   const releasingCents = 0; const releasingAt = null as string \| null; void comingToYou;
+ * @mutate src/components/profile/EarningsTab.tsx |   const money = useHomeMoney(user); |   const money = { coming: null, held: null };
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -68,11 +68,15 @@ describe("Coming to you = the Money tab's own rule", () => {
     expect(comingToYou([late, earned({ id: "next" })], 12, 0, NOW)).toMatchObject({ at: "2026-10-23T15:00:00Z", overdue: true, severalDates: true });
   });
 
-  it("EarningsTab and Home both call it: the math lives in ONE place", () => {
+  it("the Money tab shows Home's own tile and Home calls it: the math lives in ONE place", () => {
+    // Board 51 (2026-10-20): the Earned card's "Approved" line folded into the tile at the top of
+    // the Money tab, so the approved-not-sent money shows once, with one caption.
     const tab = src("components/profile/EarningsTab.tsx");
     expect(tab.length).toBeGreaterThan(5000);
-    expect(tab).toContain("comingToYou(earningsJobs, helperFeeFallbackPct, firstPayoutFee)");
-    expect(tab).not.toMatch(/filter\(isAwaitingTransfer\)/);
+    expect(tab).toContain("const money = useHomeMoney(user);");
+    expect(tab).toMatch(/<HomeMoneyTiles\s+money=\{money\}\s+placement="money"/);
+    expect(tab).not.toMatch(/filter\(isAwaitingTransfer\)|releasingCents/);
+    expect(src("components/profile/earningsTab/EarningsSummaryCard.tsx")).not.toMatch(/Approved — /);
     const home = src("pages/home/homeDashboard/homeMoney.ts");
     expect(home).toMatch(/comingToYou\(earnings\.data\.jobs, pct, firstPayoutFee\)/);
     // The same fee fallback EarningsTab passes: the viewer's own tier.

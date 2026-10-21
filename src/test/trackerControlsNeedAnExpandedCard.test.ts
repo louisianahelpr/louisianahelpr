@@ -103,10 +103,11 @@ describe("tracker controls are only reachable on an expanded card", () => {
       }
       if (hits.length === 0) continue;
 
-      if (!src.includes("Job progress")) {
+      // The ONE tracker (s14, owner 2026-10-21) is [data-job-progress]; the retired 8-step rail was the "Job progress" group.
+      if (!src.includes("[data-job-progress]") && !src.includes("Job progress")) {
         offenders.push(
           `${file.slice(ROOT.length + 1)} locates ${[...new Set(hits)].map((h) => `"${h}"`).join(", ")} ` +
-            `but never waits on the "Job progress" step rail, so it never proves the card is open`,
+            `but never waits on the [data-job-progress] tracker, so it never proves the card is open`,
         );
       }
     }
@@ -118,7 +119,7 @@ describe("tracker controls are only reachable on an expanded card", () => {
         'reads like a broken completion flow — "the card never asked for the before photo" on a ' +
         "funded, hired job.\n\n" +
         "Open the card the way e2e/journeys/02-marketplace.spec.ts does: click the card's level-2 " +
-        'heading, then wait for `getByRole("group", { name: /Job progress/ })`. Do not assert on the ' +
+        'heading, then wait for `locator("[data-job-progress]")`. Do not assert on the ' +
         'sr-only "Expand job details" button — its accessible name flips to "Collapse job details".\n\n' +
         offenders.join("\n"),
     ).toEqual([]);
@@ -128,4 +129,4 @@ describe("tracker controls are only reachable on an expanded card", () => {
 // The exact fault this guard was built from: the money loop reaching for the
 // before-photo chip on a card it never opened. Removing the expansion block
 // from prod-lifecycle.spec.ts is the 2026-09-22 failure, restored.
-// @mutate e2e/prod-lifecycle.spec.ts | const progress = card.getByRole("group", { name: /Job progress/ }); | const progress = card.getByRole("button", { name: /nothing/ });
+// @mutate e2e/prod-lifecycle.spec.ts | const progress = card.locator("[data-job-progress]"); | const progress = card.getByRole("button", { name: /nothing/ });

@@ -27,7 +27,7 @@
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   v_from := b.slot_start + interval '15 minutes'; |   v_from := b.slot_start;
- * @mutate supabase/migrations/20261015051301_declutter_shared_star_rating.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true
+ * @mutate supabase/migrations/20261021074131_id_badge_reads_stripe_identity_only.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true
  * @mutate supabase/migrations/20261017055502_declutter_handover_private_bucket.sql |   v_done := public.declutter_complete_handover(o.id, 'porch'); |   v_done := '{}'::jsonb;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon, authenticated;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role; | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role, authenticated;
@@ -161,7 +161,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
 
   it("row 45 (lead 2026-10-15): ONE public star rating across job and Declutter reviews, public ones only", () => {
     const st = flat(body("get_public_profile_stats"));
-    expect(DEFS.get("get_public_profile_stats")?.file).toBe("20261015051301_declutter_shared_star_rating.sql");
+    // 20261021074131 (ID badge = Stripe Identity only) restates it from this body with only the verdict changed.
+    expect(DEFS.get("get_public_profile_stats")?.file).toBe("20261021074131_id_badge_reads_stripe_identity_only.sql");
     expect(st).toContain("JOIN public.declutter_reviews dr ON dr.reviewee_id = t.user_id");
     expect(st).toContain("WHERE o.status = 'handed_over' AND (o.handed_over_at <= now() - interval '14 days' OR (SELECT count(*) FROM public.declutter_reviews d2 WHERE d2.order_id = dr.order_id) = 2)");
     expect(st).toContain("SELECT t.user_id, dr.stars::integer, false");

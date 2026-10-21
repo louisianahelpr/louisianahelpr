@@ -93,7 +93,7 @@ const HeroSection = () => {
             className="max-w-2xl text-ds-15 sm:text-ds-17 leading-relaxed"
             style={{ fontFamily: "Montserrat, system-ui, sans-serif", fontWeight: 400, color: "var(--lp-body)" }}
           >
-            Hire help or find work. Sell or find a deal. Shop local or open a shop. Find a place or list one. One account, one verified ID, real neighbors.
+            Hire help or find work. Declutter, Shops and Homes are opening soon. One account, one verified ID, real neighbors.
           </p>
 
           <form

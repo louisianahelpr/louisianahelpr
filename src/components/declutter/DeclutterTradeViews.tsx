@@ -302,8 +302,10 @@ const HANDOVER_WORDS: Record<Handover, string> = {
  * the drop-off address, the SERVER geocodes it and prices the trip ($10 + $2 per
  * road mile + size), and the Pay button carries that price.
  */
-function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, porchOk, onBack }: {
+function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, porchOk, onBack, itemCount = 1 }: {
   sellerId: string; itemsTotalCents: number; premiumCents: number; totalCents: number; porchOk: boolean; onBack: () => void;
+  /** Board 161: how many items this one checkout covers (the fee is charged once on their total). */
+  itemCount?: number;
 }) {
   const qc = useQueryClient();
   const deliveryOpen = useFeature("declutter");
@@ -373,11 +375,11 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
         </div>
       )}
       <dl className="space-y-1.5 rounded-[20px] border border-border bg-card p-4 text-ds-14" data-checkout-breakdown="">
-        <div className="flex justify-between gap-3"><dt>Items</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(itemsTotalCents)}</dd></div>
+        <div className="flex justify-between gap-3"><dt>{itemCount > 1 ? `${itemCount} items` : "Item"}</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(itemsTotalCents)}</dd></div>
         {delivering && liveQuote && (
           <div className="flex justify-between gap-3"><dt>Helpr delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(liveQuote.delivery_cents)}</dd></div>
         )}
-        <div className="flex justify-between gap-3"><dt>Buyer's fee (5% + 70¢)</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(premiumCents)}</dd></div>
+        <div className="flex justify-between gap-3"><dt>{itemCount > 1 ? "Buyer's fee (5% + 70¢, once)" : "Buyer's fee (5% + 70¢)"}</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(premiumCents)}</dd></div>
         <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2">
           <dt className="text-ds-16 font-bold text-foreground">You pay</dt>
           <dd className="text-ds-24 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">
@@ -476,7 +478,9 @@ export function CartView() {
           const soonest = lines.map((l) => l.checkout_by).sort()[0];
           return (
             <section key={sellerId} className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label={`Checkout ${i + 1}`}>
+              {/* Board 161: several items from one seller are one checkout, one pickup and ONE buyer fee on the total. */}
               <h3 className="text-base font-semibold">From one seller · one checkout</h3>
+              {lines.length > 1 && <p className="text-ds-13 text-muted-foreground">One checkout, one pickup, one fee.</p>}
               <ul className="space-y-1">
                 {lines.map((l) => (
                   <li key={l.line_id} className="flex justify-between gap-3 text-sm min-w-0">
@@ -486,7 +490,7 @@ export function CartView() {
                 ))}
               </ul>
               <p className="text-sm font-medium">Check out by {new Date(soonest).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} ({timeLeft(soonest)}). If you don't, you get a strike and the item goes back up for sale.</p>
-              <PayForSeller sellerId={sellerId} itemsTotalCents={amounts.itemsCents} premiumCents={amounts.premiumCents} totalCents={amounts.totalCents} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} />
+              <PayForSeller sellerId={sellerId} itemsTotalCents={amounts.itemsCents} premiumCents={amounts.premiumCents} totalCents={amounts.totalCents} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} itemCount={lines.length} />
             </section>
           );
         })

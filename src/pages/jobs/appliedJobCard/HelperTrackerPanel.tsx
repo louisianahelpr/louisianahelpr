@@ -174,6 +174,7 @@ export function HelperTrackerPanel({
         includePostingSteps
         jobId={app.job_id}
         helperId={userId}
+        posterName={(app as { posterName?: string | null }).posterName ?? null}
         isHelper={!gateActive && !readOnly}
         isOwner={false}
         jobDateNeeded={job.date_needed}

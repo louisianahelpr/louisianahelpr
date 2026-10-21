@@ -28,7 +28,7 @@ import { Button } from "./button";
  *     here stays green while the CTA renders as a near-white pill — which is
  *     precisely the regression the comments below record as having shipped.
  *     That the RULE exists and declares a gradient is checked separately, by
- *     reading the stylesheet (`src/test/railGreenMatchesPrimary.test.ts`);
+ *     reading the stylesheet (the old rail-green guard, retired with the rail 2026-10-21);
  *     that a real element actually computes one is checked only in a browser
  *     (`e2e/happy-path/apply-single-sheet.spec.ts`, the `getComputedStyle`
  *     `backgroundImage` read). Neither of those is this file.

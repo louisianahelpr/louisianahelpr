@@ -1,4 +1,4 @@
-import { Megaphone, Handshake, Hammer, Wallet } from "lucide-react";
+import { JobProgress } from "@/components/tracker/JobProgress";
 // The visibility delay is DERIVED, never retyped — `public.early_access_cutoff()`
 // is the enforcement point and `earlyAccess.ts` is the client mirror the parity
 // test already pins it to. See the "Posted" caption below.
@@ -11,25 +11,13 @@ import type { JobStatus } from "@/lib/statusLabels";
 // sit in this same slot. Keeps the same content (4 stages from job-state
 // machine: open → accepted → in_progress → completed) but presents it
 // as scannable steps so customers know what to expect next.
-const LIFECYCLE_STEPS = [
-  // "Your job is live for nearby Helprs." was not true for most of the people
-  // it was about. `public.early_access_cutoff()` holds a brand-new job back
-  // from anyone without the early-access perk for
-  // MAX_EARLY_ACCESS_DELAY_MINUTES — Elite sees it at once, Free waits the
-  // full window — so the poster was told their job had reached an audience
-  // that, for the largest tier by far, could not see it yet. That reads as a
-  // dead feed rather than as a delay, and it is the reason a poster gets no
-  // applicants for twenty minutes and assumes nobody wants the job. Saying so
-  // costs one clause and turns a silent wait into an expected one.
-  {
-    icon: Megaphone,
-    label: "Posted",
-    caption: `Live now — nearby Helprs see it within ${MAX_EARLY_ACCESS_DELAY_MINUTES} min.`,
-  },
-  { icon: Handshake, label: "Accepted", caption: "You review applicants and pick one." },
-  { icon: Hammer, label: "In progress", caption: "Helpr arrives and gets to work." },
-  { icon: Wallet, label: "Released", caption: "Both confirm — payment goes out." },
-];
+/** What each step means, for the line under the one tracker (Posted · Hired · Working · Done). */
+const STEP_CAPTIONS = [
+  `Live now. Nearby Helprs see it within ${MAX_EARLY_ACCESS_DELAY_MINUTES} min.`,
+  "You review applicants and pick one.",
+  "Your Helpr arrives and gets to work.",
+  "You both confirm, and the payment goes out.",
+] as const;
 
 /**
  * Q1788: which step the job is ACTUALLY on. The page used to mark "Posted" for
@@ -65,47 +53,16 @@ export function lifecycleStepFor(rawStatus: string | null | undefined, released 
   }
 }
 
-/** The four-step "what happens next" list on the confirmed-payment screen. */
+/**
+ * The confirmed-payment screen's tracker: THE one tracker (owner, 2026-10-21), the same four segments as chat,
+ * the job page and the cards, with what the current step means under it.
+ */
 export function PaymentLifecycleSteps({ current = 0 }: { current?: number | null }) {
+  if (current === null) return null;
+  const at = Math.min(3, Math.max(0, current));
   return (
-    <ol className="space-y-2.5 mt-3">
-      {LIFECYCLE_STEPS.map((step, i) => {
-        const Icon = step.icon;
-        const isFirst = i === current;
-        return (
-          <li key={step.label} className="flex items-start gap-3">
-            <div
-              className="w-8 h-8 rounded-ds-md flex items-center justify-center shrink-0 mt-0.5"
-              style={{
-                background: isFirst ? "hsl(var(--bark) / 0.12)" : "hsl(var(--olivewood) / 0.08)",
-                border: `1px solid ${isFirst ? "hsl(var(--bark) / 0.25)" : "hsl(var(--olivewood) / 0.15)"}`,
-              }}
-            >
-              <Icon
-                className="w-4 h-4"
-                strokeWidth={1.75}
-                style={{ color: isFirst ? "hsl(var(--bark))" : "hsl(var(--olivewood))" }}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-                {step.label}
-                {isFirst && (
-                  // A filled pill, the same one CancellationDialog's timeline
-                  // uses, so "you are here" reads at a glance (owner,
-                  // 2026-10-09: bare small caps were easy to miss).
-                  <span className="ml-2 align-middle text-ds-10 font-bold uppercase tracking-wider font-sans bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
-                    you are here
-                  </span>
-                )}
-              </p>
-              <p className="font-sans text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                {step.caption}
-              </p>
-            </div>
-          </li>
-        );
-      })}
-    </ol>
+    <div className="mt-3">
+      <JobProgress progress={{ step: (at + 1) as 1 | 2 | 3 | 4, word: "", next: STEP_CAPTIONS[at], held: false }} />
+    </div>
   );
 }

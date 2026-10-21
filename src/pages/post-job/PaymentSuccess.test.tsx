@@ -387,11 +387,11 @@ describe("PaymentSuccess follows the job's stage (Q1788)", () => {
 
   const cases: Array<[string, string, string]> = [
     ["open", "Posted", "View Applicants"],
-    ["accepted", "Accepted", "View Job"],
-    ["in_progress", "In progress", "View Job"],
-    ["revision_requested", "In progress", "View Job"],
-    ["disputed", "In progress", "View Job"],
-    ["completed", "Released", "View Job"],
+    ["accepted", "Hired", "View Job"],
+    ["in_progress", "Working", "View Job"],
+    ["revision_requested", "Working", "View Job"],
+    ["disputed", "Working", "View Job"],
+    ["completed", "Done", "View Job"],
   ];
 
   it("a paid job still waiting for approval is not 'live' (open_jobs_browse lists only open jobs)", async () => {
@@ -422,15 +422,14 @@ describe("PaymentSuccess follows the job's stage (Q1788)", () => {
     // Board 56: "live" only while the job is still open; past that, the headline is about the money only
     // (lh-money-escrow review 2026-10-21).
     await screen.findByRole("heading", { level: 1, name: status === "open" ? /your job is live/i : /^payment confirmed\.$/i });
-    const pill = screen.getByText(/you are here/i);
-    expect(pill.parentElement?.textContent ?? "").toContain(step);
-    expect(screen.getAllByText(/you are here/i)).toHaveLength(1);
+    // The one tracker (owner, 2026-10-21): the job's step on the same four segments as every job surface.
+    expect(screen.getByLabelText(new RegExp(`^Step \\d of 4: ${step}$`))).toBeInTheDocument();
     expect(screen.getByRole("button", { name: new RegExp(primary, "i") })).toBeInTheDocument();
     if (primary !== "View Applicants") expect(screen.queryByRole("button", { name: /view applicants/i })).toBeNull();
   });
 
   it("the cases reach every one of the four steps", () => {
-    expect(new Set(cases.map(([, step]) => step))).toEqual(new Set(["Posted", "Accepted", "In progress", "Released"]));
+    expect(new Set(cases.map(([, step]) => step))).toEqual(new Set(["Posted", "Hired", "Working", "Done"]));
   });
 });
 
@@ -440,5 +439,5 @@ describe("PaymentSuccess follows the job's stage (Q1788)", () => {
 // (refunded) makes the page print "Payment authorized / held securely" over
 // both — the exact claim this file exists to forbid.
 // @mutate src/pages/post-job/PaymentSuccess.tsx | const HELD_STATUSES = new Set(["escrow", "payout_pending", "released"]); | const HELD_STATUSES = new Set(["escrow", "payout_pending", "released", "unpaid", "refunded"]);
-// @mutate src/components/postjob/PaymentLifecycleSteps.tsx |         const isFirst = i === current; |         const isFirst = i === 0;
+// @mutate src/components/postjob/PaymentLifecycleSteps.tsx |   const at = Math.min(3, Math.max(0, current)); |   const at = 0;
 // @mutate src/pages/post-job/PaymentSuccess.tsx |                 {lifecycleStep === 0 ? "View applicants" : "View job"} |                 View applicants

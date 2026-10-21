@@ -8,7 +8,8 @@
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |   ].sort((x, y) => (y.sort > x.sort ? 1 : y.sort < x.sort ? -1 : 0)); |   ];
  */
 import { describe, it, expect } from "vitest";
-import { deriveLiveNow, deriveWaiting, LIVE_STEPS } from "@/pages/home/homeDashboard/nextUpStates";
+import { deriveLiveNow, deriveWaiting } from "@/pages/home/homeDashboard/nextUpStates";
+import { JOB_PROGRESS_STEPS } from "@/lib/jobProgress";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 
 const job = (over: Partial<Job>): Job =>
@@ -20,10 +21,11 @@ const app = (over: Partial<AppliedApp>, j: Partial<Job>): AppliedApp =>
   ({ id: "a", helper_id: "me", status: "pending", job: job(j), ...over }) as AppliedApp;
 
 describe("Live now (board 165)", () => {
-  it("the steps are the job tracker's four, and a live job sits on Working", () => {
-    expect(LIVE_STEPS).toEqual(["Posted", "Hired", "Working", "Done"]);
-    const l = deriveLiveNow([job({ id: "p1", status: "in_progress", helper_id: "h" })], []);
-    expect(l?.step).toBe(2);
+  it("the steps are the one tracker's four, and a live job with a confirmed arrival sits on Working", () => {
+    expect([...JOB_PROGRESS_STEPS]).toEqual(["Posted", "Hired", "Working", "Done"]);
+    const l = deriveLiveNow([job({ id: "p1", status: "in_progress", helper_id: "h", helper_confirmed_at: "t", poster_confirmed_arrival_at: "t" })], []);
+    expect(l?.progress.step).toBe(3);
+    expect(l?.progress.next).toBe("Your Helpr is working");
     expect(l?.side).toBe("You hired");
   });
 

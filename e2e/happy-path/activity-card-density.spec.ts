@@ -432,8 +432,9 @@ test.describe("My Posts — card density + header", () => {
     await expandCard(page, IN_PROGRESS_ID);
     // The card is identified by its live tracker, not by a status band: the
     // per-card stripe was removed once the filter tabs took over saying what
-    // state a job is in. See ActivityBucket in activityFilters.ts.
-    await expect(page.getByRole("group", { name: "Job progress" })).toHaveCount(1);
+    // state a job is in. See ActivityBucket in activityFilters.ts. The tracker is
+    // THE one JobProgress (owner, 2026-10-21: "we need 1 tracker").
+    await expect(page.locator("[data-job-progress]")).toHaveCount(1);
     // Everything but the primary lives in More now (owner, 2026-10-08).
     const panel = await openMore(page);
     await expect(page.getByRole("button", { name: /no-show/i })).toHaveCount(0);
@@ -548,91 +549,48 @@ test.describe("My Posts — card density + header", () => {
   // changing colour between cards, Message deep-links into the thread, and the
   // description toggle lost its words.
 
-  test("the live tracker is ONE scrollable line and the helpr is named in its heading", async ({ page, context, baseURL }) => {
+  test("the live tracker is the ONE four-segment line, and its next line names the step", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, {
       user: FAKE_CUSTOMER,
       seed: true,
-      rules: [jobsRule([{ ...inProgressJobStarting(-1), helper_on_the_way_at: new Date().toISOString() }])],
+      // A HIRED job: the Helpr accepted (helper_confirmed_at), both confirmed the day before, then set off.
+      rules: [jobsRule([{ ...inProgressJobStarting(-1), helper_confirmed_at: new Date(Date.now() - 86_400_000).toISOString(), helper_dayof_confirmed_at: new Date(Date.now() - 3_600_000).toISOString(), poster_confirmed_at: new Date(Date.now() - 3_600_000).toISOString(), helper_on_the_way_at: new Date().toISOString() }])],
     });
     await expandCard(page, IN_PROGRESS_ID);
 
-    const row = page.getByRole("group", { name: "Job progress" });
+    // ONE tracker (owner, 2026-10-21: "we need 1 tracker"): the 8-step scrolling
+    // rail is gone; chat, the job page and both cards draw JobProgress, four
+    // segments, Posted · Hired · Working · Done (src/lib/jobProgress.ts).
+    const tracker = page.locator("[data-job-progress]");
+    await expect(tracker).toHaveCount(1);
+    await tracker.scrollIntoViewIfNeeded();
+    const row = tracker.locator("ol");
     await expect(row).toHaveCount(1);
-    await row.scrollIntoViewIfNeeded();
-
-    // ONE line: every step shares a top edge. A wrapped 4+3 grid puts the
-    // second row at a different offsetTop, so this is the assertion that the
-    // old layout cannot pass.
-    const tops = await row.evaluate((el) =>
-      Array.from(el.children).map((c) => (c as HTMLElement).offsetTop),
+    const steps = await row.evaluate((el) =>
+      Array.from(el.children).map((c) => ({ top: (c as HTMLElement).offsetTop, text: (c.textContent ?? "").trim() })),
     );
-    // EIGHT, not seven: this is the POSTER's own card, and a poster's tracker
-    // prepends ONE pre-offer step (Posted) to the seven shared ones. It used to
-    // prepend two — Posted and Applicants — until they were merged, because
-    // applications arrive against the posted job rather than after it, so the
-    // pair described one state and pushed the row past the card's width. The
-    // count is asserted rather than loosened to "greater than one" because the
-    // wrap this test exists to catch is only visible at the full step count.
-    expect(tops.length, "eight tracker steps (1 posting + 7 shared)").toBe(8);
-    expect(new Set(tops).size, `steps sit on ${new Set(tops).size} lines, expected 1`).toBe(1);
+    expect(steps.map((s) => s.text), "the four steps, in order").toEqual(["Posted", "Hired", "Working", "Done"]);
+    // ONE line, and it FITS: no step wraps, nothing scrolls sideways at 375.
+    expect(new Set(steps.map((s) => s.top)).size, "steps sit on more than one line").toBe(1);
+    const { scrollWidth, clientWidth } = await row.evaluate((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));
+    expect(scrollWidth, "the tracker overflows its card").toBeLessThanOrEqual(clientWidth);
 
-    // ...and it genuinely SCROLLS rather than squeezing seven steps into 375px.
-    const { scrollWidth, clientWidth, focusable } = await row.evaluate((el) => ({
-      scrollWidth: el.scrollWidth,
-      clientWidth: el.clientWidth,
-      focusable: el.tabIndex >= 0,
-    }));
-    expect(scrollWidth).toBeGreaterThan(clientWidth);
-    // A scrollable region must be keyboard-reachable (axe scrollable-region-focusable).
-    expect(focusable, "tracker row must be focusable").toBe(true);
-
-    // The status SENTENCE is gone from the card; the name now rides the row.
-    //
-    // This used to be `toHaveCount(0)` on the wording itself, and on 2026-09-19
-    // that started matching something it was never written about. The owner's
-    // confirmation ladder ("let the button speak", PosterConfirmationPrimary)
-    // renders a rung NOTE explaining why a step's primary is disabled — "Your
-    // Helpr is on the way — you'll be able to confirm this the moment they mark
-    // themselves arrived" — into JobStepCard's `[data-job-step-note]` host, and
-    // repeats it as the disabled button's accessible name.
-    //
-    // That note is ANCHORED TO A CONTROL. The thing this test forbids is the
-    // old free-floating status caption that named the helpr and walked down the
-    // card as the job advanced. So the assertion is not "this wording is
-    // absent" — it is "this wording only ever appears inside a step's note
-    // host". A re-introduced status line anywhere else on the card still fails,
-    // which is the regression that matters, and the check now also pins WHERE
-    // the surviving copy is allowed to live.
+    // The sub-step lives in the ONE next line under the bar, not in a free caption.
+    await expect(tracker.locator("[data-job-progress-next]")).toHaveText(/is on the way/);
+    // Status wording appears only in a step's note host or the tracker's next line;
+    // a free-floating caption anywhere else on the card is the regression.
     const orphanStatusLines = await page.evaluate(() => {
       const re = /is on the way|finished the job|Offered to/i;
       return Array.from(document.querySelectorAll<HTMLElement>("*"))
         .filter((el) => el.children.length === 0 && re.test(el.textContent ?? ""))
-        .filter((el) => !el.closest("[data-job-step-note]"))
+        .filter((el) => !el.closest("[data-job-step-note]") && !el.closest("[data-job-progress-next]"))
         .map((el) => (el.textContent ?? "").trim());
     });
     expect(
       orphanStatusLines,
-      "status wording outside a step's note host — the free-floating caption is back",
+      "status wording outside a step's note host or the tracker's next line — the free-floating caption is back",
     ).toEqual([]);
-    // ...and it is re-stated in the tracking card's HEADING, not as a caption
-    // under the live step. The caption gave every step column a third line of
-    // vertical space to accommodate one word on one of them, and it moved down
-    // the row as the job advanced (owner: "can we move this somewhere else so
-    // we can tighten up the spacing"). Up in the heading it holds still.
-    //
-    // So the assertion inverts: NO step carries a second line, and the name is
-    // on the card heading instead. Asserted structurally rather than by name —
-    // what the helpr resolves to here is the card's own display fallback, so
-    // matching a literal would test the fixture, not the feature.
-    const captioned = await row.evaluate((el) =>
-      Array.from(el.children).filter((c) => c.querySelectorAll("span").length > 1).length,
-    );
-    expect(captioned, "no tracker step carries a caption line").toBe(0);
-    const headingRow = page.locator("h3", { hasText: "Job tracking" }).first().locator("..");
-    await expect(headingRow, "the helpr's name rides the tracking heading").not.toHaveText(
-      /^Job tracking$/,
-    );
 
     await page.screenshot({ path: `${SHOTS}/tracker-one-line-375.png` });
   });

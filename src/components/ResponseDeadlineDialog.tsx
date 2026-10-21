@@ -113,7 +113,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
       <ViolationDialog violations={violations} onOpenChange={(o) => { if (!o) setViolations(null); }} />
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
-        <DialogHero title="Set a Response Deadline" />
+        <DialogHero title="Set a response deadline" />
         <div className="space-y-4">
           {/* Lede in the same serif-italic olivewood every other money/offer
               dialog opens with (TipDialog, InstantPayoutDialog). This dialog

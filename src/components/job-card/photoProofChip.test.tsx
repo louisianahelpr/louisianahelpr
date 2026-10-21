@@ -283,7 +283,7 @@ describe("item 10 — the before & after pictures are a button on the action row
 
       // The PANEL is gone. Checked BEFORE the dialog opens, because the
       // dialog's own hero carries the same words.
-      expect(screen.queryByText("Photo Proof")).toBeNull();
+      expect(screen.queryByText("Photo proof")).toBeNull();
       // …and so is its "View All" escape hatch, which only that panel had.
       expect(screen.queryByText("View All")).toBeNull();
 
@@ -299,17 +299,17 @@ describe("item 10 — the before & after pictures are a button on the action row
 
     it(`${site.name}: the button opens the gallery`, async () => {
       const { container } = site.render();
-      expect(screen.queryByText("Photo Proof"), "the gallery is open before anyone tapped").toBeNull();
+      expect(screen.queryByText("Photo proof"), "the gallery is open before anyone tapped").toBeNull();
       if (site.inStepRow) await openMore(container);
 
       fireEvent.click(photosButton());
 
       const dialog = await waitFor(() => {
-        const d = screen.getAllByRole("dialog").find((el) => within(el).queryByText("Photo Proof"));
+        const d = screen.getAllByRole("dialog").find((el) => within(el).queryByText("Photo proof"));
         expect(d, "the gallery did not open").toBeTruthy();
         return d!;
       });
-      expect(within(dialog).getByText("Photo Proof")).toBeInTheDocument();
+      expect(within(dialog).getByText("Photo proof")).toBeInTheDocument();
       // Every photo the job carries, before and after. The gallery signs each
       // one first (useProofPhotoUrls, since 65676a7ad), so the src arrives a
       // tick after the dialog does — wait for it rather than read the placeholder.

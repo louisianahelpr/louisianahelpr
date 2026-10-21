@@ -89,7 +89,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          title="Issue Manual Strike"
+          title="Issue manual strike"
         />
         <div className="space-y-5">
           <DialogBody>

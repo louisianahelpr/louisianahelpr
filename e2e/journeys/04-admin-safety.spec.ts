@@ -326,7 +326,7 @@ test.describe.serial("admin and safety journeys", () => {
       const ap = journey.track("admin", await actx.newPage());
       await ap.goto(`/admin?view=people&user=${v.userId}`);
       // The dialog shows a formatted name ("SEED e."), so it is found by its title.
-      const detail = ap.getByRole("dialog", { name: "User Profile" }).first();
+      const detail = ap.getByRole("dialog", { name: "User profile" }).first();
       await expect(detail, "the user's detail never opened from ?user=").toBeVisible({ timeout: 60_000 });
       await detail.getByRole("button", { name: /Suspend \/ Ban/ }).click();
       const ban = ap.getByRole("dialog").filter({ has: ap.getByRole("radiogroup", { name: "Action type" }) }).first();
@@ -504,7 +504,7 @@ test.describe.serial("admin and safety journeys", () => {
       const chip = await findChip(pp, cardByTitle(pp, JOB_TITLE), /^No-Show/, 30_000);
       expect(chip, "No-Show is not offered after the start with no arrival, on the row or in More").not.toBeNull();
       await chip!.click();
-      const dlg = pp.getByRole("dialog").filter({ hasText: "Report No-Show" }).first();
+      const dlg = pp.getByRole("dialog").filter({ hasText: "Report no-show" }).first();
       await expect(dlg).toBeVisible();
       await journey.milestone(pp, "no-show-dialog");
       const [resp] = await Promise.all([

@@ -692,7 +692,7 @@ const AdminReports = () => {
       <Dialog open={!!deleteReviewTarget} onOpenChange={(open) => { if (!open) setDeleteReviewTarget(null); }}>
         <DialogContent role="alertdialog">
           <DialogHero
-            title="Remove This Review?"
+            title="Remove this review?"
           />
           {/* WAS A `subtitle` PROP ON THE HERO — IT NEVER RENDERED.
               DialogHero has shown the title alone since the 2026-07-25 "one main

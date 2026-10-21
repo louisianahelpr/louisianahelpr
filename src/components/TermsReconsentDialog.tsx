@@ -170,7 +170,7 @@ export function TermsReconsentDialog() {
     <Dialog open={open}>
       <DialogContent role="alertdialog" closeDisabled>
         <DialogHero
-          title="Please Take a Moment to Re-Agree"
+          title="Please take a moment to re-agree"
         />
         {/* The dialog has to SAY what is being agreed to. The 2026-07-25
             subtitle sweep stripped this text along with 41 decorative

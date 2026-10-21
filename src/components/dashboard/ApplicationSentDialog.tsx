@@ -32,7 +32,7 @@ export function ApplicationSentDialog({
   return (
     <Dialog open={!!sent} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent>
-        <DialogHero title="Application Sent" />
+        <DialogHero title="Application sent" />
         <DialogBody>
           <div className="flex flex-col items-center gap-2 text-center">
             <CheckCircle2 className="h-10 w-10" style={{ color: "hsl(var(--success-ink))" }} aria-hidden />

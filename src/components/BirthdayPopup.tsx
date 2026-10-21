@@ -186,7 +186,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName, deferred = false }: BirthdayPop
                       (docs/PLATFORM_CONVENTIONS.md:15). This was the only
                       Sentence-case-plus-period title outside the four that
                       have since been fixed. */}
-                  <DialogHero title={`Happy Birthday, ${firstName}`} />
+                  <DialogHero title={`Happy birthday, ${firstName}`} />
                 </div>
                 {/* The shared glossy primary. This was a hand-rolled 40px
                     (`h-10`, under the 44px tap-target floor) button painting a

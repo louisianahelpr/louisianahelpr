@@ -279,7 +279,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          title={`Take Action: ${profile?.full_name || "User"}`}
+          title={`Take action: ${profile?.full_name || "User"}`}
         />
         <div className="space-y-5">
           <div className="space-y-2">

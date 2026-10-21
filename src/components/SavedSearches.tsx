@@ -357,7 +357,7 @@ export function SavedSearches({
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHero
-          title="Saved Searches"
+          title="Saved searches"
         />
 
         <div className="space-y-2.5">

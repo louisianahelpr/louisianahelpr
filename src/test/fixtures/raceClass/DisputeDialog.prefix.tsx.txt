@@ -277,7 +277,7 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          title="File a Dispute"
+          title="File a dispute"
         />
         <div className="space-y-3.5">
           <div className="space-y-1.5">

@@ -61,7 +61,7 @@ export function MuteSheet({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHero title="Mute Notifications" />
+        <DialogHero title="Mute notifications" />
         {isMuted && (
           <div
             className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"

@@ -70,7 +70,7 @@ export function SuggestCategory({ area }: { area: SuggestionArea }) {
       </button>
       <Dialog open={open} onOpenChange={(o) => !sending && setOpen(o)}>
         <DialogContent>
-          <DialogHero title="Suggest a Category" />
+          <DialogHero title="Suggest a category" />
           <DialogBody>
             <p>
               Tell us what&apos;s missing and we&apos;ll look at adding it for everyone. You can pick

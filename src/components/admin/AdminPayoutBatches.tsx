@@ -450,7 +450,7 @@ const AdminPayoutBatches = () => {
       <Dialog open={!!holdReasonDraft} onOpenChange={(o) => { if (!o) setHoldReasonDraft(null); }}>
         <DialogContent>
           <DialogHero
-            title="Hold Payout for Review"
+            title="Hold payout for review"
           />
           <div className="space-y-3">
             <DialogBody>
@@ -487,7 +487,7 @@ const AdminPayoutBatches = () => {
       <Dialog open={!!denyDraft} onOpenChange={(o) => { if (!o) setDenyDraft(null); }}>
         <DialogContent>
           <DialogHero
-            title="Deny This Payout"
+            title="Deny this payout"
           />
           <div className="space-y-3">
             <DialogBody>

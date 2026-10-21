@@ -373,7 +373,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       <Dialog open={!!deleteNote} onOpenChange={(open) => !open && setDeleteNote(null)}>
         <DialogContent role="alertdialog">
           <DialogHero
-            title="Delete This Note?"
+            title="Delete this note?"
           />
           {deleteNote && (
             <div className="rounded-ds-sm border border-border bg-secondary/30 p-3 text-ds-13 text-foreground whitespace-pre-wrap break-words max-h-40 overflow-auto">

@@ -94,7 +94,7 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          title={`Change Email for ${profile?.full_name || "User"}`}
+          title={`Change email for ${profile?.full_name || "User"}`}
         />
         <div className="space-y-4">
           <div className="rounded-ds-sm bg-muted/50 border border-border p-3">

@@ -75,7 +75,7 @@ export function AdminCommandPalette({ onSelect }: { onSelect: (view: string) => 
           fine. Narrowing it would have been a drive-by class against a rule
           the project keeps on purpose. */}
       <DialogContent>
-        <DialogHero title="Jump To" />
+        <DialogHero title="Jump to" />
         <Command
           // The shell already paints the surface; cmdk should not add a second
           // background or its own rounding inside DialogContent.

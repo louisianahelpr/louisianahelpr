@@ -324,7 +324,7 @@ const BanReviewInner = () => {
         <DialogContent role="alertdialog">
           {/* DialogHero renders its title ONLY (the 2026-07-25 "one main
               title" decision), so the consequence sentence is its own line. */}
-          <DialogHero title="Confirm Permanent Ban" />
+          <DialogHero title="Confirm permanent ban" />
           <p className="text-ds-13 text-muted-foreground">
             {confirmTarget?.full_name || "This user"} will be permanently banned and lose access to Helpr.
           </p>
@@ -350,7 +350,7 @@ const BanReviewInner = () => {
 
       <Dialog open={!!dismissTarget} onOpenChange={(o) => !o && setDismissTarget(null)}>
         <DialogContent role="alertdialog">
-          <DialogHero title="Dismiss Review" />
+          <DialogHero title="Dismiss review" />
           <p className="text-ds-13 text-muted-foreground">
             {dismissTarget?.full_name || "This user"}&rsquo;s 7-day restriction will be lifted and the case closed. Their violation history stays on file.
           </p>

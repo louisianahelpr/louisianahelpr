@@ -298,7 +298,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
       )}
       <DialogContent>
         <DialogHero
-          title="Earnings Export"
+          title="Earnings export"
         />
 
         <div className="space-y-4 py-2">

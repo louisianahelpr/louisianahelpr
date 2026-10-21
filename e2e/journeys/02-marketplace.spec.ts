@@ -484,11 +484,11 @@ test.describe.serial("marketplace chain", () => {
       }
       await panel.getByRole("button", { name: /^Select / }).first().click();
       // Hiring is an OFFER with a response deadline; the helper then accepts.
-      await expect(pp.getByRole("heading", { name: "Set a Response Deadline" })).toBeVisible({ timeout: 20_000 });
+      await expect(pp.getByRole("heading", { name: "Set a response deadline" })).toBeVisible({ timeout: 20_000 });
       await pp.getByPlaceholder(/Say something to/).fill(`Offer for ${RUN}: see you Tuesday.`);
       await journey.milestone(pp, "offer-sheet");
       await pp.getByRole("button", { name: "Send Offer" }).click();
-      await expect(pp.getByRole("heading", { name: "Set a Response Deadline" })).toBeHidden({ timeout: 20_000 });
+      await expect(pp.getByRole("heading", { name: "Set a response deadline" })).toBeHidden({ timeout: 20_000 });
       await assertHealthy(pp, "offer sent");
       await journey.milestone(pp, "offer-sent");
     });

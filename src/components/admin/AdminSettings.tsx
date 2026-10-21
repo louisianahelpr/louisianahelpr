@@ -511,7 +511,7 @@ const AdminSettings = () => {
       {/* Add Admin Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
-          <DialogHero title="Add Admin User" />
+          <DialogHero title="Add admin user" />
           <div className="space-y-4">
             <div className="flex gap-2">
               <AdminUserSearchField value={searchQuery} onChange={setSearchQuery} onEnter={searchUsers} />

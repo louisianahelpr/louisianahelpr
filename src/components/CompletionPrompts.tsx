@@ -348,7 +348,7 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
         <DialogContent
           stepped>
           <DialogHero
-            title="Loved It? Share Helpr"
+            title="Loved it? Share Helpr"
           />
           <div className="space-y-4">
             <DialogBody>

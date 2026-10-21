@@ -69,7 +69,7 @@ export function ManualVerifyDialog({ profile, onClose, onSuccess }: ManualVerify
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          title={`Manually Verify ${formatName(profile?.full_name)}`}
+          title={`Manually verify ${formatName(profile?.full_name)}`}
         />
         <div className="space-y-3">
           <DialogBody>

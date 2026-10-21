@@ -396,7 +396,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                   className="tabular-nums shrink-0"
                   style={{
                     color: charsLeft < 50
-                      ? "hsl(var(--alert))"
+                      ? "hsl(var(--alert-ink))"
                       : "hsl(var(--muted-foreground))",
                   }}
                 >

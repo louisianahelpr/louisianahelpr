@@ -17,8 +17,7 @@ import { useOnTabReselect } from "@/components/mobileNav/tabReselect";
 import { feedLinkTarget } from "./homeDashboard/feedLinkForward";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { ProgressSegments } from "@/components/ui/ProgressSegments";
-import { LIVE_STEPS } from "./homeDashboard/nextUpStates";
+import { JobProgress } from "@/components/tracker/JobProgress";
 
 function greeting(d = new Date()) {
   const h = d.getHours();
@@ -109,8 +108,8 @@ function HomeDashboardScreen() {
                     {started && <span className="text-ds-13 font-semibold text-primary">Started {started}</span>}
                   </div>
                   <p data-testid="live-now-title" className="text-ds-18 font-bold leading-snug text-foreground line-clamp-2 [overflow-wrap:anywhere]">{l.title}</p>
-                  <p className="text-ds-14 text-muted-foreground">{l.side} · {l.detail}</p>
-                  <div className="mt-1.5"><ProgressSegments steps={LIVE_STEPS} current={l.step} label="Job progress" /></div>
+                  <p className="text-ds-14 text-muted-foreground">{l.side}</p>
+                  <div className="mt-1.5"><JobProgress progress={l.progress} compact /></div>
                   <button type="button" data-testid="live-now-action" onClick={() => navigate(`/jobs/${l.jobId}`)} className="btn-grad-primary btn-press self-start rounded-full min-h-11 px-5 mt-2 text-ds-15 font-semibold">
                     Open job
                   </button>

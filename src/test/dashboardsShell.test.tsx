@@ -82,7 +82,7 @@ vi.mock("@/hooks/useActivityData", () => ({
     postedJobs:
       tab !== "posted" ? []
       : homeJobs.mode === "waiting" ? [job("w", "open")]
-      : homeJobs.mode === "live" ? [{ ...job("l", "in_progress"), helper_id: "h-1", helper_arrived_at: "2099-01-02T14:04:00" }]
+      : homeJobs.mode === "live" ? [{ ...job("l", "in_progress"), helper_id: "h-1", helper_confirmed_at: "2099-01-01T10:00:00", helper_arrived_at: "2099-01-02T14:04:00", poster_confirmed_arrival_at: "2099-01-02T14:06:00" }]
       : !noTodos.on ? [job("a", "open"), job("b", "open")] : [],
     appliedApps: [],
     pendingApplicantCounts: { a: 1, b: 2 },
@@ -264,7 +264,9 @@ describe("Home", () => {
       expect(screen.getByTestId("live-now-title").textContent).toBe("Job l");
       expect(live.textContent).toContain("You hired");
       expect(live.textContent).toContain("Started 2:04 PM");
-      expect(live.querySelector("[data-progress-segments]")?.getAttribute("aria-label")).toBe("Job progress: step 3 of 4, Working");
+      // The one tracker (owner, 2026-10-21): the same four segments and next line as every job surface.
+      expect(live.querySelector("[data-job-progress] ol")?.getAttribute("aria-label")).toBe("Step 3 of 4: Working");
+      expect(live.querySelector("[data-job-progress-next]")?.textContent).toBe("Your Helpr is working");
       expect(live.compareDocumentPosition(screen.getByTestId("next-up")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       fireEvent.click(screen.getByTestId("live-now-action"));
       expect(screen.getByTestId("where").textContent).toBe("/jobs/l");

@@ -1,9 +1,8 @@
-import { lazy, Suspense, useEffect, useRef, useState, useCallback, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { useDoneFloorActive } from "@/components/job-card/useDoneFloor";
 import { announceTransition } from "@/components/whatNext/HelperDoneWhatNext";
 import { TRANSITION_TOAST } from "@/components/job-card/trackerTransitionCopy";
 import { takeHelperStepRequest } from "@/components/job-card/helperStepRequest";
-import { useStepTooltip } from "@/hooks/useStepTooltip";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
@@ -18,15 +17,16 @@ import { jobStartDateTime } from "@/lib/dateUtils";
 import { confirmOpensMs, jobDateMs, todayMs, JOB_TIMEZONE } from "@/lib/jobDate";
 import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
-import { arrivalEstablished, arrivalEvidenceState, arrivalGateMessage, arrivalMapLabel, arrivalRefusalFromError, arrivalRefusalMessage, arrivalState, arrivalStateLabel, arrivalVerdictFromRpc, arrivalVerdictMessage, type ArrivalRefusal, type ArrivalVerdict } from "@/lib/arrivalGate";
+import { arrivalEstablished, arrivalEvidenceState, arrivalGateMessage, arrivalMapLabel, arrivalRefusalFromError, arrivalRefusalMessage, arrivalState, arrivalVerdictFromRpc, arrivalVerdictMessage, type ArrivalRefusal, type ArrivalVerdict } from "@/lib/arrivalGate";
 import { trackingProofCaption } from "./trackingProofCaption";
 import { report } from "@/lib/errorLogger";
 import { trackJobCompleted } from "@/lib/jobCompletedEvent";
 import { BEFORE_PHOTO_GATE_REASON, lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { railStepPaint, railStepPulses } from "@/components/job-card/jobRailTone";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
+import { JobProgress } from "@/components/tracker/JobProgress";
+import { jobProgress } from "@/lib/jobProgress";
 import { JobStepRowSlot, useInJobStepRow } from "@/components/job-card/jobStepRow";
 /* `JobActionChip` was imported here for the "Try my location again" chip
    only; that control is gone (owner, 2026-09-19) and this component draws no
@@ -417,7 +417,9 @@ export type TrackingData = {
 export function JobTracking({
   jobId,
   helperId,
-  // `helperName` is NOT destructured any more — nothing in here reads it since
+  helperName,
+  posterName,
+  // `helperName` was not destructured for a while — nothing in here reads it since
   // the name left the freshness stamp (owner, 2026-09-16). Still accepted on
   // the type so the poster card's call site is unchanged.
   isHelper,
@@ -461,6 +463,8 @@ export function JobTracking({
    * call site had to change with the caption.
    */
   helperName?: string | null;
+  /** The poster's name, for the Helpr's tracker line ("Waiting on Lexi to confirm"); first word only is shown. */
+  posterName?: string | null;
   isHelper: boolean;
   isOwner: boolean;
   jobDateNeeded?: string;
@@ -1474,9 +1478,6 @@ export function JobTracking({
    * why it is not used for any of the new copy (src/lib/arrivalGate.ts).
    */
   const currentArrivalEvidence = arrivalEvidenceState(arrivalEvidence);
-  // Rail caption under the Arrived step. `null` in every state since
-  // 2026-09-16 — see `arrivalStateLabel`; the amber step colour is the signal.
-  const arrivalCaption = arrivalStateLabel(currentArrivalState);
   // The settled arrival fact goes on the map's job pin when the map is drawn,
   // and falls back to the status line when it is not (VN-20).
   const markedDone =
@@ -1492,19 +1493,6 @@ export function JobTracking({
   const settledArrivalLabel = arrivalMapLabel(currentArrivalState);
   const arrivalOnMap = mapShown && settledArrivalLabel != null;
 
-  // Timestamp behind each COMPLETED step, for the tap/hover tooltip below.
-  // Reuses fields the tracker already has in scope — no new backend field.
-  // Steps with no reliable single timestamp (Offered/Posted, Working — the
-  // "working" span has a start but no dedicated stamp on this row) render
-  // without a tooltip rather than guessing.
-  const stepTimestamps: Partial<Record<string, string | null | undefined>> = {
-    confirmed: helperConfirmedAt,
-    job_confirmed: posterConfirmedAt,
-    on_the_way: jobStamps.onTheWayAt,
-    arrived: jobStamps.arrivedAt ?? jobStamps.arrivalVerifiedAt ?? jobStamps.posterConfirmedArrivalAt,
-    done: jobStamps.helperCompletedAt ?? jobStamps.posterCompletedAt,
-  };
-  const stepTooltip = useStepTooltip();
 
   const displaySteps = includePostingSteps ? [...PRE_STATUSES, ...STATUSES] : STATUSES;
   // ONE definition of the offset, shared with the collapsed card's compact
@@ -1512,155 +1500,7 @@ export function JobTracking({
   // 2026-09-19, when a second rail started needing the same answer.
   const displayIdx = railDisplayIdx({ currentStatusIdx, includePostingSteps, helperId });
 
-  // The step row is ONE horizontally-scrolling line (owner: "the live tracker
-  // should be 1 scrollable line"). Because it scrolls, the current step can sit
-  // off-screen — so it is scrolled back into view whenever the job advances.
-  //
-  // `scrollIntoView` is deliberately NOT used: with `block`/`inline` it walks up
-  // to the nearest scrollable ancestor and, if this row were ever non-scrollable,
-  // would yank the whole activity feed instead. Setting `scrollLeft` on the row
-  // itself cannot escape the element, so the feed can never move.
-  const stepRowRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const row = stepRowRef.current;
-    if (!row) return;
 
-    // ONE MEASUREMENT IS NOT ENOUGH. This ran exactly once per `displayIdx`
-    // change, which on FIRST PAINT is a layout that has not happened yet: the
-    // card mounts inside a virtualised activity feed, `clientWidth` is 0 or
-    // stale, `target` comes out negative, it clamps to 0, and the row is left
-    // wherever the browser put it — which is how the owner's screenshot has a
-    // step sliced mid-word ("ifirmed") instead of the current step centred.
-    // Re-centring on the next frame AND on any resize of the row is what makes
-    // "the current step is visible" true rather than intended.
-    const centre = () => {
-      const step = row.children[displayIdx] as HTMLElement | undefined;
-      if (!step || row.clientWidth === 0) return;
-      const max = row.scrollWidth - row.clientWidth;
-      // Nothing to scroll — the steps fit. Leave the row alone rather than
-      // fighting `justify-content: safe center`.
-      if (max <= 0) return;
-      // MEASURE AGAINST THE ROW, NOT THE OFFSET PARENT. `step.offsetLeft` is
-      // relative to the nearest POSITIONED ancestor, and this scroller is not
-      // positioned — so the number it returns carries however far the card sits
-      // from `.app-shell-frame` (position: fixed) or any other positioned
-      // wrapper up the Activity tree. That distance is pure error in a scroll
-      // offset: add a few hundred pixels of it and `target` exceeds `max` for
-      // EVERY step, the clamp pins the row to its right-hand end whatever the
-      // job is doing, and the auto-scroll silently stops tracking the current
-      // step. Measured here (320px card) the parent offset was already 12px.
-      // Rect deltas are relative to the row itself and cannot pick that up.
-      const target =
-        step.getBoundingClientRect().left -
-        row.getBoundingClientRect().left +
-        row.scrollLeft -
-        (row.clientWidth - step.offsetWidth) / 2;
-      // LAND THE LEFT EDGE IN A GUTTER, NEVER THROUGH A DOT (owner,
-      // 2026-09-19: "the expanded tracker clips mid-dot at 320 … reading as
-      // broken rather than scrollable").
-      //
-      // The comment above this row claims a step "can only ever be cut between
-      // steps, never through one". That was true of the step BOX and of the
-      // LABEL (which `clippedSteps` blanks) and was never true of the 28px DOT
-      // inside it: a centring offset is whatever `(clientWidth - 60) / 2`
-      // happens to be, so the viewport's left edge lands at an arbitrary point
-      // inside a column and a half-circle sits against the card edge.
-      //
-      // The PITCH is measured, not assumed — two siblings' `offsetLeft`
-      // difference, which cancels the positioned-ancestor offset the paragraph
-      // above warns about, and which `grow` can change at wide widths. Snapped
-      // to it, the left edge is always in the 4px gap between two columns.
-      //
-      // The far-right end is exempt: `max` is a real boundary (the last step's
-      // right edge) and rounding away from it would cut the last step to make
-      // room for nothing.
-      const pitch =
-        row.children.length > 1
-          ? (row.children[1] as HTMLElement).offsetLeft - (row.children[0] as HTMLElement).offsetLeft
-          : 0;
-      const raw = Math.max(0, Math.min(target, max));
-      const left =
-        pitch > 0 && raw < max ? Math.min(Math.round(raw / pitch) * pitch, max) : raw;
-      if (Math.abs(row.scrollLeft - left) < 1) return;
-      row.scrollTo({
-        left,
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-      });
-    };
-
-    centre();
-    const raf = requestAnimationFrame(centre);
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(centre) : null;
-    ro?.observe(row);
-    return () => {
-      cancelAnimationFrame(raf);
-      ro?.disconnect();
-    };
-  }, [displayIdx, displaySteps.length]);
-
-  // Edge fade. A step that straddles the card edge used to read as chopped
-  // text ("On the W…"), giving no clue the row scrolls. A mask feathers
-  // whichever edge still has content behind it — and ONLY that edge, so a row
-  // that fits (or is scrolled to an end) isn't dimmed for no reason.
-  const [edges, setEdges] = useState({ start: false, end: false });
-  // WHICH STEPS THE VIEWPORT IS CUTTING THROUGH, as a comma-joined index list
-  // (a string, not a Set, so the identity comparison below can cheaply skip the
-  // re-render on the ~60 scroll events a single flick produces).
-  //
-  // The mask alone never solved this. The owner's screenshot reads "ifirmed"
-  // where "Confirmed" should be: a 36px fade over a step whose visible sliver
-  // is wider than the fade leaves most of the word at full contrast, and
-  // widening the fade only dims the WHOLE-step neighbour instead. A chopped
-  // word is not a legible affordance for "this scrolls" — it reads as a
-  // rendering fault, which is how it was reported. So the fade keeps doing what
-  // it is good at (feathering the DOT) and the label of a step the edge cuts is
-  // simply not painted.
-  //
-  // `opacity: 0`, deliberately, not `visibility: hidden` or conditional
-  // rendering: the row is a labelled `role="group"` whose only text is these
-  // labels, and both of those would drop the step out of the accessibility
-  // tree — a screen reader would hear six steps out of seven, changing as the
-  // row scrolls. Opacity is invisible to the eye and invisible to the a11y
-  // tree's pruning.
-  const [clippedSteps, setClippedSteps] = useState("");
-  useEffect(() => {
-    const row = stepRowRef.current;
-    if (!row) return;
-    const sync = () => {
-      const max = row.scrollWidth - row.clientWidth;
-      setEdges((prev) => {
-        const start = row.scrollLeft > 1;
-        const end = row.scrollLeft < max - 1;
-        return prev.start === start && prev.end === end ? prev : { start, end };
-      });
-      const rowLeft = row.getBoundingClientRect().left;
-      const cut: number[] = [];
-      for (let i = 0; i < row.children.length; i++) {
-        const r = (row.children[i] as HTMLElement).getBoundingClientRect();
-        // Half a pixel of tolerance: sub-pixel layout must not flag a step that
-        // is, to the eye, entirely on screen.
-        if (r.left < rowLeft - 0.5 || r.right > rowLeft + row.clientWidth + 0.5) cut.push(i);
-      }
-      const key = cut.join(",");
-      setClippedSteps((prev) => (prev === key ? prev : key));
-    };
-    sync();
-    row.addEventListener("scroll", sync, { passive: true });
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(sync) : null;
-    ro?.observe(row);
-    return () => {
-      row.removeEventListener("scroll", sync);
-      ro?.disconnect();
-    };
-  }, [displaySteps.length]);
-
-  // A half-cut 68px step leaves ~34px of label showing, so a 20px fade ended
-  // BEFORE the cut text and the label still read as hard-clipped — measured on
-  // an iPhone 17 Pro, the row showed a crisp "ed" (Accepted) at the left edge
-  // and "W" (Working) at the right. 36px covers the sliver a half-cut step
-  // actually leaves, which is what the fade was for.
-  const FADE = "36px";
-  const stepRowMask = `linear-gradient(to right, transparent 0, black ${edges.start ? FADE : "0px"}, black calc(100% - ${edges.end ? FADE : "0px"}), transparent 100%)`;
 
   if (!helperId && !includePostingSteps) return null;
 
@@ -1678,398 +1518,31 @@ export function JobTracking({
 
 
       {/* Progress timeline */}
-      {(() => {
-        // ONE scrolling line, seven steps (owner: "the live tracker should be
-        // 1 scrollable line"). It was previously a 4 + 3 wrapping grid, which
-        // was itself a fix for an earlier scroller that sliced whatever step
-        // straddled the card edge — the reported "On the W".
-        //
-        // That slicing is why every step has a FIXED width and `shrink-0`
-        // rather than being sized by its label: the row can only ever be cut
-        // between steps, never through one, so no label is clipped mid-word at
-        // any width. `snap-x`/`snap-center` land the scroll on whole steps for
-        // the same reason.
-        return (
-          // The mask lives on this NON-SCROLLING wrapper, not on the scroller
-          // itself. Measured on device: the row reported sw=652 cw=260, and
-          // WebKit sizes a mask on a scroll container to its SCROLLABLE
-          // CONTENT, not its visible box — so `calc(100% - 36px)` put the fade
-          // at x≈616 of 652, permanently scrolled out of sight. The fade was
-          // being painted correctly and could never be seen, which is why
-          // widening it from 20px to 36px changed nothing. On a wrapper that
-          // does not scroll, 100% is the visible 260px and the fade lands on
-          // the edges the user is actually looking at.
-          <div
-            className="-mx-1 px-1"
-            style={{ maskImage: stepRowMask, WebkitMaskImage: stepRowMask }}
-          >
-          <div
-            ref={stepRowRef}
-            // A scrolling region must be keyboard-reachable or axe's
-            // `scrollable-region-focusable` fails — arrow keys need somewhere
-            // to land now that content can sit off-screen. The group role +
-            // label keep it announcing as "Job progress, group" rather than
-            // seven loose fragments.
-            tabIndex={0}
-            role="group"
-            aria-label="Job progress"
-            className="flex gap-1 overflow-x-auto scrollbar-hide snap-x py-0.5 items-start"
-            // `safe center` — the row centres in its card when the steps FIT,
-            // and falls back to start-aligned the moment they don't (owner:
-            // "center better globally"). Plain `center` would keep centring
-            // while overflowing, which pushes the first steps off the LEFT edge
-            // where no scroll gesture reaches them — the bug the `safe` keyword
-            // exists for. Eight steps at 68px fit a desktop card and overflow a
-            // phone one, so this row is on both sides of that line depending on
-            // the screen, and neither alignment alone is right for both.
-            style={{ justifyContent: "safe center" }}
-          >
-            {displaySteps.map((s, idx) => {
-              const isActive = idx <= displayIdx;
-              // The row's viewport is cutting through this step — see `clippedSteps`.
-              const isClipped = clippedSteps !== "" && clippedSteps.split(",").includes(String(idx));
-              const isCurrent = idx === displayIdx;
-              const isPassed = idx < displayIdx;
-              // Whole tracker reached the end — every active step reads as
-              // done, current dot included (owner: "if it reaches Done, all
-              // green").
-              const allDone = displayIdx === displaySteps.length - 1;
-              // THE ALARM SITS ON THE STEP THE DISPUTE STOPPED THE JOB AT.
-              //
-              // This was `jobStatus === "disputed" && s.key === "working"` — a
-              // hard pin on Working, written to survive a rail that had run
-              // PAST Working onto a green Done. `deriveCurrentStatusIdx` now
-              // clamps a disputed job to Working, so that overshoot cannot
-              // happen and the pin has nothing left to survive; what it could
-              // still do was paint a solid red dot on a Working step the job
-              // never reached (a dispute may be raised from `accepted` —
-              // 20260825190000's transition table), which is the same class of
-              // lie as the green Done, just in the other direction.
-              //
-              // Anchored to `displayIdx` instead, it lands on Working for
-              // every disputed job that got as far as the work — the reported
-              // case, unchanged — and on the actual step otherwise. And
-              // because it can only ever be the CURRENT step, there is exactly
-              // one alarm dot and it never fights the amber current-step tone
-              // for a second "you are here".
-              const disputedStep = jobStatus === "disputed" && idx === displayIdx;
-              // THE CURRENT STEP CARRIES THE TROUBLE. A job in revision or in
-              // dispute used to paint the same bark green as one running
-              // perfectly, so the tracker — the biggest thing on the card —
-              // was the one element that never said anything had gone wrong.
-              // Amber for a resolution pending (not yet escalated), red for a
-              // dispute (owner). Only the CURRENT dot changes here — the
-              // steps behind it really did happen and recolouring the whole
-              // line would read as "none of this counts" — except Working
-              // under an open dispute, and Done once the whole job is green.
-              // ONE GREEN, ONE AMBER, ONE RED — the owner's rule, and it
-              // replaces two separate defects that were both live:
-              //
-              //   "Shouldn't be 2 different green. Yellow if they're on that
-              //    step until they're done that step."
-              //   "Both can't be red."
-              //
-              // The old scheme painted completed steps --success-ink and the
-              // CURRENT step --bark. Two greens a shade apart read as the same
-              // colour at a glance, so the current step — the one thing the
-              // rail exists to tell you — did not stand out at all.
-              //
-              // And red had two sources that could both fire on one card: the
-              // dispute pin (above) painted Working red wherever the cursor
-              // was, while this branch painted the CURRENT step red under a
-              // dispute. A disputed job carrying a completion stamp parked on
-              // `done`, so Working AND Done both went alarm red — exactly the
-              // screenshot the owner sent.
-              //
-              // Now: amber is "you are on this step, it is not finished", red
-              // is ONLY "this is the step that went wrong" (`disputedStep`),
-              // and green is only ever a step that genuinely completed. The
-              // two can no longer disagree about where the job is: red is
-              // defined AS the current step of a disputed job, so red simply
-              // replaces the amber on that one dot — one "you are here"
-              // marker, in the more urgent colour.
-              //
-              // THE GREEN IS THE BUTTON'S GREEN (owner, 2026-09-19: "the
-              // posted offered accepted etc buttons should all be the same
-              // primary green as the buttons not a different shade").
-              //
-              // It was `--success-ink` — `142 50% 30%`, an EMERALD — beside a
-              // primary button built from `--bark` `70 20% 33%`, an OLIVE.
-              // Two different hues, 72° apart, sitting 8px from each other on
-              // the same card; "a different shade" is generous.
-              //
-              // WHICH green, given the button is a radial GRADIENT
-              // (`.btn-grad-primary`: --bark-light 0% → --bark 46% →
-              // --bark-deep 100%)? `--bark`, the gradient's own dominant mid
-              // stop — not the class. Putting `.btn-grad-primary` on a 28px
-              // dot would paint it with a `125% 125% at 32% 22%` radial whose
-              // visible area is almost entirely the LIGHT stop, so the dot
-              // would read lighter than the button it is supposed to match.
-              // Matching the token the gradient is built from is what makes
-              // the two the same green to the eye. Guard:
-              // src/test/railGreenMatchesPrimary.test.ts.
-              // EXTRACTED, 2026-09-19. The rule used to be written out here
-              // and TRANSCRIBED into alarmColourInvariant.test.ts, which said
-              // so and carried a second test to notice when the copy went
-              // stale. A second, denser rail on the collapsed card then made
-              // that a third copy, so the rule moved to `railStepPaint`
-              // (src/components/job-card/jobRailTone.ts) and both rails read
-              // it. The compact rail is gone again (the owner replaced the
-              // dots with a sentence the same day), so this is the ONE rail —
-              // but the rule stays extracted and the guard stays imported:
-              // that is what made it un-driftable in the first place.
-              const paint = railStepPaint({
-                idx,
-                displayIdx,
-                stepCount: displaySteps.length,
-                jobStatus,
-              });
-              const Icon = s.icon;
-              const ts = stepTimestamps[s.key];
-              // Tooltip only on a genuinely COMPLETED step (passed, or the
-              // final Done step once the whole job is green) that has a
-              // timestamp to show — never on the still-in-progress current
-              // step, which has no "when" yet.
-              const showTooltip = !!ts && (isPassed || (isCurrent && allDone));
-              const Wrapper = showTooltip ? "button" : "div";
-              return (
-                <div
-                  key={s.key}
-                  // `grow` on a `w-[68px] shrink-0` basis: the steps SHARE any
-                  // spare width instead of huddling in the middle of a wide
-                  // card (owner: "spread out more to fill space"), and the
-                  // moment the row is narrower than 8 × 68px they stop growing,
-                  // hold their width and scroll — `shrink-0` is what keeps a
-                  // label from being squeezed into a hyphenated column.
-                  className="w-[60px] shrink-0 grow snap-center flex flex-col items-center gap-1 relative"
-                  /* A STEP THE VIEWPORT CUTS IS NOT PAINTED AT ALL — dot
-                     included (owner, 2026-09-19: "clips mid-dot at 320").
-                     `opacity: 0` lived on the LABEL span below and nowhere
-                     else, so a half-cut column still drew half a 28px circle
-                     against the card edge, which reads as a rendering fault
-                     rather than as "there is more, scroll".
-
-                     Still `opacity`, and still not `visibility`/conditional
-                     rendering, for the reason the label's own comment gives:
-                     this row is a labelled `role="group"` whose only text is
-                     these labels, and both of those would drop the step out of
-                     the accessibility tree — a screen reader would hear six
-                     steps of eight, changing as the row scrolls.
-
-                     The left edge cannot cut a column at all now (the scroll
-                     offset is snapped to the column pitch above); this covers
-                     the RIGHT edge, where the row's own width decides where
-                     the cut falls and no offset can move it. */
-                  style={isClipped ? { opacity: 0 } : undefined}
-                >
-                  <Wrapper
-                    {...(showTooltip
-                      ? {
-                          type: "button" as const,
-                          ...stepTooltip.handlers(s.key),
-                          "aria-label": `${s.label} — ${new Date(ts as string).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
-                        }
-                      : {})}
-                    // `relative` is for the 44px hit overlay below; it does not
-                    // affect the tooltip, which is absolutely positioned
-                    // against the COLUMN (the outer div), not against this dot.
-                    // NO PULSE ON A FINISHED JOB. The pulse says "this step is
-                    // live, waiting on someone"; on a job whose rail reached
-                    // Done it said that forever, and an infinite scale
-                    // animation is a box that never holds still (press run
-                    // 36208184593: six "Done — <date>" dots NOT CLICKABLE,
-                    // "still moving (not stable)", Q294).
-                    className={`relative w-7 h-7 rounded-full flex items-center justify-center transition-all !min-h-0 !min-w-0 ${railStepPulses({ isCurrent, allDone, disputed: !!disputedStep }) ? "step-current-pulse" : ""}`}
-                    /* ONE SOURCE for every dot's colour — `railStepPaint`
-                       above. The five-branch ternary this replaces held the
-                       alarm, the amber cursor, the completed green (which is
-                       `--bark`, the primary button's green, owner 2026-09-19),
-                       the bark tint and the not-reached grey; all five moved
-                       into jobRailTone.ts verbatim and nothing about which
-                       step wears which changed. The ring and the pulse
-                       variables stay here because they are this rail's
-                       DRAWING, not its colour rule — the compact rail draws
-                       its own, smaller. */
-                    style={
-                      isCurrent && paint.ring
-                        ? ({
-                            background: paint.fill,
-                            color: paint.ink,
-                            boxShadow: `0 0 0 2px ${paint.ring}, 0 0 0 4px hsl(var(--parchment))`,
-                            "--step-pulse-ring": paint.ring,
-                            "--step-pulse-ring-end": paint.ringEnd,
-                          } as CSSProperties)
-                        : { background: paint.fill, color: paint.ink }
-                    }
-                  >
-                    {/* A 44px TAP TARGET WITHOUT A 44px BOX — the same trick
-                        `.link-standard` and `.tap-44` use in index.css, done
-                        inline because the overlay has to be square rather than
-                        full-width.
-
-                        The dot is 28×28 and defeats the global 44px floor with
-                        `!min-h-0 !min-w-0`, which is correct for the DRAWING:
-                        seven 44px circles do not fit a 320px card, and growing
-                        the box would push the row past the height the owner
-                        just reclaimed by deleting the progress bar. So the box
-                        stays 28px and the hit region — the thing WCAG 2.5.5
-                        actually measures — is an invisible 44×44 child.
-
-                        It extends DOWNWARD from the dot's top edge, never
-                        upward: `overflow-x: auto` on the step row computes
-                        `overflow-y` to `auto`, and content above the block-start
-                        edge is clipped rather than reachable, so a centred
-                        overlay would have lost its top 6px. Downward it lands
-                        over this step's own label — 44px is shorter than the
-                        column, so it never reaches a neighbour's dot, and the
-                        label is not interactive. Only on the tooltip steps: a
-                        plain <div> step has nothing to hit. */}
-                    {showTooltip && (
-                      <span
-                        aria-hidden
-                        className="absolute left-1/2 top-0 -translate-x-1/2 w-11 h-11"
-                      />
-                    )}
-                    <Icon className="w-3.5 h-3.5" />
-                  </Wrapper>
-                  {/* Tap/hover tooltip on a completed step, showing when it
-                      happened. `showTooltip` gates this to steps that both
-                      have a timestamp and are actually done — see the
-                      Wrapper/showTooltip logic above. */}
-                  {showTooltip && stepTooltip.open === s.key && (
-                    <div
-                      role="tooltip"
-                      className="absolute top-8 z-20 px-2 py-1 rounded-ds-md text-ds-9 font-sans font-semibold whitespace-nowrap pointer-events-none"
-                      style={{
-                        background: "hsl(var(--ink-deep))",
-                        color: "hsl(var(--parchment))",
-                        boxShadow: "0 4px 14px -4px hsl(var(--ink-deep) / 0.4)",
-                      }}
-                    >
-                      {new Date(ts as string).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                    </div>
-                  )}
-                  <span
-                    // ds-9 below 360px so "Confirmed" — the longest unbreakable
-                    // label — still fits its column on a 320px phone.
-                    //
-                    // `w-full` is load-bearing. Without it the span sized to its
-                    // TEXT, not to the 68px column, so a wider label ("On the
-                    // Way") spilled out of its own step and got sliced by the
-                    // row's edge — the crisp "ed" and "W" the owner reported.
-                    // The comment above this row claims a step "can only ever
-                    // be cut between steps, never through one"; that was only
-                    // true of the step BOX, never of the label inside it.
-                    // Constrained to the column, a long label wraps within its
-                    // own step and the edge mask feathers whole steps as
-                    // intended.
-                    //
-                    // `min-h-[2.5em]` RESERVES BOTH LINES ON EVERY STEP.
-                    // "On the way" is the one label that does not fit a 60px
-                    // column on one line, so it — and only it — wrapped to two.
-                    // Measured at 500px: that column stood 61px tall against 47
-                    // for the other seven, and because the row is `items-start`
-                    // the extra 14px hung below its neighbours, so a row of
-                    // eight identical steps visibly sagged under one of them.
-                    // Reserving two lines' height makes every column the same
-                    // height whichever label happens to wrap, at the same cost
-                    // the tallest one was already imposing on the row.
-                    //
-                    // 2.9em, NOT 2.5em: the line box here is 1.45× the font
-                    // size, not the 1.25 `leading-tight` implies — `text-ds-9`
-                    // and `text-ds-10` each ship `lineHeight: "1.45"` in
-                    // tailwind.config.ts and win, and `html.senior-mode` keeps
-                    // 1.45 too. 2.5em undershot the real two-line box by 4px
-                    // and left the row still visibly uneven; 2 × 1.45 lands it
-                    // exactly, and being em-relative it holds at ds-9, ds-10
-                    // and senior-mode alike.
-                    className="w-full min-h-[2.9em] text-ds-9 min-[360px]:text-ds-10 font-sans font-semibold text-center leading-tight"
-                    style={{
-                      color: isCurrent
-                        ? "hsl(var(--bark))"
-                        : isActive
-                          ? "hsl(var(--ink-deep))"
-                          : "hsl(var(--olivewood) / 0.80)",
-                      /* The `opacity: isClipped ? 0 : undefined` that used to
-                         sit here moved UP to the column (see its comment): a
-                         blanked label over a half-painted dot was still a
-                         half-painted dot. Nothing replaces it here — two
-                         places deciding the same thing is how they drift. */
-                    }}
-                  >
-                    {s.label}
-                  </span>
-                  {/* ETA rides UNDER ITS OWN STEP (owner: "put eta under on
-                      the way"). It used to be a centred paragraph below the
-                      map, a full card-width away from the word it qualifies —
-                      so "On the way" and "~12 min" were two unrelated-looking
-                      facts and the reader had to join them. Here the number is
-                      the step's own caption.
-
-                      Only this step, only while the helpr is actually en
-                      route, so no other column ever gains a third line and the
-                      row keeps the tight rhythm the heading-name move bought
-                      it. `items-start` on the row means the taller column
-                      hangs below the others rather than pushing them down. */}
-                  {/* ARRIVED CARRIES NO CAPTION AT ALL NOW (owner,
-                      2026-09-16: "remove awaiting confirmedation from under
-                      confirmation. tehy can click arrived or toggle to see why
-                      its yellow"). The settled facts left first (VN-20:
-                      "Location confirmed does not need to show on the tracker,
-                      it should be on the map" — they ride on the map's job pin,
-                      or on the status line when no map is drawn); the open
-                      "Awaiting confirmation" question has now followed them.
-                      What is left saying it is the step's AMBER COLOUR, which
-                      is unchanged and deliberate, plus the step's own tap.
-
-                      The slot below is kept, not deleted: `arrivalStateLabel`
-                      is the one place that decides whether a caption is owed,
-                      so it returns `null` today and a future label would land
-                      here and nowhere else. */}
-                  {/* Only while Arrived is still the CURRENT step. Once the
-                      job progresses past it (Working, Done, …) the caption
-                      went stale — a job sitting on "Working" still showed
-                      "Poster confirmed" frozen under Arrived, which no
-                      longer told the reader anything they didn't already
-                      know from the step being lit. */}
-                  {s.key === "arrived" && idx === displayIdx && arrivalCaption && (
-                    <span
-                      className="w-full text-ds-9 font-sans font-semibold text-center leading-tight"
-                      style={{
-                        color:
-                          currentArrivalState === "claimed"
-                            ? "hsl(var(--amber-ink))"
-                            : "hsl(var(--bark))",
-                        opacity: isClipped ? 0 : undefined,
-                      }}
-                    >
-                      {arrivalCaption}
-                    </span>
-                  )}
-                  {/* THE ETA IS NO LONGER A THIRD LINE HERE (owner,
-                      2026-09-11: "move 12 min into the line below"). It now
-                      rides in the status line beneath the whole tracker,
-                      alongside "Location shared · 0.4 mi from the job" — see
-                      the ETA clause down there.
-
-                      This reverses the earlier "put eta under on the way"
-                      placement, and the reason that placement existed still
-                      holds — the number belongs NEXT TO the words it
-                      qualifies, not a card-width away. The status line
-                      satisfies that just as well: it is the other live fact
-                      about where the helper is, so "on the way, ~12 min,
-                      0.4 mi out" now reads as one sentence instead of the
-                      distance and the ETA sitting in two places. What it
-                      also buys is a tracker row where no column is ever
-                      taller than the others, which is what made "On the way"
-                      wrap to two lines and hang below its neighbours. */}
-                </div>
-              );
-            })}
-          </div>
-          </div>
-        );
-      })()}
+      {/* THE ONE TRACKER (owner, 2026-10-21: "we need 1 tracker"). The 8-icon stepper (Posted · Offered ·
+          Accepted · Confirmed · On the way · Arrived · Working · Done) is gone: the same four segments and
+          next line as chat and the job page (jobProgress, src/lib/jobProgress.ts). The sub-steps live in
+          the line ("Yusef is on the way"), and this card's controls below are unchanged. */}
+      <JobProgress
+        progress={jobProgress(
+          {
+            status: jobStatus ?? null,
+            helper_id: helperId,
+            date_needed: jobDateNeeded,
+            start_time: jobStartTime ?? null,
+            helper_confirmed_at: helperConfirmedAt,
+            helper_dayof_confirmed_at: helperDayofConfirmedAt,
+            poster_confirmed_at: posterConfirmedAt,
+            helper_on_the_way_at: jobStamps.onTheWayAt ?? (tracking?.status === "on_the_way" ? tracking.updated_at : null),
+            helper_arrived_at: jobStamps.arrivedAt,
+            helper_arrival_verified_at: jobStamps.arrivalVerifiedAt,
+            poster_confirmed_arrival_at: jobStamps.posterConfirmedArrivalAt,
+            poster_confirmed_working_at: posterConfirmedWorkingAt,
+            helper_completed_at: jobStamps.helperCompletedAt,
+            poster_completed_at: jobStamps.posterCompletedAt,
+          },
+          { viewer: _isOwner ? "poster" : "helpr", otherFirst: ((_isOwner ? helperName : posterName) ?? "").trim().split(/\s+/)[0] || null },
+        )}
+      />
 
       {/* Progress bar/fill-line REMOVED (owner, 2026-08-30) — the step icons
           already convey progress on their own; a second bar duplicating the

@@ -8,7 +8,8 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatJobDate } from "@/lib/dateUtils";
 import { formatPrice } from "@/lib/format";
 import type { Conversation } from "../types";
-import { dealStage, DEAL_STEPS, type DealJob } from "./dealStage";
+import { jobProgress, type ProgressJob } from "@/lib/jobProgress";
+import { JobProgress } from "@/components/tracker/JobProgress";
 
 /**
  * The deal-room chat's pinned card (board 2; chat halves of 59, 61, 62, 63).
@@ -25,9 +26,9 @@ import { dealStage, DEAL_STEPS, type DealJob } from "./dealStage";
  * never writes, so it can never offer a step the tracker would refuse.
  */
 const COLS =
-  "id,title,category,date_needed,start_time,budget,status,helper_id,customer_id,payment_status,parish,helper_on_the_way_at,helper_arrived_at,helper_arrival_verified_at,poster_confirmed_arrival_at,poster_confirmed_working_at,helper_completed_at,has_active_dispute";
+  "id,title,category,date_needed,start_time,budget,status,helper_id,customer_id,payment_status,parish,helper_on_the_way_at,helper_arrived_at,helper_arrival_verified_at,poster_confirmed_arrival_at,poster_confirmed_working_at,helper_completed_at,has_active_dispute,helper_confirmed_at,helper_dayof_confirmed_at,poster_confirmed_at,poster_completed_at";
 
-type DealRow = DealJob & {
+type DealRow = ProgressJob & {
   id: string;
   title: string;
   category: string | null;
@@ -119,7 +120,13 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
   const { job, application } = data;
   const viewerIsPoster = !!convo.viewerIsPoster;
   const first = (convo.otherUserName || "").split(" ")[0] || "them";
-  const stage = dealStage(job, viewerIsPoster, convo.otherUserId, userId, application, first);
+  // The ONE tracker (owner, 2026-10-21): the same bar and next line as the job page and the job cards.
+  const stage = jobProgress(job, {
+    viewer: viewerIsPoster ? "poster" : "helpr",
+    otherFirst: first === "them" ? null : first,
+    threadHelprId: viewerIsPoster ? convo.otherUserId : userId,
+    application,
+  });
   const Icon = getCategoryIcon(job.category);
   const when = [job.date_needed ? formatJobDate(job.date_needed) : null, clock(job.start_time)].filter(Boolean).join(" · ");
   const meta = [when || null, job.parish ? `${job.parish} Parish` : null].filter(Boolean).join(" · ");
@@ -153,32 +160,9 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
         )}
       </div>
 
-      {stage.step !== null && (
-        <ol className="grid grid-cols-4 gap-1.5" aria-label={`Step ${stage.step} of 4: ${DEAL_STEPS[stage.step - 1]}`}>
-          {DEAL_STEPS.map((name, i) => {
-            const reached = i < (stage.step ?? 0);
-            const current = i === (stage.step ?? 0) - 1;
-            return (
-              <li key={name} className="min-w-0" aria-current={current ? "step" : undefined}>
-                <span className="block h-1 rounded-full" style={{ background: reached ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.15)" }} />
-                <span
-                  className={`block mt-1 font-sans text-ds-10 truncate ${current ? "font-bold" : ""}`}
-                  style={{ color: current ? "hsl(var(--ink-deep))" : "hsl(var(--muted-foreground))" }}
-                >
-                  {name}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-      )}
+      <JobProgress progress={stage} compact />
 
-      <div className="flex items-center justify-between gap-3">
-        <p className="font-sans text-ds-12 min-w-0" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
-          {stage.word && <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{stage.word}</span>}
-          {stage.word && stage.label && " · "}
-          {stage.label}
-        </p>
+      <div className="flex items-center justify-end gap-3">
         <button
           type="button"
           onClick={open}

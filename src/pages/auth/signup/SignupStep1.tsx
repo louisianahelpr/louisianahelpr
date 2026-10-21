@@ -298,15 +298,6 @@ export function SignupStep1({
         </div>
       </section>
 
-      <Button
-        variant="primary"
-        className="w-full rounded-full"
-        size="lg"
-        onClick={handleContinue}
-      >
-        Continue
-      </Button>
-
       {/* ONE consent line (board 55): the 18+ attestation and the Terms, Rules
           and Privacy agreement are one box that records BOTH (acceptedPolicies
           and ageConfirmed, exactly as the two boxes did). Continue stays
@@ -366,6 +357,17 @@ export function SignupStep1({
           : ""}
       </p>
       </div>
+
+      {/* Continue sits BELOW the consent (Q2256 / audit #44, owner 2026-10-21:
+          keep the one combined Terms + 18+ box, read before the action). */}
+      <Button
+        variant="primary"
+        className="w-full rounded-full"
+        size="lg"
+        onClick={handleContinue}
+      >
+        Continue
+      </Button>
 
       {/* Continue saves the email for ONE reminder if sign-up is not finished
           (owner 2026-10-09; src/lib/signupLead.ts). Said before it happens. */}

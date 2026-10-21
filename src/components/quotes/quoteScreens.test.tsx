@@ -9,6 +9,7 @@
  * @mutate src/components/quotes/quotesUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/lib/escrowCheckout.ts |       action: "escrow", |       action: "quote_checkout",
  * @mutate src/lib/escrowCheckout.ts |       ...(opts.returnPath ? { returnPath: opts.returnPath } : {}), |       ...{},
+ * @mutate src/pages/quotes/QuoteRequestPage.tsx |   if (reqs.isError \|\| quotes.isError) { |   if (reqs.isError \|\| quotes.isError \|\| !request) {
  * @mutate src/pages/quotes/QuoteRequestPage.tsx | const requestReturnPath = (requestId: string) => `/quotes/request/${requestId}`; | const requestReturnPath = (requestId: string) => `/post-job?r=${requestId}`;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |       const jobId = await bookAcceptedQuote(id); |       const jobId = id;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx | (agreed && (!request.job_id \|\| paid.data === "not_paid")) | (agreed && !request.job_id)
@@ -190,6 +191,17 @@ describe("the 'quotes' switch", () => {
     expect(link.textContent).toMatch(/Quote request/);
     expect(link.textContent).toMatch(/Taking quotes · 2 quotes/);
     expect(screen.getByRole("heading", { name: "Your quote requests" })).toBeInTheDocument();
+  });
+});
+
+describe("a missing quote request (nightly-red #2375)", () => {
+  it("is a not-found message, never the load-error screen with Try again", async () => {
+    state.rpc.get_my_quote_requests = [REQ];
+    state.rpc.get_quotes_for_request = [];
+    at("/quotes/request/nope", <QuoteRequestPage />, "/quotes/request/:id");
+    expect(await screen.findByText("We can't find this quote request.")).toBeInTheDocument();
+    expect(screen.queryByText("We couldn't load this request.")).toBeNull();
+    expect(screen.queryByRole("button", { name: /try again/i })).toBeNull();
   });
 });
 

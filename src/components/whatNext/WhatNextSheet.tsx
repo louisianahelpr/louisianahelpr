@@ -108,7 +108,7 @@ export function WhatNextSheet({
 function StepDot({ state }: { state: WhatNextStep["state"] }) {
   if (state === "done") {
     return (
-      <span aria-label="Done" className="relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+      <span role="img" aria-label="Done" className="relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
         <Check className="h-3.5 w-3.5" aria-hidden />
       </span>
     );

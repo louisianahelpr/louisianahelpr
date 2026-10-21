@@ -41,7 +41,7 @@ describe("board 66: change this job", () => {
     fireEvent.click(days[9]); // Oct 31
     fireEvent.change(screen.getByLabelText("New start time"), { target: { value: "09:30" } });
     fireEvent.click(send);
-    await waitFor(() => expect(calls.at(-1)).toEqual(["j1", "2026-10-31", "09:30:00"]));
+    await waitFor(() => expect(calls[calls.length - 1]).toEqual(["j1", "2026-10-31", "09:30:00"]));
   });
 
   it("Cancel the job hands over to the cancellation dialog (fee shown there)", () => {

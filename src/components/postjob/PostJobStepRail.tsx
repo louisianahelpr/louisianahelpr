@@ -34,7 +34,7 @@ export function PostJobStepRail({ step, onPick }: { step: number; onPick?: (n: n
           return (
             <li key={label}>
               {done && onPick ? (
-                <button type="button" className={`${row} hover:bg-muted/60`} onClick={() => onPick(n)}>
+                <button type="button" className={`${row} ctl-tint`} onClick={() => onPick(n)}>
                   {body}
                   <span className="sr-only">, done. Go back to this step</span>
                 </button>

@@ -30,7 +30,8 @@ export function JobGroupChips({
   const pickedGroup = selectedCategory ? jobCategoryGroupOf(selectedCategory) : null;
   const shownGroup = openGroup ?? pickedGroup;
   const sub = JOB_CATEGORY_GROUPS.find((g) => g.id === shownGroup && g.items.length > 1);
-  const chip = (on: boolean) => `${chipBase} shrink-0 ${on ? chipActive : chipIdle}`;
+  // On the page (not inside the sheet) every control is a 44px tap target (home-chrome smallTapTargets).
+  const chip = (on: boolean) => `${chipBase.replace("min-h-10", "min-h-11")} shrink-0 ${on ? chipActive : chipIdle}`;
 
   return (
     <div className="flex flex-col gap-2 pb-2 lg:px-4">

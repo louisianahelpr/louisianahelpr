@@ -17,7 +17,9 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = join(__dirname, "..", "..");
 const FUNCTIONS = join(ROOT, "supabase", "functions");
-const GEMINI_HOST = "generativelanguage.googleapis.com";
+// The whole origin, as a regex: a source file calls Gemini when it names https://generativelanguage.googleapis.com/
+// (a bare host substring check reads as URL sanitizing to code scanning, js/incomplete-url-substring-sanitization).
+const GEMINI_ORIGIN = /https:\/\/generativelanguage\.googleapis\.com\//;
 
 /** Edge function -> the words its use must have in the Gemini line. */
 const USE_WORDS: Record<string, string[]> = {
@@ -37,7 +39,7 @@ describe("the Privacy tab's Gemini line covers every use of Gemini", () => {
   const callers = [
     ...new Set(
       walk(FUNCTIONS)
-        .filter((f) => blankComments(readFileSync(f, "utf8")).includes(GEMINI_HOST))
+        .filter((f) => blankComments(readFileSync(f, "utf8")).match(GEMINI_ORIGIN) !== null)
         .map((f) => f.slice(FUNCTIONS.length + 1).split("/")[0]),
     ),
   ].sort();

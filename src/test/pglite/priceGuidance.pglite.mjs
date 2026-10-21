@@ -59,7 +59,7 @@ await job(1000, { is_group_job: true });
 await job(1000, { category: "cleaning" });
 await job(1000, { status: "open" });
 await job(1000, { age: "120 days" });
-// 29 real jobs: $60..$200 in $5 steps.
+// 29 real jobs (one under the 2026-10-21 threshold): $60..$200 in $5 steps.
 for (let i = 0; i < 29; i++) await job(60 + i * 5);
 let r = await ask();
 check("29 real jobs: count and range hidden (NULL)", r.sample_count === null && r.low_dollars === null && r.high_dollars === null, r);
@@ -69,7 +69,7 @@ r = await ask();
 check("30 real jobs: the middle half in whole dollars ($96-$169); the noise never counted", r.sample_count === 30 && r.low_dollars === 96 && r.high_dollars === 169, r);
 r = await ask(null);
 check("signed out: no count and no range", r.sample_count === null && r.low_dollars === null, r);
-// 30+ jobs but all from ONE poster in another category: hidden (one heavy poster never sets the range).
+// 30+ jobs (the 2026-10-21 threshold) but all from ONE poster in another category: hidden (one heavy poster never sets the range).
 for (let i = 0; i < 31; i++) await job(50 + i, { category: "cleaning", customer_id: U(70) });
 r = await ask(ME, "on", "cleaning");
 check("31 jobs from one poster: hidden (needs 3 posters)", r.sample_count === null && r.low_dollars === null, r);

@@ -65,7 +65,7 @@ const CONFIRM_PHRASE = "DELETE";
  * src/test/deleteAccountCopyMatchesServer.test.ts.
  */
 const WHAT_HAPPENS = [
-  "Open work finishes first. You can't delete while a job is booked, in progress or disputed, a sale or order is underway, or a job's payment is held or waiting to be paid out.",
+  "Open work finishes first. You can't delete while a job is booked, in progress or disputed, a sale or order is underway, a job's payment is held or waiting to be paid out, or money is still on its way to you.",
   "If you have a membership, it stops billing.",
 ] as const;
 

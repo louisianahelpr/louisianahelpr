@@ -2,7 +2,7 @@ import { serve } from "../_shared/buildStamp.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { closeUnpaidShopPages, describeDeleteError, findActiveWork, purgeAccount, SERIES_BLOCKS_DELETION_MESSAGE, SHOPS_BLOCKS_DELETION_MESSAGE } from "../_shared/accountPurge.ts";
+import { closeUnpaidShopPages, describeDeleteError, findActiveWork, purgeAccount, MONEY_OWED_BLOCKS_DELETION_MESSAGE, SERIES_BLOCKS_DELETION_MESSAGE, SHOPS_BLOCKS_DELETION_MESSAGE } from "../_shared/accountPurge.ts";
 import { publicErrorMessage } from "../_shared/publicError.ts";
 
 serve(async (req) => {
@@ -93,6 +93,8 @@ serve(async (req) => {
             ? SERIES_BLOCKS_DELETION_MESSAGE
             : active.reason === "shops"
             ? SHOPS_BLOCKS_DELETION_MESSAGE
+            : active.reason === "money_owed"
+            ? MONEY_OWED_BLOCKS_DELETION_MESSAGE
             : "You have an active job or funds held in escrow. Finish or cancel your open jobs and let any payments settle before deleting your account.",
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },

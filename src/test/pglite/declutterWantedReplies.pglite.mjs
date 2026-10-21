@@ -21,6 +21,9 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const mig = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261021031757_declutter_wanted_public_replies.sql`, "utf8");
 const old = readFileSync(`${MIG_DIR}20261016053541_declutter_wanted_price_hint.sql`, "utf8");
+// The display-name helper the browse calls, verbatim from the migration that defines it (20261021061341).
+const displayName = readFileSync(`${MIG_DIR}20261021061341_member_display_name.sql`, "utf8")
+  .match(/CREATE OR REPLACE FUNCTION public\.member_display_name\([\s\S]*?AS (\$fn\$)[\s\S]*?\1;/)[0];
 const pick = (name) => old.match(new RegExp(`CREATE OR REPLACE FUNCTION public\\.${name}\\([^)]*\\)\\s*RETURNS[\\s\\S]*?AS (\\$[a-z_]*\\$)\\n[\\s\\S]*?\\1;`))[0];
 const db = new PGlite();
 const P = "11111111-1111-4111-8111-111111111111", S = "22222222-2222-4222-8222-222222222222", X = "33333333-3333-4333-8333-333333333333", T = "44444444-4444-4444-8444-444444444444";
@@ -38,6 +41,9 @@ create function are_users_blocked(a uuid, b uuid) returns boolean language sql a
 create function declutter_member_out(u uuid) returns boolean language sql as $$ select exists(select 1 from outs where user_id = u) $$;
 create function declutter_seller_out(u uuid) returns boolean language sql as $$ select exists(select 1 from outs where user_id = u) $$;
 create function declutter_seller_hidden(u uuid) returns boolean language sql as $$ select false $$;
+-- member_under_18 stub: the members listed in minors (the real one reads profiles.date_of_birth).
+create table minors(user_id uuid);
+create function member_under_18(u uuid) returns boolean language sql as $$ select exists(select 1 from minors where user_id = u) $$;
 create function seed_hidden_from_caller() returns boolean language sql as $$ select (select on_ from seedhide) and not exists(select 1 from testers where user_id = auth.uid()) $$;
 create function seed_hidden_for(u uuid) returns boolean language sql as $$ select (select on_ from seedhide) and not exists(select 1 from testers where user_id = u) $$;
 create function declutter_wanted_pairs(a uuid, b uuid, c boolean) returns table(wanted_id uuid, item_id uuid, miles double precision) language sql as $$ select null::uuid, null::uuid, 0::double precision where false $$;
@@ -59,6 +65,7 @@ create table declutter_offer_events(offer_id uuid, actor_side text, action text,
 -- As on prod before the migration: members could read both tables.
 grant select on declutter_offers, declutter_offer_events to authenticated;
 `);
+await db.exec(displayName);
 await db.exec(pick("declutter_create_wanted"));
 await db.exec(pick("declutter_my_wanted"));
 const as = async (uid, sql) => { await db.exec(`select set_config('t.uid', '${uid ?? ""}', false)`); return db.query(sql); };
@@ -85,6 +92,17 @@ r.blockedReply = await fails(S, `select declutter_wanted_reply('${pub}', '${ITEM
 await db.exec(`delete from blocks; insert into outs values ('${P}')`);
 r.posterOutHidden = (await as(S, `select count(*)::int n from declutter_wanted_browse(30.02, -92.01)`)).rows[0].n === 0 ? "ok" : "bad";
 await db.exec(`delete from outs`);
+// Review note 4 (2026-10-21): a poster found to be under 18 after posting is neither listed nor answerable.
+await db.exec(`insert into minors values ('${P}')`);
+r.minorPosterHidden = (await as(S, `select count(*)::int n from declutter_wanted_browse(30.02, -92.01)`)).rows[0].n === 0 ? "ok" : "bad";
+r.minorPosterReply = await fails(S, `select declutter_wanted_reply('${pub}', '${ITEM}', 2500)`, "wanted_not_found");
+// (Should the reply wrongly go through, its offer is removed so the checks below still run and report.)
+await db.exec(`delete from minors; delete from declutter_offer_events; delete from declutter_offers where wanted_id = '${pub}'`);
+// Review note 2: any whitespace splits the name (member_display_name), so a tab never shows the full surname.
+await db.exec(`update profiles set full_name = E'Pat\\tThibodeaux' where user_id = '${P}'`);
+const tabbed = (await as(S, `select poster_name from declutter_wanted_browse(30.02, -92.01)`)).rows[0]?.poster_name;
+r.firstLAnyWhitespace = tabbed === "Pat T." ? "ok" : JSON.stringify(tabbed);
+await db.exec(`update profiles set full_name = 'Pat Thibodeaux' where user_id = '${P}'`);
 await db.exec(`update declutter_wanted set is_seed = true where id = '${pub}'`);
 r.seedHidden = (await as(S, `select count(*)::int n from declutter_wanted_browse(30.02, -92.01)`)).rows[0].n === 0 ? "ok" : "bad";
 await db.exec(`insert into testers values ('${S}')`);
@@ -131,7 +149,7 @@ r.myWantedHasPublic = (await as(P, `select count(*)::int n from declutter_my_wan
 await db.exec(`insert into off_keys values ('declutter_wanted')`);
 r.switchOff = await fails(S, `select * from declutter_wanted_browse(30.02, -92.01)`, "feature_disabled");
 await db.exec(`delete from off_keys`);
-const fns = ["declutter_wanted_browse(numeric,numeric)", "declutter_wanted_reply(uuid,uuid,integer)", "declutter_set_wanted_public(uuid,boolean)", "declutter_create_wanted(text,text,integer,integer,numeric,numeric,boolean)", "declutter_my_wanted()", "declutter_first_l(text)", "declutter_wanted_snap_miles(numeric,numeric,numeric,numeric)"];
+const fns = ["declutter_wanted_browse(numeric,numeric)", "declutter_wanted_reply(uuid,uuid,integer)", "declutter_set_wanted_public(uuid,boolean)", "declutter_create_wanted(text,text,integer,integer,numeric,numeric,boolean)", "declutter_my_wanted()", "declutter_wanted_snap_miles(numeric,numeric,numeric,numeric)"];
 const anon = [];
 for (const f of fns) if ((await db.query(`select has_function_privilege('anon', '${f}', 'execute') v`)).rows[0].v) anon.push(f);
 r.noAnon = anon.length === 0 ? "ok" : anon.join(",");

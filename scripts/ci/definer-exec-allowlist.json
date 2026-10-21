@@ -372,7 +372,9 @@
     "shops_admin_refund_order(uuid, text, text)": "reviewed 2026-10-19 (Q14): Shops M3/M4 (20261019071055): has_role(auth.uid(), 'admin') first, else admin_only; only the four admin reasons; note required; audited; the refund row's reason -> fee policy -> amount are table CHECKs.",
     "shops_admin_remove_strike(uuid, text)": "reviewed 2026-10-19 (Q14): Shops M3/M4 (20261019071055): has_role(auth.uid(), 'admin') first, else admin_only; note required; audited; marks one Shops strike removed.",
     "shops_admin_give_strike(uuid, text, text)": "reviewed 2026-10-19 (Q14): Shops M3/M4 (20261019071055): has_role(auth.uid(), 'admin') first, else admin_only; note required; audited; one admin strike per order and side.",
-    "shops_admin_queue()": "reviewed 2026-10-19 (Q14): Shops M3/M4 (20261019071055): has_role(auth.uid(), 'admin') first, else admin_only; read only (problems, unsent refunds, pending / failed / held-for-review payouts with holds, active Shops strikes, the Louisiana facilitator YTD total)."
+    "shops_admin_queue()": "reviewed 2026-10-19 (Q14): Shops M3/M4 (20261019071055): has_role(auth.uid(), 'admin') first, else admin_only; read only (problems, unsent refunds, pending / failed / held-for-review payouts with holds, active Shops strikes, the Louisiana facilitator YTD total).",
+    "get_applicant_category_counts(uuid)": "client",
+    "get_job_match_reach(uuid)": "client"
   },
   "unscoped": {
     "choose_new_social_account(uuid)": "reviewed 2026-10-05 (Q446): the signed-out choice screen marks the pending one-account choice whose random id only the refused sign-in received; it reads and returns nothing about any person, and marking a row only lets that same Apple/Google identity create its account.",

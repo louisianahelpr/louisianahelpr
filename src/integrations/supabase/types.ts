@@ -12532,6 +12532,13 @@ export type Database = {
         Args: { p_nodoc_sha256: string; p_user_id: string }
         Returns: Json
       }
+      get_applicant_category_counts: {
+        Args: { p_job_id: string }
+        Returns: {
+          category_completed: number
+          helper_id: string
+        }[]
+      }
       get_category_price_stats: {
         Args: { p_category: string; p_parish?: string }
         Returns: {
@@ -12615,6 +12622,7 @@ export type Database = {
         }[]
       }
       get_job_customer_id: { Args: { _job_id: string }; Returns: string }
+      get_job_match_reach: { Args: { p_job_id: string }; Returns: number }
       get_job_offer_targets: {
         Args: { p_job_ids?: string[] }
         Returns: {

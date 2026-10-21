@@ -66,11 +66,11 @@ export const LEGAL_PAGE_META = {
 /** Single-path public pages, keyed by pathname. */
 export const PUBLIC_PAGE_META = {
   "/browse": {
-    title: "Browse Local Jobs — Helpr",
+    title: "Browse local jobs — Helpr",
     description:
       "See what your Louisiana neighbors need help with right now. No account needed to look.",
     canonical: `${SITE_ORIGIN}/browse`,
-    ogTitle: "Browse Local Jobs — Helpr",
+    ogTitle: "Browse local jobs — Helpr",
     ogDescription:
       "Browse open jobs across Louisiana — cleaning, yard work, moving, errands, and more. No signup required to look.",
   },
@@ -85,11 +85,11 @@ export const PUBLIC_PAGE_META = {
   "/support": {
     // "X — Helpr", like every sibling page — the "| Louisiana's Local Job
     // Partner" long suffix belongs to the landing page's title alone.
-    title: "Contact Support — Helpr",
+    title: "Contact support — Helpr",
     description:
       "Message the Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
     canonical: `${SITE_ORIGIN}/support`,
-    ogTitle: "Contact Support — Helpr",
+    ogTitle: "Contact support — Helpr",
     ogDescription:
       "Message the Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
   },
@@ -110,60 +110,60 @@ export const NOINDEX_ROBOTS = "noindex, follow";
 
 export const NOINDEX_PAGE_META = {
   "/login": {
-    title: "Log In — Helpr",
+    title: "Log in — Helpr",
     description: "Log in to your Helpr account.",
     canonical: `${SITE_ORIGIN}/login`,
-    ogTitle: "Log In — Helpr",
+    ogTitle: "Log in — Helpr",
     ogDescription: "Log in to your Helpr account to post jobs or pick up local work across Louisiana.",
     robots: NOINDEX_ROBOTS,
   },
   "/signup": {
-    title: "Sign Up — Helpr",
+    title: "Sign up — Helpr",
     description: "Create your free Helpr account in under a minute.",
     canonical: `${SITE_ORIGIN}/signup`,
-    ogTitle: "Sign Up — Helpr",
+    ogTitle: "Sign up — Helpr",
     ogDescription: "Join Helpr in under a minute and start posting jobs or earning as a verified Helpr across Louisiana.",
     robots: NOINDEX_ROBOTS,
   },
   "/forgot-password": {
-    title: "Reset Password — Helpr",
+    title: "Reset password — Helpr",
     description: "Forgot your Helpr password? Enter your email and we'll send you a reset link.",
     canonical: `${SITE_ORIGIN}/forgot-password`,
-    ogTitle: "Reset Password — Helpr",
+    ogTitle: "Reset password — Helpr",
     ogDescription: "Recover access to your Helpr account with a one-time password reset email.",
     robots: NOINDEX_ROBOTS,
   },
   "/reset-password": {
-    title: "Set New Password — Helpr",
+    title: "Set new password — Helpr",
     description: "Choose a new password for your Helpr account.",
     canonical: `${SITE_ORIGIN}/reset-password`,
-    ogTitle: "Set New Password — Helpr",
+    ogTitle: "Set new password — Helpr",
     ogDescription: "Finish resetting your Helpr password.",
     robots: NOINDEX_ROBOTS,
   },
   "/signup-pending": {
-    title: "Check Your Email — Helpr",
+    title: "Check your email — Helpr",
     description: "Confirm your email address to finish creating your Helpr account.",
     canonical: `${SITE_ORIGIN}/signup-pending`,
-    ogTitle: "Check Your Email — Helpr",
+    ogTitle: "Check your email — Helpr",
     ogDescription: "Confirm your email address to finish creating your Helpr account.",
     robots: NOINDEX_ROBOTS,
   },
   "/account-banned": {
-    title: "Account Banned — Helpr",
+    title: "Account banned — Helpr",
     description: "This Helpr account has been banned. Contact support if you think this is a mistake.",
     canonical: `${SITE_ORIGIN}/account-banned`,
-    ogTitle: "Account Banned — Helpr",
+    ogTitle: "Account banned — Helpr",
     ogDescription: "This Helpr account has been banned. Contact support if you think this is a mistake.",
     robots: NOINDEX_ROBOTS,
   },
   // Q1655: the email footer's unsubscribe link lands here (email-unsubscribe
   // GET answers 303 to it), so it asks before anything changes.
   "/unsubscribe": {
-    title: "Email Settings — Helpr",
+    title: "Email settings — Helpr",
     description: "Turn off a kind of Helpr email.",
     canonical: `${SITE_ORIGIN}/unsubscribe`,
-    ogTitle: "Email Settings — Helpr",
+    ogTitle: "Email settings — Helpr",
     ogDescription: "Turn off a kind of Helpr email.",
     robots: NOINDEX_ROBOTS,
   },

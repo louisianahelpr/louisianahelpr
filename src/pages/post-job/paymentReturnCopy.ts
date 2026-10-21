@@ -21,12 +21,12 @@ export function paymentPageTitle(state: ConfirmState, live: boolean): string {
   return state === "held"
     ? live ? "Your job is live — Helpr" : "Payment confirmed — Helpr"
     : state === "not_held"
-      ? "Payment Not Completed — Helpr"
+      ? "Payment not completed — Helpr"
       : state === "checking"
-        ? "Confirming Payment — Helpr"
+        ? "Confirming payment — Helpr"
         : state === "not_yours"
-          ? "Different Account — Helpr"
-          : "Payment Status Unconfirmed — Helpr";
+          ? "Different account — Helpr"
+          : "Payment status unconfirmed — Helpr";
 }
 
 export function paymentHeading(state: ConfirmState, live: boolean): string {

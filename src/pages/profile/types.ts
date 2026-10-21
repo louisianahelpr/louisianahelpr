@@ -38,7 +38,7 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   // titles as the loading header: the placeholder said "Legal" and LegalTab
   // then said "Legal & Policies" in the same box. The browser tab was wrong
   // too, for as long as it had drifted.
-  legal: "Legal & Policies",
+  legal: "Legal & policies",
   reviews: "Reviews about you",
   referral: "Referrals",
   subscription: "Membership",

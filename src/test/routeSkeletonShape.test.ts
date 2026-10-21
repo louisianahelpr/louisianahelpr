@@ -52,7 +52,7 @@ describe("route skeletons are measured against their page (Q201)", () => {
   });
 
   it(`a title or first block more than ${TOL_PX}px off is a mismatch`, () => {
-    const loaded = { title: box(68, 22, 120, 25, "h1", "Legal & Policies"), block: box(20, 124, 335, 546) };
+    const loaded = { title: box(68, 22, 120, 25, "h1", "Legal & policies"), block: box(20, 124, 335, 546) };
     expect(compareFrames({ title: loaded.title, block: box(20, 68, 335, 108) }, loaded)).toEqual(["block y 68->124"]);
     expect(compareFrames({ title: box(68, 22 + TOL_PX + 1, 120, 25, "h1"), block: loaded.block }, loaded)).toEqual([`title y ${22 + TOL_PX + 1}->22`]);
     expect(compareFrames({ title: loaded.title, block: box(20, 124, 300, 546) }, loaded)).toEqual(["block w 300->335"]);

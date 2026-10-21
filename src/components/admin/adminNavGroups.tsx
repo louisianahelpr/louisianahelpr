@@ -69,16 +69,16 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
     // upload and offered a manual approve on a review nobody performed —
     // a human stamp with no human behind it, feeding a badge strangers trust.
     //
-    // "Identity Review" (2026-08-29) is not that screen coming back. It lists
+    // "Identity review" (2026-08-29) is not that screen coming back. It lists
     // only `manual_review` and `failed` — people Stripe BILLED for their one
     // attempt and could not verify — and exists because 2f650f35 stopped
     // making that outcome a permanent posting ban. Stripe still owns the pass;
     // this owns the appeal, and its approvals are badged "Admin Verified".
     title: "Queues",
     items: [
-      { id: "idvreview", label: "Identity Review", icon: ShieldCheck },
-      { id: "credentials", label: "License & Insurance", icon: FileCheck },
-      { id: "exceptions", label: "Exception Queue", icon: ClipboardList },
+      { id: "idvreview", label: "Identity review", icon: ShieldCheck },
+      { id: "credentials", label: "License & insurance", icon: FileCheck },
+      { id: "exceptions", label: "Exception queue", icon: ClipboardList },
       // The human end of the stalled-completion sweep (migration
       // 20260919143637). A job stuck `in_progress` that nobody marks done
       // holds its escrow forever; at +48h past its scheduled end the sweep
@@ -93,7 +93,7 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
     title: "Trust & Safety",
     items: [
       { id: "fraud", label: "Fraud", icon: ShieldAlert },
-      { id: "banreview", label: "Ban Review", icon: Gavel },
+      { id: "banreview", label: "Ban review", icon: Gavel },
       { id: "disputes", label: "Disputes", icon: Scale },
       { id: "reports", label: "Reports", icon: AlertTriangle },
       { id: "support", label: "Support", icon: Headphones },
@@ -104,28 +104,28 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
     items: [
       { id: "subscriptions", label: "Subscriptions", icon: Crown },
       { id: "referrals", label: "Referrals", icon: Gift },
-      { id: "payouts", label: "Payout Batches", icon: Banknote },
-      { id: "tiers", label: "Helpr Tiers", icon: Award },
+      { id: "payouts", label: "Payout batches", icon: Banknote },
+      { id: "tiers", label: "Helpr tiers", icon: Award },
       // Shops M4 (20261019071055): Shops order problems, refunds, payouts and strikes.
-      { id: "shops", label: "Shops Orders", icon: Store },
+      { id: "shops", label: "Shops orders", icon: Store },
     ],
   },
   {
     title: "Engagement",
     items: [
       { id: "notifications", label: "Notifications", icon: BellRing },
-      { id: "notiflogs", label: "Notification Logs", icon: ClipboardCheck },
+      { id: "notiflogs", label: "Notification logs", icon: ClipboardCheck },
       { id: "marketing", label: "Marketing", icon: Mail },
       // Email campaigns are "Marketing" above; this is the Facebook/Instagram
       // auto-poster, which is a different system with its own kill switch.
-      { id: "social", label: "Social Posts", icon: Share2 },
+      { id: "social", label: "Social posts", icon: Share2 },
     ],
   },
   {
     title: "System",
     items: [
       { id: "settings", label: "Settings", icon: Settings },
-      { id: "audit", label: "Audit Log", icon: ScrollText },
+      { id: "audit", label: "Audit log", icon: ScrollText },
       { id: "health", label: "Health", icon: Activity },
       { id: "export", label: "Export", icon: Download },
     ],

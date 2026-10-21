@@ -66,18 +66,18 @@ const navGroups = adminNavGroups;
 const VIEW_LABELS: Record<View, string> = {
     home: "Dashboard", analytics: "Analytics", people: "Users",
     jobs: "Jobs", settings: "Settings", disputes: "Disputes",
-    notifications: "Notifications", notiflogs: "Notification Logs",
+    notifications: "Notifications", notiflogs: "Notification logs",
     reports: "Reports", support: "Support",
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
-    audit: "Audit Log", health: "Health", export: "Export",
-    payouts: "Payout Batches", tiers: "Helpr Tiers", marketing: "Marketing",
-    social: "Social Posts",
-    idvreview: "Identity Review",
-    credentials: "License & Insurance",
-    exceptions: "Exception Queue",
-    banreview: "Ban Review",
+    audit: "Audit log", health: "Health", export: "Export",
+    payouts: "Payout batches", tiers: "Helpr tiers", marketing: "Marketing",
+    social: "Social posts",
+    idvreview: "Identity review",
+    credentials: "License & insurance",
+    exceptions: "Exception queue",
+    banreview: "Ban review",
     stalled: "Stuck Jobs",
-    shops: "Shops Orders",
+    shops: "Shops orders",
   };
 
 const Admin = () => {

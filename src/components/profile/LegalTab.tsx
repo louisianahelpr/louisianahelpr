@@ -137,7 +137,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
     // profileTabShell.test.ts.
     <ProfileTabBody bottomClearance="calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))">
       <ProfileTabHeader
-        title="Legal &amp; Policies"
+        title="Legal &amp; policies"
         onBack={onBack}
       />
 

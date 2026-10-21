@@ -9,7 +9,7 @@
 const PROPER = new Set([
   "Helpr", "Helprs", "Louisiana", "Stripe", "Apple", "Google", "Pay", "ID", "iOS", "Android", "Face", "Touch",
   "Declutter", "Shops", "Homes", "Explore", "Messages", "Venmo", "PayPal", "Zelle", "Facebook", "Instagram",
-  "I", "I'm", "I've", "I'll", "OK", "Terms", "Use", "Privacy", "Policy", "Community", "Rules", "Help", "Center",
+  "I", "I'm", "I've", "I'll", "OK", "Terms", "Use", "Privacy", "Policy", "Community", "Rules",
   "App", "Store", "AI", "Jobs", "Home", "Wrapped",
   // Days and months are names.
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun",

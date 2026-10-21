@@ -483,7 +483,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
         <p className="flex-1 min-w-0 font-sans text-ds-12 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
           Quick answer?{" "}
           <span className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
-            Browse the Help Center
+            Browse the help center
           </span>
         </p>
         <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0" />

@@ -71,7 +71,7 @@ describe("ResetPasswordDialog", () => {
         onSuccess={onSuccess}
       />,
     );
-    screen.getByRole("button", { name: /Send Reset Link/ }).click();
+    screen.getByRole("button", { name: /Send reset link/ }).click();
     await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(1));
     expect(invokeMock).toHaveBeenCalledWith("admin-user-actions", {
       body: {
@@ -113,7 +113,7 @@ describe("ResetPasswordDialog — the send failed", () => {
     const onClose = vi.fn();
     const onSuccess = vi.fn();
     render(<ResetPasswordDialog profile={sampleProfile} onClose={onClose} onSuccess={onSuccess} />);
-    screen.getByRole("button", { name: /Send Reset Link/ }).click();
+    screen.getByRole("button", { name: /Send reset link/ }).click();
     await waitFor(() => expect(toastError).toHaveBeenCalledWith("The mail service is down right now."));
     expect(onSuccess).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
@@ -124,7 +124,7 @@ describe("ResetPasswordDialog — the send failed", () => {
     const onClose = vi.fn();
     const onSuccess = vi.fn();
     render(<ResetPasswordDialog profile={sampleProfile} onClose={onClose} onSuccess={onSuccess} />);
-    const button = screen.getByRole("button", { name: /Send Reset Link/ });
+    const button = screen.getByRole("button", { name: /Send reset link/ });
     button.click();
     await waitFor(() => expect(toastError).toHaveBeenCalled());
     await waitFor(() => expect(button).not.toBeDisabled());

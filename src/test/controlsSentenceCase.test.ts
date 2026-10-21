@@ -11,6 +11,7 @@
  * literal written as a child ({"…"} and the string branches of a ternary).
  * Plus `label: "…"` entries in tab and range arrays (the segmented toggles).
  *
+ * @mutate src/pages/info/HelpCenter.tsx | <PublicHeaderPage title="Help center" | <PublicHeaderPage title="Help Center"
  * @mutate src/components/PayoutSetupForm.tsx | Set up payouts with Stripe | Set Up Payouts with Stripe
  * @mutate src/components/profile/earningsTab/EarningsRangeToggle.tsx | label: "This week" | label: "This Week"
  */
@@ -68,6 +69,9 @@ function shown(body: string): string[] {
   return out;
 }
 
+/** title="…" on the shared page-header / empty-state components, label="…" on badges. */
+const TITLE_PROPS = /<(PageHeader|PublicHeaderPage|EmptyState|ProfileTabHeader|AppPage|PageTitleBar|SectionHeader|ProfileBadge|Badge)\b[^>]*?\b(?:title|label)="([^"]+)"/g;
+
 /** Product and badge NAMES, written as names everywhere they appear (exact text). */
 const NAMES = new Set(["Licensed & Insured", "Licensed & Insured Only", "Top Rated"]);
 
@@ -80,6 +84,13 @@ function findings(): string[] {
         const p = NAMES.has(t) ? [] : sentenceCaseProblems(t);
         if (p.length) bad.push(`${f}: "${t}" (${p.join(", ")})`);
       }
+    }
+    // Audit #18/#20 (2026-10-21): page-header and empty-state titles and badge
+    // labels, written as a string prop on the shared components.
+    for (const m of src.matchAll(TITLE_PROPS)) {
+      const t = m[2].replace(/&amp;/g, "&");
+      const p = NAMES.has(t) ? [] : sentenceCaseProblems(t);
+      if (p.length) bad.push(`${f}: ${m[1]} "${t}" (${p.join(", ")})`);
     }
     for (const m of src.matchAll(/\blabel:\s*"([^"]+)"/g)) {
       const p = NAMES.has(m[1]) ? [] : sentenceCaseProblems(m[1]);
@@ -95,6 +106,12 @@ describe("buttons, links, tabs and headings are sentence case (owner 2026-10-21)
     let n = 0;
     for (const f of files) n += children(blankComments(readFileSync(f, "utf8"))).length;
     expect(n).toBeGreaterThan(1000);
+  });
+
+  it("the title/label prop scan reads real headers (not vacuous)", () => {
+    let n = 0;
+    for (const f of files) n += [...blankComments(readFileSync(f, "utf8")).matchAll(TITLE_PROPS)].length;
+    expect(n).toBeGreaterThan(50);
   });
 
   it("every control and heading the scan reads is sentence case", () => {

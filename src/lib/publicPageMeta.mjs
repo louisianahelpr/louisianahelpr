@@ -75,11 +75,11 @@ export const PUBLIC_PAGE_META = {
       "Browse open jobs across Louisiana — cleaning, yard work, moving, errands, and more. No signup required to look.",
   },
   "/help": {
-    title: "Help Center — Helpr",
+    title: "Help center — Helpr",
     description:
       "Answers, guides, and support for everyone here — posting jobs, doing jobs, payments, safety, and account settings.",
     canonical: `${SITE_ORIGIN}/help`,
-    ogTitle: "Louisiana Helpr Help Center",
+    ogTitle: "Louisiana Helpr help center",
     ogDescription: "Answers, guides, and support — for posting jobs and doing them alike.",
   },
   "/support": {

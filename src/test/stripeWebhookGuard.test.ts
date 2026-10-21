@@ -22,6 +22,7 @@
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!Number.isInteger(since) \|\| !Number.isInteger(until) \|\| since >= until) { |   if (false) {
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (count !== events.length) { |   if (false) {
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (typeof truncated !== "boolean") { |   if (false) {
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   const connectEps = allEnabled.filter(isConnect); |   const connectEps = allEnabled.filter(() => false);
 import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -72,9 +73,34 @@ describe("handler map floor", () => {
     expect(handlers.length).toBe(16);
     expect(new Set(handlers).size).toBe(16);
   });
+
+  // Board 143a: payout.* arrive only on the CONNECT endpoint, so the account
+  // endpoint is never graded on them (and never asked to subscribe to them).
+  it("the account endpoint's set leaves out the Connect-only payout types, which are still handled", () => {
+    expect(handlers).not.toContain("payout.failed");
+    expect(handlers).not.toContain("payout.paid");
+    const index = readFileSync(join(ROOT, "supabase/functions/stripe-webhook/index.ts"), "utf8");
+    expect(index).toMatch(/"payout\.failed": handlePayoutFailed/);
+    expect(index).toMatch(/const CONNECT_EVENT_TYPES[^=]*= new Set\(\["payout\.failed", "payout\.paid"\]\)/);
+  });
 });
 
 describe("gradeLiveEndpoints", () => {
+  // Board 143a: the planned Connect endpoint on the same URL is not a #1586 duplicate.
+  const CONNECT = ["payout.failed", "payout.paid"];
+  it("passes the account endpoint plus ONE Connect endpoint on exactly the Connect types", () => {
+    const r = gradeLiveEndpoints({ data: [ep(), ep({ id: "we_connect", enabled_events: CONNECT })] }, handlers, WEBHOOK_URL, CONNECT);
+    expect(r.failures).toEqual([]);
+    expect(r.notes.join("\n")).toMatch(/Connect endpoint we_connect/);
+  });
+  it("fails a Connect endpoint missing one of its types, and two Connect endpoints", () => {
+    expect(gradeLiveEndpoints({ data: [ep(), ep({ id: "we_c", enabled_events: ["payout.failed"] })] }, handlers, WEBHOOK_URL, CONNECT).failures.join("\n")).toMatch(/does NOT subscribe to: payout\.paid/);
+    expect(gradeLiveEndpoints({ data: [ep(), ep({ id: "c1", enabled_events: CONNECT }), ep({ id: "c2", enabled_events: CONNECT })] }, handlers, WEBHOOK_URL, CONNECT).failures[0]).toMatch(/2 enabled Connect-only endpoints/);
+  });
+  it("without the Connect list, a second endpoint is still a #1586 duplicate", () => {
+    expect(gradeLiveEndpoints({ data: [ep(), ep({ id: "we_connect", enabled_events: CONNECT })] }, handlers, WEBHOOK_URL).failures[0]).toMatch(/2 ENABLED live webhook endpoints/);
+  });
+
   it("passes one enabled live endpoint subscribed to exactly the handled events", () => {
     const r = gradeLiveEndpoints({ data: [ep()] }, handlers, WEBHOOK_URL);
     expect(r.failures).toEqual([]);
@@ -413,7 +439,7 @@ describe("gradeTestEndpoints (Q1820: the TEST-mode webhook endpoint)", () => {
 
   it("the script grades the test half on every live run", () => {
     const src = readFileSync(join(ROOT, "scripts/check-stripe-webhook-events.mjs"), "utf8");
-    expect(src).toContain("record(gradeConfigCheckResponse(body, handlers, WEBHOOK_URL, testModeEventTypes(handlers)));");
+    expect(src).toContain("record(gradeConfigCheckResponse(body, handlers, WEBHOOK_URL, testModeEventTypes(handlers), connectEventTypes()));");
   });
 
   it("the static job proves the test half red on the committed fixture", () => {

@@ -303,7 +303,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
           <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
             {side === "helper"
               ? "Tell us what went wrong. Nothing moves while this is open."
-              : "Tell us what went wrong. The payment stays held while this is open."}
+              : "Tell us what went wrong. What happens to the payment is below."}
           </p>
           {jobTitle && (
             <div className="rounded-2xl bg-card border border-border px-4 py-3">
@@ -312,6 +312,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
           )}
 
           <RadioCardList
+              required
             label="What happened?"
             options={reasons.map((r) => ({ value: r.value, label: r.label }))}
             value={reason}

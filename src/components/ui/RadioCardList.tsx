@@ -18,12 +18,15 @@ export interface RadioCardOption {
 
 export function RadioCardList({
   label,
+  required,
   options,
   value,
   onChange,
 }: {
   /** The group's accessible name (the question the list answers). */
   label: string;
+  /** A pick is needed before the form can be sent. */
+  required?: boolean;
   options: readonly RadioCardOption[];
   value: string;
   /** `via` says how: a tap ("click") or an arrow key ("key"). Callers fire
@@ -44,7 +47,7 @@ export function RadioCardList({
   const focusable = value && options.some((o) => o.value === value) ? value : options[0]?.value;
 
   return (
-    <div ref={listRef} role="radiogroup" aria-label={label} className="space-y-2">
+    <div ref={listRef} role="radiogroup" aria-label={label} aria-required={required || undefined} className="space-y-2">
       {options.map((o, i) => {
         const on = o.value === value;
         return (
@@ -58,6 +61,8 @@ export function RadioCardList({
             onKeyDown={(e) => {
               if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); move(i, 1); }
               if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); move(i, -1); }
+              if (e.key === "Home") { e.preventDefault(); move(0, 0); }
+              if (e.key === "End") { e.preventDefault(); move(options.length - 1, 0); }
             }}
             className="w-full flex items-center gap-3 min-h-[52px] px-4 py-3 rounded-2xl text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             // Inline, not `bg-card`: the T2 card rule makes every .bg-card

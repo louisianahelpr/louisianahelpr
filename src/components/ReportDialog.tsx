@@ -73,20 +73,16 @@ interface ReportDialogProps {
 }
 
 /**
- * Multi-step report flow:
- *   1) Reason — a single-column list of full-width rows. One tap picks the
- *      reason AND advances (the chevron is the promise that it will), so the
- *      user never wonders "what's next".
- *   2) Details — required free text with 10/500-char guardrails, reversible
- *      via Back.
- *   3) Confirmation — visible case # + a truthful "what happens next". The
- *      case # is the first 8 hex chars of the inserted report row's UUID,
- *      uppercased behind an HLP- prefix, so the user has something concrete
- *      to quote to support rather than a half-leaked database id.
+ * Report flow (board 157): ONE form screen, then the receipt.
+ *   1) Form — the reasons as a RadioCardList, the required details box
+ *      (10/500 characters), on a person's profile the "Also block" switch, and
+ *      "Send report".
+ *   2) Receipt — visible case # + a truthful "what happens next". The case #
+ *      is the first 8 hex chars of the inserted report row's UUID, uppercased
+ *      behind an HLP- prefix. With "Also block" on, its button reads
+ *      "Block <name>" and is the only way into the caller's Block dialog.
  *
- * Shell: the shared `DialogContent` (`.glass-modal`) + `DialogHero` + a real
- * `DialogFooter` on EVERY step — no hand-rolled surface, no width override,
- * no bare floating "Cancel" text. Only the body morphs between steps.
+ * Shell: the shared `DialogContent` + `DialogHero` + a real `DialogFooter`.
  */
 const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: ReportDialogProps) => {
   const [blockAfter, setBlockAfter] = useState(false);
@@ -131,7 +127,18 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
     if (submitInFlight.current) return;
     submitInFlight.current = true;
     setSubmitting(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    let user: { id: string } | null;
+    try {
+      ({ data: { user } } = await supabase.auth.getUser());
+    } catch {
+      // A thrown session read must not leave the dialog stuck "Sending…"
+      // with Cancel and Escape disabled (lh-silent-failure note 5).
+      hapticError();
+      toast.error("We couldn't send your report — please try again.");
+      submitInFlight.current = false;
+      setSubmitting(false);
+      return;
+    }
     if (!user) { toast.error("Sign in to continue."); submitInFlight.current = false; setSubmitting(false); return; }
 
     const { data, error } = await supabase
@@ -209,6 +216,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                 sits under them, and the commit is one "Send report". Where the
                 report goes is said once, under the list. */}
             <RadioCardList
+              required
               label={REASON_PROMPT[reportedType]}
               options={reasons.map(({ label }) => ({ value: label, label }))}
               value={reason}
@@ -381,6 +389,11 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                 </p>
               </DialogBody>
             </div>
+            {blockAfter && alsoBlock && (
+              <p className="font-sans text-ds-12 text-muted-foreground text-center">
+                Tap Block {alsoBlock.name} to finish blocking. Closing this skips it.
+              </p>
+            )}
             <DialogFooter>
               <DialogPrimaryAction type="button" onClick={finishReceipt}>
                 {blockAfter && alsoBlock ? `Block ${alsoBlock.name}` : "Done"}

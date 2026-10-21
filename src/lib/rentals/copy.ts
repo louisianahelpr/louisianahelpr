@@ -42,8 +42,8 @@ export function rentalsErrorMessage(err: unknown): string {
  * Maintenance categories. `jobCategory` is the job_category the drafted job
  * gets (a prefill: the landlord can change it on Post a Job). Plumbing,
  * electrical and HVAC draft into their trade categories (roadmap T1, landed
- * with trades), so Post a Job shows that trade's licence heads-up and offers
- * "Licensed pros only" (LICENSE_WARNINGS / CREDENTIAL_TIER_CATEGORIES, Q43).
+ * with trades), so Post a Job offers "Licensed pros only" (CREDENTIAL_TIER_CATEGORIES, Q43;
+ * the licence heads-up was removed, owner 2026-10-21).
  * Still Handyman, deliberately: "Roof or ceiling leak" (a ceiling leak is as
  * often plumbing as roofing) and "Appliances" (appliance_repair is sales-tax
  * EXEMPT pending the owner's Q1831 while handyman is taxed; drafting it into

@@ -43,6 +43,8 @@ export interface UseJobEntryParams {
   setCredentialTier: (v: number) => void;
   setIncludeMaterials: (v: boolean) => void;
   setMaterialsNote: (v: string) => void;
+  /** Clears the form state this hook does not own (photos, video, pets, series days). */
+  resetOtherFields?: () => void;
 }
 
 export function useJobEntry(params: UseJobEntryParams) {
@@ -79,6 +81,7 @@ export function useJobEntry(params: UseJobEntryParams) {
     setCredentialTier,
     setIncludeMaterials,
     setMaterialsNote,
+    resetOtherFields,
   } = params;
 
   // Apply AI-generated fields to the form. Pure assignment — caller
@@ -131,6 +134,19 @@ export function useJobEntry(params: UseJobEntryParams) {
     if (draft.offerToHelperId !== undefined) setOfferToHelperId(draft.offerToHelperId);
 
     setDraftConsumed(true);
+  };
+
+  /** Every field back to a new job's defaults, except the poster's address. */
+  const resetJobFields = () => {
+    setTitle(""); setDescription(""); setCategory("");
+    setDateNeeded(""); setStartTime(""); setEstimatedHours(""); setBudget("");
+    setSpecialRequirements("");
+    setIsRecurring(false); setRecurrenceInterval("weekly"); setRecurrenceEndDate("");
+    setIsGroupJob(false); setHelpersNeeded("2");
+    setOfferToHelperId(null); setOfferToHelperName("");
+    setIsFlexibleSchedule(false); setIsUrgent(false); setUrgentFee("5");
+    setCredentialTier(0); setIncludeMaterials(false); setMaterialsNote("");
+    resetOtherFields?.();
   };
 
   // ── Entry-landing choices ──────────────────────────────────────────────
@@ -188,10 +204,16 @@ export function useJobEntry(params: UseJobEntryParams) {
    * the entry screen lands the user on an identical pre-filled form.
    */
   const applyTemplateFields = (sample: SampleJob) => {
+    // Owner, 2026-10-21: a template starts a NEW job. Everything from an earlier job or draft goes
+    // first (title, description, category, photos, price, urgent, crew, schedule, offer); only the
+    // poster's address stays. Then the template's own fields.
+    resetJobFields();
     setCategory(sample.category);
     setTitle(sample.title);
     setDescription(sample.description);
-    setBudget(String(sample.typical_price));
+    // Owner, 2026-10-21: a template leaves the price EMPTY. Its typical_price is a number typed into
+    // src/data/sampleJobs.ts, not one measured from jobs (truth rule), so the poster names their own.
+    setBudget("");
     // estimatedHours is stored as a stringified hours number, not minutes.
     setEstimatedHours((sample.typical_duration_minutes / 60).toString());
     track("sample_job_template_selected", { template_id: sample.id });

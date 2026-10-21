@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
 import { buildMaintenancePrefill } from "./maintenancePrefill";
 import { MAINTENANCE_CATEGORIES } from "@/lib/rentals/copy";
 import { defaultRequirePhotoProof } from "@/lib/photoProofDefaults";
-import { CREDENTIAL_TIER_CATEGORIES, LICENSE_WARNINGS } from "@/components/postjob/detailsSection/detailsSectionConstants";
+import { CREDENTIAL_TIER_CATEGORIES } from "@/components/postjob/detailsSection/detailsSectionConstants";
 
 const base = {
   id: "r1",
@@ -93,12 +93,11 @@ describe("buildMaintenancePrefill", () => {
     expect(MAINTENANCE_CATEGORIES.filter((c) => !defaultRequirePhotoProof(c.jobCategory)).map((c) => c.value)).toEqual([]);
   });
 
-  it("Q43: plumbing, electrical and HVAC requests draft into their trade category, which carries the licence heads-up and the Licensed tier", () => {
+  it("Q43: plumbing, electrical and HVAC requests draft into their trade category, which offers the Licensed tier (the licence heads-up was removed, owner 2026-10-21)", () => {
     const trades = MAINTENANCE_CATEGORIES.filter((c) => ["plumbing", "electrical", "hvac"].includes(c.value));
     expect(trades.length).toBe(3);
     for (const c of trades) {
       expect(c.jobCategory, c.value).toBe(c.value);
-      expect(LICENSE_WARNINGS[c.jobCategory], c.value).toBeTruthy();
       expect(CREDENTIAL_TIER_CATEGORIES.has(c.jobCategory), c.value).toBe(true);
     }
   });

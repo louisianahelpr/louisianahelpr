@@ -217,11 +217,9 @@ const PaymentSuccess = () => {
       explainAgeGate("post");
       return;
     }
-    if (resolvedJobId) {
-      navigate(`/post-job?rebook=${resolvedJobId}`);
-    } else {
-      navigate("/post-job");
-    }
+    // Owner, 2026-10-21: "Post another" starts FRESH, never pre-filled with the job just posted
+    // (a ?rebook= link copied it). Repost lives on Post a job's own Repost tile.
+    navigate("/post-job");
   };
 
   const handleViewApplicants = () => {

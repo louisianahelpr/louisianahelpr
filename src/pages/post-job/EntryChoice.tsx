@@ -254,7 +254,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                   key={sample.id}
                   type="button"
                   onClick={() => {
-                    // A template fills category, title, description and price: it lands on Details (4 of 7).
+                    // A template fills category, title and description (never the price): it lands on Details (4 of 7).
                     form.useTemplate(() => form.applyTemplateFields(sample));
                     form.setFormPage(2);
                   }}

@@ -326,9 +326,9 @@ function PostedJobCardInner({
                   helperName={job.helper_id ? helperNames[job.helper_id] ?? null : null}
                 />
               )}
-              action={isExpanded ? null : faceAction}
+              action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(job.id) : undefined}
             />
-            {isExpanded && <MineOpenMeta jobId={job.id} meta={metaRow} onClose={() => toggleExpandedJobId(job.id)} />}
+            {isExpanded && <MineOpenMeta jobId={job.id} meta={metaRow} />}
 
             {/* The series strip, visit dates and schedule change (Q407). */}
             <PostedJobSeriesControls job={job} userId={userId} />

@@ -5,7 +5,6 @@ import { CREDENTIAL_TIER_CATEGORIES } from "./detailsSection/detailsSectionConst
 import { TitleField } from "./detailsSection/TitleField";
 import { DescriptionField } from "./detailsSection/DescriptionField";
 import { CredentialTierSelector } from "./detailsSection/CredentialTierSelector";
-import { LicenseWarning } from "./detailsSection/LicenseWarning";
 import { PhotoProofToggle } from "./detailsSection/PhotoProofToggle";
 import { PhotoUpload } from "./detailsSection/PhotoUpload";
 import { VideoScope } from "./detailsSection/VideoScope";
@@ -72,7 +71,6 @@ export function DetailsSection({
           is hidden to keep the form clean. */}
       {CREDENTIAL_TIER_CATEGORIES.has(category) && (
         <>
-          <LicenseWarning category={category} />
           <CredentialTierSelector
             credentialTier={credentialTier}
             setCredentialTier={setCredentialTier}

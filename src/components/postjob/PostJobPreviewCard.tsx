@@ -1,4 +1,3 @@
-import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { sentenceCaseLabel } from "@/lib/jobCategoryGroups";
 import { formatPriceExact } from "@/lib/format";
@@ -15,22 +14,21 @@ interface Props {
 /**
  * "What Helprs will see" (board 3): the card as it will read in Browse, built
  * only from what the poster has entered so far. No town or time yet: those
- * come on the next screen. With no photo, the category icon on the subtle
- * fill (spec §9.33 stress cases). The price is the job price the poster set,
+ * come on the next screen. With no photo there is no photo area at all
+ * (owner, 2026-10-21), matching every surface a Helpr sees. The price is the job price the poster set,
  * never the Helpr's take-home (owner rule, checkoutNoHelperPayLine).
  */
 export function PostJobPreviewCard({ title, category, photo, budget }: Props) {
   return (
     <section aria-label="What Helprs will see" className="space-y-2.5">
-      <h3 className="font-sans text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">What Helprs will see</h3>
+      <h3 className="font-sans text-ds-12 font-semibold text-muted-foreground">What Helprs will see</h3>
       <div className="overflow-hidden rounded-ds-lg bg-card">
-        <div className="flex aspect-[16/10] items-center justify-center bg-muted">
-          {photo ? (
+        {/* A real photo or nothing, exactly like Browse (JobCardHeroBand), the quick view and the job page. */}
+        {photo && (
+          <div className="aspect-[16/10] bg-muted" data-preview-photo="">
             <img src={photo} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <CategoryIcon category={category} aria-hidden className="h-10 w-10 text-primary" strokeWidth={1.75} />
-          )}
-        </div>
+          </div>
+        )}
         <div className="flex items-start justify-between gap-3 p-4">
           <div className="min-w-0 space-y-1">
             {category && (

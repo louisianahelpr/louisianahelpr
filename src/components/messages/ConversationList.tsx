@@ -1290,7 +1290,7 @@ export function ConversationList({
                 bodyLines={MAIN_TAB_EMPTY_BODY_LINES}
                 action={
                   <BarkPillButton onClick={() => navigate("/jobs")}>
-                    Browse Jobs
+                    Browse jobs
                   </BarkPillButton>
                 }
               />

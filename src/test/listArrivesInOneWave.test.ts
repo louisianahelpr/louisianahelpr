@@ -286,7 +286,8 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
 
   it("/browse's chunk skeleton lays its bones on the page's own grid, under the page's own header", () => {
     const skel = read("components/GuestBrowseSkeleton.tsx");
-    expect(skel).toMatch(/<PageHeader title="Browse Jobs"/);
+    expect(skel).toMatch(/<PageHeader title="Browse jobs"/);
+    expect(read("pages/home/DashboardGuest.tsx")).toMatch(/title="Browse jobs"/);
     expect(skel).toMatch(/\$\{GUEST_FEED_GRID_CLASS\} \$\{GUEST_FEED_RESERVE_CLASS\}/);
     expect(read("pages/home/DashboardGuest.tsx")).toMatch(/const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS;/);
   });

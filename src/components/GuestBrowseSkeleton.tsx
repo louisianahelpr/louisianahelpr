@@ -108,7 +108,7 @@ const GuestBrowseSkeleton = () => {
     {/* PublicLayout's nav spacer, verbatim. src/test/listArrivesInOneWave
         compares the two strings, so this cannot drift from the page again. */}
     <div aria-hidden style={{ height: "calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))" }} />
-    <PageHeader title="Browse Jobs" backTo="/" width="public" topInsetHandled />
+    <PageHeader title="Browse jobs" backTo="/" width="public" topInsetHandled />
     <div className="px-5 sm:px-8 lg:px-12 pb-16">
       <div className="mx-auto page-measure">
         <div className={`${GUEST_FEED_GRID_CLASS} ${GUEST_FEED_RESERVE_CLASS}`}>

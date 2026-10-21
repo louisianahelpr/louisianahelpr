@@ -80,10 +80,10 @@ async function closeFilterSheet(page: Page) {
 }
 
 // Shown able to fail on the guest marketplace's own identity: the spec asserts
-// an <h1> reading "Browse Jobs" is visible, because a guest who cannot see the
+// an <h1> reading "Browse jobs" is visible, because a guest who cannot see the
 // page heading cannot tell the marketplace rendered at all. Retitling the
 // PublicHeaderPage reds it.
-// @mutate src/pages/home/DashboardGuest.tsx | title="Browse Jobs"\n      width="public" | title="Find Work"\n      width="public"
+// @mutate src/pages/home/DashboardGuest.tsx | title="Browse jobs"\n      width="public" | title="Find Work"\n      width="public"
 
 test(guestTitle, async ({ browser, request, journey }) => {
   test.skip(filteredOut(guestTitle), "SCENARIO pins another scenario");
@@ -111,7 +111,7 @@ test(guestTitle, async ({ browser, request, journey }) => {
     // never a blank page or an error.
     await test.step("guest opens Browse and sees the empty marketplace", async () => {
       await page.goto("/browse");
-      await expect(page.getByRole("heading", { name: "Browse Jobs", level: 1 })).toBeVisible({ timeout: 45_000 });
+      await expect(page.getByRole("heading", { name: "Browse jobs", level: 1 })).toBeVisible({ timeout: 45_000 });
       await expect(page.getByText("Nothing today, neighbor.")).toBeVisible({ timeout: 45_000 });
       await assertHealthy(page, "guest /browse (empty before launch)");
       await journey.milestone(page, "guest-browse-empty");
@@ -122,7 +122,7 @@ test(guestTitle, async ({ browser, request, journey }) => {
 
   await test.step("guest opens Browse and sees real jobs", async () => {
     await page.goto("/browse");
-    await expect(page.getByRole("heading", { name: "Browse Jobs", level: 1 })).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByRole("heading", { name: "Browse jobs", level: 1 })).toBeVisible({ timeout: 45_000 });
     const cards = page.getByRole("heading", { level: 2 });
     await expect(cards.first()).toBeVisible({ timeout: 45_000 });
     expect(await cards.count(), `open_jobs_browse served ${floor} row(s) but guest Browse rendered none — the CLIENT dropped rows the database returned`).toBeGreaterThan(0);

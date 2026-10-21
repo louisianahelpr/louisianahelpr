@@ -782,7 +782,7 @@ const DashboardGuest = () => {
     // this page is ONE surface: diverging them would give the phone-sized
     // website a control the native app does not have.
     <PublicHeaderPage
-      title="Browse Jobs"
+      title="Browse jobs"
       width="public"
       bottomPaddingClassName="pb-16"
       footer={feedSettled}

@@ -147,7 +147,7 @@ export const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-pass
 
 // Map each tab root to sub-routes that belong to its stack.
 // Tapping the tab while inside one of these returns the user to the tab root.
-export const tabStacks: Record<string, string[]> = {
+const tabStacks: Record<string, string[]> = {
   // /jobs/<id> and /jobs/settings belong to Jobs since the feed moved to Jobs > Browse (2026-10-19); they lit Home.
   "/home": [],
   // NOTE: /post-job is deliberately NOT in this stack. Posting is reached from
@@ -162,3 +162,11 @@ export const tabStacks: Record<string, string[]> = {
   "/explore": ["/jobs", "/posts", "/declutter", "/shops", "/rentals", "/quotes"],
   "/profile": ["/support", "/user", "/admin"],
 };
+
+/** Is `pathname` inside the tab `tabPath`'s stack? Someone ELSE's /user/<id> is
+ *  not "You" (audit #58, 2026-10-21): it lights You only as your own preview. */
+export function inTabStack(tabPath: string, pathname: string, userId: string | null | undefined): boolean {
+  if (pathname === tabPath) return true;
+  if (tabPath === "/profile" && pathname.startsWith("/user/")) return !!userId && pathname.startsWith(`/user/${userId}`);
+  return (tabStacks[tabPath] || []).some((p) => pathname.startsWith(p));
+}

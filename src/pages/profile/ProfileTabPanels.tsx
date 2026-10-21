@@ -45,6 +45,7 @@ const WorkRecordTab = lazy(() => import("@/pages/profile/WorkRecord"));
 const HomeHistoryTab = lazy(() => import("@/pages/profile/HomeHistory"));
 const StrSettingsTab = lazy(() => import("@/pages/profile/StrSettings"));
 const AutoTipTab = lazy(() => import("@/pages/profile/AutoTip"));
+const SavedSearchesTab = lazy(() => import("@/pages/profile/SavedSearchesTab"));
 const WrappedTab = lazy(() => import("@/pages/profile/HelprWrapped"));
 const AnalyticsTab = lazy(() => import("@/pages/profile/HelperAnalytics"));
 const GiftCardTab = lazy(() => import("@/pages/profile/GiftCard"));
@@ -304,6 +305,12 @@ export const ProfileTabPanels = ({
       {tab === "auto_tip" && (
         <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <AutoTipTab onBack={onBackFromTab} />
+        </Suspense>
+      )}
+
+      {tab === "saved_searches" && (
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
+          <SavedSearchesTab onBack={onBackFromTab} />
         </Suspense>
       )}
 

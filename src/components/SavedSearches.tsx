@@ -169,18 +169,24 @@ export function SavedSearches({
       // unwrap() surfaces a failed fetch as an exception so we can
       // distinguish "fetch failed → show retry" from "fetch returned 0
       // rows → show empty state" instead of conflating both as "empty".
-      const data = unwrap(
-        await supabase
-          .from("saved_searches")
-          .select("*")
-          .eq("user_id", userId)
+      const read = (jobsOnly: boolean) => {
+        let q = supabase.from("saved_searches").select("*").eq("user_id", userId);
+        // Q2275: one table holds every section's searches; this dialog
+        // restores Jobs filters, so a Declutter search never lands here.
+        if (jobsOnly) q = q.eq("section", "jobs");
+        return q
           .order("created_at", { ascending: false })
           // PostgREST caps any read at 1000 rows here (measured), applied
           // AFTER the ORDER BY. `enforce_saved_search_limit` already caps a
           // user at 10, so this can never truncate — it is stated explicitly
           // so the bound is the query's, not an invariant two files away.
-          .limit(50),
-      );
+          .limit(50);
+      };
+      let res = await read(true);
+      // Before 20261021042132 deploys there is no section column, and every
+      // row is a Jobs search.
+      if (res.error?.code === "42703") res = await read(false);
+      const data = unwrap(res);
       setSearches((data ?? []) as SavedSearch[]);
     } catch (err) {
       report(err, { tags: { source: "SavedSearches.load" } });

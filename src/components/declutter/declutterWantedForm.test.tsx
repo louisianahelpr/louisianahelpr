@@ -6,7 +6,7 @@
  * poster's name or words), so nothing says neighbors can reply.
  *
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | <p className="text-ds-13 text-muted-foreground">Your Wanted stays up 30 days. You can close it anytime.</p> |
- * @mutate src/components/declutter/DeclutterWantedViews.tsx | className="w-full min-w-0 bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none | className="w-full min-w-0 bg-transparent font-semibold outline-none
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none | className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold outline-none
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";

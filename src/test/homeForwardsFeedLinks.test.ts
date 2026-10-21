@@ -24,7 +24,7 @@ import { blankComments } from "./helpers/blankNonCode";
 import { readdirSync } from "./helpers/trackedFiles";
 
 /** Params Home (the dashboard) reads itself. */
-const HOME_OWN_PARAMS = ["customize", "tour"]; // tour: FirstRun replays the coach marks (Help, 2026-10-20)
+const HOME_OWN_PARAMS = ["customize", "tour", "verify_id"]; // tour: FirstRun replays the coach marks (Help, 2026-10-20); verify_id: the app-wide IdentityCheckHost opens the Stripe Identity sheet on /home?verify_id=1 (owner 2026-10-21)
 
 const ROOT = process.cwd();
 function walk(dir: string, out: string[] = []): string[] {

@@ -216,14 +216,24 @@ describe("3. every helpr:// address the app mints is a real route", () => {
     expect(served("/no-such-page")).toBe(false);
   });
 
+  // A variable target is allowed ONLY here, each with why it is still a served route.
+  const DYNAMIC_TARGETS: Record<string, string> = {
+    "supabase/functions/stripe-idv-start/index.ts :: returnWithFlag":
+      "Stripe Identity returns the member to the page they started from (owner 2026-10-21): the client sends its own location.pathname+search, the function accepts only an in-app path (leading '/', never '//' or a scheme, <= 200 chars) and falls back to /home",
+  };
+
   it("every buildRedirectUrl target is a literal path (provable), not a variable", () => {
-    const opaque = calls.filter((c) => !/^["'`]\//.test(c.arg)).map((c) => `${c.where} :: ${c.arg}`);
+    const opaque = calls
+      .filter((c) => !/^["'`]\//.test(c.arg))
+      .map((c) => `${c.where} :: ${c.arg}`)
+      .filter((k) => !(k in DYNAMIC_TARGETS));
     expect(opaque).toEqual([]);
   });
 
   it("each one, bounced through helpr://, normalizes to a route App.tsx serves", () => {
     const bad: string[] = [];
     for (const { where, arg } of calls) {
+      if (`${where} :: ${arg}` in DYNAMIC_TARGETS) continue;
       // `/home?boosted=${job_id}` → a concrete sample; only the path decides the route.
       const sample = arg.slice(1, -1).replace(/\$\{[^}]*\}/g, "sample-id");
       // Exactly what nativeReturnBounce.ts builds: `${scheme}://${pathname}${search}`.

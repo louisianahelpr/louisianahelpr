@@ -30,6 +30,7 @@ import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { resetStripeMock, stripeMock } from "./mocks/stripe";
 import { resetEmailMocks } from "./mocks/email";
 import { helprPayoutParts } from "../../../supabase/functions/_shared/helprPayoutParts";
+import { isRoutedTestCheckout } from "../../../supabase/functions/_shared/stripeMode";
 
 const BUYER = "0000000c-0000-4000-8000-000000000001";
 const SELLER = "0000000c-0000-4000-8000-000000000002";
@@ -102,6 +103,7 @@ describe("declutter-money: a raised delivery's payout and its raise refunds", ()
     scenario.rpc.declutter_delivery_raise_refunds_due = opts.raiseRefunds ?? [];
     scenario.rpc.helpr_task_payout_executed = (a: { p_succeeded?: boolean }) => (a?.p_succeeded ? "succeeded" : "failed");
     scenario.rpc.declutter_delivery_raise_refund_executed = (a: { p_succeeded?: boolean }) => (a?.p_succeeded ? "refunded" : "refunding");
+    scenario.rpc.declutter_delivery_raise_payout_sent = "recorded";
     scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@example.test" }] };
     stripeMock.paymentIntents.retrieve.mockImplementation(async (id: string) => ({
       id, status: "succeeded", latest_charge: { id: id === "pi_raise1" ? "ch_raise1" : "ch_order1", amount_refunded: 0, disputed: false },
@@ -129,17 +131,29 @@ describe("declutter-money: a raised delivery's payout and its raise refunds", ()
     expect(calls[1][1]).toEqual({ idempotencyKey: `helpr-task-payout-${HPAYOUT}-raise-${RAISE}` });
     expect(calls[0][0].amount + calls[1][0].amount).toBe(3730);
     expect(rpcs("helpr_task_payout_executed")[0]?.args).toEqual({ p_payout_id: HPAYOUT, p_transfer_id: "tr_new1", p_succeeded: true, p_error: null });
+    // The raise part's transfer is recorded on its raise (restore check, settle-by-hand), before the payout row.
+    expect(rpcs("declutter_delivery_raise_payout_sent")[0]?.args).toEqual({ p_raise_id: RAISE, p_transfer_id: "tr_new2" });
   });
 
-  it("a retry after the order part went: only the missing raise part is sent, never the order part twice", async () => {
+  it("a raise transfer that cannot be recorded leaves the payout unrecorded (reconciled next run, never re-sent)", async () => {
+    scenario.rpcErrors = { declutter_delivery_raise_payout_sent: { message: "boom" } };
+    const { body } = await run({ helprPayouts: [helprRow()] });
+    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(2);
+    expect(rpcs("helpr_task_payout_executed")).toHaveLength(0);
+    expect(JSON.stringify(body)).toMatch(/raise transfer tr_new2 not recorded/);
+  });
+
+  it("part sent, part not: nothing more is sent automatically; held for a person naming what went (no double pay by hand)", async () => {
     stripeMock.transfers.list.mockResolvedValue({ data: [
       { id: "tr_h_old", destination: "acct_helpr1", reversed: false, metadata: { kind: "helpr_task_payout", payout_id: HPAYOUT } },
     ] });
     const { body } = await run({ helprPayouts: [helprRow({ attempts: 1 })] });
-    expect(body.helpr_payouts_sent).toBe(1);
-    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
-    expect(stripeMock.transfers.create.mock.calls[0][0]).toMatchObject({ amount: 2000, source_transaction: "ch_raise1" });
-    expect(rpcs("helpr_task_payout_executed")[0]?.args).toMatchObject({ p_transfer_id: "tr_h_old", p_succeeded: true });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(rpcs("helpr_task_payout_executed")).toHaveLength(0);
+    const wait = rpcs("payout_payee_wait_seen")[0]?.args as { p_category?: string; p_reason?: string } | undefined;
+    expect(wait?.p_category).toBe("needs_reconcile");
+    expect(wait?.p_reason).toMatch(/tr_h_old went; \$20\.00 from raise charges did not/);
+    expect(JSON.stringify(body)).toMatch(/partly sent/);
   });
 
   it("both parts already sent: reconciled, nothing sent", async () => {
@@ -185,6 +199,17 @@ describe("declutter-money: a raised delivery's payout and its raise refunds", ()
     expect(body.ban_review).toBe(1);
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(rpcs("declutter_delivery_raise_refund_defer")[0]?.args).toEqual({ p_raise_id: RAISE2, p_minutes: 60 });
+    expect(slackAlerts).toHaveLength(0);
+  });
+
+  it("a raise refund that cannot run (mixed test and real parties) waits AND pages a person once a day", async () => {
+    scenario.reads.test_accounts = { rows: [{ user_id: SELLER }] };
+    scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@example.test" }, { user_id: SELLER, is_seed: true }] };
+    const { body } = await run({ raiseRefunds: [raiseRefund({ livemode: null, checkout_session_id: null })] });
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(rpcs("declutter_delivery_raise_refund_defer")[0]?.args).toMatchObject({ p_raise_id: RAISE2, p_minutes: 1440 });
+    expect(slackAlerts.some((a) => /delivery-raise refund is waiting on a person/.test(String(a.title)))).toBe(true);
+    expect(body.mixed_parties).toBe(1);
   });
 
   it("before the migration is deployed (PGRST202) the rest of the run still moves money", async () => {
@@ -220,7 +245,7 @@ describe("stripe-webhook: a delivery raise page completed", () => {
     const res = await deliver({});
     expect(res.status).toBe(200);
     expect(rpcs("declutter_delivery_raise_paid")[0]?.args).toEqual({
-      p_raise_id: RAISE, p_session_id: "cs_live_raise", p_payment_intent_id: "pi_raise", p_amount_cents: 1061, p_livemode: true,
+      p_raise_id: RAISE, p_order_id: ORDER, p_session_id: "cs_live_raise", p_payment_intent_id: "pi_raise", p_amount_cents: 1061, p_livemode: true,
     });
     expect(rpcs("declutter_mark_order_paid")).toHaveLength(0);
   });
@@ -247,6 +272,15 @@ describe("stripe-webhook: a delivery raise page completed", () => {
   it("a page SQL cannot tie to its raise pages ops (refund by hand)", async () => {
     await deliver({}, { result: "session_mismatch", raise_id: RAISE });
     expect(slackAlerts.some((a) => /another Stripe page/.test(String(a.message)))).toBe(true);
+  });
+
+  it("a page whose metadata names another order than its raise row is never applied", async () => {
+    await deliver({}, { result: "order_mismatch", raise_id: RAISE });
+    expect(slackAlerts.some((a) => /belongs to another order/.test(String(a.message)))).toBe(true);
+  });
+
+  it("a TEST-mode raise page is routed (test accounts pay raises on the test key)", () => {
+    expect(isRoutedTestCheckout({ mode: "payment", metadata: { kind: "declutter_raise", raise_id: RAISE, order_id: ORDER } })).toBe(true);
   });
 });
 
@@ -314,6 +348,24 @@ describe("declutter-checkout: raise_pay", () => {
     const res = await call({ order_id: ORDER, raise_cents: 1000 });
     expect(res.status).toBe(403);
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("an open page is closed only AFTER the SQL accepted the new raise (a refusal keeps it)", async () => {
+    scenario.rpc.feature_enabled_for_user = true;
+    scenario.reads.declutter_orders = { rows: [{ buyer_id: BUYER, seller_id: SELLER }] };
+    scenario.reads.declutter_delivery_raises = { rows: [{ id: RAISE2, stripe_checkout_session_id: "cs_live_old" }] };
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({ id: "cs_live_old", status: "open", url: "https://x/old" });
+    scenario.rpcErrors = { declutter_delivery_raise_start: { message: "raise_limit", code: "22023" } };
+    const refusedRes = await call({ order_id: ORDER, raise_cents: 1000 });
+    expect(refusedRes.status).toBe(400);
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+    scenario.rpcErrors = {};
+    scenario.rpc.declutter_delivery_raise_start = [{ ...started[0], superseded_session_id: "cs_live_old" }];
+    scenario.rpc.declutter_delivery_raise_attach = null;
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_raise", url: "https://x/raise", amount_total: 1061 });
+    const okRes = await call({ order_id: ORDER, raise_cents: 1000 });
+    expect(okRes.status).toBe(200);
+    expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_live_old");
   });
 
   it("an open raise page that was already paid replaces nothing", async () => {

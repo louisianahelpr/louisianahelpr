@@ -50,6 +50,16 @@
 --      'refunding' happens once, by an AFTER UPDATE trigger on the task's
 --      status, so every closing path is covered, and declutter-money's key is
 --      the raise id). Neither refund touches the other's charge.
+--      The card fee of a raise goes back too (the delivery we sold did not
+--      happen, as B68 for the delivery fee), EXCEPT when the sale itself is
+--      cancelled for the buyer's own reason or no one's fault: then the raise's
+--      card fee is kept, as the order's refund keeps its own (owner 2026-10-14,
+--      "never absorb any fee" except our own mistake; lh-money-escrow review).
+--      A seller-fault cancel refunds the raise in full and the platform pays
+--      its card fee (not billed to the seller: owner to confirm).
+--      Each raise transfer to the Helpr is recorded on its raise
+--      (payout_transfer_id); a refund made by hand in Stripe on a raise's
+--      charge settles that raise (declutter_delivery_raise_hand_refund).
 --   5. declutter_delivery_raise_status: the buyer's own order only, what the
 --      "Raise the pay" panel shows.
 --
@@ -89,10 +99,19 @@ CREATE TABLE IF NOT EXISTS public.declutter_delivery_raises (
   paid_at timestamptz,
   livemode boolean,
   applied_at timestamptz,
+  -- Why a paid raise goes back. Every reason refunds everything paid (our side: the delivery we
+  -- sold did not happen, or our system took a payment it could not use) EXCEPT
+  -- 'delivery_cancelled_buyer': the sale was cancelled for the buyer's own reason (or no one's
+  -- fault), so the raise's card fee is kept, as declutter_record_refund keeps the order's
+  -- (owner 2026-10-14: we never absorb a fee except our own mistake). CHECK _refund_amount.
   refund_reason text CHECK (refund_reason IS NULL OR refund_reason IN (
-    'no_helpr', 'delivery_cancelled', 'delivery_failed', 'not_waiting', 'page_replaced', 'amount_mismatch', 'raise_limit')),
+    'no_helpr', 'delivery_cancelled', 'delivery_cancelled_buyer', 'delivery_failed', 'not_waiting', 'page_replaced',
+    'amount_mismatch', 'raise_limit')),
   refund_cents integer,
   stripe_refund_ref text,
+  -- The transfer that paid this raise to the Helpr (the raise part of the task's ONE payout,
+  -- funded from this raise's own charge; declutter-money records it).
+  payout_transfer_id text UNIQUE CHECK (payout_transfer_id IS NULL OR payout_transfer_id ~ '^tr_'),
   refund_attempts integer NOT NULL DEFAULT 0 CHECK (refund_attempts BETWEEN 0 AND 100),
   refund_next_attempt_at timestamptz,
   refund_last_error text,
@@ -108,6 +127,9 @@ CREATE TABLE IF NOT EXISTS public.declutter_delivery_raises (
   CONSTRAINT declutter_delivery_raises_refund CHECK ((status IN ('refunding', 'refunded')) = (refund_reason IS NOT NULL)
                                                      AND (refund_reason IS NULL) = (refund_cents IS NULL)
                                                      AND (refund_cents IS NULL OR (refund_cents > 0 AND refund_cents <= paid_cents))),
+  CONSTRAINT declutter_delivery_raises_refund_amount CHECK (refund_reason IS NULL OR refund_cents =
+    CASE WHEN refund_reason = 'delivery_cancelled_buyer' THEN paid_cents - card_fee_cents ELSE paid_cents END),
+  CONSTRAINT declutter_delivery_raises_payout CHECK (payout_transfer_id IS NULL OR status = 'applied'),
   CONSTRAINT declutter_delivery_raises_refunded CHECK (status <> 'refunded' OR stripe_refund_ref IS NOT NULL)
 );
 -- One open page per task at a time.
@@ -124,6 +146,15 @@ GRANT ALL ON TABLE public.declutter_delivery_raises TO service_role;
 DROP TRIGGER IF EXISTS trg_declutter_delivery_raises_seed ON public.declutter_delivery_raises;
 CREATE TRIGGER trg_declutter_delivery_raises_seed BEFORE INSERT ON public.declutter_delivery_raises
   FOR EACH ROW EXECUTE FUNCTION public.declutter_order_rows_seed();
+-- Q807: an account whose email is unconfirmed cannot write the new table (the member RPC is callable
+-- straight through PostgREST, past the edge's own check).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
 
 -- 3. The card fee on a raise: what Stripe keeps on the raise's own charge
 -- (2.9% + 30c, the rate declutter_card_fee_estimate and _shared/stripeFees.ts
@@ -268,10 +299,10 @@ GRANT EXECUTE ON FUNCTION public.declutter_delivery_raise_attach(uuid, text) TO 
 --   applied    the task's pay went up (it stays open)
 --   refund     paid but not applied; refund_cents goes back in full
 --   already    a replay (the row's status is returned)
---   unknown / session_mismatch / other_payment   not ours to apply: the
+--   unknown / order_mismatch / session_mismatch / other_payment   not ours to apply: the
 --              webhook pages ops (refund by hand) and changes nothing.
-CREATE OR REPLACE FUNCTION public.declutter_delivery_raise_paid(p_raise_id uuid, p_session_id text, p_payment_intent_id text,
-  p_amount_cents integer, p_livemode boolean)
+CREATE OR REPLACE FUNCTION public.declutter_delivery_raise_paid(p_raise_id uuid, p_order_id uuid, p_session_id text,
+  p_payment_intent_id text, p_amount_cents integer, p_livemode boolean)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -289,6 +320,9 @@ BEGIN
   SELECT * INTO r FROM public.declutter_delivery_raises WHERE id = p_raise_id;
   IF NOT FOUND THEN
     RETURN jsonb_build_object('result', 'unknown');
+  END IF;
+  IF r.order_id IS DISTINCT FROM p_order_id THEN
+    RETURN jsonb_build_object('result', 'order_mismatch', 'raise_id', r.id);
   END IF;
   -- The order lock, then the task lock (helpr_task_lock), then the row.
   t := public.helpr_task_lock(r.task_id);
@@ -342,13 +376,18 @@ BEGIN
   RETURN jsonb_build_object('result', 'refund', 'raise_id', r.id, 'reason', v_reason, 'refund_cents', p_amount_cents);
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.declutter_delivery_raise_paid(uuid, text, text, integer, boolean) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.declutter_delivery_raise_paid(uuid, text, text, integer, boolean) TO service_role;
+REVOKE ALL ON FUNCTION public.declutter_delivery_raise_paid(uuid, uuid, text, text, integer, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_delivery_raise_paid(uuid, uuid, text, text, integer, boolean) TO service_role;
 
 -- 6. A task that ends without its Helpr being paid refunds every applied
 -- raise, once (applied -> refunding happens once per row). At the table, so
 -- every closing path (the no-Helpr sweep, a cancelled sale, damage in
--- delivery, an admin decision) is covered by one rule.
+-- delivery, an admin decision) is covered by one rule. A sale cancelled for
+-- the buyer's own reason (or no one's fault) keeps the raise's card fee, as
+-- the order's own refund does: declutter_close_paid_order closes the task
+-- with its refund reason as the note (helpr_task_close(task, 'cancelled',
+-- p_reason)), and these are declutter_record_refund's keep_card_fee and
+-- keep_buyer_fee reasons. Every other close is ours or the seller's: in full.
 CREATE OR REPLACE FUNCTION public.declutter_delivery_raises_on_task_close()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -358,23 +397,30 @@ AS $fn$
 DECLARE
   v_back integer;
   v_buyer uuid;
+  v_buyer_side boolean;
 BEGIN
   IF NEW.source_kind <> 'declutter_delivery' OR NEW.status NOT IN ('unfilled', 'cancelled', 'failed')
      OR OLD.status IN ('unfilled', 'cancelled', 'failed') THEN
     RETURN NEW;
   END IF;
+  v_buyer_side := NEW.status = 'cancelled' AND COALESCE(NEW.close_note IN
+    ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault', 'buyer_no_show', 'admin_buyer_fault'), false);
   WITH back AS (
     UPDATE public.declutter_delivery_raises r
        SET status = 'refunding',
-           refund_reason = CASE NEW.status WHEN 'unfilled' THEN 'no_helpr' WHEN 'failed' THEN 'delivery_failed' ELSE 'delivery_cancelled' END,
-           refund_cents = r.paid_cents, refund_next_attempt_at = now(), updated_at = now()
+           refund_reason = CASE WHEN NEW.status = 'unfilled' THEN 'no_helpr' WHEN NEW.status = 'failed' THEN 'delivery_failed'
+                                WHEN v_buyer_side THEN 'delivery_cancelled_buyer' ELSE 'delivery_cancelled' END,
+           refund_cents = CASE WHEN v_buyer_side THEN r.paid_cents - r.card_fee_cents ELSE r.paid_cents END,
+           refund_next_attempt_at = now(), updated_at = now()
      WHERE r.task_id = NEW.id AND r.status = 'applied'
-    RETURNING r.paid_cents)
-  SELECT sum(paid_cents)::integer INTO v_back FROM back;
+    RETURNING r.refund_cents)
+  SELECT sum(refund_cents)::integer INTO v_back FROM back;
   IF COALESCE(v_back, 0) > 0 THEN
     SELECT o.buyer_id INTO v_buyer FROM public.declutter_orders o WHERE o.id = NEW.source_id;
     PERFORM public.declutter_notify(v_buyer, 'payment', 'Your raise is coming back',
-      format('The $%s you paid to raise the delivery pay is coming back to your card.', to_char(v_back / 100.0, 'FM999990.00')),
+      format(CASE WHEN v_buyer_side THEN 'The $%s you added to the delivery pay is coming back to your card (its card fee is not refunded).'
+                  ELSE 'The $%s you paid to raise the delivery pay is coming back to your card.' END,
+             to_char(v_back / 100.0, 'FM999990.00')),
       '/declutter?view=cart', NULL);
   END IF;
   RETURN NEW;
@@ -523,6 +569,72 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_delivery_raise_refund_reversed(uuid, text, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_delivery_raise_refund_reversed(uuid, text, text) TO service_role;
+
+-- The transfer that paid a raise to the Helpr (declutter-money, once the
+-- raise part of the payout is sent or found): recorded on the raise, so the
+-- restore check and a person can see every part of a split payout.
+CREATE OR REPLACE FUNCTION public.declutter_delivery_raise_payout_sent(p_raise_id uuid, p_transfer_id text)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_have text;
+BEGIN
+  IF p_transfer_id IS NULL OR p_transfer_id !~ '^tr_' THEN
+    RAISE EXCEPTION 'invalid_transfer' USING ERRCODE = '22023';
+  END IF;
+  UPDATE public.declutter_delivery_raises SET payout_transfer_id = p_transfer_id, updated_at = now()
+   WHERE id = p_raise_id AND status = 'applied' AND payout_transfer_id IS NULL;
+  IF FOUND THEN
+    RETURN 'recorded';
+  END IF;
+  SELECT payout_transfer_id INTO v_have FROM public.declutter_delivery_raises WHERE id = p_raise_id;
+  IF v_have = p_transfer_id THEN
+    RETURN 'already';
+  END IF;
+  -- Another transfer already recorded, or the raise is not applied: never overwritten silently.
+  RAISE EXCEPTION 'raise_transfer_mismatch' USING ERRCODE = '55000';
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_delivery_raise_payout_sent(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_delivery_raise_payout_sent(uuid, text) TO service_role;
+
+-- A refund made BY HAND in Stripe on a raise's charge (charge.refunded with
+-- no Declutter kind: "refund it by hand" after the automatic one gave up).
+-- Answers: not_raise (no raise has that payment: the order path decides),
+-- settled (a raise waiting to go back is now refunded by it), already, or
+-- recorded_other (anything else: the webhook pages a person; an applied raise
+-- refunded by hand leaves the Helpr's pay above the money behind it).
+CREATE OR REPLACE FUNCTION public.declutter_delivery_raise_hand_refund(p_payment_intent_id text, p_stripe_refund_id text,
+  p_amount_cents integer)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  r public.declutter_delivery_raises;
+BEGIN
+  SELECT * INTO r FROM public.declutter_delivery_raises WHERE stripe_payment_intent_id = p_payment_intent_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN 'not_raise';
+  END IF;
+  IF r.status = 'refunded' AND r.stripe_refund_ref = p_stripe_refund_id THEN
+    RETURN 'already';
+  END IF;
+  IF r.status = 'refunding' AND p_stripe_refund_id ~ '^(re|pyr)_' AND COALESCE(p_amount_cents, 0) >= r.refund_cents THEN
+    UPDATE public.declutter_delivery_raises
+       SET status = 'refunded', stripe_refund_ref = p_stripe_refund_id, refunded_at = now(), refund_last_error = NULL, updated_at = now()
+     WHERE id = r.id;
+    RETURN 'settled';
+  END IF;
+  RETURN 'recorded_other';
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_delivery_raise_hand_refund(text, text, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_delivery_raise_hand_refund(text, text, integer) TO service_role;
 
 -- 9. The Helpr payout queue, restated from 20261017055505 (its newest
 -- definition) with raise_parts and raised_cents appended: the applied raises

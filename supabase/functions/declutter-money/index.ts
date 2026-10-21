@@ -1121,6 +1121,17 @@ serve(async (req) => {
           && (meta.raise_id ?? "") === (part.raiseId ?? "");
       }));
       const existing = sent.every((t) => !!t);
+      if (!existing && sent.some((t) => !!t)) {
+        // Part of a raised payout went and part did not (a failure between two transfers). Never re-run the
+        // payee gates on it (a hold, then "pay it by hand" for the WHOLE amount, would pay the sent part twice):
+        // held for a person, naming what went and what is left (lh-money-escrow review of Q1929, #4).
+        const went = sent.flatMap((t) => (t ? [t.id] : []));
+        const left = parts.filter((_, i) => !sent[i]).reduce((sum, p) => sum + p.amountCents, 0);
+        defects.record(`helpr payout ${h.payout_id}: partly sent (${went.join(", ")}); ${left}c not sent`.slice(0, 200));
+        await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 1440, "needs_reconcile",
+          `partly sent: transfers ${went.join(", ")} went; ${dollars(left)} from raise charges did not. Send only the rest.`);
+        continue;
+      }
       if (!existing) {
         // The charges first (a refunded or disputed one fails loudly), then the payee's readiness.
         if (await unpayableNow("helpr_task", h.payout_id, h.helpr_id, h.stripe_account_id, h.amount_cents, mode)) continue;
@@ -1150,7 +1161,24 @@ serve(async (req) => {
           );
         }
       }
-      // The row records its first part's transfer (the order's, when it funds any); the others are in its group.
+      // Each raise part's transfer is recorded on its raise (the restore check and a person see every part);
+      // the row records its first part's transfer (the order's, when it funds any).
+      let partsRecorded = true;
+      for (const [i, part] of parts.entries()) {
+        if (!part.raiseId) continue;
+        const { error: partErr } = await admin.rpc("declutter_delivery_raise_payout_sent", {
+          p_raise_id: part.raiseId, p_transfer_id: (sent[i] as Stripe.Transfer).id,
+        });
+        if (partErr) {
+          partsRecorded = false;
+          defects.record(`helpr payout ${h.payout_id}: raise transfer ${(sent[i] as Stripe.Transfer).id} not recorded: ${partErr.message}`.slice(0, 200));
+        }
+      }
+      if (!partsRecorded) {
+        // Every transfer exists; recording one failed. Reconciled (never re-sent) next time.
+        await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 15, "record_failed", "a raise transfer not recorded");
+        continue;
+      }
       const hTransfer = sent[0] as Stripe.Transfer;
       const { error } = await admin.rpc("helpr_task_payout_executed", {
         p_payout_id: h.payout_id, p_transfer_id: hTransfer.id, p_succeeded: true, p_error: null,
@@ -1278,12 +1306,20 @@ serve(async (req) => {
   // 4b. Delivery-pay raises (Q1929): each paid raise the task did not use goes back in full, on the
   // raise's OWN charge (never the order's), once: reconciled by metadata.raise_id, key
   // `declutter-raise-refund-<raise id>`, recorded with declutter_delivery_raise_refund_executed.
-  const deferRaise = (id: string, minutes: number) =>
-    waitRpc("declutter_delivery_raise_refund_defer", { p_raise_id: id, p_minutes: minutes });
+  // Deferred without a try. A reason that will not fix itself (no Stripe mode, mixed parties, a refund Stripe
+  // took that could not be recorded) also pages ops once a day per raise, so no deferral is silent
+  // (lh-money-escrow review of Q1929, #5). A refund made by hand settles it (declutter_delivery_raise_hand_refund).
+  const deferRaise = async (x: RaiseRefundDue, minutes: number, stuck?: string) => {
+    await waitRpc("declutter_delivery_raise_refund_defer", { p_raise_id: x.raise_id, p_minutes: minutes });
+    if (stuck) {
+      await onceADay(`raise-refund-stuck-${x.raise_id}`, "A delivery-raise refund is waiting on a person",
+        `Raise ${x.raise_id} (${dollars(x.refund_cents)} to the buyer of order ${x.order_id}, payment ${x.payment_intent_id}) was not refunded: ${stuck}. Refund it by hand in Stripe; the refund settles the raise.`);
+    }
+  };
   for (const x of raiseRefunds) {
     if ((x.buyer_id && review.users.has(x.buyer_id)) || (x.seller_id && review.users.has(x.seller_id))) {
       out.ban_review++;
-      await deferRaise(x.raise_id, 60);
+      await deferRaise(x, 60);
       continue;
     }
     try {
@@ -1294,15 +1330,19 @@ serve(async (req) => {
       });
       if (!client) {
         defects.record(`raise refund ${x.raise_id}: no Stripe mode; refund it by hand`);
-        await deferRaise(x.raise_id, 1440);
+        await deferRaise(x, 1440, "no Stripe mode to run it on");
         continue;
       }
       const { stripe } = client;
       const listed = await stripe.refunds.list({ payment_intent: x.payment_intent_id, limit: 100 });
       const mine = listed.data.filter((r) => (r.metadata as Record<string, string> | null)?.raise_id === x.raise_id);
       const adopted = mine.find((r) => tookIt(r.status));
-      // own-mistake full refund (owner, 2026-10-14): the raise bought a Helpr the delivery never got,
-      // so everything the buyer paid for it (card fee included) goes back; the order's charge is untouched.
+      // own-mistake full refund (owner, 2026-10-14): the raise bought a Helpr the delivery never got, or our
+      // system took a payment it could not use, so everything the buyer paid for it goes back (card fee
+      // included). The one exception is decided in SQL, not here: a sale cancelled for the buyer's own
+      // reason keeps the raise's card fee (reason delivery_cancelled_buyer; refund_cents = paid - card fee,
+      // CHECK declutter_delivery_raises_refund_amount). This sends exactly the row's refund_cents, on the
+      // raise's OWN charge; the order's charge is untouched.
       const xRefund = adopted ?? await stripe.refunds.create(
         {
           payment_intent: x.payment_intent_id,
@@ -1317,7 +1357,7 @@ serve(async (req) => {
       });
       if (error) {
         defects.record(`raise refund ${x.raise_id}: Stripe ${xRefund.id} not recorded: ${error.message}`);
-        await deferRaise(x.raise_id, 15);
+        await deferRaise(x, 15, `Stripe refund ${xRefund.id} could not be recorded`);
         continue;
       }
       if (!ok) {
@@ -1337,7 +1377,7 @@ serve(async (req) => {
       if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
         out.mixed_parties++;
         defects.record(`raise refund ${x.raise_id}: the order mixes a test account and a real one; settle it by hand`);
-        await deferRaise(x.raise_id, 1440);
+        await deferRaise(x, 1440, "the order mixes a test account and a real one");
         continue;
       }
       const msg = caughtMessage(e, "refund failed");

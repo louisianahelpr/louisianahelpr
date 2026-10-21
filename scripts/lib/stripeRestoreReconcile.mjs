@@ -53,6 +53,8 @@ export const DB_ID_COLUMNS = {
     { table: "declutter_refunds", column: "stripe_payment_intent_id" },
     { table: "declutter_hand_refunds", column: "stripe_payment_intent_id", orderBy: "stripe_refund_id" },
     { table: "declutter_delivery_refunds", column: "stripe_payment_intent_id" },
+    // Q1929: a delivery-pay raise is its own charge (20261021130506).
+    { table: "declutter_delivery_raises", column: "stripe_payment_intent_id" },
     { table: "shop_orders", column: "stripe_payment_intent_id" },
   ],
   transfer: [
@@ -71,6 +73,8 @@ export const DB_ID_COLUMNS = {
     { table: "tip_hold_redrives", column: "repay_transfer_id", orderBy: "tip_id" },
     { table: "declutter_payouts", column: "stripe_transfer_id" },
     { table: "helpr_task_payouts", column: "stripe_transfer_id" },
+    // Q1929: the raise part of a Helpr payout, sent from the raise's own charge.
+    { table: "declutter_delivery_raises", column: "payout_transfer_id" },
     { table: "shop_payouts", column: "stripe_transfer_id" },
     // An admin's hand settlement of a held payout or refund (20261019070737, CHECK '^(tr|re|pyr|po)_'):
     // listed under each kind it can hold; collectDbIds skips the other kinds quietly.
@@ -82,6 +86,7 @@ export const DB_ID_COLUMNS = {
     { table: "declutter_refunds", column: "stripe_refund_ref" },
     { table: "declutter_hand_refunds", column: "stripe_refund_id", orderBy: "stripe_refund_id" },
     { table: "declutter_delivery_refunds", column: "stripe_refund_ref" },
+    { table: "declutter_delivery_raises", column: "stripe_refund_ref" },
     { table: "payout_settlements", column: "stripe_ref" },
   ],
 };
@@ -148,6 +153,8 @@ export const NOT_MATCHED = {
   "payout_send_marks.payout_id": "our own payout / refund row id (uuid) marked as sending (payout readiness, 20261019070737), not a Stripe id",
   "payout_settlements.off_stripe_note": "free text saying how money was paid outside Stripe ('other: ...'), not a Stripe id",
   "declutter_delivery_refunds.refund_cents": "an amount, not a Stripe id",
+  "declutter_delivery_raises.refund_cents": "an amount, not a Stripe id",
+  "declutter_delivery_raises.stripe_checkout_session_id": "a Checkout Session; its PaymentIntent is declutter_delivery_raises.stripe_payment_intent_id",
   "tips.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through tips.stripe_payment_intent_id",
   "gift_cards.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through gift_cards.stripe_payment_intent_id",
   "recurring_visit_payments.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through recurring_visit_payments.stripe_payment_intent_id",

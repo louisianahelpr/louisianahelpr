@@ -1275,6 +1275,7 @@ export type Database = {
           order_id: string
           paid_at: string | null
           paid_cents: number | null
+          payout_transfer_id: string | null
           raise_cents: number
           refund_attempts: number
           refund_cents: number | null
@@ -1300,6 +1301,7 @@ export type Database = {
           order_id: string
           paid_at?: string | null
           paid_cents?: number | null
+          payout_transfer_id?: string | null
           raise_cents: number
           refund_attempts?: number
           refund_cents?: number | null
@@ -1325,6 +1327,7 @@ export type Database = {
           order_id?: string
           paid_at?: string | null
           paid_cents?: number | null
+          payout_transfer_id?: string | null
           raise_cents?: number
           refund_attempts?: number
           refund_cents?: number | null
@@ -11950,11 +11953,23 @@ export type Database = {
       declutter_delivery_quote: { Args: { p_seller_id: string }; Returns: Json }
       declutter_delivery_raise_attach: { Args: { p_raise_id: string; p_session_id: string }; Returns: undefined }
       declutter_delivery_raise_card_fee_cents: { Args: { p_raise_cents: number }; Returns: number }
+      declutter_delivery_raise_hand_refund: {
+        Args: { p_amount_cents: number; p_payment_intent_id: string; p_stripe_refund_id: string }
+        Returns: string
+      }
       declutter_delivery_raise_open: { Args: { p_minutes: number; p_order: unknown; p_task: unknown }; Returns: boolean }
       declutter_delivery_raise_paid: {
-        Args: { p_amount_cents: number; p_livemode: boolean; p_payment_intent_id: string; p_raise_id: string; p_session_id: string }
+        Args: {
+          p_amount_cents: number
+          p_livemode: boolean
+          p_order_id: string
+          p_payment_intent_id: string
+          p_raise_id: string
+          p_session_id: string
+        }
         Returns: Json
       }
+      declutter_delivery_raise_payout_sent: { Args: { p_raise_id: string; p_transfer_id: string }; Returns: string }
       declutter_delivery_raise_refund_defer: { Args: { p_minutes: number; p_raise_id: string }; Returns: undefined }
       declutter_delivery_raise_refund_executed: {
         Args: { p_error: string; p_raise_id: string; p_stripe_refund_id: string; p_succeeded: boolean }

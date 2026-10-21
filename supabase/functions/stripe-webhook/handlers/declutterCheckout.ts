@@ -67,8 +67,8 @@ export async function settleDeclutterSession(
 }
 
 type RaisePaidAnswer = {
-  result: "applied" | "refund" | "already" | "unknown" | "session_mismatch" | "other_payment";
-  raise_id?: string; reason?: string; refund_cents?: number; status?: string;
+  result: "applied" | "refund" | "already" | "unknown" | "order_mismatch" | "session_mismatch" | "other_payment";
+  raise_id?: string; reason?: string; status?: string;
 };
 
 /**
@@ -119,6 +119,7 @@ async function settleRaise(
   }
   const { data, error } = await supabase.rpc("declutter_delivery_raise_paid", {
     p_raise_id: meta.raise_id,
+    p_order_id: meta.order_id,
     p_session_id: session.id,
     p_payment_intent_id: paymentIntentId,
     p_amount_cents: amount,
@@ -130,8 +131,9 @@ async function settleRaise(
     throw new Error(`declutter_delivery_raise_paid gave no answer for raise ${meta.raise_id}`);
   }
   logStep("Declutter raise settled", { raise: meta.raise_id, result: answer.result, reason: answer.reason ?? null });
-  if (answer.result === "unknown" || answer.result === "session_mismatch" || answer.result === "other_payment") {
+  if (answer.result === "unknown" || answer.result === "order_mismatch" || answer.result === "session_mismatch" || answer.result === "other_payment") {
     await pageOps(answer.result === "unknown" ? "no raise row has that id"
+      : answer.result === "order_mismatch" ? "the raise row belongs to another order"
       : answer.result === "session_mismatch" ? "the raise row names another Stripe page" : "the raise row already holds another payment");
     return;
   }
@@ -434,6 +436,28 @@ export async function recordDeclutterHandRefunds(
   }
   if (!paymentIntentId) throw new Error(`Declutter charge ${charge.id} was refunded but names no PaymentIntent`);
   for (const r of hand) {
+    // Q1929: a hand refund on a delivery-pay RAISE's own charge settles that raise (never the order's rows).
+    const { data: raiseAnswer, error: raiseErr } = await supabase.rpc("declutter_delivery_raise_hand_refund", {
+      p_payment_intent_id: paymentIntentId,
+      p_stripe_refund_id: r.id,
+      p_amount_cents: Number(r.amount ?? 0),
+    });
+    if (raiseErr && (raiseErr as { code?: string }).code !== "PGRST202") {
+      throw new Error(`declutter_delivery_raise_hand_refund failed for ${r.id}: ${raiseErr.message}`);
+    }
+    if (!raiseErr && raiseAnswer !== "not_raise") {
+      logStep("Declutter raise refunded outside Declutter", { refund: r.id, result: raiseAnswer });
+      if (raiseAnswer === "recorded_other") {
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "Delivery-pay raise refunded outside Declutter: check it",
+          message: `Refund ${r.id} (${dollars(Number(r.amount ?? 0))}) on raise payment ${paymentIntentId} was made by hand, but that raise was not waiting for a refund of at least that much. Nothing was moved. If the raise was already in the Helpr's pay, the Helpr's payout will not send (its raise charge is refunded): decide it by hand.`,
+          fields: { Charge: charge.id },
+        });
+      }
+      continue;
+    }
     const { data, error } = await supabase.rpc("declutter_record_hand_refund", {
       p_payment_intent_id: paymentIntentId,
       p_stripe_refund_id: r.id,

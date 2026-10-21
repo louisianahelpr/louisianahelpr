@@ -168,6 +168,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   raise_not_waiting: "That raise was replaced by a newer one. Try again.",
   raise_not_found: "That raise couldn't be found.",
   invalid_session: "That payment page couldn't be recorded.",
+  raise_transfer_mismatch: "That raise was already paid to a Helpr with another transfer.",
   // Add a Helpr (20261017073146): the link is for the job just posted, before its checkout.
   job_already_funded: "This job is already paid for, so it can't be added to your Declutter purchase. It's under your posted jobs.",
   // A10 (20261017073146): the seller-fault cancel's hand tool and the seller's fee debt (staff and server only).

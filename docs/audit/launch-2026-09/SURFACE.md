@@ -21,16 +21,16 @@ reports coverage against THIS file, not against the route list.
 | Overlay surfaces | **instance** | 179 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
 | Toast messages | **call site** | 901 (across 227 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 31 |
+| Multi-step flows — confirmed | flow | 30 |
 | Multi-step flows — probable | flow | 20 |
 | Back/next navigation only | flow | 46 |
 | Forms (submittable) | form | 74 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 149 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **603** |
+| **Navigable surfaces** (places a person can stand) | mixed | **602** |
 | **Copy surfaces** (strings a person may read) | mixed | **939** |
-| **Total auditable surface** | mixed | **1542** |
+| **Total auditable surface** | mixed | **1541** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -72,7 +72,7 @@ they differ, the reason is understood:
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 179 | 130 | agree within method (script counts every menu instance) |
 | Forms | 74 | ~38 | agree |
-| Confirmed multi-step flows | 31 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 30 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -374,7 +374,6 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/components/job-card/jobStatusLine.ts` | compare |
 | `src/components/job-card/primaryPhotoAsk.ts` | compare |
 | `src/components/jobDone/JobDoneSummary.tsx` | step-array |
-| `src/components/postjob/PostJobStepRail.tsx` | step-array |
 | `src/components/profile/SubscriptionTab.tsx` | nav-handler, union-state |
 | `src/components/rentals/LeasePanel.tsx` | compare, nav-handler |
 | `src/components/rentals/listings/SavedHomes.tsx` | compare |

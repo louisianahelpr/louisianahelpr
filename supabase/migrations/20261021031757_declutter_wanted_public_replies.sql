@@ -19,7 +19,10 @@
 --     per POST (never per poster: that would link two posts to one person), the selling gates (declutter_assert_member(true), declutter_seller_out), the post locked
 --     FOR UPDATE and re-checked; only a listing with no open offer can answer (no oracle on who the poster is).
 --  7. NOTIFY: the poster gets "A seller has a match", at most 5 a day per poster (silent cap).
---  8. Members lose the direct table read of declutter_offers / declutter_offer_events (review blocker #1).
+--  8. Members lose the direct table read of declutter_offers / declutter_offer_events (review blocker #1): NOT here.
+--     That REVOKE narrows a grant the installed app was built against, so it rides its own migration with
+--     client_compat_floor() 2 (ready/declutter-narrow-floor2), landing with the next App Store build. Until then the
+--     declutter_wanted switch stays testers-only (Q2274/Q2267).
 -- Restated (prod prosrc md5 = 20261016053541's bodies, measured 2026-10-21): declutter_create_wanted
 -- 7345066c676c6458b4ae97bf0434a056, declutter_my_wanted c1916e3b0cb3cf0262484816b5454b3b (adds `public`).
 -- New signatures need DROP + CREATE; grants restated as live (authenticated, service_role; never anon).
@@ -35,15 +38,6 @@ BEGIN
   END IF;
 END
 $do$;
--- lh-authz-rls review of Q2267 #1 (blocker): members could read declutter_offers / declutter_offer_events rows
--- directly (table SELECT + "the two sides read"), which would hand a seller the poster's user id from one reply. No
--- app or edge code reads either table directly (checked 2026-10-21; every read goes through declutter_my_offers and
--- the other definer RPCs, which return no counterparty id), so members lose the table read. Replay-safe.
-REVOKE SELECT ON public.declutter_offers FROM anon, authenticated;
-REVOKE SELECT ON public.declutter_offer_events FROM anon, authenticated;
--- The two "the two sides read" SELECT policies stay on purpose: with RLS on and no grant they let nothing through, and
--- should a table read ever be granted again they keep it to the offer's two sides (re-review note, 2026-10-21).
-
 CREATE UNIQUE INDEX IF NOT EXISTS declutter_offers_one_reply_per_wanted ON public.declutter_offers (wanted_id, seller_id) WHERE wanted_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS declutter_offers_wanted_replies_by_seller ON public.declutter_offers (seller_id, created_at) WHERE wanted_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS declutter_wanted_public_open_idx ON public.declutter_wanted (expires_at) WHERE status = 'open' AND public;

@@ -152,8 +152,11 @@ const PaymentSuccess = () => {
   // Q1788: the job's real stage (jobs.status), read with the payment state.
   const [jobStatus, setJobStatus] = useState<string | null>(null);
   const lifecycleStep = lifecycleStepFor(jobStatus, alreadyReleased);
+  const [directOffer, setDirectOffer] = useState(false);
+  // Board 56: "live" only while Helprs can find it (paymentReturnCopy.ts).
+  const live = lifecycleStep === 0 && !alreadyReleased && !directOffer;
 
-  usePageTitle(paymentPageTitle(confirmState));
+  usePageTitle(paymentPageTitle(confirmState, live));
 
   /**
    * Share the just-posted job so a neighbour can see it and apply.
@@ -296,7 +299,7 @@ const PaymentSuccess = () => {
         }
         const { data, error } = await supabase
           .from("jobs")
-          .select("budget, category, payment_status, customer_id, status")
+          .select("budget, category, payment_status, customer_id, status, offered_to_helper_id")
           .eq("id", resolvedJobId)
           .maybeSingle();
         if (cancelled) return;
@@ -325,6 +328,7 @@ const PaymentSuccess = () => {
         if (typeof data.category === "string") setCategory(data.category);
         // Q1788: the stepper and the primary follow the job's real stage.
         setJobStatus(typeof data.status === "string" ? data.status : null);
+        setDirectOffer(!!data.offered_to_helper_id);
 
         const status = data.payment_status;
         if (status && HELD_STATUSES.has(status)) {
@@ -359,7 +363,7 @@ const PaymentSuccess = () => {
     }
   }, [isHeld, resolvedJobId]);
 
-  const heading = paymentHeading(confirmState);
+  const heading = paymentHeading(confirmState, live);
   const unknownBody = unknownPaymentBody(unknownReason);
 
   const supportAction = (

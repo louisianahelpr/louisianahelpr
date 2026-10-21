@@ -2,7 +2,7 @@
 // "what's in it" line, and the open group's olive outline (not a fill).
 // @mutate src/components/postjob/PostJobStepRail.tsx | {done && onPick ? ( | {false ? (
 // @mutate src/components/postjob/JobCategoryGroups.tsx | i === 0 \|\| /^[A-Z]{2}/.test(it.label) | i === 0
-// @mutate src/components/postjob/JobCategoryGroups.tsx | ${on ? "border-2 !border-primary" : "border border-border"} | ${on ? "btn-grad-primary" : "border border-border"}
+// @mutate src/components/postjob/JobCategoryGroups.tsx | ${opts.pressed ? "border-2 !border-primary" : "border border-border"} | ${opts.pressed ? "btn-grad-primary" : "border border-border"}
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { PostJobStepRail } from "@/components/postjob/PostJobStepRail";
@@ -25,12 +25,12 @@ describe("board 166: the step rail", () => {
 });
 
 describe("board 166: group cards", () => {
-  it("say what is in a bigger group, keep acronyms, and outline (not fill) the open group", () => {
-    render(<JobCategoryGroups category="pressure_washing" setCategory={() => {}} />);
+  it("say what is in a bigger group, keep acronyms, and outline (not fill) the group holding the pick", () => {
+    render(<JobCategoryGroups category="pressure_washing" setCategory={() => {}} group={null} setGroup={() => {}} onPicked={() => {}} />);
     const trades = screen.getByRole("button", { name: /^Trades/ });
     expect(trades.textContent).toMatch(/HVAC/);
     const home = screen.getByRole("button", { name: /^Home/ });
-    expect(home.getAttribute("aria-expanded")).toBe("true");
+    expect(home.getAttribute("aria-pressed")).toBe("true");
     expect(home.className).toContain("border-2");
     expect(home.className).not.toContain("btn-grad-primary");
     expect(home.textContent).toMatch(/^HomeCleaning, handyman/);

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { PenLine, FileText, LayoutTemplate, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
+import { PenLine, FileText, LayoutTemplate, ChevronRight, ChevronDown, RotateCcw, Sparkles, UserCheck } from "lucide-react";
+import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { sampleJobs } from "@/data/sampleJobs";
 import { usePostedBefore, useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { track } from "@/lib/analytics";
@@ -29,8 +30,7 @@ import { useDraftCheckout } from "./useDraftCheckoutState";
  *
  * DATA-AWARE (owner, 2026-10-03, Q722): the skeleton draws the column the
  * KNOWN data says will land, not the populated one. Four cards always render
- * (Start Fresh, Use a Template, Offer It to a Saved Helpr, the AI Job
- * Builder); "Pick Up Your Draft" and "Repost" are each drawn only once their
+ * (Start from scratch, Use a template, Offer to a saved Helpr, Get help from AI); "Pick Up Your Draft" and "Repost" are each drawn only once their
  * read has landed and says the card will show. While a read is in flight it
  * counts as absent: a cold visit (nothing cached) is mostly a new account,
  * which has neither, so its column holds 4 cards from first paint to last.
@@ -60,7 +60,7 @@ function EntryChoiceSkeleton({ count }: { count: number }) {
     <div className="flex flex-col gap-3" role="status" aria-busy="true" data-testid="entry-choice-skeleton">
       <span className="sr-only">Loading…</span>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-2xl liquid-glass p-card flex items-center" style={{ minHeight: "104px" }} aria-hidden>
+        <div key={i} className="rounded-2xl border border-border bg-card p-card flex items-center" style={{ minHeight: "104px" }} aria-hidden>
           <div className="flex items-center gap-4 w-full">
             <Skeleton className="w-11 h-11 rounded-full shrink-0" />
             <div className="min-w-0 flex-1">
@@ -92,17 +92,11 @@ function shortRelativeDate(iso: string): string {
 }
 
 /**
- * EntryChoice — the landing step shown before the full Post-a-Task form.
- *
- * The multi-step form (details / logistics / budget + AI builder + templates
- * + stepper) is a lot to drop on the user at once. This screen offers three
- * calm, liquid-glass cards so the poster picks an intent first, then enters
- * the form pre-filled accordingly:
- *
- *   1. Start fresh        → empty form (current behavior)
- *   2. Pick up your draft → restores the saved draft (only when one exists)
- *   3. Use a template     → enter the form with the template picker, or tap
- *                           a quick-start template card to pre-fill directly.
+ * EntryChoice — Post a Job step 0, "How do you want to start?" (owner 2026-10-21; mock-up
+ * helpr-postjob-flow-mockup.png): Start from scratch, Use a template, Offer to a saved Helpr, Get help
+ * from AI, each a card with an olive-circle icon. Scratch goes to screen 1; the other three open in
+ * place of the cards (usePostJobForm `entryPanel`), and back returns to the cards. A returning
+ * poster's kept draft and recent jobs follow as the same card.
  *
  * Purely presentational — all transitions/handlers come from usePostJobForm.
  */
@@ -146,14 +140,10 @@ export function EntryChoice({ form }: EntryChoiceProps) {
    * match. A radio, not three checkboxes: these are alternative ways to start
    * the SAME post, so at most one can be the one you are using.
    */
-  // `?start=ai` (the create sheet's "Or just describe the job" row, 2026-10-20) opens the AI builder.
-  const [openSection, setOpenSection] = useState<"repost" | "templates" | "ai" | "offer" | null>(() =>
-    searchParams.get("start") === "ai" ? "ai" : null,
-  );
-  const repostOpen = openSection === "repost";
-  const templatesOpen = openSection === "templates";
-  const toggleSection = (key: "repost" | "templates" | "ai") =>
-    setOpenSection((cur) => (cur === key ? null : key));
+  // Step 0's chosen way to start lives on the form (usePostJobForm `entryPanel`), so the page's back
+  // arrow returns to the four cards. `?start=ai` opens the AI builder there.
+  const panel = form.entryPanel;
+  const [repostOpen, setRepostOpen] = useState(false);
 
   // Tap a Repost tile → reuse the existing `?rebook=<id>` deep-link the
   // form already handles, which prefills every field and skips the entry
@@ -206,291 +196,72 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // Job history not known yet on this device (postedBefore null): the
   // first-time default of four, never an empty column (see
   // ENTRY_BASE_CARD_COUNT).
+  // The question paints with the screen; only the cards wait for their data.
+  const startHeader = (
+    <div className="mb-3">
+      <PostJobStepHeader step={1} question="How do you want to start?" helper="Pick one. You can go back and change it." />
+    </div>
+  );
   if (!entryReady) {
     const count = entryCardCount({
       draftCard: form.draftLoaded && draftCheckoutSettled && form.hasDraft && draftCheckout !== "paid",
       repostCard: postedBefore === true,
     });
-    return <EntryChoiceSkeleton count={count} />;
+    return (
+      <div className="flex flex-col gap-3">
+        {startHeader}
+        <EntryChoiceSkeleton count={count} />
+      </div>
+    );
   }
 
-  return (
-    // Top-level cards render as a stacked column on phones and flip to a
-    // two-column grid from md up (768px), so the parent column — which
-    // widens with the viewport (md:max-w-3xl → lg:max-w-5xl, see PostJob)
-    // — is consumed instead of stranding the cards in a 512px column with
-    // big side gutters on tablet / wide-phone widths. Sections that expand
-    // (Repost, Templates) grow their own row independently in the grid, so
-    // an open section still reads naturally.
-    // `items-start` so a card keeps its natural height (owner: "all boxes should
-    // be the same size" — confirmed 2026-08-29 to mean collapsed boxes match
-    // each other, not that an open one should stretch its idle neighbor).
-    // Grid rows stretch their items by default, so an OPEN Templates section
-    // pulled its silent neighbour to the same height — one card in a pair of
-    // four suddenly three times as tall as the rest, holding nothing. With
-    // `items-start` the expanded one grows and the others stay the size of
-    // their content.
-    <div className="flex flex-col gap-3">
-      {showGiftBanner && giftCards.userId && <GiftCardTeaser userId={giftCards.userId} ids={giftCards.ids} />}
+  const startCard = (key: string, icon: ReactNode, title: string, line: string, onClick: () => void, extra?: ReactNode) => (
+    <button
+      key={key}
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-4 rounded-2xl border border-border bg-card p-card text-left transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      style={{ minHeight: "104px" }}
+    >
+      <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]" aria-hidden>
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-sans text-ds-17 font-bold text-foreground">{title}</span>
+        <span className="mt-0.5 block font-sans text-ds-13 text-muted-foreground">{line}</span>
+        {extra}
+      </span>
+      <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+    </button>
+  );
 
-      {/* AT THE DOOR, not at the end of the wizard. The cap used to be told to
-          the poster only on the form step and again at submit, so someone
-          already at five picked an intent, filled three steps of details and
-          THEN heard no. Same count, same rule, same wording — just before any
-          work is done rather than after all of it. The form-step notice and
-          the submit check both stay: this one can only be as fresh as the
-          count fetched at mount. */}
-      {atOpenJobLimit && <OpenJobLimitNotice count={form.openJobCount ?? 5} />}
-
-      {/* 1 — START FRESH (primary action, always first) */}
-      <button
-        type="button"
-        onClick={form.startFresh}
-        className="w-full rounded-2xl liquid-glass p-card text-left flex items-center gap-4 active:scale-[0.99] transition-transform"
-          style={{ minHeight: "104px" }}
-      >
-        <span
-          className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
-          style={{ background: "hsl(var(--burnt-sienna) / 0.14)" }}
-          aria-hidden
-        >
-          <PenLine className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span
-            className="block font-display font-bold text-ds-17"
-            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
-          >
-            Start Fresh
-          </span>
-          <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Build your request from a blank form.
-          </span>
-        </span>
-        <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} aria-hidden />
-      </button>
-
-      {/* 2 — LOAD DRAFT (only when a saved draft exists, and never for a
-          draft whose job is already paid; Q769 warns while its checkout is live) */}
-      {form.hasDraft && draftCheckout !== "paid" && (
-        <button
-          type="button"
-          onClick={form.loadDraftAndContinue}
-          className="w-full rounded-2xl liquid-glass p-card text-left flex items-center gap-4 active:scale-[0.99] transition-transform"
-          style={{ minHeight: "104px" }}
-        >
-          <span
-            className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
-            style={{ background: "hsl(var(--info-tint) / 0.14)" }}
-            aria-hidden
-          >
-            <FileText className="w-5 h-5" style={{ color: "hsl(var(--info-tint))" }} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span
-              className="block font-display font-bold text-ds-17"
-              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
-            >
-              Pick Up Your Draft
-            </span>
-            <span
-              className="block font-sans mt-0.5 text-ds-11"
-              style={{ color: draftCheckout === "open" ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)" }}
-              data-testid="draft-checkout-note"
-            >
-              {draftCheckout === "open"
-                ? "You started paying for this one. If you finished, it will show in Posts shortly, so check there before paying again."
-                : "Continue the request you saved earlier."}
-            </span>
-          </span>
-          <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} aria-hidden />
-        </button>
-      )}
-
-      {/* 3 — REPOST A RECENT TASK (collapsed by default)
-
-          While useRecentPostedJobs is still loading it returns null, so this
-          row used to be absent and then APPEAR, shoving everything below it
-          down after the poster was already reading the page — "it loads after
-          I'm already on the page". Reserve the collapsed row's height for the
-          loading window so the layout is stable from first paint; the
-          placeholder is inert and unlabelled, so nothing announces it. Once
-          the query resolves the row either fills in or collapses to nothing
-          for a first-time poster, and only that second case moves anything —
-          by which point it has usually already happened. */}
-      {recentPosted === null && (
-        <div className="rounded-2xl liquid-glass p-card" aria-hidden>
-          <div className="flex items-center gap-4">
-            <span className="w-11 h-11 rounded-full shrink-0 animate-pulse" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} />
-            <span className="min-w-0 flex-1">
-              <span className="block h-4 w-40 rounded animate-pulse" style={{ background: "hsl(var(--olivewood) / 0.10)" }} />
-              <span className="block h-3 w-28 rounded mt-1.5 animate-pulse" style={{ background: "hsl(var(--olivewood) / 0.07)" }} />
-            </span>
-          </div>
-        </div>
-      )}
-
-      {hasRecent && (
-        <div className="rounded-2xl liquid-glass p-card min-h-[104px] flex flex-col justify-center">
-          <button
-            type="button"
-            onClick={() => toggleSection("repost")}
-            aria-expanded={repostOpen}
-            className="w-full flex items-center gap-4 text-left min-h-[72px] active:scale-[0.99] transition-transform"
-          >
-            <span
-              className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
-              style={{ background: "hsl(var(--sage) / 0.14)" }}
-              aria-hidden
-            >
-              <RotateCcw className="w-5 h-5" style={{ color: "hsl(var(--sage))" }} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span
-                className="block font-display font-bold text-ds-17"
-                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
-              >
-                Repost a Recent Job
-              </span>
-              <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Quickest way to ask for the same help again.
-              </span>
-            </span>
-            <ChevronDown
-              className="w-5 h-5 shrink-0 transition-transform duration-200"
-              style={{ color: "hsl(var(--olivewood) / 0.8)", transform: repostOpen ? "rotate(180deg)" : undefined }}
-              aria-hidden
-            />
-          </button>
-
-          {repostOpen && (
-            <ul className="space-y-2 mt-3">
-              {recentPosted!.map((job) => {
-                const colors = categoryColors[job.category];
-                return (
-                  <li key={job.id}>
-                    <button
-                      type="button"
-                      onClick={() => handleRepost(job.id)}
-                      aria-label={`Repost ${job.title}`}
-                      className="w-full rounded-ds-md text-left p-2.5 flex items-center gap-3 active:scale-[0.98] transition-all"
-                      style={{
-                        background: "hsl(var(--parchment) / 0.7)",
-                        border: "0.5px solid hsl(var(--olivewood) / 0.22)",
-                        boxShadow:
-                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-                          "0 1px 2px hsl(var(--olivewood) / 0.06)",
-                      }}
-                    >
-                      <span
-                        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${colors?.dot ?? ""}`}
-                        style={!colors?.dot ? { background: "hsl(var(--olivewood) / 0.12)" } : undefined}
-                      >
-                        <CategoryIcon
-                          category={job.category}
-                          aria-hidden
-                          className="w-4 h-4 text-white/90"
-                          strokeWidth={2.25}
-                        />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span
-                          className="block font-sans font-semibold leading-tight truncate text-ds-14"
-                          style={{ color: "hsl(var(--ink-deep))" }}
-                        >
-                          {job.title}
-                        </span>
-                        <span
-                          className="block font-sans mt-0.5 text-ds-11 tabular-nums"
-                          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                        >
-                          {shortRelativeDate(job.created_at)} · ${formatPrice(job.budget)}
-                        </span>
-                      </span>
-                      <ChevronRight
-                        className="w-4 h-4 shrink-0"
-                        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                        aria-hidden
-                      />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {/* 4 — USE A TEMPLATE (collapsed by default) */}
-      <div className="rounded-2xl liquid-glass p-card min-h-[104px] flex flex-col justify-center">
-        <button
-          type="button"
-          onClick={() => toggleSection("templates")}
-          aria-expanded={templatesOpen}
-          className="w-full flex items-center gap-4 text-left min-h-[72px] active:scale-[0.99] transition-transform"
-        >
-          <span
-            className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
-            style={{ background: "hsl(var(--gold-warm) / 0.14)" }}
-            aria-hidden
-          >
-            <LayoutTemplate className="w-5 h-5" style={{ color: "hsl(var(--gold-warm))" }} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span
-              className="block font-display font-bold text-ds-17"
-              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
-            >
-              Use a Template
-            </span>
-            <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Start from a common job and tweak the details.
-            </span>
-          </span>
-          <ChevronDown
-            className="w-5 h-5 shrink-0 transition-transform duration-200"
-            style={{ color: "hsl(var(--olivewood) / 0.8)", transform: templatesOpen ? "rotate(180deg)" : undefined }}
-            aria-hidden
-          />
-        </button>
-
-        {templatesOpen && (
+  // A way to start, opened in place of the cards (owner 2026-10-21: "tapping goes straight on"). The
+  // page's back arrow returns to the cards (handlePostJobBack).
+  if (panel) {
+    const head = {
+      templates: { q: "Pick a template", h: "Start from a common job, then edit anything." },
+      offer: { q: "Pick a saved Helpr", h: "They get first refusal for a window you set, before it opens to everyone." },
+      ai: { q: "Describe the job", h: "In your own words. AI fills in the form, and you check it." },
+    }[panel];
+    return (
+      <div className="space-y-section">
+        <PostJobStepHeader step={1} question={head.q} helper={head.h} />
+        {panel === "templates" && (
           <>
-            {/* Quick-start template cards — one tap pre-fills the form. */}
-            <div className="grid grid-cols-2 gap-2.5 mt-3">
+            <div className="grid grid-cols-2 gap-2.5">
               {visibleTemplates.map((sample) => (
                 <button
                   key={sample.id}
                   type="button"
                   onClick={() => form.useTemplate(() => form.applyTemplateFields(sample))}
                   aria-label={`Use template: ${sample.title}`}
-                  className="w-full min-w-0 rounded-ds-md text-left p-3 active:scale-[0.97] transition-all"
-                  style={{
-                    background: "hsl(var(--parchment) / 0.7)",
-                    border: "0.5px solid hsl(var(--olivewood) / 0.22)",
-                    boxShadow:
-                      "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-                      "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                      "0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
-                  }}
+                  className="w-full min-w-0 rounded-ds-md border border-border bg-card p-3 text-left transition-transform active:scale-[0.97]"
                 >
-                  <span
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-full text-base mb-2"
-                    style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
-                    aria-hidden
-                  >
+                  <span className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-base" aria-hidden>
                     {sample.icon}
                   </span>
-                  <p
-                    className="font-sans font-semibold leading-tight text-ds-14"
-                    style={{ color: "hsl(var(--ink-deep))" }}
-                  >
-                    {sample.title}
-                  </p>
-                  <p
-                    className="font-sans mt-1 text-ds-11 tabular-nums"
-                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                  >
+                  <p className="font-sans text-ds-14 font-semibold leading-tight text-foreground">{sample.title}</p>
+                  <p className="mt-1 font-sans text-ds-11 tabular-nums text-muted-foreground">
                     typical ${sample.typical_price} · ~
                     {sample.typical_duration_minutes < 60
                       ? `${sample.typical_duration_minutes} min`
@@ -499,43 +270,123 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                 </button>
               ))}
             </div>
-
             {sampleJobs.length > quickTemplates.length && (
               <button
                 type="button"
                 onClick={() => setShowAllTemplates((v) => !v)}
                 aria-expanded={showAllTemplates}
-                className="mt-3 text-ds-11 font-sans font-semibold active:scale-95 transition-transform"
-                style={{ color: "hsl(var(--bark))" }}
+                className="min-h-[44px] font-sans text-ds-13 font-semibold text-[hsl(var(--bark))]"
               >
-                {showAllTemplates
-                  ? "Show Fewer"
-                  : `Show All ${sampleJobs.length} Templates`}
+                {showAllTemplates ? "Show fewer" : `Show all ${sampleJobs.length} templates`}
               </button>
             )}
           </>
         )}
+        {panel === "offer" && <OfferToSavedHelpr open headless onOpenChange={(next) => form.setEntryPanel(next ? "offer" : null)} />}
+        {panel === "ai" && (
+          <AiJobBuilder
+            open
+            headless
+            onOpenChange={(next) => form.setEntryPanel(next ? "ai" : null)}
+            locationContext=""
+            onGenerated={(job) => {
+              form.applyAiJob(job);
+              form.setEntryPanel(null);
+              form.setStep("form");
+            }}
+          />
+        )}
       </div>
+    );
+  }
 
-      {/* 5 — AI JOB BUILDER (self-contained collapsible card). Lives on the
-          entry step so all the "ways to start a post" sit together; once it
-          generates fields we advance into the form to review them. */}
-      {/* 5 — OFFER TO A SAVED HELPR. The direct-offer flow's missing START;
-          see OfferToSavedHelpr for why it belongs on this screen. */}
-      <OfferToSavedHelpr
-        open={openSection === "offer"}
-        onOpenChange={(next) => setOpenSection(next ? "offer" : null)}
-      />
+  return (
+    // Step 0 (owner 2026-10-21, mock-up helpr-postjob-flow-mockup.png): "How do you want to start?",
+    // four cards, sentence case, an olive-circle icon each. A returning poster's kept draft and recent
+    // jobs follow as the same card (counted by the skeleton above, so the column lands once).
+    <div className="flex flex-col gap-3">
+      {startHeader}
+      {showGiftBanner && giftCards.userId && <GiftCardTeaser userId={giftCards.userId} ids={giftCards.ids} />}
 
-      <AiJobBuilder
-        open={openSection === "ai"}
-        onOpenChange={(next) => setOpenSection(next ? "ai" : null)}
-        locationContext=""
-        onGenerated={(job) => {
-          form.applyAiJob(job);
-          form.setStep("form");
-        }}
-      />
+      {/* AT THE DOOR, not at the end of the wizard: the 5-open-job cap, before any work is done. */}
+      {atOpenJobLimit && <OpenJobLimitNotice count={form.openJobCount ?? 5} />}
+
+
+      {/* 1 — START FRESH */}
+      {startCard("fresh", <PenLine className="h-5 w-5" />, "Start from scratch", "Pick a category and fill it in.", form.startFresh)}
+      {/* 2 — USE A TEMPLATE */}
+      {startCard("templates", <LayoutTemplate className="h-5 w-5" />, "Use a template", "Start from a common job, then edit anything.", () => {
+        track("post_job_entry_choice", { choice: "use_template_open" });
+        form.setEntryPanel("templates");
+      })}
+      {/* 3 — OFFER TO A SAVED HELPR */}
+      {startCard("offer", <UserCheck className="h-5 w-5" />, "Offer to a saved Helpr", "Send it to someone you've saved before it opens to everyone.", () => form.setEntryPanel("offer"))}
+      {/* 4 — AI JOB BUILDER */}
+      {startCard("ai", <Sparkles className="h-5 w-5" />, "Get help from AI", "Describe it in your own words, and AI fills in the form.", () => form.setEntryPanel("ai"))}
+
+      {/* 5 — LOAD DRAFT: only when a saved draft exists, and never for a draft whose job is already paid;
+          Q769 warns while its checkout is live. */}
+      {form.hasDraft && draftCheckout !== "paid" && (
+        startCard(
+          "draft",
+          <FileText className="h-5 w-5" />,
+          "Pick up your draft",
+          draftCheckout === "open"
+            ? "You started paying for this one. If you finished, it will show in Posts shortly, so check there before paying again."
+            : "Continue the request you saved earlier.",
+          form.loadDraftAndContinue,
+        )
+      )}
+
+      {/* 6 — REPOST A RECENT TASK */}
+      {hasRecent && (
+        <div className="rounded-2xl border border-border bg-card p-card">
+          <button
+            type="button"
+            onClick={() => setRepostOpen((v) => !v)}
+            aria-expanded={repostOpen}
+            className="flex w-full items-center gap-4 text-left transition-transform active:scale-[0.99]"
+            style={{ minHeight: "72px" }}
+          >
+            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]" aria-hidden>
+              <RotateCcw className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-sans text-ds-17 font-bold text-foreground">Repost a recent job</span>
+              <span className="mt-0.5 block font-sans text-ds-13 text-muted-foreground">The quickest way to ask for the same help again.</span>
+            </span>
+            <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200" style={{ transform: repostOpen ? "rotate(180deg)" : undefined }} aria-hidden />
+          </button>
+          {repostOpen && (
+            <ul className="mt-3 space-y-2">
+              {recentPosted!.map((job) => {
+                const colors = categoryColors[job.category];
+                return (
+                  <li key={job.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleRepost(job.id)}
+                      aria-label={`Repost ${job.title}`}
+                      className="flex w-full items-center gap-3 rounded-ds-md border border-border bg-background p-2.5 text-left transition-transform active:scale-[0.98]"
+                    >
+                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${colors?.dot ?? "bg-muted"}`}>
+                        <CategoryIcon category={job.category} aria-hidden className="h-4 w-4 text-white/90" strokeWidth={2.25} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-sans text-ds-14 font-semibold leading-tight text-foreground">{job.title}</span>
+                        <span className="mt-0.5 block font-sans text-ds-11 tabular-nums text-muted-foreground">
+                          {shortRelativeDate(job.created_at)} · ${formatPrice(job.budget)}
+                        </span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

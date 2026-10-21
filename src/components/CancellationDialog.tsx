@@ -25,8 +25,8 @@ import { AlertTriangle, ShieldAlert, DollarSign, CheckCircle, ArrowRight, Shield
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { cancellationHelperShare } from "@/lib/cancellationHelperShare";
-import { isFlatFeeJob, type FlatFeeStamp } from "@/lib/helprFlatFee";
-import { cancelRefundToast, cardShareCentsFromRead, giftCostCents, giftOnJobFromRead } from "@/lib/cancelRefundCopy";
+import { type FlatFeeStamp } from "@/lib/helprFlatFee";
+import { cancelRefundIsLessCardFee, cancelRefundToast, cardShareCentsFromRead, giftCostCents, giftOnJobFromRead } from "@/lib/cancelRefundCopy";
 // The ladder this dialog quotes IS the ladder Community Rules publishes —
 // read the same two constants CommunitySection does rather than restating
 // "25"/"50" as prose.
@@ -176,7 +176,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // paid less the card-processing fee Stripe keeps (refundToPayerCents in
   // void-cancelled-payments). A job paid for before F3 keeps the old copy:
   // its budget comes back and the card-cost service fee it was charged stays.
-  const flatModel = isFlatFeeJob(feeStamp);
+  // A legacy job moved to the flat Helpr fee keeps its poster's service fee
+  // on a cancel (owner 2026-10-21): cancelRefundIsLessCardFee says which copy.
+  const flatModel = cancelRefundIsLessCardFee(feeStamp, posterFee);
 
   const handleCancel = async () => {
     setCancelling(true);

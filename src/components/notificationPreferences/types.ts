@@ -25,7 +25,12 @@ export interface Prefs {
   email_messages: boolean;
   email_payments: boolean;
   email_reviews: boolean;
-  email_promotions: boolean;
+  /** Three-valued since 20261021135832 (Q2299): null = never chosen (the
+      sign-up box decides the welcome and come-back emails; the switch shows
+      src/lib/promotionsEmail.ts), true = on, false = off. The whole-row
+      writes on this screen send null back unchanged, so touching any other
+      switch never turns a never-chosen Promotions into a choice. */
+  email_promotions: boolean | null;
   email_system_alerts: boolean;
   // New granular categories
   new_offers: boolean;
@@ -68,7 +73,7 @@ export interface Prefs {
 // toggles, and Prefs now includes string-valued keys (quiet_start /
 // quiet_end) that have no place in the per-category switch grid.
 type BoolPrefKey = {
-  [K in keyof Prefs]: Prefs[K] extends boolean ? K : never;
+  [K in keyof Prefs]: Prefs[K] extends boolean | null ? K : never;
 }[keyof Prefs];
 
 export interface Row {

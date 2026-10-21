@@ -343,7 +343,14 @@ serve(async (req) => {
         );
       }
 
-      // Honor email opt-out: drop anyone with email_promotions=false.
+      // Honor email opt-out: drop anyone whose Promotions email is not
+      // explicitly ON. Since 20261021135832 email_promotions is three-valued:
+      // NULL = never chosen (the new column default; it stands where the old
+      // default `false` stood), true = turned on, false = turned off or
+      // unsubscribed. The owner's 2026-10-21 answer (Q2299: the sign-up box
+      // alone is enough) covers the welcome and come-back emails ONLY; a blast
+      // is a separate decision, so it keeps exactly the reach it had: a
+      // never-chosen member is not blasted. `!== true`, never `=== false`.
       //
       // This read MUST fail closed, exactly like the recipient query above.
       // Dropping the error made the opt-out list fail OPEN: `prefs` comes back
@@ -381,7 +388,7 @@ serve(async (req) => {
       }
       const optedOut = new Set(
         prefsScan.rows
-          .filter((p) => p.email_promotions === false || p.email_enabled === false)
+          .filter((p) => p.email_promotions !== true || p.email_enabled === false)
           .map((p) => p.user_id),
       );
 
